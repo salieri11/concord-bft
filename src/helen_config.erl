@@ -8,7 +8,8 @@
 -spec dispatch() -> [webmachine_dispatcher:route()].
 dispatch() ->
     lists:flatten([
-        {[], helen_resource, []}
+        {[], helen_resource, []},
+        {["api"], helen_api_base_resource, []}
     ]).
 
 web_config() ->
