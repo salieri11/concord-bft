@@ -9,7 +9,8 @@
 dispatch() ->
     lists:flatten([
         {[], helen_resource, []},
-        {["api"], helen_api_base_resource, []}
+        {["api"], helen_api_base_resource, []},
+        {["api", "eth"], helen_api_eth_resource, []}
     ]).
 
 web_config() ->
