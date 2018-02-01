@@ -2,58 +2,57 @@
 
 Helen is Athena's inter*face to launch a thousand* requests. This
 repository will be the home of the UI and API server for Project
-Athena. Currently, you'll find work on specification of the API in
-swagger.json.
+Athena.
 
-You should find in this directory:
+## Building
 
-README : this file
-Makefile : simple make commands
-rebar.config : configuration for Rebar3
-/src
-  /helen.app.src : application information file for OTP
-  /helen_app.erl : base module for the Erlang application behavior
-  /helen_config.erl : configuration interface for your application
-  /helen_sup.erl : OTP supervisor for the application
-  /helen_resource.erl : a simple example Webmachine resource
-/priv
-  /www : a convenient place to put your static web content
-
-You probably want to do one of a couple of things at this point:
-
-### Build the skeleton application:
+You will need [Erlang]() installed to build this repository. This
+application has been tested on Erlang/OTP R18. If you're using Ubuntu,
+you can install what you need from apt:
 
 ```
-$ rebar3 compile
+$ apt-get install erlang
 ```
 
-### Start up the skeleton application:
-```
-$ rebar3 release
-...
-$ ./_build/default/rel/helen/bin/helen console
-```
-
-*or*
+With Erlang installed, clone the repo:
 
 ```
-$ rebar3 shell
+$ git clone git@github.com:beerriot/helen && cd helen
 ```
 
-### Change the basic application:
-* edit src/helen_resource.erl
-
-### Add some new resources:
-* edit src/YOUR_NEW_RESOURCE.erl
-* edit src/helen_config.erl's `dispatch/0` function
-
-### On the fly editing
-
-We're using `sync` now to do on the fly compilation of resources.
-
-Once you're in a console, just type `sync:go().` and it will recompile
-your files on the fly, but you'll have to use the dev profile:
+Build using `make`:
 
 ```
-$ rebar3 as dev shell
+helen$ make all rel
 ```
+
+And start the app:
+
+```
+helen$ ./_build/default/rel/helen/bin/helen console
+```
+
+## Project Layout
+
+The project is a [Webmachine]() application. The resources currently
+defined are:
+
+ * / : src/helen_resource.erl. A placeholder that will eventually
+   display the landing page of the UI.
+
+ * /api : src/helen_api_base_resource.erl. The base of the REST API. A
+   GET request will serve the Swagger/OpenAPI specification for the
+   service.
+
+ * /api/eth : src/helen_api_eth_resource.erl. A JSON RPC endpoint
+   compatible with [Ethereum's JSON RPC API](), that exposes the
+   Athena EVM-compatible blockchain.
+
+Other files you'll find interesting:
+
+ * /priv/swagger.json : The Swagger specification for the service.
+
+ * /config/* : Configuration for the application.
+
+ * /src/helen_config.erl : URL dispatch definitions and IP/Port
+   binding.
