@@ -1,1 +1,7 @@
 *~
+_build
+relx
+ebin
+*.beam
+*crash*dump
+rebar.lock
