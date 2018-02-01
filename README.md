@@ -6,9 +6,9 @@ Athena.
 
 ## Building
 
-You will need [Erlang]() installed to build this repository. This
-application has been tested on Erlang/OTP R18. If you're using Ubuntu,
-you can install what you need from apt:
+You will need [Erlang](http://www.erlang.org/) installed to build this
+repository. This application has been tested on Erlang/OTP R18. If
+you're using Ubuntu, you can install what you need from apt:
 
 ```
 $ apt-get install erlang
@@ -34,8 +34,9 @@ helen$ ./_build/default/rel/helen/bin/helen console
 
 ## Project Layout
 
-The project is a [Webmachine]() application. The resources currently
-defined are:
+The project is a
+[Webmachine](https://github.com/webmachine/webmachine/wiki)
+application. The resources currently defined are:
 
  * / : src/helen_resource.erl. A placeholder that will eventually
    display the landing page of the UI.
@@ -45,8 +46,9 @@ defined are:
    service.
 
  * /api/eth : src/helen_api_eth_resource.erl. A JSON RPC endpoint
-   compatible with [Ethereum's JSON RPC API](), that exposes the
-   Athena EVM-compatible blockchain.
+   compatible with [Ethereum's JSON RPC
+   API](https://ethereum.gitbooks.io/frontier-guide/content/rpc.html),
+   that exposes the Athena EVM-compatible blockchain.
 
 Other files you'll find interesting:
 
