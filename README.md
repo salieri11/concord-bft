@@ -71,3 +71,10 @@ Other files you'll find interesting:
 
  * /src/helen_config.erl : URL dispatch definitions and IP/Port
    binding.
+
+## Components
+
+Files in priv/www/swagger are from the
+(swagger-ui)[https://github.com/swagger-api/swagger-ui] project,
+Copyright 2018 SmartBear Software, Licensed under the Apache License,
+Version 2.0.
