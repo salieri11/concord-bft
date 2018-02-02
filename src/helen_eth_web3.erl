@@ -7,10 +7,16 @@
 
 -export([
          clientVersion/1,
-         sha3/1
+         sha3/1,
+         load_nif/0
         ]).
 
 -include("helen_eth.hrl").
+
+-onload(load_nif/0).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% RPC Methods
 
 -spec clientVersion(#eth_request{}) -> iodata().
 clientVersion(_Request) ->
@@ -20,12 +26,20 @@ clientVersion(_Request) ->
 sha3(#eth_request{params=[String0x]}) ->
     case dehex(String0x) of
         {ok, Bin} ->
-            [<<"TODO: hash of ">>, size(Bin), <<" bytes">>];
+            case catch keccak_digest(Bin) of
+                Digest when is_binary(Digest) ->
+                    hex0x(Digest);
+                _ ->
+                    <<"Failed to compute digest">>
+            end;
         {error, Reason} ->
             Reason
     end;
 sha3(_Requestn) ->
     <<"ERROR: wrong number of parameters">>.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Support functions
 
 %% Convert a "0x<data>" string to its binary value.
 -spec dehex(binary()) -> {ok, iodata()} | {error, iodata()}.
@@ -53,3 +67,25 @@ binval(L) when L >= $a, L =< $f ->
     L - $a + 10;
 binval(L) when L >= $A, L =< $F ->
     L - $A + 10.
+
+%% Convert a binary to "0x<data>" format
+-spec hex0x(binary()) -> binary().
+hex0x(Binary) ->
+    Hex = << <<(hexval(H)), (hexval(L))>> || <<H:4, L:4>> <= Binary >>,
+    << $0, $x, Hex/binary >>.
+
+%% Convert a nibble to its hexadecimal numeral.
+-spec hexval(byte()) -> byte().
+hexval(X) when X < 10 ->
+    X + $0;
+hexval(X) ->
+    X + $a.
+
+%% Calculate the digest - see NIF definition in helen_eth_web3.cpp.
+-spec keccak_digest(binary()) -> binary().
+keccak_digest(_Bin) ->
+    <<"ERROR: web3 nif not loaded">>.
+
+load_nif() ->
+    Path = filename:join([code:priv_dir(helen), "helen_eth_web3"]),
+    erlang:load_nif(Path, 0).
