@@ -2,11 +2,15 @@
 %%
 %% Static file serving resource. Serves files from /priv/www, unless a
 %% "dir" property in the init list points elsewhere.
+%%
+%% TODO: add caching headers
 
 -module(helen_static_resource).
 -export([
          init/1,
          resource_exists/2,
+         previously_existed/2,
+         moved_permanently/2,
          content_types_provided/2,
          forbidden/2,
          produce_content/2
@@ -16,7 +20,8 @@
 
 -record(state, {
           dir :: string(),
-          clean_path :: string()
+          clean_path :: string(),
+          type :: nothing | file | dir_with_index | dir_without_index
 }).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -33,17 +38,64 @@ init(Props) ->
 -spec resource_exists(wrq:reqdata(), #state{}) ->
           {boolean(), wrq:reqdata(), #state{}}.
 resource_exists(ReqData, State) ->
-    #state{clean_path=Path}=NewState = clean_path(ReqData, State),
-    %% is_file == "exists", not "is regular file"
-    {filelib:is_file(Path), ReqData, NewState}.
+    NewState = inspect_path(ReqData, State),
+    Exists = case NewState#state.type of
+                 nothing -> false;
+                 file -> true;
+                 _ ->
+                     case lists:reverse(wrq:path(ReqData)) of
+                         [$/|_] -> true;
+                         _ ->
+                             %% web browsers get very confused with
+                             %% sub paths if the URL does not end with
+                             %% a /, so help them by redirecting (see
+                             %% previously_existed and
+                             %% moved_temporarily)
+                             false
+                     end
+             end,
+    {Exists, ReqData, NewState}.
+
+-spec previously_existed(wrq:reqdata(), #state{}) ->
+          {boolean()|{halt,500}, wrq:reqdata(), #state{}}.
+previously_existed(ReqData, State) ->
+    NewState = inspect_path(ReqData, State),
+    Existed = case NewState#state.type of
+                  dir_with_index ->
+                      true;
+                  dir_without_index ->
+                      false;
+                  _ ->
+                      %% we should not get here otherwise
+                      {halt, 500}
+              end,
+    {Existed, ReqData, NewState}.
+
+-spec moved_permanently(wrq:reqdata(), #state{}) ->
+          {{true, URI::string()}, wrq:reqdata(), #state{}}.
+moved_permanently(ReqData, State) ->
+    NewState = inspect_path(ReqData, State),
+    %% insisting we've gotten here only one way
+    dir_with_index = NewState#state.type,
+
+    %% help out browser apps that redirect to /blah instead of /blah/,
+    %% and then have /blah/index.html reference /foo.jpg instead of
+    %% /blah/foo.jpg.
+    Path = wrq:path(ReqData)++"/",
+    {{true, Path}, ReqData, NewState}.
 
 -spec content_types_provided(wrq:reqdata(), term()) ->
           {[{string(), atom()}], wrq:reqdata(), term()}.
 content_types_provided(ReqData, State) ->
-    #state{clean_path=Path}=NewState = clean_path(ReqData, State),
-    %% provide the guessed type of the file only
-    {[{webmachine_util:guess_mime(Path), produce_content}],
-     ReqData, NewState}.
+    #state{clean_path=Path}=NewState = inspect_path(ReqData, State),
+    Type = case NewState#state.type of
+               file ->
+                   webmachine_util:guess_mime(Path);
+               _ ->
+                   %% We're serving either .../index.html or an error
+                   "text/html"
+           end,
+    {[{Type, produce_content}], ReqData, NewState}.
 
 -define(NO_LISTING,
         <<"<html><head><title>403 Forbidden</title></head>",
@@ -53,28 +105,32 @@ content_types_provided(ReqData, State) ->
 -spec forbidden(wrq:reqdata(), #state{}) ->
           {boolean(), wrq:reqdata(), #state{}}.
 forbidden(ReqData, State) ->
-    #state{clean_path=Path}=State1 = clean_path(ReqData, State),
-    {Forbidden, NewReqData, NewState} =
-        case filelib:is_dir(Path) of
-            true ->
-                IndexPath = filename:join([Path, "index.html"]),
-                case filelib:is_regular(IndexPath) of
-                    true ->
-                        {false, ReqData, State1#state{clean_path=IndexPath}};
-                    false ->
-                        %% listing of directories is not supported
-                        {true, wrq:set_resp_body(?NO_LISTING, ReqData), State1}
-                end;
-            false ->
-                {false, ReqData, State1}
+    NewState = inspect_path(ReqData, State),
+    {Forbidden, NewReqData} =
+        case NewState#state.type of
+            dir_without_index ->
+                %% listing of directories is not supported
+                {true, wrq:set_resp_body(?NO_LISTING, ReqData), NewState};
+            _ ->
+                {false, ReqData}
         end,
     {Forbidden, NewReqData, NewState}.
 
 -spec produce_content(wrq:reqdata(), term()) ->
           {iodata(), wrq:reqdata(), term()}.
 produce_content(ReqData, State) ->
-    #state{clean_path=Path}=NewState = clean_path(ReqData, State),
-    case file:read_file(Path) of
+    NewState = inspect_path(ReqData, State),
+    RealPath = case NewState#state.type of
+                   file ->
+                       NewState#state.clean_path;
+                   dir_with_index ->
+                       filename:join([NewState#state.clean_path, "index.html"]);
+                   _ ->
+                       %% we never get here - make sure this throws an
+                       %% error below if we do by accident
+                       undefined
+               end,
+    case file:read_file(RealPath) of
         {ok, IoData} ->
             {IoData, ReqData, NewState};
         {error, _Reason} ->
@@ -84,13 +140,31 @@ produce_content(ReqData, State) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Utilities
 
-%% Remove ".." from path, and memoize for future use.
--spec clean_path(wrq:reqdata(), #state{}) -> #state{}.
-clean_path(ReqData, State=#state{dir=Dir, clean_path=undefined}) ->
+%% Map URL to file. Remove problematic components (., .., //),
+%% determine type of result, and memoize everything for future use.
+-spec inspect_path(wrq:reqdata(), #state{}) -> #state{}.
+inspect_path(ReqData, State=#state{dir=Dir, clean_path=undefined}) ->
     RawPath = wrq:disp_path(ReqData),
-    Clean = remove_dots(RawPath),
-    State#state{clean_path=filename:join([Dir|Clean])};
-clean_path(_ReqData, State) ->
+    Clean = filename:join([Dir,remove_dots(RawPath)]),
+    Type = case filelib:is_regular(Clean) of
+               true ->
+                   file;
+               false ->
+                   case filelib:is_dir(Clean) of
+                       true ->
+                           case filelib:is_regular(
+                                  filename:join([Clean,"index.html"])) of
+                               true ->
+                                   dir_with_index;
+                               false ->
+                                   dir_without_index
+                           end;
+                       false ->
+                           nothing
+                   end
+           end,
+    State#state{clean_path=Clean, type=Type};
+inspect_path(_ReqData, State) ->
     %% return memoized value
     State.
 
