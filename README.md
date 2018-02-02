@@ -14,7 +14,20 @@ you're using Ubuntu, you can install what you need from apt:
 $ apt-get install erlang
 ```
 
-With Erlang installed, clone the repo:
+You will also need Crypto++, version 5.6.4 or later. To install:
+
+```
+git clone https://github.com/weidai11/cryptopp.git
+cd cryptopp/
+git checkout CRYPTOPP_5_6_5;
+mkdir build/
+cd build/
+cmake ..
+make
+sudo make install
+``
+
+With Erlang and Crypt++ installed, clone the repo:
 
 ```
 $ git clone git@github.com:beerriot/helen && cd helen
