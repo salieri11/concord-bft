@@ -79,7 +79,7 @@ hex0x(Binary) ->
 hexval(X) when X < 10 ->
     X + $0;
 hexval(X) ->
-    X + $a.
+    X + $a - 10.
 
 %% Calculate the digest - see NIF definition in helen_eth_web3.cpp.
 -spec keccak_digest(binary()) -> binary().
