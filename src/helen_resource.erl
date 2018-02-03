@@ -21,6 +21,7 @@ to_html(ReqData, State) ->
     {"<html>"
      "<head><title>VMware Project Athena UI</title></head>"
      "<body><h1>VMware Project Athena UI (TODO)</h1>"
-     "<p>You're probably looking for the <a href=\"/api\">API</a> for now.</p>"
+     "<p>You're probably looking for the "
+     "<a href=\"/swagger/\">API Documentation</a> for now.</p>"
      "</body></html>",
      NewReqData, State}.

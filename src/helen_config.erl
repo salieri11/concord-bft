@@ -1,3 +1,7 @@
+%% Copyright 2018 VMware, all rights reserved.
+%%
+%% Dispatch and application configuration.
+
 -module(helen_config).
 
 -export([
@@ -9,6 +13,8 @@
 dispatch() ->
     lists:flatten([
         {[], helen_resource, []},
+        {["swagger", '*'], helen_static_resource,
+         [{dir, filename:join([code:priv_dir(helen), "www", "swagger-ui"])}]},
         {["api"], helen_api_base_resource, []},
         {["api", "eth"], helen_api_eth_resource, []}
     ]).
