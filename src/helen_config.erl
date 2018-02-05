@@ -12,11 +12,10 @@
 -spec dispatch() -> [webmachine_dispatcher:route()].
 dispatch() ->
     lists:flatten([
-        {[], helen_resource, []},
-        {["swagger", '*'], helen_static_resource,
-         [{dir, filename:join([code:priv_dir(helen), "www", "swagger-ui"])}]},
         {["api"], helen_api_base_resource, []},
-        {["api", "eth"], helen_api_eth_resource, []}
+        {["api", "eth"], helen_api_eth_resource, []},
+        %% serve everything in priv/www, at URLs matching the paths
+        {['*'], helen_static_resource, []}
     ]).
 
 web_config() ->

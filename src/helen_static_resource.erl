@@ -145,7 +145,7 @@ produce_content(ReqData, State) ->
 -spec inspect_path(wrq:reqdata(), #state{}) -> #state{}.
 inspect_path(ReqData, State=#state{dir=Dir, clean_path=undefined}) ->
     RawPath = wrq:disp_path(ReqData),
-    Clean = filename:join([Dir,remove_dots(RawPath)]),
+    Clean = filename:join([Dir|remove_dots(RawPath)]),
     Type = case filelib:is_regular(Clean) of
                true ->
                    file;
