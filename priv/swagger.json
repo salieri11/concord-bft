@@ -16,7 +16,37 @@
     }
   ],
   "paths": {
-    "/eth": {
+    "/athena/members": {
+      "summary": "Athena Concensus Membership List",
+      "get": {
+        "summary": "List nodes that are members",
+        "operationId": "memberListGet",
+        "responses": {
+          "200": {
+            "description": "Members",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "host": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/athena/eth": {
       "summary": "Ethereum JSON RPC API",
       "get": {
         "summary": "List available RPC methods",
