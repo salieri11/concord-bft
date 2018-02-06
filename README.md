@@ -1,4 +1,4 @@
-# VMWare Project Athena UI and API
+# VMware Project Athena UI and API
 
 Helen is Athena's inter*face to launch a thousand* requests. This
 repository will be the home of the UI and API server for Project
@@ -25,7 +25,7 @@ cd build/
 cmake ..
 make
 sudo make install
-``
+```
 
 With Erlang and Crypt++ installed, clone the repo:
 
@@ -75,6 +75,6 @@ Other files you'll find interesting:
 ## Components
 
 Files in priv/www/swagger are from the
-(swagger-ui)[https://github.com/swagger-api/swagger-ui] project,
+[swagger-ui](https://github.com/swagger-api/swagger-ui) project,
 Copyright 2018 SmartBear Software, Licensed under the Apache License,
 Version 2.0.
