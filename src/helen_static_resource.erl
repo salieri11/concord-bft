@@ -11,6 +11,7 @@
          resource_exists/2,
          previously_existed/2,
          moved_permanently/2,
+         moved_temporarily/2,
          content_types_provided/2,
          forbidden/2,
          produce_content/2
@@ -72,8 +73,15 @@ previously_existed(ReqData, State) ->
     {Existed, ReqData, NewState}.
 
 -spec moved_permanently(wrq:reqdata(), #state{}) ->
-          {{true, URI::string()}, wrq:reqdata(), #state{}}.
+          {false, wrq:reqdata(), #state{}}.
 moved_permanently(ReqData, State) ->
+    %% permanent move limits our future options without having to ask
+    %% users to clear their caches
+    {false, ReqData, State}.
+
+-spec moved_temporarily(wrq:reqdata(), #state{}) ->
+          {{true, URI::string()}, wrq:reqdata(), #state{}}.
+moved_temporarily(ReqData, State) ->
     NewState = inspect_path(ReqData, State),
     %% insisting we've gotten here only one way
     dir_with_index = NewState#state.type,
@@ -145,7 +153,7 @@ produce_content(ReqData, State) ->
 -spec inspect_path(wrq:reqdata(), #state{}) -> #state{}.
 inspect_path(ReqData, State=#state{dir=Dir, clean_path=undefined}) ->
     RawPath = wrq:disp_path(ReqData),
-    Clean = filename:join([Dir,remove_dots(RawPath)]),
+    Clean = filename:join([Dir|remove_dots(RawPath)]),
     Type = case filelib:is_regular(Clean) of
                true ->
                    file;
