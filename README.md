@@ -51,25 +51,29 @@ The project is a
 [Webmachine](https://github.com/webmachine/webmachine/wiki)
 application. The resources currently defined are:
 
- * / : src/helen_resource.erl. A placeholder that will eventually
-   display the landing page of the UI.
-
  * /api : src/helen_api_base_resource.erl. The base of the REST API. A
    GET request will serve the Swagger/OpenAPI specification for the
    service.
 
- * /api/eth : src/helen_api_eth_resource.erl. A JSON RPC endpoint
-   compatible with [Ethereum's JSON RPC
+ * /api/athena/eth : src/helen_api_eth_resource.erl. A JSON RPC
+   endpoint compatible with [Ethereum's JSON RPC
    API](https://ethereum.gitbooks.io/frontier-guide/content/rpc.html),
    that exposes the Athena EVM-compatible blockchain.
 
+ * /api/athena/members :
+   src/helen_api_member_list_resource.erl. Serves a JSON list of
+   information about nodes currently making up the cluster.
+
+ * anything else: files served from priv/www by
+   src/helen_static_resource.erl
+
 Other files you'll find interesting:
 
- * /priv/swagger.json : The Swagger specification for the service.
+ * priv/swagger.json : The Swagger specification for the service.
 
- * /config/* : Configuration for the application.
+ * config/* : Configuration for the application.
 
- * /src/helen_config.erl : URL dispatch definitions and IP/Port
+ * src/helen_config.erl : URL dispatch definitions and IP/Port
    binding.
 
 ## Components

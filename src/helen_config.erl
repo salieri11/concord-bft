@@ -13,7 +13,8 @@
 dispatch() ->
     lists:flatten([
         {["api"], helen_api_base_resource, []},
-        {["api", "eth"], helen_api_eth_resource, []},
+        {["api", "athena", "members"], helen_api_member_list_resource, []},
+        {["api", "athena", "eth"], helen_api_eth_resource, []},
         %% serve everything in priv/www, at URLs matching the paths
         {['*'], helen_static_resource, []}
     ]).
