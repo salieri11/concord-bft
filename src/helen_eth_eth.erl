@@ -8,6 +8,9 @@
          mining/1
         ]).
 
+-include("helen_eth.hrl").
+
 %% There is no mining in Athena.
+-spec mining(#eth_request{}) -> {ok|error, mochijson2:json_term()}.
 mining(_Request) ->
-    false.
+    {ok, false}.

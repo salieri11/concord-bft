@@ -52,7 +52,7 @@
         "summary": "List available RPC methods",
         "operationId": "ethJsonRpcGet",
         "responses": {
-          "default": {
+          "200": {
             "description": "RPC Method List",
             "content": {
               "application/json": {
@@ -117,7 +117,7 @@
           "required": true
         },
         "responses": {
-          "default": {
+          "200": {
             "description": "RPC Result",
             "content": {
               "application/json": {
@@ -136,6 +136,9 @@
                     },
                     "result": {
                       "type": {}
+                    },
+                    "error": {
+                      "type": "string"
                     }
                   }
                 }
