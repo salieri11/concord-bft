@@ -44,14 +44,26 @@
          #eth_rpc{name = <<"rpc_modules">>,
                   returns = <<"object">>,
                   handler = fun rpc_modules/1},
+
+         %%%%%%%%%%%%%%%%%%%%
+         %% web3
+
          #eth_rpc{name = <<"web3_clientVersion">>,
                   returns = <<"string">>,
                   handler = fun helen_eth_web3:clientVersion/1},
          #eth_rpc{name = <<"web3_sha3">>,
                   returns = <<"string">>,
                   handler = fun helen_eth_web3:sha3/1},
+
+
+         %%%%%%%%%%%%%%%%%%%%
+         %% eth
+
          #eth_rpc{name = <<"eth_sendTransaction">>,
-                  returns = <<"string">>}
+                  returns = <<"string">>},
+         #eth_rpc{name = <<"eth_mining">>,
+                  returns = <<"boolean">>,
+                  handler = fun helen_eth_eth:mining/1}
         ]).
 
 -record(state, {
