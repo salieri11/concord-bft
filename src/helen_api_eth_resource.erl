@@ -41,6 +41,9 @@
 
 -define(ETH_RPC_METHODS,
         [
+         #eth_rpc{name = <<"rpc_modules">>,
+                  returns = <<"object">>,
+                  handler = fun rpc_modules/1},
          #eth_rpc{name = <<"web3_clientVersion">>,
                   returns = <<"string">>,
                   handler = fun helen_eth_web3:clientVersion/1},
@@ -189,3 +192,13 @@ call_handler(ReqData,
 
 pass_through_handler(_Request) ->
     <<"TODO: forward request">>.
+
+%% Names the RPC modules exposed by this endpoint. ETH uses this to
+%% remove things like "admin" from public access. Format is an object,
+%% where keys are module names and values are module versions.
+rpc_modules(_Request) ->
+    {struct, [
+              {<<"eth">>, <<"1.0">>},
+              {<<"web3">>, <<"1.0">>}
+              %% TODO: "personal"?
+             ]}.
