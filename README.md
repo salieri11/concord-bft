@@ -39,10 +39,22 @@ Build using `make`:
 helen$ make all rel
 ```
 
-And start the app:
+## Using
+
+After you have built Helen, you can start it like so:
 
 ```
 helen$ ./_build/default/rel/helen/bin/helen console
+```
+
+That will set up an HTTP listener on port 8080. Point your browser to
+http://localhost:8080/ and you should see a sparse landing page with
+links to a Swagger viewer and a proof-of-concept dashboard.
+
+At this point, you can also attach an Etherium console:
+
+```
+$ geth attach http://localhost:8080/api/athena/eth
 ```
 
 ## Project Layout
@@ -75,6 +87,8 @@ Other files you'll find interesting:
 
  * src/helen_config.erl : URL dispatch definitions and IP/Port
    binding.
+
+ * test/* : EUnit tests, run automatically during the build
 
 ## Components
 

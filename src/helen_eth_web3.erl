@@ -22,21 +22,27 @@
 clientVersion(_Request) ->
     <<"Helen/1.0.0">>.
 
--spec sha3(#eth_request{}) -> iodata().
+-spec sha3(#eth_request{}) -> {ok|error, mochijson2:json_term()}.
 sha3(#eth_request{params=[String0x]}) ->
     case dehex(String0x) of
         {ok, Bin} ->
             case catch keccak_digest(Bin) of
-                Digest when is_binary(Digest) ->
-                    hex0x(Digest);
-                _ ->
-                    <<"Failed to compute digest">>
+                {ok, Digest} ->
+                    {ok, hex0x(Digest)};
+                {error, Message} ->
+                    {error, Message};
+                Caught ->
+                    %% TODO: do not expose this level of info in release
+                    {error, list_to_binary(
+                              io_lib:format("Failed to compute digest: ~p",
+                                           [Caught]))}
             end;
         {error, Reason} ->
-            Reason
+            %% TODO: do not expose this level of info in released version
+            {error, list_to_binary(io_lib:format("~p", [Reason]))}
     end;
 sha3(_Requestn) ->
-    <<"ERROR: wrong number of parameters">>.
+    {error, <<"ERROR: wrong number of parameters">>}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Support functions
@@ -82,9 +88,9 @@ hexval(X) ->
     X + $a - 10.
 
 %% Calculate the digest - see NIF definition in helen_eth_web3.cpp.
--spec keccak_digest(binary()) -> binary().
+-spec keccak_digest(binary()) -> {ok|error, binary()}.
 keccak_digest(_Bin) ->
-    <<"ERROR: web3 nif not loaded">>.
+    {error, <<"ERROR: web3 nif not loaded">>}.
 
 load_nif() ->
     Path = filename:join([code:priv_dir(helen), "helen_eth_web3"]),

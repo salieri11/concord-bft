@@ -20,6 +20,9 @@
 
 -define(ETH_JSON_RPC_VERSION, <<"2.0">>).
 
+-type eth_rpc_handler() ::
+        fun((#eth_request{}) -> {ok|error, mochijson2:json_term()}).
+
 %% This record and the following list record how we handle each of the
 %% RPC methods.
 -record(eth_rpc, {
@@ -35,20 +38,34 @@
           %% How we handle the method. 'undefined' means pass through
           %% to an Athena client. Otherwise the attached function will
           %% be called.
-          handler :: undefined |
-                     fun((#eth_request{}) -> iodata())
+          handler :: undefined | eth_rpc_handler()
          }).
 
 -define(ETH_RPC_METHODS,
         [
+         #eth_rpc{name = <<"rpc_modules">>,
+                  returns = <<"object">>,
+                  handler = fun rpc_modules/1},
+
+         %%%%%%%%%%%%%%%%%%%%
+         %% web3
+
          #eth_rpc{name = <<"web3_clientVersion">>,
                   returns = <<"string">>,
                   handler = fun helen_eth_web3:clientVersion/1},
          #eth_rpc{name = <<"web3_sha3">>,
                   returns = <<"string">>,
                   handler = fun helen_eth_web3:sha3/1},
+
+
+         %%%%%%%%%%%%%%%%%%%%
+         %% eth
+
          #eth_rpc{name = <<"eth_sendTransaction">>,
-                  returns = <<"string">>}
+                  returns = <<"string">>},
+         #eth_rpc{name = <<"eth_mining">>,
+                  returns = <<"boolean">>,
+                  handler = fun helen_eth_eth:mining/1}
         ]).
 
 -record(state, {
@@ -92,7 +109,7 @@ content_types_provided(ReqData, State) ->
     {[{"application/json", to_json}], ReqData, State}.
 
 -spec to_json(wrq:reqdata(), #state{}) ->
-          {{halt, integer()}|iodata(), wrq:reqdata(), #state{}}.
+          {iodata(), wrq:reqdata(), #state{}}.
 to_json(ReqData, State) ->
     %% This is very static, and we may want to cache the pre-built
     %% JSON, but we could also alter this list depending on auth
@@ -110,7 +127,7 @@ content_types_accepted(ReqData, State) ->
     {[{"application/json", undefined}], ReqData, State}.
 
 -spec process_post(wrq:reqdata(), #state{}) ->
-          {boolean() | halt, wrq:reqdata(), #state{}}.
+          {boolean(), wrq:reqdata(), #state{}}.
 process_post(ReqData, State=#state{request=#eth_request{method=Method}})
   when is_binary(Method) ->
     case lists:keyfind(Method, #eth_rpc.name, ?ETH_RPC_METHODS) of
@@ -125,7 +142,8 @@ process_post(ReqData, State) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Response JSON utitlities
 
--spec encode_result(wrq:reqdata(), #eth_request{}|undefined, binary()) ->
+-spec encode_result(wrq:reqdata(), #eth_request{}|undefined,
+                   {ok|error, mochijson2:json_term()}) ->
           wrq:reqdata().
 encode_result(ReqData, Request, Result) ->
     Id = case Request of
@@ -134,14 +152,20 @@ encode_result(ReqData, Request, Result) ->
              _ ->
                  0
          end,
+    {Label, Value} = case Result of
+                         {ok, V} -> {<<"result">>, V};
+                         {error, V} -> {<<"error">>, V}
+                     end,
     Response = [{<<"id">>, Id},
                 {<<"jsonrpc">>, ?ETH_JSON_RPC_VERSION},
-                {<<"result">>, Result}],
+                {Label, Value}],
     wrq:set_resp_body(mochijson2:encode(Response), ReqData).
 
 error_message(ReqData, State=#state{request=Request}, Message) ->
     Result = list_to_binary(["ERROR: ", Message]),
-    {{halt, 400}, encode_result(ReqData, Request, Result), State}.
+    %% "true": JSONRPC always returns 200 status, and encodes errors
+    %% in the response body
+    {true, encode_result(ReqData, Request, {error, Result}), State}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Utilities
@@ -187,5 +211,18 @@ call_handler(ReqData,
     end,
     {true, encode_result(ReqData, Request, Result), State}.
 
+-spec pass_through_handler(#eth_request{}) ->
+          {ok|error, mochijson2:json_term()}.
 pass_through_handler(_Request) ->
-    <<"TODO: forward request">>.
+    {ok, <<"TODO: forward request">>}.
+
+%% Names the RPC modules exposed by this endpoint. ETH uses this to
+%% remove things like "admin" from public access. Format is an object,
+%% where keys are module names and values are module versions.
+-spec rpc_modules(#eth_request{}) -> {ok|error, mochijson2:json_term()}.
+rpc_modules(_Request) ->
+    {ok, {struct, [
+                   {<<"eth">>, <<"1.0">>},
+                   {<<"web3">>, <<"1.0">>}
+                   %% TODO: "personal"?
+                  ]}}.
