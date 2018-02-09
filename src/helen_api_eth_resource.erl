@@ -62,10 +62,19 @@
          %% eth
 
          #eth_rpc{name = <<"eth_sendTransaction">>,
-                  returns = <<"string">>},
+                  returns = <<"string">>,
+                  handler = fun helen_eth_eth:sendTransaction/1},
+         #eth_rpc{name = <<"eth_sendRawTransaction">>,
+                  returns = <<"string">>,
+                  handler = fun helen_eth_eth:sendRawTransaction/1},
          #eth_rpc{name = <<"eth_mining">>,
                   returns = <<"boolean">>,
-                  handler = fun helen_eth_eth:mining/1}
+                  handler = fun helen_eth_eth:mining/1},
+
+         %%%%%%%%%%%%%%%%%%%%
+         %% make dialyzer happy
+
+         #eth_rpc{ } %% no name == can never match
         ]).
 
 -record(state, {
@@ -75,7 +84,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Resource definitions
 
--spec init(list()) -> {ok, #state{}}.
+-spec init(list()) -> {ok|{trace,string()}, #state{}}.
 init(_) ->
     {ok, #state{}}.
 

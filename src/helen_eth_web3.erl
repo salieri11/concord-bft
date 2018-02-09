@@ -8,7 +8,8 @@
 -export([
          clientVersion/1,
          sha3/1,
-         load_nif/0
+         load_nif/0,
+         keccak_digest/1
         ]).
 
 -include("helen_eth.hrl").
@@ -24,11 +25,11 @@ clientVersion(_Request) ->
 
 -spec sha3(#eth_request{}) -> {ok|error, mochijson2:json_term()}.
 sha3(#eth_request{params=[String0x]}) ->
-    case dehex(String0x) of
+    case helen_eth:dehex(String0x) of
         {ok, Bin} ->
             case catch keccak_digest(Bin) of
                 {ok, Digest} ->
-                    {ok, hex0x(Digest)};
+                    {ok, helen_eth:hex0x(Digest)};
                 {error, Message} ->
                     {error, Message};
                 Caught ->
@@ -47,50 +48,18 @@ sha3(_Requestn) ->
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Support functions
 
-%% Convert a "0x<data>" string to its binary value.
--spec dehex(binary()) -> {ok, iodata()} | {error, iodata()}.
-dehex(<<$0:8, $x:8, String/binary>>) ->
-    case size(String) rem 2 of
-        0 ->
-            case catch << <<((binval(A) bsl 4) bor binval(B)):8>>
-                          || <<A:8, B:8>> <= String >> of
-                {'EXIT', _} ->
-                    {error, <<"ERROR: invalid character in data">>};
-                Data ->
-                    {ok, Data}
-            end;
-        1 ->
-            {error, <<"ERROR: invalid data length (odd nibble count)">>}
-    end;
-dehex(_) ->
-    {error, <<"ERROR: invalid data format (missing \"0x\"">>}.
-
-%% Convert a hex digit to its integer value
--spec binval(byte()) -> integer().
-binval(L) when L >= $0, L =< $9 ->
-    L - $0;
-binval(L) when L >= $a, L =< $f ->
-    L - $a + 10;
-binval(L) when L >= $A, L =< $F ->
-    L - $A + 10.
-
-%% Convert a binary to "0x<data>" format
--spec hex0x(binary()) -> binary().
-hex0x(Binary) ->
-    Hex = << <<(hexval(H)), (hexval(L))>> || <<H:4, L:4>> <= Binary >>,
-    << $0, $x, Hex/binary >>.
-
-%% Convert a nibble to its hexadecimal numeral.
--spec hexval(byte()) -> byte().
-hexval(X) when X < 10 ->
-    X + $0;
-hexval(X) ->
-    X + $a - 10.
-
 %% Calculate the digest - see NIF definition in helen_eth_web3.cpp.
 -spec keccak_digest(binary()) -> {ok|error, binary()}.
 keccak_digest(_Bin) ->
-    {error, <<"ERROR: web3 nif not loaded">>}.
+    case now() of
+        {1518,133207,996606} ->
+            %% appease dialyzer: produce {ok, binary()}
+            %% this will never be called, but produces an easily
+            %% recognizable value just in case
+            helen_eth:dehex(<<"0xdeadbeefdeadbeefdeadbeefdeadbeef">>);
+        _ ->
+            {error, <<"ERROR: web3 nif not loaded">>}
+    end.
 
 load_nif() ->
     Path = filename:join([code:priv_dir(helen), "helen_eth_web3"]),
