@@ -12,14 +12,19 @@
 
 -include("helen_eth.hrl").
 
+-import(helen_eth_param, [
+                          optional_0x/2, required_0x/2,
+                          optional_address/2, required_address/2,
+                          optional_integer/2
+                         ]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Method handlers
+
 %% There is no mining in Athena.
 -spec mining(#eth_request{}) -> {ok|error, mochijson2:json_term()}.
 mining(_Request) ->
     {ok, false}.
-
--define(EMPTY_ADDRESS, <<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>).
--define(EMPTY_VALUE, <<0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                       0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0>>).
 
 %% Send a transaction.
 %%
@@ -27,17 +32,17 @@ mining(_Request) ->
 %% returned.
 -spec sendTransaction(#eth_request{}) -> {ok|error, mochijson2:json_term()}.
 sendTransaction(#eth_request{params=[{struct, Params}]}) ->
-    case [get_param(<<"data">>, Params, <<>>),
-          get_param(<<"from">>, Params, ?EMPTY_ADDRESS),
-          get_param(<<"to">>, Params, ?EMPTY_ADDRESS),
-          get_param(<<"value">>, Params, ?EMPTY_VALUE)] of
-        [{ok, Data}, {ok, From}, {ok, To}, {ok, Value}] ->
-            send_to_p2bc(Data, From, To, Value);
+    case [optional_address(<<"to">>, Params),
+          required_address(<<"from">>, Params),
+          optional_integer(<<"value">>, Params),
+          optional_0x(<<"data">>, Params)] of
+        [{ok, To}, {ok, From}, {ok, Value}, {ok, Data}] ->
+            sendTransaction_P2BC(To, From, Value, Data);
         Errors ->
             hd([ E || {error, _}=E <- Errors ])
     end;
 sendTransaction(_)->
-    {error, <<"Error: could not understand parameters">>}.
+    {error, <<"Could not understand parameters">>}.
 
 %% Send a raw transaction.
 %%
@@ -45,85 +50,68 @@ sendTransaction(_)->
 %% the front already ("01" == create, "02" == call).
 -spec sendRawTransaction(#eth_request{}) -> {ok|error, mochijson2:json_term()}.
 sendRawTransaction(#eth_request{params=[{struct, Params}]}) ->
-    case get_param(<<"data">>, Params, <<>>) of
+    case required_0x(<<"data">>, Params) of
         {ok, <<_P2BCType:1/binary, P2BCTo:20/binary, _/binary>>=Data} ->
-            send_to_p2bc(P2BCTo, Data);
+            sendRawTransaction_P2BC(P2BCTo, Data);
         {ok, _} ->
-            {error, <<"Error: invalid 'data' parameter">>}
+            {error, <<"Invalid 'data' parameter">>}
     end;
 sendRawTransaction(_) ->
-    {error, <<"Error: could not understand parameters">>}.
+    {error, <<"Could not understand parameters">>}.
 
--spec get_param(binary(),
-                [{mochijson2:json_term(), mochijson2:json_term()}],
-                binary()) ->
-          {ok|error, binary()}.
-get_param(Name, Params, Default) ->
-    case lists:keyfind(Name, 1, Params) of
-        {Name, Value} ->
-            case helen_eth:dehex(Value) of
-                {ok, DHV} ->
-                    {ok, ensure_length(DHV, Default)};
-                Error ->
-                    Error
-            end;
-        false ->
-            {ok, Default}
-    end.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Utilities
 
-%% this is probably only necessary for "value"
-ensure_length(Value, Default) ->
-    case {size(Value), size(Default)} of
-        {SV, SD} when SV >= SD ->
-            Value;
-        {SV, SD} ->
-            <<Default:(SD-SV)/binary, Value/binary>>
-    end.
+binary_reason(Msg, Reason) ->
+    list_to_binary(io_lib:format("failed to ~s (~p)", [Msg, Reason])).
 
-send_to_p2bc(Data, From, To, Value) ->
-    {P2BCType,P2BCTo} = case To == ?EMPTY_ADDRESS of
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% P2_Blockchain implementation
+
+%% Build a transaction command and send it to a P2_Blockchain cluster.
+sendTransaction_P2BC(To, From, Value, Data) ->
+    {P2BCType,P2BCTo} = case To == <<>> of
                             true ->
-                                {<<1>>, generate_address()}; %% create
+                                %% create
+                                {<<1>>, generate_address()};
                             false ->
+                                %% call
                                 {<<2>>, To}  %% call
                         end,
 
-    P2BCMessage = <<P2BCType/binary, P2BCTo/binary, From/binary,
-                    Value/binary, Data/binary>>,
+    sendRawTransaction_P2BC(P2BCTo,
+                            <<P2BCType/binary, P2BCTo/binary,
+                              From/binary, Value/binary, Data/binary>>).
 
-    send_to_p2bc(P2BCTo, P2BCMessage).
-
+%% TODO: config
 -define(P2Clients, [
                     {{127,0,0,1}, 9204},
                     {{127,0,0,1}, 9205},
                     {{127,0,0,1}, 9206}
                    ]).
 
-send_to_p2bc(P2BCTo, P2BCMessage) ->
-    Results = [ send_to_p2bc_client(I, P, P2BCTo, P2BCMessage) ||
-                  {I, P} <- ?P2Clients ],
-    case lists:foldl(fun({R, V}, {Successes, Errors}) ->
-                             case R of
-                                 ok -> {[V|Successes], Errors};
-                                 error -> {Successes, [V|Errors]}
-                             end
-                     end, {[], []}, Results) of
-        {[H|_], []} ->
-            {ok, H};
-        {[], [H|_]} ->
-            {error, H}
+%% Send a pre-built transaction to a P2_Blockchain cluster.
+sendRawTransaction_P2BC(To, Message) ->
+    Results = [ sendRawTransaction_P2BC_client(C, To, Message)
+                || C <- ?P2Clients ],
+    case lists:partition(fun({R, _}) -> R == ok end, Results) of
+        {[{ok, _}=Success|_], []} ->
+            Success;
+        {[], [{error, _}=Error|_]} ->
+            Error
     end.
 
-send_to_p2bc_client(P2ClientIP, P2ClientPort, P2BCTo, P2BCMessage) ->
-    case gen_tcp:connect(P2ClientIP, P2ClientPort, [binary,{active,false}]) of
+%% Send a pre-built transaction to one P2_Blockchain Blockchain_client.
+sendRawTransaction_P2BC_client({IP, Port}, To, Message) ->
+    case gen_tcp:connect(IP, Port, [binary,{active,false}]) of
         {ok, Socket} ->
-            case gen_tcp:send(Socket, P2BCMessage) of
+            case gen_tcp:send(Socket, Message) of
                 ok ->
                     case gen_tcp:recv(Socket, 0, 2000) of
                         {ok, Reply} ->
                             {ok, helen_eth:hex0x(Reply)};
                         {error, closed} ->
-                            {ok, helen_eth:hex0x(P2BCTo)};
+                            {ok, helen_eth:hex0x(To)};
                         {error, Reason} ->
                             {error, binary_reason("receive response", Reason)}
                     end;
@@ -134,9 +122,9 @@ send_to_p2bc_client(P2ClientIP, P2ClientPort, P2BCTo, P2BCMessage) ->
             {error, binary_reason("connect", Reason)}
     end.
 
-binary_reason(Msg, Reason) ->
-    list_to_binary(io_lib:format("Error: failed to ~s (~p)", [Msg, Reason])).
-
+%% Generate an address for contract creation.
 generate_address() ->
+    %% TODO: term_to_binary/1 and now/0 are both slow
+    %% TODO: we don't need a full digest here
     {ok, Digest} = helen_eth_web3:keccak_digest(term_to_binary(now())),
     <<Digest:20/binary>>.
