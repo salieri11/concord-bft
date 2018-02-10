@@ -83,27 +83,22 @@ sendTransaction_P2BC(To, From, Value, Data) ->
                             <<P2BCType/binary, P2BCTo/binary,
                               From/binary, Value/binary, Data/binary>>).
 
-%% TODO: config
--define(P2Clients, [
-                    {{127,0,0,1}, 9204},
-                    {{127,0,0,1}, 9205},
-                    {{127,0,0,1}, 9206}
-                   ]).
-
 %% Send a pre-built transaction to a P2_Blockchain cluster.
 sendRawTransaction_P2BC(To, Message) ->
     Results = [ sendRawTransaction_P2BC_client(C, To, Message)
-                || C <- ?P2Clients ],
+                || C <- clients_P2BC() ],
     case lists:partition(fun({R, _}) -> R == ok end, Results) of
         {[{ok, _}=Success|_], []} ->
             Success;
-        {[], [{error, _}=Error|_]} ->
-            Error
+        {_, [{error, _}=Error|_]} ->
+            Error;
+        {[], []} ->
+            {error, "No clients defined."}
     end.
 
 %% Send a pre-built transaction to one P2_Blockchain Blockchain_client.
 sendRawTransaction_P2BC_client({IP, Port}, To, Message) ->
-    case gen_tcp:connect(IP, Port, [binary,{active,false}]) of
+    case catch gen_tcp:connect(IP, Port, [binary,{active,false}]) of
         {ok, Socket} ->
             case gen_tcp:send(Socket, Message) of
                 ok ->
@@ -119,7 +114,19 @@ sendRawTransaction_P2BC_client({IP, Port}, To, Message) ->
                     {error, binary_reason("send request", Reason)}
             end;
         {error, Reason} ->
+            {error, binary_reason("connect", Reason)};
+        {'EXIT', Reason} ->
             {error, binary_reason("connect", Reason)}
+    end.
+
+%% Get a list of clients in the P2_Blockchain cluster
+-spec clients_P2BC() -> [{inet:ip_address(), inet:port_number()}].
+clients_P2BC() ->
+    case application:get_env(helen, p2bc_clients) of
+        {ok, Clients} ->
+            Clients;
+        undefined ->
+            []
     end.
 
 %% Generate an address for contract creation.
