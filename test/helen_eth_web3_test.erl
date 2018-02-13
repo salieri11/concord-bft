@@ -4,11 +4,9 @@
 
 -module(helen_eth_web3_test).
 
--export([
-         sha3_test_/0
-        ]).
-
+%% eunit includes -comple(export_all).
 -include_lib("eunit/include/eunit.hrl").
+
 -include("helen_eth.hrl").
 
 -define(EXAMPLE_HASHES,
