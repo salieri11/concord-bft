@@ -6,11 +6,11 @@ Athena.
 
 There are two ways to get started developing in this repo. If you will
 be modifying server-side code, follow the instructions in the
-''Building'' and ''Using'' sections below. If you will only be
-modifying browser-side code, you can instead use the instructions
-farther down in the ''Docker'' section.
+''Building and Running Directly'' section. If you will only be
+modifying browser-side code, you can instead use the instructions in
+the ''Building and Running with Docker'' section.
 
-## Building
+## Building and Running Directly
 
 You will need [Erlang](http://www.erlang.org/) installed to build this
 repository. This application has been tested on Erlang/OTP R18. If
@@ -45,52 +45,17 @@ Build using `make`:
 helen$ make all rel
 ```
 
-## Using
-
 After you have built Helen, you can start it like so:
 
 ```
 helen$ ./_build/default/rel/helen/bin/helen console
 ```
 
-That will set up an HTTP listener on port 8080. Point your browser to
-http://localhost:8080/ and you should see a sparse landing page with
-links to a Swagger viewer and a proof-of-concept dashboard.
+You'll find Helen's landing page by pointing your browser at
+`http://localhost:8080/`. Access and error logs can be found in
+`_build/default/rel/helen/log/`.
 
-At this point, you can also attach an Ethereum console:
-
-```
-$ geth attach http://localhost:8080/api/athena/eth
-```
-
-In order to actually send transactions, you'll also need a
-[P2_Blockchain](https://github.com/guyg7/P2_Blockchain) EVM cluster
-running. Once you have that, edit `sys.config` and set the IP and port
-for each `Blockchain_client` instance. This config file is located in
-the `config` directory, and the default build process symlinks
-`_build/default/rel/helen/releases/<version>/sys.config` to it.
-
-The `eth_sendTransaction` method will assume you're creating a
-contract if you omit the `to` field from the `params` structure. It
-will generate an address for the contract and return that.
-
-The `eth_sendRawTransaction` method expects the `data` field in the
-`params` list is 0x-encoded data of the following format:
-
- * characters 0,1: type of transaction. "01" for create, "02" for call.
-
- * characters 2-41: "to" parameter. The address at which the contract
-   should live (for create) or does live (for call).
-
- * characters 42-81: "from" parameter. Address of who is creating or
-   calling the contract.
-
- * characters 82-161: "endowment/value" parameter.
-
- * characters 162-end: "data" parameter. The code of the contract (for
-   create) or the argument to it (for call).
-
-## Docker
+## Building and Running with Docker
 
 This project can be built and run in docker containers. First, you
 will need an image. A pre-built one is available in a private Docker
@@ -168,6 +133,50 @@ Now when you edit the static files in your repo at
 instance, without rebuilding or restarting. (Note: edits to files
 elsewhere in the project will not be reflected in the running
 instance.)
+
+## Using
+
+Once you have Helen running, pointing a browser at its exposed port
+will show you a sparse landing page with links to a Swagger viewer and
+a proof-of-concept dashboard (note that the host and port will be
+different if you used docker).
+
+```
+$ open http://localhost:8080/
+```
+
+At this point, you can also attach an Ethereum console:
+
+```
+$ geth attach http://localhost:8080/api/athena/eth
+```
+
+In order to actually send transactions, you'll also need a
+[P2_Blockchain](https://github.com/guyg7/P2_Blockchain) EVM cluster
+running. Once you have that, edit `sys.config` and set the IP and port
+for each `Blockchain_client` instance. This config file is located in
+the `config` directory, and the default build process symlinks
+`_build/default/rel/helen/releases/<version>/sys.config` to it.
+
+The `eth_sendTransaction` method will assume you're creating a
+contract if you omit the `to` field from the `params` structure. It
+will generate an address for the contract and return that.
+
+The `eth_sendRawTransaction` method expects the `data` field in the
+`params` list is 0x-encoded data of the following format:
+
+ * characters 0,1: type of transaction. "01" for create, "02" for call.
+
+ * characters 2-41: "to" parameter. The address at which the contract
+   should live (for create) or does live (for call).
+
+ * characters 42-81: "from" parameter. Address of who is creating or
+   calling the contract.
+
+ * characters 82-161: "endowment/value" parameter.
+
+ * characters 162-end: "data" parameter. The code of the contract (for
+   create) or the argument to it (for call).
 
 ## Project Layout
 
