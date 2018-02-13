@@ -25,7 +25,7 @@
 
 %% There isn't really a second Keccak implementation to test against,
 %% so for now, this is just a few static tests taken from an official
-%% Etherium session.
+%% Ethereum session.
 sha3_test_() ->
     {setup,
      fun() -> helen_eth_web3:load_nif() end,

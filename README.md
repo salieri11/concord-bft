@@ -51,7 +51,7 @@ That will set up an HTTP listener on port 8080. Point your browser to
 http://localhost:8080/ and you should see a sparse landing page with
 links to a Swagger viewer and a proof-of-concept dashboard.
 
-At this point, you can also attach an Etherium console:
+At this point, you can also attach an Ethereum console:
 
 ```
 $ geth attach http://localhost:8080/api/athena/eth
