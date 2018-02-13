@@ -4,11 +4,9 @@
 
 -module(helen_eth_web3_test).
 
--export([
-         sha3_test_/0
-        ]).
-
+%% eunit includes -comple(export_all).
 -include_lib("eunit/include/eunit.hrl").
+
 -include("helen_eth.hrl").
 
 -define(EXAMPLE_HASHES,
@@ -25,7 +23,7 @@
 
 %% There isn't really a second Keccak implementation to test against,
 %% so for now, this is just a few static tests taken from an official
-%% Etherium session.
+%% Ethereum session.
 sha3_test_() ->
     {setup,
      fun() -> helen_eth_web3:load_nif() end,
