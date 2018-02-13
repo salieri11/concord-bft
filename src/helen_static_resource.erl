@@ -28,7 +28,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Resource definitions
 
--spec init([{dir,string()}]) -> {ok, #state{}}.
+-spec init([{dir,string()}]) -> {ok|{trace, string()}, #state{}}.
 init(Props) ->
     Dir = case lists:keyfind(dir, 1, Props) of
               {dir, D} -> D;
@@ -63,12 +63,14 @@ previously_existed(ReqData, State) ->
     NewState = inspect_path(ReqData, State),
     Existed = case NewState#state.type of
                   dir_with_index ->
+                      %% resource_exists returned false because the
+                      %% URL doesn't end with a /, so we'll redirect
+                      %% from moved_temporarily
                       true;
-                  dir_without_index ->
-                      false;
                   _ ->
-                      %% we should not get here otherwise
-                      {halt, 500}
+                      % neither nothing nor dir_without_index doesn't
+                      % gets a redirect (and 'file' shouldn't get here)
+                      false
               end,
     {Existed, ReqData, NewState}.
 
