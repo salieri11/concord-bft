@@ -22,7 +22,7 @@ endif
 CFLAGS += -fPIC -I $(INCLUDEDIR)
 CXXFLAGS += -fPIC -I $(INCLUDEDIR)
 
-LDLIBS += -L $(SRCDIR) -lstdc++ -lboost_system -lboost_program_options
+LDLIBS += -L $(SRCDIR) -lstdc++ -lboost_system -lboost_program_options -lprotobuf
 LDFLAGS +=
 
 # Verbosity.
@@ -36,14 +36,24 @@ cpp_verbose = $(cpp_verbose_$(V))
 link_verbose_0 = @echo " LD    " $(@F);
 link_verbose = $(link_verbose_$(V))
 
+PROTOS := $(shell find $(SRCDIR) -type f \( -name "*.proto" \))
+PROTOSRCS := $(addsuffix .pb.cc, $(basename $(PROTOS)))
+PROTOOBJS := $(addsuffix .o, $(basename $(PROTOSRCS)))
+
 SOURCES := $(shell find $(SRCDIR) -type f \( -name "*.c" -o -name "*.C" -o -name "*.cc" -o -name "*.cpp" \))
 OBJECTS = $(addsuffix .o, $(basename $(SOURCES)))
 
 COMPILE_C = $(c_verbose) $(CC) $(CFLAGS) $(CPPFLAGS) -c -g
 COMPILE_CPP = $(cpp_verbose) $(CXX) $(CXXFLAGS) $(CPPFLAGS) -c -g
 
-athena: $(OBJECTS)
+athena: $(PROTOOBJS) $(OBJECTS)
 	$(link_verbose) $(CC) $^ $(LDFLAGS) $(LDLIBS) -o $@
+
+%.pb.cc: %.proto
+	protoc --proto_path=$(SRCDIR) --cpp_out=$(SRCDIR) $<
+
+%.pb.o: %.pb.cc
+	$(COMPILE_CPP) $(OUTPUT_OPTION) $<
 
 %.o: %.c
 	$(COMPILE_C) $(OUTPUT_OPTION) $<
@@ -58,4 +68,4 @@ athena: $(OBJECTS)
 	$(COMPILE_CPP) $(OUTPUT_OPTION) $<
 
 clean:
-	@rm -f athena $(OBJECTS)
+	@rm -f athena $(OBJECTS) $(PROTOOBJS) $(PROTOSRCS) $(SRCDIR)/*.pb.h
