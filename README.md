@@ -197,8 +197,19 @@ application. The resources currently defined are:
    src/helen_api_member_list_resource.erl. Serves a JSON list of
    information about nodes currently making up the cluster.
 
- * anything else: files served from priv/www by
+ * /api/* : src/helen_404_resource.erl. Reserved for future expansion.
+ 
+ * /swagger/* : files served from priv/www/swagger/ by
    src/helen_static_resource.erl
+   
+ * /assets/* : files served from priv/www/assets/ by
+   src/helen_static_resource.erl
+   
+ * anything else: priv/www/index.html served by
+   src/helen_static_resource.erl. This is to allow the UI to be
+   implemented as an Angular single-page application. Which view to
+   display is chosen client-side, based on the URL, but the base
+   application HTML is always the same.
 
 Other files you'll find interesting:
 
