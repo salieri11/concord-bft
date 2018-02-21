@@ -1,7 +1,30 @@
 %% Copyright 2018 VMware, all rights reserved.
 %%
 %% Static file serving resource. Serves files from /priv/www, unless a
-%% "dir" property in the init list points elsewhere.
+%% "dir" or "file" property in the init list points elsewhere.
+%%
+%% In the case of "file", exactly that file will be served, regardless
+%% of the dispatch path. The dispatch rule:
+%%
+%% {["anything",'*'], helen_static_resource, [{file, "/foo/bar.html"}]}
+%%
+%% will serve the content of "/foo/bar.html" to requests for
+%% "/anything", "/anything/baz", "/anything/quux/yadda", etc.
+%%
+%% In the case of "dir", files within (including subdirectories) are
+%% served, based on the dispatch path. The dispatch rule:
+%%
+%% {["foo", '*'], helen_static_resource, [{dir, "/bar"}]}
+%%
+%% will serve requests like the following:
+%%
+%%  Requested Path        | File delivered
+%%  -------------------------------
+%%  /foo/                 | /bar/index.html
+%%  /foo/image.png        | /bar/image.png
+%%  /foo/baz/quux/test.js | /bar/baz/quux/test.js
+%%
+%% The default, no-config case is equivalent to [{dir, "priv/www"}].
 %%
 %% TODO: add caching headers
 
@@ -30,11 +53,19 @@
 
 -spec init([{dir,string()}]) -> {ok|{trace, string()}, #state{}}.
 init(Props) ->
-    Dir = case lists:keyfind(dir, 1, Props) of
-              {dir, D} -> D;
-              false -> filename:join([code:priv_dir(helen), "www"])
-          end,
-    {ok, #state{dir=Dir}}.
+    case lists:keyfind(file, 1, Props) of
+        {file, F} ->
+            %% purposely leaving `dir` undefined here, to catch
+            %% potential places where this forced path could be
+            %% ignored
+            {ok, #state{clean_path=F, type=file}};
+        false ->
+            Dir = case lists:keyfind(dir, 1, Props) of
+                      {dir, D} -> D;
+                      false -> filename:join([code:priv_dir(helen), "www"])
+                  end,
+            {ok, #state{dir=Dir}}
+    end.
 
 -spec resource_exists(wrq:reqdata(), #state{}) ->
           {boolean(), wrq:reqdata(), #state{}}.
@@ -120,7 +151,7 @@ forbidden(ReqData, State) ->
         case NewState#state.type of
             dir_without_index ->
                 %% listing of directories is not supported
-                {true, wrq:set_resp_body(?NO_LISTING, ReqData), NewState};
+                {true, wrq:set_resp_body(?NO_LISTING, ReqData)};
             _ ->
                 {false, ReqData}
         end,
