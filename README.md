@@ -134,6 +134,79 @@ instance, without rebuilding or restarting. (Note: edits to files
 elsewhere in the project will not be reflected in the running
 instance.)
 
+## Building the UI
+
+You will need [Node](https://www.nodejs.org/) installed to build the UI.
+The project targets the current LTS version of Node (8.9.x). You can install
+Node directly, or by using [NVM](https://github.com/creationix/nvm).
+
+If you are not utilizing NVM, please skip any commands that reference it.
+
+Before completing any of the following commands, make sure you are in the
+`webapp/` directory and have the correct version of Node activated:
+
+```
+cd webapp/
+nvm use
+```
+
+Also required is the Angular CLI, which currently handles asset compilation,
+component generation, and provides a local development server.
+Install using the following commands:
+
+```
+npm install -g @angular/cli
+```
+
+Install all dependencies through NPM.
+
+```
+npm install
+```
+
+Build the UI to `webapp/dist/`. This is primarily used in the Docker build
+process:
+
+```
+npm run build
+```
+
+Build and copy the UI in development mode to the `priv/www/` directory for
+use on a locally running server:
+
+```
+npm run build:local:dev
+```
+
+Build and copy the UI  in production mode to the `priv/www/` directory for
+use on a locally running server:
+
+```
+npm run build:local:prod
+```
+
+Start the UI in `watch` mode, typically used for local development.
+This will:
+ 
+ * Start a server listening on `http://localhost:4200` to deliver the UI assets.
+ 
+ * Proxy all API requests to an existing Helen server.
+  Edit `webapp/proxy.conf.json` and make sure `target` matches your desired
+  server and port.
+ 
+ * Watch for file changes under the `webapp/` and compile automatically.
+
+```
+npm start
+```
+
+UI tests can be performed with the following commands
+
+```
+ng test --single-run
+ng e2e
+```
+
 ## Using
 
 Once you have Helen running, pointing a browser at its exposed port

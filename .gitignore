@@ -7,3 +7,5 @@ ebin
 rebar.lock
 *.so
 *.o
+.DS_Store
+Thumbs.db
