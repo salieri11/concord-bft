@@ -51,9 +51,13 @@ After you have built Helen, you can start it like so:
 helen$ ./_build/default/rel/helen/bin/helen console
 ```
 
-You'll find Helen's landing page by pointing your browser at
-`http://localhost:8080/`. Access and error logs can be found in
+The API and swagger endpoints will now be available at
+`http://localhost:8080/api/` and `http://localhost:8080/swagger/`,
+respectively. Access and error logs can be found in
 `_build/default/rel/helen/log/`.
+
+To see the UI (at `http://localhost:808/` and elsewhere), you will
+also need to follow the steps in the "Building the UI" section below.
 
 ## Building and Running with Docker
 
