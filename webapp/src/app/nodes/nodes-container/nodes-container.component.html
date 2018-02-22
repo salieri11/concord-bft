@@ -1,0 +1,91 @@
+<div class="graph-placeholder"></div>
+
+<div class="p-2 bg-header">
+  <div class="row">
+    <div class="col-md">
+      <p class="p7 mt-0">
+        Total Active Nodes
+      </p>
+      <h2 class="mt-0">{{mockStats.totalActiveNodes | number}}</h2>
+    </div>
+    <div class="col-md">
+      <p class="p7 mt-0" >
+        Inactive Nodes
+      </p>
+      <h2 class="mt-0">{{mockStats.inactiveNodes | number}}</h2>
+    </div>
+    <div class="col-md">
+      <p class="p7 mt-0">
+        Overall Node Health
+      </p>
+      <h2 class="mt-0">{{mockStats.overallNodeHealth | percent:"1.0-2"}}</h2>
+      <div class="progress success">
+        <progress max="100" [value]="mockStats.overallNodeHealth * 100"></progress>
+      </div>
+    </div>
+    <div class="col-md">
+      <p class="p7 mt-0">
+        Transactions/second
+      </p>
+      <h2 class="mt-0">{{mockStats.transactionsPerSecond | number}}</h2>
+    </div>
+    <div class="col-md">
+      <p class="p7 mt-0">
+        Avg Validation Time
+      </p>
+      <h2 class="mt-0">{{mockStats.averageValidationTime | number:"1.0-2"}} <small>seconds</small></h2>
+    </div>
+  </div>
+</div>
+
+<div class="p-2">
+  <div class="row">
+    <div class="col-xs-6">
+      <h3 class="mt-0">Nodes</h3>
+    </div>
+    <div class="col-xs-6">
+      <div class="form-group text-right">
+        <input type="text" placeholder="Search..." />
+        <button type="button" class="btn btn-primary" (click)="onOpenFilterModal()">Filters</button>
+      </div>
+    </div>
+  </div>
+
+  <table class="table">
+    <thead>
+    <tr>
+      <th>Established</th>
+      <th>Location</th>
+      <th>Lorem Ipsum</th>
+      <th>Trans/Sec</th>
+      <th>Avg Length</th>
+      <th>Status</th>
+      <th>Lorem</th>
+      <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let member of members">
+      <td>01-28-2017</td>
+      <td>Lindberg</td>
+      <td>{{member.host}}</td>
+      <td>336</td>
+      <td>0.87 sec</td>
+      <td>{{member.status}}</td>
+      <td>75</td>
+      <td>
+        <clr-dropdown [clrCloseMenuOnItemClick]="false">
+          <button type="button" clrDropdownTrigger>
+            <clr-icon shape="ellipsis-horizontal" size="16"></clr-icon>
+          </button>
+          <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
+            <a clrDropdownItem [routerLink]="['/nodes', member.host]">View Detail</a>
+          </clr-dropdown-menu>
+        </clr-dropdown>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>
+
+<app-transaction-filters-modal #filterModal (applyFilters)="onApplyFilters()"></app-transaction-filters-modal>

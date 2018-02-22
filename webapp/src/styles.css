@@ -1,0 +1,14 @@
+/* You can add global styles to this file, and also import other style files */
+
+.main-container .content-container .content-area {
+  padding: 0;
+}
+
+.graph-placeholder {
+  height: 300px;
+  background-color: #001b28;
+}
+
+.bg-header {
+  background-color: #e4ecf0
+}

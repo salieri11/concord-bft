@@ -1,0 +1,84 @@
+<div class="graph-placeholder"></div>
+
+<div class="p-2 bg-header">
+  <div class="row">
+    <div class="col-md">
+      <p class="p7 mt-0">
+        Total Active Nodes
+      </p>
+      <h2 class="mt-0">{{mockStats.totalActiveNodes | number}}</h2>
+    </div>
+    <div class="col-md">
+      <p class="p7 mt-0">
+        Inactive Nodes
+      </p>
+      <h2 class="mt-0">{{mockStats.inactiveNodes | number}}</h2>
+    </div>
+    <div class="col-md">
+      <p class="p7 mt-0">
+        Overall Node Health
+      </p>
+      <h2 class="mt-0">{{mockStats.overallNodeHealth | percent:"1.0-2"}}</h2>
+      <div class="progress success">
+        <progress max="100" [value]="mockStats.overallNodeHealth * 100"></progress>
+      </div>
+    </div>
+    <div class="col-md">
+      <p class="p7 mt-0">
+        Transactions/second
+      </p>
+      <h2 class="mt-0">{{mockStats.transactionsPerSecond | number}}</h2>
+    </div>
+    <div class="col-md">
+      <p class="p7 mt-0">
+        Avg Validation Time
+      </p>
+      <h2 class="mt-0">{{mockStats.averageValidationTime | number:"1.0-2"}} <small>seconds</small></h2>
+    </div>
+  </div>
+</div>
+
+<div class="p-2">
+  <div class="row flex-items-xs-middle">
+    <div class="col-sm">
+      <h3 class="mt-0">Recent Transactions</h3>
+    </div>
+  </div>
+
+  <table class="table">
+    <thead>
+    <tr>
+      <th>Timestamp</th>
+      <th>Origination</th>
+      <th>Transaction Type</th>
+      <th>Amount</th>
+      <th>Trans Length</th>
+      <th>Status</th>
+      <th>Nodes</th>
+      <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td>01-28-2017</td>
+      <td>Lindberg</td>
+      <td>Lorem ipsum dolor</td>
+      <td>$785</td>
+      <td>40.87 sec</td>
+      <td>Denied</td>
+      <td>75</td>
+      <td>
+        <clr-dropdown [clrCloseMenuOnItemClick]="false">
+          <button type="button" clrDropdownTrigger>
+            <clr-icon shape="ellipsis-horizontal" size="16"></clr-icon>
+          </button>
+          <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
+            <button type="button" clrDropdownItem>Lorem ipsum</button>
+            <button type="button" clrDropdownItem>Dolor sit amet</button>
+          </clr-dropdown-menu>
+        </clr-dropdown>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>
