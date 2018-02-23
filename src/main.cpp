@@ -3,8 +3,8 @@
 #include <unistd.h>
 #include <vector>
 
-#include "../include/test_suite.h"
-#include "../include/core_vm_tests.h"
+#include "hermes/include/test_suite.h"
+#include "hermes/include/core_vm_tests.h"
 
 using namespace std;
 
