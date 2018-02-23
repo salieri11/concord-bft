@@ -1,12 +1,12 @@
 CC=g++
 
 build:
-	$(CC) -o RunTests *.cpp --std=c++11
+	$(CC) -o RunTests --std=c++11 src/*.cpp
 
-runCoreVMTests:
+run_core_vm_tests:
 	./RunTests -t CoreVMTests
 
-runAllTests: runCoreVMTests
+run_all_tests: run_core_vm_tests
 
 clean:
 	rm -f RunTests

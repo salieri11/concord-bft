@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 
-#include "CoreVMTests.h"
+#include "include/core_vm_tests.h"
 
 using namespace std;
 

@@ -3,8 +3,8 @@
 #include <unistd.h>
 #include <vector>
 
-#include "TestSuite.h"
-#include "CoreVMTests.h"
+#include "include/test_suite.h"
+#include "include/core_vm_tests.h"
 
 using namespace std;
 
