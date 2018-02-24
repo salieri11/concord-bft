@@ -1,6 +1,6 @@
 *~
 *.o
 athena
-*.pb.c
+*.pb.cc
 *.pb.h
 
