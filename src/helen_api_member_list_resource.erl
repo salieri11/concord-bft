@@ -28,6 +28,8 @@ content_types_provided(ReqData, State) ->
 -spec to_json(wrq:reqdata(), term()) ->
           {{halt, integer()}|iodata(), wrq:reqdata(), term()}.
 to_json(ReqData, State) ->
+    %helen_athena_conn:send(<<"hello there">>),
+    {Type, Result} = helen_athena_conn:send_echo_request(<<"hello there">>),
     %% mocking this for UI testing
     FakeMemberList = [
                       {struct, [
@@ -41,6 +43,12 @@ to_json(ReqData, State) ->
                       {struct, [
                                 {<<"host">>, <<"athena3">>},
                                 {<<"status">>, <<"unavailable">>}
+                               ]},
+                      {struct, [
+                                {<<"host">>, list_to_binary(
+                                               io_lib:format("~p", [Type]))},
+                                {<<"status">>, list_to_binary(
+                                                 io_lib:format("~p", [Result]))}
                                ]}
                      ],
     {mochijson2:encode(FakeMemberList), ReqData, State}.
