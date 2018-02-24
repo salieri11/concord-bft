@@ -5,75 +5,75 @@
 package com.vmware.athena;
 
 message AthenaRequest {
-    optional ProtocolRequest protocolRequest = 1;
-    optional PeerRequest peerRequest = 2;
-    repeated EthRequest ethRequest = 3;
+    optional ProtocolRequest protocol_request = 1;
+    optional PeerRequest peer_request = 2;
+    repeated EthRequest eth_request = 3;
 
     // 4-2045 open for definition
     // Likely: metrics/stats, non-eth blockchain, other admin
 
-    optional TestRequest testRequest = 2046;
+    optional TestRequest test_request = 2046;
+}
 
-    message ProtocolRequest {
-        optional int32 clientVersion = 1;
-        // TODO: probably some auth in here too
+message ProtocolRequest {
+    optional int32 client_version = 1;
+    // TODO: probably some auth in here too
+}
+
+message PeerRequest {
+    optional bool return_peers = 1;
+    repeated Peer add_peers = 2;
+    repeated Peer remove_peers = 3;
+}
+
+message EthRequest {
+    enum EthMethod {
+        SEND_TX = 1;
+        SEND_TX_RAW = 2;
     }
 
-    message PeerRequest {
-        optional bool returnPeers = 1;
-        repeated Peer addPeers = 2;
-        repeated Peer removePeers = 3;
-    }
+    optional EthMethod method = 1;
+    optional int64 id = 2;
+    optional bytes addr_to = 3;
+    optional bytes addr_from = 4;
+    optional bytes value = 5;
+    optional bytes data = 6;
+    optional bool create = 7;
+}
 
-    message EthRequest {
-        enum EthMethod {
-            SEND_TX = 1;
-            SEND_TX_RAW = 2;
-        }
-        
-        optional EthMethod method = 1;
-        optional int64 id = 2;
-        optional bytes addrTo = 3;
-        optional bytes addrFrom = 4;
-        optional bytes value = 5;
-        optional bytes data = 6;
-        optional bool create = 7;
-    }
-
-    message TestRequest {
-        optional string echo = 1;
-    }
+message TestRequest {
+    optional string echo = 1;
 }
 
 message AthenaResponse {
-    optional ProtocolResponse protocolResponse = 1;
-    optional PeerResponse peerResponse = 2;
-    repeated EthResponse ethResponse = 3;
+    optional ProtocolResponse protocol_response = 1;
+    optional PeerResponse peer_response = 2;
+    repeated EthResponse eth_response = 3;
 
     // 4-2045 open for definition
 
-    optional TestResponse testResponse = 2046;
-    optional ErrorResponse errorResponse = 2047;
+    optional TestResponse test_response = 2046;
+    optional ErrorResponse error_response = 2047;
+}
 
-    message ProtocolResponse {
-        optional int32 serverVersion = 1;
-    }
+message ProtocolResponse {
+    optional int32 server_version = 1;
+}
 
-    message PeerResponse {
-        repeated Peer peers = 1;
-    }
+message PeerResponse {
+    repeated Peer peers = 1;
+}
 
-    message EthResponse {
-        optional int64 id = 1;
-    }
+message EthResponse {
+    optional int64 id = 1;
+}
 
-    message TestResponse {
-        optional string echo = 1;
-    }
+message TestResponse {
+    optional string echo = 1;
+}
 
-    message ErrorResponse {
-        optional string description = 1;
-    }
+message ErrorResponse {
+    optional string description = 1;
 }
 
 message Peer {

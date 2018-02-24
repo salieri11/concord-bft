@@ -9,10 +9,7 @@
 #include "athena_api_connection.hpp"
 
 using boost::asio::ip::tcp;
-using com::vmware::athena::AthenaRequest;
-using com::vmware::athena::AthenaRequest_TestRequest;
-using com::vmware::athena::AthenaResponse;
-using com::vmware::athena::AthenaResponse_TestResponse;
+using namespace com::vmware::athena;
 
 athena_api_connection::pointer
 athena_api_connection::create(boost::asio::io_service &io_service)
@@ -51,12 +48,11 @@ athena_api_connection::start()
             athenaRequest_.ParseFromString(msg);
             std::cout << "Parsed!" << std::endl;
 
-            if (athenaRequest_.has_testrequest()) {
-               const AthenaRequest_TestRequest testRequest =
-                   athenaRequest_.testrequest();
+            if (athenaRequest_.has_test_request()) {
+               const TestRequest testRequest = athenaRequest_.test_request();
                if (testRequest.has_echo()) {
-                   AthenaResponse_TestResponse *response =
-                       athenaResponse_.mutable_testresponse();
+                   TestResponse *response =
+                       athenaResponse_.mutable_test_response();
                    std::string *echo = response->mutable_echo();
                    echo->assign(testRequest.echo());
                   athenaResponse_.SerializeToString(&pb);
