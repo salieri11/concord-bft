@@ -42,4 +42,3 @@ Hermes is the repository for the vmwareathena project's testing framework.
 
 ## Running a subset of tests:
 `make build run_core_vm_tests`
-
