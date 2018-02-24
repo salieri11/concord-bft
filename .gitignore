@@ -7,3 +7,5 @@ ebin
 rebar.lock
 *.so
 *.o
+*_pb.hrl
+
