@@ -6,6 +6,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
+#include "athena.pb.h"
+
 class athena_api_connection
    : public boost::enable_shared_from_this<athena_api_connection>
 {
@@ -32,5 +34,6 @@ private:
                 size_t bytes_transferred);
 
    boost::asio::ip::tcp::socket socket_;
-   std::string message_;
+   com::vmware::athena::AthenaRequest athenaRequest_;
+   com::vmware::athena::AthenaResponse athenaResponse_;
 };

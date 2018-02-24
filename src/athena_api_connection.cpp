@@ -7,7 +7,6 @@
 #include <boost/predef/detail/endian_compat.h>
 
 #include "athena_api_connection.hpp"
-#include "athena.pb.h"
 
 using boost::asio::ip::tcp;
 using com::vmware::athena::AthenaRequest;
@@ -49,19 +48,18 @@ athena_api_connection::start()
             == msglen) {
             std::cout << "Correctly read bytes. decoding..." << std::endl;
 
-            AthenaRequest request;
-            request.ParseFromString(msg);
+            athenaRequest_.ParseFromString(msg);
             std::cout << "Parsed!" << std::endl;
 
-            if (request.has_testrequest()) {
-               const AthenaRequest_TestRequest testRequest = request.testrequest();
+            if (athenaRequest_.has_testrequest()) {
+               const AthenaRequest_TestRequest testRequest =
+                   athenaRequest_.testrequest();
                if (testRequest.has_echo()) {
-                  AthenaResponse_TestResponse testResponse;
-                  std::string echo = testRequest.echo();
-                  testResponse.set_allocated_echo(&echo);
-                  AthenaResponse response;
-                  response.set_allocated_testresponse(&testResponse);
-                  response.SerializeToString(&pb);
+                   AthenaResponse_TestResponse *response =
+                       athenaResponse_.mutable_testresponse();
+                   std::string *echo = response->mutable_echo();
+                   echo->assign(testRequest.echo());
+                  athenaResponse_.SerializeToString(&pb);
                   msglen = pb.length();
 #ifndef BOOST_LITTLE_ENDIAN
                   msglen = (msglen << 8) || (msglen >> 8);
@@ -78,19 +76,6 @@ athena_api_connection::start()
     }
 
     std::cout << "Read failed: " << error << std::endl;
-    
-   // might actually be able to use a local variable here, because "Hello,
-   // World!" is static, but in general we can't, because the lifetime of the
-   // variable must be as long as needed for the write to finish
-   message_ = "Hello, World!";
-
-   boost::asio::async_write(
-      socket_,
-      boost::asio::buffer(message_),
-      boost::bind(&athena_api_connection::handle_write,
-                  shared_from_this(),
-                  boost::asio::placeholders::error,
-                  boost::asio::placeholders::bytes_transferred));
 }
 
 athena_api_connection::athena_api_connection(
