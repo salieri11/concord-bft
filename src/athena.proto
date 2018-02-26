@@ -22,8 +22,8 @@ message ProtocolRequest {
 
 message PeerRequest {
     optional bool return_peers = 1;
-    repeated Peer add_peers = 2;
-    repeated Peer remove_peers = 3;
+    repeated Peer add_peer = 2;
+    repeated Peer remove_peer = 3;
 }
 
 message EthRequest {
@@ -53,7 +53,7 @@ message AthenaResponse {
     // 4-2045 open for definition
 
     optional TestResponse test_response = 2046;
-    optional ErrorResponse error_response = 2047;
+    repeated ErrorResponse error_response = 2047;
 }
 
 message ProtocolResponse {
@@ -61,7 +61,7 @@ message ProtocolResponse {
 }
 
 message PeerResponse {
-    repeated Peer peers = 1;
+    repeated Peer peer = 1;
 }
 
 message EthResponse {

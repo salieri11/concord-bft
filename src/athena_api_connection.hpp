@@ -27,6 +27,21 @@ public:
 
 private:
 
+    void
+    dispatch();
+
+    void
+    handle_protocol_request();
+
+    void
+    handle_peer_request();
+
+    void
+    handle_eth_request(int i);
+
+    void
+    handle_test_request();
+
    athena_api_connection(boost::asio::io_service &io_service);
 
    void
