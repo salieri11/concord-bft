@@ -8,7 +8,7 @@
 %% multiple outstanding requests)
 %%
 %% TODO: timeouts
-%% TODO: backoff of reconnect failures
+%% TODO: liveness ping
 
 -module(helen_athena_conn).
 
@@ -31,6 +31,11 @@
 -define(CLIENT_VERSION, 1).
 -define(QUEUE_LIMIT, 10).
 
+%% Delay to add after the first reconnect attempt.
+-define(BASE_CONNECT_DELAY_MS, 10).
+%% We'll double the base connection delay up to this amount.
+-define(MAX_CONNECT_DELAY_MS, 10000).
+
 -record(buffer, {
           wait,
           chunks = {[], []}
@@ -41,7 +46,8 @@
           socket :: inet:socket(),
           queue :: queue:queue(),
           from :: from(),
-          buffer = #buffer{}
+          buffer = #buffer{},
+          reconnect_delay = 0 :: non_neg_integer()
 }).
 
 -type athenarequest() :: #athenarequest{}.
@@ -121,23 +127,21 @@ handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
 
-%% Handling cast messages. This is currently just "reconnect", which
-%% allows the init function to return quickly, and also allows any
-%% state to initiate teardown and reconnection asynchronously.
+%% Handling cast messages.
 -spec handle_cast(term(), state()) -> {noreply, state()} |
                                       {noreply, state(), timeout()} |
                                       {stop, term(), state()}.
-handle_cast(reconnect, State) ->
-    %% first close any socket we have open
-    Disconnected = disconnect(State),
-    Connected = connect(Disconnected),
-    {noreply, Connected};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-%% Handling all non call/cast messages. These are currently all TCP
-%% socket messages, because this module uses {active, once} to read
-%% asynchronously.
+%% Handling all non call/cast messages. Two types are expected:
+%%
+%%  1) TCP socket messages, because this module uses {active, once} to
+%%  read asynchronously.
+%%
+%%  2) Reconnect requests. We do these asynchronously, to allow the
+%%  init function to return quickly, and so that any state can safely
+%%  initiate teardown and reconnection.
 -spec handle_info(term(), state()) -> {noreply, state()} |
                                       {noreply, state(), timeout()} |
                                       {stop, term(), state()}.
@@ -148,6 +152,11 @@ handle_info({tcp_closed, Socket}, #state{socket=Socket}=State) ->
 handle_info({tcp_error, Socket, Reason}, #state{socket=Socket}=State) ->
     log(error_msg, State, "Socket disconnected (~p)", [Reason]),
     {noreply, reconnect(State)};
+handle_info(reconnect, State) ->
+    %% first close any socket we have open
+    Disconnected = disconnect(State),
+    Connected = connect(Disconnected),
+    {noreply, Connected};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -168,9 +177,13 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Just trigger a future reconnect, handled async.
 -spec reconnect(state()) -> state().
-reconnect(State) ->
-    gen_server:cast(self(), reconnect),
-    State.
+reconnect(#state{reconnect_delay=0}=State) ->
+    self() ! reconnect,
+    State#state{reconnect_delay=?BASE_CONNECT_DELAY_MS};
+reconnect(#state{reconnect_delay=Delay}=State) ->
+    erlang:send_after(Delay, self(), reconnect),
+    NewDelay = min(Delay*2, ?MAX_CONNECT_DELAY_MS),
+    State#state{reconnect_delay=NewDelay}.
 
 %% Close the connection to Athena. And abort inflight requests.
 -spec disconnect(state()) -> state().
@@ -202,7 +215,7 @@ connect(#state{socket=undefined, node={IP, Port}}=State) ->
                                     _ErrorOrExit == 'EXIT' ->
             log(error_msg, State,
                 "Unable to connect to athena at (~p)", [Reason]),
-            State
+            reconnect(State)
     end.
 
 %% Send the client version. Begins an async wait for server version
@@ -347,7 +360,7 @@ forward_response(Response, #state{from=self_version}=State) ->
             case P of
                 #protocolresponse{server_version=V} when V /= undefined ->
                     log(info_msg, State, "Connected to server version ~p", [V]),
-                    State#state{from=undefined};
+                    State#state{from=undefined, reconnect_delay=0};
                 _ ->
                     log(error_msg, State, "Server did not reply with version"),
                     reconnect(State#state{from=undefined})
