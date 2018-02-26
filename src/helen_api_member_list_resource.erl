@@ -39,12 +39,15 @@ to_json(ReqData, State) ->
                                   {<<"host">>, format_host(A,P)},
                                   {<<"status">>, iolist_to_binary(S)}
                                  ]}
-                        || #peer{address=A, port=P, status=S} <- Peers];
+                        || #peer{address=A, port=P, status=S} <- Peers],
+            {mochijson2:encode(Response), ReqData, State};
         _ ->
             Response = {struct, [{<<"error">>,
-                                  <<"invalid response from server">>}]}
-    end,
-    {mochijson2:encode(Response), ReqData, State}.
+                                  <<"invalid response from server">>}]},
+            {{halt, 500},
+             wrq:set_resp_body(mochijson2:encode(Response), ReqData),
+             State}
+    end.
 
 format_host(Address, Port) ->
     iolist_to_binary(io_lib:format("~s:~b", [Address, Port])).

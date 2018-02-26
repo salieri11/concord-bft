@@ -2,7 +2,13 @@
 %%
 %% A connection to an Athena node.
 %%
+%% This gen_server maintains a connection to one athena node. It
+%% buffers requests locally, sending one request to Athena at a time,
+%% and waiting for its response before sending the next. (TODO: allow
+%% multiple outstanding requests)
+%%
 %% TODO: timeouts
+%% TODO: backoff of reconnect failures
 
 -module(helen_athena_conn).
 
@@ -31,27 +37,33 @@
 }).
 
 -record(state, {
-          node,
-          socket,
-          queue,
-          from,
+          node :: node_address(),
+          socket :: inet:socket(),
+          queue :: queue:queue(),
+          from :: from(),
           buffer = #buffer{}
 }).
+
+-type athenarequest() :: #athenarequest{}.
+-type athenaresponse() :: #athenaresponse{}.
+-type from() :: {pid(),term()}|self_version.
+-type node_address() :: {inet:ip_address(), inet:port_number()}.
+-type buffer() :: #buffer{}.
+-type state() :: #state{}.
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 
-%%--------------------------------------------------------------------
-%% @doc
-%% Starts the server
-%%
-%% @spec start_link(term()) -> {ok, Pid} | ignore | {error, Error}
-%% @end
-%%--------------------------------------------------------------------
+%% Starts the server.
+-spec start_link(node_address()) -> {ok, pid()} | ignore | {error, term()}.
 start_link(Node) ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, Node, []).
 
+%% Ask Athena to echo a string back. It is the caller's responsibility
+%% to check whether or not the returned string matches the input
+%% string.
+-spec send_echo_request(binary()) -> {ok|error, binary()}.
 send_echo_request(String) ->
     Msg = #athenarequest{
              test_request =
@@ -72,57 +84,49 @@ send_echo_request(String) ->
             {error, <<"invalid response">>}
     end.
 
+%% Send a request to Athena.
+-spec send_request(athenarequest()) ->
+          athenaresponse()|{error, binary()}.
 send_request(#athenarequest{}=Msg) ->
-    gen_server:call(?SERVER, {send, Msg}).
+    case catch gen_server:call(?SERVER, {send, Msg}) of
+        {'EXIT', {timeout, _}} ->
+            {error, <<"timeout">>};
+        Other ->
+            Other
+    end.
 
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
 
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Initializes the server
-%%
-%% @spec init(Args) -> {ok, State} |
-%%                     {ok, State, Timeout} |
-%%                     ignore |
-%%                     {stop, Reason}
-%% @end
-%%--------------------------------------------------------------------
+%% Initializes the server. Begin async reconnect process.
+-spec init(node_address()) -> {ok, state()} |
+                              {ok, state(), timeout()} |
+                              ignore |
+                              {stop, term()}.
 init(Node) ->
     {ok, reconnect(#state{node=Node, queue=queue:new()})}.
 
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Handling call messages
-%%
-%% @spec handle_call(Request, From, State) ->
-%%                                   {reply, Reply, State} |
-%%                                   {reply, Reply, State, Timeout} |
-%%                                   {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, Reply, State} |
-%%                                   {stop, Reason, State}
-%% @end
-%%--------------------------------------------------------------------
+%% Handling call messages. This is currently just "new request".
+-spec handle_call(term(), from(), state()) ->
+          {reply, athenaresponse()|{error, binary()}, state()} |
+          {reply, athenaresponse()|{error, binary()}, state(), timeout()} |
+          {noreply, state()} |
+          {noreply, state(), timeout()} |
+          {stop, term(), athenaresponse()|{error, binary()}, state()} |
+          {stop, term(), state()}.
 handle_call({send, #athenarequest{}=Msg}, From, State) ->
     new_request(Msg, From, State);
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
 
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Handling cast messages
-%%
-%% @spec handle_cast(Msg, State) -> {noreply, State} |
-%%                                  {noreply, State, Timeout} |
-%%                                  {stop, Reason, State}
-%% @end
-%%--------------------------------------------------------------------
+%% Handling cast messages. This is currently just "reconnect", which
+%% allows the init function to return quickly, and also allows any
+%% state to initiate teardown and reconnection asynchronously.
+-spec handle_cast(term(), state()) -> {noreply, state()} |
+                                      {noreply, state(), timeout()} |
+                                      {stop, term(), state()}.
 handle_cast(reconnect, State) ->
     %% first close any socket we have open
     Disconnected = disconnect(State),
@@ -131,49 +135,30 @@ handle_cast(reconnect, State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% Handling all non call/cast messages
-%%
-%% @spec handle_info(Info, State) -> {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, State}
-%% @end
-%%--------------------------------------------------------------------
+%% Handling all non call/cast messages. These are currently all TCP
+%% socket messages, because this module uses {active, once} to read
+%% asynchronously.
+-spec handle_info(term(), state()) -> {noreply, state()} |
+                                      {noreply, state(), timeout()} |
+                                      {stop, term(), state()}.
 handle_info({tcp, Socket, Data}, #state{socket=Socket}=State) ->
     {noreply, new_data(Data, State)};
 handle_info({tcp_closed, Socket}, #state{socket=Socket}=State) ->
     {noreply, reconnect(State)};
 handle_info({tcp_error, Socket, Reason}, #state{socket=Socket}=State) ->
-    log(error, State, "Socket disconnected (~p)", [Reason]),
+    log(error_msg, State, "Socket disconnected (~p)", [Reason]),
     {noreply, reconnect(State)};
 handle_info(_Info, State) ->
     {noreply, State}.
 
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
-%% This function is called by a gen_server when it is about to
-%% terminate. It should be the opposite of Module:init/1 and do any
-%% necessary cleaning up. When it returns, the gen_server terminates
-%% with Reason. The return value is ignored.
-%%
-%% @spec terminate(Reason, State) -> void()
-%% @end
-%%--------------------------------------------------------------------
+%% Server is cleaning up. Tear down the connection.
+-spec terminate(term(), state()) -> term().
 terminate(_Reason, State) ->
     _ = disconnect(State),
     ok.
 
-%%--------------------------------------------------------------------
-%% @private
-%% @doc
 %% Convert process state when code is changed
-%%
-%% @spec code_change(OldVsn, State, Extra) -> {ok, NewState}
-%% @end
-%%--------------------------------------------------------------------
+-spec code_change(term(), state(), term()) -> {ok, state()}.
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
@@ -182,11 +167,13 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 
 %% Just trigger a future reconnect, handled async.
+-spec reconnect(state()) -> state().
 reconnect(State) ->
     gen_server:cast(self(), reconnect),
     State.
 
-%% Close the connection to Athena.
+%% Close the connection to Athena. And abort inflight requests.
+-spec disconnect(state()) -> state().
 disconnect(#state{socket=undefined}=State) ->
     State;
 disconnect(#state{socket=Socket}=State) ->
@@ -194,12 +181,18 @@ disconnect(#state{socket=Socket}=State) ->
     Cleared = abort_inflight(State),
     Cleared#state{socket=undefined}.
 
+%% Send an error to the sender of any request that has been forwarded
+%% to Athena, since we won't receive the response. Clear the receive
+%% buffer.
+-spec abort_inflight(state()) -> state().
 abort_inflight(State) ->
     forward_response({error, <<"connection closed">>}, State),
     State#state{from=undefined, buffer=#buffer{}}.
 
 %% Open the connection to Athena. Purposefully raises an exception if
-%% a connection is already open.
+%% a connection is already open. After a connection is opened, begin a
+%% protocol request to share version numbers.
+-spec connect(state()) -> state().
 connect(#state{socket=undefined, node={IP, Port}}=State) ->
     case catch gen_tcp:connect(IP, Port, [binary,{active,false}]) of
         {ok, Socket} ->
@@ -214,6 +207,7 @@ connect(#state{socket=undefined, node={IP, Port}}=State) ->
 
 %% Send the client version. Begins an async wait for server version
 %% response.
+-spec send_version(state()) -> state().
 send_version(State) ->
     Msg = #athenarequest{
              protocol_request =
@@ -221,9 +215,11 @@ send_version(State) ->
     send(Msg, self_version, State).
 
 %% Send an AthenaRequest to Athena.
+-spec send(athenarequest(), from(), state()) -> state().
 send(#athenarequest{}=Msg, From, #state{socket=Socket}=State)
   when Socket /= undefined ->
     Encoded = athena_pb:encode(Msg),
+    %% TODO: send error if message is too large
     Prefix = <<(iolist_size(Encoded)):2/little-unsigned-integer-unit:8>>,
     case gen_tcp:send(Socket, [Prefix, Encoded]) of
         ok ->
@@ -235,6 +231,11 @@ send(#athenarequest{}=Msg, From, #state{socket=Socket}=State)
             reconnect(State#state{from=From})
     end.
 
+%% Send a request to Athena, or queue for send later if a request is
+%% already outstanding.
+-spec new_request(athenarequest(), from(), state()) ->
+          {noreply, state()} |
+          {reply, {error, binary()}, state()}.
 new_request(#athenarequest{}=Msg, From,
             #state{from=undefined, socket=Socket}=State)
   when Socket /= undefined ->
@@ -243,18 +244,23 @@ new_request(#athenarequest{}=Msg, From, State) ->
     case queue_request(Msg, From, State) of
         {ok, NewState} ->
             {noreply, NewState};
-        {error, overload} ->
-            {reply, {error, overload}, State}
+        Error ->
+            {reply, Error, State}
     end.
 
+%% Queue a request to Athena, if there are not too many queued already.
+-spec queue_request(athenarequest(), from(), state()) ->
+          {ok, state()} | {error, binary()}.
 queue_request(Msg, From, #state{queue=Q}=State) ->
     case queue:len(Q) >= ?QUEUE_LIMIT of
         false ->
             {ok, State#state{queue=queue:in({Msg, From}, Q)}};
         true ->
-            {error, overload}
+            {error, <<"overload">>}
     end.
 
+%% Send the next request in the queue to Athena (if there is one).
+-spec dequeue_request(state()) -> state().
 dequeue_request(#state{queue=Q}=State) ->
     case queue:out(Q) of
         {{value, {Msg, From}}, NewQ} ->
@@ -263,6 +269,10 @@ dequeue_request(#state{queue=Q}=State) ->
             State
     end.
 
+%% Handle new TCP data received. Buffer it until a full message is
+%% ready. When a full message has been read, send the response to the
+%% caller, and dequeue the next request.
+-spec new_data(binary(), state()) -> state().
 new_data(<<>>, #state{socket=Socket}=State) ->
     %% filter zero-length packets
     inet:setopts(Socket, [{active, once}]),
@@ -277,6 +287,9 @@ new_data(Data, #state{buffer=Buffer, socket=Socket}=State) ->
             State#state{buffer=NewBuffer}
     end.
 
+%% Attempt to read a response out of the data received so far.
+-spec find_response(binary(), buffer()) ->
+          {ok, athenaresponse(), buffer()} | {wait, buffer()}.
 find_response(Data, #buffer{}=Buffer) ->
     case find_length(Data, Buffer) of
         {ok, NewBuffer} ->
@@ -285,6 +298,11 @@ find_response(Data, #buffer{}=Buffer) ->
             {wait, NewBuffer}
     end.
 
+%% Attempt to read the length of the next message from the data
+%% received so far. Returns 'ok' if the length was read, or had
+%% already been read in previously-received data. Returns 'wait' if no
+%% length has been read yet.
+-spec find_length(binary(), buffer()) -> {ok|wait, buffer()}.
 find_length(NewData, #buffer{wait=undefined, chunks=Chunks}=B) ->
     case get_bytes(2, Chunks, NewData) of
         {ok, [<<Length:2/little-unsigned-integer-unit:8>>], NewChunks} ->
@@ -299,18 +317,29 @@ find_length(NewData, #buffer{wait=undefined, chunks=Chunks}=B) ->
 find_length(NewData, #buffer{chunks={HeadChunks, TailChunks}}=B) ->
     {ok, B#buffer{chunks={HeadChunks, [NewData|TailChunks]}}}.
 
-try_decode(#buffer{wait=Length, chunks=Chunks}=B) ->
-    try_decode_result(B, get_bytes(Length, Chunks)).
+%% Try to decode a response from the data already received. Length
+%% should have already been read - this function will bad-match if it
+%% hasn't been.
+-spec try_decode(buffer()) -> {ok, athenaresponse(), buffer()} |
+                              {wait, buffer}.
+try_decode(#buffer{wait=Length, chunks=Chunks}=B) when length /= undefined ->
+    case get_bytes(Length, Chunks) of
+        {ok, Bytes, NewChunks} ->
+            %% TODO: this iolist_to_binary is aggravating
+            {ok, athena_pb:decode_athenaresponse(iolist_to_binary(Bytes)),
+             B#buffer{wait=undefined, chunks=NewChunks}};
+        {wait, NewChunks} ->
+            {wait, B#buffer{chunks=NewChunks}}
+    end.
 
-try_decode_result(B, {ok, Bytes, NewChunks}) ->
-    %% TODO: this iolist_to_binary is aggravating
-    {ok, athena_pb:decode_athenaresponse(iolist_to_binary(Bytes)),
-     B#buffer{wait=undefined, chunks=NewChunks}};
-try_decode_result(B, {wait, NewChunks}) ->
-    {wait, B#buffer{chunks=NewChunks}}.
-
+%% Send the response to the caller. If the response was for our
+%% initial protocol request to share versions, verify the result, and
+%% issue a reconnect if it was invalid.
+-spec forward_response(athenaresponse()|{error, binary()}, state()) -> state().
 forward_response(_Response, #state{from=undefined}=State) ->
-    %% response is an error because the connection closed - nothing to see here
+    %% response is an error because the connection closed, but there
+    %% was no outstanding client request, so we don't need to do
+    %% anything
     State;
 forward_response(Response, #state{from=self_version}=State) ->
     case Response of
@@ -321,11 +350,12 @@ forward_response(Response, #state{from=self_version}=State) ->
                     State#state{from=undefined};
                 _ ->
                     log(error_msg, State, "Server did not reply with version"),
-                    reconnect(State)
+                    reconnect(State#state{from=undefined})
             end;
-        _ ->
+        {error, _} ->
             log(error_msg, State, "Invalid server response"),
-            reconnect(State)
+            %% something else is already calling reconnect in this case
+            State#state{from=undefined}
     end;
 forward_response(Response, #state{from=From}=State) ->
     gen_server:reply(From, Response),
@@ -334,12 +364,20 @@ forward_response(Response, #state{from=From}=State) ->
 %% Implementation of a basic queue buffer. Chunks are added to
 %% TailChunks, which remains in reverse order (head is most recently
 %% received) until HeadChunks is empty, and which point it is reversed
-%% and used as the new HeadChunks.
+%% and used as the new HeadChunks. This function first adds the new
+%% chunk in the right place, then calls real extraction.
+-spec get_bytes(integer(), {[binary()], [binary()]}, binary()) ->
+          {ok, [binary()], {[binary()], [binary()]}} |
+          {wait, {[binary()], [binary()]}}.
 get_bytes(Count, {[], TailChunks}, NewChunk) ->
     get_bytes(Count, {lists:reverse([NewChunk|TailChunks]), []});
 get_bytes(Count, {HeadChunks, TailChunks}, NewChunk) ->
     get_bytes(Count, {HeadChunks, [NewChunk|TailChunks]}).
 
+%% Actual extraction from the buffer.
+-spec get_bytes(integer(), {[binary()], [binary()]}) ->
+          {ok, [binary()], {[binary()], [binary()]}} |
+          {wait, {[binary()], [binary()]}}.
 get_bytes(Count, {[Head|Chunks]=HC, TailChunks}=C) ->
     case Head of
         <<Bytes:Count/binary>> ->
@@ -366,7 +404,15 @@ get_bytes(Count, {[], []}=Empty) ->
 get_bytes(Count, {[], TailChunks}) ->
     get_bytes(Count, {lists:reverse(TailChunks), []}).
 
+%% Simply log wrapper, so we can easily include the node address in
+%% all logs.
+-spec log(info_msg|warning_msg|error_msg, state(), string()) -> term().
 log(Level, State, Message) ->
     log(Level, State, Message, []).
+
+%% Simply log wrapper, so we can easily include the node address in
+%% all logs.
+-spec log(info_msg|warning_msg|error_msg, state(), string(), [term()]) ->
+          term().
 log(Level, #state{node=N}, Message, Params) ->
     error_logger:Level("~p: "++Message, [N|Params]).
