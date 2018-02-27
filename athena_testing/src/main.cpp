@@ -11,6 +11,13 @@
 
 #include "hermes/include/system_calls.h"
 
+// log4cplus header files
+#include <log4cplus/logger.h>
+#include <log4cplus/loggingmacros.h>
+#include <log4cplus/configurator.h>
+#include <cstddef>
+
+
 using namespace std;
 
 /**
@@ -24,8 +31,21 @@ using namespace std;
  * - When all tests are done, write the JSON to a file and exit.
  * - Either the human or the higher level test framework will evaluate the JSON.
  **/
+
+
+static const string logger_config_file = "resources/log4cplus.properties";
+int reconfig_time_ms = 5 * 1000; // Number of milli seconds after which re-read config file
+
 int main()
 {
+
+  // Initializer logger
+  log4cplus::initialize();
+  log4cplus::ConfigureAndWatchThread configureThread(
+						     logger_config_file,
+						     reconfig_time_ms);
+  log4cplus::Logger athena_test_logger = log4cplus::Logger::getInstance("athena.test.logger");
+
   // Use EthereumNode to generate expected results or to verify that the test
   // suite is internally consistent.
   // Use VMwareNode to test the product.
@@ -39,17 +59,17 @@ int main()
   eNode.makeCall();
   vNode.makeCall();
 
-  cout << "Done" << endl;
+  LOG4CPLUS_INFO(athena_test_logger, "Done");
 
   // Placeholder.  This will be an Ethereum RPC call.
   string command = "curl http://build-squid.eng.vmware.com/build/mts/release/bora-7802939/publish/MD5SUM.txt 2>&1";
 
   try{
-    cout << "Running command '" << command << "'" << endl;
+    LOG4CPLUS_INFO(athena_test_logger, "Running command '" + command + "'");
     string result = makeExternalCall(command);
-    cout << result << endl;
+    LOG4CPLUS_INFO(athena_test_logger, result);
   }catch(string e){
-    cerr << e << endl;
+    LOG4CPLUS_WARN(athena_test_logger, e);
   }
   return 0;
 }
