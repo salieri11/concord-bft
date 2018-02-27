@@ -27,6 +27,11 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+-compile(export_all).
+-endif.
+
 -define(SERVER, ?MODULE).
 -define(CLIENT_VERSION, 1).
 -define(QUEUE_LIMIT, 10).
@@ -382,6 +387,10 @@ forward_response(Response, #state{from=From}=State) ->
 -spec get_bytes(integer(), {[binary()], [binary()]}, binary()) ->
           {ok, [binary()], {[binary()], [binary()]}} |
           {wait, {[binary()], [binary()]}}.
+get_bytes(Count, Chunks, <<>>) ->
+    %% this is needed for testing, which skips new_data/2, and goes
+    %% directly to find_response/2
+    get_bytes(Count, Chunks);
 get_bytes(Count, {[], TailChunks}, NewChunk) ->
     get_bytes(Count, {lists:reverse([NewChunk|TailChunks]), []});
 get_bytes(Count, {HeadChunks, TailChunks}, NewChunk) ->
@@ -401,11 +410,11 @@ get_bytes(Count, {[Head|Chunks]=HC, TailChunks}=C) ->
             {ok, [Bytes], {[Rest|Chunks], TailChunks}};
         _ ->
             %% not enough in first chunk
-            case Count < (iolist_size(HC) + iolist_size(TailChunks)) of
+            case Count =< (iolist_size(HC) + iolist_size(TailChunks)) of
                 true ->
                     %% we have enough data - dig in
                     {ok, Bytes, Rest} = get_bytes(Count-size(Head),
-                                                  {HC, TailChunks}),
+                                                  {Chunks, TailChunks}),
                     {ok, [Head|Bytes], Rest};
                 false ->
                     %% we don't have enough data - wait for more
