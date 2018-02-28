@@ -65,11 +65,6 @@ int main(int argc, char **argv)
     // callign notify after displaying help so that required options are not needed for showing help
     po::notify(opts);
 
-    if (!opts.count("logger_config")) {
-      cerr << "Error: please provide configuration file for logger" << endl;
-    
-    }
-  
     // Initializer logger
     log4cplus::initialize();
     log4cplus::ConfigureAndWatchThread configureThread(
