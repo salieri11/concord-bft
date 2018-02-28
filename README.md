@@ -18,6 +18,10 @@ The project is composed of three components:
 
 ## Building
 
+### Dependencies
+
+#### Boost
+
 You will need Boost installed. Version 1.64.0 has been tested (note
 the addition of `program_options` if you had built Boost for the
 `P2_Blockchain` project already:
@@ -31,12 +35,71 @@ cd boost_1_64_0
 sudo ./b2 install
 ```
 
+#### Protocol Buffers
+
 This project uses protocol buffers, so you'll need both the protoc
 compile and the C++ headers. On Ubunutu, you can get these via apt:
 
 ```
 $ sudo apt-get install libprotobuf-dev protobuf-compiler
 ```
+
+#### Log4CPlus
+
+This project usese log4cplus logging framework. We are currently
+using version 1.2.1 of this library. Do not use version 2.0 or further
+as it changes some interfaces and header files
+
+Follow below steps for installing this library.
+
+1. Download the tarball of this version from log4cplus sourceforge website:
+
+```
+wget https://sourceforge.net/projects/log4cplus/files/log4cplus-stable/1.2.1/log4cplus-1.2.1.tar.bz2/download
+```
+
+2. Extract the tarball
+
+```
+tar xvf log4cplus-1.2.1.tar.bz2
+```
+
+3. Move to the extracted directory
+
+```
+cd log4cplus-1.2.1
+````
+
+4. Configure & Make and install
+
+```
+./configure
+make
+sudo make install
+```
+
+This will install all library files and header files into
+'/usr/local'. (You may need to add `/usr/local/lib` to your
+`LD_LIBRARY_PATH` to run Athena.)
+
+### Athena
+
+Once dependencies are installed, run `make`:
+
+```
+$ make
+```
+
+This should produce an `athena` executable. Run it to start athena:
+
+```
+$ athena
+VMware Project Athena
+Listening on 0.0.0.0:5458
+```
+
+With Athena running, you probably want to go set up
+[Helen](https://github.com/vmwathena/helen) to talk to it.
 
 ## What is here:
 
