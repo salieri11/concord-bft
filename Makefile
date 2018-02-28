@@ -40,10 +40,9 @@ PROTOS := $(shell find $(SRCDIR) -type f \( -name "*.proto" \))
 PROTOSRCS := $(addsuffix .pb.cc, $(basename $(PROTOS)))
 PROTOOBJS := $(addsuffix .o, $(basename $(PROTOSRCS)))
 
-SOURCES := $(shell find $(SRCDIR) -type f \( -name "*.c" -o -name "*.C" -o -name "*.cc" -o -name "*.cpp" \))
+SOURCES := $(shell find $(SRCDIR) -type f \( -name "*.cc" -o -name "*.cpp" \))
 OBJECTS = $(addsuffix .o, $(basename $(SOURCES)))
 
-COMPILE_C = $(c_verbose) $(CC) $(CFLAGS) $(CPPFLAGS) -c -g
 COMPILE_CPP = $(cpp_verbose) $(CXX) $(CXXFLAGS) $(CPPFLAGS) -c -g
 
 athena: $(PROTOOBJS) $(OBJECTS)
@@ -55,13 +54,7 @@ athena: $(PROTOOBJS) $(OBJECTS)
 %.pb.o: %.pb.cc
 	$(COMPILE_CPP) $(OUTPUT_OPTION) $<
 
-%.o: %.c
-	$(COMPILE_C) $(OUTPUT_OPTION) $<
-
 %.o: %.cc
-	$(COMPILE_CPP) $(OUTPUT_OPTION) $<
-
-%.o: %.C
 	$(COMPILE_CPP) $(OUTPUT_OPTION) $<
 
 %.o: %.cpp

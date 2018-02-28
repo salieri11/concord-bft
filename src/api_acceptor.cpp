@@ -4,34 +4,36 @@
 
 #include <boost/bind.hpp>
 
-#include "athena_api_acceptor.hpp"
+#include "api_acceptor.hpp"
 
 using boost::asio::ip::tcp;
+using boost::asio::io_service;
+using boost::system::error_code;
 
-athena_api_acceptor::athena_api_acceptor(boost::asio::io_service &io_service,
-                                         tcp::endpoint endpoint)
+using namespace com::vmware::athena;
+
+api_acceptor::api_acceptor(io_service &io_service, tcp::endpoint endpoint)
    : acceptor_(io_service, endpoint)
 {
    start_accept();
 }
 
 void
-athena_api_acceptor::start_accept()
+api_acceptor::start_accept()
 {
-   athena_api_connection::pointer new_connection =
-      athena_api_connection::create(acceptor_.get_io_service());
+   api_connection::pointer new_connection =
+      api_connection::create(acceptor_.get_io_service());
 
    acceptor_.async_accept(new_connection->socket(),
-                          boost::bind(&athena_api_acceptor::handle_accept,
+                          boost::bind(&api_acceptor::handle_accept,
                                       this,
                                       new_connection,
                                       boost::asio::placeholders::error));
 }
 
 void
-athena_api_acceptor::handle_accept(
-   athena_api_connection::pointer new_connection,
-   const boost::system::error_code &error)
+api_acceptor::handle_accept(api_connection::pointer new_connection,
+                            const error_code &error)
 {
    if (!error) {
       new_connection->start();

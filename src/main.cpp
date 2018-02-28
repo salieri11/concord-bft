@@ -5,20 +5,27 @@
 #include <iostream>
 #include <boost/program_options.hpp>
 
-#include "athena_api_acceptor.hpp"
+#include "api_acceptor.hpp"
 
 using namespace boost::program_options;
 using boost::asio::ip::tcp;
+using boost::asio::ip::address;
+using boost::asio::io_service;
 
+using namespace com::vmware::athena;
+
+/*
+ * Start the service that listens for connections from Helen.
+ */
 void
 start_service(variables_map &opts)
 {
    std::string ip = opts["ip"].as<std::string>();
    short port = opts["port"].as<short>();
 
-   boost::asio::io_service io_service;
-   tcp::endpoint endpoint(boost::asio::ip::address::from_string(ip), port);
-   athena_api_acceptor acceptor(io_service, endpoint);
+   io_service io_service;
+   tcp::endpoint endpoint(address::from_string(ip), port);
+   api_acceptor acceptor(io_service, endpoint);
 
    std::cout << "Listening on " << endpoint << std::endl;
    io_service.run();
