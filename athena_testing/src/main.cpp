@@ -71,5 +71,10 @@ int main()
   }catch(string e){
     LOG4CPLUS_WARN(athena_test_logger, e);
   }
+
+  // Important to shutdown the logger while exiting, ConfigureAndWatchThread is still
+  // running and if we exit from main without killing that thread it might result in
+  // unexpected behaviour
+  log4cplus::Logger::shutdown();
   return 0;
 }
