@@ -17,6 +17,9 @@
 #include <log4cplus/configurator.h>
 #include <cstddef>
 
+#include <boost/program_options.hpp>
+namespace po = boost::program_options;
+
 
 using namespace std;
 
@@ -33,48 +36,75 @@ using namespace std;
  **/
 
 
-static const string logger_config_file = "resources/log4cplus.properties";
-int reconfig_time_ms = 5 * 1000; // Number of milli seconds after which re-read config file
 
-int main()
+
+int main(int argc, char **argv)
 {
+  try {
+    po::options_description desc("Command line parameters");
+    desc.add_options()
+      ("help", "Print this help message")
+      ("logger_config", po::value<string>()->required(),  "Complete path of configuration file for log4c+")
+      ("logger_reconfig_time", po::value<int>()->default_value(60 * 1000),
+       "Interval time (in milli seconds) after which logger should check for changes in configuration file");
 
-  // Initializer logger
-  log4cplus::initialize();
-  log4cplus::ConfigureAndWatchThread configureThread(
-						     logger_config_file,
-						     reconfig_time_ms);
-  log4cplus::Logger athena_test_logger = log4cplus::Logger::getInstance("athena.test.logger");
+    po::variables_map opts;
+    po::store(po::parse_command_line(argc, argv, desc), opts);
 
-  // Use EthereumNode to generate expected results or to verify that the test
-  // suite is internally consistent.
-  // Use VMwareNode to test the product.
-  EthereumNode eNode;
-  VMwareNode vNode;
-  NodeBase* n = &eNode;
-  NodeBase* v = &vNode;
-  n->makeCall();
-  v->makeCall();
+    if (opts.count("help")) {
+      cout << desc << std::endl;
+    }
 
-  eNode.makeCall();
-  vNode.makeCall();
+    // callign notify after displaying help so that required options are not needed for showing help
+    po::notify(opts);
 
-  LOG4CPLUS_INFO(athena_test_logger, "Done");
+    if (!opts.count("logger_config")) {
+      cerr << "Error: please provide configuration file for logger" << endl;
+    
+    }
+  
+    // Initializer logger
+    log4cplus::initialize();
+    log4cplus::ConfigureAndWatchThread configureThread(
+						       opts["logger_config"].as<string>(),
+						       opts["logger_reconfig_time"].as<int>());
+    log4cplus::Logger athena_test_logger = log4cplus::Logger::getInstance("athena.test.log");
 
-  // Placeholder.  This will be an Ethereum RPC call.
-  string command = "curl http://build-squid.eng.vmware.com/build/mts/release/bora-7802939/publish/MD5SUM.txt 2>&1";
+    // Use EthereumNode to generate expected results or to verify that the test
+    // suite is internally consistent.
+    // Use VMwareNode to test the product.
+    EthereumNode eNode;
+    VMwareNode vNode;
+    NodeBase* n = &eNode;
+    NodeBase* v = &vNode;
+    n->makeCall();
+    v->makeCall();
 
-  try{
-    LOG4CPLUS_INFO(athena_test_logger, "Running command '" + command + "'");
-    string result = makeExternalCall(command);
-    LOG4CPLUS_INFO(athena_test_logger, result);
-  }catch(string e){
-    LOG4CPLUS_WARN(athena_test_logger, e);
+    eNode.makeCall();
+    vNode.makeCall();
+
+    LOG4CPLUS_INFO(athena_test_logger, "Done");
+
+    // Placeholder.  This will be an Ethereum RPC call.
+    string command = "curl http://build-squid.eng.vmware.com/build/mts/release/bora-7802939/publish/MD5SUM.txt 2>&1";
+
+      try{
+	LOG4CPLUS_INFO(athena_test_logger, "Running command '" + command + "'");
+	string result = makeExternalCall(command);
+	LOG4CPLUS_INFO(athena_test_logger, result);
+      }catch(string e){
+	LOG4CPLUS_WARN(athena_test_logger, e);
+      }
+
+    // Important to shutdown the logger while exiting, ConfigureAndWatchThread is still
+    // running and if we exit from main without killing that thread it might result in
+    // unexpected behaviour
+    log4cplus::Logger::shutdown();
+
+  } catch (exception& er) {
+    cerr << "error:" << er.what() << endl;
+    return 1;
   }
 
-  // Important to shutdown the logger while exiting, ConfigureAndWatchThread is still
-  // running and if we exit from main without killing that thread it might result in
-  // unexpected behaviour
-  log4cplus::Logger::shutdown();
   return 0;
 }
