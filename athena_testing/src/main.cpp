@@ -36,7 +36,9 @@ using namespace std;
  **/
 
 
-
+static const string default_config_path = "./resources/log4cplus.properties";
+static int default_reconfig_time = 60 * 100; // 60 seconds - default time period
+// after which logger will recheck config file
 
 int main(int argc, char **argv)
 {
@@ -44,15 +46,20 @@ int main(int argc, char **argv)
     po::options_description desc("Command line parameters");
     desc.add_options()
       ("help", "Print this help message")
-      ("logger_config", po::value<string>()->required(),  "Complete path of configuration file for log4c+")
-      ("logger_reconfig_time", po::value<int>()->default_value(60 * 1000),
-       "Interval time (in milli seconds) after which logger should check for changes in configuration file");
+      ("logger_config",
+       po::value<string>()->default_value(default_config_path),
+       "Complete path of configuration file for log4c+")
+      ("logger_reconfig_time",
+       po::value<int>()->default_value(default_reconfig_time),
+       "Interval time (in milli seconds) after which logger should check"\
+       " for changes in configuration file");
 
     po::variables_map opts;
     po::store(po::parse_command_line(argc, argv, desc), opts);
 
     if (opts.count("help")) {
       cout << desc << std::endl;
+      return 0;
     }
 
     // callign notify after displaying help so that required options are not needed for showing help
@@ -92,6 +99,7 @@ int main(int argc, char **argv)
 	LOG4CPLUS_INFO(athena_test_logger, "Running command '" + command + "'");
 	string result = makeExternalCall(command);
 	LOG4CPLUS_INFO(athena_test_logger, result);
+	cout << result << endl;
       }catch(string e){
 	LOG4CPLUS_WARN(athena_test_logger, e);
       }
