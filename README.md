@@ -38,6 +38,19 @@ compile and the C++ headers. On Ubunutu, you can get these via apt:
 $ sudo apt-get install libprotobuf-dev protobuf-compiler
 ```
 
+## What is here:
+
+ * src/main.cpp: reads program options and starts the application
+
+ * src/athena_acceptor.*: socket listener and acceptor
+
+ * src/athena_connection.*: connection handler (reads and processes requests)
+
+ * src/athena.proto: Google Protocol Buffers messages that Helen uses
+   to talk to Athena
+
+## Future Work
+
 TODO: implement the equivalent of
 P2_Blockchain/Blockchain/basicBlockchain2 and
 P2_Blockchain/Blockchan/EtheriumBlockchain here.
