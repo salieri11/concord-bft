@@ -35,7 +35,7 @@ sudo apt-get install autoconf automake
 2. Clone the repository.
 
 ```
-git clone https://github.com/log4cplus/log4cplus.git --recursive
+git clone https://github.com/log4cplus/log4cplus.git
 ```
 
 3. Move to the extracted directory and checkout the appropriate branch.
@@ -59,7 +59,7 @@ This will install all library files and header files into '/usr/local'.
 
 Try compiling and running a simple logger code to make sure everything works.
 
-## Installing ninja (needed for jsoncpp)
+## Installing ninja (needed for jsoncpp, which is only needed for testing)
 1. Download it.
 ```
 wget https://github.com/ninja-build/ninja/archive/v1.8.2.tar.gz
@@ -77,12 +77,25 @@ cd ninja-1.8.2/
 sudo cp ninja /usr/sbin/ninja
 ```
 
-## Installing meson (needed for jsoncpp)
+## Installing meson (needed for jsoncpp, which is only needed for testing)
+
+1. Download it.
 ```
-sudo apt install meson
+wget https://github.com/mesonbuild/meson/archive/0.44.1.tar.gz
 ```
 
-## Installing jsoncpp
+2. Extract it.
+```
+tar -xf 0.44.1.tar.gz
+```
+
+3. Build it.
+```
+cd meson-0.44.1
+python3 setup.py install
+```
+
+## Installing jsoncpp (which is only needed for testing)
 
 1. Download it.
 ```
@@ -97,6 +110,7 @@ tar -xf 1.8.4.tar.gz
 3. Build/test/install.
 ```
 cd jsoncpp-1.8.4
+mkdir build-shared
 meson --buildtype release --default-library shared . build-shared
 ninja -v -C build-shared test
 cd build-shared
