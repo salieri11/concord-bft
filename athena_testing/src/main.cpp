@@ -5,9 +5,9 @@
 #include <string.h>
 #include <string>
 
-#include "athena/athena_testing/include/ethereum_node.h"
-#include "athena/athena_testing/include/node_base.h"
-#include "athena/athena_testing/include/vmware_node.h"
+#include "athena_testing/include/ethereum_node.h"
+#include "athena_testing/include/node_base.h"
+#include "athena_testing/include/vmware_node.h"
 
 #include "hermes/include/system_calls.h"
 
