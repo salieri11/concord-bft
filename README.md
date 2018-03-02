@@ -92,7 +92,7 @@ tar -xf 0.44.1.tar.gz
 3. Build it.
 ```
 cd meson-0.44.1
-python3 setup.py install
+sudo python3 setup.py install
 ```
 
 ## Installing jsoncpp (which is only needed for testing)
