@@ -16,10 +16,35 @@ The project is composed of three components:
 
  * (helen)[vmathena/helen] is the home of Athena's UI and external API
 
+## Building
 
-# Project Dependencies
+### Dependencies
 
-## Installing log4cplus
+#### Boost
+
+You will need Boost installed. Version 1.64.0 has been tested (note
+the addition of `program_options` if you had built Boost for the
+`P2_Blockchain` project already:
+
+```
+wget https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.gz
+tar -xzf boost_1_64_0.tar.gz
+cd boost_1_64_0
+./bootstrap.sh --with-libraries=system,filesystem,program_options --prefix=/usr
+./b2
+sudo ./b2 install
+```
+
+#### Protocol Buffers
+
+This project uses protocol buffers, so you'll need both the protoc
+compile and the C++ headers. On Ubunutu, you can get these via apt:
+
+```
+$ sudo apt-get install libprotobuf-dev protobuf-compiler
+```
+
+#### Log4CPlus
 
 This project usese log4cplus logging framework. We are currently
 using version 1.2.1 of this library. Do not use version 2.0 or further
@@ -55,11 +80,11 @@ make
 sudo make install
 ```
 
-This will install all library files and header files into '/usr/local'.
+This will install all library files and header files into
+'/usr/local'. (You may need to add `/usr/local/lib` to your
+`LD_LIBRARY_PATH` to run Athena.)
 
-Try compiling and running a simple logger code to make sure everything works.
-
-## Installing ninja (needed for jsoncpp, which is only needed for testing)
+#### Installing ninja (needed for jsoncpp, which is only needed for testing)
 1. Download it.
 ```
 wget https://github.com/ninja-build/ninja/archive/v1.8.2.tar.gz
@@ -77,7 +102,7 @@ cd ninja-1.8.2/
 sudo cp ninja /usr/sbin/ninja
 ```
 
-## Installing meson (needed for jsoncpp, which is only needed for testing)
+#### Installing meson (needed for jsoncpp, which is only needed for testing)
 
 1. Download it.
 ```
@@ -95,7 +120,7 @@ cd meson-0.44.1
 sudo python3 setup.py install
 ```
 
-## Installing jsoncpp (which is only needed for testing)
+#### Installing jsoncpp (which is only needed for testing)
 
 1. Download it.
 ```
@@ -116,6 +141,39 @@ ninja -v -C build-shared test
 cd build-shared
 sudo ninja install
 ```
+
+### Athena
+
+Once dependencies are installed, run `make`:
+
+```
+$ make
+```
+
+This should produce an `athena` executable. Run it to start athena:
+
+```
+$ athena
+VMware Project Athena
+Listening on 0.0.0.0:5458
+```
+
+With Athena running, you probably want to go set up
+[Helen](https://github.com/vmwathena/helen) to talk to it.
+
+## What is here:
+
+ * src/main.cpp: reads program options and starts the application
+
+ * src/athena_acceptor.*: socket listener and acceptor
+
+ * src/athena_connection.*: connection handler (reads and processes requests)
+
+ * src/athena.proto: Google Protocol Buffers messages that Helen uses
+   to talk to Athena
+
+
+## Future Work
 
 TODO: implement the equivalent of
 P2_Blockchain/Blockchain/basicBlockchain2 and

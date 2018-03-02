@@ -1,0 +1,220 @@
+// Copyright 2018 VMware, all rights reserved
+//
+// Handler for connections from the API/UI servers.
+//
+// We have one handler per connection. It is expected that connections
+// from Helen will be long-lived. We will multiplex client requests
+// from Helen's frontend API onto these connections.
+//
+// This version also handles one request at a time. The next request
+// is read from the socket, the request is handled, and a response is
+// sent to the socket. TODO: we probably want to toss requests at a
+// threadpool of handlers (see SEDA system design).
+//
+// Requests are sent as two bytes encoding the length as an unsigned
+// little-endian integer, followed by that number of bytes encoding an
+// AthenaRequest protocol buffers message (see
+// athena.proto). Responses are encoded the same way, though as
+// AthenaResponse messages. TODO: do we need to support requests or
+// responses more than 64k in length?
+
+#include <iostream>
+#include <boost/bind.hpp>
+#include <boost/predef/detail/endian_compat.h>
+
+#include "api_connection.hpp"
+
+using boost::asio::ip::tcp;
+using boost::asio::mutable_buffer;
+using boost::asio::buffer;
+using boost::asio::write;
+using boost::asio::read;
+using boost::asio::io_service;
+using boost::asio::transfer_at_least;
+using boost::system::error_code;
+
+using namespace com::vmware::athena;
+
+api_connection::pointer
+api_connection::create(io_service &io_service)
+{
+   return pointer(new api_connection(io_service));
+}
+
+tcp::socket&
+api_connection::socket()
+{
+   return socket_;
+}
+
+/*
+ * Start handling a connection. Read requests from the connection and
+ * send back responses until the client disconnects.
+ */
+void
+api_connection::start()
+{
+    uint16_t msglen;
+    // TODO: these buffers can probably be combined
+    char msg[65536];
+    std::string pb;
+    mutable_buffer lengthbuf(&msglen, sizeof(msglen));
+    mutable_buffer msgbuf(&msg, 65536);
+    error_code error;
+
+    // start by reading the length of the next message (a 16-bit
+    // integer, encoded little endian, lower byte first)
+    while (read(socket_, buffer(lengthbuf), error)) {
+#ifndef BOOST_LITTLE_ENDIAN
+        // swap byte order for big endian and pdp endian
+        msglen = (msglen << 8) | (msglen >> 8)
+#endif
+        std::cout << "Bytes read! expecting " << msglen << " more" << std::endl;
+
+        // now read the actual message
+        if (read(socket_, buffer(msgbuf), transfer_at_least(msglen), error)
+            == msglen) {
+            std::cout << "Correctly read bytes. decoding..." << std::endl;
+
+            // Parse the protobuf
+            athenaRequest_.ParseFromString(msg);
+            std::cout << "Parsed!" << std::endl;
+
+            // handle the request
+            dispatch();
+
+            // marshal the protobuf
+            athenaResponse_.SerializeToString(&pb);
+            msglen = pb.length();
+#ifndef BOOST_LITTLE_ENDIAN
+            msglen = (msglen << 8) || (msglen >> 8);
+#endif
+
+            // send the response back
+            write(socket_, buffer(lengthbuf));
+            write(socket_, buffer(pb), error);
+            std::cout << "Responded!" << std::endl;
+        } else {
+            std::cout << "Did not read enough bytes (" << error << ")" <<
+               std::endl;
+        }
+
+        // prepare to read the next request
+        athenaRequest_.Clear();
+        athenaResponse_.Clear();
+    }
+
+    if (error != boost::asio::error::eof) {
+       // the client didn't just disconnect - warn someone that
+       // something went wrong
+       std::cout << "Read failed: " << error << std::endl;
+    } else {
+       std::cout << "Connection closed" << std::endl;
+    }
+}
+
+/*
+ * Based on what requests are in the message, dispatch to the proper
+ * handler.
+ */
+void
+api_connection::dispatch() {
+   // The idea behind checking each request field every time, instead
+   // of checking at most one, is that a client could batch
+   // requests. We'll see if that's a thing that is reasonable.
+    if (athenaRequest_.has_protocol_request()) {
+       handle_protocol_request();
+    }
+    if (athenaRequest_.has_peer_request()) {
+       handle_peer_request();
+    }
+    for (int i = 0; i < athenaRequest_.eth_request_size(); i++) {
+       // Similarly, a list of ETH RPC requests is supported to allow
+       // batching. This seems like a good idea, but may not fit this
+       // mode exactly.
+       handle_eth_request(i);
+    }
+    if (athenaRequest_.has_test_request()) {
+        handle_test_request();
+    }
+}
+
+/*
+ * Handle a protocol request, which is where the client announces its
+ * version, and the server responds with its own. A request without a
+ * client version might be considered a ping for keep-alive purposes.
+ */
+void
+api_connection::handle_protocol_request() {
+   const ProtocolRequest request = athenaRequest_.protocol_request();
+
+   // create a response even if the request does not have a client
+   // version, as this could be used as a keep-alive ping
+   ProtocolResponse *response = athenaResponse_.mutable_protocol_response();
+
+   if (request.has_client_version()) {
+      response->set_server_version(1);
+      if (request.client_version() > 1) {
+         // This is just a basic demonstration of how we may want to
+         // protect against clients that have been upgraded before
+         // servers.
+         ErrorResponse *e = athenaResponse_.add_error_response();
+         e->mutable_description()->assign("Client version unknown");
+      }
+   }
+}
+
+/*
+ * Handle a peer request, which is the client asking for the list of
+ * consensus participants, and maybe also asking to change that list
+ * (add/remove members).
+ */
+void
+api_connection::handle_peer_request() {
+   const PeerRequest request = athenaRequest_.peer_request();
+   PeerResponse *response = athenaResponse_.mutable_peer_response();
+   if (request.return_peers()) {
+      // Dummy Data to prove the roundtrip to Helen (TODO)
+      Peer *p1 = response->add_peer();
+      p1->mutable_address()->assign("realathena1");
+      p1->set_port(8001);
+      p1->mutable_status()->assign("connected");
+
+      Peer *p2 = response->add_peer();
+      p2->mutable_address()->assign("realathena2");
+      p2->set_port(8002);
+      p2->mutable_status()->assign("offline");
+   }
+}
+
+/*
+ * Handle an ETH RPC request.
+ */
+void
+api_connection::handle_eth_request(int i) {
+   // TODO: this is the thing we'll forward to SBFT/KVBlockchain/EVM
+   ErrorResponse *e = athenaResponse_.add_error_response();
+   e->mutable_description()->assign("ETH Not Implemented");
+}
+
+/*
+ * Handle test request, where the client requests an echo. This is
+ * likely something we won't include in the final release, but has
+ * been useful for testing.
+ */
+void
+api_connection::handle_test_request() {
+    const TestRequest request = athenaRequest_.test_request();
+    if (request.has_echo()) {
+        TestResponse *response = athenaResponse_.mutable_test_response();
+        std::string *echo = response->mutable_echo();
+        echo->assign(request.echo());
+    }
+}
+
+api_connection::api_connection(
+   io_service &io_service)
+   : socket_(io_service)
+{
+   // nothing to do here yet other than initialize the socket
+}

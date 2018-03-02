@@ -1,2 +1,6 @@
 *~
+*.o
+athena
+*.pb.cc
+*.pb.h
 
