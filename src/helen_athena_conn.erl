@@ -48,7 +48,7 @@
 
 -record(state, {
           node :: node_address(),
-          socket :: inet:socket(),
+          socket :: inet:socket() | fake,
           queue :: queue:queue(),
           from :: from(),
           buffer = #buffer{},
@@ -58,7 +58,7 @@
 -type athenarequest() :: #athenarequest{}.
 -type athenaresponse() :: #athenaresponse{}.
 -type from() :: {pid(),term()}|self_version.
--type node_address() :: {inet:ip_address(), inet:port_number()}.
+-type node_address() :: {inet:ip_address(), inet:port_number()} | fake.
 -type buffer() :: #buffer{}.
 -type state() :: #state{}.
 
@@ -193,6 +193,10 @@ reconnect(#state{reconnect_delay=Delay}=State) ->
 %% Close the connection to Athena. And abort inflight requests.
 -spec disconnect(state()) -> state().
 disconnect(#state{socket=undefined}=State) ->
+    %% we're already disconnected
+    State;
+disconnect(#state{socket=fake}=State) ->
+    %% we're faking the connection
     State;
 disconnect(#state{socket=Socket}=State) ->
     _ = gen_tcp:close(Socket),
@@ -221,7 +225,10 @@ connect(#state{socket=undefined, node={IP, Port}}=State) ->
             log(error_msg, State,
                 "Unable to connect to athena at (~p)", [Reason]),
             reconnect(State)
-    end.
+    end;
+connect(#state{socket=undefined, node=fake}=State) ->
+    %% We're faking data here, so that Athena doesn't have to be running.
+    send_version(State#state{socket=fake}).
 
 %% Send the client version. Begins an async wait for server version
 %% response.
@@ -234,6 +241,12 @@ send_version(State) ->
 
 %% Send an AthenaRequest to Athena.
 -spec send(athenarequest(), from(), state()) -> state().
+send(Msg, From, #state{socket=fake}=State) ->
+    %% fake data so Athena doesn't have to be running to test the UI
+    Encoded = athena_pb:encode(fake_response(Msg)),
+    Prefix = <<(iolist_size(Encoded)):2/little-unsigned-integer-unit:8>>,
+    self() ! {tcp, fake, iolist_to_binary([Prefix, Encoded])},
+    State#state{from=From};
 send(#athenarequest{}=Msg, From, #state{socket=Socket}=State)
   when Socket /= undefined ->
     Encoded = athena_pb:encode(Msg),
@@ -241,7 +254,7 @@ send(#athenarequest{}=Msg, From, #state{socket=Socket}=State)
     Prefix = <<(iolist_size(Encoded)):2/little-unsigned-integer-unit:8>>,
     case gen_tcp:send(Socket, [Prefix, Encoded]) of
         ok ->
-            inet:setopts(Socket, [{active, once}]),
+            activate_socket(Socket),
             State#state{from=From};
         {error, Reason} ->
             log(error_msg, State, "Unable to send to (~p)", [Reason]),
@@ -293,7 +306,7 @@ dequeue_request(#state{queue=Q}=State) ->
 -spec new_data(binary(), state()) -> state().
 new_data(<<>>, #state{socket=Socket}=State) ->
     %% filter zero-length packets
-    inet:setopts(Socket, [{active, once}]),
+    activate_socket(Socket),
     State;
 new_data(Data, #state{buffer=Buffer, socket=Socket}=State) ->
     case find_response(Data, Buffer) of
@@ -301,7 +314,7 @@ new_data(Data, #state{buffer=Buffer, socket=Socket}=State) ->
             dequeue_request(
               forward_response(Response, State#state{buffer=NewBuffer}));
         {wait, NewBuffer} ->
-            inet:setopts(Socket, [{active, once}]),
+            activate_socket(Socket),
             State#state{buffer=NewBuffer}
     end.
 
@@ -421,10 +434,19 @@ get_bytes(Count, {[Head|Chunks]=HC, TailChunks}=C) ->
                     {wait, C}
             end
     end;
-get_bytes(Count, {[], []}=Empty) ->
+get_bytes(_Count, {[], []}=Empty) ->
     {wait, Empty};
 get_bytes(Count, {[], TailChunks}) ->
     get_bytes(Count, {lists:reverse(TailChunks), []}).
+
+%% Set up the socket to send this process a message when it receives
+%% more data.
+activate_socket(fake) ->
+    %% the fake socket sends data automatically
+    ok;
+activate_socket(Socket) ->
+    inet:setopts(Socket, [{active, once}]).
+
 
 %% Simply log wrapper, so we can easily include the node address in
 %% all logs.
@@ -438,3 +460,56 @@ log(Level, State, Message) ->
           term().
 log(Level, #state{node=N}, Message, Params) ->
     error_logger:Level("~p: "++Message, [N|Params]).
+
+%% We're mocking Athena responses, so that service doesn't have to be
+%% running just to test the UI.
+fake_response(#athenarequest{protocol_request=ProtocolRequest,
+                             peer_request=PeerRequest,
+                             eth_request=EthRequests,
+                             test_request=TestRequest}=Request) ->
+    #athenaresponse{
+       protocol_response=fake_protocol_response(ProtocolRequest),
+       peer_response=fake_peer_response(PeerRequest),
+       eth_response=fake_eth_response(EthRequests),
+       test_response=fake_test_response(TestRequest),
+       error_response=fake_error_response(Request)}.
+
+fake_protocol_response(#protocolrequest{client_version=N}) when N /= undefined ->
+    #protocolresponse{server_version=1};
+fake_protocol_response(#protocolrequest{}) ->
+    #protocolresponse{};
+fake_protocol_response(_) ->
+    undefined.
+
+fake_peer_response(#peerrequest{return_peers=true}) ->
+    #peerresponse{
+       peer=[
+             #peer{
+                address="fake1",
+                port=1234,
+                status="connected"
+               },
+             #peer{
+                address="fake2",
+                port=5678,
+                status="offline"
+               }]};
+fake_peer_response(#peerrequest{}) ->
+    #peerresponse{};
+fake_peer_response(_) ->
+    undefined.
+
+fake_eth_response(_) ->
+    undefined.
+
+fake_test_response(#testrequest{echo=Echo}) when Echo /= undefined ->
+    #testresponse{echo=Echo};
+fake_test_response(#testrequest{}) ->
+    #testresponse{};
+fake_test_response(_) ->
+    undefined.
+
+fake_error_response(#athenarequest{eth_request=Eth}) when Eth /= undefined ->
+    [#errorresponse{description= <<"ETH not implemented">>}];
+fake_error_response(_) ->
+    undefined.

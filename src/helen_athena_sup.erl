@@ -67,7 +67,9 @@ init([]) ->
 athena_nodes() ->
     case application:get_env(helen, athena_nodes) of
         {ok, Nodes} ->
-            [ N || {_Ip, _Addr}=N <- Nodes ];
+            [ N || N <- Nodes,
+                   (N == fake orelse
+                                (is_tuple(N) andalso size(N) == 2))];
         undefined ->
             []
     end.
