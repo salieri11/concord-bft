@@ -3,7 +3,7 @@
  [
   {description, "helen"},
   {vsn, "1"},
-  {modules, []},
+  {modules, [athena_pb]},
   {registered, []},
   {applications, [
                   kernel,
@@ -11,7 +11,8 @@
                   inets,
                   crypto,
                   mochiweb,
-                  webmachine
+                  webmachine,
+                  protobuffs
                  ]},
   {mod, { helen_app, []}},
   {env, [

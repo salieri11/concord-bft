@@ -12,6 +12,7 @@
         ]).
 
 -include_lib("webmachine/include/webmachine.hrl").
+-include("athena_pb.hrl").
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Resource definitions
@@ -28,19 +29,25 @@ content_types_provided(ReqData, State) ->
 -spec to_json(wrq:reqdata(), term()) ->
           {{halt, integer()}|iodata(), wrq:reqdata(), term()}.
 to_json(ReqData, State) ->
-    %% mocking this for UI testing
-    FakeMemberList = [
-                      {struct, [
-                                {<<"host">>, <<"athena1">>},
-                                {<<"status">>, <<"connected">>}
-                               ]},
-                      {struct, [
-                                {<<"host">>, <<"athena2">>},
-                                {<<"status">>, <<"connected">>}
-                               ]},
-                      {struct, [
-                                {<<"host">>, <<"athena3">>},
-                                {<<"status">>, <<"unavailable">>}
-                               ]}
-                     ],
-    {mochijson2:encode(FakeMemberList), ReqData, State}.
+    Request = #athenarequest{
+                 peer_request =
+                     #peerrequest{return_peers = true}},
+    case helen_athena_conn:send_request(Request) of
+        #athenaresponse{peer_response=#peerresponse{peer=Peers}}
+          when is_list(Peers) ->
+            Response = [{struct, [
+                                  {<<"host">>, format_host(A,P)},
+                                  {<<"status">>, iolist_to_binary(S)}
+                                 ]}
+                        || #peer{address=A, port=P, status=S} <- Peers],
+            {mochijson2:encode(Response), ReqData, State};
+        _ ->
+            Response = {struct, [{<<"error">>,
+                                  <<"invalid response from server">>}]},
+            {{halt, 500},
+             wrq:set_resp_body(mochijson2:encode(Response), ReqData),
+             State}
+    end.
+
+format_host(Address, Port) ->
+    iolist_to_binary(io_lib:format("~s:~b", [Address, Port])).

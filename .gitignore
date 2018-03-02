@@ -7,6 +7,8 @@ ebin
 rebar.lock
 *.so
 *.o
+*_pb.hrl
+
 .DS_Store
 Thumbs.db
 
