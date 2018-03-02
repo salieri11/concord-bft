@@ -22,7 +22,7 @@ endif
 CFLAGS += -fPIC -I $(INCLUDEDIR)
 CXXFLAGS += -fPIC -I $(INCLUDEDIR)
 
-LDLIBS += -L $(SRCDIR) -lstdc++ -lboost_system -lboost_program_options -lprotobuf
+LDLIBS += -L $(SRCDIR) -lstdc++ -lboost_system -lboost_program_options -lprotobuf -llog4cplus
 LDFLAGS +=
 
 # Verbosity.
