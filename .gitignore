@@ -9,3 +9,9 @@ rebar.lock
 *.o
 *_pb.hrl
 
+.DS_Store
+Thumbs.db
+
+# Compiled UI Assets
+priv/www/index.html
+priv/www/assets
