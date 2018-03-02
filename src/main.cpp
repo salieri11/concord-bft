@@ -42,7 +42,7 @@ start_service(variables_map &opts, log4cplus::Logger logger)
    tcp::endpoint endpoint(address::from_string(ip), port);
    api_acceptor acceptor(io_service, endpoint);
 
-   LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("Listening on ") << endpoint);
+   LOG4CPLUS_INFO(logger, "Listening on " << endpoint);
    io_service.run();
 }
 
