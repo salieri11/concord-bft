@@ -3,4 +3,5 @@
 athena
 *.pb.cc
 *.pb.h
+CoreVMTests
 

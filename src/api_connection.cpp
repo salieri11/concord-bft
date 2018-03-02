@@ -66,50 +66,49 @@ api_connection::start()
     // integer, encoded little endian, lower byte first)
     while (read(socket_, buffer(lengthbuf), error)) {
 #ifndef BOOST_LITTLE_ENDIAN
-        // swap byte order for big endian and pdp endian
-        msglen = (msglen << 8) | (msglen >> 8)
+       // swap byte order for big endian and pdp endian
+       msglen = (msglen << 8) | (msglen >> 8);
 #endif
-        std::cout << "Bytes read! expecting " << msglen << " more" << std::endl;
+       LOG4CPLUS_DEBUG(logger_, "Bytes read! expecting " << msglen << " more");
 
-        // now read the actual message
-        if (read(socket_, buffer(msgbuf), transfer_at_least(msglen), error)
-            == msglen) {
-            std::cout << "Correctly read bytes. decoding..." << std::endl;
+       // now read the actual message
+       if (read(socket_, buffer(msgbuf), transfer_at_least(msglen), error)
+           == msglen) {
+          LOG4CPLUS_DEBUG(logger_, "Correctly read bytes. decoding...");
 
-            // Parse the protobuf
-            athenaRequest_.ParseFromString(msg);
-            std::cout << "Parsed!" << std::endl;
+          // Parse the protobuf
+          athenaRequest_.ParseFromString(msg);
+          LOG4CPLUS_DEBUG(logger_, "Parsed!");
 
-            // handle the request
-            dispatch();
+          // handle the request
+          dispatch();
 
-            // marshal the protobuf
-            athenaResponse_.SerializeToString(&pb);
-            msglen = pb.length();
+          // marshal the protobuf
+          athenaResponse_.SerializeToString(&pb);
+          msglen = pb.length();
 #ifndef BOOST_LITTLE_ENDIAN
-            msglen = (msglen << 8) || (msglen >> 8);
+          msglen = (msglen << 8) || (msglen >> 8);
 #endif
 
-            // send the response back
-            write(socket_, buffer(lengthbuf));
-            write(socket_, buffer(pb), error);
-            std::cout << "Responded!" << std::endl;
-        } else {
-            std::cout << "Did not read enough bytes (" << error << ")" <<
-               std::endl;
-        }
+          // send the response back
+          write(socket_, buffer(lengthbuf));
+          write(socket_, buffer(pb), error);
+          LOG4CPLUS_DEBUG(logger_, "Responded!");
+       } else {
+          LOG4CPLUS_DEBUG(logger_, "Did not read enough bytes: " << error);
+       }
 
-        // prepare to read the next request
-        athenaRequest_.Clear();
-        athenaResponse_.Clear();
+       // prepare to read the next request
+       athenaRequest_.Clear();
+       athenaResponse_.Clear();
     }
 
     if (error != boost::asio::error::eof) {
        // the client didn't just disconnect - warn someone that
        // something went wrong
-       std::cout << "Read failed: " << error << std::endl;
+       LOG4CPLUS_ERROR(logger_, "Read failed: " << error);
     } else {
-       std::cout << "Connection closed" << std::endl;
+       LOG4CPLUS_DEBUG(logger_, "Connection closed");
     }
 }
 
@@ -214,7 +213,8 @@ api_connection::handle_test_request() {
 
 api_connection::api_connection(
    io_service &io_service)
-   : socket_(io_service)
+   : socket_(io_service),
+     logger_(log4cplus::Logger::getInstance("com.vmware.athena.api_connection"))
 {
-   // nothing to do here yet other than initialize the socket
+   // nothing to do here yet other than initialize the socket and logger
 }

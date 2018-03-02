@@ -8,6 +8,7 @@
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
+#include <log4cplus/loggingmacros.h>
 
 #include "athena.pb.h"
 
@@ -62,6 +63,9 @@ namespace com {
             /* Response being built. See above: only one request is read at
                a time, so only one response is built at a time. */
             com::vmware::athena::AthenaResponse athenaResponse_;
+
+            /* Logger. */
+            log4cplus::Logger logger_;
          };
       }
    }
