@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 
-#include "athena/athena_testing/include/ethereum_node.h"
+#include "athena_testing/include/ethereum_node.h"
 
 using namespace std;
 

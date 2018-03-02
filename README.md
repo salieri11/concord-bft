@@ -52,25 +52,27 @@ as it changes some interfaces and header files
 
 Follow below steps for installing this library.
 
-1. Download the tarball of this version from log4cplus sourceforge website:
-
+1. Install prerequisites.
 ```
-wget https://sourceforge.net/projects/log4cplus/files/log4cplus-stable/1.2.1/log4cplus-1.2.1.tar.bz2/download
-```
-
-2. Extract the tarball
-
-```
-tar xvf log4cplus-1.2.1.tar.bz2
+sudo apt-get install autoconf automake
 ```
 
-3. Move to the extracted directory
+2. Clone the repository.
 
 ```
-cd log4cplus-1.2.1
+git clone https://github.com/log4cplus/log4cplus.git
+```
+
+3. Move to the extracted directory and checkout the appropriate branch.
+
+```
+cd log4cplus
+git checkout REL_1_2_1
 ````
 
-4. Configure & Make and install
+4. Edit configure to change "am__api_version" from 1.14 to 1.15, the version that ubuntu 16.04 supports.
+
+5. Configure/make/install
 
 ```
 ./configure
@@ -81,6 +83,64 @@ sudo make install
 This will install all library files and header files into
 '/usr/local'. (You may need to add `/usr/local/lib` to your
 `LD_LIBRARY_PATH` to run Athena.)
+
+#### Installing ninja (needed for jsoncpp, which is only needed for testing)
+1. Download it.
+```
+wget https://github.com/ninja-build/ninja/archive/v1.8.2.tar.gz
+```
+
+2. Extract it.
+```
+tar -xf v1.8.2.tar.gz
+```
+
+3. Build/configure/install.
+```
+cd ninja-1.8.2/
+./configure.py --bootstrap
+sudo cp ninja /usr/sbin/ninja
+```
+
+#### Installing meson (needed for jsoncpp, which is only needed for testing)
+
+1. Download it.
+```
+wget https://github.com/mesonbuild/meson/archive/0.44.1.tar.gz
+```
+
+2. Extract it.
+```
+tar -xf 0.44.1.tar.gz
+```
+
+3. Build it.
+```
+cd meson-0.44.1
+sudo python3 setup.py install
+```
+
+#### Installing jsoncpp (which is only needed for testing)
+
+1. Download it.
+```
+wget https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz
+```
+
+2. Extract it.
+```
+tar -xf 1.8.4.tar.gz
+```
+
+3. Build/test/install.
+```
+cd jsoncpp-1.8.4
+mkdir build-shared
+meson --buildtype release --default-library shared . build-shared
+ninja -v -C build-shared test
+cd build-shared
+sudo ninja install
+```
 
 ### Athena
 
@@ -111,6 +171,7 @@ With Athena running, you probably want to go set up
 
  * src/athena.proto: Google Protocol Buffers messages that Helen uses
    to talk to Athena
+
 
 ## Future Work
 
