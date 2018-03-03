@@ -12,11 +12,8 @@ using namespace std;
 class ProductExecutable{
 public:
   static const string CMD_KEY;
-  static const string DIR_KEY;
   static const string PARAMS_KEY;
 
-  ProductExecutable();
-  ProductExecutable(int i);
   ProductExecutable(Json::Value config);
   void launch();
   void stop();

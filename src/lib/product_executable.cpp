@@ -1,4 +1,5 @@
 #include <cstring>
+#include <iostream>
 #include <json/json.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -45,23 +46,6 @@ void ProductExecutable::launch(){
 
   if(m_procId == 0) {
     execv(m_command.c_str(), (char* const*)m_parameters);
-    int execError = errno;
-    string error = "Error launching ";
-    string cmd(m_command);
-    
-    error.append("'").append(cmd).append("'");
-
-    if (m_parameters){
-      error.append(" with parameters ");
-      
-      for(int i = 0; i < m_numParameters; i++){
-	string param(m_parameters[i]);
-	error.append("'").append(param).append("'");
-      }
-    }
-
-    error.append(", Error: ").append(strerror(execError));
-    throw(error);
   }
 }
 
