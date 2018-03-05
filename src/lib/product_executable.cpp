@@ -20,8 +20,8 @@ ProductExecutable::ProductExecutable(Json::Value config){
   Json::Value jsonParams = config[ProductExecutable::PARAMS_KEY];
   // +1 because the parameters must start with the command.
   // +1 because the last parameter must be a null pointer.
-  m_numParameters = jsonParams.size() + 2;
-  m_parameters = new char*[m_numParameters];
+  int numParameters = jsonParams.size() + 2;
+  m_parameters = new char*[numParameters];
   
   m_parameters[0] = new char[m_command.length() + 1];
   memset(m_parameters[0], 0, m_command.length() + 1);
@@ -34,7 +34,7 @@ ProductExecutable::ProductExecutable(Json::Value config){
     memcpy(m_parameters[i + 1], jsonParams[i].asString().c_str(), paramLength);
   }
 
-  m_parameters[m_numParameters - 1] = 0;
+  m_parameters[numParameters - 1] = 0;
 }
 
 /**

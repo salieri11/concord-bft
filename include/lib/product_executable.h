@@ -21,7 +21,6 @@ public:
 private:
   string m_command;
   char** m_parameters;
-  int m_numParameters;
   pid_t m_procId;
 };
 
