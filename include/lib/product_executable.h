@@ -1,3 +1,6 @@
+/* **********************************************************
+ * Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+ * **********************************************************/
 #pragma once
 
 #include <json/json.h>
@@ -11,16 +14,16 @@ using namespace std;
  **/
 class ProductExecutable{
 public:
-  static const string CMD_KEY;
-  static const string PARAMS_KEY;
+   static const string CMD_KEY;
+   static const string PARAMS_KEY;
 
-  ProductExecutable(Json::Value config);
-  void launch();
-  void stop();
+   ProductExecutable(Json::Value config);
+   void launch();
+   void stop();
 
 private:
-  string m_command;
-  char** m_parameters;
-  pid_t m_procId;
+   string m_command;
+   char** m_parameters;
+   pid_t m_procId;
 };
 

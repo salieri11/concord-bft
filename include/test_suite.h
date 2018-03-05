@@ -1,3 +1,6 @@
+/* **********************************************************
+ * Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+ * **********************************************************/
 #pragma once
 
 #include <string>
@@ -32,7 +35,7 @@ using namespace std;
  **/
 class TestSuite{
 public:
-  virtual string getName() = 0;
-  virtual string run() = 0;
+   virtual string getName() = 0;
+   virtual string run() = 0;
 };
 
