@@ -1,3 +1,6 @@
+/* **********************************************************
+ * Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+ * **********************************************************/
 #pragma once
 
 #include "node_base.h"
@@ -9,8 +12,8 @@ using namespace std;
  **/
 class VMwareNode: public NodeBase{
 public:
-  VMwareNode();
-  ~VMwareNode();
-  string makeCall();
+   VMwareNode();
+   ~VMwareNode();
+   string makeCall();
 };
 
