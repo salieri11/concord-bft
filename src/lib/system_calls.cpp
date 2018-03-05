@@ -3,7 +3,7 @@
 #include <string>
 #include <cstring>
 
-#include "hermes/include/system_calls.h"
+#include "hermes/include/lib/system_calls.h"
 
 using namespace std;
 
