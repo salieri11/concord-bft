@@ -9,7 +9,7 @@
 #include "athena_testing/include/node_base.h"
 #include "athena_testing/include/vmware_node.h"
 
-#include "hermes/include/system_calls.h"
+#include "hermes/include/lib/system_calls.h"
 
 // log4cplus header files
 #include <log4cplus/logger.h>
@@ -18,6 +18,7 @@
 #include <cstddef>
 
 #include <boost/program_options.hpp>
+
 namespace po = boost::program_options;
 
 
