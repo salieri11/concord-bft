@@ -40,7 +40,7 @@ using namespace std;
 
 
 static const string default_config_path = "./resources/log4cplus.properties";
-static int default_reconfig_time = 60 * 100; // 60 seconds - default time period
+static int default_reconfig_time = 60 * 1000; // 60 seconds - default time period
 // after which logger will recheck config file
 
 int main(int argc, char **argv)
