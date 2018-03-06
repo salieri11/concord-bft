@@ -1,3 +1,6 @@
+/* **********************************************************
+ * Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+ * **********************************************************/
 #pragma once
 
 #include <string>
@@ -7,7 +10,7 @@ using namespace std;
 
 class NodeBase{
 public:
-  string s = "";
-  virtual string makeCall() = 0;
+   string s = "";
+   virtual string makeCall() = 0;
 };
 

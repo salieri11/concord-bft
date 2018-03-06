@@ -1,3 +1,6 @@
+/* **********************************************************
+ * Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+ * **********************************************************/
 #pragma once
 
 #include <string>
@@ -10,7 +13,7 @@ using namespace std;
  **/
 class EthereumNode: public NodeBase{
 public:
-  EthereumNode();
-  ~EthereumNode();
-  string makeCall();
+   EthereumNode();
+   ~EthereumNode();
+   string makeCall();
 };
