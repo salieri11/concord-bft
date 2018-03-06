@@ -1,3 +1,6 @@
+/* **********************************************************
+ * Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+ * **********************************************************/
 #include <iostream>
 #include <string>
 #include <unistd.h>
@@ -13,34 +16,34 @@ void publishResults(vector<string> results);
 
 int main(int argc, char** argv)
 {
-  vector<TestSuite*> suites;
-  vector<string> results; // One JSON result per suite.
-  char argName;
+   vector<TestSuite*> suites;
+   vector<string> results; // One JSON result per suite.
+   char argName;
   
-  while ((argName = getopt (argc, argv, "t:")) != -1){
-    switch(argName){
-    case 't':
-      string suite = optarg;
-      suites.push_back(createTestSuite(suite));
-    }
-  }
+   while ((argName = getopt (argc, argv, "t:")) != -1){
+      switch(argName){
+      case 't':
+         string suite = optarg;
+         suites.push_back(createTestSuite(suite));
+      }
+   }
 
-  cout << "Test suites to run:" << endl;
-  for (int i = 0; i < suites.size(); i++){
-    cout << "  " << suites[i]->getName() << endl;
-  }
+   cout << "Test suites to run:" << endl;
+   for (int i = 0; i < suites.size(); i++){
+      cout << "  " << suites[i]->getName() << endl;
+   }
 
-  for (int i = 0; i < suites.size(); i++){
-    cout << "Running: " << suites[i]->getName() << endl;
-    results.push_back(suites[i]->run());
-  }
+   for (int i = 0; i < suites.size(); i++){
+      cout << "Running: " << suites[i]->getName() << endl;
+      results.push_back(suites[i]->run());
+   }
 
-  cout << "Tests finished.  Results:" << endl;
-  for (int i = 0; i < results.size(); i++){
-    cout << results[i] << endl;
-  }
+   cout << "Tests finished.  Results:" << endl;
+   for (int i = 0; i < results.size(); i++){
+      cout << results[i] << endl;
+   }
 
-  publishResults(results);
+   publishResults(results);
 }
 
 
@@ -49,11 +52,11 @@ int main(int argc, char** argv)
  * pointer to it.
  **/
 TestSuite* createTestSuite(string name){
-  // TODO: Use a map of name -> fn instead?
-  if (name == "CoreVMTests"){
-    CoreVMTests* suite = new CoreVMTests();
-    return (TestSuite*) suite;
-  }
+   // TODO: Use a map of name -> fn instead?
+   if (name == "CoreVMTests"){
+      CoreVMTests* suite = new CoreVMTests();
+      return (TestSuite*) suite;
+   }
 }
 
 
@@ -62,5 +65,5 @@ TestSuite* createTestSuite(string name){
  * to a server, etc...
  **/
 void publishResults(vector<string> results){
-  cout << "Publishing results." << endl;
+   cout << "Publishing results." << endl;
 }
