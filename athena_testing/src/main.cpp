@@ -1,18 +1,20 @@
 /* **********************************************************
  * Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
  * **********************************************************/
-//#include <errno.h>
 #include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <string>
+#include <thread>
 
 #include "athena_testing/include/ethereum_node.h"
 #include "athena_testing/include/node_base.h"
 #include "athena_testing/include/vmware_node.h"
 
+#include "hermes/include/lib/product_executable.h"
 #include "hermes/include/lib/system_calls.h"
+#include "hermes/include/lib/testing_functions.h"
 
 // log4cplus header files
 #include <log4cplus/logger.h>
@@ -22,7 +24,6 @@
 
 #include <boost/program_options.hpp>
 namespace po = boost::program_options;
-
 
 using namespace std;
 
@@ -38,10 +39,13 @@ using namespace std;
  * - Either the human or the higher level test framework will evaluate the JSON.
  **/
 
+static const string DEFAULT_LOGGING_CONFIG_PATH =
+   "./resources/log4cplus.properties";
 
-static const string default_config_path = "./resources/log4cplus.properties";
-static int default_reconfig_time = 60 * 1000; // 60 seconds - default time period
-// after which logger will recheck config file
+// 60 seconds - default time period after which logger will recheck config file
+static int DEFAULT_LOGGING_RECONFIG_TIME = 60 * 1000;
+
+void runCoreVMTests();
 
 int main(int argc, char **argv)
 {
@@ -50,10 +54,10 @@ int main(int argc, char **argv)
       desc.add_options()
          ("help", "Print this help message")
          ("logger_config",
-          po::value<string>()->default_value(default_config_path),
+          po::value<string>()->default_value(DEFAULT_LOGGING_CONFIG_PATH),
           "Complete path of configuration file for log4c+")
          ("logger_reconfig_time",
-          po::value<int>()->default_value(default_reconfig_time),
+          po::value<int>()->default_value(DEFAULT_LOGGING_RECONFIG_TIME),
           "Interval time (in milli seconds) after which logger should check"\
           " for changes in configuration file");
 
@@ -74,36 +78,8 @@ int main(int argc, char **argv)
       log4cplus::ConfigureAndWatchThread configureThread(
                                        opts["logger_config"].as<string>(),
                                        opts["logger_reconfig_time"].as<int>());
-      log4cplus::Logger athena_test_logger =
-         log4cplus::Logger::getInstance("athena.test.log");
 
-      // Use EthereumNode to generate expected results or to verify that the test
-      // suite is internally consistent.
-      // Use VMwareNode to test the product.
-      EthereumNode eNode;
-      VMwareNode vNode;
-      NodeBase* n = &eNode;
-      NodeBase* v = &vNode;
-      n->makeCall();
-      v->makeCall();
-
-      eNode.makeCall();
-      vNode.makeCall();
-
-      LOG4CPLUS_INFO(athena_test_logger, "Done");
-
-      // Placeholder.  This will be an Ethereum RPC call.
-      string command = "curl http://build-squid.eng.vmware.com/build/mts/"
-                       "release/bora-7802939/publish/MD5SUM.txt 2>&1";
-
-      try{
-         LOG4CPLUS_INFO(athena_test_logger, "Running command '" + command + "'");
-         string result = makeExternalCall(command);
-         LOG4CPLUS_INFO(athena_test_logger, result);
-         cout << result << endl;
-      }catch(string e){
-         LOG4CPLUS_WARN(athena_test_logger, e);
-      }
+      runCoreVMTests();
 
       // Important to shutdown the logger while exiting, ConfigureAndWatchThread
       // is still running and if we exit from main without killing that thread it
@@ -115,5 +91,46 @@ int main(int argc, char **argv)
       return 1;
    }
 
+   cout << "main() is returning" << endl;
    return 0;
+}
+
+
+void runCoreVMTests(){
+   // Use EthereumNode to generate expected results or to verify that the test
+   // suite is internally consistent.
+   // Use VMwareNode to test the product.
+   // EthereumNode eNode;
+   // VMwareNode vNode;
+   // NodeBase* n = &eNode;
+   // NodeBase* v = &vNode;
+   // n->makeCall();
+   // v->makeCall();
+
+   // eNode.makeCall();
+   // vNode.makeCall();
+
+   // Placeholder.  This will be an Ethereum RPC call.
+   // string command = "curl http://build-squid.eng.vmware.com/build/mts/"
+   //                  "release/bora-7802939/publish/MD5SUM.txt 2>&1";
+
+   // try{
+   //    LOG4CPLUS_INFO(athena_test_logger, "Running command '" + command + "'");
+   //    string result = makeExternalCall(command);
+   //    LOG4CPLUS_INFO(athena_test_logger, result);
+   //    cout << result << endl;
+   // }catch(string e){
+   //    LOG4CPLUS_WARN(athena_test_logger, e);
+   // }
+
+   log4cplus::Logger logger =
+      log4cplus::Logger::getInstance("athena.test.log");
+   string launchConfigFile = "resources/product_launch_config.json";
+   vector <ProductExecutable*>* processes = launchProduct(launchConfigFile);
+
+   LOG4CPLUS_INFO(logger, "Launched the product. Try doing a curl now.  You have 10 seconds.");
+   this_thread::sleep_for(chrono::milliseconds(10000));
+   LOG4CPLUS_INFO(logger, "Done.  Stopping processes.");
+
+   stopProduct(processes);
 }
