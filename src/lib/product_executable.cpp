@@ -51,8 +51,6 @@ ProductExecutable::ProductExecutable(Json::Value config){
    //m_logFile = Upcoming checkin.
 }
 
-ProductExecutable::~ProductExecutable(){}
-
 /**
  * Launches the executable and saves the process id.
  **/

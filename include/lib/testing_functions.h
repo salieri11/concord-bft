@@ -5,4 +5,3 @@ using namespace std;
 
 vector <ProductExecutable*>* launchProduct(string);
 void stopProduct(vector <ProductExecutable*>*);
-ProductExecutable* launchExecutable(Json::Value, string);

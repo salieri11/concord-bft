@@ -18,7 +18,6 @@ public:
    static const string PARAMS_KEY;
 
    ProductExecutable(Json::Value config);
-   ~ProductExecutable();
    void launch();
    void stop();
 
