@@ -18,6 +18,7 @@ public:
    static const string PARAMS_KEY;
 
    ProductExecutable(Json::Value config);
+   ~ProductExecutable();
    void launch();
    void stop();
 
@@ -26,4 +27,3 @@ private:
    char** m_parameters;
    pid_t m_procId;
 };
-
