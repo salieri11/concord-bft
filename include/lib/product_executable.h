@@ -26,4 +26,3 @@ private:
    char** m_parameters;
    pid_t m_procId;
 };
-
