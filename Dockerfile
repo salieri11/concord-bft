@@ -31,6 +31,7 @@ RUN apt-get update && apt-get -y install \
     erlang-mnesia \
     erlang-mode \
     erlang-observer \
+    erlang-parsetools \
     erlang-public-key \
     erlang-runtime-tools \
     erlang-snmp \
@@ -55,6 +56,7 @@ COPY --from=0 /helen/dist /helen/priv/www/assets
 RUN mv /helen/priv/www/assets/index.html /helen/priv/www
 RUN mv /helen/priv/www/assets/favicon.ico /helen/priv/www
 RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
+    export DEBUG=1 && \
     make all && \
     ./rebar3 as prod release
 
@@ -70,6 +72,7 @@ RUN apt-get update && apt-get -y install \
     erlang-et \
     erlang-inets \
     erlang-mnesia \
+    erlang-parsetools \
     erlang-public-key \
     erlang-runtime-tools \
     erlang-snmp \
