@@ -31,6 +31,7 @@ RUN apt-get update && apt-get -y install \
     erlang-mnesia \
     erlang-mode \
     erlang-observer \
+    erlang-parsetools \
     erlang-public-key \
     erlang-runtime-tools \
     erlang-snmp \
@@ -70,6 +71,7 @@ RUN apt-get update && apt-get -y install \
     erlang-et \
     erlang-inets \
     erlang-mnesia \
+    erlang-parsetools \
     erlang-public-key \
     erlang-runtime-tools \
     erlang-snmp \
