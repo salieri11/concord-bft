@@ -1,4 +1,32 @@
-<div class="graph-placeholder"></div>
+<div class="p-2 bg-dark">
+  <div class="row">
+    <div class="col-xs-4 media flex-items-xs-middle">
+      <h3 class="mt-0 text-white">Node Activity</h3>
+    </div>
+    <div class="col-xs-8 media flex-items-xs-middle flex-items-xs-right">
+      <clr-tabs>
+        <clr-tab>
+          <button clrTabLink>Today</button>
+          <clr-tab-content id="content1" *clrIfActive="true"></clr-tab-content>
+        </clr-tab>
+        <clr-tab>
+          <button clrTabLink>Last 7 Days</button>
+          <clr-tab-content *clrIfActive></clr-tab-content>
+        </clr-tab>
+        <clr-tab>
+          <button clrTabLink>Last 30 Days</button>
+          <clr-tab-content *clrIfActive></clr-tab-content>
+        </clr-tab>
+        <clr-tab>
+          <button clrTabLink>Last 90 Days</button>
+          <clr-tab-content *clrIfActive></clr-tab-content>
+        </clr-tab>
+      </clr-tabs>
+    </div>
+  </div>
+</div>
+
+<img class="graph-placeholder" src="assets/static/images/node-activity-large.png">
 
 <div class="p-2 bg-header">
   <div class="row">
