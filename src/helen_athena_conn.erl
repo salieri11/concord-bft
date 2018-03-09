@@ -485,13 +485,23 @@ fake_peer_response(#peerrequest{return_peers=true}) ->
     #peerresponse{
        peer=[
              #peer{
-                address="fake1",
+                address="zeus",
                 port=1234,
                 status="connected"
                },
              #peer{
-                address="fake2",
-                port=5678,
+                address="hera",
+                port=1235,
+                status="connected"
+               },
+             #peer{
+                address="iris",
+                port=1236,
+                status="connected"
+               },
+             #peer{
+                address="poseidon",
+                port=1237,
                 status="offline"
                }]};
 fake_peer_response(#peerrequest{}) ->
