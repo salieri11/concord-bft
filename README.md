@@ -84,64 +84,6 @@ This will install all library files and header files into
 '/usr/local'. (You may need to add `/usr/local/lib` to your
 `LD_LIBRARY_PATH` to run Athena.)
 
-#### Installing ninja (needed for jsoncpp, which is only needed for testing)
-1. Download it.
-```
-wget https://github.com/ninja-build/ninja/archive/v1.8.2.tar.gz
-```
-
-2. Extract it.
-```
-tar -xf v1.8.2.tar.gz
-```
-
-3. Build/configure/install.
-```
-cd ninja-1.8.2/
-./configure.py --bootstrap
-sudo cp ninja /usr/sbin/ninja
-```
-
-#### Installing meson (needed for jsoncpp, which is only needed for testing)
-
-1. Download it.
-```
-wget https://github.com/mesonbuild/meson/archive/0.44.1.tar.gz
-```
-
-2. Extract it.
-```
-tar -xf 0.44.1.tar.gz
-```
-
-3. Build it.
-```
-cd meson-0.44.1
-sudo python3 setup.py install
-```
-
-#### Installing jsoncpp (which is only needed for testing)
-
-1. Download it.
-```
-wget https://github.com/open-source-parsers/jsoncpp/archive/1.8.4.tar.gz
-```
-
-2. Extract it.
-```
-tar -xf 1.8.4.tar.gz
-```
-
-3. Build/test/install.
-```
-cd jsoncpp-1.8.4
-mkdir build-shared
-meson --buildtype release --default-library shared . build-shared
-ninja -v -C build-shared test
-cd build-shared
-sudo ninja install
-```
-
 ### Athena
 
 Once dependencies are installed, run `make`:
