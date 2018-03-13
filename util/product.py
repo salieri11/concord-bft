@@ -8,6 +8,7 @@ import subprocess
 
 CMD_KEY = "launchCommand"
 PARAMS_KEY = "parameters"
+PRODUCT_LOGS_DIR = "product_logs"
 
 class Product():
    '''
@@ -29,9 +30,11 @@ class Product():
       atexit.register(self.stopProduct)
 
       config = json.load(open(configFile))
+      productLogsDir = os.path.join(self._resultsDir, PRODUCT_LOGS_DIR)
+      os.makedirs(productLogsDir, exist_ok=True)
 
       for name in config:
-         log = open(os.path.join(self._resultsDir, name + ".log"), "wb+")
+         log = open(os.path.join(productLogsDir, name + ".log"), "wb+")
          self._logs.append(log)
 
          cmd = [os.path.expanduser(config[name][CMD_KEY])]

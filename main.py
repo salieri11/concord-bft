@@ -12,7 +12,12 @@ from suites import core_vm_tests
 def main():
    parser = argparse.ArgumentParser()
    parser.add_argument("suite", help="Test suite name")
-   parser.add_argument("--resultsDir", help="Results directory (optional)")
+   parser.add_argument("--ethereumMode",
+                       help="Run tests against Ethereum",
+                       default=False,
+                       action='store_true')
+   parser.add_argument("--resultsDir",
+                       help="Results directory (optional)")
    args = parser.parse_args()
 
    if (args.resultsDir == None):
