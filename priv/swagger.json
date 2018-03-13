@@ -160,7 +160,7 @@
             "operationId": "txGet",
             "parameters": {
                 "hashParam": {
-                    "name": "index",
+                    "name": "hash",
                     "in": "path",
                     "description": "the hash of the index to get",
                     "required": "false",
