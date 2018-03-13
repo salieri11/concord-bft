@@ -153,6 +153,65 @@
             }
         }
     },
+    "/athena/transaction/{hash}": {
+        "summary": "Specific Athena Block",
+        "get": {
+            "summary": "Get a specific transaction, by its hash",
+            "operationId": "txGet",
+            "parameters": {
+                "hashParam": {
+                    "name": "index",
+                    "in": "path",
+                    "description": "the hash of the index to get",
+                    "required": "false",
+                    "schema": {
+                        "type": "string"
+                    }
+                }
+            },
+            "responses": {
+                "200": {
+                    "description": "Transaction",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "hash": {
+                                        "type": "string"
+                                    },
+                                    "from": {
+                                        "type": "string"
+                                    },
+                                    "to": {
+                                        "type": "string"
+                                    },
+                                    "value": {
+                                        "type": "integer"
+                                    }
+                                    "input": {
+                                        "type": "string"
+                                    }
+                                    "blockHash": {
+                                        "type": "string"
+                                    },
+                                    "blockNumber": {
+                                        "type": "integer"
+                                    },
+                                    "transactionIndex": {
+                                        "type": "integer"
+                                    },
+                                    "nonce": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
     "/athena/eth": {
       "summary": "Ethereum JSON RPC API",
       "get": {

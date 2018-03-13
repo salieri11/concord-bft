@@ -17,6 +17,8 @@ dispatch() ->
         {["api", "athena", "members"], helen_api_member_list_resource, []},
         {["api", "athena", "blocks"], helen_api_block_list_resource, []},
         {["api", "athena", "blocks", block_id], helen_api_block_resource, []},
+        {["api", "athena", "transactions", tx_hash],
+         helen_api_transaction_resource, []},
         {["api", "athena", "eth"], helen_api_eth_resource, []},
         %% enforce that we don't serve the Angular HTML at undefined /api URLs
         {["api", '*'], helen_404_resource, []},
