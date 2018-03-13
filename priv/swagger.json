@@ -99,6 +99,60 @@
             }
         }
     },
+    "/athena/blocks/{index}": {
+        "summary": "Specific Athena Block",
+        "get": {
+            "summary": "Get a specific block, by its number in the chain",
+            "operationId": "blockGet",
+            "parameters": {
+                "idParam": {
+                    "name": "index",
+                    "in": "path",
+                    "description": "the index of the block to get",
+                    "required": "false",
+                    "schema": {
+                        "type": "integer",
+                        "format": "string"
+                    }
+                }
+            },
+            "responses": {
+                "200": {
+                    "description": "Block",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "number": {
+                                        "type": "integer"
+                                    },
+                                    "hash": {
+                                        "type": "string"
+                                    },
+                                    "parentHash": {
+                                        "type": "string"
+                                    },
+                                    "nonce": {
+                                        "type": "string"
+                                    },
+                                    "size": {
+                                        "type": "integer"
+                                    },
+                                    "transactions": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
     "/athena/eth": {
       "summary": "Ethereum JSON RPC API",
       "get": {

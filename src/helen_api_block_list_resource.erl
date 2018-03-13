@@ -28,7 +28,7 @@
 
 -spec init([]) -> {ok|{trace,string()}, term()}.
 init([]) ->
-    {{trace, "/tmp"}, #state{}}.
+    {ok, #state{}}.
 
 -spec malformed_request(wrq:reqdata(), #state{}) ->
           {boolean()|{halt, integer()}, wrq:reqdata(), #state{}}.
