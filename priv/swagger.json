@@ -46,6 +46,59 @@
         }
       }
     },
+    "/athena/blocks": {
+        "summary": "Athena Blocks",
+        "get": {
+            "summary": "List blocks in the chain, most recent first",
+            "operationId": "blockListGet",
+            "parameters": {
+                "startParam": {
+                    "name": "start",
+                    "in": "query",
+                    "description": "most recent block to start with",
+                    "required": "false",
+                    "schema": {
+                        "type": "integer",
+                        "format": "string"
+                    }
+                }
+            },
+            "responses": {
+                "200": {
+                    "description": "Blocks",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "blocks": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "number": {
+                                                    "type": "integer"
+                                                },
+                                                "hash": {
+                                                    "type": "string"
+                                                },
+                                                "url": {
+                                                    "type": "string"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "next": {
+                                        "type": "string",
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
     "/athena/eth": {
       "summary": "Ethereum JSON RPC API",
       "get": {
