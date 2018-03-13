@@ -92,6 +92,8 @@ choose_tx(_ReqData, State) ->
     %% memoized
     State.
 
+%% based on reply to eth_getTransactionByHash
+%% https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_gettransactionbyhash
 get_tx(#state{tx_hash=TxHash, tx=undefined}=State) when is_binary(TxHash) ->
     %% TODO: Ask Athena
     %% No, this is not how hashes work, but it gives the mock texture
