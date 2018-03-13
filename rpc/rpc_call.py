@@ -2,32 +2,35 @@
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 import json
+import logging
 import os
 import subprocess
 from subprocess import CompletedProcess, PIPE
 import time
 
-TEST_LOG_DIR = "test_logs"
+log = logging.getLogger(__name__)
 
 class RPC():
    # Class
    _idCounter = 1
 
    # Instance
+   _logDir = None
    _rpcData = None
-   _resultsDir = None
    _testName = None
    _responseFile = None
    _outputFile = None
    _url = None
 
-   def __init__(self, resultsDir, testName, url):
+   def __init__(self, logDir, testName, url):
+      self._logDir = logDir
+      os.makedirs(self._logDir, exist_ok=True)
+
       self._rpcData = {
          "jsonrpc": "2.0",
          "id": RPC._idCounter
       }
 
-      self._resultsDir = resultsDir
       self._testName = testName
       self._url = url
       RPC._idCounter += 1
@@ -58,10 +61,8 @@ class RPC():
       Creates the log directory and sets the response/output files for an
       RPC call.
       '''
-      outputDir = os.path.join(self._resultsDir, TEST_LOG_DIR, self._testName)
-      os.makedirs(outputDir, exist_ok=True)
-      self._responseFile = os.path.join(outputDir, method + ".json")
-      self._outputFile = os.path.join(outputDir, method + ".log")
+      self._responseFile = os.path.join(self._logDir, method + ".json")
+      self._outputFile = os.path.join(self._logDir, method + ".log")
 
    def getResultFromResponse(self, response):
       '''
@@ -71,7 +72,7 @@ class RPC():
       if "result" in response:
          return response["result"]
       else:
-         print("Unable to find 'result' in response:", response)
+         log.debug("Unable to find 'result' in response '{}'".format(response))
          return None
 
    def getStorageAt(self, blockAddress, storageLocation):
@@ -134,9 +135,10 @@ class RPC():
          if txReceipt and "contractAddress" in txReceipt:
             ret = txReceipt["contractAddress"]
          elif not txReceipt:
-            print("No transaction receipt")
+            log.debug("No transaction receipt")
          else:
-            print("Unable to find 'contractAddress' in receipt:", txReceipt)
+            log.debug("Unable to find 'contractAddress' in receipt '{}'". \
+                      format(txReceipt))
 
          if attempts > 0:
             time.sleep(1)
