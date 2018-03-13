@@ -98,6 +98,8 @@ choose_block(_ReqData, State) ->
     %% memoized
     State.
 
+%% based on reply to eth_getBlockByHash
+%% https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_getblockbyhash
 get_block(#state{block_id=BlockId, block=undefined}=State) when is_integer(BlockId) ->
     %% TODO: Ask Athena
     {ok, Digest} = helen_eth_web3:keccak_digest(<<BlockId/integer>>),
@@ -109,7 +111,7 @@ get_block(#state{block_id=BlockId, block=undefined}=State) when is_integer(Block
                       {<<"nonce">>, helen_eth:hex0x(Digest)},
                       {<<"size">>, BlockId*100},
                       {<<"transactions">>,
-                       [ fake_transaction(BlockId, Digest, N)
+                       [ fake_transaction(BlockId, N)
                          || N <- lists:seq(1, ?TRANSACTION_COUNT) ]}
                      ]},
     State#state{block=Block};
@@ -120,6 +122,6 @@ get_block(State) ->
     %% memoized
     State.
 
-fake_transaction(BlockId, BlockHash, N) ->
+fake_transaction(BlockId, N) ->
     {ok, Digest} = helen_eth_web3:keccak_digest(<<(BlockId*1000+N)/integer>>),
     helen_eth:hex0x(Digest).
