@@ -17,10 +17,16 @@ include_directories(${Boost_INCLUDE_DIRS})
 #find_package(Log4Cplus REQUIRED)
 configure_file(resources/log4cplus.properties resources/log4cplus.properties COPYONLY)
 
-file(GLOB athena_src "src/*.cpp" "src/*.hpp")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+find_package(Hera REQUIRED)
+include_directories(${Hera_INCLUDE_DIRS})
 
+file(GLOB athena_src "src/*.cpp" "src/*.hpp")
 add_executable(athena
-  ${athena_src}
-  ${PROTO_SRCS} ${PROTO_HDRS})
-target_link_libraries(athena ${PROTOBUF_LIBRARIES} ${Boost_LIBRARIES}
-  log4cplus)
+               ${athena_src}
+               ${PROTO_SRCS} ${PROTO_HDRS})
+target_link_libraries(athena
+                      ${PROTOBUF_LIBRARIES}
+                      ${Boost_LIBRARIES}
+                      log4cplus
+                      ${Hera_LIBRARIES})

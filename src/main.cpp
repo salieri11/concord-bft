@@ -8,6 +8,7 @@
 #include <log4cplus/configurator.h>
 
 #include "api_acceptor.hpp"
+#include "athena_evm.hpp"
 
 using namespace boost::program_options;
 using boost::asio::ip::tcp;
@@ -94,6 +95,11 @@ main(int argc, char** argv)
          log4cplus::Logger::getInstance("com.vmware.athena.main");
       LOG4CPLUS_INFO(mainLogger, "VMware Project Athena starting");
 
+      if (!com::vmware::athena::evm::init_evm()) {
+         // without our interpretter, Athena can't do much
+         goto shutdown;
+      }
+
       // actually run the service - when this call returns, the
       // service has shutdown
       start_service(opts, mainLogger);
@@ -111,7 +117,9 @@ main(int argc, char** argv)
       return -1;
    }
 
+shutdown:
    // cleanup required for properties-watching thread
+   com::vmware::athena::evm::stop_evm();
    log4cplus::Logger::shutdown();
 
    return 0;

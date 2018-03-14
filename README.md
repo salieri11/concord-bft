@@ -85,6 +85,22 @@ This will install all library files and header files into
 '/usr/local'. (You may need to add `/usr/local/lib` to your
 `LD_LIBRARY_PATH` to run Athena.)
 
+#### Hera
+
+Athena uses the [Hera](https://github.com/vmwathena/hera) eWASM VM to
+execute Ethereum code. While we're figuring out dependency management,
+please clone hera to the same directory you cloned athena (i.e. one
+directory up from this README file), and build it:
+
+```shell
+athena$ cd ..
+$ git clone git@github.com:vmwathena/hera.git
+$ cd hera
+$ mkdir build
+$ cd build
+$ cmake .. && make
+```
+
 ### Athena
 
 Once dependencies are installed, build athena:
