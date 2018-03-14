@@ -32,13 +32,14 @@ static const string default_log_props = "./resources/log4cplus.properties";
 // default period to check for logging properties changes (milliseconds)
 static const int default_log_props_time_ms = 60000; // 60sec
 
-static io_service *http_service;
+// the Boost service hosting our Helen connections
+static io_service *api_service;
 
 void signalHandler(int signum) {
    Logger logger = Logger::getInstance("com.vmware.athena.main");
    LOG4CPLUS_INFO(logger, "Interrupt received");
 
-   http_service->stop();
+   api_service->stop();
 }
 
 /*
@@ -50,14 +51,14 @@ start_service(variables_map &opts, Logger logger)
    std::string ip = opts["ip"].as<std::string>();
    short port = opts["port"].as<short>();
 
-   http_service = new io_service();
+   api_service = new io_service();
    tcp::endpoint endpoint(address::from_string(ip), port);
-   api_acceptor acceptor(*http_service, endpoint);
+   api_acceptor acceptor(*api_service, endpoint);
 
    signal(SIGINT, signalHandler);
 
    LOG4CPLUS_INFO(logger, "Listening on " << endpoint);
-   http_service->run();
+   api_service->run();
 }
 
 int
