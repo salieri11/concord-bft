@@ -86,18 +86,21 @@ This will install all library files and header files into
 
 ### Athena
 
-Once dependencies are installed, run `make`:
+Once dependencies are installed, build athena:
 
-```
-$ make
+```shell
+athena$ mkdir build
+athena$ cd build
+athena/build$ cmake ..
+athena/build$ make
 ```
 
 This should produce an `athena` executable. Run it to start athena:
 
-```
-$ athena
-VMware Project Athena
-Listening on 0.0.0.0:5458
+```shell
+athena/build$ athena
+03/14/18 16:43:51 [139882668836672] INFO  athena.main %% - VMware Project Athena starting [/home/bfink/vmwathena/athena/src/main.cpp:95]
+03/14/18 16:43:51 [139882668836672] INFO  athena.main %% - Listening on 0.0.0.0:5458 [/home/bfink/vmwathena/athena/src/main.cpp:45]
 ```
 
 With Athena running, you probably want to go set up
