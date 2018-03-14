@@ -70,7 +70,8 @@ cd log4cplus
 git checkout REL_1_2_1
 ````
 
-4. Edit configure to change "am__api_version" from 1.14 to 1.15, the version that ubuntu 16.04 supports.
+4. Edit `configure` to change "am__api_version" from 1.14 to 1.15, the
+version that ubuntu 16.04 supports.
 
 5. Configure/make/install
 
