@@ -11,6 +11,7 @@
     "build:move": "cp -a dist/. ../priv/www/assets && mv ../priv/www/assets/index.html ../priv/www",
     "test": "ng test",
     "lint": "ng lint",
+    "lint-fix": "ng lint -fix \"src/app/**/*.ts\"",
     "e2e": "ng e2e"
   },
   "private": true,
