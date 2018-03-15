@@ -43,7 +43,8 @@ Hermes is the repository for the vmwareathena project's testing framework.
 - Python 3
 - To run the "CoreVMTests" suite, fetch the ethereum/tests project from Github:
   https://github.com/ethereum/tests
-  Then adjust the path to it in the config file.
+  Then adjust the path to it in resources/user_config.json.
+
 ## Running a test suite:
 - There will eventually be a config file for build locations.  For now, the build
   directories are hard coded in resources/product_launch_config.json.
