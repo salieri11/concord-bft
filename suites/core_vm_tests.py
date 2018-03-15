@@ -2,20 +2,12 @@
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # Tasks:
-# - A few ethereum tests are bundled with this.  Instead, create a config
-#   file which contains a reference to the ethererum tests.  The license
-#   seems permissive, but let's just not store any of that stuff here.
-# - Use Python's logger instead of print().
-# - Launch geth when running in ethereumMode.
-# - We need to be given the user hash/pwd to use. (Config file) Hard code
-#   values right now just work on my system.
-# - Need to unlock the user. (I just unlock for the entire session manually.)
-# - Detect product startup instead of sleeping.
-# - Save results to a JSON file.
-# - Return a path to a JSON file.
+# - Launch geth when running in ethereumMode. (Low priority...dev mode)
+# - Need to unlock the user. (Need API first.)
 #########################################################################
 import argparse
 import json
+import logging
 import os
 import tempfile
 import time
@@ -24,27 +16,45 @@ from . import test_suite
 from rpc.rpc_call import RPC
 from util.product import Product
 
-PRODUCT_CONFIG_JSON = "resources/product_launch_config.json"
+log = logging.getLogger(__name__)
+
+# The config file contains information aobut how to run things, as opposed to
+# command line parameters, which are about running tests.
+CONFIG_JSON = "resources/user_config.json"
+TEST_LOG_DIR = "test_logs"
 TEST_SOURCE_CODE_SUFFIX = "Filler.json"
-VM_TEST_DIR = "suites/ethereum_vm_tests/vmArithmeticTest"
 
 class CoreVMTests(test_suite.TestSuite):
    _args = None
    _apiServerUrl = None
+   _userConfig = None
    _ethereumMode = False
    _productMode = True
+   _resultFile = None
 
    def __init__(self, passedArgs):
       self._args = passedArgs
       self._ethereumMode = self._args.ethereumMode
+      self._loadConfigFile()
+      self._productMode = not self._ethereumMode
 
       if self._ethereumMode:
-         print("Running in ethereum mode")
-         self._productMode = False
+         log.debug("Running in ethereum mode")
          self._apiServerUrl = "http://localhost:8545"
       else:
          self._apiServerUrl = "http://localhost:8080/api/athena/eth/"
 
+      self._resultFile = os.path.join(passedArgs.resultsDir,
+                                     "coreVMTestResults.json")
+      self._results = {
+         "CoreVMTests": {
+            "result":"N/A",
+            "tests":{}
+         }
+      }
+
+      with open(self._resultFile, "w") as f:
+         f.write(json.dumps(self._results))
 
    def getName(self):
       return "CoreVMTests"
@@ -52,52 +62,114 @@ class CoreVMTests(test_suite.TestSuite):
    def run(self):
       ''' Runs all of the tests. '''
       if self._productMode:
-         p = Product(self._args.resultsDir)
-         p.launchProduct(PRODUCT_CONFIG_JSON)
+         p = Product(self._args.resultsDir,
+                     self._apiServerUrl,
+                     self._userConfig["product"])
+         p.launchProduct()
+         if not p.waitForProductStartup():
+            log.error("The product did not start.  Exiting.")
+            exit(1)
 
-      print("Pretending to wait for startup.")
-      time.sleep(5)
-      print("The product is running.")
-
-      tests = os.listdir(VM_TEST_DIR)
+      tests = self._getTests()
 
       for test in tests:
          if not self._isSourceCodeTestFile(test):
             testCompiled = self._loadCompiledTest(test)
-            testSource = self._loadTestSource(test)
-            print(self._runRpcTest(testSource, testCompiled))
+            testSource = self._loadTestSource(testCompiled)
+            testName = list(testCompiled.keys())[0]
+            testLogDir = os.path.join(self._args.resultsDir, TEST_LOG_DIR, testName)
+            result = self._runRpcTest(testSource, testCompiled, testLogDir)
+            self._writeResult(testName, result, testLogDir)
 
-      print("Tests are done.")
+      log.info("Tests are done.")
 
       if self._productMode:
          p.stopProduct()
 
-      return {
-         "results": "foo"
+      return self._resultFile
+
+   def _writeResult(self, testName, result, info):
+      '''
+      We're going to write the full result set to json for each test so that
+      we have a valid result structure even if things die partway through.
+
+      We'll keep the structure in memory so at least we aren't reading the
+      entire thing with every test case.
+      '''
+      result = "PASS" if result else "FAIL"
+      log.info(result)
+
+      self._results["CoreVMTests"]["tests"][testName] = {
+         "result": result,
+         "info": info
       }
+
+      tempFile = self._resultFile + "_temp"
+
+      with open(tempFile, "w") as f:
+         f.write(json.dumps(self._results, sort_keys=True, indent=4))
+
+      os.rename(tempFile, self._resultFile)
+
+   def _loadConfigFile(self):
+      '''
+      Loads the main config file.
+      '''
+      try:
+         with open(CONFIG_JSON) as f:
+            self._userConfig = json.load(f)
+      except IOError:
+         log.error("The config file '{}' could not be read; it may be " \
+                   "missing or have restricted permissions.".format(CONFIG_JSON))
+      except json.JSONDecodeError as e:
+         log.error("The config file '{}' could not be parsed as json. " \
+                   "Error: '{}'" \
+                   .format(CONFIG_JSON, e))
+
+      if self._userConfig:
+         if "ethereum" in self._userConfig and \
+            "testRoot" in self._userConfig["ethereum"]:
+
+            self._userConfig["ethereum"]["testRoot"] = \
+               os.path.expanduser(self._userConfig["ethereum"]["testRoot"])
+
+      else:
+         exit(1)
+
+   def _getTests(self):
+      '''
+      Returns a list of file names.  Each file is a test to run.
+      '''
+      ethTests = self._userConfig["ethereum"]["testRoot"]
+      vmArithmeticTests = os.path.join(ethTests, "VMTests", "vmArithmeticTest")
+
+      # The goal is to run them all.  Let's just start with the basics.
+      return [
+         os.path.join(vmArithmeticTests, "add0.json"),
+         os.path.join(vmArithmeticTests, "add1.json")
+      ]
 
    def _loadCompiledTest(self, test):
       '''
       Reads the compiled test from a file and returns it.
       '''
-      testCompiledFile = os.path.join(VM_TEST_DIR, test)
       testCompiled = None
 
-      with open(testCompiledFile) as f:
+      with open(test) as f:
          testCompiled = json.load(f)
 
       return testCompiled
 
-   def _loadTestSource(self, test):
+   def _loadTestSource(self, testCompiled):
       '''
       Reads the test source code from a file and returns it.
       '''
-      testSourceFile = os.path.join(VM_TEST_DIR, test)
-      testSourceFile = os.path.splitext(testSourceFile)[0]
-      testSourceFile += TEST_SOURCE_CODE_SUFFIX
+      ethTestsSrc = self._userConfig["ethereum"]["testRoot"]
+      testName = list(testCompiled.keys())[0]
+      ethTestsSrc = os.path.join(ethTestsSrc, testCompiled[testName]["_info"]["source"])
       testSource = None
 
-      with open(testSourceFile) as f:
+      with open(ethTestsSrc) as f:
          testSource = json.load(f)
 
       return testSource
@@ -108,12 +180,22 @@ class CoreVMTests(test_suite.TestSuite):
       '''
       return TEST_SOURCE_CODE_SUFFIX in name
 
-   def _runRpcTest(self, testSource, testCompiled):
+   def _getAUser(self):
+      '''
+      Gets a user hash from the user config file, based on whether we're using
+      the product or Ethereum.
+      '''
+      if self._ethereumMode:
+         return self._userConfig["ethereum"]["users"][0]["hash"]
+      else:
+         return self._userConfig["product"]["users"][0]["hash"]
+
+   def _runRpcTest(self, testSource, testCompiled, testLogDir):
       ''' Runs one test. '''
       success = False
       testName = list(testSource.keys())[0]
-      caller = "0x4291294e5ddd2f50ac9c575e3cf1455b060fd404"
       data = testCompiled[testName]["exec"]["code"]
+      caller = self._getAUser()
 
       # For some tests, expected results are only in the "src" files which
       # are used to generate the tests.  The compiled files contain no
@@ -123,9 +205,9 @@ class CoreVMTests(test_suite.TestSuite):
       expectSection = testSource[testName]["expect"]
       expectedStorage = expectSection[list(expectSection.keys())[0]]["storage"]
 
-      print("Starting test", testName)
+      log.info("Starting test '{}'".format(testName))
 
-      rpc = RPC(self._args.resultsDir,
+      rpc = RPC(testLogDir,
                 testName,
                 self._apiServerUrl)
       txHash = rpc.sendTransaction(caller, data)
@@ -136,20 +218,20 @@ class CoreVMTests(test_suite.TestSuite):
 
          if contractAddress:
             if (len(expectedStorage) < 1):
-               print("No expected storage detected.  Skipping")
+               log.debug("No expected storage detected.  Skipping")
             else:
                for storageLoc in expectedStorage:
                   actualValue = rpc.getStorageAt(contractAddress, storageLoc)
                   actualValue = int(actualValue, 16)
                   expectedValue = int(expectedStorage[storageLoc], 16)
-                  print("expectedValue:", expectedValue,
-                        "actualValue", actualValue)
+                  log.debug("Expected value: '{}', actual value: '{}'". \
+                            format(expectedValue, actualValue))
                   if expectedValue == actualValue:
                      success = True
                   else:
                      success = False
                      break
          else:
-            print("Never got a contract address.")
+            log.debug("Never got a contract address.")
 
       return success
