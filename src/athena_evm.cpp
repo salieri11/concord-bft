@@ -100,7 +100,7 @@ int com::vmware::athena::evm::ath_account_exists(
    struct evm_context* evmctx,
    const struct evm_address* address)
 {
-   struct athera_context *athctx = (struct athera_context*)evmctx;
+   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
    Logger logger = Logger::getInstance("com.vmware.athena.evm");
 
    LOG4CPLUS_INFO(logger, "ath_account_exists called, address: " <<
@@ -120,7 +120,7 @@ void com::vmware::athena::evm::ath_get_storage(
    const struct evm_address* address,
    const struct evm_uint256be* key)
 {
-   struct athera_context *athctx = (struct athera_context*)evmctx;
+   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
    Logger logger = Logger::getInstance("com.vmware.athena.evm");
 
    LOG4CPLUS_INFO(logger, "ath_get_storage called, address: " <<
@@ -140,7 +140,7 @@ void com::vmware::athena::evm::ath_set_storage(
    const struct evm_uint256be* key,
    const struct evm_uint256be* value)
 {
-   struct athera_context *athctx = (struct athera_context*)evmctx;
+   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
    Logger logger = Logger::getInstance("com.vmware.athena.evm");
 
    LOG4CPLUS_INFO(logger, "ath_set_storage called, address: " <<
@@ -158,7 +158,7 @@ void com::vmware::athena::evm::ath_get_balance(
    struct evm_context* evmctx,
    const struct evm_address* address)
 {
-   struct athera_context *athctx = (struct athera_context*)evmctx;
+   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
    Logger logger = Logger::getInstance("com.vmware.athena.evm");
 
    LOG4CPLUS_INFO(logger, "ath_get_balance called, address: " <<
@@ -179,7 +179,7 @@ size_t com::vmware::athena::evm::ath_get_code(
    struct evm_context* evmctx,
    const struct evm_address* address)
 {
-   struct athera_context *athctx = (struct athera_context*)evmctx;
+   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
    Logger logger = Logger::getInstance("com.vmware.athena.evm");
 
    LOG4CPLUS_INFO(logger, "ath_get_code called, address: " <<
@@ -197,7 +197,7 @@ void com::vmware::athena::evm::ath_selfdestruct(
    const struct evm_address* address,
    const struct evm_address* beneficiary)
 {
-   struct athera_context *athctx = (struct athera_context*)evmctx;
+   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
    Logger logger = Logger::getInstance("com.vmware.athena.evm");
 
    LOG4CPLUS_INFO(logger, "ath_selfdestruct called, address: " <<
@@ -218,7 +218,7 @@ void com::vmware::athena::evm::ath_emit_log(
    const struct evm_uint256be topics[],
    size_t topics_count)
 {
-   struct athera_context *athctx = (struct athera_context*)evmctx;
+   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
    Logger logger = Logger::getInstance("com.vmware.athena.evm");
 
    LOG4CPLUS_INFO(logger, "ath_emit_log called, address: " <<
@@ -235,7 +235,7 @@ void com::vmware::athena::evm::ath_call(
    struct evm_context* evmctx,
    const struct evm_message* msg)
 {
-   struct athera_context *athctx = (struct athera_context*)evmctx;
+   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
    Logger logger = Logger::getInstance("com.vmware.athena.evm");
 
    LOG4CPLUS_INFO(logger, "ath_call called");
@@ -251,7 +251,7 @@ void com::vmware::athena::evm::ath_get_block_hash(
    struct evm_context* evmctx,
    int64_t number)
 {
-   struct athera_context *athctx = (struct athera_context*)evmctx;
+   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
    Logger logger = Logger::getInstance("com.vmware.athena.evm");
 
    LOG4CPLUS_INFO(logger, "ath_get_block_hash called, block: " << number);
@@ -266,7 +266,7 @@ void com::vmware::athena::evm::ath_get_tx_context(
    struct evm_tx_context* result,
    struct evm_context* evmctx)
 {
-   struct athera_context *athctx = (struct athera_context*)evmctx;
+   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
    Logger logger = Logger::getInstance("com.vmware.athena.evm");
 
    LOG4CPLUS_INFO(logger, "ath_get_tx_context called");

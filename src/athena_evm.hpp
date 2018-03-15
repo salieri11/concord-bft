@@ -90,16 +90,16 @@ static struct evm_context athena_evm_context = { &athena_fn_table };
  * Our wrapper around Hera's wrapper, where we can add pointers to the modules
  * we're using to keep state.
  */
-struct athena_context {
+typedef struct athena_context {
    struct evm_context evmctx;
    // TODO: KVBlockchain pointer eventually
-};
+} athena_context;
 
 /**
  * Our actual state. This is a singleton for now, as we're only running one
  * chain, so the EVM will apply one op at a time.
  */
-static struct athena_context *athctx;
+static athena_context *athctx;
 static evm_instance *hera;
 
 /**
