@@ -260,7 +260,7 @@ void com::vmware::athena::evm::ath_get_block_hash(
 }
 
 /**
- * Get the transaction cotext.
+ * Get the transaction context.
  */
 void com::vmware::athena::evm::ath_get_tx_context(
    struct evm_tx_context* result,
