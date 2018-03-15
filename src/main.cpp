@@ -36,10 +36,15 @@ static const int default_log_props_time_ms = 60000; // 60sec
 static io_service *api_service;
 
 void signalHandler(int signum) {
-   Logger logger = Logger::getInstance("com.vmware.athena.main");
-   LOG4CPLUS_INFO(logger, "Interrupt received");
+   try {
+      Logger logger = Logger::getInstance("com.vmware.athena.main");
+      LOG4CPLUS_INFO(logger, "Signal received (" << signum <<
+                     "), stopping service");
 
-   api_service->stop();
+      api_service->stop();
+   } catch (exception &e) {
+      cout << "Exception in signal handler: " << e.what() << endl;
+   }
 }
 
 /*
@@ -65,6 +70,7 @@ int
 main(int argc, char** argv)
 {
    bool loggerInitialized = true;
+   int result = 0;
 
    try {
       variables_map opts;
@@ -108,10 +114,8 @@ main(int argc, char** argv)
       Logger mainLogger = Logger::getInstance("com.vmware.athena.main");
       LOG4CPLUS_INFO(mainLogger, "VMware Project Athena starting");
 
-      if (!com::vmware::athena::evm::init_evm()) {
-         // without our interpretter, Athena can't do much
-         goto shutdown;
-      }
+      // throws an exception if it fails
+      evm::init_evm();
 
       // actually run the service - when this call returns, the
       // service has shutdown
@@ -125,11 +129,16 @@ main(int argc, char** argv)
       } else {
          std::cerr << ex.what() << std::endl;
       }
-
-      return -1;
+      result = -1;
+   } catch (evm::EVMException &ex) {
+      if (loggerInitialized) {
+         Logger mainLogger = Logger::getInstance("com.vmware.athena.main");
+         LOG4CPLUS_FATAL(mainLogger, ex.what());
+      } else {
+         std::cerr << ex.what() << std::endl;
+      }
+      result = -1;
    }
-
-shutdown:
 
    if (loggerInitialized) {
       Logger mainLogger = Logger::getInstance("com.vmware.athena.main");
@@ -140,5 +149,5 @@ shutdown:
    com::vmware::athena::evm::stop_evm();
    log4cplus::Logger::shutdown();
 
-   return 0;
+   return result;
 }

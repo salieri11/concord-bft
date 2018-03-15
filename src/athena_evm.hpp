@@ -12,6 +12,19 @@ namespace vmware {
 namespace athena {
 namespace evm {
 
+class EVMException: public std::exception {
+public:
+   EVMException(const std::string &what): msg(what) {};
+
+   virtual const char* what()
+   {
+      return msg.c_str();
+   }
+
+private:
+   std::string msg;
+};
+
 /**
  * The next several ath_* functions are callbacks that Hera/EVM use to interact
  * with our state-keeping layer.
@@ -93,7 +106,7 @@ static evm_instance *hera;
  * Initialize the context and evm instance. TODO: Add parameters for data
  * directory, genesis block definition, etc.
  */
-bool init_evm();
+void init_evm();
 
 /**
  * Shutdown and dealloc the evm instance and its contexts. Safe to call multiple

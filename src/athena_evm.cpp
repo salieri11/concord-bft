@@ -5,6 +5,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cstring>
+#include <stdexcept>
 #include <log4cplus/loggingmacros.h>
 
 #include "athena_evm.hpp"
@@ -40,7 +41,7 @@ using log4cplus::Logger;
  *
  * TODO: Make this thread-safe. For now, call this once in main only.
  */
-bool com::vmware::athena::evm::init_evm()
+void com::vmware::athena::evm::init_evm()
 {
    Logger logger = Logger::getInstance("com.vmware.athena.evm");
 
@@ -52,21 +53,20 @@ bool com::vmware::athena::evm::init_evm()
    hera = hera_create();
    if (hera == NULL) {
       LOG4CPLUS_FATAL(logger, "Could not create Hera instance");
-      return false;
+      throw EVMException("Could not create Hera instance");
    }
 
    athctx = (athena_context*)malloc(sizeof(athena_context));
    if (athctx == NULL) {
       LOG4CPLUS_FATAL(logger, "Could not allocate Athena Hera context");
       hera->destroy(hera);
-      return false;
+      throw EVMException("Could not allocate Athena Hera context");
    }
 
    athctx->evmctx = athena_evm_context;
    //TODO: there will be other things to init here (logger, storage, etc.)
 
    LOG4CPLUS_INFO(logger, "Hera VM started");
-   return true;
 }
 
 /**
