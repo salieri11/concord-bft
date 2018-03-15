@@ -82,25 +82,19 @@
   <table class="table">
     <thead>
     <tr>
-      <th>Established</th>
       <th>Location</th>
-      <th>Lorem Ipsum</th>
-      <th>Trans/Sec</th>
-      <th>Avg Length</th>
+      <th>Hostname</th>
+      <th>Address</th>
       <th>Status</th>
-      <th>Lorem</th>
       <th></th>
     </tr>
     </thead>
     <tbody>
     <tr *ngFor="let member of members">
-      <td>01-28-2017</td>
       <td>Lindberg</td>
       <td>{{member.host}}</td>
-      <td>336</td>
-      <td>0.87 sec</td>
+      <td>2001:0db8:85a3:0000:0000:8a2e:0370:7334:8080</td>
       <td>{{member.status}}</td>
-      <td>75</td>
       <td>
         <clr-dropdown [clrCloseMenuOnItemClick]="false">
           <button type="button" clrDropdownTrigger>

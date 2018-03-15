@@ -2,9 +2,10 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import {Component, OnInit, ViewChild} from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
+import { Member } from '../../shared/remote-interfaces';
 import { TransactionFiltersModalComponent } from '../transaction-filters-modal/transaction-filters-modal.component';
 
 @Component({
@@ -23,12 +24,16 @@ export class NodesContainerComponent implements OnInit {
     averageValidationTime: 1.98
   };
 
-  members: MockMember[] = [];
+  members: Member[] = [];
 
   constructor(private httpClient: HttpClient) {}
 
   ngOnInit() {
-    this.httpClient.get('/api/athena/members').subscribe((data: MockMember[]) => this.members = data);
+    this.loadMembers();
+  }
+
+  loadMembers() {
+    this.httpClient.get('/api/athena/members').subscribe((data: Member[]) => this.members = data);
   }
 
   onOpenFilterModal() {
@@ -38,9 +43,4 @@ export class NodesContainerComponent implements OnInit {
   onApplyFilters() {
     // TODO: action on apply filters
   }
-}
-
-interface MockMember {
-  host: string;
-  status: string;
 }
