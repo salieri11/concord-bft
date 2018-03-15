@@ -1,3 +1,7 @@
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
+
 import { AppPage } from './app.po';
 
 describe('athena-ui App', () => {
