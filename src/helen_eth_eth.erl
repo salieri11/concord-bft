@@ -9,8 +9,13 @@
          sendTransaction/1,
          sendRawTransaction/1
         ]).
+-export([
+         sendTransaction_athena/4,
+         sendTransaction_P2BC/4
+        ]).
 
 -include("helen_eth.hrl").
+-include("athena_pb.hrl").
 
 -import(helen_eth_param, [
                           optional_0x/2, required_0x/2,
@@ -37,7 +42,7 @@ sendTransaction(#eth_request{params=[{struct, Params}]}) ->
           optional_integer(<<"value">>, Params),
           optional_0x(<<"data">>, Params)] of
         [{ok, To}, {ok, From}, {ok, Value}, {ok, Data}] ->
-            sendTransaction_P2BC(To, From, Value, Data);
+            sendTransaction_athena(To, From, Value, Data);
         Errors ->
             hd([ E || {error, _}=E <- Errors ])
     end;
@@ -64,6 +69,27 @@ sendRawTransaction(_) ->
 
 binary_reason(Msg, Reason) ->
     list_to_binary(io_lib:format("failed to ~s (~p)", [Msg, Reason])).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Athena implementation
+
+sendTransaction_athena(To, From, Value, Data) ->
+    EthRequest = #ethrequest{
+                    addr_to=To,
+                    addr_from=From,
+                    value=Value,
+                    data=Data},
+    case helen_athena_conn:send_request(
+           #athenarequest{eth_request=[EthRequest]}) of
+        #athenaresponse{eth_response=[EthResponse]} ->
+            error_logger:info_msg("received response from athena: ~p",
+                                  [EthResponse]),
+            {ok, <<"todosomething">>};
+        Other ->
+            error_logger:error_msg("did not understand athena response: !p",
+                                   [Other]),
+            {error, <<"bad response from athena">>}
+    end.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% P2_Blockchain implementation
