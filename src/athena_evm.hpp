@@ -14,9 +14,9 @@ namespace evm {
 
 class EVMException: public std::exception {
 public:
-   EVMException(const std::string &what): msg(what) {};
+   explicit EVMException(const std::string &what): msg(what) {};
 
-   virtual const char* what()
+   virtual const char* what() const noexcept override
    {
       return msg.c_str();
    }
