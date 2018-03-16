@@ -19,11 +19,52 @@ using namespace com::vmware::athena;
 static const std::string DEFAULT_ATHENA_IP = "127.0.0.1";
 static const std::string DEFAULT_ATHENA_PORT = "5458";
 
+char hexval(char c) {
+   if (c >= '0' && c <= '9') {
+      return c - '0';
+   } else if (c >= 'a' && c <= 'f') {
+      return 10 + c - 'a';
+   } else if (c >= 'A' && c <= 'F') {
+      return 10 + c - 'F';
+   } else {
+      throw "non-hex character";
+   }
+}
+
+void dehex0x(std::string *str) {
+   if (str->size() % 2 != 0) {
+      throw "nibble missing in string";
+   }
+
+   // allow people to include "0x" prefix, or not
+   size_t adjust = ((*str)[0] == '0' && (*str)[1] == 'x') ? 2 : 0;
+
+   size_t binsize = (str->size()-adjust)/2;
+
+   if (binsize > 0) {
+      char *out = new char[binsize];
+      for (int i = 0; i < binsize; i++) {
+         out[i] = (hexval((*str)[i*2+adjust]) << 4)
+            | hexval((*str)[i*2+adjust+1]);
+      }
+      str->assign(out, binsize);
+      delete out;
+   } else {
+      str->assign("");
+   }
+}
+
+void dehex_into(std::string *dest, std::string src) {
+   dest->assign(src);
+   dehex0x(dest);
+}
+
 int main(int argc, char** argv)
 {
    try {
       variables_map opts;
       options_description desc{"Options"};
+      std::string pbtext;
 
       desc.add_options()
          ("help,h", "Print this help message")
@@ -75,23 +116,24 @@ int main(int argc, char** argv)
       EthRequest *ethReq = athReq.add_eth_request();
 
       if (opts.count("from") > 0) {
-         // TODO: dehex?
-         ethReq->mutable_addr_from()->assign(opts["from"].as<std::string>());
+         dehex_into(ethReq->mutable_addr_from(),
+                    opts["from"].as<std::string>());
       }
       if (opts.count("to") > 0) {
-         // TODO: dehex?
-         ethReq->mutable_addr_to()->assign(opts["to"].as<std::string>());
+         dehex_into(ethReq->mutable_addr_to(),
+                    opts["to"].as<std::string>());
       }
       if (opts.count("value") > 0) {
          // TODO: hex value?
          std::cout << "Warning: not supporting value yet" << std::endl;
       }
       if (opts.count("data") > 0) {
-         // TODO: dehex?
-         ethReq->mutable_data()->assign(opts["data"].as<std::string>());
+         dehex_into(ethReq->mutable_data(),
+                    opts["data"].as<std::string>());
       }
 
-      std::cout << "Message Prepared" << std::endl;
+      google::protobuf::TextFormat::PrintToString(athReq, &pbtext);
+      std::cout << "Message Prepared: " << pbtext << std::endl;
 
       /*** Send request ***/
 
@@ -103,13 +145,10 @@ int main(int argc, char** argv)
       // little-endian!
       char *prefix = (char*)&msglen;
 
-      std::cout << __LINE__ << std::endl;
       boost::asio::write(s, boost::asio::buffer(prefix, 2));
-      std::cout << __LINE__ << std::endl;
       boost::asio::write(s, boost::asio::buffer(pb, msglen));
-      std::cout << __LINE__ << std::endl;
 
-      std::cout << "Message Sent" << std::endl;
+      std::cout << "Message Sent (" << msglen << " bytes)" << std::endl;
 
       /*** Receive response ***/
 
@@ -131,9 +170,7 @@ int main(int argc, char** argv)
             AthenaResponse athResp;
             athResp.ParseFromString(reply);
 
-            std::string pbtext;
             google::protobuf::TextFormat::PrintToString(athResp, &pbtext);
-
             std::cout << "Received response: " << pbtext << std::endl;
          }
       }
@@ -142,6 +179,9 @@ int main(int argc, char** argv)
       s.close();
    } catch (std::exception &e) {
       std::cerr << "Exception: " << e.what() << std::endl;
+      return -1;
+   } catch (const char *what) {
+      std::cerr << "Exception: " << what << std::endl;
       return -1;
    }
 
