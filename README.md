@@ -70,7 +70,8 @@ cd log4cplus
 git checkout REL_1_2_1
 ````
 
-4. Edit configure to change "am__api_version" from 1.14 to 1.15, the version that ubuntu 16.04 supports.
+4. Edit `configure` to change "am__api_version" from 1.14 to 1.15, the
+version that ubuntu 16.04 supports.
 
 5. Configure/make/install
 
@@ -84,20 +85,39 @@ This will install all library files and header files into
 '/usr/local'. (You may need to add `/usr/local/lib` to your
 `LD_LIBRARY_PATH` to run Athena.)
 
+#### Hera
+
+Athena uses the [Hera](https://github.com/vmwathena/hera) eWASM VM to
+execute Ethereum code. While we're figuring out dependency management,
+please clone hera to the same directory you cloned athena (i.e. one
+directory up from this README file), and build it:
+
+```shell
+athena$ cd ..
+$ git clone git@github.com:vmwathena/hera.git
+$ cd hera
+$ mkdir build
+$ cd build
+$ cmake .. && make
+```
+
 ### Athena
 
-Once dependencies are installed, run `make`:
+Once dependencies are installed, build athena:
 
-```
-$ make
+```shell
+athena$ mkdir build
+athena$ cd build
+athena/build$ cmake ..
+athena/build$ make
 ```
 
 This should produce an `athena` executable. Run it to start athena:
 
-```
-$ athena
-VMware Project Athena
-Listening on 0.0.0.0:5458
+```shell
+athena/build$ athena
+03/14/18 16:43:51 [139882668836672] INFO  athena.main %% - VMware Project Athena starting [/home/bfink/vmwathena/athena/src/main.cpp:95]
+03/14/18 16:43:51 [139882668836672] INFO  athena.main %% - Listening on 0.0.0.0:5458 [/home/bfink/vmwathena/athena/src/main.cpp:45]
 ```
 
 With Athena running, you probably want to go set up
