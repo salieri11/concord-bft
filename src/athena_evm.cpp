@@ -89,6 +89,15 @@ void com::vmware::athena::evm::stop_evm() {
    LOG4CPLUS_INFO(logger, "Hera VM stopped");
 }
 
+void com::vmware::athena::evm::execute(
+   evm_message *message,
+   const uint8_t *code,
+   size_t code_size,
+   evm_result *result) {
+   *result = hera->execute(hera, &athctx->evmctx, EVM_BYZANTIUM,
+                           message, code, code_size);
+}
+
 /**
  * Does the account at the address exists?
  *

@@ -114,6 +114,15 @@ void init_evm();
  */
 void stop_evm();
 
+/**
+ * Send a message to EVM for evaluation.
+ */
+void execute(
+   evm_message *message,
+   const uint8_t *code,
+   size_t code_size,
+   evm_result *result);
+
 }}}}
 
 #endif //ATHENA_EVM_HPP

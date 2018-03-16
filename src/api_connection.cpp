@@ -22,6 +22,8 @@
 #include <boost/bind.hpp>
 #include <boost/predef/detail/endian_compat.h>
 
+#include "evm.h"
+#include "athena_evm.hpp"
 #include "api_connection.hpp"
 
 using boost::asio::ip::tcp;
@@ -191,9 +193,86 @@ api_connection::handle_peer_request() {
  */
 void
 api_connection::handle_eth_request(int i) {
+   // TODO: forward to SBFT/KVBlockchain; just calling directly for now to
+   // demonstrate
+
+   // TODO: this is safe because we only handle one connection at a time
+   // currently
+   const EthRequest request = athenaRequest_.eth_request(i);
+
+   if (request.method() == EthRequest_EthMethod_SEND_TX) {
+      handle_eth_sendTransaction(request);
+   } else {
+      ErrorResponse *e = athenaResponse_.add_error_response();
+      e->mutable_description()->assign("ETH Method Not Implemented");
+   }
+}
+
+/**
+ * Handle and eth_sendTransaction request.
+ */
+void
+api_connection::handle_eth_sendTransaction(const EthRequest &request) {
    // TODO: this is the thing we'll forward to SBFT/KVBlockchain/EVM
-   ErrorResponse *e = athenaResponse_.add_error_response();
-   e->mutable_description()->assign("ETH Not Implemented");
+   evm_message message;
+   evm_result result;
+
+   if (request.has_addr_from()) {
+      // TODO: test & return error if needed
+      assert(20 == request.addr_from().length());
+      memcpy(message.sender.bytes, request.addr_from().c_str(), 20);
+   }
+
+   if (request.has_data()) {
+      message.input_data =
+         reinterpret_cast<const uint8_t*>(request.data().c_str());
+      message.input_size = request.data().length();
+   }
+
+   if (request.has_value()) {
+      memcpy(message.value.bytes,
+             request.value().c_str(),
+             request.value().length());
+   }
+
+   // TODO: get this from the request
+   message.gas = 100000;
+
+   // TODO: get rid of create field in protobuf, but it's useful for the moment
+   // for testing
+   if (request.has_addr_to() && !request.create()) {
+      message.kind = EVM_CALL;
+      // TODO: test & return error if needed
+      assert(20 == request.addr_to().length());
+      memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
+      com::vmware::athena::evm::execute(&message,
+                                        NULL, 0, // no code (TODO?)
+                                        &result);
+   } else {
+      message.kind = EVM_CREATE;
+      if (request.has_addr_to()) {
+         // TODO: verify hash? compute and use correct hash? just error?
+         // TODO: test & return error if needed
+         assert(20 == request.addr_to().length());
+         memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
+      }
+      const uint8_t *code = message.input_data;
+      size_t code_size = message.input_size;
+      message.input_data = NULL;
+      message.input_size = 0;
+      com::vmware::athena::evm::execute(&message,
+                                        code, code_size,
+                                        &result);
+   }
+
+
+   LOG4CPLUS_INFO(logger_, "Execution result -" <<
+                  " status_code: " << result.status_code <<
+                  " gas_left: " << result.gas_left <<
+                  " output_size: " << result.output_size);
+
+   EthResponse *response = athenaResponse_.add_eth_response();
+   response->set_id(request.id());
 }
 
 /*

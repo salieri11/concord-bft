@@ -50,6 +50,12 @@ namespace com {
             void
             handle_test_request();
 
+            /* Specific Ethereum Method handlers. */
+
+            void
+            handle_eth_sendTransaction(const EthRequest &request);
+
+            /* Constructor. */
             api_connection(boost::asio::io_service &io_service);
 
             /* Socket being handled. */
