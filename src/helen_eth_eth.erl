@@ -75,10 +75,10 @@ binary_reason(Msg, Reason) ->
 
 sendTransaction_athena(To, From, Value, Data) ->
     EthRequest = #ethrequest{
-                    addr_to=To,
+                    addr_to= case To of <<>> -> undefined; _ -> To end,
                     addr_from=From,
-                    value=Value,
-                    data=Data},
+                    value= case Value of <<>> -> undefined; _ -> Value end,
+                    bryan= Data},
     case helen_athena_conn:send_request(
            #athenarequest{eth_request=[EthRequest]}) of
         #athenaresponse{eth_response=[EthResponse]} ->

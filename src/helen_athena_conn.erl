@@ -20,7 +20,8 @@
 -export([
          start_link/1,
          send_echo_request/1,
-         send_request/1
+         send_request/1,
+         force_reconnect/0
         ]).
 
 %% gen_server callbacks
@@ -105,6 +106,12 @@ send_request(#athenarequest{}=Msg) ->
         Other ->
             Other
     end.
+
+%% Force the connection to reset.
+-spec force_reconnect() -> ok.
+force_reconnect() ->
+    ?SERVER ! reconnect,
+    ok.
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -252,6 +259,7 @@ send(#athenarequest{}=Msg, From, #state{socket=Socket}=State)
     Encoded = athena_pb:encode(Msg),
     %% TODO: send error if message is too large
     Prefix = <<(iolist_size(Encoded)):2/little-unsigned-integer-unit:8>>,
+    error_logger:info_msg("Sending ~p bytes of data", [iolist_size(Encoded)]),
     case gen_tcp:send(Socket, [Prefix, Encoded]) of
         ok ->
             activate_socket(Socket),
