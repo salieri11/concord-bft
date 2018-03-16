@@ -74,7 +74,8 @@ void com::vmware::athena::evm::init_evm()
  *
  * TODO: Make this thread-safe. For now, call this from one thread only.
  */
-void com::vmware::athena::evm::stop_evm() {
+void com::vmware::athena::evm::stop_evm()
+{
    Logger logger = Logger::getInstance("com.vmware.athena.evm");
 
    if (hera != NULL) {
@@ -93,7 +94,13 @@ void com::vmware::athena::evm::execute(
    evm_message *message,
    const uint8_t *code,
    size_t code_size,
-   evm_result *result) {
+   evm_result *result)
+{
+   Logger logger = Logger::getInstance("com.vmware.athena.evm");
+   LOG4CPLUS_INFO(logger, "Executing evm " <<
+                  (message->kind == EVM_CREATE ? "create" : "call") <<
+                  " with " << code_size << " bytes of code");
+
    *result = hera->execute(hera, &athctx->evmctx, EVM_BYZANTIUM,
                            message, code, code_size);
 }

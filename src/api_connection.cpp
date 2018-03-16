@@ -79,7 +79,7 @@ api_connection::start()
           LOG4CPLUS_DEBUG(logger_, "Correctly read bytes. decoding...");
 
           // Parse the protobuf
-          athenaRequest_.ParseFromString(msg);
+          athenaRequest_.ParseFromString(std::string(msg, msglen));
           LOG4CPLUS_DEBUG(logger_, "Parsed!");
 
           // handle the request
@@ -221,18 +221,25 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
       // TODO: test & return error if needed
       assert(20 == request.addr_from().length());
       memcpy(message.sender.bytes, request.addr_from().c_str(), 20);
+   } else {
+      memset(message.sender.bytes, 0, 20);
    }
 
    if (request.has_data()) {
       message.input_data =
          reinterpret_cast<const uint8_t*>(request.data().c_str());
       message.input_size = request.data().length();
+   } else {
+      message.input_data = NULL;
+      message.input_size = 0;
    }
 
    if (request.has_value()) {
       memcpy(message.value.bytes,
              request.value().c_str(),
              request.value().length());
+   } else {
+      memset(message.value.bytes, 0, 32);
    }
 
    // TODO: get this from the request
@@ -250,12 +257,16 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
                                         &result);
    } else {
       message.kind = EVM_CREATE;
+
       if (request.has_addr_to()) {
          // TODO: verify hash? compute and use correct hash? just error?
          // TODO: test & return error if needed
          assert(20 == request.addr_to().length());
          memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
+      } else {
+         memset(message.destination.bytes, 0, 20);
       }
+
       const uint8_t *code = message.input_data;
       size_t code_size = message.input_size;
       message.input_data = NULL;
