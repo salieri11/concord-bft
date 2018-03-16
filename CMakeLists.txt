@@ -30,3 +30,5 @@ target_link_libraries(athena
                       ${Boost_LIBRARIES}
                       log4cplus
                       ${Hera_LIBRARIES})
+
+add_subdirectory("tools")
