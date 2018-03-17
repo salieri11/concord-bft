@@ -56,62 +56,71 @@ api_connection::socket()
 void
 api_connection::start()
 {
-    uint16_t msglen;
-    // TODO: these buffers can probably be combined
-    char msg[65536];
-    std::string pb;
-    mutable_buffer lengthbuf(&msglen, sizeof(msglen));
-    mutable_buffer msgbuf(&msg, 65536);
-    error_code error;
+   // length of serialized protobuf message
+   uint16_t msglen;
+   // wrapper around msglen to make reading into/out of it easier
+   mutable_buffer lengthbuf(&msglen, sizeof(msglen));
+   // buffer for reading/writing protobuf
+   std::vector<uint8_t> pbuf;
+   error_code error;
 
-    // start by reading the length of the next message (a 16-bit
-    // integer, encoded little endian, lower byte first)
-    while (read(socket_, buffer(lengthbuf), error)) {
+   // start by reading the length of the next message (a 16-bit
+   // integer, encoded little endian, lower byte first)
+   while (read(socket_, buffer(lengthbuf), error)) {
 #ifndef BOOST_LITTLE_ENDIAN
-       // swap byte order for big endian and pdp endian
-       msglen = (msglen << 8) | (msglen >> 8);
+      // swap byte order for big endian and pdp endian
+      msglen = (msglen << 8) | (msglen >> 8);
 #endif
-       LOG4CPLUS_DEBUG(logger_, "Bytes read! expecting " << msglen << " more");
+      LOG4CPLUS_TRACE(logger_, "Bytes read! expecting " << msglen << " more");
 
-       // now read the actual message
-       if (read(socket_, buffer(msgbuf), transfer_at_least(msglen), error)
-           == msglen) {
-          LOG4CPLUS_DEBUG(logger_, "Correctly read bytes. decoding...");
+      // we are only growing the buffer right now, because the max message size
+      // is 64k, which isn't a huge amount per connection
+      if (pbuf.size() < msglen) {
+         pbuf.resize(msglen);
+      }
 
-          // Parse the protobuf
-          athenaRequest_.ParseFromString(std::string(msg, msglen));
-          LOG4CPLUS_DEBUG(logger_, "Parsed!");
+      // now read the actual message
+      if (read(socket_, buffer(pbuf), transfer_at_least(msglen), error)
+          == msglen) {
+         LOG4CPLUS_TRACE(logger_, "Correctly read bytes. decoding...");
 
-          // handle the request
-          dispatch();
+         // Parse the protobuf
+         athenaRequest_.ParseFromArray(&pbuf[0], msglen);
+         LOG4CPLUS_TRACE(logger_, "Parsed!");
 
-          // marshal the protobuf
-          athenaResponse_.SerializeToString(&pb);
-          msglen = pb.length();
+         // handle the request
+         dispatch();
+
+         // marshal the protobuf
+         msglen = athenaResponse_.ByteSize();
+         if (pbuf.size() < msglen) {
+            pbuf.resize(msglen);
+         }
+         athenaResponse_.SerializeToArray(&pbuf[0], msglen);
 #ifndef BOOST_LITTLE_ENDIAN
-          msglen = (msglen << 8) || (msglen >> 8);
+         msglen = (msglen << 8) || (msglen >> 8);
 #endif
 
-          // send the response back
-          write(socket_, buffer(lengthbuf));
-          write(socket_, buffer(pb), error);
-          LOG4CPLUS_DEBUG(logger_, "Responded!");
-       } else {
-          LOG4CPLUS_DEBUG(logger_, "Did not read enough bytes: " << error);
-       }
+         // send the response back
+         write(socket_, buffer(lengthbuf));
+         write(socket_, buffer(pbuf, msglen), error);
+         LOG4CPLUS_DEBUG(logger_, "Responded!");
+      } else {
+         LOG4CPLUS_DEBUG(logger_, "Did not read enough bytes: " << error);
+      }
 
-       // prepare to read the next request
-       athenaRequest_.Clear();
-       athenaResponse_.Clear();
-    }
+      // prepare to read the next request
+      athenaRequest_.Clear();
+      athenaResponse_.Clear();
+   }
 
-    if (error != boost::asio::error::eof) {
-       // the client didn't just disconnect - warn someone that
-       // something went wrong
-       LOG4CPLUS_ERROR(logger_, "Read failed: " << error);
-    } else {
-       LOG4CPLUS_DEBUG(logger_, "Connection closed");
-    }
+   if (error != boost::asio::error::eof) {
+      // the client didn't just disconnect - warn someone that
+      // something went wrong
+      LOG4CPLUS_ERROR(logger_, "Read failed: " << error);
+   } else {
+      LOG4CPLUS_DEBUG(logger_, "Connection closed");
+   }
 }
 
 /*
@@ -123,21 +132,21 @@ api_connection::dispatch() {
    // The idea behind checking each request field every time, instead
    // of checking at most one, is that a client could batch
    // requests. We'll see if that's a thing that is reasonable.
-    if (athenaRequest_.has_protocol_request()) {
-       handle_protocol_request();
-    }
-    if (athenaRequest_.has_peer_request()) {
-       handle_peer_request();
-    }
-    for (int i = 0; i < athenaRequest_.eth_request_size(); i++) {
-       // Similarly, a list of ETH RPC requests is supported to allow
-       // batching. This seems like a good idea, but may not fit this
-       // mode exactly.
-       handle_eth_request(i);
-    }
-    if (athenaRequest_.has_test_request()) {
-        handle_test_request();
-    }
+   if (athenaRequest_.has_protocol_request()) {
+      handle_protocol_request();
+   }
+   if (athenaRequest_.has_peer_request()) {
+      handle_peer_request();
+   }
+   for (int i = 0; i < athenaRequest_.eth_request_size(); i++) {
+      // Similarly, a list of ETH RPC requests is supported to allow
+      // batching. This seems like a good idea, but may not fit this
+      // mode exactly.
+      handle_eth_request(i);
+   }
+   if (athenaRequest_.has_test_request()) {
+      handle_test_request();
+   }
 }
 
 /*
@@ -293,12 +302,12 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
  */
 void
 api_connection::handle_test_request() {
-    const TestRequest request = athenaRequest_.test_request();
-    if (request.has_echo()) {
-        TestResponse *response = athenaResponse_.mutable_test_response();
-        std::string *echo = response->mutable_echo();
-        echo->assign(request.echo());
-    }
+   const TestRequest request = athenaRequest_.test_request();
+   if (request.has_echo()) {
+      TestResponse *response = athenaResponse_.mutable_test_response();
+      std::string *echo = response->mutable_echo();
+      echo->assign(request.echo());
+   }
 }
 
 api_connection::api_connection(
