@@ -72,21 +72,6 @@ main(int argc, char** argv)
       if (opts.count("help"))
          return result;
 
-      for (const auto& it : opts) {
-         std::cout << it.first.c_str() << " ";
-         auto& value = it.second.value();
-         if (auto v = boost::any_cast<int>(&value))
-            std::cout << *v << endl;
-         else if (auto v = boost::any_cast<std::string>(&value))
-            std::cout << *v << std::endl;
-         else if (auto v = boost::any_cast<short>(&value))
-            std::cout << *v << std::endl;
-         else
-            std::cout << "error" << endl;
-      }
-
-      exit(0);
-
       // Initialize logger
       log4cplus::initialize();
       log4cplus::ConfigureAndWatchThread
