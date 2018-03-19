@@ -9,8 +9,9 @@ import { HttpClientModule } from '@angular/common/http';
 import { RouterModule, Routes } from '@angular/router';
 import { ClarityModule } from '@clr/angular';
 
-import { NodesModule } from './nodes/nodes.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { NodesModule } from './nodes/nodes.module';
+import { BlocksModule } from './blocks/blocks.module';
 
 import { AppComponent } from './app.component';
 
@@ -32,7 +33,8 @@ const appRoutes: Routes = [
     ClarityModule,
     RouterModule.forRoot(appRoutes, {enableTracing: true}),
     DashboardModule,
-    NodesModule
+    NodesModule,
+    BlocksModule
   ],
   providers: [],
   bootstrap: [AppComponent]

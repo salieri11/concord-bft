@@ -2,7 +2,7 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import {Component, OnInit, ViewChild} from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 
 import { TransactionFiltersModalComponent } from '../transaction-filters-modal/transaction-filters-modal.component';
 

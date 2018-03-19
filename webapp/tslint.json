@@ -15,6 +15,10 @@
       "severity": "warn"
     },
     "eofline": true,
+    "file-header": [
+      true,
+      "Copyright \\d{4}(-\\d{4})? VMware, all rights reserved."
+    ],
     "forin": true,
     "import-blacklist": [
       true,
