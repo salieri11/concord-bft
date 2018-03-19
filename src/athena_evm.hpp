@@ -26,7 +26,7 @@ private:
 };
 
 /**
- * The next several ath_* functions are callbacks that Hera/EVM use to interact
+ * The next several ath_* functions are callbacks that the EVM uses to interact
  * with our state-keeping layer.
  */
 
@@ -65,7 +65,7 @@ void ath_get_tx_context(struct evm_tx_context* result,
                         struct evm_context* evmctx);
 
 /**
- * Function dispatch table for Hera. Specified by EEI.
+ * Function dispatch table for EVM. Specified by EEI.
  */
 const static struct evm_context_fn_table athena_fn_table = {
     ath_account_exists,
@@ -81,13 +81,13 @@ const static struct evm_context_fn_table athena_fn_table = {
 };
 
 /**
- * Hera/EVM context is currently just a wrapper around the function table. Are
+ * EVM context is currently just a wrapper around the function table. Are
  * they going to add more to it?
  */
 static struct evm_context athena_evm_context = { &athena_fn_table };
 
 /**
- * Our wrapper around Hera's wrapper, where we can add pointers to the modules
+ * Our wrapper around EVM's wrapper, where we can add pointers to the modules
  * we're using to keep state.
  */
 typedef struct athena_context {
@@ -100,7 +100,7 @@ typedef struct athena_context {
  * chain, so the EVM will apply one op at a time.
  */
 static athena_context *athctx;
-static evm_instance *hera;
+static evm_instance *evminst;
 
 /**
  * Initialize the context and evm instance. TODO: Add parameters for data

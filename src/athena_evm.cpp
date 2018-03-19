@@ -9,7 +9,12 @@
 #include <log4cplus/loggingmacros.h>
 
 #include "athena_evm.hpp"
+
+#ifdef USE_HERA
 #include "hera.h"
+#else
+#include "evmjit.h"
+#endif
 
 using namespace com::vmware::athena::evm;
 using log4cplus::Logger;
@@ -37,7 +42,7 @@ using log4cplus::Logger;
    std::dec
 
 /**
- * Initialize the athena/hera context and start the hera instance.
+ * Initialize the athena/evm context and start the evm instance.
  *
  * TODO: Make this thread-safe. For now, call this once in main only.
  */
@@ -47,30 +52,35 @@ void com::vmware::athena::evm::init_evm()
 
    // No, these are not good enough. Just getting some sanity set up for first
    // attempts.
-   assert(hera == NULL);
+   assert(evminst == NULL);
    assert(athctx == NULL);
 
-   hera = hera_create();
-   if (hera == NULL) {
-      LOG4CPLUS_FATAL(logger, "Could not create Hera instance");
-      throw EVMException("Could not create Hera instance");
+#ifdef USE_HERA
+   evminst = hera_create();
+#else
+   evminst = evmjit_create();
+#endif
+
+   if (evminst == NULL) {
+      LOG4CPLUS_FATAL(logger, "Could not create EVM instance");
+      throw EVMException("Could not create EVM instance");
    }
 
    athctx = (athena_context*)malloc(sizeof(athena_context));
    if (athctx == NULL) {
-      LOG4CPLUS_FATAL(logger, "Could not allocate Athena Hera context");
-      hera->destroy(hera);
-      throw EVMException("Could not allocate Athena Hera context");
+      LOG4CPLUS_FATAL(logger, "Could not allocate Athena EVM context");
+      evminst->destroy(evminst);
+      throw EVMException("Could not allocate Athena EVM context");
    }
 
    athctx->evmctx = athena_evm_context;
    //TODO: there will be other things to init here (logger, storage, etc.)
 
-   LOG4CPLUS_INFO(logger, "Hera VM started");
+   LOG4CPLUS_INFO(logger, "EVM started");
 }
 
 /**
- * Shutdown the hera instance and destroy the athena context.
+ * Shutdown the EVM instance and destroy the athena context.
  *
  * TODO: Make this thread-safe. For now, call this from one thread only.
  */
@@ -78,8 +88,8 @@ void com::vmware::athena::evm::stop_evm()
 {
    Logger logger = Logger::getInstance("com.vmware.athena.evm");
 
-   if (hera != NULL) {
-      hera->destroy(hera);
+   if (evminst != NULL) {
+      evminst->destroy(evminst);
    }
 
    // TODO: there will be other things to shutdown here (storage, etc.)
@@ -87,7 +97,7 @@ void com::vmware::athena::evm::stop_evm()
       free(athctx);
    }
 
-   LOG4CPLUS_INFO(logger, "Hera VM stopped");
+   LOG4CPLUS_INFO(logger, "EVM stopped");
 }
 
 void com::vmware::athena::evm::execute(
@@ -101,8 +111,8 @@ void com::vmware::athena::evm::execute(
                   (message->kind == EVM_CREATE ? "create" : "call") <<
                   " with " << code_size << " bytes of code");
 
-   *result = hera->execute(hera, &athctx->evmctx, EVM_BYZANTIUM,
-                           message, code, code_size);
+   *result = evminst->execute(evminst, &athctx->evmctx, EVM_BYZANTIUM,
+                              message, code, code_size);
 }
 
 /**
