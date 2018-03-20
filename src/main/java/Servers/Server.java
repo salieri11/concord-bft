@@ -17,11 +17,9 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Properties;
-
 import javax.servlet.ServletException;
-
 import org.apache.log4j.Logger;
-
+import Servlets.DefaultContent;
 import Servlets.MemberList;
 import Servlets.StaticContent;
 import configurations.SystemConfiguration;
@@ -41,13 +39,15 @@ public class Server {
    private static String deploymentName;
    private static String memberListServletName;
    private static String staticContentServletName;
+   private static String defaultContentServletName;
    private static String serverHostName;
    private static String defaultReponse;
    private static String staticContentEndpoint;
    private static String memberListEndpoint;
+   private static String defaultContentEndpoint;
    private static int port;
 
-   //Set current datetime for logging purposes
+   // Set current datetime for logging purposes
    static {
       SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy-hh-mm-ss");
       System.setProperty("current.date.time", dateFormat.format(new Date()));
@@ -56,7 +56,7 @@ public class Server {
    public static void main(String[] args) throws IOException, ServletException {
       final Logger logger = Logger.getLogger(Server.class);
 
-      //Read configurations file
+      // Read configurations file
       SystemConfiguration s;
       try {
          s = SystemConfiguration.getInstance();
@@ -65,17 +65,19 @@ public class Server {
          throw new IOException();
       }
       config = s.configurations;
-
       serverPath = config.getProperty("Undertow_Path");
       deploymentName = config.getProperty("Deployment_Name");
       memberListServletName = config.getProperty("MemberList_ServletName");
       staticContentServletName = config
                .getProperty("StaticContent_ServletName");
+      defaultContentServletName = config
+               .getProperty("DefaultContent_ServletName");
       serverHostName = config.getProperty("Server_Host");
       port = Integer.parseInt(config.getProperty("Server_Port"));
       defaultReponse = config.getProperty("Server_DefaultResponse");
       staticContentEndpoint = config.getProperty("StaticContent_Endpoint");
       memberListEndpoint = config.getProperty("MemberList_Endpoint");
+      defaultContentEndpoint = config.getProperty("DefaultContent_Endpoint");
 
       DeploymentInfo servletBuilder = deployment()
                .setClassLoader(Server.class.getClassLoader())
@@ -88,7 +90,9 @@ public class Server {
                         .addMapping(memberListEndpoint))
                .addServlets(Servlets
                         .servlet(staticContentServletName, StaticContent.class)
-                        .addMapping(staticContentEndpoint));
+                        .addMapping(staticContentEndpoint))
+               .addServlet(Servlets.servlet(defaultContentServletName, DefaultContent.class)
+                        .addMapping(defaultContentEndpoint));
       DeploymentManager manager = Servlets.defaultContainer()
                .addDeployment(servletBuilder);
       manager.deploy();
