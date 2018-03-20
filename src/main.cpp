@@ -10,6 +10,7 @@
 
 #include "api_acceptor.hpp"
 #include "athena_evm.hpp"
+#include "configuration_manager.hpp"
 
 using namespace boost::program_options;
 using boost::asio::ip::tcp;
@@ -19,18 +20,6 @@ using log4cplus::Logger;
 
 using namespace com::vmware::athena;
 using namespace std;
-
-// default IP on which to listen for client connections
-static const string default_listen_ip = "0.0.0.0";
-
-// default port on which to listen for client connections
-static const short default_listen_port = 5458;
-
-// default location of logging properties file
-static const string default_log_props = "./resources/log4cplus.properties";
-
-// default period to check for logging properties changes (milliseconds)
-static const int default_log_props_time_ms = 60000; // 60sec
 
 // the Boost service hosting our Helen connections
 static io_service *api_service;
@@ -73,35 +62,15 @@ main(int argc, char** argv)
    int result = 0;
 
    try {
-      variables_map opts;
-      options_description desc{"Options"};
-      desc.add_options()
-         ("help,h", "Print this help message")
-         ("ip",
-          value<std::string>()->default_value(default_listen_ip),
-          "IP on which to expose the service")
-         ("port,p",
-          value<short>()->default_value(default_listen_port),
-          "Port on which to expose the service")
-         ("logger_config",
-          value<string>()->default_value(default_log_props),
-          "Path to logging properties file")
-         ("logger_reconfig_time",
-          value<int>()->default_value(default_log_props_time_ms),
-          "Interval (in ms) to check for updates to logging properties file");
+      // Note that this must be the very first statement
+      // in main function before doing any operations on config
+      // parameters or 'argc/argv'. Never directly operate on
+      // config parameters or command line parameters directly
+      // always use po::variables_map interface for that.
+      variables_map opts = initialize_config(argc, argv);
 
-      store(parse_command_line(argc, argv, desc), opts);
-
-      if (opts.count("help")) {
-         std::cout << "VMware Project Athena" << std::endl;
-         std::cout << desc << std::endl;
-         return 0;
-      }
-
-      // call notify after checking "help", so that required
-      // parameters are not required to get help (this call throws an
-      // exception to exit the program if any parameters are invalid)
-      notify(opts);
+      if (opts.count("help"))
+         return result;
 
       // Initialize logger
       log4cplus::initialize();
