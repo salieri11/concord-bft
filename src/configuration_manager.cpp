@@ -48,6 +48,10 @@ variables_map initialize_config(int argc, char **argv) {
    // These can be provided in config file as well as on command line
    // If same parameter is provided in config file as well as on
    // command line, then command line value will take preference.
+   // Since, we read command line options first all the parameters specified
+   // in command line will be populated in varaiables_map first, if same option
+   // is present in config file it will be read but won't be stored in
+   // variables_map since that 'key' already has some valid 'value' (value provided on cmdline)
    options_description config{"Configuration Options"};
    config.add_options()
       ("ip",
