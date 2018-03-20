@@ -44,6 +44,8 @@ class RPC():
       Makes the actual RPC call by invoking curl.  Returns the raw json
       of the response.
       '''
+      response = None
+
       # Protect use of RPC._idCounter.
       lock = threading.Lock()
       lock.acquire()
@@ -67,7 +69,19 @@ class RPC():
                                    stdout=f,
                                    stderr=subprocess.STDOUT)
 
-      response = util.json_helper.readJsonFile(self._responseFile)
+      if os.path.isfile(self._responseFile):
+         return util.json_helper.readJsonFile(self._responseFile)
+      else:
+         errorMsg = "No response for an RPC call was received.  Is the " \
+                    "server running?"
+
+         if os.path.isfile(self._outputFile):
+            errorMsg += "  Details:\n"
+            with open (self._outputFile, "r") as f:
+               errorMsg += f.read()
+
+            raise Exception(errorMsg)
+
       return response
 
    def _setUpOutput(self, method):
@@ -104,7 +118,7 @@ class RPC():
       response = self._call()
       return self.getResultFromResponse(response)
 
-   def sendTransaction(self, caller, data):
+   def sendTransaction(self, caller, data, gas = None):
       '''
       Given a blockchain user hash and some data (e.g. bytecode), submits
       it to the blockchain and returns the result field of the response, which
@@ -115,6 +129,11 @@ class RPC():
          "from": caller,
          "data": data
       }]
+
+      if gas:
+         self._rpcData["params"][0]["gas"] = gas
+
+
       response = self._call()
       return self.getResultFromResponse(response)
 
@@ -140,7 +159,7 @@ class RPC():
       seconds to mine a contract.  With two, it seems to be less than 5
       seconds.
       '''
-      attempts = 50 if waitForMining else 1
+      attempts =200 if waitForMining else 1
       ret = None
 
       while attempts > 0 and not ret:

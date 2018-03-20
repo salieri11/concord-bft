@@ -33,31 +33,29 @@ class CoreVMTests(test_suite.TestSuite):
    _productMode = True
    _resultFile = None
    _skippedFile = None
-   _skippedTests = None
 
    def __init__(self, passedArgs):
       self._args = passedArgs
       self._ethereumMode = self._args.ethereumMode
       self._loadConfigFile()
       self._productMode = not self._ethereumMode
-
-      if self._ethereumMode:
-         log.debug("Running in ethereum mode")
-         self._apiServerUrl = "http://localhost:8545"
-      else:
-         self._apiServerUrl = "http://localhost:8080/api/athena/eth/"
-
       self._resultFile = os.path.join(passedArgs.resultsDir,
                                      "coreVMTestResults.json")
       self._skippedFile = os.path.join(passedArgs.resultsDir,
                                        "skippedTests.json")
+      self._skippedTests = {}
       self._results = {
          "CoreVMTests": {
             "result":"N/A",
             "tests":{}
          }
       }
-      self._skippedTests = {}
+
+      if self._ethereumMode:
+         log.debug("Running in ethereum mode")
+         self._apiServerUrl = "http://localhost:8545"
+      else:
+         self._apiServerUrl = "http://localhost:8080/api/athena/eth/"
 
       with open(self._resultFile, "w") as f:
          f.write(json.dumps(self._results))
@@ -165,12 +163,6 @@ class CoreVMTests(test_suite.TestSuite):
       ethTests = self._userConfig["ethereum"]["testRoot"]
       vmArithmeticTests = os.path.join(ethTests, "VMTests", "vmArithmeticTest")
 
-      # These basic tests work reliably.
-      # return [
-      #    os.path.join(vmArithmeticTests, "add0.json"),
-      #    os.path.join(vmArithmeticTests, "add1.json")
-      # ]
-
       # This returns every test in vmArithmeticTests.
       tests = []
       for test in os.listdir(vmArithmeticTests):
@@ -178,10 +170,69 @@ class CoreVMTests(test_suite.TestSuite):
 
       return tests
 
-      # This test and several like it are failing, but it worked when I
-      # manually worked with it, so I'm missing something in the framework.
-      # Keeping commented out here as a reminder for what to work on next.
-      #return [os.path.join(vmArithmeticTests, "expPowerOf2_8.json")]
+      ############################################################
+      # Special tests
+      # The following are skipped or fail for various reasons
+      # and are work in progress.
+      ############################################################
+
+      # These tests end with MSTORE instead of SSTORE, so we have to get their
+      # value via execution.
+      # I am not sure why, but calling eth_call() results in nothing, while
+      # calling eth_getCode evaluates the code and returns the result. However,
+      # eth_getCode is supposed to return the code, not the value.  Maybe this is
+      # because it is written in asm?
+      # return [
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/fibbonacci_unrolled.json",
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/arith1.json",
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/not1.json",
+      # ]
+
+      # These tests do not specify what to look for, but after reading the code,
+      # I think they should store 0 at 0x0.
+      # return [
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_BigByte_0.json",
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/divByNonZero1.json"
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_00.json"
+      # ]
+
+      # These tests do not specify what to look for and I am unsure what to look
+      # for after reading the code:
+      # return [
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/mulUnderFlow.json"
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/stop.json",
+      # ]
+
+      # For this, verify that 0xbadf000d is not stored in 0x11.
+      # return [
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_Overflow_dj42Filler.json"
+      # ]
+
+      # # These tests require data to be passed in.
+      # return [
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/expXY_success.json",
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/expXY.json",
+      # ]
+
+      #########################################################################
+      # Special tests after this comment are done/working.
+      #########################################################################
+      # These have no "expect" section in the source test file, but they do have
+      # a "post"["storage"] section in the compiled test file with specific data
+      # about what to look for.  Have the test suite look for that if the expect
+      # is missing.
+      # return [
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/mulmod1_overflow2.json",
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/addmod1_overflow3.json",
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/addmod1_overflow4.json",
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/addmod1_overflowDiff.json",
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/addmodDivByZero3.json",
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/modByZero.json",
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/mulmoddivByZero3.json",
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/sdivByZero2.json",
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/smod6.json",
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/smod8_byZero.json"
+      # ]
 
    def _loadCompiledTest(self, test):
       '''
@@ -224,51 +275,150 @@ class CoreVMTests(test_suite.TestSuite):
       info = None
       testName = list(testSource.keys())[0]
       data = testCompiled[testName]["exec"]["code"]
+
+      # Gas levels provided in test cases may not be enough.  Just set it high.
+      # Maye this should be a config file setting, since it depends on how the
+      # user set up their Ethereum instance.
+      # Note that VMware will not use gas.
+      gas = "0x47e7c4" if self._ethereumMode else None
+
       caller = self._getAUser()
+      expectedStorage = self._getExpectedStorageResults(testSource, testCompiled)
 
-      # For some tests, expected results are only in the "src" files which
-      # are used to generate the tests.  The compiled files contain no
-      # expected storage values.  The trend so far, from manual inspection, is
-      # that this is when storage at 0x0 is expected to equal 0. I prefer to
-      # have something more explicit, as is found in the src files.
-      if "expect" in testSource[testName]:
-         expectSection = testSource[testName]["expect"]
-         expectedStorage = expectSection[list(expectSection.keys())[0]]["storage"]
-
+      if not expectedStorage:
+        info = "Could not find expected storage results."
+      else:
          log.info("Starting test '{}'".format(testName))
 
          rpc = RPC(testLogDir,
                    testName,
                    self._apiServerUrl)
-         txHash = rpc.sendTransaction(caller, data)
+         txHash = rpc.sendTransaction(caller, data, gas)
 
          if txHash:
             contractAddress = rpc.getContractAddrFromTxHash(txHash,
                                                             self._ethereumMode)
-
             if contractAddress:
                if (len(expectedStorage) < 1):
                   info = "No storage section."
                else:
-                  for storageLoc in expectedStorage:
-                     actualRawValue = rpc.getStorageAt(contractAddress, storageLoc)
-                     actualValue = int(actualRawValue, 16)
-                     expectedRawValue = expectedStorage[storageLoc]
-                     expectedValue = int(expectedRawValue, 16)
-                     log.debug("Expected raw value: '{}', actual raw value: '{}'". \
-                               format(expectedRawValue, actualRawValue))
-                     log.debug("Expected value: '{}', actual value: '{}'". \
-                               format(expectedValue, actualValue))
-                     if expectedValue == actualValue:
-                        success = True
-                     else:
-                        success = False
-                        info = "Expected '{}', received '{}'.". \
-                               format(expectedValue, actualValue)
-                        break
+                  success, info = self._checkResult(rpc,
+                                                    contractAddress,
+                                                    expectedStorage)
             else:
                info = "Never received contract address."
-      else:
-         info = "No 'expect' section."
+         else:
+            info = "Did not receive a transaction hash."
 
       return (success, info)
+
+   def _getExpectedStorageResults(self, testSource, testCompiled):
+      '''
+      The ideal expected result is in the source file, since that is more
+      detailed.  With some tests, there is only an expected result in the
+      compiled file.  This function tries to figure out which "storage"
+      section we want to use and returns it.  The storage section is a mapping
+      of storage slot to expected value and looks like this:
+         "storage" : {
+                        "0x00" : "0x0100",
+                        "0x01" : "0x80",
+                        "0x02" : "0x0200"
+                     }
+      '''
+      returnedStorage = None
+      storage = self._getStorageSection(testSource)
+
+      if storage and self._containsStorageData(storage):
+         returnedStorage = storage
+      else:
+         storage = self._getStorageSection(testCompiled)
+
+         if storage and self._containsStorageData(storage):
+            returnedStorage = storage
+
+      return returnedStorage
+
+   def _containsStorageData(self, storage):
+      '''
+      Given a storage section, determines if it contains data we can use to
+      verify a result.  Data "we can use" means there is a k/v pair, and the
+      value is a non-empty string.  Values are numbers encoded as a hex string
+      starting with "0x".
+      '''
+      for key in storage:
+         if storage[key]:
+            return True
+
+      return False
+
+   def _getStorageSection(self, testData):
+      '''
+      Given the contents of a test json file, find and return the storage
+      section.  It is under "expect" for a source test file and "post" for
+      a compiled test file.  e.g.
+      {
+         "modByZero":
+         {
+            "expect":  <=== Either "expect" or "post"
+            {
+               "0x0f572e5295c57f15886f9b263e2f6d2d6c7b5ec6":  <== Varies
+               {
+                  "storage" : {    <=== Return this dict.
+                                 "0x00" : "0x0100",
+                                 "0x01" : "0x80",
+                                 "0x02" : "0x0200"
+                              }
+               }
+            }
+         }
+      }
+      Returns None if it is not present.
+      '''
+      expectOrPostSection = None
+      testName = list(testData.keys())[0]
+      storageSection = None
+
+      if "expect" in testData[testName]:
+         expectOrPostSection = testData[testName]["expect"]
+      elif "post" in testData[testName]:
+         expectOrPostSection = testData[testName]["post"]
+
+      if expectOrPostSection:
+         blockAddress = list(expectOrPostSection.keys())[0]
+         if "storage" in expectOrPostSection[blockAddress]:
+            storageSection = expectOrPostSection[blockAddress]["storage"]
+
+      return storageSection
+
+   def _checkResult(self, rpc, contractAddress, expectedStorage):
+      '''
+      Loops through the expected storage structure in the test case, comparing
+      those values to the actual stored values in the block.
+      Returns True if all match, False if any fail to match, and None if there
+      are no values.  (It's possible that tests with no values are supposed to
+      contains 0 at 0x0; need to investigate.)
+      '''
+      success = None
+      info = None
+
+      for storageLoc in expectedStorage:
+         actualRawValue = rpc.getStorageAt(contractAddress, storageLoc)
+         actualValue = int(actualRawValue, 16)
+         expectedRawValue = expectedStorage[storageLoc]
+         expectedValue = int(expectedRawValue, 16)
+         log.debug("Expected raw value: '{}', actual raw value: '{}'". \
+                   format(expectedRawValue, actualRawValue))
+         log.debug("Expected value: '{}', actual value: '{}'". \
+                   format(expectedValue, actualValue))
+         if expectedValue == actualValue:
+            success = True
+         else:
+            success = False
+            info = "Expected '{}', received '{}'.". \
+                   format(expectedValue, actualValue)
+            break
+
+      if success == None:
+         info = "No expected storage results were found."
+
+      return success, info
