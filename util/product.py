@@ -122,5 +122,6 @@ class Product():
             txHash = rpc.sendTransaction(caller, data)
          except Exception as e:
             log.debug("Waiting for product startup...")
+            log.debug(e)
 
       return txHash != None
