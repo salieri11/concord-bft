@@ -1,11 +1,13 @@
 # Helen
 
-Helen is Athena's interface to launch requests. This repository will be the home of the API server for Project Athena. Helen is a Java Undertow server which invokes different servlets for different apis. Note : Helen will run on pot 8080 of localhost.
+Helen is Athena's interface to launch requests. This repository will be the home of the API server for Project Athena. Helen is a Java Undertow server which invokes different servlets for different apis. Note : Helen will run on port 8080 of localhost.
 
 ### Prerequisites
 
 [Java 8](http://www.oracle.com/technetwork/java/javase/downloads/jre8-downloads-2133155.html)
+
 [Maven](https://www.rosehosting.com/blog/how-to-install-maven-on-ubuntu-16-04/)
+
 [Athena](https://github.com/vmwathena/athena)
 
 ### Building and Running
