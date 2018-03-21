@@ -1,8 +1,8 @@
 /**
- * url endpoint : /api/athena/members
- * Used to fetch the Athena Consensus Membership List.
+ * url endpoint : /api/athena/blocks/{N}
+ * Used to fetch a specific block from the chain.
  * 
- * This servlet is used to send Peer Requests to Athena and to parse
+ * This servlet is used to send BlockNumber Requests to Athena and to parse
  * the responses into JSON. A TCP socket connection is made to Athena
  * and requests and responses are encoded in the Google Protocol Buffer
  * format.
@@ -13,16 +13,17 @@
 package Servlets;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.ProtocolStringList;
 import com.vmware.athena.*;
 
 import connections.AthenaTCPConnection;
+import io.undertow.util.StatusCodes;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Iterator;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.servlet.http.HttpServlet;
@@ -36,7 +37,7 @@ import org.json.simple.JSONObject;
 /**
  * Servlet class.
  */
-public final class MemberList extends HttpServlet {
+public final class BlockNumber extends HttpServlet {
    private static final long serialVersionUID = 1L;
    private static DataOutputStream outToAthena;
    private static DataInputStream inFromAthena;
@@ -48,8 +49,8 @@ public final class MemberList extends HttpServlet {
     * 
     * @throws IOException
     */
-   public MemberList() throws IOException {
-      logger = Logger.getLogger(MemberList.class);
+   public BlockNumber() throws IOException {
+      logger = Logger.getLogger(BlockNumber.class);
       AthenaTCPConnection athenaConnection = null;
       try {
          athenaConnection = AthenaTCPConnection.getInstance();
@@ -63,9 +64,9 @@ public final class MemberList extends HttpServlet {
    }
 
    /**
-    * Services a get request. Constructs a protobuf request of type peer request
-    * (enveloped in an athena request) as defined in athena.proto. Sends this
-    * request to Athena. Parses the response and converts it into json for
+    * Services a get request. Constructs a protobuf request of type blocknumber
+    * request (enveloped in an athena request) as defined in athena.proto. Sends
+    * this request to Athena. Parses the response and converts it into json for
     * responding to the client.
     * 
     * @param request
@@ -86,38 +87,53 @@ public final class MemberList extends HttpServlet {
          throw new IOException();
       }
 
-      // Construct a peer request object. Set its return_peers field.
-      final Athena.PeerRequest peerRequestObj = Athena.PeerRequest.newBuilder()
-               .setReturnPeers(true).build();
+      // Read the requested block number from the uri
+      Long blockNumber = null;
+      try {
+         String uri = request.getRequestURI();
+         blockNumber = Long.parseLong(uri.substring(uri.lastIndexOf('/') + 1));
+      } catch (NumberFormatException e) {
+         logger.error("Invalid block number");
+         response.sendError(StatusCodes.NOT_FOUND);
+         throw new NumberFormatException();
+      }
 
-      // Envelope the peer request object into an athena object.
+      // Construct a blockNumberRequest object. Set its start field.
+      final Athena.BlockNumberRequest blockNumberRequestObj = Athena.BlockNumberRequest
+               .newBuilder().setIndex(blockNumber).build();
+
+      // Envelope the blockNumberRequest object into an athena object.
       final Athena.AthenaRequest athenarequestObj = Athena.AthenaRequest
-               .newBuilder().setPeerRequest(peerRequestObj).build();
+               .newBuilder().setBlockNumberRequest(blockNumberRequestObj)
+               .build();
 
-      JSONObject peerResponse = null;
+      JSONObject blockNumberResponse = null;
 
       // Obtain a lock to allow only one thread to use the TCP connection at a
       // time
       tcpLock.lock();
 
-      try {
-         // send request to Athena
-         sendToAthena(outToAthena, athenarequestObj);
-         // receive response from Athena
-         peerResponse = receiveFromAthena(inFromAthena);
-      } catch (IOException e) {
-         logger.error("Error in communicating with Athena");
-         throw new IOException();
-      } finally {
-         tcpLock.unlock();
-      }
+      // try {
+      // send request to Athena
+      // sendToAthena(outToAthena, athenarequestObj); //Coming soon
+
+      // receive response from Athena
+      blockNumberResponse = receiveFromAthenaMock(); // This is temporary.
+      // blockNumberResponse = receiveFromAthena(inFromAthena); //Coming soon
+
+      // } catch (IOException e) {
+      // logger.error("Error in communicating with Athena");
+      // throw new IOException();
+      // } finally {
+      tcpLock.unlock();
+      // }
 
       // Set client response header
       response.setHeader("Content-Transfer-Encoding", "UTF-8");
       response.setContentType("application/json");
 
       // Respond to client.
-      writer.write(peerResponse.toString());
+      writer.write(blockNumberResponse.toString());
    }
 
    /**
@@ -205,6 +221,32 @@ public final class MemberList extends HttpServlet {
    }
 
    /**
+    * Note : This is a temporary function which mocks Athena's response.
+    * 
+    * @return
+    */
+   public JSONObject receiveFromAthenaMock() {
+      final Athena.BlockDetailed blockDetailedObj = Athena.BlockDetailed
+               .newBuilder().setNumber(1).setHash("hash")
+               .setParentHash("parentHash").setNonce("Nonce").setSize(50)
+               .addTransactions("transaction1").addTransactions("transaction2")
+               .build();
+
+      // Construct a blockNumberResponse object.
+      final Athena.BlockNumberResponse blockNumberResponseObj = Athena.BlockNumberResponse
+               .newBuilder().setBlock(blockDetailedObj).build();
+
+      // Envelope the blockNumberResponse object into an athena object.
+      final Athena.AthenaResponse athenaresponseObj = Athena.AthenaResponse
+               .newBuilder().setBlockNumberResponse(blockNumberResponseObj)
+               .build();
+
+      // Convert Protocol Buffer to JSON.
+      JSONObject responseJson = parseToJSON(athenaresponseObj);
+      return responseJson;
+   }
+
+   /**
     * Parses the Protocol Buffer response from Athena and converts it into JSON.
     * 
     * @param athenaResponse
@@ -214,29 +256,33 @@ public final class MemberList extends HttpServlet {
    @SuppressWarnings("unchecked")
    private JSONObject parseToJSON(Athena.AthenaResponse athenaResponse) {
 
-      // Extract the peer response from the athena reponse envelope.
-      Athena.PeerResponse peerResponse = athenaResponse.getPeerResponse();
+      // Extract the blocknumber response from the athena reponse envelope.
+      Athena.BlockNumberResponse blockNumberResponse = athenaResponse
+               .getBlockNumberResponse();
 
-      // Read list of peer objects from the peer response object.
-      List<Athena.Peer> peerList = new ArrayList<>();
-      peerList = peerResponse.getPeerList();
+      // Read the block from the blocknumber response object.
+      Athena.BlockDetailed block = blockNumberResponse.getBlock();
 
-      JSONArray peerArr = new JSONArray();
+      JSONArray transactionArr = new JSONArray();
+      ProtocolStringList transactionList = block.getTransactionsList();
+      Iterator<String> it = transactionList.iterator();
 
-      // Iterate through each peer and construct a corresponding JSON object
-      for (Athena.Peer peer : peerList) {
-         JSONObject peerJson = new JSONObject();
-         peerJson.put("address", peer.getAddress());
-         peerJson.put("port", Integer.toString(peer.getPort()));
-         peerJson.put("status", peer.getStatus());
-
-         // Store into a JSON array of all peers.
-         peerArr.add(peerJson);
+      while (it.hasNext()) {
+         transactionArr.add(it.next());
       }
+
+      JSONObject blockObj = new JSONObject();
+      blockObj.put("transactions", transactionArr);
+
+      blockObj.put("number", block.getNumber());
+      blockObj.put("hash", block.getHash());
+      blockObj.put("parentHash", block.getParentHash());
+      blockObj.put("nonce", block.getNonce());
+      blockObj.put("size", block.getSize());
 
       // Construct the reponse JSON object.
       JSONObject responseJson = new JSONObject();
-      responseJson.put("peer_response", peerArr);
+      responseJson.put("block", blockObj);
 
       return responseJson;
    }

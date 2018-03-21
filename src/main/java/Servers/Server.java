@@ -19,6 +19,9 @@ import java.util.Date;
 import java.util.Properties;
 import javax.servlet.ServletException;
 import org.apache.log4j.Logger;
+
+import Servlets.BlockList;
+import Servlets.BlockNumber;
 import Servlets.DefaultContent;
 import Servlets.MemberList;
 import Servlets.StaticContent;
@@ -40,11 +43,15 @@ public class Server {
    private static String memberListServletName;
    private static String staticContentServletName;
    private static String defaultContentServletName;
+   private static String blockListServletName;
+   private static String blockNumberServletName;
    private static String serverHostName;
    private static String defaultReponse;
    private static String staticContentEndpoint;
    private static String memberListEndpoint;
    private static String defaultContentEndpoint;
+   private static String blockListEndpoint;
+   private static String blockNumberEndpoint;
    private static int port;
 
    // Set current datetime for logging purposes
@@ -72,12 +79,16 @@ public class Server {
                .getProperty("StaticContent_ServletName");
       defaultContentServletName = config
                .getProperty("DefaultContent_ServletName");
+      blockListServletName = config.getProperty("BlockList_ServletName");
+      blockNumberServletName = config.getProperty("BlockNumber_ServletName");
       serverHostName = config.getProperty("Server_Host");
       port = Integer.parseInt(config.getProperty("Server_Port"));
       defaultReponse = config.getProperty("Server_DefaultResponse");
       staticContentEndpoint = config.getProperty("StaticContent_Endpoint");
       memberListEndpoint = config.getProperty("MemberList_Endpoint");
       defaultContentEndpoint = config.getProperty("DefaultContent_Endpoint");
+      blockListEndpoint = config.getProperty("BlockList_Endpoint");
+      blockNumberEndpoint = config.getProperty("BlockNumber_Endpoint");
 
       DeploymentInfo servletBuilder = deployment()
                .setClassLoader(Server.class.getClassLoader())
@@ -91,7 +102,15 @@ public class Server {
                .addServlets(Servlets
                         .servlet(staticContentServletName, StaticContent.class)
                         .addMapping(staticContentEndpoint))
-               .addServlet(Servlets.servlet(defaultContentServletName, DefaultContent.class)
+               .addServlets(
+                        Servlets.servlet(blockListServletName, BlockList.class)
+                                 .addMapping(blockListEndpoint))
+               .addServlets(Servlets
+                        .servlet(blockNumberServletName, BlockNumber.class)
+                        .addMapping(blockNumberEndpoint))
+               .addServlet(Servlets
+                        .servlet(defaultContentServletName,
+                                 DefaultContent.class)
                         .addMapping(defaultContentEndpoint));
       DeploymentManager manager = Servlets.defaultContainer()
                .addDeployment(servletBuilder);
