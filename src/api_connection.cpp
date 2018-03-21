@@ -104,7 +104,7 @@ api_connection::start()
          // send the response back
          write(socket_, buffer(lengthbuf));
          write(socket_, buffer(pbuf, msglen), error);
-         LOG4CPLUS_DEBUG(logger_, "Responded!");
+         LOG4CPLUS_TRACE(logger_, "Responded!");
       } else {
          LOG4CPLUS_DEBUG(logger_, "Did not read enough bytes: " << error);
       }
@@ -217,17 +217,6 @@ api_connection::handle_eth_request(int i) {
    }
 }
 
-char nibble_char2(uint8_t data) {
-   if (data < 10) {
-      return data + '0';
-   } else if (data < 16) {
-      return data + 'a' - 10;
-   } else {
-      // this is for debug printing; don't really want to throw
-      return 'X';
-   }
-}
-
 /**
  * Handle and eth_sendTransaction request.
  */
@@ -242,6 +231,10 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
    memset(&message, 0, sizeof(message));
    memset(&result, 0, sizeof(result));
 
+   // TODO: actually hash code
+   // Evmjit uses this hash to cache a copy of the compiled code. There is no
+   // "do not cache" value, so we need to set it to something unique until we're
+   // actually hashing.
    message.code_hash.bytes[0] = ++cache_break;
 
    if (request.has_addr_from()) {
@@ -270,23 +263,21 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
    }
 
    // TODO: get this from the request
-   message.value.bytes[0]=0xff;
-   message.value.bytes[28]=0xff;
-   message.value.bytes[29]=0xff;
-   message.value.bytes[30]=0xff;
-   message.value.bytes[31]=0xff;
-   message.gas = 10000000000;
-//   message.depth = 5;
+   message.gas = 1000000;
 
    // TODO: get rid of create field in protobuf, but it's useful for the moment
-   // for testing
+   // for testing. Ethereum expects a create request to omit the to/destination
+   // address.
    if (request.has_addr_to() && !request.create()) {
       message.kind = EVM_CALL;
       // TODO: test & return error if needed
       assert(20 == request.addr_to().length());
       memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
+
+      // execute will look up the code to execute if the destination is a
+      // contract
       com::vmware::athena::evm::execute(&message,
-                                        NULL, 0, // no code (TODO?)
+                                        NULL, 0, // no code
                                         &result);
    } else {
       message.kind = EVM_CREATE;
@@ -300,41 +291,12 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
          memset(message.destination.bytes, 0, 20);
       }
 
-// this was the seeming-to-work bit
+      // Creation runs the input as code, and stores the result of that
+      // execution as the contract code.
       const uint8_t *code = message.input_data;
       size_t code_size = message.input_size;
       message.input_data = NULL;
       message.input_size = 0;
-
-// this is the trying to use CREATE bit
-      // uint8_t *code = new uint8_t[50];
-      // size_t code_size = 50;
-      // if (message.input_size < 256) {
-      //    code[0] = 0x60;                        //PUSH1
-      //    code[1] = (uint8_t)message.input_size; // length
-      //    code[2] = 0x60;                        //PUSH1
-      //    code[3] = 0x00;                        // offset
-      //    code[4] = 0x7f;                        //PUSH32
-      //    // code[5]-code[36]: value
-      //    code[37] = 0x82;                        // dup3 length
-      //    code[38] = 0x82;                        // dup3 offset
-      //    code[39] = 0x80;                        // dup1 offset
-      //    code[40] = 0x37;                        //CALLDATACOPY
-      //    code[41] = 0xf0;                        //CREATE
-      //    code[42] = 0x60;                        //PUSH1
-      //    code[43] = 0x00;                        // offset
-      //    code[44] = 0x52;                        //MSTORE
-      //    code[45] = 0x60;                        //PUSH1
-      //    code[46] = 0x14;                        // length (20, address size)
-      //    code[47] = 0x60;                        //PUSH1
-      //    code[48] = 0x0c;                        // offset (12, cut off top of 32bit val)
-      //    code[49] = 0xf3;                        // RETURN
-      //    code_size = 50;
-
-      //    memcpy(code+5, message.value.bytes, 32);
-      // } else {
-      //    assert("too much data");
-      // }
 
       com::vmware::athena::evm::execute(&message,
                                         code, code_size,
@@ -347,28 +309,9 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
                   " gas_left: " << result.gas_left <<
                   " output_size: " << result.output_size);
 
-   if (result.output_size > 0) {
-      char *hexed = new char[result.output_size*2+1];
-      for (int i = 0; i < result.output_size; i++) {
-         hexed[i*2] = nibble_char2(result.output_data[i] >> 4);
-         hexed[i*2+1] = nibble_char2(result.output_data[i] & 0xf);
-      }
-      hexed[result.output_size*2] = 0;
-      LOG4CPLUS_DEBUG(logger_, "Output: " << hexed);
-   }
-
-   if (message.kind == EVM_CREATE && result.status_code == EVM_SUCCESS) {
-      char *hexed = new char[41];
-      for (int i = 0; i < 20; i++) {
-         hexed[i*2] = nibble_char2(result.create_address.bytes[i] >> 4);
-         hexed[i*2+1] = nibble_char2(result.create_address.bytes[i] & 0xf);
-      }
-      hexed[40] = 0;
-      LOG4CPLUS_DEBUG(logger_, "Created: " << hexed);
-   }
-
    EthResponse *response = athenaResponse_.add_eth_response();
    response->set_id(request.id());
+   // TODO: put output data in the response
 }
 
 /*

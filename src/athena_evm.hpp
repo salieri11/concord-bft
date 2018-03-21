@@ -7,7 +7,70 @@
 
 #include <map>
 #include <vector>
+#include <log4cplus/loggingmacros.h>
 #include "evm.h"
+
+// TODO: We may want "release" versions of these macros that print fewer bytes.
+
+/** Hex-format the bytes of an evm_address for Log4Cplus. */
+#define LOG4CPLUS_HEXADDR(addr) "0x" \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[0] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[1] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[2] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[3] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[4] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[5] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[6] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[7] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[8] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[9] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[10] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[11] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[12] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[13] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[14] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[15] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[16] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[17] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[18] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[19] \
+   << std::dec
+
+/** Hex-format the bytes of an evm_uint256be for Log4Cplus. */
+#define LOG4CPLUS_HEXVAL(val) "0x" \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[0] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[1] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[2] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[3] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[4] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[5] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[6] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[7] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[8] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[9] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[10] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[11] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[12] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[13] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[14] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[15] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[16] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[17] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[18] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[19] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[20] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[21] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[22] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[23] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[24] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[25] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[26] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[27] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[28] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[29] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[30] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[31] \
+   << std::dec
 
 namespace com {
 namespace vmware {
