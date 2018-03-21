@@ -22,24 +22,64 @@ using log4cplus::Logger;
 // TODO: We may want "release" versions of these macros that print fewer bytes.
 
 /** Hex-format the bytes of an evm_address for Log4Cplus. */
-#define LOG4CPLUS_HEXADDR(addr) "0x" << std::hex << std::setw(2) <<            \
-   addr->bytes[0] << addr->bytes[1] << addr->bytes[2] << addr->bytes[3] <<     \
-   addr->bytes[4] << addr->bytes[5] << addr->bytes[6] << addr->bytes[7] <<     \
-   addr->bytes[8] << addr->bytes[9] << addr->bytes[10] << addr->bytes[11] <<   \
-   addr->bytes[12] << addr->bytes[13] << addr->bytes[14] << addr->bytes[15] << \
-   addr->bytes[16] << addr->bytes[17] << addr->bytes[18] << addr->bytes[19] << \
-   std::dec
+#define LOG4CPLUS_HEXADDR(addr) "0x" \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[0] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[1] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[2] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[3] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[4] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[5] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[6] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[7] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[8] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[9] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[10] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[11] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[12] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[13] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[14] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[15] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[16] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[17] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[18] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)addr->bytes[19] \
+   << std::dec
 
 /** Hex-format the bytes of an evm_uint256be for Log4Cplus. */
-#define LOG4CPLUS_HEXVAL(val) "0x" << std::hex << std::setw(2) <<          \
-   val->bytes[0] << val->bytes[1] << val->bytes[2] << val->bytes[3] <<     \
-   val->bytes[4] << val->bytes[5] << val->bytes[6] << val->bytes[7] <<     \
-   val->bytes[8] << val->bytes[9] << val->bytes[10] << val->bytes[11] <<   \
-   val->bytes[12] << val->bytes[13] << val->bytes[14] << val->bytes[15] << \
-   val->bytes[16] << val->bytes[17] << val->bytes[18] << val->bytes[19] << \
-   val->bytes[24] << val->bytes[25] << val->bytes[26] << val->bytes[27] << \
-   val->bytes[28] << val->bytes[29] << val->bytes[30] << val->bytes[31] << \
-   std::dec
+#define LOG4CPLUS_HEXVAL(val) "0x" \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[0] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[1] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[2] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[3] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[4] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[5] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[6] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[7] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[8] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[9] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[10] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[11] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[12] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[13] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[14] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[15] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[16] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[17] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[18] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[19] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[20] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[21] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[22] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[23] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[24] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[25] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[26] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[27] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[28] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[29] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[30] \
+   << std::hex << std::setw(2) << std::setfill('0') << (uint)val->bytes[31] \
+   << std::dec
 
 /**
  * Initialize the athena/evm context and start the evm instance.
@@ -74,7 +114,9 @@ void com::vmware::athena::evm::init_evm()
    }
 
    athctx->evmctx = athena_evm_context;
-   //TODO: there will be other things to init here (logger, storage, etc.)
+
+   athctx->codemap = new std::map<std::vector<uint8_t>, std::vector<uint8_t>>;
+   assert(athctx->codemap != NULL);
 
    LOG4CPLUS_INFO(logger, "EVM started");
 }
@@ -92,12 +134,25 @@ void com::vmware::athena::evm::stop_evm()
       evminst->destroy(evminst);
    }
 
-   // TODO: there will be other things to shutdown here (storage, etc.)
    if (athctx != NULL) {
+      if (athctx->codemap != NULL) {
+         delete athctx->codemap;
+      }
       free(athctx);
    }
 
    LOG4CPLUS_INFO(logger, "EVM stopped");
+}
+
+char nibble_char(uint8_t data) {
+   if (data < 10) {
+      return data + '0';
+   } else if (data < 16) {
+      return data + 'a' - 10;
+   } else {
+      // this is for debug printing; don't really want to throw
+      return 'X';
+   }
 }
 
 void com::vmware::athena::evm::execute(
@@ -107,12 +162,64 @@ void com::vmware::athena::evm::execute(
    evm_result *result)
 {
    Logger logger = Logger::getInstance("com.vmware.athena.evm");
+   uint8_t *contract_code = NULL;
+
+   if (message->kind == EVM_CALL && code == NULL && message->input_data != NULL) {
+      evm_address *tap = &message->destination;
+      LOG4CPLUS_INFO(logger, "Loading code from " <<
+                     LOG4CPLUS_HEXADDR(tap));
+      std::vector<uint8_t> to_addr(message->destination.bytes,
+                                   message->destination.bytes+20);
+      std::vector<uint8_t> code_v = (*athctx->codemap)[to_addr];
+
+
+      contract_code = new uint8_t[code_v.size()];
+      memcpy(contract_code, &code_v[0], code_v.size());
+      code_size = code_v.size();
+
+      if (code_size > 0 &&
+          logger.isEnabledFor(log4cplus::DEBUG_LOG_LEVEL)) {
+         char *hexed = new char[code_size*2+1];
+         for (int i = 0; i < code_size; i++) {
+            hexed[i*2] = nibble_char(contract_code[i] >> 4);
+            hexed[i*2+1] = nibble_char(contract_code[i] & 0xf);
+         }
+         hexed[code_size*2] = 0;
+         LOG4CPLUS_DEBUG(logger, "Code: " << hexed);
+      }
+   }
+
    LOG4CPLUS_INFO(logger, "Executing evm " <<
                   (message->kind == EVM_CREATE ? "create" : "call") <<
-                  " with " << code_size << " bytes of code");
+                  " with " << code_size << " bytes of code; gas = " <<
+                  message->gas);
+
+   if (message->input_size > 0) {
+      std::cerr << "Input (" << message->input_size << "): ";
+      for (int x = 0; x < message->input_size; x++) {
+         std::cerr << std::hex << std::setfill('0') << std::setw(2)
+                   << (uint)message->input_data[x];
+      }
+      std::cerr << std::endl;
+   }
 
    *result = evminst->execute(evminst, &athctx->evmctx, EVM_BYZANTIUM,
-                              message, code, code_size);
+                              message,
+                              contract_code == NULL ? code : contract_code, code_size);
+
+   if (message->kind == EVM_CREATE && result->status_code == EVM_SUCCESS) {
+      //TODO: calculate address: sha3(rlp.encode(sender, nonce))[12:]
+//      std::vector<uint8_t> store_addr_v(result->create_address.bytes,
+//                                        result->create_address.bytes+20);
+      std::vector<uint8_t> store_addr_v;
+      store_addr_v.resize(20);
+      store_addr_v[0] = 0x03;
+
+      std::vector<uint8_t> code(result->output_data,
+                                result->output_data + result->output_size);
+
+      (*athctx->codemap)[store_addr_v] = code;
+   }
 }
 
 /**
@@ -151,10 +258,10 @@ void com::vmware::athena::evm::ath_get_storage(
 
    LOG4CPLUS_INFO(logger, "ath_get_storage called, address: " <<
                   LOG4CPLUS_HEXADDR(address) << " key: " <<
-                  LOG4CPLUS_HEXVAL(address));
+                  LOG4CPLUS_HEXVAL(key));
 
    // TODO: actually look up value, for now just fill with zero
-   memset(result, 0, sizeof(*result));
+   memset(result, 0, 32);
 }
 
 /**
@@ -171,7 +278,8 @@ void com::vmware::athena::evm::ath_set_storage(
 
    LOG4CPLUS_INFO(logger, "ath_set_storage called, address: " <<
                   LOG4CPLUS_HEXADDR(address) << " key: " <<
-                  LOG4CPLUS_HEXVAL(key));
+                  LOG4CPLUS_HEXVAL(key) << " value: " <<
+                  LOG4CPLUS_HEXVAL(value));
 
    // TODO: actually set value
 }

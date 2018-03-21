@@ -217,14 +217,32 @@ api_connection::handle_eth_request(int i) {
    }
 }
 
+char nibble_char2(uint8_t data) {
+   if (data < 10) {
+      return data + '0';
+   } else if (data < 16) {
+      return data + 'a' - 10;
+   } else {
+      // this is for debug printing; don't really want to throw
+      return 'X';
+   }
+}
+
 /**
  * Handle and eth_sendTransaction request.
  */
 void
 api_connection::handle_eth_sendTransaction(const EthRequest &request) {
+   static uint8_t cache_break = 0;
+
    // TODO: this is the thing we'll forward to SBFT/KVBlockchain/EVM
    evm_message message;
    evm_result result;
+
+   memset(&message, 0, sizeof(message));
+   memset(&result, 0, sizeof(result));
+
+   message.code_hash.bytes[0] = ++cache_break;
 
    if (request.has_addr_from()) {
       // TODO: test & return error if needed
@@ -252,7 +270,13 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
    }
 
    // TODO: get this from the request
-   message.gas = 100000;
+   message.value.bytes[0]=0xff;
+   message.value.bytes[28]=0xff;
+   message.value.bytes[29]=0xff;
+   message.value.bytes[30]=0xff;
+   message.value.bytes[31]=0xff;
+   message.gas = 10000000000;
+//   message.depth = 5;
 
    // TODO: get rid of create field in protobuf, but it's useful for the moment
    // for testing
@@ -276,10 +300,42 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
          memset(message.destination.bytes, 0, 20);
       }
 
+// this was the seeming-to-work bit
       const uint8_t *code = message.input_data;
       size_t code_size = message.input_size;
       message.input_data = NULL;
       message.input_size = 0;
+
+// this is the trying to use CREATE bit
+      // uint8_t *code = new uint8_t[50];
+      // size_t code_size = 50;
+      // if (message.input_size < 256) {
+      //    code[0] = 0x60;                        //PUSH1
+      //    code[1] = (uint8_t)message.input_size; // length
+      //    code[2] = 0x60;                        //PUSH1
+      //    code[3] = 0x00;                        // offset
+      //    code[4] = 0x7f;                        //PUSH32
+      //    // code[5]-code[36]: value
+      //    code[37] = 0x82;                        // dup3 length
+      //    code[38] = 0x82;                        // dup3 offset
+      //    code[39] = 0x80;                        // dup1 offset
+      //    code[40] = 0x37;                        //CALLDATACOPY
+      //    code[41] = 0xf0;                        //CREATE
+      //    code[42] = 0x60;                        //PUSH1
+      //    code[43] = 0x00;                        // offset
+      //    code[44] = 0x52;                        //MSTORE
+      //    code[45] = 0x60;                        //PUSH1
+      //    code[46] = 0x14;                        // length (20, address size)
+      //    code[47] = 0x60;                        //PUSH1
+      //    code[48] = 0x0c;                        // offset (12, cut off top of 32bit val)
+      //    code[49] = 0xf3;                        // RETURN
+      //    code_size = 50;
+
+      //    memcpy(code+5, message.value.bytes, 32);
+      // } else {
+      //    assert("too much data");
+      // }
+
       com::vmware::athena::evm::execute(&message,
                                         code, code_size,
                                         &result);
@@ -290,6 +346,26 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
                   " status_code: " << result.status_code <<
                   " gas_left: " << result.gas_left <<
                   " output_size: " << result.output_size);
+
+   if (result.output_size > 0) {
+      char *hexed = new char[result.output_size*2+1];
+      for (int i = 0; i < result.output_size; i++) {
+         hexed[i*2] = nibble_char2(result.output_data[i] >> 4);
+         hexed[i*2+1] = nibble_char2(result.output_data[i] & 0xf);
+      }
+      hexed[result.output_size*2] = 0;
+      LOG4CPLUS_DEBUG(logger_, "Output: " << hexed);
+   }
+
+   if (message.kind == EVM_CREATE && result.status_code == EVM_SUCCESS) {
+      char *hexed = new char[41];
+      for (int i = 0; i < 20; i++) {
+         hexed[i*2] = nibble_char2(result.create_address.bytes[i] >> 4);
+         hexed[i*2+1] = nibble_char2(result.create_address.bytes[i] & 0xf);
+      }
+      hexed[40] = 0;
+      LOG4CPLUS_DEBUG(logger_, "Created: " << hexed);
+   }
 
    EthResponse *response = athenaResponse_.add_eth_response();
    response->set_id(request.id());

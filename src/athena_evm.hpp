@@ -5,6 +5,8 @@
 #ifndef ATHENA_EVM_HPP
 #define ATHENA_EVM_HPP
 
+#include <map>
+#include <vector>
 #include "evm.h"
 
 namespace com {
@@ -92,7 +94,9 @@ static struct evm_context athena_evm_context = { &athena_fn_table };
  */
 typedef struct athena_context {
    struct evm_context evmctx;
-   // TODO: KVBlockchain pointer eventually
+
+   // map address to the code stored there
+   std::map<std::vector<uint8_t>, std::vector<uint8_t>> *codemap;
 } athena_context;
 
 /**
