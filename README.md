@@ -191,13 +191,13 @@ npm run build:local:prod
 
 Start the UI in `watch` mode, typically used for local development.
 This will:
- 
+
  * Start a server listening on `http://localhost:4200` to deliver the UI assets.
- 
+
  * Proxy all API requests to an existing Helen server.
   Edit `webapp/proxy.conf.json` and make sure `target` matches your desired
   server and port.
- 
+
  * Watch for file changes under the `webapp/` and compile automatically.
 
 ```
@@ -228,32 +228,16 @@ At this point, you can also attach an Ethereum console:
 $ geth attach http://localhost:8080/api/athena/eth
 ```
 
-In order to actually send transactions, you'll also need a
-[P2_Blockchain](https://github.com/guyg7/P2_Blockchain) EVM cluster
-running. Once you have that, edit `sys.config` and set the IP and port
-for each `Blockchain_client` instance. This config file is located in
-the `config` directory, and the default build process symlinks
-`_build/default/rel/helen/releases/<version>/sys.config` to it.
+In order to actually send transactions, you'll also need an
+[Athena](https://github.com/vmwathena/atehna) cluster running. Once
+you have that, edit `sys.config` and add the IP and port for one or
+more of the instances to the `athena_nodes` list.  This config file is
+located in the `config` directory, and the default build process
+symlinks `_build/default/rel/helen/releases/<version>/sys.config` to it.
 
 The `eth_sendTransaction` method will assume you're creating a
 contract if you omit the `to` field from the `params` structure. It
 will generate an address for the contract and return that.
-
-The `eth_sendRawTransaction` method expects the `data` field in the
-`params` list is 0x-encoded data of the following format:
-
- * characters 0,1: type of transaction. "01" for create, "02" for call.
-
- * characters 2-41: "to" parameter. The address at which the contract
-   should live (for create) or does live (for call).
-
- * characters 42-81: "from" parameter. Address of who is creating or
-   calling the contract.
-
- * characters 82-161: "endowment/value" parameter.
-
- * characters 162-end: "data" parameter. The code of the contract (for
-   create) or the argument to it (for call).
 
 ## Project Layout
 
@@ -275,13 +259,13 @@ application. The resources currently defined are:
    information about nodes currently making up the cluster.
 
  * /api/* : src/helen_404_resource.erl. Reserved for future expansion.
- 
+
  * /swagger/* : files served from priv/www/swagger/ by
    src/helen_static_resource.erl
-   
+
  * /assets/* : files served from priv/www/assets/ by
    src/helen_static_resource.erl
-   
+
  * anything else: priv/www/index.html served by
    src/helen_static_resource.erl. This is to allow the UI to be
    implemented as an Angular single-page application. Which view to
@@ -293,8 +277,8 @@ Other files you'll find interesting:
  * priv/swagger.json : The Swagger specification for the service.
 
  * config/* : Configuration for the application. Of particular
-   interest: the addresses for the P2_Blockchain clients to connect to
-   are specified here.
+   interest: the addresses for the Athena nodes to connect to are
+   specified here.
 
  * src/helen_config.erl : URL dispatch definitions and IP/Port
    binding.

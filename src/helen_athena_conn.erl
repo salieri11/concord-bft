@@ -259,7 +259,6 @@ send(#athenarequest{}=Msg, From, #state{socket=Socket}=State)
     Encoded = athena_pb:encode(Msg),
     %% TODO: send error if message is too large
     Prefix = <<(iolist_size(Encoded)):2/little-unsigned-integer-unit:8>>,
-    error_logger:info_msg("Sending ~p bytes of data", [iolist_size(Encoded)]),
     case gen_tcp:send(Socket, [Prefix, Encoded]) of
         ok ->
             activate_socket(Socket),
