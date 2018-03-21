@@ -22,6 +22,7 @@ log = logging.getLogger(__name__)
 # The config file contains information aobut how to run things, as opposed to
 # command line parameters, which are about running tests.
 CONFIG_JSON = "resources/user_config.json"
+INTENTIONALLY_SKIPPED_TESTS = "suites/skipped/core_vm_tests_to_skip.json"
 TEST_LOG_DIR = "test_logs"
 TEST_SOURCE_CODE_SUFFIX = "Filler.json"
 
@@ -32,7 +33,7 @@ class CoreVMTests(test_suite.TestSuite):
    _ethereumMode = False
    _productMode = True
    _resultFile = None
-   _skippedFile = None
+   _unintentionallySkippedFile = None
 
    def __init__(self, passedArgs):
       self._args = passedArgs
@@ -41,9 +42,10 @@ class CoreVMTests(test_suite.TestSuite):
       self._productMode = not self._ethereumMode
       self._resultFile = os.path.join(passedArgs.resultsDir,
                                      "coreVMTestResults.json")
-      self._skippedFile = os.path.join(passedArgs.resultsDir,
-                                       "skippedTests.json")
-      self._skippedTests = {}
+      self._unintentionallySkippedFile = \
+                                         os.path.join(passedArgs.resultsDir,
+                                         "unintentionallySkippedTests.json")
+      self._unintentionallySkippedTests = {}
       self._results = {
          "CoreVMTests": {
             "result":"N/A",
@@ -120,10 +122,10 @@ class CoreVMTests(test_suite.TestSuite):
 
       if result == None:
          log.debug("Skipping test '{}': '{}'".format(testName, info))
-         tempFile = self._skippedFile + "_temp"
-         realFile = self._skippedFile
-         self._skippedTests[testName] = info
-         writeMe = self._skippedTests
+         tempFile = self._unintentionallySkippedFile + "_temp"
+         realFile = self._unintentionallySkippedFile
+         self._unintentionallySkippedTests[testName] = info
+         writeMe = self._unintentionallySkippedTests
       else:
          log.info(result)
          tempFile = self._resultFile + "_temp"
@@ -156,26 +158,65 @@ class CoreVMTests(test_suite.TestSuite):
       else:
          exit(1)
 
+   def _removeSkippedTests(self, testList):
+      '''
+      Loads the skipped test file and removes skipped tests from the given
+      test list.
+      '''
+      skippedConfig = util.json_helper.readJsonFile(INTENTIONALLY_SKIPPED_TESTS)
+      for key in list(skippedConfig.keys()):
+         skippedTest = os.path.join(self._userConfig["ethereum"]["testRoot"],
+                                    key)
+         if skippedTest in testList:
+            log.info("Skipping: {}".format(key))
+            testList.remove(skippedTest)
+
    def _getTests(self):
       '''
       Returns a list of file names.  Each file is a test to run.
       '''
       ethTests = self._userConfig["ethereum"]["testRoot"]
       vmArithmeticTests = os.path.join(ethTests, "VMTests", "vmArithmeticTest")
-
-      # This returns every test in vmArithmeticTests.
       tests = []
+
       for test in os.listdir(vmArithmeticTests):
          tests.append(os.path.join(vmArithmeticTests, test))
 
-      return tests
+      self._removeSkippedTests(tests)
 
+      return tests
       ############################################################
       # Special tests
       # The following are skipped or fail for various reasons
       # and are work in progress.
       ############################################################
-
+      # For this, verify that 0xbadf000d is not stored in 0x11.
+      # return [
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_Overflow_dj42Filler.json"
+      # ]
+      #
+      # These tests do not specify what to look for and I am unsure what to look
+      # for after reading the code:
+      # return [
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/mulUnderFlow.json"
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/stop.json",
+      # ]
+      #
+      # These tests require data to be passed in.
+      # Tried a bunch of stuff...haven't figured out how to get CALLDATALOAD to work with these bytecode things.  Is it because these aren't full contracts?
+      # return [
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/expXY_success.json"
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/expXY.json"
+      # ]
+      #
+      # These tests do not specify what to look for, but after reading the code,
+      # I think they should store 0 at 0x0.
+      # return [
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_BigByte_0.json",
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/divByNonZero1.json"
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_00.json"
+      # ]
+      #
       # These tests end with MSTORE instead of SSTORE, so we have to get their
       # value via execution.
       # I am not sure why, but calling eth_call() results in nothing, while
@@ -188,31 +229,6 @@ class CoreVMTests(test_suite.TestSuite):
       #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/not1.json",
       # ]
 
-      # These tests do not specify what to look for, but after reading the code,
-      # I think they should store 0 at 0x0.
-      # return [
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_BigByte_0.json",
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/divByNonZero1.json"
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_00.json"
-      # ]
-
-      # These tests do not specify what to look for and I am unsure what to look
-      # for after reading the code:
-      # return [
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/mulUnderFlow.json"
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/stop.json",
-      # ]
-
-      # For this, verify that 0xbadf000d is not stored in 0x11.
-      # return [
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_Overflow_dj42Filler.json"
-      # ]
-
-      # # These tests require data to be passed in.
-      # return [
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/expXY_success.json",
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/expXY.json",
-      # ]
 
       #########################################################################
       # Special tests after this comment are done/working.
