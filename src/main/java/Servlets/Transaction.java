@@ -1,8 +1,8 @@
 /**
- * url endpoint : /api/athena/members
- * Used to fetch the Athena Consensus Membership List.
+ * url endpoint : /api/athena/transaction/{hash}
+ * Used to get a specific transaction by its hash.
  * 
- * This servlet is used to send Peer Requests to Athena and to parse
+ * This servlet is used to send Transaction Requests to Athena and to parse
  * the responses into JSON. A TCP socket connection is made to Athena
  * and requests and responses are encoded in the Google Protocol Buffer
  * format.
@@ -16,13 +16,12 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.vmware.athena.*;
 
 import connections.AthenaTCPConnection;
+import io.undertow.util.StatusCodes;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.servlet.http.HttpServlet;
@@ -30,14 +29,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.log4j.Logger;
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
 
 /**
  * Servlet class.
  */
-public final class MemberList extends HttpServlet {
+public final class Transaction extends HttpServlet {
    private static final long serialVersionUID = 1L;
    private static DataOutputStream outToAthena;
    private static DataInputStream inFromAthena;
@@ -48,10 +46,10 @@ public final class MemberList extends HttpServlet {
     * Retrieves the common TCP connection object.
     * 
     * @throws IOException
-    * @throws ParseException 
+    * @throws ParseException
     */
-   public MemberList() throws IOException, ParseException {
-      logger = Logger.getLogger(MemberList.class);
+   public Transaction() throws IOException, ParseException {
+      logger = Logger.getLogger(Transaction.class);
       AthenaTCPConnection athenaConnection = null;
       try {
          athenaConnection = AthenaTCPConnection.getInstance();
@@ -65,9 +63,9 @@ public final class MemberList extends HttpServlet {
    }
 
    /**
-    * Services a get request. Constructs a protobuf request of type peer request
-    * (enveloped in an athena request) as defined in athena.proto. Sends this
-    * request to Athena. Parses the response and converts it into json for
+    * Services a get request. Constructs a protobuf request of type transaction
+    * request (enveloped in an athena request) as defined in athena.proto. Sends
+    * this request to Athena. Parses the response and converts it into json for
     * responding to the client.
     * 
     * @param request
@@ -88,15 +86,24 @@ public final class MemberList extends HttpServlet {
          throw new IOException();
       }
 
-      // Construct a peer request object. Set its return_peers field.
-      final Athena.PeerRequest peerRequestObj = Athena.PeerRequest.newBuilder()
-               .setReturnPeers(true).build();
+      // Read the requested transaction hash from the uri
+      String uri = request.getRequestURI();
+      String hash = uri.substring(uri.lastIndexOf('/') + 1);
 
-      // Envelope the peer request object into an athena object.
+      if (hash == null || hash.length() < 1) {
+         logger.error("Empty hash in request");
+         response.sendError(StatusCodes.BAD_REQUEST);
+      }
+
+      // Construct a transaction request object.
+      final Athena.TransactionRequest txRequestObj = Athena.TransactionRequest
+               .newBuilder().setHashParam(hash).build();
+
+      // Envelope the transaction request object into an athena object.
       final Athena.AthenaRequest athenarequestObj = Athena.AthenaRequest
-               .newBuilder().setPeerRequest(peerRequestObj).build();
+               .newBuilder().setTransactionRequest(txRequestObj).build();
 
-      JSONObject peerResponse = null;
+      JSONObject txResponse = null;
 
       // Obtain a lock to allow only one thread to use the TCP connection at a
       // time
@@ -106,7 +113,7 @@ public final class MemberList extends HttpServlet {
          // send request to Athena
          sendToAthena(outToAthena, athenarequestObj);
          // receive response from Athena
-         peerResponse = receiveFromAthena(inFromAthena);
+         txResponse = receiveFromAthena(inFromAthena);
       } catch (IOException e) {
          logger.error("Error in communicating with Athena");
          throw new IOException();
@@ -119,7 +126,7 @@ public final class MemberList extends HttpServlet {
       response.setContentType("application/json");
 
       // Respond to client.
-      writer.write(peerResponse.toString());
+      writer.write(txResponse.toString());
    }
 
    /**
@@ -214,29 +221,23 @@ public final class MemberList extends HttpServlet {
    @SuppressWarnings("unchecked")
    private JSONObject parseToJSON(Athena.AthenaResponse athenaResponse) {
 
-      // Extract the peer response from the athena reponse envelope.
-      Athena.PeerResponse peerResponse = athenaResponse.getPeerResponse();
-
-      // Read list of peer objects from the peer response object.
-      List<Athena.Peer> peerList = new ArrayList<>();
-      peerList = peerResponse.getPeerList();
-
-      JSONArray peerArr = new JSONArray();
-
-      // Iterate through each peer and construct a corresponding JSON object
-      for (Athena.Peer peer : peerList) {
-         JSONObject peerJson = new JSONObject();
-         peerJson.put("address", peer.getAddress());
-         peerJson.put("port", Integer.toString(peer.getPort()));
-         peerJson.put("status", peer.getStatus());
-
-         // Store into a JSON array of all peers.
-         peerArr.add(peerJson);
-      }
+      // Extract the transaction response from the athena reponse envelope.
+      Athena.TransactionResponse txResponse = athenaResponse
+               .getTransactionResponse();
 
       // Construct the reponse JSON object.
       JSONObject responseJson = new JSONObject();
-      responseJson.put("peer_response", peerArr);
+      responseJson.put("hash", txResponse.getHash());
+      responseJson.put("from", txResponse.getFrom());
+      responseJson.put("to", txResponse.getTo());
+      responseJson.put("value", txResponse.getValue());
+      responseJson.put("input", txResponse.getInput());
+      responseJson.put("blockHash", txResponse.getBlockHash());
+      responseJson.put("blockNumber", txResponse.getBlockNumber());
+      responseJson.put("transactionHash", txResponse.getTransactionIndex());
+      responseJson.put("blockNumber", txResponse.getBlockNumber());
+      responseJson.put("transactionIndex", txResponse.getTransactionIndex());
+      responseJson.put("nonce", txResponse.getNonce());
 
       return responseJson;
    }

@@ -19,12 +19,15 @@ import java.util.Date;
 import java.util.Properties;
 import javax.servlet.ServletException;
 import org.apache.log4j.Logger;
+import org.json.simple.parser.ParseException;
 
 import Servlets.BlockList;
 import Servlets.BlockNumber;
 import Servlets.DefaultContent;
+import Servlets.EthRPC;
 import Servlets.MemberList;
 import Servlets.StaticContent;
+import Servlets.Transaction;
 import configurations.SystemConfiguration;
 import connections.AthenaTCPConnection;
 import io.undertow.Handlers;
@@ -36,23 +39,28 @@ import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
 
 public class Server {
-
    private static Properties config;
    private static String serverPath;
    private static String deploymentName;
+   private static String serverHostName;
+   private static int port;
+   private static String defaultReponse;
+
    private static String memberListServletName;
    private static String staticContentServletName;
    private static String defaultContentServletName;
    private static String blockListServletName;
    private static String blockNumberServletName;
-   private static String serverHostName;
-   private static String defaultReponse;
+   private static String ethRPCServletName;
+   private static String transactionServletName;
+
    private static String staticContentEndpoint;
    private static String memberListEndpoint;
    private static String defaultContentEndpoint;
    private static String blockListEndpoint;
    private static String blockNumberEndpoint;
-   private static int port;
+   private static String ethRPCEndpoint;
+   private static String transactionEndpoint;
 
    // Set current datetime for logging purposes
    static {
@@ -60,7 +68,8 @@ public class Server {
       System.setProperty("current.date.time", dateFormat.format(new Date()));
    }
 
-   public static void main(String[] args) throws IOException, ServletException {
+   public static void main(String[] args)
+            throws IOException, ServletException, ParseException {
       final Logger logger = Logger.getLogger(Server.class);
 
       // Read configurations file
@@ -74,6 +83,10 @@ public class Server {
       config = s.configurations;
       serverPath = config.getProperty("Undertow_Path");
       deploymentName = config.getProperty("Deployment_Name");
+      serverHostName = config.getProperty("Server_Host");
+      port = Integer.parseInt(config.getProperty("Server_Port"));
+      defaultReponse = config.getProperty("Server_DefaultResponse");
+
       memberListServletName = config.getProperty("MemberList_ServletName");
       staticContentServletName = config
                .getProperty("StaticContent_ServletName");
@@ -81,14 +94,16 @@ public class Server {
                .getProperty("DefaultContent_ServletName");
       blockListServletName = config.getProperty("BlockList_ServletName");
       blockNumberServletName = config.getProperty("BlockNumber_ServletName");
-      serverHostName = config.getProperty("Server_Host");
-      port = Integer.parseInt(config.getProperty("Server_Port"));
-      defaultReponse = config.getProperty("Server_DefaultResponse");
+      ethRPCServletName = config.getProperty("EthRPC_ServletName");
+      transactionServletName = config.getProperty("Transaction_ServletName");
+
       staticContentEndpoint = config.getProperty("StaticContent_Endpoint");
       memberListEndpoint = config.getProperty("MemberList_Endpoint");
       defaultContentEndpoint = config.getProperty("DefaultContent_Endpoint");
       blockListEndpoint = config.getProperty("BlockList_Endpoint");
       blockNumberEndpoint = config.getProperty("BlockNumber_Endpoint");
+      ethRPCEndpoint = config.getProperty("EthRPC_Endpoint");
+      transactionEndpoint = config.getProperty("Transaction_Endpoint");
 
       DeploymentInfo servletBuilder = deployment()
                .setClassLoader(Server.class.getClassLoader())
@@ -108,6 +123,11 @@ public class Server {
                .addServlets(Servlets
                         .servlet(blockNumberServletName, BlockNumber.class)
                         .addMapping(blockNumberEndpoint))
+               .addServlets(Servlets.servlet(ethRPCServletName, EthRPC.class)
+                        .addMapping(ethRPCEndpoint))
+               .addServlets(Servlets
+                        .servlet(transactionServletName, Transaction.class)
+                        .addMapping(transactionEndpoint))
                .addServlet(Servlets
                         .servlet(defaultContentServletName,
                                  DefaultContent.class)

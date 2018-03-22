@@ -14,6 +14,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
+import org.json.simple.parser.ParseException;
+
 import configurations.SystemConfiguration;
 
 /**
@@ -25,7 +27,7 @@ public class DefaultContent extends HttpServlet {
    private static String defaultContentPath;
    private final Logger logger;
 
-   public DefaultContent() throws IOException {
+   public DefaultContent() throws IOException, ParseException {
       logger = Logger.getLogger(StaticContent.class);
 
       // Read configurations

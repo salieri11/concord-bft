@@ -29,6 +29,7 @@ import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.Parser;
+import org.json.simple.parser.ParseException;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
@@ -46,7 +47,7 @@ public class StaticContent extends HttpServlet {
    private static char separatorChar;
    private final Logger logger;
 
-   public StaticContent() throws IOException {
+   public StaticContent() throws IOException, ParseException {
       logger = Logger.getLogger(StaticContent.class);
 
       // Read configurations

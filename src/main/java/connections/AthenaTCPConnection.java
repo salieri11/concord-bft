@@ -17,6 +17,7 @@ import java.util.Properties;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.Logger;
+import org.json.simple.parser.ParseException;
 
 import configurations.SystemConfiguration;
 
@@ -39,8 +40,9 @@ public final class AthenaTCPConnection {
     * for this connection
     * 
     * @throws IOException
+    * @throws ParseException 
     */
-   private AthenaTCPConnection() throws IOException {
+   private AthenaTCPConnection() throws IOException, ParseException {
       logger = Logger.getLogger(AthenaTCPConnection.class);
 
       // Read Athena's hostname and port from the configurations file
@@ -77,7 +79,7 @@ public final class AthenaTCPConnection {
       System.out.println("Socket connection with Athena created");
    }
 
-   public static AthenaTCPConnection getInstance() throws IOException {
+   public static AthenaTCPConnection getInstance() throws IOException, ParseException {
       if (single_instance == null) {
          try {
             single_instance = new AthenaTCPConnection();
@@ -89,7 +91,7 @@ public final class AthenaTCPConnection {
       return single_instance;
    }
 
-   public static void closeConnection() throws IOException {
+   public static void closeConnection() throws IOException, ParseException {
       AthenaTCPConnection obj;
       try {
          obj = AthenaTCPConnection.getInstance();

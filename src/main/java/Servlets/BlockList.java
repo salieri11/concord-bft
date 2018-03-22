@@ -8,7 +8,7 @@
  * format.
  * 
  * Athena, by default, runs on port 5458.
- * 
+ * TODO : Handle the case of no/incorrect response from Athena
  */
 package Servlets;
 
@@ -32,6 +32,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.ParseException;
 
 /**
  * Servlet class.
@@ -47,8 +48,9 @@ public final class BlockList extends HttpServlet {
     * Retrieves the common TCP connection object.
     * 
     * @throws IOException
+    * @throws ParseException 
     */
-   public BlockList() throws IOException {
+   public BlockList() throws IOException, ParseException {
       logger = Logger.getLogger(BlockList.class);
       AthenaTCPConnection athenaConnection = null;
       try {
@@ -135,8 +137,6 @@ public final class BlockList extends HttpServlet {
     */
    public void sendToAthena(DataOutputStream socketRequest,
             Athena.AthenaRequest request) throws IOException {
-      System.out.print("Sending request to Athena :");
-      System.out.println(request);
 
       // Find size of request and pack size into two bytes.
       int requestSize = request.getSerializedSize();
