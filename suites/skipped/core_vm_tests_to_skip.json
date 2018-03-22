@@ -1,6 +1,5 @@
 {
-    "VMTests/vmArithmeticTest/expXY_success.json": "Starts with PUSH1 00, CALLDATALOAD, PUSH1 00, SSTORE
-(0x600035600055).  When I run those steps, with eth_call or eth_sendTransaction, passing in 0x0...2 for the 'data' parameter, with gas, nothing is stored.  Not sure how it is supposed to work.",
+    "VMTests/vmArithmeticTest/expXY_success.json": "Starts with PUSH1 00, CALLDATALOAD, PUSH1 00, SSTORE (0x600035600055).  When I run those steps, with eth_call or eth_sendTransaction, passing in 0x0...2 for the 'data' parameter, with gas, nothing is stored.  Not sure how it is supposed to work.",
     "VMTests/vmArithmeticTest/expXY.json": "See notes for expXY_success.",
     "VMTests/vmArithmeticTest/fibbonacci_unrolled.json": "No expected results defined, and the tests send back a result with MSTORE and a RETURN instead of using storage.",
     "VMTests/vmArithmeticTest/arith1.json": "See notes for fibbonacci_unrolled.",
