@@ -76,8 +76,9 @@ Hermes is the repository for the vmwareathena project's testing framework.
   triaging.  There will usually be many eth_getTransactionReceipt calls when
   using --ethereumMode because it takes time to wait for a transaction to be
   mined.
-- <suitename>.json: JSON file of test results for the suite run.  The json must
+- `<suitename>`.json: JSON file of test results for the suite run.  The json must
   be consistent across test suites.  Sample:
+```
   $ cat coreVMTestResults.json
   {
       "CoreVMTests": {
@@ -90,6 +91,7 @@ Hermes is the repository for the vmwareathena project's testing framework.
           }
       }
   }
+```
 - unintentionallySkippedTests.json: When a test was expected to run, but skipped,
   the name of the test and the reason are stored in this file.  Example reasons
   include missing expected results and a transaction not being mined within the
