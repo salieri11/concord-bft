@@ -10,7 +10,11 @@ Hermes is the repository for the vmwareathena project's testing framework.
 - hermes/main.py: The main script, which uses Python 3.  Can be executed
   directly.
 - hermes/resources: Configuration files.
+- hermes/rpc: RPC calls.
 - hermes/suites: Test suite classes.
+- hermes/suites/skipped: Test cases to skip.  A suite has its own file(s).
+- hermes/suites/supplementalResults: Expected results to use when they are
+  missing from Ethereum's VM tests.
 - hermes/util: Other source code files.  When a new category of files becomes
   apparent, move those files from util to a new directory.
 
@@ -54,3 +58,39 @@ Hermes is the repository for the vmwareathena project's testing framework.
 - Create a debug build of P2_Blockchain, allowing for the default output
   directory. (~/builds/p2-blockchain/debug)
 - Run `./main.py CoreVMTests`
+
+## Results
+- The results directory is output at the beginning of a test run.  e.g.
+  "Results directory: /tmp/CoreVMTests_20180322_1437_80ccst1i"
+- product_logs directory: Product logs.
+- test_logs directory: One subdirectory is created for each test.  Each of these
+  should contain whatever information will help triage a failure.  For example,
+  for every RPC call, two files are created:
+
+  1. foo.log: The curl command (so you can re-run it yourself) and curl's output
+     for making the RPC call (to reflect things like a server being down).
+  2. foo.json: The JSON response from the RPC call.
+
+  There will be numbers in front of each RPC call.  This number matches the "id"
+  field of the RPC call, which is incremented for each call to help with
+  triaging.  There will usually be many eth_getTransactionReceipt calls when
+  using --ethereumMode because it takes time to wait for a transaction to be
+  mined.
+- <suitename>.json: JSON file of test results for the suite run.  The json must
+  be consistent across test suites.  Sample:
+  $ cat coreVMTestResults.json
+  {
+      "CoreVMTests": {
+          "result": "PASS",
+          "tests": {
+              "not2": {
+                  "info": "Log: /tmp/CoreVMTests_20180322_1437_80ccst1i/test_logs/not2",
+                  "result": "PASS"
+              }
+          }
+      }
+  }
+- unintentionallySkippedTests.json: When a test was expected to run, but skipped,
+  the name of the test and the reason are stored in this file.  Example reasons
+  include missing expected results and a transaction not being mined within the
+  allotted time.
