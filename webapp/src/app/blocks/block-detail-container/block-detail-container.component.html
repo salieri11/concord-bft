@@ -1,0 +1,36 @@
+<div class="p-2 bg-header">
+  <div class="row">
+    <div class="col-md flex-items-xs-middle media">
+      <a routerLink="/blocks">
+        <clr-icon shape="circle-arrow" class="is-highlight" size="28" dir="left"></clr-icon>
+      </a>
+      <h2 class="mt-0 pl-1">{{block?.number}}</h2>
+    </div>
+  </div>
+  <dl>
+    <dt>Hash</dt>
+    <dd>{{block?.hash}}</dd>
+    <dt>Nonce</dt>
+    <dd>{{block?.nonce}}</dd>
+    <dt>Parent Hash</dt>
+    <dd>{{block?.parentHash}}</dd>
+    <dt>Size</dt>
+    <dd>{{block?.size}}</dd>
+  </dl>
+</div>
+
+<div class="p-2">
+  <h3 class="mt-0">Transactions</h3>
+  <table class="table">
+    <thead>
+    <tr>
+      <th class="text-left">Hash</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let transaction of block?.transactions">
+      <td class="text-left">{{transaction}}</td>
+    </tr>
+    </tbody>
+  </table>
+</div>

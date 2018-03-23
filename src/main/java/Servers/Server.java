@@ -1,13 +1,11 @@
 /**
  * Server class for Helen. Boots up an Undertow server and multiple servlets.
- * Runs on localhost and port 8080 by default.
+ * Runs on localhost and port 32773 (as per variables in config file).
  * 
  * Helen connects to Athena at the backend. Communication between Helen and 
  * Athena is via a TCP socket connection. Messages are sent in Google Protocol 
  * Buffer format. Responses from Helen to the client are in Json format.
  * 
- * StaticContent serves static content located in a folder of the same name.
- * Members serves Peer Requests from Athena.
  */
 package Servers;
 
@@ -21,12 +19,14 @@ import javax.servlet.ServletException;
 import org.apache.log4j.Logger;
 import org.json.simple.parser.ParseException;
 
+import Servlets.ApiList;
+import Servlets.Assets;
 import Servlets.BlockList;
 import Servlets.BlockNumber;
 import Servlets.DefaultContent;
 import Servlets.EthRPC;
 import Servlets.MemberList;
-import Servlets.StaticContent;
+import Servlets.Swagger;
 import Servlets.Transaction;
 import configurations.SystemConfiguration;
 import connections.AthenaTCPConnection;
@@ -47,20 +47,24 @@ public class Server {
    private static String defaultReponse;
 
    private static String memberListServletName;
-   private static String staticContentServletName;
    private static String defaultContentServletName;
    private static String blockListServletName;
    private static String blockNumberServletName;
    private static String ethRPCServletName;
    private static String transactionServletName;
+   private static String swaggerServletName;
+   private static String assetsServletName;
+   private static String apiListServletName;
 
-   private static String staticContentEndpoint;
    private static String memberListEndpoint;
    private static String defaultContentEndpoint;
    private static String blockListEndpoint;
    private static String blockNumberEndpoint;
    private static String ethRPCEndpoint;
    private static String transactionEndpoint;
+   private static String swaggerEndpoint;
+   private static String assetsEndpoint;
+   private static String apiListEndpoint;
 
    // Set current datetime for logging purposes
    static {
@@ -88,22 +92,25 @@ public class Server {
       defaultReponse = config.getProperty("Server_DefaultResponse");
 
       memberListServletName = config.getProperty("MemberList_ServletName");
-      staticContentServletName = config
-               .getProperty("StaticContent_ServletName");
       defaultContentServletName = config
                .getProperty("DefaultContent_ServletName");
       blockListServletName = config.getProperty("BlockList_ServletName");
       blockNumberServletName = config.getProperty("BlockNumber_ServletName");
       ethRPCServletName = config.getProperty("EthRPC_ServletName");
       transactionServletName = config.getProperty("Transaction_ServletName");
+      swaggerServletName = config.getProperty("Swagger_ServletName");
+      assetsServletName = config.getProperty("Assets_ServletName");
+      apiListServletName = config.getProperty("ApiList_ServletName");
 
-      staticContentEndpoint = config.getProperty("StaticContent_Endpoint");
       memberListEndpoint = config.getProperty("MemberList_Endpoint");
       defaultContentEndpoint = config.getProperty("DefaultContent_Endpoint");
       blockListEndpoint = config.getProperty("BlockList_Endpoint");
       blockNumberEndpoint = config.getProperty("BlockNumber_Endpoint");
       ethRPCEndpoint = config.getProperty("EthRPC_Endpoint");
       transactionEndpoint = config.getProperty("Transaction_Endpoint");
+      swaggerEndpoint = config.getProperty("Swagger_Endpoint");
+      assetsEndpoint = config.getProperty("Assets_Endpoint");
+      apiListEndpoint = config.getProperty("ApiList_Endpoint");
 
       DeploymentInfo servletBuilder = deployment()
                .setClassLoader(Server.class.getClassLoader())
@@ -114,9 +121,12 @@ public class Server {
                .addServlets(Servlets
                         .servlet(memberListServletName, MemberList.class)
                         .addMapping(memberListEndpoint))
-               .addServlets(Servlets
-                        .servlet(staticContentServletName, StaticContent.class)
-                        .addMapping(staticContentEndpoint))
+               .addServlets(Servlets.servlet(swaggerServletName, Swagger.class)
+                        .addMapping(swaggerEndpoint))
+               .addServlets(Servlets.servlet(assetsServletName, Assets.class)
+                        .addMapping(assetsEndpoint))
+               .addServlets(Servlets.servlet(apiListServletName, ApiList.class)
+                        .addMapping(apiListEndpoint))
                .addServlets(
                         Servlets.servlet(blockListServletName, BlockList.class)
                                  .addMapping(blockListEndpoint))

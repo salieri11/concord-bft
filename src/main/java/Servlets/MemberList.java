@@ -48,7 +48,7 @@ public final class MemberList extends HttpServlet {
     * Retrieves the common TCP connection object.
     * 
     * @throws IOException
-    * @throws ParseException 
+    * @throws ParseException
     */
    public MemberList() throws IOException, ParseException {
       logger = Logger.getLogger(MemberList.class);
@@ -96,7 +96,7 @@ public final class MemberList extends HttpServlet {
       final Athena.AthenaRequest athenarequestObj = Athena.AthenaRequest
                .newBuilder().setPeerRequest(peerRequestObj).build();
 
-      JSONObject peerResponse = null;
+      JSONArray peerResponse = null;
 
       // Obtain a lock to allow only one thread to use the TCP connection at a
       // time
@@ -166,7 +166,7 @@ public final class MemberList extends HttpServlet {
     * @return Athena's response in JSON format
     * @throws IOException
     */
-   public JSONObject receiveFromAthena(DataInputStream socketResponse)
+   public JSONArray receiveFromAthena(DataInputStream socketResponse)
             throws IOException {
       /*
        * Read two bytes from the inputstream and consider that as size of the
@@ -200,7 +200,7 @@ public final class MemberList extends HttpServlet {
       }
 
       // Convert Protocol Buffer to JSON.
-      JSONObject responseJson = parseToJSON(athenaResponse);
+      JSONArray responseJson = parseToJSON(athenaResponse);
       return responseJson;
    }
 
@@ -212,7 +212,7 @@ public final class MemberList extends HttpServlet {
     * @return Response in JSON format
     */
    @SuppressWarnings("unchecked")
-   private JSONObject parseToJSON(Athena.AthenaResponse athenaResponse) {
+   private JSONArray parseToJSON(Athena.AthenaResponse athenaResponse) {
 
       // Extract the peer response from the athena reponse envelope.
       Athena.PeerResponse peerResponse = athenaResponse.getPeerResponse();
@@ -227,18 +227,15 @@ public final class MemberList extends HttpServlet {
       for (Athena.Peer peer : peerList) {
          JSONObject peerJson = new JSONObject();
          peerJson.put("address", peer.getAddress());
-         peerJson.put("port", Integer.toString(peer.getPort()));
+         peerJson.put("port", peer.getPort());
          peerJson.put("status", peer.getStatus());
 
          // Store into a JSON array of all peers.
          peerArr.add(peerJson);
       }
 
-      // Construct the reponse JSON object.
-      JSONObject responseJson = new JSONObject();
-      responseJson.put("peer_response", peerArr);
-
-      return responseJson;
+      // Construct the reponse JSON.
+      return peerArr;
    }
 
    /**

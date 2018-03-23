@@ -1,0 +1,50 @@
+<clr-main-container>
+  <clr-header>
+    <div class="branding">
+      <a href="#" class="nav-link">
+        <img src="assets/static/images/nav-logo.png" alt="VMware">
+      </a>
+    </div>
+    <div class="header-actions">
+      <div class="nav-text active-nodes">
+        <clr-icon shape="circle" class="is-solid is-success" size="14"></clr-icon>
+        Active Nodes 28,458
+      </div>
+      <a href="javascript:;" class="nav-link nav-icon">
+        <clr-icon shape="search"></clr-icon>
+      </a>
+      <a href="javascript:;" class="nav-link nav-icon">
+        <clr-icon shape="cog"></clr-icon>
+      </a>
+      <clr-dropdown>
+        <button class="nav-text" clrDropdownTrigger>
+          <clr-icon shape="user" class="is-solid"></clr-icon>
+          john.doe@vmware.com
+          <clr-icon shape="caret down"></clr-icon>
+        </button>
+        <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
+          <a href="javascript:;" clrDropdownItem>Log out</a>
+        </clr-dropdown-menu>
+      </clr-dropdown>
+    </div>
+  </clr-header>
+  <div class="content-container">
+    <main class="content-area">
+      <router-outlet></router-outlet>
+    </main>
+    <clr-vertical-nav>
+      <a clrVerticalNavLink routerLink="dashboard" routerLinkActive="active">
+        <clr-icon clrVerticalNavIcon shape="home" class="nav-icon-large"></clr-icon>
+        Dashboard
+      </a>
+      <a clrVerticalNavLink routerLink="nodes" routerLinkActive="active">
+        <clr-icon clrVerticalNavIcon shape="network-globe" class="nav-icon-large"></clr-icon>
+        Node List
+      </a>
+      <a clrVerticalNavLink routerLink="blocks" routerLinkActive="active">
+        <clr-icon clrVerticalNavIcon shape="blocks-group" class="nav-icon-large"></clr-icon>
+        Block List
+      </a>
+    </clr-vertical-nav>
+  </div>
+</clr-main-container>

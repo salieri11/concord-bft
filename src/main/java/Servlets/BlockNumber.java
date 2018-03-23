@@ -23,6 +23,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.URLDecoder;
 import java.util.Iterator;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -49,7 +50,7 @@ public final class BlockNumber extends HttpServlet {
     * Retrieves the common TCP connection object.
     * 
     * @throws IOException
-    * @throws ParseException 
+    * @throws ParseException
     */
    public BlockNumber() throws IOException, ParseException {
       logger = Logger.getLogger(BlockNumber.class);
@@ -90,10 +91,16 @@ public final class BlockNumber extends HttpServlet {
       }
 
       // Read the requested block number from the uri
-      Long blockNumber = null;
+      String index = null;
       try {
          String uri = request.getRequestURI();
-         blockNumber = Long.parseLong(uri.substring(uri.lastIndexOf('/') + 1));
+         String urlParam = uri.substring(uri.lastIndexOf('/') + 1);
+
+         // Remove HTTP encoding
+         urlParam = URLDecoder.decode(urlParam, "UTF-8");
+
+         // Remove opening and closing braces
+         index = urlParam.substring(1, urlParam.length() - 1);
       } catch (NumberFormatException e) {
          logger.error("Invalid block number");
          response.sendError(StatusCodes.NOT_FOUND);
@@ -102,7 +109,7 @@ public final class BlockNumber extends HttpServlet {
 
       // Construct a blockNumberRequest object. Set its start field.
       final Athena.BlockNumberRequest blockNumberRequestObj = Athena.BlockNumberRequest
-               .newBuilder().setIndex(blockNumber).build();
+               .newBuilder().setIndex(index).build();
 
       // Envelope the blockNumberRequest object into an athena object.
       final Athena.AthenaRequest athenarequestObj = Athena.AthenaRequest

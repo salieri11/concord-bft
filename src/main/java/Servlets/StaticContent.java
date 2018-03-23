@@ -76,8 +76,9 @@ public class StaticContent extends HttpServlet {
    protected void doGet(final HttpServletRequest request,
             final HttpServletResponse response)
             throws ServletException, IOException {
-
+      
       String path = staticContentFolder + getPath(request);
+      logger.info("Static content request : " + path);
       /*
        * If the separator char is not / we want to replace it with a / and
        * canonicalise

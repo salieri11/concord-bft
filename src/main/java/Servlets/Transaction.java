@@ -22,6 +22,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.URLDecoder;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.servlet.http.HttpServlet;
@@ -89,6 +90,10 @@ public final class Transaction extends HttpServlet {
       // Read the requested transaction hash from the uri
       String uri = request.getRequestURI();
       String hash = uri.substring(uri.lastIndexOf('/') + 1);
+      hash = URLDecoder.decode(hash, "UTF-8");
+      
+      //Remove the opening and closing braces
+      hash = hash.substring(1, hash.length() - 1);
 
       if (hash == null || hash.length() < 1) {
          logger.error("Empty hash in request");

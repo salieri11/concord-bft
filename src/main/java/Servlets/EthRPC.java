@@ -21,6 +21,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.vmware.athena.*;
 import com.vmware.athena.Athena.EthRPCExecuteResponse;
 
+import configurations.SystemConfiguration;
 import connections.AthenaTCPConnection;
 import io.undertow.util.StatusCodes;
 
@@ -31,6 +32,7 @@ import java.io.PrintWriter;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -50,11 +52,21 @@ public final class EthRPC extends HttpServlet {
    private static DataOutputStream outToAthena;
    private static DataInputStream inFromAthena;
    private static ReentrantLock tcpLock;
-   private final Logger logger;
+   private static Logger logger;
    private static JSONArray rpcList;
 
-   public EthRPC() {
+   public EthRPC() throws IOException {
       logger = Logger.getLogger(EthRPC.class);
+
+      // Read configurations
+      SystemConfiguration s;
+      try {
+         s = SystemConfiguration.getInstance();
+      } catch (IOException | ParseException e) {
+         logger.error("Error in reading configurations");
+         throw new IOException();
+      }
+      rpcList = s.rpcList;
    }
 
    /**
@@ -83,7 +95,8 @@ public final class EthRPC extends HttpServlet {
       response.setContentType("application/json");
 
       // Respond to client.
-      writer.write(rpcList.toString());
+      System.out.println(rpcList);
+      writer.write(rpcList.toJSONString());
    }
 
    /**
@@ -126,8 +139,11 @@ public final class EthRPC extends HttpServlet {
 
       JSONParser parser = new JSONParser();
       try {
-         requestParams = (JSONObject) parser
-                  .parse((String) request.getParameter("data"));
+
+         // Retrieve the parameters from the request body
+         String paramString = request.getReader().lines()
+                  .collect(Collectors.joining(System.lineSeparator()));
+         requestParams = (JSONObject) parser.parse((String) paramString);
          if (requestParams == null) {
             logger.error("Invalid request");
             response.sendError(StatusCodes.BAD_REQUEST);
@@ -156,7 +172,7 @@ public final class EthRPC extends HttpServlet {
          logger.error("Invalid request parameter : method");
          response.sendError(StatusCodes.BAD_REQUEST);
       }
-
+      System.out.println(requestParams.get("params"));
       params = (JSONArray) requestParams.get("params");
 
       if (params.size() < 1) {
@@ -166,7 +182,7 @@ public final class EthRPC extends HttpServlet {
 
       // Convert list of hex strings to list of binary strings
       // Athena expects params in binary strings
-      ArrayList<String> paramBytes = hexStringToBinary(params);
+      ArrayList<String> paramBytes = hexStringToBinary(params, response);
 
       if (paramBytes == null) {
          logger.error("Invalid request parameter : params");
@@ -372,20 +388,32 @@ public final class EthRPC extends HttpServlet {
     * @param params
     *           JSONArray of hex strings
     * @return
+    * @throws IOException
     */
-   public static ArrayList<String> hexStringToBinary(JSONArray params) {
+   public static ArrayList<String> hexStringToBinary(JSONArray params,
+            final HttpServletResponse response) throws IOException {
       ArrayList<String> result = new ArrayList<>();
+
       for (Object param : params) {
+
+         // Param should strictly be a hex string
+         if (param == null || (String) param == null
+                  || !((String) param).startsWith("0x")) {
+            logger.error("Invalid parameter");
+            response.sendError(StatusCodes.BAD_REQUEST);
+         }
+
          String curr = ((String) param).substring(2); // Strip 0x from the start
 
+         // Hex string should have even number of hex characters
          if (curr.length() % 2 != 0) {
             return null;
          }
          String byteConversion = new BigInteger(curr, 16).toString(2);
+         
+         //Pad with zeroes to multiple of 8
          int len = byteConversion.length();
-
          int padding = 8 - (len % 8);
-
          result.add(String.format("%" + (padding + len) + "s", byteConversion)
                   .replace(' ', '0'));
       }
