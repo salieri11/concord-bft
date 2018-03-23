@@ -1,0 +1,19 @@
+{
+    "VMTests/vmBitwiseLogicOperation/and1.json": {"0x0": "0"},
+    "VMTests/vmBitwiseLogicOperation/byte10.json": {"0x0": "0"},
+    "VMTests/vmBitwiseLogicOperation/byte11.json": {"0x0": "0"},
+    "VMTests/vmBitwiseLogicOperation/byte8.json": {"0x0": "0"},
+    "VMTests/vmBitwiseLogicOperation/byte9.json": {"0x0": "0"},
+    "VMTests/vmBitwiseLogicOperation/eq0.json": {"0x0": "0"},
+    "VMTests/vmBitwiseLogicOperation/gt1.json": {"0x0": "0"},
+    "VMTests/vmBitwiseLogicOperation/gt3.json": {"0x0": "0"},
+    "VMTests/vmBitwiseLogicOperation/lt0.json": {"0x0": "0"},
+    "VMTests/vmBitwiseLogicOperation/lt2.json": {"0x0": "0"},
+    "VMTests/vmBitwiseLogicOperation/not2.json": {"0x0": "0"},
+    "VMTests/vmBitwiseLogicOperation/sgt0.json": {"0x0": "0"},
+    "VMTests/vmBitwiseLogicOperation/sgt2.json": {"0x0": "0"},
+    "VMTests/vmBitwiseLogicOperation/sgt4.json": {"0x0": "0"},
+    "VMTests/vmBitwiseLogicOperation/slt1.json": {"0x0": "0"},
+    "VMTests/vmBitwiseLogicOperation/slt3.json": {"0x0": "0"},
+    "VMTests/vmBitwiseLogicOperation/xor0.json": {"0x0": "0"}
+}

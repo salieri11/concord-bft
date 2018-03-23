@@ -9,5 +9,5 @@
     "VMTests/vmArithmeticTest/signextend_00.json": "See notes for signextend_BigByte_0.json.",
     "VMTests/vmArithmeticTest/mulUnderFlow.json": "No expected results defined, unsure what they should be.",
     "VMTests/vmArithmeticTest/stop.json": "See notes for mulUnderFlow.json.",
-    "VMTests/vmArithmeticTest/signextend_Overflow_dj42Filler.json": "Requires a specific value (badf000d) *not* be in storage."
+    "VMTests/vmArithmeticTest/signextend_Overflow_dj42.json": "Requires a specific value (badf000d) *not* be in storage."
 }
