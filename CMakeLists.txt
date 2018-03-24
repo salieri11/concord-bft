@@ -28,6 +28,8 @@ else(DEFINED USE_HERA)
    set(EVM_LIBRARIES ${Evmjit_LIBRARIES})
 endif(DEFINED USE_HERA)
 
+find_package(Cryptopp REQUIRED)
+include_directories(${Cryptopp_INCLUDE_DIRS})
 
 
 file(GLOB athena_src "src/*.cpp" "src/*.hpp")
@@ -38,6 +40,6 @@ target_link_libraries(athena
                       ${PROTOBUF_LIBRARIES}
                       ${Boost_LIBRARIES}
                       log4cplus
-                      ${EVM_LIBRARIES})
-
+                      ${EVM_LIBRARIES}
+                      ${Cryptopp_LIBRARIES})
 add_subdirectory("tools")

@@ -38,9 +38,9 @@ using boost::system::error_code;
 using namespace com::vmware::athena;
 
 api_connection::pointer
-api_connection::create(io_service &io_service)
+api_connection::create(io_service &io_service, EVM &athevm)
 {
-   return pointer(new api_connection(io_service));
+   return pointer(new api_connection(io_service, athevm));
 }
 
 tcp::socket&
@@ -241,68 +241,36 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
       // TODO: test & return error if needed
       assert(20 == request.addr_from().length());
       memcpy(message.sender.bytes, request.addr_from().c_str(), 20);
-   } else {
-      memset(message.sender.bytes, 0, 20);
    }
 
    if (request.has_data()) {
       message.input_data =
          reinterpret_cast<const uint8_t*>(request.data().c_str());
       message.input_size = request.data().length();
-   } else {
-      message.input_data = NULL;
-      message.input_size = 0;
    }
 
    if (request.has_value()) {
       memcpy(message.value.bytes,
              request.value().c_str(),
              request.value().length());
-   } else {
-      memset(message.value.bytes, 0, 32);
    }
 
    // TODO: get this from the request
    message.gas = 1000000;
 
-   // TODO: get rid of create field in protobuf, but it's useful for the moment
-   // for testing. Ethereum expects a create request to omit the to/destination
-   // address.
-   if (request.has_addr_to() && !request.create()) {
+   if (request.has_addr_to()) {
       message.kind = EVM_CALL;
+
       // TODO: test & return error if needed
       assert(20 == request.addr_to().length());
       memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
 
-      // execute will look up the code to execute if the destination is a
-      // contract
-      com::vmware::athena::evm::execute(&message,
-                                        NULL, 0, // no code
-                                        &result);
+      athevm_.call(message, result);
    } else {
       message.kind = EVM_CREATE;
 
-      if (request.has_addr_to()) {
-         // TODO: verify hash? compute and use correct hash? just error?
-         // TODO: test & return error if needed
-         assert(20 == request.addr_to().length());
-         memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
-      } else {
-         memset(message.destination.bytes, 0, 20);
-      }
-
-      // Creation runs the input as code, and stores the result of that
-      // execution as the contract code.
-      const uint8_t *code = message.input_data;
-      size_t code_size = message.input_size;
-      message.input_data = NULL;
-      message.input_size = 0;
-
-      com::vmware::athena::evm::execute(&message,
-                                        code, code_size,
-                                        &result);
+      athevm_.create(message, result);
    }
-
 
    LOG4CPLUS_INFO(logger_, "Execution result -" <<
                   " status_code: " << result.status_code <<
@@ -330,9 +298,10 @@ api_connection::handle_test_request() {
 }
 
 api_connection::api_connection(
-   io_service &io_service)
+   io_service &io_service, EVM &athevm)
    : socket_(io_service),
-     logger_(log4cplus::Logger::getInstance("com.vmware.athena.api_connection"))
+     logger_(log4cplus::Logger::getInstance("com.vmware.athena.api_connection")),
+     athevm_(athevm)
 {
    // nothing to do here yet other than initialize the socket and logger
 }

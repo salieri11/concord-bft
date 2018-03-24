@@ -51,14 +51,14 @@ void signalHandler(int signum) {
  * Start the service that listens for connections from Helen.
  */
 void
-start_service(variables_map &opts, Logger logger)
+run_service(EVM &athevm, variables_map &opts, Logger logger)
 {
    std::string ip = opts["ip"].as<std::string>();
    short port = opts["port"].as<short>();
 
    api_service = new io_service();
    tcp::endpoint endpoint(address::from_string(ip), port);
-   api_acceptor acceptor(*api_service, endpoint);
+   api_acceptor acceptor(*api_service, endpoint, athevm);
 
    signal(SIGINT, signalHandler);
 
@@ -115,11 +115,11 @@ main(int argc, char** argv)
       LOG4CPLUS_INFO(mainLogger, "VMware Project Athena starting");
 
       // throws an exception if it fails
-      evm::init_evm();
+      EVM athevm;
 
       // actually run the service - when this call returns, the
       // service has shutdown
-      start_service(opts, mainLogger);
+      run_service(athevm, opts, mainLogger);
 
       LOG4CPLUS_INFO(mainLogger, "VMware Project Athena halting");
    } catch (const error &ex) {
@@ -130,7 +130,7 @@ main(int argc, char** argv)
          std::cerr << ex.what() << std::endl;
       }
       result = -1;
-   } catch (evm::EVMException &ex) {
+   } catch (EVMException &ex) {
       if (loggerInitialized) {
          Logger mainLogger = Logger::getInstance("com.vmware.athena.main");
          LOG4CPLUS_FATAL(mainLogger, ex.what());
@@ -146,7 +146,6 @@ main(int argc, char** argv)
    }
 
    // cleanup required for properties-watching thread
-   com::vmware::athena::evm::stop_evm();
    log4cplus::Logger::shutdown();
 
    return result;
