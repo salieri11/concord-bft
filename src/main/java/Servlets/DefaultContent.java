@@ -14,7 +14,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
-import configurations.SystemConfiguration;
+import configurations.FIleConfiguration;
 
 /**
  * Servlet class.
@@ -29,9 +29,9 @@ public class DefaultContent extends HttpServlet {
       logger = Logger.getLogger(StaticContent.class);
 
       // Read configurations
-      SystemConfiguration s;
+      FIleConfiguration s;
       try {
-         s = SystemConfiguration.getInstance();
+         s = FIleConfiguration.getInstance();
       } catch (IOException e) {
          logger.error("Error in reading configurations");
          throw new IOException();

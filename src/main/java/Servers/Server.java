@@ -25,7 +25,7 @@ import Servlets.BlockNumber;
 import Servlets.DefaultContent;
 import Servlets.MemberList;
 import Servlets.StaticContent;
-import configurations.SystemConfiguration;
+import configurations.FIleConfiguration;
 import connections.AthenaTCPConnection;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
@@ -64,9 +64,9 @@ public class Server {
       final Logger logger = Logger.getLogger(Server.class);
 
       // Read configurations file
-      SystemConfiguration s;
+      FIleConfiguration s;
       try {
-         s = SystemConfiguration.getInstance();
+         s = FIleConfiguration.getInstance();
       } catch (IOException e) {
          logger.error("Error in reading configurations");
          throw new IOException();

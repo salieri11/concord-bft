@@ -32,7 +32,7 @@ import org.apache.tika.parser.Parser;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import configurations.SystemConfiguration;
+import configurations.FIleConfiguration;
 import io.undertow.util.CanonicalPathUtils;
 import io.undertow.util.StatusCodes;
 
@@ -50,9 +50,9 @@ public class StaticContent extends HttpServlet {
       logger = Logger.getLogger(StaticContent.class);
 
       // Read configurations
-      SystemConfiguration s;
+      FIleConfiguration s;
       try {
-         s = SystemConfiguration.getInstance();
+         s = FIleConfiguration.getInstance();
       } catch (IOException e) {
          logger.error("Error in reading configurations");
          throw new IOException();

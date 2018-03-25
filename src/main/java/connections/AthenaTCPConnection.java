@@ -7,32 +7,27 @@
  * time.
  */
 package connections;
-
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.Properties;
-import java.util.concurrent.locks.ReentrantLock;
-
+import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.log4j.Logger;
+import configurations.IConfiguration;
 
-import configurations.SystemConfiguration;
-
-public final class AthenaTCPConnection {
-
-   private static AthenaTCPConnection single_instance = null;
-   private Socket socket;
-
-   public DataOutputStream outputStream;
-   public DataInputStream inputStream;
-
-   // Simple reentrant lock used to enforce that only one servlet can talk to
-   // Athena at a time
-   public ReentrantLock tcpConnectionLock;
-
-   private static Logger logger;
+public final class AthenaTCPConnection implements IAthenaConnection {
+   private Socket _socket;
+   private AtomicBoolean _disposed;
+   
+   // this is naive implementation of timeout, the good one will be to have timeout defined per message type
+   // since some calls may take more time in natural way, e.g. hard computations etc...
+   private final int _receiveTimeout = 3000; //ms
+   
+   private final int _receiveLengthSize = 2; //bytes
+   
+   private IConfiguration _conf;
+   private static Logger _logger = Logger.getLogger(AthenaTCPConnection.class);
 
    /**
     * Sets up a TCP connection with Athena and creates input and output streams
@@ -40,94 +35,94 @@ public final class AthenaTCPConnection {
     * 
     * @throws IOException
     */
-   private AthenaTCPConnection() throws IOException {
-      logger = Logger.getLogger(AthenaTCPConnection.class);
-
-      // Read Athena's hostname and port from the configurations file
-      SystemConfiguration s = null;
-      try {
-         s = SystemConfiguration.getInstance();
-      } catch (IOException e1) {
-         logger.error("Error in reading configurations");
-         throw new IOException();
-      }
-      Properties config = s.configurations;
-      String athenaHostName = config.getProperty("AthenaHostName");
-      int athenaPort = Integer.parseInt(config.getProperty("AthenaPort"));
-
-      // Initialize the lock
-      tcpConnectionLock = new ReentrantLock();
+   public AthenaTCPConnection(IConfiguration conf) throws IOException {
+      _conf = conf;
+      _disposed = new AtomicBoolean(false);
+      String athenaHostName = _conf.getStringValue("AthenaHostName");
+      int athenaPort = _conf.getIntegerValue("AthenaPort");
 
       // Create the TCP connection and input and output streams
-      tcpConnectionLock.lock();
       try {
-         socket = new Socket(athenaHostName, athenaPort);
-         outputStream = new DataOutputStream(socket.getOutputStream());
-         inputStream = new DataInputStream(socket.getInputStream());
-
+    	  _socket = new Socket(athenaHostName, athenaPort);
+    	  _socket.setTcpNoDelay(true);
       } catch (UnknownHostException e) {
-         logger.error("Error creating TCP connection with Athena");
+         _logger.error("Error creating TCP connection with Athena");
          throw new UnknownHostException();
       } catch (IOException e) {
-         logger.error("Error creating input/output stream with Athena");
+         _logger.error("Error creating input/output stream with Athena");
          throw new IOException();
       } finally {
-         tcpConnectionLock.unlock();
+ 
       }
-      System.out.println("Socket connection with Athena created");
+      _logger.debug("Socket connection with Athena created");
+   }
+   
+   public void closeConnection() {
+	   if(_disposed.get())
+		   return;
+	   
+	   if (_socket != null && !_socket.isClosed()) {
+		   try {
+			   _socket.close();
+		   } catch (IOException e) {
+			   _logger.error("Error in closing TCP socket");
+		   } finally {
+			   _disposed.set(true);
+		   }
+	   }
+   }
+   
+   @Override
+   protected void finalize() throws Throwable {
+	   try {
+		   if(!_disposed.get())
+			   closeConnection();
+	   } finally {
+		   super.finalize();
+	   }
    }
 
-   public static AthenaTCPConnection getInstance() throws IOException {
-      if (single_instance == null) {
-         try {
-            single_instance = new AthenaTCPConnection();
-         } catch (IOException e) {
-            logger.error("Error creating object of AthenaTCPConnection");
-            throw new IOException();
-         }
-      }
-      return single_instance;
-   }
-
-   public static void closeConnection() throws IOException {
-      AthenaTCPConnection obj;
-      try {
-         obj = AthenaTCPConnection.getInstance();
-      } catch (IOException e1) {
-         logger.error(
-                  "Error in getting AthenaTCPConnection object for closing connection");
-         throw new IOException();
-      }
-      obj.tcpConnectionLock.lock();
-      try {
-         if (obj.outputStream != null) {
-            try {
-               {
-                  obj.outputStream.close();
-               }
-            } catch (IOException e) {
-               logger.error("Error in closing output stream");
-               throw new IOException();
-            }
-         }
-         if (obj.inputStream != null) {
-            try {
-               obj.inputStream.close();
-            } catch (IOException e) {
-               logger.error("Error in closing input stream");
-               throw new IOException();
-            }
-         }
-         if (obj.socket != null) {
-            try {
-               obj.socket.close();
-            } catch (IOException e) {
-               logger.error("Error in closing TCP socket");
-               throw new IOException();
-            }
-         }
-      } finally {
-         obj.tcpConnectionLock.unlock();
-      }
-   }
+	@Override
+	public byte[] readMessage() {
+		try {
+			java.io.InputStream is = _socket.getInputStream();
+			long start = System.currentTimeMillis();
+			ByteBuffer length = null;
+			byte[] res = null;
+			int read = 0;
+			while(System.currentTimeMillis() - start < _receiveTimeout) {
+				if(length == null && is.available() >= _receiveLengthSize) {
+					length = ByteBuffer.wrap(new byte[_receiveLengthSize]);
+					is.read(length.array(), 0, _receiveLengthSize);
+				}
+				
+				if(length != null && res == null)
+					res = new byte[length.getShort()];
+				
+				if (res != null) {
+					int av = is.available();
+					if(av > 0)
+						read += is.read(res, read, av);
+					if(read == length.getShort())
+						break;
+				}
+			}
+			
+			return res;
+		} catch (IOException e) {
+			_logger.error("readMessage", e);
+			return null;
+		}
+	}
+	
+	@Override
+	public boolean sendMessage(byte[] msg) {
+		try {
+			_socket.getOutputStream().write(msg);
+			return true;
+		} catch (Exception e) {
+			_logger.error("sendMessage", e);
+			return false;
+		}
+	}
 }
