@@ -61,9 +61,11 @@ void com::vmware::athena::EVM::call(evm_message &message,
    assert(message.kind != EVM_CREATE);
 
    std::vector<uint8_t> code;
-   if (get_code(&message.destination, code)) {
+   std::vector<uint8_t> hash;
+   if (get_code(&message.destination, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Loaded code from " <<
                       HexPrintAddress{&message.destination});
+      memcpy(&message.code_hash.bytes, &hash[0], sizeof(evm_uint256be));
       execute(message, code, result);
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " <<
@@ -92,7 +94,8 @@ void com::vmware::athena::EVM::create(evm_message &message,
    contract_destination(message, contract_address);
 
    std::vector<uint8_t> code;
-   if (!get_code(contract_address, code)) {
+   std::vector<uint8_t> hash;
+   if (!get_code(contract_address, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Creating contract at " <<
                       HexPrintVector{contract_address});
 
@@ -110,8 +113,10 @@ void com::vmware::athena::EVM::create(evm_message &message,
 
          code = std::vector<uint8_t>(result.output_data,
                                      result.output_data+result.output_size);
+         keccak_hash(code, hash);
 
-         contract_code[contract_address] = code;
+         contract_code[contract_address] =
+            std::pair<std::vector<uint8_t>, std::vector<uint8_t>>(code, hash);
          memcpy(result.create_address.bytes, &contract_address[0],
                 sizeof(evm_address));
       }
@@ -288,24 +293,28 @@ void com::vmware::athena::EVM::get_balance(
  */
 bool com::vmware::athena::EVM::get_code(
    const struct evm_address *address,
-   std::vector<uint8_t> &code /* out */)
+   std::vector<uint8_t> &code /* out */,
+   std::vector<uint8_t> &hash /* out */)
 {
    LOG4CPLUS_INFO(logger, "ath_get_code called, address: " <<
                   HexPrintAddress{address});
 
    std::vector<uint8_t> addr_v =
       std::vector<uint8_t>(address->bytes, address->bytes+sizeof(evm_address));
-   return get_code(addr_v, code);
+   return get_code(addr_v, code, hash);
 }
 
 bool com::vmware::athena::EVM::get_code(
    const std::vector<uint8_t> &address,
-   std::vector<uint8_t> &code /* out */)
+   std::vector<uint8_t> &code /* out */,
+   std::vector<uint8_t> &hash /* out */)
 {
    // no log here, because this is the internal version
    auto iter = contract_code.find(address);
    if (iter != contract_code.end()) {
-      code = iter->second;
+      // iter->second == map value
+      code = iter->second.first;
+      hash = iter->second.second;
       return true;
    }
 
@@ -409,17 +418,23 @@ extern "C" {
                         const struct evm_address* address) {
       ath_object(evmctx)->get_balance(result, address);
    }
+   size_t ath_get_code_size(struct evm_context* evmctx,
+                            const struct evm_address* address) {
+      return ath_get_code(NULL, evmctx, address);
+   }
    size_t ath_get_code(const uint8_t** result_code,
                        struct evm_context* evmctx,
                        const struct evm_address* address) {
       std::vector<uint8_t> stored_code;
-      if (ath_object(evmctx)->get_code(address, stored_code)) {
-         *result_code = (uint8_t*)malloc(stored_code.size());
+      std::vector<uint8_t> hash;
+      if (ath_object(evmctx)->get_code(address, stored_code, hash)) {
          if (result_code != NULL) {
+            *result_code = (uint8_t*)malloc(stored_code.size());
+            if (*result_code != NULL) {
             memcpy(result_code, &stored_code[0], stored_code.size());
-            return stored_code.size();
+            }
          }
-         // TODO: do they expect an error to be signaled somehow here?
+         return stored_code.size();
       }
       return 0;
    }

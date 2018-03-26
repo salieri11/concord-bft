@@ -222,20 +222,12 @@ api_connection::handle_eth_request(int i) {
  */
 void
 api_connection::handle_eth_sendTransaction(const EthRequest &request) {
-   static uint8_t cache_break = 0;
-
    // TODO: this is the thing we'll forward to SBFT/KVBlockchain/EVM
    evm_message message;
    evm_result result;
 
    memset(&message, 0, sizeof(message));
    memset(&result, 0, sizeof(result));
-
-   // TODO: actually hash code
-   // Evmjit uses this hash to cache a copy of the compiled code. There is no
-   // "do not cache" value, so we need to set it to something unique until we're
-   // actually hashing.
-   message.code_hash.bytes[0] = ++cache_break;
 
    if (request.has_addr_from()) {
       // TODO: test & return error if needed

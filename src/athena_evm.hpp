@@ -57,6 +57,8 @@ extern "C" {
    void ath_get_balance(struct evm_uint256be* result,
                         struct evm_context* evmctx,
                         const struct evm_address* address);
+   size_t ath_get_code_size(struct evm_context* evmctx,
+                            const struct evm_address* address);
    size_t ath_get_code(const uint8_t** result_code,
                        struct evm_context* evmctx,
                        const struct evm_address* address);
@@ -87,6 +89,7 @@ const static struct evm_context_fn_table athena_fn_table = {
       ath_get_storage,
       ath_set_storage,
       ath_get_balance,
+      ath_get_code_size,
       ath_get_code,
       ath_selfdestruct,
       ath_call,
@@ -113,7 +116,8 @@ public:
    void get_balance(struct evm_uint256be* result,
                     const struct evm_address* address);
    bool get_code(const struct evm_address* address,
-                 std::vector<uint8_t> &result_code);
+                 std::vector<uint8_t> &result_code,
+                 std::vector<uint8_t> &result_hash);
    void selfdestruct(const struct evm_address* address,
                      const struct evm_address* beneficiary);
    void emit_log(const struct evm_address* address,
@@ -131,7 +135,13 @@ private:
    athena_context athctx;
    evm_instance *evminst;
    log4cplus::Logger logger;
-   std::map<std::vector<uint8_t>, std::vector<uint8_t>> contract_code;
+
+   // map from contract address to a pair of (contract code, code hash)
+   std::map<std::vector<uint8_t>,
+            std::pair<std::vector<uint8_t>, std::vector<uint8_t>>>
+       contract_code;
+
+   // map from account address to latest nonce
    std::map<std::vector<uint8_t>, uint64_t> nonces;
 
    void contract_destination(evm_message &message,
@@ -142,7 +152,8 @@ private:
                 const std::vector<uint8_t> &code,
                 evm_result &result /* out */);
    bool get_code(const std::vector<uint8_t> &address,
-                 std::vector<uint8_t> &result_code);
+                 std::vector<uint8_t> &result_code,
+                 std::vector<uint8_t> &result_hash);
    uint64_t get_nonce(std::vector<uint8_t> &address);
 };
 
