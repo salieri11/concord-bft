@@ -36,7 +36,7 @@ com::vmware::athena::EVM::EVM()
    evminst = evmjit_create();
 #endif
 
-   if (evminst == NULL) {
+   if (!evminst) {
       LOG4CPLUS_FATAL(logger, "Could not create EVM instance");
       throw EVMException("Could not create EVM instance");
    }
@@ -420,7 +420,7 @@ extern "C" {
    }
    size_t ath_get_code_size(struct evm_context* evmctx,
                             const struct evm_address* address) {
-      return ath_get_code(NULL, evmctx, address);
+      return ath_get_code(nullptr, evmctx, address);
    }
    size_t ath_get_code(const uint8_t** result_code,
                        struct evm_context* evmctx,
@@ -428,9 +428,9 @@ extern "C" {
       std::vector<uint8_t> stored_code;
       std::vector<uint8_t> hash;
       if (ath_object(evmctx)->get_code(address, stored_code, hash)) {
-         if (result_code != NULL) {
+         if (result_code) {
             *result_code = (uint8_t*)malloc(stored_code.size());
-            if (*result_code != NULL) {
+            if (*result_code) {
             memcpy(result_code, &stored_code[0], stored_code.size());
             }
          }
