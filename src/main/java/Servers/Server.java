@@ -16,7 +16,6 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Properties;
 import javax.servlet.ServletException;
 import org.apache.log4j.Logger;
 
@@ -25,8 +24,9 @@ import Servlets.BlockNumber;
 import Servlets.DefaultContent;
 import Servlets.MemberList;
 import Servlets.StaticContent;
-import configurations.FIleConfiguration;
-import connections.AthenaTCPConnection;
+import configurations.FileConfiguration;
+import configurations.IConfiguration;
+import connections.AthenaConnectionPool;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.server.handlers.PathHandler;
@@ -36,8 +36,6 @@ import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
 
 public class Server {
-
-   private static Properties config;
    private static String serverPath;
    private static String deploymentName;
    private static String memberListServletName;
@@ -64,31 +62,29 @@ public class Server {
       final Logger logger = Logger.getLogger(Server.class);
 
       // Read configurations file
-      FIleConfiguration s;
+      IConfiguration conf;
       try {
-         s = FIleConfiguration.getInstance();
+    	  conf= FileConfiguration.getInstance();
       } catch (IOException e) {
          logger.error("Error in reading configurations");
          throw new IOException();
       }
-      config = s.configurations;
-      serverPath = config.getProperty("Undertow_Path");
-      deploymentName = config.getProperty("Deployment_Name");
-      memberListServletName = config.getProperty("MemberList_ServletName");
-      staticContentServletName = config
-               .getProperty("StaticContent_ServletName");
-      defaultContentServletName = config
-               .getProperty("DefaultContent_ServletName");
-      blockListServletName = config.getProperty("BlockList_ServletName");
-      blockNumberServletName = config.getProperty("BlockNumber_ServletName");
-      serverHostName = config.getProperty("Server_Host");
-      port = Integer.parseInt(config.getProperty("Server_Port"));
-      defaultReponse = config.getProperty("Server_DefaultResponse");
-      staticContentEndpoint = config.getProperty("StaticContent_Endpoint");
-      memberListEndpoint = config.getProperty("MemberList_Endpoint");
-      defaultContentEndpoint = config.getProperty("DefaultContent_Endpoint");
-      blockListEndpoint = config.getProperty("BlockList_Endpoint");
-      blockNumberEndpoint = config.getProperty("BlockNumber_Endpoint");
+      
+      serverPath = conf.getStringValue("Undertow_Path");
+      deploymentName = conf.getStringValue("Deployment_Name");
+      memberListServletName = conf.getStringValue("MemberList_ServletName");
+      staticContentServletName = conf.getStringValue("StaticContent_ServletName");
+      defaultContentServletName = conf.getStringValue("DefaultContent_ServletName");
+      blockListServletName = conf.getStringValue("BlockList_ServletName");
+      blockNumberServletName = conf.getStringValue("BlockNumber_ServletName");
+      serverHostName = conf.getStringValue("Server_Host");
+      port = conf.getIntegerValue("Server_Port");
+      defaultReponse = conf.getStringValue("Server_DefaultResponse");
+      staticContentEndpoint = conf.getStringValue("StaticContent_Endpoint");
+      memberListEndpoint = conf.getStringValue("MemberList_Endpoint");
+      defaultContentEndpoint = conf.getStringValue("DefaultContent_Endpoint");
+      blockListEndpoint = conf.getStringValue("BlockList_Endpoint");
+      blockNumberEndpoint = conf.getStringValue("BlockNumber_Endpoint");
 
       DeploymentInfo servletBuilder = deployment()
                .setClassLoader(Server.class.getClassLoader())
@@ -124,6 +120,9 @@ public class Server {
          logger.error("Error in starting Deployment Manager");
          throw new ServletException();
       }
+      
+      AthenaConnectionPool.getInstance().initialize(conf);
+      
       Undertow server = Undertow.builder().addHttpListener(port, serverHostName)
                .setHandler(path)
                // .setIoThreads(10) // to change number of io threads
@@ -131,16 +130,5 @@ public class Server {
                .build();
       server.start();
       logger.info("Server Booted");
-
-      /*
-       * Indirectly invokes constructor of singleton class which establishes a
-       * TCP connection with Athena.
-       */
-      try {
-         AthenaTCPConnection.getInstance();
-      } catch (IOException e) {
-         logger.error("Error in establishing TCP connection with Athena");
-         throw new IOException();
-      }
    }
 }

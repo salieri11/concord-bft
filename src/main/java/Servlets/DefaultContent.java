@@ -14,30 +14,20 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
-import configurations.FIleConfiguration;
+import configurations.FileConfiguration;
+import configurations.IConfiguration;
 
 /**
  * Servlet class.
  */
 public class DefaultContent extends HttpServlet {
    private static final long serialVersionUID = 1L;
-   private static Properties config;
    private static String defaultContentPath;
-   private final Logger logger;
+   private static final Logger logger = Logger.getLogger(StaticContent.class);
 
    public DefaultContent() throws IOException {
-      logger = Logger.getLogger(StaticContent.class);
-
-      // Read configurations
-      FIleConfiguration s;
-      try {
-         s = FIleConfiguration.getInstance();
-      } catch (IOException e) {
-         logger.error("Error in reading configurations");
-         throw new IOException();
-      }
-      config = s.configurations;
-      defaultContentPath = config.getProperty("Server_DefaultResponse");
+      IConfiguration c = FileConfiguration.getInstance();
+      defaultContentPath = c.getStringValue("Server_DefaultResponse");
    }
 
    /**

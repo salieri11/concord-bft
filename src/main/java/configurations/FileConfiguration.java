@@ -53,13 +53,13 @@ public final class FileConfiguration implements IConfiguration {
 
 	@Override
 	public int getIntegerValue(String key) {
-		int retval = Integer.parseInt((String)_configurations.get(key));
+		int retval = Integer.parseInt(_configurations.getProperty(key));
 		return retval;
 	}
 	
 	@Override
 	public String getStringValue(String key) {
-		String retval = (String)_configurations.get(key);
+		String retval = _configurations.getProperty(key);
 		return retval;
 	}
 }

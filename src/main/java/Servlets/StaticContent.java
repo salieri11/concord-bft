@@ -31,8 +31,8 @@ import org.apache.tika.parser.ParseContext;
 import org.apache.tika.parser.Parser;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
-
-import configurations.FIleConfiguration;
+import configurations.FileConfiguration;
+import configurations.IConfiguration;
 import io.undertow.util.CanonicalPathUtils;
 import io.undertow.util.StatusCodes;
 
@@ -41,25 +41,14 @@ import io.undertow.util.StatusCodes;
  */
 public class StaticContent extends HttpServlet {
    private static final long serialVersionUID = 1L;
-   private static Properties config;
    private static String staticContentFolder;
    private static char separatorChar;
-   private final Logger logger;
+   private static final Logger logger = Logger.getLogger(StaticContent.class);
 
    public StaticContent() throws IOException {
-      logger = Logger.getLogger(StaticContent.class);
-
-      // Read configurations
-      FIleConfiguration s;
-      try {
-         s = FIleConfiguration.getInstance();
-      } catch (IOException e) {
-         logger.error("Error in reading configurations");
-         throw new IOException();
-      }
-      config = s.configurations;
-      staticContentFolder = config.getProperty("StaticContent_Folder");
-      separatorChar = config.getProperty("StaticContent_Separator").charAt(0);
+      IConfiguration config = FileConfiguration.getInstance();
+      staticContentFolder = config.getStringValue("StaticContent_Folder");
+      separatorChar = config.getStringValue("StaticContent_Separator").charAt(0);
    }
 
    /**
@@ -73,8 +62,8 @@ public class StaticContent extends HttpServlet {
     */
    @SuppressWarnings("resource")
    protected void doGet(final HttpServletRequest request,
-            final HttpServletResponse response)
-            throws ServletException, IOException {
+			            final HttpServletResponse response)
+			            throws ServletException, IOException {
 
       String path = staticContentFolder + getPath(request);
       /*
