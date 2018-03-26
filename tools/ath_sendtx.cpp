@@ -31,32 +31,25 @@ char hexval(char c) {
    }
 }
 
-void dehex0x(std::string *str) {
-   if (str->size() % 2 != 0) {
+void dehex0x(const std::string &str, std::string &bin /* out */) {
+   if (str.size() % 2 != 0) {
       throw "nibble missing in string";
    }
 
    // allow people to include "0x" prefix, or not
-   size_t adjust = ((*str)[0] == '0' && (*str)[1] == 'x') ? 2 : 0;
+   size_t adjust = (str[0] == '0' && str[1] == 'x') ? 2 : 0;
 
-   size_t binsize = (str->size()-adjust)/2;
+   size_t binsize = (str.size()-adjust)/2;
 
    if (binsize > 0) {
-      char *out = new char[binsize];
+      bin.resize(binsize);
       for (int i = 0; i < binsize; i++) {
-         out[i] = (hexval((*str)[i*2+adjust]) << 4)
-            | hexval((*str)[i*2+adjust+1]);
+	 bin[i] = (hexval(str[i*2+adjust]) << 4)
+            | hexval(str[i*2+adjust+1]);
       }
-      str->assign(out, binsize);
-      delete out;
    } else {
-      str->assign("");
+      bin.assign("");
    }
-}
-
-void dehex_into(std::string *dest, std::string src) {
-   dest->assign(src);
-   dehex0x(dest);
 }
 
 int main(int argc, char** argv)
@@ -64,7 +57,6 @@ int main(int argc, char** argv)
    try {
       variables_map opts;
       options_description desc{"Options"};
-      std::string pbtext;
 
       desc.add_options()
          ("help,h", "Print this help message")
@@ -114,24 +106,28 @@ int main(int argc, char** argv)
 
       AthenaRequest athReq;
       EthRequest *ethReq = athReq.add_eth_request();
+      std::string from;
+      std::string to;
+      std::string data;
 
       if (opts.count("from") > 0) {
-         dehex_into(ethReq->mutable_addr_from(),
-                    opts["from"].as<std::string>());
+         dehex0x(opts["from"].as<std::string>(), from);
+	 ethReq->set_addr_from(from);
       }
       if (opts.count("to") > 0) {
-         dehex_into(ethReq->mutable_addr_to(),
-                    opts["to"].as<std::string>());
+         dehex0x(opts["to"].as<std::string>(), to);
+	 ethReq->set_addr_to(to);
       }
       if (opts.count("value") > 0) {
          // TODO: hex value?
          std::cout << "Warning: not supporting value yet" << std::endl;
       }
       if (opts.count("data") > 0) {
-         dehex_into(ethReq->mutable_data(),
-                    opts["data"].as<std::string>());
+         dehex0x(opts["data"].as<std::string>(), data);
+	 ethReq->set_data(data);
       }
 
+      std::string pbtext;
       google::protobuf::TextFormat::PrintToString(athReq, &pbtext);
       std::cout << "Message Prepared: " << pbtext << std::endl;
 
@@ -143,7 +139,7 @@ int main(int argc, char** argv)
       // only sixteen bits available
       assert(msglen < 0x10000);
       // little-endian!
-      char *prefix = (char*)&msglen;
+      char prefix[2] = {(char)msglen, (char)(msglen >> 8)};
 
       boost::asio::write(s, boost::asio::buffer(prefix, 2));
       boost::asio::write(s, boost::asio::buffer(pb, msglen));
@@ -159,8 +155,8 @@ int main(int argc, char** argv)
                    << reply_length << std::endl;
       } else {
          // little-endian!
-         msglen = (size_t)*prefix;
-         char *reply = new char[msglen];
+         msglen = ((size_t)prefix[1] << 8) | prefix[0];
+         char reply[msglen];
          reply_length = boost::asio::read(
             s, boost::asio::buffer(reply, msglen));
          if (reply_length != msglen) {
