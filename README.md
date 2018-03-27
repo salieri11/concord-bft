@@ -84,6 +84,7 @@ sudo make install
 This will install all library files and header files into
 '/usr/local'. (You may need to add `/usr/local/lib` to your
 `LD_LIBRARY_PATH` to run Athena.)
+You may also need to export CPLUS_INCLUDE_PATH variable set to /usr/local/include for the header files
 
 #### Hera
 
