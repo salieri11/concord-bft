@@ -86,20 +86,41 @@ This will install all library files and header files into
 `LD_LIBRARY_PATH` to run Athena.)
 You may also need to export CPLUS_INCLUDE_PATH variable set to /usr/local/include for the header files
 
-#### Hera
+#### Evmjit
 
-Athena uses the [Hera](https://github.com/vmwathena/hera) eWASM VM to
+Athena uses the [Evmjit](https://github.com/ethereum/evmjit) VM to
 execute Ethereum code. While we're figuring out dependency management,
-please clone hera to the same directory you cloned athena (i.e. one
+please clone evmjit to the same directory you cloned athena (i.e. one
 directory up from this README file), and build it:
 
 ```shell
 athena$ cd ..
-$ git clone git@github.com:vmwathena/hera.git
-$ cd hera
+$ git clone git@github.com:ethereum/evmjit.git
+$ cd evmjit
 $ mkdir build
 $ cd build
-$ cmake .. && make
+$ cmake ..
+$ cmake --build . --config RelWithDebInfo
+```
+
+Warning: this will download and compile LLVM, which takes about an
+hour.
+
+#### Cryptopp
+
+Athena uses [Crypto++](https://github.com/weidai11/cryptopp.git) to
+compute SHA3/Keccak-256 hashes. You will need to download and build
+it:
+
+```
+git clone https://github.com/weidai11/cryptopp.git
+cd cryptopp/
+git checkout CRYPTOPP_5_6_5;
+mkdir build/
+cd build/
+cmake ..
+make
+sudo make install
 ```
 
 ### Athena
@@ -135,9 +156,4 @@ With Athena running, you probably want to go set up
  * src/athena.proto: Google Protocol Buffers messages that Helen uses
    to talk to Athena
 
-
-## Future Work
-
-TODO: implement the equivalent of
-P2_Blockchain/Blockchain/basicBlockchain2 and
-P2_Blockchain/Blockchan/EtheriumBlockchain here.
+ * src/athena_evm.*: wrapper around Evmjit

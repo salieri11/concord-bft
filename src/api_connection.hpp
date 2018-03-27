@@ -11,6 +11,7 @@
 #include <log4cplus/loggingmacros.h>
 
 #include "athena.pb.h"
+#include "athena_evm.hpp"
 
 namespace com {
    namespace vmware {
@@ -24,7 +25,8 @@ namespace com {
             typedef boost::shared_ptr<api_connection> pointer;
 
             static pointer
-            create(boost::asio::io_service &io_service);
+            create(boost::asio::io_service &io_service,
+                   com::vmware::athena::EVM &athevm);
 
             boost::asio::ip::tcp::socket&
             socket();
@@ -50,7 +52,14 @@ namespace com {
             void
             handle_test_request();
 
-            api_connection(boost::asio::io_service &io_service);
+            /* Specific Ethereum Method handlers. */
+
+            void
+            handle_eth_sendTransaction(const EthRequest &request);
+
+            /* Constructor. */
+            api_connection(boost::asio::io_service &io_service,
+                           com::vmware::athena::EVM &athevm);
 
             /* Socket being handled. */
             boost::asio::ip::tcp::socket socket_;
@@ -66,6 +75,9 @@ namespace com {
 
             /* Logger. */
             log4cplus::Logger logger_;
+
+            /* The VM to execute transactions in. */
+            com::vmware::athena::EVM &athevm_;
          };
       }
    }
