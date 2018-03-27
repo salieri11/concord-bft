@@ -22,8 +22,11 @@
 #include <boost/bind.hpp>
 #include <boost/predef/detail/endian_compat.h>
 
+#include "evm.h"
+#include "athena_evm.hpp"
 #include "api_connection.hpp"
 #include "connection_manager.hpp"
+#include "athena_log.hpp"
 
 using boost::asio::ip::tcp;
 using boost::asio::mutable_buffer;
@@ -38,9 +41,10 @@ using namespace com::vmware::athena;
 
 api_connection::pointer
 api_connection::create(io_service &io_service,
-                       connection_manager &connManager)
+                       connection_manager &connManager,
+                       EVM &athevm)
 {
-   return pointer(new api_connection(io_service, connManager));
+   return pointer(new api_connection(io_service, connManager, athevm));
 }
 
 tcp::socket&
@@ -145,10 +149,10 @@ api_connection::process_incoming()
    // swap byte order for big endian and pdp endian
    msgLen = (msglen << 8) | (msglen >> 8);
 #endif
-   LOG4CPLUS_DEBUG(logger_, "msg length: " + to_string(msgLen));
+   LOG4CPLUS_DEBUG(logger_, "msg length: " << msgLen);
 
    // Parse the protobuf
-   athenaRequest_.ParseFromString(msgBuffer_);
+   athenaRequest_.ParseFromString(msgBuffer_+MSG_LENGTH_BYTES);
    LOG4CPLUS_DEBUG(logger_, "Parsed!");
 
    // handle the request
@@ -255,9 +259,76 @@ api_connection::handle_peer_request() {
  */
 void
 api_connection::handle_eth_request(int i) {
+   // TODO: forward to SBFT/KVBlockchain; just calling directly for now to
+   // demonstrate
+
+   // TODO: this is safe because we only handle one connection at a time
+   // currently
+   const EthRequest request = athenaRequest_.eth_request(i);
+
+   if (request.method() == EthRequest_EthMethod_SEND_TX) {
+      handle_eth_sendTransaction(request);
+   } else {
+      ErrorResponse *e = athenaResponse_.add_error_response();
+      e->mutable_description()->assign("ETH Method Not Implemented");
+   }
+}
+
+/**
+ * Handle and eth_sendTransaction request.
+ */
+void
+api_connection::handle_eth_sendTransaction(const EthRequest &request) {
    // TODO: this is the thing we'll forward to SBFT/KVBlockchain/EVM
-   ErrorResponse *e = athenaResponse_.add_error_response();
-   e->mutable_description()->assign("ETH Not Implemented");
+   evm_message message;
+   evm_result result;
+
+   memset(&message, 0, sizeof(message));
+   memset(&result, 0, sizeof(result));
+
+   if (request.has_addr_from()) {
+      // TODO: test & return error if needed
+      assert(20 == request.addr_from().length());
+      memcpy(message.sender.bytes, request.addr_from().c_str(), 20);
+   }
+
+   if (request.has_data()) {
+      message.input_data =
+         reinterpret_cast<const uint8_t*>(request.data().c_str());
+      message.input_size = request.data().length();
+   }
+
+   if (request.has_value()) {
+      memcpy(message.value.bytes,
+             request.value().c_str(),
+             request.value().length());
+   }
+
+   // TODO: get this from the request
+   message.gas = 1000000;
+
+   if (request.has_addr_to()) {
+      message.kind = EVM_CALL;
+
+      // TODO: test & return error if needed
+      assert(20 == request.addr_to().length());
+      memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
+
+      athevm_.call(message, result);
+   } else {
+      message.kind = EVM_CREATE;
+
+      athevm_.create(message, result);
+   }
+
+   LOG4CPLUS_INFO(logger_, "Execution result -" <<
+                  " status_code: " << result.status_code <<
+                  " gas_left: " << result.gas_left <<
+                  " output_size: " << result.output_size);
+
+   EthResponse *response = athenaResponse_.add_eth_response();
+   response->set_id(request.id());
+   // TODO: put output data in the response
 }
 
 /*
@@ -277,11 +348,13 @@ api_connection::handle_test_request() {
 
 api_connection::api_connection(
    io_service &io_service,
-   connection_manager &manager)
+   connection_manager &manager,
+   EVM& athevm)
    : socket_(io_service),
      logger_(
         log4cplus::Logger::getInstance("com.vmware.athena.api_connection")),
-     connManager_(manager)
+     connManager_(manager),
+     athevm_(athevm)
 {
    // nothing to do here yet other than initialize the socket and logger
 }

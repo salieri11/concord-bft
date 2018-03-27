@@ -19,8 +19,19 @@ configure_file(resources/log4cplus.properties resources/log4cplus.properties COP
 configure_file(resources/athena.config resources/athena.config COPYONLY)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
-find_package(Hera REQUIRED)
-include_directories(${Hera_INCLUDE_DIRS})
+if(DEFINED USE_HERA)
+   find_package(Hera REQUIRED)
+   include_directories(${Hera_INCLUDE_DIRS})
+   set(EVM_LIBRARIES ${Hera_LIBRARIES})
+else(DEFINED USE_HERA)
+   find_package(Evmjit REQUIRED)
+   include_directories(${Evmjit_INCLUDE_DIRS})
+   set(EVM_LIBRARIES ${Evmjit_LIBRARIES})
+endif(DEFINED USE_HERA)
+
+find_package(Cryptopp REQUIRED)
+include_directories(${Cryptopp_INCLUDE_DIRS})
+
 
 file(GLOB athena_src "src/*.cpp" "src/*.hpp")
 add_executable(athena
@@ -30,4 +41,6 @@ target_link_libraries(athena
                       ${PROTOBUF_LIBRARIES}
                       ${Boost_LIBRARIES}
                       log4cplus
-                      ${Hera_LIBRARIES})
+                      ${EVM_LIBRARIES}
+                      ${Cryptopp_LIBRARIES})
+add_subdirectory("tools")

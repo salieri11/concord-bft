@@ -1,0 +1,15 @@
+find_path(Evmjit_INCLUDE_DIR evmjit.h
+  HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../evmjit/include)
+
+if(DEFINED EVM_INCLUDE_DIR_NOTFOUND)
+   message(SEND_ERROR "Evmjit not found")
+else(DEFINED EVM_INCLUDE_DIR_NOTFOUND)
+   message(STATUS "Evmjit found at " ${Evmjit_INCLUDE_DIR})
+   set(Evmjit_FOUND 1)
+
+   set(Evmjit_INCLUDE_DIRS ${Evmjit_INCLUDE_DIR})
+   link_directories(${Evmjit_INCLUDE_DIR}/../build/libevmjit/
+     ${Evmjit_INCLUDE_DIR}/../deps/lib/)
+
+   set(Evmjit_LIBRARIES evmjit-standalone-thin dl)
+endif(DEFINED EVM_INCLUDE_DIR_NOTFOUND)
