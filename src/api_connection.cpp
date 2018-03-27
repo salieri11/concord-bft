@@ -38,7 +38,7 @@ using namespace com::vmware::athena;
 
 api_connection::pointer
 api_connection::create(io_service &io_service,
-											connection_manager &connManager)
+                       connection_manager &connManager)
 {
    return pointer(new api_connection(io_service, connManager));
 }
@@ -53,75 +53,78 @@ api_connection::socket()
 void
 api_connection::start_async()
 {
-	LOG4CPLUS_DEBUG(logger_, "start_async enter");
-	remotePeer_ = socket_.remote_endpoint();
-  LOG4CPLUS_INFO(logger_, "Connection to " << remotePeer_ << " opened by peer");
+   LOG4CPLUS_DEBUG(logger_, "start_async enter");
+   remotePeer_ = socket_.remote_endpoint();
+   LOG4CPLUS_INFO(logger_,
+                  "Connection to " << remotePeer_ << " opened by peer");
 
-	read_async();
+   read_async();
 
-	LOG4CPLUS_DEBUG(logger_, "start_async exit");
+   LOG4CPLUS_DEBUG(logger_, "start_async exit");
 }
 
 void
 api_connection::read_async()
 {
-	LOG4CPLUS_DEBUG(logger_, "read_async enter");
+   LOG4CPLUS_DEBUG(logger_, "read_async enter");
 
-	memset(msgBuffer_, 0, BUFFER_LENGTH);
-	// prepare to read the next request
-	athenaRequest_.Clear();
-	athenaResponse_.Clear();
+   memset(msgBuffer_, 0, BUFFER_LENGTH);
+   // prepare to read the next request
+   athenaRequest_.Clear();
+   athenaResponse_.Clear();
 
-	socket_
-		.async_read_some(boost::asio::buffer(msgBuffer_, BUFFER_LENGTH),
-		  		          boost::bind(&api_connection::on_read_async_completed, this,
-												        boost::asio::placeholders::error,
-												        boost::asio::placeholders::bytes_transferred));
-	LOG4CPLUS_DEBUG(logger_, "read_async exit");
+   socket_.async_read_some(
+      boost::asio::buffer(msgBuffer_, BUFFER_LENGTH),
+      boost::bind(&api_connection::on_read_async_completed,
+                  this,
+                  boost::asio::placeholders::error,
+                  boost::asio::placeholders::bytes_transferred));
+   LOG4CPLUS_DEBUG(logger_, "read_async exit");
 }
 
 void
-api_connection::on_read_async_completed ( const boost::system::error_code &ec,
-    																			const size_t bytes)
+api_connection::on_read_async_completed(const boost::system::error_code &ec,
+                                        const size_t bytes)
 {
-	LOG4CPLUS_DEBUG(logger_, "on_read_async_completed enter");
-	LOG4CPLUS_TRACE(logger_, "on_read_async_completed, bytes: " + to_string(bytes));
+   LOG4CPLUS_DEBUG(logger_, "on_read_async_completed enter");
+   LOG4CPLUS_TRACE(logger_,
+                   "on_read_async_completed, bytes: " + to_string(bytes));
 
-	// here if less then 2 bytes are available for
-	if (!ec && bytes > MSG_LENGTH_BYTES) {
-		process_incoming();
-		read_async();
-	} else if (boost::asio::error::eof == ec) {
-		LOG4CPLUS_ERROR(logger_, "connection closed by peer");
-		close();
-	} else if (boost::asio::error::operation_aborted == ec) {
-		LOG4CPLUS_ERROR(logger_, ec.message());
-		close();
-	} else {
-		read_async();
-	}
+   // here if less then 2 bytes are available for
+   if (!ec && bytes > MSG_LENGTH_BYTES) {
+      process_incoming();
+      read_async();
+   } else if (boost::asio::error::eof == ec) {
+      LOG4CPLUS_ERROR(logger_, "connection closed by peer");
+      close();
+   } else if (boost::asio::error::operation_aborted == ec) {
+      LOG4CPLUS_ERROR(logger_, ec.message());
+      close();
+   } else {
+      read_async();
+   }
 
-	LOG4CPLUS_DEBUG(logger_, "on_read_async_completed exit");
+   LOG4CPLUS_DEBUG(logger_, "on_read_async_completed exit");
 }
 
 void
 api_connection::close()
 {
-	// we should not close socket_ explicitly since we use shared_from_this,
-	// so the current api_connetion object and its socket_ object should be
-	// destroyed automatically. However, this should be profiled during
-	// stress tests for memory leaks
-	LOG4CPLUS_TRACE(logger_, "closing connection");
-	connManager_.close_connection(shared_from_this());
+   // we should not close socket_ explicitly since we use shared_from_this,
+   // so the current api_connetion object and its socket_ object should be
+   // destroyed automatically. However, this should be profiled during
+   // stress tests for memory leaks
+   LOG4CPLUS_TRACE(logger_, "closing connection");
+   connManager_.close_connection(shared_from_this());
 }
 
 void
 api_connection::on_write_completed(const boost::system::error_code &ec)
 {
-	if(!ec)
-		LOG4CPLUS_TRACE(logger_, "sent completed");
-	else
-		LOG4CPLUS_ERROR(logger_, "sent failed with error: " + ec.message());
+   if(!ec)
+      LOG4CPLUS_TRACE(logger_, "sent completed");
+   else
+      LOG4CPLUS_ERROR(logger_, "sent failed with error: " + ec.message());
 }
 
 /*
@@ -131,46 +134,46 @@ api_connection::on_write_completed(const boost::system::error_code &ec)
 void
 api_connection::process_incoming()
 {
-    std::string pb;
+   std::string pb;
 
-    LOG4CPLUS_DEBUG(logger_, "process_incoming enter");
+   LOG4CPLUS_DEBUG(logger_, "process_incoming enter");
 
-    // start by getting the length of the next message (a 16-bit
-    // integer, encoded little endian, lower byte first)
-		uint16_t msgLen = *(static_cast<uint16_t*>(static_cast<void*>(msgBuffer_)));
+   // start by getting the length of the next message (a 16-bit
+   // integer, encoded little endian, lower byte first)
+   uint16_t msgLen = *(static_cast<uint16_t*>(static_cast<void*>(msgBuffer_)));
 #ifndef BOOST_LITTLE_ENDIAN
-       // swap byte order for big endian and pdp endian
-   	msgLen = (msglen << 8) | (msglen >> 8);
+   // swap byte order for big endian and pdp endian
+   msgLen = (msglen << 8) | (msglen >> 8);
 #endif
-    LOG4CPLUS_DEBUG(logger_, "msg length: " + to_string(msgLen));
+   LOG4CPLUS_DEBUG(logger_, "msg length: " + to_string(msgLen));
 
-    // Parse the protobuf
-    athenaRequest_.ParseFromString(msgBuffer_);
-    LOG4CPLUS_DEBUG(logger_, "Parsed!");
+   // Parse the protobuf
+   athenaRequest_.ParseFromString(msgBuffer_);
+   LOG4CPLUS_DEBUG(logger_, "Parsed!");
 
-    // handle the request
-    dispatch();
+   // handle the request
+   dispatch();
 
-    // marshal the protobuf
-    athenaResponse_.SerializeToString(&pb);
-    msgLen = pb.length();
+   // marshal the protobuf
+   athenaResponse_.SerializeToString(&pb);
+   msgLen = pb.length();
 #ifndef BOOST_LITTLE_ENDIAN
-    msgLen = (msgLen << 8) || (msgLen >> 8);
+   msgLen = (msgLen << 8) || (msgLen >> 8);
 #endif
-    memset(msgBuffer_, 0, BUFFER_LENGTH);
-		memcpy(msgBuffer_, &msgLen, MSG_LENGTH_BYTES);
-		memcpy(msgBuffer_ + MSG_LENGTH_BYTES, pb.c_str(), msgLen);
+   memset(msgBuffer_, 0, BUFFER_LENGTH);
+   memcpy(msgBuffer_, &msgLen, MSG_LENGTH_BYTES);
+   memcpy(msgBuffer_ + MSG_LENGTH_BYTES, pb.c_str(), msgLen);
 
-		LOG4CPLUS_TRACE(logger_, "sending back " + to_string(msgLen) + " bytes");
-		boost::asio::async_write(socket_,
-		          							boost::asio::buffer(msgBuffer_,
-															 									msgLen + MSG_LENGTH_BYTES),
-		          							boost::bind(&api_connection::on_write_completed,
-																				this,
-		            												boost::asio::placeholders::error));
+   LOG4CPLUS_TRACE(logger_, "sending back " + to_string(msgLen) + " bytes");
+   boost::asio::async_write(socket_,
+                            boost::asio::buffer(msgBuffer_,
+                                                msgLen + MSG_LENGTH_BYTES),
+                            boost::bind(&api_connection::on_write_completed,
+                                        this,
+                                        boost::asio::placeholders::error));
 
-    LOG4CPLUS_TRACE(logger_, "responded!");
-		LOG4CPLUS_DEBUG(logger_, "process_incoming exit");
+   LOG4CPLUS_TRACE(logger_, "responded!");
+   LOG4CPLUS_DEBUG(logger_, "process_incoming exit");
 }
 
 /*
@@ -182,21 +185,21 @@ api_connection::dispatch() {
    // The idea behind checking each request field every time, instead
    // of checking at most one, is that a client could batch
    // requests. We'll see if that's a thing that is reasonable.
-    if (athenaRequest_.has_protocol_request()) {
-       handle_protocol_request();
-    }
-    if (athenaRequest_.has_peer_request()) {
-       handle_peer_request();
-    }
-    for (int i = 0; i < athenaRequest_.eth_request_size(); i++) {
-       // Similarly, a list of ETH RPC requests is supported to allow
-       // batching. This seems like a good idea, but may not fit this
-       // mode exactly.
-       handle_eth_request(i);
-    }
-    if (athenaRequest_.has_test_request()) {
-        handle_test_request();
-    }
+   if (athenaRequest_.has_protocol_request()) {
+      handle_protocol_request();
+   }
+   if (athenaRequest_.has_peer_request()) {
+      handle_peer_request();
+   }
+   for (int i = 0; i < athenaRequest_.eth_request_size(); i++) {
+      // Similarly, a list of ETH RPC requests is supported to allow
+      // batching. This seems like a good idea, but may not fit this
+      // mode exactly.
+      handle_eth_request(i);
+   }
+   if (athenaRequest_.has_test_request()) {
+      handle_test_request();
+   }
 }
 
 /*
@@ -264,20 +267,21 @@ api_connection::handle_eth_request(int i) {
  */
 void
 api_connection::handle_test_request() {
-    const TestRequest request = athenaRequest_.test_request();
-    if (request.has_echo()) {
-        TestResponse *response = athenaResponse_.mutable_test_response();
-        std::string *echo = response->mutable_echo();
-        echo->assign(request.echo());
-    }
+   const TestRequest request = athenaRequest_.test_request();
+   if (request.has_echo()) {
+      TestResponse *response = athenaResponse_.mutable_test_response();
+      std::string *echo = response->mutable_echo();
+      echo->assign(request.echo());
+   }
 }
 
 api_connection::api_connection(
    io_service &io_service,
- 	 connection_manager &manager)
+   connection_manager &manager)
    : socket_(io_service),
-	   logger_(log4cplus::Logger::getInstance("com.vmware.athena.api_connection")),
-		 connManager_(manager)
+     logger_(
+        log4cplus::Logger::getInstance("com.vmware.athena.api_connection")),
+     connManager_(manager)
 {
    // nothing to do here yet other than initialize the socket and logger
 }

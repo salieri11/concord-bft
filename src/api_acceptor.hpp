@@ -33,7 +33,7 @@ namespace com {
 
             log4cplus::Logger logger_;
 
-						connection_manager connManager_;
+            connection_manager connManager_;
          };
       }
    }
