@@ -9,11 +9,13 @@ import argparse
 import json
 import logging
 import os
+import pprint
 import tempfile
 import time
 
 from . import test_suite
 from rpc.rpc_call import RPC
+from util.debug import pp as pp
 from util.product import Product
 import util.json_helper
 
@@ -23,7 +25,6 @@ log = logging.getLogger(__name__)
 # command line parameters, which are about running tests.
 CONFIG_JSON = "resources/user_config.json"
 INTENTIONALLY_SKIPPED_TESTS = "suites/skipped/core_vm_tests_to_skip.json"
-SUPPLEMENTAL_RESULTS = "suites/supplementalResults/core_vm_supplemental_results.json"
 TEST_LOG_DIR = "test_logs"
 TEST_SOURCE_CODE_SUFFIX = "Filler.json"
 
@@ -34,8 +35,8 @@ class CoreVMTests(test_suite.TestSuite):
    _ethereumMode = False
    _productMode = True
    _resultFile = None
-   _supplementalResults = None
    _unintentionallySkippedFile = None
+   _userUnlocked = False
 
    def __init__(self, passedArgs):
       self._args = passedArgs
@@ -44,8 +45,6 @@ class CoreVMTests(test_suite.TestSuite):
       self._productMode = not self._ethereumMode
       self._resultFile = os.path.join(passedArgs.resultsDir,
                                      "coreVMTestResults.json")
-      self._supplementalResults = \
-                           util.json_helper.readJsonFile(SUPPLEMENTAL_RESULTS)
       self._unintentionallySkippedFile = \
                                          os.path.join(passedArgs.resultsDir,
                                          "unintentionallySkippedTests.json")
@@ -118,47 +117,53 @@ class CoreVMTests(test_suite.TestSuite):
 
       return self._resultFile
 
+   def _writeUnintentionallySkippedTest(self, testName, info):
+      tempFile = self._unintentionallySkippedFile + "_temp"
+      realFile = self._unintentionallySkippedFile
+      self._unintentionallySkippedTests[testName] = info
+
+      with open(tempFile, "w") as f:
+         f.write(json.dumps(self._unintentionallySkippedTests,
+                            sort_keys=True, indent=4))
+
+      os.rename(tempFile, realFile)
+
    def _writeResult(self, testName, result, info):
       '''
       We're going to write the full result or skipped test set to json for each
       test so that we have a valid result structure even if things die partway
       through.
       '''
-      tempFile = None
-      writeMe = None
+      tempFile = self._resultFile + "_temp"
+      realFile = self._resultFile
 
-      if result == None:
-         # TODO: I'm starting to think we should write unintentionally
-         #       skipped tests to the main results, too.
-         log.debug("Skipping test '{}': '{}'".format(testName, info))
-         tempFile = self._unintentionallySkippedFile + "_temp"
-         realFile = self._unintentionallySkippedFile
-         self._unintentionallySkippedTests[testName] = info
-         writeMe = self._unintentionallySkippedTests
+      if result:
+         result = "PASS"
+      elif result == False:
+         result = "FAIL"
       else:
-         tempFile = self._resultFile + "_temp"
-         realFile = self._resultFile
-         result = "PASS" if result else "FAIL"
-         log.info(result)
+         result = "SKIPPED"
 
-         # Never change the suite's result once it's set to fail.
-         print("suite result before:", self._results["CoreVMTests"]["result"])
-         print("test result:", result)
+      log.info(result)
 
-         if (not self._results["CoreVMTests"]["result"] == "FAIL") and \
-            (not self._results["CoreVMTests"]["result"] == result):
+      if result == "SKIPPED":
+         log.debug("Unintentionally skipped test '{}': '{}'".format(testName,
+                                                                    info))
+         self._writeUnintentionallySkippedTest(testName, info)
+
+      # Never change the suite's result due to skips or if it has already
+      # been set to "FAIL".
+      if not result == "SKIPPED" and \
+         not self._results["CoreVMTests"]["result"] == "FAIL":
             self._results["CoreVMTests"]["result"] = result
 
-         print("suite result after:", self._results["CoreVMTests"]["result"])
-
-         self._results["CoreVMTests"]["tests"][testName] = {
-            "result": result,
-            "info": info
-         }
-         writeMe = self._results
+      self._results["CoreVMTests"]["tests"][testName] = {
+         "result": result,
+         "info": info
+      }
 
       with open(tempFile, "w") as f:
-         f.write(json.dumps(writeMe, sort_keys=True, indent=4))
+         f.write(json.dumps(self._results, sort_keys=True, indent=4))
 
       os.rename(tempFile, realFile)
 
@@ -197,7 +202,10 @@ class CoreVMTests(test_suite.TestSuite):
          "vmBitwiseLogicOperation",
          "vmRandomTest",
          "vmPushDupSwapTest",
-         "vmSha3Test"
+         "vmSha3Test",
+         "vmBlockInfoTest",
+         "vmEnvironmentalInfo",
+         "vmIOandFlowOperations"
       ]
       tests = []
 
@@ -207,70 +215,6 @@ class CoreVMTests(test_suite.TestSuite):
 
       self._removeSkippedTests(tests)
       return tests
-      ############################################################
-      # Special tests
-      # The following are skipped or fail for various reasons
-      # and are work in progress.
-      ############################################################
-      # For this, verify that 0xbadf000d is not stored in 0x11.
-      # return [
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_Overflow_dj42Filler.json"
-      # ]
-      #
-      # These tests do not specify what to look for and I am unsure what to look
-      # for after reading the code:
-      # return [
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/mulUnderFlow.json"
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/stop.json",
-      # ]
-      #
-      # These tests require data to be passed in.
-      # Tried a bunch of stuff...haven't figured out how to get CALLDATALOAD to work with these bytecode things.  Is it because these aren't full contracts?
-      # return [
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/expXY_success.json"
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/expXY.json"
-      # ]
-      #
-      # These tests do not specify what to look for, but after reading the code,
-      # I think they should store 0 at 0x0.
-      # return [
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_BigByte_0.json",
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/divByNonZero1.json"
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_00.json"
-      # ]
-      #
-      # These tests end with MSTORE instead of SSTORE, so we have to get their
-      # value via execution.
-      # I am not sure why, but calling eth_call() results in nothing, while
-      # calling eth_getCode evaluates the code and returns the result. However,
-      # eth_getCode is supposed to return the code, not the value.  Maybe this is
-      # because it is written in asm?
-      # return [
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/fibbonacci_unrolled.json",
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/arith1.json",
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/not1.json",
-      # ]
-
-
-      #########################################################################
-      # Special tests after this comment are done/working.
-      #########################################################################
-      # These have no "expect" section in the source test file, but they do have
-      # a "post"["storage"] section in the compiled test file with specific data
-      # about what to look for.  Have the test suite look for that if the expect
-      # is missing.
-      # return [
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/mulmod1_overflow2.json",
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/addmod1_overflow3.json",
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/addmod1_overflow4.json",
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/addmod1_overflowDiff.json",
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/addmodDivByZero3.json",
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/modByZero.json",
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/mulmoddivByZero3.json",
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/sdivByZero2.json",
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/smod6.json",
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/smod8_byZero.json"
-      # ]
 
    def _loadCompiledTest(self, test):
       '''
@@ -303,9 +247,9 @@ class CoreVMTests(test_suite.TestSuite):
       the product or Ethereum.
       '''
       if self._ethereumMode:
-         return self._userConfig["ethereum"]["users"][0]["hash"]
+         return self._userConfig["ethereum"]["users"][0]
       else:
-         return self._userConfig["product"]["users"][0]["hash"]
+         return self._userConfig["product"]["users"][0]
 
    def _runRpcTest(self, testPath, testSource, testCompiled, testLogDir):
       ''' Runs one test. '''
@@ -319,37 +263,40 @@ class CoreVMTests(test_suite.TestSuite):
       # user set up their Ethereum instance.
       # Note that VMware will not use gas.
       gas = "0x47e7c4" if self._ethereumMode else None
-
-      caller = self._getAUser()
-      expectedStorage = self._getExpectedStorageResults(testPath,
-                                                        testSource,
+      user = self._getAUser()
+      expectedStorage = self._getExpectedStorageResults(testSource,
                                                         testCompiled)
+      rpc = RPC(testLogDir,
+                testName,
+                self._apiServerUrl)
 
-      if not expectedStorage:
-        info = "Could not find expected storage results."
-      else:
-         log.info("Starting test '{}'".format(testName))
+      # Don't know if we'll have a personal_* interface in the product, but
+      # we can at least handle Ethereum for now.
+      if self._ethereumMode and not self._userUnlocked:
+         log.debug("Unlocking account '{}'".format(user["hash"]))
+         rpc.unlockAccount(user["hash"], user["password"])
+         self._userUnlocked = True
 
-         rpc = RPC(testLogDir,
-                   testName,
-                   self._apiServerUrl)
-         txHash = rpc.sendTransaction(caller, data, gas)
+      log.info("Starting test '{}'".format(testName))
+      txHash = rpc.sendTransaction(user["hash"], data, gas)
 
-         if txHash:
-            contractAddress = rpc.getContractAddrFromTxHash(txHash,
-                                                            self._ethereumMode)
-            if contractAddress:
-               success, info = self._checkResult(rpc,
-                                                 contractAddress,
-                                                 expectedStorage)
-            else:
-               info = "Never received contract address."
+      if txHash:
+         txReceipt = rpc.getTransactionReceipt(txHash,
+                                               self._ethereumMode)
+         if txReceipt:
+            expectTxSuccess = self._getExpectTxSuccess(testCompiled)
+            success, info = self._checkResult(rpc,
+                                              txReceipt,
+                                              expectedStorage,
+                                              expectTxSuccess)
          else:
-            info = "Did not receive a transaction hash."
+            info = "Did not receive a transaction receipt."
+      else:
+         info = "Did not receive a transaction hash."
 
       return (success, info)
 
-   def _getExpectedStorageResults(self, testPath, testSource, testCompiled):
+   def _getExpectedStorageResults(self, testSource, testCompiled):
       '''
       The ideal expected result is in the source file, since that is more
       detailed.  With some tests, there is only an expected result in the
@@ -361,30 +308,37 @@ class CoreVMTests(test_suite.TestSuite):
                         "0x01" : "0x80",
                         "0x02" : "0x0200"
                      }
+      If there is a storage section, but it has no data, just fill it with 0.
+      Test cases I've looked at in this situation create 0 at block 0.
+      If there is no storage section at all, returns None.
       '''
       storage = self._getStorageSection(testSource)
-      if storage and self._containsStorageData(storage):
-         return storage
+      if storage == None:
+         storage = self._getStorageSection(testCompiled)
 
-      storage = self._getStorageSection(testCompiled)
-      if storage and self._containsStorageData(storage):
-         return storage
+      if storage != None and not self._containsStorageData(storage):
+         for i in range(10):
+            storage[hex(i)] = "0x0"
 
-      storage = self._getSupplementalStorageSection(testPath)
       return storage
 
-   def _getSupplementalStorageSection(self, testPath):
+   def _getExpectTxSuccess(self, testCompiled):
       '''
-      Given the full path of the test, look for a match in the supplemental
-      results.  We do this because some test cases do not define the expected
-      result.
-      '''
-      subPath = testPath.replace(self._userConfig["ethereum"]["testRoot"] + "/",
-                                 "")
-      if subPath in list(self._supplementalResults.keys()):
-         return self._supplementalResults[subPath]
+      Per http://ethereum-tests.readthedocs.io/en/latest/test_types/vm_tests.html
 
-      return None
+         It is generally expected that the test implementer will
+         read env, exec and pre then check their results against
+         gas, logs, out, post and callcreates. If an exception is
+         expected, then latter sections are absent in the test.
+      '''
+      testName = list(testCompiled.keys())[0]
+      keys = list(testCompiled[testName].keys())
+
+      for indicator in ["gas", "logs", "out", "post", "callcreates"]:
+         if indicator in keys:
+            return True
+
+      return False
 
    def _containsStorageData(self, storage):
       '''
@@ -438,7 +392,7 @@ class CoreVMTests(test_suite.TestSuite):
 
       return storageSection
 
-   def _checkResult(self, rpc, contractAddress, expectedStorage):
+   def _checkResult(self, rpc, txReceipt, expectedStorage, expectTxSuccess):
       '''
       Loops through the expected storage structure in the test case, comparing
       those values to the actual stored values in the block.
@@ -448,25 +402,80 @@ class CoreVMTests(test_suite.TestSuite):
       '''
       success = None
       info = None
+      txStatusCorrect, info = self._checkTxStatus(rpc, txReceipt, expectTxSuccess)
 
-      for storageLoc in expectedStorage:
-         actualRawValue = rpc.getStorageAt(contractAddress, storageLoc)
-         actualValue = int(actualRawValue, 16)
-         expectedRawValue = expectedStorage[storageLoc]
-         expectedValue = int(expectedRawValue, 16)
-         log.debug("Expected raw value: '{}', actual raw value: '{}'". \
-                   format(expectedRawValue, actualRawValue))
-         log.debug("Expected value: '{}', actual value: '{}'". \
-                   format(expectedValue, actualValue))
-         if expectedValue == actualValue:
+      if txStatusCorrect:
+         if not expectTxSuccess:
+            # Failed as expected.
+            success = True
+         else:
+            if expectedStorage:
+               keys = sorted(expectedStorage)
+               contractAddress = txReceipt["contractAddress"]
+
+               for storageLoc in keys:
+                  actualRawValue = rpc.getStorageAt(contractAddress, storageLoc)
+                  log.debug("actualRawValue: '{}'".format(actualRawValue))
+                  actualValue = int(actualRawValue, 16)
+                  log.debug("actualValue: '{}'".format(actualValue))
+                  expectedRawValue = expectedStorage[storageLoc]
+                  log.debug("expectedRawValue: '{}'".format(expectedRawValue))
+                  expectedValue = int(expectedRawValue, 16)
+                  log.debug("expectedValue: '{}'".format(expectedValue))
+
+                  if expectedValue == actualValue:
+                     success = True
+                  else:
+                     success = False
+                     log.debug("Expected storage:")
+                     for storageLoc in keys:
+                       log.debug("   {}: {}".format(storageLoc, expectedStorage[storageLoc]))
+
+                     info = "Expected value does not match actual value:\n"
+                     info += "Expected raw value: '{}', actual raw value: '{}'\n". \
+                             format(expectedRawValue, actualRawValue)
+                     info += "Expected value: '{}', actual value: '{}'". \
+                             format(expectedValue, actualValue)
+                     log.info(info)
+                     break
+            else:
+               # The test may be checking gas, logs, out, or callcreates,
+               # which we're not checking (yet). This test should be added to the
+               # skip list so it is not run in the future.
+               success = None
+               info = "No expected storage found, and the test was expected " \
+                      "to be successful. Test needs verification by some " \
+                      "other method. Test will be marked skipped."
+      else:
+         # None or False.
+         success = txStatusCorrect
+
+      return success, info
+
+   def _checkTxStatus(self, rpc, txReceipt, expectTxSuccess):
+      '''
+      Returns a tuple of whether the transaction's status is what is expected,
+      and a message if it is not as expected.
+      The tx status is 0 (failure) or 1 (success) per API doc:
+      https://github.com/ethereum/wiki/wiki/JSON-RPC#returns-31
+      If the tx status is unrecognized, the first item in the tuple is None,
+      which tells the framework to skip evaluating the result.
+      '''
+      txStatus = rpc.getTransactionReceiptStatus(txReceipt)
+      success = None
+      info = None
+
+      if not txStatus in ["0x0", "0x1"]:
+         # Unexpected. We cannot evaluate this test's results.
+         success = None
+         info = "Unrecognized transaction status: '{}'".format(txStatus)
+      else:
+         if (expectTxSuccess and txStatus == "0x1") or \
+            (not expectTxSuccess and txStatus == "0x0"):
             success = True
          else:
             success = False
-            info = "Expected '{}', received '{}'.". \
-                   format(expectedValue, actualValue)
-            break
-
-      if success == None:
-         info = "No expected storage results were found."
+            info = "Expected Tx success: '{}', but transaction status was: " \
+                   "'{}'".format(expectTxSuccess, txStatus)
 
       return success, info

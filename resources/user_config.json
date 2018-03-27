@@ -88,12 +88,8 @@
       "url": "http://localhost:8545",
       "users": [
          {
-            "hash": "0x90a07bfac12eb8f8b60cdf9c79956f97e7b8f0bd",
+            "hash": "0x2407cbf3b57e480df66c91650535319ef8bf74c8",
             "password": "11111"
-         },
-         {
-            "hash": "0x4291294e5ddd2f50ac9c575e3cf1455b060fd404",
-            "password": "22222"
          }
       ]
    }
