@@ -1,6 +1,8 @@
 // Copyright 2018 VMware, all rights reserved
 //
 
+#pragma once
+
 #include <iostream>
 #include <fstream>
 #include <csignal>
