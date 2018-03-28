@@ -15,27 +15,27 @@
 namespace com {
    namespace vmware {
       namespace athena {
-				class connection_manager;
+         class connection_manager;
         class api_connection
             : public boost::enable_shared_from_this<api_connection>
         {
-				 #define _BUFFER_LENGTH_ 65536
+            #define _BUFFER_LENGTH_ 65536
          public:
 
             typedef boost::shared_ptr<api_connection> pointer;
 
             static pointer
             create(boost::asio::io_service &io_service,
-									 connection_manager &connManager);
+                  connection_manager &connManager);
 
             boost::asio::ip::tcp::socket&
             socket();
 
-        		void
-						start_async();
+            void
+            start_async();
 
-						void
-						close();
+            void
+            close();
          private:
 
             void
@@ -55,23 +55,22 @@ namespace com {
             handle_test_request();
 
             api_connection(boost::asio::io_service &io_service,
-													 connection_manager &connManager);
+                           connection_manager &connManager);
 
-						void
-						read_async();
+            void
+            read_async();
 
-						void
-						on_read_async_completed(
-							 	const boost::system::error_code &ec,
-						  	const size_t bytes);
+            void
+            on_read_async_completed(const boost::system::error_code &ec,
+                                    const size_t bytes);
 
-						void
-						on_write_completed(const boost::system::error_code &ec);
+            void
+            on_write_completed(const boost::system::error_code &ec);
 
-						void
-						process_incoming();
+            void
+            process_incoming();
 
-						/* Socket being handled. */
+            /* Socket being handled. */
             boost::asio::ip::tcp::socket socket_;
 
             /* Most recent request read. Currently only one request is read
@@ -86,17 +85,17 @@ namespace com {
             /* Logger. */
             log4cplus::Logger logger_;
 
-						connection_manager &connManager_;
+            connection_manager &connManager_;
 
-						boost::asio::ip::tcp::endpoint remotePeer_;
+            boost::asio::ip::tcp::endpoint remotePeer_;
 
-						/* need to be adjusted to real msg max size */
-						const int BUFFER_LENGTH = _BUFFER_LENGTH_;
+            /* need to be adjusted to real msg max size */
+            const int BUFFER_LENGTH = _BUFFER_LENGTH_;
 
-						/* buffer for messages */
-						char msgBuffer_ [_BUFFER_LENGTH_];
+            /* buffer for messages */
+            char msgBuffer_ [_BUFFER_LENGTH_];
 
-						const uint8_t MSG_LENGTH_BYTES = 2;
+            const uint8_t MSG_LENGTH_BYTES = 2;
          };
       }
    }

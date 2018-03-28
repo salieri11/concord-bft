@@ -18,7 +18,7 @@ namespace com {
          public:
 
             api_acceptor(boost::asio::io_service &io_service,
-                         boost::asio::ip::tcp::endpoint endpoint);
+                        boost::asio::ip::tcp::endpoint endpoint);
 
          private:
 
@@ -27,13 +27,12 @@ namespace com {
 
             void
             handle_accept(api_connection::pointer new_connection,
-                          const boost::system::error_code &error);
+                           const boost::system::error_code &error);
 
             boost::asio::ip::tcp::acceptor acceptor_;
 
             log4cplus::Logger logger_;
-
-						connection_manager connManager_;
+               connection_manager connManager_;
          };
       }
    }

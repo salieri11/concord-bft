@@ -29,9 +29,9 @@ api_acceptor::start_accept()
 
   acceptor_.async_accept(new_connection->socket(),
                           boost::bind(&api_acceptor::handle_accept,
-                                      this,
-                                      new_connection,
-                                      boost::asio::placeholders::error));
+                                       this,
+                                       new_connection,
+                                       boost::asio::placeholders::error));
   LOG4CPLUS_DEBUG(logger_, "start_accept exit");
 }
 
@@ -40,11 +40,10 @@ api_acceptor::handle_accept(api_connection::pointer new_connection,
                             const error_code &error)
 {
    LOG4CPLUS_DEBUG(logger_, "handle_accept enter");
-
    if (!error)
       connManager_.start_connection(new_connection);
- 	 else
-	 	LOG4CPLUS_ERROR(logger_, error.message());
+   else
+      LOG4CPLUS_ERROR(logger_, error.message());
 
    LOG4CPLUS_DEBUG(logger_, "handle_accept before start_accept");
    start_accept();
