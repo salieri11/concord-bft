@@ -3,91 +3,222 @@
 // Athena Ethereum VM management.
 
 #include <iostream>
-#include <iomanip>
 #include <cstring>
 #include <stdexcept>
 #include <log4cplus/loggingmacros.h>
+#include <keccak.h>
 
 #include "athena_evm.hpp"
-#include "hera.h"
+#include "athena_log.hpp"
 
-using namespace com::vmware::athena::evm;
+#ifdef USE_HERA
+#include "hera.h"
+#else
+#include "evmjit.h"
+#endif
+
+using namespace com::vmware::athena;
 using log4cplus::Logger;
 
-// TODO: We may want "release" versions of these macros that print fewer bytes.
-
-/** Hex-format the bytes of an evm_address for Log4Cplus. */
-#define LOG4CPLUS_HEXADDR(addr) "0x" << std::hex << std::setw(2) <<            \
-   addr->bytes[0] << addr->bytes[1] << addr->bytes[2] << addr->bytes[3] <<     \
-   addr->bytes[4] << addr->bytes[5] << addr->bytes[6] << addr->bytes[7] <<     \
-   addr->bytes[8] << addr->bytes[9] << addr->bytes[10] << addr->bytes[11] <<   \
-   addr->bytes[12] << addr->bytes[13] << addr->bytes[14] << addr->bytes[15] << \
-   addr->bytes[16] << addr->bytes[17] << addr->bytes[18] << addr->bytes[19] << \
-   std::dec
-
-/** Hex-format the bytes of an evm_uint256be for Log4Cplus. */
-#define LOG4CPLUS_HEXVAL(val) "0x" << std::hex << std::setw(2) <<          \
-   val->bytes[0] << val->bytes[1] << val->bytes[2] << val->bytes[3] <<     \
-   val->bytes[4] << val->bytes[5] << val->bytes[6] << val->bytes[7] <<     \
-   val->bytes[8] << val->bytes[9] << val->bytes[10] << val->bytes[11] <<   \
-   val->bytes[12] << val->bytes[13] << val->bytes[14] << val->bytes[15] << \
-   val->bytes[16] << val->bytes[17] << val->bytes[18] << val->bytes[19] << \
-   val->bytes[24] << val->bytes[25] << val->bytes[26] << val->bytes[27] << \
-   val->bytes[28] << val->bytes[29] << val->bytes[30] << val->bytes[31] << \
-   std::dec
-
 /**
- * Initialize the athena/hera context and start the hera instance.
- *
- * TODO: Make this thread-safe. For now, call this once in main only.
+ * Initialize the athena/evm context and start the evm instance.
  */
-void com::vmware::athena::evm::init_evm()
+com::vmware::athena::EVM::EVM()
+   : logger(Logger::getInstance("com.vmware.athena.evm"))
 {
-   Logger logger = Logger::getInstance("com.vmware.athena.evm");
+   // wrap an evm context in an athena context
+   athctx = {{&athena_fn_table}, this};
 
-   // No, these are not good enough. Just getting some sanity set up for first
-   // attempts.
-   assert(hera == NULL);
-   assert(athctx == NULL);
+#ifdef USE_HERA
+   evminst = hera_create();
+#else
+   evminst = evmjit_create();
+#endif
 
-   hera = hera_create();
-   if (hera == NULL) {
-      LOG4CPLUS_FATAL(logger, "Could not create Hera instance");
-      throw EVMException("Could not create Hera instance");
+   if (!evminst) {
+      LOG4CPLUS_FATAL(logger, "Could not create EVM instance");
+      throw EVMException("Could not create EVM instance");
    }
-
-   athctx = (athena_context*)malloc(sizeof(athena_context));
-   if (athctx == NULL) {
-      LOG4CPLUS_FATAL(logger, "Could not allocate Athena Hera context");
-      hera->destroy(hera);
-      throw EVMException("Could not allocate Athena Hera context");
-   }
-
-   athctx->evmctx = athena_evm_context;
-   //TODO: there will be other things to init here (logger, storage, etc.)
-
-   LOG4CPLUS_INFO(logger, "Hera VM started");
+   LOG4CPLUS_INFO(logger, "EVM started");
 }
 
 /**
- * Shutdown the hera instance and destroy the athena context.
- *
- * TODO: Make this thread-safe. For now, call this from one thread only.
+ * Shutdown the EVM instance and destroy the athena context.
  */
-void com::vmware::athena::evm::stop_evm() {
-   Logger logger = Logger::getInstance("com.vmware.athena.evm");
-
-   if (hera != NULL) {
-      hera->destroy(hera);
-   }
-
-   // TODO: there will be other things to shutdown here (storage, etc.)
-   if (athctx != NULL) {
-      free(athctx);
-   }
-
-   LOG4CPLUS_INFO(logger, "Hera VM stopped");
+com::vmware::athena::EVM::~EVM() {
+   evminst->destroy(evminst);
+   LOG4CPLUS_INFO(logger, "EVM stopped");
 }
+
+/**
+ * Call a contract, or just transfer value if the destination is not a
+ * contract.
+ */
+void com::vmware::athena::EVM::call(evm_message &message,
+                                    evm_result &result /* out */)
+{
+   assert(message.kind != EVM_CREATE);
+
+   std::vector<uint8_t> code;
+   std::vector<uint8_t> hash;
+   if (get_code(&message.destination, code, hash)) {
+      LOG4CPLUS_DEBUG(logger, "Loaded code from " <<
+                      HexPrintAddress{&message.destination});
+      memcpy(&message.code_hash.bytes, &hash[0], sizeof(evm_uint256be));
+      execute(message, code, result);
+   } else if (message.input_size == 0) {
+      LOG4CPLUS_DEBUG(logger, "No code found at " <<
+                      HexPrintAddress{&message.destination} <<
+                      ", TODO: transfer value");
+      // TODO: this is just a balance transfer
+   } else {
+      LOG4CPLUS_DEBUG(logger, "Input data, but no code at " <<
+                      HexPrintAddress{&message.destination} <<
+                      ", returning error code.");
+      // attempted to call a contract that doesn't exist
+      result.status_code = EVM_FAILURE;
+   }
+}
+
+/**
+ * Create a contract.
+ */
+void com::vmware::athena::EVM::create(evm_message &message,
+                                      evm_result &result /* out */)
+{
+   assert(message.kind == EVM_CREATE);
+   assert(message.input_size > 0);
+
+   std::vector<uint8_t> contract_address;
+   contract_destination(message, contract_address);
+
+   std::vector<uint8_t> code;
+   std::vector<uint8_t> hash;
+   if (!get_code(contract_address, code, hash)) {
+      LOG4CPLUS_DEBUG(logger, "Creating contract at " <<
+                      HexPrintVector{contract_address});
+
+      std::vector<uint8_t> create_code =
+         std::vector<uint8_t>(message.input_data,
+                              message.input_data+message.input_size);
+      memcpy(message.destination.bytes, &contract_address[0],
+             sizeof(evm_address));
+      execute(message, create_code, result);
+
+      if (result.status_code == EVM_SUCCESS) {
+         LOG4CPLUS_DEBUG(logger, "Contract created at " <<
+                         HexPrintVector{contract_address} <<
+                         " with " << result.output_size << "bytes of code.");
+
+         code = std::vector<uint8_t>(result.output_data,
+                                     result.output_data+result.output_size);
+         keccak_hash(code, hash);
+
+         contract_code[contract_address] =
+            std::pair<std::vector<uint8_t>, std::vector<uint8_t>>(code, hash);
+         memcpy(result.create_address.bytes, &contract_address[0],
+                sizeof(evm_address));
+      }
+   } else {
+      LOG4CPLUS_DEBUG(logger, "Existing code found at " <<
+                      HexPrintAddress{&message.destination} <<
+                      ", returning error code.");
+      // attempted to call a contract that doesn't exist
+      result.status_code = EVM_FAILURE;
+   }
+}
+
+/**
+ * Contract destination is the low 20 bytes of the SHA3 hash of the RLP encoding
+ * of [sender_address, sender_nonce].
+ */
+void com::vmware::athena::EVM::contract_destination(
+   evm_message &message, std::vector<uint8_t> &address /* out */)
+{
+   //TODO: write RLP encoding function
+   // https://github.com/ethereum/wiki/wiki/RLP
+
+   // allocate min space needed:
+   //    1 bytes of nonce (no prefix needed if small enough)
+   //  +20 bytes of address
+   //  + 1 byte of address prefix
+   //  + 1 byte of list prefix
+   //  = address length + 3
+   std::vector<uint8_t> rlp;
+//      std::vector<uint8_t>(sizeof(evm_address)+3);
+
+   // Build RLP encoding backward, then reverse before returning.
+   // backward = nonce first, low bits first
+   size_t nonce_bytes = 0;
+   std::vector<uint8_t>addr_v = std::vector<uint8_t>(
+      message.sender.bytes, message.sender.bytes+sizeof(evm_address));
+   uint64_t nonce = get_nonce(addr_v);
+   if (nonce < 0x80) {
+      ++nonce_bytes;
+      // very small numbers are represented by themselves
+      rlp.push_back(nonce);
+   } else {
+      do {
+         ++nonce_bytes;
+         rlp.push_back(nonce & 0xff);
+         nonce >>= 8;
+      } while(nonce > 0);
+      // prefix (0x80 = short string)
+      rlp.push_back(0x80 + nonce_bytes);
+      // for reference at list prefix
+      ++nonce_bytes;
+   }
+
+   // now the address
+   for (int i = sizeof(evm_address)-1; i >= 0; i--) {
+      rlp.push_back(message.sender.bytes[i]);
+   }
+   // prefix (max 55 bytes for this particular encoding)
+   assert(sizeof(evm_address) < 56);
+   rlp.push_back(0x80 + sizeof(evm_address));
+
+   // now the list prefix (0xc0 = short list)
+   assert(sizeof(evm_address)+1+nonce_bytes < 56);
+   rlp.push_back(0xc0 + sizeof(evm_address)+1+nonce_bytes);
+
+   // get the RLP in the correct order
+   std::reverse(rlp.begin(), rlp.end());
+
+   // hash it
+   std::vector<uint8_t> hash;
+   keccak_hash(rlp, hash);
+
+   // the lower 20 bytes are the address
+   address.resize(sizeof(evm_address));
+   address.assign(hash.begin()+(hash.size()-sizeof(evm_address)), hash.end());
+}
+
+void com::vmware::athena::EVM::keccak_hash(
+   std::vector<uint8_t> &data, std::vector<uint8_t> &hash /* out */)
+{
+   CryptoPP::Keccak_256 keccak;
+   int digestSize = keccak.DigestSize();
+   hash.resize(digestSize);
+   keccak.CalculateDigest(&hash[0], &data[0], data.size());
+}
+
+uint64_t com::vmware::athena::EVM::get_nonce(std::vector<uint8_t> &address) {
+   uint64_t nonce = 1;
+   if (nonces.count(address) > 0) {
+      nonce = nonces[address];
+   }
+   nonces[address] = nonce+1;
+   return nonce;
+}
+
+void com::vmware::athena::EVM::execute(evm_message &message,
+                                            const std::vector<uint8_t> &code,
+                                            evm_result &result)
+{
+   result = evminst->execute(evminst, &athctx.evmctx, EVM_BYZANTIUM,
+                             &message, &code[0], code.size());
+}
+
 
 /**
  * Does the account at the address exists?
@@ -96,15 +227,11 @@ void com::vmware::athena::evm::stop_evm() {
  *
  * Returns 1 if the account exists, 0 otherwise.
  */
-int com::vmware::athena::evm::ath_account_exists(
-   struct evm_context* evmctx,
+int com::vmware::athena::EVM::account_exists(
    const struct evm_address* address)
 {
-   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
-   Logger logger = Logger::getInstance("com.vmware.athena.evm");
-
-   LOG4CPLUS_INFO(logger, "ath_account_exists called, address: " <<
-                  LOG4CPLUS_HEXADDR(address));
+   LOG4CPLUS_INFO(logger, "EVM::account_exists called, address: " <<
+                  HexPrintAddress{address});
 
    return 1; // all accounts exist for now
 };
@@ -114,38 +241,31 @@ int com::vmware::athena::evm::ath_account_exists(
  *
  * TODO: what does "not found" look like?
  */
-void com::vmware::athena::evm::ath_get_storage(
+void com::vmware::athena::EVM::get_storage(
    struct evm_uint256be* result,
-   struct evm_context* evmctx,
    const struct evm_address* address,
    const struct evm_uint256be* key)
 {
-   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
-   Logger logger = Logger::getInstance("com.vmware.athena.evm");
-
-   LOG4CPLUS_INFO(logger, "ath_get_storage called, address: " <<
-                  LOG4CPLUS_HEXADDR(address) << " key: " <<
-                  LOG4CPLUS_HEXVAL(address));
+   LOG4CPLUS_INFO(logger, "EVM::get_storage called, address: " <<
+                  HexPrintAddress{address} << " key: " <<
+                  HexPrintUint256Be{key});
 
    // TODO: actually look up value, for now just fill with zero
-   memset(result, 0, sizeof(*result));
+   memset(result, 0, 32);
 }
 
 /**
  * Set the value stored at the given key
  */
-void com::vmware::athena::evm::ath_set_storage(
-   struct evm_context* evmctx,
+void com::vmware::athena::EVM::set_storage(
    const struct evm_address* address,
    const struct evm_uint256be* key,
    const struct evm_uint256be* value)
 {
-   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
-   Logger logger = Logger::getInstance("com.vmware.athena.evm");
-
-   LOG4CPLUS_INFO(logger, "ath_set_storage called, address: " <<
-                  LOG4CPLUS_HEXADDR(address) << " key: " <<
-                  LOG4CPLUS_HEXVAL(key));
+   LOG4CPLUS_INFO(logger, "EVM::set_storage called, address: " <<
+                  HexPrintAddress{address} << " key: " <<
+                  HexPrintUint256Be{key} << " value: " <<
+                  HexPrintUint256Be{value});
 
    // TODO: actually set value
 }
@@ -153,16 +273,12 @@ void com::vmware::athena::evm::ath_set_storage(
 /**
  * Get the gas balance for a given account.
  */
-void com::vmware::athena::evm::ath_get_balance(
+void com::vmware::athena::EVM::get_balance(
    struct evm_uint256be* result,
-   struct evm_context* evmctx,
    const struct evm_address* address)
 {
-   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
-   Logger logger = Logger::getInstance("com.vmware.athena.evm");
-
-   LOG4CPLUS_INFO(logger, "ath_get_balance called, address: " <<
-                  LOG4CPLUS_HEXADDR(address));
+   LOG4CPLUS_INFO(logger, "EVM::get_balance called, address: " <<
+                  HexPrintAddress{address});
 
    // TODO: actually look up value, for now just fill with one (to give accounts
    // plenty of gas to maneuver).
@@ -174,35 +290,46 @@ void com::vmware::athena::evm::ath_get_balance(
  *
  * Returns the size in bytes of the code.
  */
-size_t com::vmware::athena::evm::ath_get_code(
-   const uint8_t** result_code,
-   struct evm_context* evmctx,
-   const struct evm_address* address)
+bool com::vmware::athena::EVM::get_code(
+   const struct evm_address *address,
+   std::vector<uint8_t> &code /* out */,
+   std::vector<uint8_t> &hash /* out */)
 {
-   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
-   Logger logger = Logger::getInstance("com.vmware.athena.evm");
-
    LOG4CPLUS_INFO(logger, "ath_get_code called, address: " <<
-                  LOG4CPLUS_HEXADDR(address));
+                  HexPrintAddress{address});
 
-   // TODO: Actually lookup code. For now, say "there is no code" (length = 0).
-   return 0;
+   std::vector<uint8_t> addr_v =
+      std::vector<uint8_t>(address->bytes, address->bytes+sizeof(evm_address));
+   return get_code(addr_v, code, hash);
+}
+
+bool com::vmware::athena::EVM::get_code(
+   const std::vector<uint8_t> &address,
+   std::vector<uint8_t> &code /* out */,
+   std::vector<uint8_t> &hash /* out */)
+{
+   // no log here, because this is the internal version
+   auto iter = contract_code.find(address);
+   if (iter != contract_code.end()) {
+      // iter->second == map value
+      code = iter->second.first;
+      hash = iter->second.second;
+      return true;
+   }
+
+   return false;
 }
 
 /**
  * Cause a contract to self-destruct.
  */
-void com::vmware::athena::evm::ath_selfdestruct(
-   struct evm_context* evmctx,
+void com::vmware::athena::EVM::selfdestruct(
    const struct evm_address* address,
    const struct evm_address* beneficiary)
 {
-   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
-   Logger logger = Logger::getInstance("com.vmware.athena.evm");
-
    LOG4CPLUS_INFO(logger, "ath_selfdestruct called, address: " <<
-                  LOG4CPLUS_HEXADDR(address) << " beneficiary: " <<
-                  LOG4CPLUS_HEXADDR(beneficiary));
+                  HexPrintAddress{address} << " beneficiary: " <<
+                  HexPrintAddress{beneficiary});
 
    // TODO: Actually self-destruct contract.
 }
@@ -210,19 +337,15 @@ void com::vmware::athena::evm::ath_selfdestruct(
 /**
  * Log a message.
  */
-void com::vmware::athena::evm::ath_emit_log(
-   struct evm_context* evmctx,
+void com::vmware::athena::EVM::emit_log(
    const struct evm_address* address,
    const uint8_t* data,
    size_t data_size,
    const struct evm_uint256be topics[],
    size_t topics_count)
 {
-   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
-   Logger logger = Logger::getInstance("com.vmware.athena.evm");
-
-   LOG4CPLUS_INFO(logger, "ath_emit_log called, address: " <<
-                  LOG4CPLUS_HEXADDR(address));
+   LOG4CPLUS_INFO(logger, "EVM::emit_log called, address: " <<
+                  HexPrintAddress{address});
 
    // TODO: Actually log the message.
 }
@@ -230,15 +353,11 @@ void com::vmware::athena::evm::ath_emit_log(
 /**
  * Handle a call inside a contract.
  */
-void com::vmware::athena::evm::ath_call(
+void com::vmware::athena::EVM::call(
    struct evm_result* result,
-   struct evm_context* evmctx,
    const struct evm_message* msg)
 {
-   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
-   Logger logger = Logger::getInstance("com.vmware.athena.evm");
-
-   LOG4CPLUS_INFO(logger, "ath_call called");
+   LOG4CPLUS_INFO(logger, "EVM::call called");
 
    // TODO: Actually handle the call.
 }
@@ -246,15 +365,11 @@ void com::vmware::athena::evm::ath_call(
 /**
  * Get the hash for the block at the given index.
  */
-void com::vmware::athena::evm::ath_get_block_hash(
+void com::vmware::athena::EVM::get_block_hash(
    struct evm_uint256be* result,
-   struct evm_context* evmctx,
    int64_t number)
 {
-   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
-   Logger logger = Logger::getInstance("com.vmware.athena.evm");
-
-   LOG4CPLUS_INFO(logger, "ath_get_block_hash called, block: " << number);
+   LOG4CPLUS_INFO(logger, "EVM::get_block_hash called, block: " << number);
 
    // TODO: Actually look up the hash.
 }
@@ -262,15 +377,92 @@ void com::vmware::athena::evm::ath_get_block_hash(
 /**
  * Get the transaction context.
  */
-void com::vmware::athena::evm::ath_get_tx_context(
-   struct evm_tx_context* result,
-   struct evm_context* evmctx)
+void com::vmware::athena::EVM::get_tx_context(
+   struct evm_tx_context* result)
 {
-   athena_context *athctx = reinterpret_cast<athena_context*>(evmctx);
-   Logger logger = Logger::getInstance("com.vmware.athena.evm");
-
-   LOG4CPLUS_INFO(logger, "ath_get_tx_context called");
+   LOG4CPLUS_INFO(logger, "EVM::get_tx_context called");
 
    // TODO: Actually get the transaction context. For now, set to known value.
    memset(result, 0, sizeof(*result));
+}
+
+extern "C" {
+/**
+ * The next several ath_* functions are callbacks that the EVM uses to interact
+ * with our state-keeping layer.
+ */
+
+   EVM* ath_object(const struct evm_context* evmctx) {
+      return reinterpret_cast<const athena_context*>(evmctx)->ath_object;
+   }
+
+   int ath_account_exists(struct evm_context* evmctx,
+                          const struct evm_address* address) {
+      return ath_object(evmctx)->account_exists(address);
+   }
+   void ath_get_storage(struct evm_uint256be* result,
+                        struct evm_context* evmctx,
+                        const struct evm_address* address,
+                        const struct evm_uint256be* key) {
+      ath_object(evmctx)->get_storage(result, address, key);
+   }
+   void ath_set_storage(struct evm_context* evmctx,
+                        const struct evm_address* address,
+                        const struct evm_uint256be* key,
+                        const struct evm_uint256be* value) {
+      ath_object(evmctx)->set_storage(address, key, value);
+   }
+   void ath_get_balance(struct evm_uint256be* result,
+                        struct evm_context* evmctx,
+                        const struct evm_address* address) {
+      ath_object(evmctx)->get_balance(result, address);
+   }
+   size_t ath_get_code_size(struct evm_context* evmctx,
+                            const struct evm_address* address) {
+      return ath_get_code(nullptr, evmctx, address);
+   }
+   size_t ath_get_code(const uint8_t** result_code,
+                       struct evm_context* evmctx,
+                       const struct evm_address* address) {
+      std::vector<uint8_t> stored_code;
+      std::vector<uint8_t> hash;
+      if (ath_object(evmctx)->get_code(address, stored_code, hash)) {
+         if (result_code) {
+            *result_code = (uint8_t*)malloc(stored_code.size());
+            if (*result_code) {
+            memcpy(result_code, &stored_code[0], stored_code.size());
+            }
+         }
+         return stored_code.size();
+      }
+      return 0;
+   }
+   void ath_selfdestruct(struct evm_context* evmctx,
+                         const struct evm_address* address,
+                         const struct evm_address* beneficiary) {
+      ath_object(evmctx)->selfdestruct(address, beneficiary);
+   }
+   void ath_emit_log(struct evm_context* evmctx,
+                     const struct evm_address* address,
+                     const uint8_t* data,
+                     size_t data_size,
+                     const struct evm_uint256be topics[],
+                     size_t topics_count) {
+      ath_object(evmctx)->emit_log(address, data, data_size,
+                                   topics, topics_count);
+   }
+   void ath_call(struct evm_result* result,
+                 struct evm_context* evmctx,
+                 const struct evm_message* msg) {
+      ath_object(evmctx)->call(result, msg);
+   }
+   void ath_get_block_hash(struct evm_uint256be* result,
+                           struct evm_context* evmctx,
+                           int64_t number) {
+      ath_object(evmctx)->get_block_hash(result, number);
+   }
+   void ath_get_tx_context(struct evm_tx_context* result,
+                           struct evm_context* evmctx) {
+      ath_object(evmctx)->get_tx_context(result);
+   }
 }

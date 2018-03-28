@@ -11,12 +11,14 @@
 #include <log4cplus/loggingmacros.h>
 
 #include "athena.pb.h"
+#include "athena_evm.hpp"
 
 namespace com {
    namespace vmware {
       namespace athena {
-         class connection_manager;
-        class api_connection
+            class connection_manager;
+
+            class api_connection
             : public boost::enable_shared_from_this<api_connection>
         {
             #define _BUFFER_LENGTH_ 65536
@@ -26,7 +28,8 @@ namespace com {
 
             static pointer
             create(boost::asio::io_service &io_service,
-                  connection_manager &connManager);
+                   connection_manager &connManager,
+                   com::vmware::athena::EVM &athevm);
 
             boost::asio::ip::tcp::socket&
             socket();
@@ -54,8 +57,14 @@ namespace com {
             void
             handle_test_request();
 
+            /* Specific Ethereum Method handlers. */
+            void
+            handle_eth_sendTransaction(const EthRequest &request);
+
+            /* Constructor. */
             api_connection(boost::asio::io_service &io_service,
-                           connection_manager &connManager);
+                           connection_manager &connManager,
+                           com::vmware::athena::EVM &athevm);
 
             void
             read_async();
@@ -73,17 +82,23 @@ namespace com {
             /* Socket being handled. */
             boost::asio::ip::tcp::socket socket_;
 
-            /* Most recent request read. Currently only one request is read
-               at a time, so this is also the request currently being
-               processed. */
+            /*
+             * Most recent request read. Currently only one request is read at a time, so
+             * this is also the request currently being processed.
+             */
             com::vmware::athena::AthenaRequest athenaRequest_;
 
-            /* Response being built. See above: only one request is read at
-               a time, so only one response is built at a time. */
+            /*
+             * Response being built. See above: only one request is read at a time, so
+             * only one response is built at a time.
+             */
             com::vmware::athena::AthenaResponse athenaResponse_;
 
             /* Logger. */
             log4cplus::Logger logger_;
+
+            /* The VM to execute transactions in. */
+            com::vmware::athena::EVM &athevm_;
 
             connection_manager &connManager_;
 

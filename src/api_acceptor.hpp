@@ -18,9 +18,11 @@ namespace com {
          public:
 
             api_acceptor(boost::asio::io_service &io_service,
-                        boost::asio::ip::tcp::endpoint endpoint);
+                         boost::asio::ip::tcp::endpoint endpoint,
+                         EVM &athevm);
 
          private:
+            EVM &athevm_;
 
             void
             start_accept();
@@ -32,7 +34,8 @@ namespace com {
             boost::asio::ip::tcp::acceptor acceptor_;
 
             log4cplus::Logger logger_;
-               connection_manager connManager_;
+
+            connection_manager connManager_;
          };
       }
    }

@@ -11,14 +11,12 @@ namespace com {
          public:
             void
             start_connection(api_connection::pointer pConn);
-
+            
             void
             close_connection(api_connection::pointer pConn);
          private:
-
             /* Socket being handled. */
             std::set<com::vmware::athena::api_connection::pointer> connections_;
-
          };
       }
    }
