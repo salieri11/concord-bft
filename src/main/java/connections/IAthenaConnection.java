@@ -1,6 +1,6 @@
 package connections;
 
 public interface IAthenaConnection {
-	byte[] receive();
-	boolean send(byte[] msg);
+   byte[] receive();
+   boolean send(byte[] msg);
 }

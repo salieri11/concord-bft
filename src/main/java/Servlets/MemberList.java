@@ -41,7 +41,7 @@ import org.json.simple.JSONObject;
 public final class MemberList extends BaseServlet {
    private static final long serialVersionUID = 1L;
    private static final Logger logger = Logger.getLogger(MemberList.class);
-   
+
    /**
     * Services a get request. Constructs a protobuf request of type peer request
     * (enveloped in an athena request) as defined in athena.proto. Sends this
@@ -53,29 +53,28 @@ public final class MemberList extends BaseServlet {
     * @param response
     *           The response object used to respond to the client
     * @throws IOException
-    */
+   */
    @Override
    protected void doGet(final HttpServletRequest request,
-            			final HttpServletResponse response) throws IOException {
-       // Construct a peer request object. Set its return_peers field.
-      final Athena.PeerRequest peerRequestObj =
-    		  Athena.PeerRequest
-    		  .newBuilder()
-              .setReturnPeers(true)
-              .build();
+         final HttpServletResponse response) throws IOException {
+      // Construct a peer request object. Set its return_peers field.
+      final Athena.PeerRequest peerRequestObj = 
+            Athena.PeerRequest.newBuilder()
+            .setReturnPeers(true)
+            .build();
 
       // Envelope the peer request object into an athena object.
-      final Athena.AthenaRequest athenarequestObj =
-    		  Athena.AthenaRequest
-              .newBuilder()
-              .setPeerRequest(peerRequestObj)
-              .build();
+      final Athena.AthenaRequest athenarequestObj = Athena.AthenaRequest
+            .newBuilder()
+            .setPeerRequest(peerRequestObj)
+            .build();
 
       processGet(athenarequestObj, response);
    }
 
    /**
-    * Parses the Protocol Buffer response from Athena and converts it into JSON.
+    * Parses the Protocol Buffer response from Athena
+    * and converts it into JSON.
     * 
     * @param athenaResponse
     *           Protocol Buffer object containing Athena's reponse
@@ -83,8 +82,8 @@ public final class MemberList extends BaseServlet {
     */
    @SuppressWarnings("unchecked")
    @Override
-   protected JSONObject parseToJSON(Athena.AthenaResponse athenaResponse) {
-
+   protected JSONObject parseToJSON(
+         Athena.AthenaResponse athenaResponse) {
       // Extract the peer response from the athena reponse envelope.
       Athena.PeerResponse peerResponse = athenaResponse.getPeerResponse();
 
@@ -94,7 +93,8 @@ public final class MemberList extends BaseServlet {
 
       JSONArray peerArr = new JSONArray();
 
-      // Iterate through each peer and construct a corresponding JSON object
+      // Iterate through each peer and construct
+      // a corresponding JSON object
       for (Athena.Peer peer : peerList) {
          JSONObject peerJson = new JSONObject();
          peerJson.put("address", peer.getAddress());

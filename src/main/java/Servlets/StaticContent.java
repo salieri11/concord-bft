@@ -43,17 +43,19 @@ public class StaticContent extends HttpServlet {
    private static final long serialVersionUID = 1L;
    private static String staticContentFolder;
    private static char separatorChar;
-   private static final Logger logger = Logger.getLogger(StaticContent.class);
+   private static final Logger logger = 
+         Logger.getLogger(StaticContent.class);
 
    public StaticContent() throws IOException {
       IConfiguration config = FileConfiguration.getInstance();
       staticContentFolder = config.getStringValue("StaticContent_Folder");
-      separatorChar = config.getStringValue("StaticContent_Separator").charAt(0);
+      separatorChar = config.getStringValue("StaticContent_Separator")
+            .charAt(0);
    }
 
    /**
-    * Services a get request. Fetches the resource from the specified path and
-    * returns it.
+    * Services a get request. Fetches the resource from the specified
+    * path and returns it.
     * 
     * @param request
     *           The request received by the servlet
@@ -62,8 +64,8 @@ public class StaticContent extends HttpServlet {
     */
    @SuppressWarnings("resource")
    protected void doGet(final HttpServletRequest request,
-			            final HttpServletResponse response)
-			            throws ServletException, IOException {
+         final HttpServletResponse response)
+         throws ServletException, IOException {
 
       String path = staticContentFolder + getPath(request);
       /*
@@ -71,8 +73,9 @@ public class StaticContent extends HttpServlet {
        * canonicalise
        */
       if (File.separatorChar != separatorChar) {
-         path = CanonicalPathUtils.canonicalize(
-                  path.replace(File.separatorChar, separatorChar));
+         path = CanonicalPathUtils
+               .canonicalize(path
+                     .replace(File.separatorChar, separatorChar));
       }
       if (path.endsWith("/")) {
          try {
@@ -150,14 +153,15 @@ public class StaticContent extends HttpServlet {
     * @throws TikaException
     */
    private String detectFileType(String path)
-            throws IOException, SAXException, TikaException {
+         throws IOException, SAXException, TikaException {
       File responseFile = new File(path);
 
       AutoDetectParser parser = new AutoDetectParser();
       parser.setParsers(new HashMap<MediaType, Parser>());
 
       Metadata metadata = new Metadata();
-      metadata.add(TikaMetadataKeys.RESOURCE_NAME_KEY, responseFile.getName());
+      metadata.add(TikaMetadataKeys.RESOURCE_NAME_KEY,
+                  responseFile.getName());
 
       InputStream stream = null;
       try {
@@ -168,7 +172,7 @@ public class StaticContent extends HttpServlet {
       }
       try {
          parser.parse(stream, new DefaultHandler(), metadata,
-                  new ParseContext());
+               new ParseContext());
       } catch (IOException e) {
          logger.error("Error in reading from file");
          throw new IOException();
@@ -185,8 +189,8 @@ public class StaticContent extends HttpServlet {
             stream.close();
          } catch (IOException e) {
             logger.error(
-                     "Error in closing input stream (used for detecting file"
-                              + " type)");
+                  "Error in closing input stream (used for detecting file"
+                        + " type)");
             throw new IOException();
          }
       }
@@ -205,12 +209,15 @@ public class StaticContent extends HttpServlet {
       String servletPath;
       String pathInfo;
 
-      if (request.getDispatcherType() == DispatcherType.INCLUDE && request
-               .getAttribute(RequestDispatcher.INCLUDE_REQUEST_URI) != null) {
-         pathInfo = (String) request
-                  .getAttribute(RequestDispatcher.INCLUDE_PATH_INFO);
+      if (request.getDispatcherType()
+            == DispatcherType.INCLUDE
+            &&
+          request.getAttribute(RequestDispatcher.INCLUDE_REQUEST_URI) 
+            != null) {
+          pathInfo = (String) request
+               .getAttribute(RequestDispatcher.INCLUDE_PATH_INFO);
          servletPath = (String) request
-                  .getAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH);
+               .getAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH);
       } else {
          pathInfo = request.getPathInfo();
          servletPath = request.getServletPath();

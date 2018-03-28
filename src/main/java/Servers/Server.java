@@ -54,55 +54,78 @@ public class Server {
 
    // Set current datetime for logging purposes
    static {
-      SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy-hh-mm-ss");
-      System.setProperty("current.date.time", dateFormat.format(new Date()));
+      SimpleDateFormat dateFormat = 
+            new SimpleDateFormat("dd-MM-yyyy-hh-mm-ss");
+      System.setProperty(
+            "current.date.time", dateFormat.format(new Date()));
    }
 
-   public static void main(String[] args) throws IOException, ServletException {
+   public static void main(String[] args) 
+         throws IOException, ServletException {
       final Logger logger = Logger.getLogger(Server.class);
 
       // Read configurations file
       IConfiguration conf;
       try {
-    	  conf= FileConfiguration.getInstance();
+         conf= FileConfiguration.getInstance();
       } catch (IOException e) {
          logger.error("Error in reading configurations");
          throw new IOException();
       }
       
-      serverPath = conf.getStringValue("Undertow_Path");
-      deploymentName = conf.getStringValue("Deployment_Name");
-      memberListServletName = conf.getStringValue("MemberList_ServletName");
-      staticContentServletName = conf.getStringValue("StaticContent_ServletName");
-      defaultContentServletName = conf.getStringValue("DefaultContent_ServletName");
-      blockListServletName = conf.getStringValue("BlockList_ServletName");
-      blockNumberServletName = conf.getStringValue("BlockNumber_ServletName");
-      serverHostName = conf.getStringValue("Server_Host");
-      port = conf.getIntegerValue("Server_Port");
-      defaultReponse = conf.getStringValue("Server_DefaultResponse");
-      staticContentEndpoint = conf.getStringValue("StaticContent_Endpoint");
-      memberListEndpoint = conf.getStringValue("MemberList_Endpoint");
-      defaultContentEndpoint = conf.getStringValue("DefaultContent_Endpoint");
-      blockListEndpoint = conf.getStringValue("BlockList_Endpoint");
-      blockNumberEndpoint = conf.getStringValue("BlockNumber_Endpoint");
+      serverPath =
+            conf.getStringValue("Undertow_Path");
+      deploymentName = 
+            conf.getStringValue("Deployment_Name");
+      memberListServletName =
+            conf.getStringValue("MemberList_ServletName");
+      staticContentServletName =
+            conf.getStringValue("StaticContent_ServletName");
+      defaultContentServletName =
+            conf.getStringValue("DefaultContent_ServletName");
+      blockListServletName =
+            conf.getStringValue("BlockList_ServletName");
+      blockNumberServletName =
+            conf.getStringValue("BlockNumber_ServletName");
+      serverHostName =
+            conf.getStringValue("Server_Host");
+      port =
+            conf.getIntegerValue("Server_Port");
+      defaultReponse =
+            conf.getStringValue("Server_DefaultResponse");
+      staticContentEndpoint =
+            conf.getStringValue("StaticContent_Endpoint");
+      memberListEndpoint =
+            conf.getStringValue("MemberList_Endpoint");
+      defaultContentEndpoint =
+            conf.getStringValue("DefaultContent_Endpoint");
+      blockListEndpoint =
+            conf.getStringValue("BlockList_Endpoint");
+      blockNumberEndpoint =
+            conf.getStringValue("BlockNumber_Endpoint");
 
       DeploymentInfo servletBuilder = deployment()
                .setClassLoader(Server.class.getClassLoader())
                .setContextPath(serverPath)
                .setResourceManager(
-                        new FileResourceManager(new File(defaultReponse), 1024))
+                        new FileResourceManager(
+                              new File(defaultReponse), 1024))
                .setDeploymentName(deploymentName)
                .addServlets(Servlets
-                        .servlet(memberListServletName, MemberList.class)
+                        .servlet(memberListServletName,
+                              MemberList.class)
                         .addMapping(memberListEndpoint))
                .addServlets(Servlets
-                        .servlet(staticContentServletName, StaticContent.class)
+                        .servlet(staticContentServletName,
+                              StaticContent.class)
                         .addMapping(staticContentEndpoint))
                .addServlets(
-                        Servlets.servlet(blockListServletName, BlockList.class)
-                                 .addMapping(blockListEndpoint))
+                        Servlets.servlet(blockListServletName,
+                              BlockList.class)
+                         .addMapping(blockListEndpoint))
                .addServlets(Servlets
-                        .servlet(blockNumberServletName, BlockNumber.class)
+                        .servlet(blockNumberServletName,
+                              BlockNumber.class)
                         .addMapping(blockNumberEndpoint))
                .addServlet(Servlets
                         .servlet(defaultContentServletName,

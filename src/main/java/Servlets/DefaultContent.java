@@ -23,7 +23,8 @@ import configurations.IConfiguration;
 public class DefaultContent extends HttpServlet {
    private static final long serialVersionUID = 1L;
    private static String defaultContentPath;
-   private static final Logger logger = Logger.getLogger(StaticContent.class);
+   private static final Logger logger = 
+         Logger.getLogger(StaticContent.class);
 
    public DefaultContent() throws IOException {
       IConfiguration c = FileConfiguration.getInstance();
@@ -31,18 +32,18 @@ public class DefaultContent extends HttpServlet {
    }
 
    /**
-    * Services a get request. Fetches the resource from the specified path and
-    * returns it.
-    * 
-    * @param request
-    *           The request received by the servlet
-    * @param response
-    *           The response object used to respond to the client
-    */
+   * Services a get request. Fetches the resource from the specified 
+   * path and returns it.
+   * 
+   * @param request
+   *           The request received by the servlet
+   * @param response
+   *           The response object used to respond to the client
+   */
    @SuppressWarnings("resource")
    protected void doGet(final HttpServletRequest request,
-            final HttpServletResponse response)
-            throws ServletException, IOException {
+                        final HttpServletResponse response)
+         throws ServletException, IOException {
       // read the file
       FileInputStream inputStream;
       try {
