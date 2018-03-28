@@ -52,7 +52,7 @@ class CoreVMTests(test_suite.TestSuite):
       self._unintentionallySkippedTests = {}
       self._results = {
          "CoreVMTests": {
-            "result":"N/A",
+            "result":"",
             "tests":{}
          }
       }
@@ -128,6 +128,8 @@ class CoreVMTests(test_suite.TestSuite):
       writeMe = None
 
       if result == None:
+         # TODO: I'm starting to think we should write unintentionally
+         #       skipped tests to the main results, too.
          log.debug("Skipping test '{}': '{}'".format(testName, info))
          tempFile = self._unintentionallySkippedFile + "_temp"
          realFile = self._unintentionallySkippedFile
@@ -138,6 +140,17 @@ class CoreVMTests(test_suite.TestSuite):
          realFile = self._resultFile
          result = "PASS" if result else "FAIL"
          log.info(result)
+
+         # Never change the suite's result once it's set to fail.
+         print("suite result before:", self._results["CoreVMTests"]["result"])
+         print("test result:", result)
+
+         if (not self._results["CoreVMTests"]["result"] == "FAIL") and \
+            (not self._results["CoreVMTests"]["result"] == result):
+            self._results["CoreVMTests"]["result"] = result
+
+         print("suite result after:", self._results["CoreVMTests"]["result"])
+
          self._results["CoreVMTests"]["tests"][testName] = {
             "result": result,
             "info": info
@@ -181,7 +194,10 @@ class CoreVMTests(test_suite.TestSuite):
       vmTests = os.path.join(self._userConfig["ethereum"]["testRoot"], "VMTests")
       testSubDirs = [
          "vmArithmeticTest",
-         "vmBitwiseLogicOperation"
+         "vmBitwiseLogicOperation",
+         "vmRandomTest",
+         "vmPushDupSwapTest",
+         "vmSha3Test"
       ]
       tests = []
 
