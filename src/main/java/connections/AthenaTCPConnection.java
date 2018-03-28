@@ -46,6 +46,8 @@ public final class AthenaTCPConnection implements IAthenaConnection  {
       try {
     	  _socket = new Socket(athenaHostName, athenaPort);
     	  _socket.setTcpNoDelay(true);
+    	  boolean res = check();
+    	  _logger.trace(String.format("socket checked, result: %s", res));
       } catch (UnknownHostException e) {
          _logger.error("Error creating TCP connection with Athena");
          throw new UnknownHostException();
@@ -85,6 +87,7 @@ public final class AthenaTCPConnection implements IAthenaConnection  {
    
    @Override
    protected void finalize() throws Throwable {
+	   _logger.info("connection disposed");
 	   try {
 		   if(!_disposed.get())
 			   close();
@@ -98,7 +101,7 @@ public final class AthenaTCPConnection implements IAthenaConnection  {
 		try {
 			java.io.InputStream is = _socket.getInputStream();
 			long start = System.currentTimeMillis();
-			ByteBuffer length = null;
+			ByteBuffer length = null;	
 			byte[] res = null;
 			int read = 0;
 			boolean done = false;
