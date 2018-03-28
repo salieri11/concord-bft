@@ -69,7 +69,7 @@ public final class MemberList extends BaseServlet {
             .setPeerRequest(peerRequestObj)
             .build();
 
-      processGet(athenarequestObj, response);
+      processGet(athenarequestObj, response, logger);
    }
 
    /**

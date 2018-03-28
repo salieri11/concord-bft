@@ -146,10 +146,13 @@ public class Server {
       
       AthenaConnectionPool.getInstance().initialize(conf);
       
-      Undertow server = Undertow.builder().addHttpListener(port, serverHostName)
+      Undertow server = Undertow.builder()
+            .addHttpListener(port, serverHostName)
                .setHandler(path)
-               // .setIoThreads(10) // to change number of io threads
-               // .setWorkerThreads(10) //to change number of worker threads
+               // .setIoThreads(10)
+               // to change number of io threads
+               // .setWorkerThreads(10)
+               //to change number of worker threads
                .build();
       server.start();
       logger.info("Server Booted");

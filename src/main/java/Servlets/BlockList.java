@@ -69,7 +69,7 @@ public final class BlockList extends BaseServlet {
             .setBlocksListRequest(blocksListRequestObj)
             .build();
 
-      processGet(athenarequestObj, response);
+      processGet(athenarequestObj, response, logger);
    }
 
    /**

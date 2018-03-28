@@ -1,4 +1,4 @@
-   package Servlets;
+package Servlets;
 
 import com.vmware.athena.*;
 import java.io.DataInputStream;
@@ -14,6 +14,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import com.google.protobuf.InvalidProtocolBufferException;
 import connections.IAthenaConnection;
+import configurations.IConfiguration;
 
 public class AthenaHelper {
    private static Logger _log = Logger.getLogger(AthenaHelper.class);
@@ -25,45 +26,55 @@ public class AthenaHelper {
    *           Integer that needs to be converted
    * @return A byte array containing two bytes.
    */
-   private static byte[] intToSizeBytes(int a) {
-      byte[] bytes = ByteBuffer.allocate(4).putInt(a).array();
+   private static byte[] intToSizeBytes(int value, int size) {
+      byte[] bytes = ByteBuffer
+            .allocate(size)
+            .putShort((short)value)
+            .array();
       return bytes;
    }
 
    /**
-   * Sends a Google Protocol Buffer request to Athena.
-   * Athena expects two bytes signifying the size of the request
-   * before the actual request.
-   * @param socketRequest
-   *           OutputStream object
-   * @param request
-   *           AthenaRequest object
-   * @throws IOException
+    * Sends a Google Protocol Buffer request to Athena.
+    * Athena expects two bytes signifying the size of the request
+    * before the actual request.
+    * @param socketRequest
+    *           OutputStream object
+    * @param request
+    *           AthenaRequest object
+    * @throws IOException
    */
    public static boolean sendToAthena(Athena.AthenaRequest request,
-         IAthenaConnection conn) throws IOException {
+                                       IAthenaConnection conn,
+                                       IConfiguration conf)
+                         throws IOException {
       _log.trace(String.format("Sending request to Athena : %s %s",
             System.lineSeparator(), request));
 
       // Find size of request and pack size into two bytes.
       int requestSize = request.getSerializedSize();
-      byte[] size = intToSizeBytes(requestSize);
+      byte[] size = intToSizeBytes(requestSize, conf.getIntegerValue(
+            "ReceiveHeaderSizeBytes"));
       byte[] protobufRequest = request.toByteArray();
+      ByteBuffer msg = ByteBuffer.allocate(
+            size.length + protobufRequest.length);
+      msg.put(size, 0, size.length);
+      msg.put(protobufRequest, size.length, protobufRequest.length);
 
       // Write requests over the output stream.
-      boolean res = conn.send(protobufRequest);
+      boolean res = conn.send(msg.array());
       return res;
    }
 
    /**
-   * Receives a Google Protocol Buffer response from Athena.
-   * Athena sends two bytes signifying the size of the response 
-   * before the actual response.
-   * @param socketResponse
-   *           InputStream object
-   * @return Athena's response
-   * @throws IOException
-   */
+    * Receives a Google Protocol Buffer response from Athena.
+    * Athena sends two bytes signifying the size of the response 
+    * before the actual response.
+    * @param socketResponse
+    *           InputStream object
+    * @return Athena's response
+    * @throws IOException
+   **/
    public static Athena.AthenaResponse receiveFromAthena(
          IAthenaConnection conn) {
       try {
@@ -84,21 +95,6 @@ public class AthenaHelper {
       } catch (Exception e) {
          _log.error("receiveFromAthena", e);
          return null;
-      }
-   }
-
-   public static void processResponse(HttpServletResponse resp,
-                                       String data,
-                                       int status) {
-      try {
-         // Set client response header
-         resp.setHeader("Content-Transfer-Encoding", "UTF-8");
-         resp.setContentType("application/json");
-         resp.setStatus(status);
-         if (data != null)
-            resp.getWriter().write(data);
-      } catch (Exception e) {
-         _log.error("processResponse", e);
       }
    }
 }

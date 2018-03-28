@@ -26,7 +26,7 @@ public final class FileConfiguration implements IConfiguration {
     * Loads the configurations file
     * 
     * @throws IOException
-   */
+   **/
    private FileConfiguration() {
       _configurations = new Properties();
       InputStream input = null;

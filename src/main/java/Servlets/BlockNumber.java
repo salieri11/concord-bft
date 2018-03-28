@@ -83,7 +83,7 @@ public final class BlockNumber extends BaseServlet {
             .setBlockNumberRequest(blockNumberRequestObj)
             .build();
 
-      processGet(athenarequestObj, response);
+      processGet(athenarequestObj, response, logger);
    }
 
    /**
