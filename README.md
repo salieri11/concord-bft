@@ -139,9 +139,10 @@ athena/build$ make
 This should produce an `athena` executable. Run it to start athena:
 
 ```shell
-athena/build$ athena
-03/14/18 16:43:51 [139882668836672] INFO  athena.main %% - VMware Project Athena starting [/home/bfink/vmwathena/athena/src/main.cpp:95]
-03/14/18 16:43:51 [139882668836672] INFO  athena.main %% - Listening on 0.0.0.0:5458 [/home/bfink/vmwathena/athena/src/main.cpp:45]
+athena/build$ ./src/athena
+2018-03-28T17:35:10.712 [140229951600448] INFO  athena.main %% VMware Project Athena starting [/home/bfink/vmwathena/athena/src/main.cpp:84]
+2018-03-28T17:35:10.713 [140229951600448] INFO  athena.evm %% EVM started [/home/bfink/vmwathena/athena/src/athena_evm.cpp:43]
+2018-03-28T17:35:10.713 [140229951600448] INFO  athena.main %% Listening on 0.0.0.0:5458 [/home/bfink/vmwathena/athena/src/main.cpp:54]
 ```
 
 With Athena running, you probably want to go set up
@@ -155,7 +156,10 @@ With Athena running, you probably want to go set up
 
  * src/athena_connection.*: connection handler (reads and processes requests)
 
- * src/athena.proto: Google Protocol Buffers messages that Helen uses
+ * src/athena_evm.*: wrapper around Evmjit
+
+ * proto/athena.proto: Google Protocol Buffers messages that Helen uses
    to talk to Athena
 
- * src/athena_evm.*: wrapper around Evmjit
+ * tools/ath_sendtx.cpp: a utility that allows you to send
+   transactions to athena without needing to build and start helen
