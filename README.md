@@ -97,6 +97,8 @@ directory up from this README file), and build it:
 athena$ cd ..
 $ git clone git@github.com:ethereum/evmjit.git
 $ cd evmjit
+### their interface is evolving rapidly, so use this specific hash
+$ git checkout 4e9f3d76292c7de0c6613427761f843b1719f614
 $ mkdir build
 $ cd build
 $ cmake ..
