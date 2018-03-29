@@ -27,7 +27,8 @@ public class ConnectionTest extends BaseTest {
                    _conf.getIntegerValue("ConnectionPoolSize"));
    }
    
-   public void testConnectionCheck() throws IOException {
+   public void testConnectionCheck()
+         throws IOException, InterruptedException {
       IAthenaConnection conn = _pool.getConnection();
       assertNotNull(conn);
    }
