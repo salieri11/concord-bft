@@ -3,10 +3,9 @@
  * 
  * Endpoints serviced : 
  * /assets/* : Loads content in the priv/www/assets folder
- * /api : Loads content from priv/swagger.json
+ * /api and /api/ : Loads content from priv/swagger.json
  * /swagger/* : Loads content from priv/www/swagger folder
  * /* : Loads content from priv/www/index.html
- * /api/ : Loads swagger UI
  * 
  */
 package Servlets;
@@ -37,7 +36,6 @@ import io.undertow.util.StatusCodes;
 public class StaticContent extends HttpServlet {
    private static final long serialVersionUID = 1L;
    private static Properties config;
-   private static char separatorChar;
    private final Logger logger;
 
    /**
@@ -58,7 +56,6 @@ public class StaticContent extends HttpServlet {
          throw e;
       }
       config = s.configurations;
-      separatorChar = config.getProperty("StaticContent_Separator").charAt(0);
    }
 
    /**
@@ -83,8 +80,8 @@ public class StaticContent extends HttpServlet {
       Api api;
       String contentFolder = new String();
       String contentFile = new String();
-      String alternateSwaggerEndpoint = config
-               .getProperty("Alternate_Swagger_Endpoint");
+      String alternateApiListEndpoint = config
+               .getProperty("Alternate_ApiList_Endpoint");
 
       // Read configurations based on API
       switch (callingApi) {
@@ -107,10 +104,13 @@ public class StaticContent extends HttpServlet {
          break;
       case "":
          String uri = request.getRequestURI();
+
          // Load swagger UI if user enters /api/
-         if (uri.startsWith(alternateSwaggerEndpoint)) {
-            logger.trace("Swagger UI call");
-            api = Api.SWAGGER;
+         if (uri.startsWith(alternateApiListEndpoint)) {
+            logger.trace("/api API call");
+            contentFolder = config.getProperty("ApiList_Folder");
+            contentFile = config.getProperty("ApiList_File");
+            api = Api.API_LIST;
          } else {
             logger.trace("Default Content API call");
             api = Api.DEFAULT_CONTENT;
@@ -129,23 +129,13 @@ public class StaticContent extends HttpServlet {
 
          String contentPath = StaticContentHelper.getPath(request);
          String path = contentFolder + contentPath;
-
-         // Handle the case of loading swagger UI even when user enters /api/
-         if (path.equals(alternateSwaggerEndpoint)) {
-            path = config.getProperty("Swagger_Folder")
-                     + config.getProperty("Swagger_File");
-         } else if (path.startsWith(alternateSwaggerEndpoint)) {
-            contentPath = contentPath.replaceFirst(alternateSwaggerEndpoint,
-                     "/");
-            path = config.getProperty("Swagger_Folder") + contentPath;
-         }
          /*
           * If the separator char is not / we want to replace it with a / and
           * canonicalise
           */
-         if (File.separatorChar != separatorChar) {
+         if (File.separatorChar != '/') {
             path = CanonicalPathUtils.canonicalize(
-                     path.replace(File.separatorChar, separatorChar));
+                     path.replace(File.separatorChar, '/'));
          }
          if (path.endsWith("/")) {
             try {

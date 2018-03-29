@@ -16,6 +16,7 @@ import com.vmware.athena.*;
 
 import configurations.SystemConfiguration;
 import connections.AthenaTCPConnection;
+import io.undertow.util.StatusCodes;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -39,7 +40,6 @@ public final class BlockList extends HttpServlet {
    private static final long serialVersionUID = 1L;
    private static AthenaTCPConnection athenaConnection;
    private static Properties config;
-   private static long start;
    private final Logger logger;
 
    /**
@@ -66,7 +66,6 @@ public final class BlockList extends HttpServlet {
          throw e;
       }
       config = s.configurations;
-      start = Long.parseLong(config.getProperty("BlockList_Start"));
    }
 
    /**
@@ -92,9 +91,41 @@ public final class BlockList extends HttpServlet {
                   + "HttpResponse");
          throw e;
       }
-      // Construct a blocksListRequest object. Set its start field.
-      final Athena.BlocksListRequest blocksListRequestObj = Athena.BlocksListRequest
-               .newBuilder().setStart(start).build();
+
+      // Read the request params
+      Long end = null;
+      Long listLength = null;
+
+      try {
+         end = Long.parseLong(request.getParameter("end"));
+
+      } catch (Exception e) {
+         // Do nothing as this parameter is optional
+      }
+
+      try {
+         listLength = Long.parseLong(request.getParameter("listLength"));
+      } catch (Exception e) {
+         // Do nothing as this parameter is optional
+      }
+
+      // Construct a blocksListRequest object.
+      Athena.BlocksListRequest.Builder b = Athena.BlocksListRequest
+               .newBuilder();
+
+      // If end is null, Athena assumes end is the latest block
+      if (end != null) {
+         b.setEnd(end);
+      }
+
+      // If listLength is null, request for default no. of blocks
+      if (listLength == null) {
+         listLength = Long
+                  .parseLong(config.getProperty("BlockList_DefaultListLength"));
+      }
+      b.setListLength(listLength);
+
+      final Athena.BlocksListRequest blocksListRequestObj = b.build();
 
       // Envelope the blocksListRequest object into an athena object.
       final Athena.AthenaRequest athenarequestObj = Athena.AthenaRequest

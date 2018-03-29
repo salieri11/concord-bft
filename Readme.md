@@ -88,11 +88,9 @@ mvn exec:java
 
  * /assets/* - Used to serve static content from priv/www/assets
 
- * /api - Used to return a list of all other APIs serviced
+ * /api and /api/ - Used to return a list of all other APIs serviced
 
  * /* - Used to serve content from priv/www/index.html
-
- * /api/ - Also loads swagger UI
 
 ### Using the UI
 

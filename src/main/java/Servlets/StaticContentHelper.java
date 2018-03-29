@@ -27,7 +27,7 @@ public class StaticContentHelper {
     */
    public static String detectFileType(File file) throws IOException {
       Tika tika = new Tika();
-      return tika.detect(file);
+      return tika.detect(file.getName());
    }
 
    /**
