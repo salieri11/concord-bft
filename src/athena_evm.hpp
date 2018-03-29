@@ -9,6 +9,7 @@
 #include <vector>
 #include <log4cplus/loggingmacros.h>
 #include "evm.h"
+#include "athena_types.hpp"
 
 namespace com {
 namespace vmware {
@@ -103,9 +104,14 @@ public:
    EVM();
    ~EVM();
 
-   void call(evm_message &message, evm_result &result);
-   void create(evm_message &message, evm_result &result);
+   /* Athena API */
+   void call(evm_message &message, evm_result &result,
+             std::vector<uint8_t> &txhash /* out */);
+   void create(evm_message &message, evm_result &result,
+               std::vector<uint8_t> &txhash /* out */);
+   EthTransaction get_transaction(std::vector<uint8_t> txhash);
 
+   /* EVM callbacks */
    int account_exists(const struct evm_address* address);
    void get_storage(struct evm_uint256be* result,
                     const struct evm_address* address,
@@ -144,6 +150,9 @@ private:
    // map from account address to latest nonce
    std::map<std::vector<uint8_t>, uint64_t> nonces;
 
+   // the transactions we have processed; map is hash -> tx
+   std::map<std::vector<uint8_t>, EthTransaction> transactions;
+
    void contract_destination(evm_message &message,
                              std::vector<uint8_t> &address);
    void keccak_hash(std::vector<uint8_t> &data,
@@ -155,6 +164,8 @@ private:
                  std::vector<uint8_t> &result_code,
                  std::vector<uint8_t> &result_hash);
    uint64_t get_nonce(std::vector<uint8_t> &address);
+   void hash_for_transaction(EthTransaction &tx,
+                             std::vector<uint8_t> &hash /* out */);
 };
 
 }

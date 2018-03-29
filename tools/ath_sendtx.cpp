@@ -52,6 +52,19 @@ void dehex0x(const std::string &str, std::string &bin /* out */) {
    }
 }
 
+char hexchar(char c) {
+   assert(c < 16);
+   return "0123456789abcdef"[c];
+}
+
+void hex0x(const std::string &in, std::string &out /* out */) {
+   out.assign("0x");
+   for (auto s = in.begin(); s < in.end(); s++) {
+      out.push_back(hexchar(((*s) >> 4) & 0xf));
+      out.push_back(hexchar((*s) & 0xf));
+   }
+}
+
 int main(int argc, char** argv)
 {
    try {
@@ -164,10 +177,29 @@ int main(int argc, char** argv)
                msglen << " bytes, but got " << reply_length << std::endl;
          } else {
             AthenaResponse athResp;
-            athResp.ParseFromString(reply);
+            if (athResp.ParseFromString(std::string(reply, msglen))) {
+               google::protobuf::TextFormat::PrintToString(athResp, &pbtext);
+               std::cout << "Received response (" << msglen << " bytes): "
+                         << pbtext << std::endl;
 
-            google::protobuf::TextFormat::PrintToString(athResp, &pbtext);
-            std::cout << "Received response: " << pbtext << std::endl;
+               if (athResp.eth_response_size() == 1) {
+                  EthResponse ethResp = athResp.eth_response(0);
+                  if (ethResp.has_data()) {
+                     std::string result;
+                     hex0x(ethResp.data(), result);
+                     std::cout << "Transaction Receipt: "
+                               << result << std::endl;
+                  } else {
+                     std::cerr << "EthResponse has no data" << std::endl;
+                  }
+               } else {
+                  std::cerr << "Wrong number of eth_responses: "
+                            << athResp.eth_response_size()
+                            << " (expected 1)" << std::endl;
+               }
+            } else {
+               std::cerr << "Failed to parse respons" << std::endl;
+            }
          }
       }
 
