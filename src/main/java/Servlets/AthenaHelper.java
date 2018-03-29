@@ -6,6 +6,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 import javax.servlet.http.HttpServletResponse;
@@ -29,6 +30,7 @@ public class AthenaHelper {
    private static byte[] intToSizeBytes(int value, int size) {
       byte[] bytes = ByteBuffer
             .allocate(size)
+            .order(ByteOrder.LITTLE_ENDIAN)
             .putShort((short)value)
             .array();
       return bytes;
@@ -48,8 +50,11 @@ public class AthenaHelper {
                                        IAthenaConnection conn,
                                        IConfiguration conf)
                          throws IOException {
-      _log.trace(String.format("Sending request to Athena : %s %s",
-            System.lineSeparator(), request));
+      // here specifically, request.toString() it time consuming,
+      // so checking level enabled can gain performance
+      if(_log.isTraceEnabled())
+         _log.trace(String.format("Sending request to Athena : %s %s",
+               System.lineSeparator(), request));
 
       // Find size of request and pack size into two bytes.
       int requestSize = request.getSerializedSize();
@@ -59,7 +64,7 @@ public class AthenaHelper {
       ByteBuffer msg = ByteBuffer.allocate(
             size.length + protobufRequest.length);
       msg.put(size, 0, size.length);
-      msg.put(protobufRequest, size.length, protobufRequest.length);
+      msg.put(protobufRequest, 0, protobufRequest.length);
 
       // Write requests over the output stream.
       boolean res = conn.send(msg.array());

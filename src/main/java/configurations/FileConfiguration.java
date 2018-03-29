@@ -16,8 +16,19 @@ import java.util.Properties;
 import org.apache.log4j.Logger;
 
 public final class FileConfiguration implements IConfiguration {
-   private static FileConfiguration _single_instance =
-            new FileConfiguration();
+   
+   // Java way to eager initialize singleton with
+   // ctor that throws exceptions. Static initializer block can throw
+   // unchecked exception to class loader
+   private static FileConfiguration _single_instance;
+   static {
+      try {
+      _single_instance = new FileConfiguration();
+      } catch (IOException e) {
+         throw new ExceptionInInitializerError(e);
+      }
+   }
+   
    private Properties _configurations;
    private static Logger _logger =
          Logger.getLogger(FileConfiguration.class);
@@ -27,22 +38,11 @@ public final class FileConfiguration implements IConfiguration {
     * 
     * @throws IOException
    **/
-   private FileConfiguration() {
+   private FileConfiguration() throws IOException {
       _configurations = new Properties();
-      InputStream input = null;
-   
-      try {
-         input = new FileInputStream("config.properties");
-      } catch (FileNotFoundException e) {
-         _logger.error("Error reading config file");
-      }
-      try {
-         _configurations.load(input);
-      } catch (IOException e) {
-         _logger.error("Error loading config file");
-      }
-   }
-   
+      InputStream input = new FileInputStream("config.properties");
+      _configurations.load(input);
+   }   
    /**
     * Static method to create/retrieve the instance of this class
     * 

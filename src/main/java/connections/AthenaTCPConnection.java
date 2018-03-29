@@ -12,8 +12,12 @@ import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.log4j.Logger;
+
+import com.vmware.athena.Athena;
+
 import configurations.*;
 
 public final class AthenaTCPConnection implements IAthenaConnection {
@@ -26,12 +30,11 @@ public final class AthenaTCPConnection implements IAthenaConnection {
     * since some calls may take more time in natural way
    */
    private final int _receiveTimeout; // ms
-   private final byte[] _checkMsg = new byte[1];
    private final int _receiveLengthSize; // bytes
    private IConfiguration _conf;
    private static Logger _logger = 
          Logger.getLogger(AthenaTCPConnection.class);
-
+   
    /**
    * Sets up a TCP connection with Athena
    * and creates input and output streams or this connection
@@ -50,8 +53,6 @@ public final class AthenaTCPConnection implements IAthenaConnection {
       try {
          _socket = new Socket(athenaHostName, athenaPort);
          _socket.setTcpNoDelay(true);
-         boolean res = check();
-         _logger.trace(String.format("socket checked, result: %s", res));
       } catch (UnknownHostException e) {
          _logger.error("Error creating TCP connection with Athena");
          throw new UnknownHostException();
@@ -63,13 +64,14 @@ public final class AthenaTCPConnection implements IAthenaConnection {
       _logger.debug("Socket connection with Athena created");
    }
 
-   public boolean check() {
+   public byte[] check(byte[] checkMsg) {
       try {
-         _socket.getOutputStream().write(_checkMsg);
-         return true;
+         _socket.getOutputStream().write(checkMsg);
+         byte[] res = receive();
+         return res;
       } catch (IOException e) {
          _logger.error("check", e);
-         return false;
+         return null;
       }
    }
 
@@ -110,18 +112,22 @@ public final class AthenaTCPConnection implements IAthenaConnection {
          boolean done = false;
          while (System.currentTimeMillis() - start < _receiveTimeout) {
             if (length == null && is.available() >= _receiveLengthSize) {
-               length = ByteBuffer.wrap(new byte[_receiveLengthSize]);
+               length = ByteBuffer.wrap(new byte[_receiveLengthSize])
+                     .order(ByteOrder.LITTLE_ENDIAN);
                is.read(length.array(), 0, _receiveLengthSize);
             }
 
-            if (length != null && res == null)
-               res = new byte[length.getShort()];
+            int msgSize = 0;
+            if (length != null && res == null) {
+               msgSize = length.getShort();
+               res = new byte[msgSize];
+            }
 
             if (res != null) {
                int av = is.available();
                if (av > 0)
                   read += is.read(res, read, av);
-               if (read == length.getShort()) {
+               if (read == msgSize) {
                   done = true;
                   break;
                }
