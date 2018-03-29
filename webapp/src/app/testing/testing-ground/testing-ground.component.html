@@ -1,0 +1,57 @@
+<div class="p-2">
+  <h3 class="mt-0">Testing Ground</h3>
+
+  <clr-tabs class="my-2">
+    <clr-tab>
+      <button clrTabLink>Data Input</button>
+      <clr-tab-content *clrIfActive>
+        <p>
+          Enter data below to generate a unique hash
+        </p>
+        <form (ngSubmit)="onSubmitText()" #textForm="ngForm">
+          <textarea id="text-input" class="mb-1" name="userText" rows="10" required [(ngModel)]="userText" (input)="onTextChange()"></textarea>
+          <button class="btn btn-primary" [disabled]="textForm.form.invalid">Submit Data</button>
+        </form>
+        <div class="inset-box inset-box-dark mt-1">
+          <div class="row flex-items-xs-middle">
+            <div class="col-xs">
+              <small class="text-muted">Block Hash:</small>
+              <span #textHashElement>{{textHash}}</span>
+            </div>
+            <div class="col-xs-2 text-right" [class.invisible]="!textHash">
+              <button type="button" class="btn btn-sm btn-link" (click)="onCopyTextHash()" [disabled]="!textHash">Copy</button>
+            </div>
+          </div>
+        </div>
+      </clr-tab-content>
+    </clr-tab>
+
+    <clr-tab>
+      <button clrTabLink>Smart Contract Upload</button>
+      <clr-tab-content *clrIfActive>
+        <p>
+          Upload file below to generate a unique hash
+        </p>
+        <form (ngSubmit)="onSubmitFile()" #fileForm="ngForm">
+          <div class="inset-box inset-box-pad-lg mb-1">
+            <input id="file-input" class="d-block" type="file" name="userFile" required #fileInput (change)="onFileChange(fileInput.files)">
+          </div>
+          <button class="btn btn-primary" [disabled]="!userFile">Submit Data</button>
+          <div class="inset-box inset-box-dark mt-1">
+            <div class="row flex-items-xs-middle">
+              <div class="col-xs">
+                <small class="text-muted">Block Hash:</small>
+                <span #fileHashElement>{{fileHash}}</span>
+              </div>
+              <div class="col-xs-2 text-right" [class.invisible]="!fileHash">
+                <button type="button" class="btn btn-sm btn-link" (click)="onCopyFileHash()" [disabled]="!fileHash">Copy</button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </clr-tab-content>
+    </clr-tab>
+  </clr-tabs>
+</div>
+
+

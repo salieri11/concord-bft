@@ -12,6 +12,7 @@ import { ClarityModule } from '@clr/angular';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { NodesModule } from './nodes/nodes.module';
 import { BlocksModule } from './blocks/blocks.module';
+import { TestingModule } from './testing/testing.module';
 
 import { AppComponent } from './app.component';
 
@@ -34,7 +35,8 @@ const appRoutes: Routes = [
     RouterModule.forRoot(appRoutes, {enableTracing: true}),
     DashboardModule,
     NodesModule,
-    BlocksModule
+    BlocksModule,
+    TestingModule
   ],
   providers: [],
   bootstrap: [AppComponent]
