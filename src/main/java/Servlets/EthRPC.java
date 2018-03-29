@@ -17,7 +17,7 @@
  */
 package Servlets;
 
-import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.ByteString;
 import com.vmware.athena.*;
 import com.vmware.athena.Athena.EthRPCExecuteResponse;
 
@@ -25,13 +25,9 @@ import configurations.SystemConfiguration;
 import connections.AthenaTCPConnection;
 import io.undertow.util.StatusCodes;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.math.BigInteger;
 import java.util.ArrayList;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServlet;
@@ -49,22 +45,20 @@ import org.json.simple.parser.ParseException;
  */
 public final class EthRPC extends HttpServlet {
    private static final long serialVersionUID = 1L;
-   private static DataOutputStream outToAthena;
-   private static DataInputStream inFromAthena;
-   private static ReentrantLock tcpLock;
+   private static AthenaTCPConnection athenaConnection;
    private static Logger logger;
    private static JSONArray rpcList;
 
-   public EthRPC() throws IOException {
+   public EthRPC() throws ParseException, IOException {
       logger = Logger.getLogger(EthRPC.class);
 
       // Read configurations
-      SystemConfiguration s;
+      SystemConfiguration s = null;
       try {
          s = SystemConfiguration.getInstance();
-      } catch (IOException | ParseException e) {
+      } catch (ParseException e) {
          logger.error("Error in reading configurations");
-         throw new IOException();
+         throw e;
       }
       rpcList = s.rpcList;
    }
@@ -82,20 +76,25 @@ public final class EthRPC extends HttpServlet {
    protected void doGet(final HttpServletRequest request,
             final HttpServletResponse response) throws IOException {
 
+      if (rpcList == null) {
+         logger.error("Configurations not read.");
+         response.sendError(StatusCodes.INTERNAL_SERVER_ERROR);
+         return;
+      }
+
       PrintWriter writer = null;
       try {
          writer = response.getWriter();
       } catch (IOException e) {
          logger.error("Error in retrieving the writer object of the "
                   + "HttpResponse");
-         throw new IOException();
+         throw e;
       }
       // Set client response header
       response.setHeader("Content-Transfer-Encoding", "UTF-8");
       response.setContentType("application/json");
 
       // Respond to client.
-      System.out.println(rpcList);
       writer.write(rpcList.toJSONString());
    }
 
@@ -115,10 +114,11 @@ public final class EthRPC extends HttpServlet {
 
       // Make/fetch connection objects
       try {
-         connectToAthena();
-      } catch (ParseException e2) {
+         athenaConnection = AthenaTCPConnection.getInstance();
+      } catch (ParseException e) {
          logger.error("Error connecting to Athena");
          response.sendError(StatusCodes.INTERNAL_SERVER_ERROR);
+         return;
       }
 
       PrintWriter writer = null;
@@ -127,7 +127,7 @@ public final class EthRPC extends HttpServlet {
       } catch (IOException e) {
          logger.error("Error in retrieving the writer object of the "
                   + "HttpResponse");
-         throw new IOException();
+         throw e;
       }
 
       // Retrieve the request fields
@@ -139,54 +139,62 @@ public final class EthRPC extends HttpServlet {
 
       JSONParser parser = new JSONParser();
       try {
-
          // Retrieve the parameters from the request body
          String paramString = request.getReader().lines()
                   .collect(Collectors.joining(System.lineSeparator()));
-         requestParams = (JSONObject) parser.parse((String) paramString);
+         requestParams = (JSONObject) parser.parse(paramString);
          if (requestParams == null) {
-            logger.error("Invalid request");
+            logger.error("Invalid request : Parameters should be in the "
+                     + "request body and in a JSON object format");
             response.sendError(StatusCodes.BAD_REQUEST);
+            return;
          }
-      } catch (ParseException e1) {
+      } catch (ParseException e) {
          logger.error("Invalid request");
          response.sendError(StatusCodes.BAD_REQUEST);
+         e.printStackTrace();
+         return;
       }
-
       try {
          id = (Long) requestParams.get("id");
       } catch (NumberFormatException e) {
          logger.error("Invalid request parameter : id");
          response.sendError(StatusCodes.BAD_REQUEST);
-         throw new NumberFormatException();
+         throw e;
       }
 
       jsonRpc = (String) requestParams.get("jsonrpc");
       if (jsonRpc == null) {
          logger.error("Invalid request parameter : jsonrpc");
          response.sendError(StatusCodes.BAD_REQUEST);
+         return;
       }
 
       method = (String) requestParams.get("method");
       if (method == null) {
          logger.error("Invalid request parameter : method");
          response.sendError(StatusCodes.BAD_REQUEST);
+         return;
       }
-      System.out.println(requestParams.get("params"));
       params = (JSONArray) requestParams.get("params");
 
       if (params.size() < 1) {
          logger.error("Invalid request parameter : params");
          response.sendError(StatusCodes.BAD_REQUEST);
+         return;
       }
 
       // Convert list of hex strings to list of binary strings
       // Athena expects params in binary strings
-      ArrayList<String> paramBytes = hexStringToBinary(params, response);
-
-      if (paramBytes == null) {
+      ArrayList<ByteString> paramBytes = new ArrayList<>();
+      try {
+         for (Object param : params) {
+            paramBytes.add(APIHelper.hexStringToBinary((String) param));
+         }
+      } catch (Exception e) {
          logger.error("Invalid request parameter : params");
          response.sendError(StatusCodes.BAD_REQUEST);
+         return;
       }
 
       // Construct an ethrpcexecute request object.
@@ -199,23 +207,11 @@ public final class EthRPC extends HttpServlet {
                .newBuilder().setEthRpcExecuteRequest(ethRpcExecuteRequestObj)
                .build();
 
-      JSONObject ethRpcResponse = null;
-
-      // Obtain a lock to allow only one thread to use the TCP connection at a
-      // time
-      tcpLock.lock();
-
-      try {
-         // send request to Athena
-         sendToAthena(outToAthena, athenarequestObj);
-         // receive response from Athena
-         ethRpcResponse = receiveFromAthena(inFromAthena);
-      } catch (IOException e) {
-         logger.error("Error in communicating with Athena");
-         throw new IOException();
-      } finally {
-         tcpLock.unlock();
-      }
+      // send request to Athena
+      Athena.AthenaResponse athenaResponse = athenaConnection
+               .sendToAthena(athenarequestObj);
+      // receive response from Athena
+      JSONObject ethRpcResponse = parseToJSON(athenaResponse);
 
       // Set client response header
       response.setHeader("Content-Transfer-Encoding", "UTF-8");
@@ -223,107 +219,6 @@ public final class EthRPC extends HttpServlet {
 
       // Respond to client.
       writer.write(ethRpcResponse.toString());
-   }
-
-   /**
-    * Retrieves the common TCP connection object and streams.
-    * 
-    * @throws IOException
-    * @throws ParseException
-    */
-   private void connectToAthena() throws IOException, ParseException {
-      AthenaTCPConnection athenaConnection = null;
-      try {
-         athenaConnection = AthenaTCPConnection.getInstance();
-      } catch (IOException e) {
-         logger.error("Error in creating TCP connection with Athena");
-         throw new IOException();
-      }
-      outToAthena = athenaConnection.outputStream;
-      inFromAthena = athenaConnection.inputStream;
-      tcpLock = athenaConnection.tcpConnectionLock;
-   }
-
-   /**
-    * Sends a Google Protocol Buffer request to Athena. Athena expects two bytes
-    * signifying the size of the request before the actual request.
-    * 
-    * @param socketRequest
-    *           OutputStream object
-    * @param request
-    *           AthenaRequest object
-    * @throws IOException
-    */
-   public void sendToAthena(DataOutputStream socketRequest,
-            Athena.AthenaRequest request) throws IOException {
-
-      // Find size of request and pack size into two bytes.
-      int requestSize = request.getSerializedSize();
-      byte[] size = intToSizeBytes(requestSize);
-
-      byte[] protobufRequest = request.toByteArray();
-
-      // Write requests over the output stream.
-      try {
-         socketRequest.write(size);
-      } catch (IOException e) {
-         logger.error("Error in writing the size of request to Athena");
-         throw new IOException();
-      }
-
-      try {
-         socketRequest.write(protobufRequest);
-      } catch (IOException e) {
-         logger.error("Error in writing the request to Athena");
-         throw new IOException();
-      }
-   }
-
-   /**
-    * Receives a Google Protocol Buffer response from Athena. Athena sends two
-    * bytes signifying the size of the response before the actual response.
-    * 
-    * @param socketResponse
-    *           InputStream object
-    * @return Athena's response in JSON format
-    * @throws IOException
-    */
-   public JSONObject receiveFromAthena(DataInputStream socketResponse)
-            throws IOException {
-      /*
-       * Read two bytes from the inputstream and consider that as size of the
-       * response
-       */
-      byte[] size = new byte[2];
-      try {
-         socketResponse.readFully(size);
-      } catch (IOException e) {
-         logger.error("Error reading size of Athena's response");
-         throw new IOException();
-      }
-      int responseSize = sizeBytesToInt(size);
-
-      // Read the response from the input stream.
-      byte[] response = new byte[responseSize];
-      try {
-         socketResponse.readFully(response);
-      } catch (IOException e) {
-         logger.error("Error reading Athena's response");
-         throw new IOException();
-      }
-
-      // Convert read bytes into a Protocol Buffer object.
-      Athena.AthenaResponse athenaResponse;
-      try {
-         athenaResponse = Athena.AthenaResponse.parseFrom(response);
-      } catch (InvalidProtocolBufferException e) {
-         logger.error("Error in parsing Athena's response");
-         throw new InvalidProtocolBufferException(e.getMessage());
-      }
-
-      // Convert Protocol Buffer to JSON.
-      JSONObject responseJson = parseToJSON(athenaResponse);
-      return responseJson;
    }
 
    /**
@@ -349,92 +244,11 @@ public final class EthRPC extends HttpServlet {
        * Convert the binary string received from Athena into a hex string for
        * responding to the client
        */
-      String resultString = binaryStringToHex(
-               ethRpcExecuteResponse.getResult());
+      String resultString = APIHelper
+               .binaryStringToHex(ethRpcExecuteResponse.getResult());
       responseJson.put("result", resultString);
 
       responseJson.put("error", ethRpcExecuteResponse.getError());
       return responseJson;
-   }
-
-   /**
-    * Converts size in two bytes into a single int.
-    * 
-    * @param size
-    *           Byte array containing two bytes of size
-    * @return Size in int
-    */
-   private int sizeBytesToInt(byte[] size) {
-      return ((size[1] & 0xff) << 8) | (size[0] & 0xff);
-   }
-
-   /**
-    * Converts an int into two bytes.
-    * 
-    * @param a
-    *           Integer that needs to be converted
-    * @return A byte array containing two bytes.
-    */
-   public static byte[] intToSizeBytes(int a) {
-      byte[] data = new byte[2];
-      data[0] = (byte) (a & 0xFF);
-      data[1] = (byte) ((a >> 8) & 0xFF);
-      return data;
-   }
-
-   /**
-    * Converts list of hex strings into a list of binary strings.
-    * 
-    * @param params
-    *           JSONArray of hex strings
-    * @return
-    * @throws IOException
-    */
-   public static ArrayList<String> hexStringToBinary(JSONArray params,
-            final HttpServletResponse response) throws IOException {
-      ArrayList<String> result = new ArrayList<>();
-
-      for (Object param : params) {
-
-         // Param should strictly be a hex string
-         if (param == null || (String) param == null
-                  || !((String) param).startsWith("0x")) {
-            logger.error("Invalid parameter");
-            response.sendError(StatusCodes.BAD_REQUEST);
-         }
-
-         String curr = ((String) param).substring(2); // Strip 0x from the start
-
-         // Hex string should have even number of hex characters
-         if (curr.length() % 2 != 0) {
-            return null;
-         }
-         String byteConversion = new BigInteger(curr, 16).toString(2);
-         
-         //Pad with zeroes to multiple of 8
-         int len = byteConversion.length();
-         int padding = 8 - (len % 8);
-         result.add(String.format("%" + (padding + len) + "s", byteConversion)
-                  .replace(' ', '0'));
-      }
-      return result;
-   }
-
-   /**
-    * Converts a binary string to a hex string.
-    * 
-    * @param binary
-    *           Binary string
-    * @return
-    */
-   public static String binaryStringToHex(String binary) {
-      // TODO : Delete below line once Athena supports this request
-      binary = "0000";
-
-      int decimal = Integer.parseInt(binary, 2);
-      String hex = Integer.toString(decimal, 16);
-      StringBuilder sb = new StringBuilder("0x");
-      sb.append(hex);
-      return sb.toString();
    }
 }

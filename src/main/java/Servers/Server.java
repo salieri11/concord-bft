@@ -19,15 +19,13 @@ import javax.servlet.ServletException;
 import org.apache.log4j.Logger;
 import org.json.simple.parser.ParseException;
 
-import Servlets.ApiList;
-import Servlets.Assets;
 import Servlets.BlockList;
 import Servlets.BlockNumber;
-import Servlets.DefaultContent;
 import Servlets.EthRPC;
 import Servlets.MemberList;
-import Servlets.Swagger;
+import Servlets.StaticContent;
 import Servlets.Transaction;
+
 import configurations.SystemConfiguration;
 import connections.AthenaTCPConnection;
 import io.undertow.Handlers;
@@ -82,7 +80,7 @@ public class Server {
          s = SystemConfiguration.getInstance();
       } catch (IOException e) {
          logger.error("Error in reading configurations");
-         throw new IOException();
+         throw e;
       }
       config = s.configurations;
       serverPath = config.getProperty("Undertow_Path");
@@ -114,18 +112,22 @@ public class Server {
 
       DeploymentInfo servletBuilder = deployment()
                .setClassLoader(Server.class.getClassLoader())
-               .setContextPath(serverPath)
-               .setResourceManager(
+               .setContextPath(serverPath).setResourceManager(
+                        // 1024 : Size to use direct FS to network transfer (if
+                        // supported by OS/JDK) instead of read/write
                         new FileResourceManager(new File(defaultReponse), 1024))
                .setDeploymentName(deploymentName)
                .addServlets(Servlets
                         .servlet(memberListServletName, MemberList.class)
                         .addMapping(memberListEndpoint))
-               .addServlets(Servlets.servlet(swaggerServletName, Swagger.class)
+               .addServlets(Servlets
+                        .servlet(swaggerServletName, StaticContent.class)
                         .addMapping(swaggerEndpoint))
-               .addServlets(Servlets.servlet(assetsServletName, Assets.class)
-                        .addMapping(assetsEndpoint))
-               .addServlets(Servlets.servlet(apiListServletName, ApiList.class)
+               .addServlets(
+                        Servlets.servlet(assetsServletName, StaticContent.class)
+                                 .addMapping(assetsEndpoint))
+               .addServlets(Servlets
+                        .servlet(apiListServletName, StaticContent.class)
                         .addMapping(apiListEndpoint))
                .addServlets(
                         Servlets.servlet(blockListServletName, BlockList.class)
@@ -139,8 +141,7 @@ public class Server {
                         .servlet(transactionServletName, Transaction.class)
                         .addMapping(transactionEndpoint))
                .addServlet(Servlets
-                        .servlet(defaultContentServletName,
-                                 DefaultContent.class)
+                        .servlet(defaultContentServletName, StaticContent.class)
                         .addMapping(defaultContentEndpoint));
       DeploymentManager manager = Servlets.defaultContainer()
                .addDeployment(servletBuilder);
@@ -152,7 +153,7 @@ public class Server {
                   .addPrefixPath(serverPath, manager.start());
       } catch (ServletException e1) {
          logger.error("Error in starting Deployment Manager");
-         throw new ServletException();
+         throw e1;
       }
       Undertow server = Undertow.builder().addHttpListener(port, serverHostName)
                .setHandler(path)
@@ -170,7 +171,7 @@ public class Server {
          AthenaTCPConnection.getInstance();
       } catch (IOException e) {
          logger.error("Error in establishing TCP connection with Athena");
-         throw new IOException();
+         throw e;
       }
    }
 }

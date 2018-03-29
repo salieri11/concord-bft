@@ -48,7 +48,7 @@ message EthRPCExecuteRequest {
 	optional int64 id = 1; //required
 	optional string jsonrpc = 2; //required
 	optional string method = 3; //required
-	repeated string params = 4; //required
+	repeated bytes params = 4; //required
 }
 
 message BlocksListRequest {
@@ -56,7 +56,7 @@ message BlocksListRequest {
 }
 
 message BlockNumberRequest {
-	optional string index = 1;
+	optional int64 index = 1;
 }
 
 message TestRequest {
@@ -64,7 +64,7 @@ message TestRequest {
 }
 
 message TransactionRequest {
-	optional string hashParam = 1;
+	optional bytes hashParam = 1;
 }
 
 message AthenaResponse {
@@ -106,7 +106,7 @@ message BlockNumberResponse {
 message EthRPCExecuteResponse {
 	optional int64 id = 1; //required
 	optional string jsonrpc = 2; //required
-	optional string result = 3;
+	optional bytes result = 3;
 	optional string error = 4;
 }
 

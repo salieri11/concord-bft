@@ -1,6 +1,6 @@
 # Helen
 
-Helen is Athena's interface to launch requests. This repository will be the home of the API server for Project Athena. Helen is a Java Undertow server which invokes different servlets for different apis. Note : Helen will run on port 32773 of localhost.
+Helen is Athena's interface to launch requests. This repository will be the home of the API server for Project Athena. Helen is a Java Undertow server which invokes different servlets for different apis. Note : Helen will run on port 32773 of localhost by default.
 
 ### Prerequisites
 
@@ -9,8 +9,6 @@ Helen is Athena's interface to launch requests. This repository will be the home
 [Maven](https://www.rosehosting.com/blog/how-to-install-maven-on-ubuntu-16-04/)
 
 [Athena](https://github.com/vmwathena/athena)
-
-[UI]()
 
 ### Buiding and running the UI
 
@@ -84,10 +82,26 @@ mvn clean install
 mvn exec:java
 ```
 
- * Point your browser to localhost:8080/{some api}
+### API
 
-## API
+ * /swagger/* - Used to serve the static content from priv/www/swagger
 
- * /swagger/index.html - Used to serve the swagger UI content.
- * /api - Used to return a list of all other API serviced.
+ * /assets/* - Used to serve static content from priv/www/assets
+
+ * /api - Used to return a list of all other APIs serviced
+
+ * /* - Used to serve content from priv/www/index.html
+
+ * /api/ - Also loads swagger UI
+
+### Using the UI
+
+ * Point the browser to localhost:32773 to load the dashboard.
+
+ * Point the browser to localhost:32773/swagger/index.html to load the swagger UI.
+
+### Configurations
+
+Server and servlet configurations are stored in a key-value format in [config.properties](https://github.com/vmwathena/helen/blob/jmc-java-helen/config.properties).
+Note : Helen needs to be restarted if any changes are made to the config.properties file.
 

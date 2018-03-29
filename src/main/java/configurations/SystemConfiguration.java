@@ -39,13 +39,13 @@ public final class SystemConfiguration {
          input = new FileInputStream("config.properties");
       } catch (FileNotFoundException e) {
          logger.error("Error reading config file");
-         throw new FileNotFoundException();
+         throw e;
       }
       try {
          configurations.load(input);
       } catch (IOException e) {
          logger.error("Error loading config file");
-         throw new IOException();
+         throw e;
       }
 
       /*
@@ -58,7 +58,7 @@ public final class SystemConfiguration {
                   .parse((String) configurations.getProperty("EthRPCList"));
       } catch (ParseException e) {
          logger.error("Error in parsing RPC List from configurations file");
-         throw new ParseException(0);
+         throw e;
       }
    }
 
@@ -69,14 +69,14 @@ public final class SystemConfiguration {
     * @throws IOException
     * @throws ParseException
     */
-   public static SystemConfiguration getInstance()
+   public static synchronized SystemConfiguration getInstance()
             throws IOException, ParseException {
       if (single_instance == null) {
          try {
             single_instance = new SystemConfiguration();
          } catch (IOException e) {
             logger.error("Error in creating new System Configuration object");
-            throw new IOException();
+            throw e;
          }
       }
       return single_instance;

@@ -12,18 +12,16 @@
  */
 package Servlets;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.vmware.athena.*;
 
+import configurations.SystemConfiguration;
 import connections.AthenaTCPConnection;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.Properties;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -39,29 +37,36 @@ import org.json.simple.parser.ParseException;
  */
 public final class BlockList extends HttpServlet {
    private static final long serialVersionUID = 1L;
-   private static DataOutputStream outToAthena;
-   private static DataInputStream inFromAthena;
-   private static ReentrantLock tcpLock;
+   private static AthenaTCPConnection athenaConnection;
+   private static Properties config;
+   private static long start;
    private final Logger logger;
 
    /**
     * Retrieves the common TCP connection object.
     * 
     * @throws IOException
-    * @throws ParseException 
+    * @throws ParseException
     */
    public BlockList() throws IOException, ParseException {
       logger = Logger.getLogger(BlockList.class);
-      AthenaTCPConnection athenaConnection = null;
       try {
          athenaConnection = AthenaTCPConnection.getInstance();
       } catch (IOException e) {
          logger.error("Error in creating TCP connection with Athena");
-         throw new IOException();
+         throw e;
       }
-      outToAthena = athenaConnection.outputStream;
-      inFromAthena = athenaConnection.inputStream;
-      tcpLock = athenaConnection.tcpConnectionLock;
+
+      // Read configurations
+      SystemConfiguration s;
+      try {
+         s = SystemConfiguration.getInstance();
+      } catch (IOException e) {
+         logger.error("Error in reading configurations");
+         throw e;
+      }
+      config = s.configurations;
+      start = Long.parseLong(config.getProperty("BlockList_Start"));
    }
 
    /**
@@ -85,37 +90,26 @@ public final class BlockList extends HttpServlet {
       } catch (IOException e) {
          logger.error("Error in retrieving the writer object of the "
                   + "HttpResponse");
-         throw new IOException();
+         throw e;
       }
-
       // Construct a blocksListRequest object. Set its start field.
       final Athena.BlocksListRequest blocksListRequestObj = Athena.BlocksListRequest
-               .newBuilder().setStart(5).build();
+               .newBuilder().setStart(start).build();
 
       // Envelope the blocksListRequest object into an athena object.
       final Athena.AthenaRequest athenarequestObj = Athena.AthenaRequest
                .newBuilder().setBlocksListRequest(blocksListRequestObj).build();
 
+      Athena.AthenaResponse athenaResponse = null;
       JSONObject blocksListResponse = null;
 
-      // Obtain a lock to allow only one thread to use the TCP connection at a
-      // time
-      tcpLock.lock();
-
-      // try {
-      // send request to Athena
-      // sendToAthena(outToAthena, athenarequestObj); //Coming soon
-
       // receive response from Athena
-      blocksListResponse = receiveFromAthenaMock(); // This is temporary.
-      // blocksListResponse = receiveFromAthena(inFromAthena); //Coming soon
+      athenaResponse = receiveFromAthenaMock(); // This is temporary.
 
-      // } catch (IOException e) {
-      // logger.error("Error in communicating with Athena");
-      // throw new IOException();
-      // } finally {
-      tcpLock.unlock();
-      // }
+      // Coming soon
+      // athenaResponse = athenaConnection.sendToAthena(athenarequestObj);
+
+      blocksListResponse = parseToJSON(athenaResponse);
 
       // Set client response header
       response.setHeader("Content-Transfer-Encoding", "UTF-8");
@@ -126,93 +120,11 @@ public final class BlockList extends HttpServlet {
    }
 
    /**
-    * Sends a Google Protocol Buffer request to Athena. Athena expects two bytes
-    * signifying the size of the request before the actual request.
-    * 
-    * @param socketRequest
-    *           OutputStream object
-    * @param request
-    *           AthenaRequest object
-    * @throws IOException
-    */
-   public void sendToAthena(DataOutputStream socketRequest,
-            Athena.AthenaRequest request) throws IOException {
-
-      // Find size of request and pack size into two bytes.
-      int requestSize = request.getSerializedSize();
-      byte[] size = intToSizeBytes(requestSize);
-
-      byte[] protobufRequest = request.toByteArray();
-
-      // Write requests over the output stream.
-      try {
-         socketRequest.write(size);
-      } catch (IOException e) {
-         logger.error("Error in writing the size of request to Athena");
-         throw new IOException();
-      }
-
-      try {
-         socketRequest.write(protobufRequest);
-      } catch (IOException e) {
-         logger.error("Error in writing the request to Athena");
-         throw new IOException();
-      }
-   }
-
-   /**
-    * Receives a Google Protocol Buffer response from Athena. Athena sends two
-    * bytes signifying the size of the response before the actual response.
-    * 
-    * @param socketResponse
-    *           InputStream object
-    * @return Athena's response in JSON format
-    * @throws IOException
-    */
-   public JSONObject receiveFromAthena(DataInputStream socketResponse)
-            throws IOException {
-      /*
-       * Read two bytes from the inputstream and consider that as size of the
-       * response
-       */
-      byte[] size = new byte[2];
-      try {
-         socketResponse.readFully(size);
-      } catch (IOException e) {
-         logger.error("Error reading size of Athena's response");
-         throw new IOException();
-      }
-      int responseSize = sizeBytesToInt(size);
-
-      // Read the response from the input stream.
-      byte[] response = new byte[responseSize];
-      try {
-         socketResponse.readFully(response);
-      } catch (IOException e) {
-         logger.error("Error reading Athena's response");
-         throw new IOException();
-      }
-
-      // Convert read bytes into a Protocol Buffer object.
-      Athena.AthenaResponse athenaResponse;
-      try {
-         athenaResponse = Athena.AthenaResponse.parseFrom(response);
-      } catch (InvalidProtocolBufferException e) {
-         logger.error("Error in parsing Athena's response");
-         throw new InvalidProtocolBufferException(e.getMessage());
-      }
-
-      // Convert Protocol Buffer to JSON.
-      JSONObject responseJson = parseToJSON(athenaResponse);
-      return responseJson;
-   }
-
-   /**
     * Note : This is a temporary function which mocks Athena's response.
     * 
     * @return
     */
-   public JSONObject receiveFromAthenaMock() {
+   public Athena.AthenaResponse receiveFromAthenaMock() {
       final Athena.BlockBrief blockBriefObj1 = Athena.BlockBrief.newBuilder()
                .setNumber(1).setHash("hash1").setUrl("url1").build();
       final Athena.BlockBrief blockBriefObj2 = Athena.BlockBrief.newBuilder()
@@ -228,9 +140,7 @@ public final class BlockList extends HttpServlet {
                .newBuilder().setBlocksListResponse(blocksListResponseObj)
                .build();
 
-      // Convert Protocol Buffer to JSON.
-      JSONObject responseJson = parseToJSON(athenaresponseObj);
-      return responseJson;
+      return athenaresponseObj;
    }
 
    /**
@@ -270,30 +180,5 @@ public final class BlockList extends HttpServlet {
       responseJson.put("next", blocksListResponse.getNext());
 
       return responseJson;
-   }
-
-   /**
-    * Converts size in two bytes into a single int.
-    * 
-    * @param size
-    *           Byte array containing two bytes of size
-    * @return Size in int
-    */
-   private int sizeBytesToInt(byte[] size) {
-      return ((size[1] & 0xff) << 8) | (size[0] & 0xff);
-   }
-
-   /**
-    * Converts an int into two bytes.
-    * 
-    * @param a
-    *           Integer that needs to be converted
-    * @return A byte array containing two bytes.
-    */
-   public static byte[] intToSizeBytes(int a) {
-      byte[] data = new byte[2];
-      data[0] = (byte) (a & 0xFF);
-      data[1] = (byte) ((a >> 8) & 0xFF);
-      return data;
    }
 }
