@@ -10,6 +10,8 @@ from subprocess import CompletedProcess, PIPE
 import threading
 import time
 
+from util.debug import pp as pp
+
 log = logging.getLogger(__name__)
 
 class RPC():
@@ -137,8 +139,11 @@ class RPC():
       response = self._call()
       return self.getResultFromResponse(response)
 
-   def getTransactionReceipt(self, txHash):
+   def _getTransactionReceipt(self, txHash):
       '''
+      NOTE: This is the bare RPC call.  You probably want to call
+            getTransactionReceipt(), which wraps this in order to
+            wait for mining.
       Given a transaction hash, returns the receipt for that transaction.
       '''
       self._rpcData["method"] = "eth_getTransactionReceipt"
@@ -148,26 +153,27 @@ class RPC():
       response = self._call()
       return self.getResultFromResponse(response)
 
-   def getContractAddrFromTxHash(self, txHash, waitForMining=False):
+   def getTransactionReceipt(self, txHash, waitForMining=False):
       '''
-      Given a transaction hash, returns the address of the contract that was
-      created by it.
+      Given a transaction hash, gets the receipt.
 
-      VMware does not implement mining.  waitForMining is available for running
+      VMware will not implement mining.  waitForMining is available for running
       against official Ethereum in sort of a "test diagnostic" mode.
-      Mining is going to be an issue.  With one thread, it can take > 20
-      seconds to mine a contract.  With two, it seems to be less than 5
-      seconds.
+      Mining is going to be an issue.  It can take a long time to mine a
+      contract.
+
+      Raises an exception if the status field is missing.
       '''
+      # Even with 200, it times out sometimes.
       attempts = 200 if waitForMining else 1
       ret = None
 
       while attempts > 0 and not ret:
          attempts -= 1
-         txReceipt = self.getTransactionReceipt(txHash)
+         txReceipt = self._getTransactionReceipt(txHash)
 
          if txReceipt and "contractAddress" in txReceipt:
-            ret = txReceipt["contractAddress"]
+            ret = txReceipt
          elif not txReceipt:
             log.debug("No transaction receipt")
          else:
@@ -178,3 +184,39 @@ class RPC():
             time.sleep(1)
 
       return ret
+
+   def getTransactionReceiptStatus(self, receipt):
+      '''
+      Retrieve the status of a receipt.
+      '''
+      if not "status" in receipt:
+         error = "No status was found in transaction receipt:\n" +\
+                 pprint.PrettyPrinter().pprint(txReceipt) +\
+                 "\nBe sure 'ByzantiumBlock' was set in your genesis.json " \
+                 "file's config section. e.g. \"ByzantiumBlock\": 0"
+         raise(error)
+
+      return receipt["status"]
+
+   def unlockAccount(self, hsh, password):
+      '''
+      Given a blockchain user hash and password, unlocks the account.
+      Raises an exception containing an error message on failure.
+      '''
+      self._rpcData["method"] = "personal_unlockAccount"
+      self._rpcData["params"] = [hsh, password, 0]
+
+      response = self._call()
+      successful = self.getResultFromResponse(response)
+
+      if not successful:
+         errorMsg = "Failed to unlock the account '{}', password '{}'.". \
+                    format(hsh, password)
+
+         if "error" in response:
+            errorMsg += " Error given: '{}'".format(response["error"])
+         else:
+            errorMsg += " No error was returned. Entire response was: '{}'". \
+                   format(response)
+
+         raise Exception(errorMsg)

@@ -4,6 +4,7 @@
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 import argparse
+import datetime
 import logging
 import os
 from tempfile import mkdtemp
@@ -15,6 +16,7 @@ from util import html, json_helper
 log = None
 
 def main():
+   startTime = datetime.datetime.now()
    parser = argparse.ArgumentParser()
    parser.add_argument("suite", help="Test suite name")
    parser.add_argument("--ethereumMode",
@@ -33,10 +35,14 @@ def main():
       args.resultsDir = createResultsDir(args.suite)
 
    setUpLogging(args)
+   log.info("Start time: {}".format(startTime))
    log.info("Results directory: {}".format(args.resultsDir))
    suite = createTestSuite(args)
    log.info("Running suite {}".format(suite.getName()))
    processResults(suite.run())
+   endTime = datetime.datetime.now()
+   log.info("End time: {}".format(endTime))
+   log.info("Elapsed time: {}".format(str(endTime - startTime)))
 
 def setUpLogging(args):
    '''
@@ -74,12 +80,14 @@ def processResults(resultsFile):
    '''
    log.debug("Processing results for '{}'".format(resultsFile))
    results = json_helper.readJsonFile(resultsFile)
-   testCount, passCount, failCount = tallyResults(results)
+   testCount, passCount, failCount, skippedCount = tallyResults(results)
    fileContents = html.createResultHeader(results,
-                                  testCount,
-                                  passCount,
-                                  failCount)
+                                          testCount,
+                                          passCount,
+                                          failCount,
+                                          skippedCount)
    fileContents += html.createResultTable(results)
+   fileContents += html.createHtmlFooter()
    fileLocation = os.path.join(os.path.dirname(resultsFile), "results.html")
 
    with open(fileLocation, "w") as f:
@@ -93,12 +101,13 @@ def tallyResults(results):
    - Total number of tests run.
    - Passes
    - Failures
-   (It may return the number of skips eventually, so total - passes != failures.)
+   - Skipped
    '''
    suiteName = list(results.keys())[0]
    testCases = results[suiteName]["tests"]
    passCount = 0
    failCount = 0
+   skippedCount = 0
    totalCount = 0
 
    for test in testCases:
@@ -108,7 +117,9 @@ def tallyResults(results):
          passCount += 1
       elif testCases[test]["result"] == "FAIL":
          failCount += 1
+      elif testCases[test]["result"] == "SKIPPED":
+         skippedCount += 1
 
-   return totalCount, passCount, failCount
+   return totalCount, passCount, failCount, skippedCount
 
 main()
