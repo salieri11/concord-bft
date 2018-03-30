@@ -10,20 +10,26 @@ table, td, th {
 .fail{
       background-color:#ffcfcf;
    }
+
+.skipped{
+      background-color:#ffffcf;
+   }
 </style>"""
 
 
-def createResultHeader(results, testCount, passCount, failCount):
+def createResultHeader(results, testCount, passCount, failCount, skippedCount):
    suiteName = list(results.keys())[0]   
    suiteResult = results[suiteName]["result"]
    
    html = "<html>\n{}\n<body>\n".format(styles)
    html += "Suite: {}<br>\n".format(suiteName)
    html += "Result: {}<br><br>\n\n".format(suiteResult)
-   html += "Tests: {}<br>\nPass: {}<br>\nFail: {}<br><br>\n\n" \
+   html += "Tests: {}<br>\nPass: {}<br>\nFail: {}<br>\nUnintentionally " \
+           "Skipped: {}<br><br>\n\n" \
            .format(testCount,
                    passCount,
-                   failCount)
+                   failCount,
+                   skippedCount)
    return html
 
 def createResultTable(results):
@@ -50,10 +56,15 @@ def createHtmlRow(testName, result):
 
    if result["result"] == "PASS":
       row = "<tr>"
-   else:
+   elif result["result"] == "FAIL":
       row = "<tr class='fail'>"
+   else:
+      row = "<tr class='skipped'>"
 
    row += "<td>{}</td><td>{}</td><td>{}</td></tr>\n".format(testName,
                                                             result["result"],
                                                             result["info"])
    return row
+
+def createHtmlFooter():
+   return "</body></html>"
