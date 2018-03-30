@@ -13,7 +13,8 @@
              "buildRoot": "~/source/vmwathena/athena/build",
              "athena1":{
                  "launchCommand": "src/athena",
-                 "parameters": []
+                 "parameters": ["--logger_config",
+                                "./resources/athena_logging.properties"]
              }
          }
       },
