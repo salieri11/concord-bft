@@ -7,7 +7,6 @@
 -export([
          mining/1,
          sendTransaction/1,
-         sendRawTransaction/1,
          getTransactionReceipt/1
         ]).
 
@@ -47,21 +46,6 @@ sendTransaction(#eth_request{params=[{struct, Params}]}) ->
 sendTransaction(_)->
     {error, <<"Could not understand parameters">>}.
 
-%% Send a raw transaction.
-%%
-%% The value passed as "data" should have the appropriate type byte on
-%% the front already ("01" == create, "02" == call).
--spec sendRawTransaction(#eth_request{}) -> {ok|error, mochijson2:json_term()}.
-sendRawTransaction(#eth_request{params=[{struct, Params}]}) ->
-    case required_0x(<<"data">>, Params) of
-        {ok, Data} ->
-            sendRawTransaction_athena(Data);
-        _ ->
-            {error, <<"Invalid 'data' parameter">>}
-    end;
-sendRawTransaction(_) ->
-    {error, <<"Could not understand parameters">>}.
-
 %% Fetch a transaction receipt
 -spec getTransactionReceipt(#eth_request{}) ->
          {ok|error, mochijson2:json_term()}.
@@ -96,20 +80,6 @@ sendTransaction_athena(To, From, Value, Data) ->
                 _ ->
                     {error, <<"bad response from athena">>}
             end;
-        Other ->
-            error_logger:error_msg("did not understand athena response: !p",
-                                   [Other]),
-            {error, <<"bad response from athena">>}
-    end.
-
-sendRawTransaction_athena(Data) ->
-    EthRequest = #ethrequest{method='SEND_TX_RAW', data=Data},
-    case helen_athena_conn:send_request(
-           #athenarequest{eth_request=[EthRequest]}) of
-        #athenaresponse{eth_response=[EthResponse]} ->
-            error_logger:info_msg("received response from athena: ~p",
-                                  [EthResponse]),
-            {ok, <<"todorawsomething">>};
         Other ->
             error_logger:error_msg("did not understand athena response: !p",
                                    [Other]),
