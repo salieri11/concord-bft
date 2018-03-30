@@ -9,14 +9,13 @@ else()
    set(Cryptopp_INCLUDE_DIRS ${Cryptopp_INCLUDE_DIR})
 
    find_path(Cryptopp_LIB_DIR libcryptopp.a
-             HINTS ${Cryptopp_INCLUDE_DIR}../lib/
+             HINTS ${Cryptopp_INCLUDE_DIR}/../../lib/
              ${Cryptopp_INCLDUE_DIR}/build/)
-   if(Cryptopp_LIB_DIR_NOTFOUND EQUAL Cryptopp_INCLUDE_DIR-NOTFOUND)
+   if(NOT Cryptopp_LIB_DIR)
       message(SEND_ERROR "Cryptopp lib not found")
-   else()
+   else(NOT Cryptopp_LIB_DIR)
       link_directories(${Cryptopp_LIB_DIR})
       set(Cryptopp_LIBRARIES cryptopp)
-
       set(Cryptopp_FOUND 1)
-   endif(Cryptopp_LIB_DIR_NOTFOUND EQUAL Cryptopp_INCLUDE_DIR-NOTFOUND)
+   endif(NOT Cryptopp_LIB_DIR)
 endif(Cryptopp_INCLUDE_DIR EQUAL Cryptopp_INCLUDE_DIR-NOTFOUND)
