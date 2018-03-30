@@ -12,7 +12,7 @@
          {
              "buildRoot": "~/source/vmwathena/athena/build",
              "athena1":{
-                 "launchCommand": "athena",
+                 "launchCommand": "src/athena",
                  "parameters": []
              }
          }
