@@ -308,8 +308,9 @@ class CoreVMTests(test_suite.TestSuite):
                         "0x01" : "0x80",
                         "0x02" : "0x0200"
                      }
-      If there is a storage section, but it has no data, just fill it with 0.
-      Test cases I've looked at in this situation create 0 at block 0.
+      If there is a storage section, but it has no data, just fill it with
+      zeroes.  Most test cases I've looked at in this situation create 0 at
+      block 0.  One puts a 0 in location 3.
       If there is no storage section at all, returns None.
       '''
       storage = self._getStorageSection(testSource)
@@ -317,6 +318,7 @@ class CoreVMTests(test_suite.TestSuite):
          storage = self._getStorageSection(testCompiled)
 
       if storage != None and not self._containsStorageData(storage):
+         # Haven't seen a location > 3 yet, but check 10 just in case.
          for i in range(10):
             storage[hex(i)] = "0x0"
 
