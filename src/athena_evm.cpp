@@ -70,21 +70,11 @@ void com::vmware::athena::EVM::call(evm_message &message,
 
       execute(message, code, result);
 
-      std::vector<uint8_t> from(message.sender.bytes,
-                                message.sender.bytes+sizeof(evm_address));
+      // no contract was created here
+      std::vector<uint8_t> created_contract_address;
       std::vector<uint8_t> to(message.destination.bytes,
                               message.destination.bytes+sizeof(evm_address));
-      uint64_t nonce = get_nonce(from);
-      EthTransaction tx{
-         nonce, from, to, std::vector<uint8_t>() /* empty contract address */,
-            std::vector<uint8_t>(message.input_data,
-                                 message.input_data+message.input_size),
-            result.status_code
-            };
-      hash_for_transaction(tx, txhash);
-      LOG4CPLUS_DEBUG(logger, "Recording transaction " <<
-                      HexPrintVector{txhash});
-      transactions[txhash] = tx;
+      record_transaction(message, result, to, created_contract_address, txhash);
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " <<
                       HexPrintAddress{&message.destination} <<
@@ -123,25 +113,17 @@ void com::vmware::athena::EVM::create(evm_message &message,
                               message.input_data+message.input_size);
       memcpy(message.destination.bytes, &contract_address[0],
              sizeof(evm_address));
+
       execute(message, create_code, result);
 
-      std::vector<uint8_t> from(message.sender.bytes,
-                                message.sender.bytes+sizeof(evm_address));
+      // creates are not addressed
+      std::vector<uint8_t> to;
+      // don't expose the address if it wasn't used
       std::vector<uint8_t> recorded_contract_address =
          result.status_code == EVM_SUCCESS ?
          contract_address : std::vector<uint8_t>();
-      uint64_t nonce = get_nonce(from);
-      EthTransaction tx{
-         nonce, from, std::vector<uint8_t>() /* empty destination */,
-            recorded_contract_address,
-            std::vector<uint8_t>(message.input_data,
-                                 message.input_data+message.input_size),
-            result.status_code
-      };
-      hash_for_transaction(tx, txhash);
-      LOG4CPLUS_DEBUG(logger, "Recording transaction " <<
-                      HexPrintVector{txhash});
-      transactions[txhash] = tx;
+      record_transaction(message, result, to, recorded_contract_address,
+                         txhash);
 
       if (result.status_code == EVM_SUCCESS) {
          LOG4CPLUS_DEBUG(logger, "Contract created at " <<
@@ -164,6 +146,33 @@ void com::vmware::athena::EVM::create(evm_message &message,
       // attempted to call a contract that doesn't exist
       result.status_code = EVM_FAILURE;
    }
+}
+
+/**
+ * Compute the hash for the transaction, and put the record in storage.
+ */
+void com::vmware::athena::EVM::record_transaction(
+   evm_message &message,
+   evm_result &result,
+   std::vector<uint8_t> &to_override,
+   std::vector<uint8_t> &contract_address,
+   std::vector<uint8_t> &txhash /* out */)
+{
+   std::vector<uint8_t> from(message.sender.bytes,
+                             message.sender.bytes+sizeof(evm_address));
+   uint64_t nonce = get_nonce(from);
+   EthTransaction tx{
+      nonce, from, to_override, contract_address,
+         std::vector<uint8_t>(message.input_data,
+                              message.input_data+message.input_size),
+         result.status_code
+         };
+
+   hash_for_transaction(tx, txhash);
+   LOG4CPLUS_DEBUG(logger, "Recording transaction " <<
+                   HexPrintVector{txhash});
+
+   transactions[txhash] = tx;
 }
 
 /**

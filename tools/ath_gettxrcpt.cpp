@@ -24,6 +24,17 @@ void add_options(options_description &desc) {
        "Address to send the TX from");
 }
 
+std::string status_to_string(int32_t status) {
+   switch (status) {
+   case 0:
+      return "(failure)";
+   case 1:
+      return "(success)";
+   default:
+      return "(error: unknown status value)";
+   }
+}
+
 int main(int argc, char** argv)
 {
    try {
@@ -62,7 +73,8 @@ int main(int argc, char** argv)
             EthResponse ethResp = athResp.eth_response(0);
             if (ethResp.has_status()) {
                uint32_t status = ethResp.status();
-               std::cout << "Transaction status: " << status << std::endl;
+               std::cout << "Transaction status: " << status
+                         << " " << status_to_string(status) << std::endl;
             } else {
                std::cerr << "EthResponse has no status" << std::endl;
                return -1;

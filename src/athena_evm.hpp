@@ -166,6 +166,11 @@ private:
    uint64_t get_nonce(std::vector<uint8_t> &address);
    void hash_for_transaction(EthTransaction &tx,
                              std::vector<uint8_t> &hash /* out */);
+   void record_transaction(evm_message &message,
+                           evm_result &result,
+                           std::vector<uint8_t> &to_override,
+                           std::vector<uint8_t> &contract_address,
+                           std::vector<uint8_t> &txhash /* out */);
 };
 
 }

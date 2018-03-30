@@ -12,6 +12,10 @@ using boost::asio::ip::tcp;
 using boost::asio::ip::address;
 using boost::asio::io_service;
 
+/**
+ * Send a request to Athena, and wait for the response. Returns true if a valid
+ * response was received, or false if any error happened.
+ */
 bool call_athena(boost::program_options::variables_map &opts,
                  com::vmware::athena::AthenaRequest &request,
                  com::vmware::athena::AthenaResponse &response)
@@ -62,6 +66,7 @@ bool call_athena(boost::program_options::variables_map &opts,
          std::cerr << "Did not read full reply, expected " <<
             msglen << " bytes, but got " << reply_length << std::endl;
       } else {
+         // deserialize into response
          if (!response.ParseFromString(std::string(reply, msglen))) {
             std::cerr << "Failed to parse respons" << std::endl;
             result = false;

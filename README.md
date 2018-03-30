@@ -163,3 +163,6 @@ With Athena running, you probably want to go set up
 
  * tools/ath_sendtx.cpp: a utility that allows you to send
    transactions to athena without needing to build and start helen
+
+ * tools/ath_gettxrcpt.cpp: a utility that allows you to fetch a
+   transaction receipt without needing to build and start helen

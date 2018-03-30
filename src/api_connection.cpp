@@ -288,9 +288,11 @@ api_connection::handle_eth_getTxReceipt(const EthRequest &request) {
    if (request.has_data() && request.data().size() == sizeof(evm_uint256be)) {
       std::vector<uint8_t> txhash(request.data().begin(),
                                   request.data().end());
+
       LOG4CPLUS_DEBUG(logger_, "Looking up transaction receipt " <<
                       HexPrintVector{txhash});
       EthTransaction tx = athevm_.get_transaction(txhash);
+
       EthResponse *response = athenaResponse_.add_eth_response();
       response->set_id(request.id());
       response->set_status(tx.status == EVM_SUCCESS ? 1 : 0);

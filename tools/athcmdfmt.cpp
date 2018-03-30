@@ -18,6 +18,10 @@ char hexval(char c) {
    }
 }
 
+/**
+ * Convert a 0x-hex string to plain bytes. 0x prefix is optional.
+ *   "0x1234" -> {18, 52}
+ */
 void dehex0x(const std::string &str, std::string &bin /* out */) {
    if (str.size() % 2 != 0) {
       throw "nibble missing in string";
@@ -44,6 +48,10 @@ char hexchar(char c) {
    return "0123456789abcdef"[c];
 }
 
+/**
+ * Convert a vector of bytes into a 0x-hex string.
+ *   {18, 52} -> "0x1234"
+ */
 void hex0x(const std::string &in, std::string &out /* out */) {
    out.assign("0x");
    for (auto s = in.begin(); s < in.end(); s++) {

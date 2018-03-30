@@ -14,7 +14,13 @@ static const std::string DEFAULT_ATHENA_PORT = "5458";
 #define OPT_ADDRESS "address"
 #define OPT_PORT "port"
 
+/**
+ * Tool-specific options adding function. When passed to the parse_options
+ * function, it will be called with an options_description, to which it should
+ * add its specific options.
+ */
 typedef void (*options_adder)(boost::program_options::options_description&);
+
 bool parse_options(int argc, char **argv, options_adder adder,
                    boost::program_options::variables_map &opts);
 
