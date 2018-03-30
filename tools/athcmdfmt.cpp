@@ -4,6 +4,7 @@
 
 #include <ostream>
 #include <assert.h>
+#include "athcmdex.hpp"
 #include "athcmdfmt.hpp"
 
 char hexval(char c) {
@@ -14,7 +15,7 @@ char hexval(char c) {
    } else if (c >= 'A' && c <= 'F') {
       return 10 + c - 'A';
    } else {
-      throw "non-hex character";
+      throw AthCmdException("non-hex character");
    }
 }
 
@@ -24,7 +25,7 @@ char hexval(char c) {
  */
 void dehex0x(const std::string &str, std::string &bin /* out */) {
    if (str.size() % 2 != 0) {
-      throw "nibble missing in string";
+      throw AthCmdException("nibble missing in string");
    }
 
    // allow people to include "0x" prefix, or not

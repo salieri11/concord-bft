@@ -2,6 +2,7 @@ add_library(athcmdutil STATIC
             "athcmdconn.cpp" "athcmdconn.hpp"
             "athcmdfmt.cpp" "athcmdfmt.hpp"
             "athcmdopt.cpp" "athcmdopt.hpp"
+            "athcmdex.hpp"
             ${PROTO_HDRS})
 target_link_libraries(athcmdutil proto)
 

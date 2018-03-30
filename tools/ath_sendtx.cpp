@@ -7,6 +7,7 @@
 #include <boost/program_options.hpp>
 #include <google/protobuf/text_format.h>
 
+#include "athcmdex.hpp"
 #include "athcmdfmt.hpp"
 #include "athcmdopt.hpp"
 #include "athcmdconn.hpp"
@@ -103,9 +104,6 @@ int main(int argc, char** argv)
       }
    } catch (std::exception &e) {
       std::cerr << "Exception: " << e.what() << std::endl;
-      return -1;
-   } catch (const char *what) {
-      std::cerr << "Exception: " << what << std::endl;
       return -1;
    }
 
