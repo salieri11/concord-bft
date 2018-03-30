@@ -7,10 +7,8 @@
 -export([
          mining/1,
          sendTransaction/1,
-         sendRawTransaction/1
-        ]).
--export([
-         sendTransaction_athena/4
+         sendRawTransaction/1,
+         getTransactionReceipt/1
         ]).
 
 -include("helen_eth.hrl").
@@ -64,6 +62,19 @@ sendRawTransaction(#eth_request{params=[{struct, Params}]}) ->
 sendRawTransaction(_) ->
     {error, <<"Could not understand parameters">>}.
 
+%% Fetch a transaction receipt
+-spec getTransactionReceipt(#eth_request{}) ->
+         {ok|error, mochijson2:json_term()}.
+getTransactionReceipt(#eth_request{params=[Receipt]}) ->
+    case helen_eth:dehex(Receipt) of
+        {ok, TxHash} ->
+            getTransactionReceipt_athena(TxHash);
+        _ ->
+            {error, <<"Invalid transaction hash">>}
+    end;
+getTransactionReceipt(_) ->
+    {error, <<"Could not understand parameters">>}.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Athena implementation
 
@@ -79,7 +90,12 @@ sendTransaction_athena(To, From, Value, Data) ->
         #athenaresponse{eth_response=[EthResponse]} ->
             error_logger:info_msg("received response from athena: ~p",
                                   [EthResponse]),
-            {ok, <<"todosomething">>};
+            case EthResponse of
+                #ethresponse{data=TxHash} when TxHash /= undefined ->
+                    {ok, helen_eth:hex0x(TxHash)};
+                _ ->
+                    {error, <<"bad response from athena">>}
+            end;
         Other ->
             error_logger:error_msg("did not understand athena response: !p",
                                    [Other]),
@@ -94,6 +110,33 @@ sendRawTransaction_athena(Data) ->
             error_logger:info_msg("received response from athena: ~p",
                                   [EthResponse]),
             {ok, <<"todorawsomething">>};
+        Other ->
+            error_logger:error_msg("did not understand athena response: !p",
+                                   [Other]),
+            {error, <<"bad response from athena">>}
+    end.
+
+getTransactionReceipt_athena(TxHash) ->
+    EthRequest = #ethrequest{
+                    method= 'GET_TX_RECEIPT',
+                    data= TxHash},
+    case helen_athena_conn:send_request(
+           #athenarequest{eth_request=[EthRequest]}) of
+        #athenaresponse{eth_response=[EthResponse]} ->
+            error_logger:info_msg("received response from athena: ~p",
+                                  [EthResponse]),
+            case EthResponse of
+                #ethresponse{status=Status,
+                             contract_address=Address} ->
+                    {ok, {struct, [{<<"status">>, Status},
+                                   {<<"transactionHash">>,
+                                    helen_eth:hex0x(TxHash)}
+                                   |[{<<"contractAddress">>,
+                                      helen_eth:hex0x(Address)}
+                                     || Address /= undefined]]}};
+                _ ->
+                    {error, <<"bad response from athena">>}
+            end;
         Other ->
             error_logger:error_msg("did not understand athena response: !p",
                                    [Other]),

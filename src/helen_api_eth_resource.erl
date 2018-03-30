@@ -70,6 +70,9 @@
          #eth_rpc{name = <<"eth_mining">>,
                   returns = <<"boolean">>,
                   handler = fun helen_eth_eth:mining/1},
+         #eth_rpc{name = <<"eth_getTransactionReceipt">>,
+                  returns = <<"object">>,
+                  handler = fun helen_eth_eth:getTransactionReceipt/1},
 
          %%%%%%%%%%%%%%%%%%%%
          %% make dialyzer happy
