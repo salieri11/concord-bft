@@ -98,7 +98,10 @@ getTransactionReceipt_athena(TxHash) ->
             case EthResponse of
                 #ethresponse{status=Status,
                              contract_address=Address} ->
-                    {ok, {struct, [{<<"status">>, Status},
+                    {ok, {struct, [{<<"status">>,
+                                    iolist_to_binary(
+                                      %% Status is either 0 or 1
+                                      ["0x",integer_to_list(Status)])},
                                    {<<"transactionHash">>,
                                     helen_eth:hex0x(TxHash)}
                                    |[{<<"contractAddress">>,
