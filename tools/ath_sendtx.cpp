@@ -5,115 +5,44 @@
 #include <iostream>
 #include <inttypes.h>
 #include <boost/program_options.hpp>
-#include <boost/asio.hpp>
 #include <google/protobuf/text_format.h>
 
+#include "athcmdfmt.hpp"
+#include "athcmdopt.hpp"
+#include "athcmdconn.hpp"
 #include "athena.pb.h"
 
 using namespace boost::program_options;
-using boost::asio::ip::tcp;
-using boost::asio::ip::address;
-using boost::asio::io_service;
 using namespace com::vmware::athena;
 
-static const std::string DEFAULT_ATHENA_IP = "127.0.0.1";
-static const std::string DEFAULT_ATHENA_PORT = "5458";
+#define OPT_FROM "from"
+#define OPT_TO "to"
+#define OPT_VALUE "value"
+#define OPT_DATA "data"
 
-char hexval(char c) {
-   if (c >= '0' && c <= '9') {
-      return c - '0';
-   } else if (c >= 'a' && c <= 'f') {
-      return 10 + c - 'a';
-   } else if (c >= 'A' && c <= 'F') {
-      return 10 + c - 'A';
-   } else {
-      throw "non-hex character";
-   }
-}
-
-void dehex0x(const std::string &str, std::string &bin /* out */) {
-   if (str.size() % 2 != 0) {
-      throw "nibble missing in string";
-   }
-
-   // allow people to include "0x" prefix, or not
-   size_t adjust = (str[0] == '0' && str[1] == 'x') ? 2 : 0;
-
-   size_t binsize = (str.size()-adjust)/2;
-
-   if (binsize > 0) {
-      bin.resize(binsize);
-      for (int i = 0; i < binsize; i++) {
-	 bin[i] = (hexval(str[i*2+adjust]) << 4)
-            | hexval(str[i*2+adjust+1]);
-      }
-   } else {
-      bin.assign("");
-   }
-}
-
-char hexchar(char c) {
-   assert(c < 16);
-   return "0123456789abcdef"[c];
-}
-
-void hex0x(const std::string &in, std::string &out /* out */) {
-   out.assign("0x");
-   for (auto s = in.begin(); s < in.end(); s++) {
-      out.push_back(hexchar(((*s) >> 4) & 0xf));
-      out.push_back(hexchar((*s) & 0xf));
-   }
+void add_options(options_description &desc) {
+   desc.add_options()
+      (OPT_FROM",f",
+       value<std::string>(),
+       "Address to send the TX from")
+      (OPT_TO",t",
+       value<std::string>(),
+       "Address to send the TX to")
+      (OPT_VALUE",v",
+       value<int>(),
+       "Amount to pass as value")
+      (OPT_DATA",d",
+       value<std::string>(),
+       "Hex-encoded string to pass as data");
 }
 
 int main(int argc, char** argv)
 {
    try {
       variables_map opts;
-      options_description desc{"Options"};
-
-      desc.add_options()
-         ("help,h", "Print this help message")
-         ("address,a",
-          value<std::string>()->default_value(DEFAULT_ATHENA_IP),
-          "IP address of athena node")
-         ("port,p",
-          value<std::string>()->default_value(DEFAULT_ATHENA_PORT),
-          "Port of athena node")
-         ("from,f",
-          value<std::string>(),
-          "Address to send the TX from")
-         ("to,t",
-          value<std::string>(),
-          "Address to send the TX to")
-         ("value,v",
-          value<int>(),
-          "Amount to pass as value")
-         ("data,d",
-          value<std::string>(),
-          "Hex-encoded string to pass as data");
-
-      store(parse_command_line(argc, argv, desc), opts);
-
-      if (opts.count("help")) {
-         std::cout << "Athena eth_sendTransaction wrapper" << std::endl;
-         std::cout << desc << std::endl;
+      if (!parse_options(argc, argv, &add_options, opts)) {
          return 0;
       }
-
-      // After help-check, so that required params are not required for help.
-      notify(opts);
-
-      /*** Open connection ***/
-
-      io_service io_service;
-      tcp::socket s(io_service);
-      tcp::resolver resolver(io_service);
-      boost::asio::connect(
-         s, resolver.resolve(
-            {opts["address"].as<std::string>(),
-             opts["port"].as<std::string>()}));
-
-      std::cout << "Connected" << std::endl;
 
       /*** Create request ***/
 
@@ -123,20 +52,20 @@ int main(int argc, char** argv)
       std::string to;
       std::string data;
 
-      if (opts.count("from") > 0) {
-         dehex0x(opts["from"].as<std::string>(), from);
+      if (opts.count(OPT_FROM) > 0) {
+         dehex0x(opts[OPT_FROM].as<std::string>(), from);
 	 ethReq->set_addr_from(from);
       }
-      if (opts.count("to") > 0) {
-         dehex0x(opts["to"].as<std::string>(), to);
+      if (opts.count(OPT_TO) > 0) {
+         dehex0x(opts[OPT_TO].as<std::string>(), to);
 	 ethReq->set_addr_to(to);
       }
-      if (opts.count("value") > 0) {
+      if (opts.count(OPT_VALUE) > 0) {
          // TODO: hex value?
          std::cout << "Warning: not supporting value yet" << std::endl;
       }
-      if (opts.count("data") > 0) {
-         dehex0x(opts["data"].as<std::string>(), data);
+      if (opts.count(OPT_DATA) > 0) {
+         dehex0x(opts[OPT_DATA].as<std::string>(), data);
 	 ethReq->set_data(data);
       }
 
@@ -144,67 +73,34 @@ int main(int argc, char** argv)
       google::protobuf::TextFormat::PrintToString(athReq, &pbtext);
       std::cout << "Message Prepared: " << pbtext << std::endl;
 
-      /*** Send request ***/
+      /*** Send & Receive ***/
 
-      std::string pb;
-      athReq.SerializeToString(&pb);
-      size_t msglen = athReq.ByteSize();
-      // only sixteen bits available
-      assert(msglen < 0x10000);
-      // little-endian!
-      char prefix[2] = {(char)msglen, (char)(msglen >> 8)};
+      AthenaResponse athResp;
+      if (call_athena(opts, athReq, athResp)) {
+         google::protobuf::TextFormat::PrintToString(athResp, &pbtext);
+         std::cout << "Received response: " << pbtext << std::endl;
 
-      boost::asio::write(s, boost::asio::buffer(prefix, 2));
-      boost::asio::write(s, boost::asio::buffer(pb, msglen));
+         /*** Handle Response ***/
 
-      std::cout << "Message Sent (" << msglen << " bytes)" << std::endl;
-
-      /*** Receive response ***/
-
-      size_t reply_length = boost::asio::read(
-         s, boost::asio::buffer(prefix, 2));
-      if (reply_length != 2) {
-         std::cerr << "Did not read full prefix, reply_length = "
-                   << reply_length << std::endl;
-      } else {
-         // little-endian!
-         msglen = ((size_t)prefix[1] << 8) | prefix[0];
-         char reply[msglen];
-         reply_length = boost::asio::read(
-            s, boost::asio::buffer(reply, msglen));
-         if (reply_length != msglen) {
-            std::cerr << "Did not read full reply, expected " <<
-               msglen << " bytes, but got " << reply_length << std::endl;
-         } else {
-            AthenaResponse athResp;
-            if (athResp.ParseFromString(std::string(reply, msglen))) {
-               google::protobuf::TextFormat::PrintToString(athResp, &pbtext);
-               std::cout << "Received response (" << msglen << " bytes): "
-                         << pbtext << std::endl;
-
-               if (athResp.eth_response_size() == 1) {
-                  EthResponse ethResp = athResp.eth_response(0);
-                  if (ethResp.has_data()) {
-                     std::string result;
-                     hex0x(ethResp.data(), result);
-                     std::cout << "Transaction Receipt: "
-                               << result << std::endl;
-                  } else {
-                     std::cerr << "EthResponse has no data" << std::endl;
-                  }
-               } else {
-                  std::cerr << "Wrong number of eth_responses: "
-                            << athResp.eth_response_size()
-                            << " (expected 1)" << std::endl;
-               }
+         if (athResp.eth_response_size() == 1) {
+            EthResponse ethResp = athResp.eth_response(0);
+            if (ethResp.has_data()) {
+               std::string result;
+               hex0x(ethResp.data(), result);
+               std::cout << "Transaction Receipt: " << result << std::endl;
             } else {
-               std::cerr << "Failed to parse respons" << std::endl;
+               std::cerr << "EthResponse has no data" << std::endl;
+               return -1;
             }
+         } else {
+            std::cerr << "Wrong number of eth_responses: "
+                      << athResp.eth_response_size()
+                      << " (expected 1)" << std::endl;
+            return -1;
          }
+      } else {
+         return -1;
       }
-
-      /*** Close Connection ***/
-      s.close();
    } catch (std::exception &e) {
       std::cerr << "Exception: " << e.what() << std::endl;
       return -1;
