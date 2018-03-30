@@ -159,7 +159,7 @@ class RPC():
       seconds to mine a contract.  With two, it seems to be less than 5
       seconds.
       '''
-      attempts =200 if waitForMining else 1
+      attempts = 200 if waitForMining else 1
       ret = None
 
       while attempts > 0 and not ret:

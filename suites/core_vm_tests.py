@@ -22,6 +22,8 @@ log = logging.getLogger(__name__)
 # The config file contains information aobut how to run things, as opposed to
 # command line parameters, which are about running tests.
 CONFIG_JSON = "resources/user_config.json"
+INTENTIONALLY_SKIPPED_TESTS = "suites/skipped/core_vm_tests_to_skip.json"
+SUPPLEMENTAL_RESULTS = "suites/supplementalResults/core_vm_supplemental_results.json"
 TEST_LOG_DIR = "test_logs"
 TEST_SOURCE_CODE_SUFFIX = "Filler.json"
 
@@ -32,7 +34,8 @@ class CoreVMTests(test_suite.TestSuite):
    _ethereumMode = False
    _productMode = True
    _resultFile = None
-   _skippedFile = None
+   _supplementalResults = None
+   _unintentionallySkippedFile = None
 
    def __init__(self, passedArgs):
       self._args = passedArgs
@@ -41,12 +44,15 @@ class CoreVMTests(test_suite.TestSuite):
       self._productMode = not self._ethereumMode
       self._resultFile = os.path.join(passedArgs.resultsDir,
                                      "coreVMTestResults.json")
-      self._skippedFile = os.path.join(passedArgs.resultsDir,
-                                       "skippedTests.json")
-      self._skippedTests = {}
+      self._supplementalResults = \
+                           util.json_helper.readJsonFile(SUPPLEMENTAL_RESULTS)
+      self._unintentionallySkippedFile = \
+                                         os.path.join(passedArgs.resultsDir,
+                                         "unintentionallySkippedTests.json")
+      self._unintentionallySkippedTests = {}
       self._results = {
          "CoreVMTests": {
-            "result":"N/A",
+            "result":"",
             "tests":{}
          }
       }
@@ -92,7 +98,10 @@ class CoreVMTests(test_suite.TestSuite):
 
             testName = list(testCompiled.keys())[0]
             testLogDir = os.path.join(self._args.resultsDir, TEST_LOG_DIR, testName)
-            result, info = self._runRpcTest(testSource, testCompiled, testLogDir)
+            result, info = self._runRpcTest(test,
+                                            testSource,
+                                            testCompiled,
+                                            testLogDir)
 
             if info:
                info += "  "
@@ -119,16 +128,29 @@ class CoreVMTests(test_suite.TestSuite):
       writeMe = None
 
       if result == None:
+         # TODO: I'm starting to think we should write unintentionally
+         #       skipped tests to the main results, too.
          log.debug("Skipping test '{}': '{}'".format(testName, info))
-         tempFile = self._skippedFile + "_temp"
-         realFile = self._skippedFile
-         self._skippedTests[testName] = info
-         writeMe = self._skippedTests
+         tempFile = self._unintentionallySkippedFile + "_temp"
+         realFile = self._unintentionallySkippedFile
+         self._unintentionallySkippedTests[testName] = info
+         writeMe = self._unintentionallySkippedTests
       else:
-         log.info(result)
          tempFile = self._resultFile + "_temp"
          realFile = self._resultFile
          result = "PASS" if result else "FAIL"
+         log.info(result)
+
+         # Never change the suite's result once it's set to fail.
+         print("suite result before:", self._results["CoreVMTests"]["result"])
+         print("test result:", result)
+
+         if (not self._results["CoreVMTests"]["result"] == "FAIL") and \
+            (not self._results["CoreVMTests"]["result"] == result):
+            self._results["CoreVMTests"]["result"] = result
+
+         print("suite result after:", self._results["CoreVMTests"]["result"])
+
          self._results["CoreVMTests"]["tests"][testName] = {
             "result": result,
             "info": info
@@ -146,36 +168,77 @@ class CoreVMTests(test_suite.TestSuite):
       '''
       self._userConfig = util.json_helper.readJsonFile(CONFIG_JSON)
 
-      if self._userConfig:
-         if "ethereum" in self._userConfig and \
-            "testRoot" in self._userConfig["ethereum"]:
+      if "ethereum" in self._userConfig and \
+         "testRoot" in self._userConfig["ethereum"]:
 
-            self._userConfig["ethereum"]["testRoot"] = \
-               os.path.expanduser(self._userConfig["ethereum"]["testRoot"])
+         self._userConfig["ethereum"]["testRoot"] = \
+            os.path.expanduser(self._userConfig["ethereum"]["testRoot"])
 
-      else:
-         exit(1)
+   def _removeSkippedTests(self, testList):
+      '''
+      Loads the skipped test file and removes skipped tests from the given
+      test list.
+      '''
+      skippedConfig = util.json_helper.readJsonFile(INTENTIONALLY_SKIPPED_TESTS)
+      for key in list(skippedConfig.keys()):
+         skippedTest = os.path.join(self._userConfig["ethereum"]["testRoot"],
+                                    key)
+         if skippedTest in testList:
+            log.info("Skipping: {}".format(key))
+            testList.remove(skippedTest)
 
    def _getTests(self):
       '''
       Returns a list of file names.  Each file is a test to run.
       '''
-      ethTests = self._userConfig["ethereum"]["testRoot"]
-      vmArithmeticTests = os.path.join(ethTests, "VMTests", "vmArithmeticTest")
-
-      # This returns every test in vmArithmeticTests.
+      vmTests = os.path.join(self._userConfig["ethereum"]["testRoot"], "VMTests")
+      testSubDirs = [
+         "vmArithmeticTest",
+         "vmBitwiseLogicOperation",
+         "vmRandomTest",
+         "vmPushDupSwapTest",
+         "vmSha3Test"
+      ]
       tests = []
-      for test in os.listdir(vmArithmeticTests):
-         tests.append(os.path.join(vmArithmeticTests, test))
 
+      for subdir in testSubDirs:
+         for test in os.listdir(os.path.join(vmTests, subdir)):
+            tests.append(os.path.join(vmTests, subdir, test))
+
+      self._removeSkippedTests(tests)
       return tests
-
       ############################################################
       # Special tests
       # The following are skipped or fail for various reasons
       # and are work in progress.
       ############################################################
-
+      # For this, verify that 0xbadf000d is not stored in 0x11.
+      # return [
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_Overflow_dj42Filler.json"
+      # ]
+      #
+      # These tests do not specify what to look for and I am unsure what to look
+      # for after reading the code:
+      # return [
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/mulUnderFlow.json"
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/stop.json",
+      # ]
+      #
+      # These tests require data to be passed in.
+      # Tried a bunch of stuff...haven't figured out how to get CALLDATALOAD to work with these bytecode things.  Is it because these aren't full contracts?
+      # return [
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/expXY_success.json"
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/expXY.json"
+      # ]
+      #
+      # These tests do not specify what to look for, but after reading the code,
+      # I think they should store 0 at 0x0.
+      # return [
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_BigByte_0.json",
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/divByNonZero1.json"
+      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_00.json"
+      # ]
+      #
       # These tests end with MSTORE instead of SSTORE, so we have to get their
       # value via execution.
       # I am not sure why, but calling eth_call() results in nothing, while
@@ -188,31 +251,6 @@ class CoreVMTests(test_suite.TestSuite):
       #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/not1.json",
       # ]
 
-      # These tests do not specify what to look for, but after reading the code,
-      # I think they should store 0 at 0x0.
-      # return [
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_BigByte_0.json",
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/divByNonZero1.json"
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_00.json"
-      # ]
-
-      # These tests do not specify what to look for and I am unsure what to look
-      # for after reading the code:
-      # return [
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/mulUnderFlow.json"
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/stop.json",
-      # ]
-
-      # For this, verify that 0xbadf000d is not stored in 0x11.
-      # return [
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/signextend_Overflow_dj42Filler.json"
-      # ]
-
-      # # These tests require data to be passed in.
-      # return [
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/expXY_success.json",
-      #    "/home/rvollmar/source/ethereum_tests/VMTests/vmArithmeticTest/expXY.json",
-      # ]
 
       #########################################################################
       # Special tests after this comment are done/working.
@@ -269,7 +307,7 @@ class CoreVMTests(test_suite.TestSuite):
       else:
          return self._userConfig["product"]["users"][0]["hash"]
 
-   def _runRpcTest(self, testSource, testCompiled, testLogDir):
+   def _runRpcTest(self, testPath, testSource, testCompiled, testLogDir):
       ''' Runs one test. '''
       success = None
       info = None
@@ -283,7 +321,9 @@ class CoreVMTests(test_suite.TestSuite):
       gas = "0x47e7c4" if self._ethereumMode else None
 
       caller = self._getAUser()
-      expectedStorage = self._getExpectedStorageResults(testSource, testCompiled)
+      expectedStorage = self._getExpectedStorageResults(testPath,
+                                                        testSource,
+                                                        testCompiled)
 
       if not expectedStorage:
         info = "Could not find expected storage results."
@@ -299,12 +339,9 @@ class CoreVMTests(test_suite.TestSuite):
             contractAddress = rpc.getContractAddrFromTxHash(txHash,
                                                             self._ethereumMode)
             if contractAddress:
-               if (len(expectedStorage) < 1):
-                  info = "No storage section."
-               else:
-                  success, info = self._checkResult(rpc,
-                                                    contractAddress,
-                                                    expectedStorage)
+               success, info = self._checkResult(rpc,
+                                                 contractAddress,
+                                                 expectedStorage)
             else:
                info = "Never received contract address."
          else:
@@ -312,7 +349,7 @@ class CoreVMTests(test_suite.TestSuite):
 
       return (success, info)
 
-   def _getExpectedStorageResults(self, testSource, testCompiled):
+   def _getExpectedStorageResults(self, testPath, testSource, testCompiled):
       '''
       The ideal expected result is in the source file, since that is more
       detailed.  With some tests, there is only an expected result in the
@@ -325,18 +362,29 @@ class CoreVMTests(test_suite.TestSuite):
                         "0x02" : "0x0200"
                      }
       '''
-      returnedStorage = None
       storage = self._getStorageSection(testSource)
-
       if storage and self._containsStorageData(storage):
-         returnedStorage = storage
-      else:
-         storage = self._getStorageSection(testCompiled)
+         return storage
 
-         if storage and self._containsStorageData(storage):
-            returnedStorage = storage
+      storage = self._getStorageSection(testCompiled)
+      if storage and self._containsStorageData(storage):
+         return storage
 
-      return returnedStorage
+      storage = self._getSupplementalStorageSection(testPath)
+      return storage
+
+   def _getSupplementalStorageSection(self, testPath):
+      '''
+      Given the full path of the test, look for a match in the supplemental
+      results.  We do this because some test cases do not define the expected
+      result.
+      '''
+      subPath = testPath.replace(self._userConfig["ethereum"]["testRoot"] + "/",
+                                 "")
+      if subPath in list(self._supplementalResults.keys()):
+         return self._supplementalResults[subPath]
+
+      return None
 
    def _containsStorageData(self, storage):
       '''

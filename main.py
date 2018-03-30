@@ -5,10 +5,12 @@
 #########################################################################
 import argparse
 import logging
+import os
 from tempfile import mkdtemp
 from time import strftime, localtime
 
 from suites import core_vm_tests
+from util import html, json_helper
 
 log = None
 
@@ -66,6 +68,47 @@ def createResultsDir(suiteName):
    return mkdtemp(prefix=prefix)
 
 def processResults(resultsFile):
-   log.info("Would process results for '{}'".format(resultsFile))
+   '''
+   Process a result file, outputting an html file.  If we ever need to output
+   a file in another format (such as a CI tool), do that here.
+   '''
+   log.debug("Processing results for '{}'".format(resultsFile))
+   results = json_helper.readJsonFile(resultsFile)
+   testCount, passCount, failCount = tallyResults(results)
+   fileContents = html.createResultHeader(results,
+                                  testCount,
+                                  passCount,
+                                  failCount)
+   fileContents += html.createResultTable(results)
+   fileLocation = os.path.join(os.path.dirname(resultsFile), "results.html")
+
+   with open(fileLocation, "w") as f:
+      f.write(fileContents)
+
+   log.info("Results written to '{}'".format(fileLocation))
+
+def tallyResults(results):
+   '''
+   Given the results structure, returns:
+   - Total number of tests run.
+   - Passes
+   - Failures
+   (It may return the number of skips eventually, so total - passes != failures.)
+   '''
+   suiteName = list(results.keys())[0]
+   testCases = results[suiteName]["tests"]
+   passCount = 0
+   failCount = 0
+   totalCount = 0
+
+   for test in testCases:
+      totalCount += 1
+
+      if testCases[test]["result"] == "PASS":
+         passCount += 1
+      elif testCases[test]["result"] == "FAIL":
+         failCount += 1
+
+   return totalCount, passCount, failCount
 
 main()
