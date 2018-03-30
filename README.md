@@ -125,6 +125,19 @@ make
 sudo make install
 ```
 
+#### Google Test
+Athena uses GoogleTest framework for unit testsing. We also need that during the build process of athena. please clone google test to the same directory you cloned athena (i.e. one directory up from this README file), and build it
+```
+git@github.com:google/googletest.git
+cd googletest
+mkdir _build
+cd _build
+cmake ..
+make
+
+```
+Note: the build directory starts with and underscore (_) it is required to use the exact same name
+
 ### Athena
 
 Once dependencies are installed, build athena:
