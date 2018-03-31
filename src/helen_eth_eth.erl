@@ -100,8 +100,7 @@ getTransactionReceipt_athena(TxHash) ->
                              contract_address=Address} ->
                     {ok, {struct, [{<<"status">>,
                                     iolist_to_binary(
-                                      %% Status is either 0 or 1
-                                      ["0x",integer_to_list(Status)])},
+                                      ["0x",integer_to_list(Status, 16)])},
                                    {<<"transactionHash">>,
                                     helen_eth:hex0x(TxHash)}
                                    |[{<<"contractAddress">>,
