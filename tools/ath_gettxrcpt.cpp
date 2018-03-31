@@ -1,6 +1,6 @@
 // Copyright 2018 VMware, all rights reserved
 //
-// Send a transaction to Athena directly.
+// Get a transaction receipt from Athena directly.
 
 #include <iostream>
 #include <inttypes.h>
@@ -16,25 +16,24 @@
 using namespace boost::program_options;
 using namespace com::vmware::athena;
 
-#define OPT_FROM "from"
-#define OPT_TO "to"
-#define OPT_VALUE "value"
-#define OPT_DATA "data"
+#define OPT_RECEIPT "receipt"
 
 void add_options(options_description &desc) {
    desc.add_options()
-      (OPT_FROM",f",
+      (OPT_RECEIPT",r",
        value<std::string>(),
-       "Address to send the TX from")
-      (OPT_TO",t",
-       value<std::string>(),
-       "Address to send the TX to")
-      (OPT_VALUE",v",
-       value<int>(),
-       "Amount to pass as value")
-      (OPT_DATA",d",
-       value<std::string>(),
-       "Hex-encoded string to pass as data");
+       "Address to send the TX from");
+}
+
+std::string status_to_string(int32_t status) {
+   switch (status) {
+   case 0:
+      return "(failure)";
+   case 1:
+      return "(success)";
+   default:
+      return "(error: unknown status value)";
+   }
 }
 
 int main(int argc, char** argv)
@@ -49,25 +48,13 @@ int main(int argc, char** argv)
 
       AthenaRequest athReq;
       EthRequest *ethReq = athReq.add_eth_request();
-      std::string from;
-      std::string to;
-      std::string data;
+      std::string rcpthash;
 
-      if (opts.count(OPT_FROM) > 0) {
-         dehex0x(opts[OPT_FROM].as<std::string>(), from);
-	 ethReq->set_addr_from(from);
-      }
-      if (opts.count(OPT_TO) > 0) {
-         dehex0x(opts[OPT_TO].as<std::string>(), to);
-	 ethReq->set_addr_to(to);
-      }
-      if (opts.count(OPT_VALUE) > 0) {
-         // TODO: hex value?
-         std::cout << "Warning: not supporting value yet" << std::endl;
-      }
-      if (opts.count(OPT_DATA) > 0) {
-         dehex0x(opts[OPT_DATA].as<std::string>(), data);
-	 ethReq->set_data(data);
+      ethReq->set_method(EthRequest_EthMethod_GET_TX_RECEIPT);
+
+      if (opts.count(OPT_RECEIPT) > 0) {
+         dehex0x(opts[OPT_RECEIPT].as<std::string>(), rcpthash);
+	 ethReq->set_data(rcpthash);
       }
 
       std::string pbtext;
@@ -85,13 +72,19 @@ int main(int argc, char** argv)
 
          if (athResp.eth_response_size() == 1) {
             EthResponse ethResp = athResp.eth_response(0);
-            if (ethResp.has_data()) {
-               std::string result;
-               hex0x(ethResp.data(), result);
-               std::cout << "Transaction Receipt: " << result << std::endl;
+            if (ethResp.has_status()) {
+               uint32_t status = ethResp.status();
+               std::cout << "Transaction status: " << status
+                         << " " << status_to_string(status) << std::endl;
             } else {
-               std::cerr << "EthResponse has no data" << std::endl;
+               std::cerr << "EthResponse has no status" << std::endl;
                return -1;
+            }
+
+            if (ethResp.has_contract_address()) {
+               std::string result;
+               hex0x(ethResp.contract_address(), result);
+               std::cout << "Contract address: " << result << std::endl;
             }
          } else {
             std::cerr << "Wrong number of eth_responses: "

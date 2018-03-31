@@ -3,7 +3,6 @@
 // Athena Ethereum VM management.
 
 #include <iostream>
-#include <iomanip>
 #include <cstring>
 #include <stdexcept>
 #include <log4cplus/loggingmacros.h>
@@ -11,6 +10,7 @@
 
 #include "athena_evm.hpp"
 #include "athena_log.hpp"
+#include "athena_types.hpp"
 
 #ifdef USE_HERA
 #include "hera.h"
@@ -56,7 +56,8 @@ com::vmware::athena::EVM::~EVM() {
  * contract.
  */
 void com::vmware::athena::EVM::call(evm_message &message,
-                                    evm_result &result /* out */)
+                                    evm_result &result /* out */,
+                                    std::vector<uint8_t> &txhash /* out */)
 {
    assert(message.kind != EVM_CREATE);
 
@@ -66,7 +67,14 @@ void com::vmware::athena::EVM::call(evm_message &message,
       LOG4CPLUS_DEBUG(logger, "Loaded code from " <<
                       HexPrintAddress{&message.destination});
       memcpy(&message.code_hash.bytes, &hash[0], sizeof(evm_uint256be));
+
       execute(message, code, result);
+
+      // no contract was created here
+      std::vector<uint8_t> created_contract_address;
+      std::vector<uint8_t> to(message.destination.bytes,
+                              message.destination.bytes+sizeof(evm_address));
+      record_transaction(message, result, to, created_contract_address, txhash);
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " <<
                       HexPrintAddress{&message.destination} <<
@@ -85,7 +93,8 @@ void com::vmware::athena::EVM::call(evm_message &message,
  * Create a contract.
  */
 void com::vmware::athena::EVM::create(evm_message &message,
-                                      evm_result &result /* out */)
+                                      evm_result &result /* out */,
+                                      std::vector<uint8_t> &txhash /* out */)
 {
    assert(message.kind == EVM_CREATE);
    assert(message.input_size > 0);
@@ -104,7 +113,17 @@ void com::vmware::athena::EVM::create(evm_message &message,
                               message.input_data+message.input_size);
       memcpy(message.destination.bytes, &contract_address[0],
              sizeof(evm_address));
+
       execute(message, create_code, result);
+
+      // creates are not addressed
+      std::vector<uint8_t> to;
+      // don't expose the address if it wasn't used
+      std::vector<uint8_t> recorded_contract_address =
+         result.status_code == EVM_SUCCESS ?
+         contract_address : std::vector<uint8_t>();
+      record_transaction(message, result, to, recorded_contract_address,
+                         txhash);
 
       if (result.status_code == EVM_SUCCESS) {
          LOG4CPLUS_DEBUG(logger, "Contract created at " <<
@@ -127,6 +146,42 @@ void com::vmware::athena::EVM::create(evm_message &message,
       // attempted to call a contract that doesn't exist
       result.status_code = EVM_FAILURE;
    }
+}
+
+/**
+ * Compute the hash for the transaction, and put the record in storage.
+ */
+void com::vmware::athena::EVM::record_transaction(
+   evm_message &message,
+   evm_result &result,
+   std::vector<uint8_t> &to_override,
+   std::vector<uint8_t> &contract_address,
+   std::vector<uint8_t> &txhash /* out */)
+{
+   std::vector<uint8_t> from(message.sender.bytes,
+                             message.sender.bytes+sizeof(evm_address));
+   uint64_t nonce = get_nonce(from);
+   EthTransaction tx{
+      nonce, from, to_override, contract_address,
+         std::vector<uint8_t>(message.input_data,
+                              message.input_data+message.input_size),
+         result.status_code
+         };
+
+   hash_for_transaction(tx, txhash);
+   LOG4CPLUS_DEBUG(logger, "Recording transaction " <<
+                   HexPrintVector{txhash});
+
+   transactions[txhash] = tx;
+}
+
+/**
+ * Get a transaction given its hash.
+ */
+EthTransaction com::vmware::athena::EVM::get_transaction(
+   std::vector<uint8_t> txhash)
+{
+   return transactions[txhash];
 }
 
 /**
@@ -192,6 +247,97 @@ void com::vmware::athena::EVM::contract_destination(
    // the lower 20 bytes are the address
    address.resize(sizeof(evm_address));
    address.assign(hash.begin()+(hash.size()-sizeof(evm_address)), hash.end());
+}
+
+/**
+ * Compute the hash which will be used to reference the transaction.
+ */
+void com::vmware::athena::EVM::hash_for_transaction(
+   EthTransaction &tx, std::vector<uint8_t> &txhash /* out */)
+{
+   //TODO: write RLP encoding function
+   // https://github.com/ethereum/wiki/wiki/RLP
+
+   /*
+    * WARNING: This is not the same as Ethereum's transaction hash right now,
+    * but is instead an approximation, in order to provide something to fill API
+    * holes. For now, the plan is:
+    *
+    * RLP([nonce, from, to/contract_address, input])
+    */
+
+   std::vector<uint8_t> rlp;
+   size_t field_length_count;
+   size_t field_length;
+
+   // Build RLP encoding backward, then reverse before returning.
+   // backward = input first
+   std::reverse_copy(tx.input.begin(), tx.input.end(), std::back_inserter(rlp));
+   if (tx.input.size() < 56) {
+      rlp.push_back(0x80 + tx.input.size());
+   } else {
+      field_length = tx.input.size();
+      field_length_count = 0;
+      do {
+         ++field_length_count;
+         rlp.push_back(field_length & 0xff);
+         field_length >>= 8;
+      } while (field_length > 0);
+      rlp.push_back(0xb7 + field_length);
+   }
+
+   // now the to/contract address
+   std::vector<uint8_t> &to = tx.contract_address.size() > 0
+      ? tx.contract_address : tx.to;
+   std::reverse_copy(to.begin(), to.end(), std::back_inserter(rlp));
+   // prefix (max 55 bytes for this particular encoding)
+   assert(to.size() < 56);
+   rlp.push_back(0x80 + to.size());
+
+   // now the from address
+   std::reverse_copy(tx.from.begin(), tx.from.end(), std::back_inserter(rlp));
+   // prefix (max 55 bytes for this particular encoding)
+   assert(tx.from.size() < 56);
+   rlp.push_back(0x80 + tx.from.size());
+
+   // and finally the nonce
+   uint64_t nonce = tx.nonce;
+   if (nonce < 0x80) {
+      // very small numbers are represented by themselves
+      rlp.push_back(nonce);
+   } else {
+      field_length_count = 0;
+      do {
+         ++field_length_count;
+         rlp.push_back(nonce & 0xff);
+         nonce >>= 8;
+      } while(nonce > 0);
+      // prefix (0x80 = short string)
+      rlp.push_back(0x80 + field_length_count);
+   }
+
+   field_length = rlp.size();
+   if (field_length < 56) {
+      // 0xc0 = short list
+      rlp.push_back(0xc0 + field_length);
+   } else {
+      field_length_count = 0;
+      do {
+         ++field_length_count;
+         rlp.push_back(field_length & 0xff);
+         field_length >>= 8;
+      } while(field_length > 0);
+      // 0xf7 = long list
+      rlp.push_back(0xf7 + field_length_count);
+   }
+
+   // get the RLP in the correct order
+   std::reverse(rlp.begin(), rlp.end());
+
+   // hash it
+   keccak_hash(rlp, txhash);
+
+   assert(txhash.size() == 32);
 }
 
 void com::vmware::athena::EVM::keccak_hash(

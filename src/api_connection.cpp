@@ -209,9 +209,14 @@ api_connection::handle_eth_request(int i) {
    // currently
    const EthRequest request = athenaRequest_.eth_request(i);
 
-   if (request.method() == EthRequest_EthMethod_SEND_TX) {
+   switch (request.method()) {
+   case EthRequest_EthMethod_SEND_TX:
       handle_eth_sendTransaction(request);
-   } else {
+      break;
+   case EthRequest_EthMethod_GET_TX_RECEIPT:
+      handle_eth_getTxReceipt(request);
+      break;
+   default:
       ErrorResponse *e = athenaResponse_.add_error_response();
       e->mutable_description()->assign("ETH Method Not Implemented");
    }
@@ -250,6 +255,7 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
    // TODO: get this from the request
    message.gas = 1000000;
 
+   std::vector<uint8_t> txhash;
    if (request.has_addr_to()) {
       message.kind = EVM_CALL;
 
@@ -257,11 +263,11 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
       assert(20 == request.addr_to().length());
       memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
 
-      athevm_.call(message, result);
+      athevm_.call(message, result, txhash);
    } else {
       message.kind = EVM_CREATE;
 
-      athevm_.create(message, result);
+      athevm_.create(message, result, txhash);
    }
 
    LOG4CPLUS_INFO(logger_, "Execution result -" <<
@@ -271,7 +277,34 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
 
    EthResponse *response = athenaResponse_.add_eth_response();
    response->set_id(request.id());
-   // TODO: put output data in the response
+   response->set_data(std::string(txhash.begin(), txhash.end()));
+}
+
+/**
+ * Handle and eth_getTransactionReceipt request.
+ */
+void
+api_connection::handle_eth_getTxReceipt(const EthRequest &request) {
+   if (request.has_data() && request.data().size() == sizeof(evm_uint256be)) {
+      std::vector<uint8_t> txhash(request.data().begin(),
+                                  request.data().end());
+
+      LOG4CPLUS_DEBUG(logger_, "Looking up transaction receipt " <<
+                      HexPrintVector{txhash});
+      EthTransaction tx = athevm_.get_transaction(txhash);
+
+      EthResponse *response = athenaResponse_.add_eth_response();
+      response->set_id(request.id());
+      response->set_status(tx.status == EVM_SUCCESS ? 1 : 0);
+      if (tx.contract_address.size() > 0) {
+         response->set_contract_address(
+            std::string(tx.contract_address.begin(),
+                        tx.contract_address.end()));
+      }
+   } else {
+      ErrorResponse *error = athenaResponse_.add_error_response();
+      error->set_description("Missing or invalid transaction hash");
+   }
 }
 
 /*
