@@ -21,9 +21,9 @@ public abstract class BaseServlet extends HttpServlet {
    protected abstract void doGet(final HttpServletRequest request,
                                  final HttpServletResponse response)
                            throws IOException;
-   
+
    protected IConfiguration _conf;
-        
+
    protected abstract JSONObject parseToJSON(
             Athena.AthenaResponse athenaResponse);
 
@@ -31,10 +31,10 @@ public abstract class BaseServlet extends HttpServlet {
       try {
          _conf = FileConfiguration.getInstance();
       } catch (IOException e) {
-         
+
       }
    }
-   
+
    /**
     * Process get request
     * @param req - Athena request object
@@ -78,15 +78,15 @@ public abstract class BaseServlet extends HttpServlet {
       respObject = parseToJSON(athenaResponse);
       String json = respObject == null ? null
             : respObject.toJSONString();
-      
+
       processResponse(response,
                      json,
-                     json == null ? 
+                     json == null ?
                         HttpServletResponse.SC_INTERNAL_SERVER_ERROR :
                         HttpServletResponse.SC_OK,
                      log);
    }
-   
+
    /**
     * Process response back to the client
     * @param resp - response object from the servlet

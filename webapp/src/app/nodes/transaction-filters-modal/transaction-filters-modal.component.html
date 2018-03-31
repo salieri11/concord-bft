@@ -1,0 +1,45 @@
+<clr-modal [(clrModalOpen)]="isOpened">
+  <h3 class="modal-title">Filter Transactions</h3>
+  <div class="modal-body">
+    <form>
+      <div class="form-block">
+        <div class="form-group">
+          <label for="transaction-status">By Status</label>
+          <div class="select">
+            <select name="transaction-status" id="transaction-status">
+              <option value="">Pending Transactions</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="transaction-type">By Transaction Type</label>
+          <div class="select">
+            <select name="transaction-type" id="transaction-type">
+              <option value="">All Transactions</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="transaction-date-range">By Date Range</label>
+          <div class="select">
+            <select name="transaction-date-range" id="transaction-date-range">
+              <option value="">Past 7 Days</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="transaction-owner">By Owner</label>
+          <div class="select">
+            <select name="transaction-owner" id="transaction-owner">
+              <option value="">All Owners</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-outline" (click)="onCancel()">Cancel</button>
+    <button type="button" class="btn btn-primary" (click)="onApply()">Apply</button>
+  </div>
+</clr-modal>

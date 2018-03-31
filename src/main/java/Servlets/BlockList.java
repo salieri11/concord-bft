@@ -1,31 +1,27 @@
 /**
  * url endpoint : /api/athena/blocks
  * Used to list blocks in the chain, most recent first.
- * 
+ *
  * This servlet is used to send BlockList Requests to Athena and to parse
  * the responses into JSON. A TCP socket connection is made to Athena
  * and requests and responses are encoded in the Google Protocol Buffer
  * format.
- * 
+ *
  * Athena, by default, runs on port 5458.
- * 
+ * TODO : Handle the case of no/incorrect response from Athena
  */
 package Servlets;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.vmware.athena.*;
 
 import connections.AthenaConnectionPool;
-import connections.AthenaTCPConnection;
 import connections.IAthenaConnection;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.Properties;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -34,6 +30,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.ParseException;
 
 /**
  * Servlet class.
@@ -43,11 +40,11 @@ public final class BlockList extends BaseServlet {
    private final static Logger logger = Logger.getLogger(BlockList.class);
 
    /**
-    * Services a get request. Constructs a protobuf request
-    * of type blocklist request (enveloped in an athena request) 
-    * as defined in athena.proto. Sends this request to Athena. 
-    * Parses the response and converts it into json for responding
-    * to the client.
+    * Services a get request. Constructs a protobuf request of type blocklist
+    * request (enveloped in an athena request) as defined in athena.proto. Sends
+    * this request to Athena. Parses the response and converts it into json for
+    * responding to the client.
+    *
     * @param request
     *           The request received by the servlet
     * @param response
@@ -57,15 +54,45 @@ public final class BlockList extends BaseServlet {
    @Override
    protected void doGet(final HttpServletRequest request,
          final HttpServletResponse response) throws IOException {
-      // Construct a blocksListRequest object. Set its start field.
-      final Athena.BlocksListRequest blocksListRequestObj = 
-            Athena.BlocksListRequest.newBuilder()
-            .setStart(5) // (IG) get rid of magic numbers
-            .build();
+
+      // Read the request params
+      Long end = null;
+      Long listLength = null;
+
+      try {
+         end = Long.parseLong(request.getParameter("end"));
+
+      } catch (Exception e) {
+         // Do nothing as this parameter is optional
+      }
+
+      try {
+         listLength = Long.parseLong(request.getParameter("listLength"));
+      } catch (Exception e) {
+         // Do nothing as this parameter is optional
+      }
+
+      // Construct a blocksListRequest object.
+      Athena.BlocksListRequest.Builder b = Athena.BlocksListRequest
+               .newBuilder();
+      // If end is null, Athena assumes end is the latest block
+      if (end != null) {
+         b.setEnd(end);
+      }
+
+      // If listLength is null, request for default no. of blocks
+      if (listLength == null) {
+         listLength = _conf
+                     .getLongValue("BlockList_DefaultListLength");
+      }
+      b.setListLength(listLength);
+
+      Athena.BlocksListRequest blocksListRequestObj =
+         b.build();
 
       // Envelope the blocksListRequest object into an athena object.
       final Athena.AthenaRequest athenarequestObj =
-            Athena.AthenaRequest.newBuilder()
+         Athena.AthenaRequest.newBuilder()
             .setBlocksListRequest(blocksListRequestObj)
             .build();
 
@@ -74,7 +101,7 @@ public final class BlockList extends BaseServlet {
 
    /**
     * Note : This is a temporary function which mocks Athena's response.
-    * 
+    *
     * @return
    */
    public JSONObject receiveFromAthenaMock() {
@@ -105,9 +132,7 @@ public final class BlockList extends BaseServlet {
             .setBlocksListResponse(blocksListResponseObj)
             .build();
 
-      // Convert Protocol Buffer to JSON.
-      JSONObject responseJson = parseToJSON(athenaresponseObj);
-      return responseJson;
+      return parseToJSON(athenaresponseObj);
    }
 
    /**

@@ -1,18 +1,17 @@
 /**
  * url endpoint : /api/athena/blocks/{N}
  * Used to fetch a specific block from the chain.
- * 
+ *
  * This servlet is used to send BlockNumber Requests to Athena and to parse
  * the responses into JSON. A TCP socket connection is made to Athena
  * and requests and responses are encoded in the Google Protocol Buffer
  * format.
- * 
+ *
  * Athena, by default, runs on port 5458.
- * 
+ * TODO : Handle the case of no/incorrect response from Athena
  */
 package Servlets;
 
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.ProtocolStringList;
 import com.vmware.athena.*;
 
@@ -21,12 +20,9 @@ import connections.AthenaTCPConnection;
 import connections.IAthenaConnection;
 import io.undertow.util.StatusCodes;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Iterator;
-import java.util.concurrent.locks.ReentrantLock;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -35,20 +31,22 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.ParseException;
 
 /**
  * Servlet class.
  */
 public final class BlockNumber extends BaseServlet {
    private static final long serialVersionUID = 1L;
-   private final Logger logger = Logger.getLogger(BlockNumber.class);
+   private final static Logger _logger =
+      Logger.getLogger(BlockNumber.class);
 
    /**
     * Services a get request. Constructs a protobuf request
     * of type blocknumber request (enveloped in an athena request)
-    * as defined in athena.proto. Sends this request to Athena. 
+    * as defined in athena.proto. Sends this request to Athena.
     * Parses the response and converts it into json for
-    * responding to the client.
+    * sendiong to clientß
     * @param request
     *           The request received by the servlet
     * @param response
@@ -59,39 +57,38 @@ public final class BlockNumber extends BaseServlet {
    protected void doGet(final HttpServletRequest request,
          final HttpServletResponse response) throws IOException {
       // Read the requested block number from the uri
-      Long blockNumber = null;
+      Long index = null;
       try {
          String uri = request.getRequestURI();
-         blockNumber = Long.parseLong(
-               uri.substring(
-                     uri.lastIndexOf('/') + 1));
+         String urlParam = uri.substring(uri.lastIndexOf('/') + 1);
+         index = Long.parseLong(urlParam);
       } catch (NumberFormatException e) {
-         logger.error("Invalid block number");
-         response.sendError(StatusCodes.NOT_FOUND);
-         throw new NumberFormatException();
+         _logger.error("Invalid block number");
+         processResponse(response, "error",StatusCodes.BAD_REQUEST,
+               _logger);
       }
 
       // Construct a blockNumberRequest object. Set its start field.
       final Athena.BlockNumberRequest blockNumberRequestObj =
             Athena.BlockNumberRequest.newBuilder()
-            .setIndex(blockNumber)
+            .setIndex(index)
             .build();
 
       // Envelope the blockNumberRequest object into an athena object.
-      final Athena.AthenaRequest athenarequestObj = 
+      final Athena.AthenaRequest athenarequestObj =
             Athena.AthenaRequest.newBuilder()
             .setBlockNumberRequest(blockNumberRequestObj)
             .build();
 
-      processGet(athenarequestObj, response, logger);
+      processGet(athenarequestObj, response, _logger);
    }
 
    /**
     * Note : This is a temporary function which mocks Athena's response.
-    * 
+    *
     * @return
-   */
-   public JSONObject receiveFromAthenaMock() {
+    */
+   public Athena.AthenaResponse receiveFromAthenaMock() {
       final Athena.BlockDetailed blockDetailedObj = Athena.BlockDetailed
             .newBuilder()
             .setNumber(1)
@@ -104,20 +101,18 @@ public final class BlockNumber extends BaseServlet {
             .build();
 
       // Construct a blockNumberResponse object.
-      final Athena.BlockNumberResponse blockNumberResponseObj = 
+      final Athena.BlockNumberResponse blockNumberResponseObj =
             Athena.BlockNumberResponse.newBuilder()
             .setBlock(blockDetailedObj)
             .build();
 
       // Envelope the blockNumberResponse object into an athena object.
-      final Athena.AthenaResponse athenaresponseObj = 
+      final Athena.AthenaResponse athenaresponseObj =
             Athena.AthenaResponse.newBuilder()
             .setBlockNumberResponse(blockNumberResponseObj)
             .build();
 
-      // Convert Protocol Buffer to JSON.
-      JSONObject responseJson = parseToJSON(athenaresponseObj);
-      return responseJson;
+      return athenaresponseObj;
    }
 
    /**

@@ -64,4 +64,10 @@ public final class FileConfiguration implements IConfiguration {
       String retval = _configurations.getProperty(key);
       return retval;
    }
+   
+   @Override
+   public long getLongValue(String key) {
+      long retval = Long.parseLong(_configurations.getProperty(key));
+      return retval;
+   }
 }

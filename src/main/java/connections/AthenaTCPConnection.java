@@ -1,7 +1,9 @@
 /**
  * This singleton class is used to maintain resources related to a single
  * TCP connection with Athena.
- * 
+ *
+ * Also contains functions for communicating with Athena over a TCP connection.
+ *
  * These resources are shared by all servlets.
  * This means that at present, only one servlet can talk to Athena at a
  * time.
@@ -14,8 +16,9 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Properties;
 import org.apache.log4j.Logger;
-
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.vmware.athena.Athena;
 
 import configurations.*;
@@ -23,35 +26,30 @@ import configurations.*;
 public final class AthenaTCPConnection implements IAthenaConnection {
    private Socket _socket;
    private AtomicBoolean _disposed;
-
-   /** this is naive implementation of timeout.
-    * the good one will be to have
-    * timeout defined per message type
-    * since some calls may take more time in natural way
-   */
    private final int _receiveTimeout; // ms
    private final int _receiveLengthSize; // bytes
    private IConfiguration _conf;
-   private static Logger _logger = 
+   private static Logger _logger =
          Logger.getLogger(AthenaTCPConnection.class);
-   
+
    /**
    * Sets up a TCP connection with Athena
-   * and creates input and output streams or this connection
+   *
    * @throws IOException
    */
    public AthenaTCPConnection(IConfiguration conf) throws IOException {
       _conf = conf;
-      _receiveLengthSize = 
+      _receiveLengthSize =
             _conf.getIntegerValue("ReceiveHeaderSizeBytes");
       _receiveTimeout = _conf.getIntegerValue("ReceiveTimeoutMs");
       _disposed = new AtomicBoolean(false);
-      String athenaHostName = _conf.getStringValue("AthenaHostName");
-      int athenaPort = _conf.getIntegerValue("AthenaPort");
 
       // Create the TCP connection and input and output streams
       try {
-         _socket = new Socket(athenaHostName, athenaPort);
+         String host = _conf.getStringValue("AthenaHostName");
+         int port = _conf.getIntegerValue("AthenaPort");
+         _socket = 
+               new Socket(host, port);
          _socket.setTcpNoDelay(true);
       } catch (UnknownHostException e) {
          _logger.error("Error creating TCP connection with Athena");
@@ -59,8 +57,8 @@ public final class AthenaTCPConnection implements IAthenaConnection {
       } catch (IOException e) {
          _logger.error("Error creating input/output stream with Athena");
          throw new IOException();
-      } 
-      
+      }
+
       _logger.debug("Socket connection with Athena created");
    }
 
@@ -72,7 +70,7 @@ public final class AthenaTCPConnection implements IAthenaConnection {
       } catch (IOException e) {
          _logger.error("check", e);
          return null;
-      }
+       }
    }
 
    public void close() {

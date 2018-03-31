@@ -1,13 +1,11 @@
 /**
  * Server class for Helen. Boots up an Undertow server and multiple servlets.
- * Runs on localhost and port 8080 by default.
- * 
- * Helen connects to Athena at the backend. Communication between Helen and 
- * Athena is via a TCP socket connection. Messages are sent in Google Protocol 
+ * Runs on localhost and port 32773 (as per variables in config file).
+ *
+ * Helen connects to Athena at the backend. Communication between Helen and
+ * Athena is via a TCP socket connection. Messages are sent in Google Protocol
  * Buffer format. Responses from Helen to the client are in Json format.
- * 
- * StaticContent serves static content located in a folder of the same name.
- * Members serves Peer Requests from Athena.
+ *
  */
 package Servers;
 
@@ -18,15 +16,17 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import javax.servlet.ServletException;
 import org.apache.log4j.Logger;
+import org.json.simple.parser.ParseException;
 
 import Servlets.BlockList;
 import Servlets.BlockNumber;
-import Servlets.DefaultContent;
+import Servlets.EthRPC;
 import Servlets.MemberList;
 import Servlets.StaticContent;
 import configurations.FileConfiguration;
 import configurations.IConfiguration;
 import connections.AthenaConnectionPool;
+import Servlets.Transaction;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.server.handlers.PathHandler;
@@ -38,30 +38,42 @@ import io.undertow.servlet.api.DeploymentManager;
 public class Server {
    private static String serverPath;
    private static String deploymentName;
+   private static String serverHostName;
+   private static int port;
+   private static String defaultReponse;
+
    private static String memberListServletName;
-   private static String staticContentServletName;
    private static String defaultContentServletName;
    private static String blockListServletName;
    private static String blockNumberServletName;
-   private static String serverHostName;
-   private static String defaultReponse;
+   private static String ethRPCServletName;
+   private static String transactionServletName;
+   private static String swaggerServletName;
+   private static String assetsServletName;
+   private static String apiListServletName;
    private static String staticContentEndpoint;
+   private static String staticContentServletName;
    private static String memberListEndpoint;
    private static String defaultContentEndpoint;
    private static String blockListEndpoint;
    private static String blockNumberEndpoint;
-   private static int port;
+   private static String ethRPCEndpoint;
+   private static String transactionEndpoint;
+   private static String swaggerEndpoint;
+   private static String assetsEndpoint;
+   private static String apiListEndpoint;
 
    // Set current datetime for logging purposes
    static {
-      SimpleDateFormat dateFormat = 
+      SimpleDateFormat dateFormat =
             new SimpleDateFormat("dd-MM-yyyy-hh-mm-ss");
       System.setProperty(
             "current.date.time", dateFormat.format(new Date()));
    }
 
-   public static void main(String[] args) 
+   public static void main(String[] args)
          throws IOException, ServletException {
+
       final Logger logger = Logger.getLogger(Server.class);
 
       // Read configurations file
@@ -70,12 +82,12 @@ public class Server {
          conf= FileConfiguration.getInstance();
       } catch (IOException e) {
          logger.error("Error in reading configurations");
-         throw new IOException();
+         throw e;
       }
-      
+
       serverPath =
             conf.getStringValue("Undertow_Path");
-      deploymentName = 
+      deploymentName =
             conf.getStringValue("Deployment_Name");
       memberListServletName =
             conf.getStringValue("MemberList_ServletName");
@@ -116,9 +128,14 @@ public class Server {
                               MemberList.class)
                         .addMapping(memberListEndpoint))
                .addServlets(Servlets
-                        .servlet(staticContentServletName,
-                              StaticContent.class)
-                        .addMapping(staticContentEndpoint))
+                        .servlet(swaggerServletName, StaticContent.class)
+                        .addMapping(swaggerEndpoint))
+               .addServlets(
+                        Servlets.servlet(assetsServletName, StaticContent.class)
+                                 .addMapping(assetsEndpoint))
+               .addServlets(Servlets
+                        .servlet(apiListServletName, StaticContent.class)
+                        .addMapping(apiListEndpoint))
                .addServlets(
                         Servlets.servlet(blockListServletName,
                               BlockList.class)
@@ -127,9 +144,13 @@ public class Server {
                         .servlet(blockNumberServletName,
                               BlockNumber.class)
                         .addMapping(blockNumberEndpoint))
+               .addServlets(Servlets.servlet(ethRPCServletName, EthRPC.class)
+                        .addMapping(ethRPCEndpoint))
+               .addServlets(Servlets
+                        .servlet(transactionServletName, Transaction.class)
+                        .addMapping(transactionEndpoint))
                .addServlet(Servlets
-                        .servlet(defaultContentServletName,
-                                 DefaultContent.class)
+                        .servlet(defaultContentServletName, StaticContent.class)
                         .addMapping(defaultContentEndpoint));
       DeploymentManager manager = Servlets.defaultContainer()
                .addDeployment(servletBuilder);
@@ -141,11 +162,11 @@ public class Server {
                   .addPrefixPath(serverPath, manager.start());
       } catch (ServletException e1) {
          logger.error("Error in starting Deployment Manager");
-         throw new ServletException();
+         throw e1;
       }
-      
+
       AthenaConnectionPool.getInstance().initialize(conf);
-      
+
       Undertow server = Undertow.builder()
             .addHttpListener(port, serverHostName)
                .setHandler(path)
@@ -155,6 +176,5 @@ public class Server {
                //to change number of worker threads
                .build();
       server.start();
-      logger.info("Server Booted");
    }
 }

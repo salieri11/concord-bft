@@ -1,0 +1,132 @@
+<div class="p-2 bg-header">
+  <div class="row">
+    <div class="col-md flex-items-xs-middle media">
+      <a routerLink="/nodes">
+        <clr-icon shape="circle-arrow" class="is-highlight" size="28" dir="left"></clr-icon>
+      </a>
+      <h2 class="mt-0 pl-1">GAV-324V AAC Application Node</h2>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md">
+      <p class="p7 mt-0">
+        Location
+      </p>
+      <p class="mt-0">New York, NY</p>
+    </div>
+    <div class="col-md">
+      <p class="p7 mt-0">
+        Node Owners
+      </p>
+      <p class="mt-0">Allen, J</p>
+      <p class="mt-0">Dickerson, B</p>
+      <p class="mt-0">McCready, M</p>
+    </div>
+    <div class="col-md">
+      <p class="p7 mt-0">
+        Overall Node Health
+      </p>
+      <h2 class="mt-0">74%</h2>
+      <div class="progress warning">
+        <progress max="100" [value]="74"></progress>
+      </div>
+    </div>
+    <div class="col-md">
+      <p class="p7 mt-0">
+        Transactions/Second
+      </p>
+      <h2 class="mt-0">189</h2>
+      <div class="progress-with-datapoint">
+        <div class="progress black">
+          <progress max="100" [value]="50"></progress>
+        </div>
+        <div class="progress-data-point danger"></div>
+      </div>
+      <p class="p7 detail-sub-stat text-center">
+        Avg 210/sec
+      </p>
+    </div>
+    <div class="col-md">
+      <p class="p7 mt-0">
+        Avg Validation Time
+      </p>
+      <h2 class="mt-0">2.28 <small>seconds</small></h2>
+      <div class="progress-with-datapoint">
+        <div class="progress black">
+          <progress max="100" [value]="50"></progress>
+        </div>
+        <div class="progress-data-point success"></div>
+      </div>
+      <p class="p7 detail-sub-stat text-center">
+        Avg 2.58 sec
+      </p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <h3 class="mb-1">Network</h3>
+      <img class="graph-placeholder" src="assets/static/images/network-timeline.png">
+    </div>
+    <div class="col-md-6">
+      <h3 class="mb-1">Node Activity</h3>
+      <img class="graph-placeholder" src="assets/static/images/node-activity-small.png">
+    </div>
+    <div class="col-md-6">
+      <h3 class="mb-1">Node Location</h3>
+      <img class="graph-placeholder" src="assets/static/images/node-location-small.png">
+    </div>
+  </div>
+</div>
+
+<div class="p-2">
+  <div class="row">
+    <div class="col-xs-6">
+      <h3 class="mt-0">Transactions</h3>
+    </div>
+    <div class="col-xs-6">
+      <div class="form-group text-right">
+        <input type="text" placeholder="Search..." />
+        <button type="button" class="btn btn-primary" (click)="onOpenFilterModal()">Filters</button>
+      </div>
+    </div>
+  </div>
+
+  <table class="table">
+    <thead>
+    <tr>
+      <th>Timestamp</th>
+      <th>Origination</th>
+      <th>Transaction Type</th>
+      <th>Amount</th>
+      <th>Trans Length</th>
+      <th>Status</th>
+      <th>Nodes</th>
+      <th></th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td>01-28-2017</td>
+      <td>Lindberg</td>
+      <td>Lorem ipsum dolor</td>
+      <td>$785</td>
+      <td>40.87 sec</td>
+      <td>Denied</td>
+      <td>75</td>
+      <td>
+        <clr-dropdown [clrCloseMenuOnItemClick]="false">
+          <button type="button" clrDropdownTrigger>
+            <clr-icon shape="ellipsis-horizontal" size="16"></clr-icon>
+          </button>
+          <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
+            <button type="button" clrDropdownItem>Lorem ipsum</button>
+            <button type="button" clrDropdownItem>Dolor sit amet</button>
+          </clr-dropdown-menu>
+        </clr-dropdown>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+</div>
+
+<app-transaction-filters-modal #filterModal (applyFilters)="onApplyFilters()"></app-transaction-filters-modal>

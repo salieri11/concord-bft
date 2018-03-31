@@ -9,6 +9,8 @@ message AthenaRequest {
 	repeated EthRequest eth_request = 3;
 	optional BlocksListRequest blocks_list_request = 4;
 	optional BlockNumberRequest block_number_request = 5;
+	optional EthRPCExecuteRequest eth_rpc_execute_request = 6;
+	optional TransactionRequest transaction_request = 7;
 
 	// 4-2045 open for definition
 	// Likely: metrics/stats, non-eth blockchain, other admin
@@ -41,8 +43,17 @@ message EthRequest {
 	optional bool create = 7;
 }
 
+//enforce "required" in code as per Google recommendations
+message EthRPCExecuteRequest {
+	optional int64 id = 1; //required
+	optional string jsonrpc = 2; //required
+	optional string method = 3; //required
+	repeated bytes params = 4; //required
+}
+
 message BlocksListRequest {
-	optional int64 start = 1;
+	optional int64 end = 1;
+	optional int64 listLength = 2;
 }
 
 message BlockNumberRequest {
@@ -53,12 +64,18 @@ message TestRequest {
 	optional string echo = 1;
 }
 
+message TransactionRequest {
+	optional bytes hashParam = 1;
+}
+
 message AthenaResponse {
 	optional ProtocolResponse protocol_response = 1;
 	optional PeerResponse peer_response = 2;
 	repeated EthResponse eth_response = 3;
 	optional BlocksListResponse blocks_list_response = 4;
 	optional BlockNumberResponse block_number_response = 5;
+	optional EthRPCExecuteResponse eth_rpc_execute_response = 6;
+	optional TransactionResponse transaction_response = 7;
 
 	// 4-2045 open for definition
 	optional TestResponse test_response = 2046;
@@ -84,6 +101,26 @@ message BlocksListResponse {
 
 message BlockNumberResponse {
 	optional BlockDetailed block = 1;
+}
+
+//enforce "required" in code as per Google recommendations
+message EthRPCExecuteResponse {
+	optional int64 id = 1; //required
+	optional string jsonrpc = 2; //required
+	optional bytes result = 3;
+	optional string error = 4;
+}
+
+message TransactionResponse {
+	optional string hash = 1;
+	optional string from = 2;
+	optional string to = 3;
+	optional int64 value = 4;
+	optional string input = 5;
+	optional string blockHash = 6;
+	optional int64 blockNumber = 7;
+	optional int64 transactionIndex = 8;
+	optional string nonce = 9;
 }
 
 message TestResponse {
@@ -117,3 +154,4 @@ message BlockDetailed {
 	optional int64 size = 5;
 	repeated string transactions = 6;
 }
+

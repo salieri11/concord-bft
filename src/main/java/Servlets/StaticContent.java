@@ -1,7 +1,12 @@
 /**
- * url endpoint : /static/*
- * 
  * This servlet is used to serve static content.
+ *
+ * Endpoints serviced :
+ * /assets/* : Loads content in the priv/www/assets folder
+ * /api and /api/ : Loads content from priv/swagger.json
+ * /swagger/* : Loads content from priv/www/swagger folder
+ * /* : Loads content from priv/www/index.html
+ *
  */
 package Servlets;
 
@@ -10,6 +15,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Properties;
 
@@ -33,6 +40,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 import configurations.FileConfiguration;
 import configurations.IConfiguration;
+import org.json.simple.parser.ParseException;
 import io.undertow.util.CanonicalPathUtils;
 import io.undertow.util.StatusCodes;
 
@@ -43,8 +51,9 @@ public class StaticContent extends HttpServlet {
    private static final long serialVersionUID = 1L;
    private static String staticContentFolder;
    private static char separatorChar;
-   private static final Logger logger = 
+   private static final Logger logger =
          Logger.getLogger(StaticContent.class);
+   private IConfiguration _conf;
 
    public StaticContent() throws IOException {
       IConfiguration config = FileConfiguration.getInstance();
@@ -54,9 +63,16 @@ public class StaticContent extends HttpServlet {
    }
 
    /**
+    * APIs serviced
+    */
+   private enum Api {
+      ASSETS, SWAGGER, API_LIST, DEFAULT_CONTENT;
+   }
+
+   /**
     * Services a get request. Fetches the resource from the specified
     * path and returns it.
-    * 
+    *
     * @param request
     *           The request received by the servlet
     * @param response
@@ -67,84 +83,128 @@ public class StaticContent extends HttpServlet {
          final HttpServletResponse response)
          throws ServletException, IOException {
 
-      String path = staticContentFolder + getPath(request);
-      /*
-       * If the separator char is not / we want to replace it with a / and
-       * canonicalise
-       */
-      if (File.separatorChar != separatorChar) {
-         path = CanonicalPathUtils
-               .canonicalize(path
-                     .replace(File.separatorChar, separatorChar));
+      String callingApi = request.getServletPath();
+      if (callingApi.length() > 0) {
+         callingApi = callingApi.substring(1);
       }
-      if (path.endsWith("/")) {
-         try {
-            logger.error("Path does not point to specific file");
-            response.sendError(StatusCodes.NOT_FOUND);
-         } catch (IOException e) {
-            logger.error("Error in sending error message to client");
-            throw new IOException();
+
+      Api api;
+      String contentFolder = new String();
+      String contentFile = new String();
+      String alternateApiListEndpoint = _conf
+               .getStringValue("Alternate_ApiList_Endpoint");
+
+      // Read configurations based on API
+      switch (callingApi) {
+
+      case "assets":
+         logger.trace("/assets API call");
+         api = Api.ASSETS;
+         contentFolder = _conf
+                  .getStringValue("Assets_Folder");
+         break;
+      case "swagger":
+         logger.trace("/swagger API call");
+         api = Api.SWAGGER;
+         contentFolder = _conf
+                  .getStringValue("Swagger_Folder");
+         break;
+      case "api":
+         logger.trace("/api API call");
+         api = Api.API_LIST;
+         contentFolder = _conf
+                  .getStringValue("ApiList_Folder");
+         contentFile = _conf
+                  .getStringValue("ApiList_File");
+         break;
+      case "":
+         String uri = request.getRequestURI();
+
+         // Load swagger UI if user enters /api/
+         if (uri.startsWith(alternateApiListEndpoint)) {
+            logger.trace("/api API call");
+            contentFolder = _conf
+                     .getStringValue("ApiList_Folder");
+            contentFile = _conf
+                     .getStringValue("ApiList_File");
+            api = Api.API_LIST;
+         } else {
+            logger.trace("Default Content API call");
+            api = Api.DEFAULT_CONTENT;
+            contentFolder = _conf
+                     .getStringValue("Server_DefaultResponse");
+            contentFile = "";
          }
+         break;
+      default:
          return;
+      }
+
+      File file = null;
+
+      if (api == Api.ASSETS || api == Api.SWAGGER) {
+         // These API calls contain the file path in the request
+
+         String contentPath = StaticContentHelper.getPath(request);
+         String path = contentFolder + contentPath;
+         /*
+          * If the separator char is not / we want to replace it with a / and
+          * canonicalise
+          */
+         if (File.separatorChar != '/') {
+            path = CanonicalPathUtils.canonicalize(
+                     path.replace(File.separatorChar, '/'));
+         }
+         if (path.endsWith("/")) {
+            try {
+               logger.error("Path does not point to specific file");
+               response.sendError(StatusCodes.NOT_FOUND);
+            } catch (IOException e) {
+               logger.error("Error in sending error message to client");
+               throw e;
+            }
+            return;
+         }
+         file = new File(path);
+      } else if (api == Api.API_LIST || api == Api.DEFAULT_CONTENT) {
+         // These API calls have fixed content to be served
+
+         // "." denotes current directory
+         Path p = Paths.get(".", contentFolder, contentFile);
+         file = p.toFile();
       }
 
       // read the file
       FileInputStream inputStream;
       try {
-         inputStream = new FileInputStream(path);
-      } catch (FileNotFoundException e1) {
-         logger.error("File not found");
-         throw new FileNotFoundException();
+         inputStream = new FileInputStream(file);
+      } catch (FileNotFoundException e) {
+         logger.error("File not found : " + file.getAbsolutePath());
+         throw e;
       }
-
-      // Set response header
-      response.setHeader("Content-Transfer-Encoding", "UTF-8");
 
       // Detect file type
-      String fileType;
-      try {
-         fileType = detectFileType(path);
-      } catch (Exception e) {
-         logger.error("Error in detecting file type");
-         throw new ServletException(e.getMessage());
-      }
+      String fileType = StaticContentHelper.detectFileType(file);
 
-      // Set content type
-      response.setContentType(fileType);
+      // Set file type and charset
+      response.setContentType(fileType + ";charset=UTF-8");
 
       // Respond to client
       int c;
       try {
-         while ((c = inputStream.read()) != -1) {
-            response.getWriter().write(c);
+         byte[] buf = new byte[1024];
+         while ((c = inputStream.read(buf, 0, buf.length)) != -1) {
+            response.getOutputStream().write(buf, 0, c);
          }
       } catch (IOException e) {
          logger.error("Error in reading from tcp input stream");
-         throw new IOException();
-      }
-
-      // close resources
-      if (inputStream != null) {
-         try {
-            inputStream.close();
-         } catch (IOException e) {
-            logger.error("Error in closing tcp input stream");
-            throw new IOException();
-         }
-      }
-      try {
-         if (response.getWriter() != null) {
-            response.getWriter().close();
-         }
-      } catch (IOException e) {
-         logger.error("Error in closing the response writer object");
-         throw new IOException();
+         throw e;
       }
    }
 
    /**
     * Detects the file type for setting content type of response header
-    * 
+    *
     * @param path
     *           Path of file to be serviced
     * @return File type
@@ -212,7 +272,7 @@ public class StaticContent extends HttpServlet {
       if (request.getDispatcherType()
             == DispatcherType.INCLUDE
             &&
-          request.getAttribute(RequestDispatcher.INCLUDE_REQUEST_URI) 
+          request.getAttribute(RequestDispatcher.INCLUDE_REQUEST_URI)
             != null) {
           pathInfo = (String) request
                .getAttribute(RequestDispatcher.INCLUDE_PATH_INFO);
