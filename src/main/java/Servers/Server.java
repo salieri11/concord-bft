@@ -51,8 +51,6 @@ public class Server {
    private static String swaggerServletName;
    private static String assetsServletName;
    private static String apiListServletName;
-   private static String staticContentEndpoint;
-   private static String staticContentServletName;
    private static String memberListEndpoint;
    private static String defaultContentEndpoint;
    private static String blockListEndpoint;
@@ -85,28 +83,31 @@ public class Server {
          throw e;
       }
 
-      serverPath =
-            conf.getStringValue("Undertow_Path");
-      deploymentName =
-            conf.getStringValue("Deployment_Name");
+      serverPath = conf.getStringValue("Undertow_Path");
+      deploymentName = conf.getStringValue("Deployment_Name");
+      serverHostName = conf.getStringValue("Server_Host");
+      port = conf.getIntegerValue("Server_Port");
+      defaultReponse = conf.getStringValue("Server_DefaultResponse");
+
       memberListServletName =
             conf.getStringValue("MemberList_ServletName");
-      staticContentServletName =
-            conf.getStringValue("StaticContent_ServletName");
       defaultContentServletName =
             conf.getStringValue("DefaultContent_ServletName");
       blockListServletName =
             conf.getStringValue("BlockList_ServletName");
       blockNumberServletName =
             conf.getStringValue("BlockNumber_ServletName");
-      serverHostName =
-            conf.getStringValue("Server_Host");
-      port =
-            conf.getIntegerValue("Server_Port");
-      defaultReponse =
-            conf.getStringValue("Server_DefaultResponse");
-      staticContentEndpoint =
-            conf.getStringValue("StaticContent_Endpoint");
+      ethRPCServletName =
+            conf.getStringValue("EthRPC_ServletName");
+      transactionServletName =
+            conf.getStringValue("Transaction_ServletName");
+      swaggerServletName =
+            conf.getStringValue("Swagger_ServletName");
+      assetsServletName =
+            conf.getStringValue("Assets_ServletName");
+      apiListServletName =
+            conf.getStringValue("ApiList_ServletName");
+
       memberListEndpoint =
             conf.getStringValue("MemberList_Endpoint");
       defaultContentEndpoint =
@@ -115,11 +116,21 @@ public class Server {
             conf.getStringValue("BlockList_Endpoint");
       blockNumberEndpoint =
             conf.getStringValue("BlockNumber_Endpoint");
+      ethRPCEndpoint =
+            conf.getStringValue("EthRPC_Endpoint");
+      transactionEndpoint =
+            conf.getStringValue("Transaction_Endpoint");
+      swaggerEndpoint =
+            conf.getStringValue("Swagger_Endpoint");
+      assetsEndpoint = conf.getStringValue("Assets_Endpoint");
+      apiListEndpoint = conf.getStringValue("ApiList_Endpoint");
 
       DeploymentInfo servletBuilder = deployment()
                .setClassLoader(Server.class.getClassLoader())
-               .setContextPath(serverPath)
-               .setResourceManager(
+               .setContextPath(serverPath).setResourceManager(
+                        // 1024 : Size to use direct
+                        //FS to network transfer (if
+                        // supported by OS/JDK) instead of read/write
                         new FileResourceManager(
                               new File(defaultReponse), 1024))
                .setDeploymentName(deploymentName)
@@ -128,29 +139,35 @@ public class Server {
                               MemberList.class)
                         .addMapping(memberListEndpoint))
                .addServlets(Servlets
-                        .servlet(swaggerServletName, StaticContent.class)
+                        .servlet(swaggerServletName,
+                              StaticContent.class)
                         .addMapping(swaggerEndpoint))
                .addServlets(
-                        Servlets.servlet(assetsServletName, StaticContent.class)
+                        Servlets.servlet(assetsServletName, 
+                              StaticContent.class)
                                  .addMapping(assetsEndpoint))
                .addServlets(Servlets
-                        .servlet(apiListServletName, StaticContent.class)
+                        .servlet(apiListServletName,
+                              StaticContent.class)
                         .addMapping(apiListEndpoint))
                .addServlets(
                         Servlets.servlet(blockListServletName,
                               BlockList.class)
-                         .addMapping(blockListEndpoint))
+                                 .addMapping(blockListEndpoint))
                .addServlets(Servlets
                         .servlet(blockNumberServletName,
                               BlockNumber.class)
                         .addMapping(blockNumberEndpoint))
-               .addServlets(Servlets.servlet(ethRPCServletName, EthRPC.class)
+               .addServlets(Servlets.servlet(ethRPCServletName,
+                     EthRPC.class)
                         .addMapping(ethRPCEndpoint))
                .addServlets(Servlets
-                        .servlet(transactionServletName, Transaction.class)
+                        .servlet(transactionServletName, 
+                              Transaction.class)
                         .addMapping(transactionEndpoint))
                .addServlet(Servlets
-                        .servlet(defaultContentServletName, StaticContent.class)
+                        .servlet(defaultContentServletName,
+                              StaticContent.class)
                         .addMapping(defaultContentEndpoint));
       DeploymentManager manager = Servlets.defaultContainer()
                .addDeployment(servletBuilder);
@@ -164,17 +181,18 @@ public class Server {
          logger.error("Error in starting Deployment Manager");
          throw e1;
       }
-
+      
       AthenaConnectionPool.getInstance().initialize(conf);
-
-      Undertow server = Undertow.builder()
+      logger.info("athena connection pool initialized");
+      
+      Undertow server = Undertow
+            .builder()
             .addHttpListener(port, serverHostName)
-               .setHandler(path)
-               // .setIoThreads(10)
-               // to change number of io threads
-               // .setWorkerThreads(10)
-               //to change number of worker threads
-               .build();
+            .setHandler(path)
+            // .setIoThreads(10) // to change number of io threads
+            // .setWorkerThreads(10) //to change number of worker threads
+            .build();
       server.start();
+      logger.info("Server Booted");
    }
 }

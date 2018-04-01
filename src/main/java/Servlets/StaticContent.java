@@ -49,17 +49,12 @@ import io.undertow.util.StatusCodes;
  */
 public class StaticContent extends HttpServlet {
    private static final long serialVersionUID = 1L;
-   private static String staticContentFolder;
-   private static char separatorChar;
    private static final Logger logger =
          Logger.getLogger(StaticContent.class);
    private IConfiguration _conf;
 
    public StaticContent() throws IOException {
-      IConfiguration config = FileConfiguration.getInstance();
-      staticContentFolder = config.getStringValue("StaticContent_Folder");
-      separatorChar = config.getStringValue("StaticContent_Separator")
-            .charAt(0);
+      _conf = FileConfiguration.getInstance();
    }
 
    /**
@@ -200,97 +195,5 @@ public class StaticContent extends HttpServlet {
          logger.error("Error in reading from tcp input stream");
          throw e;
       }
-   }
-
-   /**
-    * Detects the file type for setting content type of response header
-    *
-    * @param path
-    *           Path of file to be serviced
-    * @return File type
-    * @throws IOException
-    * @throws SAXException
-    * @throws TikaException
-    */
-   private String detectFileType(String path)
-         throws IOException, SAXException, TikaException {
-      File responseFile = new File(path);
-
-      AutoDetectParser parser = new AutoDetectParser();
-      parser.setParsers(new HashMap<MediaType, Parser>());
-
-      Metadata metadata = new Metadata();
-      metadata.add(TikaMetadataKeys.RESOURCE_NAME_KEY,
-                  responseFile.getName());
-
-      InputStream stream = null;
-      try {
-         stream = new FileInputStream(responseFile);
-      } catch (FileNotFoundException e) {
-         logger.error("File not found");
-         throw new FileNotFoundException();
-      }
-      try {
-         parser.parse(stream, new DefaultHandler(), metadata,
-               new ParseContext());
-      } catch (IOException e) {
-         logger.error("Error in reading from file");
-         throw new IOException();
-      } catch (SAXException e) {
-         logger.error("Error in detecting file type");
-         throw new SAXException();
-      } catch (TikaException e) {
-         logger.error("Error in detecting file type");
-         throw new TikaException(e.getMessage());
-      }
-
-      if (stream != null) {
-         try {
-            stream.close();
-         } catch (IOException e) {
-            logger.error(
-                  "Error in closing input stream (used for detecting file"
-                        + " type)");
-            throw new IOException();
-         }
-      }
-      String mimeType = metadata.get(HttpHeaders.CONTENT_TYPE);
-      return mimeType;
-   }
-
-   /**
-    * Returns the canonicalized URL path.
-    *
-    * @param request
-    *           Request from client
-    * @return canonicalized URL
-    */
-   private String getPath(final HttpServletRequest request) {
-      String servletPath;
-      String pathInfo;
-
-      if (request.getDispatcherType()
-            == DispatcherType.INCLUDE
-            &&
-          request.getAttribute(RequestDispatcher.INCLUDE_REQUEST_URI)
-            != null) {
-          pathInfo = (String) request
-               .getAttribute(RequestDispatcher.INCLUDE_PATH_INFO);
-         servletPath = (String) request
-               .getAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH);
-      } else {
-         pathInfo = request.getPathInfo();
-         servletPath = request.getServletPath();
-      }
-      String result = pathInfo;
-      if (result == null) {
-         result = servletPath;
-      } else {
-         result = CanonicalPathUtils.canonicalize(result);
-      }
-      if ((result == null) || (result.equals(""))) {
-         result = "/";
-      }
-      return result;
    }
 }
