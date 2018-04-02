@@ -31,6 +31,7 @@ message EthRequest {
         SEND_TX = 1;
         SEND_TX_RAW = 2;
         GET_TX_RECEIPT = 3;
+        GET_STORAGE_AT = 4;
     }
 
     optional EthMethod method = 1;

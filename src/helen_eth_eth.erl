@@ -7,7 +7,8 @@
 -export([
          mining/1,
          sendTransaction/1,
-         getTransactionReceipt/1
+         getTransactionReceipt/1,
+         getStorageAt/1
         ]).
 
 -include("helen_eth.hrl").
@@ -59,6 +60,21 @@ getTransactionReceipt(#eth_request{params=[Receipt]}) ->
 getTransactionReceipt(_) ->
     {error, <<"Could not understand parameters">>}.
 
+%% Read from contract storage. Currently ignoring the block parameter.
+-spec getStorageAt(#eth_request{}) ->
+         {ok|error, mochijson2:json_term()}.
+getStorageAt(#eth_request{params=[Contract, Location|_IgnoreBlock]}) ->
+    case {helen_eth:dehex(Contract), helen_eth:dehex(Location)} of
+        {{ok, Addr}, {ok, Pos}} ->
+            getStorageAt_athena(Addr, Pos);
+        {{ok, _}, _} ->
+            {error, <<"Invalid storage position">>};
+        _ ->
+            {error, <<"Invalid contract address">>}
+    end;
+getStorageAt(_) ->
+    {error, <<"Could not understand parameters">>}.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Athena implementation
 
@@ -106,6 +122,28 @@ getTransactionReceipt_athena(TxHash) ->
                                    |[{<<"contractAddress">>,
                                       helen_eth:hex0x(Address)}
                                      || Address /= undefined]]}};
+                _ ->
+                    {error, <<"bad response from athena">>}
+            end;
+        Other ->
+            error_logger:error_msg("did not understand athena response: !p",
+                                   [Other]),
+            {error, <<"bad response from athena">>}
+    end.
+
+getStorageAt_athena(Contract, Location) ->
+    EthRequest = #ethrequest{
+                    method= 'GET_STORAGE_AT',
+                    addr_to= Contract,
+                    data= Location},
+    case helen_athena_conn:send_request(
+           #athenarequest{eth_request=[EthRequest]}) of
+        #athenaresponse{eth_response=[EthResponse]} ->
+            error_logger:info_msg("received response from athena: ~p",
+                                  [EthResponse]),
+            case EthResponse of
+                #ethresponse{data=Data} when Data /= undefined->
+                    {ok, helen_eth:hex0x(Data)};
                 _ ->
                     {error, <<"bad response from athena">>}
             end;

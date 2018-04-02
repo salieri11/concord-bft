@@ -70,6 +70,9 @@
          #eth_rpc{name = <<"eth_getTransactionReceipt">>,
                   returns = <<"object">>,
                   handler = fun helen_eth_eth:getTransactionReceipt/1},
+         #eth_rpc{name = <<"eth_getStorageAt">>,
+                  returns = <<"string">>,
+                  handler = fun helen_eth_eth:getStorageAt/1},
 
          %%%%%%%%%%%%%%%%%%%%
          %% make dialyzer happy
