@@ -7,7 +7,7 @@
 #include <boost/program_options.hpp>
 #include <log4cplus/loggingmacros.h>
 #include <log4cplus/configurator.h>
-
+#include "common/utils.hpp"
 #include "api_acceptor.hpp"
 #include "athena_evm.hpp"
 #include "configuration_manager.hpp"
@@ -39,20 +39,43 @@ void signalHandler(int signum) {
 /*
  * Start the service that listens for connections from Helen.
  */
-void
-run_service(EVM &athevm, variables_map &opts, Logger logger)
+int
+run_service(variables_map &opts, Logger logger)
 {
+   EVM *athevm;
+
+   try {
+      // If genesis block option was provided then initialize
+      // that first before accepting any requests.
+      if (opts.count("genesis_block")) {
+         string genesis_file_path = opts["genesis_block"].as<std::string>();
+         LOG4CPLUS_INFO(logger, "Reading genesis block from " <<
+                        genesis_file_path);
+         nlohmann::json genesis_block = parse_genesis_block(genesis_file_path);
+         EVMInitParams params(genesis_block);
+         // throws an exception if it fails
+         athevm = new EVM(params);
+      } else {
+         // throws an exception if it fails
+         athevm = new EVM();
+      }
+   } catch (EVMException &ex) {
+      LOG4CPLUS_FATAL(logger, ex.what());
+      return -1;
+   }
+
    std::string ip = opts["ip"].as<std::string>();
    short port = opts["port"].as<short>();
 
    api_service = new io_service();
    tcp::endpoint endpoint(address::from_string(ip), port);
-   api_acceptor acceptor(*api_service, endpoint, athevm);
+   api_acceptor acceptor(*api_service, endpoint, *athevm);
 
    signal(SIGINT, signalHandler);
 
    LOG4CPLUS_INFO(logger, "Listening on " << endpoint);
    api_service->run();
+   return 0;
 }
 
 int
@@ -83,23 +106,13 @@ main(int argc, char** argv)
       Logger mainLogger = Logger::getInstance("com.vmware.athena.main");
       LOG4CPLUS_INFO(mainLogger, "VMware Project Athena starting");
 
-      // throws an exception if it fails
-      EVM athevm;
 
       // actually run the service - when this call returns, the
       // service has shutdown
-      run_service(athevm, opts, mainLogger);
+      result = run_service(opts, mainLogger);
 
       LOG4CPLUS_INFO(mainLogger, "VMware Project Athena halting");
    } catch (const error &ex) {
-      if (loggerInitialized) {
-         Logger mainLogger = Logger::getInstance("com.vmware.athena.main");
-         LOG4CPLUS_FATAL(mainLogger, ex.what());
-      } else {
-         std::cerr << ex.what() << std::endl;
-      }
-      result = -1;
-   } catch (EVMException &ex) {
       if (loggerInitialized) {
          Logger mainLogger = Logger::getInstance("com.vmware.athena.main");
          LOG4CPLUS_FATAL(mainLogger, ex.what());

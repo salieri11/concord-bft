@@ -8,6 +8,8 @@
 #include <map>
 #include <vector>
 #include <log4cplus/loggingmacros.h>
+#include "common/json.hpp"
+#include "common/utils.hpp"
 #include "evm.h"
 
 namespace com {
@@ -98,9 +100,22 @@ const static struct evm_context_fn_table athena_fn_table = {
       ath_emit_log
 };
 
+class EVMInitParams {
+public:
+   EVMInitParams(nlohmann::json genesis_block);
+   std::map<std::vector<uint8_t>, uint64_t> get_default_accounts();
+   int get_chainID();
+private:
+   int chainID; // chain ID from genesis block
+   // The map of default account with their preset balance values
+   std::map<std::vector<uint8_t>, uint64_t> default_accounts;
+};
+
+
 class EVM {
 public:
    EVM();
+   EVM(EVMInitParams params);
    ~EVM();
 
    void call(evm_message &message, evm_result &result);
@@ -135,6 +150,12 @@ private:
    athena_context athctx;
    evm_instance *evminst;
    log4cplus::Logger logger;
+
+   // chain to which we are connected
+   int chainId;
+
+   // map from account address to account balance
+   std::map<std::vector<uint8_t>, uint64_t> balances;
 
    // map from contract address to a pair of (contract code, code hash)
    std::map<std::vector<uint8_t>,
