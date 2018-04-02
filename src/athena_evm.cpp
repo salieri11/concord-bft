@@ -8,6 +8,7 @@
 #include <log4cplus/loggingmacros.h>
 #include <keccak.h>
 
+
 #include "athena_evm.hpp"
 #include "athena_log.hpp"
 #include "athena_types.hpp"
@@ -20,6 +21,29 @@
 
 using namespace com::vmware::athena;
 using log4cplus::Logger;
+using json = nlohmann::json;
+
+com::vmware::athena::EVMInitParams::EVMInitParams(json genesis_block) {
+   // std::cout << genesis_block << std::endl;
+   chainID = genesis_block["config"]["chainId"];
+   for (json::iterator it = genesis_block["alloc"].begin();
+        it != genesis_block["alloc"].end(); it++) {
+      std::vector<uint8_t> address = dehex(it.key());
+      std::string balance_str = it.value()["balance"];
+      uint64_t balance = stoull(balance_str);
+      default_accounts[address] = balance;
+   }
+}
+
+std::map<std::vector<uint8_t>, uint64_t>
+com::vmware::athena::EVMInitParams::get_default_accounts() {
+   return default_accounts;
+}
+
+int com::vmware::athena::EVMInitParams::get_chainID() {
+      return chainID;
+}
+
 
 /**
  * Initialize the athena/evm context and start the evm instance.
@@ -41,6 +65,11 @@ com::vmware::athena::EVM::EVM()
       throw EVMException("Could not create EVM instance");
    }
    LOG4CPLUS_INFO(logger, "EVM started");
+}
+
+com::vmware::athena::EVM::EVM(EVMInitParams params) : EVM() {
+   balances = params.get_default_accounts();
+   chainId = params.get_chainID();
 }
 
 /**
@@ -79,7 +108,35 @@ void com::vmware::athena::EVM::call(evm_message &message,
       LOG4CPLUS_DEBUG(logger, "No code found at " <<
                       HexPrintAddress{&message.destination} <<
                       ", TODO: transfer value");
-      // TODO: this is just a balance transfer
+      std::vector<uint8_t> to(message.destination.bytes,
+                              message.destination.bytes+sizeof(evm_address));
+      std::vector<uint8_t> from(message.sender.bytes,
+                                message.sender.bytes+sizeof(evm_address));
+
+      uint64_t transfer_val = from_evm_uint256be(&message.value);
+      // TODO:  add corresponding addresses in throw exceptions.
+      if (balances.count(to) == 0) {
+         result.status_code = evm_status_code::EVM_FAILURE;
+         LOG4CPLUS_INFO(logger, "Account with address " <<
+                         HexPrintAddress{&message.destination} <<
+                         ", not found!");
+      } else if (balances.count(from) == 0) {
+         result.status_code = evm_status_code::EVM_FAILURE;
+         LOG4CPLUS_INFO(logger, "Account with address " <<
+                        HexPrintAddress{&message.sender} <<
+                        ", not found!");
+      } else if (balances[from] < transfer_val) {
+         result.status_code = evm_status_code::EVM_FAILURE;
+         LOG4CPLUS_INFO(logger, "Account with address " <<
+                        HexPrintAddress{&message.sender} <<
+                        ", does not have sufficient funds!");
+      } else {
+         balances[to] += transfer_val;
+         balances[from] -= transfer_val;
+         LOG4CPLUS_DEBUG(logger, "Transferred  " << transfer_val <<
+                         " units to: " << HexPrintAddress{&message.destination} <<
+                         " from: " << HexPrintAddress{&message.sender});
+      }
    } else {
       LOG4CPLUS_DEBUG(logger, "Input data, but no code at " <<
                       HexPrintAddress{&message.destination} <<
@@ -484,7 +541,14 @@ void com::vmware::athena::EVM::get_balance(
 
    // TODO: actually look up value, for now just fill with one (to give accounts
    // plenty of gas to maneuver).
-   memset(result, 1, sizeof(*result));
+   std::vector<uint8_t> account(address->bytes, address->bytes+sizeof(evm_address));
+   if (balances.count(account))
+      to_evm_uint256be(balances[account], result);
+   else {
+      LOG4CPLUS_INFO(logger, "EVM::get_balance called with address: " <<
+                     HexPrintAddress{address} << " No such account was found");
+      throw "No account found with given address";
+   }
 }
 
 /**

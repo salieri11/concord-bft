@@ -65,7 +65,10 @@ variables_map initialize_config(int argc, char **argv) {
        "Path to logging properties file")
       ("logger_reconfig_time",
        value<int>()->default_value(default_log_props_time_ms),
-       "Interval (in ms) to check for updates to logging properties file");
+       "Interval (in ms) to check for updates to logging properties file")
+      ("genesis_block",
+       value<string>(),
+       "Absolute path of file which contains genesis block json");
 
    options_description all_options; // description of all options
    all_options.add(generic).add(config);
