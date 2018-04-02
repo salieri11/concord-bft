@@ -165,20 +165,7 @@ api_connection::process_incoming()
 #ifndef BOOST_LITTLE_ENDIAN
    msgLen = (msgLen << 8) || (msgLen >> 8);
 #endif
-<<<<<<< HEAD
-    memset(msgBuffer_, 0, BUFFER_LENGTH);
-    memcpy(msgBuffer_, &msgLen, MSG_LENGTH_BYTES);
-    memcpy(msgBuffer_ + MSG_LENGTH_BYTES, pb.c_str(), msgLen);
 
-   LOG4CPLUS_TRACE(logger_, "sending back " + to_string(msgLen) + " bytes");
-   async_write(socket_, buffer(msgBuffer_, msgLen + MSG_LENGTH_BYTES),
-               boost::bind(&api_connection::on_write_completed,
-                           this,
-                           boost::asio::placeholders::error));
-
-    LOG4CPLUS_TRACE(logger_, "responded!");
-    LOG4CPLUS_DEBUG(logger_, "process_incoming exit");
-=======
    memset(msgBuffer_, 0, BUFFER_LENGTH);
    memcpy(msgBuffer_, &msgLen, MSG_LENGTH_BYTES);
    memcpy(msgBuffer_ + MSG_LENGTH_BYTES, pb.c_str(), msgLen);
@@ -193,7 +180,6 @@ api_connection::process_incoming()
 
    LOG4CPLUS_TRACE(logger_, "responded!");
    LOG4CPLUS_DEBUG(logger_, "process_incoming exit");
->>>>>>> 702ed6e9c5e05fa961306600b4249860ba72fbec
 }
 
 /*
@@ -229,7 +215,11 @@ api_connection::dispatch() {
  */
 void
 api_connection::handle_protocol_request() {
+   LOG4CPLUS_TRACE(logger_, "protocol_request enter");
+
    const ProtocolRequest request = athenaRequest_.protocol_request();
+   LOG4CPLUS_DEBUG(logger_, "protocol_request, client_version: " <<
+                  request.client_version());
 
    // create a response even if the request does not have a client
    // version, as this could be used as a keep-alive ping
@@ -245,6 +235,7 @@ api_connection::handle_protocol_request() {
          e->mutable_description()->assign("Client version unknown");
       }
    }
+   LOG4CPLUS_TRACE(logger_, "protocol_reques exit");
 }
 
 /*
@@ -362,14 +353,6 @@ api_connection::handle_test_request() {
    }
 }
 
-<<<<<<< HEAD
-api_connection::api_connection(io_service &io_service,
-                              connection_manager &manager) :
-      socket_(io_service),
-      logger_(
-         log4cplus::Logger::getInstance("com.vmware.athena.api_connection")),
-      connManager_(manager)
-=======
 api_connection::api_connection(
    io_service &io_service,
    connection_manager &manager,
@@ -379,7 +362,6 @@ api_connection::api_connection(
         log4cplus::Logger::getInstance("com.vmware.athena.api_connection")),
      connManager_(manager),
      athevm_(athevm)
->>>>>>> 702ed6e9c5e05fa961306600b4249860ba72fbec
 {
    // nothing to do here yet other than initialize the socket and logger
 }
