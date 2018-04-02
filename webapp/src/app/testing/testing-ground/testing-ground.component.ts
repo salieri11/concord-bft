@@ -11,58 +11,59 @@ import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 })
 export class TestingGroundComponent implements OnInit {
 
-  @ViewChild('textHashElement')
-  private textHashChild: ElementRef;
+  @ViewChild('dataHashRef')
+  private dataHashRef: ElementRef;
 
-  @ViewChild('fileHashElement')
-  private fileHashChild: ElementRef;
+  @ViewChild('smartContractHashRef')
+  private smartContractHashRef: ElementRef;
 
-  private userText = '';
-  private userFile = undefined;
+  private dataText = '';
+  private smartContractFile = undefined;
 
-  private textHash: string = undefined;
-  private fileHash: string = undefined;
+  private dataHash: string = undefined;
+  private smartContractHash: string = undefined;
 
   constructor() { }
 
   ngOnInit() {
   }
 
-  onTextChange() {
-    this.textHash = undefined;
+  onDataTextChange() {
+    this.dataHash = undefined;
   }
 
-  onFileChange(files) {
-    this.userFile = files[0];
-    this.fileHash = undefined;
+  onSmartContractFileChange(files) {
+    this.smartContractFile = files[0];
+    this.smartContractHash = undefined;
   }
 
-  onSubmitText() {
-    console.log(this.userText);
-    this.textHash = generateRandomHash();
+  onSubmitData() {
+    console.log(this.dataText);
+    this.dataHash = generateRandomHash();
   }
 
-  onSubmitFile() {
+  onSubmitSmartContract() {
     const reader = new FileReader();
     reader.onload = function() {
       console.log(reader.result);
     };
-    reader.readAsText(this.userFile);
-    this.fileHash = generateRandomHash();
+    reader.readAsText(this.smartContractFile);
+    this.smartContractHash = generateRandomHash();
   }
 
-  onCopyTextHash() {
-    copyElementToClipboard(this.textHashChild.nativeElement);
+  onCopyDataHash() {
+    copyElementToClipboard(this.dataHashRef.nativeElement);
   }
 
-  onCopyFileHash() {
-    copyElementToClipboard(this.fileHashChild.nativeElement);
+  onCopySmartContractHash() {
+    copyElementToClipboard(this.smartContractHashRef.nativeElement);
   }
 }
 
 function copyElementToClipboard(element) {
   const range = document.createRange();
   range.selectNode(element);
+  window.getSelection().removeAllRanges();
   window.getSelection().addRange(range);
 
   try {

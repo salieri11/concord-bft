@@ -8,18 +8,18 @@
         <p>
           Enter data below to generate a unique hash
         </p>
-        <form (ngSubmit)="onSubmitText()" #textForm="ngForm">
-          <textarea id="text-input" class="mb-1" name="userText" rows="10" required [(ngModel)]="userText" (input)="onTextChange()"></textarea>
-          <button class="btn btn-primary" [disabled]="textForm.form.invalid">Submit Data</button>
+        <form (ngSubmit)="onSubmitData()" #dataForm="ngForm">
+          <textarea id="text-input" class="mb-1" name="userText" rows="10" required [(ngModel)]="dataText" (input)="onDataTextChange()"></textarea>
+          <button class="btn btn-primary" [disabled]="dataForm.form.invalid">Submit Data</button>
         </form>
         <div class="inset-box inset-box-dark mt-1">
           <div class="row flex-items-xs-middle">
             <div class="col-xs">
               <small class="text-muted">Block Hash:</small>
-              <span #textHashElement>{{textHash}}</span>
+              <span #dataHashRef>{{dataHash}}</span>
             </div>
-            <div class="col-xs-2 text-right" [class.invisible]="!textHash">
-              <button type="button" class="btn btn-sm btn-link" (click)="onCopyTextHash()" [disabled]="!textHash">Copy</button>
+            <div class="col-xs-2 text-right" [class.invisible]="!dataHash">
+              <button type="button" class="btn btn-sm btn-link" (click)="onCopyDataHash()" [disabled]="!dataHash">Copy</button>
             </div>
           </div>
         </div>
@@ -32,19 +32,19 @@
         <p>
           Upload file below to generate a unique hash
         </p>
-        <form (ngSubmit)="onSubmitFile()" #fileForm="ngForm">
+        <form (ngSubmit)="onSubmitSmartContract()" #smartContractForm="ngForm">
           <div class="inset-box inset-box-pad-lg mb-1">
-            <input id="file-input" class="d-block" type="file" name="userFile" required #fileInput (change)="onFileChange(fileInput.files)">
+            <input id="file-input" class="d-block" type="file" name="userFile" required #fileInput (change)="onSmartContractFileChange(fileInput.files)">
           </div>
-          <button class="btn btn-primary" [disabled]="!userFile">Submit Data</button>
+          <button class="btn btn-primary" [disabled]="!smartContractFile">Submit Data</button>
           <div class="inset-box inset-box-dark mt-1">
             <div class="row flex-items-xs-middle">
               <div class="col-xs">
                 <small class="text-muted">Block Hash:</small>
-                <span #fileHashElement>{{fileHash}}</span>
+                <span #smartContractHashRef>{{smartContractHash}}</span>
               </div>
-              <div class="col-xs-2 text-right" [class.invisible]="!fileHash">
-                <button type="button" class="btn btn-sm btn-link" (click)="onCopyFileHash()" [disabled]="!fileHash">Copy</button>
+              <div class="col-xs-2 text-right" [class.invisible]="!smartContractHash">
+                <button type="button" class="btn btn-sm btn-link" (click)="onCopySmartContractHash()" [disabled]="!smartContractHash">Copy</button>
               </div>
             </div>
           </div>
