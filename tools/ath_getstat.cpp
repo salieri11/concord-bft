@@ -1,6 +1,6 @@
 // Copyright 2018 VMware, all rights reserved
 //
-// Get a transaction receipt from Athena directly.
+// Read contract storage from Athena directly.
 
 #include <iostream>
 #include <inttypes.h>
@@ -16,23 +16,24 @@
 using namespace boost::program_options;
 using namespace com::vmware::athena;
 
-#define OPT_RECEIPT "receipt"
+#define OPT_CONTRACT "contract"
+#define OPT_LOCATION "location"
 
 void add_options(options_description &desc) {
    desc.add_options()
-      (OPT_RECEIPT",r",
+      (OPT_CONTRACT",c",
        value<std::string>(),
-       "The transaction hash returned from eth_sendTransaction");
+       "Address of the contract")
+      (OPT_LOCATION",l",
+       value<std::string>(),
+       "Location in storage to read from");
 }
 
-std::string status_to_string(int32_t status) {
-   switch (status) {
-   case 0:
-      return "(failure)";
-   case 1:
-      return "(success)";
-   default:
-      return "(error: unknown status value)";
+// left padding with zeros
+void pad(std::string &str, size_t width) {
+   int total = width - str.size();
+   if (total > 0) {
+      str.insert(0, total, '\0');
    }
 }
 
@@ -48,17 +49,25 @@ int main(int argc, char** argv)
 
       AthenaRequest athReq;
       EthRequest *ethReq = athReq.add_eth_request();
-      std::string rcpthash;
+      std::string address;
+      std::string location;
 
-      ethReq->set_method(EthRequest_EthMethod_GET_TX_RECEIPT);
+      ethReq->set_method(EthRequest_EthMethod_GET_STORAGE_AT);
 
-      if (opts.count(OPT_RECEIPT) > 0) {
-         dehex0x(opts[OPT_RECEIPT].as<std::string>(), rcpthash);
-	 ethReq->set_data(rcpthash);
+      if (opts.count(OPT_CONTRACT) > 0) {
+         dehex0x(opts[OPT_CONTRACT].as<std::string>(), address);
+	 ethReq->set_addr_to(address);
       } else {
-         std::cerr << "Please provide a transaction receipt." << std::endl;
-         return -1;
+         std::cerr << "Please provide a contract address." << std::endl;
       }
+
+      if (opts.count(OPT_LOCATION) > 0) {
+         dehex0x(opts[OPT_LOCATION].as<std::string>(), location);
+      } else {
+         std::cerr << "Warning: using default addres 0x0." << std::endl;
+      }
+      pad(location, 32);
+      ethReq->set_data(location);
 
       std::string pbtext;
       google::protobuf::TextFormat::PrintToString(athReq, &pbtext);
@@ -75,19 +84,10 @@ int main(int argc, char** argv)
 
          if (athResp.eth_response_size() == 1) {
             EthResponse ethResp = athResp.eth_response(0);
-            if (ethResp.has_status()) {
-               uint32_t status = ethResp.status();
-               std::cout << "Transaction status: " << status
-                         << " " << status_to_string(status) << std::endl;
-            } else {
-               std::cerr << "EthResponse has no status" << std::endl;
-               return -1;
-            }
-
-            if (ethResp.has_contract_address()) {
+            if (ethResp.has_data()) {
                std::string result;
-               hex0x(ethResp.contract_address(), result);
-               std::cout << "Contract address: " << result << std::endl;
+               hex0x(ethResp.data(), result);
+               std::cout << "Data: " << result << std::endl;
             }
          } else {
             std::cerr << "Wrong number of eth_responses: "
