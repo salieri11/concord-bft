@@ -205,7 +205,11 @@ class CoreVMTests(test_suite.TestSuite):
          "vmSha3Test",
          "vmBlockInfoTest",
          "vmEnvironmentalInfo",
-         "vmIOandFlowOperations"
+         "vmIOandFlowOperations",
+         "vmLogTest",
+         "vmPerformance",
+         "vmSystemOperations",
+         "vmTests"
       ]
       tests = []
 
