@@ -1,6 +1,6 @@
 {
     "Config": {
-        "chainId": 316711,
+        "chainId": PUT_A_UNIQUE_NUMBER_FOR_YOUR_INSTANCE_HERE,
         "homesteadBlock": 0,
         "eip155Block": 0,
         "eip158Block": 0,

@@ -59,6 +59,32 @@ Hermes is the repository for the vmwareathena project's testing framework.
   directory. (~/builds/p2-blockchain/debug)
 - Run `./main.py CoreVMTests`
 
+## Launching geth:
+- If running the test suite against geth as a reference implementation, you need
+  to set it up and launch it.  Some default config files have been checked in.
+- Usage:
+  1. Copy resources/initial_geth_data_dir to some location which does not exist
+     yet.
+```
+cp -r resources/initial_geth_data_dir ~/datadir
+```
+  2. Initialize Ethereum:
+```
+geth --datadir ~/datadir init ~/datadir/genesis.json
+```
+  3. Open ~/datadir/genesis.json and replace
+     PUT_A_UNIQUE_NUMBER_FOR_YOUR_INSTANCE_HERE with a number that is unique
+     for you. This is to prevent others from connecting to your blockchain.
+  4. Start geth:
+```
+geth --datadir ~/datadir --rpc --rpcaddr "0.0.0.0" --rpcapi "admin,db,eth,net,web3,personal,miner" --vmdebug --verbosity 5 --nodiscover --netrestrict <ip>/8 console
+```
+  5. Start mining:
+```
+miner.start(2)
+```
+- Now you can run the test cases with --ethereumMode with no further setup.
+
 ## Results
 - The results directory is output at the beginning of a test run.  e.g.
   "Results directory: /tmp/CoreVMTests_20180322_1437_80ccst1i"
