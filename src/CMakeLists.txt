@@ -7,7 +7,7 @@ add_executable(athena
   ${PROTO_SRCS} ${PROTO_HDRS})
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
-include_directories("${PROJECT_SOURCE_DIR}/src")
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(athena
   proto ${PROTOBUF_LIBRARIES}
