@@ -23,8 +23,8 @@ public class ConnectionTest extends BaseTest {
    }
    
    public void testConnectionSetup() {
-      assertEquals(_pool.getTotalConnections(),
-                   _conf.getIntegerValue("ConnectionPoolSize"));
+      assertEquals(_conf.getIntegerValue("ConnectionPoolSize"),
+            _pool.getTotalConnections());
    }
    
    public void testConnectionCheck()
