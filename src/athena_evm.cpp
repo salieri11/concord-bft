@@ -426,9 +426,9 @@ void com::vmware::athena::EVM::get_storage(
    const struct evm_address* address,
    const struct evm_uint256be* key)
 {
-   LOG4CPLUS_INFO(logger, "EVM::get_storage called, address: " <<
-                  HexPrintAddress{address} << " key: " <<
-                  HexPrintUint256Be{key});
+   LOG4CPLUS_DEBUG(logger, "EVM::get_storage called, address: " <<
+                   HexPrintAddress{address} << " key: " <<
+                   HexPrintUint256Be{key});
 
    std::vector<uint8_t> storagekey = storage_key(address, key);
    if (storage_map.count(storagekey)) {
@@ -448,10 +448,10 @@ void com::vmware::athena::EVM::set_storage(
    const struct evm_uint256be* key,
    const struct evm_uint256be* value)
 {
-   LOG4CPLUS_INFO(logger, "EVM::set_storage called, address: " <<
-                  HexPrintAddress{address} << " key: " <<
-                  HexPrintUint256Be{key} << " value: " <<
-                  HexPrintUint256Be{value});
+   LOG4CPLUS_DEBUG(logger, "EVM::set_storage called, address: " <<
+                   HexPrintAddress{address} << " key: " <<
+                   HexPrintUint256Be{key} << " value: " <<
+                   HexPrintUint256Be{value});
 
    std::vector<uint8_t> storagekey = storage_key(address, key);
    std::vector<uint8_t> storagevalue(value->bytes,
