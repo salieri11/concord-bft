@@ -9,7 +9,7 @@ export class AppPage {
     return browser.get('/');
   }
 
-  getParagraphText() {
-    return element(by.css('.nav-link .title')).getText();
+  getLogo() {
+    return element(by.css('.nav-link img'));
   }
 }
