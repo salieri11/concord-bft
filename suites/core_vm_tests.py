@@ -108,7 +108,7 @@ class CoreVMTests(test_suite.TestSuite):
                info = ""
 
             info += "Log: {}".format(testLogDir)
-            self._writeResult(testName, result, info)
+            self._writeResult(test, result, info)
 
       log.info("Tests are done.")
 
@@ -197,27 +197,49 @@ class CoreVMTests(test_suite.TestSuite):
       Returns a list of file names.  Each file is a test to run.
       '''
       vmTests = os.path.join(self._userConfig["ethereum"]["testRoot"], "VMTests")
-      testSubDirs = [
-         "vmArithmeticTest",
-         "vmBitwiseLogicOperation",
-         "vmRandomTest",
-         "vmPushDupSwapTest",
-         "vmSha3Test",
-         "vmBlockInfoTest",
-         "vmEnvironmentalInfo",
-         "vmIOandFlowOperations",
-         "vmLogTest",
-         "vmPerformance",
-         "vmSystemOperations",
-         "vmTests"
-      ]
       tests = []
+      testSubDirs = None
 
-      for subdir in testSubDirs:
-         for test in os.listdir(os.path.join(vmTests, subdir)):
-            tests.append(os.path.join(vmTests, subdir, test))
+      if self._args.tests:
+         fullPath = os.path.join(vmTests, self._args.tests)
 
-      self._removeSkippedTests(tests)
+         if os.path.exists(fullPath):
+            if os.path.isfile(fullPath):
+               tests.append(os.path.join(vmTests, fullPath))
+            else:
+               testSubDirs = [self._args.tests]
+         else:
+            log.error("File '{}' does not exist.".format(fullPath))
+      else:
+         testSubDirs = [
+            "vmArithmeticTest",
+            "vmBitwiseLogicOperation",
+            "vmRandomTest",
+            "vmPushDupSwapTest",
+            "vmSha3Test",
+            "vmBlockInfoTest",
+            "vmEnvironmentalInfo",
+            "vmIOandFlowOperations",
+            "vmLogTest",
+            "vmPerformance",
+            "vmSystemOperations",
+            "vmTests"
+         ]
+
+      if testSubDirs:
+         for subdir in testSubDirs:
+            for test in os.listdir(os.path.join(vmTests, subdir)):
+               tests.append(os.path.join(vmTests, subdir, test))
+
+      if tests:
+         self._removeSkippedTests(tests)
+         if not tests:
+            log.error("All of the tests that would have run are in the " \
+                      "skipped test list.")
+
+      if not tests:
+         log.error("There are no tests to run.")
+
       return tests
 
    def _loadCompiledTest(self, test):
