@@ -114,8 +114,10 @@ class CoreVMTests(test_suite.TestSuite):
             else:
                info = ""
 
-            info += "Log: {}".format(testLogDir)
-            self._writeResult(test, result, info)
+            relativeLogDir = self._makeRelativeTestPath(testLogDir)
+            info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
+                                                        testLogDir)
+            self._writeResult(testName, result, info)
 
       log.info("Tests are done.")
 
@@ -123,6 +125,13 @@ class CoreVMTests(test_suite.TestSuite):
          p.stopProduct()
 
       return self._resultFile
+
+   def _makeRelativeTestPath(self, fullTestPath):
+      '''
+      Given the full test path (in the results directory), return the
+      relative path.
+      '''
+      return fullTestPath[len(self._args.resultsDir)+1:len(fullTestPath)]
 
    def _writeUnintentionallySkippedTest(self, testName, info):
       tempFile = self._unintentionallySkippedFile + "_temp"
