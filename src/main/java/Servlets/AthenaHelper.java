@@ -1,18 +1,11 @@
 package Servlets;
 
 import com.vmware.athena.*;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
-import java.util.List;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import com.google.protobuf.InvalidProtocolBufferException;
 import connections.IAthenaConnection;
 import configurations.IConfiguration;

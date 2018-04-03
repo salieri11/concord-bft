@@ -20,19 +20,12 @@ package Servlets;
 import com.google.protobuf.ByteString;
 import com.vmware.athena.*;
 import com.vmware.athena.Athena.EthRPCExecuteResponse;
-
-import connections.AthenaTCPConnection;
 import io.undertow.util.StatusCodes;
-
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
-
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;

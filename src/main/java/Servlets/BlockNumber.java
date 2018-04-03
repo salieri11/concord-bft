@@ -14,24 +14,14 @@ package Servlets;
 
 import com.google.protobuf.ProtocolStringList;
 import com.vmware.athena.*;
-
-import connections.AthenaConnectionPool;
-import connections.AthenaTCPConnection;
-import connections.IAthenaConnection;
 import io.undertow.util.StatusCodes;
-
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Iterator;
-
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.ParseException;
 
 /**
  * Servlet class.
@@ -80,7 +70,23 @@ public final class BlockNumber extends BaseServlet {
             .setBlockNumberRequest(blockNumberRequestObj)
             .build();
 
-      processGet(athenarequestObj, response, _logger);
+      // this block will be replaced by the line below
+         Athena.AthenaResponse athenaResponse = null;
+         JSONObject blockNumberResponse = null;
+      
+         // receive response from Athena
+         athenaResponse = receiveFromAthenaMock(); // This is temporary.
+         // athenaResponse = receiveFromAthena(inFromAthena); //Coming soon
+         blockNumberResponse = parseToJSON(athenaResponse);
+         // Set client response header
+         response.setHeader("Content-Transfer-Encoding", "UTF-8");
+         response.setContentType("application/json");
+         // Respond to client.
+         response.getWriter().write(blockNumberResponse.toString());
+      // block ends////////////////////////////////////////
+      
+      // this line will replace the block marked above
+      // processGet(athenarequestObj, response, _logger);
    }
 
    /**

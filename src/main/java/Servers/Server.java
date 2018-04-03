@@ -16,8 +16,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import javax.servlet.ServletException;
 import org.apache.log4j.Logger;
-import org.json.simple.parser.ParseException;
-
 import Servlets.BlockList;
 import Servlets.BlockNumber;
 import Servlets.EthRPC;

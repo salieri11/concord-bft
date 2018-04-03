@@ -129,11 +129,11 @@ public class AthenaConnectionPool {
       }
 
       // check connection
-      // need to have keep alive activity in AthenaTcpConnection
       boolean res = checkConnection(conn);
       if (!res) {
+         _log.error("");
          closeConnection(conn);
-         conn = createConnection();
+         return null;
       }
 
       _log.trace("getConnection exit");
@@ -148,12 +148,19 @@ public class AthenaConnectionPool {
       if (!_initialized.get())
          throw new IllegalStateException(
                "returnConnection, pool not initialized");
-      if (conn == null)
-         throw new NullPointerException("trying to return null connection");
-
-      boolean res = _pool.offer((AthenaTCPConnection) conn);
-      if(!res)
-         throw new IllegalStateException("pool is at maximum, putConnection");
+      
+      // cannot be null in normal flow
+      if (conn == null) {
+         _log.fatal("putConnection, conn is null");
+      } else {
+         boolean res = _pool.offer((AthenaTCPConnection) conn);
+         
+         // cannot fail in normal flow
+         if(!res) {
+            ((AthenaTCPConnection)conn).close();
+            _log.fatal("putConnection, pool at maximum");
+         }
+      }
       
       _log.trace("putConnection exit");
    }

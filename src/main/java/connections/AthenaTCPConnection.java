@@ -16,10 +16,7 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.Properties;
 import org.apache.log4j.Logger;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.vmware.athena.Athena;
 
 import configurations.*;
 
@@ -61,18 +58,7 @@ public final class AthenaTCPConnection implements IAthenaConnection {
 
       _logger.debug("Socket connection with Athena created");
    }
-
-   public byte[] check(byte[] checkMsg) {
-      try {
-         _socket.getOutputStream().write(checkMsg);
-         byte[] res = receive();
-         return res;
-      } catch (IOException e) {
-         _logger.error("check", e);
-         return null;
-       }
-   }
-
+   
    public void close() {
       if (_disposed.get())
          return;
