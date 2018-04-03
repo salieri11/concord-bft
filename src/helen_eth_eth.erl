@@ -65,7 +65,13 @@ getTransactionReceipt(_) ->
          {ok|error, mochijson2:json_term()}.
 getStorageAt(#eth_request{params=[Contract, Location|_IgnoreBlock]}) ->
     case {helen_eth:dehex(Contract), helen_eth:dehex(Location)} of
-        {{ok, Addr}, {ok, Pos}} ->
+        {{ok, Addr}, {ok, RawPos}} ->
+            case 32 - size(RawPos) of
+                Pad when Pad > 0 ->
+                    Pos = <<0:(8*Pad), RawPos/binary>>;
+                _ ->
+                    Pos = RawPos
+            end,
             getStorageAt_athena(Addr, Pos);
         {{ok, _}, _} ->
             {error, <<"Invalid storage position">>};
