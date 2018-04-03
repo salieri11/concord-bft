@@ -156,7 +156,7 @@
     "VMTests/vmIOandFlowOperations/jumpTo1InstructionafterJump.json": "23",
     "VMTests/vmSha3Test/sha3_3.json": "23",
     "VMTests/vmPushDupSwapTest/push33.json": "23",
-    "VMTests/vmPushDupSwapTest/sstore_load_2.json": "23",
+    "VMTests/vmIOandFlowOperations/sstore_load_2.json": "23",
     "VMTests/vmLogTest/log0_emptyMem.json": "24",
     "VMTests/vmLogTest/log0_logMemsizeTooHigh.json": "24",
     "VMTests/vmLogTest/log0_logMemsizeZero.json": "24",
