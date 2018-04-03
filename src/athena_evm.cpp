@@ -114,7 +114,8 @@ void com::vmware::athena::EVM::create(evm_message &message,
       memcpy(message.destination.bytes, &contract_address[0],
              sizeof(evm_address));
 
-      execute(message, create_code, result);
+      keccak_hash(create_code, hash);
+      memcpy(&message.code_hash.bytes, &hash[0], sizeof(evm_uint256be));
 
       // creates are not addressed
       std::vector<uint8_t> to;
