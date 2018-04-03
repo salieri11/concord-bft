@@ -110,6 +110,8 @@ public:
    void create(evm_message &message, evm_result &result,
                std::vector<uint8_t> &txhash /* out */);
    EthTransaction get_transaction(std::vector<uint8_t> txhash);
+   std::vector<uint8_t> get_storage_at(std::vector<uint8_t> &account,
+                                       std::vector<uint8_t> &key);
 
    /* EVM callbacks */
    int account_exists(const struct evm_address* address);
@@ -153,6 +155,9 @@ private:
    // the transactions we have processed; map is hash -> tx
    std::map<std::vector<uint8_t>, EthTransaction> transactions;
 
+   // map from [(contract address)+(storage location)] to data at that location
+   std::map<std::vector<uint8_t>, std::vector<uint8_t>> storage_map;
+
    void contract_destination(evm_message &message,
                              std::vector<uint8_t> &address);
    void keccak_hash(std::vector<uint8_t> &data,
@@ -171,6 +176,8 @@ private:
                            std::vector<uint8_t> &to_override,
                            std::vector<uint8_t> &contract_address,
                            std::vector<uint8_t> &txhash /* out */);
+   std::vector<uint8_t> storage_key(const struct evm_address* address,
+                                    const struct evm_uint256be* key);
 };
 
 }

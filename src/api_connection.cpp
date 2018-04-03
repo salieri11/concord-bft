@@ -347,6 +347,9 @@ api_connection::handle_eth_request(int i) {
    case EthRequest_EthMethod_GET_TX_RECEIPT:
       handle_eth_getTxReceipt(request);
       break;
+   case EthRequest_EthMethod_GET_STORAGE_AT:
+      handle_eth_getStorageAt(request);
+      break;
    default:
       ErrorResponse *e = athenaResponse_.add_error_response();
       e->mutable_description()->assign("ETH Method Not Implemented");
@@ -354,7 +357,7 @@ api_connection::handle_eth_request(int i) {
 }
 
 /**
- * Handle and eth_sendTransaction request.
+ * Handle an eth_sendTransaction request.
  */
 void
 api_connection::handle_eth_sendTransaction(const EthRequest &request) {
@@ -412,7 +415,7 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
 }
 
 /**
- * Handle and eth_getTransactionReceipt request.
+ * Handle an eth_getTransactionReceipt request.
  */
 void
 api_connection::handle_eth_getTxReceipt(const EthRequest &request) {
@@ -435,6 +438,28 @@ api_connection::handle_eth_getTxReceipt(const EthRequest &request) {
    } else {
       ErrorResponse *error = athenaResponse_.add_error_response();
       error->set_description("Missing or invalid transaction hash");
+   }
+}
+
+/**
+ * Handle an eth_getStorageAt request.
+ */
+void
+api_connection::handle_eth_getStorageAt(const EthRequest &request) {
+   if (request.has_addr_to() && request.has_data()) {
+      std::vector<uint8_t> account(request.addr_to().begin(),
+                                   request.addr_to().end());
+      std::vector<uint8_t> key(request.data().begin(),
+                               request.data().end());
+      //TODO: ignoring block number at the moment
+
+      std::vector<uint8_t> data = athevm_.get_storage_at(account, key);
+      EthResponse *response = athenaResponse_.add_eth_response();
+      response->set_id(request.id());
+      response->set_data(std::string(data.begin(), data.end()));
+   } else {
+      ErrorResponse *error = athenaResponse_.add_error_response();
+      error->set_description("Missing account/contract or storage address");
    }
 }
 

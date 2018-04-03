@@ -61,6 +61,8 @@ namespace com {
             handle_eth_sendTransaction(const EthRequest &request);
             void
             handle_eth_getTxReceipt(const EthRequest &request);
+            void
+            handle_eth_getStorageAt(const EthRequest &request);
 
             /* Constructor. */
             api_connection(boost::asio::io_service &io_service,
