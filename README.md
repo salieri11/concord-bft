@@ -68,13 +68,13 @@ Hermes is the repository for the vmwareathena project's testing framework.
 ```
 cp -r resources/initial_geth_data_dir ~/datadir
 ```
-  2. Initialize Ethereum:
+  2. Open ~/datadir/genesis.json and replace
+     PUT_A_UNIQUE_NUMBER_FOR_YOUR_INSTANCE_HERE with a number that is unique
+     for you. This is to prevent others from connecting to your blockchain.
+  3. Initialize Ethereum:
 ```
 geth --datadir ~/datadir init ~/datadir/genesis.json
 ```
-  3. Open ~/datadir/genesis.json and replace
-     PUT_A_UNIQUE_NUMBER_FOR_YOUR_INSTANCE_HERE with a number that is unique
-     for you. This is to prevent others from connecting to your blockchain.
   4. Start geth:
 ```
 geth --datadir ~/datadir --rpc --rpcaddr "0.0.0.0" --rpcapi "admin,db,eth,net,web3,personal,miner" --vmdebug --verbosity 5 --nodiscover --netrestrict <ip>/8 console
