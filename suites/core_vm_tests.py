@@ -107,7 +107,7 @@ class CoreVMTests(test_suite.TestSuite):
             else:
                info = ""
 
-            info += "Log: {}".format(testLogDir)
+            info += "Log: <a href=\"{}\">{}</a>".format(testLogDir, testLogDir)
             self._writeResult(testName, result, info)
 
       log.info("Tests are done.")
