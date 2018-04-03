@@ -3,6 +3,7 @@
 // Logging utilities
 
 #ifndef ATHENA_LOG_HPP
+#define ATHENA_LOG_HPP
 
 // TODO: We may want "release" versions of these macros that print fewer bytes.
 

@@ -58,58 +58,135 @@ api_connection::socket()
 void
 api_connection::start_async()
 {
-   LOG4CPLUS_DEBUG(logger_, "start_async enter");
+   LOG4CPLUS_TRACE(logger_, "start_async enter");
    remotePeer_ = socket_.remote_endpoint();
    LOG4CPLUS_INFO(logger_,
                   "Connection to " << remotePeer_ << " opened by peer");
 
-   read_async();
+   read_async_header();
 
-   LOG4CPLUS_DEBUG(logger_, "start_async exit");
+   LOG4CPLUS_TRACE(logger_, "start_async exit");
+}
+
+uint16_t
+api_connection::get_message_length(const char * buffer)
+{
+   uint16_t msgLen = *(static_cast<const uint16_t*>(
+      static_cast<const void*>(buffer)));
+#ifndef BOOST_LITTLE_ENDIAN
+     // swap byte order for big endian and pdp endian
+      msgLen = (msglen << 8) | (msglen >> 8);
+#endif
+   return msgLen;
+}
+
+bool
+api_connection::check_async_error(const boost::system::error_code &ec)
+{
+   bool res = false;
+   if (boost::asio::error::eof == ec) {
+      LOG4CPLUS_INFO(logger_, "connection closed by peer");
+      res = true;
+   } else if (boost::asio::error::operation_aborted == ec) {
+      LOG4CPLUS_ERROR(logger_, ec.message());
+      res = true;
+   }
+   return res;
 }
 
 void
-api_connection::read_async()
+api_connection::on_read_async_header_completed(
+                                    const boost::system::error_code &ec,
+                                    const size_t bytesRead)
 {
-   LOG4CPLUS_DEBUG(logger_, "read_async enter");
+   LOG4CPLUS_TRACE(logger_, "on_read_async_header_completed enter");
+   auto err = check_async_error(ec);
+   if(err) {
+      LOG4CPLUS_DEBUG(logger_,
+                     "on_read_async_header_completed, ec: " +            ec.message());
+      close();
+      return;
+   }
 
-   memset(msgBuffer_, 0, BUFFER_LENGTH);
-   // prepare to read the next request
+   auto msgLen = get_message_length(inMsgBuffer_);
+   if(msgLen == 0) {
+      LOG4CPLUS_FATAL(logger_, "on_read_async_header_completed, msgLen=0");
+      return;
+   }
+
+   LOG4CPLUS_DEBUG(logger_,
+                  "on_read_async_header_completed, msgLen: " << msgLen);
+
+   read_async_message(MSG_LENGTH_BYTES, msgLen);
+
+   LOG4CPLUS_TRACE(logger_, "on_read_async_header_completed exit");
+}
+
+void
+api_connection::read_async_header()
+{
+   LOG4CPLUS_TRACE(logger_, "read_async_header enter");
+
+   // clean all previous data
+   memset(inMsgBuffer_ , 0, BUFFER_LENGTH);
    athenaRequest_.Clear();
    athenaResponse_.Clear();
 
-   socket_.async_read_some(
-      boost::asio::buffer(msgBuffer_, BUFFER_LENGTH),
-      boost::bind(&api_connection::on_read_async_completed,
-                  this,
-                  boost::asio::placeholders::error,
-                  boost::asio::placeholders::bytes_transferred));
-   LOG4CPLUS_DEBUG(logger_, "read_async exit");
+   // async operation will finish when either expectedBytes are read
+   // or error occured
+   async_read(socket_,
+               boost::asio::buffer(inMsgBuffer_, MSG_LENGTH_BYTES),
+               boost::bind(&api_connection::on_read_async_header_completed,
+                           this,
+                           boost::asio::placeholders::error,
+                           boost::asio::placeholders::bytes_transferred));
+
+   LOG4CPLUS_TRACE(logger_, "read_async exit");
 }
 
 void
-api_connection::on_read_async_completed(const boost::system::error_code &ec,
-                                        const size_t bytes)
+api_connection::read_async_message( uint16_t offset,
+                                    uint16_t expectedBytes)
 {
-   LOG4CPLUS_DEBUG(logger_, "on_read_async_completed enter");
-   LOG4CPLUS_TRACE(logger_,
-                   "on_read_async_completed, bytes: " + to_string(bytes));
+   LOG4CPLUS_TRACE(logger_, "read_async_message enter");
+   LOG4CPLUS_DEBUG(logger_,
+                  "offset: " << offset <<
+                  ", expectedBytes: " << expectedBytes);
 
-   // here if less then 2 bytes are available for
-   if (!ec && bytes > MSG_LENGTH_BYTES) {
-      process_incoming();
-      read_async();
-   } else if (boost::asio::error::eof == ec) {
-      LOG4CPLUS_ERROR(logger_, "connection closed by peer");
-      close();
-   } else if (boost::asio::error::operation_aborted == ec) {
-      LOG4CPLUS_ERROR(logger_, ec.message());
-      close();
-   } else {
-      read_async();
+   // async operation will finish when either expectedBytes are read
+   // or error occured
+   async_read(socket_,
+               boost::asio::buffer( inMsgBuffer_ + offset,
+                                    expectedBytes),
+               boost::bind(&api_connection::on_read_async_message_completed,
+                           this,
+                           boost::asio::placeholders::error,
+                           boost::asio::placeholders::bytes_transferred));
+
+   LOG4CPLUS_TRACE(logger_, "read_async_message exit");
+}
+
+// this is the handler to async_read, it will be called only if the
+// supplied data buffer for read is full OR error occured
+void
+api_connection::on_read_async_message_completed(
+                                       const boost::system::error_code &ec,
+                                        const size_t bytesRead)
+{
+   LOG4CPLUS_TRACE(logger_, "on_read_async_completed enter");
+
+   auto err = check_async_error(ec);
+   if(err) {
+      LOG4CPLUS_DEBUG(logger_,
+                     "on_read_async_message_completed, ec: " +            ec.message());
+      return;
    }
 
-   LOG4CPLUS_DEBUG(logger_, "on_read_async_completed exit");
+   LOG4CPLUS_DEBUG(logger_, "msg data read, msgLen: " << bytesRead);
+   process_incoming();
+   read_async_header();
+
+   LOG4CPLUS_TRACE(logger_, "on_read_async_completed exit");
 }
 
 void
@@ -119,7 +196,7 @@ api_connection::close()
    // so the current api_connetion object and its socket_ object should be
    // destroyed automatically. However, this should be profiled during
    // stress tests for memory leaks
-   LOG4CPLUS_TRACE(logger_, "closing connection");
+   LOG4CPLUS_DEBUG(logger_, "closing connection");
    connManager_.close_connection(shared_from_this());
 }
 
@@ -127,7 +204,7 @@ void
 api_connection::on_write_completed(const boost::system::error_code &ec)
 {
    if(!ec)
-      LOG4CPLUS_TRACE(logger_, "sent completed");
+      LOG4CPLUS_DEBUG(logger_, "sent completed");
    else
       LOG4CPLUS_ERROR(logger_, "sent failed with error: " + ec.message());
 }
@@ -140,20 +217,10 @@ void
 api_connection::process_incoming()
 {
     std::string pb;
-    LOG4CPLUS_DEBUG(logger_, "process_incoming enter");
-
-    // start by getting the length of the next message (a 16-bit
-    // integer, encoded little endian, lower byte first)
-    uint16_t msgLen = *(static_cast<uint16_t*>(static_cast<void*>(msgBuffer_)));
-
-#ifndef BOOST_LITTLE_ENDIAN
-      // swap byte order for big endian and pdp endian
-       msgLen = (msglen << 8) | (msglen >> 8);
-#endif
-   LOG4CPLUS_DEBUG(logger_, "msg length: " << msgLen);
+    LOG4CPLUS_TRACE(logger_, "process_incoming enter");
 
    // Parse the protobuf
-   athenaRequest_.ParseFromString(msgBuffer_+MSG_LENGTH_BYTES);
+   athenaRequest_.ParseFromString(inMsgBuffer_ + MSG_LENGTH_BYTES);
    LOG4CPLUS_DEBUG(logger_, "Parsed!");
 
    // handle the request
@@ -161,25 +228,25 @@ api_connection::process_incoming()
 
    // marshal the protobuf
    athenaResponse_.SerializeToString(&pb);
-   msgLen = pb.length();
+   uint16_t msgLen = pb.length();
 #ifndef BOOST_LITTLE_ENDIAN
    msgLen = (msgLen << 8) || (msgLen >> 8);
 #endif
 
-   memset(msgBuffer_, 0, BUFFER_LENGTH);
-   memcpy(msgBuffer_, &msgLen, MSG_LENGTH_BYTES);
-   memcpy(msgBuffer_ + MSG_LENGTH_BYTES, pb.c_str(), msgLen);
+   memset(outMsgBuffer_, 0, BUFFER_LENGTH);
+   memcpy(outMsgBuffer_, &msgLen, MSG_LENGTH_BYTES);
+   memcpy(outMsgBuffer_ + MSG_LENGTH_BYTES, pb.c_str(), msgLen);
 
-   LOG4CPLUS_TRACE(logger_, "sending back " + to_string(msgLen) + " bytes");
+   LOG4CPLUS_DEBUG(logger_, "sending back " + to_string(msgLen) + " bytes");
    boost::asio::async_write(socket_,
-                            boost::asio::buffer(msgBuffer_,
+                            boost::asio::buffer(outMsgBuffer_,
                                                 msgLen + MSG_LENGTH_BYTES),
                             boost::bind(&api_connection::on_write_completed,
                                         this,
                                         boost::asio::placeholders::error));
 
-   LOG4CPLUS_TRACE(logger_, "responded!");
-   LOG4CPLUS_DEBUG(logger_, "process_incoming exit");
+   LOG4CPLUS_DEBUG(logger_, "responded!");
+   LOG4CPLUS_TRACE(logger_, "process_incoming exit");
 }
 
 /*
@@ -273,9 +340,14 @@ api_connection::handle_eth_request(int i) {
    // currently
    const EthRequest request = athenaRequest_.eth_request(i);
 
-   if (request.method() == EthRequest_EthMethod_SEND_TX) {
+   switch (request.method()) {
+   case EthRequest_EthMethod_SEND_TX:
       handle_eth_sendTransaction(request);
-   } else {
+      break;
+   case EthRequest_EthMethod_GET_TX_RECEIPT:
+      handle_eth_getTxReceipt(request);
+      break;
+   default:
       ErrorResponse *e = athenaResponse_.add_error_response();
       e->mutable_description()->assign("ETH Method Not Implemented");
    }
@@ -314,6 +386,7 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
    // TODO: get this from the request
    message.gas = 1000000;
 
+   std::vector<uint8_t> txhash;
    if (request.has_addr_to()) {
       message.kind = EVM_CALL;
 
@@ -321,11 +394,11 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
       assert(20 == request.addr_to().length());
       memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
 
-      athevm_.call(message, result);
+      athevm_.call(message, result, txhash);
    } else {
       message.kind = EVM_CREATE;
 
-      athevm_.create(message, result);
+      athevm_.create(message, result, txhash);
    }
 
    LOG4CPLUS_INFO(logger_, "Execution result -" <<
@@ -335,7 +408,34 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
 
    EthResponse *response = athenaResponse_.add_eth_response();
    response->set_id(request.id());
-   // TODO: put output data in the response
+   response->set_data(std::string(txhash.begin(), txhash.end()));
+}
+
+/**
+ * Handle and eth_getTransactionReceipt request.
+ */
+void
+api_connection::handle_eth_getTxReceipt(const EthRequest &request) {
+   if (request.has_data() && request.data().size() == sizeof(evm_uint256be)) {
+      std::vector<uint8_t> txhash(request.data().begin(),
+                                  request.data().end());
+
+      LOG4CPLUS_DEBUG(logger_, "Looking up transaction receipt " <<
+                      HexPrintVector{txhash});
+      EthTransaction tx = athevm_.get_transaction(txhash);
+
+      EthResponse *response = athenaResponse_.add_eth_response();
+      response->set_id(request.id());
+      response->set_status(tx.status == EVM_SUCCESS ? 1 : 0);
+      if (tx.contract_address.size() > 0) {
+         response->set_contract_address(
+            std::string(tx.contract_address.begin(),
+                        tx.contract_address.end()));
+      }
+   } else {
+      ErrorResponse *error = athenaResponse_.add_error_response();
+      error->set_description("Missing or invalid transaction hash");
+   }
 }
 
 /*

@@ -23,7 +23,7 @@ api_acceptor::api_acceptor(io_service &io_service, tcp::endpoint endpoint,
 void
 api_acceptor::start_accept()
 {
-  LOG4CPLUS_DEBUG(logger_, "start_accept enter");
+  LOG4CPLUS_TRACE(logger_, "start_accept enter");
 
   api_connection::pointer new_connection =
       api_connection::create(acceptor_.get_io_service(),
@@ -35,14 +35,14 @@ api_acceptor::start_accept()
                                        this,
                                        new_connection,
                                        boost::asio::placeholders::error));
-  LOG4CPLUS_DEBUG(logger_, "start_accept exit");
+  LOG4CPLUS_TRACE(logger_, "start_accept exit");
 }
 
 void
 api_acceptor::handle_accept(api_connection::pointer new_connection,
                             const error_code &error)
 {
-   LOG4CPLUS_DEBUG(logger_, "handle_accept enter");
+   LOG4CPLUS_TRACE(logger_, "handle_accept enter");
    if (!error)
       connManager_.start_connection(new_connection);
    else
@@ -50,5 +50,5 @@ api_acceptor::handle_accept(api_connection::pointer new_connection,
 
    LOG4CPLUS_DEBUG(logger_, "handle_accept before start_accept");
    start_accept();
-   LOG4CPLUS_DEBUG(logger_, "handle_accept exit");
+   LOG4CPLUS_TRACE(logger_, "handle_accept exit");
 }

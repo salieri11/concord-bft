@@ -21,7 +21,6 @@ namespace com {
             class api_connection
             : public boost::enable_shared_from_this<api_connection>
         {
-            #define _BUFFER_LENGTH_ 65536
          public:
 
             typedef boost::shared_ptr<api_connection> pointer;
@@ -60,18 +59,33 @@ namespace com {
             /* Specific Ethereum Method handlers. */
             void
             handle_eth_sendTransaction(const EthRequest &request);
+            void
+            handle_eth_getTxReceipt(const EthRequest &request);
 
             /* Constructor. */
             api_connection(boost::asio::io_service &io_service,
                            connection_manager &connManager,
                            com::vmware::athena::EVM &athevm);
 
-            void
-            read_async();
+            uint16_t
+            get_message_length(const char * buffer);
+
+            bool
+            check_async_error(const boost::system::error_code &ec);
 
             void
-            on_read_async_completed(const boost::system::error_code &ec,
-                                    const size_t bytes);
+            read_async_header();
+
+            void
+            on_read_async_header_completed(const boost::system::error_code &ec,
+                                          const size_t bytesRead);
+
+            void
+            read_async_message(uint16_t offset, uint16_t expectedBytes);
+
+            void
+            on_read_async_message_completed(const boost::system::error_code &ec,
+                                            const size_t bytes);
 
             void
             on_write_completed(const boost::system::error_code &ec);
@@ -105,10 +119,13 @@ namespace com {
             boost::asio::ip::tcp::endpoint remotePeer_;
 
             /* need to be adjusted to real msg max size */
-            const int BUFFER_LENGTH = _BUFFER_LENGTH_;
+            static constexpr uint32_t BUFFER_LENGTH = 65536;
 
-            /* buffer for messages */
-            char msgBuffer_ [_BUFFER_LENGTH_];
+            /* buffer for incoming messages */
+            char inMsgBuffer_ [BUFFER_LENGTH];
+
+            /* buffer for incoming messages */
+            char outMsgBuffer_ [BUFFER_LENGTH];
 
             const uint8_t MSG_LENGTH_BYTES = 2;
          };
