@@ -6,6 +6,7 @@
 # - Need to unlock the user. (Need API first.)
 #########################################################################
 import argparse
+import collections
 import json
 import logging
 import os
@@ -52,7 +53,7 @@ class CoreVMTests(test_suite.TestSuite):
       self._results = {
          "CoreVMTests": {
             "result":"",
-            "tests":{}
+            "tests": collections.OrderedDict()
          }
       }
 
@@ -169,7 +170,7 @@ class CoreVMTests(test_suite.TestSuite):
       }
 
       with open(tempFile, "w") as f:
-         f.write(json.dumps(self._results, sort_keys=True, indent=4))
+         f.write(json.dumps(self._results, indent=4))
 
       os.rename(tempFile, realFile)
 
