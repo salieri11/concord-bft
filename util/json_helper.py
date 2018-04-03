@@ -1,3 +1,4 @@
+import collections
 import json
 import logging
 
@@ -16,7 +17,8 @@ def readJsonFile(path):
    with open(path) as f:
       stringData = f.read()
 
-   decoder = json.JSONDecoder(strict=False)
+   decoder = json.JSONDecoder(strict=False,
+                              object_pairs_hook=collections.OrderedDict)
 
    try:
       pythonDict = decoder.decode(stringData)
