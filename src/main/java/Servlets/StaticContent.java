@@ -31,8 +31,7 @@ import io.undertow.util.StatusCodes;
  */
 public class StaticContent extends HttpServlet {
    private static final long serialVersionUID = 1L;
-   private static final Logger logger =
-         Logger.getLogger(StaticContent.class);
+   private static final Logger logger = Logger.getLogger(StaticContent.class);
    private IConfiguration _conf;
 
    public StaticContent() throws IOException {
@@ -43,22 +42,21 @@ public class StaticContent extends HttpServlet {
     * APIs serviced
     */
    private enum Api {
-      ASSETS, SWAGGER, API_LIST, DEFAULT_CONTENT;
+   ASSETS, SWAGGER, API_LIST, DEFAULT_CONTENT;
    }
 
    /**
-    * Services a get request. Fetches the resource from the specified
-    * path and returns it.
+    * Services a get request. Fetches the resource from the specified path and
+    * returns it.
     *
     * @param request
     *           The request received by the servlet
     * @param response
     *           The response object used to respond to the client
     */
-   @SuppressWarnings("resource")
    protected void doGet(final HttpServletRequest request,
-         final HttpServletResponse response)
-         throws ServletException, IOException {
+            final HttpServletResponse response)
+            throws ServletException, IOException {
 
       String callingApi = request.getServletPath();
       if (callingApi.length() > 0) {
@@ -77,22 +75,18 @@ public class StaticContent extends HttpServlet {
       case "assets":
          logger.trace("/assets API call");
          api = Api.ASSETS;
-         contentFolder = _conf
-                  .getStringValue("Assets_Folder");
+         contentFolder = _conf.getStringValue("Assets_Folder");
          break;
       case "swagger":
          logger.trace("/swagger API call");
          api = Api.SWAGGER;
-         contentFolder = _conf
-                  .getStringValue("Swagger_Folder");
+         contentFolder = _conf.getStringValue("Swagger_Folder");
          break;
       case "api":
          logger.trace("/api API call");
          api = Api.API_LIST;
-         contentFolder = _conf
-                  .getStringValue("ApiList_Folder");
-         contentFile = _conf
-                  .getStringValue("ApiList_File");
+         contentFolder = _conf.getStringValue("ApiList_Folder");
+         contentFile = _conf.getStringValue("ApiList_File");
          break;
       case "":
          String uri = request.getRequestURI();
@@ -100,16 +94,13 @@ public class StaticContent extends HttpServlet {
          // Load swagger UI if user enters /api/
          if (uri.startsWith(alternateApiListEndpoint)) {
             logger.trace("/api API call");
-            contentFolder = _conf
-                     .getStringValue("ApiList_Folder");
-            contentFile = _conf
-                     .getStringValue("ApiList_File");
+            contentFolder = _conf.getStringValue("ApiList_Folder");
+            contentFile = _conf.getStringValue("ApiList_File");
             api = Api.API_LIST;
          } else {
             logger.trace("Default Content API call");
             api = Api.DEFAULT_CONTENT;
-            contentFolder = _conf
-                     .getStringValue("Server_DefaultResponse");
+            contentFolder = _conf.getStringValue("Server_DefaultResponse");
             contentFile = "";
          }
          break;
@@ -129,7 +120,7 @@ public class StaticContent extends HttpServlet {
                   .canonicalize(StaticContentHelper.getPath(request));
          contentPath = contentPath.replace('/', File.separatorChar);
 
-         //Users need to request for a specific resource
+         // Users need to request for a specific resource
          if (contentPath.endsWith("/")) {
             try {
                logger.error("Path does not point to specific file");
@@ -153,29 +144,26 @@ public class StaticContent extends HttpServlet {
       }
 
       // read the file
-      FileInputStream inputStream;
-      try {
-         inputStream = new FileInputStream(file);
+      try (FileInputStream inputStream = new FileInputStream(file)) {
+         // Detect file type
+         String fileType = StaticContentHelper.detectFileType(file);
+
+         // Set file type and charset
+         response.setContentType(fileType + ";charset=UTF-8");
+
+         // Respond to client
+         int c;
+         try {
+            byte[] buf = new byte[1024];
+            while ((c = inputStream.read(buf, 0, buf.length)) != -1) {
+               response.getOutputStream().write(buf, 0, c);
+            }
+         } catch (IOException e) {
+            logger.error("Error in reading from tcp input stream");
+            throw e;
+         }
       } catch (FileNotFoundException e) {
          logger.error("File not found : " + file.getAbsolutePath());
-         throw e;
-      }
-
-      // Detect file type
-      String fileType = StaticContentHelper.detectFileType(file);
-
-      // Set file type and charset
-      response.setContentType(fileType + ";charset=UTF-8");
-
-      // Respond to client
-      int c;
-      try {
-         byte[] buf = new byte[1024];
-         while ((c = inputStream.read(buf, 0, buf.length)) != -1) {
-            response.getOutputStream().write(buf, 0, c);
-         }
-      } catch (IOException e) {
-         logger.error("Error in reading from tcp input stream");
          throw e;
       }
    }

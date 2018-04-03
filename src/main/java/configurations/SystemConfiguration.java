@@ -33,18 +33,11 @@ public final class SystemConfiguration {
    private SystemConfiguration() throws IOException, ParseException {
       logger = Logger.getLogger(SystemConfiguration.class);
       configurations = new Properties();
-      InputStream input = null;
 
-      try {
-         input = new FileInputStream("config.properties");
+      try (InputStream input = new FileInputStream("config.properties");) {
+         configurations.load(input);
       } catch (FileNotFoundException e) {
          logger.error("Error reading config file");
-         throw e;
-      }
-      try {
-         configurations.load(input);
-      } catch (IOException e) {
-         logger.error("Error loading config file");
          throw e;
       }
 
