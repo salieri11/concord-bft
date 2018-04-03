@@ -1,12 +1,12 @@
 /**
  * This servlet is used to serve static content.
- * 
- * Endpoints serviced : 
+ *
+ * Endpoints serviced :
  * /assets/* : Loads content in the priv/www/assets folder
  * /api and /api/ : Loads content from priv/swagger.json
  * /swagger/* : Loads content from priv/www/swagger folder
  * /* : Loads content from priv/www/index.html
- * 
+ *
  */
 package Servlets;
 
@@ -16,17 +16,13 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Properties;
-
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import org.apache.log4j.Logger;
-import org.json.simple.parser.ParseException;
-
-import configurations.SystemConfiguration;
+import configurations.FileConfiguration;
+import configurations.IConfiguration;
 import io.undertow.util.CanonicalPathUtils;
 import io.undertow.util.StatusCodes;
 
@@ -35,33 +31,25 @@ import io.undertow.util.StatusCodes;
  */
 public class StaticContent extends HttpServlet {
    private static final long serialVersionUID = 1L;
-   private static Properties config;
-   private final Logger logger;
+   private static final Logger logger =
+         Logger.getLogger(StaticContent.class);
+   private IConfiguration _conf;
+
+   public StaticContent() throws IOException {
+      _conf = FileConfiguration.getInstance();
+   }
 
    /**
     * APIs serviced
     */
    private enum Api {
-   ASSETS, SWAGGER, API_LIST, DEFAULT_CONTENT;
-   }
-
-   public StaticContent() throws IOException, ParseException {
-      logger = Logger.getLogger(StaticContent.class);
-      // Read configurations
-      SystemConfiguration s;
-      try {
-         s = SystemConfiguration.getInstance();
-      } catch (IOException e) {
-         logger.error("Error in reading configurations");
-         throw e;
-      }
-      config = s.configurations;
+      ASSETS, SWAGGER, API_LIST, DEFAULT_CONTENT;
    }
 
    /**
-    * Services a get request. Fetches the resource from the specified path and
-    * returns it.
-    * 
+    * Services a get request. Fetches the resource from the specified
+    * path and returns it.
+    *
     * @param request
     *           The request received by the servlet
     * @param response
@@ -69,8 +57,8 @@ public class StaticContent extends HttpServlet {
     */
    @SuppressWarnings("resource")
    protected void doGet(final HttpServletRequest request,
-            final HttpServletResponse response)
-            throws ServletException, IOException {
+         final HttpServletResponse response)
+         throws ServletException, IOException {
 
       String callingApi = request.getServletPath();
       if (callingApi.length() > 0) {
@@ -80,8 +68,8 @@ public class StaticContent extends HttpServlet {
       Api api;
       String contentFolder = new String();
       String contentFile = new String();
-      String alternateApiListEndpoint = config
-               .getProperty("Alternate_ApiList_Endpoint");
+      String alternateApiListEndpoint = _conf
+               .getStringValue("Alternate_ApiList_Endpoint");
 
       // Read configurations based on API
       switch (callingApi) {
@@ -89,18 +77,22 @@ public class StaticContent extends HttpServlet {
       case "assets":
          logger.trace("/assets API call");
          api = Api.ASSETS;
-         contentFolder = config.getProperty("Assets_Folder");
+         contentFolder = _conf
+                  .getStringValue("Assets_Folder");
          break;
       case "swagger":
          logger.trace("/swagger API call");
          api = Api.SWAGGER;
-         contentFolder = config.getProperty("Swagger_Folder");
+         contentFolder = _conf
+                  .getStringValue("Swagger_Folder");
          break;
       case "api":
          logger.trace("/api API call");
          api = Api.API_LIST;
-         contentFolder = config.getProperty("ApiList_Folder");
-         contentFile = config.getProperty("ApiList_File");
+         contentFolder = _conf
+                  .getStringValue("ApiList_Folder");
+         contentFile = _conf
+                  .getStringValue("ApiList_File");
          break;
       case "":
          String uri = request.getRequestURI();
@@ -108,13 +100,16 @@ public class StaticContent extends HttpServlet {
          // Load swagger UI if user enters /api/
          if (uri.startsWith(alternateApiListEndpoint)) {
             logger.trace("/api API call");
-            contentFolder = config.getProperty("ApiList_Folder");
-            contentFile = config.getProperty("ApiList_File");
+            contentFolder = _conf
+                     .getStringValue("ApiList_Folder");
+            contentFile = _conf
+                     .getStringValue("ApiList_File");
             api = Api.API_LIST;
          } else {
             logger.trace("Default Content API call");
             api = Api.DEFAULT_CONTENT;
-            contentFolder = config.getProperty("Server_DefaultResponse");
+            contentFolder = _conf
+                     .getStringValue("Server_DefaultResponse");
             contentFile = "";
          }
          break;
@@ -180,14 +175,6 @@ public class StaticContent extends HttpServlet {
          }
       } catch (IOException e) {
          logger.error("Error in reading from tcp input stream");
-         throw e;
-      }
-
-      // close input stream
-      try {
-         inputStream.close();
-      } catch (IOException e) {
-         logger.error("Error in closing input stream");
          throw e;
       }
    }

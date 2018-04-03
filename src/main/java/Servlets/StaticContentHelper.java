@@ -5,13 +5,10 @@ package Servlets;
 
 import java.io.File;
 import java.io.IOException;
-
 import javax.servlet.DispatcherType;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.http.HttpServletRequest;
-
 import org.apache.tika.Tika;
-
 import io.undertow.util.CanonicalPathUtils;
 
 public class StaticContentHelper {
