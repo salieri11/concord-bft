@@ -72,10 +72,10 @@ uint16_t
 api_connection::get_message_length(const char * buffer)
 {
    uint16_t msgLen = *(static_cast<const uint16_t*>(
-      static_cast<const void*>(buffer)));
+                          static_cast<const void*>(buffer)));
 #ifndef BOOST_LITTLE_ENDIAN
-     // swap byte order for big endian and pdp endian
-      msgLen = (msglen << 8) | (msglen >> 8);
+   // swap byte order for big endian and pdp endian
+   msgLen = (msglen << 8) | (msglen >> 8);
 #endif
    return msgLen;
 }
@@ -96,14 +96,15 @@ api_connection::check_async_error(const boost::system::error_code &ec)
 
 void
 api_connection::on_read_async_header_completed(
-                                    const boost::system::error_code &ec,
-                                    const size_t bytesRead)
+   const boost::system::error_code &ec,
+   const size_t bytesRead)
 {
    LOG4CPLUS_TRACE(logger_, "on_read_async_header_completed enter");
    auto err = check_async_error(ec);
    if(err) {
       LOG4CPLUS_DEBUG(logger_,
-                     "on_read_async_header_completed, ec: " +            ec.message());
+                      "on_read_async_header_completed, ec: " <<
+                      ec.message());
       close();
       return;
    }
@@ -115,7 +116,7 @@ api_connection::on_read_async_header_completed(
    }
 
    LOG4CPLUS_DEBUG(logger_,
-                  "on_read_async_header_completed, msgLen: " << msgLen);
+                   "on_read_async_header_completed, msgLen: " << msgLen);
 
    read_async_message(MSG_LENGTH_BYTES, msgLen);
 
@@ -135,11 +136,11 @@ api_connection::read_async_header()
    // async operation will finish when either expectedBytes are read
    // or error occured
    async_read(socket_,
-               boost::asio::buffer(inMsgBuffer_, MSG_LENGTH_BYTES),
-               boost::bind(&api_connection::on_read_async_header_completed,
-                           this,
-                           boost::asio::placeholders::error,
-                           boost::asio::placeholders::bytes_transferred));
+              boost::asio::buffer(inMsgBuffer_, MSG_LENGTH_BYTES),
+              boost::bind(&api_connection::on_read_async_header_completed,
+                          this,
+                          boost::asio::placeholders::error,
+                          boost::asio::placeholders::bytes_transferred));
 
    LOG4CPLUS_TRACE(logger_, "read_async exit");
 }
@@ -150,18 +151,18 @@ api_connection::read_async_message( uint16_t offset,
 {
    LOG4CPLUS_TRACE(logger_, "read_async_message enter");
    LOG4CPLUS_DEBUG(logger_,
-                  "offset: " << offset <<
-                  ", expectedBytes: " << expectedBytes);
+                   "offset: " << offset <<
+                   ", expectedBytes: " << expectedBytes);
 
    // async operation will finish when either expectedBytes are read
    // or error occured
    async_read(socket_,
-               boost::asio::buffer( inMsgBuffer_ + offset,
-                                    expectedBytes),
-               boost::bind(&api_connection::on_read_async_message_completed,
-                           this,
-                           boost::asio::placeholders::error,
-                           boost::asio::placeholders::bytes_transferred));
+              boost::asio::buffer( inMsgBuffer_ + offset,
+                                   expectedBytes),
+              boost::bind(&api_connection::on_read_async_message_completed,
+                          this,
+                          boost::asio::placeholders::error,
+                          boost::asio::placeholders::bytes_transferred));
 
    LOG4CPLUS_TRACE(logger_, "read_async_message exit");
 }
@@ -170,15 +171,16 @@ api_connection::read_async_message( uint16_t offset,
 // supplied data buffer for read is full OR error occured
 void
 api_connection::on_read_async_message_completed(
-                                       const boost::system::error_code &ec,
-                                        const size_t bytesRead)
+   const boost::system::error_code &ec,
+   const size_t bytesRead)
 {
    LOG4CPLUS_TRACE(logger_, "on_read_async_completed enter");
 
    auto err = check_async_error(ec);
    if(err) {
       LOG4CPLUS_DEBUG(logger_,
-                     "on_read_async_message_completed, ec: " +            ec.message());
+                      "on_read_async_message_completed, ec: " <<
+                      ec.message());
       return;
    }
 
@@ -203,10 +205,11 @@ api_connection::close()
 void
 api_connection::on_write_completed(const boost::system::error_code &ec)
 {
-   if(!ec)
+   if(!ec) {
       LOG4CPLUS_DEBUG(logger_, "sent completed");
-   else
-      LOG4CPLUS_ERROR(logger_, "sent failed with error: " + ec.message());
+   } else {
+      LOG4CPLUS_ERROR(logger_, "sent failed with error: " << ec.message());
+   }
 }
 
 /*
@@ -216,8 +219,8 @@ api_connection::on_write_completed(const boost::system::error_code &ec)
 void
 api_connection::process_incoming()
 {
-    std::string pb;
-    LOG4CPLUS_TRACE(logger_, "process_incoming enter");
+   std::string pb;
+   LOG4CPLUS_TRACE(logger_, "process_incoming enter");
 
    // Parse the protobuf
    athenaRequest_.ParseFromString(inMsgBuffer_ + MSG_LENGTH_BYTES);
@@ -237,7 +240,7 @@ api_connection::process_incoming()
    memcpy(outMsgBuffer_, &msgLen, MSG_LENGTH_BYTES);
    memcpy(outMsgBuffer_ + MSG_LENGTH_BYTES, pb.c_str(), msgLen);
 
-   LOG4CPLUS_DEBUG(logger_, "sending back " + to_string(msgLen) + " bytes");
+   LOG4CPLUS_DEBUG(logger_, "sending back " << to_string(msgLen) << " bytes");
    boost::asio::async_write(socket_,
                             boost::asio::buffer(outMsgBuffer_,
                                                 msgLen + MSG_LENGTH_BYTES),
@@ -286,7 +289,7 @@ api_connection::handle_protocol_request() {
 
    const ProtocolRequest request = athenaRequest_.protocol_request();
    LOG4CPLUS_DEBUG(logger_, "protocol_request, client_version: " <<
-                  request.client_version());
+                   request.client_version());
 
    // create a response even if the request does not have a client
    // version, as this could be used as a keep-alive ping
