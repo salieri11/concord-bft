@@ -64,7 +64,9 @@ int main(int argc, char** argv)
       if (opts.count(OPT_LOCATION) > 0) {
          dehex0x(opts[OPT_LOCATION].as<std::string>(), location);
       } else {
-         std::cerr << "Warning: using default addres 0x0." << std::endl;
+         // Many tests write the result to check to 0x0. Using it as the default
+         // provides a convenient shortcut for debugging.
+         std::cerr << "Warning: using default location: 0x0." << std::endl;
       }
       pad(location, 32);
       ethReq->set_data(location);
