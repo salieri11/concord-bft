@@ -1,208 +1,145 @@
 /**
  * This singleton class is used to maintain resources related to a single
  * TCP connection with Athena.
- * 
+ *
  * Also contains functions for communicating with Athena over a TCP connection.
- * 
+ *
  * These resources are shared by all servlets.
  * This means that at present, only one servlet can talk to Athena at a
  * time.
  */
 package connections;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.util.Properties;
-
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.log4j.Logger;
-import org.json.simple.parser.ParseException;
 
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.vmware.athena.Athena;
+import configurations.*;
 
-import Servlets.APIHelper;
-import configurations.SystemConfiguration;
-
-public final class AthenaTCPConnection {
-
-   private static AthenaTCPConnection single_instance = null;
-   private Socket socket;
-   public DataOutputStream outputStream;
-   public DataInputStream inputStream;
-   private static Logger logger;
+public final class AthenaTCPConnection implements IAthenaConnection {
+   private Socket _socket;
+   private AtomicBoolean _disposed;
+   private final int _receiveTimeout; // ms
+   private final int _receiveLengthSize; // bytes
+   private IConfiguration _conf;
+   private static Logger _logger =
+         Logger.getLogger(AthenaTCPConnection.class);
 
    /**
-    * Sets up a TCP connection with Athena and creates input and output streams
-    * for this connection
-    * 
-    * @throws IOException
-    * @throws ParseException
-    */
-   private AthenaTCPConnection() throws IOException, ParseException {
-      logger = Logger.getLogger(AthenaTCPConnection.class);
+   * Sets up a TCP connection with Athena
+   *
+   * @throws IOException
+   */
+   public AthenaTCPConnection(IConfiguration conf) throws IOException {
+      _conf = conf;
+      _receiveLengthSize =
+            _conf.getIntegerValue("ReceiveHeaderSizeBytes");
+      _receiveTimeout = _conf.getIntegerValue("ReceiveTimeoutMs");
+      _disposed = new AtomicBoolean(false);
 
-      // Read Athena's hostname and port from the configurations file
-      SystemConfiguration s = null;
+      // Create the TCP connection and input and output streams
       try {
-         s = SystemConfiguration.getInstance();
-      } catch (IOException e) {
-         logger.error("Error in reading configurations");
-         throw e;
-      }
-      Properties config = s.configurations;
-      String athenaHostName = config.getProperty("AthenaHostName");
-      int athenaPort = Integer.parseInt(config.getProperty("AthenaPort"));
-
-      try {
-         socket = new Socket(athenaHostName, athenaPort);
-         outputStream = new DataOutputStream(socket.getOutputStream());
-         inputStream = new DataInputStream(socket.getInputStream());
+         String host = _conf.getStringValue("AthenaHostName");
+         int port = _conf.getIntegerValue("AthenaPort");
+         _socket = 
+               new Socket(host, port);
+         _socket.setTcpNoDelay(true);
       } catch (UnknownHostException e) {
-         logger.error("Error creating TCP connection with Athena");
-         throw e;
+         _logger.error("Error creating TCP connection with Athena");
+         throw new UnknownHostException();
       } catch (IOException e) {
-         logger.error("Error creating input/output stream with Athena");
-         throw e;
+         _logger.error("Error creating input/output stream with Athena");
+         throw new IOException();
       }
-      System.out.println("Socket connection with Athena created");
-   }
 
-   /**
-    * This function ensures that only a single instance of this class is ever
-    * created.
-    * 
-    * @return
-    * @throws IOException
-    * @throws ParseException
-    */
-   public static synchronized AthenaTCPConnection getInstance()
-            throws IOException, ParseException {
-      if (single_instance == null) {
+      _logger.debug("Socket connection with Athena created");
+   }
+   
+   public void close() {
+      if (_disposed.get())
+         return;
+
+      if (_socket != null && !_socket.isClosed()) {
          try {
-            single_instance = new AthenaTCPConnection();
+            _socket.close();
          } catch (IOException e) {
-            logger.error("Error creating object of AthenaTCPConnection");
-            throw e;
+            _logger.error("Error in closing TCP socket");
+         } finally {
+            _disposed.set(true);
          }
       }
-      return single_instance;
    }
 
-   public static void closeConnection() throws IOException, ParseException {
-      AthenaTCPConnection obj;
+   @Override
+   protected void finalize() throws Throwable {
+      _logger.info("connection disposed");
       try {
-         obj = AthenaTCPConnection.getInstance();
-      } catch (IOException e) {
-         logger.error(
-                  "Error in getting AthenaTCPConnection object for closing connection");
-         throw e;
+         if (!_disposed.get())
+            close();
+      } finally {
+         super.finalize();
       }
-      if (obj.outputStream != null) {
-         try {
-            {
-               obj.outputStream.close();
+   }
+
+   @Override
+   public byte[] receive() {
+      try {
+         java.io.InputStream is = _socket.getInputStream();
+         long start = System.currentTimeMillis();
+         ByteBuffer length = null;
+         byte[] res = null;
+         int read = 0;
+         boolean done = false;
+         int msgSize = 0;
+                  
+         while (System.currentTimeMillis() - start < _receiveTimeout) {
+
+            if (length == null && is.available() >= _receiveLengthSize) {
+               length = ByteBuffer.wrap(new byte[_receiveLengthSize])
+                     .order(ByteOrder.LITTLE_ENDIAN);
+               is.read(length.array(), 0, _receiveLengthSize);
             }
-         } catch (IOException e) {
-            logger.error("Error in closing output stream");
-            throw e;
+
+            if (length != null && res == null) {
+               msgSize = length.getShort();
+               res = new byte[msgSize];
+            }
+
+            if (res != null) {
+               int av = is.available();
+               if (av > 0)
+                  read += is.read(res, read, av);
+               if (read == msgSize) {
+                  done = true;
+                  break;
+               }
+            }
          }
-      }
-      if (obj.inputStream != null) {
-         try {
-            obj.inputStream.close();
-         } catch (IOException e) {
-            logger.error("Error in closing input stream");
-            throw e;
+
+         if (!done) {
+            close();
+            return null;
          }
-      }
-      if (obj.socket != null) {
-         try {
-            obj.socket.close();
-         } catch (IOException e) {
-            logger.error("Error in closing TCP socket");
-            throw e;
-         }
+
+         return res;
+      } catch (IOException e) {
+         _logger.error("readMessage", e);
+         return null;
       }
    }
 
-   /**
-    * Sends a Google Protocol Buffer request to Athena. Athena expects two bytes
-    * signifying the size of the request before the actual request.
-    * 
-    * @param request
-    *           The request that needs to be sent to Athena
-    * @return Athena's response
-    * @throws IOException
-    */
-   public synchronized Athena.AthenaResponse sendToAthena(
-            Athena.AthenaRequest request) throws IOException {
-
-      // Find size of request and pack size into two bytes.
-      int requestSize = request.getSerializedSize();
-      byte[] size = APIHelper.intToSizeBytes(requestSize);
-
-      byte[] protobufRequest = request.toByteArray();
-
-      // Write requests over the output stream.
+   @Override
+   public boolean send(byte[] msg) {
       try {
-         this.outputStream.write(size);
-      } catch (IOException e) {
-         logger.error("Error in writing the size of request to Athena");
-         throw e;
+         _socket.getOutputStream().write(msg);
+         return true;
+      } catch (Exception e) {
+         _logger.error("sendMessage", e);
+         return false;
       }
-
-      try {
-         this.outputStream.write(protobufRequest);
-      } catch (IOException e) {
-         logger.error("Error in writing the request to Athena");
-         throw e;
-      }
-
-      // Get the response from Athena
-      return receiveFromAthena();
-   }
-
-   /**
-    * Receives a Google Protocol Buffer response from Athena. Athena sends two
-    * bytes signifying the size of the response before the actual response.
-    * 
-    * @return Athena's response
-    * @throws IOException
-    */
-   private Athena.AthenaResponse receiveFromAthena() throws IOException {
-      /*
-       * Read two bytes from the inputstream and consider that as size of the
-       * response
-       */
-      byte[] size = new byte[2];
-      try {
-         this.inputStream.readFully(size);
-      } catch (IOException e) {
-         logger.error("Error reading size of Athena's response");
-         throw e;
-      }
-      int responseSize = APIHelper.sizeBytesToInt(size);
-
-      // Read the response from the input stream.
-      byte[] response = new byte[responseSize];
-      try {
-         this.inputStream.readFully(response);
-      } catch (IOException e) {
-         logger.error("Error reading Athena's response");
-         throw e;
-      }
-
-      // Convert read bytes into a Protocol Buffer object.
-      Athena.AthenaResponse athenaResponse;
-      try {
-         athenaResponse = Athena.AthenaResponse.parseFrom(response);
-      } catch (InvalidProtocolBufferException e) {
-         logger.error("Error in parsing Athena's response");
-         throw e;
-      }
-      return athenaResponse;
    }
 }

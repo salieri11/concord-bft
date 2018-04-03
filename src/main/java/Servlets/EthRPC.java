@@ -5,13 +5,13 @@
  * Used to list available RPC methods.
  * A list of currently exposed Eth RPC methods is read from the config file
  * and returned to the client.
- * 
+ *
  * POST:
  * Used to call the named method.
- * An EthRPCExecute request is sent to Athena and to parse the responses into 
- * JSON. A TCP socket connection is made to Athena and requests and responses 
+ * An EthRPCExecute request is sent to Athena and to parse the responses into
+ * JSON. A TCP socket connection is made to Athena and requests and responses
  * are encoded in the Google Protocol Buffer format.
- * 
+ *
  * Athena, by default, runs on port 5458.
  * TODO : Handle the case of no/incorrect response from Athena
  */
@@ -20,20 +20,12 @@ package Servlets;
 import com.google.protobuf.ByteString;
 import com.vmware.athena.*;
 import com.vmware.athena.Athena.EthRPCExecuteResponse;
-
-import configurations.SystemConfiguration;
-import connections.AthenaTCPConnection;
 import io.undertow.util.StatusCodes;
-
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
-
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -43,30 +35,22 @@ import org.json.simple.parser.ParseException;
 /**
  * Servlet class.
  */
-public final class EthRPC extends HttpServlet {
+public final class EthRPC extends BaseServlet {
    private static final long serialVersionUID = 1L;
-   private static AthenaTCPConnection athenaConnection;
-   private static Logger logger;
-   private static JSONArray rpcList;
-
-   public EthRPC() throws ParseException, IOException {
-      logger = Logger.getLogger(EthRPC.class);
-
-      // Read configurations
-      SystemConfiguration s = null;
-      try {
-         s = SystemConfiguration.getInstance();
-      } catch (ParseException e) {
-         logger.error("Error in reading configurations");
-         throw e;
-      }
-      rpcList = s.rpcList;
+   private static Logger logger = Logger.getLogger(EthRPC.class);
+   private JSONArray rpcList;
+   
+   public EthRPC() throws ParseException {
+      super();
+      JSONParser p = new JSONParser();
+      rpcList = (JSONArray)p.parse(_conf.getStringValue("EthRPCList"));
    }
-
+   
    /**
-    * Services the Get request for listing currently exposed Eth RPCs. Retrieves
-    * the list from the configurations file and returns it to the client.
-    * 
+    * Services the Get request for listing currently exposed Eth RPCs.
+    *  Retrieves the list from the configurations file 
+    *  and returns it to the client.
+    *
     * @param request
     *           The request received by the servlet
     * @param response
@@ -78,31 +62,25 @@ public final class EthRPC extends HttpServlet {
 
       if (rpcList == null) {
          logger.error("Configurations not read.");
-         response.sendError(StatusCodes.INTERNAL_SERVER_ERROR);
-         return;
+         processResponse(response,
+               "error", 
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                logger);
       }
 
-      PrintWriter writer = null;
-      try {
-         writer = response.getWriter();
-      } catch (IOException e) {
-         logger.error("Error in retrieving the writer object of the "
-                  + "HttpResponse");
-         throw e;
-      }
-      // Set client response header
-      response.setHeader("Content-Transfer-Encoding", "UTF-8");
-      response.setContentType("application/json");
-
-      // Respond to client.
-      writer.write(rpcList.toJSONString());
+      processResponse(response, 
+            rpcList.toJSONString(),
+            StatusCodes.OK,
+            logger);
    }
 
    /**
-    * Services the Post request for executing the specified method. Retrieves
-    * the request parameters and forwards the request to Athena for execution.
+    * Services the Post request for executing the specified method.
+    *  Retrieves
+    * the request parameters and forwards the request to Athena
+    *  for execution.
     * Receives a response from Athena and forwards it to the client.
-    * 
+    *
     * @param request
     *           The request received by the servlet
     * @param response
@@ -111,24 +89,6 @@ public final class EthRPC extends HttpServlet {
     */
    protected void doPost(final HttpServletRequest request,
             final HttpServletResponse response) throws IOException {
-
-      // Make/fetch connection objects
-      try {
-         athenaConnection = AthenaTCPConnection.getInstance();
-      } catch (ParseException e) {
-         logger.error("Error connecting to Athena");
-         response.sendError(StatusCodes.INTERNAL_SERVER_ERROR);
-         return;
-      }
-
-      PrintWriter writer = null;
-      try {
-         writer = response.getWriter();
-      } catch (IOException e) {
-         logger.error("Error in retrieving the writer object of the "
-                  + "HttpResponse");
-         throw e;
-      }
 
       // Retrieve the request fields
       JSONObject requestParams = null;
@@ -146,41 +106,59 @@ public final class EthRPC extends HttpServlet {
          if (requestParams == null) {
             logger.error("Invalid request : Parameters should be in the "
                      + "request body and in a JSON object format");
-            response.sendError(StatusCodes.BAD_REQUEST);
+            processResponse(response,
+                           "error", 
+                            StatusCodes.BAD_REQUEST,
+                            logger);
             return;
          }
       } catch (ParseException e) {
-         logger.error("Invalid request");
-         response.sendError(StatusCodes.BAD_REQUEST);
-         e.printStackTrace();
+         logger.error("Invalid request", e);
+         processResponse(response,
+               "error", 
+                StatusCodes.BAD_REQUEST,
+                logger);
          return;
       }
+
       try {
          id = (Long) requestParams.get("id");
       } catch (NumberFormatException e) {
-         logger.error("Invalid request parameter : id");
-         response.sendError(StatusCodes.BAD_REQUEST);
-         throw e;
+         logger.error("Invalid request parameter : id", e);
+         processResponse(response,
+               "error", 
+                StatusCodes.BAD_REQUEST,
+                logger);
+         return;
       }
 
       jsonRpc = (String) requestParams.get("jsonrpc");
       if (jsonRpc == null) {
          logger.error("Invalid request parameter : jsonrpc");
-         response.sendError(StatusCodes.BAD_REQUEST);
+         processResponse(response,
+               "error", 
+                StatusCodes.BAD_REQUEST,
+                logger);
          return;
       }
 
       method = (String) requestParams.get("method");
       if (method == null) {
          logger.error("Invalid request parameter : method");
-         response.sendError(StatusCodes.BAD_REQUEST);
+         processResponse(response,
+               "error", 
+                StatusCodes.BAD_REQUEST,
+                logger);
          return;
       }
       params = (JSONArray) requestParams.get("params");
 
       if (params.size() < 1) {
          logger.error("Invalid request parameter : params");
-         response.sendError(StatusCodes.BAD_REQUEST);
+         processResponse(response,
+               "error", 
+                StatusCodes.BAD_REQUEST,
+                logger);
          return;
       }
 
@@ -193,45 +171,48 @@ public final class EthRPC extends HttpServlet {
          }
       } catch (Exception e) {
          logger.error("Invalid request parameter : params");
-         response.sendError(StatusCodes.BAD_REQUEST);
+         processResponse(response,
+               "error", 
+                StatusCodes.BAD_REQUEST,
+                logger);
          return;
       }
 
       // Construct an ethrpcexecute request object.
-      Athena.EthRPCExecuteRequest ethRpcExecuteRequestObj = Athena.EthRPCExecuteRequest
-               .newBuilder().setId(id).setJsonrpc(jsonRpc).setMethod(method)
-               .addAllParams(paramBytes).build();
-
-      // Envelope the request object into an athena request object.
-      final Athena.AthenaRequest athenarequestObj = Athena.AthenaRequest
-               .newBuilder().setEthRpcExecuteRequest(ethRpcExecuteRequestObj)
+      Athena.EthRPCExecuteRequest ethRpcExecuteRequestObj =
+            Athena.EthRPCExecuteRequest
+               .newBuilder()
+               .setId(id)
+               .setJsonrpc(jsonRpc)
+               .setMethod(method)
+               .addAllParams(paramBytes)
                .build();
 
-      // send request to Athena
-      Athena.AthenaResponse athenaResponse = athenaConnection
-               .sendToAthena(athenarequestObj);
-      // receive response from Athena
-      JSONObject ethRpcResponse = parseToJSON(athenaResponse);
+      // Envelope the request object into an athena request object.
+      final Athena.AthenaRequest athenarequestObj =
+            Athena.AthenaRequest
+               .newBuilder()
+               .setEthRpcExecuteRequest(ethRpcExecuteRequestObj)
+               .build();
 
-      // Set client response header
-      response.setHeader("Content-Transfer-Encoding", "UTF-8");
-      response.setContentType("application/json");
-
-      // Respond to client.
-      writer.write(ethRpcResponse.toString());
+      processGet(athenarequestObj, response, logger);
    }
 
    /**
-    * Parses the Protocol Buffer response from Athena and converts it into JSON.
-    * 
+    * Parses the Protocol Buffer response from Athena and converts 
+    * it into JSON.
+    *
     * @param athenaResponse
     *           Protocol Buffer object containing Athena's reponse
     * @return Response in JSON format
     */
    @SuppressWarnings("unchecked")
-   private JSONObject parseToJSON(Athena.AthenaResponse athenaResponse) {
+   @Override
+   protected JSONObject parseToJSON(Athena.AthenaResponse athenaResponse)
+   {
 
-      // Extract the ethrpcexecute response from the athena reponse envelope.
+      // Extract the ethrpcexecute response from 
+      // the athena reponse envelope.
       EthRPCExecuteResponse ethRpcExecuteResponse = athenaResponse
                .getEthRpcExecuteResponse();
 
@@ -241,7 +222,8 @@ public final class EthRPC extends HttpServlet {
       responseJson.put("jsonrpc", ethRpcExecuteResponse.getJsonrpc());
 
       /*
-       * Convert the binary string received from Athena into a hex string for
+       * Convert the binary string received from Athena into
+       *  a hex string for
        * responding to the client
        */
       String resultString = APIHelper

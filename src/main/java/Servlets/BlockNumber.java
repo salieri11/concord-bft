@@ -1,66 +1,40 @@
 /**
  * url endpoint : /api/athena/blocks/{N}
  * Used to fetch a specific block from the chain.
- * 
+ *
  * This servlet is used to send BlockNumber Requests to Athena and to parse
  * the responses into JSON. A TCP socket connection is made to Athena
  * and requests and responses are encoded in the Google Protocol Buffer
  * format.
- * 
+ *
  * Athena, by default, runs on port 5458.
- * TODO : Handle the case of no/incorrect response from Athena
  */
 package Servlets;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ProtocolStringList;
 import com.vmware.athena.*;
-
-import connections.AthenaTCPConnection;
 import io.undertow.util.StatusCodes;
-
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Iterator;
-
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.ParseException;
 
 /**
  * Servlet class.
  */
-public final class BlockNumber extends HttpServlet {
+public final class BlockNumber extends BaseServlet {
    private static final long serialVersionUID = 1L;
-   private static AthenaTCPConnection athenaConnection;
-   private final Logger logger;
-
-   /**
-    * Retrieves the common TCP connection object.
-    * 
-    * @throws IOException
-    * @throws ParseException
-    */
-   public BlockNumber() throws IOException, ParseException {
-      logger = Logger.getLogger(BlockNumber.class);
-      try {
-         athenaConnection = AthenaTCPConnection.getInstance();
-      } catch (IOException e) {
-         logger.error("Error in creating TCP connection with Athena");
-         throw e;
-      }
-   }
+   private final static Logger _logger = Logger.getLogger(BlockNumber.class);
 
    /**
     * Services a get request. Constructs a protobuf request of type blocknumber
     * request (enveloped in an athena request) as defined in athena.proto. Sends
     * this request to Athena. Parses the response and converts it into json for
-    * responding to the client.
+    * sendiong to clientß
     * 
     * @param request
     *           The request received by the servlet
@@ -71,15 +45,6 @@ public final class BlockNumber extends HttpServlet {
    @Override
    protected void doGet(final HttpServletRequest request,
             final HttpServletResponse response) throws IOException {
-      PrintWriter writer = null;
-      try {
-         writer = response.getWriter();
-      } catch (IOException e) {
-         logger.error("Error in retrieving the writer object of the "
-                  + "HttpResponse");
-         throw e;
-      }
-
       // Read the requested block number from the uri
       Long index = null;
       try {
@@ -87,9 +52,8 @@ public final class BlockNumber extends HttpServlet {
          String urlParam = uri.substring(uri.lastIndexOf('/') + 1);
          index = Long.parseLong(urlParam);
       } catch (NumberFormatException e) {
-         logger.error("Invalid block number");
-         response.sendError(StatusCodes.BAD_REQUEST);
-         throw e;
+         _logger.error("Invalid block number");
+         processResponse(response, "error", StatusCodes.BAD_REQUEST, _logger);
       }
 
       // Construct a blockNumberRequest object. Set its start field.
@@ -101,26 +65,27 @@ public final class BlockNumber extends HttpServlet {
                .newBuilder().setBlockNumberRequest(blockNumberRequestObj)
                .build();
 
+      /////////////////// This is temporary.//////////////////////
       Athena.AthenaResponse athenaResponse = null;
       JSONObject blockNumberResponse = null;
 
-      // receive response from Athena
-      athenaResponse = receiveFromAthenaMock(); // This is temporary.
-      // athenaResponse = receiveFromAthena(inFromAthena); //Coming soon
-
+      athenaResponse = receiveFromAthenaMock();
       blockNumberResponse = parseToJSON(athenaResponse);
 
       // Set client response header
       response.setHeader("Content-Transfer-Encoding", "UTF-8");
       response.setContentType("application/json");
-
       // Respond to client.
-      writer.write(blockNumberResponse.toString());
+      response.getWriter().write(blockNumberResponse.toString());
+      // block ends///////////////////////////////////////////////
+
+      // this line will replace the block marked above
+      // processGet(athenarequestObj, response, _logger);
    }
 
    /**
     * Note : This is a temporary function which mocks Athena's response.
-    * 
+    *
     * @return
     */
    public Athena.AthenaResponse receiveFromAthenaMock() {
@@ -130,7 +95,7 @@ public final class BlockNumber extends HttpServlet {
          hash = APIHelper.hexStringToBinary("ABCD");
          parentHash = APIHelper.hexStringToBinary("DCAB");
       } catch (Exception e) {
-         logger.error("Error in converting between hex and binary strings");
+         _logger.error("Error in converting between hex and binary strings");
          byte[] temp = new byte[32];
          hash = ByteString.copyFrom(temp);
          parentHash = ByteString.copyFrom(temp);
@@ -162,9 +127,11 @@ public final class BlockNumber extends HttpServlet {
     * @return Response in JSON format
     */
    @SuppressWarnings("unchecked")
-   private JSONObject parseToJSON(Athena.AthenaResponse athenaResponse) {
+   @Override
+   protected JSONObject parseToJSON(Athena.AthenaResponse athenaResponse) {
 
-      // Extract the blocknumber response from the athena reponse envelope.
+      // Extract the blocknumber response
+      // from the athena reponse envelope.
       Athena.BlockNumberResponse blockNumberResponse = athenaResponse
                .getBlockNumberResponse();
 

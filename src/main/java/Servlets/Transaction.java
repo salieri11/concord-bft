@@ -1,12 +1,12 @@
 /**
  * url endpoint : /api/athena/transaction/{hash}
  * Used to get a specific transaction by its hash.
- * 
+ *
  * This servlet is used to send Transaction Requests to Athena and to parse
  * the responses into JSON. A TCP socket connection is made to Athena
  * and requests and responses are encoded in the Google Protocol Buffer
  * format.
- * 
+ *
  * Athena, by default, runs on port 5458.
  * TODO : Handle the case of no/incorrect response from Athena
  */
@@ -14,51 +14,28 @@ package Servlets;
 
 import com.google.protobuf.ByteString;
 import com.vmware.athena.*;
-
-import connections.AthenaTCPConnection;
 import io.undertow.util.StatusCodes;
-
 import java.io.IOException;
-import java.io.PrintWriter;
-
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
 import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
-import org.json.simple.parser.ParseException;
 
 /**
  * Servlet class.
  */
-public final class Transaction extends HttpServlet {
+public final class Transaction extends BaseServlet {
    private static final long serialVersionUID = 1L;
-   private static AthenaTCPConnection athenaConnection;
-   private final Logger logger;
+   private static final Logger logger = 
+         Logger.getLogger(Transaction.class);
 
    /**
-    * Retrieves the common TCP connection object.
-    * 
-    * @throws IOException
-    * @throws ParseException
-    */
-   public Transaction() throws IOException, ParseException {
-      logger = Logger.getLogger(Transaction.class);
-      try {
-         athenaConnection = AthenaTCPConnection.getInstance();
-      } catch (IOException e) {
-         logger.error("Error in creating TCP connection with Athena");
-         throw e;
-      }
-   }
-
-   /**
-    * Services a get request. Constructs a protobuf request of type transaction
-    * request (enveloped in an athena request) as defined in athena.proto. Sends
-    * this request to Athena. Parses the response and converts it into json for
-    * responding to the client.
-    * 
+    * Services a get request. Constructs a protobuf request of type
+    *  transaction request (enveloped in an athena request)
+    *  as defined in athena.proto.
+    *  Sends this request to Athena. Parses the response 
+    *  and converts it into json for responding to the client.
+    *
     * @param request
     *           The request received by the servlet
     * @param response
@@ -68,14 +45,6 @@ public final class Transaction extends HttpServlet {
    @Override
    protected void doGet(final HttpServletRequest request,
             final HttpServletResponse response) throws IOException {
-      PrintWriter writer = null;
-      try {
-         writer = response.getWriter();
-      } catch (IOException e) {
-         logger.error("Error in retrieving the writer object of the "
-                  + "HttpResponse");
-         throw e;
-      }
 
       // Read the requested transaction hash from the uri
       String uri = request.getRequestURI();
@@ -86,52 +55,49 @@ public final class Transaction extends HttpServlet {
          hashBytes = APIHelper.hexStringToBinary(hash);
       } catch (Exception e) {
          logger.error("Invalid Hash");
-         response.sendError(StatusCodes.BAD_REQUEST);
+         processResponse(response,
+               "error", 
+               StatusCodes.BAD_REQUEST,
+               logger);
          return;
       }
 
       if (hashBytes == null) {
          logger.error("Invalid hash in request");
-         response.sendError(StatusCodes.BAD_REQUEST);
+         processResponse(response,
+               "error",
+               StatusCodes.BAD_REQUEST,
+               logger);
          return;
       }
 
       // Construct a transaction request object.
-      final Athena.TransactionRequest txRequestObj = Athena.TransactionRequest
+      final Athena.TransactionRequest txRequestObj =
+            Athena.TransactionRequest
                .newBuilder().setHashParam(hashBytes).build();
 
       // Envelope the transaction request object into an athena object.
       final Athena.AthenaRequest athenarequestObj = Athena.AthenaRequest
                .newBuilder().setTransactionRequest(txRequestObj).build();
 
-      JSONObject txResponse = null;
-
-      // send request to Athena
-      Athena.AthenaResponse athenaResponse = athenaConnection
-               .sendToAthena(athenarequestObj);
-
-      // receive response from Athena
-      txResponse = parseToJSON(athenaResponse);
-
-      // Set client response header
-      response.setHeader("Content-Transfer-Encoding", "UTF-8");
-      response.setContentType("application/json");
-
-      // Respond to client.
-      writer.write(txResponse.toString());
+      processGet(athenarequestObj, response, logger);
    }
 
    /**
-    * Parses the Protocol Buffer response from Athena and converts it into JSON.
-    * 
+    * Parses the Protocol Buffer response from Athena and converts it
+    *  into JSON.
+    *
     * @param athenaResponse
     *           Protocol Buffer object containing Athena's reponse
     * @return Response in JSON format
     */
    @SuppressWarnings("unchecked")
-   private JSONObject parseToJSON(Athena.AthenaResponse athenaResponse) {
+   @Override
+   protected JSONObject parseToJSON(Athena.AthenaResponse athenaResponse)
+   {
 
-      // Extract the transaction response from the athena reponse envelope.
+      // Extract the transaction response from
+      // the athena reponse envelope.
       Athena.TransactionResponse txResponse = athenaResponse
                .getTransactionResponse();
 
@@ -145,9 +111,11 @@ public final class Transaction extends HttpServlet {
       responseJson.put("input", txResponse.getInput());
       responseJson.put("blockHash", txResponse.getBlockHash());
       responseJson.put("blockNumber", txResponse.getBlockNumber());
-      responseJson.put("transactionHash", txResponse.getTransactionIndex());
+      responseJson.put("transactionHash",
+            txResponse.getTransactionIndex());
       responseJson.put("blockNumber", txResponse.getBlockNumber());
-      responseJson.put("transactionIndex", txResponse.getTransactionIndex());
+      responseJson.put("transactionIndex",
+            txResponse.getTransactionIndex());
       responseJson.put("nonce", txResponse.getNonce());
 
       return responseJson;

@@ -1,11 +1,11 @@
 /**
  * Server class for Helen. Boots up an Undertow server and multiple servlets.
  * Runs on localhost and port 32773 (as per variables in config file).
- * 
- * Helen connects to Athena at the backend. Communication between Helen and 
- * Athena is via a TCP socket connection. Messages are sent in Google Protocol 
+ *
+ * Helen connects to Athena at the backend. Communication between Helen and
+ * Athena is via a TCP socket connection. Messages are sent in Google Protocol
  * Buffer format. Responses from Helen to the client are in Json format.
- * 
+ *
  */
 package Servers;
 
@@ -14,20 +14,17 @@ import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.Properties;
 import javax.servlet.ServletException;
 import org.apache.log4j.Logger;
-import org.json.simple.parser.ParseException;
-
 import Servlets.BlockList;
 import Servlets.BlockNumber;
 import Servlets.EthRPC;
 import Servlets.MemberList;
 import Servlets.StaticContent;
+import configurations.FileConfiguration;
+import configurations.IConfiguration;
+import connections.AthenaConnectionPool;
 import Servlets.Transaction;
-
-import configurations.SystemConfiguration;
-import connections.AthenaTCPConnection;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.server.handlers.PathHandler;
@@ -37,7 +34,6 @@ import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
 
 public class Server {
-   private static Properties config;
    private static String serverPath;
    private static String deploymentName;
    private static String serverHostName;
@@ -53,7 +49,6 @@ public class Server {
    private static String swaggerServletName;
    private static String assetsServletName;
    private static String apiListServletName;
-
    private static String memberListEndpoint;
    private static String defaultContentEndpoint;
    private static String blockListEndpoint;
@@ -66,82 +61,111 @@ public class Server {
 
    // Set current datetime for logging purposes
    static {
-      SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy-hh-mm-ss");
-      System.setProperty("current.date.time", dateFormat.format(new Date()));
+      SimpleDateFormat dateFormat =
+            new SimpleDateFormat("dd-MM-yyyy-hh-mm-ss");
+      System.setProperty(
+            "current.date.time", dateFormat.format(new Date()));
    }
 
    public static void main(String[] args)
-            throws IOException, ServletException, ParseException {
+         throws IOException, ServletException {
+
       final Logger logger = Logger.getLogger(Server.class);
 
       // Read configurations file
-      SystemConfiguration s;
+      IConfiguration conf;
       try {
-         s = SystemConfiguration.getInstance();
+         conf= FileConfiguration.getInstance();
       } catch (IOException e) {
          logger.error("Error in reading configurations");
          throw e;
       }
-      config = s.configurations;
-      serverPath = config.getProperty("Undertow_Path");
-      deploymentName = config.getProperty("Deployment_Name");
-      serverHostName = config.getProperty("Server_Host");
-      port = Integer.parseInt(config.getProperty("Server_Port"));
-      defaultReponse = config.getProperty("Server_DefaultResponse");
 
-      memberListServletName = config.getProperty("MemberList_ServletName");
-      defaultContentServletName = config
-               .getProperty("DefaultContent_ServletName");
-      blockListServletName = config.getProperty("BlockList_ServletName");
-      blockNumberServletName = config.getProperty("BlockNumber_ServletName");
-      ethRPCServletName = config.getProperty("EthRPC_ServletName");
-      transactionServletName = config.getProperty("Transaction_ServletName");
-      swaggerServletName = config.getProperty("Swagger_ServletName");
-      assetsServletName = config.getProperty("Assets_ServletName");
-      apiListServletName = config.getProperty("ApiList_ServletName");
+      serverPath = conf.getStringValue("Undertow_Path");
+      deploymentName = conf.getStringValue("Deployment_Name");
+      serverHostName = conf.getStringValue("Server_Host");
+      port = conf.getIntegerValue("Server_Port");
+      defaultReponse = conf.getStringValue("Server_DefaultResponse");
 
-      memberListEndpoint = config.getProperty("MemberList_Endpoint");
-      defaultContentEndpoint = config.getProperty("DefaultContent_Endpoint");
-      blockListEndpoint = config.getProperty("BlockList_Endpoint");
-      blockNumberEndpoint = config.getProperty("BlockNumber_Endpoint");
-      ethRPCEndpoint = config.getProperty("EthRPC_Endpoint");
-      transactionEndpoint = config.getProperty("Transaction_Endpoint");
-      swaggerEndpoint = config.getProperty("Swagger_Endpoint");
-      assetsEndpoint = config.getProperty("Assets_Endpoint");
-      apiListEndpoint = config.getProperty("ApiList_Endpoint");
+      memberListServletName =
+            conf.getStringValue("MemberList_ServletName");
+      defaultContentServletName =
+            conf.getStringValue("DefaultContent_ServletName");
+      blockListServletName =
+            conf.getStringValue("BlockList_ServletName");
+      blockNumberServletName =
+            conf.getStringValue("BlockNumber_ServletName");
+      ethRPCServletName =
+            conf.getStringValue("EthRPC_ServletName");
+      transactionServletName =
+            conf.getStringValue("Transaction_ServletName");
+      swaggerServletName =
+            conf.getStringValue("Swagger_ServletName");
+      assetsServletName =
+            conf.getStringValue("Assets_ServletName");
+      apiListServletName =
+            conf.getStringValue("ApiList_ServletName");
+
+      memberListEndpoint =
+            conf.getStringValue("MemberList_Endpoint");
+      defaultContentEndpoint =
+            conf.getStringValue("DefaultContent_Endpoint");
+      blockListEndpoint =
+            conf.getStringValue("BlockList_Endpoint");
+      blockNumberEndpoint =
+            conf.getStringValue("BlockNumber_Endpoint");
+      ethRPCEndpoint =
+            conf.getStringValue("EthRPC_Endpoint");
+      transactionEndpoint =
+            conf.getStringValue("Transaction_Endpoint");
+      swaggerEndpoint =
+            conf.getStringValue("Swagger_Endpoint");
+      assetsEndpoint = conf.getStringValue("Assets_Endpoint");
+      apiListEndpoint = conf.getStringValue("ApiList_Endpoint");
 
       DeploymentInfo servletBuilder = deployment()
                .setClassLoader(Server.class.getClassLoader())
                .setContextPath(serverPath).setResourceManager(
-                        // 1024 : Size to use direct FS to network transfer (if
+                        // 1024 : Size to use direct
+                        //FS to network transfer (if
                         // supported by OS/JDK) instead of read/write
-                        new FileResourceManager(new File(defaultReponse), 1024))
+                        new FileResourceManager(
+                              new File(defaultReponse), 1024))
                .setDeploymentName(deploymentName)
                .addServlets(Servlets
-                        .servlet(memberListServletName, MemberList.class)
+                        .servlet(memberListServletName,
+                              MemberList.class)
                         .addMapping(memberListEndpoint))
                .addServlets(Servlets
-                        .servlet(swaggerServletName, StaticContent.class)
+                        .servlet(swaggerServletName,
+                              StaticContent.class)
                         .addMapping(swaggerEndpoint))
                .addServlets(
-                        Servlets.servlet(assetsServletName, StaticContent.class)
+                        Servlets.servlet(assetsServletName, 
+                              StaticContent.class)
                                  .addMapping(assetsEndpoint))
                .addServlets(Servlets
-                        .servlet(apiListServletName, StaticContent.class)
+                        .servlet(apiListServletName,
+                              StaticContent.class)
                         .addMapping(apiListEndpoint))
                .addServlets(
-                        Servlets.servlet(blockListServletName, BlockList.class)
+                        Servlets.servlet(blockListServletName,
+                              BlockList.class)
                                  .addMapping(blockListEndpoint))
                .addServlets(Servlets
-                        .servlet(blockNumberServletName, BlockNumber.class)
+                        .servlet(blockNumberServletName,
+                              BlockNumber.class)
                         .addMapping(blockNumberEndpoint))
-               .addServlets(Servlets.servlet(ethRPCServletName, EthRPC.class)
+               .addServlets(Servlets.servlet(ethRPCServletName,
+                     EthRPC.class)
                         .addMapping(ethRPCEndpoint))
                .addServlets(Servlets
-                        .servlet(transactionServletName, Transaction.class)
+                        .servlet(transactionServletName, 
+                              Transaction.class)
                         .addMapping(transactionEndpoint))
                .addServlet(Servlets
-                        .servlet(defaultContentServletName, StaticContent.class)
+                        .servlet(defaultContentServletName,
+                              StaticContent.class)
                         .addMapping(defaultContentEndpoint));
       DeploymentManager manager = Servlets.defaultContainer()
                .addDeployment(servletBuilder);
@@ -155,23 +179,18 @@ public class Server {
          logger.error("Error in starting Deployment Manager");
          throw e1;
       }
-      Undertow server = Undertow.builder().addHttpListener(port, serverHostName)
-               .setHandler(path)
-               // .setIoThreads(10) // to change number of io threads
-               // .setWorkerThreads(10) //to change number of worker threads
-               .build();
+      
+      AthenaConnectionPool.getInstance().initialize(conf);
+      logger.info("athena connection pool initialized");
+      
+      Undertow server = Undertow
+            .builder()
+            .addHttpListener(port, serverHostName)
+            .setHandler(path)
+            // .setIoThreads(10) // to change number of io threads
+            // .setWorkerThreads(10) //to change number of worker threads
+            .build();
       server.start();
       logger.info("Server Booted");
-
-      /*
-       * Indirectly invokes constructor of singleton class which establishes a
-       * TCP connection with Athena.
-       */
-      try {
-         AthenaTCPConnection.getInstance();
-      } catch (IOException e) {
-         logger.error("Error in establishing TCP connection with Athena");
-         throw e;
-      }
    }
 }
