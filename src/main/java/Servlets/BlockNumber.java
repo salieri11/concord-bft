@@ -12,6 +12,7 @@
  */
 package Servlets;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.ProtocolStringList;
 import com.vmware.athena.*;
 
@@ -123,9 +124,21 @@ public final class BlockNumber extends HttpServlet {
     * @return
     */
    public Athena.AthenaResponse receiveFromAthenaMock() {
+      ByteString hash;
+      ByteString parentHash;
+      try {
+         hash = APIHelper.hexStringToBinary("ABCD");
+         parentHash = APIHelper.hexStringToBinary("DCAB");
+      } catch (Exception e) {
+         logger.error("Error in converting between hex and binary strings");
+         byte[] temp = new byte[32];
+         hash = ByteString.copyFrom(temp);
+         parentHash = ByteString.copyFrom(temp);
+      }
+
       final Athena.BlockDetailed blockDetailedObj = Athena.BlockDetailed
-               .newBuilder().setNumber(1).setHash("hash")
-               .setParentHash("parentHash").setNonce("Nonce").setSize(50)
+               .newBuilder().setNumber(1).setHash(hash)
+               .setParentHash(parentHash).setNonce("Nonce").setSize(50)
                .addTransactions("transaction1").addTransactions("transaction2")
                .build();
 
@@ -170,8 +183,12 @@ public final class BlockNumber extends HttpServlet {
       blockObj.put("transactions", transactionArr);
 
       blockObj.put("number", block.getNumber());
-      blockObj.put("hash", block.getHash());
-      blockObj.put("parentHash", block.getParentHash());
+
+      String hash = APIHelper.binaryStringToHex(block.getHash());
+      String parentHash = APIHelper.binaryStringToHex(block.getParentHash());
+
+      blockObj.put("hash", hash);
+      blockObj.put("parentHash", parentHash);
       blockObj.put("nonce", block.getNonce());
       blockObj.put("size", block.getSize());
 

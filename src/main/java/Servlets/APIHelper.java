@@ -98,6 +98,7 @@ public class APIHelper {
       for (byte b : resultBytes) {
          sb.append((String.format("%02X ", b)));
       }
-      return sb.toString();
+      String result = (sb.toString()).replace(" ", "");
+      return result;
    }
 }

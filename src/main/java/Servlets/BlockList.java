@@ -12,7 +12,9 @@
  */
 package Servlets;
 
+import com.google.protobuf.ByteString;
 import com.vmware.athena.*;
+import com.vmware.athena.Athena.BlocksListResponse;
 
 import configurations.SystemConfiguration;
 import connections.AthenaTCPConnection;
@@ -23,6 +25,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Random;
 
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -93,18 +96,17 @@ public final class BlockList extends HttpServlet {
       }
 
       // Read the request params
-      Long end = null;
-      Long listLength = null;
+      Long latest = null;
+      Long count = null;
 
       try {
-         end = Long.parseLong(request.getParameter("end"));
-
+         latest = Long.parseLong(request.getParameter("latest"));
       } catch (Exception e) {
          // Do nothing as this parameter is optional
       }
 
       try {
-         listLength = Long.parseLong(request.getParameter("listLength"));
+         count = Long.parseLong(request.getParameter("count"));
       } catch (Exception e) {
          // Do nothing as this parameter is optional
       }
@@ -114,16 +116,15 @@ public final class BlockList extends HttpServlet {
                .newBuilder();
 
       // If end is null, Athena assumes end is the latest block
-      if (end != null) {
-         b.setEnd(end);
+      if (latest != null) {
+         b.setLatest(latest);
       }
 
       // If listLength is null, request for default no. of blocks
-      if (listLength == null) {
-         listLength = Long
-                  .parseLong(config.getProperty("BlockList_DefaultListLength"));
+      if (count == null) {
+         count = Long.parseLong(config.getProperty("BlockList_DefaultCount"));
       }
-      b.setListLength(listLength);
+      b.setCount(count);
 
       final Athena.BlocksListRequest blocksListRequestObj = b.build();
 
@@ -135,7 +136,13 @@ public final class BlockList extends HttpServlet {
       JSONObject blocksListResponse = null;
 
       // receive response from Athena
-      athenaResponse = receiveFromAthenaMock(); // This is temporary.
+
+      /////////////////// This is temporary./////////////////
+      if (latest == null) {
+         latest = -1L;
+      }
+      athenaResponse = receiveFromAthenaMock(count, latest);
+      //////////////////////////////////////////////////////
 
       // Coming soon
       // athenaResponse = athenaConnection.sendToAthena(athenarequestObj);
@@ -154,24 +161,46 @@ public final class BlockList extends HttpServlet {
     * Note : This is a temporary function which mocks Athena's response.
     * 
     * @return
+    * @throws Exception
     */
-   public Athena.AthenaResponse receiveFromAthenaMock() {
-      final Athena.BlockBrief blockBriefObj1 = Athena.BlockBrief.newBuilder()
-               .setNumber(1).setHash("hash1").setUrl("url1").build();
-      final Athena.BlockBrief blockBriefObj2 = Athena.BlockBrief.newBuilder()
-               .setNumber(2).setHash("hash2").setUrl("url2").build();
+   public Athena.AthenaResponse receiveFromAthenaMock(long count, long latest) {
 
-      // Construct a blocksListResponse object.
-      final Athena.BlocksListResponse blocksListResponseObj = Athena.BlocksListResponse
-               .newBuilder().addBlocks(blockBriefObj1).addBlocks(blockBriefObj2)
-               .setNext("next").build();
+      int chainLength = (int) count;
+      int latestBlock = (int) latest;
 
-      // Envelope the blocksListResponse object into an athena object.
-      final Athena.AthenaResponse athenaresponseObj = Athena.AthenaResponse
-               .newBuilder().setBlocksListResponse(blocksListResponseObj)
-               .build();
+      if (latestBlock == -1L) {
+         latestBlock = chainLength + 1;
+      }
 
-      return athenaresponseObj;
+      if (latestBlock > 100) {
+         latestBlock = 100;
+      }
+
+      if (chainLength >= latestBlock) {
+         chainLength = latestBlock - 1;
+      }
+
+      ArrayList<FakeBlock> list = new ArrayList<>(chainLength);
+
+      for (int i = chainLength; i > 0; i--) {
+         list.add(new FakeBlock(latestBlock));
+         latestBlock--;
+      }
+
+      Athena.BlocksListResponse.Builder b = Athena.BlocksListResponse
+               .newBuilder();
+
+      for (FakeBlock f : list) {
+         final Athena.BlockBrief blockBriefObj = Athena.BlockBrief.newBuilder()
+                  .setNumber(f.number).setHash(f.hash).build();
+         b.addBlocks(blockBriefObj);
+      }
+
+      final Athena.BlocksListResponse r = b.build();
+      Athena.AthenaResponse athenaResponseObj = Athena.AthenaResponse
+               .newBuilder().setBlocksListResponse(r).build();
+
+      return athenaResponseObj;
    }
 
    /**
@@ -188,6 +217,8 @@ public final class BlockList extends HttpServlet {
       Athena.BlocksListResponse blocksListResponse = athenaResponse
                .getBlocksListResponse();
 
+      long earliestBlock = -1L;
+
       // Read list of blocks from the blocks list response object.
       List<Athena.BlockBrief> blockList = new ArrayList<>();
       blockList = blocksListResponse.getBlocksList();
@@ -197,19 +228,59 @@ public final class BlockList extends HttpServlet {
       // Iterate through each block and construct a corresponding JSON object
       for (Athena.BlockBrief block : blockList) {
          JSONObject blockJson = new JSONObject();
-         blockJson.put("number", Long.toString(block.getNumber()));
-         blockJson.put("hash", block.getHash());
-         blockJson.put("url", block.getUrl());
+
+         long number = block.getNumber();
+         String hexString = APIHelper.binaryStringToHex(block.getHash());
+
+         blockJson.put("number", number);
+         blockJson.put("hash", hexString);
+
+         String url = hexString.substring(2); // remove the "0x" at the start
+
+         blockJson.put("url", config.getProperty("BlockList_URLPrefix") + url);
 
          // Store into a JSON array of all blocks.
          blockArr.add(blockJson);
+         earliestBlock = number;
       }
 
       // Construct the reponse JSON object.
       JSONObject responseJson = new JSONObject();
       responseJson.put("blocks", blockArr);
-      responseJson.put("next", blocksListResponse.getNext());
+      responseJson.put("next", config.getProperty("BlockList_NextPrefix")
+               + (earliestBlock - 1));
 
       return responseJson;
+   }
+
+   /**
+    * Used to structure mock responses Temporary
+    *
+    */
+   private class FakeBlock {
+      int number;
+      ByteString hash;
+      char[] hex = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B',
+               'C', 'D', 'E', 'F' };
+
+      FakeBlock(int number) {
+         this.number = number;
+
+         Random r = new Random(System.currentTimeMillis());
+         StringBuilder sb = new StringBuilder();
+
+         for (int i = 0; i < 64; i++) {
+            sb.append(hex[r.nextInt(hex.length)]);
+         }
+
+         try {
+            hash = APIHelper.hexStringToBinary(sb.toString());
+         } catch (Exception e) {
+            logger.error(
+                     "Error in converting from hex string to binary string");
+            byte[] temp = new byte[32];
+            hash = ByteString.copyFrom(temp);
+         }
+      }
    }
 }

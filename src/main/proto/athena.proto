@@ -52,8 +52,8 @@ message EthRPCExecuteRequest {
 }
 
 message BlocksListRequest {
-	optional int64 end = 1;
-	optional int64 listLength = 2;
+	optional int64 latest = 1;
+	optional int64 count = 2;
 }
 
 message BlockNumberRequest {
@@ -96,7 +96,6 @@ message EthResponse {
 
 message BlocksListResponse {
 	repeated BlockBrief blocks = 1;
-	optional string next = 2;
 }
 
 message BlockNumberResponse {
@@ -142,14 +141,13 @@ message Peer {
 
 message BlockBrief {
 	optional int64 number = 1;
-	optional string hash = 2;
-	optional string url = 3;
+	optional bytes hash = 2;
 }
 
 message BlockDetailed {
 	optional int64 number = 1;
-	optional string hash = 2;
-	optional string parentHash = 3;
+	optional bytes hash = 2;
+	optional bytes parentHash = 3;
 	optional string nonce = 4;
 	optional int64 size = 5;
 	repeated string transactions = 6;

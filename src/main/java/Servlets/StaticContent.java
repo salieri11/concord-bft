@@ -123,21 +123,19 @@ public class StaticContent extends HttpServlet {
       }
 
       File file = null;
-
       if (api == Api.ASSETS || api == Api.SWAGGER) {
          // These API calls contain the file path in the request
 
-         String contentPath = StaticContentHelper.getPath(request);
-         String path = contentFolder + contentPath;
          /*
           * If the separator char is not / we want to replace it with a / and
           * canonicalise
           */
-         if (File.separatorChar != '/') {
-            path = CanonicalPathUtils.canonicalize(
-                     path.replace(File.separatorChar, '/'));
-         }
-         if (path.endsWith("/")) {
+         String contentPath = CanonicalPathUtils
+                  .canonicalize(StaticContentHelper.getPath(request));
+         contentPath = contentPath.replace('/', File.separatorChar);
+
+         //Users need to request for a specific resource
+         if (contentPath.endsWith("/")) {
             try {
                logger.error("Path does not point to specific file");
                response.sendError(StatusCodes.NOT_FOUND);
@@ -147,11 +145,14 @@ public class StaticContent extends HttpServlet {
             }
             return;
          }
-         file = new File(path);
+
+         // "." denotes current directory
+         Path path = Paths.get(".", contentFolder, contentPath);
+         file = path.toFile();
+
       } else if (api == Api.API_LIST || api == Api.DEFAULT_CONTENT) {
          // These API calls have fixed content to be served
 
-         // "." denotes current directory
          Path p = Paths.get(".", contentFolder, contentFile);
          file = p.toFile();
       }
