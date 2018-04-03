@@ -97,10 +97,16 @@ class CoreVMTests(test_suite.TestSuite):
 
             testName = list(testCompiled.keys())[0]
             testLogDir = os.path.join(self._args.resultsDir, TEST_LOG_DIR, testName)
-            result, info = self._runRpcTest(test,
-                                            testSource,
-                                            testCompiled,
-                                            testLogDir)
+
+            try:
+               result, info = self._runRpcTest(test,
+                                               testSource,
+                                               testCompiled,
+                                               testLogDir)
+            except Exception as e:
+               result = False
+               info = str(e)
+               log.error("Exception running RPC test: '{}'".format(info))
 
             if info:
                info += "  "

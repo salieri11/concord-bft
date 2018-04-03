@@ -47,6 +47,7 @@ class RPC():
       of the response.
       '''
       response = None
+      exception = None
 
       # Protect use of RPC._idCounter.
       lock = threading.Lock()
@@ -72,19 +73,25 @@ class RPC():
                                    stderr=subprocess.STDOUT)
 
       if os.path.isfile(self._responseFile):
-         return util.json_helper.readJsonFile(self._responseFile)
+         response = util.json_helper.readJsonFile(self._responseFile)
+
+         if "error" in response:
+            exception = "RPC response contained an error.\n" \
+                        "Data sent: '{}'\n".format(self._rpcData) + \
+                        "Response: '{}'".format(response)
       else:
-         errorMsg = "No response for an RPC call was received.  Is the " \
-                    "server running?"
+         exception = "No response for an RPC call was received.  Is the " \
+                     "server running?"
 
          if os.path.isfile(self._outputFile):
-            errorMsg += "  Details:\n"
+            exception += "  Details:\n"
             with open (self._outputFile, "r") as f:
-               errorMsg += f.read()
+               exception += f.read()
 
-            raise Exception(errorMsg)
-
-      return response
+      if exception:
+         raise Exception(exception)
+      else:
+         return response
 
    def _setUpOutput(self, method):
       '''
@@ -161,8 +168,6 @@ class RPC():
       against official Ethereum in sort of a "test diagnostic" mode.
       Mining is going to be an issue.  It can take a long time to mine a
       contract.
-
-      Raises an exception if the status field is missing.
       '''
       # Even with 200, it times out sometimes.
       attempts = 200 if waitForMining else 1
@@ -201,22 +206,8 @@ class RPC():
    def unlockAccount(self, hsh, password):
       '''
       Given a blockchain user hash and password, unlocks the account.
-      Raises an exception containing an error message on failure.
       '''
       self._rpcData["method"] = "personal_unlockAccount"
       self._rpcData["params"] = [hsh, password, 0]
 
       response = self._call()
-      successful = self.getResultFromResponse(response)
-
-      if not successful:
-         errorMsg = "Failed to unlock the account '{}', password '{}'.". \
-                    format(hsh, password)
-
-         if "error" in response:
-            errorMsg += " Error given: '{}'".format(response["error"])
-         else:
-            errorMsg += " No error was returned. Entire response was: '{}'". \
-                   format(response)
-
-         raise Exception(errorMsg)
