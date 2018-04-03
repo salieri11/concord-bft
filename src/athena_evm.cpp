@@ -117,6 +117,8 @@ void com::vmware::athena::EVM::create(evm_message &message,
       keccak_hash(create_code, hash);
       memcpy(&message.code_hash.bytes, &hash[0], sizeof(evm_uint256be));
 
+      execute(message, create_code, result);
+
       // creates are not addressed
       std::vector<uint8_t> to;
       // don't expose the address if it wasn't used
