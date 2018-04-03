@@ -29,6 +29,12 @@ def main():
                        default="INFO")
    parser.add_argument("--resultsDir",
                        help="Results directory")
+   parser.add_argument("--tests",
+                       help="Run specific tests. Details depend on the suite " \
+                       "being run. For CoreVMTests, this is a directory or " \
+                       "specific file relative to the VMTests directory. e.g. " \
+                       "'--tests vmArithmeticTest' or " \
+                       "'--tests vmArithmeticTest/add0.json'")
    args = parser.parse_args()
 
    if (args.resultsDir == None):
