@@ -223,11 +223,17 @@ api_connection::process_incoming()
    LOG4CPLUS_TRACE(logger_, "process_incoming enter");
 
    // Parse the protobuf
-   athenaRequest_.ParseFromString(inMsgBuffer_ + MSG_LENGTH_BYTES);
-   LOG4CPLUS_DEBUG(logger_, "Parsed!");
+   if (athenaRequest_.ParseFromArray(inMsgBuffer_ + MSG_LENGTH_BYTES,
+                                     get_message_length(inMsgBuffer_))) {
+      LOG4CPLUS_DEBUG(logger_, "Parsed!");
 
-   // handle the request
-   dispatch();
+      // handle the request
+      dispatch();
+   } else {
+      // Parsing failed
+      ErrorResponse *e = athenaResponse_.add_error_response();
+      e->mutable_description()->assign("Unable to parse request");
+   }
 
    // marshal the protobuf
    athenaResponse_.SerializeToString(&pb);
