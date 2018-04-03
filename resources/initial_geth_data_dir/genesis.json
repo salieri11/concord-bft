@@ -1,0 +1,15 @@
+{
+    "Config": {
+        "chainId": PUT_A_UNIQUE_NUMBER_FOR_YOUR_INSTANCE_HERE,
+        "homesteadBlock": 0,
+        "eip155Block": 0,
+        "eip158Block": 0,
+        "ByzantiumBlock": 0
+    },
+    "difficulty": "0x1",
+    "gasLimit": "0x8000000",
+    "alloc": {
+       "2407cbf3b57e480df66c91650535319ef8bf74c8": { "balance": "9999999999999999999999" },
+       "fa1a4c33aa682d34eda15bf772f672edddac13aa": { "balance": "9999999999999999999999" }
+    }
+}
