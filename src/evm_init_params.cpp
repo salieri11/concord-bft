@@ -7,9 +7,11 @@ using json = nlohmann::json;
 
 const std::string EMPTY_JSON = "{}";
 
-com::vmware::athena::EVMInitParams::EVMInitParams() {}
+com::vmware::athena::EVMInitParams::EVMInitParams()
+   : logger(Logger::getInstance("com.vmware.athena.evm_init_params")) {}
 
-com::vmware::athena::EVMInitParams::EVMInitParams(std::string genesis_file_path) {
+com::vmware::athena::EVMInitParams::EVMInitParams(std::string genesis_file_path)
+   : logger(Logger::getInstance("com.vmware.athena.evm_init_params")) {
    json genesis_block = parse_genesis_block(genesis_file_path);
 
    if (genesis_block.find("config") != genesis_block.end()) {
@@ -17,6 +19,7 @@ com::vmware::athena::EVMInitParams::EVMInitParams(std::string genesis_file_path)
       if (config.find("chainId") != config.end())
          chainID = config["chainId"];
    }
+   LOG4CPLUS_INFO(logger, "Connecting to Chain " << chainID);
 
    if (genesis_block.find("alloc") != genesis_block.end()) {
       json alloc = genesis_block["alloc"];
@@ -30,6 +33,7 @@ com::vmware::athena::EVMInitParams::EVMInitParams(std::string genesis_file_path)
          initial_accounts[address] = balance;
       }
    }
+   LOG4CPLUS_INFO(logger, initial_accounts.size() << " initial accounts added.");
 }
 
 /**
@@ -43,6 +47,7 @@ json com::vmware::athena::EVMInitParams::parse_genesis_block(std::string genesis
       genesis_stream >> genesis_block;
       return genesis_block;
    }
+   LOG4CPLUS_WARN(logger, "Error reading genesis file. Defaulting to empty genesis block.");
    return EMPTY_JSON;
 }
 

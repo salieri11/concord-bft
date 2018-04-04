@@ -27,11 +27,13 @@ public:
 private:
    // chain ID is 1 by default, if genesis block constructor is
    // used then this chainID will be updated from genesis block.
-   static const uint64_t DEFAULT_CHAIN_ID = 1;
+   static const uint64_t DEFAULT_CHAIN_ID = 8147; // VMware IPO date (8/14/2007)
 
    uint64_t chainID = DEFAULT_CHAIN_ID;
    // The map of initial accounts with their preset balance values
    std::map<std::vector<uint8_t>, uint64_t> initial_accounts;
+
+   log4cplus::Logger logger;
 };
 
 

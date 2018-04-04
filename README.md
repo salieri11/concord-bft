@@ -76,10 +76,12 @@ version that ubuntu 16.04 supports.
 5. Configure/make/install
 
 ```
-./configure
+./configure CXXFLAGS="--std=c++11"
 make
 sudo make install
 ```
+configuring with given flags is important. If log4cplus is build without `c++11` then athena will
+give linker errors while building.
 
 This will install all library files and header files into
 '/usr/local'. (You may need to add `/usr/local/lib` to your
@@ -128,7 +130,7 @@ sudo make install
 #### Google Test
 Athena uses GoogleTest framework for unit testsing. We also need that during the build process of athena. please clone google test to the same directory you cloned athena (i.e. one directory up from this README file), and build it
 ```
-git@github.com:google/googletest.git
+git clone git@github.com:google/googletest.git
 cd googletest
 mkdir _build
 cd _build

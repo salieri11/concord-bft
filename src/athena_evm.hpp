@@ -149,7 +149,7 @@ private:
    log4cplus::Logger logger;
 
    // chain to which we are connected
-   int chainId;
+   uint64_t chainId;
 
    // map from account address to account balance
    std::map<std::vector<uint8_t>, uint64_t> balances;

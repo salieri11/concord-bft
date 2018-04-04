@@ -73,6 +73,7 @@ void com::vmware::athena::EVM::call(evm_message &message,
                            message.destination.bytes+sizeof(evm_address));
    std::vector<uint8_t> from(message.sender.bytes,
                              message.sender.bytes+sizeof(evm_address));
+   // use empty vector when no contract is created
    std::vector<uint8_t> created_contract_address;
    if (get_code(&message.destination, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Loaded code from " <<
@@ -81,12 +82,10 @@ void com::vmware::athena::EVM::call(evm_message &message,
 
       execute(message, code, result);
 
-      // no contract was created here
       record_transaction(message, result, to, created_contract_address, txhash);
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " <<
-                      HexPrintAddress{&message.destination} <<
-                      ", TODO: transfer value");
+                      HexPrintAddress{&message.destination});
 
       uint64_t transfer_val = from_evm_uint256be(&message.value);
       // All addresses exist by default. They are considered as accounts with
