@@ -11,8 +11,8 @@ describe('athena-ui App', () => {
     page = new AppPage();
   });
 
-  it('should display nav title', () => {
+  it('should display logo with alt', () => {
     page.navigateTo();
-    expect(page.getParagraphText()).toEqual('Athena UI');
+    expect(page.getLogo().getAttribute('alt')).toEqual('VMware');
   });
 });

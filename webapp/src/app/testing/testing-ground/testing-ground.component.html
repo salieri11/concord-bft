@@ -1,0 +1,73 @@
+<div class="p-2">
+  <h3 class="mt-0">Testing Ground</h3>
+
+  <clr-tabs class="my-2">
+    <clr-tab>
+      <button clrTabLink>Data Input</button>
+      <clr-tab-content *clrIfActive>
+        <p>
+          Enter data below to generate a unique hash
+        </p>
+        <form (ngSubmit)="onSubmitData()" [formGroup]="dataForm">
+          <div class="form-group">
+            <label for="data-input-from" class="required">From</label>
+            <input id="data-input-from" type="text" readonly formControlName="from">
+          </div>
+          <div class="form-group">
+            <label for="data-input-to" class="required">To</label>
+            <input id="data-input-to" type="text" formControlName="to">
+          </div>
+          <div class="form-group">
+            <label for="data-input-text" class="required">Data</label>
+            <textarea id="data-input-text" class="mb-1" name="userText" rows="10" required formControlName="text"></textarea>
+          </div>
+          <button class="btn btn-primary" [disabled]="dataForm.invalid">Submit Data</button>
+        </form>
+        <div class="inset-box inset-box-dark mt-1">
+          <div class="row flex-items-xs-middle">
+            <div class="col-xs">
+              <small class="text-muted">Block Hash:</small>
+              <span #dataHashRef>{{dataHash}}</span>
+            </div>
+            <div class="col-xs-2 text-right" [class.invisible]="!dataHash">
+              <button type="button" class="btn btn-sm btn-link" (click)="onCopyDataHash()" [disabled]="!dataHash">Copy</button>
+            </div>
+          </div>
+        </div>
+      </clr-tab-content>
+    </clr-tab>
+
+    <clr-tab>
+      <button clrTabLink>Smart Contract Upload</button>
+      <clr-tab-content *clrIfActive>
+        <p>
+          Upload file below to generate a unique hash
+        </p>
+        <form (ngSubmit)="onSubmitSmartContract()" [formGroup]="smartContractForm">
+          <div class="form-group">
+            <label for="smart-contract-from" class="required">From</label>
+            <input id="smart-contract-from" type="text" readonly required formControlName="from">
+          </div>
+          <div class="form-group">
+            <label for="smart-contract-file" class="required">File</label>
+            <input id="smart-contract-file" type="file" name="userFile" required (change)="onSmartContractFileChange($event)">
+          </div>
+          <button class="btn btn-primary" [disabled]="smartContractForm.invalid">Submit Data</button>
+          <div class="inset-box inset-box-dark mt-1">
+            <div class="row flex-items-xs-middle">
+              <div class="col-xs">
+                <small class="text-muted">Contract Address:</small>
+                <span #smartContractHashRef>{{smartContractHash}}</span>
+              </div>
+              <div class="col-xs-2 text-right" [class.invisible]="!smartContractHash">
+                <button type="button" class="btn btn-sm btn-link" (click)="onCopySmartContractHash()" [disabled]="!smartContractHash">Copy</button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </clr-tab-content>
+    </clr-tab>
+  </clr-tabs>
+</div>
+
+
