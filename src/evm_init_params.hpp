@@ -27,7 +27,7 @@ public:
 private:
    // chain ID is 1 by default, if genesis block constructor is
    // used then this chainID will be updated from genesis block.
-   const uint64_t DEFAULT_CHAIN_ID = 1;
+   static const uint64_t DEFAULT_CHAIN_ID = 1;
 
    uint64_t chainID = DEFAULT_CHAIN_ID;
    // The map of initial accounts with their preset balance values
