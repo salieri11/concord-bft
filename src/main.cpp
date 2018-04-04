@@ -11,6 +11,7 @@
 #include "api_acceptor.hpp"
 #include "athena_evm.hpp"
 #include "configuration_manager.hpp"
+#include "evm_init_params.hpp"
 
 using namespace boost::program_options;
 using boost::asio::ip::tcp;
@@ -42,39 +43,40 @@ void signalHandler(int signum) {
 int
 run_service(variables_map &opts, Logger logger)
 {
-   EVM *athevm;
+   EVMInitParams params;
 
    try {
-      // If genesis block option was provided then initialize
-      // that first before accepting any requests.
+      // If genesis block option was provided then read that so
+      // it can be passed during EVM creation
       if (opts.count("genesis_block")) {
          string genesis_file_path = opts["genesis_block"].as<std::string>();
          LOG4CPLUS_INFO(logger, "Reading genesis block from " <<
                         genesis_file_path);
-         nlohmann::json genesis_block = parse_genesis_block(genesis_file_path);
-         EVMInitParams params(genesis_block);
-         // throws an exception if it fails
-         athevm = new EVM(params);
+         params = EVMInitParams(genesis_file_path);
       } else {
-         // throws an exception if it fails
-         athevm = new EVM();
+         LOG4CPLUS_WARN(logger, "No genesis block provided");
       }
+
+      // throws an exception if it fails
+      EVM athevm(params);
+
+      std::string ip = opts["ip"].as<std::string>();
+      short port = opts["port"].as<short>();
+
+      api_service = new io_service();
+      tcp::endpoint endpoint(address::from_string(ip), port);
+      api_acceptor acceptor(*api_service, endpoint, athevm);
+
+      signal(SIGINT, signalHandler);
+
+      LOG4CPLUS_INFO(logger, "Listening on " << endpoint);
+      api_service->run();
+
    } catch (EVMException &ex) {
       LOG4CPLUS_FATAL(logger, ex.what());
       return -1;
    }
 
-   std::string ip = opts["ip"].as<std::string>();
-   short port = opts["port"].as<short>();
-
-   api_service = new io_service();
-   tcp::endpoint endpoint(address::from_string(ip), port);
-   api_acceptor acceptor(*api_service, endpoint, *athevm);
-
-   signal(SIGINT, signalHandler);
-
-   LOG4CPLUS_INFO(logger, "Listening on " << endpoint);
-   api_service->run();
    return 0;
 }
 

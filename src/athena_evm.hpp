@@ -8,10 +8,11 @@
 #include <map>
 #include <vector>
 #include <log4cplus/loggingmacros.h>
-#include "common/json.hpp"
 #include "common/utils.hpp"
 #include "evm.h"
 #include "athena_types.hpp"
+#include "evm_init_params.hpp"
+
 
 namespace com {
 namespace vmware {
@@ -99,17 +100,6 @@ const static struct evm_context_fn_table athena_fn_table = {
       ath_get_tx_context,
       ath_get_block_hash,
       ath_emit_log
-};
-
-class EVMInitParams {
-public:
-   EVMInitParams(nlohmann::json genesis_block);
-   std::map<std::vector<uint8_t>, uint64_t> get_default_accounts();
-   int get_chainID();
-private:
-   int chainID; // chain ID from genesis block
-   // The map of default account with their preset balance values
-   std::map<std::vector<uint8_t>, uint64_t> default_accounts;
 };
 
 

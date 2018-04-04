@@ -15,8 +15,6 @@ namespace com {
 namespace vmware {
 namespace athena {
 
-nlohmann::json parse_genesis_block(std::string genesis_file_path);
-
 std::vector<uint8_t> dehex(const std::string &str);
 
 void to_evm_uint256be(uint64_t val, evm_uint256be *ret);
