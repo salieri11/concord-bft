@@ -1,8 +1,6 @@
 *~
-*.o
-athena
-*.pb.cc
-*.pb.h
-CoreVMTests
-build
-
+.metadata
+bin/
+tmp/
+logs/
+build/

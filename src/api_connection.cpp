@@ -25,6 +25,8 @@
 #include "evm.h"
 #include "athena_evm.hpp"
 #include "api_connection.hpp"
+#include "connection_manager.hpp"
+#include "athena_log.hpp"
 
 using boost::asio::ip::tcp;
 using boost::asio::mutable_buffer;
@@ -35,12 +37,16 @@ using boost::asio::io_service;
 using boost::asio::transfer_at_least;
 using boost::system::error_code;
 
+using namespace boost::asio;
+using namespace std;
 using namespace com::vmware::athena;
 
 api_connection::pointer
-api_connection::create(io_service &io_service, EVM &athevm)
+api_connection::create(io_service &io_service,
+                       connection_manager &connManager,
+                       EVM &athevm)
 {
-   return pointer(new api_connection(io_service, athevm));
+   return pointer(new api_connection(io_service, connManager, athevm));
 }
 
 tcp::socket&
@@ -49,78 +55,207 @@ api_connection::socket()
    return socket_;
 }
 
+void
+api_connection::start_async()
+{
+   LOG4CPLUS_TRACE(logger_, "start_async enter");
+   remotePeer_ = socket_.remote_endpoint();
+   LOG4CPLUS_INFO(logger_,
+                  "Connection to " << remotePeer_ << " opened by peer");
+
+   read_async_header();
+
+   LOG4CPLUS_TRACE(logger_, "start_async exit");
+}
+
+uint16_t
+api_connection::get_message_length(const char * buffer)
+{
+   uint16_t msgLen = *(static_cast<const uint16_t*>(
+                          static_cast<const void*>(buffer)));
+#ifndef BOOST_LITTLE_ENDIAN
+   // swap byte order for big endian and pdp endian
+   msgLen = (msglen << 8) | (msglen >> 8);
+#endif
+   return msgLen;
+}
+
+bool
+api_connection::check_async_error(const boost::system::error_code &ec)
+{
+   bool res = false;
+   if (boost::asio::error::eof == ec) {
+      LOG4CPLUS_INFO(logger_, "connection closed by peer");
+      res = true;
+   } else if (boost::asio::error::operation_aborted == ec) {
+      LOG4CPLUS_ERROR(logger_, ec.message());
+      res = true;
+   }
+   return res;
+}
+
+void
+api_connection::on_read_async_header_completed(
+   const boost::system::error_code &ec,
+   const size_t bytesRead)
+{
+   LOG4CPLUS_TRACE(logger_, "on_read_async_header_completed enter");
+   auto err = check_async_error(ec);
+   if(err) {
+      LOG4CPLUS_DEBUG(logger_,
+                      "on_read_async_header_completed, ec: " <<
+                      ec.message());
+      close();
+      return;
+   }
+
+   auto msgLen = get_message_length(inMsgBuffer_);
+   if(msgLen == 0) {
+      LOG4CPLUS_FATAL(logger_, "on_read_async_header_completed, msgLen=0");
+      return;
+   }
+
+   LOG4CPLUS_DEBUG(logger_,
+                   "on_read_async_header_completed, msgLen: " << msgLen);
+
+   read_async_message(MSG_LENGTH_BYTES, msgLen);
+
+   LOG4CPLUS_TRACE(logger_, "on_read_async_header_completed exit");
+}
+
+void
+api_connection::read_async_header()
+{
+   LOG4CPLUS_TRACE(logger_, "read_async_header enter");
+
+   // clean all previous data
+   memset(inMsgBuffer_ , 0, BUFFER_LENGTH);
+   athenaRequest_.Clear();
+   athenaResponse_.Clear();
+
+   // async operation will finish when either expectedBytes are read
+   // or error occured
+   async_read(socket_,
+              boost::asio::buffer(inMsgBuffer_, MSG_LENGTH_BYTES),
+              boost::bind(&api_connection::on_read_async_header_completed,
+                          this,
+                          boost::asio::placeholders::error,
+                          boost::asio::placeholders::bytes_transferred));
+
+   LOG4CPLUS_TRACE(logger_, "read_async exit");
+}
+
+void
+api_connection::read_async_message( uint16_t offset,
+                                    uint16_t expectedBytes)
+{
+   LOG4CPLUS_TRACE(logger_, "read_async_message enter");
+   LOG4CPLUS_DEBUG(logger_,
+                   "offset: " << offset <<
+                   ", expectedBytes: " << expectedBytes);
+
+   // async operation will finish when either expectedBytes are read
+   // or error occured
+   async_read(socket_,
+              boost::asio::buffer( inMsgBuffer_ + offset,
+                                   expectedBytes),
+              boost::bind(&api_connection::on_read_async_message_completed,
+                          this,
+                          boost::asio::placeholders::error,
+                          boost::asio::placeholders::bytes_transferred));
+
+   LOG4CPLUS_TRACE(logger_, "read_async_message exit");
+}
+
+// this is the handler to async_read, it will be called only if the
+// supplied data buffer for read is full OR error occured
+void
+api_connection::on_read_async_message_completed(
+   const boost::system::error_code &ec,
+   const size_t bytesRead)
+{
+   LOG4CPLUS_TRACE(logger_, "on_read_async_completed enter");
+
+   auto err = check_async_error(ec);
+   if(err) {
+      LOG4CPLUS_DEBUG(logger_,
+                      "on_read_async_message_completed, ec: " <<
+                      ec.message());
+      return;
+   }
+
+   LOG4CPLUS_DEBUG(logger_, "msg data read, msgLen: " << bytesRead);
+   process_incoming();
+   read_async_header();
+
+   LOG4CPLUS_TRACE(logger_, "on_read_async_completed exit");
+}
+
+void
+api_connection::close()
+{
+   // we should not close socket_ explicitly since we use shared_from_this,
+   // so the current api_connetion object and its socket_ object should be
+   // destroyed automatically. However, this should be profiled during
+   // stress tests for memory leaks
+   LOG4CPLUS_DEBUG(logger_, "closing connection");
+   connManager_.close_connection(shared_from_this());
+}
+
+void
+api_connection::on_write_completed(const boost::system::error_code &ec)
+{
+   if(!ec) {
+      LOG4CPLUS_DEBUG(logger_, "sent completed");
+   } else {
+      LOG4CPLUS_ERROR(logger_, "sent failed with error: " << ec.message());
+   }
+}
+
 /*
  * Start handling a connection. Read requests from the connection and
  * send back responses until the client disconnects.
  */
 void
-api_connection::start()
+api_connection::process_incoming()
 {
-   // length of serialized protobuf message
-   uint16_t msglen;
-   // wrapper around msglen to make reading into/out of it easier
-   mutable_buffer lengthbuf(&msglen, sizeof(msglen));
-   // buffer for reading/writing protobuf
-   std::vector<uint8_t> pbuf;
-   error_code error;
+   std::string pb;
+   LOG4CPLUS_TRACE(logger_, "process_incoming enter");
 
-   // start by reading the length of the next message (a 16-bit
-   // integer, encoded little endian, lower byte first)
-   while (read(socket_, buffer(lengthbuf), error)) {
-#ifndef BOOST_LITTLE_ENDIAN
-      // swap byte order for big endian and pdp endian
-      msglen = (msglen << 8) | (msglen >> 8);
-#endif
-      LOG4CPLUS_TRACE(logger_, "Bytes read! expecting " << msglen << " more");
+   // Parse the protobuf
+   if (athenaRequest_.ParseFromArray(inMsgBuffer_ + MSG_LENGTH_BYTES,
+                                     get_message_length(inMsgBuffer_))) {
+      LOG4CPLUS_DEBUG(logger_, "Parsed!");
 
-      // we are only growing the buffer right now, because the max message size
-      // is 64k, which isn't a huge amount per connection
-      if (pbuf.size() < msglen) {
-         pbuf.resize(msglen);
-      }
-
-      // now read the actual message
-      if (read(socket_, buffer(pbuf), transfer_at_least(msglen), error)
-          == msglen) {
-         LOG4CPLUS_TRACE(logger_, "Correctly read bytes. decoding...");
-
-         // Parse the protobuf
-         athenaRequest_.ParseFromArray(&pbuf[0], msglen);
-         LOG4CPLUS_TRACE(logger_, "Parsed!");
-
-         // handle the request
-         dispatch();
-
-         // marshal the protobuf
-         msglen = athenaResponse_.ByteSize();
-         if (pbuf.size() < msglen) {
-            pbuf.resize(msglen);
-         }
-         athenaResponse_.SerializeToArray(&pbuf[0], msglen);
-#ifndef BOOST_LITTLE_ENDIAN
-         msglen = (msglen << 8) || (msglen >> 8);
-#endif
-
-         // send the response back
-         write(socket_, buffer(lengthbuf));
-         write(socket_, buffer(pbuf, msglen), error);
-         LOG4CPLUS_TRACE(logger_, "Responded!");
-      } else {
-         LOG4CPLUS_DEBUG(logger_, "Did not read enough bytes: " << error);
-      }
-
-      // prepare to read the next request
-      athenaRequest_.Clear();
-      athenaResponse_.Clear();
-   }
-
-   if (error != boost::asio::error::eof) {
-      // the client didn't just disconnect - warn someone that
-      // something went wrong
-      LOG4CPLUS_ERROR(logger_, "Read failed: " << error);
+      // handle the request
+      dispatch();
    } else {
-      LOG4CPLUS_DEBUG(logger_, "Connection closed");
+      // Parsing failed
+      ErrorResponse *e = athenaResponse_.add_error_response();
+      e->mutable_description()->assign("Unable to parse request");
    }
+
+   // marshal the protobuf
+   athenaResponse_.SerializeToString(&pb);
+   uint16_t msgLen = pb.length();
+#ifndef BOOST_LITTLE_ENDIAN
+   msgLen = (msgLen << 8) || (msgLen >> 8);
+#endif
+
+   memset(outMsgBuffer_, 0, BUFFER_LENGTH);
+   memcpy(outMsgBuffer_, &msgLen, MSG_LENGTH_BYTES);
+   memcpy(outMsgBuffer_ + MSG_LENGTH_BYTES, pb.c_str(), msgLen);
+
+   LOG4CPLUS_DEBUG(logger_, "sending back " << to_string(msgLen) << " bytes");
+   boost::asio::async_write(socket_,
+                            boost::asio::buffer(outMsgBuffer_,
+                                                msgLen + MSG_LENGTH_BYTES),
+                            boost::bind(&api_connection::on_write_completed,
+                                        this,
+                                        boost::asio::placeholders::error));
+
+   LOG4CPLUS_DEBUG(logger_, "responded!");
+   LOG4CPLUS_TRACE(logger_, "process_incoming exit");
 }
 
 /*
@@ -156,7 +291,11 @@ api_connection::dispatch() {
  */
 void
 api_connection::handle_protocol_request() {
+   LOG4CPLUS_TRACE(logger_, "protocol_request enter");
+
    const ProtocolRequest request = athenaRequest_.protocol_request();
+   LOG4CPLUS_DEBUG(logger_, "protocol_request, client_version: " <<
+                   request.client_version());
 
    // create a response even if the request does not have a client
    // version, as this could be used as a keep-alive ping
@@ -172,6 +311,7 @@ api_connection::handle_protocol_request() {
          e->mutable_description()->assign("Client version unknown");
       }
    }
+   LOG4CPLUS_TRACE(logger_, "protocol_reques exit");
 }
 
 /*
@@ -348,9 +488,13 @@ api_connection::handle_test_request() {
 }
 
 api_connection::api_connection(
-   io_service &io_service, EVM &athevm)
+   io_service &io_service,
+   connection_manager &manager,
+   EVM& athevm)
    : socket_(io_service),
-     logger_(log4cplus::Logger::getInstance("com.vmware.athena.api_connection")),
+     logger_(
+        log4cplus::Logger::getInstance("com.vmware.athena.api_connection")),
+     connManager_(manager),
      athevm_(athevm)
 {
    // nothing to do here yet other than initialize the socket and logger
