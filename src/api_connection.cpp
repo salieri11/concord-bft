@@ -138,7 +138,7 @@ api_connection::read_async_header()
    async_read(socket_,
               boost::asio::buffer(inMsgBuffer_, MSG_LENGTH_BYTES),
               boost::bind(&api_connection::on_read_async_header_completed,
-                          this,
+                          shared_from_this(),
                           boost::asio::placeholders::error,
                           boost::asio::placeholders::bytes_transferred));
 
@@ -160,7 +160,7 @@ api_connection::read_async_message( uint16_t offset,
               boost::asio::buffer( inMsgBuffer_ + offset,
                                    expectedBytes),
               boost::bind(&api_connection::on_read_async_message_completed,
-                          this,
+                          shared_from_this(),
                           boost::asio::placeholders::error,
                           boost::asio::placeholders::bytes_transferred));
 
@@ -251,7 +251,7 @@ api_connection::process_incoming()
                             boost::asio::buffer(outMsgBuffer_,
                                                 msgLen + MSG_LENGTH_BYTES),
                             boost::bind(&api_connection::on_write_completed,
-                                        this,
+                                        shared_from_this(),
                                         boost::asio::placeholders::error));
 
    LOG4CPLUS_DEBUG(logger_, "responded!");
