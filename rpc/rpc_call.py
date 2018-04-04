@@ -127,7 +127,7 @@ class RPC():
       response = self._call()
       return self.getResultFromResponse(response)
 
-   def sendTransaction(self, caller, data, gas = None):
+   def sendTransaction(self, caller, data, gas = None, to = None):
       '''
       Given a blockchain user hash and some data (e.g. bytecode), submits
       it to the blockchain and returns the result field of the response, which
@@ -142,6 +142,8 @@ class RPC():
       if gas:
          self._rpcData["params"][0]["gas"] = gas
 
+      if to:
+         self._rpcData["params"][0]["to"] = to
 
       response = self._call()
       return self.getResultFromResponse(response)
