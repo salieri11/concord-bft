@@ -102,7 +102,6 @@ const static struct evm_context_fn_table athena_fn_table = {
       ath_emit_log
 };
 
-
 class EVM {
 public:
    EVM();

@@ -89,8 +89,6 @@ void com::vmware::athena::EVM::call(evm_message &message,
                       ", TODO: transfer value");
 
       uint64_t transfer_val = from_evm_uint256be(&message.value);
-      transfer_val = 0x11111;
-      std::cout << "Transfer val: " << transfer_val << std::endl;
       // All addresses exist by default. They are considered as accounts with
       // 0 balances. Hence, we never throw an accont not found error. Instead
       // we will simply say that account does not have sufficient balance.
