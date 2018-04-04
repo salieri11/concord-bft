@@ -6,30 +6,6 @@ package Servlets;
 import com.google.protobuf.ByteString;
 
 public class APIHelper {
-   /**
-    * Converts an int into two bytes.
-    * 
-    * @param a
-    *           Integer that needs to be converted
-    * @return A byte array containing two bytes.
-    */
-   public static byte[] intToSizeBytes(int a) {
-      byte[] data = new byte[2];
-      data[0] = (byte) (a & 0xFF);
-      data[1] = (byte) ((a >> 8) & 0xFF);
-      return data;
-   }
-
-   /**
-    * Converts size in two bytes into a single int.
-    * 
-    * @param size
-    *           Byte array containing two bytes of size
-    * @return Size in int
-    */
-   public static int sizeBytesToInt(byte[] size) {
-      return ((size[1] & 0xff) << 8) | (size[0] & 0xff);
-   }
 
    /**
     * Converts a hex string into a binary string.

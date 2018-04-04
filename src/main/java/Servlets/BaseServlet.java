@@ -1,3 +1,6 @@
+/**
+ * This is the base class for all API based servlets.
+ */
 package Servlets;
 
 import com.vmware.athena.*;
@@ -16,8 +19,7 @@ public abstract class BaseServlet extends HttpServlet {
    protected static final long serialVersionUID = 1L;
 
    protected abstract void doGet(final HttpServletRequest request,
-                                 final HttpServletResponse response)
-                           throws IOException;
+            final HttpServletResponse response) throws IOException;
 
    protected IConfiguration _conf;
 
@@ -34,13 +36,16 @@ public abstract class BaseServlet extends HttpServlet {
 
    /**
     * Process get request
-    * @param req - Athena request object
-    * @param response - HTTP servlet response object
-    * @param log - specifies logger from servlet to use
+    * 
+    * @param req
+    *           - Athena request object
+    * @param response
+    *           - HTTP servlet response object
+    * @param log
+    *           - specifies logger from servlet to use
     */
    protected void processGet(Athena.AthenaRequest req,
-                              HttpServletResponse response,
-                              Logger log) {
+            HttpServletResponse response, Logger log) {
       JSONObject respObject = null;
       IAthenaConnection conn = null;
       Athena.AthenaResponse athenaResponse = null;
@@ -48,53 +53,49 @@ public abstract class BaseServlet extends HttpServlet {
          conn = AthenaConnectionPool.getInstance().getConnection();
          boolean res = AthenaHelper.sendToAthena(req, conn, _conf);
          if (!res) {
-               processResponse(response,
-                           "Communication error",
-                           HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                           log);
+            processResponse(response, "Communication error",
+                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR, log);
             return;
          }
 
          // receive response from Athena
          athenaResponse = AthenaHelper.receiveFromAthena(conn);
          if (athenaResponse == null) {
-               processResponse(response, "Data error",
-                           HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                           log);
+            processResponse(response, "Data error",
+                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR, log);
             return;
          }
       } catch (Exception e) {
          processResponse(response, "Internal error",
-                         HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                         log);
+                  HttpServletResponse.SC_INTERNAL_SERVER_ERROR, log);
          return;
       } finally {
          AthenaConnectionPool.getInstance().putConnection(conn);
       }
 
       respObject = parseToJSON(athenaResponse);
-      String json = respObject == null ? null
-            : respObject.toJSONString();
+      String json = respObject == null ? null : respObject.toJSONString();
 
-      processResponse(response,
-                     json,
-                     json == null ?
-                        HttpServletResponse.SC_INTERNAL_SERVER_ERROR :
-                        HttpServletResponse.SC_OK,
-                     log);
+      processResponse(response, json,
+               json == null ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR
+                        : HttpServletResponse.SC_OK,
+               log);
    }
 
    /**
     * Process response back to the client
-    * @param resp - response object from the servlet
-    * @param data - response data, JSON
-    * @param status - HTTP response status
-    * @param log - servlet specific logger to use
+    * 
+    * @param resp
+    *           - response object from the servlet
+    * @param data
+    *           - response data, JSON
+    * @param status
+    *           - HTTP response status
+    * @param log
+    *           - servlet specific logger to use
     */
-   protected void processResponse(HttpServletResponse resp,
-                                  String data,
-                                  int status,
-                                  Logger log) {
+   protected void processResponse(HttpServletResponse resp, String data,
+            int status, Logger log) {
       try {
          // Set client response header
          resp.setHeader("Content-Transfer-Encoding", "UTF-8");

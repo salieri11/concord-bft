@@ -1,12 +1,9 @@
 /**
- * This singleton class is used to maintain resources related to a single
+ * This class is used to maintain resources related to a
  * TCP connection with Athena.
  *
  * Also contains functions for communicating with Athena over a TCP connection.
  *
- * These resources are shared by all servlets.
- * This means that at present, only one servlet can talk to Athena at a
- * time.
  */
 package connections;
 
@@ -26,18 +23,16 @@ public final class AthenaTCPConnection implements IAthenaConnection {
    private final int _receiveTimeout; // ms
    private final int _receiveLengthSize; // bytes
    private IConfiguration _conf;
-   private static Logger _logger =
-         Logger.getLogger(AthenaTCPConnection.class);
+   private static Logger _logger = Logger.getLogger(AthenaTCPConnection.class);
 
    /**
-   * Sets up a TCP connection with Athena
-   *
-   * @throws IOException
-   */
+    * Sets up a TCP connection with Athena
+    *
+    * @throws IOException
+    */
    public AthenaTCPConnection(IConfiguration conf) throws IOException {
       _conf = conf;
-      _receiveLengthSize =
-            _conf.getIntegerValue("ReceiveHeaderSizeBytes");
+      _receiveLengthSize = _conf.getIntegerValue("ReceiveHeaderSizeBytes");
       _receiveTimeout = _conf.getIntegerValue("ReceiveTimeoutMs");
       _disposed = new AtomicBoolean(false);
 
@@ -45,8 +40,7 @@ public final class AthenaTCPConnection implements IAthenaConnection {
       try {
          String host = _conf.getStringValue("AthenaHostName");
          int port = _conf.getIntegerValue("AthenaPort");
-         _socket = 
-               new Socket(host, port);
+         _socket = new Socket(host, port);
          _socket.setTcpNoDelay(true);
       } catch (UnknownHostException e) {
          _logger.error("Error creating TCP connection with Athena");
@@ -58,7 +52,10 @@ public final class AthenaTCPConnection implements IAthenaConnection {
 
       _logger.debug("Socket connection with Athena created");
    }
-   
+
+   /**
+    * Closes the TCP connection
+    */
    public void close() {
       if (_disposed.get())
          return;
@@ -74,6 +71,9 @@ public final class AthenaTCPConnection implements IAthenaConnection {
       }
    }
 
+   /**
+    * Close the connection before garbage collection
+    */
    @Override
    protected void finalize() throws Throwable {
       _logger.info("connection disposed");
@@ -85,6 +85,10 @@ public final class AthenaTCPConnection implements IAthenaConnection {
       }
    }
 
+   /**
+    * Reads responses from Athena. Athena sends the size of the response before
+    * the actual response
+    */
    @Override
    public byte[] receive() {
       try {
@@ -95,12 +99,12 @@ public final class AthenaTCPConnection implements IAthenaConnection {
          int read = 0;
          boolean done = false;
          int msgSize = 0;
-                  
+
          while (System.currentTimeMillis() - start < _receiveTimeout) {
 
             if (length == null && is.available() >= _receiveLengthSize) {
                length = ByteBuffer.wrap(new byte[_receiveLengthSize])
-                     .order(ByteOrder.LITTLE_ENDIAN);
+                        .order(ByteOrder.LITTLE_ENDIAN);
                is.read(length.array(), 0, _receiveLengthSize);
             }
 
@@ -132,6 +136,9 @@ public final class AthenaTCPConnection implements IAthenaConnection {
       }
    }
 
+   /**
+    * Sends data to Athena over the connection
+    */
    @Override
    public boolean send(byte[] msg) {
       try {

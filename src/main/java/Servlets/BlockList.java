@@ -7,7 +7,6 @@
  * and requests and responses are encoded in the Google Protocol Buffer
  * format.
  *
- * Athena, by default, runs on port 5458.
  */
 package Servlets;
 
@@ -208,7 +207,8 @@ public final class BlockList extends BaseServlet {
    }
 
    /**
-    * Used to structure mock responses Temporary
+    * Used to structure mock responses
+    * Temporary
     *
     */
    private class FakeBlock {

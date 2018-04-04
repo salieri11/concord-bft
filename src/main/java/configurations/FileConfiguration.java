@@ -13,6 +13,7 @@ import java.io.InputStream;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
+import org.json.simple.parser.ParseException;
 
 public final class FileConfiguration implements IConfiguration {
 
@@ -25,6 +26,8 @@ public final class FileConfiguration implements IConfiguration {
          _single_instance = new FileConfiguration();
       } catch (IOException e) {
          throw new ExceptionInInitializerError(e);
+      } catch (ParseException e) {
+         throw new ExceptionInInitializerError(e);
       }
    }
 
@@ -35,8 +38,9 @@ public final class FileConfiguration implements IConfiguration {
     * Loads the configurations file
     * 
     * @throws IOException
+    * @throws ParseException
     **/
-   private FileConfiguration() throws IOException {
+   private FileConfiguration() throws IOException, ParseException {
       _configurations = new Properties();
       try (InputStream input = new FileInputStream("config.properties")) {
          _configurations.load(input);
@@ -53,18 +57,27 @@ public final class FileConfiguration implements IConfiguration {
       return _single_instance;
    }
 
+   /**
+    * Used to read an integer configuration
+    */
    @Override
    public int getIntegerValue(String key) {
       int retval = Integer.parseInt(_configurations.getProperty(key));
       return retval;
    }
 
+   /**
+    * Used to read a string configuration
+    */
    @Override
    public String getStringValue(String key) {
       String retval = _configurations.getProperty(key);
       return retval;
    }
 
+   /**
+    * Used to read a long configuration
+    */
    @Override
    public long getLongValue(String key) {
       long retval = Long.parseLong(_configurations.getProperty(key));

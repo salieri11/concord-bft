@@ -61,21 +61,18 @@ public class Server {
 
    // Set current datetime for logging purposes
    static {
-      SimpleDateFormat dateFormat =
-            new SimpleDateFormat("dd-MM-yyyy-hh-mm-ss");
-      System.setProperty(
-            "current.date.time", dateFormat.format(new Date()));
+      SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy-hh-mm-ss");
+      System.setProperty("current.date.time", dateFormat.format(new Date()));
    }
 
-   public static void main(String[] args)
-         throws IOException, ServletException {
+   public static void main(String[] args) throws IOException, ServletException {
 
       final Logger logger = Logger.getLogger(Server.class);
 
       // Read configurations file
       IConfiguration conf;
       try {
-         conf= FileConfiguration.getInstance();
+         conf = FileConfiguration.getInstance();
       } catch (IOException e) {
          logger.error("Error in reading configurations");
          throw e;
@@ -87,39 +84,24 @@ public class Server {
       port = conf.getIntegerValue("Server_Port");
       defaultReponse = conf.getStringValue("Server_DefaultResponse");
 
-      memberListServletName =
-            conf.getStringValue("MemberList_ServletName");
-      defaultContentServletName =
-            conf.getStringValue("DefaultContent_ServletName");
-      blockListServletName =
-            conf.getStringValue("BlockList_ServletName");
-      blockNumberServletName =
-            conf.getStringValue("BlockNumber_ServletName");
-      ethRPCServletName =
-            conf.getStringValue("EthRPC_ServletName");
-      transactionServletName =
-            conf.getStringValue("Transaction_ServletName");
-      swaggerServletName =
-            conf.getStringValue("Swagger_ServletName");
-      assetsServletName =
-            conf.getStringValue("Assets_ServletName");
-      apiListServletName =
-            conf.getStringValue("ApiList_ServletName");
+      memberListServletName = conf.getStringValue("MemberList_ServletName");
+      defaultContentServletName = conf
+               .getStringValue("DefaultContent_ServletName");
+      blockListServletName = conf.getStringValue("BlockList_ServletName");
+      blockNumberServletName = conf.getStringValue("BlockNumber_ServletName");
+      ethRPCServletName = conf.getStringValue("EthRPC_ServletName");
+      transactionServletName = conf.getStringValue("Transaction_ServletName");
+      swaggerServletName = conf.getStringValue("Swagger_ServletName");
+      assetsServletName = conf.getStringValue("Assets_ServletName");
+      apiListServletName = conf.getStringValue("ApiList_ServletName");
 
-      memberListEndpoint =
-            conf.getStringValue("MemberList_Endpoint");
-      defaultContentEndpoint =
-            conf.getStringValue("DefaultContent_Endpoint");
-      blockListEndpoint =
-            conf.getStringValue("BlockList_Endpoint");
-      blockNumberEndpoint =
-            conf.getStringValue("BlockNumber_Endpoint");
-      ethRPCEndpoint =
-            conf.getStringValue("EthRPC_Endpoint");
-      transactionEndpoint =
-            conf.getStringValue("Transaction_Endpoint");
-      swaggerEndpoint =
-            conf.getStringValue("Swagger_Endpoint");
+      memberListEndpoint = conf.getStringValue("MemberList_Endpoint");
+      defaultContentEndpoint = conf.getStringValue("DefaultContent_Endpoint");
+      blockListEndpoint = conf.getStringValue("BlockList_Endpoint");
+      blockNumberEndpoint = conf.getStringValue("BlockNumber_Endpoint");
+      ethRPCEndpoint = conf.getStringValue("EthRPC_Endpoint");
+      transactionEndpoint = conf.getStringValue("Transaction_Endpoint");
+      swaggerEndpoint = conf.getStringValue("Swagger_Endpoint");
       assetsEndpoint = conf.getStringValue("Assets_Endpoint");
       apiListEndpoint = conf.getStringValue("ApiList_Endpoint");
 
@@ -127,45 +109,35 @@ public class Server {
                .setClassLoader(Server.class.getClassLoader())
                .setContextPath(serverPath).setResourceManager(
                         // 1024 : Size to use direct
-                        //FS to network transfer (if
+                        // FS to network transfer (if
                         // supported by OS/JDK) instead of read/write
-                        new FileResourceManager(
-                              new File(defaultReponse), 1024))
+                        new FileResourceManager(new File(defaultReponse), 1024))
                .setDeploymentName(deploymentName)
                .addServlets(Servlets
-                        .servlet(memberListServletName,
-                              MemberList.class)
+                        .servlet(memberListServletName, MemberList.class)
                         .addMapping(memberListEndpoint))
                .addServlets(Servlets
-                        .servlet(swaggerServletName,
-                              StaticContent.class)
+                        .servlet(swaggerServletName, StaticContent.class)
                         .addMapping(swaggerEndpoint))
                .addServlets(
-                        Servlets.servlet(assetsServletName, 
-                              StaticContent.class)
+                        Servlets.servlet(assetsServletName, StaticContent.class)
                                  .addMapping(assetsEndpoint))
                .addServlets(Servlets
-                        .servlet(apiListServletName,
-                              StaticContent.class)
+                        .servlet(apiListServletName, StaticContent.class)
                         .addMapping(apiListEndpoint))
                .addServlets(
-                        Servlets.servlet(blockListServletName,
-                              BlockList.class)
+                        Servlets.servlet(blockListServletName, BlockList.class)
                                  .addMapping(blockListEndpoint))
                .addServlets(Servlets
-                        .servlet(blockNumberServletName,
-                              BlockNumber.class)
+                        .servlet(blockNumberServletName, BlockNumber.class)
                         .addMapping(blockNumberEndpoint))
-               .addServlets(Servlets.servlet(ethRPCServletName,
-                     EthRPC.class)
+               .addServlets(Servlets.servlet(ethRPCServletName, EthRPC.class)
                         .addMapping(ethRPCEndpoint))
                .addServlets(Servlets
-                        .servlet(transactionServletName, 
-                              Transaction.class)
+                        .servlet(transactionServletName, Transaction.class)
                         .addMapping(transactionEndpoint))
                .addServlet(Servlets
-                        .servlet(defaultContentServletName,
-                              StaticContent.class)
+                        .servlet(defaultContentServletName, StaticContent.class)
                         .addMapping(defaultContentEndpoint));
       DeploymentManager manager = Servlets.defaultContainer()
                .addDeployment(servletBuilder);
@@ -179,17 +151,16 @@ public class Server {
          logger.error("Error in starting Deployment Manager");
          throw e1;
       }
-      
+
+      // Initialize the connection pool
       AthenaConnectionPool.getInstance().initialize(conf);
       logger.info("athena connection pool initialized");
-      
-      Undertow server = Undertow
-            .builder()
-            .addHttpListener(port, serverHostName)
-            .setHandler(path)
-            // .setIoThreads(10) // to change number of io threads
-            // .setWorkerThreads(10) //to change number of worker threads
-            .build();
+
+      Undertow server = Undertow.builder().addHttpListener(port, serverHostName)
+               .setHandler(path)
+               // .setIoThreads(10) // to change number of io threads
+               // .setWorkerThreads(10) //to change number of worker threads
+               .build();
       server.start();
       logger.info("Server Booted");
    }

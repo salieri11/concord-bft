@@ -7,7 +7,6 @@
  * and requests and responses are encoded in the Google Protocol Buffer
  * format.
  *
- * Athena, by default, runs on port 5458.
  * TODO : Handle the case of no/incorrect response from Athena
  */
 package Servlets;
