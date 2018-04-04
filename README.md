@@ -237,7 +237,8 @@ symlinks `_build/default/rel/helen/releases/<version>/sys.config` to it.
 
 The `eth_sendTransaction` method will assume you're creating a
 contract if you omit the `to` field from the `params` structure. It
-will generate an address for the contract and return that.
+will return a transaction hash, that you can use to find the address
+of the contract with a call to `eth_getTransactionReceipt`.
 
 ## Project Layout
 
