@@ -69,6 +69,11 @@ void com::vmware::athena::EVM::call(evm_message &message,
 
    std::vector<uint8_t> code;
    std::vector<uint8_t> hash;
+   std::vector<uint8_t> to(message.destination.bytes,
+                           message.destination.bytes+sizeof(evm_address));
+   std::vector<uint8_t> from(message.sender.bytes,
+                             message.sender.bytes+sizeof(evm_address));
+   std::vector<uint8_t> created_contract_address;
    if (get_code(&message.destination, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Loaded code from " <<
                       HexPrintAddress{&message.destination});
@@ -77,32 +82,28 @@ void com::vmware::athena::EVM::call(evm_message &message,
       execute(message, code, result);
 
       // no contract was created here
-      std::vector<uint8_t> created_contract_address;
-      std::vector<uint8_t> to(message.destination.bytes,
-                              message.destination.bytes+sizeof(evm_address));
       record_transaction(message, result, to, created_contract_address, txhash);
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " <<
                       HexPrintAddress{&message.destination} <<
                       ", TODO: transfer value");
-      std::vector<uint8_t> to(message.destination.bytes,
-                              message.destination.bytes+sizeof(evm_address));
-      std::vector<uint8_t> from(message.sender.bytes,
-                                message.sender.bytes+sizeof(evm_address));
 
       uint64_t transfer_val = from_evm_uint256be(&message.value);
+      transfer_val = 0x11111;
+      std::cout << "Transfer val: " << transfer_val << std::endl;
       // All addresses exist by default. They are considered as accounts with
       // 0 balances. Hence, we never throw an accont not found error. Instead
       // we will simply say that account does not have sufficient balance.
       if (balances.count(from) == 0 || balances[from] < transfer_val) {
          result.status_code = EVM_FAILURE;
          LOG4CPLUS_INFO(logger, "Account with address " <<
-                         HexPrintAddress{&message.destination} <<
-                         ", does not have sufficient funds");
+                         HexPrintAddress{&message.sender} <<
+                        ", does not have sufficient funds (" << balances[from] << ").");
       } else {
          balances[to] += transfer_val;
          balances[from] -= transfer_val;
          result.status_code = EVM_SUCCESS;
+         record_transaction(message, result, to, created_contract_address, txhash);
          LOG4CPLUS_DEBUG(logger, "Transferred  " << transfer_val <<
                          " units to: " << HexPrintAddress{&message.destination} <<
                          " from: " << HexPrintAddress{&message.sender});

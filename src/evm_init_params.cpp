@@ -18,15 +18,15 @@ com::vmware::athena::EVMInitParams::EVMInitParams(std::string genesis_file_path)
          chainID = config["chainId"];
    }
 
-   // chainID = genesis_block["config"]["chainId"];
-
    if (genesis_block.find("alloc") != genesis_block.end()) {
       json alloc = genesis_block["alloc"];
       for (json::iterator it = alloc.begin();
            it != alloc.end(); it++) {
          std::vector<uint8_t> address = dehex(it.key());
          std::string balance_str = it.value()["balance"];
-         uint64_t balance = stoull(balance_str);
+         // The second to stoull is not used (hence nullptr)
+         // '0' for third parameter suggests that interpret base from string
+         uint64_t balance = std::stoull(balance_str, nullptr, 0);
          initial_accounts[address] = balance;
       }
    }
