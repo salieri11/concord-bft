@@ -8,72 +8,14 @@
                "parameters": ["console"]
             }
          },
-         "p2Blockchain":
+         "athena":
          {
-            "buildRoot": "~/builds/p2-blockchain/debug",
-            "replica1":{
-               "launchCommand": "Blockchain/EthereumBlockchain/Blockchain_replica/replica",
-               "parameters": ["-c", "SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3.pub",
-                              "-p", "SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3-rep-1.priv",
-                              "-e", "Blockchain/EthereumBlockchain/config/extClientsConfig.xml",
-                              "-m", "database",
-                              "-d", "replica_databases/replica_db_1"
-                             ]
-            },
-            "replica2":{
-               "launchCommand": "Blockchain/EthereumBlockchain/Blockchain_replica/replica",
-               "parameters": ["-c", "SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3.pub",
-                              "-p", "SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3-rep-2.priv",
-                              "-e", "Blockchain/EthereumBlockchain/config/extClientsConfig.xml",
-                              "-m", "database",
-                              "-d", "replica_databases/replica_db_2"
-                             ]
-            },
-            "replica3":{
-               "launchCommand": "Blockchain/EthereumBlockchain/Blockchain_replica/replica",
-               "parameters": ["-c", "SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3.pub",
-                              "-p", "SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3-rep-3.priv",
-                              "-e", "Blockchain/EthereumBlockchain/config/extClientsConfig.xml",
-                              "-m", "database",
-                              "-d", "replica_databases/replica_db_3"
-                             ]
-            },
-            "replica4":{
-               "launchCommand": "Blockchain/EthereumBlockchain/Blockchain_replica/replica",
-               "parameters": ["-c", "SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3.pub",
-                              "-p", "SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3-rep-4.priv",
-                              "-e", "Blockchain/EthereumBlockchain/config/extClientsConfig.xml",
-                              "-m", "database",
-                              "-d", "replica_databases/replica_db_4"
-                              ]
-            },
-            "client0":{
-               "launchCommand": "Blockchain/EthereumBlockchain/Blockchain_client/client",
-               "parameters": ["-c", "SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3.pub",
-                              "-p", "SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3-cli-1.priv",
-                              "-e", "Blockchain/EthereumBlockchain/config/extClientsConfig.xml",
-                              "-k", "Blockchain/EthereumBlockchain/config/cli01_privkey",
-                              "-m", "listener"
-                             ]
-            },
-            "client1":{
-               "launchCommand": "Blockchain/EthereumBlockchain/Blockchain_client/client",
-               "parameters": ["-c", "SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3.pub",
-                              "-p", "SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3-cli-2.priv",
-                              "-e", "Blockchain/EthereumBlockchain/config/extClientsConfig.xml",
-                              "-k", "Blockchain/EthereumBlockchain/config/cli02_privkey",
-                              "-m", "listener"
-                              ]
-            },
-            "client2":{
-               "launchCommand": "Blockchain/EthereumBlockchain/Blockchain_client/client",
-               "parameters": ["-c", "SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3.pub",
-                              "-p", "SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3-cli-3.priv",
-                              "-e", "Blockchain/EthereumBlockchain/config/extClientsConfig.xml",
-                              "-k", "Blockchain/EthereumBlockchain/config/cli03_privkey",
-                              "-m", "listener"
-                              ]
-            }
+             "buildRoot": "~/source/vmwathena/athena/build",
+             "athena1":{
+                 "launchCommand": "src/athena",
+                 "parameters": ["--logger_config",
+                                "./resources/athena_logging.properties"]
+             }
          }
       },
       "users": [
