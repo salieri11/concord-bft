@@ -20,7 +20,8 @@
 -export([
          start_link/1,
          send_echo_request/1,
-         send_request/1
+         send_request/1,
+         force_reconnect/0
         ]).
 
 %% gen_server callbacks
@@ -105,6 +106,12 @@ send_request(#athenarequest{}=Msg) ->
         Other ->
             Other
     end.
+
+%% Force the connection to reset.
+-spec force_reconnect() -> ok.
+force_reconnect() ->
+    ?SERVER ! reconnect,
+    ok.
 
 %%%===================================================================
 %%% gen_server callbacks
