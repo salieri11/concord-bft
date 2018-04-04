@@ -67,14 +67,20 @@ npm start
 
 ### Building and Running Helen
 
+ * Run Athena. Steps can be found [here](https://github.com/vmwathena/athena)
+
  * Install dependencies and build using maven.
 
+
+   To build with tests (Athena must be running for this) :
 ```
 mvn clean install
 ```
 
- * Run Athena. Steps can be found [here](https://github.com/vmwathena/athena)
-
+   To build without tests :
+```
+mvn clean install DskipTests
+```
 
  * Run the server
 
