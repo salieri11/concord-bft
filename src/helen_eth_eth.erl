@@ -7,10 +7,12 @@
 -export([
          mining/1,
          sendTransaction/1,
-         sendRawTransaction/1
+         getTransactionReceipt/1,
+         getStorageAt/1
         ]).
 
 -include("helen_eth.hrl").
+-include("athena_pb.hrl").
 
 -import(helen_eth_param, [
                           optional_0x/2, required_0x/2,
@@ -37,119 +39,122 @@ sendTransaction(#eth_request{params=[{struct, Params}]}) ->
           optional_integer(<<"value">>, Params),
           optional_0x(<<"data">>, Params)] of
         [{ok, To}, {ok, From}, {ok, Value}, {ok, Data}] ->
-            sendTransaction_P2BC(To, From, Value, Data);
+
+            sendTransaction_athena(To, From, Value, Data);
         Errors ->
             hd([ E || {error, _}=E <- Errors ])
     end;
 sendTransaction(_)->
     {error, <<"Could not understand parameters">>}.
 
-%% Send a raw transaction.
-%%
-%% The value passed as "data" should have the appropriate type byte on
-%% the front already ("01" == create, "02" == call).
--spec sendRawTransaction(#eth_request{}) -> {ok|error, mochijson2:json_term()}.
-sendRawTransaction(#eth_request{params=[{struct, Params}]}) ->
-    case required_0x(<<"data">>, Params) of
-        {ok, <<_P2BCType:1/binary, P2BCTo:20/binary, _/binary>>=Data} ->
-            sendRawTransaction_P2BC(P2BCTo, Data);
-        {ok, _} ->
-            {error, <<"Invalid 'data' parameter">>}
+%% Fetch a transaction receipt
+-spec getTransactionReceipt(#eth_request{}) ->
+         {ok|error, mochijson2:json_term()}.
+getTransactionReceipt(#eth_request{params=[Receipt]}) ->
+    case helen_eth:dehex(Receipt) of
+        {ok, TxHash} ->
+            getTransactionReceipt_athena(TxHash);
+        _ ->
+            {error, <<"Invalid transaction hash">>}
     end;
-sendRawTransaction(_) ->
+getTransactionReceipt(_) ->
+    {error, <<"Could not understand parameters">>}.
+
+%% Read from contract storage. Currently ignoring the block parameter.
+-spec getStorageAt(#eth_request{}) ->
+         {ok|error, mochijson2:json_term()}.
+getStorageAt(#eth_request{params=[Contract, Location|_IgnoreBlock]}) ->
+    case {helen_eth:dehex(Contract), helen_eth:dehex(Location)} of
+        {{ok, Addr}, {ok, RawPos}} ->
+            case 32 - size(RawPos) of
+                Pad when Pad > 0 ->
+                    Pos = <<0:(8*Pad), RawPos/binary>>;
+                _ ->
+                    Pos = RawPos
+            end,
+            getStorageAt_athena(Addr, Pos);
+        {{ok, _}, _} ->
+            {error, <<"Invalid storage position">>};
+        _ ->
+            {error, <<"Invalid contract address">>}
+    end;
+getStorageAt(_) ->
     {error, <<"Could not understand parameters">>}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Utilities
+%% Athena implementation
 
-binary_reason(Msg, Reason) ->
-    list_to_binary(io_lib:format("failed to ~s (~p)", [Msg, Reason])).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% P2_Blockchain implementation
-
-%% Build a transaction command and send it to a P2_Blockchain cluster.
-sendTransaction_P2BC(To, From, Value, Data) ->
-    {P2BCType,P2BCTo} = case To == <<>> of
-                            true ->
-                                %% create
-                                {<<1>>, generate_address()};
-                            false ->
-                                %% call
-                                {<<2>>, To}  %% call
-                        end,
-
-    sendRawTransaction_P2BC(P2BCTo,
-                            <<P2BCType/binary, P2BCTo/binary,
-                              From/binary, Value/binary, Data/binary>>).
-
-%% Send a pre-built transaction to a P2_Blockchain cluster.
-sendRawTransaction_P2BC(To, Message) ->
-    %% Blockchain_client operates in pre-execution mode when you ask
-    %% it to start up in the background and expose a TCP
-    %% port. Pre-execution mode requires that the request be send to a
-    %% majority of the clients. The clients pre-compute the result and
-    %% communicate amongst themselves before sending the transaction
-    %% to the replicas for commit.
-    Results = [ sendRawTransaction_P2BC_client(C, To, Message)
-                || C <- clients_P2BC() ],
-    case lists:partition(fun({R, _}) -> R == ok end, Results) of
-        {[{ok, _}=Success|_], []} ->
-            Success;
-        {_, [{error, _}=Error|_]} ->
-            Error;
-        {[], []} ->
-            {error, "No clients defined."}
-    end.
-
-%% Send a pre-built transaction to one P2_Blockchain Blockchain_client.
-sendRawTransaction_P2BC_client({IP, Port}, To, Message) ->
-    case catch gen_tcp:connect(IP, Port, [binary,{active,false}]) of
-        {ok, Socket} ->
-            case gen_tcp:send(Socket, Message) of
-                ok ->
-                    case gen_tcp:recv(Socket, 0, 2000) of
-                        {ok, Reply} ->
-                            %% This never happens with
-                            %% Blockchain_client operating in
-                            %% pre-execution mode, but keep the code
-                            %% here so we see what happens later.
-                            {ok, helen_eth:hex0x(Reply)};
-                        {error, closed} ->
-                            %% Blockchain_client closes the connection
-                            %% after processing a request. This is not
-                            %% actual success confirmation, but we
-                            %% need to get the address generated by a
-                            %% create request back to the response
-                            %% somehow.
-                            {ok, helen_eth:hex0x(To)};
-                        {error, Reason} ->
-                            {error, binary_reason("receive response", Reason)}
-                    end;
-                {error, Reason} ->
-                    {error, binary_reason("send request", Reason)}
+sendTransaction_athena(To, From, Value, Data) ->
+    EthRequest = #ethrequest{
+                    method= 'SEND_TX',
+                    addr_to= case To of <<>> -> undefined; _ -> To end,
+                    addr_from=From,
+                    value= case Value of <<>> -> undefined; _ -> Value end,
+                    data= Data},
+    case helen_athena_conn:send_request(
+           #athenarequest{eth_request=[EthRequest]}) of
+        #athenaresponse{eth_response=[EthResponse]} ->
+            error_logger:info_msg("received response from athena: ~p",
+                                  [EthResponse]),
+            case EthResponse of
+                #ethresponse{data=TxHash} when TxHash /= undefined ->
+                    {ok, helen_eth:hex0x(TxHash)};
+                _ ->
+                    {error, <<"bad response from athena">>}
             end;
-        {error, Reason} ->
-            {error, binary_reason("connect", Reason)};
-        {'EXIT', Reason} ->
-            {error, binary_reason("connect", Reason)}
+        Other ->
+            error_logger:error_msg("did not understand athena response: !p",
+                                   [Other]),
+            {error, <<"bad response from athena">>}
     end.
 
-%% Get a list of clients in the P2_Blockchain cluster
--spec clients_P2BC() -> [{inet:ip_address(), inet:port_number()}].
-clients_P2BC() ->
-    case application:get_env(helen, p2bc_clients) of
-        {ok, Clients} ->
-            Clients;
-        undefined ->
-            []
+getTransactionReceipt_athena(TxHash) ->
+    EthRequest = #ethrequest{
+                    method= 'GET_TX_RECEIPT',
+                    data= TxHash},
+    case helen_athena_conn:send_request(
+           #athenarequest{eth_request=[EthRequest]}) of
+        #athenaresponse{eth_response=[EthResponse]} ->
+            error_logger:info_msg("received response from athena: ~p",
+                                  [EthResponse]),
+            case EthResponse of
+                #ethresponse{status=Status,
+                             contract_address=Address} ->
+                    {ok, {struct, [{<<"status">>,
+                                    iolist_to_binary(
+                                      ["0x",integer_to_list(Status, 16)])},
+                                   {<<"transactionHash">>,
+                                    helen_eth:hex0x(TxHash)}
+                                   |[{<<"contractAddress">>,
+                                      helen_eth:hex0x(Address)}
+                                     || Address /= undefined]]}};
+                _ ->
+                    {error, <<"bad response from athena">>}
+            end;
+        Other ->
+            error_logger:error_msg("did not understand athena response: !p",
+                                   [Other]),
+            {error, <<"bad response from athena">>}
     end.
 
-%% Generate an address for contract creation.
-generate_address() ->
-    %% TODO: term_to_binary/1 and now/0 are both slow
-    %% TODO: we don't need a full digest here
-    %% TODO: now isn't even safely unique enough, as some other API
-    %%       server could be generating an address at the same time
-    {ok, Digest} = helen_eth_web3:keccak_digest(term_to_binary(now())),
-    <<Digest:20/binary>>.
+getStorageAt_athena(Contract, Location) ->
+    EthRequest = #ethrequest{
+                    method= 'GET_STORAGE_AT',
+                    addr_to= Contract,
+                    data= Location},
+    case helen_athena_conn:send_request(
+           #athenarequest{eth_request=[EthRequest]}) of
+        #athenaresponse{eth_response=[EthResponse]} ->
+            error_logger:info_msg("received response from athena: ~p",
+                                  [EthResponse]),
+            case EthResponse of
+                #ethresponse{data=Data} when Data /= undefined->
+                    {ok, helen_eth:hex0x(Data)};
+                _ ->
+                    {error, <<"bad response from athena">>}
+            end;
+        Other ->
+            error_logger:error_msg("did not understand athena response: !p",
+                                   [Other]),
+            {error, <<"bad response from athena">>}
+    end.

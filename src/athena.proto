@@ -30,6 +30,8 @@ message EthRequest {
     enum EthMethod {
         SEND_TX = 1;
         SEND_TX_RAW = 2;
+        GET_TX_RECEIPT = 3;
+        GET_STORAGE_AT = 4;
     }
 
     optional EthMethod method = 1;
@@ -66,6 +68,9 @@ message PeerResponse {
 
 message EthResponse {
     optional int64 id = 1;
+    optional bytes data = 2;
+    optional bytes contract_address = 3;
+    optional int32 status = 4;
 }
 
 message TestResponse {

@@ -64,12 +64,15 @@
          #eth_rpc{name = <<"eth_sendTransaction">>,
                   returns = <<"string">>,
                   handler = fun helen_eth_eth:sendTransaction/1},
-         #eth_rpc{name = <<"eth_sendRawTransaction">>,
-                  returns = <<"string">>,
-                  handler = fun helen_eth_eth:sendRawTransaction/1},
          #eth_rpc{name = <<"eth_mining">>,
                   returns = <<"boolean">>,
                   handler = fun helen_eth_eth:mining/1},
+         #eth_rpc{name = <<"eth_getTransactionReceipt">>,
+                  returns = <<"object">>,
+                  handler = fun helen_eth_eth:getTransactionReceipt/1},
+         #eth_rpc{name = <<"eth_getStorageAt">>,
+                  returns = <<"string">>,
+                  handler = fun helen_eth_eth:getStorageAt/1},
 
          %%%%%%%%%%%%%%%%%%%%
          %% make dialyzer happy

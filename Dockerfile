@@ -1,6 +1,6 @@
 # Build Front End image
 FROM node:8.9.4
-LABEL Description="Build environment for P2_Blockchain UI"
+LABEL Description="Build environment for Athena UI"
 
 RUN npm install -g @angular/cli --unsafe
 
@@ -12,7 +12,7 @@ RUN npm run build
 
 ## Build image
 FROM ubuntu:latest
-LABEL Description="Build environment for P2_Blockchain"
+LABEL Description="Build environment for Helen"
 
 RUN apt-get update && apt-get -y install \
     cmake \
@@ -61,7 +61,7 @@ RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
 
 ## Run image
 FROM ubuntu:latest
-LABEL Description="P2_Blockchain"
+LABEL Description="Helen"
 
 RUN apt-get update && apt-get -y install \
     erlang-asn1 \
