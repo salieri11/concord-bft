@@ -2,7 +2,8 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 @Component({
   selector: 'app-testing-ground',
@@ -11,43 +12,61 @@ import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 })
 export class TestingGroundComponent implements OnInit {
 
+  private dataForm: FormGroup;
+  private smartContractForm: FormGroup;
+
   @ViewChild('dataHashRef')
   private dataHashRef: ElementRef;
 
   @ViewChild('smartContractHashRef')
   private smartContractHashRef: ElementRef;
 
-  private dataText = '';
-  private smartContractFile = undefined;
-
   private dataHash: string = undefined;
   private smartContractHash: string = undefined;
 
-  constructor() { }
+  constructor(private formBuilder: FormBuilder, private changeDetectorRef: ChangeDetectorRef) {
+    this.dataForm = this.formBuilder.group({
+      from: ['from-address', Validators.required],
+      to:   ['', Validators.required],
+      text: ['', Validators.required],
+    });
+    this.dataForm.valueChanges.subscribe(() => this.dataHash = undefined);
+
+    this.smartContractForm = this.formBuilder.group({
+      from: ['from-address', Validators.required],
+      file: [null, Validators.required],
+    });
+    this.smartContractForm.valueChanges.subscribe(() => this.smartContractHash = undefined);
+  }
 
   ngOnInit() {
   }
 
-  onDataTextChange() {
-    this.dataHash = undefined;
-  }
+  onSmartContractFileChange(event) {
+    if (event.target.files.length === 0) {
+      this.smartContractForm.patchValue({
+        file: null
+      });
+      return;
+    }
 
-  onSmartContractFileChange(files) {
-    this.smartContractFile = files[0];
-    this.smartContractHash = undefined;
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.smartContractForm.patchValue({
+        file: reader.result
+      });
+      this.changeDetectorRef.markForCheck();
+    };
+    reader.readAsText(event.target.files[0]);
   }
 
   onSubmitData() {
-    console.log(this.dataText);
+    console.log(this.dataForm.value.text);
     this.dataHash = generateRandomHash();
   }
 
   onSubmitSmartContract() {
-    const reader = new FileReader();
-    reader.onload = function() {
-      console.log(reader.result);
-    };
-    reader.readAsText(this.smartContractFile);
+    console.log(this.smartContractForm.value.file);
     this.smartContractHash = generateRandomHash();
   }
 
