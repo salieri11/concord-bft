@@ -10,6 +10,21 @@ Helen is Athena's interface to launch requests. This repository will be the home
 
 [Athena](https://github.com/vmwathena/athena)
 
+### macOS Setup
+
+Install Java from the link above in the prerequisites, but maven can be installed via brew.
+
+```
+brew install boost aclocal protobuf@2.5 automake autoconf maven
+```
+
+Boost and protobuf won't be automatically linked
+
+```
+export DYLD_LIBRARY_PATH=/usr/local/Cellar/boost/1.66.0/lib:$DYLD_LIBRARY_PATH
+export DYLD_LIBRARY_PATH=/usr/local/Cellar/protobuf@2.5/2.5.0/lib:$DYLD_LIBRARY_PATH
+```
+
 ### Buiding and running the UI
 
 You will need Node installed to build the UI. The project targets the current LTS version of Node (8.9.x). You can install Node directly, or by using NVM.
