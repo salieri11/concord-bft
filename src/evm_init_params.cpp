@@ -49,6 +49,7 @@ com::vmware::athena::EVMInitParams::EVMInitParams(std::string genesis_file_path)
             throw EVMInitParamException("Invalid 'alloc' section in genesis file");
          }
          initial_accounts[address] = balance;
+         LOG4CPLUS_TRACE(logger, "New initial account added with balance: " << balance);
       }
    }
    LOG4CPLUS_INFO(logger, initial_accounts.size() << " initial accounts added.");
