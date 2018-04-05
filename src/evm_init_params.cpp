@@ -29,9 +29,25 @@ com::vmware::athena::EVMInitParams::EVMInitParams(std::string genesis_file_path)
            it != alloc.end(); it++) {
          std::vector<uint8_t> address = dehex(it.key());
          std::string balance_str = it.value()["balance"];
-         // The second to stoull is not used (hence nullptr)
+         // The second argument to stoull is not used (hence nullptr)
          // '0' for third parameter suggests that interpret base from string
-         uint64_t balance = std::stoull(balance_str, nullptr, 0);
+
+         // Note: std::stoull tries to interpret base from string. However, if string is a vaild
+         // number (within uint64_t range) but starts with '0' (it means its a octal number)
+         // and has digit '9' then std::stoull won't throw any error instead it will return 0 as
+         // balance value.
+         uint64_t balance = 0;
+         try {
+            balance = std::stoull(balance_str, nullptr, 0);
+         } catch (std::invalid_argument &ex) {
+            LOG4CPLUS_ERROR(logger, "Invalid format for account balance value: "
+                            << ex.what());
+            throw EVMInitParamException("Invalid 'alloc' section in genesis file");
+         } catch (std::out_of_range &ex) {
+            LOG4CPLUS_ERROR(logger, "Account balance value out of range (should fit in uint64_t): "
+                            << ex.what());
+            throw EVMInitParamException("Invalid 'alloc' section in genesis file");
+         }
          initial_accounts[address] = balance;
       }
    }
