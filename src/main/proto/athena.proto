@@ -6,10 +6,12 @@ package com.vmware.athena;
 message AthenaRequest {
 	optional ProtocolRequest protocol_request = 1;
 	optional PeerRequest peer_request = 2;
+
+	//TODO discuss and convert from repeated to optional
 	repeated EthRequest eth_request = 3;
 	optional BlocksListRequest blocks_list_request = 4;
 	optional BlockNumberRequest block_number_request = 5;
-	optional EthRPCExecuteRequest eth_rpc_execute_request = 6;
+	//optional EthRPCExecuteRequest eth_rpc_execute_request = 6;
 	optional TransactionRequest transaction_request = 7;
 
 	// 4-2045 open for definition
@@ -32,6 +34,8 @@ message EthRequest {
 	enum EthMethod {
 		SEND_TX = 1;
 		SEND_TX_RAW = 2;
+		GET_TX_RECEIPT = 3;
+		GET_STORAGE_AT = 4;
 	}
 
 	optional EthMethod method = 1;
@@ -40,17 +44,15 @@ message EthRequest {
 	optional bytes addr_from = 4;
 	optional bytes value = 5;
 	optional bytes data = 6;
-	optional bool create = 7;
 }
 
 //enforce "required" in code as per Google recommendations
-message EthRPCExecuteRequest {
-	optional int64 id = 1; //required
-	optional string jsonrpc = 2; //required
-	optional string method = 3; //required
-	repeated bytes params = 4; //required
-}
-
+//message EthRPCExecuteRequest {
+//optional int64 id = 1; //required
+//	optional string jsonrpc = 2; //required
+//	optional string method = 3; //required
+//	repeated bytes params = 4; //required
+//}
 message BlocksListRequest {
 	optional int64 latest = 1;
 	optional int64 count = 2;
@@ -74,7 +76,7 @@ message AthenaResponse {
 	repeated EthResponse eth_response = 3;
 	optional BlocksListResponse blocks_list_response = 4;
 	optional BlockNumberResponse block_number_response = 5;
-	optional EthRPCExecuteResponse eth_rpc_execute_response = 6;
+	//optional EthRPCExecuteResponse eth_rpc_execute_response = 6;
 	optional TransactionResponse transaction_response = 7;
 
 	// 4-2045 open for definition
@@ -90,10 +92,6 @@ message PeerResponse {
 	repeated Peer peer = 1;
 }
 
-message EthResponse {
-	optional int64 id = 1;
-}
-
 message BlocksListResponse {
 	repeated BlockBrief blocks = 1;
 }
@@ -103,11 +101,18 @@ message BlockNumberResponse {
 }
 
 //enforce "required" in code as per Google recommendations
-message EthRPCExecuteResponse {
-	optional int64 id = 1; //required
-	optional string jsonrpc = 2; //required
-	optional bytes result = 3;
-	optional string error = 4;
+//message EthRPCExecuteResponse {
+//	optional int64 id = 1; //required
+//	optional string jsonrpc = 2; //required
+//	optional bytes result = 3;
+//	optional string error = 4;
+//}
+
+message EthResponse {
+	optional int64 id = 1;
+	optional bytes data = 2;
+	optional bytes contract_address = 3;
+	optional int32 status = 4;
 }
 
 message TransactionResponse {
