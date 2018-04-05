@@ -9,5 +9,9 @@
     "pathRewrite": {
       "^/assets/static": "/static"
     }
-  }
+  },
+  "/swagger": {
+    "target": "http://localhost:32773",
+    "secure": false
+  },
 }
