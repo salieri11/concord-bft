@@ -86,7 +86,12 @@ RUN apt-get update && apt-get -y install \
 COPY --from=1 /usr/local/lib/libcryptopp* /usr/local/lib/
 COPY --from=1 /helen/_build/prod/rel/helen /helen
 
+# prepare for docker-compose, where athena is available from a virtual
+# host named "athena"
+RUN sed -i -e "s/localhost/athena/g" /helen/releases/0.1.0/sys.config
+
 CMD export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
-    /helen/bin/helen console
+    /helen/bin/helen start && \
+    while true; do /helen/bin/helen ping; sleep 60; done
 
 EXPOSE 8080
