@@ -17,6 +17,7 @@ import time
 from . import test_suite
 from rpc.rpc_call import RPC
 from util.debug import pp as pp
+from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
 from util.product import Product
 import util.json_helper
 
@@ -295,48 +296,174 @@ class CoreVMTests(test_suite.TestSuite):
 
    def _runRpcTest(self, testPath, testSource, testCompiled, testLogDir):
       ''' Runs one test. '''
+
       success = None
       info = None
       testName = list(testSource.keys())[0]
-      data = testCompiled[testName]["exec"]["code"]
+      testExecutionCode = testCompiled[testName]["exec"]["code"]
+      expectTxSuccess = self._getExpectTxSuccess(testCompiled)
+      user = self._getAUser()
+      expectedStorage = self._getExpectedStorageResults(testSource, testCompiled)
+      rpc = RPC(testLogDir,
+                testName,
+                self._apiServerUrl)
 
       # Gas levels provided in test cases may not be enough.  Just set it high.
       # Maye this should be a config file setting, since it depends on how the
       # user set up their Ethereum instance.
       # Note that VMware will not use gas.
       gas = "0x47e7c4" if self._ethereumMode else None
-      user = self._getAUser()
-      expectedStorage = self._getExpectedStorageResults(testSource,
-                                                        testCompiled)
-      rpc = RPC(testLogDir,
-                testName,
-                self._apiServerUrl)
 
-      # Don't know if we'll have a personal_* interface in the product, but
-      # we can at least handle Ethereum for now.
+      # Hmm...a lot of tests have "0x" as the data, which is nothing. I was
+      # thinking about only using the data field if it had more than "0x",
+      # but at least for now am playing it safe.  Even if it contains "0x",
+      # we will make a second call passing in that string as data.
+      testData = None
+      if "data" in testCompiled[testName]["exec"]:
+         testData = testCompiled[testName]["exec"]["data"]
+
+      if testData:
+         testExecutionCode = self._addCodePrefix(testExecutionCode)
+
+      self._unlockUser(rpc, user)
+      log.info("Starting test '{}'".format(testName))
+
+      log.info("Creating contract for test {}".format(testName))
+      txReceipt = self._createContract(user, rpc, testExecutionCode, gas)
+
+      if txReceipt:
+         if testData:
+            # If the test has info in its "data" field, we need to now call
+            # the contract with that data.
+            contractAddress = txReceipt["contractAddress"]
+            log.info("Invoking contract for test {}".format(testName))
+            txReceipt = self._invokeContract(user, rpc, contractAddress,
+                                             testData, gas)
+
+         success, info = self._checkResult(rpc,
+                                           contractAddress,
+                                           txReceipt,
+                                           expectedStorage,
+                                           expectTxSuccess)
+      else:
+         info = "Did not receive a transaction receipt."
+
+      return (success, info)
+
+   def _addCodePrefix(self, code):
+      '''
+      When creating a contract with some code, that code will run the first time
+      only.  If we want to invoke code in a contract after running it, the code
+      needs to return the code to run.  For example, say we want to test code
+      which adds 5 to storage every time it is invoked:
+
+      PUSH1 00
+      SLOAD
+      PUSH1 05
+      ADD
+      PUSH1 00
+      SSTORE
+
+      600054600501600055
+
+      As-is, 5 will be put in storage on contract creation, and further
+      invocations of the contract will do nothing.  To invoke the code in
+      subsequent calls, add code to return that code in front:
+
+      Prefix                   Code we want to test
+      600980600c6000396000f300 600054600501600055
+
+      The prefix instructions are:
+      60: PUSH1 (Could be PUSH2, PUSH3, etc... depending on the next nunber.
+      09: Hex number of bytes of the code we want to test.
+      80: DUP1 because we're going to use the above number once for CODECOPY,
+          then again for RETURN.
+      60: PUSH
+      0c: Hex number of bytes offset where the code we want to test starts.
+          (In other words, the length of this prefix so that it is skipped.)
+      60: PUSH
+      00: Destination offset for the upcoming CODECOPY.  It's zero because we're
+          going to start writing at the beginning of memory.
+      39: CODECOPY (destOffset, offset, length).  These are three of the numbers
+          we put on the stack with the above code.
+      60: PUSH
+      00: Offset for the upcoming RETURN. (We want to return all of the code
+          copied to memory by the CODECOPY.)
+      f3: RETURN (offset, length).  The length param is the first PUSH.
+      00: STOP
+      '''
+      code = trimHexIndicator(code)
+
+      # Tests may have more than 0xff bytes (the byte1 test), so we may end
+      # up with three digits, like 0x9b0. We must have an even number of digits
+      # in the bytecode, so pad it if necessary.
+      numCodeBytes = int(len(code)/2)
+      numCodeBytesString = decToEvenHexNo0x(numCodeBytes)
+
+      # Make sure we use the right PUSHX instruction to add the code
+      # length to the stack.
+      # 96 = 0x60 = PUSH1 = uint8
+      # 97 = 0x61 = PUSH2 = uint16
+      # 98 - 0x62 = PUSH3 = uint24
+      # ...
+      codeLengthPush = 96
+
+      for i in range(1, 32):
+         maxBytesSupportedByThisPush = 2 ** (i*8) - 1
+         if numCodeBytes <= maxBytesSupportedByThisPush:
+            break
+         else:
+            codeLengthPush += 1
+
+      codeLengthPush = hex(codeLengthPush)
+      codeLengthPush = trimHexIndicator(codeLengthPush)
+
+      # Calculate the length of this prefix.  What makes it variable is the
+      # length of numCodeBytesString.  The prefix is 11 bytes without it.
+      prefixLength = 11 + int(len(numCodeBytesString)/2)
+      prefixLength = decToEvenHexNo0x(prefixLength)
+
+      prefix = "0x{}{}8060{}6000396000f300".format(codeLengthPush,
+                                                   numCodeBytesString,
+                                                   prefixLength)
+      return prefix + code
+
+   def _unlockUser(self, rpc, user):
+      '''
+      Don't know if we'll have a personal_* interface in the product, but
+      we can at least handle Ethereum for now.
+      '''
       if self._ethereumMode and not self._userUnlocked:
          log.debug("Unlocking account '{}'".format(user["hash"]))
          rpc.unlockAccount(user["hash"], user["password"])
          self._userUnlocked = True
 
-      log.info("Starting test '{}'".format(testName))
-      txHash = rpc.sendTransaction(user["hash"], data, gas)
+   def _createContract(self, user, rpc, testExecutionCode, gas):
+      '''
+      Create a contract and return a transaction receipt.
+      '''
+      txReceipt = None
+      txHash = rpc.sendTransaction(user["hash"], testExecutionCode, gas)
 
       if txHash:
-         txReceipt = rpc.getTransactionReceipt(txHash,
-                                               self._ethereumMode)
-         if txReceipt:
-            expectTxSuccess = self._getExpectTxSuccess(testCompiled)
-            success, info = self._checkResult(rpc,
-                                              txReceipt,
-                                              expectedStorage,
-                                              expectTxSuccess)
-         else:
-            info = "Did not receive a transaction receipt."
-      else:
-         info = "Did not receive a transaction hash."
+         txReceipt = rpc.getTransactionReceipt(txHash, self._ethereumMode)
 
-      return (success, info)
+      return txReceipt
+
+   def _invokeContract(self, user, rpc, contractAddress, testData, gas):
+      '''
+      Invoke the contract whose address is in txReceipt, passing in the
+      given testData as "data".
+      Returns the txReceipt of the call to the contract.
+      '''
+      txReceipt = None
+      txHash = rpc.sendTransaction(user["hash"], testData, gas,
+                                   contractAddress)
+
+      if txHash:
+         txReceipt = rpc.getTransactionReceipt(txHash, self._ethereumMode)
+
+      return txReceipt
 
    def _getExpectedStorageResults(self, testSource, testCompiled):
       '''
@@ -436,7 +563,12 @@ class CoreVMTests(test_suite.TestSuite):
 
       return storageSection
 
-   def _checkResult(self, rpc, txReceipt, expectedStorage, expectTxSuccess):
+   def _checkResult(self,
+                    rpc,
+                    contractAddress,
+                    txReceipt,
+                    expectedStorage,
+                    expectTxSuccess):
       '''
       Loops through the expected storage structure in the test case, comparing
       those values to the actual stored values in the block.
@@ -455,7 +587,6 @@ class CoreVMTests(test_suite.TestSuite):
          else:
             if expectedStorage:
                keys = sorted(expectedStorage)
-               contractAddress = txReceipt["contractAddress"]
 
                for storageLoc in keys:
                   actualRawValue = rpc.getStorageAt(contractAddress, storageLoc)
