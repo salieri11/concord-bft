@@ -8,8 +8,11 @@
 #include <map>
 #include <vector>
 #include <log4cplus/loggingmacros.h>
+#include "common/utils.hpp"
 #include "evm.h"
 #include "athena_types.hpp"
+#include "evm_init_params.hpp"
+
 
 namespace com {
 namespace vmware {
@@ -101,7 +104,7 @@ const static struct evm_context_fn_table athena_fn_table = {
 
 class EVM {
 public:
-   EVM();
+   explicit EVM(EVMInitParams params);
    ~EVM();
 
    /* Athena API */
@@ -143,6 +146,12 @@ private:
    athena_context athctx;
    evm_instance *evminst;
    log4cplus::Logger logger;
+
+   // chain to which we are connected
+   uint64_t chainId;
+
+   // map from account address to account balance
+   std::map<std::vector<uint8_t>, uint64_t> balances;
 
    // map from contract address to a pair of (contract code, code hash)
    std::map<std::vector<uint8_t>,
