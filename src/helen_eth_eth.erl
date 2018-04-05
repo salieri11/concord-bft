@@ -119,15 +119,22 @@ getTransactionReceipt_athena(TxHash) ->
                                   [EthResponse]),
             case EthResponse of
                 #ethresponse{status=Status,
-                             contract_address=Address} ->
+                             contract_address=RawAddress} ->
+                    case RawAddress of
+                        undefined ->
+                            %% Ethereum always includes the
+                            %% contractAddress field, whether there's
+                            %% something interesting there or not
+                            Address = null;
+                        _ ->
+                            Address = helen_eth:hex0x(RawAddress)
+                    end,
                     {ok, {struct, [{<<"status">>,
                                     iolist_to_binary(
                                       ["0x",integer_to_list(Status, 16)])},
                                    {<<"transactionHash">>,
-                                    helen_eth:hex0x(TxHash)}
-                                   |[{<<"contractAddress">>,
-                                      helen_eth:hex0x(Address)}
-                                     || Address /= undefined]]}};
+                                    helen_eth:hex0x(TxHash)},
+                                   {<<"contractAddress">>, Address}]}};
                 _ ->
                     {error, <<"bad response from athena">>}
             end;
