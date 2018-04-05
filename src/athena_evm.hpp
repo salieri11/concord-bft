@@ -104,8 +104,7 @@ const static struct evm_context_fn_table athena_fn_table = {
 
 class EVM {
 public:
-   EVM();
-   EVM(EVMInitParams params);
+   explicit EVM(EVMInitParams params);
    ~EVM();
 
    /* Athena API */
