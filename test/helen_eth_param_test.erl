@@ -39,11 +39,11 @@ common_0x_expect() ->
      {<<"not0x">>, error}].
 
 optional_0x_test_() ->
-    common_test_list(fun helen_eth_param:optional_0x/2,
+    common_test_list(fun(A,B) -> helen_eth_param:optional_0x(A,B,bytes) end,
                      [{<<"undefined">>, ok} | common_0x_expect()]).
 
 required_0x_test_() ->
-    common_test_list(fun helen_eth_param:required_0x/2,
+    common_test_list(fun(A,B) -> helen_eth_param:required_0x(A,B,bytes) end,
                      [{<<"undefined">>, error} | common_0x_expect()]).
 
 %% Only valid 0x-encoded addresses.
@@ -68,6 +68,6 @@ optional_integer_test_() ->
                      [{<<"valid_address">>, ok},
                       {<<"short0x">>, ok},
                       {<<"full_integer">>, ok},
-                      {<<"long0x">>, error},
+                      {<<"long0x">>, ok},
                       {<<"not0x">>, error},
                       {<<"undefined">>, ok}]).

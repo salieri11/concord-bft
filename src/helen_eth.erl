@@ -5,13 +5,14 @@
 -module(helen_eth).
 
 -export([
-         dehex/1,
+         dehex_bytes/1,
+         dehex_quantity/1,
          hex0x/1
         ]).
 
 %% Convert a "0x<data>" string to its binary value.
--spec dehex(binary()) -> {ok, iodata()} | {error, iodata()}.
-dehex(<<$0:8, $x:8, String/binary>>) ->
+-spec dehex_bytes(binary()) -> {ok, iodata()} | {error, iodata()}.
+dehex_bytes(<<$0:8, $x:8, String/binary>>) ->
     case size(String) rem 2 of
         0 ->
             case catch << <<((binval(A) bsl 4) bor binval(B)):8>>
@@ -24,8 +25,22 @@ dehex(<<$0:8, $x:8, String/binary>>) ->
         1 ->
             {error, <<"ERROR: invalid data length (odd nibble count)">>}
     end;
-dehex(_) ->
-    {error, <<"ERROR: invalid data format (missing \"0x\"">>}.
+dehex_bytes(_) ->
+    {error, <<"ERROR: invalid data format (missing \"0x\")">>}.
+
+%% Convert a "0x<data>" string to its numeric value.
+-spec dehex_quantity(binary()) -> {ok, integer()} | {error, iodata()}.
+dehex_quantity(<<$0:8, $x:8>>) ->
+    {ok, 0};
+dehex_quantity(<<$0:8, $x:8, String/binary>>) ->
+    case catch list_to_integer(binary_to_list(String), 16) of
+        {'EXIT', _} ->
+            {error, <<"ERROR: invalid character in data">>};
+        Number ->
+            {ok, Number}
+    end;
+dehex_quantity(_) ->
+    {error, <<"ERROR: invalid data format (missing \"0x\")">>}.
 
 %% Convert a hex digit to its integer value
 -spec binval(byte()) -> integer().

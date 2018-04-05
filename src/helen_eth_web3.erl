@@ -25,7 +25,7 @@ clientVersion(_Request) ->
 
 -spec sha3(#eth_request{}) -> {ok|error, mochijson2:json_term()}.
 sha3(#eth_request{params=[String0x]}) ->
-    case helen_eth:dehex(String0x) of
+    case helen_eth:dehex_bytes(String0x) of
         {ok, Bin} ->
             case catch keccak_digest(Bin) of
                 {ok, Digest} ->
@@ -56,7 +56,7 @@ keccak_digest(_Bin) ->
             %% appease dialyzer: produce {ok, binary()}
             %% this will never be called, but produces an easily
             %% recognizable value just in case
-            helen_eth:dehex(<<"0xdeadbeefdeadbeefdeadbeefdeadbeef">>);
+            helen_eth:dehex_bytes(<<"0xdeadbeefdeadbeefdeadbeefdeadbeef">>);
         _ ->
             {error, <<"ERROR: web3 nif not loaded">>}
     end.
