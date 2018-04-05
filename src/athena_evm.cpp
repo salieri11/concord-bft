@@ -8,6 +8,7 @@
 #include <log4cplus/loggingmacros.h>
 #include <keccak.h>
 
+
 #include "athena_evm.hpp"
 #include "athena_log.hpp"
 #include "athena_types.hpp"
@@ -24,9 +25,10 @@ using log4cplus::Logger;
 /**
  * Initialize the athena/evm context and start the evm instance.
  */
-com::vmware::athena::EVM::EVM()
-   : logger(Logger::getInstance("com.vmware.athena.evm"))
-{
+com::vmware::athena::EVM::EVM(EVMInitParams params)
+   : logger(Logger::getInstance("com.vmware.athena.evm")),
+     balances(params.get_initial_accounts()),
+     chainId(params.get_chainID()) {
    // wrap an evm context in an athena context
    athctx = {{&athena_fn_table}, this};
 
@@ -63,6 +65,12 @@ void com::vmware::athena::EVM::call(evm_message &message,
 
    std::vector<uint8_t> code;
    std::vector<uint8_t> hash;
+   std::vector<uint8_t> to(message.destination.bytes,
+                           message.destination.bytes+sizeof(evm_address));
+   std::vector<uint8_t> from(message.sender.bytes,
+                             message.sender.bytes+sizeof(evm_address));
+   // use empty vector when no contract is created
+   std::vector<uint8_t> created_contract_address;
    if (get_code(&message.destination, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Loaded code from " <<
                       HexPrintAddress{&message.destination});
@@ -70,16 +78,29 @@ void com::vmware::athena::EVM::call(evm_message &message,
 
       execute(message, code, result);
 
-      // no contract was created here
-      std::vector<uint8_t> created_contract_address;
-      std::vector<uint8_t> to(message.destination.bytes,
-                              message.destination.bytes+sizeof(evm_address));
       record_transaction(message, result, to, created_contract_address, txhash);
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " <<
-                      HexPrintAddress{&message.destination} <<
-                      ", TODO: transfer value");
-      // TODO: this is just a balance transfer
+                      HexPrintAddress{&message.destination});
+
+      uint64_t transfer_val = from_evm_uint256be(&message.value);
+      // All addresses exist by default. They are considered as accounts with
+      // 0 balances. Hence, we never throw an accont not found error. Instead
+      // we will simply say that account does not have sufficient balance.
+      if (balances.count(from) == 0 || balances[from] < transfer_val) {
+         result.status_code = EVM_FAILURE;
+         LOG4CPLUS_INFO(logger, "Account with address " <<
+                         HexPrintAddress{&message.sender} <<
+                        ", does not have sufficient funds (" << balances[from] << ").");
+      } else {
+         balances[to] += transfer_val;
+         balances[from] -= transfer_val;
+         result.status_code = EVM_SUCCESS;
+         record_transaction(message, result, to, created_contract_address, txhash);
+         LOG4CPLUS_DEBUG(logger, "Transferred  " << transfer_val <<
+                         " units to: " << HexPrintAddress{&message.destination} <<
+                         " from: " << HexPrintAddress{&message.sender});
+      }
    } else {
       LOG4CPLUS_DEBUG(logger, "Input data, but no code at " <<
                       HexPrintAddress{&message.destination} <<
@@ -482,9 +503,12 @@ void com::vmware::athena::EVM::get_balance(
    LOG4CPLUS_INFO(logger, "EVM::get_balance called, address: " <<
                   HexPrintAddress{address});
 
-   // TODO: actually look up value, for now just fill with one (to give accounts
-   // plenty of gas to maneuver).
-   memset(result, 1, sizeof(*result));
+   std::vector<uint8_t> account(address->bytes, address->bytes+sizeof(evm_address));
+   if (balances.count(account))
+      to_evm_uint256be(balances[account], result);
+   else {
+      to_evm_uint256be(0, result);
+   }
 }
 
 /**

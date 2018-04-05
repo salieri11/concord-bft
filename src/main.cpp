@@ -7,10 +7,11 @@
 #include <boost/program_options.hpp>
 #include <log4cplus/loggingmacros.h>
 #include <log4cplus/configurator.h>
-
+#include "common/utils.hpp"
 #include "api_acceptor.hpp"
 #include "athena_evm.hpp"
 #include "configuration_manager.hpp"
+#include "evm_init_params.hpp"
 
 using namespace boost::program_options;
 using boost::asio::ip::tcp;
@@ -39,20 +40,47 @@ void signalHandler(int signum) {
 /*
  * Start the service that listens for connections from Helen.
  */
-void
-run_service(EVM &athevm, variables_map &opts, Logger logger)
+int
+run_service(variables_map &opts, Logger logger)
 {
-   std::string ip = opts["ip"].as<std::string>();
-   short port = opts["port"].as<short>();
+   EVMInitParams params;
 
-   api_service = new io_service();
-   tcp::endpoint endpoint(address::from_string(ip), port);
-   api_acceptor acceptor(*api_service, endpoint, athevm);
+   try {
+      // If genesis block option was provided then read that so
+      // it can be passed during EVM creation
+      if (opts.count("genesis_block")) {
+         string genesis_file_path = opts["genesis_block"].as<std::string>();
+         LOG4CPLUS_INFO(logger, "Reading genesis block from " <<
+                        genesis_file_path);
+         params = EVMInitParams(genesis_file_path);
+      } else {
+         LOG4CPLUS_WARN(logger, "No genesis block provided");
+      }
 
-   signal(SIGINT, signalHandler);
+      // throws an exception if it fails
+      EVM athevm(params);
 
-   LOG4CPLUS_INFO(logger, "Listening on " << endpoint);
-   api_service->run();
+      std::string ip = opts["ip"].as<std::string>();
+      short port = opts["port"].as<short>();
+
+      api_service = new io_service();
+      tcp::endpoint endpoint(address::from_string(ip), port);
+      api_acceptor acceptor(*api_service, endpoint, athevm);
+
+      signal(SIGINT, signalHandler);
+
+      LOG4CPLUS_INFO(logger, "Listening on " << endpoint);
+      api_service->run();
+
+   } catch (EVMInitParamException &ex) {
+      LOG4CPLUS_FATAL(logger, ex.what());
+      return -1;
+   } catch (EVMException &ex) {
+      LOG4CPLUS_FATAL(logger, ex.what());
+      return -1;
+   }
+
+   return 0;
 }
 
 int
@@ -83,23 +111,13 @@ main(int argc, char** argv)
       Logger mainLogger = Logger::getInstance("com.vmware.athena.main");
       LOG4CPLUS_INFO(mainLogger, "VMware Project Athena starting");
 
-      // throws an exception if it fails
-      EVM athevm;
 
       // actually run the service - when this call returns, the
       // service has shutdown
-      run_service(athevm, opts, mainLogger);
+      result = run_service(opts, mainLogger);
 
       LOG4CPLUS_INFO(mainLogger, "VMware Project Athena halting");
    } catch (const error &ex) {
-      if (loggerInitialized) {
-         Logger mainLogger = Logger::getInstance("com.vmware.athena.main");
-         LOG4CPLUS_FATAL(mainLogger, ex.what());
-      } else {
-         std::cerr << ex.what() << std::endl;
-      }
-      result = -1;
-   } catch (EVMException &ex) {
       if (loggerInitialized) {
          Logger mainLogger = Logger::getInstance("com.vmware.athena.main");
          LOG4CPLUS_FATAL(mainLogger, ex.what());
