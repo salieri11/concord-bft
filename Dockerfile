@@ -14,6 +14,12 @@ RUN apt-get update && apt-get -y install \
     wget \
     && rm -rf /var/lib/apt/lists/*
 
+WORKDIR /
+RUN git clone https://github.com/google/googletest.git
+WORKDIR /googletest/_build
+RUN cmake .. && make
+
+WORKDIR /
 RUN git clone https://github.com/weidai11/cryptopp.git
 WORKDIR /cryptopp/build
 RUN git checkout CRYPTOPP_5_6_5
@@ -30,7 +36,7 @@ WORKDIR /
 RUN git clone https://github.com/log4cplus/log4cplus.git
 WORKDIR /log4cplus
 RUN git checkout REL_1_2_1
-RUN ./configure && make && make install
+RUN ./configure CXXFLAGS="--std=c++11" && make && make install
 
 WORKDIR /
 RUN git clone https://github.com/ethereum/evmjit.git
