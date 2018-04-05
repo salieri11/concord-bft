@@ -25,9 +25,10 @@ using log4cplus::Logger;
 /**
  * Initialize the athena/evm context and start the evm instance.
  */
-com::vmware::athena::EVM::EVM()
-   : logger(Logger::getInstance("com.vmware.athena.evm"))
-{
+com::vmware::athena::EVM::EVM(EVMInitParams params)
+   : logger(Logger::getInstance("com.vmware.athena.evm")),
+     balances(params.get_initial_accounts()),
+     chainId(params.get_chainID()) {
    // wrap an evm context in an athena context
    athctx = {{&athena_fn_table}, this};
 
@@ -42,11 +43,6 @@ com::vmware::athena::EVM::EVM()
       throw EVMException("Could not create EVM instance");
    }
    LOG4CPLUS_INFO(logger, "EVM started");
-}
-
-com::vmware::athena::EVM::EVM(EVMInitParams params) : EVM() {
-   balances = params.get_initial_accounts();
-   chainId = params.get_chainID();
 }
 
 /**
