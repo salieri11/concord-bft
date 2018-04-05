@@ -159,6 +159,13 @@ public final class EthRPC extends BaseServlet {
             ByteString fromAddr = APIHelper
                      .hexStringToBinary((String) obj.get("from"));
             b.setAddrFrom(fromAddr);
+
+            if (obj.containsKey("to")) {
+               ByteString toAddr = APIHelper
+                        .hexStringToBinary((String) obj.get("to"));
+               b.setAddrTo(toAddr);
+            }
+
             ByteString data = APIHelper
                      .hexStringToBinary((String) obj.get("data"));
             b.setData(data);
