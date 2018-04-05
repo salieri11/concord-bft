@@ -72,6 +72,9 @@ COPY --from=0 /athena/build/resources/* /athena/resources/
 COPY --from=0 /athena/build/src/athena /athena/athena
 COPY --from=0 /athena/build/tools/ath_* /athena/
 
+COPY --from=0 /athena/test/resources/genesis.json /athena/resources/
+RUN sed -i -e "s/tmp/athena\/resources/g" /athena/resources/athena.config
+
 WORKDIR /athena
 CMD export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
     /athena/athena
