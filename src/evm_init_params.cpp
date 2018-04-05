@@ -5,8 +5,6 @@ using namespace com::vmware::athena;
 using log4cplus::Logger;
 using json = nlohmann::json;
 
-const std::string EMPTY_JSON = "{}";
-
 com::vmware::athena::EVMInitParams::EVMInitParams()
    : logger(Logger::getInstance("com.vmware.athena.evm_init_params")) {}
 
@@ -42,13 +40,14 @@ com::vmware::athena::EVMInitParams::EVMInitParams(std::string genesis_file_path)
  */
 json com::vmware::athena::EVMInitParams::parse_genesis_block(std::string genesis_file_path) {
    std::ifstream genesis_stream(genesis_file_path);
+   json genesis_block;
    if (genesis_stream.good()) {
-      json genesis_block;
       genesis_stream >> genesis_block;
-      return genesis_block;
+   } else {
+      LOG4CPLUS_ERROR(logger, "Error reading genesis file at " + genesis_file_path + " Exiting.");
+      throw EVMInitParamException("Unable to read genesis file at: " + genesis_file_path);
    }
-   LOG4CPLUS_WARN(logger, "Error reading genesis file. Defaulting to empty genesis block.");
-   return EMPTY_JSON;
+   return genesis_block;
 }
 
 

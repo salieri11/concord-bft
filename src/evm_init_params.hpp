@@ -17,10 +17,24 @@ namespace com {
 namespace vmware {
 namespace athena {
 
+class EVMInitParamException: public std::exception {
+public:
+   explicit EVMInitParamException(const std::string &what): msg(what) {};
+
+   virtual const char* what() const noexcept override
+   {
+      return msg.c_str();
+   }
+
+private:
+   std::string msg;
+};
+
+
 class EVMInitParams {
 public:
    EVMInitParams();
-   EVMInitParams(std::string genesis_file_path);
+   explicit EVMInitParams(std::string genesis_file_path);
    nlohmann::json parse_genesis_block(std::string genesis_file_path);
    std::map<std::vector<uint8_t>, uint64_t> get_initial_accounts();
    uint64_t get_chainID();

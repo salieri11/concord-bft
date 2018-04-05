@@ -72,6 +72,9 @@ run_service(variables_map &opts, Logger logger)
       LOG4CPLUS_INFO(logger, "Listening on " << endpoint);
       api_service->run();
 
+   } catch (EVMInitParamException &ex) {
+      LOG4CPLUS_FATAL(logger, ex.what());
+      return -1;
    } catch (EVMException &ex) {
       LOG4CPLUS_FATAL(logger, ex.what());
       return -1;
