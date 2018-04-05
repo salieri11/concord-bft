@@ -503,8 +503,6 @@ void com::vmware::athena::EVM::get_balance(
    LOG4CPLUS_INFO(logger, "EVM::get_balance called, address: " <<
                   HexPrintAddress{address});
 
-   // TODO: actually look up value, for now just fill with one (to give accounts
-   // plenty of gas to maneuver).
    std::vector<uint8_t> account(address->bytes, address->bytes+sizeof(evm_address));
    if (balances.count(account))
       to_evm_uint256be(balances[account], result);

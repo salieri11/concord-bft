@@ -1,3 +1,7 @@
+// Copyright 2018 VMware, all rights reserved
+//
+// Athena Ethereum VM management.
+
 #include<iostream>
 #include "evm_init_params.hpp"
 
