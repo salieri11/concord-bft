@@ -120,12 +120,22 @@ class Request():
 
       return self._send()
 
-   def getBlocks(self, nextUrl=None):
+   def getBlockList(self, nextUrl=None):
       '''
       Get the list of blocks
       '''
       self._subPath = nextUrl or "/api/athena/blocks"
       self._params = ""
       self._endpointName = "blocklist"
+
+      return self._send()
+
+   def getBlock(self, url):
+      '''
+      Get a specific block
+      '''
+      self._subPath = url
+      self._params = ""
+      self._endpointName = "block"
 
       return self._send()

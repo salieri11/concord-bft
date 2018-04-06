@@ -160,7 +160,8 @@ class HelenAPITests(test_suite.TestSuite):
    def _getTests(self):
       return [("getMembers", self._test_getMembers), \
               ("swaggerDef", self._test_getSwaggerDef), \
-              ("blockList", self._test_getBlocks)]
+              ("blockList", self._test_getBlockList), \
+              ("block", self._test_getBlocks)]
 
    # Tests: expect one argument, a Request, and produce a 2-tuple
    # (bool success, string info)
@@ -207,8 +208,8 @@ class HelenAPITests(test_suite.TestSuite):
       # pretty good indicator that we found what we're looking for
       return (True, None)
 
-   def _test_getBlocks(self, request, latestBlock=None, nextUrl=None):
-      result = request.getBlocks(nextUrl)
+   def _test_getBlockList(self, request, latestBlock=None, nextUrl=None):
+      result = request.getBlockList(nextUrl)
 
       # How stable is comparing to OrderedDict?
       if not type(result) is collections.OrderedDict:
@@ -244,9 +245,40 @@ class HelenAPITests(test_suite.TestSuite):
       # only follow one 'next' link per test
       if (not nextUrl):
          if "next" in result:
-            return self._test_getBlocks(request, earliestFound, result['next'])
+            return self._test_getBlockList(request, earliestFound,
+                                           result['next'])
+         elif not earliestFound == 1:
+            return (False, "No 'next' URL, but not yet at block 1")
          else:
             log.warn("Not enough blocks to test 'next' link")
             return (True, "Warning: Not enough blocks to test 'next' link")
       else:
          return (True, None)
+
+   def _test_getBlocks(self, request):
+      result = request.getBlockList()
+
+      # validation of the structure of the blocklist response is done
+      # in _test_getBlockList
+
+      # get each block and find out if it's valid
+      for b in result["blocks"]:
+         blockResult = request.getBlock(b["url"])
+         if not "number" in blockResult:
+            return (False, "No 'number' field in block response.")
+         if not b["number"] == blockResult["number"]:
+            return (False, "Block number does not match request.")
+         if not "hash" in blockResult:
+            return (False, "No 'hash' field in block response.")
+         if not "parentHash" in blockResult:
+            return (False, "No 'parentHash' field in block response.")
+         if not "nonce" in blockResult:
+            return (False, "No 'nonce' field in block response.")
+         if not "size" in blockResult:
+            return (False, "No 'size' field in block response.")
+         if not "transactions" in blockResult:
+            return (False, "No 'transactions' field in block response.")
+         if not type(blockResult["transactions"]) is list:
+            return (False, "'transactions' field is not a list.")
+
+      return (True, None)
