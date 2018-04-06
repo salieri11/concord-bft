@@ -9,7 +9,7 @@ import { TransactionFiltersModalComponent } from '../transaction-filters-modal/t
 @Component({
   selector: 'app-node-detail-container',
   templateUrl: './node-detail-container.component.html',
-  styleUrls: ['./node-detail-container.component.css']
+  styleUrls: ['./node-detail-container.component.scss']
 })
 export class NodeDetailContainerComponent implements OnInit {
   @ViewChild('filterModal') filterModal: TransactionFiltersModalComponent;
