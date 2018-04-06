@@ -5,6 +5,6 @@ services:
     expose:
       - 5458
   helen:
-    image: beerriot/p2bc:helen20180404
+    image: beerriot/p2bc:helen20180405
     ports:
       - 8080
