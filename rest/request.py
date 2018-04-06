@@ -139,3 +139,13 @@ class Request():
       self._endpointName = "block"
 
       return self._send()
+
+   def getTransaction(self, txhash):
+      '''
+      Get a specific transaction
+      '''
+      self._subPath = '/api/athena/transactions/'+txhash
+      self._params = ""
+      self._endpointName = "transaction"
+
+      return self._send()

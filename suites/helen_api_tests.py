@@ -161,7 +161,8 @@ class HelenAPITests(test_suite.TestSuite):
       return [("getMembers", self._test_getMembers), \
               ("swaggerDef", self._test_getSwaggerDef), \
               ("blockList", self._test_getBlockList), \
-              ("block", self._test_getBlocks)]
+              ("block", self._test_getBlocks), \
+              ("transaction", self._test_getTransactions)]
 
    # Tests: expect one argument, a Request, and produce a 2-tuple
    # (bool success, string info)
@@ -281,4 +282,30 @@ class HelenAPITests(test_suite.TestSuite):
          if not type(blockResult["transactions"]) is list:
             return (False, "'transactions' field is not a list.")
 
+      return (True, None)
+
+   def _test_getTransactions(self, request):
+      result = request.getBlockList()
+      blockResult = request.getBlock(result["blocks"][0]["url"])
+
+      # get all of the transactions in the most recent block
+      for t in blockResult["transactions"]:
+         txResult = request.getTransaction(t)
+
+         (present, missing) = self.requireFields(
+            txResult,
+            ["hash", "from", "to", "value", "input", "blockHash",
+             "blockNumber", "transactionIndex", "nonce"])
+         if not present:
+            return (False, "No '{}' field in tx response.".format(missing))
+
+         if not txResult["hash"] == t:
+            return (False, "'hash' field does not match requested hash.")
+
+      return (True, None)
+
+   def requireFields(self, ob, fieldList):
+      for f in fieldList:
+         if not f in fieldList:
+            return (False, f)
       return (True, None)
