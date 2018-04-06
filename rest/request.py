@@ -104,7 +104,7 @@ class Request():
       '''
       Get the list of nodes in the Athena cluster
       '''
-      self._subPath = "/athena/members"
+      self._subPath = "/api/athena/members"
       self._params = ""
       self._endpointName = "members"
 
@@ -114,8 +114,18 @@ class Request():
       '''
       Get the swagger definition
       '''
-      self._subPath = ""
+      self._subPath = "/api"
       self._params = ""
       self._endpointName = "swaggerdef"
+
+      return self._send()
+
+   def getBlocks(self, nextUrl=None):
+      '''
+      Get the list of blocks
+      '''
+      self._subPath = nextUrl or "/api/athena/blocks"
+      self._params = ""
+      self._endpointName = "blocklist"
 
       return self._send()

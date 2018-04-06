@@ -24,7 +24,7 @@ TEST_LOG_DIR = "test_logs"
 
 class HelenAPITests(test_suite.TestSuite):
    _args = None
-   _apiBaseServerUrl = "http://localhost:8080/api"
+   _apiBaseServerUrl = "http://localhost:8080"
    _userConfig = None
    _ethereumMode = False
    _productMode = True
@@ -53,7 +53,7 @@ class HelenAPITests(test_suite.TestSuite):
       ''' Runs all of the tests. '''
       if self._productMode:
          p = Product(self._args.resultsDir,
-                     self._apiBaseServerUrl+"/athena/eth",
+                     self._apiBaseServerUrl+"/api/athena/eth",
                      self._userConfig["product"])
          p.launchProduct()
          if not p.waitForProductStartup():
@@ -159,7 +159,8 @@ class HelenAPITests(test_suite.TestSuite):
 
    def _getTests(self):
       return [("getMembers", self._test_getMembers), \
-              ("swaggerDef", self._test_getSwaggerDef)]
+              ("swaggerDef", self._test_getSwaggerDef), \
+              ("blockList", self._test_getBlocks)]
 
    # Tests: expect one argument, a Request, and produce a 2-tuple
    # (bool success, string info)
@@ -205,3 +206,47 @@ class HelenAPITests(test_suite.TestSuite):
       # install, and compare the result to it, but the above is a
       # pretty good indicator that we found what we're looking for
       return (True, None)
+
+   def _test_getBlocks(self, request, latestBlock=None, nextUrl=None):
+      result = request.getBlocks(nextUrl)
+
+      # How stable is comparing to OrderedDict?
+      if not type(result) is collections.OrderedDict:
+         return (False, "Response was not an OrderedDict".format(
+            type(result).__name__))
+
+      if not "blocks" in result:
+         return (False, "No 'blocks' field in result")
+      if not type(result["blocks"]) is list:
+         return (False, "'blocks' field is not a list")
+
+      latestFound = None
+      earliestFound = None
+      for b in result["blocks"]:
+         if not "number" in b:
+            return (False, "No 'number' field in block")
+         latestFound = max(latestFound, b["number"]) \
+                       if latestFound else b["number"]
+         earliestFound = min(earliestFound, b["number"]) \
+                         if earliestFound else b["number"]
+         if not "hash" in b:
+            return (False, "No 'hash' field in block")
+         if not "url" in b:
+            return (False, "No 'url' field in block")
+         # checking validity of this url is done in _test_getBlock
+
+      if (latestFound-earliestFound) != len(result["blocks"])-1:
+         return (False, "Range of block IDs does not equal length of list")
+      if latestBlock and (not latestBlock-1 == latestFound):
+         return (False, "Latest block in response is not immediately prior"
+                 " to earliest block in previous response")
+
+      # only follow one 'next' link per test
+      if (not nextUrl):
+         if "next" in result:
+            return self._test_getBlocks(request, earliestFound, result['next'])
+         else:
+            log.warn("Not enough blocks to test 'next' link")
+            return (True, "Warning: Not enough blocks to test 'next' link")
+      else:
+         return (True, None)
