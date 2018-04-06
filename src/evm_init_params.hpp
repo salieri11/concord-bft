@@ -9,6 +9,7 @@
 #include <vector>
 #include <log4cplus/loggingmacros.h>
 #include <stdexcept>
+#include <cstdlib>
 #include "common/json.hpp"
 #include "common/utils.hpp"
 #include "evm.h"
