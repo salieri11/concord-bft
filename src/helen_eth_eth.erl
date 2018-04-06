@@ -15,7 +15,7 @@
 -include("athena_pb.hrl").
 
 -import(helen_eth_param, [
-                          optional_0x/2, required_0x/2,
+                          optional_0x/3, required_0x/3,
                           optional_address/2, required_address/2,
                           optional_integer/2
                          ]).
@@ -37,7 +37,7 @@ sendTransaction(#eth_request{params=[{struct, Params}]}) ->
     case [optional_address(<<"to">>, Params),
           required_address(<<"from">>, Params),
           optional_integer(<<"value">>, Params),
-          optional_0x(<<"data">>, Params)] of
+          optional_0x(<<"data">>, Params, bytes)] of
         [{ok, To}, {ok, From}, {ok, Value}, {ok, Data}] ->
 
             sendTransaction_athena(To, From, Value, Data);
@@ -51,7 +51,7 @@ sendTransaction(_)->
 -spec getTransactionReceipt(#eth_request{}) ->
          {ok|error, mochijson2:json_term()}.
 getTransactionReceipt(#eth_request{params=[Receipt]}) ->
-    case helen_eth:dehex(Receipt) of
+    case helen_eth:dehex_bytes(Receipt) of
         {ok, TxHash} ->
             getTransactionReceipt_athena(TxHash);
         _ ->
@@ -64,14 +64,10 @@ getTransactionReceipt(_) ->
 -spec getStorageAt(#eth_request{}) ->
          {ok|error, mochijson2:json_term()}.
 getStorageAt(#eth_request{params=[Contract, Location|_IgnoreBlock]}) ->
-    case {helen_eth:dehex(Contract), helen_eth:dehex(Location)} of
+    case {helen_eth:dehex_bytes(Contract),
+          helen_eth:dehex_quantity(Location)} of
         {{ok, Addr}, {ok, RawPos}} ->
-            case 32 - size(RawPos) of
-                Pad when Pad > 0 ->
-                    Pos = <<0:(8*Pad), RawPos/binary>>;
-                _ ->
-                    Pos = RawPos
-            end,
+            Pos = <<RawPos:32/big-unsigned-integer-unit:8>>,
             getStorageAt_athena(Addr, Pos);
         {{ok, _}, _} ->
             {error, <<"Invalid storage position">>};

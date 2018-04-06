@@ -13,7 +13,7 @@ empty_binary_test() ->
 
 %% "0x" encodes a zero-length piece of data
 empty_string0x_test() ->
-    ?assertEqual({ok, <<>>}, helen_eth:dehex(<<"0x">>)).
+    ?assertEqual({ok, <<>>}, helen_eth:dehex_bytes(<<"0x">>)).
 
 %% Run ten random dehex tests
 dehex_test_() ->
@@ -32,7 +32,7 @@ dehex_test_gen(Tests) ->
 dehex_test_iter(String0x) ->
     ?_assertEqual(String0x,
                   helen_eth:hex0x(
-                    element(2, {ok,_}=helen_eth:dehex(String0x)))).
+                    element(2, {ok,_}=helen_eth:dehex_bytes(String0x)))).
 
 %% Run ten random hex0x tests
 hex0x_test_() ->
@@ -49,14 +49,14 @@ hex0x_test_gen(Tests) ->
 %% binary, 0x-encoded it, then check that re-decoding it gives the
 %% original result.
 hex0x_test_iter(Binary) ->
-    ?_assertEqual({ok, Binary}, helen_eth:dehex(helen_eth:hex0x(Binary))).
+    ?_assertEqual({ok, Binary}, helen_eth:dehex_bytes(helen_eth:hex0x(Binary))).
 
 %% Check the invalid inputs produce errors, and not accidental 'ok's.
 dehex_invalid_test_() ->
     [
-     fun() -> {error, _} = helen_eth:dehex(<<"1234">>) end,  % no "0x"
-     fun() -> {error, _} = helen_eth:dehex(<<"0x123">>) end, % odd nibbles
-     fun() -> {error, _} = helen_eth:dehex(<<"0xgh">>) end   % non hex chars
+     fun() -> {error, _} = helen_eth:dehex_bytes(<<"1234">>) end,  % no "0x"
+     fun() -> {error, _} = helen_eth:dehex_bytes(<<"0x123">>) end, % odd nibbles
+     fun() -> {error, _} = helen_eth:dehex_bytes(<<"0xgh">>) end   % non hex chars
     ].
 
 %% Generate a random binary, up to 1024 bytes in length.
