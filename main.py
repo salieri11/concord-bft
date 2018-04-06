@@ -10,7 +10,7 @@ import os
 from tempfile import mkdtemp
 from time import strftime, localtime
 
-from suites import core_vm_tests
+from suites import core_vm_tests, helen_api_tests
 from util import html, json_helper
 
 log = None
@@ -73,6 +73,8 @@ def setUpLogging(args):
 def createTestSuite(args):
    if (args.suite == "CoreVMTests"):
       return core_vm_tests.CoreVMTests(args)
+   elif (args.suite == "HelenAPITests"):
+      return helen_api_tests.HelenAPITests(args)
 
 def createResultsDir(suiteName):
    prefix = suiteName + "_" + strftime("%Y%m%d_%H%M_", localtime())
