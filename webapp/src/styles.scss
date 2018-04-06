@@ -12,72 +12,68 @@
 }
 
 .bg-header {
-  background-color: #e4ecf0
+  background-color: $clr-action-blue-lightest;
 }
 
 .bg-dark {
   background-color: #001622;
+
+  .nav {
+    box-shadow: none;
+
+    .nav-link {
+      text-transform: uppercase;
+      color: $clr-action-blue-lightest;
+
+      &.active,
+      &:hover {
+        color: $clr-action-blue-light-midtone;
+      }
+    }
+  }
 }
 
-.bg-dark .nav {
-  box-shadow: none;
-}
+.progress {
+  &.warning {
+    > progress,
+    > progress::-webkit-progress-value,
+    > progress::-moz-progress-bar {
+      color: $clr-yellow;
+    }
+  }
 
-.bg-dark .nav .nav-link {
-  text-transform: uppercase;
-  color: #E4ECF0;
-}
-.bg-dark .nav .nav-link.active, .bg-dark .nav .nav-link:hover {
-  color: #009DDA;
-}
-
-.progress.warning > progress {
-  color: #C3CD23;
-}
-
-.progress.warning > progress::-webkit-progress-value {
-  background: #C3CD23;
-}
-
-.progress.warning > progress::-moz-progress-bar {
-  background: #C3CD23;
-}
-
-.progress.black > progress {
-  color: #000;
-}
-
-.progress.black > progress::-webkit-progress-value {
-  background: #000;
-}
-
-.progress.black > progress::-moz-progress-bar {
-  background: #000;
+  &.black {
+    > progress,
+    > progress::-webkit-progress-value,
+    > progress::-moz-progress-bar {
+      color: #000;
+    }
+  }
 }
 
 .progress-with-datapoint {
   position: relative;
-}
 
-.progress-with-datapoint .progress-data-point {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  background-color: white;
-  border: 7px solid;
-  top: -2px;
-  left: 20%;
-  border-radius: 24px;
-}
+  .progress-data-point {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: -2px;
+    left: 20%;
+    border: 7px solid;
+    border-radius: 24px;
+    background-color: #fff;
 
-.progress-with-datapoint .progress-data-point.success {
-  border-color: #318700;
-}
+    &.success {
+      border-color: $clr-green-dark-midtone;
+    }
 
-.progress-with-datapoint .progress-data-point.warning {
-  border-color: #C3CD23;
-}
+    &.warning {
+      border-color: $clr-yellow;
+    }
 
-.progress-with-datapoint .progress-data-point.danger {
-  border-color: #e62700;
+    &.danger {
+      border-color: $clr-red-light-midtone;
+    }
+  }
 }

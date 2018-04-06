@@ -1,15 +1,9 @@
+@import "~@clr/ui/src/color/utils/_colors.clarity.scss";
+
 .inset-box {
   min-height: 1.5rem;
   padding: 0 0.5rem;
-  border: solid 1px #ccc;
+  border: solid 1px $clr-light-midtone-gray;
   border-radius: 0.125rem;
-  background-color: #fff;
-}
-
-.inset-box.inset-box-pad-lg {
-  padding: 0.5rem;
-}
-
-.inset-box.inset-box-dark {
-  background-color: #fafafa;
+  background-color: $clr-near-white;
 }
