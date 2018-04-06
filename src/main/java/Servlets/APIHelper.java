@@ -16,7 +16,6 @@ public class APIHelper {
     * @throws Exception
     */
    public static ByteString hexStringToBinary(String param) throws Exception {
-
       // Param should strictly be a hex string
       if (param == null || param.trim().length() < 1) {
          return null;
@@ -25,6 +24,10 @@ public class APIHelper {
 
       if (curr.length() % 2 != 0) {
          return null;
+      }
+      
+      if(curr.equals("0x")) {
+         return ByteString.EMPTY;
       }
 
       int adjust = (curr.charAt(0) == '0' && curr.charAt(1) == 'x') ? 2 : 0;

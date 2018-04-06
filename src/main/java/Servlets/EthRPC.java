@@ -28,7 +28,6 @@ import com.vmware.athena.Athena.EthResponse;
 
 import io.undertow.util.StatusCodes;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -95,7 +94,6 @@ public final class EthRPC extends BaseServlet {
       // Retrieve the request fields
       JSONObject requestParams = null;
       Long id = null;
-      String jsonRpc = null;
       String method = null;
       JSONArray params = null;
       String txHash = null;
@@ -107,12 +105,15 @@ public final class EthRPC extends BaseServlet {
          String paramString = request.getReader().lines()
                   .collect(Collectors.joining(System.lineSeparator()));
          requestParams = (JSONObject) parser.parse(paramString);
+
          if (requestParams == null) {
             logger.error("Invalid request : Parameters should be in the "
                      + "request body and in a JSON object format");
             processResponse(response, "error", StatusCodes.BAD_REQUEST, logger);
             return;
          }
+         logger.debug("Request Parameters: " + requestParams.toJSONString());
+
       } catch (ParseException e) {
          logger.error("Invalid request", e);
          processResponse(response, "error", StatusCodes.BAD_REQUEST, logger);
@@ -126,13 +127,6 @@ public final class EthRPC extends BaseServlet {
          processResponse(response, "error", StatusCodes.BAD_REQUEST, logger);
          return;
       }
-
-      /*
-       * jsonRpc = (String) requestParams.get("jsonrpc"); if (jsonRpc == null) {
-       * logger.error("Invalid request parameter : jsonrpc");
-       * processResponse(response, "error", StatusCodes.BAD_REQUEST, logger);
-       * return; }
-       */
 
       method = (String) requestParams.get("method");
       if (method == null || method.trim().length() < 1) {
@@ -151,6 +145,7 @@ public final class EthRPC extends BaseServlet {
       Athena.EthRequest.Builder b = Athena.EthRequest.newBuilder();
       b.setId(id);
 
+      // Set request fields as per the RPC
       try {
          if (method.equals(_conf.getStringValue("SendTransaction_Name"))) {
             rpc = EthMethodName.SEND_TX;
@@ -184,7 +179,10 @@ public final class EthRPC extends BaseServlet {
             rpc = EthMethodName.GET_STORAGE_AT;
             b.setMethod(EthMethod.GET_STORAGE_AT);
             b.setAddrTo(APIHelper.hexStringToBinary((String) params.get(0)));
-            b.setData(APIHelper.hexStringToBinary((String) params.get(1)));
+
+            String p = (String) params.get(1);
+            String s = padZeroes(p);
+            b.setData(APIHelper.hexStringToBinary(s));
          } else {
             logger.error("Invalid method name");
             processResponse(response, "error", StatusCodes.BAD_REQUEST, logger);
@@ -203,6 +201,31 @@ public final class EthRPC extends BaseServlet {
                .newBuilder().addEthRequest(athenaEthRequest).build();
 
       processGet(rpc, txHash, athenarequestObj, response, logger);
+   }
+
+   /**
+    * Pads zeroes to the hex string to ensure a uniform length of 64 hex
+    * characters
+    * 
+    * @param p
+    * @return
+    */
+   private String padZeroes(String p) {
+      int zeroes = 0;
+      StringBuilder sb = new StringBuilder();
+      if (p.startsWith("0x")) {
+         p = p.substring(2);
+      }
+      if (p.length() < 64) {
+         zeroes = 64 - p.length();
+      }
+      sb.append("0x");
+      while (zeroes > 0) {
+         sb.append("0");
+         zeroes--;
+      }
+      sb.append(p);
+      return sb.toString();
    }
 
    /**
@@ -273,12 +296,13 @@ public final class EthRPC extends BaseServlet {
          if (ethResponse.hasContractAddress()) {
             result.put("contractAddress", APIHelper
                      .binaryStringToHex(ethResponse.getContractAddress()));
+         } else {
+            result.put("contractAddress", null);
          }
          respObject.put("result", result);
       }
 
       String json = respObject == null ? null : respObject.toJSONString();
-
       processResponse(response, json,
                json == null ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR
                         : HttpServletResponse.SC_OK,
@@ -295,7 +319,6 @@ public final class EthRPC extends BaseServlet {
    @SuppressWarnings("unchecked")
    @Override
    protected JSONObject parseToJSON(Athena.AthenaResponse athenaResponse) {
-
       // Extract the ethrpcexecute response from
       // the athena reponse envelope.
       EthResponse ethResponse = athenaResponse.getEthResponse(0);
@@ -304,18 +327,6 @@ public final class EthRPC extends BaseServlet {
       JSONObject responseJson = new JSONObject();
       responseJson.put("id", ethResponse.getId());
       responseJson.put("jsonrpc", _conf.getStringValue("JSONRPC"));
-
-      /*
-       * Convert the binary string received from Athena into a hex string for
-       * responding to the client
-       */
-      /*
-       * String resultString = APIHelper
-       * .binaryStringToHex(ethRpcExecuteResponse.getResult());
-       * responseJson.put("result", resultString);
-       * 
-       * responseJson.put("error", ethRpcExecuteResponse.getError());
-       */
       return responseJson;
    }
 }

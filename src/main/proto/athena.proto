@@ -11,7 +11,6 @@ message AthenaRequest {
 	repeated EthRequest eth_request = 3;
 	optional BlocksListRequest blocks_list_request = 4;
 	optional BlockNumberRequest block_number_request = 5;
-	//optional EthRPCExecuteRequest eth_rpc_execute_request = 6;
 	optional TransactionRequest transaction_request = 7;
 
 	// 4-2045 open for definition
@@ -46,13 +45,6 @@ message EthRequest {
 	optional bytes data = 6;
 }
 
-//enforce "required" in code as per Google recommendations
-//message EthRPCExecuteRequest {
-//optional int64 id = 1; //required
-//	optional string jsonrpc = 2; //required
-//	optional string method = 3; //required
-//	repeated bytes params = 4; //required
-//}
 message BlocksListRequest {
 	optional int64 latest = 1;
 	optional int64 count = 2;
@@ -76,7 +68,6 @@ message AthenaResponse {
 	repeated EthResponse eth_response = 3;
 	optional BlocksListResponse blocks_list_response = 4;
 	optional BlockNumberResponse block_number_response = 5;
-	//optional EthRPCExecuteResponse eth_rpc_execute_response = 6;
 	optional TransactionResponse transaction_response = 7;
 
 	// 4-2045 open for definition
@@ -99,14 +90,6 @@ message BlocksListResponse {
 message BlockNumberResponse {
 	optional BlockDetailed block = 1;
 }
-
-//enforce "required" in code as per Google recommendations
-//message EthRPCExecuteResponse {
-//	optional int64 id = 1; //required
-//	optional string jsonrpc = 2; //required
-//	optional bytes result = 3;
-//	optional string error = 4;
-//}
 
 message EthResponse {
 	optional int64 id = 1;
