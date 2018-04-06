@@ -2,7 +2,7 @@
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # Tests covering Helen's non-ethereum ReST API.
-# (i.e. everything under /api/athena, excluding /api/athena/eth)
+# (i.e. everything under /api/, excluding /api/athena/eth)
 #########################################################################
 import collections
 import json
@@ -24,7 +24,7 @@ TEST_LOG_DIR = "test_logs"
 
 class HelenAPITests(test_suite.TestSuite):
    _args = None
-   _apiBaseServerUrl = "http://localhost:8080/api/athena"
+   _apiBaseServerUrl = "http://localhost:8080/api"
    _userConfig = None
    _ethereumMode = False
    _productMode = True
@@ -53,7 +53,7 @@ class HelenAPITests(test_suite.TestSuite):
       ''' Runs all of the tests. '''
       if self._productMode:
          p = Product(self._args.resultsDir,
-                     self._apiBaseServerUrl+"/eth",
+                     self._apiBaseServerUrl+"/athena/eth",
                      self._userConfig["product"])
          p.launchProduct()
          if not p.waitForProductStartup():
@@ -153,11 +153,13 @@ class HelenAPITests(test_suite.TestSuite):
       os.rename(tempFile, realFile)
 
    def _runRestTest(self, testName, testFun, testLogDir):
+      log.info("Starting test '{}'".format(testName))
       request = Request(testLogDir, testName, self._apiBaseServerUrl)
       return testFun(request)
 
    def _getTests(self):
-      return [("getMembers", self._test_getMembers)]
+      return [("getMembers", self._test_getMembers), \
+              ("swaggerDef", self._test_getSwaggerDef)]
 
    # Tests: expect one argument, a Request, and produce a 2-tuple
    # (bool success, string info)
@@ -180,4 +182,26 @@ class HelenAPITests(test_suite.TestSuite):
          if not isinstance(m["status"], str):
             return (False, "'status' field in member entry is not a string")
 
+      return (True, None)
+
+   def _test_getSwaggerDef(self, request):
+      result = request.getSwaggerDefinition()
+
+      # How stable is comparing to OrderedDict?
+      if not type(result) is collections.OrderedDict:
+         return (False, "Response was not an OrderedDict".format(
+            type(result).__name__))
+
+      if not "info" in result:
+         return (False, "No 'info' field in result; unlikely to be swagger")
+      if not "title" in result["info"]:
+         return (False, "No 'title' in result['info']; unlikely to be swagger")
+      if not result["info"]["title"] == "VMware Project Athena":
+         return (False, "Wrong title in result; likely wrong swagger file")
+      if not "paths" in result:
+         return (False, "No 'paths' field in result; unlikely to be swagger")
+
+      # Maybe we should just read the swagger file from the helen
+      # install, and compare the result to it, but the above is a
+      # pretty good indicator that we found what we're looking for
       return (True, None)

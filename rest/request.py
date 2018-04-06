@@ -1,5 +1,7 @@
 #########################################################################
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+#
+# Wrapper for ReST API calls to Helen.
 #########################################################################
 import json
 import util.json_helper
@@ -102,8 +104,18 @@ class Request():
       '''
       Get the list of nodes in the Athena cluster
       '''
-      self._subPath = "/members"
+      self._subPath = "/athena/members"
       self._params = ""
       self._endpointName = "members"
+
+      return self._send()
+
+   def getSwaggerDefinition(self):
+      '''
+      Get the swagger definition
+      '''
+      self._subPath = ""
+      self._params = ""
+      self._endpointName = "swaggerdef"
 
       return self._send()
