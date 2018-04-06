@@ -94,7 +94,7 @@ mvn clean install
 
    To build without tests :
 ```
-mvn clean install DskipTests
+mvn clean install -DskipTests
 ```
 
  * Run the server
