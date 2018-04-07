@@ -176,12 +176,12 @@ class HelenAPITests(test_suite.TestSuite):
          return (False, "No members returned")
 
       for m in result:
-         if not "host" in m:
-            return (False, "No 'host' entry in member entry")
+         (present, missing) = self.requireFields(m, ["host", "status"])
+         if not present:
+            return (False, "No '{}' field in member entry.".format(missing))
+
          if not isinstance(m["host"], str):
             return (False, "'host' field in member entry is not a string")
-         if not "status" in m:
-            return (False, "No 'status' entry in member entry")
          if not isinstance(m["status"], str):
             return (False, "'status' field in member entry is not a string")
 
@@ -195,14 +195,16 @@ class HelenAPITests(test_suite.TestSuite):
          return (False, "Response was not an OrderedDict".format(
             type(result).__name__))
 
-      if not "info" in result:
-         return (False, "No 'info' field in result; unlikely to be swagger")
+      (present, missing) = self.requireFields(result, ["info", "paths"])
+      if not present:
+         return (False,
+                 "No '{}' field in result; unlikely to be swagger.".format(
+                    missing))
+
       if not "title" in result["info"]:
          return (False, "No 'title' in result['info']; unlikely to be swagger")
       if not result["info"]["title"] == "VMware Project Athena":
          return (False, "Wrong title in result; likely wrong swagger file")
-      if not "paths" in result:
-         return (False, "No 'paths' field in result; unlikely to be swagger")
 
       # Maybe we should just read the swagger file from the helen
       # install, and compare the result to it, but the above is a
@@ -225,17 +227,14 @@ class HelenAPITests(test_suite.TestSuite):
       latestFound = None
       earliestFound = None
       for b in result["blocks"]:
-         if not "number" in b:
-            return (False, "No 'number' field in block")
+         (present, missing) = self.requireFields(b, ["number", "hash", "url"])
+         if not present:
+            return (False, "No '{}' field in block.".format(missing))
+
          latestFound = max(latestFound, b["number"]) \
                        if latestFound else b["number"]
          earliestFound = min(earliestFound, b["number"]) \
                          if earliestFound else b["number"]
-         if not "hash" in b:
-            return (False, "No 'hash' field in block")
-         if not "url" in b:
-            return (False, "No 'url' field in block")
-         # checking validity of this url is done in _test_getBlock
 
       if (latestFound-earliestFound) != len(result["blocks"])-1:
          return (False, "Range of block IDs does not equal length of list")
@@ -265,20 +264,15 @@ class HelenAPITests(test_suite.TestSuite):
       # get each block and find out if it's valid
       for b in result["blocks"]:
          blockResult = request.getBlock(b["url"])
-         if not "number" in blockResult:
-            return (False, "No 'number' field in block response.")
+
+         (present, missing) = self.requireFields(
+            blockResult,
+            ["number", "hash", "parentHash", "nonce", "size", "transactions"])
+         if not present:
+            return (False, "No '{}' field in block response.".format(missing))
+
          if not b["number"] == blockResult["number"]:
             return (False, "Block number does not match request.")
-         if not "hash" in blockResult:
-            return (False, "No 'hash' field in block response.")
-         if not "parentHash" in blockResult:
-            return (False, "No 'parentHash' field in block response.")
-         if not "nonce" in blockResult:
-            return (False, "No 'nonce' field in block response.")
-         if not "size" in blockResult:
-            return (False, "No 'size' field in block response.")
-         if not "transactions" in blockResult:
-            return (False, "No 'transactions' field in block response.")
          if not type(blockResult["transactions"]) is list:
             return (False, "'transactions' field is not a list.")
 
