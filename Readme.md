@@ -86,15 +86,15 @@ npm start
 
  * Install dependencies and build using maven.
 
-
-   To build with tests (Athena must be running for this) :
+    
+   To build only with unit tests (No Athena instance is needed) :
 ```
 mvn clean install
 ```
 
-   To build without tests :
+   To build with unit and integration tests : (Athena must be running for this)
 ```
-mvn clean install -DskipTests
+mvn clean install -DskipIntegrationTests=false
 ```
 
  * Run the server
