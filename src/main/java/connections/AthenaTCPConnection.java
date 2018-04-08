@@ -15,15 +15,27 @@ import java.nio.ByteOrder;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.log4j.Logger;
 
+import com.vmware.athena.Athena;
+
+import Servlets.AthenaHelper;
 import configurations.*;
 
-public final class AthenaTCPConnection implements IAthenaConnection {
+public final class AthenaTCPConnection implements IAthenaCommunication,
+                                                   IAthenaConnection 
+                                                {
    private Socket _socket;
    private AtomicBoolean _disposed;
    private final int _receiveTimeout; // ms
    private final int _receiveLengthSize; // bytes
    private IConfiguration _conf;
-   private static Logger _logger = Logger.getLogger(AthenaTCPConnection.class);
+   private static Logger _logger = 
+         Logger.getLogger(AthenaTCPConnection.class);
+   private static Athena.ProtocolRequest _protocolRequestMsg = 
+         Athena.ProtocolRequest
+            .newBuilder().setClientVersion(1).build();
+   private static Athena.AthenaRequest _athenaRequest =
+         Athena.AthenaRequest
+            .newBuilder().setProtocolRequest(_protocolRequestMsg).build();
 
    /**
     * Sets up a TCP connection with Athena
@@ -32,7 +44,8 @@ public final class AthenaTCPConnection implements IAthenaConnection {
     */
    public AthenaTCPConnection(IConfiguration conf) throws IOException {
       _conf = conf;
-      _receiveLengthSize = _conf.getIntegerValue("ReceiveHeaderSizeBytes");
+      _receiveLengthSize =
+            _conf.getIntegerValue("ReceiveHeaderSizeBytes");
       _receiveTimeout = _conf.getIntegerValue("ReceiveTimeoutMs");
       _disposed = new AtomicBoolean(false);
 
@@ -56,6 +69,7 @@ public final class AthenaTCPConnection implements IAthenaConnection {
    /**
     * Closes the TCP connection
     */
+   @Override
    public void close() {
       if (_disposed.get())
          return;
@@ -86,7 +100,8 @@ public final class AthenaTCPConnection implements IAthenaConnection {
    }
 
    /**
-    * Reads responses from Athena. Athena sends the size of the response before
+    * Reads responses from Athena.
+    * Athena sends the size of the response before
     * the actual response
     */
    @Override
@@ -147,6 +162,35 @@ public final class AthenaTCPConnection implements IAthenaConnection {
       } catch (Exception e) {
          _logger.error("sendMessage", e);
          return false;
+      }
+   }
+
+   
+   @Override
+   public boolean check() {
+      try {
+         _logger.trace("check enter");
+         boolean res =
+               AthenaHelper.sendToAthena(_athenaRequest, this, _conf);
+         if (res) {
+            Athena.AthenaResponse resp =
+                  AthenaHelper.receiveFromAthena(this);
+            if (resp != null) {
+               Athena.ProtocolResponse pResp = resp.getProtocolResponse();
+               if (pResp != null) {
+                  _logger.debug("check, got server version: "
+                           + pResp.getServerVersion());
+                  return true;
+               }
+            }
+         }
+
+         return false;
+      } catch (IOException e) {
+         _logger.error("check", e);
+         return false;
+      } finally {
+         _logger.trace("check exit");
       }
    }
 }

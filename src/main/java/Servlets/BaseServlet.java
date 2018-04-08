@@ -5,7 +5,10 @@ package Servlets;
 
 import com.vmware.athena.*;
 import connections.AthenaConnectionPool;
+import connections.IAthenaCommunication;
 import connections.IAthenaConnection;
+import configurations.ConfigurationFactory;
+import configurations.ConfigurationFactory.ConfigurationType;
 import configurations.FileConfiguration;
 import configurations.IConfiguration;
 import java.io.IOException;
@@ -27,11 +30,8 @@ public abstract class BaseServlet extends HttpServlet {
             Athena.AthenaResponse athenaResponse);
 
    protected BaseServlet() {
-      try {
-         _conf = FileConfiguration.getInstance();
-      } catch (IOException e) {
-
-      }
+      _conf = 
+            ConfigurationFactory.getConfiguration(ConfigurationType.File);
    }
 
    /**

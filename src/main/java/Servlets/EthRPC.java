@@ -22,6 +22,7 @@ import com.vmware.athena.Athena.ErrorResponse;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 
 import connections.AthenaConnectionPool;
+import connections.IAthenaCommunication;
 import connections.IAthenaConnection;
 
 import com.vmware.athena.Athena.EthResponse;

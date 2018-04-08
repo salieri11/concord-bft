@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import org.apache.log4j.Logger;
 import com.google.protobuf.InvalidProtocolBufferException;
+import connections.IAthenaCommunication;
 import connections.IAthenaConnection;
 import configurations.IConfiguration;
 
@@ -30,7 +31,8 @@ public class AthenaHelper {
    }
 
    /**
-    * Sends a Google Protocol Buffer request to Athena. Athena expects two bytes
+    * Sends a Google Protocol Buffer request to Athena.
+    * Athena expects two bytes
     * signifying the size of the request before the actual request.
     * 
     * @param socketRequest
@@ -40,7 +42,9 @@ public class AthenaHelper {
     * @throws IOException
     */
    public static boolean sendToAthena(Athena.AthenaRequest request,
-            IAthenaConnection conn, IConfiguration conf) throws IOException {
+                                      IAthenaConnection conn,
+                                      IConfiguration conf)
+                  throws IOException {
       // here specifically, request.toString() it time consuming,
       // so checking level enabled can gain performance
       if (_log.isTraceEnabled())
@@ -63,8 +67,10 @@ public class AthenaHelper {
    }
 
    /**
-    * Receives a Google Protocol Buffer response from Athena. Athena sends two
-    * bytes signifying the size of the response before the actual response.
+    * Receives a Google Protocol Buffer response from Athena. 
+    * Athena sends two
+    * bytes signifying the size of the response before the actual
+    * response.
     * 
     * @param socketResponse
     *           InputStream object
@@ -72,7 +78,7 @@ public class AthenaHelper {
     * @throws IOException
     **/
    public static Athena.AthenaResponse receiveFromAthena(
-            IAthenaConnection conn) {
+                                       IAthenaConnection conn) {
       try {
          byte[] data = conn.receive();
          if (data == null)

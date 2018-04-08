@@ -1,24 +1,31 @@
-package basic;
+package unit;
 
 import java.io.IOException;
 
 import org.apache.log4j.Logger;
+
+import base.BaseTest;
+import connections.AthenaConnectionFactory;
+import connections.AthenaConnectionFactory.ConnectionType;
 import connections.AthenaConnectionPool;
+import connections.IAthenaCommunication;
 import connections.IAthenaConnection;
 
-public class ConnectionTest extends BaseTest {
+public class ConnectionPoolTest extends BaseTest {
    private AthenaConnectionPool _pool;
-   private static Logger _log = Logger.getLogger(ConnectionTest.class);
+   private static Logger _log = Logger.getLogger(ConnectionPoolTest.class);
    
-   public ConnectionTest() throws IOException {
-      super(ConnectionTest.class);
+   public ConnectionPoolTest() throws IOException {
+      super(ConnectionPoolTest.class);
       _pool = AthenaConnectionPool.getInstance();
       
    }
    
    protected void setUp() throws IOException {
-      _log.info("setUp");
-      _pool.initialize(_conf);
+      _log.info("setUp"); 
+      _pool.initialize(_conf,
+                        new AthenaConnectionFactory(ConnectionType.Mock,
+                                                   _conf));
    }
 
    protected void tearDown() {

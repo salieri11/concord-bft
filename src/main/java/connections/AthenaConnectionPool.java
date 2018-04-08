@@ -1,6 +1,8 @@
 /**
- * This singleton class contains methods to implement connection pooling for Helen.
- * The timeout and pool size can be adjusted from the config.properties file.
+ * This singleton class contains methods to implement connection
+ * pooling for Helen.
+ * The timeout and pool size can be adjusted
+ * from the config.properties file.
  */
 package connections;
 
@@ -13,14 +15,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.log4j.Logger;
 import configurations.IConfiguration;
 import com.vmware.athena.*;
-import Servlets.AthenaHelper;
 
 public class AthenaConnectionPool {
    private AtomicInteger _connectionCount;
 
    // initialized with fairness = true, longest waiting threads
    // are served first
-   private ArrayBlockingQueue<AthenaTCPConnection> _pool;
+   private ArrayBlockingQueue<IAthenaConnection> _pool;
 
    private IConfiguration _conf;
    private AtomicBoolean _initialized;
@@ -37,14 +38,14 @@ public class AthenaConnectionPool {
    private Object _poolIncreaseLock;
 
    // Instantiate the instance of this class
-   private static AthenaConnectionPool _instance = new AthenaConnectionPool();
+   private static AthenaConnectionPool _instance =
+         new AthenaConnectionPool();
 
-   private static Logger _log = Logger.getLogger(AthenaConnectionPool.class);
-   private static Athena.ProtocolRequest _protocolRequestMsg = Athena.ProtocolRequest
-            .newBuilder().setClientVersion(1).build();
-   private static Athena.AthenaRequest _athenaRequest = Athena.AthenaRequest
-            .newBuilder().setProtocolRequest(_protocolRequestMsg).build();
-
+   private static Logger _log =
+         Logger.getLogger(AthenaConnectionPool.class);
+   
+   private AthenaConnectionFactory _factory;
+   
    /**
     * Initializes local variables.
     */
@@ -59,10 +60,10 @@ public class AthenaConnectionPool {
     * 
     * @return
     */
-   private AthenaTCPConnection createConnection() {
+   private IAthenaConnection createConnection() {
       _log.trace("createConnection enter");
       try {
-         AthenaTCPConnection res = new AthenaTCPConnection(_conf);
+         IAthenaConnection res = _factory.create();
          int c = _connectionCount.incrementAndGet();
          _log.debug("new connection created, active connections: " + c);
          _log.info("new pooled connection created");
@@ -80,7 +81,7 @@ public class AthenaConnectionPool {
     * 
     * @param conn
     */
-   private void closeConnection(AthenaTCPConnection conn) {
+   private void closeConnection(IAthenaConnection conn) {
       _log.trace("closeConnection enter");
       try {
          if (conn != null) {
@@ -95,38 +96,7 @@ public class AthenaConnectionPool {
          _log.trace("closeConnection exit");
       }
    }
-
-   /**
-    * Tests a connection by sending a protocol request to Athena.
-    * 
-    * @param conn
-    * @return
-    */
-   private boolean checkConnection(AthenaTCPConnection conn) {
-      try {
-         _log.trace("checkConnection enter");
-         boolean res = AthenaHelper.sendToAthena(_athenaRequest, conn, _conf);
-         if (res) {
-            Athena.AthenaResponse resp = AthenaHelper.receiveFromAthena(conn);
-            if (resp != null) {
-               Athena.ProtocolResponse pResp = resp.getProtocolResponse();
-               if (pResp != null) {
-                  _log.debug("checkConnection, got server version: "
-                           + pResp.getServerVersion());
-                  return true;
-               }
-            }
-         }
-
-         return false;
-      } catch (IOException e) {
-         _log.error("checkConnection", e);
-         return false;
-      } finally {
-         _log.trace("checkConnection exit");
-      }
-   }
-
+  
    /**
     * Returns the single instance of this class.
     * 
@@ -137,7 +107,8 @@ public class AthenaConnectionPool {
    }
 
    /**
-    * Removes a connection from the connection pool data structure, checks it,
+    * Removes a connection from the connection pool data structure,
+    * checks it,
     * and returns it.
     * 
     * @return
@@ -145,15 +116,17 @@ public class AthenaConnectionPool {
     * @throws IllegalStateException
     * @throws InterruptedException
     */
-   // TODO If checkConnection fails, shouldn't we return another connection?
-   public IAthenaConnection getConnection()
-            throws IOException, IllegalStateException, InterruptedException {
+    public IAthenaConnection getConnection()
+            throws IOException,
+                  IllegalStateException,
+                  InterruptedException {
       _log.trace("getConnection enter");
 
       if (!_initialized.get())
-         throw new IllegalStateException("getConnection, pool not initialized");
+         throw new IllegalStateException(
+               "getConnection, pool not initialized");
 
-      AthenaTCPConnection conn = _pool.poll(_waitTimeout,
+      IAthenaConnection conn = _pool.poll(_waitTimeout,
                TimeUnit.MILLISECONDS);
 
       if (conn == null) {
@@ -168,7 +141,7 @@ public class AthenaConnectionPool {
       }
 
       // check connection
-      boolean res = checkConnection(conn);
+      boolean res = conn.check();
       if (!res) {
          _log.error("");
          closeConnection(conn);
@@ -199,7 +172,7 @@ public class AthenaConnectionPool {
       if (conn == null) {
          _log.fatal("putConnection, conn is null");
       } else {
-         boolean res = _pool.offer((AthenaTCPConnection) conn);
+         boolean res = _pool.offer(conn);
 
          // cannot fail in normal flow
          if (!res) {
@@ -217,15 +190,21 @@ public class AthenaConnectionPool {
     * @param conf
     * @throws IOException
     */
-   public void initialize(IConfiguration conf) throws IOException {
+   public void initialize(IConfiguration conf,
+                           AthenaConnectionFactory factory) 
+                                 throws IOException {
       if (_initialized.compareAndSet(false, true)) {
          _conf = conf;
-         _waitTimeout = conf.getIntegerValue("ConnectionPoolWaitTimeoutMs");
-         int poolSize = _conf.getIntegerValue("ConnectionPoolSize");
-         int poolFactor = conf.getIntegerValue("ConnectionPoolFactor");
+         _factory = factory;
+         _waitTimeout =
+               conf.getIntegerValue("ConnectionPoolWaitTimeoutMs");
+         int poolSize =
+               _conf.getIntegerValue("ConnectionPoolSize");
+         int poolFactor =
+               conf.getIntegerValue("ConnectionPoolFactor");
          _maxPoolSize = poolSize * poolFactor;
 
-         _pool = new ArrayBlockingQueue<AthenaTCPConnection>(_maxPoolSize,
+         _pool = new ArrayBlockingQueue<IAthenaConnection>(_maxPoolSize,
                   true);
          for (int i = 0; i < poolSize; i++)
             putConnection(createConnection());
@@ -241,7 +220,7 @@ public class AthenaConnectionPool {
     */
    public void closeAll() {
       _initialized.set(false);
-      for (AthenaTCPConnection conn : _pool) {
+      for (IAthenaConnection conn : _pool) {
          closeConnection(conn);
       }
 

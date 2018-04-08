@@ -6,11 +6,16 @@
 	<version>1.0-SNAPSHOT</version>
 	<url>http://maven.apache.org</url>
 	<packaging>jar</packaging>
+	
+	<properties>
+        <skipIntegrationTests>true</skipIntegrationTests>
+    </properties>
+	
 	<dependencies>
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-			<version>3.8.1</version>
+			<version>4.12</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -56,21 +61,6 @@
 				</configuration>
 			</plugin>
 			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>exec-maven-plugin</artifactId>
-				<version>1.2.1</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>java</goal>
-						</goals>
-					</execution>
-				</executions>
-				<configuration>
-					<mainClass>Servers.Server</mainClass>
-				</configuration>
-			</plugin>
-			<plugin>
 				<!-- https://www.xolstice.org/protobuf-maven-plugin/usage.html -->
 				<groupId>org.xolstice.maven.plugins</groupId>
 				<artifactId>protobuf-maven-plugin</artifactId>
@@ -111,6 +101,27 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+			   <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>2.11</version>
+         </plugin>
+         <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <version>2.19.1</version>
+            <configuration>
+                    <skipITs>${skipIntegrationTests}</skipITs>
+             </configuration>
+            <executions>
+               <execution>
+                  <id>integration-test</id>
+                     <goals>
+                        <goal>integration-test</goal>
+                     </goals>
+               </execution>
+             </executions>
+            </plugin>
 		</plugins>
 	</build>
 </project>

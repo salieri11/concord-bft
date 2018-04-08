@@ -13,7 +13,9 @@ package Servlets;
 
 import com.vmware.athena.*;
 import connections.AthenaConnectionPool;
+import connections.IAthenaCommunication;
 import connections.IAthenaConnection;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -96,8 +98,10 @@ public final class MemberList extends BaseServlet {
    }
 
    /**
-    * Parses the Protocol Buffer response from Athena and converts it into JSON.
-    * Method overridden because the response for this API is of type JSONArray
+    * Parses the Protocol Buffer response from Athena and converts
+    * it into JSON.
+    * Method overridden because the response for this API is of type
+    * JSONArray
     * as opposed to JSONObject.
     *
     * @param athenaResponse
@@ -105,7 +109,8 @@ public final class MemberList extends BaseServlet {
     * @return Response in JSON format
     */
    @SuppressWarnings("unchecked")
-   protected JSONArray parseToJSONArray(Athena.AthenaResponse athenaResponse) {
+   protected JSONArray parseToJSONArray(
+         Athena.AthenaResponse athenaResponse) {
       // Extract the peer response from the athena reponse envelope.
       Athena.PeerResponse peerResponse = athenaResponse.getPeerResponse();
 
