@@ -8,7 +8,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 @Component({
   selector: 'app-testing-ground',
   templateUrl: './testing-ground.component.html',
-  styleUrls: ['./testing-ground.component.css']
+  styleUrls: ['./testing-ground.component.scss']
 })
 export class TestingGroundComponent implements OnInit {
 

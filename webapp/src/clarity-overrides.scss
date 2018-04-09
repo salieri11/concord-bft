@@ -1,0 +1,57 @@
+@import "~@clr/ui/src/color/utils/_colors.clarity.scss";
+
+.main-container .content-container .content-area {
+  padding: 0;
+}
+
+.header .header-actions {
+  > .dropdown .dropdown-toggle.nav-text {
+    padding-left: 2.5rem;
+
+    clr-icon[shape='user'] {
+      left: 0.75rem;
+    }
+  }
+
+  .active-nodes {
+    display: flex;
+    align-items: center;
+
+    clr-icon[shape='circle'] {
+      margin-right: 10px;
+    }
+  }
+  .nav-icon:after {
+    content: "";
+    position: absolute;
+    display: inline-block;
+    top: .41667rem;
+    right: 0;
+    width: 1px;
+    height: 1.66667rem;
+    background: $clr-near-white;
+    opacity: .15;
+  }
+
+  .nav-icon:nth-child(2):before {
+    content: "";
+    position: absolute;
+    display: inline-block;
+    top: .41667rem;
+    width: 1px;
+    height: 1.66667rem;
+    background: $clr-near-white;
+    opacity: .15;
+  }
+}
+
+// Add right border to active link, force white nav icon
+.clr-vertical-nav .nav-link {
+  &.active,
+  &:hover {
+    border-right: 5px solid $clr-action-blue-light;
+    .nav-icon {
+      fill: #fff;
+    }
+  }
+}

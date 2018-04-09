@@ -13,7 +13,7 @@ import { BlockListing, BlockListingBlock } from '../../shared/remote-interfaces'
 @Component({
   selector: 'app-blocks-container',
   templateUrl: './blocks-container.component.html',
-  styleUrls: ['./blocks-container.component.css']
+  styleUrls: ['./blocks-container.component.scss']
 })
 export class BlocksContainerComponent implements OnInit {
   blocks: BlockListingBlock[] = [];
