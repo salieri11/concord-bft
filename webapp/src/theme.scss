@@ -1,5 +1,15 @@
 @import "~@clr/ui/src/color/utils/_colors.clarity.scss";
 
+// Clarity Vertical Nav - dark theme
+$clr-vertical-nav-bg-color: #383F43;
+$clr-vertical-nav-top-padding: 0;
+$clr-vertical-nav-item-height: 2.5rem;
+$clr-vertical-nav-icon-size: 1rem;
+$clr-vertical-nav-icon-right-margin: 0.75rem;
+$clr-vertical-nav-item-color: #fff;
+$clr-vertical-nav-item-active-color: #fff;
+$clr-vertical-nav-hover-bg-color: $clr-action-blue-light-midtone;
+
 .bg-header {
   background-color: $clr-action-blue-lightest;
 }

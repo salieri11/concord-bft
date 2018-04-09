@@ -45,36 +45,13 @@
   }
 }
 
-.clr-vertical-nav {
-  padding-top: 0;
-  background-color: #383F43;
-
-  .nav-content > .nav-link {
-    flex: 0 0 2.5rem;
-    align-items: center;
-  }
-
-  .nav-link {
-    background-position: 0.75rem 0.7rem;
-    background-repeat: no-repeat;
-    color: #fff;
-
-    .nav-icon-large {
-      flex: 0 0 24px;
-      width: 24px;
-      height: 24px;
-      margin-right: .75rem;
-    }
-
-    &.active,
-    &:hover {
-      color: #fff;
-      background-color: $clr-action-blue-light-midtone;
-      border-right: 5px solid $clr-action-blue-light;
-
-      .nav-icon {
-        fill: #fff;
-      }
+// Add right border to active link, force white nav icon
+.clr-vertical-nav .nav-link {
+  &.active,
+  &:hover {
+    border-right: 5px solid $clr-action-blue-light;
+    .nav-icon {
+      fill: #fff;
     }
   }
 }
