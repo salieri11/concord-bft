@@ -213,3 +213,43 @@ class RPC():
       self._rpcData["params"] = [hsh, password, 0]
 
       response = self._call()
+
+   def sha3(self, data):
+      '''
+      Ask to hash the given data
+      '''
+      self._rpcData["method"] = "web3_sha3"
+      self._rpcData["params"] = [data]
+
+      response = self._call()
+      return self.getResultFromResponse(response)
+
+   def clientVersion(self):
+      '''
+      Ask for the current version
+      '''
+      self._rpcData["method"] = "web3_clientVersion"
+      self._rpcData["params"] = []
+
+      response = self._call()
+      return self.getResultFromResponse(response)
+
+   def mining(self):
+      '''
+      Ask if mining is in progress
+      '''
+      self._rpcData["method"] = "eth_mining"
+      self._rpcData["params"] = []
+
+      response = self._call()
+      return self.getResultFromResponse(response)
+
+   def modules(self):
+      '''
+      Ask what RPC modules are supported
+      '''
+      self._rpcData["method"] = "rpc_modules"
+      self._rpcData["params"] = []
+
+      response = self._call()
+      return self.getResultFromResponse(response)
