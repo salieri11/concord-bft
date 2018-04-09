@@ -19,9 +19,9 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% RPC Methods
 
--spec clientVersion(#eth_request{}) -> iodata().
+-spec clientVersion(#eth_request{}) -> {ok, mochijson2:json_term()}.
 clientVersion(_Request) ->
-    <<"Helen/1.0.0">>.
+    {ok, <<"Helen/1.0.0">>}.
 
 -spec sha3(#eth_request{}) -> {ok|error, mochijson2:json_term()}.
 sha3(#eth_request{params=[String0x]}) ->
