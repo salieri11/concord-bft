@@ -222,6 +222,15 @@ class ExtendedRPCTests(test_suite.TestSuite):
          return (False, "Client version should have been a string, " \
                  "but was '{}'".format(result))
 
+      # Insisting version is
+      # <name>/v<major>.<minor>.<patch><anything>/
+      #    <os>/<language><major>.<minor>.<patch>
+      version_re = re.compile("\\w+/v\\d+\\.\\d+\\.\\d+[^/]*/"\
+                              "[-a-zA-Z0-9]+/\\w+\\d\\.\\d\\.\\d")
+      if not version_re.match(result):
+         return (False, "Client version doesn't match expected format: " \
+                 "'{}'".format(result))
+
       return (True, None)
 
    def _test_eth_mining(self, rpc):
@@ -251,6 +260,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if len(result) == 0:
          log.warn("No RPC modules returned from rpc request.")
 
+      # Insisting the version is <number>.<number>
       version_re = re.compile("\\d+\\.\\d+")
 
       for k, v in result.items():
