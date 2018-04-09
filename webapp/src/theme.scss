@@ -1,0 +1,77 @@
+@import "~@clr/ui/src/color/utils/_colors.clarity.scss";
+
+.bg-header {
+  background-color: $clr-action-blue-lightest;
+}
+
+.bg-dark {
+  background-color: #001622;
+
+  .nav {
+    box-shadow: none;
+
+    .nav-link {
+      text-transform: uppercase;
+      color: $clr-action-blue-lightest;
+
+      &.active,
+      &:hover {
+        color: $clr-action-blue-light-midtone;
+      }
+    }
+  }
+}
+
+.progress {
+  &.warning {
+    > progress {
+      color: $clr-yellow;
+    }
+    > progress::-webkit-progress-value {
+      background-color: $clr-yellow;
+    }
+    > progress::-moz-progress-bar {
+      background-color: $clr-yellow;
+    }
+  }
+
+  &.black {
+    > progress {
+      color: #000;
+    }
+    > progress::-webkit-progress-value {
+      background-color: #000;
+    }
+    > progress::-moz-progress-bar {
+      background-color: #000;
+    }
+  }
+}
+
+.progress-with-point {
+  position: relative;
+
+  .progress-point {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    top: -2px;
+    left: 20%;
+    transform: translateX(-10px);
+    border: 7px solid;
+    border-radius: 24px;
+    background-color: #fff;
+
+    &.success {
+      border-color: $clr-green-dark-midtone;
+    }
+
+    &.warning {
+      border-color: $clr-yellow;
+    }
+
+    &.danger {
+      border-color: $clr-red-light-midtone;
+    }
+  }
+}

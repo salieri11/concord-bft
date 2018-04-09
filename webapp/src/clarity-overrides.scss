@@ -1,0 +1,79 @@
+@import "~@clr/ui/src/color/utils/_colors.clarity.scss";
+
+.main-container .content-container .content-area {
+  padding: 0;
+}
+
+.header {
+
+  .dropdown .dropdown-toggle {
+    padding-left: 2.75rem;
+
+    clr-icon[shape='user'] {
+      left: 0.75rem;
+    }
+  }
+
+  .header-actions {
+    .active-nodes {
+      display: flex;
+      align-items: center;
+
+      clr-icon[shape='circle'] {
+        margin-right: 10px;
+      }
+    }
+    .nav-icon:after {
+      content: "";
+      position: absolute;
+      display: inline-block;
+      top: .41667rem;
+      right: 0;
+      width: 1px;
+      height: 1.66667rem;
+      background: $clr-near-white;
+      opacity: .15;
+    }
+
+    .nav-icon:nth-child(2):before {
+      content: "";
+      position: absolute;
+      display: inline-block;
+      top: .41667rem;
+      width: 1px;
+      height: 1.66667rem;
+      background: $clr-near-white;
+      opacity: .15;
+    }
+  }
+}
+
+.clr-vertical-nav {
+  padding-top: 0;
+  background-color: #383F43;
+
+  .nav-link {
+    flex: 0 0 2.5rem;
+    align-items: center;
+    background-position: 0.75rem 0.7rem;
+    background-repeat: no-repeat;
+    color: #fff;
+
+    .nav-icon-large {
+      flex: 0 0 24px;
+      width: 24px;
+      height: 24px;
+      margin-right: .75rem;
+    }
+
+    &.active,
+    &:hover {
+      background-color: $clr-action-blue-light-midtone;
+      border-right: 5px solid $clr-action-blue-light;
+
+      .nav-icon {
+        fill: #fff;
+      }
+    }
+  }
+}

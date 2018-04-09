@@ -1,79 +1,8 @@
-/* You can add global styles to this file, and also import other style files */
-
-@import "~@clr/ui/src/main.scss";
-
-.main-container .content-container .content-area {
-  padding: 0;
-}
+@import "~@clr/ui/src/main";
+@import "clarity-overrides";
+@import "theme";
 
 .graph-placeholder {
   width: 100%;
   height: auto;
-}
-
-.bg-header {
-  background-color: $clr-action-blue-lightest;
-}
-
-.bg-dark {
-  background-color: #001622;
-
-  .nav {
-    box-shadow: none;
-
-    .nav-link {
-      text-transform: uppercase;
-      color: $clr-action-blue-lightest;
-
-      &.active,
-      &:hover {
-        color: $clr-action-blue-light-midtone;
-      }
-    }
-  }
-}
-
-.progress {
-  &.warning {
-    > progress,
-    > progress::-webkit-progress-value,
-    > progress::-moz-progress-bar {
-      color: $clr-yellow;
-    }
-  }
-
-  &.black {
-    > progress,
-    > progress::-webkit-progress-value,
-    > progress::-moz-progress-bar {
-      color: #000;
-    }
-  }
-}
-
-.progress-with-datapoint {
-  position: relative;
-
-  .progress-data-point {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    top: -2px;
-    left: 20%;
-    border: 7px solid;
-    border-radius: 24px;
-    background-color: #fff;
-
-    &.success {
-      border-color: $clr-green-dark-midtone;
-    }
-
-    &.warning {
-      border-color: $clr-yellow;
-    }
-
-    &.danger {
-      border-color: $clr-red-light-midtone;
-    }
-  }
 }
