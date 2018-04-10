@@ -52,7 +52,11 @@ public final class EthRPC extends BaseServlet {
    public EthRPC() throws ParseException {
       super();
       JSONParser p = new JSONParser();
-      rpcList = (JSONArray) p.parse(_conf.getStringValue("EthRPCList"));
+      try {
+         rpcList = (JSONArray) p.parse(_conf.getStringValue("EthRPCList"));
+      } catch (Exception e) {
+         logger.error("Failed to read EthRPCList", e);
+      }
    }
 
    /**
