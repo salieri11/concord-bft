@@ -8,6 +8,8 @@ WORKDIR /helen
 
 COPY ./webapp /helen
 RUN npm install
+# Rebuild node-sass to ensure we have the correct binding for our container
+RUN npm rebuild node-sass
 RUN npm run build
 
 ## Build image
