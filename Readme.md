@@ -86,7 +86,6 @@ npm start
 
  * Install dependencies and build using maven.
 
-    
    To build only with unit tests (No Athena instance is needed) :
 ```
 mvn clean install
