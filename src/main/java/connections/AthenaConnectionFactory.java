@@ -25,8 +25,9 @@ public final class AthenaConnectionFactory {
          return new AthenaTCPConnection(_conf);
       case Mock:
          return new MockConnection(_conf);
+      default:
+         throw new
+            UnsupportedOperationException("type not supported" + _type);
       }
-
-      return null;
    }
 }

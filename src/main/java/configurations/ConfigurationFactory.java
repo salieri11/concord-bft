@@ -14,8 +14,8 @@ public class ConfigurationFactory {
          return FileConfiguration.getInstance();
       case Test:
          return TestConfiguration.getInstance();
+      default:
+         throw new ExceptionInInitializerError("Unsupported conf type");
       }
-
-      return null;
    }
 }
