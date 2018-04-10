@@ -1,9 +1,9 @@
 /**
-* This singleton class is used to maintain common system configuration
+ * This singleton class is used to maintain common system configuration
  * resources.
  * 
- * A config.properties file contains the configrations in key value pair 
- * format. This class provides a handle to the file.
+ * A config.properties file contains the configrations in key value pair format.
+ * This class provides a handle to the file.
  */
 package configurations;
 
@@ -32,7 +32,7 @@ public class FileConfiguration implements IConfiguration {
    }
 
    protected Properties _configurations;
-  
+
    /**
     * Loads the configurations file
     * 

@@ -1,11 +1,10 @@
 /**
  * This servlet is used to serve static content.
  *
- * Endpoints serviced :
- * /assets/* : Loads content in the priv/www/assets folder
- * /api and /api/ : Loads content from priv/swagger.json
- * /swagger/* : Loads content from priv/www/swagger folder
- * /* : Loads content from priv/www/index.html
+ * Endpoints serviced : /assets/* : Loads content in the priv/www/assets folder
+ * /api and /api/ : Loads content from priv/swagger.json /swagger/* : Loads
+ * content from priv/www/swagger folder /* : Loads content from
+ * priv/www/index.html
  *
  */
 package Servlets;
@@ -42,7 +41,10 @@ public class StaticContent extends HttpServlet {
     * APIs serviced
     */
    private enum Api {
-   ASSETS, SWAGGER, API_LIST, DEFAULT_CONTENT;
+      ASSETS,
+      SWAGGER,
+      API_LIST,
+      DEFAULT_CONTENT;
    }
 
    /**
@@ -54,9 +56,10 @@ public class StaticContent extends HttpServlet {
     * @param response
     *           The response object used to respond to the client
     */
-   protected void doGet(final HttpServletRequest request,
-            final HttpServletResponse response)
-            throws ServletException, IOException {
+   protected void
+             doGet(final HttpServletRequest request,
+                   final HttpServletResponse response) throws ServletException,
+                                                       IOException {
 
       String callingApi = request.getServletPath();
       if (callingApi.length() > 0) {
@@ -66,8 +69,8 @@ public class StaticContent extends HttpServlet {
       Api api;
       String contentFolder = new String();
       String contentFile = new String();
-      String alternateApiListEndpoint = _conf
-               .getStringValue("Alternate_ApiList_Endpoint");
+      String alternateApiListEndpoint
+         = _conf.getStringValue("Alternate_ApiList_Endpoint");
 
       // Read configurations based on API
       switch (callingApi) {
@@ -116,8 +119,8 @@ public class StaticContent extends HttpServlet {
           * If the separator char is not / we want to replace it with a / and
           * canonicalise
           */
-         String contentPath = CanonicalPathUtils
-                  .canonicalize(StaticContentHelper.getPath(request));
+         String contentPath
+            = CanonicalPathUtils.canonicalize(StaticContentHelper.getPath(request));
          contentPath = contentPath.replace('/', File.separatorChar);
 
          // Users need to request for a specific resource

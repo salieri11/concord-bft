@@ -1,8 +1,7 @@
 /**
- * This class is used to maintain resources related to a
- * TCP connection with Athena.
- *
- * Also contains functions for communicating with Athena over a TCP connection.
+ * This class is used to maintain resources related to a TCP connection with
+ * Athena. Also contains functions for communicating with Athena over a TCP
+ * connection.
  *
  */
 package connections;
@@ -21,22 +20,20 @@ import Servlets.AthenaHelper;
 import configurations.*;
 
 public final class AthenaTCPConnection implements IAthenaCommunication,
-                                                   IAthenaConnection 
-                                                {
+                                       IAthenaConnection {
    private Socket _socket;
    private AtomicBoolean _disposed;
    private final int _receiveTimeout; // ms
    private final int _receiveLengthSize; // bytes
    private IConfiguration _conf;
-   private static Logger _logger = 
-         Logger.getLogger(AthenaTCPConnection.class);
-   private static Athena.ProtocolRequest _protocolRequestMsg = 
-         Athena.ProtocolRequest
-            .newBuilder().setClientVersion(1).build();
-   private static Athena.AthenaRequest _athenaRequest =
-         Athena.AthenaRequest
-            .newBuilder().setProtocolRequest(_protocolRequestMsg).build();
-
+   private static Logger _logger = Logger.getLogger(AthenaTCPConnection.class);
+   private static Athena.ProtocolRequest _protocolRequestMsg
+      = Athena.ProtocolRequest.newBuilder().setClientVersion(1).build();
+   private static Athena.AthenaRequest _athenaRequest
+      = Athena.AthenaRequest.newBuilder()
+                            .setProtocolRequest(_protocolRequestMsg)
+                            .build();
+   
    /**
     * Sets up a TCP connection with Athena
     *
@@ -44,8 +41,7 @@ public final class AthenaTCPConnection implements IAthenaCommunication,
     */
    public AthenaTCPConnection(IConfiguration conf) throws IOException {
       _conf = conf;
-      _receiveLengthSize =
-            _conf.getIntegerValue("ReceiveHeaderSizeBytes");
+      _receiveLengthSize = _conf.getIntegerValue("ReceiveHeaderSizeBytes");
       _receiveTimeout = _conf.getIntegerValue("ReceiveTimeoutMs");
       _disposed = new AtomicBoolean(false);
 
@@ -100,8 +96,7 @@ public final class AthenaTCPConnection implements IAthenaCommunication,
    }
 
    /**
-    * Reads responses from Athena.
-    * Athena sends the size of the response before
+    * Reads responses from Athena. Athena sends the size of the response before
     * the actual response
     */
    @Override
@@ -119,7 +114,7 @@ public final class AthenaTCPConnection implements IAthenaCommunication,
 
             if (length == null && is.available() >= _receiveLengthSize) {
                length = ByteBuffer.wrap(new byte[_receiveLengthSize])
-                        .order(ByteOrder.LITTLE_ENDIAN);
+                                  .order(ByteOrder.LITTLE_ENDIAN);
                is.read(length.array(), 0, _receiveLengthSize);
             }
 
@@ -165,21 +160,18 @@ public final class AthenaTCPConnection implements IAthenaCommunication,
       }
    }
 
-   
    @Override
    public boolean check() {
       try {
          _logger.trace("check enter");
-         boolean res =
-               AthenaHelper.sendToAthena(_athenaRequest, this, _conf);
+         boolean res = AthenaHelper.sendToAthena(_athenaRequest, this, _conf);
          if (res) {
-            Athena.AthenaResponse resp =
-                  AthenaHelper.receiveFromAthena(this);
+            Athena.AthenaResponse resp = AthenaHelper.receiveFromAthena(this);
             if (resp != null) {
                Athena.ProtocolResponse pResp = resp.getProtocolResponse();
                if (pResp != null) {
                   _logger.debug("check, got server version: "
-                           + pResp.getServerVersion());
+                     + pResp.getServerVersion());
                   return true;
                }
             }

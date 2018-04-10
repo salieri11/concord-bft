@@ -1,11 +1,10 @@
 /**
- * url endpoint : /api/athena/transaction/{hash}
- * Used to get a specific transaction by its hash.
+ * url endpoint : /api/athena/transaction/{hash} Used to get a specific
+ * transaction by its hash.
  *
- * This servlet is used to send Transaction Requests to Athena and to parse
- * the responses into JSON. A TCP socket connection is made to Athena
- * and requests and responses are encoded in the Google Protocol Buffer
- * format.
+ * This servlet is used to send Transaction Requests to Athena and to parse the
+ * responses into JSON. A TCP socket connection is made to Athena and requests
+ * and responses are encoded in the Google Protocol Buffer format.
  *
  * TODO : Handle the case of no/incorrect response from Athena
  */
@@ -25,15 +24,13 @@ import org.json.simple.JSONObject;
  */
 public final class Transaction extends BaseServlet {
    private static final long serialVersionUID = 1L;
-   private static final Logger logger = 
-         Logger.getLogger(Transaction.class);
+   private static final Logger logger = Logger.getLogger(Transaction.class);
 
    /**
-    * Services a get request. Constructs a protobuf request of type
-    *  transaction request (enveloped in an athena request)
-    *  as defined in athena.proto.
-    *  Sends this request to Athena. Parses the response 
-    *  and converts it into json for responding to the client.
+    * Services a get request. Constructs a protobuf request of type transaction
+    * request (enveloped in an athena request) as defined in athena.proto. Sends
+    * this request to Athena. Parses the response and converts it into json for
+    * responding to the client.
     *
     * @param request
     *           The request received by the servlet
@@ -43,7 +40,7 @@ public final class Transaction extends BaseServlet {
     */
    @Override
    protected void doGet(final HttpServletRequest request,
-            final HttpServletResponse response) throws IOException {
+                        final HttpServletResponse response) throws IOException {
 
       // Read the requested transaction hash from the uri
       String uri = request.getRequestURI();
@@ -54,37 +51,33 @@ public final class Transaction extends BaseServlet {
          hashBytes = APIHelper.hexStringToBinary(hash);
       } catch (Exception e) {
          logger.error("Invalid Hash");
-         processResponse(response,
-               "error", 
-               StatusCodes.BAD_REQUEST,
-               logger);
+         processResponse(response, "error", StatusCodes.BAD_REQUEST, logger);
          return;
       }
 
       if (hashBytes == null) {
          logger.error("Invalid hash in request");
-         processResponse(response,
-               "error",
-               StatusCodes.BAD_REQUEST,
-               logger);
+         processResponse(response, "error", StatusCodes.BAD_REQUEST, logger);
          return;
       }
 
       // Construct a transaction request object.
-      final Athena.TransactionRequest txRequestObj =
-            Athena.TransactionRequest
-               .newBuilder().setHashParam(hashBytes).build();
+      final Athena.TransactionRequest txRequestObj
+         = Athena.TransactionRequest.newBuilder()
+                                    .setHashParam(hashBytes)
+                                    .build();
 
       // Envelope the transaction request object into an athena object.
-      final Athena.AthenaRequest athenarequestObj = Athena.AthenaRequest
-               .newBuilder().setTransactionRequest(txRequestObj).build();
+      final Athena.AthenaRequest athenarequestObj
+         = Athena.AthenaRequest.newBuilder()
+                               .setTransactionRequest(txRequestObj)
+                               .build();
 
       processGet(athenarequestObj, response, logger);
    }
 
    /**
-    * Parses the Protocol Buffer response from Athena and converts it
-    *  into JSON.
+    * Parses the Protocol Buffer response from Athena and converts it into JSON.
     *
     * @param athenaResponse
     *           Protocol Buffer object containing Athena's reponse
@@ -92,13 +85,12 @@ public final class Transaction extends BaseServlet {
     */
    @SuppressWarnings("unchecked")
    @Override
-   protected JSONObject parseToJSON(Athena.AthenaResponse athenaResponse)
-   {
+   protected JSONObject parseToJSON(Athena.AthenaResponse athenaResponse) {
 
       // Extract the transaction response from
       // the athena reponse envelope.
-      Athena.TransactionResponse txResponse = athenaResponse
-               .getTransactionResponse();
+      Athena.TransactionResponse txResponse
+         = athenaResponse.getTransactionResponse();
 
       // Construct the reponse JSON object.
       JSONObject responseJson = new JSONObject();
@@ -110,11 +102,9 @@ public final class Transaction extends BaseServlet {
       responseJson.put("input", txResponse.getInput());
       responseJson.put("blockHash", txResponse.getBlockHash());
       responseJson.put("blockNumber", txResponse.getBlockNumber());
-      responseJson.put("transactionHash",
-            txResponse.getTransactionIndex());
+      responseJson.put("transactionHash", txResponse.getTransactionIndex());
       responseJson.put("blockNumber", txResponse.getBlockNumber());
-      responseJson.put("transactionIndex",
-            txResponse.getTransactionIndex());
+      responseJson.put("transactionIndex", txResponse.getTransactionIndex());
       responseJson.put("nonce", txResponse.getNonce());
 
       return responseJson;

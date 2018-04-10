@@ -1,11 +1,10 @@
 /**
- * url endpoint : /api/athena/blocks/{N}
- * Used to fetch a specific block from the chain.
+ * url endpoint : /api/athena/blocks/{N} Used to fetch a specific block from the
+ * chain.
  *
- * This servlet is used to send BlockNumber Requests to Athena and to parse
- * the responses into JSON. A TCP socket connection is made to Athena
- * and requests and responses are encoded in the Google Protocol Buffer
- * format.
+ * This servlet is used to send BlockNumber Requests to Athena and to parse the
+ * responses into JSON. A TCP socket connection is made to Athena and requests
+ * and responses are encoded in the Google Protocol Buffer format.
  *
  */
 package Servlets;
@@ -43,7 +42,7 @@ public final class BlockNumber extends BaseServlet {
     */
    @Override
    protected void doGet(final HttpServletRequest request,
-            final HttpServletResponse response) throws IOException {
+                        final HttpServletResponse response) throws IOException {
       // Read the requested block number from the uri
       Long index = null;
       try {
@@ -56,13 +55,14 @@ public final class BlockNumber extends BaseServlet {
       }
 
       // Construct a blockNumberRequest object. Set its start field.
-      final Athena.BlockNumberRequest blockNumberRequestObj = Athena.BlockNumberRequest
-               .newBuilder().setIndex(index).build();
+      final Athena.BlockNumberRequest blockNumberRequestObj
+         = Athena.BlockNumberRequest.newBuilder().setIndex(index).build();
 
       // Envelope the blockNumberRequest object into an athena object.
-      final Athena.AthenaRequest athenarequestObj = Athena.AthenaRequest
-               .newBuilder().setBlockNumberRequest(blockNumberRequestObj)
-               .build();
+      final Athena.AthenaRequest athenarequestObj
+         = Athena.AthenaRequest.newBuilder()
+                               .setBlockNumberRequest(blockNumberRequestObj)
+                               .build();
 
       /////////////////// This is temporary.//////////////////////
       Athena.AthenaResponse athenaResponse = null;
@@ -100,20 +100,28 @@ public final class BlockNumber extends BaseServlet {
          parentHash = ByteString.copyFrom(temp);
       }
 
-      final Athena.BlockDetailed blockDetailedObj = Athena.BlockDetailed
-               .newBuilder().setNumber(1).setHash(hash)
-               .setParentHash(parentHash).setNonce("Nonce").setSize(50)
-               .addTransactions("transaction1").addTransactions("transaction2")
-               .build();
+      final Athena.BlockDetailed blockDetailedObj
+         = Athena.BlockDetailed.newBuilder()
+                               .setNumber(1)
+                               .setHash(hash)
+                               .setParentHash(parentHash)
+                               .setNonce("Nonce")
+                               .setSize(50)
+                               .addTransactions("transaction1")
+                               .addTransactions("transaction2")
+                               .build();
 
       // Construct a blockNumberResponse object.
-      final Athena.BlockNumberResponse blockNumberResponseObj = Athena.BlockNumberResponse
-               .newBuilder().setBlock(blockDetailedObj).build();
+      final Athena.BlockNumberResponse blockNumberResponseObj
+         = Athena.BlockNumberResponse.newBuilder()
+                                     .setBlock(blockDetailedObj)
+                                     .build();
 
       // Envelope the blockNumberResponse object into an athena object.
-      final Athena.AthenaResponse athenaresponseObj = Athena.AthenaResponse
-               .newBuilder().setBlockNumberResponse(blockNumberResponseObj)
-               .build();
+      final Athena.AthenaResponse athenaresponseObj
+         = Athena.AthenaResponse.newBuilder()
+                                .setBlockNumberResponse(blockNumberResponseObj)
+                                .build();
 
       return athenaresponseObj;
    }
@@ -131,8 +139,8 @@ public final class BlockNumber extends BaseServlet {
 
       // Extract the blocknumber response
       // from the athena reponse envelope.
-      Athena.BlockNumberResponse blockNumberResponse = athenaResponse
-               .getBlockNumberResponse();
+      Athena.BlockNumberResponse blockNumberResponse
+         = athenaResponse.getBlockNumberResponse();
 
       // Read the block from the blocknumber response object.
       Athena.BlockDetailed block = blockNumberResponse.getBlock();

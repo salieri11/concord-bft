@@ -1,8 +1,7 @@
 /**
- * This singleton class contains methods to implement connection
- * pooling for Helen.
- * The timeout and pool size can be adjusted
- * from the config.properties file.
+ * This singleton class contains methods to implement connection pooling for
+ * Helen. The timeout and pool size can be adjusted from the config.properties
+ * file.
  */
 package connections;
 
@@ -38,14 +37,12 @@ public class AthenaConnectionPool {
    private Object _poolIncreaseLock;
 
    // Instantiate the instance of this class
-   private static AthenaConnectionPool _instance =
-         new AthenaConnectionPool();
+   private static AthenaConnectionPool _instance = new AthenaConnectionPool();
 
-   private static Logger _log =
-         Logger.getLogger(AthenaConnectionPool.class);
-   
+   private static Logger _log = Logger.getLogger(AthenaConnectionPool.class);
+
    private AthenaConnectionFactory _factory;
-   
+
    /**
     * Initializes local variables.
     */
@@ -96,7 +93,7 @@ public class AthenaConnectionPool {
          _log.trace("closeConnection exit");
       }
    }
-  
+
    /**
     * Returns the single instance of this class.
     * 
@@ -107,8 +104,7 @@ public class AthenaConnectionPool {
    }
 
    /**
-    * Removes a connection from the connection pool data structure,
-    * checks it,
+    * Removes a connection from the connection pool data structure, checks it,
     * and returns it.
     * 
     * @return
@@ -116,18 +112,15 @@ public class AthenaConnectionPool {
     * @throws IllegalStateException
     * @throws InterruptedException
     */
-    public IAthenaConnection getConnection()
-            throws IOException,
-                  IllegalStateException,
-                  InterruptedException {
+   public IAthenaConnection getConnection() throws IOException,
+                                            IllegalStateException,
+                                            InterruptedException {
       _log.trace("getConnection enter");
 
       if (!_initialized.get())
-         throw new IllegalStateException(
-               "getConnection, pool not initialized");
+         throw new IllegalStateException("getConnection, pool not initialized");
 
-      IAthenaConnection conn = _pool.poll(_waitTimeout,
-               TimeUnit.MILLISECONDS);
+      IAthenaConnection conn = _pool.poll(_waitTimeout, TimeUnit.MILLISECONDS);
 
       if (conn == null) {
          synchronized (_poolIncreaseLock) {
@@ -160,13 +153,13 @@ public class AthenaConnectionPool {
     * @throws IllegalStateException
     * @throws NullPointerException
     */
-   public void putConnection(IAthenaConnection conn)
-            throws IllegalStateException, NullPointerException {
+   public void
+          putConnection(IAthenaConnection conn) throws IllegalStateException,
+                                                NullPointerException {
       _log.trace("putConnection enter");
 
       if (!_initialized.get())
-         throw new IllegalStateException(
-                  "returnConnection, pool not initialized");
+         throw new IllegalStateException("returnConnection, pool not initialized");
 
       // cannot be null in normal flow
       if (conn == null) {
@@ -191,27 +184,21 @@ public class AthenaConnectionPool {
     * @throws IOException
     */
    public void initialize(IConfiguration conf,
-                           AthenaConnectionFactory factory) 
-                                 throws IOException {
+                          AthenaConnectionFactory factory) throws IOException {
       if (_initialized.compareAndSet(false, true)) {
          _conf = conf;
          _factory = factory;
-         _waitTimeout =
-               conf.getIntegerValue("ConnectionPoolWaitTimeoutMs");
-         int poolSize =
-               _conf.getIntegerValue("ConnectionPoolSize");
-         int poolFactor =
-               conf.getIntegerValue("ConnectionPoolFactor");
+         _waitTimeout = conf.getIntegerValue("ConnectionPoolWaitTimeoutMs");
+         int poolSize = _conf.getIntegerValue("ConnectionPoolSize");
+         int poolFactor = conf.getIntegerValue("ConnectionPoolFactor");
          _maxPoolSize = poolSize * poolFactor;
 
-         _pool = new ArrayBlockingQueue<IAthenaConnection>(_maxPoolSize,
-                  true);
+         _pool = new ArrayBlockingQueue<IAthenaConnection>(_maxPoolSize, true);
          for (int i = 0; i < poolSize; i++)
             putConnection(createConnection());
 
-         _log.info(String.format(
-                  "AthenaConnectionPool initialized with %d connections",
-                  _connectionCount.get()));
+         _log.info(String.format("AthenaConnectionPool initialized with %d connections",
+                                 _connectionCount.get()));
       }
    }
 
@@ -235,8 +222,7 @@ public class AthenaConnectionPool {
     */
    public int getTotalConnections() {
       if (!_initialized.get())
-         throw new IllegalStateException(
-                  "returnConnection, pool not initialized");
+         throw new IllegalStateException("returnConnection, pool not initialized");
       return _connectionCount.get();
    }
 }

@@ -21,17 +21,17 @@ import org.json.simple.JSONObject;
 public abstract class BaseServlet extends HttpServlet {
    protected static final long serialVersionUID = 1L;
 
-   protected abstract void doGet(final HttpServletRequest request,
-            final HttpServletResponse response) throws IOException;
+   protected abstract void
+             doGet(final HttpServletRequest request,
+                   final HttpServletResponse response) throws IOException;
 
    protected IConfiguration _conf;
 
-   protected abstract JSONObject parseToJSON(
-            Athena.AthenaResponse athenaResponse);
+   protected abstract JSONObject
+             parseToJSON(Athena.AthenaResponse athenaResponse);
 
    protected BaseServlet() {
-      _conf = 
-            ConfigurationFactory.getConfiguration(ConfigurationType.File);
+      _conf = ConfigurationFactory.getConfiguration(ConfigurationType.File);
    }
 
    /**
@@ -45,7 +45,7 @@ public abstract class BaseServlet extends HttpServlet {
     *           - specifies logger from servlet to use
     */
    protected void processGet(Athena.AthenaRequest req,
-            HttpServletResponse response, Logger log) {
+                             HttpServletResponse response, Logger log) {
       JSONObject respObject = null;
       IAthenaConnection conn = null;
       Athena.AthenaResponse athenaResponse = null;
@@ -53,21 +53,27 @@ public abstract class BaseServlet extends HttpServlet {
          conn = AthenaConnectionPool.getInstance().getConnection();
          boolean res = AthenaHelper.sendToAthena(req, conn, _conf);
          if (!res) {
-            processResponse(response, "Communication error",
-                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR, log);
+            processResponse(response,
+                            "Communication error",
+                            HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                            log);
             return;
          }
 
          // receive response from Athena
          athenaResponse = AthenaHelper.receiveFromAthena(conn);
          if (athenaResponse == null) {
-            processResponse(response, "Data error",
-                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR, log);
+            processResponse(response,
+                            "Data error",
+                            HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                            log);
             return;
          }
       } catch (Exception e) {
-         processResponse(response, "Internal error",
-                  HttpServletResponse.SC_INTERNAL_SERVER_ERROR, log);
+         processResponse(response,
+                         "Internal error",
+                         HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                         log);
          return;
       } finally {
          AthenaConnectionPool.getInstance().putConnection(conn);
@@ -76,10 +82,12 @@ public abstract class BaseServlet extends HttpServlet {
       respObject = parseToJSON(athenaResponse);
       String json = respObject == null ? null : respObject.toJSONString();
 
-      processResponse(response, json,
-               json == null ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR
-                        : HttpServletResponse.SC_OK,
-               log);
+      processResponse(response,
+                      json,
+                      json == null
+                         ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR
+                         : HttpServletResponse.SC_OK,
+                      log);
    }
 
    /**
@@ -95,7 +103,7 @@ public abstract class BaseServlet extends HttpServlet {
     *           - servlet specific logger to use
     */
    protected void processResponse(HttpServletResponse resp, String data,
-            int status, Logger log) {
+                                  int status, Logger log) {
       try {
          // Set client response header
          resp.setHeader("Content-Transfer-Encoding", "UTF-8");

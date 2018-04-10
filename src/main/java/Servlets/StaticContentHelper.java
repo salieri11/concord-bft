@@ -38,12 +38,12 @@ public class StaticContentHelper {
       String servletPath;
       String pathInfo;
 
-      if (request.getDispatcherType() == DispatcherType.INCLUDE && request
-               .getAttribute(RequestDispatcher.INCLUDE_REQUEST_URI) != null) {
-         pathInfo = (String) request
-                  .getAttribute(RequestDispatcher.INCLUDE_PATH_INFO);
-         servletPath = (String) request
-                  .getAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH);
+      if (request.getDispatcherType() == DispatcherType.INCLUDE
+         && request.getAttribute(RequestDispatcher.INCLUDE_REQUEST_URI) != null) {
+         pathInfo
+            = (String) request.getAttribute(RequestDispatcher.INCLUDE_PATH_INFO);
+         servletPath
+            = (String) request.getAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH);
       } else {
          pathInfo = request.getPathInfo();
          servletPath = request.getServletPath();
