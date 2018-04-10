@@ -1,11 +1,11 @@
 /**
  * url endpoint : /api/athena/members
+ *
  * Used to fetch the Athena Consensus Membership List.
  *
- * This servlet is used to send Peer Requests to Athena and to parse
- * the responses into JSON. A TCP socket connection is made to Athena
- * and requests and responses are encoded in the Google Protocol Buffer
- * format.
+ * This servlet is used to send Peer Requests to Athena and to parse the
+ * responses into JSON. A TCP socket connection is made to Athena and requests
+ * and responses are encoded in the Google Protocol Buffer format.
  *
  * TODO : Handle the case of no/incorrect response from Athena
  */
@@ -13,7 +13,9 @@ package Servlets;
 
 import com.vmware.athena.*;
 import connections.AthenaConnectionPool;
+import connections.IAthenaCommunication;
 import connections.IAthenaConnection;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,21 +46,23 @@ public final class MemberList extends BaseServlet {
     */
    @Override
    protected void doGet(final HttpServletRequest request,
-            final HttpServletResponse response) throws IOException {
+                        final HttpServletResponse response) throws IOException {
       // Construct a peer request object. Set its return_peers field.
-      final Athena.PeerRequest peerRequestObj = Athena.PeerRequest.newBuilder()
-               .setReturnPeers(true).build();
+      final Athena.PeerRequest peerRequestObj
+         = Athena.PeerRequest.newBuilder().setReturnPeers(true).build();
 
       // Envelope the peer request object into an athena object.
-      final Athena.AthenaRequest athenarequestObj = Athena.AthenaRequest
-               .newBuilder().setPeerRequest(peerRequestObj).build();
+      final Athena.AthenaRequest athenarequestObj
+         = Athena.AthenaRequest.newBuilder()
+                               .setPeerRequest(peerRequestObj)
+                               .build();
 
       processGet(athenarequestObj, response, logger);
    }
 
    @Override
    protected void processGet(Athena.AthenaRequest req,
-            HttpServletResponse response, Logger log) {
+                             HttpServletResponse response, Logger log) {
       JSONArray respObject = null;
       IAthenaConnection conn = null;
       Athena.AthenaResponse athenaResponse = null;
@@ -66,21 +70,27 @@ public final class MemberList extends BaseServlet {
          conn = AthenaConnectionPool.getInstance().getConnection();
          boolean res = AthenaHelper.sendToAthena(req, conn, _conf);
          if (!res) {
-            processResponse(response, "Communication error",
-                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR, log);
+            processResponse(response,
+                            "Communication error",
+                            HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                            log);
             return;
          }
 
          // receive response from Athena
          athenaResponse = AthenaHelper.receiveFromAthena(conn);
          if (athenaResponse == null) {
-            processResponse(response, "Data error",
-                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR, log);
+            processResponse(response,
+                            "Data error",
+                            HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                            log);
             return;
          }
       } catch (Exception e) {
-         processResponse(response, "Internal error",
-                  HttpServletResponse.SC_INTERNAL_SERVER_ERROR, log);
+         processResponse(response,
+                         "Internal error",
+                         HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                         log);
          return;
       } finally {
          AthenaConnectionPool.getInstance().putConnection(conn);
@@ -89,10 +99,12 @@ public final class MemberList extends BaseServlet {
       respObject = parseToJSONArray(athenaResponse);
       String json = respObject == null ? null : respObject.toJSONString();
 
-      processResponse(response, json,
-               json == null ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR
-                        : HttpServletResponse.SC_OK,
-               log);
+      processResponse(response,
+                      json,
+                      json == null
+                         ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR
+                         : HttpServletResponse.SC_OK,
+                      log);
    }
 
    /**

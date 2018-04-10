@@ -1,8 +1,7 @@
 /**
- * This class is used to maintain resources related to a
- * TCP connection with Athena.
- *
- * Also contains functions for communicating with Athena over a TCP connection.
+ * This class is used to maintain resources related to a TCP connection with
+ * Athena. Also contains functions for communicating with Athena over a TCP
+ * connection.
  *
  */
 package connections;
@@ -15,16 +14,26 @@ import java.nio.ByteOrder;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.log4j.Logger;
 
+import com.vmware.athena.Athena;
+
+import Servlets.AthenaHelper;
 import configurations.*;
 
-public final class AthenaTCPConnection implements IAthenaConnection {
+public final class AthenaTCPConnection implements IAthenaCommunication,
+                                       IAthenaConnection {
    private Socket _socket;
    private AtomicBoolean _disposed;
    private final int _receiveTimeout; // ms
    private final int _receiveLengthSize; // bytes
    private IConfiguration _conf;
    private static Logger _logger = Logger.getLogger(AthenaTCPConnection.class);
-
+   private static Athena.ProtocolRequest _protocolRequestMsg
+      = Athena.ProtocolRequest.newBuilder().setClientVersion(1).build();
+   private static Athena.AthenaRequest _athenaRequest
+      = Athena.AthenaRequest.newBuilder()
+                            .setProtocolRequest(_protocolRequestMsg)
+                            .build();
+   
    /**
     * Sets up a TCP connection with Athena
     *
@@ -56,6 +65,7 @@ public final class AthenaTCPConnection implements IAthenaConnection {
    /**
     * Closes the TCP connection
     */
+   @Override
    public void close() {
       if (_disposed.get())
          return;
@@ -104,7 +114,7 @@ public final class AthenaTCPConnection implements IAthenaConnection {
 
             if (length == null && is.available() >= _receiveLengthSize) {
                length = ByteBuffer.wrap(new byte[_receiveLengthSize])
-                        .order(ByteOrder.LITTLE_ENDIAN);
+                                  .order(ByteOrder.LITTLE_ENDIAN);
                is.read(length.array(), 0, _receiveLengthSize);
             }
 
@@ -147,6 +157,32 @@ public final class AthenaTCPConnection implements IAthenaConnection {
       } catch (Exception e) {
          _logger.error("sendMessage", e);
          return false;
+      }
+   }
+
+   @Override
+   public boolean check() {
+      try {
+         _logger.trace("check enter");
+         boolean res = AthenaHelper.sendToAthena(_athenaRequest, this, _conf);
+         if (res) {
+            Athena.AthenaResponse resp = AthenaHelper.receiveFromAthena(this);
+            if (resp != null) {
+               Athena.ProtocolResponse pResp = resp.getProtocolResponse();
+               if (pResp != null) {
+                  _logger.debug("check, got server version: "
+                     + pResp.getServerVersion());
+                  return true;
+               }
+            }
+         }
+
+         return false;
+      } catch (IOException e) {
+         _logger.error("check", e);
+         return false;
+      } finally {
+         _logger.trace("check exit");
       }
    }
 }

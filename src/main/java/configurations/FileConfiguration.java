@@ -1,9 +1,9 @@
 /**
-* This singleton class is used to maintain common system configuration
+ * This singleton class is used to maintain common system configuration
  * resources.
  * 
- * A config.properties file contains the configrations in key value pair 
- * format. This class provides a handle to the file.
+ * A config.properties file contains the configrations in key value pair format.
+ * This class provides a handle to the file.
  */
 package configurations;
 
@@ -15,7 +15,7 @@ import java.util.Properties;
 import org.apache.log4j.Logger;
 import org.json.simple.parser.ParseException;
 
-public final class FileConfiguration implements IConfiguration {
+public class FileConfiguration implements IConfiguration {
 
    // Java way to eager initialize singleton with
    // ctor that throws exceptions. Static initializer block can throw
@@ -31,8 +31,7 @@ public final class FileConfiguration implements IConfiguration {
       }
    }
 
-   private Properties _configurations;
-   private static Logger _logger = Logger.getLogger(FileConfiguration.class);
+   protected Properties _configurations;
 
    /**
     * Loads the configurations file
@@ -40,7 +39,7 @@ public final class FileConfiguration implements IConfiguration {
     * @throws IOException
     * @throws ParseException
     **/
-   private FileConfiguration() throws IOException, ParseException {
+   protected FileConfiguration() throws IOException, ParseException {
       _configurations = new Properties();
       try (InputStream input = new FileInputStream("config.properties")) {
          _configurations.load(input);
@@ -53,7 +52,7 @@ public final class FileConfiguration implements IConfiguration {
     * @return Instance of this class
     * @throws IOException
     */
-   public static FileConfiguration getInstance() throws IOException {
+   public static FileConfiguration getInstance() {
       return _single_instance;
    }
 

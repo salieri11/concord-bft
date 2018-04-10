@@ -25,8 +25,8 @@ public class APIHelper {
       if (curr.length() % 2 != 0) {
          return null;
       }
-      
-      if(curr.equals("0x")) {
+
+      if (curr.equals("0x")) {
          return ByteString.EMPTY;
       }
 
@@ -38,7 +38,7 @@ public class APIHelper {
       if (resultSize > 0) {
          for (int i = 0; i < resultSize; i++) {
             resultBytes[i] = (byte) ((hexVal(curr.charAt(i * 2 + adjust)) << 4)
-                     | hexVal(curr.charAt(i * 2 + adjust + 1)));
+               | hexVal(curr.charAt(i * 2 + adjust + 1)));
          }
       }
       return ByteString.copyFrom(resultBytes);

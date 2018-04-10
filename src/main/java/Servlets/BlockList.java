@@ -1,11 +1,11 @@
 /**
  * url endpoint : /api/athena/blocks
+ *
  * Used to list blocks in the chain, most recent first.
  *
- * This servlet is used to send BlockList Requests to Athena and to parse
- * the responses into JSON. A TCP socket connection is made to Athena
- * and requests and responses are encoded in the Google Protocol Buffer
- * format.
+ * This servlet is used to send BlockList Requests to Athena and to parse the
+ * responses into JSON. A TCP socket connection is made to Athena and requests
+ * and responses are encoded in the Google Protocol Buffer format.
  *
  */
 package Servlets;
@@ -45,7 +45,7 @@ public final class BlockList extends BaseServlet {
     */
    @Override
    protected void doGet(final HttpServletRequest request,
-            final HttpServletResponse response) throws IOException {
+                        final HttpServletResponse response) throws IOException {
 
       // Read the request params
       Long latest = null;
@@ -64,8 +64,8 @@ public final class BlockList extends BaseServlet {
       }
 
       // Construct a blocksListRequest object.
-      Athena.BlocksListRequest.Builder b = Athena.BlocksListRequest
-               .newBuilder();
+      Athena.BlocksListRequest.Builder b
+         = Athena.BlocksListRequest.newBuilder();
       // If end is null, Athena assumes end is the latest block
       if (latest != null) {
          b.setLatest(latest);
@@ -80,13 +80,15 @@ public final class BlockList extends BaseServlet {
       Athena.BlocksListRequest blocksListRequestObj = b.build();
 
       // Envelope the blocksListRequest object into an athena object.
-      final Athena.AthenaRequest athenarequestObj = Athena.AthenaRequest
-               .newBuilder().setBlocksListRequest(blocksListRequestObj).build();
+      final Athena.AthenaRequest athenarequestObj
+         = Athena.AthenaRequest.newBuilder()
+                               .setBlocksListRequest(blocksListRequestObj)
+                               .build();
 
       /////////////////// This is temporary.//////////////////////
       Athena.AthenaResponse athenaResponse = null;
       JSONObject blocksListResponse = null;
-      
+
       if (latest == null) {
          latest = -1L;
       }
@@ -133,25 +135,28 @@ public final class BlockList extends BaseServlet {
          latestBlock--;
       }
 
-      Athena.BlocksListResponse.Builder b = Athena.BlocksListResponse
-               .newBuilder();
+      Athena.BlocksListResponse.Builder b
+         = Athena.BlocksListResponse.newBuilder();
 
       for (FakeBlock f : list) {
-         final Athena.BlockBrief blockBriefObj = Athena.BlockBrief.newBuilder()
-                  .setNumber(f.number).setHash(f.hash).build();
+         final Athena.BlockBrief blockBriefObj
+            = Athena.BlockBrief.newBuilder()
+                               .setNumber(f.number)
+                               .setHash(f.hash)
+                               .build();
          b.addBlocks(blockBriefObj);
       }
 
       final Athena.BlocksListResponse r = b.build();
-      Athena.AthenaResponse athenaResponseObj = Athena.AthenaResponse
-               .newBuilder().setBlocksListResponse(r).build();
+      Athena.AthenaResponse athenaResponseObj
+         = Athena.AthenaResponse.newBuilder().setBlocksListResponse(r).build();
 
       return athenaResponseObj;
    }
 
    /**
     * Parses the Protocol Buffer response from Athena and converts it into JSON.
-    * 
+    *
     * @param athenaResponse
     *           Protocol Buffer object containing Athena's reponse
     * @return Response in JSON format
@@ -162,8 +167,8 @@ public final class BlockList extends BaseServlet {
       try {
          // Extract the blocklist response
          // from the athena reponse envelope.
-         Athena.BlocksListResponse blocksListResponse = athenaResponse
-                  .getBlocksListResponse();
+         Athena.BlocksListResponse blocksListResponse
+            = athenaResponse.getBlocksListResponse();
 
          long earliestBlock = -1L;
 
@@ -186,7 +191,7 @@ public final class BlockList extends BaseServlet {
             String url = hexString.substring(2); // remove the "0x" at the start
 
             blockJson.put("url",
-                     _conf.getStringValue("BlockList_URLPrefix") + url);
+                          _conf.getStringValue("BlockList_URLPrefix") + url);
 
             // Store into a JSON array of all blocks.
             blockArr.add(blockJson);
@@ -196,8 +201,9 @@ public final class BlockList extends BaseServlet {
          // Construct the reponse JSON object.
          JSONObject responseJson = new JSONObject();
          responseJson.put("blocks", blockArr);
-         responseJson.put("next", _conf.getStringValue("BlockList_NextPrefix")
-                  + (earliestBlock - 1));
+         responseJson.put("next",
+                          _conf.getStringValue("BlockList_NextPrefix")
+                             + (earliestBlock - 1));
 
          return responseJson;
       } catch (Exception e) {
@@ -207,15 +213,14 @@ public final class BlockList extends BaseServlet {
    }
 
    /**
-    * Used to structure mock responses
-    * Temporary
+    * Used to structure mock responses Temporary
     *
     */
    private class FakeBlock {
       int number;
       ByteString hash;
       char[] hex = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B',
-               'C', 'D', 'E', 'F' };
+         'C', 'D', 'E', 'F' };
 
       FakeBlock(int number) {
          this.number = number;
@@ -230,8 +235,7 @@ public final class BlockList extends BaseServlet {
          try {
             hash = APIHelper.hexStringToBinary(sb.toString());
          } catch (Exception e) {
-            logger.error(
-                     "Error in converting from hex string to binary string");
+            logger.error("Error converting from hex string to binary string");
             byte[] temp = new byte[32];
             hash = ByteString.copyFrom(temp);
          }

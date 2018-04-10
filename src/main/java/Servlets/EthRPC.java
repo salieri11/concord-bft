@@ -1,16 +1,13 @@
 /**
  * url endpoint : /api/athena/eth
  *
- * GET:
- * Used to list available RPC methods.
- * A list of currently exposed Eth RPC methods is read from the config file
- * and returned to the client.
+ * GET: Used to list available RPC methods. A list of currently exposed Eth RPC
+ * methods is read from the config file and returned to the client.
  *
- * POST:
- * Used to call the named method.
- * An EthRPCExecute request is sent to Athena and to parse the responses into
- * JSON. A TCP socket connection is made to Athena and requests and responses
- * are encoded in the Google Protocol Buffer format.
+ * POST: Used to call the named method. An EthRPCExecute request is sent to
+ * Athena and to parse the responses into JSON. A TCP socket connection is made
+ * to Athena and requests and responses are encoded in the Google Protocol
+ * Buffer format.
  *
  * TODO : Handle the case of no/incorrect response from Athena
  */
@@ -22,6 +19,7 @@ import com.vmware.athena.Athena.ErrorResponse;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 
 import connections.AthenaConnectionPool;
+import connections.IAthenaCommunication;
 import connections.IAthenaConnection;
 
 import com.vmware.athena.Athena.EthResponse;
@@ -46,13 +44,19 @@ public final class EthRPC extends BaseServlet {
    private JSONArray rpcList;
 
    private enum EthMethodName {
-   SEND_TX, GET_TX_RECEIPT, GET_STORAGE_AT;
+      SEND_TX,
+      GET_TX_RECEIPT,
+      GET_STORAGE_AT;
    }
 
    public EthRPC() throws ParseException {
       super();
       JSONParser p = new JSONParser();
-      rpcList = (JSONArray) p.parse(_conf.getStringValue("EthRPCList"));
+      try {
+         rpcList = (JSONArray) p.parse(_conf.getStringValue("EthRPCList"));
+      } catch (Exception e) {
+         logger.error("Failed to read EthRPCList", e);
+      }
    }
 
    /**
@@ -66,12 +70,13 @@ public final class EthRPC extends BaseServlet {
     * @throws IOException
     */
    protected void doGet(final HttpServletRequest request,
-            final HttpServletResponse response) throws IOException {
+                        final HttpServletResponse response) throws IOException {
 
       if (rpcList == null) {
          logger.error("Configurations not read.");
-         processResponse(response, "error", StatusCodes.INTERNAL_SERVER_ERROR,
-                  logger);
+         processResponse(response, (new JSONArray()).toJSONString(),
+                         HttpServletResponse.SC_SERVICE_UNAVAILABLE, logger);
+         return;
       }
 
       processResponse(response, rpcList.toJSONString(), StatusCodes.OK, logger);
@@ -88,8 +93,9 @@ public final class EthRPC extends BaseServlet {
     *           The response object used to respond to the client
     * @throws IOException
     */
-   protected void doPost(final HttpServletRequest request,
-            final HttpServletResponse response) throws IOException {
+   protected void
+             doPost(final HttpServletRequest request,
+                    final HttpServletResponse response) throws IOException {
 
       // Retrieve the request fields
       JSONObject requestParams = null;
@@ -102,13 +108,15 @@ public final class EthRPC extends BaseServlet {
       JSONParser parser = new JSONParser();
       try {
          // Retrieve the parameters from the request body
-         String paramString = request.getReader().lines()
-                  .collect(Collectors.joining(System.lineSeparator()));
+         String paramString
+            = request.getReader()
+                     .lines()
+                     .collect(Collectors.joining(System.lineSeparator()));
          requestParams = (JSONObject) parser.parse(paramString);
 
          if (requestParams == null) {
             logger.error("Invalid request : Parameters should be in the "
-                     + "request body and in a JSON object format");
+                         + "request body and in a JSON object format");
             errorResponse(response, "Unable to parse request", 0, logger);
             return;
          }
@@ -152,26 +160,26 @@ public final class EthRPC extends BaseServlet {
             rpc = EthMethodName.SEND_TX;
             b.setMethod(EthMethod.SEND_TX);
             JSONObject obj = (JSONObject) params.get(0);
-            ByteString fromAddr = APIHelper
-                     .hexStringToBinary((String) obj.get("from"));
+            ByteString fromAddr
+               = APIHelper.hexStringToBinary((String) obj.get("from"));
             b.setAddrFrom(fromAddr);
 
             if (obj.containsKey("to")) {
-               ByteString toAddr = APIHelper
-                        .hexStringToBinary((String) obj.get("to"));
+               ByteString toAddr
+                  = APIHelper.hexStringToBinary((String) obj.get("to"));
                b.setAddrTo(toAddr);
             }
 
-            ByteString data = APIHelper
-                     .hexStringToBinary((String) obj.get("data"));
+            ByteString data
+               = APIHelper.hexStringToBinary((String) obj.get("data"));
             b.setData(data);
             if (obj.containsKey("value")) {
-               ByteString value = APIHelper
-                        .hexStringToBinary((String) obj.get("value"));
+               ByteString value
+                  = APIHelper.hexStringToBinary((String) obj.get("value"));
                b.setValue(value);
             }
-         } else if (method
-                  .equals(_conf.getStringValue("GetTransactionReceipt_Name"))) {
+         } else if (method.equals(_conf.getStringValue(
+                                     "GetTransactionReceipt_Name"))) {
             rpc = EthMethodName.GET_TX_RECEIPT;
             b.setMethod(EthMethod.GET_TX_RECEIPT);
             txHash = (String) params.get(0);
@@ -198,8 +206,10 @@ public final class EthRPC extends BaseServlet {
       Athena.EthRequest athenaEthRequest = b.build();
 
       // Envelope the request object into an athena request object.
-      final Athena.AthenaRequest athenarequestObj = Athena.AthenaRequest
-               .newBuilder().addEthRequest(athenaEthRequest).build();
+      final Athena.AthenaRequest athenarequestObj
+         = Athena.AthenaRequest.newBuilder()
+                               .addEthRequest(athenaEthRequest)
+                               .build();
 
       processGet(rpc, txHash, athenarequestObj, response, logger);
    }
@@ -241,8 +251,8 @@ public final class EthRPC extends BaseServlet {
     */
    @SuppressWarnings("unchecked")
    protected void processGet(EthMethodName method, String txHash,
-            Athena.AthenaRequest req, HttpServletResponse response,
-            Logger log) {
+                             Athena.AthenaRequest req,
+                             HttpServletResponse response, Logger log) {
       JSONObject respObject = null;
       IAthenaConnection conn = null;
       Athena.AthenaResponse athenaResponse = null;
@@ -288,17 +298,18 @@ public final class EthRPC extends BaseServlet {
       // Set method specific responses
       EthResponse ethResponse = athenaResponse.getEthResponse(0);
       if (method.equals(EthMethodName.SEND_TX)
-               || method.equals(EthMethodName.GET_STORAGE_AT)) {
+         || method.equals(EthMethodName.GET_STORAGE_AT)) {
          respObject.put("result",
-                  APIHelper.binaryStringToHex(ethResponse.getData()));
+                        APIHelper.binaryStringToHex(ethResponse.getData()));
       } else if (method.equals(EthMethodName.GET_TX_RECEIPT)) {
          JSONObject result = new JSONObject();
          result.put("status",
-                  "0x" + Integer.toString(ethResponse.getStatus(), 16));
+                    "0x" + Integer.toString(ethResponse.getStatus(), 16));
          result.put("transactionHash", txHash);
          if (ethResponse.hasContractAddress()) {
-            result.put("contractAddress", APIHelper
-                     .binaryStringToHex(ethResponse.getContractAddress()));
+            result.put("contractAddress",
+                       APIHelper.binaryStringToHex(
+                          ethResponse.getContractAddress()));
          } else {
             result.put("contractAddress", null);
          }
