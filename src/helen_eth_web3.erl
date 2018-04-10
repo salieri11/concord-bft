@@ -21,7 +21,13 @@
 
 -spec clientVersion(#eth_request{}) -> {ok, mochijson2:json_term()}.
 clientVersion(_Request) ->
-    {ok, <<"Helen/1.0.0">>}.
+    {_Osfamily, Osname} = os:type(),
+    Otp = erlang:system_info(otp_release),
+    Erts = erlang:system_info(version),
+    {ok, list_to_binary(["Helen/",                    %% name
+                         "v1.0.0/",                   %% version
+                         atom_to_list(Osname), "/",   %% operating system
+                         "erlang", Otp, ".", Erts])}. %% language
 
 -spec sha3(#eth_request{}) -> {ok|error, mochijson2:json_term()}.
 sha3(#eth_request{params=[String0x]}) ->
