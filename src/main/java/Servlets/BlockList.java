@@ -1,6 +1,7 @@
 /**
- * url endpoint : /api/athena/blocks Used to list blocks in the chain, most
- * recent first.
+ * url endpoint : /api/athena/blocks
+ *
+ * Used to list blocks in the chain, most recent first.
  *
  * This servlet is used to send BlockList Requests to Athena and to parse the
  * responses into JSON. A TCP socket connection is made to Athena and requests
@@ -155,7 +156,7 @@ public final class BlockList extends BaseServlet {
 
    /**
     * Parses the Protocol Buffer response from Athena and converts it into JSON.
-    * 
+    *
     * @param athenaResponse
     *           Protocol Buffer object containing Athena's reponse
     * @return Response in JSON format
@@ -234,7 +235,7 @@ public final class BlockList extends BaseServlet {
          try {
             hash = APIHelper.hexStringToBinary(sb.toString());
          } catch (Exception e) {
-            logger.error("Error in converting from hex string to binary string");
+            logger.error("Error converting from hex string to binary string");
             byte[] temp = new byte[32];
             hash = ByteString.copyFrom(temp);
          }

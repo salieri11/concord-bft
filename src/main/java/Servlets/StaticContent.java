@@ -1,11 +1,11 @@
 /**
  * This servlet is used to serve static content.
  *
- * Endpoints serviced : /assets/* : Loads content in the priv/www/assets folder
- * /api and /api/ : Loads content from priv/swagger.json /swagger/* : Loads
- * content from priv/www/swagger folder /* : Loads content from
- * priv/www/index.html
- *
+ * Endpoints serviced :
+ *  - /assets/* : Loads content in the priv/www/assets folder
+ *  - /api and /api/ : Loads content from priv/swagger.json
+ *  - /swagger/* : Loads content from priv/www/swagger folder
+ *  - /* : Loads content from priv/www/index.html
  */
 package Servlets;
 
@@ -119,8 +119,8 @@ public class StaticContent extends HttpServlet {
           * If the separator char is not / we want to replace it with a / and
           * canonicalise
           */
-         String contentPath
-            = CanonicalPathUtils.canonicalize(StaticContentHelper.getPath(request));
+         String contentPath = CanonicalPathUtils.canonicalize(
+            StaticContentHelper.getPath(request));
          contentPath = contentPath.replace('/', File.separatorChar);
 
          // Users need to request for a specific resource

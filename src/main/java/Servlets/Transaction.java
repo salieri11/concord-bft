@@ -1,6 +1,7 @@
 /**
- * url endpoint : /api/athena/transaction/{hash} Used to get a specific
- * transaction by its hash.
+ * url endpoint : /api/athena/transaction/{hash}
+ *
+ * Used to get a specific transaction by its hash.
  *
  * This servlet is used to send Transaction Requests to Athena and to parse the
  * responses into JSON. A TCP socket connection is made to Athena and requests

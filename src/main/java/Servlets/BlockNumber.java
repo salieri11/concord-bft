@@ -1,6 +1,7 @@
 /**
- * url endpoint : /api/athena/blocks/{N} Used to fetch a specific block from the
- * chain.
+ * url endpoint : /api/athena/blocks/{N}
+ *
+ * Used to fetch a specific block from the chain.
  *
  * This servlet is used to send BlockNumber Requests to Athena and to parse the
  * responses into JSON. A TCP socket connection is made to Athena and requests
@@ -33,7 +34,7 @@ public final class BlockNumber extends BaseServlet {
     * request (enveloped in an athena request) as defined in athena.proto. Sends
     * this request to Athena. Parses the response and converts it into json for
     * sendiong to clientß
-    * 
+    *
     * @param request
     *           The request received by the servlet
     * @param response
@@ -128,7 +129,7 @@ public final class BlockNumber extends BaseServlet {
 
    /**
     * Parses the Protocol Buffer response from Athena and converts it into JSON.
-    * 
+    *
     * @param athenaResponse
     *           Protocol Buffer object containing Athena's reponse
     * @return Response in JSON format

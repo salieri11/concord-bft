@@ -108,12 +108,10 @@ public class Server {
          = deployment().setClassLoader(Server.class.getClassLoader())
                        .setContextPath(serverPath)
                        .setResourceManager(
-                                           // 1024 : Size to use direct
-                                           // FS to network transfer (if
-                                           // supported by OS/JDK) instead of
-                                           // read/write
-                                           new FileResourceManager(new File(defaultReponse),
-                                                                   1024))
+                          // 1024 : Size to use direct FS to network transfer
+                          // (if supported by OS/JDK) instead of read/write
+                          new FileResourceManager(new File(defaultReponse),
+                                                  1024))
                        .setDeploymentName(deploymentName)
                        .addServlets(Servlets.servlet(memberListServletName,
                                                      MemberList.class)

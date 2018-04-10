@@ -16,7 +16,7 @@ public class StaticContentHelper {
    /**
     * Detects the file type for setting content type of response header. Note :
     * The file extension is used for deducing the type.
-    * 
+    *
     * @param file
     *           File to be served
     * @return File type
@@ -38,12 +38,13 @@ public class StaticContentHelper {
       String servletPath;
       String pathInfo;
 
-      if (request.getDispatcherType() == DispatcherType.INCLUDE
-         && request.getAttribute(RequestDispatcher.INCLUDE_REQUEST_URI) != null) {
-         pathInfo
-            = (String) request.getAttribute(RequestDispatcher.INCLUDE_PATH_INFO);
-         servletPath
-            = (String) request.getAttribute(RequestDispatcher.INCLUDE_SERVLET_PATH);
+      if (request.getDispatcherType() == DispatcherType.INCLUDE &&
+          request.getAttribute(
+             RequestDispatcher.INCLUDE_REQUEST_URI) != null) {
+         pathInfo = (String) request.getAttribute(
+            RequestDispatcher.INCLUDE_PATH_INFO);
+         servletPath = (String) request.getAttribute(
+            RequestDispatcher.INCLUDE_SERVLET_PATH);
       } else {
          pathInfo = request.getPathInfo();
          servletPath = request.getServletPath();

@@ -1,6 +1,7 @@
 /**
- * url endpoint : /api/athena/members Used to fetch the Athena Consensus
- * Membership List.
+ * url endpoint : /api/athena/members
+ *
+ * Used to fetch the Athena Consensus Membership List.
  *
  * This servlet is used to send Peer Requests to Athena and to parse the
  * responses into JSON. A TCP socket connection is made to Athena and requests

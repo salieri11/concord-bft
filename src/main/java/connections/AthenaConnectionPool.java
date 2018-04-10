@@ -54,7 +54,7 @@ public class AthenaConnectionPool {
 
    /**
     * Creates a new TCP connection with Athena.
-    * 
+    *
     * @return
     */
    private IAthenaConnection createConnection() {
@@ -75,7 +75,7 @@ public class AthenaConnectionPool {
 
    /**
     * Closes a single connection instance with Athena.
-    * 
+    *
     * @param conn
     */
    private void closeConnection(IAthenaConnection conn) {
@@ -96,7 +96,7 @@ public class AthenaConnectionPool {
 
    /**
     * Returns the single instance of this class.
-    * 
+    *
     * @return
     */
    public static AthenaConnectionPool getInstance() {
@@ -106,7 +106,7 @@ public class AthenaConnectionPool {
    /**
     * Removes a connection from the connection pool data structure, checks it,
     * and returns it.
-    * 
+    *
     * @return
     * @throws IOException
     * @throws IllegalStateException
@@ -148,7 +148,7 @@ public class AthenaConnectionPool {
 
    /**
     * Adds a connection to the connection pool data structure.
-    * 
+    *
     * @param conn
     * @throws IllegalStateException
     * @throws NullPointerException
@@ -159,7 +159,8 @@ public class AthenaConnectionPool {
       _log.trace("putConnection enter");
 
       if (!_initialized.get())
-         throw new IllegalStateException("returnConnection, pool not initialized");
+         throw new IllegalStateException(
+            "returnConnection, pool not initialized");
 
       // cannot be null in normal flow
       if (conn == null) {
@@ -179,7 +180,7 @@ public class AthenaConnectionPool {
 
    /**
     * Reads connection pool related configurations.
-    * 
+    *
     * @param conf
     * @throws IOException
     */
@@ -194,11 +195,13 @@ public class AthenaConnectionPool {
          _maxPoolSize = poolSize * poolFactor;
 
          _pool = new ArrayBlockingQueue<IAthenaConnection>(_maxPoolSize, true);
-         for (int i = 0; i < poolSize; i++)
+         for (int i = 0; i < poolSize; i++) {
             putConnection(createConnection());
+         }
 
-         _log.info(String.format("AthenaConnectionPool initialized with %d connections",
-                                 _connectionCount.get()));
+         _log.info(String.format(
+                      "AthenaConnectionPool initialized with %d connections",
+                      _connectionCount.get()));
       }
    }
 
@@ -217,12 +220,14 @@ public class AthenaConnectionPool {
 
    /**
     * Returns total number of connections
-    * 
+    *
     * @return
     */
    public int getTotalConnections() {
-      if (!_initialized.get())
-         throw new IllegalStateException("returnConnection, pool not initialized");
+      if (!_initialized.get()) {
+         throw new IllegalStateException(
+            "returnConnection, pool not initialized");
+      }
       return _connectionCount.get();
    }
 }

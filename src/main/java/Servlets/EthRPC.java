@@ -178,7 +178,8 @@ public final class EthRPC extends BaseServlet {
                   = APIHelper.hexStringToBinary((String) obj.get("value"));
                b.setValue(value);
             }
-         } else if (method.equals(_conf.getStringValue("GetTransactionReceipt_Name"))) {
+         } else if (method.equals(_conf.getStringValue(
+                                     "GetTransactionReceipt_Name"))) {
             rpc = EthMethodName.GET_TX_RECEIPT;
             b.setMethod(EthMethod.GET_TX_RECEIPT);
             txHash = (String) params.get(0);
@@ -307,7 +308,8 @@ public final class EthRPC extends BaseServlet {
          result.put("transactionHash", txHash);
          if (ethResponse.hasContractAddress()) {
             result.put("contractAddress",
-                       APIHelper.binaryStringToHex(ethResponse.getContractAddress()));
+                       APIHelper.binaryStringToHex(
+                          ethResponse.getContractAddress()));
          } else {
             result.put("contractAddress", null);
          }
