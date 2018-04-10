@@ -109,14 +109,14 @@ public final class EthRPC extends BaseServlet {
          if (requestParams == null) {
             logger.error("Invalid request : Parameters should be in the "
                      + "request body and in a JSON object format");
-            processResponse(response, "error", StatusCodes.BAD_REQUEST, logger);
+            errorResponse(response, "Unable to parse request", 0, logger);
             return;
          }
          logger.debug("Request Parameters: " + requestParams.toJSONString());
 
       } catch (ParseException e) {
          logger.error("Invalid request", e);
-         processResponse(response, "error", StatusCodes.BAD_REQUEST, logger);
+         errorResponse(response, "Unable to parse request", 0, logger);
          return;
       }
 
@@ -124,21 +124,22 @@ public final class EthRPC extends BaseServlet {
          id = (Long) requestParams.get("id");
       } catch (NumberFormatException e) {
          logger.error("Invalid request parameter : id", e);
-         processResponse(response, "error", StatusCodes.BAD_REQUEST, logger);
+         errorResponse(response, "'id' must be an integer", 0, logger);
          return;
       }
 
       method = (String) requestParams.get("method");
       if (method == null || method.trim().length() < 1) {
          logger.error("Invalid request parameter : method");
-         processResponse(response, "error", StatusCodes.BAD_REQUEST, logger);
+         errorResponse(response, "Invalid 'method' parameter", id, logger);
          return;
       }
 
-      params = (JSONArray) requestParams.get("params");
-      if (params.size() < 1) {
+      try {
+         params = (JSONArray) requestParams.get("params");
+      } catch (ClassCastException cse) {
          logger.error("Invalid request parameter : params");
-         processResponse(response, "error", StatusCodes.BAD_REQUEST, logger);
+         errorResponse(response, "'params' must be an array", id, logger);
          return;
       }
 
@@ -185,12 +186,12 @@ public final class EthRPC extends BaseServlet {
             b.setData(APIHelper.hexStringToBinary(s));
          } else {
             logger.error("Invalid method name");
-            processResponse(response, "error", StatusCodes.BAD_REQUEST, logger);
+            errorResponse(response,"Unknown method '"+method+"'", id, logger);
             return;
          }
       } catch (Exception e) {
-         logger.error("Invalid request parameter : params");
-         processResponse(response, "error", StatusCodes.BAD_REQUEST, logger);
+         logger.error("Invalid request", e);
+         errorResponse(response, "Invalid request", id, logger);
          return;
       }
 
@@ -206,7 +207,7 @@ public final class EthRPC extends BaseServlet {
    /**
     * Pads zeroes to the hex string to ensure a uniform length of 64 hex
     * characters
-    * 
+    *
     * @param p
     * @return
     */
@@ -230,7 +231,7 @@ public final class EthRPC extends BaseServlet {
 
    /**
     * Process get request
-    * 
+    *
     * @param req
     *           - Athena request object
     * @param response
@@ -249,21 +250,22 @@ public final class EthRPC extends BaseServlet {
          conn = AthenaConnectionPool.getInstance().getConnection();
          boolean res = AthenaHelper.sendToAthena(req, conn, _conf);
          if (!res) {
-            processResponse(response, "Communication error",
-                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR, log);
+            errorResponse(response, "Error communicating with athena",
+                          req.getEthRequest(0).getId(), log);
             return;
          }
 
          // receive response from Athena
          athenaResponse = AthenaHelper.receiveFromAthena(conn);
          if (athenaResponse == null) {
-            processResponse(response, "Data error",
-                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR, log);
+            errorResponse(response, "Error reading response from athena",
+                          req.getEthRequest(0).getId(), log);
             return;
          }
       } catch (Exception e) {
-         processResponse(response, "Internal error",
-                  HttpServletResponse.SC_INTERNAL_SERVER_ERROR, log);
+         logger.error("General exception communicating with athena: ", e);
+         errorResponse(response,"Error communicating with athena",
+                       req.getEthRequest(0).getId(), log);
          return;
       } finally {
          AthenaConnectionPool.getInstance().putConnection(conn);
@@ -274,11 +276,12 @@ public final class EthRPC extends BaseServlet {
       // If there is an error reported by Athena
       if (athenaResponse.getErrorResponseCount() > 0) {
          ErrorResponse errResponse = athenaResponse.getErrorResponse(0);
+         String description = "Error received from athena";
          if (errResponse.hasDescription()) {
-            respObject.put("error", errResponse.getDescription());
+            description = errResponse.getDescription();
          }
-         processResponse(response, respObject.toJSONString(),
-                  HttpServletResponse.SC_OK, log);
+         errorResponse(response, description,
+                       req.getEthRequest(0).getId(), log);
          return;
       }
 
@@ -300,13 +303,31 @@ public final class EthRPC extends BaseServlet {
             result.put("contractAddress", null);
          }
          respObject.put("result", result);
+      } else {
+         respObject = errorMessage("Unknown response type from athena",
+                                   req.getEthRequest(0).getId());
       }
 
-      String json = respObject == null ? null : respObject.toJSONString();
-      processResponse(response, json,
-               json == null ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR
-                        : HttpServletResponse.SC_OK,
-               log);
+      processResponse(response, respObject.toJSONString(),
+                      HttpServletResponse.SC_OK, log);
+   }
+
+   private void errorResponse(HttpServletResponse response,
+                              String message, long id, Logger log) {
+      processResponse(response, errorMessage(message, id).toJSONString(),
+                      HttpServletResponse.SC_OK, log);
+   }
+
+   private JSONObject errorMessage(String message, long id) {
+      JSONObject responseJson = new JSONObject();
+      responseJson.put("id", id);
+      responseJson.put("jsonprc", _conf.getStringValue("JSONRPC"));
+
+      JSONObject error = new JSONObject();
+      error.put("message", message);
+      responseJson.put("error", error);
+
+      return responseJson;
    }
 
    /**
