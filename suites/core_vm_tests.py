@@ -13,6 +13,7 @@ import os
 import pprint
 import tempfile
 import time
+import traceback
 
 from . import test_suite
 from rpc.rpc_call import RPC
@@ -107,8 +108,7 @@ class CoreVMTests(test_suite.TestSuite):
                                                testLogDir)
             except Exception as e:
                result = False
-               info = str(e)
-               log.error("Exception running RPC test: '{}'".format(info))
+               info = str(e) + "\n" + traceback.format_exc()
 
             if info:
                info += "  "
@@ -296,7 +296,6 @@ class CoreVMTests(test_suite.TestSuite):
 
    def _runRpcTest(self, testPath, testSource, testCompiled, testLogDir):
       ''' Runs one test. '''
-
       success = None
       info = None
       testName = list(testSource.keys())[0]
@@ -333,9 +332,7 @@ class CoreVMTests(test_suite.TestSuite):
 
       if txReceipt:
          if testData:
-            # If the test has info in its "data" field, we need to now call
-            # the contract with that data.
-            contractAddress = txReceipt["contractAddress"]
+            contractAddress = RPC.searchResponse(txReceipt, ["contractAddress"])
             log.info("Invoking contract for test {}".format(testName))
             txReceipt = self._invokeContract(user, rpc, contractAddress,
                                              testData, gas)
