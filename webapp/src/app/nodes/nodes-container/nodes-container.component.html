@@ -1,24 +1,24 @@
 <div class="p-2 bg-dark">
   <div class="row">
     <div class="col-xs-4 media flex-items-xs-middle">
-      <h3 class="mt-0 text-white">Node Activity</h3>
+      <h3 class="mt-0 text-white">{{'nodes.nodeActivity' | translate}}</h3>
     </div>
     <div class="col-xs-8 media flex-items-xs-middle flex-items-xs-right">
       <clr-tabs>
         <clr-tab>
-          <button clrTabLink>Today</button>
+          <button clrTabLink>{{'time.today' | translate}}</button>
           <clr-tab-content id="content1" *clrIfActive="true"></clr-tab-content>
         </clr-tab>
         <clr-tab>
-          <button clrTabLink>Last 7 Days</button>
+          <button clrTabLink>{{ 'time.lastXDays' | translate:{number: 7} }}</button>
           <clr-tab-content *clrIfActive></clr-tab-content>
         </clr-tab>
         <clr-tab>
-          <button clrTabLink>Last 30 Days</button>
+          <button clrTabLink>{{ 'time.lastXDays' | translate:{number: 30} }}</button>
           <clr-tab-content *clrIfActive></clr-tab-content>
         </clr-tab>
         <clr-tab>
-          <button clrTabLink>Last 90 Days</button>
+          <button clrTabLink>{{ 'time.lastXDays' | translate:{number: 90} }}</button>
           <clr-tab-content *clrIfActive></clr-tab-content>
         </clr-tab>
       </clr-tabs>
@@ -32,19 +32,19 @@
   <div class="row">
     <div class="col-md">
       <p class="p7 mt-0">
-        Total Active Nodes
+        {{'nodes.totalActiveNodes' | translate}}
       </p>
       <h2 class="mt-0">{{mockStats.totalActiveNodes | number}}</h2>
     </div>
     <div class="col-md">
       <p class="p7 mt-0" >
-        Inactive Nodes
+        {{'nodes.inactiveNodes' | translate}}
       </p>
       <h2 class="mt-0">{{mockStats.inactiveNodes | number}}</h2>
     </div>
     <div class="col-md">
       <p class="p7 mt-0">
-        Overall Node Health
+        {{'nodes.overallNodeHealth' | translate}}
       </p>
       <h2 class="mt-0">{{mockStats.overallNodeHealth | percent:"1.0-2"}}</h2>
       <div class="progress success">
@@ -53,15 +53,17 @@
     </div>
     <div class="col-md">
       <p class="p7 mt-0">
-        Transactions/second
+        {{'nodes.transactionsPerSecond' | translate}}
       </p>
       <h2 class="mt-0">{{mockStats.transactionsPerSecond | number}}</h2>
     </div>
     <div class="col-md">
       <p class="p7 mt-0">
-        Avg Validation Time
+        {{'nodes.averageValidationTime' | translate}}
       </p>
-      <h2 class="mt-0">{{mockStats.averageValidationTime | number:"1.0-2"}} <small>seconds</small></h2>
+      <h2 class="mt-0"
+          [innerHTML]="'nodes.xSeconds' | translate:{seconds: (mockStats.averageValidationTime | number:'1.0-2')}">
+      </h2>
     </div>
   </div>
 </div>
@@ -69,12 +71,12 @@
 <div class="p-2">
   <div class="row">
     <div class="col-xs-6">
-      <h3 class="mt-0">Nodes</h3>
+      <h3 class="mt-0">{{'nodes.nodes' | translate}}</h3>
     </div>
     <div class="col-xs-6">
       <div class="form-group text-right">
-        <input type="text" placeholder="Search..." />
-        <button type="button" class="btn btn-primary" (click)="onOpenFilterModal()">Filters</button>
+        <input type="text" [attr.placeholder]="'nodes.searchPlaceholder' | translate" />
+        <button type="button" class="btn btn-primary" (click)="onOpenFilterModal()">{{'nodes.filters' | translate}}</button>
       </div>
     </div>
   </div>
@@ -82,10 +84,10 @@
   <table class="table">
     <thead>
     <tr>
-      <th>Location</th>
-      <th>Hostname</th>
-      <th>Address</th>
-      <th>Status</th>
+      <th>{{'nodes.location' | translate}}</th>
+      <th>{{'nodes.hostname' | translate}}</th>
+      <th>{{'nodes.address' | translate}}</th>
+      <th>{{'nodes.status' | translate}}</th>
       <th></th>
     </tr>
     </thead>
@@ -101,7 +103,7 @@
             <clr-icon shape="ellipsis-horizontal" size="16"></clr-icon>
           </button>
           <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
-            <a clrDropdownItem [routerLink]="['/nodes', member.host]">View Detail</a>
+            <a clrDropdownItem [routerLink]="['/nodes', member.host]">{{'nodes.viewDetail' | translate}}</a>
           </clr-dropdown-menu>
         </clr-dropdown>
       </td>

@@ -4,19 +4,19 @@
   <div class="row">
     <div class="col-md">
       <p class="p7 mt-0">
-        Total Active Nodes
+        {{'dashboard.totalActiveNodes' | translate}}
       </p>
       <h2 class="mt-0">{{mockStats.totalActiveNodes | number}}</h2>
     </div>
     <div class="col-md">
       <p class="p7 mt-0">
-        Inactive Nodes
+        {{'dashboard.inactiveNodes' | translate}}
       </p>
       <h2 class="mt-0">{{mockStats.inactiveNodes | number}}</h2>
     </div>
     <div class="col-md">
       <p class="p7 mt-0">
-        Overall Node Health
+        {{'dashboard.overallNodeHealth' | translate}}
       </p>
       <h2 class="mt-0">{{mockStats.overallNodeHealth | percent:"1.0-2"}}</h2>
       <div class="progress success">
@@ -25,15 +25,17 @@
     </div>
     <div class="col-md">
       <p class="p7 mt-0">
-        Transactions/second
+        {{'dashboard.transactionsPerSecond' | translate}}
       </p>
       <h2 class="mt-0">{{mockStats.transactionsPerSecond | number}}</h2>
     </div>
     <div class="col-md">
       <p class="p7 mt-0">
-        Avg Validation Time
+        {{'dashboard.averageValidationTime' | translate}}
       </p>
-      <h2 class="mt-0">{{mockStats.averageValidationTime | number:"1.0-2"}} <small>seconds</small></h2>
+      <h2 class="mt-0"
+          [innerHTML]="'dashboard.xSeconds' | translate:{seconds: (mockStats.averageValidationTime | number:'1.0-2')}">
+      </h2>
     </div>
   </div>
 </div>
@@ -41,20 +43,20 @@
 <div class="p-2">
   <div class="row flex-items-xs-middle">
     <div class="col-sm">
-      <h3 class="mt-0">Recent Transactions</h3>
+      <h3 class="mt-0">{{'transactions.recentTransactions' | translate}}</h3>
     </div>
   </div>
 
   <table class="table">
     <thead>
     <tr>
-      <th>Timestamp</th>
-      <th>Origination</th>
-      <th>Transaction Type</th>
-      <th>Amount</th>
-      <th>Trans Length</th>
-      <th>Status</th>
-      <th>Nodes</th>
+      <th>{{'transactions.timestamp' | translate}}</th>
+      <th>{{'transactions.origination' | translate}}</th>
+      <th>{{'transactions.transactionType' | translate}}</th>
+      <th>{{'transactions.amount' | translate}}</th>
+      <th>{{'transactions.transactionLength' | translate}}</th>
+      <th>{{'transactions.status' | translate}}</th>
+      <th>{{'transactions.nodes' | translate}}</th>
       <th></th>
     </tr>
     </thead>

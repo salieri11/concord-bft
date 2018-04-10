@@ -6,6 +6,7 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
 import { ClarityModule } from '@clr/angular';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { BlocksContainerComponent } from './blocks-container/blocks-container.component';
 import { BlockDetailContainerComponent } from './block-detail-container/block-detail-container.component';
@@ -19,7 +20,8 @@ const routes: Routes = [
   imports: [
     CommonModule,
     RouterModule.forChild(routes),
-    ClarityModule
+    ClarityModule,
+    TranslateModule
   ],
   declarations: [BlocksContainerComponent, BlockDetailContainerComponent]
 })

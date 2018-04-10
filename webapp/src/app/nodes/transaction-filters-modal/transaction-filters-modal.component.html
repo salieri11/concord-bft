@@ -1,37 +1,37 @@
 <clr-modal [(clrModalOpen)]="isOpened">
-  <h3 class="modal-title">Filter Transactions</h3>
+  <h3 class="modal-title">{{'filters.filterTransactions' | translate}}</h3>
   <div class="modal-body">
     <form>
       <div class="form-block">
         <div class="form-group">
-          <label for="transaction-status">By Status</label>
+          <label for="transaction-status">{{'filters.byStatus' | translate}}</label>
           <div class="select">
             <select name="transaction-status" id="transaction-status">
-              <option value="">Pending Transactions</option>
+              <option value="">{{'filters.pendingTransactions' | translate}}</option>
             </select>
           </div>
         </div>
         <div class="form-group">
-          <label for="transaction-type">By Transaction Type</label>
+          <label for="transaction-type">{{'filters.byTransactionType' | translate}}</label>
           <div class="select">
             <select name="transaction-type" id="transaction-type">
-              <option value="">All Transactions</option>
+              <option value="">{{'filters.allTransactions' | translate}}</option>
             </select>
           </div>
         </div>
         <div class="form-group">
-          <label for="transaction-date-range">By Date Range</label>
+          <label for="transaction-date-range">{{'filters.byDateRange' | translate}}</label>
           <div class="select">
             <select name="transaction-date-range" id="transaction-date-range">
-              <option value="">Past 7 Days</option>
+              <option value="">{{ 'time.lastXDays' | translate:{number: 7} }}</option>
             </select>
           </div>
         </div>
         <div class="form-group">
-          <label for="transaction-owner">By Owner</label>
+          <label for="transaction-owner">{{'filters.byOwner' | translate}}</label>
           <div class="select">
             <select name="transaction-owner" id="transaction-owner">
-              <option value="">All Owners</option>
+              <option value="">{{'filters.allOwners' | translate}}</option>
             </select>
           </div>
         </div>
@@ -39,7 +39,7 @@
     </form>
   </div>
   <div class="modal-footer">
-    <button type="button" class="btn btn-outline" (click)="onCancel()">Cancel</button>
-    <button type="button" class="btn btn-primary" (click)="onApply()">Apply</button>
+    <button type="button" class="btn btn-outline" (click)="onCancel()">{{'filters.cancel' | translate}}</button>
+    <button type="button" class="btn btn-primary" (click)="onApply()">{{'filters.apply' | translate}}</button>
   </div>
 </clr-modal>
