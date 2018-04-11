@@ -5,7 +5,7 @@
 import { Injectable, NgModule, Pipe, PipeTransform } from '@angular/core';
 
 @Pipe({name: 'translate'})
-class MockTranslatePipe implements PipeTransform {
+export class MockTranslatePipe implements PipeTransform {
   transform(value: string): string {
     return value;
   }
