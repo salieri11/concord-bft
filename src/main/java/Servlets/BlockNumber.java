@@ -60,7 +60,7 @@ public final class BlockNumber extends BaseServlet {
          = Athena.BlockNumberRequest.newBuilder().setIndex(index).build();
 
       // Envelope the blockNumberRequest object into an athena object.
-      final Athena.AthenaRequest athenarequestObj
+      final Athena.AthenaRequest athenaRequestObj
          = Athena.AthenaRequest.newBuilder()
                                .setBlockNumberRequest(blockNumberRequestObj)
                                .build();
@@ -69,7 +69,7 @@ public final class BlockNumber extends BaseServlet {
       Athena.AthenaResponse athenaResponse = null;
       JSONObject blockNumberResponse = null;
 
-      athenaResponse = receiveFromAthenaMock();
+      athenaResponse = receiveFromAthenaMock(athenaRequestObj);
       blockNumberResponse = parseToJSON(athenaResponse);
 
       // Set client response header
@@ -88,7 +88,8 @@ public final class BlockNumber extends BaseServlet {
     *
     * @return
     */
-   public Athena.AthenaResponse receiveFromAthenaMock() {
+   public Athena.AthenaResponse receiveFromAthenaMock(
+      Athena.AthenaRequest request) {
       ByteString hash;
       ByteString parentHash;
       try {
@@ -101,9 +102,11 @@ public final class BlockNumber extends BaseServlet {
          parentHash = ByteString.copyFrom(temp);
       }
 
+      final long number = request.getBlockNumberRequest().getIndex();
+
       final Athena.BlockDetailed blockDetailedObj
          = Athena.BlockDetailed.newBuilder()
-                               .setNumber(1)
+                               .setNumber(number)
                                .setHash(hash)
                                .setParentHash(parentHash)
                                .setNonce("Nonce")
@@ -167,10 +170,6 @@ public final class BlockNumber extends BaseServlet {
       blockObj.put("nonce", block.getNonce());
       blockObj.put("size", block.getSize());
 
-      // Construct the reponse JSON object.
-      JSONObject responseJson = new JSONObject();
-      responseJson.put("block", blockObj);
-
-      return responseJson;
+      return blockObj;
    }
 }
