@@ -191,10 +191,9 @@ public final class BlockList extends BaseServlet {
             blockJson.put("number", number);
             blockJson.put("hash", hexString);
 
-            String url = hexString.substring(2); // remove the "0x" at the start
+            String url = _conf.getStringValue("BlockList_URLPrefix") + number;
 
-            blockJson.put("url",
-                          _conf.getStringValue("BlockList_URLPrefix") + url);
+            blockJson.put("url", url);
 
             // Store into a JSON array of all blocks.
             blockArr.add(blockJson);
