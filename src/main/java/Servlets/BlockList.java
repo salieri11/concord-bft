@@ -204,9 +204,11 @@ public final class BlockList extends BaseServlet {
          // Construct the reponse JSON object.
          JSONObject responseJson = new JSONObject();
          responseJson.put("blocks", blockArr);
-         responseJson.put("next",
-                          _conf.getStringValue("BlockList_NextPrefix")
-                             + (earliestBlock - 1));
+         if (earliestBlock > 0) {
+            responseJson.put("next",
+                             _conf.getStringValue("BlockList_NextPrefix")
+                                + (earliestBlock - 1));
+         }
 
          return responseJson;
       } catch (Exception e) {
