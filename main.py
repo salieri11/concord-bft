@@ -14,11 +14,13 @@ from suites import core_vm_tests, helen_api_tests, ext_rpc_tests
 from util import html, json_helper
 
 log = None
+suites = ["CoreVMTests", "ExtendedRPCTests", "HelenAPITests"]
 
 def main():
    startTime = datetime.datetime.now()
    parser = argparse.ArgumentParser()
-   parser.add_argument("suite", help="Test suite name")
+   parser.add_argument("suite", help="Test suite name.  Available suites: {}". \
+                       format(suites))
    parser.add_argument("--ethereumMode",
                        help="Run tests against Ethereum",
                        default=False,

@@ -25,11 +25,6 @@ import util.json_helper
 
 log = logging.getLogger(__name__)
 
-# The config file contains information aobut how to run things, as opposed to
-# command line parameters, which are about running tests.
-CONFIG_JSON = "resources/user_config.json"
-TEST_LOG_DIR = "test_logs"
-
 class ExtendedRPCTests(test_suite.TestSuite):
    _args = None
    _apiServerUrl = None
@@ -41,22 +36,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
    _userUnlocked = False
 
    def __init__(self, passedArgs):
-      self._args = passedArgs
-      self._ethereumMode = self._args.ethereumMode
-      self._loadConfigFile()
-      self._productMode = not self._ethereumMode
-      self._resultFile = os.path.join(passedArgs.resultsDir,
-                                     "extendedRPCTestResults.json")
-      self._unintentionallySkippedFile = \
-                                         os.path.join(passedArgs.resultsDir,
-                                         "unintentionallySkippedTests.json")
-      self._unintentionallySkippedTests = {}
-      self._results = {
-         "ExtendedRPCTests": {
-            "result":"",
-            "tests": collections.OrderedDict()
-         }
-      }
+      super(ExtendedRPCTests, self).__init__(passedArgs)
 
       if self._ethereumMode:
          log.debug("Running in ethereum mode")
@@ -64,27 +44,24 @@ class ExtendedRPCTests(test_suite.TestSuite):
       else:
          self._apiServerUrl = "http://localhost:8080/api/athena/eth/"
 
-      with open(self._resultFile, "w") as f:
-         f.write(json.dumps(self._results))
-
    def getName(self):
       return "ExtendedRPCTests"
 
    def run(self):
       ''' Runs all of the tests. '''
       if self._productMode:
-         p = Product(self._args.resultsDir,
-                     self._apiServerUrl,
-                     self._userConfig["product"])
-         p.launchProduct()
-         if not p.waitForProductStartup():
-            log.error("The product did not start.  Exiting.")
-            exit(1)
+         try:
+            p = self.launchProduct(self._args.resultsDir,
+                                   self._apiServerUrl,
+                                   self._userConfig["product"])
+         except Exception as e:
+            log.error(traceback.format_exc())
+            return self._resultFile
 
       tests = self._getTests()
 
       for (testName, testFun) in tests:
-         testLogDir = os.path.join(self._args.resultsDir, TEST_LOG_DIR, testName)
+         testLogDir = os.path.join(self._testLogDir, testName)
 
          try:
             result, info = self._runRpcTest(testName,
@@ -92,8 +69,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
                                             testLogDir)
          except Exception as e:
             result = False
-            info = str(e)
-            traceback.print_tb(e.__traceback__)
+            info = str(e) + "\n" + traceback.format_exc()
             log.error("Exception running RPC test: '{}'".format(info))
 
          if info:
@@ -101,10 +77,10 @@ class ExtendedRPCTests(test_suite.TestSuite):
          else:
             info = ""
 
-         relativeLogDir = self._makeRelativeTestPath(testLogDir)
+         relativeLogDir = self.makeRelativeTestPath(testLogDir)
          info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                      testLogDir)
-         self._writeResult(testName, result, info)
+         self.writeResult(testName, result, info)
 
       log.info("Tests are done.")
 
@@ -112,75 +88,6 @@ class ExtendedRPCTests(test_suite.TestSuite):
          p.stopProduct()
 
       return self._resultFile
-
-   def _makeRelativeTestPath(self, fullTestPath):
-      '''
-      Given the full test path (in the results directory), return the
-      relative path.
-      '''
-      return fullTestPath[len(self._args.resultsDir)+1:len(fullTestPath)]
-
-   def _writeUnintentionallySkippedTest(self, testName, info):
-      tempFile = self._unintentionallySkippedFile + "_temp"
-      realFile = self._unintentionallySkippedFile
-      self._unintentionallySkippedTests[testName] = info
-
-      with open(tempFile, "w") as f:
-         f.write(json.dumps(self._unintentionallySkippedTests,
-                            sort_keys=True, indent=4))
-
-      os.rename(tempFile, realFile)
-
-   def _writeResult(self, testName, result, info):
-      '''
-      We're going to write the full result or skipped test set to json for each
-      test so that we have a valid result structure even if things die partway
-      through.
-      '''
-      tempFile = self._resultFile + "_temp"
-      realFile = self._resultFile
-
-      if result:
-         result = "PASS"
-      elif result == False:
-         result = "FAIL"
-      else:
-         result = "SKIPPED"
-
-      log.info(result)
-
-      if result == "SKIPPED":
-         log.debug("Unintentionally skipped test '{}': '{}'".format(testName,
-                                                                    info))
-         self._writeUnintentionallySkippedTest(testName, info)
-
-      # Never change the suite's result due to skips or if it has already
-      # been set to "FAIL".
-      if not result == "SKIPPED" and \
-         not self._results["ExtendedRPCTests"]["result"] == "FAIL":
-            self._results["ExtendedRPCTests"]["result"] = result
-
-      self._results["ExtendedRPCTests"]["tests"][testName] = {
-         "result": result,
-         "info": info
-      }
-
-      with open(tempFile, "w") as f:
-         f.write(json.dumps(self._results, indent=4))
-
-      os.rename(tempFile, realFile)
-
-   def _loadConfigFile(self):
-      '''
-      Loads the main config file.
-      '''
-      self._userConfig = util.json_helper.readJsonFile(CONFIG_JSON)
-
-      if "ethereum" in self._userConfig and \
-         "testRoot" in self._userConfig["ethereum"]:
-
-         self._userConfig["ethereum"]["testRoot"] = \
-            os.path.expanduser(self._userConfig["ethereum"]["testRoot"])
 
    def _getTests(self):
       return [("web3_sha3", self._test_web3_sha3), \

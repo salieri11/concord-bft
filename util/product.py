@@ -31,7 +31,8 @@ class Product():
 
    def launchProduct(self):
       '''
-      Given the user's product config section, launch the product
+      Given the user's product config section, launch the product.
+      Raises an exception if it cannot start.
       '''
       atexit.register(self.stopProduct)
       productLogsDir = os.path.join(self._resultsDir, PRODUCT_LOGS_DIR)
@@ -71,6 +72,10 @@ class Product():
                                     stderr=subprocess.STDOUT)
                self._processes.append(p)
 
+      # All pieces should be launched now.
+      if not self._waitForProductStartup():
+         raise Exception("The product did not start. Exiting.")
+
    def stopProduct(self):
       '''
       Stops the product executables and closes the logs.
@@ -83,7 +88,7 @@ class Product():
          log.close()
          self._logs.remove(log)
 
-   def waitForProductStartup(self):
+   def _waitForProductStartup(self):
       '''
       Issues a test transaction to see if the product has started up.
       Retries a few times.
