@@ -116,21 +116,24 @@ public final class BlockList extends BaseServlet {
       int chainLength = (int) count;
       int latestBlock = (int) latest;
 
+      // -1 means latest was not specified
       if (latestBlock == -1L) {
-         latestBlock = chainLength + 1;
+         latestBlock = 100;
       }
 
+      // we're simiulating a total of 100 blocks, cap to that
       if (latestBlock > 100) {
          latestBlock = 100;
       }
 
-      if (chainLength >= latestBlock) {
-         chainLength = latestBlock - 1;
+      if (chainLength > latestBlock) {
+         // need the +1 because blocks start at 0
+         chainLength = latestBlock+1;
       }
 
       ArrayList<FakeBlock> list = new ArrayList<>(chainLength);
 
-      for (int i = chainLength; i > 0; i--) {
+      for (int i = chainLength-1; i >= 0; i--) {
          list.add(new FakeBlock(latestBlock));
          latestBlock--;
       }
