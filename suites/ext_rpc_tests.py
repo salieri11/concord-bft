@@ -38,12 +38,6 @@ class ExtendedRPCTests(test_suite.TestSuite):
    def __init__(self, passedArgs):
       super(ExtendedRPCTests, self).__init__(passedArgs)
 
-      if "ethereum" in self._userConfig and \
-         "testRoot" in self._userConfig["ethereum"]:
-
-         self._userConfig["ethereum"]["testRoot"] = \
-            os.path.expanduser(self._userConfig["ethereum"]["testRoot"])
-
       if self._ethereumMode:
          log.debug("Running in ethereum mode")
          self._apiServerUrl = "http://localhost:8545"
