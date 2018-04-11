@@ -9,6 +9,7 @@ import { ClarityModule } from '@clr/angular';
 
 import { NodesContainerComponent } from './nodes-container.component';
 import { TransactionFiltersModalComponent } from '../transaction-filters-modal/transaction-filters-modal.component';
+import { MockTranslateModule } from '../../mocks/mock-translate.module';
 
 describe('NodesContainerComponent', () => {
   let component: NodesContainerComponent;
@@ -19,7 +20,8 @@ describe('NodesContainerComponent', () => {
       imports: [
         RouterTestingModule,
         HttpClientTestingModule,
-        ClarityModule
+        ClarityModule,
+        MockTranslateModule
       ],
       declarations: [ NodesContainerComponent, TransactionFiltersModalComponent ]
     })

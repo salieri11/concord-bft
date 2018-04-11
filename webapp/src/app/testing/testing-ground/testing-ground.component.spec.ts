@@ -6,6 +6,7 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
 import { ClarityModule } from '@clr/angular';
+import { MockTranslateModule } from '../../mocks/mock-translate.module';
 
 import { TestingGroundComponent } from './testing-ground.component';
 
@@ -18,7 +19,8 @@ describe('TestingGroundComponent', () => {
       imports: [
         ReactiveFormsModule,
         RouterTestingModule,
-        ClarityModule
+        ClarityModule,
+        MockTranslateModule
       ],
       declarations: [ TestingGroundComponent ]
     })
