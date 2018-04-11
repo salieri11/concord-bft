@@ -2,7 +2,7 @@
    "product": {
       "launch":{
          "apiServer":{
-            "buildRoot": "~/source/vmwathena/helen/_build/default/rel",
+            "buildRoot": "~/source/helen/_build/default/rel",
             "helen1":{
                "launchCommand": "helen/bin/helen",
                "parameters": ["console"]
@@ -10,7 +10,7 @@
          },
          "athena":
          {
-             "buildRoot": "~/source/vmwathena/athena/build",
+             "buildRoot": "~/source/athena/build",
              "athena1":{
                  "launchCommand": "src/athena",
                  "parameters": ["--logger_config",
