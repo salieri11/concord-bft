@@ -93,11 +93,14 @@ public class Server {
       assetsServletName = conf.getStringValue("Assets_ServletName");
       apiListServletName = conf.getStringValue("ApiList_ServletName");
 
-      memberListEndpoint = conf.getStringValue("MemberList_Endpoint");
+      memberListEndpoint
+         = removeTrailingSlash(conf.getStringValue("MemberList_Endpoint"));
       defaultContentEndpoint = conf.getStringValue("DefaultContent_Endpoint");
-      blockListEndpoint = conf.getStringValue("BlockList_Endpoint");
+      blockListEndpoint
+         = removeTrailingSlash(conf.getStringValue("BlockList_Endpoint"));
       blockNumberEndpoint = conf.getStringValue("BlockNumber_Endpoint");
-      ethRPCEndpoint = conf.getStringValue("EthRPC_Endpoint");
+      ethRPCEndpoint
+         = removeTrailingSlash(conf.getStringValue("EthRPC_Endpoint"));
       transactionEndpoint = conf.getStringValue("Transaction_Endpoint");
       swaggerEndpoint = conf.getStringValue("Swagger_Endpoint");
       assetsEndpoint = conf.getStringValue("Assets_Endpoint");
@@ -138,7 +141,8 @@ public class Server {
                                             .addMapping(blockNumberEndpoint))
                        .addServlets(Servlets.servlet(ethRPCServletName,
                                                      EthRPC.class)
-                                            .addMapping(ethRPCEndpoint))
+                                            .addMapping(ethRPCEndpoint)
+                                            .addMapping(ethRPCEndpoint + '/'))
                        .addServlets(Servlets.servlet(transactionServletName,
                                                      Transaction.class)
                                             .addMapping(transactionEndpoint)
@@ -176,5 +180,24 @@ public class Server {
                                 .build();
       server.start();
       logger.info("Server Booted");
+   }
+
+   /**
+    * Removes trailing '/' character
+    * 
+    * @param api
+    * @return
+    */
+   private static String removeTrailingSlash(String api) {
+      String result = api;
+      if (result != null) {
+         int len = result.length();
+         if (len > 0) {
+            if (result.charAt(len - 1) == '/') {
+               result = result.substring(0, len - 1);
+            }
+         }
+      }
+      return result;
    }
 }
