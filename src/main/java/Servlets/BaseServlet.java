@@ -5,11 +5,9 @@ package Servlets;
 
 import com.vmware.athena.*;
 import connections.AthenaConnectionPool;
-import connections.IAthenaCommunication;
 import connections.IAthenaConnection;
 import configurations.ConfigurationFactory;
 import configurations.ConfigurationFactory.ConfigurationType;
-import configurations.FileConfiguration;
 import configurations.IConfiguration;
 import java.io.IOException;
 import javax.servlet.http.HttpServlet;
