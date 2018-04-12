@@ -5,9 +5,11 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgModule } from '@angular/core';
-import { HttpClientModule } from '@angular/common/http';
+import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { RouterModule, Routes } from '@angular/router';
 import { ClarityModule } from '@clr/angular';
+import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
+import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 
 import { DashboardModule } from './dashboard/dashboard.module';
 import { NodesModule } from './nodes/nodes.module';
@@ -23,6 +25,10 @@ const appRoutes: Routes = [
   }
 ];
 
+export function HttpLoaderFactory(http: HttpClient) {
+  return new TranslateHttpLoader(http, '/assets/static/i18n/', '.json');
+}
+
 @NgModule({
   declarations: [
     AppComponent
@@ -33,6 +39,13 @@ const appRoutes: Routes = [
     HttpClientModule,
     ClarityModule,
     RouterModule.forRoot(appRoutes, {enableTracing: true}),
+    TranslateModule.forRoot({
+      loader: {
+        provide: TranslateLoader,
+        useFactory: HttpLoaderFactory,
+        deps: [HttpClient]
+      }
+    }),
     DashboardModule,
     NodesModule,
     BlocksModule,

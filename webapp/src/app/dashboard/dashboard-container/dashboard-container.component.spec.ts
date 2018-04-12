@@ -5,6 +5,7 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { ClarityModule } from '@clr/angular';
+import { MockTranslateModule } from '../../mocks/mock-translate.module';
 
 import { DashboardContainerComponent } from './dashboard-container.component';
 
@@ -16,7 +17,8 @@ describe('DashboardContainerComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         RouterTestingModule,
-        ClarityModule
+        ClarityModule,
+        MockTranslateModule
       ],
       declarations: [ DashboardContainerComponent ],
     })

@@ -6,6 +6,7 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { ClarityModule } from '@clr/angular';
 
 import { TransactionFiltersModalComponent } from './transaction-filters-modal.component';
+import { MockTranslateModule } from '../../mocks/mock-translate.module';
 
 describe('TransactionFiltersModalComponent', () => {
   let component: TransactionFiltersModalComponent;
@@ -13,7 +14,7 @@ describe('TransactionFiltersModalComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      imports: [ ClarityModule ],
+      imports: [ ClarityModule, MockTranslateModule ],
       declarations: [ TransactionFiltersModalComponent ]
     })
     .compileComponents();

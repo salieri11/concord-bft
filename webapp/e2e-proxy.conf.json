@@ -1,0 +1,13 @@
+{
+  "/api": {
+    "target": "http://localhost:32773",
+    "secure": false
+  },
+  "/assets/static": {
+    "target": "http://localhost:49152",
+    "secure": false,
+    "pathRewrite": {
+      "^/assets/static": "/static"
+    }
+  }
+}

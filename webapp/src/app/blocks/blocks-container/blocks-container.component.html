@@ -1,24 +1,24 @@
 <div class="p-2 bg-dark">
   <div class="row">
     <div class="col-xs-4 media flex-items-xs-middle">
-      <h3 class="mt-0 text-white">Block Activity</h3>
+      <h3 class="mt-0 text-white">{{'blocks.blockActivity' | translate}}</h3>
     </div>
     <div class="col-xs-8 media flex-items-xs-middle flex-items-xs-right">
       <clr-tabs>
         <clr-tab>
-          <button clrTabLink>Today</button>
+          <button clrTabLink>{{'time.today' | translate}}</button>
           <clr-tab-content id="content1" *clrIfActive="true"></clr-tab-content>
         </clr-tab>
         <clr-tab>
-          <button clrTabLink>Last 7 Days</button>
+          <button clrTabLink>{{ 'time.lastXDays' | translate:{number: 7} }}</button>
           <clr-tab-content *clrIfActive></clr-tab-content>
         </clr-tab>
         <clr-tab>
-          <button clrTabLink>Last 30 Days</button>
+          <button clrTabLink>{{ 'time.lastXDays' | translate:{number: 30} }}</button>
           <clr-tab-content *clrIfActive></clr-tab-content>
         </clr-tab>
         <clr-tab>
-          <button clrTabLink>Last 90 Days</button>
+          <button clrTabLink>{{ 'time.lastXDays' | translate:{number: 90} }}</button>
           <clr-tab-content *clrIfActive></clr-tab-content>
         </clr-tab>
       </clr-tabs>
@@ -29,13 +29,13 @@
 <img class="graph-placeholder" src="assets/static/images/node-activity-large.png">
 
 <div class="p-2">
-  <h3 class="mt-0">Blocks</h3>
+  <h3 class="mt-0">{{'blocks.blocks' | translate}}</h3>
 
   <table class="table">
     <thead>
     <tr>
-      <th class="text-right">Index</th>
-      <th class="text-left">Hash</th>
+      <th class="text-right">{{'blocks.index' | translate}}</th>
+      <th class="text-left">{{'blocks.hash' | translate}}</th>
       <th></th>
     </tr>
     </thead>
@@ -49,7 +49,7 @@
             <clr-icon shape="ellipsis-horizontal" size="16"></clr-icon>
           </button>
           <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
-            <a clrDropdownItem [routerLink]="['/blocks', block.number]">View Detail</a>
+            <a clrDropdownItem [routerLink]="['/blocks', block.number]">{{'blocks.viewDetail' | translate}}</a>
           </clr-dropdown-menu>
         </clr-dropdown>
       </td>
@@ -58,6 +58,6 @@
   </table>
 
   <div class="text-right">
-    <button class="btn btn-primary" [disabled]="!nextBlockUrl" (click)="loadNextBlocks()">Next</button>
+    <button class="btn btn-primary" [disabled]="!nextBlockUrl" (click)="loadNextBlocks()">{{'blocks.next' | translate}}</button>
   </div>
 </div>
