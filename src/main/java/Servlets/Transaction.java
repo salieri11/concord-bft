@@ -49,6 +49,7 @@ public final class Transaction extends BaseServlet {
       // Read the requested transaction hash from the uri
       String uri = request.getRequestURI();
 
+      //Allow trailing / 
       if (uri.charAt(uri.length() - 1) == '/') {
          uri = uri.substring(0, uri.length() - 1);
       }

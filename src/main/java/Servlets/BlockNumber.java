@@ -49,9 +49,12 @@ public final class BlockNumber extends BaseServlet {
       Long index = null;
       try {
          String uri = request.getRequestURI();
+         
+         //Allow trailing /
          if (uri.charAt(uri.length() - 1) == '/') {
             uri = uri.substring(0, uri.length() - 1);
          }
+         
          String urlParam = uri.substring(uri.lastIndexOf('/') + 1);
          index = Long.parseLong(urlParam);
       } catch (NumberFormatException e) {
