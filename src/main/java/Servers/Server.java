@@ -53,11 +53,14 @@ public class Server {
    private static String swaggerServletName;
    private static String assetsServletName;
    private static String apiListServletName;
-   private static String memberListEndpoint;
+   private static String memberListEndpoint1;
+   private static String memberListEndpoint2;
    private static String defaultContentEndpoint;
-   private static String blockListEndpoint;
+   private static String blockListEndpoint1;
+   private static String blockListEndpoint2;
    private static String blockNumberEndpoint;
-   private static String ethRPCEndpoint;
+   private static String ethRPCEndpoint1;
+   private static String ethRPCEndpoint2;
    private static String transactionEndpoint;
    private static String swaggerEndpoint;
    private static String assetsEndpoint;
@@ -94,11 +97,14 @@ public class Server {
       assetsServletName = conf.getStringValue("Assets_ServletName");
       apiListServletName = conf.getStringValue("ApiList_ServletName");
 
-      memberListEndpoint = conf.getStringValue("MemberList_Endpoint");
+      memberListEndpoint1 = conf.getStringValue("MemberList_Endpoint1");
+      memberListEndpoint2 = conf.getStringValue("MemberList_Endpoint2");
       defaultContentEndpoint = conf.getStringValue("DefaultContent_Endpoint");
-      blockListEndpoint = conf.getStringValue("BlockList_Endpoint");
+      blockListEndpoint1 = conf.getStringValue("BlockList_Endpoint1");
+      blockListEndpoint2 = conf.getStringValue("BlockList_Endpoint2");
       blockNumberEndpoint = conf.getStringValue("BlockNumber_Endpoint");
-      ethRPCEndpoint = conf.getStringValue("EthRPC_Endpoint");
+      ethRPCEndpoint1 = conf.getStringValue("EthRPC_Endpoint1");
+      ethRPCEndpoint2 = conf.getStringValue("EthRPC_Endpoint2");
       transactionEndpoint = conf.getStringValue("Transaction_Endpoint");
       swaggerEndpoint = conf.getStringValue("Swagger_Endpoint");
       assetsEndpoint = conf.getStringValue("Assets_Endpoint");
@@ -108,14 +114,17 @@ public class Server {
          = deployment().setClassLoader(Server.class.getClassLoader())
                        .setContextPath(serverPath)
                        .setResourceManager(
-                          // 1024 : Size to use direct FS to network transfer
-                          // (if supported by OS/JDK) instead of read/write
-                          new FileResourceManager(new File(defaultReponse),
-                                                  1024))
+                                           // 1024 : Size to use direct FS to
+                                           // network transfer
+                                           // (if supported by OS/JDK) instead
+                                           // of read/write
+                                           new FileResourceManager(new File(defaultReponse),
+                                                                   1024))
                        .setDeploymentName(deploymentName)
                        .addServlets(Servlets.servlet(memberListServletName,
                                                      MemberList.class)
-                                            .addMapping(memberListEndpoint))
+                                            .addMapping(memberListEndpoint1)
+                                            .addMapping(memberListEndpoint2))
                        .addServlets(Servlets.servlet(swaggerServletName,
                                                      StaticContent.class)
                                             .addMapping(swaggerEndpoint))
@@ -127,13 +136,15 @@ public class Server {
                                             .addMapping(apiListEndpoint))
                        .addServlets(Servlets.servlet(blockListServletName,
                                                      BlockList.class)
-                                            .addMapping(blockListEndpoint))
+                                            .addMapping(blockListEndpoint1)
+                                            .addMapping(blockListEndpoint2))
                        .addServlets(Servlets.servlet(blockNumberServletName,
                                                      BlockNumber.class)
                                             .addMapping(blockNumberEndpoint))
                        .addServlets(Servlets.servlet(ethRPCServletName,
                                                      EthRPC.class)
-                                            .addMapping(ethRPCEndpoint))
+                                            .addMapping(ethRPCEndpoint1)
+                                            .addMapping(ethRPCEndpoint2))
                        .addServlets(Servlets.servlet(transactionServletName,
                                                      Transaction.class)
                                             .addMapping(transactionEndpoint))

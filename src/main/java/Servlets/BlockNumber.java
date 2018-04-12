@@ -16,6 +16,7 @@ import com.vmware.athena.*;
 import io.undertow.util.StatusCodes;
 import java.io.IOException;
 import java.util.Iterator;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
@@ -48,6 +49,9 @@ public final class BlockNumber extends BaseServlet {
       Long index = null;
       try {
          String uri = request.getRequestURI();
+         if (uri.charAt(uri.length() - 1) == '/') {
+            uri = uri.substring(0, uri.length() - 1);
+         }
          String urlParam = uri.substring(uri.lastIndexOf('/') + 1);
          index = Long.parseLong(urlParam);
       } catch (NumberFormatException e) {
@@ -88,8 +92,8 @@ public final class BlockNumber extends BaseServlet {
     *
     * @return
     */
-   public Athena.AthenaResponse receiveFromAthenaMock(
-      Athena.AthenaRequest request) {
+   public Athena.AthenaResponse
+          receiveFromAthenaMock(Athena.AthenaRequest request) {
       ByteString hash;
       ByteString parentHash;
       try {
@@ -111,8 +115,8 @@ public final class BlockNumber extends BaseServlet {
                                .setParentHash(parentHash)
                                .setNonce("Nonce")
                                .setSize(50)
-                               .addTransactions("transaction1")
-                               .addTransactions("transaction2")
+                               .addTransactions("0xDEAD")
+                               .addTransactions("0xBEEF")
                                .build();
 
       // Construct a blockNumberResponse object.

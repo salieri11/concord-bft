@@ -13,6 +13,9 @@ package Servlets;
 
 import com.google.protobuf.ByteString;
 import com.vmware.athena.*;
+
+import connections.AthenaConnectionPool;
+import connections.IAthenaConnection;
 import io.undertow.util.StatusCodes;
 import java.io.IOException;
 import javax.servlet.http.HttpServletRequest;
@@ -45,6 +48,11 @@ public final class Transaction extends BaseServlet {
 
       // Read the requested transaction hash from the uri
       String uri = request.getRequestURI();
+
+      if (uri.charAt(uri.length() - 1) == '/') {
+         uri = uri.substring(0, uri.length() - 1);
+      }
+
       String hash = uri.substring(uri.lastIndexOf('/') + 1);
 
       ByteString hashBytes;
@@ -74,7 +82,65 @@ public final class Transaction extends BaseServlet {
                                .setTransactionRequest(txRequestObj)
                                .build();
 
-      processGet(athenarequestObj, response, logger);
+      processGet(athenarequestObj, response, logger, hash);
+   }
+
+   /**
+    * Process get request
+    * 
+    * @param req
+    *           - Athena request object
+    * @param response
+    *           - HTTP servlet response object
+    * @param log
+    *           - specifies logger from servlet to use
+    */
+   @SuppressWarnings("unchecked")
+   protected void processGet(Athena.AthenaRequest req,
+                             HttpServletResponse response, Logger log, String hash) {
+      JSONObject respObject = null;
+      IAthenaConnection conn = null;
+      Athena.AthenaResponse athenaResponse = null;
+      try {
+         conn = AthenaConnectionPool.getInstance().getConnection();
+         boolean res = AthenaHelper.sendToAthena(req, conn, _conf);
+         if (!res) {
+            processResponse(response,
+                            "Communication error",
+                            HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                            log);
+            return;
+         }
+
+         // receive response from Athena
+         athenaResponse = AthenaHelper.receiveFromAthena(conn);
+         if (athenaResponse == null) {
+            processResponse(response,
+                            "Data error",
+                            HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                            log);
+            return;
+         }
+      } catch (Exception e) {
+         processResponse(response,
+                         "Internal error",
+                         HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                         log);
+         return;
+      } finally {
+         AthenaConnectionPool.getInstance().putConnection(conn);
+      }
+
+      respObject = parseToJSON(athenaResponse);
+      respObject.put("hash", hash);
+      
+      String json = respObject == null ? null : respObject.toJSONString();
+      processResponse(response,
+                      json,
+                      json == null
+                         ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR
+                         : HttpServletResponse.SC_OK,
+                      log);
    }
 
    /**
@@ -96,14 +162,11 @@ public final class Transaction extends BaseServlet {
       // Construct the reponse JSON object.
       JSONObject responseJson = new JSONObject();
 
-      responseJson.put("hash", txResponse.getHash());
       responseJson.put("from", txResponse.getFrom());
       responseJson.put("to", txResponse.getTo());
       responseJson.put("value", txResponse.getValue());
       responseJson.put("input", txResponse.getInput());
       responseJson.put("blockHash", txResponse.getBlockHash());
-      responseJson.put("blockNumber", txResponse.getBlockNumber());
-      responseJson.put("transactionHash", txResponse.getTransactionIndex());
       responseJson.put("blockNumber", txResponse.getBlockNumber());
       responseJson.put("transactionIndex", txResponse.getTransactionIndex());
       responseJson.put("nonce", txResponse.getNonce());
