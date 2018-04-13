@@ -40,6 +40,8 @@ public final class EthRPC extends BaseServlet {
    private static final long serialVersionUID = 1L;
    private static Logger logger = Logger.getLogger(EthRPC.class);
    private JSONArray rpcList;
+   private JSONObject rpcModules;
+   private String jsonRpc;
 
    private enum EthMethodName {
       SEND_TX,
@@ -52,8 +54,11 @@ public final class EthRPC extends BaseServlet {
       JSONParser p = new JSONParser();
       try {
          rpcList = (JSONArray) p.parse(_conf.getStringValue("EthRPCList"));
+         rpcModules
+            = (JSONObject) (((JSONArray) p.parse(_conf.getStringValue("RPCModules"))).get(0));
+         jsonRpc = _conf.getStringValue("JSONRPC");
       } catch (Exception e) {
-         logger.error("Failed to read EthRPCList", e);
+         logger.error("Failed to read RPC information from config file", e);
       }
    }
 
@@ -193,8 +198,8 @@ public final class EthRPC extends BaseServlet {
             String s = padZeroes(p);
             b.setData(APIHelper.hexStringToBinary(s));
          } else if (method.equals(_conf.getStringValue("Web3SHA3_Name"))) {
-            
-            //Request should contain just one param value
+
+            // Request should contain just one param value
             if (params.size() != 1) {
                logger.error("Invalid request parameter : params");
                errorResponse(response,
@@ -203,15 +208,12 @@ public final class EthRPC extends BaseServlet {
                              logger);
                return;
             }
-            JSONObject result = new JSONObject();
-            result.put("id", id);
-            result.put("jsonrpc", _conf.getStringValue("JSONRPC"));
-            result.put("result",
-                       APIHelper.getKeccak256Hash((String) params.get(0)));
-            processResponse(response,
-                            result.toJSONString(),
-                            HttpServletResponse.SC_OK,
-                            logger);
+            localResponse(APIHelper.getKeccak256Hash((String) params.get(0)),
+                          response,
+                          id);
+            return;
+         } else if (method.equals(_conf.getStringValue("RPCModules_Name"))) {
+            localResponse(rpcModules, response, id);
             return;
          } else {
             logger.error("Invalid method name");
@@ -236,6 +238,19 @@ public final class EthRPC extends BaseServlet {
                                .build();
 
       processGet(rpc, txHash, athenarequestObj, response, logger);
+   }
+
+   @SuppressWarnings("unchecked")
+   private void localResponse(Object data, HttpServletResponse response,
+                              Long id) {
+      JSONObject result = new JSONObject();
+      result.put("id", id);
+      result.put("jsonrpc", jsonRpc);
+      result.put("result", data);
+      processResponse(response,
+                      result.toJSONString(),
+                      HttpServletResponse.SC_OK,
+                      logger);
    }
 
    /**
@@ -368,7 +383,7 @@ public final class EthRPC extends BaseServlet {
    private JSONObject errorMessage(String message, long id) {
       JSONObject responseJson = new JSONObject();
       responseJson.put("id", id);
-      responseJson.put("jsonprc", _conf.getStringValue("JSONRPC"));
+      responseJson.put("jsonprc", jsonRpc);
 
       JSONObject error = new JSONObject();
       error.put("message", message);
@@ -394,7 +409,7 @@ public final class EthRPC extends BaseServlet {
       // Construct the response JSON object.
       JSONObject responseJson = new JSONObject();
       responseJson.put("id", ethResponse.getId());
-      responseJson.put("jsonrpc", _conf.getStringValue("JSONRPC"));
+      responseJson.put("jsonrpc", jsonRpc);
       return responseJson;
    }
 }
