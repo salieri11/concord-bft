@@ -584,8 +584,12 @@ void com::vmware::athena::EVM::call(
    const struct evm_message* msg)
 {
    LOG4CPLUS_INFO(logger, "EVM::call called");
-
-   // TODO: Actually handle the call.
+   std::vector<uint8_t> txhash;
+   // create copy of message struct, we can not
+   LOG4CPLUS_INFO(logger, msg);
+   // call function needs non-const message object
+   evm_message call_msg = *msg;
+   call(call_msg, *result, txhash);
 }
 
 /**
