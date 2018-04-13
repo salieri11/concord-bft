@@ -3,6 +3,9 @@
  */
 package Servlets;
 
+import org.bouncycastle.jcajce.provider.digest.Keccak;
+import org.bouncycastle.util.encoders.Hex;
+
 import com.google.protobuf.ByteString;
 
 public class APIHelper {
@@ -78,6 +81,24 @@ public class APIHelper {
          sb.append((String.format("%02X ", b)));
       }
       String result = (sb.toString()).replace(" ", "");
+      return result;
+   }
+
+   /**
+    * Computes the Keccak-256 hash as per ethereum specifications
+    * 
+    * @param hex
+    * @return
+    * @throws Exception
+    */
+   public static String getKeccak256Hash(String hex) throws Exception {
+      String result = null;
+
+      Keccak.Digest256 digest = new Keccak.Digest256();
+      digest.update(hexStringToBinary(hex).toByteArray());
+      byte[] res = digest.digest();
+      result = "0x" + Hex.toHexString(res).toLowerCase();
+
       return result;
    }
 }

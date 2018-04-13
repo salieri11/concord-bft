@@ -9,7 +9,6 @@
  * to Athena and requests and responses are encoded in the Google Protocol
  * Buffer format.
  *
- * TODO : Handle the case of no/incorrect response from Athena
  */
 package Servlets;
 
@@ -45,7 +44,7 @@ public final class EthRPC extends BaseServlet {
    private enum EthMethodName {
       SEND_TX,
       GET_TX_RECEIPT,
-      GET_STORAGE_AT;
+      GET_STORAGE_AT,
    }
 
    public EthRPC() throws ParseException {
@@ -73,8 +72,10 @@ public final class EthRPC extends BaseServlet {
 
       if (rpcList == null) {
          logger.error("Configurations not read.");
-         processResponse(response, (new JSONArray()).toJSONString(),
-                         HttpServletResponse.SC_SERVICE_UNAVAILABLE, logger);
+         processResponse(response,
+                         (new JSONArray()).toJSONString(),
+                         HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+                         logger);
          return;
       }
 
@@ -92,6 +93,7 @@ public final class EthRPC extends BaseServlet {
     *           The response object used to respond to the client
     * @throws IOException
     */
+   @SuppressWarnings("unchecked")
    protected void
              doPost(final HttpServletRequest request,
                     final HttpServletResponse response) throws IOException {
@@ -115,7 +117,7 @@ public final class EthRPC extends BaseServlet {
 
          if (requestParams == null) {
             logger.error("Invalid request : Parameters should be in the "
-                         + "request body and in a JSON object format");
+               + "request body and in a JSON object format");
             errorResponse(response, "Unable to parse request", 0, logger);
             return;
          }
@@ -177,8 +179,7 @@ public final class EthRPC extends BaseServlet {
                   = APIHelper.hexStringToBinary((String) obj.get("value"));
                b.setValue(value);
             }
-         } else if (method.equals(_conf.getStringValue(
-                                     "GetTransactionReceipt_Name"))) {
+         } else if (method.equals(_conf.getStringValue("GetTransactionReceipt_Name"))) {
             rpc = EthMethodName.GET_TX_RECEIPT;
             b.setMethod(EthMethod.GET_TX_RECEIPT);
             txHash = (String) params.get(0);
@@ -191,9 +192,33 @@ public final class EthRPC extends BaseServlet {
             String p = (String) params.get(1);
             String s = padZeroes(p);
             b.setData(APIHelper.hexStringToBinary(s));
+         } else if (method.equals(_conf.getStringValue("Web3SHA3_Name"))) {
+            
+            //Request should contain just one param value
+            if (params.size() != 1) {
+               logger.error("Invalid request parameter : params");
+               errorResponse(response,
+                             "'params' must contain only one element",
+                             id,
+                             logger);
+               return;
+            }
+            JSONObject result = new JSONObject();
+            result.put("id", id);
+            result.put("jsonrpc", _conf.getStringValue("JSONRPC"));
+            result.put("result",
+                       APIHelper.getKeccak256Hash((String) params.get(0)));
+            processResponse(response,
+                            result.toJSONString(),
+                            HttpServletResponse.SC_OK,
+                            logger);
+            return;
          } else {
             logger.error("Invalid method name");
-            errorResponse(response,"Unknown method '"+method+"'", id, logger);
+            errorResponse(response,
+                          "Unknown method '" + method + "'",
+                          id,
+                          logger);
             return;
          }
       } catch (Exception e) {
@@ -259,22 +284,28 @@ public final class EthRPC extends BaseServlet {
          conn = AthenaConnectionPool.getInstance().getConnection();
          boolean res = AthenaHelper.sendToAthena(req, conn, _conf);
          if (!res) {
-            errorResponse(response, "Error communicating with athena",
-                          req.getEthRequest(0).getId(), log);
+            errorResponse(response,
+                          "Error communicating with athena",
+                          req.getEthRequest(0).getId(),
+                          log);
             return;
          }
 
          // receive response from Athena
          athenaResponse = AthenaHelper.receiveFromAthena(conn);
          if (athenaResponse == null) {
-            errorResponse(response, "Error reading response from athena",
-                          req.getEthRequest(0).getId(), log);
+            errorResponse(response,
+                          "Error reading response from athena",
+                          req.getEthRequest(0).getId(),
+                          log);
             return;
          }
       } catch (Exception e) {
          logger.error("General exception communicating with athena: ", e);
-         errorResponse(response,"Error communicating with athena",
-                       req.getEthRequest(0).getId(), log);
+         errorResponse(response,
+                       "Error communicating with athena",
+                       req.getEthRequest(0).getId(),
+                       log);
          return;
       } finally {
          AthenaConnectionPool.getInstance().putConnection(conn);
@@ -289,8 +320,10 @@ public final class EthRPC extends BaseServlet {
          if (errResponse.hasDescription()) {
             description = errResponse.getDescription();
          }
-         errorResponse(response, description,
-                       req.getEthRequest(0).getId(), log);
+         errorResponse(response,
+                       description,
+                       req.getEthRequest(0).getId(),
+                       log);
          return;
       }
 
@@ -307,8 +340,7 @@ public final class EthRPC extends BaseServlet {
          result.put("transactionHash", txHash);
          if (ethResponse.hasContractAddress()) {
             result.put("contractAddress",
-                       APIHelper.binaryStringToHex(
-                          ethResponse.getContractAddress()));
+                       APIHelper.binaryStringToHex(ethResponse.getContractAddress()));
          } else {
             result.put("contractAddress", null);
          }
@@ -318,16 +350,21 @@ public final class EthRPC extends BaseServlet {
                                    req.getEthRequest(0).getId());
       }
 
-      processResponse(response, respObject.toJSONString(),
-                      HttpServletResponse.SC_OK, log);
+      processResponse(response,
+                      respObject.toJSONString(),
+                      HttpServletResponse.SC_OK,
+                      log);
    }
 
-   private void errorResponse(HttpServletResponse response,
-                              String message, long id, Logger log) {
-      processResponse(response, errorMessage(message, id).toJSONString(),
-                      HttpServletResponse.SC_OK, log);
+   private void errorResponse(HttpServletResponse response, String message,
+                              long id, Logger log) {
+      processResponse(response,
+                      errorMessage(message, id).toJSONString(),
+                      HttpServletResponse.SC_OK,
+                      log);
    }
 
+   @SuppressWarnings("unchecked")
    private JSONObject errorMessage(String message, long id) {
       JSONObject responseJson = new JSONObject();
       responseJson.put("id", id);
