@@ -398,7 +398,7 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
    // TODO: get this from the request
    message.gas = 1000000;
 
-   std::vector<uint8_t> txhash;
+   evm_uint256be txhash;
    if (request.has_addr_to()) {
       message.kind = EVM_CALL;
 
@@ -420,7 +420,8 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
 
    EthResponse *response = athenaResponse_.add_eth_response();
    response->set_id(request.id());
-   response->set_data(std::string(txhash.begin(), txhash.end()));
+   response->set_data(std::string(txhash.bytes,
+                                  txhash.bytes+sizeof(evm_uint256be)));
 }
 
 /**
@@ -429,11 +430,10 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
 void
 api_connection::handle_eth_getTxReceipt(const EthRequest &request) {
    if (request.has_data() && request.data().size() == sizeof(evm_uint256be)) {
-      std::vector<uint8_t> txhash(request.data().begin(),
-                                  request.data().end());
+      evm_uint256be txhash;
+      std::copy(request.data().begin(), request.data().end(), txhash.bytes);
 
-      LOG4CPLUS_DEBUG(logger_, "Looking up transaction receipt " <<
-                      HexPrintVector{txhash});
+      LOG4CPLUS_DEBUG(logger_, "Looking up transaction receipt " << txhash);
       EthTransaction tx = athevm_.get_transaction(txhash);
 
       EthResponse *response = athenaResponse_.add_eth_response();

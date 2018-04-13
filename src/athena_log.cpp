@@ -31,3 +31,9 @@ std::ostream& com::vmware::athena::operator<<(
 {
    return hexPrint(s, &u.uibe->bytes[0], sizeof(evm_uint256be));
 };
+
+std::ostream& com::vmware::athena::operator<<(
+   std::ostream& s, evm_uint256be &u)
+{
+   return hexPrint(s, &u.bytes[0], sizeof(evm_uint256be));
+};

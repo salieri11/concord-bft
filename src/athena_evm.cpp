@@ -59,12 +59,12 @@ com::vmware::athena::EVM::~EVM() {
  */
 void com::vmware::athena::EVM::call(evm_message &message,
                                     evm_result &result /* out */,
-                                    std::vector<uint8_t> &txhash /* out */)
+                                    evm_uint256be &txhash /* out */)
 {
    assert(message.kind != EVM_CREATE);
 
    std::vector<uint8_t> code;
-   std::vector<uint8_t> hash;
+   evm_uint256be hash;
    std::vector<uint8_t> to(message.destination.bytes,
                            message.destination.bytes+sizeof(evm_address));
    std::vector<uint8_t> from(message.sender.bytes,
@@ -74,7 +74,7 @@ void com::vmware::athena::EVM::call(evm_message &message,
    if (get_code(&message.destination, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Loaded code from " <<
                       HexPrintAddress{&message.destination});
-      memcpy(&message.code_hash.bytes, &hash[0], sizeof(evm_uint256be));
+      memcpy(&message.code_hash.bytes, &hash.bytes[0], sizeof(evm_uint256be));
 
       execute(message, code, result);
 
@@ -115,7 +115,7 @@ void com::vmware::athena::EVM::call(evm_message &message,
  */
 void com::vmware::athena::EVM::create(evm_message &message,
                                       evm_result &result /* out */,
-                                      std::vector<uint8_t> &txhash /* out */)
+                                      evm_uint256be &txhash /* out */)
 {
    assert(message.kind == EVM_CREATE);
    assert(message.input_size > 0);
@@ -124,7 +124,7 @@ void com::vmware::athena::EVM::create(evm_message &message,
    contract_destination(message, contract_address);
 
    std::vector<uint8_t> code;
-   std::vector<uint8_t> hash;
+   evm_uint256be hash;
    if (!get_code(contract_address, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Creating contract at " <<
                       HexPrintVector{contract_address});
@@ -136,7 +136,7 @@ void com::vmware::athena::EVM::create(evm_message &message,
              sizeof(evm_address));
 
       keccak_hash(create_code, hash);
-      memcpy(&message.code_hash.bytes, &hash[0], sizeof(evm_uint256be));
+      memcpy(&message.code_hash.bytes, &hash.bytes, sizeof(evm_uint256be));
 
       execute(message, create_code, result);
 
@@ -159,7 +159,7 @@ void com::vmware::athena::EVM::create(evm_message &message,
          keccak_hash(code, hash);
 
          contract_code[contract_address] =
-            std::pair<std::vector<uint8_t>, std::vector<uint8_t>>(code, hash);
+            std::pair<std::vector<uint8_t>, evm_uint256be>(code, hash);
          memcpy(result.create_address.bytes, &contract_address[0],
                 sizeof(evm_address));
       }
@@ -180,7 +180,7 @@ void com::vmware::athena::EVM::record_transaction(
    evm_result &result,
    std::vector<uint8_t> &to_override,
    std::vector<uint8_t> &contract_address,
-   std::vector<uint8_t> &txhash /* out */)
+   evm_uint256be &txhash /* out */)
 {
    std::vector<uint8_t> from(message.sender.bytes,
                              message.sender.bytes+sizeof(evm_address));
@@ -193,8 +193,7 @@ void com::vmware::athena::EVM::record_transaction(
          };
 
    hash_for_transaction(tx, txhash);
-   LOG4CPLUS_DEBUG(logger, "Recording transaction " <<
-                   HexPrintVector{txhash});
+   LOG4CPLUS_DEBUG(logger, "Recording transaction " << txhash);
 
    transactions[txhash] = tx;
 }
@@ -203,7 +202,7 @@ void com::vmware::athena::EVM::record_transaction(
  * Get a transaction given its hash.
  */
 EthTransaction com::vmware::athena::EVM::get_transaction(
-   std::vector<uint8_t> txhash)
+   evm_uint256be &txhash)
 {
    return transactions[txhash];
 }
@@ -290,19 +289,20 @@ void com::vmware::athena::EVM::contract_destination(
    std::reverse(rlp.begin(), rlp.end());
 
    // hash it
-   std::vector<uint8_t> hash;
+   evm_uint256be hash;
    keccak_hash(rlp, hash);
 
    // the lower 20 bytes are the address
    address.resize(sizeof(evm_address));
-   address.assign(hash.begin()+(hash.size()-sizeof(evm_address)), hash.end());
+   address.assign(hash.bytes+(sizeof(evm_uint256be)-sizeof(evm_address)),
+                  hash.bytes+sizeof(evm_uint256be));
 }
 
 /**
  * Compute the hash which will be used to reference the transaction.
  */
 void com::vmware::athena::EVM::hash_for_transaction(
-   EthTransaction &tx, std::vector<uint8_t> &txhash /* out */)
+   EthTransaction &tx, evm_uint256be &txhash /* out */)
 {
    //TODO: write RLP encoding function
    // https://github.com/ethereum/wiki/wiki/RLP
@@ -385,17 +385,16 @@ void com::vmware::athena::EVM::hash_for_transaction(
 
    // hash it
    keccak_hash(rlp, txhash);
-
-   assert(txhash.size() == 32);
 }
 
 void com::vmware::athena::EVM::keccak_hash(
-   std::vector<uint8_t> &data, std::vector<uint8_t> &hash /* out */)
+   std::vector<uint8_t> &data, evm_uint256be &hash /* out */)
 {
+   static_assert(sizeof(evm_uint256be) == CryptoPP::Keccak_256::DIGESTSIZE,
+                 "hash is not the same size as uint256");
+
    CryptoPP::Keccak_256 keccak;
-   int digestSize = keccak.DigestSize();
-   hash.resize(digestSize);
-   keccak.CalculateDigest(&hash[0], &data[0], data.size());
+   keccak.CalculateDigest(hash.bytes, &data[0], data.size());
 }
 
 uint64_t com::vmware::athena::EVM::get_nonce(std::vector<uint8_t> &address) {
@@ -519,7 +518,7 @@ void com::vmware::athena::EVM::get_balance(
 bool com::vmware::athena::EVM::get_code(
    const struct evm_address *address,
    std::vector<uint8_t> &code /* out */,
-   std::vector<uint8_t> &hash /* out */)
+   evm_uint256be &hash /* out */)
 {
    LOG4CPLUS_INFO(logger, "ath_get_code called, address: " <<
                   HexPrintAddress{address});
@@ -532,7 +531,7 @@ bool com::vmware::athena::EVM::get_code(
 bool com::vmware::athena::EVM::get_code(
    const std::vector<uint8_t> &address,
    std::vector<uint8_t> &code /* out */,
-   std::vector<uint8_t> &hash /* out */)
+   evm_uint256be &hash /* out */)
 {
    // no log here, because this is the internal version
    auto iter = contract_code.find(address);
@@ -651,7 +650,7 @@ extern "C" {
                        struct evm_context* evmctx,
                        const struct evm_address* address) {
       std::vector<uint8_t> stored_code;
-      std::vector<uint8_t> hash;
+      evm_uint256be hash;
       if (ath_object(evmctx)->get_code(address, stored_code, hash)) {
          if (result_code) {
             *result_code = (uint8_t*)malloc(stored_code.size());

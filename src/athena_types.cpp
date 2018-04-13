@@ -27,3 +27,18 @@ com::vmware::athena::EthTransaction::operator=(
    status = other.status;
    return *this;
 }
+
+// Byte-wise comparator for evm_uint256be. This allows us to use this type as a
+// key in a std::map. Must be in the global namespace.
+bool operator<(const evm_uint256be &a, const evm_uint256be &b)
+{
+   for (int i = 0; i < sizeof(evm_uint256be); i++) {
+      if (a.bytes[i] < b.bytes[i]) {
+         return true;
+      } else if (a.bytes[i] > b.bytes[i]) {
+         return false;
+      }
+   }
+
+   return false;
+}
