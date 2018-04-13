@@ -13,7 +13,8 @@ using json = nlohmann::json;
 com::vmware::athena::EVMInitParams::EVMInitParams()
    : logger(Logger::getInstance("com.vmware.athena.evm_init_params")) {}
 
-com::vmware::athena::EVMInitParams::EVMInitParams(std::string genesis_file_path)
+com::vmware::athena::EVMInitParams::EVMInitParams(
+   const std::string genesis_file_path)
    : logger(Logger::getInstance("com.vmware.athena.evm_init_params"))
 {
    json genesis_block = parse_genesis_block(genesis_file_path);
@@ -92,11 +93,11 @@ json com::vmware::athena::EVMInitParams::parse_genesis_block(
 
 
 
-std::map<evm_address, uint64_t>
-com::vmware::athena::EVMInitParams::get_initial_accounts() {
+const std::map<evm_address, uint64_t>&
+com::vmware::athena::EVMInitParams::get_initial_accounts() const {
    return initial_accounts;
 }
 
-uint64_t com::vmware::athena::EVMInitParams::get_chainID() {
+uint64_t com::vmware::athena::EVMInitParams::get_chainID() const {
       return chainID;
 }

@@ -31,6 +31,12 @@ private:
    std::string msg;
 };
 
+class TransactionNotFoundException: public EVMException {
+public:
+   TransactionNotFoundException() :
+      EVMException("Transaction not found") { }
+};
+
 /**
  * Our wrapper around EVM's wrapper, where we can add pointers to the modules
  * we're using to keep state.
@@ -112,14 +118,15 @@ public:
              evm_uint256be &txhash /* out */);
    void create(evm_message &message, evm_result &result,
                evm_uint256be &txhash /* out */);
-   EthTransaction get_transaction(evm_uint256be &txhash);
-   evm_uint256be get_storage_at(evm_address &account, evm_uint256be &key);
+   EthTransaction get_transaction(const evm_uint256be &txhash) const;
+   evm_uint256be get_storage_at(const evm_address &account,
+                                const evm_uint256be &key) const;
 
    /* EVM callbacks */
    int account_exists(const struct evm_address* address);
    void get_storage(struct evm_uint256be* result,
                     const struct evm_address* address,
-                    const struct evm_uint256be* key);
+                    const struct evm_uint256be* key) const;
    void set_storage(const struct evm_address* address,
                     const struct evm_uint256be* key,
                     const struct evm_uint256be* value);
@@ -165,8 +172,8 @@ private:
    // map from [(contract address)+(storage location)] to data at that location
    std::map<std::vector<uint8_t>, evm_uint256be> storage_map;
 
-   evm_address contract_destination(evm_message &message);
-   evm_uint256be keccak_hash(std::vector<uint8_t> &data);
+   evm_address contract_destination(const evm_message &message);
+   evm_uint256be keccak_hash(const std::vector<uint8_t> &data) const;
    void execute(evm_message &message,
                 const std::vector<uint8_t> &code,
                 evm_result &result /* out */);
@@ -174,13 +181,13 @@ private:
                  std::vector<uint8_t> &result_code,
                  evm_uint256be &result_hash);
    uint64_t get_nonce(const evm_address &address);
-   evm_uint256be hash_for_transaction(EthTransaction &tx);
+   evm_uint256be hash_for_transaction(const EthTransaction &tx) const;
    evm_uint256be record_transaction(const evm_message &message,
                                     const evm_result &result,
                                     const evm_address &to_override,
                                     const evm_address &contract_address);
    std::vector<uint8_t> storage_key(const struct evm_address* address,
-                                    const struct evm_uint256be* key);
+                                    const struct evm_uint256be* key) const;
 };
 
 }

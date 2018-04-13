@@ -38,8 +38,8 @@ public:
    EVMInitParams();
    explicit EVMInitParams(std::string genesis_file_path);
    nlohmann::json parse_genesis_block(std::string genesis_file_path);
-   std::map<evm_address, uint64_t> get_initial_accounts();
-   uint64_t get_chainID();
+   const std::map<evm_address, uint64_t>& get_initial_accounts() const;
+   uint64_t get_chainID() const;
 private:
    // chain ID is 1 by default, if genesis block constructor is
    // used then this chainID will be updated from genesis block.

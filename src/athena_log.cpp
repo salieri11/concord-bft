@@ -17,7 +17,7 @@ std::ostream& com::vmware::athena::hexPrint(
 
 // Print a vector of bytes as its 0x<hex> representation.
 std::ostream& com::vmware::athena::operator<<(
-   std::ostream& s, HexPrintVector v)
+   std::ostream& s, const HexPrintVector v)
 {
    return hexPrint(s, &v.vec[0], v.vec.size());
 };

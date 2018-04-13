@@ -23,7 +23,7 @@ struct HexPrintVector {
 
 std::ostream& hexPrint(std::ostream &s, const uint8_t *data, size_t size);
 
-std::ostream& operator<<(std::ostream& s, HexPrintVector v);
+std::ostream& operator<<(std::ostream& s, const HexPrintVector v);
 std::ostream& operator<<(std::ostream& s, const evm_uint256be &u);
 std::ostream& operator<<(std::ostream& s, const evm_address &u);
 

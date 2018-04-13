@@ -189,16 +189,21 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
  * Get a transaction given its hash.
  */
 EthTransaction com::vmware::athena::EVM::get_transaction(
-   evm_uint256be &txhash)
+   const evm_uint256be &txhash) const
 {
-   return transactions[txhash];
+   auto iter = transactions.find(txhash);
+   if (iter != transactions.end()) {
+      return iter->second;
+   }
+
+   throw TransactionNotFoundException();
 }
 
 /**
  * Get the value written at the given key in contract storage.
  */
 evm_uint256be com::vmware::athena::EVM::get_storage_at(
-   evm_address &account, evm_uint256be &key)
+   const evm_address &account, const evm_uint256be &key) const
 {
    evm_uint256be result;
    get_storage(&result, &account, &key);
@@ -210,7 +215,7 @@ evm_uint256be com::vmware::athena::EVM::get_storage_at(
  * of [sender_address, sender_nonce].
  */
 evm_address com::vmware::athena::EVM::contract_destination(
-   evm_message &message)
+   const evm_message &message)
 {
    //TODO: write RLP encoding function
    // https://github.com/ethereum/wiki/wiki/RLP
@@ -268,7 +273,7 @@ evm_address com::vmware::athena::EVM::contract_destination(
  * Compute the hash which will be used to reference the transaction.
  */
 evm_uint256be com::vmware::athena::EVM::hash_for_transaction(
-   EthTransaction &tx)
+   const EthTransaction &tx) const
 {
    //TODO: write RLP encoding function
    // https://github.com/ethereum/wiki/wiki/RLP
@@ -302,7 +307,7 @@ evm_uint256be com::vmware::athena::EVM::hash_for_transaction(
    }
 
    // now the to/contract address
-   evm_address &to = tx.contract_address == zero_address
+   const evm_address &to = tx.contract_address == zero_address
       ? tx.to : tx.contract_address;
    std::reverse_copy(to.bytes, to.bytes+sizeof(evm_address),
                      std::back_inserter(rlp));
@@ -358,7 +363,7 @@ evm_uint256be com::vmware::athena::EVM::hash_for_transaction(
 }
 
 evm_uint256be com::vmware::athena::EVM::keccak_hash(
-   std::vector<uint8_t> &data)
+   const std::vector<uint8_t> &data) const
 {
    static_assert(sizeof(evm_uint256be) == CryptoPP::Keccak_256::DIGESTSIZE,
                  "hash is not the same size as uint256");
@@ -409,7 +414,7 @@ int com::vmware::athena::EVM::account_exists(
  */
 std::vector<uint8_t> com::vmware::athena::EVM::storage_key(
    const struct evm_address* address,
-   const struct evm_uint256be* key)
+   const struct evm_uint256be* key) const
 {
    // we're just using the key appended to the address as the key into our
    // internal storage for now
@@ -428,14 +433,15 @@ std::vector<uint8_t> com::vmware::athena::EVM::storage_key(
 void com::vmware::athena::EVM::get_storage(
    struct evm_uint256be* result,
    const struct evm_address* address,
-   const struct evm_uint256be* key)
+   const struct evm_uint256be* key) const
 {
    LOG4CPLUS_DEBUG(logger, "EVM::get_storage called, address: " <<
                    *address << " key: " << *key);
 
    std::vector<uint8_t> storagekey = storage_key(address, key);
-   if (storage_map.count(storagekey)) {
-      *result = storage_map[storagekey];
+   auto iter = storage_map.find(storagekey);
+   if (iter != storage_map.end()) {
+      *result = iter->second;
     } else {
       memset(result, 0, 32);
    }
