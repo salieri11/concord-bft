@@ -74,7 +74,7 @@ void com::vmware::athena::EVM::call(evm_message &message,
    if (get_code(&message.destination, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Loaded code from " <<
                       HexPrintAddress{&message.destination});
-      memcpy(&message.code_hash.bytes, &hash.bytes[0], sizeof(evm_uint256be));
+      message.code_hash = hash;
 
       execute(message, code, result);
 
@@ -135,8 +135,10 @@ void com::vmware::athena::EVM::create(evm_message &message,
       memcpy(message.destination.bytes, &contract_address[0],
              sizeof(evm_address));
 
+      // we need a hash for this, or evmjit will cache its compilation under
+      // something random
       keccak_hash(create_code, hash);
-      memcpy(&message.code_hash.bytes, &hash.bytes, sizeof(evm_uint256be));
+      message.code_hash = hash;
 
       execute(message, create_code, result);
 
@@ -154,6 +156,8 @@ void com::vmware::athena::EVM::create(evm_message &message,
                          HexPrintVector{contract_address} <<
                          " with " << result.output_size << "bytes of code.");
 
+         // store the hash as well, so we don't have to recompute it for every
+         // execution
          code = std::vector<uint8_t>(result.output_data,
                                      result.output_data+result.output_size);
          keccak_hash(code, hash);
