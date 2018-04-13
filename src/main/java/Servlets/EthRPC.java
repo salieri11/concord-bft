@@ -43,6 +43,7 @@ public final class EthRPC extends BaseServlet {
    private JSONObject rpcModules;
    private String jsonRpc;
    private String clientVersion;
+   private boolean isMining;
 
    private enum EthMethodName {
       SEND_TX,
@@ -59,6 +60,7 @@ public final class EthRPC extends BaseServlet {
             = (JSONObject) (((JSONArray) p.parse(_conf.getStringValue("RPCModules"))).get(0));
          jsonRpc = _conf.getStringValue("JSONRPC");
          clientVersion = _conf.getStringValue("ClientVersion");
+         isMining = _conf.getIntegerValue("Is_Mining") == 0 ? false : true;
       } catch (Exception e) {
          logger.error("Failed to read RPC information from config file", e);
       }
@@ -218,6 +220,9 @@ public final class EthRPC extends BaseServlet {
             return;
          } else if (method.equals(_conf.getStringValue("ClientVersion_Name"))) {
             localResponse(clientVersion, response, id);
+            return;
+         } else if (method.equals(_conf.getStringValue("Mining_Name"))) {
+            localResponse(isMining, response, id);
             return;
          } else {
             logger.error("Invalid method name");
