@@ -42,6 +42,7 @@ public final class EthRPC extends BaseServlet {
    private JSONArray rpcList;
    private JSONObject rpcModules;
    private String jsonRpc;
+   private String clientVersion;
 
    private enum EthMethodName {
       SEND_TX,
@@ -57,6 +58,7 @@ public final class EthRPC extends BaseServlet {
          rpcModules
             = (JSONObject) (((JSONArray) p.parse(_conf.getStringValue("RPCModules"))).get(0));
          jsonRpc = _conf.getStringValue("JSONRPC");
+         clientVersion = _conf.getStringValue("ClientVersion");
       } catch (Exception e) {
          logger.error("Failed to read RPC information from config file", e);
       }
@@ -98,7 +100,6 @@ public final class EthRPC extends BaseServlet {
     *           The response object used to respond to the client
     * @throws IOException
     */
-   @SuppressWarnings("unchecked")
    protected void
              doPost(final HttpServletRequest request,
                     final HttpServletResponse response) throws IOException {
@@ -215,6 +216,9 @@ public final class EthRPC extends BaseServlet {
          } else if (method.equals(_conf.getStringValue("RPCModules_Name"))) {
             localResponse(rpcModules, response, id);
             return;
+         } else if (method.equals(_conf.getStringValue("ClientVersion_Name"))) {
+            localResponse(clientVersion, response, id);
+            return;
          } else {
             logger.error("Invalid method name");
             errorResponse(response,
@@ -240,6 +244,13 @@ public final class EthRPC extends BaseServlet {
       processGet(rpc, txHash, athenarequestObj, response, logger);
    }
 
+   /**
+    * Used for RPCs for which Helen doesn't need to communicate with Athena
+    * 
+    * @param data
+    * @param response
+    * @param id
+    */
    @SuppressWarnings("unchecked")
    private void localResponse(Object data, HttpServletResponse response,
                               Long id) {
