@@ -14,7 +14,8 @@ com::vmware::athena::EVMInitParams::EVMInitParams()
    : logger(Logger::getInstance("com.vmware.athena.evm_init_params")) {}
 
 com::vmware::athena::EVMInitParams::EVMInitParams(std::string genesis_file_path)
-   : logger(Logger::getInstance("com.vmware.athena.evm_init_params")) {
+   : logger(Logger::getInstance("com.vmware.athena.evm_init_params"))
+{
    json genesis_block = parse_genesis_block(genesis_file_path);
 
    if (genesis_block.find("config") != genesis_block.end()) {
@@ -32,7 +33,8 @@ com::vmware::athena::EVMInitParams::EVMInitParams(std::string genesis_file_path)
          if (address_v.size() != sizeof(evm_address)) {
             LOG4CPLUS_ERROR(logger, "Invalid account address: " <<
                             HexPrintVector{address_v});
-            throw EVMInitParamException("Invalid 'alloc' section in genesis file");
+            throw EVMInitParamException(
+               "Invalid 'alloc' section in genesis file");
          }
          evm_address address;
          std::copy(address_v.begin(), address_v.end(), address.bytes);
@@ -50,33 +52,40 @@ com::vmware::athena::EVMInitParams::EVMInitParams(std::string genesis_file_path)
          } catch (std::invalid_argument &ex) {
             LOG4CPLUS_ERROR(logger, "Invalid format for account balance value: "
                             << ex.what());
-            throw EVMInitParamException("Invalid 'alloc' section in genesis file");
+            throw EVMInitParamException(
+               "Invalid 'alloc' section in genesis file");
          } catch (std::out_of_range &ex) {
             LOG4CPLUS_ERROR(logger, "Account balance value out of range "
                             << " (should fit in uint64_t): "
                             << ex.what());
-            throw EVMInitParamException("Invalid 'alloc' section in genesis file");
+            throw EVMInitParamException(
+               "Invalid 'alloc' section in genesis file");
          }
          initial_accounts[address] = balance;
          LOG4CPLUS_TRACE(logger, "New initial account added with balance: "
                          << balance);
       }
    }
-   LOG4CPLUS_INFO(logger, initial_accounts.size() << " initial accounts added.");
+   LOG4CPLUS_INFO(logger, initial_accounts.size() <<
+                  " initial accounts added.");
 }
 
 /**
-   Reads the genesis block json from file @genesis_file_path.
-   This json is parsed and converted into nlohmann::json and returned
+ * Reads the genesis block json from file @genesis_file_path.
+ * This json is parsed and converted into nlohmann::json and returned
  */
-json com::vmware::athena::EVMInitParams::parse_genesis_block(std::string genesis_file_path) {
+json com::vmware::athena::EVMInitParams::parse_genesis_block(
+   std::string genesis_file_path)
+{
    std::ifstream genesis_stream(genesis_file_path);
    json genesis_block;
    if (genesis_stream.good()) {
       genesis_stream >> genesis_block;
    } else {
-      LOG4CPLUS_ERROR(logger, "Error reading genesis file at " + genesis_file_path + " Exiting.");
-      throw EVMInitParamException("Unable to read genesis file at: " + genesis_file_path);
+      LOG4CPLUS_ERROR(logger, "Error reading genesis file at " <<
+                      genesis_file_path << " Exiting.");
+      throw EVMInitParamException("Unable to read genesis file at: " +
+                                  genesis_file_path);
    }
    return genesis_block;
 }
