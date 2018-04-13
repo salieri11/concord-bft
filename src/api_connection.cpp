@@ -455,17 +455,20 @@ api_connection::handle_eth_getTxReceipt(const EthRequest &request) {
  */
 void
 api_connection::handle_eth_getStorageAt(const EthRequest &request) {
-   if (request.has_addr_to() && request.has_data()) {
-      std::vector<uint8_t> account(request.addr_to().begin(),
-                                   request.addr_to().end());
-      std::vector<uint8_t> key(request.data().begin(),
-                               request.data().end());
+   if (request.has_addr_to() && request.addr_to().size() == sizeof(evm_address)
+       && request.has_data() && request.data().size() == sizeof(evm_uint256be))
+   {
+      evm_address account;
+      std::copy(request.addr_to().begin(), request.addr_to().end(),
+                account.bytes);
+      evm_uint256be key;
+      std::copy(request.data().begin(), request.data().end(), key.bytes);
       //TODO: ignoring block number at the moment
 
-      std::vector<uint8_t> data = athevm_.get_storage_at(account, key);
+      evm_uint256be data = athevm_.get_storage_at(account, key);
       EthResponse *response = athenaResponse_.add_eth_response();
       response->set_id(request.id());
-      response->set_data(std::string(data.begin(), data.end()));
+      response->set_data(data.bytes, sizeof(data));
    } else {
       ErrorResponse *error = athenaResponse_.add_error_response();
       error->set_description("Missing account/contract or storage address");

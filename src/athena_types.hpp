@@ -45,8 +45,9 @@ typedef struct EthTransaction {
 }
 }
 
-// Byte-wise comparator for evm_uint256be. This allows us to use this type as a
-// key in a std::map. Must be in the global namespace.
+// Byte-wise comparators for evm_uint256be and evm_address. This allows us to
+// use these types as keys in a std::map. Must be in the global namespace.
 bool operator<(const evm_uint256be &a, const evm_uint256be &b);
+bool operator<(const evm_address &a, const evm_address &b);
 
 #endif

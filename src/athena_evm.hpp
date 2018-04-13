@@ -113,8 +113,7 @@ public:
    void create(evm_message &message, evm_result &result,
                evm_uint256be &txhash /* out */);
    EthTransaction get_transaction(evm_uint256be &txhash);
-   std::vector<uint8_t> get_storage_at(std::vector<uint8_t> &account,
-                                       std::vector<uint8_t> &key);
+   evm_uint256be&& get_storage_at(evm_address &account, evm_uint256be &key);
 
    /* EVM callbacks */
    int account_exists(const struct evm_address* address);

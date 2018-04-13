@@ -33,6 +33,12 @@ std::ostream& com::vmware::athena::operator<<(
 };
 
 std::ostream& com::vmware::athena::operator<<(
+   std::ostream& s, evm_address &a)
+{
+   return hexPrint(s, a.bytes, sizeof(evm_address));
+};
+
+std::ostream& com::vmware::athena::operator<<(
    std::ostream& s, evm_uint256be &u)
 {
    return hexPrint(s, u.bytes, sizeof(evm_uint256be));

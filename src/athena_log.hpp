@@ -33,6 +33,7 @@ std::ostream& operator<<(std::ostream& s, HexPrintVector v);
 std::ostream& operator<<(std::ostream& s, HexPrintAddress a);
 std::ostream& operator<<(std::ostream& s, HexPrintUint256Be u);
 std::ostream& operator<<(std::ostream& s, evm_uint256be &u);
+std::ostream& operator<<(std::ostream& s, evm_address &u);
 
 }
 }

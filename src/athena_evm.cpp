@@ -214,26 +214,12 @@ EthTransaction com::vmware::athena::EVM::get_transaction(
 /**
  * Get the value written at the given key in contract storage.
  */
-std::vector<uint8_t> com::vmware::athena::EVM::get_storage_at(
-   std::vector<uint8_t> &account, std::vector<uint8_t> &key)
+evm_uint256be&& com::vmware::athena::EVM::get_storage_at(
+   evm_address &account, evm_uint256be &key)
 {
-   if (account.size() == sizeof(evm_address) &&
-       key.size() == sizeof(evm_uint256be)) {
-      evm_uint256be result;
-      evm_uint256be location;
-      evm_address address;
-
-      memcpy(&address, &account[0], sizeof(evm_address));
-      memcpy(&location, &key[0], sizeof(evm_uint256be));
-
-      get_storage(&result, &address, &location);
-      return std::vector<uint8_t>(result.bytes,
-                                  result.bytes+sizeof(evm_uint256be));
-   } else {
-      LOG4CPLUS_WARN(logger, "Invalid account (" << account.size() <<
-                     " bytes) or key (" << key.size() << " bytes)");
-      return std::vector<uint8_t>(sizeof(evm_uint256be), 0);
-   }
+   evm_uint256be result;
+   get_storage(&result, &account, &key);
+   return std::move(result);
 }
 
 /**
