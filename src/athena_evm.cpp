@@ -78,7 +78,8 @@ void com::vmware::athena::EVM::call(evm_message &message,
 
       execute(message, code, result);
 
-      record_transaction(message, result, to, created_contract_address, txhash);
+      txhash = record_transaction(message, result, to,
+                                  created_contract_address);
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " <<
                       HexPrintAddress{&message.destination});
@@ -96,7 +97,8 @@ void com::vmware::athena::EVM::call(evm_message &message,
          balances[to] += transfer_val;
          balances[from] -= transfer_val;
          result.status_code = EVM_SUCCESS;
-         record_transaction(message, result, to, created_contract_address, txhash);
+         txhash = record_transaction(message, result, to,
+                                     created_contract_address);
          LOG4CPLUS_DEBUG(logger, "Transferred  " << transfer_val <<
                          " units to: " << HexPrintAddress{&message.destination} <<
                          " from: " << HexPrintAddress{&message.sender});
@@ -137,8 +139,7 @@ void com::vmware::athena::EVM::create(evm_message &message,
 
       // we need a hash for this, or evmjit will cache its compilation under
       // something random
-      keccak_hash(create_code, hash);
-      message.code_hash = hash;
+      message.code_hash = keccak_hash(create_code);
 
       execute(message, create_code, result);
 
@@ -148,8 +149,8 @@ void com::vmware::athena::EVM::create(evm_message &message,
       std::vector<uint8_t> recorded_contract_address =
          result.status_code == EVM_SUCCESS ?
          contract_address : std::vector<uint8_t>();
-      record_transaction(message, result, to, recorded_contract_address,
-                         txhash);
+      txhash = record_transaction(message, result, to,
+                                  recorded_contract_address);
 
       if (result.status_code == EVM_SUCCESS) {
          LOG4CPLUS_DEBUG(logger, "Contract created at " <<
@@ -160,7 +161,7 @@ void com::vmware::athena::EVM::create(evm_message &message,
          // execution
          code = std::vector<uint8_t>(result.output_data,
                                      result.output_data+result.output_size);
-         keccak_hash(code, hash);
+         hash = keccak_hash(code);
 
          contract_code[contract_address] =
             std::pair<std::vector<uint8_t>, evm_uint256be>(code, hash);
@@ -179,12 +180,11 @@ void com::vmware::athena::EVM::create(evm_message &message,
 /**
  * Compute the hash for the transaction, and put the record in storage.
  */
-void com::vmware::athena::EVM::record_transaction(
+evm_uint256be com::vmware::athena::EVM::record_transaction(
    evm_message &message,
    evm_result &result,
    std::vector<uint8_t> &to_override,
-   std::vector<uint8_t> &contract_address,
-   evm_uint256be &txhash /* out */)
+   std::vector<uint8_t> &contract_address)
 {
    std::vector<uint8_t> from(message.sender.bytes,
                              message.sender.bytes+sizeof(evm_address));
@@ -196,10 +196,11 @@ void com::vmware::athena::EVM::record_transaction(
          result.status_code
          };
 
-   hash_for_transaction(tx, txhash);
+   evm_uint256be txhash = hash_for_transaction(tx);
    LOG4CPLUS_DEBUG(logger, "Recording transaction " << txhash);
-
    transactions[txhash] = tx;
+
+   return txhash;
 }
 
 /**
@@ -214,12 +215,12 @@ EthTransaction com::vmware::athena::EVM::get_transaction(
 /**
  * Get the value written at the given key in contract storage.
  */
-evm_uint256be&& com::vmware::athena::EVM::get_storage_at(
+evm_uint256be com::vmware::athena::EVM::get_storage_at(
    evm_address &account, evm_uint256be &key)
 {
    evm_uint256be result;
    get_storage(&result, &account, &key);
-   return std::move(result);
+   return result;
 }
 
 /**
@@ -279,8 +280,7 @@ void com::vmware::athena::EVM::contract_destination(
    std::reverse(rlp.begin(), rlp.end());
 
    // hash it
-   evm_uint256be hash;
-   keccak_hash(rlp, hash);
+   evm_uint256be hash = keccak_hash(rlp);
 
    // the lower 20 bytes are the address
    address.resize(sizeof(evm_address));
@@ -291,8 +291,8 @@ void com::vmware::athena::EVM::contract_destination(
 /**
  * Compute the hash which will be used to reference the transaction.
  */
-void com::vmware::athena::EVM::hash_for_transaction(
-   EthTransaction &tx, evm_uint256be &txhash /* out */)
+evm_uint256be com::vmware::athena::EVM::hash_for_transaction(
+   EthTransaction &tx)
 {
    //TODO: write RLP encoding function
    // https://github.com/ethereum/wiki/wiki/RLP
@@ -374,17 +374,19 @@ void com::vmware::athena::EVM::hash_for_transaction(
    std::reverse(rlp.begin(), rlp.end());
 
    // hash it
-   keccak_hash(rlp, txhash);
+   return keccak_hash(rlp);
 }
 
-void com::vmware::athena::EVM::keccak_hash(
-   std::vector<uint8_t> &data, evm_uint256be &hash /* out */)
+evm_uint256be com::vmware::athena::EVM::keccak_hash(
+   std::vector<uint8_t> &data)
 {
    static_assert(sizeof(evm_uint256be) == CryptoPP::Keccak_256::DIGESTSIZE,
                  "hash is not the same size as uint256");
 
    CryptoPP::Keccak_256 keccak;
+   evm_uint256be hash;
    keccak.CalculateDigest(hash.bytes, &data[0], data.size());
+   return hash;
 }
 
 uint64_t com::vmware::athena::EVM::get_nonce(std::vector<uint8_t> &address) {

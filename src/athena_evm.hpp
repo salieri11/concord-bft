@@ -113,7 +113,7 @@ public:
    void create(evm_message &message, evm_result &result,
                evm_uint256be &txhash /* out */);
    EthTransaction get_transaction(evm_uint256be &txhash);
-   evm_uint256be&& get_storage_at(evm_address &account, evm_uint256be &key);
+   evm_uint256be get_storage_at(evm_address &account, evm_uint256be &key);
 
    /* EVM callbacks */
    int account_exists(const struct evm_address* address);
@@ -168,8 +168,7 @@ private:
 
    void contract_destination(evm_message &message,
                              std::vector<uint8_t> &address);
-   void keccak_hash(std::vector<uint8_t> &data,
-                    evm_uint256be &hash);
+   evm_uint256be keccak_hash(std::vector<uint8_t> &data);
    void execute(evm_message &message,
                 const std::vector<uint8_t> &code,
                 evm_result &result /* out */);
@@ -177,13 +176,11 @@ private:
                  std::vector<uint8_t> &result_code,
                  evm_uint256be &result_hash);
    uint64_t get_nonce(std::vector<uint8_t> &address);
-   void hash_for_transaction(EthTransaction &tx,
-                             evm_uint256be &hash /* out */);
-   void record_transaction(evm_message &message,
-                           evm_result &result,
-                           std::vector<uint8_t> &to_override,
-                           std::vector<uint8_t> &contract_address,
-                           evm_uint256be &txhash /* out */);
+   evm_uint256be hash_for_transaction(EthTransaction &tx);
+   evm_uint256be record_transaction(evm_message &message,
+                                    evm_result &result,
+                                    std::vector<uint8_t> &to_override,
+                                    std::vector<uint8_t> &contract_address);
    std::vector<uint8_t> storage_key(const struct evm_address* address,
                                     const struct evm_uint256be* key);
 };
