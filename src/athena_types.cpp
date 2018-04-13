@@ -2,6 +2,8 @@
 //
 // Common types passed among Athena components.
 
+#include <string.h>
+
 #include "athena_types.hpp"
 
 com::vmware::athena::EthTransaction::EthTransaction(
@@ -56,4 +58,14 @@ bool operator<(const evm_address &a, const evm_address &b)
    }
 
    return false;
+}
+
+bool operator!=(const evm_address &a, const evm_address &b)
+{
+   return !(a == b);
+}
+
+bool operator==(const evm_address &a, const evm_address &b)
+{
+   return memcmp(a.bytes, b.bytes, sizeof(evm_address)) == 0;
 }

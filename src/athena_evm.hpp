@@ -150,37 +150,35 @@ private:
    uint64_t chainId;
 
    // map from account address to account balance
-   std::map<std::vector<uint8_t>, uint64_t> balances;
+   std::map<evm_address, uint64_t> balances;
 
    // map from contract address to a pair of (contract code, code hash)
-   std::map<std::vector<uint8_t>,
-            std::pair<std::vector<uint8_t>, evm_uint256be>>
-       contract_code;
+   std::map<evm_address, std::pair<std::vector<uint8_t>, evm_uint256be>>
+      contract_code;
 
    // map from account address to latest nonce
-   std::map<std::vector<uint8_t>, uint64_t> nonces;
+   std::map<evm_address, uint64_t> nonces;
 
    // the transactions we have processed; map is hash -> tx
    std::map<evm_uint256be, EthTransaction> transactions;
 
    // map from [(contract address)+(storage location)] to data at that location
-   std::map<std::vector<uint8_t>, std::vector<uint8_t>> storage_map;
+   std::map<std::vector<uint8_t>, evm_uint256be> storage_map;
 
-   void contract_destination(evm_message &message,
-                             std::vector<uint8_t> &address);
+   evm_address contract_destination(evm_message &message);
    evm_uint256be keccak_hash(std::vector<uint8_t> &data);
    void execute(evm_message &message,
                 const std::vector<uint8_t> &code,
                 evm_result &result /* out */);
-   bool get_code(const std::vector<uint8_t> &address,
+   bool get_code(const evm_address &address,
                  std::vector<uint8_t> &result_code,
                  evm_uint256be &result_hash);
-   uint64_t get_nonce(std::vector<uint8_t> &address);
+   uint64_t get_nonce(const evm_address &address);
    evm_uint256be hash_for_transaction(EthTransaction &tx);
-   evm_uint256be record_transaction(evm_message &message,
-                                    evm_result &result,
-                                    std::vector<uint8_t> &to_override,
-                                    std::vector<uint8_t> &contract_address);
+   evm_uint256be record_transaction(const evm_message &message,
+                                    const evm_result &result,
+                                    const evm_address &to_override,
+                                    const evm_address &contract_address);
    std::vector<uint8_t> storage_key(const struct evm_address* address,
                                     const struct evm_uint256be* key);
 };

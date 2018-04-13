@@ -4,6 +4,7 @@
 
 #include<iostream>
 #include "evm_init_params.hpp"
+#include "athena_log.hpp"
 
 using namespace com::vmware::athena;
 using log4cplus::Logger;
@@ -27,7 +28,15 @@ com::vmware::athena::EVMInitParams::EVMInitParams(std::string genesis_file_path)
       json alloc = genesis_block["alloc"];
       for (json::iterator it = alloc.begin();
            it != alloc.end(); it++) {
-         std::vector<uint8_t> address = dehex(it.key());
+         std::vector<uint8_t> address_v = dehex(it.key());
+         if (address_v.size() != sizeof(evm_address)) {
+            LOG4CPLUS_ERROR(logger, "Invalid account address: " <<
+                            HexPrintVector{address_v});
+            throw EVMInitParamException("Invalid 'alloc' section in genesis file");
+         }
+         evm_address address;
+         std::copy(address_v.begin(), address_v.end(), address.bytes);
+
          std::string balance_str = it.value()["balance"];
          // The second argument to stoull is not used (hence nullptr) '0' for
          // third parameter suggests that interpret base from string Note:
@@ -74,7 +83,7 @@ json com::vmware::athena::EVMInitParams::parse_genesis_block(std::string genesis
 
 
 
-std::map<std::vector<uint8_t>, uint64_t>
+std::map<evm_address, uint64_t>
 com::vmware::athena::EVMInitParams::get_initial_accounts() {
    return initial_accounts;
 }
