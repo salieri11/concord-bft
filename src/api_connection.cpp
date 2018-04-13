@@ -420,8 +420,7 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
 
    EthResponse *response = athenaResponse_.add_eth_response();
    response->set_id(request.id());
-   response->set_data(std::string(txhash.bytes,
-                                  txhash.bytes+sizeof(evm_uint256be)));
+   response->set_data(txhash.bytes, sizeof(evm_uint256be));
 }
 
 /**
