@@ -146,6 +146,8 @@ process_post(ReqData, State=#state{request=#eth_request{method=Method}})
         RPC=#eth_rpc{} ->
             call_handler(ReqData, State, RPC);
         false ->
+            error_logger:info_msg("Unknown method: ~p, params: ~p",
+                                  [Method, (State#state.request)#eth_request.params]),
             error_message(ReqData, State,["unknown method ", Method])
     end;
 process_post(ReqData, State) ->
@@ -165,8 +167,12 @@ encode_result(ReqData, Request, Result) ->
                  0
          end,
     {Label, Value} = case Result of
-                         {ok, V} -> {<<"result">>, V};
-                         {error, V} -> {<<"error">>, V}
+                         {ok, V} ->
+                             {<<"result">>, V};
+                         {error, V} when is_binary(V) ->
+                             {<<"error">>, {struct, [{<<"message">>, V}]}};
+                         {error, {struct, _}=V} ->
+                             {<<"error">>, V}
                      end,
     Response = [{<<"id">>, Id},
                 {<<"jsonrpc">>, ?ETH_JSON_RPC_VERSION},

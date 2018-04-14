@@ -99,9 +99,7 @@ sendTransaction_athena(To, From, Value, Data) ->
                     {error, <<"bad response from athena">>}
             end;
         Other ->
-            error_logger:error_msg("did not understand athena response: !p",
-                                   [Other]),
-            {error, <<"bad response from athena">>}
+            handle_athena_error(Other)
     end.
 
 getTransactionReceipt_athena(TxHash) ->
@@ -135,9 +133,7 @@ getTransactionReceipt_athena(TxHash) ->
                     {error, <<"bad response from athena">>}
             end;
         Other ->
-            error_logger:error_msg("did not understand athena response: !p",
-                                   [Other]),
-            {error, <<"bad response from athena">>}
+            handle_athena_error(Other)
     end.
 
 getStorageAt_athena(Contract, Location) ->
@@ -157,7 +153,23 @@ getStorageAt_athena(Contract, Location) ->
                     {error, <<"bad response from athena">>}
             end;
         Other ->
-            error_logger:error_msg("did not understand athena response: !p",
-                                   [Other]),
-            {error, <<"bad response from athena">>}
+            handle_athena_error(Other)
     end.
+
+handle_athena_error({error, E}=Error) ->
+    %% An error from our connection handler
+    error_logger:error_msg("Error talking to athena: ~p", [E]),
+    Error;
+handle_athena_error(#athenaresponse{error_response=[ErrorResponse]}) ->
+    %% An actual error from athena
+    case ErrorResponse of
+        #errorresponse{description=D} when D /= undefined ->
+            {error, iolist_to_binary(D)};
+        Other ->
+            error_logger:error_msg("Invalid error response from athena: ~p",
+                                   [Other]),
+            {error, <<"unknown error from athena">>}
+    end;
+handle_athena_error(Other) ->
+    error_logger:error_msg("did not understand athena response: ~p", [Other]),
+    {error, <<"bad response from athena">>}.
