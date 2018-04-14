@@ -70,15 +70,12 @@ void com::vmware::athena::EVM::call(evm_message &message,
       message.code_hash = hash;
 
       execute(message, code, result);
-
-      txhash = record_transaction(message, result, message.destination,
-                                  zero_address); /* no contract created */
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " << message.destination);
 
       uint64_t transfer_val = from_evm_uint256be(&message.value);
       // All addresses exist by default. They are considered as accounts with
-      // 0 balances. Hence, we never throw an accont not found error. Instead
+      // 0 balances. Hence, we never throw an account-not-found error. Instead
       // we will simply say that account does not have sufficient balance.
       if (balances.count(message.destination) == 0 ||
           balances[message.destination] < transfer_val) {
@@ -90,8 +87,6 @@ void com::vmware::athena::EVM::call(evm_message &message,
          balances[message.destination] += transfer_val;
          balances[message.sender] -= transfer_val;
          result.status_code = EVM_SUCCESS;
-         txhash = record_transaction(message, result, message.destination,
-                                     zero_address); /* no contract created */
          LOG4CPLUS_DEBUG(logger, "Transferred  " << transfer_val <<
                          " units to: " << message.destination <<
                          " from: " << message.sender);
@@ -102,6 +97,8 @@ void com::vmware::athena::EVM::call(evm_message &message,
       // attempted to call a contract that doesn't exist
       result.status_code = EVM_FAILURE;
    }
+   txhash = record_transaction(message, result, message.destination,
+                               zero_address); /* no contract created */
 }
 
 /**
