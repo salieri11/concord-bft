@@ -155,11 +155,9 @@ public final class EthRPC extends BaseServlet {
       try {
          params = (JSONArray) requestParams.get("params");
       } catch (ClassCastException cse) {
-         if (!method.equals(_conf.getStringValue("ClientVersion_Name"))) {
-            logger.error("Invalid request parameter : params");
-            errorResponse(response, "'params' must be an array", id, logger);
-            return;
-         }
+         logger.error("Invalid request parameter : params");
+         errorResponse(response, "'params' must be an array", id, logger);
+         return;
       }
 
       Athena.EthRequest.Builder b = Athena.EthRequest.newBuilder();
