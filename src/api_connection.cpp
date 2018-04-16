@@ -398,7 +398,7 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
    // TODO: get this from the request
    message.gas = 1000000;
 
-   std::vector<uint8_t> txhash;
+   evm_uint256be txhash;
    if (request.has_addr_to()) {
       message.kind = EVM_CALL;
 
@@ -420,7 +420,7 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
 
    EthResponse *response = athenaResponse_.add_eth_response();
    response->set_id(request.id());
-   response->set_data(std::string(txhash.begin(), txhash.end()));
+   response->set_data(txhash.bytes, sizeof(evm_uint256be));
 }
 
 /**
@@ -429,20 +429,18 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
 void
 api_connection::handle_eth_getTxReceipt(const EthRequest &request) {
    if (request.has_data() && request.data().size() == sizeof(evm_uint256be)) {
-      std::vector<uint8_t> txhash(request.data().begin(),
-                                  request.data().end());
+      evm_uint256be txhash;
+      std::copy(request.data().begin(), request.data().end(), txhash.bytes);
 
-      LOG4CPLUS_DEBUG(logger_, "Looking up transaction receipt " <<
-                      HexPrintVector{txhash});
+      LOG4CPLUS_DEBUG(logger_, "Looking up transaction receipt " << txhash);
       EthTransaction tx = athevm_.get_transaction(txhash);
 
       EthResponse *response = athenaResponse_.add_eth_response();
       response->set_id(request.id());
       response->set_status(tx.status == EVM_SUCCESS ? 1 : 0);
-      if (tx.contract_address.size() > 0) {
-         response->set_contract_address(
-            std::string(tx.contract_address.begin(),
-                        tx.contract_address.end()));
+      if (tx.contract_address != zero_address) {
+         response->set_contract_address(tx.contract_address.bytes,
+                                        sizeof(evm_address));
       }
    } else {
       ErrorResponse *error = athenaResponse_.add_error_response();
@@ -455,17 +453,20 @@ api_connection::handle_eth_getTxReceipt(const EthRequest &request) {
  */
 void
 api_connection::handle_eth_getStorageAt(const EthRequest &request) {
-   if (request.has_addr_to() && request.has_data()) {
-      std::vector<uint8_t> account(request.addr_to().begin(),
-                                   request.addr_to().end());
-      std::vector<uint8_t> key(request.data().begin(),
-                               request.data().end());
+   if (request.has_addr_to() && request.addr_to().size() == sizeof(evm_address)
+       && request.has_data() && request.data().size() == sizeof(evm_uint256be))
+   {
+      evm_address account;
+      std::copy(request.addr_to().begin(), request.addr_to().end(),
+                account.bytes);
+      evm_uint256be key;
+      std::copy(request.data().begin(), request.data().end(), key.bytes);
       //TODO: ignoring block number at the moment
 
-      std::vector<uint8_t> data = athevm_.get_storage_at(account, key);
+      evm_uint256be data = athevm_.get_storage_at(account, key);
       EthResponse *response = athenaResponse_.add_eth_response();
       response->set_id(request.id());
-      response->set_data(std::string(data.begin(), data.end()));
+      response->set_data(data.bytes, sizeof(data));
    } else {
       ErrorResponse *error = athenaResponse_.add_error_response();
       error->set_description("Missing account/contract or storage address");
