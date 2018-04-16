@@ -123,3 +123,25 @@ mvn exec:java
 Server and servlet configurations are stored in a key-value format in [config.properties](https://github.com/vmwathena/helen/blob/jmc-java-helen/config.properties).
 Note : Helen needs to be restarted if any changes are made to the config.properties file.
 
+### Latency
+
+The latency of the ecosystem (Helen + Athena) can be tested by using a tool called [ApacheBench](https://httpd.apache.org/docs/2.4/programs/ab.html). 
+
+ * Install using steps found [here](https://kuntalchandra.wordpress.com/2015/10/10/install-apache-bench-ubuntu-14-04/).
+
+ * To fire GET requests, use the command : ab -t 60 -n 10000000 -c 10 {request url}
+   This command fires the specified GET request for 60 seconds (-t flag) or 10000000 times (-n flag) (whichever comes first). The -c flag is used to set the number of concurrent requests being fired at all times.
+
+ * To fire POST requests, use the command : ab -p {filename}.txt -T application/json -t 60 -n 10000000 {request url}
+   In addition to the parameters in the GET request, this requires a -p flag. A filename must be provided which contains the parameters of the POST request.
+
+   Sample file contents :
+   {"jsonrpc":"2.0","method":"eth_sendTransaction","params":[{
+   "from": "0xb60e8dd61c5d32be8058bb8eb970870f07233155",
+   "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
+   "gas": "0x76c0",
+   "gasPrice": "0x9184e72a000",
+   "value": "0x9184e72a",
+   "data": "0xd46e8dd67c5d32be8d46e8dd67c5d32be8058bb8eb970870f072445675058bb8eb970870f072445675"
+   }],"id":1}
+
