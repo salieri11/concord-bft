@@ -6,6 +6,7 @@
 #include "evm.h"
 #include <ios>
 
+// Print <size> bytes from <data> to <s> as their 0x<hex> representation.
 std::ostream& com::vmware::athena::hexPrint(
    std::ostream &s, const uint8_t *data, size_t size)
 {
@@ -20,22 +21,25 @@ std::ostream& com::vmware::athena::hexPrint(
    return s;
 };
 
+// Print a vector of bytes as its 0x<hex> representation.
 std::ostream& com::vmware::athena::operator<<(
-   std::ostream& s, HexPrintVector v)
+   std::ostream& s, const HexPrintVector v)
 {
    return hexPrint(s, &v.vec[0], v.vec.size());
 };
 
+// Print an evm_address as its 0x<hex> representation.
 std::ostream& com::vmware::athena::operator<<(
-   std::ostream& s, HexPrintAddress a)
+   std::ostream& s, const evm_address &a)
 {
-   return hexPrint(s, &a.addr->bytes[0], sizeof(evm_address));
+   return hexPrint(s, a.bytes, sizeof(evm_address));
 };
 
+// Print an evm_uint256be as its 0x<hex> representation.
 std::ostream& com::vmware::athena::operator<<(
-   std::ostream& s, HexPrintUint256Be u)
+   std::ostream& s, const evm_uint256be &u)
 {
-   return hexPrint(s, &u.uibe->bytes[0], sizeof(evm_uint256be));
+   return hexPrint(s, u.bytes, sizeof(evm_uint256be));
 };
 
 

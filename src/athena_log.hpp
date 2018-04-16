@@ -20,21 +20,15 @@ namespace athena {
 struct HexPrintVector {
    std::vector<uint8_t> const& vec;
 };
-struct HexPrintAddress {
-   evm_address const *addr;
-};
-struct HexPrintUint256Be {
-   evm_uint256be const *uibe;
-};
 
 std::ostream& hexPrint(std::ostream &s, const uint8_t *data, size_t size);
 
+
 std::ostream& operator<<(std::ostream& s, HexPrintVector v);
-std::ostream& operator<<(std::ostream& s, HexPrintAddress a);
-std::ostream& operator<<(std::ostream& s, HexPrintUint256Be u);
+std::ostream& operator<<(std::ostream& s, const evm_uint256be &u);
+std::ostream& operator<<(std::ostream& s, const evm_address &u);
 std::ostream& operator<<(std::ostream& s, struct evm_message msg);
 std::ostream& operator<<(std::ostream& s, evm_call_kind kind);
-
 }
 }
 }
