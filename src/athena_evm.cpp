@@ -138,6 +138,8 @@ void com::vmware::athena::EVM::create(evm_message &message,
                                   zero_address, /* creates are not addressed */
                                   recorded_contract_address);
 
+      // TODO: check if the new contract is zero bytes in length;
+      //       return error, not success in that case
       if (result.status_code == EVM_SUCCESS) {
          LOG4CPLUS_DEBUG(logger, "Contract created at " << contract_address <<
                          " with " << result.output_size << "bytes of code.");
@@ -151,7 +153,7 @@ void com::vmware::athena::EVM::create(evm_message &message,
          contract_code[contract_address] =
             std::pair<std::vector<uint8_t>, evm_uint256be>(code, hash);
          result.create_address = contract_address;
-      } //TODO: Handle else condition here
+      }
    } else {
       LOG4CPLUS_DEBUG(logger, "Existing code found at " <<
                       message.destination << ", returning error code.");
