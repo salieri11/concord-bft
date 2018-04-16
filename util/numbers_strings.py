@@ -24,3 +24,14 @@ def decToEvenHexNo0x(d):
       hexString = "0" + hexString
 
    return hexString
+
+def stringOnlyContains(checkMe, allowed):
+   '''
+   Given a string and a string of characters it may contain, returns whether
+   the string only contains the characters it may.
+   '''
+   for c in checkMe:
+      if not c in allowed:
+         return False
+
+   return True
