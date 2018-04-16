@@ -7,6 +7,8 @@
 
 #include <map>
 #include <vector>
+#include <unordered_map>
+#include <memory>
 #include <log4cplus/loggingmacros.h>
 #include "common/utils.hpp"
 #include "evm.h"
@@ -169,9 +171,21 @@ private:
    // the transactions we have processed; map is hash -> tx
    std::map<evm_uint256be, EthTransaction> transactions;
 
+   // the blocks we have created, in two mappings: by hash and by index.
+   // using shared pointers inside the maps, so that the memory will be cleaned
+   // up later.
+   //TODO: unoordered map
+   std::map<evm_uint256be, std::shared_ptr<EthBlock>> blocksByHash;
+   std::map<uint64_t, std::shared_ptr<EthBlock>> blocksByIdx;
+
+   // the latest block id we have used
+   // TODO: make this atomic
+   uint64_t latestBlock = 0;
+
    // map from [(contract address)+(storage location)] to data at that location
    std::map<std::vector<uint8_t>, evm_uint256be> storage_map;
 
+   void create_genesis_block();
    evm_address contract_destination(const evm_message &message);
    evm_uint256be keccak_hash(const std::vector<uint8_t> &data) const;
    void execute(evm_message &message,
@@ -181,7 +195,9 @@ private:
                  std::vector<uint8_t> &result_code,
                  evm_uint256be &result_hash);
    uint64_t get_nonce(const evm_address &address);
+   uint64_t next_block_idx();
    evm_uint256be hash_for_transaction(const EthTransaction &tx) const;
+   evm_uint256be hash_for_block(const std::shared_ptr<EthBlock> tx) const;
    evm_uint256be record_transaction(const evm_message &message,
                                     const evm_result &result,
                                     const evm_address &to_override,

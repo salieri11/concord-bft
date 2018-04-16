@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cstring>
 #include <stdexcept>
+#include <memory>
 #include <log4cplus/loggingmacros.h>
 #include <keccak.h>
 
@@ -32,6 +33,8 @@ com::vmware::athena::EVM::EVM(EVMInitParams params)
    // wrap an evm context in an athena context
    athctx = {{&athena_fn_table}, this};
 
+   create_genesis_block();
+
 #ifdef USE_HERA
    evminst = hera_create();
 #else
@@ -51,6 +54,19 @@ com::vmware::athena::EVM::EVM(EVMInitParams params)
 com::vmware::athena::EVM::~EVM() {
    evminst->destroy(evminst);
    LOG4CPLUS_INFO(logger, "EVM stopped");
+}
+
+void com::vmware::athena::EVM::create_genesis_block() {
+   // TODO: create transactions for initial values
+   std::vector<evm_uint256be> txs;
+
+   std::shared_ptr<EthBlock> blk = std::make_shared<EthBlock>();
+   blk->idx = 0;
+   blk->parent_hash = zero_hash;
+   blk->transactions = txs;
+   blk->hash = hash_for_block(blk);
+   blocksByHash[blk->hash] = blk;
+   blocksByIdx[blk->idx] = blk;
 }
 
 /**
@@ -179,6 +195,21 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
    evm_uint256be txhash = hash_for_transaction(tx);
    LOG4CPLUS_DEBUG(logger, "Recording transaction " << txhash);
    transactions[txhash] = tx;
+
+   // list of transaction hashes for the block
+   std::vector<evm_uint256be> txlist;
+   txlist.push_back(txhash);
+
+   std::shared_ptr<EthBlock> blk = std::make_shared<EthBlock>();
+   blk->idx = next_block_idx();
+   blk->parent_hash = blocksByIdx[blk->idx-1]->hash;
+   blk->transactions = txlist;
+   blk->hash = hash_for_block(blk);
+
+   LOG4CPLUS_DEBUG(logger, "Recording block " << blk->idx <<
+                    " hash " << blk->hash);
+   blocksByHash[blk->hash] = blk;
+   blocksByIdx[blk->idx] = blk;
 
    return txhash;
 }
@@ -360,6 +391,100 @@ evm_uint256be com::vmware::athena::EVM::hash_for_transaction(
    return keccak_hash(rlp);
 }
 
+/**
+ * Compute the hash which will be used to reference the transaction.
+ */
+evm_uint256be com::vmware::athena::EVM::hash_for_block(
+   const std::shared_ptr<EthBlock> blk) const
+{
+   //TODO: write RLP encoding function
+   // https://github.com/ethereum/wiki/wiki/RLP
+
+   /*
+    * WARNING: This is not the same as Ethereum's block hash right now,
+    * but is instead an approximation, in order to provide something to fill API
+    * holes. For now, the plan is:
+    *
+    * RLP([idx, parent_hash, txhash1, txhash2, ...])
+    */
+
+   std::vector<uint8_t> rlp;
+   size_t field_length_count;
+   size_t field_length;
+
+   // Build RLP encoding backward, then reverse before returning.
+   // backward = txhashes first
+   for (auto txh: blk->transactions) {
+      std::reverse_copy(txh.bytes,
+                        txh.bytes+sizeof(evm_uint256be),
+                        std::back_inserter(rlp));
+      // prefix (max 55 bytes for this particular encoding)
+      static_assert(sizeof(evm_uint256be) < 56,
+                    "evm_uint256be will not fit in short rlp string");
+      rlp.push_back(0x80 + sizeof(evm_uint256be));
+   }
+   size_t txlength = blk->transactions.size()*(1+sizeof(evm_uint256be));
+   if (txlength < 56) {
+      rlp.push_back(0x80 + txlength);
+   } else {
+      field_length = txlength;
+      field_length_count = 0;
+      do {
+         ++field_length_count;
+         rlp.push_back(field_length & 0xff);
+         field_length >>= 8;
+      } while (field_length > 0);
+      rlp.push_back(0xb7 + field_length);
+   }
+
+   // now the parent hash
+   std::reverse_copy(blk->parent_hash.bytes,
+                     blk->parent_hash.bytes+sizeof(evm_uint256be),
+                     std::back_inserter(rlp));
+   // prefix (max 55 bytes for this particular encoding)
+   static_assert(sizeof(evm_uint256be) < 56,
+                 "evm_uint256be will not fit in short rlp string");
+   rlp.push_back(0x80 + sizeof(evm_uint256be));
+
+   // now the index
+   uint64_t idx = blk->idx;
+   if (idx < 0x80) {
+      // very small numbers are represented by themselves
+      rlp.push_back(idx);
+   } else {
+      field_length_count = 0;
+      do {
+         ++field_length_count;
+         rlp.push_back(idx & 0xff);
+         idx >>= 8;
+      } while(idx > 0);
+      // prefix (0x80 = short string)
+      rlp.push_back(0x80 + field_length_count);
+   }
+
+   // sum up
+   field_length = rlp.size();
+   if (field_length < 56) {
+      // 0xc0 = short list
+      rlp.push_back(0xc0 + field_length);
+   } else {
+      field_length_count = 0;
+      do {
+         ++field_length_count;
+         rlp.push_back(field_length & 0xff);
+         field_length >>= 8;
+      } while(field_length > 0);
+      // 0xf7 = long list
+      rlp.push_back(0xf7 + field_length_count);
+   }
+
+   // get the RLP in the correct order
+   std::reverse(rlp.begin(), rlp.end());
+
+   // hash it
+   return keccak_hash(rlp);
+}
+
 evm_uint256be com::vmware::athena::EVM::keccak_hash(
    const std::vector<uint8_t> &data) const
 {
@@ -379,6 +504,10 @@ uint64_t com::vmware::athena::EVM::get_nonce(const evm_address &address) {
    }
    nonces[address] = nonce+1;
    return nonce;
+}
+
+uint64_t com::vmware::athena::EVM::next_block_idx() {
+   return ++latestBlock;
 }
 
 void com::vmware::athena::EVM::execute(evm_message &message,
