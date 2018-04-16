@@ -68,7 +68,6 @@ void com::vmware::athena::EVM::call(evm_message &message,
    if (get_code(&message.destination, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Loaded code from " << message.destination);
       message.code_hash = hash;
-
       execute(message, code, result);
 
       txhash = record_transaction(message, result, message.destination,
@@ -152,7 +151,7 @@ void com::vmware::athena::EVM::create(evm_message &message,
          contract_code[contract_address] =
             std::pair<std::vector<uint8_t>, evm_uint256be>(code, hash);
          result.create_address = contract_address;
-      }
+      } //TODO: Handle else condition here
    } else {
       LOG4CPLUS_DEBUG(logger, "Existing code found at " <<
                       message.destination << ", returning error code.");
@@ -547,7 +546,7 @@ void com::vmware::athena::EVM::call(
    const struct evm_message* msg)
 {
    LOG4CPLUS_DEBUG(logger, "EVM::call called");
-   std::vector<uint8_t> txhash;
+   evm_uint256be txhash;
    LOG4CPLUS_INFO(logger, msg);
    // create copy of message struct since
    // call function needs non-const message object

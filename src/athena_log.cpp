@@ -65,9 +65,9 @@ std::ostream& com::vmware::athena::operator<<(
 std::ostream& com::vmware::athena::operator<<(
    std::ostream& s, struct evm_message msg)
 {
-   s << "\nMessage: {\ndestination: " << HexPrintAddress{&msg.destination}
-   << "\nsender: " << HexPrintAddress{&msg.sender}
-   << "\nether: " << HexPrintUint256Be{&msg.value}
+   s << "\nMessage: {\ndestination: " << msg.destination
+   << "\nsender: " << msg.sender
+   << "\nether: " << msg.value
    << "\ncall_kind: " << msg.kind
    << "\ndepth: " << msg.depth
    << "\ngas: " << msg.gas
