@@ -13,6 +13,7 @@
 #include "common/json.hpp"
 #include "common/utils.hpp"
 #include "evm.h"
+#include "athena_types.hpp"
 
 namespace com {
 namespace vmware {
@@ -37,8 +38,8 @@ public:
    EVMInitParams();
    explicit EVMInitParams(std::string genesis_file_path);
    nlohmann::json parse_genesis_block(std::string genesis_file_path);
-   std::map<std::vector<uint8_t>, uint64_t> get_initial_accounts();
-   uint64_t get_chainID();
+   const std::map<evm_address, uint64_t>& get_initial_accounts() const;
+   uint64_t get_chainID() const;
 private:
    // chain ID is 1 by default, if genesis block constructor is
    // used then this chainID will be updated from genesis block.
@@ -46,7 +47,7 @@ private:
 
    uint64_t chainID = DEFAULT_CHAIN_ID;
    // The map of initial accounts with their preset balance values
-   std::map<std::vector<uint8_t>, uint64_t> initial_accounts;
+   std::map<evm_address, uint64_t> initial_accounts;
 
    log4cplus::Logger logger;
 };
