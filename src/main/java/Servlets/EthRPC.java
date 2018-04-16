@@ -155,9 +155,11 @@ public final class EthRPC extends BaseServlet {
       try {
          params = (JSONArray) requestParams.get("params");
       } catch (ClassCastException cse) {
-         logger.error("Invalid request parameter : params");
-         errorResponse(response, "'params' must be an array", id, logger);
-         return;
+         if (!method.equals(_conf.getStringValue("ClientVersion_Name"))) {
+            logger.error("Invalid request parameter : params");
+            errorResponse(response, "'params' must be an array", id, logger);
+            return;
+         }
       }
 
       Athena.EthRequest.Builder b = Athena.EthRequest.newBuilder();
@@ -179,9 +181,13 @@ public final class EthRPC extends BaseServlet {
                b.setAddrTo(toAddr);
             }
 
-            ByteString data
-               = APIHelper.hexStringToBinary((String) obj.get("data"));
-            b.setData(data);
+            // data may not be present if the request does not involve contract
+            // execution
+            if (obj.containsKey("data")) {
+               ByteString data
+                  = APIHelper.hexStringToBinary((String) obj.get("data"));
+               b.setData(data);
+            }
             if (obj.containsKey("value")) {
                ByteString value
                   = APIHelper.hexStringToBinary((String) obj.get("value"));
