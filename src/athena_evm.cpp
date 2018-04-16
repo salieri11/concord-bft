@@ -68,7 +68,6 @@ void com::vmware::athena::EVM::call(evm_message &message,
    if (get_code(&message.destination, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Loaded code from " << message.destination);
       message.code_hash = hash;
-
       execute(message, code, result);
 
       txhash = record_transaction(message, result, message.destination,
@@ -139,6 +138,8 @@ void com::vmware::athena::EVM::create(evm_message &message,
                                   zero_address, /* creates are not addressed */
                                   recorded_contract_address);
 
+      // TODO: check if the new contract is zero bytes in length;
+      //       return error, not success in that case
       if (result.status_code == EVM_SUCCESS) {
          LOG4CPLUS_DEBUG(logger, "Contract created at " << contract_address <<
                          " with " << result.output_size << "bytes of code.");
@@ -546,9 +547,13 @@ void com::vmware::athena::EVM::call(
    struct evm_result* result,
    const struct evm_message* msg)
 {
-   LOG4CPLUS_INFO(logger, "EVM::call called");
-
-   // TODO: Actually handle the call.
+   LOG4CPLUS_DEBUG(logger, "EVM::call called");
+   evm_uint256be txhash;
+   LOG4CPLUS_INFO(logger, msg);
+   // create copy of message struct since
+   // call function needs non-const message object
+   evm_message call_msg = *msg;
+   call(call_msg, *result, txhash);
 }
 
 /**
