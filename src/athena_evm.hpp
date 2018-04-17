@@ -39,6 +39,12 @@ public:
       EVMException("Transaction not found") { }
 };
 
+class BlockNotFoundException: public EVMException {
+public:
+   BlockNotFoundException() :
+      EVMException("Block not found") { }
+};
+
 /**
  * Our wrapper around EVM's wrapper, where we can add pointers to the modules
  * we're using to keep state.
@@ -123,6 +129,10 @@ public:
    EthTransaction get_transaction(const evm_uint256be &txhash) const;
    evm_uint256be get_storage_at(const evm_address &account,
                                 const evm_uint256be &key) const;
+   std::vector<std::shared_ptr<EthBlock>> get_block_list(uint64_t latest,
+                                                         uint64_t count) const;
+   std::shared_ptr<EthBlock> get_block_for_index(uint64_t index) const;
+   std::shared_ptr<EthBlock> get_block_for_hash(evm_uint256be hash) const;
 
    /* EVM callbacks */
    int account_exists(const struct evm_address* address);
@@ -175,8 +185,8 @@ private:
    // using shared pointers inside the maps, so that the memory will be cleaned
    // up later.
    //TODO: unoordered map
-   std::map<evm_uint256be, std::shared_ptr<EthBlock>> blocksByHash;
-   std::map<uint64_t, std::shared_ptr<EthBlock>> blocksByIdx;
+   std::map<evm_uint256be, std::shared_ptr<EthBlock>> blocks_by_hash;
+   std::map<uint64_t, std::shared_ptr<EthBlock>> blocks_by_idx;
 
    // the latest block id we have used
    // TODO: make this atomic

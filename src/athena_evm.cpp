@@ -65,8 +65,8 @@ void com::vmware::athena::EVM::create_genesis_block() {
    blk->parent_hash = zero_hash;
    blk->transactions = txs;
    blk->hash = hash_for_block(blk);
-   blocksByHash[blk->hash] = blk;
-   blocksByIdx[blk->idx] = blk;
+   blocks_by_hash[blk->hash] = blk;
+   blocks_by_idx[blk->idx] = blk;
 }
 
 /**
@@ -202,14 +202,14 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
 
    std::shared_ptr<EthBlock> blk = std::make_shared<EthBlock>();
    blk->idx = next_block_idx();
-   blk->parent_hash = blocksByIdx[blk->idx-1]->hash;
+   blk->parent_hash = blocks_by_idx[blk->idx-1]->hash;
    blk->transactions = txlist;
    blk->hash = hash_for_block(blk);
 
    LOG4CPLUS_DEBUG(logger, "Recording block " << blk->idx <<
                     " hash " << blk->hash);
-   blocksByHash[blk->hash] = blk;
-   blocksByIdx[blk->idx] = blk;
+   blocks_by_hash[blk->hash] = blk;
+   blocks_by_idx[blk->idx] = blk;
 
    return txhash;
 }
@@ -237,6 +237,54 @@ evm_uint256be com::vmware::athena::EVM::get_storage_at(
    evm_uint256be result;
    get_storage(&result, &account, &key);
    return result;
+}
+
+/**
+ * Get the list of blocks, starting at latest, and going back count-1 steps in
+ * the chain.
+ */
+std::vector<std::shared_ptr<EthBlock>> com::vmware::athena::EVM::get_block_list(
+   uint64_t latest, uint64_t count) const {
+   if (latest > blocks_by_idx.size()) {
+      latest = blocks_by_idx.size()-1;
+   }
+
+   if (count > latest+1) {
+      count = latest+1;
+   }
+
+   std::vector<std::shared_ptr<EthBlock>> result;
+   for (int i = latest; i > latest-count; i--) {
+      result.push_back(blocks_by_idx.find(i)->second);
+   }
+
+   return result;
+}
+
+/**
+ * Get block at given index.
+ */
+std::shared_ptr<EthBlock> com::vmware::athena::EVM::get_block_for_index(
+   uint64_t index) const {
+   auto iter = blocks_by_idx.find(index);
+   if (iter != blocks_by_idx.end()) {
+      return iter->second;
+   }
+
+   throw BlockNotFoundException();
+}
+
+/**
+ * Get block for given hash.
+ */
+std::shared_ptr<EthBlock> com::vmware::athena::EVM::get_block_for_hash(
+   evm_uint256be hash) const {
+   auto iter = blocks_by_hash.find(hash);
+   if (iter != blocks_by_hash.end()) {
+      return iter->second;
+   }
+
+   throw BlockNotFoundException();
 }
 
 /**

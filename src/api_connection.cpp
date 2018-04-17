@@ -19,6 +19,7 @@
 // responses more than 64k in length?
 
 #include <iostream>
+#include <limits>
 #include <boost/bind.hpp>
 #include <boost/predef/detail/endian_compat.h>
 
@@ -279,6 +280,12 @@ api_connection::dispatch() {
       // mode exactly.
       handle_eth_request(i);
    }
+   if (athenaRequest_.has_block_list_request()) {
+      handle_block_list_request();
+   }
+   if (athenaRequest_.has_block_request()) {
+      handle_block_request();
+   }
    if (athenaRequest_.has_test_request()) {
       handle_test_request();
    }
@@ -362,6 +369,75 @@ api_connection::handle_eth_request(int i) {
    default:
       ErrorResponse *e = athenaResponse_.add_error_response();
       e->mutable_description()->assign("ETH Method Not Implemented");
+   }
+}
+
+/**
+ * Handle a request for the block list.
+ */
+void
+api_connection::handle_block_list_request() {
+   const BlockListRequest request = athenaRequest_.block_list_request();
+
+   uint64_t latest = std::numeric_limits<uint64_t>::max();
+   if (request.has_latest()) {
+      latest = request.latest();
+   }
+
+   uint64_t count = 10;
+   if (request.has_count()) {
+      count = request.count();
+   }
+
+   BlockListResponse* response = athenaResponse_.mutable_block_list_response();
+
+   std::vector<std::shared_ptr<EthBlock>> blocks =
+      athevm_.get_block_list(latest, count);
+   for (auto b: blocks) {
+      BlockBrief* bb = response->add_block();
+      bb->set_number(b->idx);
+      bb->set_hash(b->hash.bytes, sizeof(evm_uint256be));
+   }
+}
+
+/**
+ * Handle a request for a specific block.
+ */
+void
+api_connection::handle_block_request() {
+   const BlockRequest request = athenaRequest_.block_request();
+
+   if (!(request.has_index() || request.has_hash())) {
+      ErrorResponse *resp = athenaResponse_.add_error_response();
+      resp->set_description("invalid block request: no id or hash");
+      return;
+   }
+
+   try {
+      shared_ptr<EthBlock> block;
+      if (request.has_index()) {
+         block = athevm_.get_block_for_index(request.index());
+      } else if (request.has_hash()) {
+         evm_uint256be blkhash;
+         std::copy(request.hash().begin(), request.hash().end(), blkhash.bytes);
+         block = athevm_.get_block_for_hash(blkhash);
+      }
+
+      BlockResponse* response = athenaResponse_.mutable_block_response();
+      response->set_number(block->idx);
+      response->set_hash(block->hash.bytes, sizeof(evm_uint256be));
+      response->set_parent_hash(block->parent_hash.bytes, sizeof(evm_uint256be));
+      response->set_nonce(zero_hash.bytes, sizeof(evm_uint256be)); // TODO
+      response->set_size(1); // TODO
+
+      for (auto t: block->transactions) {
+         std::string *tp = response->add_transaction();
+         tp->assign(t.bytes, t.bytes+sizeof(evm_uint256be));
+      }
+   } catch (BlockNotFoundException) {
+      ErrorResponse *resp = athenaResponse_.add_error_response();
+      resp->set_description("block not found");
+      return;
    }
 }
 

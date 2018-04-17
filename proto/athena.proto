@@ -8,8 +8,10 @@ message AthenaRequest {
     optional ProtocolRequest protocol_request = 1;
     optional PeerRequest peer_request = 2;
     repeated EthRequest eth_request = 3;
+    optional BlockListRequest block_list_request = 4;
+    optional BlockRequest block_request = 5;
 
-    // 4-2045 open for definition
+    // 6-2045 open for definition
     // Likely: metrics/stats, non-eth blockchain, other admin
 
     optional TestRequest test_request = 2046;
@@ -43,6 +45,16 @@ message EthRequest {
     optional bool create = 7;
 }
 
+message BlockListRequest {
+    optional int64 latest = 1;
+    optional int64 count = 2;
+}
+
+message BlockRequest {
+    optional int64 index = 1;
+    optional bytes hash = 2;
+}
+
 message TestRequest {
     optional string echo = 1;
 }
@@ -51,8 +63,10 @@ message AthenaResponse {
     optional ProtocolResponse protocol_response = 1;
     optional PeerResponse peer_response = 2;
     repeated EthResponse eth_response = 3;
+    optional BlockListResponse block_list_response = 4;
+    optional BlockResponse block_response = 5;
 
-    // 4-2045 open for definition
+    // 6-2045 open for definition
 
     optional TestResponse test_response = 2046;
     repeated ErrorResponse error_response = 2047;
@@ -73,6 +87,19 @@ message EthResponse {
     optional int32 status = 4;
 }
 
+message BlockListResponse {
+	repeated BlockBrief block = 1;
+}
+
+message BlockResponse {
+    optional int64 number = 1;
+    optional bytes hash = 2;
+    optional bytes parent_hash = 3;
+    optional bytes nonce = 4;
+    optional int64 size = 5;
+    repeated bytes transaction = 6;
+}
+
 message TestResponse {
     optional string echo = 1;
 }
@@ -88,4 +115,9 @@ message Peer {
     // putting this one late so it doesn't consume a useful address
     // while we're figuring out what format it should actually have
     optional string status = 2047;
+}
+
+message BlockBrief {
+    optional int64 number = 1;
+    optional bytes hash = 2;
 }
