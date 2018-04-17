@@ -172,8 +172,10 @@ public final class EthRPC extends BaseServlet {
 
             if (method.equals(_conf.getStringValue("SendTransaction_Name"))) {
                rpc = EthMethodName.SEND_TX;
+               b.setMethod(EthMethod.SEND_TX);
             } else {
                rpc = EthMethodName.CALL;
+               b.setMethod(EthMethod.CALL_CONTRACT);
             }
 
             String from = null, to = null, data = null, value = null;
@@ -203,7 +205,8 @@ public final class EthRPC extends BaseServlet {
             if (obj.containsKey("value")) {
                value = (String) obj.get("value");
             }
-            rpc = sendTransactionHandler(from, to, value, data, b);
+            sendTransactionHandler(from, to, value, data, b);
+            
          } else if (method.equals(_conf.getStringValue("GetTransactionReceipt_Name"))) {
             rpc = EthMethodName.GET_TX_RECEIPT;
             b.setMethod(EthMethod.GET_TX_RECEIPT);
@@ -276,13 +279,12 @@ public final class EthRPC extends BaseServlet {
     * @return
     * @throws Exception
     */
-   private EthMethodName
+   private void
            sendTransactionHandler(String from, String to, String value,
                                   String data,
                                   Athena.EthRequest.Builder b) throws Exception {
-      EthMethodName rpc;
-      rpc = EthMethodName.SEND_TX;
-      b.setMethod(EthMethod.SEND_TX);
+      /*EthMethodName rpc;
+      rpc = EthMethodName.SEND_TX;*/
 
       if (from != null) {
          ByteString fromAddr = APIHelper.hexStringToBinary(from);
@@ -302,7 +304,7 @@ public final class EthRPC extends BaseServlet {
          ByteString valueBytes = APIHelper.hexStringToBinary(value);
          b.setValue(valueBytes);
       }
-      return rpc;
+      //return rpc;
    }
 
    /**
