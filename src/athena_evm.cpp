@@ -757,9 +757,14 @@ void com::vmware::athena::EVM::get_block_hash(
    struct evm_uint256be* result,
    int64_t number)
 {
-   LOG4CPLUS_INFO(logger, "EVM::get_block_hash called, block: " << number);
+   LOG4CPLUS_DEBUG(logger, "EVM::get_block_hash called, block: " << number);
 
-   // TODO: Actually look up the hash.
+   auto iter = blocks_by_number.find(number);
+   if (iter != blocks_by_number.end()) {
+      *result = iter->second->hash;
+   } else {
+      *result = zero_hash;
+   }
 }
 
 /**
