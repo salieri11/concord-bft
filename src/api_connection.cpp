@@ -468,14 +468,20 @@ api_connection::handle_eth_getTxReceipt(const EthRequest &request) {
       std::copy(request.data().begin(), request.data().end(), txhash.bytes);
 
       LOG4CPLUS_DEBUG(logger_, "Looking up transaction receipt " << txhash);
-      EthTransaction tx = athevm_.get_transaction(txhash);
 
-      EthResponse *response = athenaResponse_.add_eth_response();
-      response->set_id(request.id());
-      response->set_status(tx.status == EVM_SUCCESS ? 1 : 0);
-      if (tx.contract_address != zero_address) {
-         response->set_contract_address(tx.contract_address.bytes,
-                                        sizeof(evm_address));
+      try {
+         EthTransaction tx = athevm_.get_transaction(txhash);
+
+         EthResponse *response = athenaResponse_.add_eth_response();
+         response->set_id(request.id());
+         response->set_status(tx.status == EVM_SUCCESS ? 1 : 0);
+         if (tx.contract_address != zero_address) {
+            response->set_contract_address(tx.contract_address.bytes,
+                                           sizeof(evm_address));
+         }
+      } catch (TransactionNotFoundException) {
+         ErrorResponse *error = athenaResponse_.add_error_response();
+         error->set_description("Transaction not found");
       }
    } else {
       ErrorResponse *error = athenaResponse_.add_error_response();

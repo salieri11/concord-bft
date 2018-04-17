@@ -76,15 +76,12 @@ void com::vmware::athena::EVM::run(evm_message &message,
       message.code_hash = hash;
       execute(message, code, result);
 
-      if (isTransaction)
-         txhash = record_transaction(message, result, message.destination,
-                                     zero_address); /* no contract created */
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " << message.destination);
 
       uint64_t transfer_val = from_evm_uint256be(&message.value);
       // All addresses exist by default. They are considered as accounts with
-      // 0 balances. Hence, we never throw an accont not found error. Instead
+      // 0 balances. Hence, we never throw an account-not-found error. Instead
       // we will simply say that account does not have sufficient balance.
       if (balances.count(message.destination) == 0 ||
           balances[message.destination] < transfer_val) {
@@ -96,8 +93,6 @@ void com::vmware::athena::EVM::run(evm_message &message,
          balances[message.destination] += transfer_val;
          balances[message.sender] -= transfer_val;
          result.status_code = EVM_SUCCESS;
-         txhash = record_transaction(message, result, message.destination,
-                                     zero_address); /* no contract created */
          LOG4CPLUS_DEBUG(logger, "Transferred  " << transfer_val <<
                          " units to: " << message.destination <<
                          " from: " << message.sender);
@@ -108,6 +103,10 @@ void com::vmware::athena::EVM::run(evm_message &message,
       // attempted to run a contract that doesn't exist
       result.status_code = EVM_FAILURE;
    }
+
+   if (isTransaction)
+      txhash = record_transaction(message, result, message.destination,
+                                  zero_address); /* no contract created */
 }
 
 /**
@@ -145,6 +144,8 @@ void com::vmware::athena::EVM::create(evm_message &message,
                                   zero_address, /* creates are not addressed */
                                   recorded_contract_address);
 
+      // TODO: check if the new contract is zero bytes in length;
+      //       return error, not success in that case
       if (result.status_code == EVM_SUCCESS) {
          LOG4CPLUS_DEBUG(logger, "Contract created at " << contract_address <<
                          " with " << result.output_size << "bytes of code.");
@@ -158,7 +159,7 @@ void com::vmware::athena::EVM::create(evm_message &message,
          contract_code[contract_address] =
             std::pair<std::vector<uint8_t>, evm_uint256be>(code, hash);
          result.create_address = contract_address;
-      } //TODO: Handle else condition here
+      }
    } else {
       LOG4CPLUS_DEBUG(logger, "Existing code found at " <<
                       message.destination << ", returning error code.");
