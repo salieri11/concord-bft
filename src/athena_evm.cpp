@@ -204,22 +204,35 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
 
    evm_uint256be txhash = hash_for_transaction(tx);
    LOG4CPLUS_DEBUG(logger, "Recording transaction " << txhash);
-   transactions[txhash] = tx;
 
-   // list of transaction hashes for the block
-   std::vector<evm_uint256be> txlist;
-   txlist.push_back(txhash);
+   if (message.depth == 0) {
+      transactions[txhash] = tx;
 
-   std::shared_ptr<EthBlock> blk = std::make_shared<EthBlock>();
-   blk->number = next_block_number();
-   blk->parent_hash = blocks_by_number[blk->number-1]->hash;
-   blk->transactions = txlist;
-   blk->hash = hash_for_block(blk);
+      // list of transaction hashes for the block
+      std::vector<evm_uint256be> txlist;
+      txlist.push_back(txhash);
 
-   LOG4CPLUS_DEBUG(logger, "Recording block " << blk->number <<
-                    " hash " << blk->hash);
-   blocks_by_hash[blk->hash] = blk;
-   blocks_by_number[blk->number] = blk;
+      for (auto t: pending) {
+         evm_uint256be th = hash_for_transaction(t);
+         transactions[th] = t;
+         txlist.push_back(th);
+      }
+
+      pending.clear();
+
+      std::shared_ptr<EthBlock> blk = std::make_shared<EthBlock>();
+      blk->number = next_block_number();
+      blk->parent_hash = blocks_by_number[blk->number-1]->hash;
+      blk->transactions = txlist;
+      blk->hash = hash_for_block(blk);
+
+      LOG4CPLUS_DEBUG(logger, "Recording block " << blk->number <<
+                      " hash " << blk->hash);
+      blocks_by_hash[blk->hash] = blk;
+      blocks_by_number[blk->number] = blk;
+   } else {
+      pending.push_back(tx);
+   }
 
    return txhash;
 }
@@ -738,7 +751,8 @@ void com::vmware::athena::EVM::call(
    struct evm_result* result,
    const struct evm_message* msg)
 {
-   LOG4CPLUS_DEBUG(logger, "EVM::call called");
+   LOG4CPLUS_DEBUG(logger, "EVM::call called; depth = " << msg->depth);
+   assert(msg->depth > 0);
    evm_uint256be txhash;
    LOG4CPLUS_INFO(logger, msg);
    // create copy of message struct since

@@ -183,6 +183,9 @@ private:
    // the transactions we have processed; map is hash -> tx
    std::map<evm_uint256be, EthTransaction> transactions;
 
+   // transactions in flight for the current block
+   std::vector<EthTransaction> pending;
+
    // the blocks we have created, in two mappings: by hash and by number.
    // using shared pointers inside the maps, so that the memory will be cleaned
    // up later.
