@@ -219,7 +219,7 @@ class CoreVMTests(test_suite.TestSuite):
       user set up their Ethereum instance.
       Note that VMware will not use gas.
       '''
-      return HIGH_GAS if self._ethereumMode else 0
+      return HIGH_GAS if self._ethereumMode else "0x00"
 
    def _runRpcTest(self, testPath, testSource, testCompiled, testLogDir):
       ''' Runs one test. '''
@@ -578,6 +578,10 @@ class CoreVMTests(test_suite.TestSuite):
       value = "00"
       address = trimHexIndicator(contractAddress)
       gas = trimHexIndicator(self._getGas())
+
+      if not len(gas)/2 == 0:
+         gas = "0" + gas
+
       invokeCallBytecode = "0x60{}60{}60{}60{}60{}73{}62{}f1". \
                            format(lengthRetBytesHex,
                                   retOffset,
