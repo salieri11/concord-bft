@@ -56,9 +56,16 @@ private:
    void
    handle_test_request();
 
+   evm_result
+   handle_eth_evmCall(const EthRequest &request,
+                      bool isTransaction,
+                      evm_uint256be &txhash);
+
    /* Specific Ethereum Method handlers. */
    void
    handle_eth_sendTransaction(const EthRequest &request);
+   void
+   handle_eth_callContract(const EthRequest &request);
    void
    handle_eth_getTxReceipt(const EthRequest &request);
    void

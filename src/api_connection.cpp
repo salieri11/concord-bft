@@ -353,6 +353,9 @@ api_connection::handle_eth_request(int i) {
    case EthRequest_EthMethod_SEND_TX:
       handle_eth_sendTransaction(request);
       break;
+   case EthRequest_EthMethod_CALL_CONTRACT:
+      handle_eth_callContract(request);
+      break;
    case EthRequest_EthMethod_GET_TX_RECEIPT:
       handle_eth_getTxReceipt(request);
       break;
@@ -365,11 +368,11 @@ api_connection::handle_eth_request(int i) {
    }
 }
 
-/**
- * Handle an eth_sendTransaction request.
- */
-void
-api_connection::handle_eth_sendTransaction(const EthRequest &request) {
+
+
+evm_result
+api_connection::handle_eth_evmCall(const EthRequest &request, bool isTransaction,
+                                   evm_uint256be &txhash /* OUT */) {
    // TODO: this is the thing we'll forward to SBFT/KVBlockchain/EVM
    evm_message message;
    evm_result result;
@@ -398,7 +401,6 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
    // TODO: get this from the request
    message.gas = 1000000;
 
-   evm_uint256be txhash;
    if (request.has_addr_to()) {
       message.kind = EVM_CALL;
 
@@ -406,7 +408,7 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
       assert(20 == request.addr_to().length());
       memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
 
-      athevm_.call(message, result, txhash);
+      athevm_.run(message, isTransaction, result, txhash);
    } else {
       message.kind = EVM_CREATE;
 
@@ -417,7 +419,40 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
                   " status_code: " << result.status_code <<
                   " gas_left: " << result.gas_left <<
                   " output_size: " << result.output_size);
+   return result;
+}
 
+
+
+/**
+ * Handle the 'contract.method.call()' functionality of ethereum. This is
+ * used when the method being called does not make any changes to the state
+ * of the system. Hence, in this case, we also do not record any transaction
+ * Instead the return value of the contract function call will be returned
+ * as the 'data' of EthResponse.
+ */
+void
+api_connection::handle_eth_callContract(const EthRequest &request) {
+   evm_uint256be txhash;
+   evm_result &&result = handle_eth_evmCall(request, false, txhash);
+   // Here we don't care about the txhash transaction was never
+   // recorded, instead we focus on the result object and the
+   // output_data field in it.
+   EthResponse *response = athenaResponse_.add_eth_response();
+   response->set_id(request.id());
+   if (result.output_data != NULL && result.output_size > 0)
+      response->set_data(result.output_data, result.output_size);
+}
+
+
+
+/**
+ * Handle an eth_sendTransaction request.
+ */
+void
+api_connection::handle_eth_sendTransaction(const EthRequest &request) {
+   evm_uint256be txhash;
+   evm_result &&result = handle_eth_evmCall(request, true, txhash);
    EthResponse *response = athenaResponse_.add_eth_response();
    response->set_id(request.id());
    response->set_data(txhash.bytes, sizeof(evm_uint256be));
