@@ -45,7 +45,7 @@ typedef struct EthTransaction {
 } EthTransaction;
 
 typedef struct EthBlock {
-   uint64_t idx;
+   uint64_t number;
    evm_uint256be hash;
    evm_uint256be parent_hash;
    std::vector<evm_uint256be> transactions;

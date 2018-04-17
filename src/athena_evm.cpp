@@ -61,12 +61,12 @@ void com::vmware::athena::EVM::create_genesis_block() {
    std::vector<evm_uint256be> txs;
 
    std::shared_ptr<EthBlock> blk = std::make_shared<EthBlock>();
-   blk->idx = 0;
+   blk->number = 0;
    blk->parent_hash = zero_hash;
    blk->transactions = txs;
    blk->hash = hash_for_block(blk);
    blocks_by_hash[blk->hash] = blk;
-   blocks_by_idx[blk->idx] = blk;
+   blocks_by_number[blk->number] = blk;
 }
 
 /**
@@ -201,15 +201,15 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
    txlist.push_back(txhash);
 
    std::shared_ptr<EthBlock> blk = std::make_shared<EthBlock>();
-   blk->idx = next_block_idx();
-   blk->parent_hash = blocks_by_idx[blk->idx-1]->hash;
+   blk->number = next_block_number();
+   blk->parent_hash = blocks_by_number[blk->number-1]->hash;
    blk->transactions = txlist;
    blk->hash = hash_for_block(blk);
 
-   LOG4CPLUS_DEBUG(logger, "Recording block " << blk->idx <<
+   LOG4CPLUS_DEBUG(logger, "Recording block " << blk->number <<
                     " hash " << blk->hash);
    blocks_by_hash[blk->hash] = blk;
-   blocks_by_idx[blk->idx] = blk;
+   blocks_by_number[blk->number] = blk;
 
    return txhash;
 }
@@ -245,17 +245,20 @@ evm_uint256be com::vmware::athena::EVM::get_storage_at(
  */
 std::vector<std::shared_ptr<EthBlock>> com::vmware::athena::EVM::get_block_list(
    uint64_t latest, uint64_t count) const {
-   if (latest > blocks_by_idx.size()) {
-      latest = blocks_by_idx.size()-1;
+   if (latest > current_block_number()) {
+      latest = current_block_number();
    }
 
    if (count > latest+1) {
       count = latest+1;
    }
 
+   LOG4CPLUS_DEBUG(logger, "Getting block list from " << latest
+                   << " to " << (latest-count));
+
    std::vector<std::shared_ptr<EthBlock>> result;
-   for (int i = latest; i > latest-count; i--) {
-      result.push_back(blocks_by_idx.find(i)->second);
+   for (int i = 0; i < count; i++) {
+      result.push_back(blocks_by_number.find(latest-i)->second);
    }
 
    return result;
@@ -264,10 +267,10 @@ std::vector<std::shared_ptr<EthBlock>> com::vmware::athena::EVM::get_block_list(
 /**
  * Get block at given index.
  */
-std::shared_ptr<EthBlock> com::vmware::athena::EVM::get_block_for_index(
-   uint64_t index) const {
-   auto iter = blocks_by_idx.find(index);
-   if (iter != blocks_by_idx.end()) {
+std::shared_ptr<EthBlock> com::vmware::athena::EVM::get_block_for_number(
+   uint64_t number) const {
+   auto iter = blocks_by_number.find(number);
+   if (iter != blocks_by_number.end()) {
       return iter->second;
    }
 
@@ -453,7 +456,7 @@ evm_uint256be com::vmware::athena::EVM::hash_for_block(
     * but is instead an approximation, in order to provide something to fill API
     * holes. For now, the plan is:
     *
-    * RLP([idx, parent_hash, txhash1, txhash2, ...])
+    * RLP([number, parent_hash, txhash1, txhash2, ...])
     */
 
    std::vector<uint8_t> rlp;
@@ -495,17 +498,17 @@ evm_uint256be com::vmware::athena::EVM::hash_for_block(
    rlp.push_back(0x80 + sizeof(evm_uint256be));
 
    // now the index
-   uint64_t idx = blk->idx;
-   if (idx < 0x80) {
+   uint64_t number = blk->number;
+   if (number < 0x80) {
       // very small numbers are represented by themselves
-      rlp.push_back(idx);
+      rlp.push_back(number);
    } else {
       field_length_count = 0;
       do {
          ++field_length_count;
-         rlp.push_back(idx & 0xff);
-         idx >>= 8;
-      } while(idx > 0);
+         rlp.push_back(number & 0xff);
+         number >>= 8;
+      } while(number > 0);
       // prefix (0x80 = short string)
       rlp.push_back(0x80 + field_length_count);
    }
@@ -554,8 +557,12 @@ uint64_t com::vmware::athena::EVM::get_nonce(const evm_address &address) {
    return nonce;
 }
 
-uint64_t com::vmware::athena::EVM::next_block_idx() {
+uint64_t com::vmware::athena::EVM::next_block_number() {
    return ++latestBlock;
+}
+
+uint64_t com::vmware::athena::EVM::current_block_number() const {
+   return latestBlock;
 }
 
 void com::vmware::athena::EVM::execute(evm_message &message,

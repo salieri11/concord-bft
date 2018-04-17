@@ -395,7 +395,7 @@ api_connection::handle_block_list_request() {
       athevm_.get_block_list(latest, count);
    for (auto b: blocks) {
       BlockBrief* bb = response->add_block();
-      bb->set_number(b->idx);
+      bb->set_number(b->number);
       bb->set_hash(b->hash.bytes, sizeof(evm_uint256be));
    }
 }
@@ -407,7 +407,7 @@ void
 api_connection::handle_block_request() {
    const BlockRequest request = athenaRequest_.block_request();
 
-   if (!(request.has_index() || request.has_hash())) {
+   if (!(request.has_number() || request.has_hash())) {
       ErrorResponse *resp = athenaResponse_.add_error_response();
       resp->set_description("invalid block request: no id or hash");
       return;
@@ -415,8 +415,8 @@ api_connection::handle_block_request() {
 
    try {
       shared_ptr<EthBlock> block;
-      if (request.has_index()) {
-         block = athevm_.get_block_for_index(request.index());
+      if (request.has_number()) {
+         block = athevm_.get_block_for_number(request.number());
       } else if (request.has_hash()) {
          evm_uint256be blkhash;
          std::copy(request.hash().begin(), request.hash().end(), blkhash.bytes);
@@ -424,7 +424,7 @@ api_connection::handle_block_request() {
       }
 
       BlockResponse* response = athenaResponse_.mutable_block_response();
-      response->set_number(block->idx);
+      response->set_number(block->number);
       response->set_hash(block->hash.bytes, sizeof(evm_uint256be));
       response->set_parent_hash(block->parent_hash.bytes, sizeof(evm_uint256be));
       response->set_nonce(zero_hash.bytes, sizeof(evm_uint256be)); // TODO

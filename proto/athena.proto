@@ -51,7 +51,7 @@ message BlockListRequest {
 }
 
 message BlockRequest {
-    optional int64 index = 1;
+    optional int64 number = 1;
     optional bytes hash = 2;
 }
 

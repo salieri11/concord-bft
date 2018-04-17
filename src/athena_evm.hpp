@@ -131,7 +131,7 @@ public:
                                 const evm_uint256be &key) const;
    std::vector<std::shared_ptr<EthBlock>> get_block_list(uint64_t latest,
                                                          uint64_t count) const;
-   std::shared_ptr<EthBlock> get_block_for_index(uint64_t index) const;
+   std::shared_ptr<EthBlock> get_block_for_number(uint64_t number) const;
    std::shared_ptr<EthBlock> get_block_for_hash(evm_uint256be hash) const;
 
    /* EVM callbacks */
@@ -181,12 +181,12 @@ private:
    // the transactions we have processed; map is hash -> tx
    std::map<evm_uint256be, EthTransaction> transactions;
 
-   // the blocks we have created, in two mappings: by hash and by index.
+   // the blocks we have created, in two mappings: by hash and by number.
    // using shared pointers inside the maps, so that the memory will be cleaned
    // up later.
    //TODO: unoordered map
    std::map<evm_uint256be, std::shared_ptr<EthBlock>> blocks_by_hash;
-   std::map<uint64_t, std::shared_ptr<EthBlock>> blocks_by_idx;
+   std::map<uint64_t, std::shared_ptr<EthBlock>> blocks_by_number;
 
    // the latest block id we have used
    // TODO: make this atomic
@@ -205,7 +205,8 @@ private:
                  std::vector<uint8_t> &result_code,
                  evm_uint256be &result_hash);
    uint64_t get_nonce(const evm_address &address);
-   uint64_t next_block_idx();
+   uint64_t next_block_number();
+   uint64_t current_block_number() const;
    evm_uint256be hash_for_transaction(const EthTransaction &tx) const;
    evm_uint256be hash_for_block(const std::shared_ptr<EthBlock> tx) const;
    evm_uint256be record_transaction(const evm_message &message,
