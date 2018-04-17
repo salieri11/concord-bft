@@ -122,8 +122,10 @@ public:
    ~EVM();
 
    /* Athena API */
-   void call(evm_message &message, evm_result &result,
-             evm_uint256be &txhash /* out */);
+   void run(evm_message &message,
+                bool isTransaction,
+                evm_result &result,
+                evm_uint256be &txhash /* out */);
    void create(evm_message &message, evm_result &result,
                evm_uint256be &txhash /* out */);
    EthTransaction get_transaction(const evm_uint256be &txhash) const;
