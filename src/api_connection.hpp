@@ -57,9 +57,9 @@ private:
    handle_test_request();
 
    evm_result
-   handle_eth_evmCall(const EthRequest &request,
-                      bool isTransaction,
-                      evm_uint256be &txhash);
+   run_evm(const EthRequest &request,
+           bool isTransaction,
+           evm_uint256be &txhash);
 
    /* Specific Ethereum Method handlers. */
    void

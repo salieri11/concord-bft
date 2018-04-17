@@ -371,8 +371,9 @@ api_connection::handle_eth_request(int i) {
 
 
 evm_result
-api_connection::handle_eth_evmCall(const EthRequest &request, bool isTransaction,
-                                   evm_uint256be &txhash /* OUT */) {
+api_connection::run_evm(const EthRequest &request,
+                        bool isTransaction,
+                        evm_uint256be &txhash /* OUT */) {
    // TODO: this is the thing we'll forward to SBFT/KVBlockchain/EVM
    evm_message message;
    evm_result result;
@@ -434,14 +435,19 @@ api_connection::handle_eth_evmCall(const EthRequest &request, bool isTransaction
 void
 api_connection::handle_eth_callContract(const EthRequest &request) {
    evm_uint256be txhash;
-   evm_result &&result = handle_eth_evmCall(request, false, txhash);
-   // Here we don't care about the txhash transaction was never
+   evm_result &&result = run_evm(request, false, txhash);
+   // Here we don't care about the txhash. Transaction was never
    // recorded, instead we focus on the result object and the
    // output_data field in it.
-   EthResponse *response = athenaResponse_.add_eth_response();
-   response->set_id(request.id());
-   if (result.output_data != NULL && result.output_size > 0)
-      response->set_data(result.output_data, result.output_size);
+   if (result.status_code == EVM_SUCCESS) {
+      EthResponse *response = athenaResponse_.add_eth_response();
+      response->set_id(request.id());
+      if (result.output_data != NULL && result.output_size > 0)
+         response->set_data(result.output_data, result.output_size);
+   } else {
+      ErrorResponse *err = athenaResponse_.add_error_response();
+      err->mutable_description()->assign("Error while calling contract");
+   }
 }
 
 
@@ -452,7 +458,7 @@ api_connection::handle_eth_callContract(const EthRequest &request) {
 void
 api_connection::handle_eth_sendTransaction(const EthRequest &request) {
    evm_uint256be txhash;
-   evm_result &&result = handle_eth_evmCall(request, true, txhash);
+   evm_result &&result = run_evm(request, true, txhash);
    EthResponse *response = athenaResponse_.add_eth_response();
    response->set_id(request.id());
    response->set_data(txhash.bytes, sizeof(evm_uint256be));

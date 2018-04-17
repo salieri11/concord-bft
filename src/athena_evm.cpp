@@ -54,12 +54,12 @@ com::vmware::athena::EVM::~EVM() {
 }
 
 /**
- * run a contract, or just transfer value if the destination is not a
+ * Run a contract, or just transfer value if the destination is not a
  * contract. Calling a contract can either be done with 'call' method or with
  * 'sendTransaction'. Generally pure methods (methods which don't change any
  * state) are called via 'call' method and all others are called via
  * 'sendTransaction' method. The 'sendTransaction' way requires that the
- * transaction is recorded however for 'call' way there is no transaction to
+ * transaction is recorded. However for 'call' way there is no transaction to
  * record, it is a simple read storage operation.
  */
 void com::vmware::athena::EVM::run(evm_message &message,
@@ -104,9 +104,10 @@ void com::vmware::athena::EVM::run(evm_message &message,
       result.status_code = EVM_FAILURE;
    }
 
-   if (isTransaction)
+   if (isTransaction) {
       txhash = record_transaction(message, result, message.destination,
                                   zero_address); /* no contract created */
+   }
 }
 
 /**
