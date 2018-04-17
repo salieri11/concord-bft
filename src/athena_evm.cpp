@@ -54,12 +54,18 @@ com::vmware::athena::EVM::~EVM() {
 }
 
 /**
- * Call a contract, or just transfer value if the destination is not a
- * contract.
+ * Run a contract, or just transfer value if the destination is not a
+ * contract. Calling a contract can either be done with 'call' method or with
+ * 'sendTransaction'. Generally pure methods (methods which don't change any
+ * state) are called via 'call' method and all others are called via
+ * 'sendTransaction' method. The 'sendTransaction' way requires that the
+ * transaction is recorded. However for 'call' way there is no transaction to
+ * record, it is a simple read storage operation.
  */
-void com::vmware::athena::EVM::call(evm_message &message,
-                                    evm_result &result /* out */,
-                                    evm_uint256be &txhash /* out */)
+void com::vmware::athena::EVM::run(evm_message &message,
+                                   bool isTransaction,
+                                   evm_result &result /* out */,
+                                   evm_uint256be &txhash /* out */)
 {
    assert(message.kind != EVM_CREATE);
 
@@ -69,6 +75,7 @@ void com::vmware::athena::EVM::call(evm_message &message,
       LOG4CPLUS_DEBUG(logger, "Loaded code from " << message.destination);
       message.code_hash = hash;
       execute(message, code, result);
+
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " << message.destination);
 
@@ -93,11 +100,14 @@ void com::vmware::athena::EVM::call(evm_message &message,
    } else {
       LOG4CPLUS_DEBUG(logger, "Input data, but no code at " <<
                       message.destination << ", returning error code.");
-      // attempted to call a contract that doesn't exist
+      // attempted to run a contract that doesn't exist
       result.status_code = EVM_FAILURE;
    }
-   txhash = record_transaction(message, result, message.destination,
-                               zero_address); /* no contract created */
+
+   if (isTransaction) {
+      txhash = record_transaction(message, result, message.destination,
+                                  zero_address); /* no contract created */
+   }
 }
 
 /**
@@ -440,7 +450,7 @@ void com::vmware::athena::EVM::get_storage(
    auto iter = storage_map.find(storagekey);
    if (iter != storage_map.end()) {
       *result = iter->second;
-    } else {
+   } else {
       memset(result, 0, 32);
    }
 }
@@ -538,7 +548,7 @@ void com::vmware::athena::EVM::emit_log(
 }
 
 /**
- * Handle a call inside a contract.
+ * Handle a call inside a contract, EVM callback function
  */
 void com::vmware::athena::EVM::call(
    struct evm_result* result,
@@ -550,7 +560,10 @@ void com::vmware::athena::EVM::call(
    // create copy of message struct since
    // call function needs non-const message object
    evm_message call_msg = *msg;
-   call(call_msg, *result, txhash);
+   // TODO: call to another contract from a contract is always
+   // considered as a transaction as of now, hence the 'true'
+   // parameter. This might have to be changed
+   run(call_msg, true, *result, txhash);
 }
 
 /**
@@ -621,7 +634,7 @@ extern "C" {
          if (result_code) {
             *result_code = (uint8_t*)malloc(stored_code.size());
             if (*result_code) {
-            memcpy(result_code, &stored_code[0], stored_code.size());
+               memcpy(result_code, &stored_code[0], stored_code.size());
             }
          }
          return stored_code.size();
