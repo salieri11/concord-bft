@@ -99,7 +99,7 @@ mvn clean install -DskipIntegrationTests=false
  * Run the server
 
 ```
-mvn exec:java
+java -jar helen-1.0-SNAPSHOT-jar-with-dependencies.jar
 ```
 
 ### API
