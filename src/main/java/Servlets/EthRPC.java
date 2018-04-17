@@ -49,6 +49,7 @@ public final class EthRPC extends BaseServlet {
       SEND_TX,
       GET_TX_RECEIPT,
       GET_STORAGE_AT,
+      CALL
    }
 
    public EthRPC() throws ParseException {
@@ -165,32 +166,44 @@ public final class EthRPC extends BaseServlet {
 
       // Set request fields as per the RPC
       try {
-         if (method.equals(_conf.getStringValue("SendTransaction_Name"))) {
-            rpc = EthMethodName.SEND_TX;
-            b.setMethod(EthMethod.SEND_TX);
+         // Convert an eth_call request to and eth_sendTransaction request
+         if (method.equals(_conf.getStringValue("SendTransaction_Name"))
+            || method.equals(_conf.getStringValue("Call_Name"))) {
+
+            if (method.equals(_conf.getStringValue("SendTransaction_Name"))) {
+               rpc = EthMethodName.SEND_TX;
+            } else {
+               rpc = EthMethodName.CALL;
+            }
+
+            String from = null, to = null, data = null, value = null;
             JSONObject obj = (JSONObject) params.get(0);
-            ByteString fromAddr
-               = APIHelper.hexStringToBinary((String) obj.get("from"));
-            b.setAddrFrom(fromAddr);
+
+            if (obj.containsKey("from")) {
+               from = (String) obj.get("from");
+            }
+            if (rpc.equals(EthMethodName.SEND_TX) && from == null) {
+               logger.error("From field missing in params");
+               errorResponse(response, "'from' must be specified", 0, logger);
+               return;
+            }
 
             if (obj.containsKey("to")) {
-               ByteString toAddr
-                  = APIHelper.hexStringToBinary((String) obj.get("to"));
-               b.setAddrTo(toAddr);
+               to = (String) obj.get("to");
+            }
+            if (rpc.equals(EthMethodName.CALL) && to == null) {
+               logger.error("To field missing in params");
+               errorResponse(response, "'to' must be specified", 0, logger);
+               return;
             }
 
-            // data may not be present if the request does not involve contract
-            // execution
             if (obj.containsKey("data")) {
-               ByteString data
-                  = APIHelper.hexStringToBinary((String) obj.get("data"));
-               b.setData(data);
+               data = (String) obj.get("data");
             }
             if (obj.containsKey("value")) {
-               ByteString value
-                  = APIHelper.hexStringToBinary((String) obj.get("value"));
-               b.setValue(value);
+               value = (String) obj.get("value");
             }
+            rpc = sendTransactionHandler(from, to, value, data, b);
          } else if (method.equals(_conf.getStringValue("GetTransactionReceipt_Name"))) {
             rpc = EthMethodName.GET_TX_RECEIPT;
             b.setMethod(EthMethod.GET_TX_RECEIPT);
@@ -249,8 +262,47 @@ public final class EthRPC extends BaseServlet {
          = Athena.AthenaRequest.newBuilder()
                                .addEthRequest(athenaEthRequest)
                                .build();
-
       processGet(rpc, txHash, athenarequestObj, response, logger);
+   }
+
+   /**
+    * Transforms call and send_tx requests to send_tx request format
+    * 
+    * @param from
+    * @param to
+    * @param value
+    * @param data
+    * @param b
+    * @return
+    * @throws Exception
+    */
+   private EthMethodName
+           sendTransactionHandler(String from, String to, String value,
+                                  String data,
+                                  Athena.EthRequest.Builder b) throws Exception {
+      EthMethodName rpc;
+      rpc = EthMethodName.SEND_TX;
+      b.setMethod(EthMethod.SEND_TX);
+
+      if (from != null) {
+         ByteString fromAddr = APIHelper.hexStringToBinary(from);
+         b.setAddrFrom(fromAddr);
+      }
+
+      if (to != null) {
+         ByteString toAddr = APIHelper.hexStringToBinary(to);
+         b.setAddrTo(toAddr);
+      }
+
+      if (data != null) {
+         ByteString dataBytes = APIHelper.hexStringToBinary(data);
+         b.setData(dataBytes);
+      }
+      if (value != null) {
+         ByteString valueBytes = APIHelper.hexStringToBinary(value);
+         b.setValue(valueBytes);
+      }
+      return rpc;
    }
 
    /**
