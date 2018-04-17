@@ -579,7 +579,7 @@ class CoreVMTests(test_suite.TestSuite):
       address = trimHexIndicator(contractAddress)
       gas = trimHexIndicator(self._getGas())
 
-      if not len(gas)/2 == 0:
+      if not len(gas) % 2 == 0:
          gas = "0" + gas
 
       invokeCallBytecode = "0x60{}60{}60{}60{}60{}73{}62{}f1". \
