@@ -283,10 +283,6 @@ public final class EthRPC extends BaseServlet {
            sendTransactionHandler(String from, String to, String value,
                                   String data,
                                   Athena.EthRequest.Builder b) throws Exception {
-      /*
-       * EthMethodName rpc; rpc = EthMethodName.SEND_TX;
-       */
-
       if (from != null) {
          ByteString fromAddr = APIHelper.hexStringToBinary(from);
          b.setAddrFrom(fromAddr);
@@ -305,7 +301,6 @@ public final class EthRPC extends BaseServlet {
          ByteString valueBytes = APIHelper.hexStringToBinary(value);
          b.setValue(valueBytes);
       }
-      // return rpc;
    }
 
    /**
