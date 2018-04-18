@@ -21,6 +21,7 @@ void to_evm_uint256be(uint64_t val, evm_uint256be *ret);
 
 uint64_t from_evm_uint256be(evm_uint256be *val);
 
+
 }
 }
 }

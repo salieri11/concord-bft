@@ -28,7 +28,8 @@ using log4cplus::Logger;
 com::vmware::athena::EVM::EVM(EVMInitParams params)
    : logger(Logger::getInstance("com.vmware.athena.evm")),
      balances(params.get_initial_accounts()),
-     chainId(params.get_chainID()) {
+     chainId(params.get_chainID()),
+     filter_manager(std::make_shared<FilterManager>(this)) {
    // wrap an evm context in an athena context
    athctx = {{&athena_fn_table}, this};
 
@@ -217,6 +218,7 @@ evm_uint256be com::vmware::athena::EVM::get_storage_at(
    get_storage(&result, &account, &key);
    return result;
 }
+
 
 /**
  * Contract destination is the low 20 bytes of the SHA3 hash of the RLP encoding

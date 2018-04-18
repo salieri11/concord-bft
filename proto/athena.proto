@@ -33,6 +33,8 @@ message EthRequest {
         GET_TX_RECEIPT = 3;
         GET_STORAGE_AT = 4;
         CALL_CONTRACT = 5;
+        NEW_BLOCK_FILTER = 6;
+        GET_FILTER_CHANGES = 7;
     }
 
     optional EthMethod method = 1;

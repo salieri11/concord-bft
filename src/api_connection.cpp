@@ -362,6 +362,12 @@ api_connection::handle_eth_request(int i) {
    case EthRequest_EthMethod_GET_STORAGE_AT:
       handle_eth_getStorageAt(request);
       break;
+   case EthRequest_EthMethod_NEW_BLOCK_FILTER:
+      handle_eth_newBlockFilter(request);
+      break;
+   case EthRequest_EthMethod_GET_FILTER_CHANGES:
+      handle_eth_getFilterChanges(request);
+      break;
    default:
       ErrorResponse *e = athenaResponse_.add_error_response();
       e->mutable_description()->assign("ETH Method Not Implemented");
@@ -534,6 +540,24 @@ api_connection::handle_test_request() {
       echo->assign(request.echo());
    }
 }
+
+/**
+ * Creates a new block filter and returns the associated ID.
+ */
+void
+api_connection::handle_eth_newBlockFilter(const EthRequest &request) {
+
+}
+
+/**
+ * Returns all the new changes happend after the last call to this method.
+ * This method may returns different data based on the type of filter.
+ */
+void
+api_connection::handle_eth_getFilterChanges(const EthRequest &request) {
+
+}
+
 
 api_connection::api_connection(
    io_service &io_service,

@@ -7,9 +7,11 @@
 
 #include <map>
 #include <vector>
+#include <iostream>
 #include <log4cplus/loggingmacros.h>
 #include "common/utils.hpp"
 #include "evm.h"
+#include "filter_manager.hpp"
 #include "athena_types.hpp"
 #include "evm_init_params.hpp"
 
@@ -108,6 +110,12 @@ const static struct evm_context_fn_table athena_fn_table = {
       ath_emit_log
 };
 
+
+// forward declaration to break circular references between
+// athena_evm.hpp and filter_manager.hpp
+class FilterManager;
+
+
 class EVM {
 public:
    explicit EVM(EVMInitParams params);
@@ -123,6 +131,8 @@ public:
    EthTransaction get_transaction(const evm_uint256be &txhash) const;
    evm_uint256be get_storage_at(const evm_address &account,
                                 const evm_uint256be &key) const;
+   std::shared_ptr<FilterManager> get_filter_manager();
+
 
    /* EVM callbacks */
    int account_exists(const struct evm_address* address);
@@ -173,6 +183,9 @@ private:
 
    // map from [(contract address)+(storage location)] to data at that location
    std::map<std::vector<uint8_t>, evm_uint256be> storage_map;
+
+   // Instace of filter manager
+   const std::shared_ptr<FilterManager> filter_manager;
 
    evm_address contract_destination(const evm_message &message);
    evm_uint256be keccak_hash(const std::vector<uint8_t> &data) const;
