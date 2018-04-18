@@ -214,10 +214,12 @@ private:
    uint64_t current_block_number() const;
    evm_uint256be hash_for_transaction(const EthTransaction &tx) const;
    evm_uint256be hash_for_block(const std::shared_ptr<EthBlock> tx) const;
-   evm_uint256be record_transaction(const evm_message &message,
+   evm_uint256be record_transaction(const size_t pending_index,
+                                    const evm_message &message,
                                     const evm_result &result,
                                     const evm_address &to_override,
                                     const evm_address &contract_address);
+   void record_block();
    std::vector<uint8_t> storage_key(const struct evm_address* address,
                                     const struct evm_uint256be* key) const;
 };
