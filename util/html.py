@@ -61,9 +61,10 @@ def createHtmlRow(testName, result):
    else:
       row = "<tr class='skipped'>"
 
+   htmlFormattedInfo = result["info"].replace("\n", "<br>")
    row += "<td>{}</td><td>{}</td><td>{}</td></tr>\n".format(testName,
                                                             result["result"],
-                                                            result["info"])
+                                                            htmlFormattedInfo)
    return row
 
 def createHtmlFooter():

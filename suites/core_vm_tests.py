@@ -12,23 +12,23 @@ import logging
 import os
 import pprint
 import tempfile
+import traceback
 import time
+import traceback
 
 from . import test_suite
 from rpc.rpc_call import RPC
 from util.debug import pp as pp
-from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
+from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x, \
+   stringOnlyContains
 from util.product import Product
 import util.json_helper
 
 log = logging.getLogger(__name__)
 
-# The config file contains information aobut how to run things, as opposed to
-# command line parameters, which are about running tests.
-CONFIG_JSON = "resources/user_config.json"
 INTENTIONALLY_SKIPPED_TESTS = "suites/skipped/core_vm_tests_to_skip.json"
-TEST_LOG_DIR = "test_logs"
 TEST_SOURCE_CODE_SUFFIX = "Filler.json"
+HIGH_GAS = "0x47e7c4"
 
 class CoreVMTests(test_suite.TestSuite):
    _args = None
@@ -41,22 +41,13 @@ class CoreVMTests(test_suite.TestSuite):
    _userUnlocked = False
 
    def __init__(self, passedArgs):
-      self._args = passedArgs
-      self._ethereumMode = self._args.ethereumMode
-      self._loadConfigFile()
-      self._productMode = not self._ethereumMode
-      self._resultFile = os.path.join(passedArgs.resultsDir,
-                                     "coreVMTestResults.json")
-      self._unintentionallySkippedFile = \
-                                         os.path.join(passedArgs.resultsDir,
-                                         "unintentionallySkippedTests.json")
-      self._unintentionallySkippedTests = {}
-      self._results = {
-         "CoreVMTests": {
-            "result":"",
-            "tests": collections.OrderedDict()
-         }
-      }
+      super(CoreVMTests, self).__init__(passedArgs)
+
+      if "ethereum" in self._userConfig and \
+         "testRoot" in self._userConfig["ethereum"]:
+
+         self._userConfig["ethereum"]["testRoot"] = \
+            os.path.expanduser(self._userConfig["ethereum"]["testRoot"])
 
       if self._ethereumMode:
          log.debug("Running in ethereum mode")
@@ -64,22 +55,19 @@ class CoreVMTests(test_suite.TestSuite):
       else:
          self._apiServerUrl = "http://localhost:8080/api/athena/eth/"
 
-      with open(self._resultFile, "w") as f:
-         f.write(json.dumps(self._results))
-
    def getName(self):
       return "CoreVMTests"
 
    def run(self):
       ''' Runs all of the tests. '''
       if self._productMode:
-         p = Product(self._args.resultsDir,
-                     self._apiServerUrl,
-                     self._userConfig["product"])
-         p.launchProduct()
-         if not p.waitForProductStartup():
-            log.error("The product did not start.  Exiting.")
-            exit(1)
+         try:
+            p = self.launchProduct(self._args.resultsDir,
+                                   self._apiServerUrl,
+                                   self._userConfig["product"])
+         except Exception as e:
+            log.error(traceback.format_exc())
+            return self._resultFile
 
       tests = self._getTests()
 
@@ -88,17 +76,17 @@ class CoreVMTests(test_suite.TestSuite):
             testCompiled = self._loadCompiledTest(test)
 
             if not testCompiled:
-               self._writeResult(test, None, "Unable to load compiled test.")
+               self.writeResult(test, None, "Unable to load compiled test.")
                continue
 
             testSource = self._loadTestSource(testCompiled)
 
             if not testSource:
-               self._writeResult(test, None, "Unable to load test source.")
+               self.writeResult(test, None, "Unable to load test source.")
                continue
 
             testName = list(testCompiled.keys())[0]
-            testLogDir = os.path.join(self._args.resultsDir, TEST_LOG_DIR, testName)
+            testLogDir = os.path.join(self._testLogDir, testName)
 
             try:
                result, info = self._runRpcTest(test,
@@ -107,18 +95,17 @@ class CoreVMTests(test_suite.TestSuite):
                                                testLogDir)
             except Exception as e:
                result = False
-               info = str(e)
-               log.error("Exception running RPC test: '{}'".format(info))
+               info = str(e) + "\n" + traceback.format_exc()
 
             if info:
                info += "  "
             else:
                info = ""
 
-            relativeLogDir = self._makeRelativeTestPath(testLogDir)
+            relativeLogDir = self.makeRelativeTestPath(testLogDir)
             info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                         testLogDir)
-            self._writeResult(testName, result, info)
+            self.writeResult(testName, result, info)
 
       log.info("Tests are done.")
 
@@ -126,75 +113,6 @@ class CoreVMTests(test_suite.TestSuite):
          p.stopProduct()
 
       return self._resultFile
-
-   def _makeRelativeTestPath(self, fullTestPath):
-      '''
-      Given the full test path (in the results directory), return the
-      relative path.
-      '''
-      return fullTestPath[len(self._args.resultsDir)+1:len(fullTestPath)]
-
-   def _writeUnintentionallySkippedTest(self, testName, info):
-      tempFile = self._unintentionallySkippedFile + "_temp"
-      realFile = self._unintentionallySkippedFile
-      self._unintentionallySkippedTests[testName] = info
-
-      with open(tempFile, "w") as f:
-         f.write(json.dumps(self._unintentionallySkippedTests,
-                            sort_keys=True, indent=4))
-
-      os.rename(tempFile, realFile)
-
-   def _writeResult(self, testName, result, info):
-      '''
-      We're going to write the full result or skipped test set to json for each
-      test so that we have a valid result structure even if things die partway
-      through.
-      '''
-      tempFile = self._resultFile + "_temp"
-      realFile = self._resultFile
-
-      if result:
-         result = "PASS"
-      elif result == False:
-         result = "FAIL"
-      else:
-         result = "SKIPPED"
-
-      log.info(result)
-
-      if result == "SKIPPED":
-         log.debug("Unintentionally skipped test '{}': '{}'".format(testName,
-                                                                    info))
-         self._writeUnintentionallySkippedTest(testName, info)
-
-      # Never change the suite's result due to skips or if it has already
-      # been set to "FAIL".
-      if not result == "SKIPPED" and \
-         not self._results["CoreVMTests"]["result"] == "FAIL":
-            self._results["CoreVMTests"]["result"] = result
-
-      self._results["CoreVMTests"]["tests"][testName] = {
-         "result": result,
-         "info": info
-      }
-
-      with open(tempFile, "w") as f:
-         f.write(json.dumps(self._results, indent=4))
-
-      os.rename(tempFile, realFile)
-
-   def _loadConfigFile(self):
-      '''
-      Loads the main config file.
-      '''
-      self._userConfig = util.json_helper.readJsonFile(CONFIG_JSON)
-
-      if "ethereum" in self._userConfig and \
-         "testRoot" in self._userConfig["ethereum"]:
-
-         self._userConfig["ethereum"]["testRoot"] = \
-            os.path.expanduser(self._userConfig["ethereum"]["testRoot"])
 
    def _removeSkippedTests(self, testList):
       '''
@@ -294,9 +212,17 @@ class CoreVMTests(test_suite.TestSuite):
       else:
          return self._userConfig["product"]["users"][0]
 
+   def _getGas(self):
+      '''
+      Gas levels provided in test cases may not be enough.  Just set it high.
+      Maye this should be a config file setting, since it depends on how the
+      user set up their Ethereum instance.
+      Note that VMware will not use gas.
+      '''
+      return HIGH_GAS if self._ethereumMode else "0x00"
+
    def _runRpcTest(self, testPath, testSource, testCompiled, testLogDir):
       ''' Runs one test. '''
-
       success = None
       info = None
       testName = list(testSource.keys())[0]
@@ -304,20 +230,12 @@ class CoreVMTests(test_suite.TestSuite):
       expectTxSuccess = self._getExpectTxSuccess(testCompiled)
       user = self._getAUser()
       expectedStorage = self._getExpectedStorageResults(testSource, testCompiled)
+      expectedOut = self._getExpectedOutResults(testCompiled)
       rpc = RPC(testLogDir,
                 testName,
                 self._apiServerUrl)
+      gas = self._getGas()
 
-      # Gas levels provided in test cases may not be enough.  Just set it high.
-      # Maye this should be a config file setting, since it depends on how the
-      # user set up their Ethereum instance.
-      # Note that VMware will not use gas.
-      gas = "0x47e7c4" if self._ethereumMode else None
-
-      # Hmm...a lot of tests have "0x" as the data, which is nothing. I was
-      # thinking about only using the data field if it had more than "0x",
-      # but at least for now am playing it safe.  Even if it contains "0x",
-      # we will make a second call passing in that string as data.
       testData = None
       if "data" in testCompiled[testName]["exec"]:
          testData = testCompiled[testName]["exec"]["data"]
@@ -333,9 +251,7 @@ class CoreVMTests(test_suite.TestSuite):
 
       if txReceipt:
          if testData:
-            # If the test has info in its "data" field, we need to now call
-            # the contract with that data.
-            contractAddress = txReceipt["contractAddress"]
+            contractAddress = RPC.searchResponse(txReceipt, ["contractAddress"])
             log.info("Invoking contract for test {}".format(testName))
             txReceipt = self._invokeContract(user, rpc, contractAddress,
                                              testData, gas)
@@ -344,6 +260,7 @@ class CoreVMTests(test_suite.TestSuite):
                                            contractAddress,
                                            txReceipt,
                                            expectedStorage,
+                                           expectedOut,
                                            expectTxSuccess)
       else:
          info = "Did not receive a transaction receipt."
@@ -465,6 +382,28 @@ class CoreVMTests(test_suite.TestSuite):
 
       return txReceipt
 
+   def _getExpectedOutResults(self, testCompiled):
+      '''
+      Test cases have an "out" field defined in the compiled JSON file:
+      {
+        "indirect_jump3" : {
+          ...,
+          "out" : "0x0000...00000000000000000000000000000000000000000000000001",
+          ...
+        },
+      This is the value returned by the code in the test case.
+      Returns this value.  Returns None if not provided.
+      '''
+      ret = None
+      testName = list(testCompiled.keys())[0]
+
+      if "out" in list(testCompiled[testName]):
+         ret = testCompiled[testName]["out"]
+         if ret == "0x":
+            ret = "0x0"
+
+      return ret
+
    def _getExpectedStorageResults(self, testSource, testCompiled):
       '''
       The ideal expected result is in the source file, since that is more
@@ -568,6 +507,7 @@ class CoreVMTests(test_suite.TestSuite):
                     contractAddress,
                     txReceipt,
                     expectedStorage,
+                    expectedOut,
                     expectTxSuccess):
       '''
       Loops through the expected storage structure in the test case, comparing
@@ -585,37 +525,21 @@ class CoreVMTests(test_suite.TestSuite):
             # Failed as expected.
             success = True
          else:
+            testVerified = False
+
             if expectedStorage:
-               keys = sorted(expectedStorage)
-
-               for storageLoc in keys:
-                  actualRawValue = rpc.getStorageAt(contractAddress, storageLoc)
-                  log.debug("actualRawValue: '{}'".format(actualRawValue))
-                  actualValue = int(actualRawValue, 16)
-                  log.debug("actualValue: '{}'".format(actualValue))
-                  expectedRawValue = expectedStorage[storageLoc]
-                  log.debug("expectedRawValue: '{}'".format(expectedRawValue))
-                  expectedValue = int(expectedRawValue, 16)
-                  log.debug("expectedValue: '{}'".format(expectedValue))
-
-                  if expectedValue == actualValue:
-                     success = True
-                  else:
-                     success = False
-                     log.debug("Expected storage:")
-                     for storageLoc in keys:
-                       log.debug("   {}: {}".format(storageLoc, expectedStorage[storageLoc]))
-
-                     info = "Expected value does not match actual value:\n"
-                     info += "Expected raw value: '{}', actual raw value: '{}'\n". \
-                             format(expectedRawValue, actualRawValue)
-                     info += "Expected value: '{}', actual value: '{}'". \
-                             format(expectedValue, actualValue)
-                     log.info(info)
-                     break
-            else:
-               # The test may be checking gas, logs, out, or callcreates,
-               # which we're not checking (yet). This test should be added to the
+               success, info = self._checkExpectedStorage(rpc,
+                                                          contractAddress,
+                                                          expectedStorage)
+               testVerified = True
+            if expectedOut:
+               success, info = self._checkExpectedOut(rpc,
+                                                      contractAddress,
+                                                      expectedOut)
+               testVerified = True
+            if not testVerified:
+               # The test may be checking gas, logs, or callcreates, which
+               # we're not checking (yet). This test should be added to the
                # skip list so it is not run in the future.
                success = None
                info = "No expected storage found, and the test was expected " \
@@ -624,6 +548,217 @@ class CoreVMTests(test_suite.TestSuite):
       else:
          # None or False.
          success = txStatusCorrect
+
+      return success, info
+
+   def _createCALLBytecode(self, contractAddress, expectedOut):
+      '''
+      Returns the bytecode to create a new contract which:
+      - Invokes CALL on the given contract address.
+      - Stores the returned result of CALL into storage. That way, the test
+        framework can retrieve the returned values.
+
+      Instructions:
+        PUSH1  {output size}
+        PUSH1  {output offset}
+        PUSH1  {input size}
+        PUSH1  {input offset}
+        PUSH1  {value}
+        PUSH20 {address}
+        PUSH3  {gas}
+        CALL
+      '''
+      lengthRetBytesDec = max(1, int(len(trimHexIndicator(expectedOut))/2))
+
+      # These are values pushed onto the stack for the CALL instruction.
+      lengthRetBytesHex = decToEvenHexNo0x(lengthRetBytesDec)
+      retOffset = "00"
+      argsLength = "00"
+      argsOffset = "00"
+      value = "00"
+      address = trimHexIndicator(contractAddress)
+      gas = trimHexIndicator(self._getGas())
+
+      if not len(gas) % 2 == 0:
+         gas = "0" + gas
+
+      invokeCallBytecode = "0x60{}60{}60{}60{}60{}73{}62{}f1". \
+                           format(lengthRetBytesHex,
+                                  retOffset,
+                                  argsLength,
+                                  argsOffset,
+                                  value,
+                                  address,
+                                  gas)
+
+      # MLOAD only gets 32 bytes at a time, and some tests return multiple
+      # 32-byte values, so MLOAD and SSTORE 32-bytes at a time.
+      # e.g. Given an expected result of 0x<thirty-two 1's><thirty-two 2's>
+      # we will end up doing two SSTORE commands:
+      #   Storage slot 1: 11111111111111111111111111111111
+      #   Storage slot 2: 22222222222222222222222222222222
+      # We also may have expected storage of, say, 8 bytes, so be sure we
+      # always allocate at least one storage slot.
+      storageSlots = self._countStorageSlotsForBytes(lengthRetBytesDec)
+
+      for storageSlot in range(0, storageSlots):
+         memoryOffsetDec = storageSlot * 32
+         memoryOffsetHex = decToEvenHexNo0x(memoryOffsetDec)
+         storageSlotHex = decToEvenHexNo0x(storageSlot)
+
+         # Even if we were given 8 bytes as an expected return value, MLOAD
+         # only reads 32 bytes, so the 8 byte value will be stored in 32 bytes
+         # of storage.
+         # Instructions:
+         #   PUSH1  {memory offset}
+         #   MLOAD
+         #   PUSH1  {storage slot}
+         #   SSTORE
+         mloadStep = "60{}5160{}55".format(memoryOffsetHex, storageSlotHex)
+         invokeCallBytecode += mloadStep
+
+      return invokeCallBytecode
+
+   def _countStorageSlotsForBytes(self, numBytes):
+      storageSlots = int(numBytes/32)
+
+      if numBytes % 32 > 0:
+         storageSlots += 1
+
+      return storageSlots
+
+   def _checkExpectedOut(self, rpc, contractAddress, fullExpectedOut):
+      '''
+      Checks the expected out, which is the return value of the code under test.
+      We do this by creating a new contract which invokes the contract under
+      test and saves the return value in storage, then checking the storage
+      storage of the new contract.
+      Returns whether it was successful, and an informational message if not.
+      '''
+      log.debug("Checking expected out.")
+      fullExpectedOut = trimHexIndicator(fullExpectedOut)
+      lengthRetBytes = max(1, int(len(trimHexIndicator(fullExpectedOut))/2))
+      success = False
+      info = None
+      invokeCallBytecode = self._createCALLBytecode(contractAddress,
+                                                    fullExpectedOut)
+      txHash = rpc.sendTransaction(self._getAUser()["hash"],
+                                   invokeCallBytecode,
+                                   self._getGas())
+      if txHash:
+         txReceipt = rpc.getTransactionReceipt(txHash, self._ethereumMode)
+         contractAddress = RPC.searchResponse(txReceipt, ["contractAddress"])
+
+         if contractAddress:
+            storageSlots = self._countStorageSlotsForBytes(lengthRetBytes)
+            expectedOutRemaining = fullExpectedOut
+
+            for storageSlot in range(0, storageSlots):
+               actual = rpc.getStorageAt(contractAddress, hex(storageSlot))
+               actual = trimHexIndicator(actual)
+               expected = None
+
+               if len(expectedOutRemaining) >= 64:
+                  expected = expectedOutRemaining[:64]
+                  expectedOutRemaining = expectedOutRemaining[64:]
+               else:
+                  expected = expectedOutRemaining
+
+               if not len(actual) == len(expected):
+                  actual, info = self._trimActualForExpected(actual, expected)
+
+               if actual:
+                  success, info = self._compareActAndExpValues(actual, expected)
+
+               if not success:
+                  break
+         else:
+            info = "No contract address was in the transaction receipt when " \
+                   "creating a contract to check the expected output."
+      else:
+         info = "No transaction hash received when creating a contract to " \
+                "check the expected output"
+
+      return success, info
+
+   def _trimActualForExpected(self, actual, expected):
+      '''
+      Sometimes, actual is something like 0x3700000000000... and expected
+      is just 0x37. Trim, display what we did, and return the trimmed
+      actual.  Return False (test failure) and an info message if something
+      goes wrong.
+      '''
+      removed = actual[len(expected):]
+      newActual = actual[:len(expected)]
+      log.info("Actual received value '{}' was truncated to " \
+               "'{}' for comparison to the expected value " \
+               "'{}'.". \
+               format(actual, newActual, expected))
+
+      if stringOnlyContains(removed, "0"):
+         return newActual, ""
+      else:
+         info = "The actual output, '{}', could not safely " \
+                "be truncated to compare to the expected output, " \
+                "'{}'. This is considered a mismatch and " \
+                "test failure.".format(actual, expected)
+         log.info(info)
+         return False, info
+
+   def _checkExpectedStorage(self, rpc, contractAddress, expectedStorage):
+      '''
+      Checks the expected storage.
+      Returns whether it was successful, and an informational message if not.
+      '''
+      log.debug("Checking expected storage.")
+      success = False
+      info = None
+      keys = sorted(expectedStorage)
+
+      for storageLoc in keys:
+         rawVal = rpc.getStorageAt(contractAddress, storageLoc)
+         expectedVal = expectedStorage[storageLoc]
+         success, info = self._compareActAndExpValues(rawVal, expectedVal)
+
+         if not success:
+            log.debug("Expected storage:")
+            for storageLoc in keys:
+               log.debug("   {}: {}".format(storageLoc,
+                                            expectedStorage[storageLoc]))
+            break
+
+      return success, info
+
+   def _compareActAndExpValues(self, actualRawValue, expectedRawValue):
+      '''
+      Given values in raw format, convert to integers and compare. We convert
+      because the actual value may be "0x000000000000000000000000000...2" while
+      the expected value is "2".
+      Returns whether it was successful, and an informational message if not.
+      '''
+      success = False
+      info = None
+
+      log.debug("actualRawValue: '{}'".format(actualRawValue))
+      log.debug("expectedRawValue: '{}'".format(expectedRawValue))
+
+      actualValue = int(actualRawValue, 16)
+      log.debug("actualValue: '{}'".format(actualValue))
+
+      # Some test cases use "0x" for 0.  Python does not approve.
+      if expectedRawValue == "0x":
+         expectedRawValue = "0x0"
+
+      expectedValue = int(expectedRawValue, 16)
+      log.debug("expectedValue: '{}'".format(expectedValue))
+
+      if expectedValue == actualValue:
+         log.debug("Match")
+         success = True
+      else:
+         success = False
+         info = "Expected value does not match actual value."
+         log.info(info)
 
       return success, info
 

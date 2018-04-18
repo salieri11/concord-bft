@@ -9,6 +9,7 @@ import subprocess
 from subprocess import CompletedProcess, PIPE
 import threading
 import time
+import traceback
 
 from util.debug import pp as pp
 
@@ -40,6 +41,71 @@ class RPC():
 
       self._testName = testName
       self._url = url
+
+   @staticmethod
+   def searchResponse(searchMe, findMe):
+      '''
+      It is possible that a response from the server does not contain an
+      expected field.  Instead of coding foo["bar"] and getting a  key error
+      (which is not always helpful), or always checking "if 'bar' in foo", let's
+      wrap that stuff up into a function and try to provide better feedback.
+
+      Accepts a dict holding the server response, and a dict containing the
+      nesting of keys to find.  e.g. To retrieve "bar" in:
+
+      response = {
+         "foo1": {
+            "foo2": {
+               "foo3": "bar"
+            }
+         }
+      }
+
+      searchResponse(response, ["foo1", "foo2", "foo3"])
+
+      Raises an exception if a field is missing.  The exception shows what was
+      being searched for at each level and where the failure occurred.  e.g.
+         Exception: Unable to find key.
+         Searching for foo3 in ['foo1', 'foo2', 'foo3'].
+         Searching for foo3a_ in ['foo3a', 'foo3b'].
+         foo3a_ not found in ['foo3a', 'foo3b'].
+      '''
+      return RPC._searchResponse(searchMe, findMe)
+
+   @staticmethod
+   def _searchResponse(searchMe, findMe, msg="", fullResponse=None):
+      '''
+      Don't call this one. This one is called by searchResponse.
+      '''
+      if isinstance(findMe, str):
+         findMe = [findMe]
+
+      if not fullResponse:
+         fullResponse = searchMe
+
+      keyToFind = findMe.pop(0)
+
+      try:
+         keysToSearch = list(searchMe.keys())
+      except Exception as e:
+         keysToSearch = []
+
+      msg += "Searching for '{}' in '{}'.\n".format(keyToFind, keysToSearch)
+
+      if keyToFind in keysToSearch:
+         if len(findMe) == 0:
+            return searchMe[keyToFind]
+         else:
+            return RPC._searchResponse(searchMe[keyToFind],
+                                        findMe, msg, fullResponse)
+      else:
+         if not keyToFind:
+            keyToFind = ""
+
+         msg = "Unable to find key '{}'.\n{}" \
+               "\nFull response was '{}'.".format(keyToFind, msg, fullResponse)
+         log.debug(msg)
+         raise Exception(msg)
 
    def _call(self):
       '''
@@ -213,3 +279,43 @@ class RPC():
       self._rpcData["params"] = [hsh, password, 0]
 
       response = self._call()
+
+   def sha3(self, data):
+      '''
+      Ask to hash the given data
+      '''
+      self._rpcData["method"] = "web3_sha3"
+      self._rpcData["params"] = [data]
+
+      response = self._call()
+      return self.getResultFromResponse(response)
+
+   def clientVersion(self):
+      '''
+      Ask for the current version
+      '''
+      self._rpcData["method"] = "web3_clientVersion"
+      self._rpcData["params"] = []
+
+      response = self._call()
+      return self.getResultFromResponse(response)
+
+   def mining(self):
+      '''
+      Ask if mining is in progress
+      '''
+      self._rpcData["method"] = "eth_mining"
+      self._rpcData["params"] = []
+
+      response = self._call()
+      return self.getResultFromResponse(response)
+
+   def modules(self):
+      '''
+      Ask what RPC modules are supported
+      '''
+      self._rpcData["method"] = "rpc_modules"
+      self._rpcData["params"] = []
+
+      response = self._call()
+      return self.getResultFromResponse(response)

@@ -2,15 +2,15 @@
    "product": {
       "launch":{
          "apiServer":{
-            "buildRoot": "~/source/vmwathena/helen",
+            "buildRoot": "~/source/helen",
             "helen1":{
                "launchCommand": "/usr/bin/java",
-               "parameters": ["-jar", "~/source/vmwathena/helen/helen-1.0-SNAPSHOT-jar-with-dependencies.jar"]
+               "parameters": ["-jar", "~/source/helen/helen-1.0-SNAPSHOT-jar-with-dependencies.jar"]
             }
          },
          "athena":
          {
-             "buildRoot": "~/source/vmwathena/athena/build",
+             "buildRoot": "~/source/athena/build",
              "athena1":{
                  "launchCommand": "src/athena",
                  "parameters": ["--logger_config",

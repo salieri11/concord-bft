@@ -17,11 +17,6 @@ import util.json_helper
 
 log = logging.getLogger(__name__)
 
-# The config file contains information aobut how to run things, as opposed to
-# command line parameters, which are about running tests.
-CONFIG_JSON = "resources/user_config.json"
-TEST_LOG_DIR = "test_logs"
-
 class HelenAPITests(test_suite.TestSuite):
    _args = None
    _apiBaseServerUrl = "http://localhost:8080"
@@ -31,20 +26,7 @@ class HelenAPITests(test_suite.TestSuite):
    _resultFile = None
 
    def __init__(self, passedArgs):
-      self._args = passedArgs
-      self._ethereumMode = self._args.ethereumMode
-      self._loadConfigFile()
-      self._productMode = not self._ethereumMode
-      self._resultFile = os.path.join(passedArgs.resultsDir,
-                                     "helenAPITestResults.json")
-      self._results = {
-         "HelenAPITests": {
-            "result":"",
-            "tests": collections.OrderedDict()
-         }
-      }
-      with open(self._resultFile, "w") as f:
-         f.write(json.dumps(self._results))
+      super(HelenAPITests, self).__init__(passedArgs)
 
    def getName(self):
       return "HelenAPITests"
@@ -52,23 +34,24 @@ class HelenAPITests(test_suite.TestSuite):
    def run(self):
       ''' Runs all of the tests. '''
       if self._productMode:
-         p = Product(self._args.resultsDir,
-                     self._apiBaseServerUrl+"/api/athena/eth",
-                     self._userConfig["product"])
-         p.launchProduct()
-         if not p.waitForProductStartup():
-            log.error("The product did not start.  Exiting.")
-            self._writeResult(None, None, "The product did not start.")
-            return
-      else:
-         log.warn("HelenAPITests are not applicable to ethereumMode.")
-         self._writeResult(None, None, "Not applicable to ethereumMode.")
-         return
+         try:
+            p = self.launchProduct(self._args.resultsDir,
+                                   self._apiBaseServerUrl+"/api/athena/eth",
+                                   self._userConfig["product"])
+         except Exception as e:
+            log.error(traceback.format_exc())
+            return self._resultFile
+
+      if self._ethereumMode:
+         info = "HelenAPITests are not applicable to ethereumMode."
+         log.warn(info)
+         self.writeResult("All tests", None, info)
+         return self._resultFile
 
       tests = self._getTests()
 
       for (testName, testFun) in tests:
-         testLogDir = os.path.join(self._args.resultsDir, TEST_LOG_DIR, testName)
+         testLogDir = os.path.join(self._testLogDir, testName)
 
          try:
             result, info = self._runRestTest(testName,
@@ -85,10 +68,10 @@ class HelenAPITests(test_suite.TestSuite):
          else:
             info = ""
 
-         relativeLogDir = self._makeRelativeTestPath(testLogDir)
+         relativeLogDir = self.makeRelativeTestPath(testLogDir)
          info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                      testLogDir)
-         self._writeResult(testName, result, info)
+         self.writeResult(testName, result, info)
 
       log.info("Tests are done.")
 
@@ -96,61 +79,6 @@ class HelenAPITests(test_suite.TestSuite):
          p.stopProduct()
 
       return self._resultFile
-
-   def _makeRelativeTestPath(self, fullTestPath):
-      '''
-      Given the full test path (in the results directory), return the
-      relative path.
-      '''
-      return fullTestPath[len(self._args.resultsDir)+1:len(fullTestPath)]
-
-
-   def _loadConfigFile(self):
-      '''
-      Loads the main config file.
-      '''
-      self._userConfig = util.json_helper.readJsonFile(CONFIG_JSON)
-
-
-   def _writeResult(self, testName, result, info):
-      '''
-      We're going to write the full result or skipped test set to json for each
-      test so that we have a valid result structure even if things die partway
-      through.
-      '''
-      tempFile = self._resultFile + "_temp"
-      realFile = self._resultFile
-
-      if result:
-         result = "PASS"
-      elif result == False:
-         result = "FAIL"
-      else:
-         result = "SKIPPED"
-
-      log.info(result)
-
-      if testName and result == "SKIPPED":
-         log.debug("Unintentionally skipped test '{}': '{}'".format(testName,
-                                                                    info))
-         self._writeUnintentionallySkippedTest(testName, info)
-
-      # Never change the suite's result due to skips or if it has already
-      # been set to "FAIL".
-      if not result == "SKIPPED" and \
-         not self._results["HelenAPITests"]["result"] == "FAIL":
-            self._results["HelenAPITests"]["result"] = result
-
-      if testName:
-         self._results["HelenAPITests"]["tests"][testName] = {
-            "result": result,
-            "info": info
-         }
-
-      with open(tempFile, "w") as f:
-         f.write(json.dumps(self._results, indent=4))
-
-      os.rename(tempFile, realFile)
 
    def _runRestTest(self, testName, testFun, testLogDir):
       log.info("Starting test '{}'".format(testName))
@@ -247,8 +175,8 @@ class HelenAPITests(test_suite.TestSuite):
          if "next" in result:
             return self._test_getBlockList(request, earliestFound,
                                            result['next'])
-         elif not earliestFound == 1:
-            return (False, "No 'next' URL, but not yet at block 1")
+         elif not earliestFound == 0:
+            return (False, "No 'next' URL, but not yet at block 0")
          else:
             log.warn("Not enough blocks to test 'next' link")
             return (True, "Warning: Not enough blocks to test 'next' link")
