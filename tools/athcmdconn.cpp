@@ -40,7 +40,7 @@ bool call_athena(boost::program_options::variables_map &opts,
    // only sixteen bits available
    assert(msglen < 0x10000);
    // little-endian!
-   char prefix[2] = {(char)msglen, (char)(msglen >> 8)};
+   uint8_t prefix[2] = {(uint8_t)msglen, (uint8_t)(msglen >> 8)};
 
    boost::asio::write(s, boost::asio::buffer(prefix, 2));
    boost::asio::write(s, boost::asio::buffer(pb, msglen));

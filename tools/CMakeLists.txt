@@ -29,3 +29,11 @@ target_link_libraries(ath_getstat
                       athcmdutil
                       proto ${PROTOBUF_LIBRARIES}
                       ${Boost_LIBRARIES})
+
+add_executable(ath_getblk
+               "ath_getblk.cpp"
+               ${PROTO_SRCS} ${PROTO_HDRS})
+target_link_libraries(ath_getblk
+                      athcmdutil
+                      proto ${PROTOBUF_LIBRARIES}
+                      ${Boost_LIBRARIES})
