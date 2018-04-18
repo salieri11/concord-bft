@@ -2,10 +2,10 @@
    "product": {
       "launch":{
          "apiServer":{
-             "buildRoot": "~/source/vmwathena/helen",
+            "buildRoot": "~/source/vmwathena/helen",
             "helen1":{
                "launchCommand": "/usr/bin/java",
-		"parameters": ["-jar", "~/source/vmwathena/helen/helen-1.0-SNAPSHOT-jar-with-dependencies.jar"]
+               "parameters": ["-jar", "~/source/vmwathena/helen/helen-1.0-SNAPSHOT-jar-with-dependencies.jar"]
             }
          },
          "athena":
