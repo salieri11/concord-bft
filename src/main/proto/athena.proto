@@ -1,0 +1,144 @@
+// Copyright 2018 VMware, all rights reserved
+//
+// External interface definition.
+package com.vmware.athena;
+
+message AthenaRequest {
+	optional ProtocolRequest protocol_request = 1;
+	optional PeerRequest peer_request = 2;
+
+	//TODO discuss and convert from repeated to optional
+	repeated EthRequest eth_request = 3;
+	optional BlocksListRequest blocks_list_request = 4;
+	optional BlockNumberRequest block_number_request = 5;
+	optional TransactionRequest transaction_request = 7;
+
+	// 4-2045 open for definition
+	// Likely: metrics/stats, non-eth blockchain, other admin
+	optional TestRequest test_request = 2046;
+}
+
+message ProtocolRequest {
+	optional int32 client_version = 1;
+	// TODO: probably some auth in here too
+}
+
+message PeerRequest {
+	optional bool return_peers = 1;
+	repeated Peer add_peer = 2;
+	repeated Peer remove_peer = 3;
+}
+
+message EthRequest {
+	enum EthMethod {
+		SEND_TX = 1;
+		SEND_TX_RAW = 2;
+		GET_TX_RECEIPT = 3;
+		GET_STORAGE_AT = 4;
+		CALL_CONTRACT = 5;
+	}
+
+	optional EthMethod method = 1;
+	optional int64 id = 2;
+	optional bytes addr_to = 3;
+	optional bytes addr_from = 4;
+	optional bytes value = 5;
+	optional bytes data = 6;
+}
+
+message BlocksListRequest {
+	optional int64 latest = 1;
+	optional int64 count = 2;
+}
+
+message BlockNumberRequest {
+	optional int64 index = 1;
+}
+
+message TestRequest {
+	optional string echo = 1;
+}
+
+message TransactionRequest {
+	optional bytes hashParam = 1;
+}
+
+message AthenaResponse {
+	optional ProtocolResponse protocol_response = 1;
+	optional PeerResponse peer_response = 2;
+	repeated EthResponse eth_response = 3;
+	optional BlocksListResponse blocks_list_response = 4;
+	optional BlockNumberResponse block_number_response = 5;
+	optional TransactionResponse transaction_response = 7;
+
+	// 4-2045 open for definition
+	optional TestResponse test_response = 2046;
+	repeated ErrorResponse error_response = 2047;
+}
+
+message ProtocolResponse {
+	optional int32 server_version = 1;
+}
+
+message PeerResponse {
+	repeated Peer peer = 1;
+}
+
+message BlocksListResponse {
+	repeated BlockBrief blocks = 1;
+}
+
+message BlockNumberResponse {
+	optional BlockDetailed block = 1;
+}
+
+message EthResponse {
+	optional int64 id = 1;
+	optional bytes data = 2;
+	optional bytes contract_address = 3;
+	optional int32 status = 4;
+}
+
+message TransactionResponse {
+	optional string hash = 1;
+	optional string from = 2;
+	optional string to = 3;
+	optional int64 value = 4;
+	optional string input = 5;
+	optional string blockHash = 6;
+	optional int64 blockNumber = 7;
+	optional int64 transactionIndex = 8;
+	optional string nonce = 9;
+}
+
+message TestResponse {
+	optional string echo = 1;
+}
+
+message ErrorResponse {
+	optional string description = 1;
+}
+
+message Peer {
+	optional string address = 1;
+	optional int32 port = 2;
+
+	// putting this one late so it doesn't consume a useful address
+	// while we're figuring out what format it should actually have
+	optional string status = 2047;
+}
+
+message BlockBrief {
+	optional int64 number = 1;
+	optional bytes hash = 2;
+}
+
+message BlockDetailed {
+	optional int64 number = 1;
+	optional bytes hash = 2;
+	optional bytes parentHash = 3;
+	optional string nonce = 4;
+	optional int64 size = 5;
+	repeated string transactions = 6;
+}
+
