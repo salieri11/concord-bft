@@ -8,6 +8,7 @@
 #include "athena_log.hpp"
 
 const evm_address zero_address{{0}};
+const evm_uint256be zero_hash{{0}};
 
 namespace com {
 namespace vmware {
@@ -42,6 +43,13 @@ typedef struct EthTransaction {
         status(status_) { }
    EthTransaction& operator=(const EthTransaction &other);
 } EthTransaction;
+
+typedef struct EthBlock {
+   uint64_t number;
+   evm_uint256be hash;
+   evm_uint256be parent_hash;
+   std::vector<evm_uint256be> transactions;
+} EthBlock;
 
 }
 }

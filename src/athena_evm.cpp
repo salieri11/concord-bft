@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cstring>
 #include <stdexcept>
+#include <memory>
 #include <log4cplus/loggingmacros.h>
 #include <keccak.h>
 
@@ -32,6 +33,8 @@ com::vmware::athena::EVM::EVM(EVMInitParams params)
    // wrap an evm context in an athena context
    athctx = {{&athena_fn_table}, this};
 
+   create_genesis_block();
+
 #ifdef USE_HERA
    evminst = hera_create();
 #else
@@ -53,6 +56,21 @@ com::vmware::athena::EVM::~EVM() {
    LOG4CPLUS_INFO(logger, "EVM stopped");
 }
 
+void com::vmware::athena::EVM::create_genesis_block() {
+   // TODO: Create transactions for initial values.  See
+   //       https://etherscan.io/txs?block=0.  Our transactions don't record
+   //       value at the moment, so that needs to be added as well
+   std::vector<evm_uint256be> txs;
+
+   std::shared_ptr<EthBlock> blk = std::make_shared<EthBlock>();
+   blk->number = 0;
+   blk->parent_hash = zero_hash;
+   blk->transactions = txs;
+   blk->hash = hash_for_block(blk);
+   blocks_by_hash[blk->hash] = blk;
+   blocks_by_number[blk->number] = blk;
+}
+
 /**
  * Run a contract, or just transfer value if the destination is not a
  * contract. Calling a contract can either be done with 'call' method or with
@@ -68,6 +86,13 @@ void com::vmware::athena::EVM::run(evm_message &message,
                                    evm_uint256be &txhash /* out */)
 {
    assert(message.kind != EVM_CREATE);
+
+   // We add the transaction to the pending list after evaluating it, but we
+   // want the pending list to be in the order of execution start. This means
+   // the child transactions will be added before their parent. To solve that,
+   // remember where the latest point was before evaluation, so we can insert at
+   // that point later.
+   size_t pending_index = pending.size();
 
    std::vector<uint8_t> code;
    evm_uint256be hash;
@@ -118,8 +143,12 @@ void com::vmware::athena::EVM::run(evm_message &message,
    }
 
    if (isTransaction) {
-      txhash = record_transaction(message, result, message.destination,
+      txhash = record_transaction(pending_index, message, result,
+                                  message.destination,
                                   zero_address); /* no contract created */
+   } else if (message.depth == 0 && pending.size() > 0) {
+      // our call generated other transactions - record their block
+      record_block();
    }
 }
 
@@ -132,6 +161,13 @@ void com::vmware::athena::EVM::create(evm_message &message,
 {
    assert(message.kind == EVM_CREATE);
    assert(message.input_size > 0);
+
+   // We add the transaction to the pending list after evaluating it, but we
+   // want the pending list to be in the order of execution start. This means
+   // the child transactions will be added before their parent. To solve that,
+   // remember where the latest point was before evaluation, so we can insert at
+   // that point later.
+   size_t pending_index = pending.size();
 
    evm_address contract_address = contract_destination(message);
 
@@ -150,13 +186,6 @@ void com::vmware::athena::EVM::create(evm_message &message,
       message.code_hash = keccak_hash(create_code);
 
       execute(message, create_code, result);
-
-      // don't expose the address if it wasn't used
-      evm_address recorded_contract_address =
-         result.status_code == EVM_SUCCESS ? contract_address : zero_address;
-      txhash = record_transaction(message, result,
-                                  zero_address, /* creates are not addressed */
-                                  recorded_contract_address);
 
       // TODO: check if the new contract is zero bytes in length;
       //       return error, not success in that case
@@ -180,12 +209,20 @@ void com::vmware::athena::EVM::create(evm_message &message,
       // attempted to call a contract that doesn't exist
       result.status_code = EVM_FAILURE;
    }
+
+   // don't expose the address if it wasn't used
+   evm_address recorded_contract_address =
+      result.status_code == EVM_SUCCESS ? contract_address : zero_address;
+   txhash = record_transaction(pending_index, message, result,
+                               zero_address, /* creates are not addressed */
+                               recorded_contract_address);
 }
 
 /**
  * Compute the hash for the transaction, and put the record in storage.
  */
 evm_uint256be com::vmware::athena::EVM::record_transaction(
+   const size_t pending_index,
    const evm_message &message,
    const evm_result &result,
    const evm_address &to_override,
@@ -200,10 +237,38 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
          };
 
    evm_uint256be txhash = hash_for_transaction(tx);
+   pending.insert(pending.begin()+pending_index, tx);
    LOG4CPLUS_DEBUG(logger, "Recording transaction " << txhash);
-   transactions[txhash] = tx;
+
+   if (message.depth == 0) {
+      record_block();
+   }
 
    return txhash;
+}
+
+void com::vmware::athena::EVM::record_block()
+{
+   // list of transaction hashes for the block
+   std::vector<evm_uint256be> txlist;
+   for (auto t: pending) {
+      evm_uint256be th = hash_for_transaction(t);
+      transactions[th] = t;
+      txlist.push_back(th);
+   }
+
+   pending.clear();
+
+   std::shared_ptr<EthBlock> blk = std::make_shared<EthBlock>();
+   blk->number = next_block_number();
+   blk->parent_hash = blocks_by_number[blk->number-1]->hash;
+   blk->transactions = txlist;
+   blk->hash = hash_for_block(blk);
+
+   LOG4CPLUS_DEBUG(logger, "Recording block " << blk->number <<
+                   " hash " << blk->hash);
+   blocks_by_hash[blk->hash] = blk;
+   blocks_by_number[blk->number] = blk;
 }
 
 /**
@@ -229,6 +294,57 @@ evm_uint256be com::vmware::athena::EVM::get_storage_at(
    evm_uint256be result;
    get_storage(&result, &account, &key);
    return result;
+}
+
+/**
+ * Get the list of blocks, starting at latest, and going back count-1 steps in
+ * the chain.
+ */
+std::vector<std::shared_ptr<EthBlock>> com::vmware::athena::EVM::get_block_list(
+   uint64_t latest, uint64_t count) const {
+   if (latest > current_block_number()) {
+      latest = current_block_number();
+   }
+
+   if (count > latest+1) {
+      count = latest+1;
+   }
+
+   LOG4CPLUS_DEBUG(logger, "Getting block list from " << latest
+                   << " to " << (latest-count));
+
+   std::vector<std::shared_ptr<EthBlock>> result;
+   for (int i = 0; i < count; i++) {
+      result.push_back(blocks_by_number.find(latest-i)->second);
+   }
+
+   return result;
+}
+
+/**
+ * Get block at given index.
+ */
+std::shared_ptr<EthBlock> com::vmware::athena::EVM::get_block_for_number(
+   uint64_t number) const {
+   auto iter = blocks_by_number.find(number);
+   if (iter != blocks_by_number.end()) {
+      return iter->second;
+   }
+
+   throw BlockNotFoundException();
+}
+
+/**
+ * Get block for given hash.
+ */
+std::shared_ptr<EthBlock> com::vmware::athena::EVM::get_block_for_hash(
+   evm_uint256be hash) const {
+   auto iter = blocks_by_hash.find(hash);
+   if (iter != blocks_by_hash.end()) {
+      return iter->second;
+   }
+
+   throw BlockNotFoundException();
 }
 
 /**
@@ -383,6 +499,100 @@ evm_uint256be com::vmware::athena::EVM::hash_for_transaction(
    return keccak_hash(rlp);
 }
 
+/**
+ * Compute the hash which will be used to reference the transaction.
+ */
+evm_uint256be com::vmware::athena::EVM::hash_for_block(
+   const std::shared_ptr<EthBlock> blk) const
+{
+   //TODO: write RLP encoding function
+   // https://github.com/ethereum/wiki/wiki/RLP
+
+   /*
+    * WARNING: This is not the same as Ethereum's block hash right now,
+    * but is instead an approximation, in order to provide something to fill API
+    * holes. For now, the plan is:
+    *
+    * RLP([number, parent_hash, txhash1, txhash2, ...])
+    */
+
+   std::vector<uint8_t> rlp;
+   size_t field_length_count;
+   size_t field_length;
+
+   // Build RLP encoding backward, then reverse before returning.
+   // backward = txhashes first
+   for (auto txh: blk->transactions) {
+      std::reverse_copy(txh.bytes,
+                        txh.bytes+sizeof(evm_uint256be),
+                        std::back_inserter(rlp));
+      // prefix (max 55 bytes for this particular encoding)
+      static_assert(sizeof(evm_uint256be) < 56,
+                    "evm_uint256be will not fit in short rlp string");
+      rlp.push_back(0x80 + sizeof(evm_uint256be));
+   }
+   size_t txlength = blk->transactions.size()*(1+sizeof(evm_uint256be));
+   if (txlength < 56) {
+      rlp.push_back(0x80 + txlength);
+   } else {
+      field_length = txlength;
+      field_length_count = 0;
+      do {
+         ++field_length_count;
+         rlp.push_back(field_length & 0xff);
+         field_length >>= 8;
+      } while (field_length > 0);
+      rlp.push_back(0xb7 + field_length);
+   }
+
+   // now the parent hash
+   std::reverse_copy(blk->parent_hash.bytes,
+                     blk->parent_hash.bytes+sizeof(evm_uint256be),
+                     std::back_inserter(rlp));
+   // prefix (max 55 bytes for this particular encoding)
+   static_assert(sizeof(evm_uint256be) < 56,
+                 "evm_uint256be will not fit in short rlp string");
+   rlp.push_back(0x80 + sizeof(evm_uint256be));
+
+   // now the index
+   uint64_t number = blk->number;
+   if (number < 0x80) {
+      // very small numbers are represented by themselves
+      rlp.push_back(number);
+   } else {
+      field_length_count = 0;
+      do {
+         ++field_length_count;
+         rlp.push_back(number & 0xff);
+         number >>= 8;
+      } while(number > 0);
+      // prefix (0x80 = short string)
+      rlp.push_back(0x80 + field_length_count);
+   }
+
+   // sum up
+   field_length = rlp.size();
+   if (field_length < 56) {
+      // 0xc0 = short list
+      rlp.push_back(0xc0 + field_length);
+   } else {
+      field_length_count = 0;
+      do {
+         ++field_length_count;
+         rlp.push_back(field_length & 0xff);
+         field_length >>= 8;
+      } while(field_length > 0);
+      // 0xf7 = long list
+      rlp.push_back(0xf7 + field_length_count);
+   }
+
+   // get the RLP in the correct order
+   std::reverse(rlp.begin(), rlp.end());
+
+   // hash it
+   return keccak_hash(rlp);
+}
+
 evm_uint256be com::vmware::athena::EVM::keccak_hash(
    const std::vector<uint8_t> &data) const
 {
@@ -402,6 +612,14 @@ uint64_t com::vmware::athena::EVM::get_nonce(const evm_address &address) {
    }
    nonces[address] = nonce+1;
    return nonce;
+}
+
+uint64_t com::vmware::athena::EVM::next_block_number() {
+   return ++latestBlock;
+}
+
+uint64_t com::vmware::athena::EVM::current_block_number() const {
+   return latestBlock;
 }
 
 void com::vmware::athena::EVM::execute(evm_message &message,
@@ -570,7 +788,8 @@ void com::vmware::athena::EVM::call(
    struct evm_result* result,
    const struct evm_message* msg)
 {
-   LOG4CPLUS_DEBUG(logger, "EVM::call called");
+   LOG4CPLUS_DEBUG(logger, "EVM::call called; depth = " << msg->depth);
+   assert(msg->depth > 0);
    evm_uint256be txhash;
    LOG4CPLUS_INFO(logger, msg);
    // create copy of message struct since
@@ -589,9 +808,14 @@ void com::vmware::athena::EVM::get_block_hash(
    struct evm_uint256be* result,
    int64_t number)
 {
-   LOG4CPLUS_INFO(logger, "EVM::get_block_hash called, block: " << number);
+   LOG4CPLUS_DEBUG(logger, "EVM::get_block_hash called, block: " << number);
 
-   // TODO: Actually look up the hash.
+   auto iter = blocks_by_number.find(number);
+   if (iter != blocks_by_number.end()) {
+      *result = iter->second->hash;
+   } else {
+      *result = zero_hash;
+   }
 }
 
 /**

@@ -54,6 +54,12 @@ private:
    handle_eth_request(int i);
 
    void
+   handle_block_list_request();
+
+   void
+   handle_block_request();
+
+   void
    handle_test_request();
 
    evm_result
