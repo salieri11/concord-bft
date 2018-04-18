@@ -7,6 +7,8 @@
 
 #include <map>
 #include <vector>
+#include <unordered_map>
+#include <memory>
 #include <log4cplus/loggingmacros.h>
 #include "common/utils.hpp"
 #include "evm.h"
@@ -35,6 +37,12 @@ class TransactionNotFoundException: public EVMException {
 public:
    TransactionNotFoundException() :
       EVMException("Transaction not found") { }
+};
+
+class BlockNotFoundException: public EVMException {
+public:
+   BlockNotFoundException() :
+      EVMException("Block not found") { }
 };
 
 /**
@@ -123,6 +131,10 @@ public:
    EthTransaction get_transaction(const evm_uint256be &txhash) const;
    evm_uint256be get_storage_at(const evm_address &account,
                                 const evm_uint256be &key) const;
+   std::vector<std::shared_ptr<EthBlock>> get_block_list(uint64_t latest,
+                                                         uint64_t count) const;
+   std::shared_ptr<EthBlock> get_block_for_number(uint64_t number) const;
+   std::shared_ptr<EthBlock> get_block_for_hash(evm_uint256be hash) const;
 
    /* EVM callbacks */
    int account_exists(const struct evm_address* address);
@@ -171,9 +183,24 @@ private:
    // the transactions we have processed; map is hash -> tx
    std::map<evm_uint256be, EthTransaction> transactions;
 
+   // transactions in flight for the current block
+   std::vector<EthTransaction> pending;
+
+   // the blocks we have created, in two mappings: by hash and by number.
+   // using shared pointers inside the maps, so that the memory will be cleaned
+   // up later.
+   //TODO: unoordered map
+   std::map<evm_uint256be, std::shared_ptr<EthBlock>> blocks_by_hash;
+   std::map<uint64_t, std::shared_ptr<EthBlock>> blocks_by_number;
+
+   // the latest block id we have used
+   // TODO: make this atomic
+   uint64_t latestBlock = 0;
+
    // map from [(contract address)+(storage location)] to data at that location
    std::map<std::vector<uint8_t>, evm_uint256be> storage_map;
 
+   void create_genesis_block();
    evm_address contract_destination(const evm_message &message);
    evm_uint256be keccak_hash(const std::vector<uint8_t> &data) const;
    void execute(evm_message &message,
@@ -183,11 +210,16 @@ private:
                  std::vector<uint8_t> &result_code,
                  evm_uint256be &result_hash);
    uint64_t get_nonce(const evm_address &address);
+   uint64_t next_block_number();
+   uint64_t current_block_number() const;
    evm_uint256be hash_for_transaction(const EthTransaction &tx) const;
-   evm_uint256be record_transaction(const evm_message &message,
+   evm_uint256be hash_for_block(const std::shared_ptr<EthBlock> tx) const;
+   evm_uint256be record_transaction(const size_t pending_index,
+                                    const evm_message &message,
                                     const evm_result &result,
                                     const evm_address &to_override,
                                     const evm_address &contract_address);
+   void record_block();
    std::vector<uint8_t> storage_key(const struct evm_address* address,
                                     const struct evm_uint256be* key) const;
 };
