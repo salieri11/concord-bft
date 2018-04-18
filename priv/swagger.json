@@ -54,27 +54,28 @@
         "get": {
             "summary": "List blocks in the chain, most recent first",
             "operationId": "blockListGet",
-            "parameters": [{
-			"name": "latest",
-			"in": "query",
-			"description": "most recent block to start with",
-			"required": false,
-			"schema": {
-				"type": "integer",
-				"format": "string"
-			}
-		},
-		{
-			"name": "count",
-			"in": "query",
-			"description": "number of blocks to return",
-			"required": false,
-			"schema": {
-				"type": "integer",
-				"format": "string"
-			}
-		}
-	],
+            "parameters": [
+                {
+                    "name": "latest",
+                    "in": "query",
+                    "description": "most recent block to start with",
+                    "required": false,
+                    "schema": {
+                        "type": "integer",
+                        "format": "string"
+                    }
+                },
+                {
+                    "name": "count",
+                    "in": "query",
+                    "description": "number of blocks to return",
+                    "required": false,
+                    "schema": {
+                        "type": "integer",
+                        "format": "string"
+                    }
+                }
+            ],
             "responses": {
                 "200": {
                     "description": "Blocks",

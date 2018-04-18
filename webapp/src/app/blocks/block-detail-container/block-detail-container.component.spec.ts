@@ -4,10 +4,12 @@
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { BlockDetailContainerComponent } from './block-detail-container.component';
 import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ClarityModule } from '@clr/angular';
+import { MockTranslateModule } from '../../mocks/mock-translate.module';
+
+import { BlockDetailContainerComponent } from './block-detail-container.component';
 
 describe('BlockDetailContainerComponent', () => {
   let component: BlockDetailContainerComponent;
@@ -18,7 +20,8 @@ describe('BlockDetailContainerComponent', () => {
       imports: [
         RouterTestingModule,
         HttpClientTestingModule,
-        ClarityModule
+        ClarityModule,
+        MockTranslateModule
       ],
       declarations: [ BlockDetailContainerComponent ]
     })

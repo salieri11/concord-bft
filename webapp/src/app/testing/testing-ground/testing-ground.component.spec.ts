@@ -3,33 +3,32 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { ReactiveFormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ClarityModule } from '@clr/angular';
-
-import { NodesContainerComponent } from './nodes-container.component';
-import { TransactionFiltersModalComponent } from '../transaction-filters-modal/transaction-filters-modal.component';
 import { MockTranslateModule } from '../../mocks/mock-translate.module';
 
-describe('NodesContainerComponent', () => {
-  let component: NodesContainerComponent;
-  let fixture: ComponentFixture<NodesContainerComponent>;
+import { TestingGroundComponent } from './testing-ground.component';
+
+describe('TestingGroundComponent', () => {
+  let component: TestingGroundComponent;
+  let fixture: ComponentFixture<TestingGroundComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
+        ReactiveFormsModule,
         RouterTestingModule,
-        HttpClientTestingModule,
         ClarityModule,
         MockTranslateModule
       ],
-      declarations: [ NodesContainerComponent, TransactionFiltersModalComponent ]
+      declarations: [ TestingGroundComponent ]
     })
     .compileComponents();
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(NodesContainerComponent);
+    fixture = TestBed.createComponent(TestingGroundComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

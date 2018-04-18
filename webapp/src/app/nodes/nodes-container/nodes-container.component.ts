@@ -11,7 +11,7 @@ import { TransactionFiltersModalComponent } from '../transaction-filters-modal/t
 @Component({
   selector: 'app-nodes-container',
   templateUrl: './nodes-container.component.html',
-  styleUrls: ['./nodes-container.component.css']
+  styleUrls: ['./nodes-container.component.scss']
 })
 export class NodesContainerComponent implements OnInit {
   @ViewChild('filterModal') filterModal: TransactionFiltersModalComponent;

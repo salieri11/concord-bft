@@ -20,8 +20,7 @@
       "prefix": "app",
       "styles": [
         "../node_modules/@clr/icons/clr-icons.min.css",
-        "../node_modules/@clr/ui/clr-ui.min.css",
-        "styles.css"
+        "styles.scss"
       ],
       "scripts": [
         "../node_modules/@webcomponents/custom-elements/custom-elements.min.js",
@@ -59,7 +58,7 @@
     }
   },
   "defaults": {
-    "styleExt": "css",
+    "styleExt": "scss",
     "component": {}
   }
 }

@@ -4,25 +4,25 @@
 
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 import { ClarityModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
 
-import { BlocksContainerComponent } from './blocks-container/blocks-container.component';
-import { BlockDetailContainerComponent } from './block-detail-container/block-detail-container.component';
+import { TestingGroundComponent } from './testing-ground/testing-ground.component';
 
 const routes: Routes = [
-  {path: 'blocks', component: BlocksContainerComponent},
-  {path: 'blocks/:id', component: BlockDetailContainerComponent}
+  {path: 'testing', component: TestingGroundComponent},
 ];
 
 @NgModule({
   imports: [
     CommonModule,
+    ReactiveFormsModule,
     RouterModule.forChild(routes),
     ClarityModule,
     TranslateModule
   ],
-  declarations: [BlocksContainerComponent, BlockDetailContainerComponent]
+  declarations: [TestingGroundComponent]
 })
-export class BlocksModule { }
+export class TestingModule { }

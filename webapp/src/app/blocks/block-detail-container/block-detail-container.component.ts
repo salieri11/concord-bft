@@ -13,7 +13,7 @@ import { Block } from '../../shared/remote-interfaces';
 @Component({
   selector: 'app-block-detail-container',
   templateUrl: './block-detail-container.component.html',
-  styleUrls: ['./block-detail-container.component.css']
+  styleUrls: ['./block-detail-container.component.scss']
 })
 export class BlockDetailContainerComponent implements OnInit {
   block: Block;

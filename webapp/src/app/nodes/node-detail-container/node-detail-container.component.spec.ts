@@ -7,6 +7,7 @@ import { ClarityModule } from '@clr/angular';
 
 import { NodeDetailContainerComponent } from './node-detail-container.component';
 import { TransactionFiltersModalComponent } from '../transaction-filters-modal/transaction-filters-modal.component';
+import { MockTranslateModule } from '../../mocks/mock-translate.module';
 
 describe('NodeDetailContainerComponent', () => {
   let component: NodeDetailContainerComponent;
@@ -15,7 +16,8 @@ describe('NodeDetailContainerComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
-        ClarityModule
+        ClarityModule,
+        MockTranslateModule
       ],
       declarations: [ NodeDetailContainerComponent, TransactionFiltersModalComponent ]
     })

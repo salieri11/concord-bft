@@ -7,7 +7,7 @@ import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 @Component({
   selector: 'app-transaction-filters-modal',
   templateUrl: './transaction-filters-modal.component.html',
-  styleUrls: ['./transaction-filters-modal.component.css']
+  styleUrls: ['./transaction-filters-modal.component.scss']
 })
 export class TransactionFiltersModalComponent implements OnInit {
 

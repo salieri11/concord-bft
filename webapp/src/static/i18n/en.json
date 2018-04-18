@@ -1,0 +1,113 @@
+{
+  "title": "VMware Athena",
+  "nav": {
+    "metrics": {
+      "activeNodes": "Active Nodes {{value}}"
+    },
+    "dashboard": {
+      "title": "Dashboard"
+    },
+    "nodeList": {
+      "title": "Node List"
+    },
+    "blockList": {
+      "title": "Block List"
+    },
+    "testing": {
+      "title": "Testing"
+    },
+    "logOut": "Log Out"
+  },
+  "time": {
+    "lastXDays": "Last {{number}} Days",
+    "today": "Today"
+  },
+  "dashboard": {
+    "totalActiveNodes": "Total Active Nodes",
+    "inactiveNodes": "Inactive Nodes",
+    "overallNodeHealth": "Overall Node Health",
+    "transactionsPerSecond": "Transactions/second",
+    "averageValidationTime": "Avg Validation Time",
+    "xSeconds": "{{seconds}} <small>seconds</small>"
+  },
+  "filters": {
+    "filterTransactions": "Filter Transactions",
+    "byStatus": "By Status",
+    "pendingTransactions": "Pending Transactions",
+    "byTransactionType": "By Transaction Type",
+    "allTransactions": "All Transactions",
+    "byDateRange": "By Date Range",
+    "byOwner": "By Owner",
+    "allOwners": "All Owners",
+    "cancel": "Cancel",
+    "apply": "Apply"
+  },
+  "nodes": {
+    "nodes": "Nodes",
+    "nodeActivity": "Node Activity",
+    "overallNodeHealth": "Overall Node Health",
+    "transactionsPerSecond": "Transactions/second",
+    "averageValidationTime": "Avg Validation Time",
+    "xSeconds": "{{seconds}} <small>seconds</small>",
+    "location": "Location",
+    "status": "Status",
+    "totalActiveNodes": "Total Active Nodes",
+    "inactiveNodes": "Inactive Nodes",
+    "searchPlaceholder": "Search...",
+    "filters": "Filters",
+    "hostname": "Hostname",
+    "address": "Address",
+    "viewDetail": "View Detail",
+    "network": "Network",
+    "nodeLocation": "Node Location",
+    "transactions": "Transactions",
+    "timestamp": "Timestamp",
+    "origination": "Origination",
+    "transaction": "Transaction",
+    "type": "Type",
+    "amount": "Amount",
+    "trans": "Trans",
+    "length": "Length",
+    "nodeOwners": "Node Owners",
+    "averageXPerSecond": "Avg {{value}}/sec",
+    "averageXSeconds": "Avg {{value}} sec"
+  },
+  "blocks": {
+    "blocks": "Blocks",
+    "blockActivity": "Block Activity",
+    "index": "Index",
+    "hash": "Hash",
+    "next": "Next",
+    "viewDetail": "View Detail"
+  },
+  "transactions": {
+    "transactions": "Transactions",
+    "recentTransactions": "Recent Transactions",
+    "timestamp": "Timestamp",
+    "origination": "Origination",
+    "transactionType": "Transaction Type",
+    "amount": "Amount",
+    "transactionLength": "Trans Length",
+    "status": "Status",
+    "nodes": "Nodes",
+    "hash": "Hash",
+    "nonce": "Nonce",
+    "parentHash": "Parent Hash",
+    "size": "Size"
+  },
+  "testing": {
+    "testingGround": "Testing Ground",
+    "dataInput": "Data Input",
+    "smartContractUpload": "Smart Contract Upload",
+    "dataInputHint": "Enter data below to generate a unique hash",
+    "smartContractHint": "Upload file below to generate a unique hash",
+    "submitData": "Submit Data",
+    "from": "From",
+    "to": "To",
+    "data": "Data",
+    "copy": "Copy",
+    "file": "File",
+    "contractAddress": "Contract Address:",
+    "blockHash": "Block Hash:"
+  }
+}
