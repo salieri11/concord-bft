@@ -57,7 +57,9 @@ com::vmware::athena::EVM::~EVM() {
 }
 
 void com::vmware::athena::EVM::create_genesis_block() {
-   // TODO: create transactions for initial values
+   // TODO: Create transactions for initial values.  See
+   //       https://etherscan.io/txs?block=0.  Our transactions don't record
+   //       value at the moment, so that needs to be added as well
    std::vector<evm_uint256be> txs;
 
    std::shared_ptr<EthBlock> blk = std::make_shared<EthBlock>();

@@ -430,8 +430,16 @@ api_connection::handle_block_request() {
       response->set_number(block->number);
       response->set_hash(block->hash.bytes, sizeof(evm_uint256be));
       response->set_parent_hash(block->parent_hash.bytes, sizeof(evm_uint256be));
-      response->set_nonce(zero_hash.bytes, sizeof(evm_uint256be)); // TODO
-      response->set_size(1); // TODO
+
+      // TODO: We're not mining, so nonce is mostly irrelevant. Maybe there will
+      // be something relevant from KVBlockchain to put in here?
+      response->set_nonce(zero_hash.bytes, sizeof(evm_uint256be));
+
+      // TODO: This is supposed to be "the size of this block in bytes". This is
+      // a sum of transaction inputs, storage updates, log events, and maybe
+      // other things. It needs to be counted when the block is
+      // recorded. Does KVBlockchain have this facility built in?
+      response->set_size(1);
 
       for (auto t: block->transactions) {
          std::string *tp = response->add_transaction();
