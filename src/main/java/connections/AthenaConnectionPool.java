@@ -136,7 +136,7 @@ public class AthenaConnectionPool {
       // check connection
       boolean res = conn.check();
       if (!res) {
-         _log.error("");
+         _log.error("Failed to check connection");
          closeConnection(conn);
          return null;
       }
