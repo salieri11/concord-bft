@@ -129,21 +129,32 @@ public class AthenaConnectionPool {
       if (!_initialized.get())
          throw new IllegalStateException("getConnection, pool not initialized");
 
+      boolean first = true;
       long start = System.currentTimeMillis();
       while (System.currentTimeMillis() - start < _waitTimeout) {
-         IAthenaConnection conn =
-            _pool.poll(_waitTimeout, TimeUnit.MILLISECONDS);
+         IAthenaConnection conn;
 
-         if (conn == null) {
-            synchronized (_poolIncreaseLock) {
-               if (_connectionCount.get() < _maxPoolSize) {
-                  conn = createConnection();
-               } else {
-                  _log.error("pool size at maximum");
-                  _log.trace("getConnection exit");
-                  return null;
+         if (first) {
+            // don't wait on the first poll; if the pool is empty, jump
+            // immediately to checking if a new connection can be added
+            first = false;
+            conn = _pool.poll();
+
+            if (conn == null) {
+               synchronized (_poolIncreaseLock) {
+                  if (_connectionCount.get() < _maxPoolSize) {
+                     conn = createConnection();
+                  } else {
+                     _log.error("pool size at maximum");
+                     _log.trace("getConnection exit");
+                     return null;
+                  }
                }
             }
+         } else {
+            // if this is not our first wait, then we weren't allowed to
+            // increase the pool size, so we just have to wait for a connection
+            conn = _pool.poll(_waitTimeout, TimeUnit.MILLISECONDS);
          }
 
          if (conn != null) {
