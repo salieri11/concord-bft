@@ -38,3 +38,15 @@ export interface Block {
   size: number;
   transactions: [{hash: string; url: string;}];
 }
+
+/**
+ * GET response of fetching an individual transaction
+ */
+export interface Transaction {
+  input: string;
+  contractAddress?: string;
+  from: string;
+  to?: string;
+  nonce: number;
+  hash: string;
+}

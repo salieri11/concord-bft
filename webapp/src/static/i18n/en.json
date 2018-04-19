@@ -91,6 +91,10 @@
     "status": "Status",
     "nodes": "Nodes",
     "hash": "Hash",
+    "from": "From",
+    "to": "To",
+    "contractAddress": "Contract Address",
+    "input": "Input",
     "nonce": "Nonce",
     "parentHash": "Parent Hash",
     "size": "Size"

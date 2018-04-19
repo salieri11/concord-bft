@@ -22,7 +22,7 @@ export class BlockDetailContainerComponent implements OnInit {
 
   ngOnInit() {
     this.route.params.subscribe(params => {
-      this.loadBlock(params.id);
+      this.loadBlock(params.blockNumber);
     });
   }
 

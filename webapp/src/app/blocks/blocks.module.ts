@@ -13,7 +13,7 @@ import { BlockDetailContainerComponent } from './block-detail-container/block-de
 
 const routes: Routes = [
   {path: 'blocks', component: BlocksContainerComponent},
-  {path: 'blocks/:id', component: BlockDetailContainerComponent}
+  {path: 'blocks/:blockNumber', component: BlockDetailContainerComponent}
 ];
 
 @NgModule({
