@@ -286,6 +286,9 @@ api_connection::dispatch() {
    if (athenaRequest_.has_block_request()) {
       handle_block_request();
    }
+   if (athenaRequest_.has_transaction_request()) {
+      handle_transaction_request();
+   }
    if (athenaRequest_.has_test_request()) {
       handle_test_request();
    }
@@ -448,6 +451,47 @@ api_connection::handle_block_request() {
    } catch (BlockNotFoundException) {
       ErrorResponse *resp = athenaResponse_.add_error_response();
       resp->set_description("block not found");
+      return;
+   }
+}
+
+/**
+ * Handle a request for a specific transaction.
+ */
+void
+api_connection::handle_transaction_request() {
+   const TransactionRequest request = athenaRequest_.transaction_request();
+
+   if (!request.has_hash()) {
+      ErrorResponse *resp = athenaResponse_.add_error_response();
+      resp->set_description("invalid transaction request: no hash");
+      return;
+   }
+
+   try {
+      evm_uint256be hash;
+      std::copy(request.hash().begin(), request.hash().end(), hash.bytes);
+      EthTransaction tx = athevm_.get_transaction(hash);
+
+      TransactionResponse* response =
+         athenaResponse_.mutable_transaction_response();
+      response->set_hash(request.hash());
+      response->set_from(tx.from.bytes, sizeof(evm_address));
+      if (tx.to != zero_address) {
+         response->set_to(tx.to.bytes, sizeof(evm_address));
+      }
+      if (tx.contract_address != zero_address) {
+         response->set_contract_address(tx.contract_address.bytes,
+                                        sizeof(evm_address));
+      }
+      if (tx.input.size()) {
+         response->set_input(std::string(tx.input.begin(), tx.input.end()));
+      }
+      response->set_status(tx.status);
+      response->set_nonce(tx.nonce);
+   } catch (TransactionNotFoundException) {
+      ErrorResponse *resp = athenaResponse_.add_error_response();
+      resp->set_description("transaction not found");
       return;
    }
 }
