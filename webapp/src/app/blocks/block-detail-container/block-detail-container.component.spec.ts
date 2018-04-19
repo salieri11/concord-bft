@@ -8,6 +8,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ClarityModule } from '@clr/angular';
 import { MockTranslateModule } from '../../mocks/mock-translate.module';
+import { SharedModule } from '../../shared/shared.module';
 
 import { BlockDetailContainerComponent } from './block-detail-container.component';
 
@@ -21,7 +22,8 @@ describe('BlockDetailContainerComponent', () => {
         RouterTestingModule,
         HttpClientTestingModule,
         ClarityModule,
-        MockTranslateModule
+        MockTranslateModule,
+        SharedModule
       ],
       declarations: [ BlockDetailContainerComponent ]
     })

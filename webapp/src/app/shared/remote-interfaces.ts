@@ -36,7 +36,7 @@ export interface Block {
   parentHash: string;
   number: number;
   size: number;
-  transactions: [{hash: string; url: string;}];
+  transactions: [{hash: string; url: string; }];
 }
 
 /**

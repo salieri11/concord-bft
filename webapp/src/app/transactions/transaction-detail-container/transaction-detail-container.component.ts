@@ -3,9 +3,9 @@
  */
 
 import { Component, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { Transaction } from '../../shared/remote-interfaces';
+import { AthenaApiService } from '../../shared/athena-api.service';
 
 @Component({
   selector: 'app-transaction-detail-container',
@@ -16,7 +16,7 @@ export class TransactionDetailContainerComponent implements OnInit {
   blockNumber: number;
   transaction: Transaction;
 
-  constructor(private httpClient: HttpClient, private route: ActivatedRoute) {}
+  constructor(private athenaApiService: AthenaApiService, private route: ActivatedRoute) {}
 
   ngOnInit() {
     this.route.params.subscribe(params => {
@@ -26,6 +26,6 @@ export class TransactionDetailContainerComponent implements OnInit {
   }
 
   loadTransaction(transactionHash) {
-    this.httpClient.get(`/api/athena/transactions/${transactionHash}`).subscribe((data: Transaction) => this.transaction = data);
+    this.athenaApiService.getTransaction(transactionHash).subscribe(transaction => this.transaction = transaction);
   }
 }

@@ -10,6 +10,7 @@ import { ClarityModule } from '@clr/angular';
 import { MockTranslateModule } from '../../mocks/mock-translate.module';
 
 import { TransactionDetailContainerComponent } from './transaction-detail-container.component';
+import { SharedModule } from '../../shared/shared.module';
 
 describe('TransactionDetailContainerComponent', () => {
   let component: TransactionDetailContainerComponent;
@@ -21,7 +22,8 @@ describe('TransactionDetailContainerComponent', () => {
         RouterTestingModule,
         HttpClientTestingModule,
         ClarityModule,
-        MockTranslateModule
+        MockTranslateModule,
+        SharedModule
       ],
       declarations: [ TransactionDetailContainerComponent ]
     })

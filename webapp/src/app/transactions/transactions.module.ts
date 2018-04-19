@@ -8,6 +8,7 @@ import { TransactionDetailContainerComponent } from './transaction-detail-contai
 import { RouterModule, Routes } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { ClarityModule } from '@clr/angular';
+import { SharedModule } from '../shared/shared.module';
 
 const routes: Routes = [
   {path: 'blocks/:blockNumber/transactions/:transactionHash', component: TransactionDetailContainerComponent},
@@ -18,7 +19,8 @@ const routes: Routes = [
     CommonModule,
     RouterModule.forChild(routes),
     ClarityModule,
-    TranslateModule
+    TranslateModule,
+    SharedModule
   ],
   declarations: [TransactionDetailContainerComponent]
 })
