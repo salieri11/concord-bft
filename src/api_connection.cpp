@@ -378,6 +378,11 @@ api_connection::handle_eth_request(int i) {
    }
 }
 
+/**
+ * Handle a personal.newAccount request.
+ * This method currently sets the account address as the last 20 bytes
+ * of the hash of the passphrase provided by the user.
+ */
 void
 api_connection::handle_new_account_request(const EthRequest &request) {
    

@@ -593,6 +593,11 @@ evm_uint256be com::vmware::athena::EVM::hash_for_block(
    return keccak_hash(rlp);
 }
 
+/**
+ * Creates a new user account with 0 balance.
+ * Generates a Keccak256 hash of the passphrase provided by the
+ * user and uses its last 20 bytes as the account address.
+ */
 bool com::vmware::athena::EVM::new_account(
    const std::string& passphrase, evm_address& address)
 {
