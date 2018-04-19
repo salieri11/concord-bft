@@ -60,13 +60,6 @@ Install all dependencies through NPM.
 npm install
 ```
 
-Build the UI to webapp/dist/. This is primarily used in the Docker
-build process:
-
-```
-npm run build
-```
-
 Build and copy the UI in development mode to the priv/www/ directory
 for use on a locally running server:
 

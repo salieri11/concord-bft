@@ -6,6 +6,7 @@
     "ng": "ng",
     "start": "ng serve --proxy-config proxy.conf.json",
     "build:maven": "node ./node_modules/.bin/ng build --prod --deploy-url assets && npm run build:move",
+    "build:local:prod": "ng build --prod --deploy-url assets && npm run build:move",
     "build:local:dev": "ng build --deploy-url assets && npm run build:move",
     "build:move": "cp -a dist/. ../priv/www/assets && mv ../priv/www/assets/index.html ../priv/www",
     "test": "ng test",
