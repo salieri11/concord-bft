@@ -120,30 +120,39 @@ public class AthenaConnectionPool {
       if (!_initialized.get())
          throw new IllegalStateException("getConnection, pool not initialized");
 
-      IAthenaConnection conn = _pool.poll(_waitTimeout, TimeUnit.MILLISECONDS);
+      long start = System.currentTimeMillis();
+      while (System.currentTimeMillis() - start < _waitTimeout) {
+         IAthenaConnection conn =
+            _pool.poll(_waitTimeout, TimeUnit.MILLISECONDS);
 
-      if (conn == null) {
-         synchronized (_poolIncreaseLock) {
-            if (_connectionCount.get() < _maxPoolSize) {
-               conn = createConnection();
-            } else {
-               _log.error("pool size at maximum");
-               return null;
+         if (conn == null) {
+            synchronized (_poolIncreaseLock) {
+               if (_connectionCount.get() < _maxPoolSize) {
+                  conn = createConnection();
+               } else {
+                  _log.error("pool size at maximum");
+                  _log.trace("getConnection exit");
+                  return null;
+               }
             }
+         }
+
+         if (conn != null) {
+            boolean res = conn.check();
+            if (!res) {
+               _log.error("Failed to check connection");
+               closeConnection(conn);
+               // see if we can get another connection
+               continue;
+            }
+
+            _log.trace("getConnection exit");
+            return conn;
          }
       }
 
-      // check connection
-      boolean res = conn.check();
-      if (!res) {
-         _log.error("Failed to check connection");
-         closeConnection(conn);
-         return null;
-      }
-
       _log.trace("getConnection exit");
-
-      return conn;
+      return null;
    }
 
    /**
