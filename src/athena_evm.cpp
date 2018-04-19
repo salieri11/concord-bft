@@ -105,16 +105,29 @@ void com::vmware::athena::EVM::run(evm_message &message,
       LOG4CPLUS_DEBUG(logger, "No code found at " << message.destination);
 
       uint64_t transfer_val = from_evm_uint256be(&message.value);
-      // All addresses exist by default. They are considered as accounts with
-      // 0 balances. Hence, we never throw an account-not-found error. Instead
-      // we will simply say that account does not have sufficient balance.
-      if (balances.count(message.sender) == 0 ||
-          balances[message.sender] < transfer_val) {
+
+      // Don't allow if source account does not exist.
+      if (account_exists(&message.sender) == 0) {
+         result.status_code = EVM_FAILURE;
+         LOG4CPLUS_INFO(logger, "Source account with address "
+                        << message.sender << ", does not exist.");
+      }
+
+      // Don't allow if source account has insufficient balance.
+      else if (balances[message.sender] < transfer_val) {
          result.status_code = EVM_FAILURE;
          LOG4CPLUS_INFO(logger, "Account with address " << message.sender <<
                         ", does not have sufficient funds (" <<
                         balances[message.sender] << ").");
-      } else {
+      }
+
+      // Don't allow if destination account does not exist.
+      else if (account_exists(&message.destination) == 0) {
+         result.status_code = EVM_FAILURE;
+         LOG4CPLUS_INFO(logger, "Destination account with address "
+                        << message.destination << " does not exist.");
+      }
+      else {
          balances[message.destination] += transfer_val;
          balances[message.sender] -= transfer_val;
          result.status_code = EVM_SUCCESS;
@@ -623,7 +636,7 @@ void com::vmware::athena::EVM::execute(evm_message &message,
 
 
 /**
- * Does the account at the address exists?
+ * Does the account at the address exist?
  *
  * TODO: is this called for both accounts and contracts?
  *
@@ -635,7 +648,10 @@ int com::vmware::athena::EVM::account_exists(
    LOG4CPLUS_INFO(logger, "EVM::account_exists called, address: " <<
                   *address);
 
-   return 1; // all accounts exist for now
+   if (balances.count(*address) == 0)
+      return 0;
+
+   return 1;
 };
 
 /**
