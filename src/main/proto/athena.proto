@@ -36,6 +36,7 @@ message EthRequest {
 		GET_TX_RECEIPT = 3;
 		GET_STORAGE_AT = 4;
 		CALL_CONTRACT = 5;
+		NEW_ACCOUNT = 6;
 	}
 
 	optional EthMethod method = 1;

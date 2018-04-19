@@ -24,6 +24,8 @@ import com.vmware.athena.Athena.EthResponse;
 
 import io.undertow.util.StatusCodes;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -49,7 +51,8 @@ public final class EthRPC extends BaseServlet {
       SEND_TX,
       GET_TX_RECEIPT,
       GET_STORAGE_AT,
-      CALL
+      CALL,
+      NEW_ACCOUNT
    }
 
    public EthRPC() throws ParseException {
@@ -206,6 +209,13 @@ public final class EthRPC extends BaseServlet {
                value = (String) obj.get("value");
             }
             sendTransactionHandler(from, to, value, data, b);
+
+         } else if (method.equals(_conf.getStringValue("NewAccount_Name"))) {
+            rpc = EthMethodName.NEW_ACCOUNT;
+            b.setMethod(EthMethod.NEW_ACCOUNT);
+            String passphrase = (String) params.get(0);
+            b.setData(ByteString.copyFrom(passphrase,
+                                          StandardCharsets.UTF_8.name()));
 
          } else if (method.equals(_conf.getStringValue("GetTransactionReceipt_Name"))) {
             rpc = EthMethodName.GET_TX_RECEIPT;
@@ -396,8 +406,6 @@ public final class EthRPC extends BaseServlet {
          AthenaConnectionPool.getInstance().putConnection(conn);
       }
 
-      respObject = parseToJSON(athenaResponse);
-
       // If there is an error reported by Athena
       if (athenaResponse.getErrorResponseCount() > 0) {
          ErrorResponse errResponse = athenaResponse.getErrorResponse(0);
@@ -411,12 +419,15 @@ public final class EthRPC extends BaseServlet {
                        log);
          return;
       }
+      
+      respObject = parseToJSON(athenaResponse);
 
       // Set method specific responses
       EthResponse ethResponse = athenaResponse.getEthResponse(0);
       if (method.equals(EthMethodName.SEND_TX)
          || method.equals(EthMethodName.GET_STORAGE_AT)
-         || method.equals(EthMethodName.CALL)) {
+         || method.equals(EthMethodName.CALL)
+         || method.equals(EthMethodName.NEW_ACCOUNT)) {
          respObject.put("result",
                         APIHelper.binaryStringToHex(ethResponse.getData()));
       } else if (method.equals(EthMethodName.GET_TX_RECEIPT)) {
