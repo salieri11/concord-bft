@@ -127,7 +127,12 @@
 					</execution>
 				</executions>
 			</plugin>
+			<plugin>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<compilerArgument>${compilerArgument}</compilerArgument>
+				</configuration>
+		</plugin>
 		</plugins>
 	</build>
 </project>
-

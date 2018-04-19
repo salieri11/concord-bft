@@ -17,6 +17,7 @@ import org.apache.log4j.Logger;
 import com.vmware.athena.Athena;
 
 import Servlets.AthenaHelper;
+import Servlets.EthRPC;
 import configurations.*;
 
 public final class AthenaTCPConnection implements IAthenaCommunication,
@@ -172,6 +173,7 @@ public final class AthenaTCPConnection implements IAthenaCommunication,
                if (pResp != null) {
                   _logger.debug("check, got server version: "
                      + pResp.getServerVersion());
+                  EthRPC.netVersion = pResp.getNetVersion();
                   return true;
                }
             }

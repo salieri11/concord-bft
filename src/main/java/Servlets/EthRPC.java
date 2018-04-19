@@ -39,6 +39,8 @@ import org.json.simple.parser.ParseException;
 public final class EthRPC extends BaseServlet {
    private static final long serialVersionUID = 1L;
    private static Logger logger = Logger.getLogger(EthRPC.class);
+   public static long netVersion;
+   public static boolean netVersionSet = false;
    private JSONArray rpcList;
    private JSONObject rpcModules;
    private String jsonRpc;
@@ -244,6 +246,20 @@ public final class EthRPC extends BaseServlet {
          } else if (method.equals(_conf.getStringValue("Mining_Name"))) {
             localResponse(isMining, response, id);
             return;
+         } else if (method.equals(_conf.getStringValue("NetVersion_Name"))) {
+            if(!EthRPC.netVersionSet){
+               // The act of creating a connection retrieves info about athena.
+               IAthenaConnection conn =
+                  AthenaConnectionPool.getInstance().getConnection();
+               EthRPC.netVersionSet = true;
+            }
+            localResponse(EthRPC.netVersion, response, id);
+            return;
+         } else if (method.equals(_conf.getStringValue("Accounts_Name"))) {
+            JSONArray users = new JSONArray();
+            users.add("fa1a4c33aa682d34eda15bf772f672edddac13aa");
+            localResponse(users, response, id);
+            return;
          } else {
             logger.error("Invalid method name");
             errorResponse(response,
@@ -270,7 +286,7 @@ public final class EthRPC extends BaseServlet {
 
    /**
     * Transforms call and send_tx requests to send_tx request format
-    * 
+    *
     * @param from
     * @param to
     * @param value
@@ -305,7 +321,7 @@ public final class EthRPC extends BaseServlet {
 
    /**
     * Used for RPCs for which Helen doesn't need to communicate with Athena
-    * 
+    *
     * @param data
     * @param response
     * @param id
