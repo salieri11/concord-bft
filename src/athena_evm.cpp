@@ -108,8 +108,8 @@ void com::vmware::athena::EVM::run(evm_message &message,
       // All addresses exist by default. They are considered as accounts with
       // 0 balances. Hence, we never throw an account-not-found error. Instead
       // we will simply say that account does not have sufficient balance.
-      if (balances.count(message.destination) == 0 ||
-          balances[message.destination] < transfer_val) {
+      if (balances.count(message.sender) == 0 ||
+          balances[message.sender] < transfer_val) {
          result.status_code = EVM_FAILURE;
          LOG4CPLUS_INFO(logger, "Account with address " << message.sender <<
                         ", does not have sufficient funds (" <<
@@ -216,12 +216,16 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
    const evm_address &contract_address)
 {
    uint64_t nonce = get_nonce(message.sender);
+   uint64_t transfer_val = from_evm_uint256be(&message.value);
    EthTransaction tx{
-      nonce, message.sender, to_override, contract_address,
-         std::vector<uint8_t>(message.input_data,
-                              message.input_data+message.input_size),
-         result.status_code
-         };
+      .nonce = nonce,
+      .from = message.sender,
+      .to = to_override,
+      .contract_address = contract_address,
+      .input = std::vector<uint8_t>(message.input_data,
+                                    message.input_data+message.input_size),
+      .status = result.status_code,
+      .value = transfer_val};
 
    evm_uint256be txhash = hash_for_transaction(tx);
    pending.insert(pending.begin()+pending_index, tx);

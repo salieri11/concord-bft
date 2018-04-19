@@ -489,6 +489,7 @@ api_connection::handle_transaction_request() {
       }
       response->set_status(tx.status);
       response->set_nonce(tx.nonce);
+      response->set_value(tx.value);
    } catch (TransactionNotFoundException) {
       ErrorResponse *resp = athenaResponse_.add_error_response();
       resp->set_description("transaction not found");

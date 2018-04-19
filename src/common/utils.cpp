@@ -58,11 +58,12 @@ void com::vmware::athena::to_evm_uint256be(uint64_t val, evm_uint256be *ret) {
     @val is more than 2^64 then return value will simply contain the
     lower 8 bytes of @val
 */
-uint64_t com::vmware::athena::from_evm_uint256be(evm_uint256be *val) {
+uint64_t com::vmware::athena::from_evm_uint256be(const evm_uint256be *val)
+{
    uint64_t ret = 0;
    for (int i = 0; i < 8; i++) { // 8 * 8 = 64
       ret = ret << 8;
-       ret |= val->bytes[i];
+      ret |= val->bytes[i];
    }
     return ret;
 }
