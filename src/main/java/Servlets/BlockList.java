@@ -23,6 +23,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.JSONAware;
 
 /**
  * Servlet class.
@@ -64,8 +65,8 @@ public final class BlockList extends BaseServlet {
       }
 
       // Construct a blocksListRequest object.
-      Athena.BlocksListRequest.Builder b
-         = Athena.BlocksListRequest.newBuilder();
+      Athena.BlockListRequest.Builder b
+         = Athena.BlockListRequest.newBuilder();
       // If end is null, Athena assumes end is the latest block
       if (latest != null) {
          b.setLatest(latest);
@@ -77,84 +78,15 @@ public final class BlockList extends BaseServlet {
       }
       b.setCount(count);
 
-      Athena.BlocksListRequest blocksListRequestObj = b.build();
+      Athena.BlockListRequest blocksListRequestObj = b.build();
 
       // Envelope the blocksListRequest object into an athena object.
       final Athena.AthenaRequest athenarequestObj
          = Athena.AthenaRequest.newBuilder()
-                               .setBlocksListRequest(blocksListRequestObj)
+                               .setBlockListRequest(blocksListRequestObj)
                                .build();
 
-      /////////////////// This is temporary.//////////////////////
-      Athena.AthenaResponse athenaResponse = null;
-      JSONObject blocksListResponse = null;
-
-      if (latest == null) {
-         latest = -1L;
-      }
-      athenaResponse = receiveFromAthenaMock(count, latest);
-      blocksListResponse = parseToJSON(athenaResponse);
-
-      // Set client response header
-      response.setHeader("Content-Transfer-Encoding", "UTF-8");
-      response.setContentType("application/json");
-      response.getWriter().write(blocksListResponse.toString());
-      ///////////////////////////////////////////////////////////
-
-      // Coming soon
-      // processGet(athenarequestObj, response, logger);
-   }
-
-   /**
-    * Note : This is a temporary function which mocks Athena's response.
-    *
-    * @return
-    * @throws Exception
-    */
-   public Athena.AthenaResponse receiveFromAthenaMock(long count, long latest) {
-
-      int chainLength = (int) count;
-      int latestBlock = (int) latest;
-
-      // -1 means latest was not specified
-      if (latestBlock == -1L) {
-         latestBlock = 100;
-      }
-
-      // we're simiulating a total of 100 blocks, cap to that
-      if (latestBlock > 100) {
-         latestBlock = 100;
-      }
-
-      if (chainLength > latestBlock) {
-         // need the +1 because blocks start at 0
-         chainLength = latestBlock+1;
-      }
-
-      ArrayList<FakeBlock> list = new ArrayList<>(chainLength);
-
-      for (int i = chainLength-1; i >= 0; i--) {
-         list.add(new FakeBlock(latestBlock));
-         latestBlock--;
-      }
-
-      Athena.BlocksListResponse.Builder b
-         = Athena.BlocksListResponse.newBuilder();
-
-      for (FakeBlock f : list) {
-         final Athena.BlockBrief blockBriefObj
-            = Athena.BlockBrief.newBuilder()
-                               .setNumber(f.number)
-                               .setHash(f.hash)
-                               .build();
-         b.addBlocks(blockBriefObj);
-      }
-
-      final Athena.BlocksListResponse r = b.build();
-      Athena.AthenaResponse athenaResponseObj
-         = Athena.AthenaResponse.newBuilder().setBlocksListResponse(r).build();
-
-      return athenaResponseObj;
+      processGet(athenarequestObj, response, logger);
    }
 
    /**
@@ -166,18 +98,18 @@ public final class BlockList extends BaseServlet {
     */
    @SuppressWarnings("unchecked")
    @Override
-   protected JSONObject parseToJSON(Athena.AthenaResponse athenaResponse) {
+   protected JSONAware parseToJSON(Athena.AthenaResponse athenaResponse) {
       try {
          // Extract the blocklist response
          // from the athena reponse envelope.
-         Athena.BlocksListResponse blocksListResponse
-            = athenaResponse.getBlocksListResponse();
+         Athena.BlockListResponse blockListResponse
+            = athenaResponse.getBlockListResponse();
 
          long earliestBlock = -1L;
 
          // Read list of blocks from the blocks list response object.
          List<Athena.BlockBrief> blockList = new ArrayList<>();
-         blockList = blocksListResponse.getBlocksList();
+         blockList = blockListResponse.getBlockList();
 
          JSONArray blockArr = new JSONArray();
 
@@ -213,36 +145,6 @@ public final class BlockList extends BaseServlet {
       } catch (Exception e) {
          logger.error("parseToJson", e);
          return null;
-      }
-   }
-
-   /**
-    * Used to structure mock responses Temporary
-    *
-    */
-   private class FakeBlock {
-      int number;
-      ByteString hash;
-      char[] hex = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B',
-         'C', 'D', 'E', 'F' };
-
-      FakeBlock(int number) {
-         this.number = number;
-
-         Random r = new Random(System.currentTimeMillis());
-         StringBuilder sb = new StringBuilder();
-
-         for (int i = 0; i < 64; i++) {
-            sb.append(hex[r.nextInt(hex.length)]);
-         }
-
-         try {
-            hash = APIHelper.hexStringToBinary(sb.toString());
-         } catch (Exception e) {
-            logger.error("Error converting from hex string to binary string");
-            byte[] temp = new byte[32];
-            hash = ByteString.copyFrom(temp);
-         }
       }
    }
 }

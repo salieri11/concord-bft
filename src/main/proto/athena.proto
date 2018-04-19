@@ -9,8 +9,8 @@ message AthenaRequest {
 
 	//TODO discuss and convert from repeated to optional
 	repeated EthRequest eth_request = 3;
-	optional BlocksListRequest blocks_list_request = 4;
-	optional BlockNumberRequest block_number_request = 5;
+	optional BlockListRequest block_list_request = 4;
+	optional BlockRequest block_request = 5;
 	optional TransactionRequest transaction_request = 7;
 
 	// 4-2045 open for definition
@@ -46,13 +46,14 @@ message EthRequest {
 	optional bytes data = 6;
 }
 
-message BlocksListRequest {
+message BlockListRequest {
 	optional int64 latest = 1;
 	optional int64 count = 2;
 }
 
-message BlockNumberRequest {
-	optional int64 index = 1;
+message BlockRequest {
+	optional int64 number = 1;
+        optional bytes hash = 2;
 }
 
 message TestRequest {
@@ -67,8 +68,8 @@ message AthenaResponse {
 	optional ProtocolResponse protocol_response = 1;
 	optional PeerResponse peer_response = 2;
 	repeated EthResponse eth_response = 3;
-	optional BlocksListResponse blocks_list_response = 4;
-	optional BlockNumberResponse block_number_response = 5;
+	optional BlockListResponse block_list_response = 4;
+	optional BlockResponse block_response = 5;
 	optional TransactionResponse transaction_response = 7;
 
 	// 4-2045 open for definition
@@ -85,12 +86,17 @@ message PeerResponse {
 	repeated Peer peer = 1;
 }
 
-message BlocksListResponse {
-	repeated BlockBrief blocks = 1;
+message BlockListResponse {
+	repeated BlockBrief block = 1;
 }
 
-message BlockNumberResponse {
-	optional BlockDetailed block = 1;
+message BlockResponse {
+	optional int64 number = 1;
+	optional bytes hash = 2;
+	optional bytes parentHash = 3;
+	optional bytes nonce = 4;
+	optional int64 size = 5;
+	repeated bytes transaction = 6;
 }
 
 message EthResponse {
@@ -133,13 +139,3 @@ message BlockBrief {
 	optional int64 number = 1;
 	optional bytes hash = 2;
 }
-
-message BlockDetailed {
-	optional int64 number = 1;
-	optional bytes hash = 2;
-	optional bytes parentHash = 3;
-	optional string nonce = 4;
-	optional int64 size = 5;
-	repeated string transactions = 6;
-}
-
