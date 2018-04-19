@@ -76,6 +76,8 @@ private:
    handle_eth_getTxReceipt(const EthRequest &request);
    void
    handle_eth_getStorageAt(const EthRequest &request);
+   void
+   handle_new_account_request(const EthRequest &request);
 
    /* Constructor. */
    api_connection(boost::asio::io_service &io_service,

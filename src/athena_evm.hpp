@@ -161,6 +161,8 @@ public:
    void get_block_hash(struct evm_uint256be* result,
                        int64_t number);
    void get_tx_context(struct evm_tx_context* result);
+   
+   bool new_account(const std::string& passphrase, evm_address& address);
 
 private:
    athena_context athctx;

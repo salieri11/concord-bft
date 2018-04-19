@@ -369,9 +369,38 @@ api_connection::handle_eth_request(int i) {
    case EthRequest_EthMethod_GET_STORAGE_AT:
       handle_eth_getStorageAt(request);
       break;
+   case EthRequest_EthMethod_NEW_ACCOUNT:
+      handle_new_account_request(request);
+      break;   
    default:
       ErrorResponse *e = athenaResponse_.add_error_response();
       e->mutable_description()->assign("ETH Method Not Implemented");
+   }
+}
+
+void
+api_connection::handle_new_account_request(const EthRequest &request) {
+   
+   if (request.has_data()) {
+      const string& passphrase = request.data();
+      
+      LOG4CPLUS_INFO(logger_, "Creating new account with passphrase : " 
+                               << passphrase);
+      evm_address address;
+      bool error = athevm_.new_account(passphrase, address);
+      
+      if (error == false) {
+          LOG4CPLUS_INFO(logger_, "Use another passphrase : " 
+                               << passphrase);
+          ErrorResponse *error = athenaResponse_.add_error_response();
+          error->set_description("Use another passphrase");
+      } else {
+          EthResponse *response = athenaResponse_.add_eth_response();
+          response->set_data(address.bytes, sizeof(evm_address));
+      }
+   } else {
+      ErrorResponse *error = athenaResponse_.add_error_response();
+      error->set_description("Missing passphrase");
    }
 }
 
