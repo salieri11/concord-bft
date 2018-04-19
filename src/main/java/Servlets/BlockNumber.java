@@ -93,7 +93,12 @@ public final class BlockNumber extends BaseServlet {
       JSONArray transactionArr = new JSONArray();
 
       for (ByteString t: blockResponse.getTransactionList()) {
-         transactionArr.add(APIHelper.binaryStringToHex(t));
+         String hash = APIHelper.binaryStringToHex(t);
+         JSONObject txJSON = new JSONObject();
+         txJSON.put("hash", hash);
+         txJSON.put("url", _conf.getStringValue("Transaction_URLPrefix")
+                    + hash);
+         transactionArr.add(txJSON);
       }
 
       JSONObject blockObj = new JSONObject();
