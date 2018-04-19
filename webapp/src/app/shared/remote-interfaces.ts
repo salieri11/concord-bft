@@ -43,10 +43,11 @@ export interface Block {
  * GET response of fetching an individual transaction
  */
 export interface Transaction {
-  input: string;
-  contractAddress?: string;
+  hash: string;
   from: string;
   to?: string;
+  contractAddress?: string;
+  value: number;
+  input: string;
   nonce: number;
-  hash: string;
 }

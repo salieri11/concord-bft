@@ -95,6 +95,7 @@
     "to": "To",
     "contractAddress": "Contract Address",
     "input": "Input",
+    "value": "Value",
     "nonce": "Nonce",
     "parentHash": "Parent Hash",
     "size": "Size"

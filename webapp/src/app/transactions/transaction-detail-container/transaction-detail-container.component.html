@@ -16,8 +16,10 @@
     <dd *ngIf="transaction?.to">{{transaction.to}}</dd>
     <dt *ngIf="transaction?.contractAddress">{{'transactions.contractAddress' | translate}}</dt>
     <dd *ngIf="transaction?.contractAddress">{{transaction.contractAddress}}</dd>
-    <dt>{{'transactions.input' | translate}}</dt>
-    <dd>{{transaction?.input}}</dd>
+    <dt *ngIf="transaction?.value">{{'transactions.value' | translate}}</dt>
+    <dd *ngIf="transaction?.value">{{transaction?.value}}</dd>
+    <dt *ngIf="transaction?.input">{{'transactions.input' | translate}}</dt>
+    <dd *ngIf="transaction?.input">{{transaction?.input}}</dd>
     <dt>{{'transactions.nonce' | translate}}</dt>
     <dd>{{transaction?.nonce}}</dd>
   </dl>
