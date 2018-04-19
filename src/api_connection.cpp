@@ -521,9 +521,17 @@ api_connection::run_evm(const EthRequest &request,
    }
 
    if (request.has_value()) {
-      memcpy(message.value.bytes,
-             request.value().c_str(),
-             request.value().length());
+      size_t req_offset, val_offset;
+      if (request.value().size() > sizeof(evm_uint256be)) {
+         // TODO: this should probably throw an error instead
+         req_offset = request.value().size()-sizeof(evm_uint256be);
+         val_offset = 0;
+      } else {
+         req_offset = 0;
+         val_offset = sizeof(evm_uint256be)-request.value().length();
+      }
+      std::copy(request.value().begin()+req_offset, request.value().end(),
+                message.value.bytes+val_offset);
    }
 
    // TODO: get this from the request
