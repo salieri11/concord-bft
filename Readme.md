@@ -102,6 +102,11 @@ mvn clean install package
 mvn clean install -DskipIntegrationTests=false
 ```
 
+   To build without rebuilding the UI :
+```
+mvn clean install -Dskip.npm
+```
+
  * Run the server
 
 ```
