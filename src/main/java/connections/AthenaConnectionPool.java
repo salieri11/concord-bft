@@ -28,6 +28,9 @@ public class AthenaConnectionPool {
    // max wait time for pool to return connection
    private int _waitTimeout;
 
+   // pool starts at this size
+   private int _minPoolSize;
+
    // pool can grow up to this size. currently no cleaning routine is
    // implemented, TODO
    private int _maxPoolSize;
@@ -86,6 +89,12 @@ public class AthenaConnectionPool {
             int c = _connectionCount.decrementAndGet();
             _log.debug("connection closed, active connections: " + c);
             _log.info("broken connection closed");
+
+            if (c < _minPoolSize && _initialized.get()) {
+               synchronized (_poolIncreaseLock) {
+                  putConnection(createConnection());
+               }
+            }
          }
       } catch (Exception e) {
          _log.error("closeConnection", e);
@@ -199,12 +208,12 @@ public class AthenaConnectionPool {
          _conf = conf;
          _factory = factory;
          _waitTimeout = conf.getIntegerValue("ConnectionPoolWaitTimeoutMs");
-         int poolSize = _conf.getIntegerValue("ConnectionPoolSize");
+         _minPoolSize = _conf.getIntegerValue("ConnectionPoolSize");
          int poolFactor = conf.getIntegerValue("ConnectionPoolFactor");
-         _maxPoolSize = poolSize * poolFactor;
+         _maxPoolSize = _minPoolSize * poolFactor;
 
          _pool = new ArrayBlockingQueue<IAthenaConnection>(_maxPoolSize, true);
-         for (int i = 0; i < poolSize; i++) {
+         for (int i = 0; i < _minPoolSize; i++) {
             putConnection(createConnection());
          }
 
