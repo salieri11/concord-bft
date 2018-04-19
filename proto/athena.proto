@@ -61,6 +61,7 @@ message AthenaResponse {
 
 message ProtocolResponse {
     optional int32 server_version = 1;
+    optional int64 net_version = 2;
 }
 
 message PeerResponse {

@@ -311,7 +311,16 @@ api_connection::handle_protocol_request() {
          e->mutable_description()->assign("Client version unknown");
       }
    }
-   LOG4CPLUS_TRACE(logger_, "protocol_reques exit");
+   LOG4CPLUS_TRACE(logger_, "protocol_request exit");
+   // We don't know what we'll do to support this yet. It is being added
+   // because Truffle's testing framework requests it.
+   // In geth, this is supplied via the --networkid command line parameter
+   // and is required for nodes to communicate with each other.  The JSON
+   // RPC API which retrieves it is net_version.
+   //
+   // Regarding chain vs network IDs, see:
+   // https://github.com/ethereumproject/go-ethereum/wiki/FAQ
+   response->set_net_version(DEFAULT_NETWORK_ID);
 }
 
 /*
