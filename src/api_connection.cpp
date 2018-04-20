@@ -264,7 +264,8 @@ api_connection::process_incoming()
  * handler.
  */
 void
-api_connection::dispatch() {
+api_connection::dispatch() 
+{
    // The idea behind checking each request field every time, instead
    // of checking at most one, is that a client could batch
    // requests. We'll see if that's a thing that is reasonable.
@@ -297,7 +298,8 @@ api_connection::dispatch() {
  * client version might be considered a ping for keep-alive purposes.
  */
 void
-api_connection::handle_protocol_request() {
+api_connection::handle_protocol_request() 
+{
    LOG4CPLUS_TRACE(logger_, "protocol_request enter");
 
    const ProtocolRequest request = athenaRequest_.protocol_request();
@@ -327,7 +329,8 @@ api_connection::handle_protocol_request() {
  * (add/remove members).
  */
 void
-api_connection::handle_peer_request() {
+api_connection::handle_peer_request() 
+{
    const PeerRequest request = athenaRequest_.peer_request();
    PeerResponse *response = athenaResponse_.mutable_peer_response();
    if (request.return_peers()) {
@@ -348,7 +351,8 @@ api_connection::handle_peer_request() {
  * Handle an ETH RPC request.
  */
 void
-api_connection::handle_eth_request(int i) {
+api_connection::handle_eth_request(int i) 
+{
    // TODO: forward to SBFT/KVBlockchain; just calling directly for now to
    // demonstrate
 
@@ -370,7 +374,7 @@ api_connection::handle_eth_request(int i) {
       handle_eth_getStorageAt(request);
       break;
    case EthRequest_EthMethod_NEW_ACCOUNT:
-      handle_new_account_request(request);
+      handle_personal_newAccount(request);
       break;   
    default:
       ErrorResponse *e = athenaResponse_.add_error_response();
@@ -384,7 +388,8 @@ api_connection::handle_eth_request(int i) {
  * of the hash of the passphrase provided by the user.
  */
 void
-api_connection::handle_new_account_request(const EthRequest &request) {
+api_connection::handle_personal_newAccount(const EthRequest &request) 
+{
    
    if (request.has_data()) {
       const string& passphrase = request.data();
@@ -394,6 +399,12 @@ api_connection::handle_new_account_request(const EthRequest &request) {
       evm_address address;
       bool error = athevm_.new_account(passphrase, address);
       
+      /** 
+       * This is an extremely hacky approach for setting the user address 
+       * as this means that multiple accounts cannot have the same password.
+       * TODO : Implement the ethereum way of setting account addresses.
+       * (Note : See https://github.com/vmwathena/athena/issues/55)
+       */
       if (error == false) {
           LOG4CPLUS_INFO(logger_, "Use another passphrase : " 
                                << passphrase);
@@ -413,7 +424,8 @@ api_connection::handle_new_account_request(const EthRequest &request) {
  * Handle a request for the block list.
  */
 void
-api_connection::handle_block_list_request() {
+api_connection::handle_block_list_request() 
+{
    const BlockListRequest request = athenaRequest_.block_list_request();
 
    uint64_t latest = std::numeric_limits<uint64_t>::max();
@@ -441,7 +453,8 @@ api_connection::handle_block_list_request() {
  * Handle a request for a specific block.
  */
 void
-api_connection::handle_block_request() {
+api_connection::handle_block_request() 
+{
    const BlockRequest request = athenaRequest_.block_request();
 
    if (!(request.has_number() || request.has_hash())) {
@@ -489,7 +502,8 @@ api_connection::handle_block_request() {
 evm_result
 api_connection::run_evm(const EthRequest &request,
                         bool isTransaction,
-                        evm_uint256be &txhash /* OUT */) {
+                        evm_uint256be &txhash /* OUT */) 
+{
    // TODO: this is the thing we'll forward to SBFT/KVBlockchain/EVM
    evm_message message;
    evm_result result;
@@ -549,7 +563,8 @@ api_connection::run_evm(const EthRequest &request,
  * as the 'data' of EthResponse.
  */
 void
-api_connection::handle_eth_callContract(const EthRequest &request) {
+api_connection::handle_eth_callContract(const EthRequest &request) 
+{
    evm_uint256be txhash;
    evm_result &&result = run_evm(request, false, txhash);
    // Here we don't care about the txhash. Transaction was never
@@ -572,7 +587,8 @@ api_connection::handle_eth_callContract(const EthRequest &request) {
  * Handle an eth_sendTransaction request.
  */
 void
-api_connection::handle_eth_sendTransaction(const EthRequest &request) {
+api_connection::handle_eth_sendTransaction(const EthRequest &request) 
+{
    evm_uint256be txhash;
    evm_result &&result = run_evm(request, true, txhash);
    EthResponse *response = athenaResponse_.add_eth_response();
@@ -584,7 +600,8 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request) {
  * Handle an eth_getTransactionReceipt request.
  */
 void
-api_connection::handle_eth_getTxReceipt(const EthRequest &request) {
+api_connection::handle_eth_getTxReceipt(const EthRequest &request) 
+{
    if (request.has_data() && request.data().size() == sizeof(evm_uint256be)) {
       evm_uint256be txhash;
       std::copy(request.data().begin(), request.data().end(), txhash.bytes);
@@ -615,7 +632,8 @@ api_connection::handle_eth_getTxReceipt(const EthRequest &request) {
  * Handle an eth_getStorageAt request.
  */
 void
-api_connection::handle_eth_getStorageAt(const EthRequest &request) {
+api_connection::handle_eth_getStorageAt(const EthRequest &request) 
+{
    if (request.has_addr_to() && request.addr_to().size() == sizeof(evm_address)
        && request.has_data() && request.data().size() == sizeof(evm_uint256be))
    {
@@ -642,7 +660,8 @@ api_connection::handle_eth_getStorageAt(const EthRequest &request) {
  * been useful for testing.
  */
 void
-api_connection::handle_test_request() {
+api_connection::handle_test_request() 
+{
    const TestRequest request = athenaRequest_.test_request();
    if (request.has_echo()) {
       TestResponse *response = athenaResponse_.mutable_test_response();

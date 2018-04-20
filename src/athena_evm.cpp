@@ -604,8 +604,8 @@ bool com::vmware::athena::EVM::new_account(
    std::vector<uint8_t> vec(passphrase.begin(), passphrase.end());
    evm_uint256be hash = keccak_hash(vec);
 
-   std::copy(hash.bytes+(sizeof(evm_uint256be)-sizeof(evm_address)),
-   hash.bytes+sizeof(evm_uint256be),address.bytes);
+   std::copy(hash.bytes+(sizeof(evm_uint256be)-sizeof(evm_address)), 
+             hash.bytes+sizeof(evm_uint256be),address.bytes);
    
    if(EVM::account_exists(&address) == 1) {
        return false;

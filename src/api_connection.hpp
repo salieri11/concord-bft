@@ -77,7 +77,7 @@ private:
    void
    handle_eth_getStorageAt(const EthRequest &request);
    void
-   handle_new_account_request(const EthRequest &request);
+   handle_personal_newAccount(const EthRequest &request);
 
    /* Constructor. */
    api_connection(boost::asio::io_service &io_service,
