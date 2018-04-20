@@ -212,7 +212,7 @@ class HelenAPITests(test_suite.TestSuite):
 
       # get all of the transactions in the most recent block
       for t in blockResult["transactions"]:
-         txResult = request.getTransaction(t['hash'])
+         txResult = request.getTransaction(t["hash"])
 
          (present, missing) = self.requireFields(
             txResult,
@@ -221,7 +221,7 @@ class HelenAPITests(test_suite.TestSuite):
          if not present:
             return (False, "No '{}' field in tx response.".format(missing))
 
-         if not txResult["hash"] == t:
+         if not txResult["hash"] == t["hash"]:
             return (False, "'hash' field does not match requested hash.")
 
       return (True, None)
