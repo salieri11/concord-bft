@@ -60,13 +60,6 @@ Install all dependencies through NPM.
 npm install
 ```
 
-Build the UI to webapp/dist/. This is primarily used in the Docker
-build process:
-
-```
-npm run build
-```
-
 Build and copy the UI in development mode to the priv/www/ directory
 for use on a locally running server:
 
@@ -107,6 +100,11 @@ mvn clean install package
    To build with unit and integration tests : (Athena must be running for this)
 ```
 mvn clean install -DskipIntegrationTests=false
+```
+
+   To build without rebuilding the UI :
+```
+mvn clean install -Dskip.npm
 ```
 
  * Run the server

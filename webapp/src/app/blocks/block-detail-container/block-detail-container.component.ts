@@ -3,8 +3,9 @@
  */
 
 import { Component, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
+
+import { AthenaApiService } from '../../shared/athena-api.service';
 import { Block } from '../../shared/remote-interfaces';
 
 /**
@@ -18,15 +19,15 @@ import { Block } from '../../shared/remote-interfaces';
 export class BlockDetailContainerComponent implements OnInit {
   block: Block;
 
-  constructor(private httpClient: HttpClient, private route: ActivatedRoute) {}
+  constructor(private athenaApiService: AthenaApiService, private route: ActivatedRoute) {}
 
   ngOnInit() {
     this.route.params.subscribe(params => {
-      this.loadBlock(params.id);
+      this.loadBlock(params.blockNumber);
     });
   }
 
   loadBlock(blockNumber) {
-    this.httpClient.get(`/api/athena/blocks/${blockNumber}`).subscribe((data: Block) => this.block = data);
+    this.athenaApiService.getBlock(blockNumber).subscribe(block => this.block = block);
   }
 }

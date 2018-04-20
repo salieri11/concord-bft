@@ -49,6 +49,14 @@ public abstract class BaseServlet extends HttpServlet {
       Athena.AthenaResponse athenaResponse = null;
       try {
          conn = AthenaConnectionPool.getInstance().getConnection();
+         if (conn == null) {
+            processResponse(response,
+                            "Connection error",
+                            HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                            log);
+            return;
+         }
+
          boolean res = AthenaHelper.sendToAthena(req, conn, _conf);
          if (!res) {
             processResponse(response,

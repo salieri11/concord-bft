@@ -3,8 +3,8 @@
  */
 
 import { Component, OnInit } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
 
+import { AthenaApiService } from '../../shared/athena-api.service';
 import { BlockListing, BlockListingBlock } from '../../shared/remote-interfaces';
 
 /**
@@ -17,23 +17,25 @@ import { BlockListing, BlockListingBlock } from '../../shared/remote-interfaces'
 })
 export class BlocksContainerComponent implements OnInit {
   blocks: BlockListingBlock[] = [];
-  nextBlockUrl = '/api/athena/blocks';
+  nextBlockUrl: string;
 
-  constructor(private httpClient: HttpClient) {}
+  constructor(private athenaApiService: AthenaApiService) {}
 
   ngOnInit() {
-    this.loadNextBlocks();
+    this.loadInitialBlocks();
+  }
+
+  loadInitialBlocks() {
+    this.athenaApiService.getBlocks().subscribe(response => this.handleBlocksResponse(response));
   }
 
   loadNextBlocks() {
-    this.httpClient.get(this.nextBlockUrl).subscribe((data: BlockListing) => {
-      this.blocks = data.blocks;
-      // TODO: Abstract to class with hasNext(), next(), etc. Support pagination in URL directly. Need to support prev?
-      if (data.next && data.next !== this.nextBlockUrl) {
-        this.nextBlockUrl = data.next;
-      } else {
-        this.nextBlockUrl = undefined;
-      }
-    });
+    this.athenaApiService.getBlocksByUrl(this.nextBlockUrl).subscribe(response => this.handleBlocksResponse(response));
+  }
+
+  handleBlocksResponse(response: BlockListing) {
+    this.blocks = response.blocks;
+    // TODO: Abstract to class with hasNext(), next(), etc. Support pagination in URL directly. Need to support prev?
+    this.nextBlockUrl = response.next !== this.nextBlockUrl ? this.nextBlockUrl = response.next : undefined;
   }
 }

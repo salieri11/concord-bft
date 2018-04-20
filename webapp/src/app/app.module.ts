@@ -14,6 +14,7 @@ import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { NodesModule } from './nodes/nodes.module';
 import { BlocksModule } from './blocks/blocks.module';
+import { TransactionsModule } from './transactions/transactions.module';
 import { TestingModule } from './testing/testing.module';
 
 import { AppComponent } from './app.component';
@@ -49,6 +50,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     DashboardModule,
     NodesModule,
     BlocksModule,
+    TransactionsModule,
     TestingModule
   ],
   providers: [],

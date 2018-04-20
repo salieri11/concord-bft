@@ -399,6 +399,14 @@ public final class EthRPC extends BaseServlet {
       Athena.AthenaResponse athenaResponse = null;
       try {
          conn = AthenaConnectionPool.getInstance().getConnection();
+         if (conn == null) {
+            errorResponse(response,
+                          "Error communicating with athena",
+                          req.getEthRequest(0).getId(),
+                          log);
+            return;
+         }
+
          boolean res = AthenaHelper.sendToAthena(req, conn, _conf);
          if (!res) {
             errorResponse(response,
