@@ -36,5 +36,18 @@ export interface Block {
   parentHash: string;
   number: number;
   size: number;
-  transactions: [{hash: string; url: string;}];
+  transactions: [{hash: string; url: string; }];
+}
+
+/**
+ * GET response of fetching an individual transaction
+ */
+export interface Transaction {
+  hash: string;
+  from: string;
+  to?: string;
+  contractAddress?: string;
+  value: number;
+  input: string;
+  nonce: number;
 }

@@ -4,17 +4,14 @@
 
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { TransactionDetailContainerComponent } from './transaction-detail-container/transaction-detail-container.component';
 import { RouterModule, Routes } from '@angular/router';
-import { ClarityModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
+import { ClarityModule } from '@clr/angular';
 import { SharedModule } from '../shared/shared.module';
 
-import { BlocksContainerComponent } from './blocks-container/blocks-container.component';
-import { BlockDetailContainerComponent } from './block-detail-container/block-detail-container.component';
-
 const routes: Routes = [
-  {path: 'blocks', component: BlocksContainerComponent},
-  {path: 'blocks/:blockNumber', component: BlockDetailContainerComponent}
+  {path: 'blocks/:blockNumber/transactions/:transactionHash', component: TransactionDetailContainerComponent},
 ];
 
 @NgModule({
@@ -25,6 +22,6 @@ const routes: Routes = [
     TranslateModule,
     SharedModule
   ],
-  declarations: [BlocksContainerComponent, BlockDetailContainerComponent]
+  declarations: [TransactionDetailContainerComponent]
 })
-export class BlocksModule { }
+export class TransactionsModule { }

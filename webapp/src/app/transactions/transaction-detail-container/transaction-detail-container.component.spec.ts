@@ -8,13 +8,13 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ClarityModule } from '@clr/angular';
 import { MockTranslateModule } from '../../mocks/mock-translate.module';
+
+import { TransactionDetailContainerComponent } from './transaction-detail-container.component';
 import { SharedModule } from '../../shared/shared.module';
 
-import { BlockDetailContainerComponent } from './block-detail-container.component';
-
-describe('BlockDetailContainerComponent', () => {
-  let component: BlockDetailContainerComponent;
-  let fixture: ComponentFixture<BlockDetailContainerComponent>;
+describe('TransactionDetailContainerComponent', () => {
+  let component: TransactionDetailContainerComponent;
+  let fixture: ComponentFixture<TransactionDetailContainerComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
@@ -25,13 +25,13 @@ describe('BlockDetailContainerComponent', () => {
         MockTranslateModule,
         SharedModule
       ],
-      declarations: [ BlockDetailContainerComponent ]
+      declarations: [ TransactionDetailContainerComponent ]
     })
     .compileComponents();
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(BlockDetailContainerComponent);
+    fixture = TestBed.createComponent(TransactionDetailContainerComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

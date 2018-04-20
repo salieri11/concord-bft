@@ -7,6 +7,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
 import { ClarityModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
+import { SharedModule } from '../shared/shared.module';
 
 import { NodesContainerComponent } from './nodes-container/nodes-container.component';
 import { NodeDetailContainerComponent } from './node-detail-container/node-detail-container.component';
@@ -22,7 +23,8 @@ const routes: Routes = [
     CommonModule,
     RouterModule.forChild(routes),
     ClarityModule,
-    TranslateModule
+    TranslateModule,
+    SharedModule
   ],
   declarations: [NodesContainerComponent, NodeDetailContainerComponent, TransactionFiltersModalComponent]
 })
