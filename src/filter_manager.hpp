@@ -60,13 +60,7 @@ class filter_manager {
 public:
    filter_manager(EVM *evm);
 
-   Eth_FilterType get_filter_type(evm_uint256be filterId) {
-      if (filter_types.count(filterId) > 0) {
-         return filter_types[filterId];
-      } else {
-         throw FilterNotFoundException("No such filter found!");
-      }
-   }
+   Eth_FilterType get_filter_type(evm_uint256be filterId);
 
    evm_uint256be create_new_block_filter();
 
@@ -86,7 +80,7 @@ public:
    get_filter_changes(evm_uint256be filterId);
    // End TODO
 
-   void uninstall_filter(evm_uint256be filterId);
+   bool uninstall_filter(evm_uint256be filterId);
 
    evm_uint256be next_filter_id();
 

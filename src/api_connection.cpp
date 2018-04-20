@@ -634,6 +634,8 @@ api_connection::handle_filter_requests(const EthRequest &request) {
       case FilterRequest_FilterRequestType_FILTER_CHANGE_REQUEST:
          handle_get_filter_changes(request);
          break;
+      case FilterRequest_FilterRequestType_UNINSTALL_FILTER:
+         handle_uninstall_filter(request);
       default:
          break;
       }
@@ -685,6 +687,7 @@ api_connection::handle_get_filter_changes(const EthRequest &request) {
                  Eth_FilterType::NEW_PENDING_TRANSACTION_FILTER) {
       }
    } catch (FilterNotFoundException e) {
+      LOG4CPLUS_DEBUG(logger_, "Filter: " << filterId << " not found");
       // We might have added response to AthenaResponse, clear it first
       athenaResponse_.clear_eth_response();
       ErrorResponse *resp = athenaResponse_.add_error_response();
@@ -692,6 +695,20 @@ api_connection::handle_get_filter_changes(const EthRequest &request) {
    }
    return;
 }
+
+void
+api_connection::handle_uninstall_filter(const EthRequest &request) {
+   const FilterRequest frequest = request.filter_request();
+   evm_uint256be filterId;
+   std::copy(frequest.filter_id().begin(), frequest.filter_id().end(), filterId.bytes);
+   shared_ptr<filter_manager> filterManager = athevm_.get_filter_manager();
+   filterManager->uninstall_filter(filterId);
+   EthResponse *response = athenaResponse_.add_eth_response();
+   response->set_id(request.id());
+   FilterResponse *filterResponse = response->mutable_filter_response();
+   filterResponse->set_success(true);
+}
+
 
 
 api_connection::api_connection(

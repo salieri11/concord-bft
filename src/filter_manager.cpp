@@ -57,3 +57,20 @@ com::vmware::athena::filter_manager::next_filter_id() {
    to_evm_uint256be(++last_filter_id, &id);
    return id;
 }
+
+Eth_FilterType
+com::vmware::athena::filter_manager::get_filter_type(evm_uint256be filterId) {
+   if (filter_types.count(filterId) > 0) {
+      return filter_types[filterId];
+   } else {
+      throw FilterNotFoundException("No such filter found!");
+   }
+}
+
+
+bool
+com::vmware::athena::filter_manager::uninstall_filter(evm_uint256be filterId) {
+   new_block_filters.erase(filterId);
+   filter_types.erase(filterId);
+   return true;
+}

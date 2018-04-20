@@ -83,6 +83,8 @@ private:
    handle_new_block_filter(const EthRequest &request);
    void
    handle_get_filter_changes(const EthRequest &reqest);
+   void
+   handle_uninstall_filter(const EthRequest &reqest);
 
    /* Constructor. */
    api_connection(boost::asio::io_service &io_service,

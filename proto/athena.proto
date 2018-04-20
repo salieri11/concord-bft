@@ -41,6 +41,7 @@ message FilterRequest {
       NEW_BLOCK_FILTER = 2;
       NEW_PENDING_TRANSACTION_FILTER = 3;
       FILTER_CHANGE_REQUEST = 4;
+      UNINSTALL_FILTER = 5;
    }
 
    optional FilterRequestType type = 1;
@@ -130,6 +131,7 @@ message FilterResponse {
    repeated bytes block_hashes = 2;
    repeated bytes transaction_hashes = 3;
    optional FilterLog log = 4;
+   optional bool success = 5;
 }
 
 
