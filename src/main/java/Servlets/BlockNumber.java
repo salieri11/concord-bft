@@ -11,17 +11,16 @@
 package Servlets;
 
 import com.google.protobuf.ByteString;
-import com.google.protobuf.ProtocolStringList;
 import com.vmware.athena.*;
 import io.undertow.util.StatusCodes;
 import java.io.IOException;
-import java.util.Iterator;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.JSONAware;
 
 /**
  * Servlet class.
@@ -46,95 +45,33 @@ public final class BlockNumber extends BaseServlet {
    protected void doGet(final HttpServletRequest request,
                         final HttpServletResponse response) throws IOException {
       // Read the requested block number from the uri
-      Long index = null;
+      Long number = null;
       try {
          String uri = request.getRequestURI();
-         
+
          //Allow trailing /
          if (uri.charAt(uri.length() - 1) == '/') {
             uri = uri.substring(0, uri.length() - 1);
          }
-         
+
          String urlParam = uri.substring(uri.lastIndexOf('/') + 1);
-         index = Long.parseLong(urlParam);
+         number = Long.parseLong(urlParam);
       } catch (NumberFormatException e) {
          _logger.error("Invalid block number");
          processResponse(response, "error", StatusCodes.BAD_REQUEST, _logger);
       }
 
       // Construct a blockNumberRequest object. Set its start field.
-      final Athena.BlockNumberRequest blockNumberRequestObj
-         = Athena.BlockNumberRequest.newBuilder().setIndex(index).build();
+      final Athena.BlockRequest blockRequestObj
+         = Athena.BlockRequest.newBuilder().setNumber(number).build();
 
-      // Envelope the blockNumberRequest object into an athena object.
+      // Envelope the blockRequest object into an athena object.
       final Athena.AthenaRequest athenaRequestObj
          = Athena.AthenaRequest.newBuilder()
-                               .setBlockNumberRequest(blockNumberRequestObj)
+                               .setBlockRequest(blockRequestObj)
                                .build();
 
-      /////////////////// This is temporary.//////////////////////
-      Athena.AthenaResponse athenaResponse = null;
-      JSONObject blockNumberResponse = null;
-
-      athenaResponse = receiveFromAthenaMock(athenaRequestObj);
-      blockNumberResponse = parseToJSON(athenaResponse);
-
-      // Set client response header
-      response.setHeader("Content-Transfer-Encoding", "UTF-8");
-      response.setContentType("application/json");
-      // Respond to client.
-      response.getWriter().write(blockNumberResponse.toString());
-      // block ends///////////////////////////////////////////////
-
-      // this line will replace the block marked above
-      // processGet(athenarequestObj, response, _logger);
-   }
-
-   /**
-    * Note : This is a temporary function which mocks Athena's response.
-    *
-    * @return
-    */
-   public Athena.AthenaResponse
-          receiveFromAthenaMock(Athena.AthenaRequest request) {
-      ByteString hash;
-      ByteString parentHash;
-      try {
-         hash = APIHelper.hexStringToBinary("ABCD");
-         parentHash = APIHelper.hexStringToBinary("DCAB");
-      } catch (Exception e) {
-         _logger.error("Error in converting between hex and binary strings");
-         byte[] temp = new byte[32];
-         hash = ByteString.copyFrom(temp);
-         parentHash = ByteString.copyFrom(temp);
-      }
-
-      final long number = request.getBlockNumberRequest().getIndex();
-
-      final Athena.BlockDetailed blockDetailedObj
-         = Athena.BlockDetailed.newBuilder()
-                               .setNumber(number)
-                               .setHash(hash)
-                               .setParentHash(parentHash)
-                               .setNonce("Nonce")
-                               .setSize(50)
-                               .addTransactions("0xDEAD")
-                               .addTransactions("0xBEEF")
-                               .build();
-
-      // Construct a blockNumberResponse object.
-      final Athena.BlockNumberResponse blockNumberResponseObj
-         = Athena.BlockNumberResponse.newBuilder()
-                                     .setBlock(blockDetailedObj)
-                                     .build();
-
-      // Envelope the blockNumberResponse object into an athena object.
-      final Athena.AthenaResponse athenaresponseObj
-         = Athena.AthenaResponse.newBuilder()
-                                .setBlockNumberResponse(blockNumberResponseObj)
-                                .build();
-
-      return athenaresponseObj;
+      processGet(athenaRequestObj, response, _logger);
    }
 
    /**
@@ -150,32 +87,34 @@ public final class BlockNumber extends BaseServlet {
 
       // Extract the blocknumber response
       // from the athena reponse envelope.
-      Athena.BlockNumberResponse blockNumberResponse
-         = athenaResponse.getBlockNumberResponse();
-
-      // Read the block from the blocknumber response object.
-      Athena.BlockDetailed block = blockNumberResponse.getBlock();
+      Athena.BlockResponse blockResponse
+         = athenaResponse.getBlockResponse();
 
       JSONArray transactionArr = new JSONArray();
-      ProtocolStringList transactionList = block.getTransactionsList();
-      Iterator<String> it = transactionList.iterator();
 
-      while (it.hasNext()) {
-         transactionArr.add(it.next());
+      for (ByteString t: blockResponse.getTransactionList()) {
+         String hash = APIHelper.binaryStringToHex(t);
+         JSONObject txJSON = new JSONObject();
+         txJSON.put("hash", hash);
+         txJSON.put("url", _conf.getStringValue("Transaction_URLPrefix")
+                    + hash);
+         transactionArr.add(txJSON);
       }
 
       JSONObject blockObj = new JSONObject();
       blockObj.put("transactions", transactionArr);
 
-      blockObj.put("number", block.getNumber());
+      blockObj.put("number", blockResponse.getNumber());
 
-      String hash = APIHelper.binaryStringToHex(block.getHash());
-      String parentHash = APIHelper.binaryStringToHex(block.getParentHash());
+      String hash = APIHelper.binaryStringToHex(blockResponse.getHash());
+      String parentHash =
+         APIHelper.binaryStringToHex(blockResponse.getParentHash());
 
       blockObj.put("hash", hash);
       blockObj.put("parentHash", parentHash);
-      blockObj.put("nonce", block.getNonce());
-      blockObj.put("size", block.getSize());
+      blockObj.put("nonce",
+                   APIHelper.binaryStringToHex(blockResponse.getNonce()));
+      blockObj.put("size", blockResponse.getSize());
 
       return blockObj;
    }

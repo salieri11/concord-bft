@@ -15,6 +15,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
+import org.json.simple.JSONAware;
 
 public abstract class BaseServlet extends HttpServlet {
    protected static final long serialVersionUID = 1L;
@@ -25,7 +26,7 @@ public abstract class BaseServlet extends HttpServlet {
 
    protected IConfiguration _conf;
 
-   protected abstract JSONObject
+   protected abstract JSONAware
              parseToJSON(Athena.AthenaResponse athenaResponse);
 
    protected BaseServlet() {
@@ -34,7 +35,7 @@ public abstract class BaseServlet extends HttpServlet {
 
    /**
     * Process get request
-    * 
+    *
     * @param req
     *           - Athena request object
     * @param response
@@ -44,11 +45,18 @@ public abstract class BaseServlet extends HttpServlet {
     */
    protected void processGet(Athena.AthenaRequest req,
                              HttpServletResponse response, Logger log) {
-      JSONObject respObject = null;
       IAthenaConnection conn = null;
       Athena.AthenaResponse athenaResponse = null;
       try {
          conn = AthenaConnectionPool.getInstance().getConnection();
+         if (conn == null) {
+            processResponse(response,
+                            "Connection error",
+                            HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                            log);
+            return;
+         }
+
          boolean res = AthenaHelper.sendToAthena(req, conn, _conf);
          if (!res) {
             processResponse(response,
@@ -77,7 +85,7 @@ public abstract class BaseServlet extends HttpServlet {
          AthenaConnectionPool.getInstance().putConnection(conn);
       }
 
-      respObject = parseToJSON(athenaResponse);
+      JSONAware respObject = parseToJSON(athenaResponse);
       String json = respObject == null ? null : respObject.toJSONString();
 
       processResponse(response,
@@ -90,7 +98,7 @@ public abstract class BaseServlet extends HttpServlet {
 
    /**
     * Process response back to the client
-    * 
+    *
     * @param resp
     *           - response object from the servlet
     * @param data

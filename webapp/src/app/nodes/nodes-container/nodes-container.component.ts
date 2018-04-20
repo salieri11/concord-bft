@@ -3,7 +3,8 @@
  */
 
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+
+import { AthenaApiService } from '../../shared/athena-api.service';
 
 import { Member } from '../../shared/remote-interfaces';
 import { TransactionFiltersModalComponent } from '../transaction-filters-modal/transaction-filters-modal.component';
@@ -26,14 +27,14 @@ export class NodesContainerComponent implements OnInit {
 
   members: Member[] = [];
 
-  constructor(private httpClient: HttpClient) {}
+  constructor(private athenaApiService: AthenaApiService) {}
 
   ngOnInit() {
     this.loadMembers();
   }
 
   loadMembers() {
-    this.httpClient.get('/api/athena/members').subscribe((data: Member[]) => this.members = data);
+    this.athenaApiService.getMembers().subscribe(members => this.members = members);
   }
 
   onOpenFilterModal() {
