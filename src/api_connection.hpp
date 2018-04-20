@@ -22,6 +22,10 @@ class api_connection
    : public boost::enable_shared_from_this<api_connection>
 {
 public:
+   // Arbitrary big number at this time.
+   // Reference for known IDs as of Jan 2018:
+   // https://github.com/ethereumbook/ethereumbook/issues/110
+   const uint DEFAULT_NETWORK_ID = 5000;
 
    typedef boost::shared_ptr<api_connection> pointer;
 
