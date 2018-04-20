@@ -85,7 +85,8 @@ class CoreVMTests(test_suite.TestSuite):
                self.writeResult(test, None, "Unable to load test source.")
                continue
 
-            testName = list(testCompiled.keys())[0]
+            testName = os.path.basename(os.path.dirname(test)) + "_" + \
+                       os.path.splitext(os.path.basename(test))[0]
             testLogDir = os.path.join(self._testLogDir, testName)
 
             try:
