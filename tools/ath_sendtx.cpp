@@ -30,7 +30,7 @@ void add_options(options_description &desc) {
        value<std::string>(),
        "Address to send the TX to")
       (OPT_VALUE",v",
-       value<int>(),
+       value<std::string>(),
        "Amount to pass as value")
       (OPT_DATA",d",
        value<std::string>(),
@@ -52,6 +52,7 @@ int main(int argc, char** argv)
       std::string from;
       std::string to;
       std::string data;
+      std::string value;
 
       if (opts.count(OPT_FROM) > 0) {
          dehex0x(opts[OPT_FROM].as<std::string>(), from);
@@ -62,8 +63,8 @@ int main(int argc, char** argv)
 	 ethReq->set_addr_to(to);
       }
       if (opts.count(OPT_VALUE) > 0) {
-         // TODO: hex value?
-         std::cout << "Warning: not supporting value yet" << std::endl;
+         dehex0x(opts[OPT_VALUE].as<std::string>(), value);
+         ethReq->set_value(value);
       }
       if (opts.count(OPT_DATA) > 0) {
          dehex0x(opts[OPT_DATA].as<std::string>(), data);

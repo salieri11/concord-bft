@@ -60,6 +60,9 @@ private:
    handle_block_request();
 
    void
+   handle_transaction_request();
+
+   void
    handle_test_request();
 
    evm_result

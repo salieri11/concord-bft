@@ -22,26 +22,8 @@ typedef struct EthTransaction {
    evm_address contract_address;
    std::vector<uint8_t> input;
    evm_status_code status;
+   uint64_t value;
    // TODO: all the other fields
-
-   EthTransaction()
-      : nonce(0), from(), to(), contract_address(), input(),
-        status(EVM_INTERNAL_ERROR) { }
-
-   EthTransaction(const EthTransaction &other);
-   EthTransaction(const uint64_t nonce_,
-                  const evm_address from_,
-                  const evm_address to_,
-                  const evm_address contract_address_,
-                  const std::vector<uint8_t> input_,
-                  const evm_status_code status_)
-      : nonce(nonce_),
-        from(from_),
-        to(to_),
-        contract_address(contract_address_),
-        input(input_),
-        status(status_) { }
-   EthTransaction& operator=(const EthTransaction &other);
 } EthTransaction;
 
 typedef struct EthBlock {

@@ -105,14 +105,14 @@ void com::vmware::athena::EVM::run(evm_message &message,
       LOG4CPLUS_DEBUG(logger, "No code found at " << message.destination);
 
       uint64_t transfer_val = from_evm_uint256be(&message.value);
-      
+
       // Don't allow if source account does not exist.
       if (account_exists(&message.sender) == 0) {
          result.status_code = EVM_FAILURE;
-         LOG4CPLUS_INFO(logger, "Source account with address " 
+         LOG4CPLUS_INFO(logger, "Source account with address "
                         << message.sender << ", does not exist.");
-      } 
-      
+      }
+
       // Don't allow if source account has insufficient balance.
       else if (balances[message.sender] < transfer_val) {
          result.status_code = EVM_FAILURE;
@@ -120,11 +120,11 @@ void com::vmware::athena::EVM::run(evm_message &message,
                         ", does not have sufficient funds (" <<
                         balances[message.sender] << ").");
       }
-      
+
       // Don't allow if destination account does not exist.
       else if (account_exists(&message.destination) == 0) {
          result.status_code = EVM_FAILURE;
-         LOG4CPLUS_INFO(logger, "Destination account with address " 
+         LOG4CPLUS_INFO(logger, "Destination account with address "
                         << message.destination << " does not exist.");
       }
       else {
@@ -229,12 +229,16 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
    const evm_address &contract_address)
 {
    uint64_t nonce = get_nonce(message.sender);
+   uint64_t transfer_val = from_evm_uint256be(&message.value);
    EthTransaction tx{
-      nonce, message.sender, to_override, contract_address,
-         std::vector<uint8_t>(message.input_data,
-                              message.input_data+message.input_size),
-         result.status_code
-         };
+      .nonce = nonce,
+      .from = message.sender,
+      .to = to_override,
+      .contract_address = contract_address,
+      .input = std::vector<uint8_t>(message.input_data,
+                                    message.input_data+message.input_size),
+      .status = result.status_code,
+      .value = transfer_val};
 
    evm_uint256be txhash = hash_for_transaction(tx);
    pending.insert(pending.begin()+pending_index, tx);

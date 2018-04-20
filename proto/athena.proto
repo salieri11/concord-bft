@@ -10,8 +10,9 @@ message AthenaRequest {
     repeated EthRequest eth_request = 3;
     optional BlockListRequest block_list_request = 4;
     optional BlockRequest block_request = 5;
+    optional TransactionRequest transaction_request = 6;
 
-    // 6-2045 open for definition
+    // 7-2045 open for definition
     // Likely: metrics/stats, non-eth blockchain, other admin
 
     optional TestRequest test_request = 2046;
@@ -56,6 +57,10 @@ message BlockRequest {
     optional bytes hash = 2;
 }
 
+message TransactionRequest {
+    optional bytes hash = 1;
+}
+
 message TestRequest {
     optional string echo = 1;
 }
@@ -66,8 +71,9 @@ message AthenaResponse {
     repeated EthResponse eth_response = 3;
     optional BlockListResponse block_list_response = 4;
     optional BlockResponse block_response = 5;
+    optional TransactionResponse transaction_response = 6;
 
-    // 6-2045 open for definition
+    // 7-2045 open for definition
 
     optional TestResponse test_response = 2046;
     repeated ErrorResponse error_response = 2047;
@@ -99,6 +105,20 @@ message BlockResponse {
     optional bytes nonce = 4;
     optional int64 size = 5;
     repeated bytes transaction = 6;
+}
+
+message TransactionResponse {
+    optional bytes hash = 1;
+    optional bytes from = 2;
+    optional bytes to = 3;
+    optional int64 value = 4;
+    optional bytes input = 5;
+    optional bytes blockHash = 6;
+    optional int64 blockNumber = 7;
+    optional int64 transactionIndex = 8;
+    optional int64 nonce = 9;
+    optional int32 status = 10;
+    optional bytes contract_address = 11;
 }
 
 message TestResponse {
