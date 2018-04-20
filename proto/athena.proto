@@ -12,7 +12,7 @@ message AthenaRequest {
    optional BlockRequest block_request = 5;
    optional TransactionRequest transaction_request = 6;
 
-// 8-2045 open for definition
+// 7-2045 open for definition
 // Likely: metrics/stats, non-eth blockchain, other admin
 
    optional TestRequest test_request = 2046;
