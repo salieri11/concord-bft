@@ -47,7 +47,7 @@ export interface Transaction {
   from: string;
   to?: string;
   contractAddress?: string;
-  value: number;
+  value: string;
   input: string;
   nonce: number;
 }
