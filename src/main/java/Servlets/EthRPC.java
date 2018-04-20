@@ -39,6 +39,8 @@ import org.json.simple.parser.ParseException;
 public final class EthRPC extends BaseServlet {
    private static final long serialVersionUID = 1L;
    private static Logger logger = Logger.getLogger(EthRPC.class);
+   public static long netVersion;
+   public static boolean netVersionSet = false;
    private JSONArray rpcList;
    private JSONObject rpcModules;
    private String jsonRpc;
@@ -243,6 +245,37 @@ public final class EthRPC extends BaseServlet {
             return;
          } else if (method.equals(_conf.getStringValue("Mining_Name"))) {
             localResponse(isMining, response, id);
+            return;
+         } else if (method.equals(_conf.getStringValue("NetVersion_Name"))) {
+            if(!EthRPC.netVersionSet){
+               // The act of creating a connection retrieves info about athena.
+               IAthenaConnection conn =
+                  AthenaConnectionPool.getInstance().getConnection();
+               if (conn == null){
+                  String failureMsg = "Unable to connect to athena.";
+                  logger.error(failureMsg);
+                  errorResponse(response, failureMsg, id, logger);
+                  return;
+               }else{
+                  EthRPC.netVersionSet = true;
+               }
+            }
+
+            localResponse(EthRPC.netVersion, response, id);
+            return;
+         } else if (method.equals(_conf.getStringValue("Accounts_Name"))) {
+            JSONArray usersJsonArr = new JSONArray();
+            String usersStr = _conf.getStringValue("USERS");
+
+            if (usersStr != null && !usersStr.trim().isEmpty()){
+               String[] usersArr = usersStr.split(",");
+
+               for(int i = 0; i < usersArr.length; i++){
+                  usersJsonArr.add(usersArr[i]);
+               }
+            }
+
+            localResponse(usersJsonArr, response, id);
             return;
          } else {
             logger.error("Invalid method name");
