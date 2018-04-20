@@ -30,7 +30,7 @@ com::vmware::athena::EVM::EVM(EVMInitParams params)
    : logger(Logger::getInstance("com.vmware.athena.evm")),
      balances(params.get_initial_accounts()),
      chainId(params.get_chainID()),
-     filterManager(std::make_shared<filter_manager>(this)) {
+     filterManager(new FilterManager(*this)) {
    // wrap an evm context in an athena context
    athctx = {{&athena_fn_table}, this};
 
@@ -300,7 +300,6 @@ evm_uint256be com::vmware::athena::EVM::get_storage_at(
    get_storage(&result, &account, &key);
    return result;
 }
-
 
 /**
  * Get the list of blocks, starting at latest, and going back count-1 steps in
@@ -610,9 +609,9 @@ bool com::vmware::athena::EVM::new_account(
    std::vector<uint8_t> vec(passphrase.begin(), passphrase.end());
    evm_uint256be hash = keccak_hash(vec);
 
-   std::copy(hash.bytes+(sizeof(evm_uint256be)-sizeof(evm_address)), 
+   std::copy(hash.bytes+(sizeof(evm_uint256be)-sizeof(evm_address)),
              hash.bytes+sizeof(evm_uint256be),address.bytes);
-   
+
    if(EVM::account_exists(&address) == 1) {
        return false;
    } else {
@@ -642,9 +641,9 @@ uint64_t com::vmware::athena::EVM::get_nonce(const evm_address &address) {
    return nonce;
 }
 
-std::shared_ptr<filter_manager>
+FilterManager&
 com::vmware::athena::EVM::get_filter_manager() {
-   return filterManager;
+   return *filterManager;
 }
 
 

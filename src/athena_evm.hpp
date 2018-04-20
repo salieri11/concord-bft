@@ -120,7 +120,7 @@ const static struct evm_context_fn_table athena_fn_table = {
 
 // forward declaration to break circular references between
 // athena_evm.hpp and filter_manager.hpp
-class filter_manager;
+class FilterManager;
 
 
 class EVM {
@@ -138,7 +138,7 @@ public:
    EthTransaction get_transaction(const evm_uint256be &txhash) const;
    evm_uint256be get_storage_at(const evm_address &account,
                                 const evm_uint256be &key) const;
-   std::shared_ptr<filter_manager> get_filter_manager();
+   FilterManager& get_filter_manager();
    std::vector<std::shared_ptr<EthBlock>> get_block_list(uint64_t latest,
                                                          uint64_t count) const;
    std::shared_ptr<EthBlock> get_block_for_number(uint64_t number) const;
@@ -212,7 +212,7 @@ private:
    std::map<std::vector<uint8_t>, evm_uint256be> storage_map;
 
    // Instace of filter manager
-   const std::shared_ptr<filter_manager> filterManager;
+   FilterManager *filterManager;
 
    void create_genesis_block();
 

@@ -35,13 +35,13 @@ private:
 
 
 // enum-type specifying different possible filters from ethereum domain
-enum class Eth_FilterType {
+enum class EthFilterType {
    LOG_FILTER, // The simple filter to monitor changes to logs
    NEW_BLOCK_FILTER, // Filter for monitoring mining of new blocks
    NEW_PENDING_TRANSACTION_FILTER // filter to monitor pending transactions
 };
 
-typedef struct Eth_FilterParams {
+typedef struct EthFilterParams {
    std::string fromBlock; // starting from block
    std::string toBlock; // till block
    std::vector<evm_address> contract_addresses; // list of contracts to look for
@@ -49,18 +49,18 @@ typedef struct Eth_FilterParams {
    // Topics is generally an array of 256 bytes. However, it can
    // also be an array of array of 256 bytes. This vector can not handle that
    std::vector<evm_uint256be> topics;
-} Eth_FilterParams;
+} EthFilterParams;
 
 // forward declaration to break circular references between
 // athena_evm.hpp and filter_manager.hpp
 class EVM;
 
-class filter_manager {
+class FilterManager {
 
 public:
-   filter_manager(EVM *evm);
+   FilterManager(EVM &evm);
 
-   Eth_FilterType get_filter_type(evm_uint256be filterId);
+   EthFilterType get_filter_type(evm_uint256be filterId);
 
    evm_uint256be create_new_block_filter();
 
@@ -87,10 +87,13 @@ public:
 private:
 
    log4cplus::Logger logger;
-   const EVM *executing_evm; // Pointer to the evm which is currently executing
+   // Pointer to the evm which is currently executing
+   // note: this can not be a reference otherwise due to circular
+   // dependency between EVM & FilterManager compiler won't be able to compile
+   // these classes.
+   const EVM *executing_evm;
    uint64_t last_filter_id = 0;
-   std::map<evm_uint256be, Eth_FilterType> filter_types;
-   std::map<evm_uint256be, uint64_t> new_block_filters;
+   std::map<evm_uint256be, std::pair<uint64_t, EthFilterType>> filters_by_id;
    //TODO: add appropriate maps to hold the filters of type
    // pending transaction and log filters
 };
