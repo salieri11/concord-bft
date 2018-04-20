@@ -1,7 +1,6 @@
 // Copyright 2018 VMware, all rights reserved
 //
 // External interface definition.
-
 package com.vmware.athena;
 
 message AthenaRequest {
@@ -14,7 +13,6 @@ message AthenaRequest {
 
     // 7-2045 open for definition
     // Likely: metrics/stats, non-eth blockchain, other admin
-
     optional TestRequest test_request = 2046;
 }
 
@@ -36,6 +34,7 @@ message EthRequest {
         GET_TX_RECEIPT = 3;
         GET_STORAGE_AT = 4;
         CALL_CONTRACT = 5;
+        NEW_ACCOUNT = 6;
     }
 
     optional EthMethod method = 1;
@@ -74,14 +73,13 @@ message AthenaResponse {
     optional TransactionResponse transaction_response = 6;
 
     // 7-2045 open for definition
-
     optional TestResponse test_response = 2046;
     repeated ErrorResponse error_response = 2047;
 }
 
 message ProtocolResponse {
-	optional int32 server_version = 1;
-	optional int64 net_version = 2;
+    optional int32 server_version = 1;
+    optional int64 net_version = 2;
 }
 
 message PeerResponse {
@@ -96,7 +94,7 @@ message EthResponse {
 }
 
 message BlockListResponse {
-	repeated BlockBrief block = 1;
+    repeated BlockBrief block = 1;
 }
 
 message BlockResponse {
