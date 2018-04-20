@@ -55,7 +55,8 @@ public final class EthRPC extends BaseServlet {
       NEW_FILTER,
       NEW_BLOCK_FILTER,
       NEW_PENDING_TRANSACTION_FILTER,
-      FILTER_CHANGES
+      FILTER_CHANGES,
+      UNINSTALL_FILTER
    }
 
    public EthRPC() throws ParseException {
@@ -260,12 +261,19 @@ public final class EthRPC extends BaseServlet {
             b.setFilterRequest(fbuilder.build());
          } else if (method.equals(_conf.getStringValue("NewPendingTransactionFilter_Name"))) {
          } else if (method.equals(_conf.getStringValue("FilterChange_Name"))) {
-            System.out.println("In filter changes request with params: " + params);
             rpc = EthMethodName.FILTER_CHANGES;
             b.setMethod(EthMethod.FILTER_REQUEST);
             // build FilterRequet
             Athena.FilterRequest.Builder fbuilder = Athena.FilterRequest.newBuilder();
             fbuilder.setType(FilterRequestType.FILTER_CHANGE_REQUEST);
+            fbuilder.setFilterId(APIHelper.hexStringToBinary((String) params.get(0)));
+            b.setFilterRequest(fbuilder.build());
+         } else if (method.equals(_conf.getStringValue("UninstallFilter_Name"))) {
+            rpc = EthMethodName.UNINSTALL_FILTER;
+            b.setMethod(EthMethod.FILTER_REQUEST);
+            // build FilterRequet
+            Athena.FilterRequest.Builder fbuilder = Athena.FilterRequest.newBuilder();
+            fbuilder.setType(FilterRequestType.UNINSTALL_FILTER);
             fbuilder.setFilterId(APIHelper.hexStringToBinary((String) params.get(0)));
             b.setFilterRequest(fbuilder.build());
          } else {
@@ -467,6 +475,9 @@ public final class EthRPC extends BaseServlet {
             arr.add(APIHelper.binaryStringToHex(hash));
          }
          respObject.put("result", arr);
+      } else if (method.equals(EthMethodName.UNINSTALL_FILTER)) {
+         boolean success = ethResponse.getFilterResponse().getSuccess();
+         respObject.put("result", success);
       } else {
          respObject = errorMessage("Unknown response type from athena",
                                    req.getEthRequest(0).getId());
