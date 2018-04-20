@@ -251,14 +251,31 @@ public final class EthRPC extends BaseServlet {
                // The act of creating a connection retrieves info about athena.
                IAthenaConnection conn =
                   AthenaConnectionPool.getInstance().getConnection();
-               EthRPC.netVersionSet = true;
+               if (conn == null){
+                  String failureMsg = "Unable to connect to athena.";
+                  logger.error(failureMsg);
+                  errorResponse(response, failureMsg, id, logger);
+                  return;
+               }else{
+                  EthRPC.netVersionSet = true;
+               }
             }
+
             localResponse(EthRPC.netVersion, response, id);
             return;
          } else if (method.equals(_conf.getStringValue("Accounts_Name"))) {
-            JSONArray users = new JSONArray();
-            users.add("fa1a4c33aa682d34eda15bf772f672edddac13aa");
-            localResponse(users, response, id);
+            JSONArray usersJsonArr = new JSONArray();
+            String usersStr = _conf.getStringValue("USERS");
+
+            if (usersStr != null && !usersStr.trim().isEmpty()){
+               String[] usersArr = usersStr.split(",");
+
+               for(int i = 0; i < usersArr.length; i++){
+                  usersJsonArr.add(usersArr[i]);
+               }
+            }
+
+            localResponse(usersJsonArr, response, id);
             return;
          } else {
             logger.error("Invalid method name");
