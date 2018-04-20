@@ -212,7 +212,7 @@ class HelenAPITests(test_suite.TestSuite):
 
       # get all of the transactions in the most recent block
       for t in blockResult["transactions"]:
-         txResult = request.getTransaction(t)
+         txResult = request.getTransaction(t['hash'])
 
          (present, missing) = self.requireFields(
             txResult,
