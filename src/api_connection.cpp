@@ -654,7 +654,6 @@ api_connection::handle_new_block_filter(const EthRequest &request) {
    EthResponse *response = athenaResponse_.add_eth_response();
    response->set_id(request.id());
    FilterResponse *fresponse = response->mutable_filter_response();
-   std::cout << "setting ID to: " << filterId << "\n";
    fresponse->set_filter_id(filterId.bytes, sizeof(filterId));
 }
 
