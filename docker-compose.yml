@@ -1,10 +1,10 @@
 version: '3'
 services:
   athena:
-    image: beerriot/p2bc:athena20180413
+    image: beerriot/p2bc:athena20180418
     expose:
       - 5458
   helen:
-    image: beerriot/p2bc:helen20180413
+    image: beerriot/p2bc:helen20180418
     ports:
       - 8080:8080
