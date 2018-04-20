@@ -30,7 +30,7 @@ com::vmware::athena::EVM::EVM(EVMInitParams params)
    : logger(Logger::getInstance("com.vmware.athena.evm")),
      balances(params.get_initial_accounts()),
      chainId(params.get_chainID()),
-     filter_manager(std::make_shared<FilterManager>(this)) {
+     filterManager(std::make_shared<filter_manager>(this)) {
    // wrap an evm context in an athena context
    athctx = {{&athena_fn_table}, this};
 
@@ -602,6 +602,12 @@ uint64_t com::vmware::athena::EVM::get_nonce(const evm_address &address) {
    nonces[address] = nonce+1;
    return nonce;
 }
+
+std::shared_ptr<filter_manager>
+com::vmware::athena::EVM::get_filter_manager() {
+   return filterManager;
+}
+
 
 uint64_t com::vmware::athena::EVM::next_block_number() {
    return ++latestBlock;

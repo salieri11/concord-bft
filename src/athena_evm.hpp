@@ -120,7 +120,7 @@ const static struct evm_context_fn_table athena_fn_table = {
 
 // forward declaration to break circular references between
 // athena_evm.hpp and filter_manager.hpp
-class FilterManager;
+class filter_manager;
 
 
 class EVM {
@@ -138,7 +138,7 @@ public:
    EthTransaction get_transaction(const evm_uint256be &txhash) const;
    evm_uint256be get_storage_at(const evm_address &account,
                                 const evm_uint256be &key) const;
-   std::shared_ptr<FilterManager> get_filter_manager();
+   std::shared_ptr<filter_manager> get_filter_manager();
    std::vector<std::shared_ptr<EthBlock>> get_block_list(uint64_t latest,
                                                          uint64_t count) const;
    std::shared_ptr<EthBlock> get_block_for_number(uint64_t number) const;
@@ -169,6 +169,8 @@ public:
    void get_block_hash(struct evm_uint256be* result,
                        int64_t number);
    void get_tx_context(struct evm_tx_context* result);
+
+   uint64_t current_block_number() const;
 
 private:
    athena_context athctx;
@@ -209,7 +211,7 @@ private:
    std::map<std::vector<uint8_t>, evm_uint256be> storage_map;
 
    // Instace of filter manager
-   const std::shared_ptr<FilterManager> filter_manager;
+   const std::shared_ptr<filter_manager> filterManager;
 
    void create_genesis_block();
 
@@ -223,7 +225,7 @@ private:
                  evm_uint256be &result_hash);
    uint64_t get_nonce(const evm_address &address);
    uint64_t next_block_number();
-   uint64_t current_block_number() const;
+
    evm_uint256be hash_for_transaction(const EthTransaction &tx) const;
    evm_uint256be hash_for_block(const std::shared_ptr<EthBlock> tx) const;
    evm_uint256be record_transaction(const size_t pending_index,

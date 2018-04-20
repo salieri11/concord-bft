@@ -369,11 +369,8 @@ api_connection::handle_eth_request(int i) {
    case EthRequest_EthMethod_GET_STORAGE_AT:
       handle_eth_getStorageAt(request);
       break;
-   case EthRequest_EthMethod_NEW_BLOCK_FILTER:
-      handle_eth_newBlockFilter(request);
-      break;
-   case EthRequest_EthMethod_GET_FILTER_CHANGES:
-      handle_eth_getFilterChanges(request);
+   case EthRequest_EthMethod_FILTER_REQUEST:
+      handle_filter_requests(request);
       break;
    default:
       ErrorResponse *e = athenaResponse_.add_error_response();
@@ -623,12 +620,42 @@ api_connection::handle_test_request() {
    }
 }
 
+
+void
+api_connection::handle_filter_requests(const EthRequest &request) {
+   if (request.has_filter_request()) {
+      const FilterRequest &filter_request = request.filter_request();
+      switch (filter_request.type()) {
+      case FilterRequest_FilterRequestType_NEW_FILTER:
+      case FilterRequest_FilterRequestType_NEW_BLOCK_FILTER:
+         handle_new_block_filter(request);
+         break;
+      case FilterRequest_FilterRequestType_NEW_PENDING_TRANSACTION_FILTER:
+      case FilterRequest_FilterRequestType_FILTER_CHANGE_REQUEST:
+         handle_get_filter_changes(request);
+         break;
+      default:
+         break;
+      }
+   } else {
+      ErrorResponse *error = athenaResponse_.add_error_response();
+      error->set_description("Invalid Filter request.");
+   }
+}
+
+
 /**
  * Creates a new block filter and returns the associated ID.
  */
 void
-api_connection::handle_eth_newBlockFilter(const EthRequest &request) {
-
+api_connection::handle_new_block_filter(const EthRequest &request) {
+   shared_ptr<filter_manager> filterManager = athevm_.get_filter_manager();
+   evm_uint256be filterId = filterManager->create_new_block_filter();
+   EthResponse *response = athenaResponse_.add_eth_response();
+   response->set_id(request.id());
+   FilterResponse *fresponse = response->mutable_filter_response();
+   std::cout << "setting ID to: " << filterId << "\n";
+   fresponse->set_filter_id(filterId.bytes, sizeof(filterId));
 }
 
 /**
@@ -636,8 +663,35 @@ api_connection::handle_eth_newBlockFilter(const EthRequest &request) {
  * This method may returns different data based on the type of filter.
  */
 void
-api_connection::handle_eth_getFilterChanges(const EthRequest &request) {
-
+api_connection::handle_get_filter_changes(const EthRequest &request) {
+   const FilterRequest frequest = request.filter_request();
+   evm_uint256be filterId;
+   std::copy(frequest.filter_id().begin(), frequest.filter_id().end(), filterId.bytes);
+   shared_ptr<filter_manager> filterManager = athevm_.get_filter_manager();
+   try {
+      EthResponse *response = athenaResponse_.add_eth_response();
+      response->set_id(request.id());
+      if (filterManager->get_filter_type(filterId) ==
+          Eth_FilterType::LOG_FILTER) {
+      } else if (filterManager->get_filter_type(filterId) ==
+                 Eth_FilterType::NEW_BLOCK_FILTER) {
+         vector<evm_uint256be>  block_changes = filterManager->get_new_block_filter_changes(filterId);
+         if (block_changes.size() > 0) {
+            FilterResponse *filterResponse = response->mutable_filter_response();
+            for (auto block_hash : block_changes) {
+               filterResponse->add_block_hashes(block_hash.bytes, sizeof(block_hash));
+            }
+         }
+      } else if (filterManager->get_filter_type(filterId) ==
+                 Eth_FilterType::NEW_PENDING_TRANSACTION_FILTER) {
+      }
+   } catch (FilterNotFoundException e) {
+      // We might have added response to AthenaResponse, clear it first
+      athenaResponse_.clear_eth_response();
+      ErrorResponse *resp = athenaResponse_.add_error_response();
+      resp->set_description("filter not found");
+   }
+   return;
 }
 
 
