@@ -175,8 +175,8 @@ class HelenAPITests(test_suite.TestSuite):
          if "next" in result:
             return self._test_getBlockList(request, earliestFound,
                                            result['next'])
-         elif not earliestFound == 1:
-            return (False, "No 'next' URL, but not yet at block 1")
+         elif not earliestFound == 0:
+            return (False, "No 'next' URL, but not yet at block 0")
          else:
             log.warn("Not enough blocks to test 'next' link")
             return (True, "Warning: Not enough blocks to test 'next' link")

@@ -2,10 +2,10 @@
    "product": {
       "launch":{
          "apiServer":{
-            "buildRoot": "~/source/helen/_build/default/rel",
+            "buildRoot": "~/source/helen",
             "helen1":{
-               "launchCommand": "helen/bin/helen",
-               "parameters": ["console"]
+               "launchCommand": "/usr/bin/java",
+               "parameters": ["-jar", "~/source/helen/helen-1.0-SNAPSHOT-jar-with-dependencies.jar"]
             }
          },
          "athena":

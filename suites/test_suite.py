@@ -76,6 +76,9 @@ class TestSuite(ABC):
          result = "SKIPPED"
 
       log.info(result)
+      if not result == "PASS":
+         log.info("The test case returned the following information: '{}'". \
+                  format(info))
 
       if testName and result == "SKIPPED":
          log.debug("Unintentionally skipped test '{}': '{}'".format(testName,
