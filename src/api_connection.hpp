@@ -93,7 +93,7 @@ private:
    handle_get_filter_changes(const EthRequest &reqest);
    void
    handle_uninstall_filter(const EthRequest &reqest);
-
+   void
    handle_personal_newAccount(const EthRequest &request);
 
 

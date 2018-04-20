@@ -62,7 +62,7 @@ api_connection::start_async()
    LOG4CPLUS_TRACE(logger_, "start_async enter");
    remotePeer_ = socket_.remote_endpoint();
    LOG4CPLUS_INFO(logger_,
-                  "Connection to "  remotePeer_ << " opened by peer");
+                  "Connection to "  << remotePeer_ << " opened by peer");
 
    read_async_header();
 
