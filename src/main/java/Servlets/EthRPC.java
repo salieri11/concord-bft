@@ -270,7 +270,7 @@ public final class EthRPC extends BaseServlet {
 
    /**
     * Transforms call and send_tx requests to send_tx request format
-    * 
+    *
     * @param from
     * @param to
     * @param value
@@ -305,7 +305,7 @@ public final class EthRPC extends BaseServlet {
 
    /**
     * Used for RPCs for which Helen doesn't need to communicate with Athena
-    * 
+    *
     * @param data
     * @param response
     * @param id
@@ -367,6 +367,14 @@ public final class EthRPC extends BaseServlet {
       Athena.AthenaResponse athenaResponse = null;
       try {
          conn = AthenaConnectionPool.getInstance().getConnection();
+         if (conn == null) {
+            errorResponse(response,
+                          "Error communicating with athena",
+                          req.getEthRequest(0).getId(),
+                          log);
+            return;
+         }
+
          boolean res = AthenaHelper.sendToAthena(req, conn, _conf);
          if (!res) {
             errorResponse(response,
