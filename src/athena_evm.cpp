@@ -106,16 +106,29 @@ void com::vmware::athena::EVM::run(evm_message &message,
       LOG4CPLUS_DEBUG(logger, "No code found at " << message.destination);
 
       uint64_t transfer_val = from_evm_uint256be(&message.value);
-      // All addresses exist by default. They are considered as accounts with
-      // 0 balances. Hence, we never throw an account-not-found error. Instead
-      // we will simply say that account does not have sufficient balance.
-      if (balances.count(message.destination) == 0 ||
-          balances[message.destination] < transfer_val) {
+
+      // Don't allow if source account does not exist.
+      if (account_exists(&message.sender) == 0) {
+         result.status_code = EVM_FAILURE;
+         LOG4CPLUS_INFO(logger, "Source account with address "
+                        << message.sender << ", does not exist.");
+      }
+
+      // Don't allow if source account has insufficient balance.
+      else if (balances[message.sender] < transfer_val) {
          result.status_code = EVM_FAILURE;
          LOG4CPLUS_INFO(logger, "Account with address " << message.sender <<
                         ", does not have sufficient funds (" <<
                         balances[message.sender] << ").");
-      } else {
+      }
+
+      // Don't allow if destination account does not exist.
+      else if (account_exists(&message.destination) == 0) {
+         result.status_code = EVM_FAILURE;
+         LOG4CPLUS_INFO(logger, "Destination account with address "
+                        << message.destination << " does not exist.");
+      }
+      else {
          balances[message.destination] += transfer_val;
          balances[message.sender] -= transfer_val;
          result.status_code = EVM_SUCCESS;
@@ -217,12 +230,16 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
    const evm_address &contract_address)
 {
    uint64_t nonce = get_nonce(message.sender);
+   uint64_t transfer_val = from_evm_uint256be(&message.value);
    EthTransaction tx{
-      nonce, message.sender, to_override, contract_address,
-         std::vector<uint8_t>(message.input_data,
-                              message.input_data+message.input_size),
-         result.status_code
-         };
+      .nonce = nonce,
+      .from = message.sender,
+      .to = to_override,
+      .contract_address = contract_address,
+      .input = std::vector<uint8_t>(message.input_data,
+                                    message.input_data+message.input_size),
+      .status = result.status_code,
+      .value = transfer_val};
 
    evm_uint256be txhash = hash_for_transaction(tx);
    pending.insert(pending.begin()+pending_index, tx);
@@ -582,6 +599,28 @@ evm_uint256be com::vmware::athena::EVM::hash_for_block(
    return keccak_hash(rlp);
 }
 
+/**
+ * Creates a new user account with 0 balance.
+ * Generates a Keccak256 hash of the passphrase provided by the
+ * user and uses its last 20 bytes as the account address.
+ */
+bool com::vmware::athena::EVM::new_account(
+   const std::string& passphrase, evm_address& address)
+{
+   std::vector<uint8_t> vec(passphrase.begin(), passphrase.end());
+   evm_uint256be hash = keccak_hash(vec);
+
+   std::copy(hash.bytes+(sizeof(evm_uint256be)-sizeof(evm_address)), 
+             hash.bytes+sizeof(evm_uint256be),address.bytes);
+   
+   if(EVM::account_exists(&address) == 1) {
+       return false;
+   } else {
+       balances[address] = 0;
+       return true;
+   }
+}
+
 evm_uint256be com::vmware::athena::EVM::keccak_hash(
    const std::vector<uint8_t> &data) const
 {
@@ -627,7 +666,7 @@ void com::vmware::athena::EVM::execute(evm_message &message,
 
 
 /**
- * Does the account at the address exists?
+ * Does the account at the address exist?
  *
  * TODO: is this called for both accounts and contracts?
  *
@@ -639,7 +678,10 @@ int com::vmware::athena::EVM::account_exists(
    LOG4CPLUS_INFO(logger, "EVM::account_exists called, address: " <<
                   *address);
 
-   return 1; // all accounts exist for now
+   if (balances.count(*address) == 0)
+      return 0;
+
+   return 1;
 };
 
 /**

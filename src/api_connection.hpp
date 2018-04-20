@@ -23,6 +23,10 @@ class api_connection
    : public boost::enable_shared_from_this<api_connection>
 {
 public:
+   // Arbitrary big number at this time.
+   // Reference for known IDs as of Jan 2018:
+   // https://github.com/ethereumbook/ethereumbook/issues/110
+   const uint DEFAULT_NETWORK_ID = 5000;
 
    typedef boost::shared_ptr<api_connection> pointer;
 
@@ -61,6 +65,9 @@ private:
    handle_block_request();
 
    void
+   handle_transaction_request();
+
+   void
    handle_test_request();
 
    evm_result
@@ -78,6 +85,7 @@ private:
    void
    handle_eth_getStorageAt(const EthRequest &request);
    void
+
    handle_filter_requests(const EthRequest &request);
    void
    handle_new_block_filter(const EthRequest &request);
@@ -85,6 +93,9 @@ private:
    handle_get_filter_changes(const EthRequest &reqest);
    void
    handle_uninstall_filter(const EthRequest &reqest);
+
+   handle_personal_newAccount(const EthRequest &request);
+
 
    /* Constructor. */
    api_connection(boost::asio::io_service &io_service,
