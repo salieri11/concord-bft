@@ -117,8 +117,8 @@
         "get": {
             "summary": "Get a specific block, by its number in the chain",
             "operationId": "blockGet",
-            "parameters": {
-                "idParam": {
+            "parameters": [
+                {
                     "name": "index",
                     "in": "path",
                     "description": "the index of the block to get",
@@ -126,9 +126,10 @@
                     "schema": {
                         "type": "integer",
                         "format": "string"
-                    }
+                    },
+                    "style": "simple"
                 }
-            },
+            ],
             "responses": {
                 "200": {
                     "description": "Block",
@@ -166,22 +167,23 @@
             }
         }
     },
-    "/athena/transaction/{hash}": {
+    "/athena/transactions/{hash}": {
         "summary": "Specific Athena Block",
         "get": {
             "summary": "Get a specific transaction, by its hash",
             "operationId": "txGet",
-            "parameters": {
-                "hashParam": {
+            "parameters": [
+                {
                     "name": "hash",
                     "in": "path",
                     "description": "the hash of the index to get",
                     "required": "false",
                     "schema": {
                         "type": "string"
-                    }
+                    },
+                    "style": "simple"
                 }
-            },
+            ],
             "responses": {
                 "200": {
                     "description": "Transaction",
@@ -197,6 +199,9 @@
                                         "type": "string"
                                     },
                                     "to": {
+                                        "type": "string"
+                                    },
+                                    "contractAddress": {
                                         "type": "string"
                                     },
                                     "value": {
@@ -215,7 +220,7 @@
                                         "type": "integer"
                                     },
                                     "nonce": {
-                                        "type": "string"
+                                        "type": "integer"
                                     }
                                 }
                             }
