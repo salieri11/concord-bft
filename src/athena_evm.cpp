@@ -29,11 +29,12 @@ using log4cplus::Logger;
 com::vmware::athena::EVM::EVM(EVMInitParams params)
    : logger(Logger::getInstance("com.vmware.athena.evm")),
      balances(params.get_initial_accounts()),
-     chainId(params.get_chainID()) {
+     chainId(params.get_chainID()) 
+{
    // wrap an evm context in an athena context
    athctx = {{&athena_fn_table}, this};
 
-   create_genesis_block();
+   create_genesis_block(params);
 
 #ifdef USE_HERA
    evminst = hera_create();
@@ -51,16 +52,39 @@ com::vmware::athena::EVM::EVM(EVMInitParams params)
 /**
  * Shutdown the EVM instance and destroy the athena context.
  */
-com::vmware::athena::EVM::~EVM() {
+com::vmware::athena::EVM::~EVM() 
+{
    evminst->destroy(evminst);
    LOG4CPLUS_INFO(logger, "EVM stopped");
 }
 
-void com::vmware::athena::EVM::create_genesis_block() {
-   // TODO: Create transactions for initial values.  See
-   //       https://etherscan.io/txs?block=0.  Our transactions don't record
-   //       value at the moment, so that needs to be added as well
+/**
+ * Create the initial transactions and a genesis block based on the 
+ * genesis file.
+ */
+void com::vmware::athena::EVM::create_genesis_block(EVMInitParams params) 
+{
    std::vector<evm_uint256be> txs;
+   
+   std::map<evm_address, uint64_t> genesis_acts = params.get_initial_accounts();
+   for (std::map<evm_address,uint64_t>::iterator it = genesis_acts.begin(); 
+       it != genesis_acts.end(); ++it) {
+      
+      EthTransaction tx{
+         .nonce = 0,
+         .from = zero_address,
+         .to = it->first,
+         .contract_address = zero_address,
+         .input = std::vector<uint8_t>(),
+         .status = EVM_SUCCESS,
+         .value = it->second};
+
+      evm_uint256be txhash = hash_for_transaction(tx);
+      transactions[txhash] = tx;
+      txs.push_back(txhash);
+      LOG4CPLUS_INFO(logger, "Created genesis transaction to address " 
+                    << it->first <<" with value = " << it->second);
+   }
 
    std::shared_ptr<EthBlock> blk = std::make_shared<EthBlock>();
    blk->number = 0;
@@ -305,7 +329,8 @@ evm_uint256be com::vmware::athena::EVM::get_storage_at(
  * the chain.
  */
 std::vector<std::shared_ptr<EthBlock>> com::vmware::athena::EVM::get_block_list(
-   uint64_t latest, uint64_t count) const {
+   uint64_t latest, uint64_t count) const 
+{
    if (latest > current_block_number()) {
       latest = current_block_number();
    }
@@ -329,7 +354,8 @@ std::vector<std::shared_ptr<EthBlock>> com::vmware::athena::EVM::get_block_list(
  * Get block at given index.
  */
 std::shared_ptr<EthBlock> com::vmware::athena::EVM::get_block_for_number(
-   uint64_t number) const {
+   uint64_t number) const 
+{
    auto iter = blocks_by_number.find(number);
    if (iter != blocks_by_number.end()) {
       return iter->second;
@@ -342,7 +368,8 @@ std::shared_ptr<EthBlock> com::vmware::athena::EVM::get_block_for_number(
  * Get block for given hash.
  */
 std::shared_ptr<EthBlock> com::vmware::athena::EVM::get_block_for_hash(
-   evm_uint256be hash) const {
+   evm_uint256be hash) const 
+{
    auto iter = blocks_by_hash.find(hash);
    if (iter != blocks_by_hash.end()) {
       return iter->second;
@@ -631,7 +658,8 @@ evm_uint256be com::vmware::athena::EVM::keccak_hash(
    return hash;
 }
 
-uint64_t com::vmware::athena::EVM::get_nonce(const evm_address &address) {
+uint64_t com::vmware::athena::EVM::get_nonce(const evm_address &address) 
+{
    uint64_t nonce = 1;
    if (nonces.count(address) > 0) {
       nonce = nonces[address];
@@ -640,11 +668,13 @@ uint64_t com::vmware::athena::EVM::get_nonce(const evm_address &address) {
    return nonce;
 }
 
-uint64_t com::vmware::athena::EVM::next_block_number() {
+uint64_t com::vmware::athena::EVM::next_block_number() 
+{
    return ++latestBlock;
 }
 
-uint64_t com::vmware::athena::EVM::current_block_number() const {
+uint64_t com::vmware::athena::EVM::current_block_number() const 
+{
    return latestBlock;
 }
 
