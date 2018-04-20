@@ -10,10 +10,9 @@ message AthenaRequest {
    repeated EthRequest eth_request = 3;
    optional BlockListRequest block_list_request = 4;
    optional BlockRequest block_request = 5;
-   optional FilterRequest filter_request = 6;
-   optional TransactionRequest transaction_request = 7;
+   optional TransactionRequest transaction_request = 6;
 
-// 8-2045 open for definition
+// 7-2045 open for definition
 // Likely: metrics/stats, non-eth blockchain, other admin
 
    optional TestRequest test_request = 2046;
@@ -30,7 +29,10 @@ message PeerRequest {
    repeated Peer remove_peer = 3;
 }
 
-
+// This is required because in FilterRequest
+// we need to support array of arrays in 'topics' field
+// So TopicData represents one array while, topics in
+// FilterRequest represents array of TopicData
 message TopicData {
    repeated bytes topic = 1;
 }
@@ -60,7 +62,7 @@ message EthRequest {
       GET_TX_RECEIPT = 3;
       GET_STORAGE_AT = 4;
       CALL_CONTRACT = 5;
-      FILTER_REQUEST = 6;
+      FILTER_REQUEST = 7;
    }
 
    optional EthMethod method = 1;
@@ -116,13 +118,13 @@ message PeerResponse {
 
 
 message FilterLog {
-   required bool removed = 1;
-   required int64 log_index = 2;
-   required int64 transaction_index = 3;
-   required bytes transaction_hash = 4;
-   required bytes block_hash = 5;
-   required int64 block_number = 6;
-   required bytes address = 7;
+   optional bool removed = 1;
+   optional int64 log_index = 2;
+   optional int64 transaction_index = 3;
+   optional bytes transaction_hash = 4;
+   optional bytes block_hash = 5;
+   optional int64 block_number = 6;
+   optional bytes address = 7;
    repeated bytes data = 8;
    repeated bytes topics = 9;
 }

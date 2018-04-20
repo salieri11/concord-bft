@@ -65,7 +65,9 @@ public final class EthRPC extends BaseServlet {
       try {
          rpcList = (JSONArray) p.parse(_conf.getStringValue("EthRPCList"));
          rpcModules
-            = (JSONObject) (((JSONArray) p.parse(_conf.getStringValue("RPCModules"))).get(0));
+            = (JSONObject) (
+               ((JSONArray) p.parse(_conf.getStringValue("RPCModules"))).get(0)
+               );
          jsonRpc = _conf.getStringValue("JSONRPC");
          clientVersion = _conf.getStringValue("ClientVersion");
          isMining = _conf.getIntegerValue("Is_Mining") == 0 ? false : true;
@@ -214,7 +216,8 @@ public final class EthRPC extends BaseServlet {
             }
             sendTransactionHandler(from, to, value, data, b);
 
-         } else if (method.equals(_conf.getStringValue("GetTransactionReceipt_Name"))) {
+         } else if (method.equals(
+                       _conf.getStringValue("GetTransactionReceipt_Name"))) {
             rpc = EthMethodName.GET_TX_RECEIPT;
             b.setMethod(EthMethod.GET_TX_RECEIPT);
             txHash = (String) params.get(0);
@@ -253,30 +256,41 @@ public final class EthRPC extends BaseServlet {
             return;
          } else if (method.equals(_conf.getStringValue("NewFilter_Name"))) {
             //TODO: handle new filter
+            logger.warn("eth_newFilter method is not implemented yet");
          } else if (method.equals(_conf.getStringValue("NewBlockFilter_Name"))) {
             rpc = EthMethodName.NEW_BLOCK_FILTER;
             b.setMethod(EthMethod.FILTER_REQUEST);
             // build FilterRequet
-            Athena.FilterRequest.Builder fbuilder = Athena.FilterRequest.newBuilder();
+            Athena.FilterRequest.Builder fbuilder =
+               Athena.FilterRequest.newBuilder();
             fbuilder.setType(FilterRequestType.NEW_BLOCK_FILTER);
             b.setFilterRequest(fbuilder.build());
-         } else if (method.equals(_conf.getStringValue("NewPendingTransactionFilter_Name"))) {
+         } else if (method.equals(
+                       _conf.getStringValue(
+                          "NewPendingTransactionFilter_Name"))) {
             //TODO: handle new pending transaction filter
+            logger.warn("eth_newPendingTransactionFilter method is not"
+                        "implemented yet");
          } else if (method.equals(_conf.getStringValue("FilterChange_Name"))) {
             rpc = EthMethodName.FILTER_CHANGES;
             b.setMethod(EthMethod.FILTER_REQUEST);
             // build FilterRequet
-            Athena.FilterRequest.Builder fbuilder = Athena.FilterRequest.newBuilder();
+            Athena.FilterRequest.Builder fbuilder =
+               Athena.FilterRequest.newBuilder();
             fbuilder.setType(FilterRequestType.FILTER_CHANGE_REQUEST);
-            fbuilder.setFilterId(APIHelper.hexStringToBinary((String) params.get(0)));
+            fbuilder.setFilterId(
+               APIHelper.hexStringToBinary((String) params.get(0)));
             b.setFilterRequest(fbuilder.build());
-         } else if (method.equals(_conf.getStringValue("UninstallFilter_Name"))) {
+         } else if (method.equals(
+                       _conf.getStringValue("UninstallFilter_Name"))) {
             rpc = EthMethodName.UNINSTALL_FILTER;
             b.setMethod(EthMethod.FILTER_REQUEST);
             // build FilterRequet
-            Athena.FilterRequest.Builder fbuilder = Athena.FilterRequest.newBuilder();
+            Athena.FilterRequest.Builder fbuilder =
+               Athena.FilterRequest.newBuilder();
             fbuilder.setType(FilterRequestType.UNINSTALL_FILTER);
-            fbuilder.setFilterId(APIHelper.hexStringToBinary((String) params.get(0)));
+            fbuilder.setFilterId(
+               APIHelper.hexStringToBinary((String) params.get(0)));
             b.setFilterRequest(fbuilder.build());
          } else {
             logger.error("Invalid method name");
