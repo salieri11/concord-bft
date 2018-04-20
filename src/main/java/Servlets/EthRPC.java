@@ -252,6 +252,7 @@ public final class EthRPC extends BaseServlet {
             localResponse(isMining, response, id);
             return;
          } else if (method.equals(_conf.getStringValue("NewFilter_Name"))) {
+            //TODO: handle new filter
          } else if (method.equals(_conf.getStringValue("NewBlockFilter_Name"))) {
             rpc = EthMethodName.NEW_BLOCK_FILTER;
             b.setMethod(EthMethod.FILTER_REQUEST);
@@ -260,6 +261,7 @@ public final class EthRPC extends BaseServlet {
             fbuilder.setType(FilterRequestType.NEW_BLOCK_FILTER);
             b.setFilterRequest(fbuilder.build());
          } else if (method.equals(_conf.getStringValue("NewPendingTransactionFilter_Name"))) {
+            //TODO: handle new pending transaction filter
          } else if (method.equals(_conf.getStringValue("FilterChange_Name"))) {
             rpc = EthMethodName.FILTER_CHANGES;
             b.setMethod(EthMethod.FILTER_REQUEST);
