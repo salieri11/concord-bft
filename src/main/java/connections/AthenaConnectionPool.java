@@ -35,10 +35,6 @@ public class AthenaConnectionPool {
    // implemented, TODO
    private int _maxPoolSize;
 
-   // explicit lock for the pool increase cases. to make the add operation
-   // real thread safe
-   private Object _poolIncreaseLock;
-
    // Instantiate the instance of this class
    private static AthenaConnectionPool _instance = new AthenaConnectionPool();
 
@@ -52,7 +48,6 @@ public class AthenaConnectionPool {
    private AthenaConnectionPool() {
       _initialized = new AtomicBoolean(false);
       _connectionCount = new AtomicInteger(0);
-      _poolIncreaseLock = new Object();
    }
 
    /**
@@ -63,12 +58,20 @@ public class AthenaConnectionPool {
    private IAthenaConnection createConnection() {
       _log.trace("createConnection enter");
       try {
-         IAthenaConnection res = _factory.create();
+         // increment first, so that all errors can decrement
          int c = _connectionCount.incrementAndGet();
-         _log.debug("new connection created, active connections: " + c);
-         _log.info("new pooled connection created");
-         return res;
-      } catch (IOException e) {
+         if (c <= _maxPoolSize) {
+            IAthenaConnection res = _factory.create();
+            _log.info("new connection created, active connections: " + c);
+            return res;
+         } else {
+            _log.debug("pool size at maximum");
+            _connectionCount.decrementAndGet();
+            return null;
+         }
+      } catch (Exception e) {
+         // all exceptions are failures - undo the increment, since we failed
+         _connectionCount.decrementAndGet();
          _log.error("createConnection", e);
          return null;
       } finally {
@@ -90,10 +93,9 @@ public class AthenaConnectionPool {
             _log.debug("connection closed, active connections: " + c);
             _log.info("broken connection closed");
 
+            // attempt to replace the broken connection
             if (c < _minPoolSize && _initialized.get()) {
-               synchronized (_poolIncreaseLock) {
-                  putConnection(createConnection());
-               }
+               putConnection(createConnection());
             }
          }
       } catch (Exception e) {
@@ -141,15 +143,8 @@ public class AthenaConnectionPool {
             conn = _pool.poll();
 
             if (conn == null) {
-               synchronized (_poolIncreaseLock) {
-                  if (_connectionCount.get() < _maxPoolSize) {
-                     conn = createConnection();
-                  } else {
-                     _log.error("pool size at maximum");
-                     _log.trace("getConnection exit");
-                     return null;
-                  }
-               }
+               // this may fail if there are _maxPoolSize connections already
+               conn = createConnection();
             }
          } else {
             // if this is not our first wait, then we weren't allowed to
