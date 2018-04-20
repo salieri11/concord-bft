@@ -201,7 +201,7 @@ private:
    // map from [(contract address)+(storage location)] to data at that location
    std::map<std::vector<uint8_t>, evm_uint256be> storage_map;
 
-   void create_genesis_block();
+   void create_genesis_block(EVMInitParams params);
    evm_address contract_destination(const evm_message &message);
    evm_uint256be keccak_hash(const std::vector<uint8_t> &data) const;
    void execute(evm_message &message,
