@@ -49,7 +49,7 @@ public final class Transaction extends BaseServlet {
       // Read the requested transaction hash from the uri
       String uri = request.getRequestURI();
 
-      //Allow trailing / 
+      //Allow trailing /
       if (uri.charAt(uri.length() - 1) == '/') {
          uri = uri.substring(0, uri.length() - 1);
       }
@@ -74,7 +74,7 @@ public final class Transaction extends BaseServlet {
       // Construct a transaction request object.
       final Athena.TransactionRequest txRequestObj
          = Athena.TransactionRequest.newBuilder()
-                                    .setHashParam(hashBytes)
+                                    .setHash(hashBytes)
                                     .build();
 
       // Envelope the transaction request object into an athena object.
@@ -83,65 +83,7 @@ public final class Transaction extends BaseServlet {
                                .setTransactionRequest(txRequestObj)
                                .build();
 
-      processGet(athenarequestObj, response, logger, hash);
-   }
-
-   /**
-    * Process get request
-    * 
-    * @param req
-    *           - Athena request object
-    * @param response
-    *           - HTTP servlet response object
-    * @param log
-    *           - specifies logger from servlet to use
-    */
-   @SuppressWarnings("unchecked")
-   protected void processGet(Athena.AthenaRequest req,
-                             HttpServletResponse response, Logger log, String hash) {
-      JSONObject respObject = null;
-      IAthenaConnection conn = null;
-      Athena.AthenaResponse athenaResponse = null;
-      try {
-         conn = AthenaConnectionPool.getInstance().getConnection();
-         boolean res = AthenaHelper.sendToAthena(req, conn, _conf);
-         if (!res) {
-            processResponse(response,
-                            "Communication error",
-                            HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                            log);
-            return;
-         }
-
-         // receive response from Athena
-         athenaResponse = AthenaHelper.receiveFromAthena(conn);
-         if (athenaResponse == null) {
-            processResponse(response,
-                            "Data error",
-                            HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                            log);
-            return;
-         }
-      } catch (Exception e) {
-         processResponse(response,
-                         "Internal error",
-                         HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                         log);
-         return;
-      } finally {
-         AthenaConnectionPool.getInstance().putConnection(conn);
-      }
-
-      respObject = parseToJSON(athenaResponse);
-      respObject.put("hash", hash);
-      
-      String json = respObject == null ? null : respObject.toJSONString();
-      processResponse(response,
-                      json,
-                      json == null
-                         ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR
-                         : HttpServletResponse.SC_OK,
-                      log);
+      processGet(athenarequestObj, response, logger);
    }
 
    /**
@@ -161,17 +103,34 @@ public final class Transaction extends BaseServlet {
          = athenaResponse.getTransactionResponse();
 
       // Construct the reponse JSON object.
-      JSONObject responseJson = new JSONObject();
+      JSONObject responseJSON = new JSONObject();
 
-      responseJson.put("from", txResponse.getFrom());
-      responseJson.put("to", txResponse.getTo());
-      responseJson.put("value", txResponse.getValue());
-      responseJson.put("input", txResponse.getInput());
-      responseJson.put("blockHash", txResponse.getBlockHash());
-      responseJson.put("blockNumber", txResponse.getBlockNumber());
-      responseJson.put("transactionIndex", txResponse.getTransactionIndex());
-      responseJson.put("nonce", txResponse.getNonce());
+      responseJSON.put("hash",
+                       APIHelper.binaryStringToHex(txResponse.getHash()));
+      responseJSON.put("from",
+                       APIHelper.binaryStringToHex(txResponse.getFrom()));
 
-      return responseJson;
+      if (txResponse.hasTo()) {
+         responseJSON.put("to",
+                          APIHelper.binaryStringToHex(txResponse.getTo()));
+      }
+
+      if (txResponse.hasContractAddress()) {
+         responseJSON.put("contractAddress",
+                          APIHelper.binaryStringToHex(
+                             txResponse.getContractAddress()));
+      }
+
+      if (txResponse.hasValue()) {
+         responseJSON.put("value", txResponse.getValue());
+      }
+
+      if (txResponse.hasInput()) {
+         responseJSON.put("input",
+                          APIHelper.binaryStringToHex(txResponse.getInput()));
+      }
+      responseJSON.put("nonce", txResponse.getNonce());
+
+      return responseJSON;
    }
 }

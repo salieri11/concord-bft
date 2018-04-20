@@ -28,13 +28,12 @@ public class AthenaConnectionPool {
    // max wait time for pool to return connection
    private int _waitTimeout;
 
+   // pool starts at this size
+   private int _minPoolSize;
+
    // pool can grow up to this size. currently no cleaning routine is
    // implemented, TODO
    private int _maxPoolSize;
-
-   // explicit lock for the pool increase cases. to make the add operation
-   // real thread safe
-   private Object _poolIncreaseLock;
 
    // Instantiate the instance of this class
    private static AthenaConnectionPool _instance = new AthenaConnectionPool();
@@ -49,7 +48,6 @@ public class AthenaConnectionPool {
    private AthenaConnectionPool() {
       _initialized = new AtomicBoolean(false);
       _connectionCount = new AtomicInteger(0);
-      _poolIncreaseLock = new Object();
    }
 
    /**
@@ -60,12 +58,20 @@ public class AthenaConnectionPool {
    private IAthenaConnection createConnection() {
       _log.trace("createConnection enter");
       try {
-         IAthenaConnection res = _factory.create();
+         // increment first, so that all errors can decrement
          int c = _connectionCount.incrementAndGet();
-         _log.debug("new connection created, active connections: " + c);
-         _log.info("new pooled connection created");
-         return res;
-      } catch (IOException e) {
+         if (c <= _maxPoolSize) {
+            IAthenaConnection res = _factory.create();
+            _log.info("new connection created, active connections: " + c);
+            return res;
+         } else {
+            _log.debug("pool size at maximum");
+            _connectionCount.decrementAndGet();
+            return null;
+         }
+      } catch (Exception e) {
+         // all exceptions are failures - undo the increment, since we failed
+         _connectionCount.decrementAndGet();
          _log.error("createConnection", e);
          return null;
       } finally {
@@ -86,6 +92,11 @@ public class AthenaConnectionPool {
             int c = _connectionCount.decrementAndGet();
             _log.debug("connection closed, active connections: " + c);
             _log.info("broken connection closed");
+
+            // attempt to replace the broken connection
+            if (c < _minPoolSize && _initialized.get()) {
+               putConnection(createConnection());
+            }
          }
       } catch (Exception e) {
          _log.error("closeConnection", e);
@@ -120,30 +131,43 @@ public class AthenaConnectionPool {
       if (!_initialized.get())
          throw new IllegalStateException("getConnection, pool not initialized");
 
-      IAthenaConnection conn = _pool.poll(_waitTimeout, TimeUnit.MILLISECONDS);
+      boolean first = true;
+      long start = System.currentTimeMillis();
+      while (System.currentTimeMillis() - start < _waitTimeout) {
+         IAthenaConnection conn;
 
-      if (conn == null) {
-         synchronized (_poolIncreaseLock) {
-            if (_connectionCount.get() < _maxPoolSize) {
+         if (first) {
+            // don't wait on the first poll; if the pool is empty, jump
+            // immediately to checking if a new connection can be added
+            first = false;
+            conn = _pool.poll();
+
+            if (conn == null) {
+               // this may fail if there are _maxPoolSize connections already
                conn = createConnection();
-            } else {
-               _log.error("pool size at maximum");
-               return null;
             }
+         } else {
+            // if this is not our first wait, then we weren't allowed to
+            // increase the pool size, so we just have to wait for a connection
+            conn = _pool.poll(_waitTimeout, TimeUnit.MILLISECONDS);
+         }
+
+         if (conn != null) {
+            boolean res = conn.check();
+            if (!res) {
+               _log.error("Failed to check connection");
+               closeConnection(conn);
+               // see if we can get another connection
+               continue;
+            }
+
+            _log.trace("getConnection exit");
+            return conn;
          }
       }
 
-      // check connection
-      boolean res = conn.check();
-      if (!res) {
-         _log.error("");
-         closeConnection(conn);
-         return null;
-      }
-
       _log.trace("getConnection exit");
-
-      return conn;
+      return null;
    }
 
    /**
@@ -190,12 +214,12 @@ public class AthenaConnectionPool {
          _conf = conf;
          _factory = factory;
          _waitTimeout = conf.getIntegerValue("ConnectionPoolWaitTimeoutMs");
-         int poolSize = _conf.getIntegerValue("ConnectionPoolSize");
+         _minPoolSize = _conf.getIntegerValue("ConnectionPoolSize");
          int poolFactor = conf.getIntegerValue("ConnectionPoolFactor");
-         _maxPoolSize = poolSize * poolFactor;
+         _maxPoolSize = _minPoolSize * poolFactor;
 
          _pool = new ArrayBlockingQueue<IAthenaConnection>(_maxPoolSize, true);
-         for (int i = 0; i < poolSize; i++) {
+         for (int i = 0; i < _minPoolSize; i++) {
             putConnection(createConnection());
          }
 

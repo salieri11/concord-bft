@@ -34,7 +34,7 @@ public final class AthenaTCPConnection implements IAthenaCommunication,
       = Athena.AthenaRequest.newBuilder()
                             .setProtocolRequest(_protocolRequestMsg)
                             .build();
-   
+
    /**
     * Sets up a TCP connection with Athena
     *
@@ -52,6 +52,7 @@ public final class AthenaTCPConnection implements IAthenaCommunication,
          int port = _conf.getIntegerValue("AthenaPort");
          _socket = new Socket(host, port);
          _socket.setTcpNoDelay(true);
+         _socket.setSoTimeout(_receiveTimeout);
       } catch (UnknownHostException e) {
          _logger.error("Error creating TCP connection with Athena");
          throw new UnknownHostException();
@@ -105,44 +106,65 @@ public final class AthenaTCPConnection implements IAthenaCommunication,
       try {
          java.io.InputStream is = _socket.getInputStream();
          long start = System.currentTimeMillis();
-         ByteBuffer length = null;
-         byte[] res = null;
-         int read = 0;
-         boolean done = false;
-         int msgSize = 0;
+         int msgSize = -1;
+         byte[] msgSizeBuf = new byte[_receiveLengthSize];
+         int msgSizeOffset = 0;
+         byte[] result = null;
+         int resultOffset = 0;
 
          while (System.currentTimeMillis() - start < _receiveTimeout) {
-
-            if (length == null && is.available() >= _receiveLengthSize) {
-               length = ByteBuffer.wrap(new byte[_receiveLengthSize])
-                                  .order(ByteOrder.LITTLE_ENDIAN);
-               is.read(length.array(), 0, _receiveLengthSize);
+            // we need to read at least the header before we can do anything
+            if (msgSizeOffset < _receiveLengthSize) {
+               int count = is.read(msgSizeBuf, msgSizeOffset,
+                                   _receiveLengthSize-msgSizeOffset);
+               if (count < 0) {
+                  _logger.error("No bytes read from athena");
+                  break;
+               } else {
+                  msgSizeOffset += count;
+               }
             }
 
-            if (length != null && res == null) {
-               msgSize = length.getShort();
-               res = new byte[msgSize];
+            // we have the header - find out how big the body is
+            if (msgSizeOffset == _receiveLengthSize && msgSize < 0) {
+               msgSize = ByteBuffer.wrap(msgSizeBuf)
+                  .order(ByteOrder.LITTLE_ENDIAN)
+                  .getShort();
+               result = new byte[msgSize];
             }
 
-            if (res != null) {
-               int av = is.available();
-               if (av > 0)
-                  read += is.read(res, read, av);
-               if (read == msgSize) {
-                  done = true;
+            // now we can read the body
+            if (result != null) {
+               int count = is.read(result, resultOffset,
+                                   msgSize-resultOffset);
+               if (count < 0) {
+                  _logger.error("No bytes read from athena");
+                  break;
+               } else {
+                  resultOffset += count;
+               }
+
+               // stop when we've reached the end
+               if (resultOffset == msgSize) {
                   break;
                }
             }
          }
 
-         if (!done) {
+         // if we didn't read the whole message, consider the stream corrupt and
+         // close it
+         if (resultOffset != msgSize) {
+            _logger.error("Failed to receive message (" +
+                          resultOffset + " != " + msgSize +
+                          "). Closing socket.");
             close();
             return null;
          }
 
-         return res;
+         return result;
       } catch (IOException e) {
-         _logger.error("readMessage", e);
+         _logger.error("Failed to read from socket", e);
+         close();
          return null;
       }
    }
