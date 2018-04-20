@@ -62,7 +62,7 @@ api_connection::start_async()
    LOG4CPLUS_TRACE(logger_, "start_async enter");
    remotePeer_ = socket_.remote_endpoint();
    LOG4CPLUS_INFO(logger_,
-                  "Connection to "  << remotePeer_ << " opened by peer");
+                  "Connection to " << remotePeer_ << " opened by peer");
 
    read_async_header();
 
@@ -411,7 +411,7 @@ api_connection::handle_personal_newAccount(const EthRequest &request)
       const string& passphrase = request.data();
 
       LOG4CPLUS_INFO(logger_, "Creating new account with passphrase : "
-                               << passphrase);
+                     << passphrase);
       evm_address address;
       bool error = athevm_.new_account(passphrase, address);
 
@@ -422,13 +422,13 @@ api_connection::handle_personal_newAccount(const EthRequest &request)
        * (Note : See https://github.com/vmwathena/athena/issues/55)
        */
       if (error == false) {
-          LOG4CPLUS_INFO(logger_, "Use another passphrase : "
-                               << passphrase);
-          ErrorResponse *error = athenaResponse_.add_error_response();
-          error->set_description("Use another passphrase");
+         LOG4CPLUS_INFO(logger_, "Use another passphrase : "
+                        << passphrase);
+         ErrorResponse *error = athenaResponse_.add_error_response();
+         error->set_description("Use another passphrase");
       } else {
-          EthResponse *response = athenaResponse_.add_eth_response();
-          response->set_data(address.bytes, sizeof(evm_address));
+         EthResponse *response = athenaResponse_.add_eth_response();
+         response->set_data(address.bytes, sizeof(evm_address));
       }
    } else {
       ErrorResponse *error = athenaResponse_.add_error_response();
@@ -519,7 +519,8 @@ api_connection::handle_block_request()
  * Handle a request for a specific transaction.
  */
 void
-api_connection::handle_transaction_request() {
+api_connection::handle_transaction_request()
+{
    const TransactionRequest request = athenaRequest_.transaction_request();
 
    if (!request.has_hash()) {
@@ -824,7 +825,6 @@ api_connection::handle_uninstall_filter(const EthRequest &request) {
    FilterResponse *filterResponse = response->mutable_filter_response();
    filterResponse->set_success(true);
 }
-
 
 
 api_connection::api_connection(

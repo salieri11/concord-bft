@@ -21,7 +21,6 @@ bool operator<(const evm_uint256be &a, const evm_uint256be &b)
    return false;
 }
 
-
 // Byte-wise comparator for evm_address. This allows us to use this type as a
 // key in a std::map. Must be in the global namespace.
 bool operator<(const evm_address &a, const evm_address &b)

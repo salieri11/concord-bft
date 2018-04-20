@@ -87,7 +87,7 @@ message BlockRequest {
 }
 
 message TransactionRequest {
-    optional bytes hash = 1;
+   optional bytes hash = 1;
 }
 
 message TestRequest {
@@ -95,12 +95,12 @@ message TestRequest {
 }
 
 message AthenaResponse {
-    optional ProtocolResponse protocol_response = 1;
-    optional PeerResponse peer_response = 2;
-    repeated EthResponse eth_response = 3;
-    optional BlockListResponse block_list_response = 4;
-    optional BlockResponse block_response = 5;
-    optional TransactionResponse transaction_response = 6;
+   optional ProtocolResponse protocol_response = 1;
+   optional PeerResponse peer_response = 2;
+   repeated EthResponse eth_response = 3;
+   optional BlockListResponse block_list_response = 4;
+   optional BlockResponse block_response = 5;
+   optional TransactionResponse transaction_response = 6;
 
 // 7-2045 open for definition
    optional TestResponse test_response = 2046;
@@ -108,8 +108,8 @@ message AthenaResponse {
 }
 
 message ProtocolResponse {
-    optional int32 server_version = 1;
-    optional int64 net_version = 2;
+   optional int32 server_version = 1;
+   optional int64 net_version = 2;
 }
 
 message PeerResponse {
@@ -161,17 +161,17 @@ message BlockResponse {
 }
 
 message TransactionResponse {
-    optional bytes hash = 1;
-    optional bytes from = 2;
-    optional bytes to = 3;
-    optional int64 value = 4;
-    optional bytes input = 5;
-    optional bytes blockHash = 6;
-    optional int64 blockNumber = 7;
-    optional int64 transactionIndex = 8;
-    optional int64 nonce = 9;
-    optional int32 status = 10;
-    optional bytes contract_address = 11;
+   optional bytes hash = 1;
+   optional bytes from = 2;
+   optional bytes to = 3;
+   optional int64 value = 4;
+   optional bytes input = 5;
+   optional bytes blockHash = 6;
+   optional int64 blockNumber = 7;
+   optional int64 transactionIndex = 8;
+   optional int64 nonce = 9;
+   optional int32 status = 10;
+   optional bytes contract_address = 11;
 }
 
 message TestResponse {
