@@ -19,9 +19,9 @@ namespace vmware {
 namespace athena {
 
 
-class FilterNotFoundException: public std::exception {
+class FilterException: public std::exception {
 public:
-   explicit FilterNotFoundException(const std::string &what): msg(what) {};
+   explicit FilterException(const std::string &what): msg(what) {};
 
    virtual const char* what() const noexcept override
    {
@@ -31,7 +31,6 @@ public:
 private:
    std::string msg;
 };
-
 
 
 // enum-type specifying different possible filters from ethereum domain

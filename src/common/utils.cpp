@@ -48,7 +48,6 @@ vector<uint8_t> com::vmware::athena::dehex(const std::string &str) {
 void com::vmware::athena::to_evm_uint256be(uint64_t val, evm_uint256be *ret) {
    uint8_t mask = 0xff;
    for (int i = 0; i < sizeof(evm_uint256be); i++) {
-      // sizeof(evm_uint256be) * 8 = 256
       mask = val & mask;
       ret->bytes[sizeof(evm_uint256be) - i - 1] = mask; // big endian order
       val = val >> 8;

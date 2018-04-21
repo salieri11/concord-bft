@@ -769,8 +769,8 @@ api_connection::handle_filter_requests(const EthRequest &request)
  */
 void
 api_connection::handle_new_block_filter(const EthRequest &request) {
-   FilterManager filterManager = athevm_.get_filter_manager();
-   evm_uint256be filterId = filterManager.create_new_block_filter();
+   FilterManager *filterManager = athevm_.get_filter_manager();
+   evm_uint256be filterId = filterManager->create_new_block_filter();
    EthResponse *response = athenaResponse_.add_eth_response();
    response->set_id(request.id());
    FilterResponse *fresponse = response->mutable_filter_response();
@@ -786,21 +786,25 @@ api_connection::handle_get_filter_changes(const EthRequest &request)
 {
    const FilterRequest frequest = request.filter_request();
    evm_uint256be filterId;
-   std::copy(frequest.filter_id().begin(),
-             frequest.filter_id().end(),
-             filterId.bytes);
-   FilterManager filterManager = athevm_.get_filter_manager();
    try {
+      if (frequest.filter_id().size() != sizeof(filterId)) {
+         throw FilterException("Filter ID should be exactly " +
+                               std::to_string(sizeof(filterId)) + " bytes");
+      }
+      std::copy(frequest.filter_id().begin(),
+                frequest.filter_id().end(),
+                filterId.bytes);
+      FilterManager *filterManager = athevm_.get_filter_manager();
       EthResponse *response = athenaResponse_.add_eth_response();
       response->set_id(request.id());
-      if (filterManager.get_filter_type(filterId) ==
+      if (filterManager->get_filter_type(filterId) ==
           EthFilterType::LOG_FILTER) {
          LOG4CPLUS_WARN(logger_,
                         "newFilter API (LOG_FILTER) is not implemented yet");
-      } else if (filterManager.get_filter_type(filterId) ==
+      } else if (filterManager->get_filter_type(filterId) ==
                  EthFilterType::NEW_BLOCK_FILTER) {
          vector<evm_uint256be>  block_changes =
-            filterManager.get_new_block_filter_changes(filterId);
+            filterManager->get_new_block_filter_changes(filterId);
          if (block_changes.size() > 0) {
             FilterResponse *filterResponse = response->mutable_filter_response();
             for (auto block_hash : block_changes) {
@@ -808,17 +812,17 @@ api_connection::handle_get_filter_changes(const EthRequest &request)
                                                 sizeof(block_hash));
             }
          }
-      } else if (filterManager.get_filter_type(filterId) ==
+      } else if (filterManager->get_filter_type(filterId) ==
                  EthFilterType::NEW_PENDING_TRANSACTION_FILTER) {
          LOG4CPLUS_WARN(logger_, "newPendingTransactionFilter API"
                         "(NEW_PENDING_TRANSACTION_FILTER) is not implemented yet");
       }
-   } catch (FilterNotFoundException e) {
-      LOG4CPLUS_DEBUG(logger_, "Filter: " << filterId << " not found");
+   } catch (FilterException e) {
+      LOG4CPLUS_DEBUG(logger_, e.what());
       // We might have added response to AthenaResponse, clear it first
       athenaResponse_.clear_eth_response();
       ErrorResponse *resp = athenaResponse_.add_error_response();
-      resp->set_description("filter not found");
+      resp->set_description(e.what());
    }
    return;
 }
@@ -828,15 +832,27 @@ api_connection::handle_uninstall_filter(const EthRequest &request)
 {
    const FilterRequest frequest = request.filter_request();
    evm_uint256be filterId;
-   std::copy(frequest.filter_id().begin(),
-             frequest.filter_id().end(),
-             filterId.bytes);
-   FilterManager filterManager = athevm_.get_filter_manager();
-   filterManager.uninstall_filter(filterId);
-   EthResponse *response = athenaResponse_.add_eth_response();
-   response->set_id(request.id());
-   FilterResponse *filterResponse = response->mutable_filter_response();
-   filterResponse->set_success(true);
+   try {
+      if (frequest.filter_id().size() != sizeof(filterId)) {
+         throw FilterException("Filter ID should be exactly " +
+                               std::to_string(sizeof(filterId)) + " bytes");
+      }
+      std::copy(frequest.filter_id().begin(),
+                frequest.filter_id().end(),
+                filterId.bytes);
+      FilterManager *filterManager = athevm_.get_filter_manager();
+      filterManager->uninstall_filter(filterId);
+      EthResponse *response = athenaResponse_.add_eth_response();
+      response->set_id(request.id());
+      FilterResponse *filterResponse = response->mutable_filter_response();
+      filterResponse->set_success(true);
+   } catch (FilterException e) {
+      LOG4CPLUS_DEBUG(logger_, e.what());
+      // We might have added response to AthenaResponse, clear it first
+      athenaResponse_.clear_eth_response();
+      ErrorResponse *resp = athenaResponse_.add_error_response();
+      resp->set_description(e.what());
+   }
 }
 
 

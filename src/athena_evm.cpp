@@ -54,6 +54,7 @@ com::vmware::athena::EVM::EVM(EVMInitParams params)
  */
 com::vmware::athena::EVM::~EVM() {
    evminst->destroy(evminst);
+   delete filterManager;
    LOG4CPLUS_INFO(logger, "EVM stopped");
 }
 
@@ -641,9 +642,9 @@ uint64_t com::vmware::athena::EVM::get_nonce(const evm_address &address) {
    return nonce;
 }
 
-FilterManager&
+FilterManager*
 com::vmware::athena::EVM::get_filter_manager() {
-   return *filterManager;
+   return filterManager;
 }
 
 

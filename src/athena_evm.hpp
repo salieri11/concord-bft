@@ -138,7 +138,7 @@ public:
    EthTransaction get_transaction(const evm_uint256be &txhash) const;
    evm_uint256be get_storage_at(const evm_address &account,
                                 const evm_uint256be &key) const;
-   FilterManager& get_filter_manager();
+   FilterManager* get_filter_manager();
    std::vector<std::shared_ptr<EthBlock>> get_block_list(uint64_t latest,
                                                          uint64_t count) const;
    std::shared_ptr<EthBlock> get_block_for_number(uint64_t number) const;

@@ -76,7 +76,7 @@ com::vmware::athena::FilterManager::get_filter_type(evm_uint256be filterId) {
    if (filters_by_id.count(filterId) > 0) {
       return filters_by_id[filterId].second;
    } else {
-      throw FilterNotFoundException("No such filter found!");
+      throw FilterException("No such filter found!");
    }
 }
 
