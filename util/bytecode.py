@@ -8,15 +8,15 @@ def getPushInstruction(numberToPush):
    97  = 0x61 = PUSH2 = uint16 (number up to 65,535)
    98  = 0x62 = PUSH3 = uint24 (number up to 16,777,215)
    ...
-   127 = 0x7F = PUSH32 = uint256)
+   127 = 0x7F = PUSH32 = uint256
 
    Returns the hex instruction.
    '''
    pushInstruction = 96
 
    for i in range(1, 32):
-      maxBytesSupportedByThisPush = 2 ** (i*8) - 1
-      if numberToPush <= maxBytesSupportedByThisPush:
+      maxNumSupportedByThisPush = 2 ** (i*8) - 1
+      if numberToPush <= maxNumSupportedByThisPush:
          break
       else:
          pushInstruction += 1
