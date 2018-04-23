@@ -122,7 +122,7 @@ public final class Transaction extends BaseServlet {
       }
 
       if (txResponse.hasValue()) {
-         responseJSON.put("value", txResponse.getValue());
+         responseJSON.put("value", Long.toString(txResponse.getValue()));
       }
 
       if (txResponse.hasInput()) {
