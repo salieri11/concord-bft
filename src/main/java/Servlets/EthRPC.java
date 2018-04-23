@@ -61,7 +61,8 @@ public final class EthRPC extends BaseServlet {
       NEW_BLOCK_FILTER,
       NEW_PENDING_TRANSACTION_FILTER,
       FILTER_CHANGES,
-      UNINSTALL_FILTER
+      UNINSTALL_FILTER,
+      GET_CODE
    }
 
    public EthRPC() throws ParseException {
@@ -335,6 +336,11 @@ public final class EthRPC extends BaseServlet {
             fbuilder.setFilterId(
                APIHelper.hexStringToBinary((String) params.get(0)));
             b.setFilterRequest(fbuilder.build());
+         } else if (method.equals(_conf.getStringValue("GetCode_Name"))) {
+            rpc = EthMethodName.GET_CODE;
+            b.setMethod(EthMethod.GET_CODE);
+            b.setAddrTo(APIHelper.hexStringToBinary((String) params.get(0)));
+            // ignoring "block" argument for now
          } else {
             logger.error("Invalid method name");
             errorResponse(response,
@@ -514,9 +520,10 @@ public final class EthRPC extends BaseServlet {
       // Set method specific responses
       EthResponse ethResponse = athenaResponse.getEthResponse(0);
       if (method.equals(EthMethodName.SEND_TX)
-         || method.equals(EthMethodName.GET_STORAGE_AT)
-         || method.equals(EthMethodName.CALL)
-         || method.equals(EthMethodName.NEW_ACCOUNT)) {
+          || method.equals(EthMethodName.GET_STORAGE_AT)
+          || method.equals(EthMethodName.CALL)
+          || method.equals(EthMethodName.NEW_ACCOUNT)
+          || method.equals(EthMethodName.GET_CODE)) {
          respObject.put("result",
                         APIHelper.binaryStringToHex(ethResponse.getData()));
       } else if (method.equals(EthMethodName.GET_TX_RECEIPT)) {
