@@ -214,8 +214,7 @@ private:
    // Instace of filter manager
    FilterManager *filterManager;
 
-   void create_genesis_block();
-
+   void create_genesis_block(EVMInitParams params);
    evm_address contract_destination(const evm_message &message);
    evm_uint256be keccak_hash(const std::vector<uint8_t> &data) const;
    void execute(evm_message &message,
