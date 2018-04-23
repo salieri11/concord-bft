@@ -392,6 +392,9 @@ api_connection::handle_eth_request(int i)
    case EthRequest_EthMethod_NEW_ACCOUNT:
       handle_personal_newAccount(request);
       break;
+   case EthRequest_EthMethod_GET_CODE:
+      handle_eth_getCode(request);
+      break;
    default:
       ErrorResponse *e = athenaResponse_.add_error_response();
       e->mutable_description()->assign("ETH Method Not Implemented");
@@ -718,6 +721,35 @@ api_connection::handle_eth_getStorageAt(const EthRequest &request)
    } else {
       ErrorResponse *error = athenaResponse_.add_error_response();
       error->set_description("Missing account/contract or storage address");
+   }
+}
+
+/**
+ * Handle an eth_getCode request.
+ */
+void
+api_connection::handle_eth_getCode(const EthRequest &request)
+{
+   if (request.has_addr_to() && request.addr_to().size() == sizeof(evm_address))
+   {
+      evm_address account;
+      std::copy(request.addr_to().begin(), request.addr_to().end(),
+                account.bytes);
+      //TODO: ignoring block number at the moment
+
+      std::vector<uint8_t> code;
+      evm_uint256be hash;
+      if (athevm_.get_code(account, code, hash)) {
+         EthResponse *response = athenaResponse_.add_eth_response();
+         response->set_id(request.id());
+         response->set_data(std::string(code.begin(), code.end()));
+      } else {
+         ErrorResponse *error = athenaResponse_.add_error_response();
+         error->set_description("No code found at given address");
+      }
+   } else {
+      ErrorResponse *error = athenaResponse_.add_error_response();
+      error->set_description("Missing contract address");
    }
 }
 
