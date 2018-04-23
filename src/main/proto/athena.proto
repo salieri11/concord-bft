@@ -66,6 +66,7 @@ message EthRequest {
       CALL_CONTRACT = 5;
       NEW_ACCOUNT = 6;
       FILTER_REQUEST = 7;
+      GET_CODE = 8;
    }
 
    optional EthMethod method = 1;
