@@ -26,6 +26,8 @@ import com.vmware.athena.Athena.FilterRequest.*;
 
 import io.undertow.util.StatusCodes;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -41,6 +43,8 @@ import org.json.simple.parser.ParseException;
 public final class EthRPC extends BaseServlet {
    private static final long serialVersionUID = 1L;
    private static Logger logger = Logger.getLogger(EthRPC.class);
+   public static long netVersion;
+   public static boolean netVersionSet = false;
    private JSONArray rpcList;
    private JSONObject rpcModules;
    private String jsonRpc;
@@ -52,6 +56,7 @@ public final class EthRPC extends BaseServlet {
       GET_TX_RECEIPT,
       GET_STORAGE_AT,
       CALL,
+      NEW_ACCOUNT,
       NEW_FILTER,
       NEW_BLOCK_FILTER,
       NEW_PENDING_TRANSACTION_FILTER,
@@ -216,6 +221,13 @@ public final class EthRPC extends BaseServlet {
             }
             sendTransactionHandler(from, to, value, data, b);
 
+         } else if (method.equals(_conf.getStringValue("NewAccount_Name"))) {
+            rpc = EthMethodName.NEW_ACCOUNT;
+            b.setMethod(EthMethod.NEW_ACCOUNT);
+            String passphrase = (String) params.get(0);
+            b.setData(ByteString.copyFrom(passphrase,
+                                          StandardCharsets.UTF_8.name()));
+
          } else if (method.equals(
                        _conf.getStringValue("GetTransactionReceipt_Name"))) {
             rpc = EthMethodName.GET_TX_RECEIPT;
@@ -254,6 +266,37 @@ public final class EthRPC extends BaseServlet {
          } else if (method.equals(_conf.getStringValue("Mining_Name"))) {
             localResponse(isMining, response, id);
             return;
+         } else if (method.equals(_conf.getStringValue("NetVersion_Name"))) {
+            if(!EthRPC.netVersionSet){
+               // The act of creating a connection retrieves info about athena.
+               IAthenaConnection conn =
+                  AthenaConnectionPool.getInstance().getConnection();
+               if (conn == null){
+                  String failureMsg = "Unable to connect to athena.";
+                  logger.error(failureMsg);
+                  errorResponse(response, failureMsg, id, logger);
+                  return;
+               }else{
+                  EthRPC.netVersionSet = true;
+               }
+            }
+
+            localResponse(EthRPC.netVersion, response, id);
+            return;
+         } else if (method.equals(_conf.getStringValue("Accounts_Name"))) {
+            JSONArray usersJsonArr = new JSONArray();
+            String usersStr = _conf.getStringValue("USERS");
+
+            if (usersStr != null && !usersStr.trim().isEmpty()){
+               String[] usersArr = usersStr.split(",");
+
+               for(int i = 0; i < usersArr.length; i++){
+                  usersJsonArr.add(usersArr[i]);
+               }
+            }
+
+            localResponse(usersJsonArr, response, id);
+            return;
          } else if (method.equals(_conf.getStringValue("NewFilter_Name"))) {
             //TODO: handle new filter
             logger.warn("eth_newFilter method is not implemented yet");
@@ -269,7 +312,7 @@ public final class EthRPC extends BaseServlet {
                        _conf.getStringValue(
                           "NewPendingTransactionFilter_Name"))) {
             //TODO: handle new pending transaction filter
-            logger.warn("eth_newPendingTransactionFilter method is not"
+            logger.warn("eth_newPendingTransactionFilter method is not" +
                         "implemented yet");
          } else if (method.equals(_conf.getStringValue("FilterChange_Name"))) {
             rpc = EthMethodName.FILTER_CHANGES;
@@ -452,8 +495,6 @@ public final class EthRPC extends BaseServlet {
          AthenaConnectionPool.getInstance().putConnection(conn);
       }
 
-      respObject = parseToJSON(athenaResponse);
-
       // If there is an error reported by Athena
       if (athenaResponse.getErrorResponseCount() > 0) {
          ErrorResponse errResponse = athenaResponse.getErrorResponse(0);
@@ -468,11 +509,14 @@ public final class EthRPC extends BaseServlet {
          return;
       }
 
+      respObject = parseToJSON(athenaResponse);
+
       // Set method specific responses
       EthResponse ethResponse = athenaResponse.getEthResponse(0);
       if (method.equals(EthMethodName.SEND_TX)
          || method.equals(EthMethodName.GET_STORAGE_AT)
-         || method.equals(EthMethodName.CALL)) {
+         || method.equals(EthMethodName.CALL)
+         || method.equals(EthMethodName.NEW_ACCOUNT)) {
          respObject.put("result",
                         APIHelper.binaryStringToHex(ethResponse.getData()));
       } else if (method.equals(EthMethodName.GET_TX_RECEIPT)) {

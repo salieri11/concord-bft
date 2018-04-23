@@ -29,6 +29,7 @@ message PeerRequest {
    repeated Peer remove_peer = 3;
 }
 
+
 // This is required because in FilterRequest
 // we need to support array of arrays in 'topics' field
 // So TopicData represents one array while, topics in
@@ -56,12 +57,14 @@ message FilterRequest {
 
 
 message EthRequest {
+
    enum EthMethod {
       SEND_TX = 1;
       SEND_TX_RAW = 2;
       GET_TX_RECEIPT = 3;
       GET_STORAGE_AT = 4;
       CALL_CONTRACT = 5;
+      NEW_ACCOUNT = 6;
       FILTER_REQUEST = 7;
    }
 
@@ -102,14 +105,14 @@ message AthenaResponse {
    optional BlockResponse block_response = 5;
    optional TransactionResponse transaction_response = 6;
 
-   // 7-2045 open for definition
-
+// 7-2045 open for definition
    optional TestResponse test_response = 2046;
    repeated ErrorResponse error_response = 2047;
 }
 
 message ProtocolResponse {
    optional int32 server_version = 1;
+   optional int64 net_version = 2;
 }
 
 message PeerResponse {
@@ -129,7 +132,6 @@ message FilterLog {
    repeated bytes topics = 9;
 }
 
-
 message FilterResponse {
    optional bytes filter_id = 1;
    repeated bytes block_hashes = 2;
@@ -148,6 +150,19 @@ message EthResponse {
 }
 
 
+message BlockListResponse {
+   repeated BlockBrief block = 1;
+}
+
+message BlockResponse {
+   optional int64 number = 1;
+   optional bytes hash = 2;
+   optional bytes parent_hash = 3;
+   optional bytes nonce = 4;
+   optional int64 size = 5;
+   repeated bytes transaction = 6;
+}
+
 message TransactionResponse {
    optional bytes hash = 1;
    optional bytes from = 2;
@@ -160,20 +175,6 @@ message TransactionResponse {
    optional int64 nonce = 9;
    optional int32 status = 10;
    optional bytes contract_address = 11;
-}
-
-
-message BlockListResponse {
-   repeated BlockBrief block = 1;
-}
-
-message BlockResponse {
-   optional int64 number = 1;
-   optional bytes hash = 2;
-   optional bytes parent_hash = 3;
-   optional bytes nonce = 4;
-   optional int64 size = 5;
-   repeated bytes transaction = 6;
 }
 
 message TestResponse {
