@@ -5,142 +5,196 @@
 package com.vmware.athena;
 
 message AthenaRequest {
-    optional ProtocolRequest protocol_request = 1;
-    optional PeerRequest peer_request = 2;
-    repeated EthRequest eth_request = 3;
-    optional BlockListRequest block_list_request = 4;
-    optional BlockRequest block_request = 5;
-    optional TransactionRequest transaction_request = 6;
+   optional ProtocolRequest protocol_request = 1;
+   optional PeerRequest peer_request = 2;
+   repeated EthRequest eth_request = 3;
+   optional BlockListRequest block_list_request = 4;
+   optional BlockRequest block_request = 5;
+   optional TransactionRequest transaction_request = 6;
 
-    // 7-2045 open for definition
-    // Likely: metrics/stats, non-eth blockchain, other admin
+// 7-2045 open for definition
+// Likely: metrics/stats, non-eth blockchain, other admin
 
-    optional TestRequest test_request = 2046;
+   optional TestRequest test_request = 2046;
 }
 
 message ProtocolRequest {
-    optional int32 client_version = 1;
-    // TODO: probably some auth in here too
+   optional int32 client_version = 1;
+// TODO: probably some auth in here too
 }
 
 message PeerRequest {
-    optional bool return_peers = 1;
-    repeated Peer add_peer = 2;
-    repeated Peer remove_peer = 3;
+   optional bool return_peers = 1;
+   repeated Peer add_peer = 2;
+   repeated Peer remove_peer = 3;
 }
+
+
+// This is required because in FilterRequest
+// we need to support array of arrays in 'topics' field
+// So TopicData represents one array while, topics in
+// FilterRequest represents array of TopicData
+message TopicData {
+   repeated bytes topic = 1;
+}
+
+message FilterRequest {
+   enum FilterRequestType {
+      NEW_FILTER = 1;
+      NEW_BLOCK_FILTER = 2;
+      NEW_PENDING_TRANSACTION_FILTER = 3;
+      FILTER_CHANGE_REQUEST = 4;
+      UNINSTALL_FILTER = 5;
+   }
+
+   optional FilterRequestType type = 1;
+   optional int64 from_block = 2;
+   optional int64 to_block = 3;
+   repeated bytes addresses = 4;
+   repeated TopicData topics = 5;
+   optional bytes filter_id = 6;
+}
+
 
 message EthRequest {
-    enum EthMethod {
-        SEND_TX = 1;
-        SEND_TX_RAW = 2;
-        GET_TX_RECEIPT = 3;
-        GET_STORAGE_AT = 4;
-        CALL_CONTRACT = 5;
-        NEW_ACCOUNT = 6;
-    }
 
-    optional EthMethod method = 1;
-    optional int64 id = 2;
-    optional bytes addr_to = 3;
-    optional bytes addr_from = 4;
-    optional bytes value = 5;
-    optional bytes data = 6;
-    optional bool create = 7;
+   enum EthMethod {
+      SEND_TX = 1;
+      SEND_TX_RAW = 2;
+      GET_TX_RECEIPT = 3;
+      GET_STORAGE_AT = 4;
+      CALL_CONTRACT = 5;
+      NEW_ACCOUNT = 6;
+      FILTER_REQUEST = 7;
+   }
+
+   optional EthMethod method = 1;
+   optional int64 id = 2;
+   optional bytes addr_to = 3;
+   optional bytes addr_from = 4;
+   optional bytes value = 5;
+   optional bytes data = 6;
+   optional bool create = 7;
+   optional FilterRequest filter_request = 8;
 }
 
+
 message BlockListRequest {
-    optional int64 latest = 1;
-    optional int64 count = 2;
+   optional int64 latest = 1;
+   optional int64 count = 2;
 }
 
 message BlockRequest {
-    optional int64 number = 1;
-    optional bytes hash = 2;
+   optional int64 number = 1;
+   optional bytes hash = 2;
 }
 
 message TransactionRequest {
-    optional bytes hash = 1;
+   optional bytes hash = 1;
 }
 
 message TestRequest {
-    optional string echo = 1;
+   optional string echo = 1;
 }
 
 message AthenaResponse {
-    optional ProtocolResponse protocol_response = 1;
-    optional PeerResponse peer_response = 2;
-    repeated EthResponse eth_response = 3;
-    optional BlockListResponse block_list_response = 4;
-    optional BlockResponse block_response = 5;
-    optional TransactionResponse transaction_response = 6;
+   optional ProtocolResponse protocol_response = 1;
+   optional PeerResponse peer_response = 2;
+   repeated EthResponse eth_response = 3;
+   optional BlockListResponse block_list_response = 4;
+   optional BlockResponse block_response = 5;
+   optional TransactionResponse transaction_response = 6;
 
-    // 7-2045 open for definition
-
-    optional TestResponse test_response = 2046;
-    repeated ErrorResponse error_response = 2047;
+// 7-2045 open for definition
+   optional TestResponse test_response = 2046;
+   repeated ErrorResponse error_response = 2047;
 }
 
 message ProtocolResponse {
-    optional int32 server_version = 1;
-    optional int64 net_version = 2;
+   optional int32 server_version = 1;
+   optional int64 net_version = 2;
 }
 
 message PeerResponse {
-    repeated Peer peer = 1;
+   repeated Peer peer = 1;
 }
+
+
+message FilterLog {
+   optional bool removed = 1;
+   optional int64 log_index = 2;
+   optional int64 transaction_index = 3;
+   optional bytes transaction_hash = 4;
+   optional bytes block_hash = 5;
+   optional int64 block_number = 6;
+   optional bytes address = 7;
+   repeated bytes data = 8;
+   repeated bytes topics = 9;
+}
+
+message FilterResponse {
+   optional bytes filter_id = 1;
+   repeated bytes block_hashes = 2;
+   repeated bytes transaction_hashes = 3;
+   optional FilterLog log = 4;
+   optional bool success = 5;
+}
+
 
 message EthResponse {
-    optional int64 id = 1;
-    optional bytes data = 2;
-    optional bytes contract_address = 3;
-    optional int32 status = 4;
+   optional int64 id = 1;
+   optional bytes data = 2;
+   optional bytes contract_address = 3;
+   optional int32 status = 4;
+   optional FilterResponse filter_response = 5;
 }
 
+
 message BlockListResponse {
-	repeated BlockBrief block = 1;
+   repeated BlockBrief block = 1;
 }
 
 message BlockResponse {
-    optional int64 number = 1;
-    optional bytes hash = 2;
-    optional bytes parent_hash = 3;
-    optional bytes nonce = 4;
-    optional int64 size = 5;
-    repeated bytes transaction = 6;
+   optional int64 number = 1;
+   optional bytes hash = 2;
+   optional bytes parent_hash = 3;
+   optional bytes nonce = 4;
+   optional int64 size = 5;
+   repeated bytes transaction = 6;
 }
 
 message TransactionResponse {
-    optional bytes hash = 1;
-    optional bytes from = 2;
-    optional bytes to = 3;
-    optional int64 value = 4;
-    optional bytes input = 5;
-    optional bytes blockHash = 6;
-    optional int64 blockNumber = 7;
-    optional int64 transactionIndex = 8;
-    optional int64 nonce = 9;
-    optional int32 status = 10;
-    optional bytes contract_address = 11;
+   optional bytes hash = 1;
+   optional bytes from = 2;
+   optional bytes to = 3;
+   optional int64 value = 4;
+   optional bytes input = 5;
+   optional bytes blockHash = 6;
+   optional int64 blockNumber = 7;
+   optional int64 transactionIndex = 8;
+   optional int64 nonce = 9;
+   optional int32 status = 10;
+   optional bytes contract_address = 11;
 }
 
 message TestResponse {
-    optional string echo = 1;
+   optional string echo = 1;
 }
 
 message ErrorResponse {
-    optional string description = 1;
+   optional string description = 1;
 }
 
 message Peer {
-    optional string address = 1;
-    optional int32 port = 2;
+   optional string address = 1;
+   optional int32 port = 2;
 
-    // putting this one late so it doesn't consume a useful address
-    // while we're figuring out what format it should actually have
-    optional string status = 2047;
+// putting this one late so it doesn't consume a useful address
+// while we're figuring out what format it should actually have
+   optional string status = 2047;
 }
 
 message BlockBrief {
-    optional int64 number = 1;
-    optional bytes hash = 2;
+   optional int64 number = 1;
+   optional bytes hash = 2;
 }

@@ -11,6 +11,7 @@
 #include <log4cplus/loggingmacros.h>
 
 #include "athena.pb.h"
+#include "filter_manager.hpp"
 #include "athena_evm.hpp"
 
 namespace com {
@@ -84,7 +85,17 @@ private:
    void
    handle_eth_getStorageAt(const EthRequest &request);
    void
+
+   handle_filter_requests(const EthRequest &request);
+   void
+   handle_new_block_filter(const EthRequest &request);
+   void
+   handle_get_filter_changes(const EthRequest &reqest);
+   void
+   handle_uninstall_filter(const EthRequest &reqest);
+   void
    handle_personal_newAccount(const EthRequest &request);
+
 
    /* Constructor. */
    api_connection(boost::asio::io_service &io_service,

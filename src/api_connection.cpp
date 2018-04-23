@@ -264,7 +264,7 @@ api_connection::process_incoming()
  * handler.
  */
 void
-api_connection::dispatch() 
+api_connection::dispatch()
 {
    // The idea behind checking each request field every time, instead
    // of checking at most one, is that a client could batch
@@ -301,7 +301,7 @@ api_connection::dispatch()
  * client version might be considered a ping for keep-alive purposes.
  */
 void
-api_connection::handle_protocol_request() 
+api_connection::handle_protocol_request()
 {
    LOG4CPLUS_TRACE(logger_, "protocol_request enter");
 
@@ -342,7 +342,7 @@ api_connection::handle_protocol_request()
  * (add/remove members).
  */
 void
-api_connection::handle_peer_request() 
+api_connection::handle_peer_request()
 {
    const PeerRequest request = athenaRequest_.peer_request();
    PeerResponse *response = athenaResponse_.mutable_peer_response();
@@ -364,7 +364,7 @@ api_connection::handle_peer_request()
  * Handle an ETH RPC request.
  */
 void
-api_connection::handle_eth_request(int i) 
+api_connection::handle_eth_request(int i)
 {
    // TODO: forward to SBFT/KVBlockchain; just calling directly for now to
    // demonstrate
@@ -386,9 +386,12 @@ api_connection::handle_eth_request(int i)
    case EthRequest_EthMethod_GET_STORAGE_AT:
       handle_eth_getStorageAt(request);
       break;
+   case EthRequest_EthMethod_FILTER_REQUEST:
+      handle_filter_requests(request);
+      break;
    case EthRequest_EthMethod_NEW_ACCOUNT:
       handle_personal_newAccount(request);
-      break;   
+      break;
    default:
       ErrorResponse *e = athenaResponse_.add_error_response();
       e->mutable_description()->assign("ETH Method Not Implemented");
@@ -401,31 +404,31 @@ api_connection::handle_eth_request(int i)
  * of the hash of the passphrase provided by the user.
  */
 void
-api_connection::handle_personal_newAccount(const EthRequest &request) 
+api_connection::handle_personal_newAccount(const EthRequest &request)
 {
-   
+
    if (request.has_data()) {
       const string& passphrase = request.data();
-      
-      LOG4CPLUS_INFO(logger_, "Creating new account with passphrase : " 
-                               << passphrase);
+
+      LOG4CPLUS_INFO(logger_, "Creating new account with passphrase : "
+                     << passphrase);
       evm_address address;
       bool error = athevm_.new_account(passphrase, address);
-      
-      /** 
-       * This is an extremely hacky approach for setting the user address 
+
+      /**
+       * This is an extremely hacky approach for setting the user address
        * as this means that multiple accounts cannot have the same password.
        * TODO : Implement the ethereum way of setting account addresses.
        * (Note : See https://github.com/vmwathena/athena/issues/55)
        */
       if (error == false) {
-          LOG4CPLUS_INFO(logger_, "Use another passphrase : " 
-                               << passphrase);
-          ErrorResponse *error = athenaResponse_.add_error_response();
-          error->set_description("Use another passphrase");
+         LOG4CPLUS_INFO(logger_, "Use another passphrase : "
+                        << passphrase);
+         ErrorResponse *error = athenaResponse_.add_error_response();
+         error->set_description("Use another passphrase");
       } else {
-          EthResponse *response = athenaResponse_.add_eth_response();
-          response->set_data(address.bytes, sizeof(evm_address));
+         EthResponse *response = athenaResponse_.add_eth_response();
+         response->set_data(address.bytes, sizeof(evm_address));
       }
    } else {
       ErrorResponse *error = athenaResponse_.add_error_response();
@@ -437,7 +440,7 @@ api_connection::handle_personal_newAccount(const EthRequest &request)
  * Handle a request for the block list.
  */
 void
-api_connection::handle_block_list_request() 
+api_connection::handle_block_list_request()
 {
    const BlockListRequest request = athenaRequest_.block_list_request();
 
@@ -466,7 +469,7 @@ api_connection::handle_block_list_request()
  * Handle a request for a specific block.
  */
 void
-api_connection::handle_block_request() 
+api_connection::handle_block_request()
 {
    const BlockRequest request = athenaRequest_.block_request();
 
@@ -516,7 +519,8 @@ api_connection::handle_block_request()
  * Handle a request for a specific transaction.
  */
 void
-api_connection::handle_transaction_request() {
+api_connection::handle_transaction_request()
+{
    const TransactionRequest request = athenaRequest_.transaction_request();
 
    if (!request.has_hash()) {
@@ -557,7 +561,7 @@ api_connection::handle_transaction_request() {
 evm_result
 api_connection::run_evm(const EthRequest &request,
                         bool isTransaction,
-                        evm_uint256be &txhash /* OUT */) 
+                        evm_uint256be &txhash /* OUT */)
 {
    // TODO: this is the thing we'll forward to SBFT/KVBlockchain/EVM
    evm_message message;
@@ -626,7 +630,7 @@ api_connection::run_evm(const EthRequest &request,
  * as the 'data' of EthResponse.
  */
 void
-api_connection::handle_eth_callContract(const EthRequest &request) 
+api_connection::handle_eth_callContract(const EthRequest &request)
 {
    evm_uint256be txhash;
    evm_result &&result = run_evm(request, false, txhash);
@@ -650,7 +654,7 @@ api_connection::handle_eth_callContract(const EthRequest &request)
  * Handle an eth_sendTransaction request.
  */
 void
-api_connection::handle_eth_sendTransaction(const EthRequest &request) 
+api_connection::handle_eth_sendTransaction(const EthRequest &request)
 {
    evm_uint256be txhash;
    evm_result &&result = run_evm(request, true, txhash);
@@ -663,7 +667,7 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request)
  * Handle an eth_getTransactionReceipt request.
  */
 void
-api_connection::handle_eth_getTxReceipt(const EthRequest &request) 
+api_connection::handle_eth_getTxReceipt(const EthRequest &request)
 {
    if (request.has_data() && request.data().size() == sizeof(evm_uint256be)) {
       evm_uint256be txhash;
@@ -695,7 +699,7 @@ api_connection::handle_eth_getTxReceipt(const EthRequest &request)
  * Handle an eth_getStorageAt request.
  */
 void
-api_connection::handle_eth_getStorageAt(const EthRequest &request) 
+api_connection::handle_eth_getStorageAt(const EthRequest &request)
 {
    if (request.has_addr_to() && request.addr_to().size() == sizeof(evm_address)
        && request.has_data() && request.data().size() == sizeof(evm_uint256be))
@@ -723,7 +727,7 @@ api_connection::handle_eth_getStorageAt(const EthRequest &request)
  * been useful for testing.
  */
 void
-api_connection::handle_test_request() 
+api_connection::handle_test_request()
 {
    const TestRequest request = athenaRequest_.test_request();
    if (request.has_echo()) {
@@ -732,6 +736,125 @@ api_connection::handle_test_request()
       echo->assign(request.echo());
    }
 }
+
+
+void
+api_connection::handle_filter_requests(const EthRequest &request)
+{
+   if (request.has_filter_request()) {
+      const FilterRequest &filter_request = request.filter_request();
+      switch (filter_request.type()) {
+      case FilterRequest_FilterRequestType_NEW_FILTER:
+      case FilterRequest_FilterRequestType_NEW_BLOCK_FILTER:
+         handle_new_block_filter(request);
+         break;
+      case FilterRequest_FilterRequestType_NEW_PENDING_TRANSACTION_FILTER:
+      case FilterRequest_FilterRequestType_FILTER_CHANGE_REQUEST:
+         handle_get_filter_changes(request);
+         break;
+      case FilterRequest_FilterRequestType_UNINSTALL_FILTER:
+         handle_uninstall_filter(request);
+      default:
+         break;
+      }
+   } else {
+      ErrorResponse *error = athenaResponse_.add_error_response();
+      error->set_description("Invalid Filter request.");
+   }
+}
+
+
+/**
+ * Creates a new block filter and returns the associated ID.
+ */
+void
+api_connection::handle_new_block_filter(const EthRequest &request) {
+   FilterManager *filterManager = athevm_.get_filter_manager();
+   evm_uint256be filterId = filterManager->create_new_block_filter();
+   EthResponse *response = athenaResponse_.add_eth_response();
+   response->set_id(request.id());
+   FilterResponse *fresponse = response->mutable_filter_response();
+   fresponse->set_filter_id(filterId.bytes, sizeof(filterId));
+}
+
+/**
+ * Returns all the new changes that happend after the last call to this method.
+ * This method may returns different data based on the type of filter.
+ */
+void
+api_connection::handle_get_filter_changes(const EthRequest &request)
+{
+   const FilterRequest frequest = request.filter_request();
+   evm_uint256be filterId;
+   try {
+      if (frequest.filter_id().size() != sizeof(filterId)) {
+         throw FilterException("Filter ID should be exactly " +
+                               std::to_string(sizeof(filterId)) + " bytes");
+      }
+      std::copy(frequest.filter_id().begin(),
+                frequest.filter_id().end(),
+                filterId.bytes);
+      FilterManager *filterManager = athevm_.get_filter_manager();
+      EthResponse *response = athenaResponse_.add_eth_response();
+      response->set_id(request.id());
+      if (filterManager->get_filter_type(filterId) ==
+          EthFilterType::LOG_FILTER) {
+         LOG4CPLUS_WARN(logger_,
+                        "newFilter API (LOG_FILTER) is not implemented yet");
+      } else if (filterManager->get_filter_type(filterId) ==
+                 EthFilterType::NEW_BLOCK_FILTER) {
+         vector<evm_uint256be>  block_changes =
+            filterManager->get_new_block_filter_changes(filterId);
+         if (block_changes.size() > 0) {
+            FilterResponse *filterResponse = response->mutable_filter_response();
+            for (auto block_hash : block_changes) {
+               filterResponse->add_block_hashes(block_hash.bytes,
+                                                sizeof(block_hash));
+            }
+         }
+      } else if (filterManager->get_filter_type(filterId) ==
+                 EthFilterType::NEW_PENDING_TRANSACTION_FILTER) {
+         LOG4CPLUS_WARN(logger_, "newPendingTransactionFilter API"
+                        "(NEW_PENDING_TRANSACTION_FILTER) is not implemented yet");
+      }
+   } catch (FilterException e) {
+      LOG4CPLUS_DEBUG(logger_, e.what());
+      // We might have added response to AthenaResponse, clear it first
+      athenaResponse_.clear_eth_response();
+      ErrorResponse *resp = athenaResponse_.add_error_response();
+      resp->set_description(e.what());
+   }
+   return;
+}
+
+void
+api_connection::handle_uninstall_filter(const EthRequest &request)
+{
+   const FilterRequest frequest = request.filter_request();
+   evm_uint256be filterId;
+   try {
+      if (frequest.filter_id().size() != sizeof(filterId)) {
+         throw FilterException("Filter ID should be exactly " +
+                               std::to_string(sizeof(filterId)) + " bytes");
+      }
+      std::copy(frequest.filter_id().begin(),
+                frequest.filter_id().end(),
+                filterId.bytes);
+      FilterManager *filterManager = athevm_.get_filter_manager();
+      filterManager->uninstall_filter(filterId);
+      EthResponse *response = athenaResponse_.add_eth_response();
+      response->set_id(request.id());
+      FilterResponse *filterResponse = response->mutable_filter_response();
+      filterResponse->set_success(true);
+   } catch (FilterException e) {
+      LOG4CPLUS_DEBUG(logger_, e.what());
+      // We might have added response to AthenaResponse, clear it first
+      athenaResponse_.clear_eth_response();
+      ErrorResponse *resp = athenaResponse_.add_error_response();
+      resp->set_description(e.what());
+   }
+}
+
 
 api_connection::api_connection(
    io_service &io_service,
