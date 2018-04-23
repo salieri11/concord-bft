@@ -80,11 +80,19 @@ void com::vmware::athena::RLPBuilder::add(const evm_uint256be &uibe)
    add(uibe.bytes, sizeof(evm_uint256be));
 }
 
-void com::vmware::athena::RLPBuilder::add(const uint64_t number)
+void com::vmware::athena::RLPBuilder::add(uint64_t number)
 {
    assert(!finished);
    if (number <= 0x7f) {
       buffer.push_back((uint8_t)number);
+   } else {
+      uint8_t length = 0;
+      do {
+         ++length;
+         buffer.push_back(number & 0xff);
+         number >>= 8;
+      } while (number > 0);
+      add_string_size(length);
    }
 }
 
