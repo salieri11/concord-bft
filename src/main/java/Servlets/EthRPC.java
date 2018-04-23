@@ -26,7 +26,6 @@ import com.vmware.athena.Athena.FilterRequest.*;
 
 import io.undertow.util.StatusCodes;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
@@ -49,6 +48,7 @@ public final class EthRPC extends BaseServlet {
    private JSONObject rpcModules;
    private String jsonRpc;
    private String clientVersion;
+   private String coinbase;
    private boolean isMining;
 
    private enum EthMethodName {
@@ -76,6 +76,7 @@ public final class EthRPC extends BaseServlet {
          jsonRpc = _conf.getStringValue("JSONRPC");
          clientVersion = _conf.getStringValue("ClientVersion");
          isMining = _conf.getIntegerValue("Is_Mining") == 0 ? false : true;
+         coinbase = _conf.getStringValue("Coinbase");
       } catch (Exception e) {
          logger.error("Failed to read RPC information from config file", e);
       }
@@ -259,6 +260,9 @@ public final class EthRPC extends BaseServlet {
             return;
          } else if (method.equals(_conf.getStringValue("RPCModules_Name"))) {
             localResponse(rpcModules, response, id);
+            return;
+         } else if (method.equals(_conf.getStringValue("Coinbase_Name"))) {
+            localResponse(coinbase, response, id);
             return;
          } else if (method.equals(_conf.getStringValue("ClientVersion_Name"))) {
             localResponse(clientVersion, response, id);
