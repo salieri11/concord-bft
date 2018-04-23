@@ -859,10 +859,9 @@ void com::vmware::athena::EVM::call(
    // create copy of message struct since
    // call function needs non-const message object
    evm_message call_msg = *msg;
-   // TODO: call to another contract from a contract is always
-   // considered as a transaction as of now, hence the 'true'
-   // parameter. This might have to be changed
-   run(call_msg, true, *result, txhash);
+   
+   //Passing false ensures that this will not create a separate transaction
+   run(call_msg, false, *result, txhash);
 }
 
 /**
