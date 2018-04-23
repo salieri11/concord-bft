@@ -24,7 +24,7 @@ public:
    std::vector<uint8_t>&& build();
 
 private:
-   static const int MAX_LIST_DEPTH = 3;
+   static const int MAX_LIST_DEPTH = 4;
 
    std::vector<uint8_t> buffer;
    size_t list_start[MAX_LIST_DEPTH];
