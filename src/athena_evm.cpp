@@ -13,6 +13,7 @@
 #include "athena_evm.hpp"
 #include "athena_log.hpp"
 #include "athena_types.hpp"
+#include "common/rlp.hpp"
 
 #ifdef USE_HERA
 #include "hera.h"
@@ -387,46 +388,13 @@ std::shared_ptr<EthBlock> com::vmware::athena::EVM::get_block_for_hash(
 evm_address com::vmware::athena::EVM::contract_destination(
    const evm_message &message)
 {
-   //TODO: write RLP encoding function
-   // https://github.com/ethereum/wiki/wiki/RLP
+   RLPBuilder rlpb;
+   rlpb.start_list();
 
-   // length depends on value of nonce, so use expandable vector
-   std::vector<uint8_t> rlp;
-
-   // Build RLP encoding backward, then reverse before returning.
-   // backward = nonce first, low bits first
-   size_t nonce_bytes = 0;
-   uint64_t nonce = get_nonce(message.sender);
-   if (nonce < 0x80) {
-      ++nonce_bytes;
-      // very small numbers are represented by themselves
-      rlp.push_back(nonce);
-   } else {
-      do {
-         ++nonce_bytes;
-         rlp.push_back(nonce & 0xff);
-         nonce >>= 8;
-      } while(nonce > 0);
-      // prefix (0x80 = short string)
-      rlp.push_back(0x80 + nonce_bytes);
-      // for reference at list prefix
-      ++nonce_bytes;
-   }
-
-   // now the address
-   for (int i = sizeof(evm_address)-1; i >= 0; i--) {
-      rlp.push_back(message.sender.bytes[i]);
-   }
-   // prefix (max 55 bytes for this particular encoding)
-   assert(sizeof(evm_address) < 56);
-   rlp.push_back(0x80 + sizeof(evm_address));
-
-   // now the list prefix (0xc0 = short list)
-   assert(sizeof(evm_address)+1+nonce_bytes < 56);
-   rlp.push_back(0xc0 + sizeof(evm_address)+1+nonce_bytes);
-
-   // get the RLP in the correct order
-   std::reverse(rlp.begin(), rlp.end());
+   // RLP building is done in reverse order - build flips it for us
+   rlpb.add(get_nonce(message.sender));
+   rlpb.add(message.sender);
+   std::vector<uint8_t> rlp = rlpb.build();
 
    // hash it
    evm_uint256be hash = keccak_hash(rlp);
@@ -445,9 +413,6 @@ evm_address com::vmware::athena::EVM::contract_destination(
 evm_uint256be com::vmware::athena::EVM::hash_for_transaction(
    const EthTransaction &tx) const
 {
-   //TODO: write RLP encoding function
-   // https://github.com/ethereum/wiki/wiki/RLP
-
    /*
     * WARNING: This is not the same as Ethereum's transaction hash right now,
     * but is instead an approximation, in order to provide something to fill API
@@ -456,77 +421,19 @@ evm_uint256be com::vmware::athena::EVM::hash_for_transaction(
     * RLP([nonce, from, to/contract_address, input])
     */
 
-   std::vector<uint8_t> rlp;
-   size_t field_length_count;
-   size_t field_length;
+   RLPBuilder rlpb;
+   rlpb.start_list();
 
-   // Build RLP encoding backward, then reverse before returning.
-   // backward = input first
-   std::reverse_copy(tx.input.begin(), tx.input.end(), std::back_inserter(rlp));
-   if (tx.input.size() < 56) {
-      rlp.push_back(0x80 + tx.input.size());
+   // RLP building is done in reverse order - build flips it for us
+   rlpb.add(tx.input);
+   if (tx.contract_address == zero_address) {
+      rlpb.add(tx.to);
    } else {
-      field_length = tx.input.size();
-      field_length_count = 0;
-      do {
-         ++field_length_count;
-         rlp.push_back(field_length & 0xff);
-         field_length >>= 8;
-      } while (field_length > 0);
-      rlp.push_back(0xb7 + field_length);
+      rlpb.add(tx.contract_address);
    }
-
-   // now the to/contract address
-   const evm_address &to = tx.contract_address == zero_address
-      ? tx.to : tx.contract_address;
-   std::reverse_copy(to.bytes, to.bytes+sizeof(evm_address),
-                     std::back_inserter(rlp));
-   // prefix (max 55 bytes for this particular encoding)
-   static_assert(sizeof(evm_address) < 56,
-                 "evm_address will not fit in short rlp string");
-   rlp.push_back(0x80 + sizeof(evm_address));
-
-   // now the from address
-   std::reverse_copy(tx.from.bytes, tx.from.bytes+sizeof(evm_address),
-                     std::back_inserter(rlp));
-   // prefix (max 55 bytes for this particular encoding)
-   static_assert(sizeof(evm_address) < 56,
-                 "evm_address will not fit in short rlp string");
-   rlp.push_back(0x80 + sizeof(evm_address));
-
-   // and finally the nonce
-   uint64_t nonce = tx.nonce;
-   if (nonce < 0x80) {
-      // very small numbers are represented by themselves
-      rlp.push_back(nonce);
-   } else {
-      field_length_count = 0;
-      do {
-         ++field_length_count;
-         rlp.push_back(nonce & 0xff);
-         nonce >>= 8;
-      } while(nonce > 0);
-      // prefix (0x80 = short string)
-      rlp.push_back(0x80 + field_length_count);
-   }
-
-   field_length = rlp.size();
-   if (field_length < 56) {
-      // 0xc0 = short list
-      rlp.push_back(0xc0 + field_length);
-   } else {
-      field_length_count = 0;
-      do {
-         ++field_length_count;
-         rlp.push_back(field_length & 0xff);
-         field_length >>= 8;
-      } while(field_length > 0);
-      // 0xf7 = long list
-      rlp.push_back(0xf7 + field_length_count);
-   }
-
-   // get the RLP in the correct order
-   std::reverse(rlp.begin(), rlp.end());
+   rlpb.add(tx.from);
+   rlpb.add(tx.nonce);
+   std::vector<uint8_t> rlp = rlpb.build();
 
    // hash it
    return keccak_hash(rlp);
@@ -538,89 +445,28 @@ evm_uint256be com::vmware::athena::EVM::hash_for_transaction(
 evm_uint256be com::vmware::athena::EVM::hash_for_block(
    const std::shared_ptr<EthBlock> blk) const
 {
-   //TODO: write RLP encoding function
-   // https://github.com/ethereum/wiki/wiki/RLP
-
    /*
     * WARNING: This is not the same as Ethereum's block hash right now,
     * but is instead an approximation, in order to provide something to fill API
     * holes. For now, the plan is:
     *
-    * RLP([number, parent_hash, txhash1, txhash2, ...])
+    * RLP([number, parent_hash, [txhash1, txhash2, ...]])
     */
 
-   std::vector<uint8_t> rlp;
-   size_t field_length_count;
-   size_t field_length;
+   RLPBuilder rlpb;
+   rlpb.start_list();
 
-   // Build RLP encoding backward, then reverse before returning.
-   // backward = txhashes first
-   for (auto txh: blk->transactions) {
-      std::reverse_copy(txh.bytes,
-                        txh.bytes+sizeof(evm_uint256be),
-                        std::back_inserter(rlp));
-      // prefix (max 55 bytes for this particular encoding)
-      static_assert(sizeof(evm_uint256be) < 56,
-                    "evm_uint256be will not fit in short rlp string");
-      rlp.push_back(0x80 + sizeof(evm_uint256be));
+   rlpb.start_list();
+   for (auto txh = blk->transactions.rbegin();
+        txh != blk->transactions.rend();
+        ++txh) {
+      rlpb.add(*txh);
    }
-   size_t txlength = blk->transactions.size()*(1+sizeof(evm_uint256be));
-   if (txlength < 56) {
-      rlp.push_back(0x80 + txlength);
-   } else {
-      field_length = txlength;
-      field_length_count = 0;
-      do {
-         ++field_length_count;
-         rlp.push_back(field_length & 0xff);
-         field_length >>= 8;
-      } while (field_length > 0);
-      rlp.push_back(0xb7 + field_length);
-   }
+   rlpb.end_list();
 
-   // now the parent hash
-   std::reverse_copy(blk->parent_hash.bytes,
-                     blk->parent_hash.bytes+sizeof(evm_uint256be),
-                     std::back_inserter(rlp));
-   // prefix (max 55 bytes for this particular encoding)
-   static_assert(sizeof(evm_uint256be) < 56,
-                 "evm_uint256be will not fit in short rlp string");
-   rlp.push_back(0x80 + sizeof(evm_uint256be));
-
-   // now the index
-   uint64_t number = blk->number;
-   if (number < 0x80) {
-      // very small numbers are represented by themselves
-      rlp.push_back(number);
-   } else {
-      field_length_count = 0;
-      do {
-         ++field_length_count;
-         rlp.push_back(number & 0xff);
-         number >>= 8;
-      } while(number > 0);
-      // prefix (0x80 = short string)
-      rlp.push_back(0x80 + field_length_count);
-   }
-
-   // sum up
-   field_length = rlp.size();
-   if (field_length < 56) {
-      // 0xc0 = short list
-      rlp.push_back(0xc0 + field_length);
-   } else {
-      field_length_count = 0;
-      do {
-         ++field_length_count;
-         rlp.push_back(field_length & 0xff);
-         field_length >>= 8;
-      } while(field_length > 0);
-      // 0xf7 = long list
-      rlp.push_back(0xf7 + field_length_count);
-   }
-
-   // get the RLP in the correct order
-   std::reverse(rlp.begin(), rlp.end());
+   rlpb.add(blk->parent_hash);
+   rlpb.add(blk->number);
+   std::vector<uint8_t> rlp = rlpb.build();
 
    // hash it
    return keccak_hash(rlp);
