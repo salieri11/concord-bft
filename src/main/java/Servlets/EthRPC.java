@@ -21,6 +21,8 @@ import connections.AthenaConnectionPool;
 import connections.IAthenaConnection;
 
 import com.vmware.athena.Athena.EthResponse;
+import com.vmware.athena.Athena.FilterResponse;
+import com.vmware.athena.Athena.FilterRequest.*;
 
 import io.undertow.util.StatusCodes;
 import java.io.IOException;
@@ -54,7 +56,12 @@ public final class EthRPC extends BaseServlet {
       GET_TX_RECEIPT,
       GET_STORAGE_AT,
       CALL,
-      NEW_ACCOUNT
+      NEW_ACCOUNT,
+      NEW_FILTER,
+      NEW_BLOCK_FILTER,
+      NEW_PENDING_TRANSACTION_FILTER,
+      FILTER_CHANGES,
+      UNINSTALL_FILTER
    }
 
    public EthRPC() throws ParseException {
@@ -63,7 +70,9 @@ public final class EthRPC extends BaseServlet {
       try {
          rpcList = (JSONArray) p.parse(_conf.getStringValue("EthRPCList"));
          rpcModules
-            = (JSONObject) (((JSONArray) p.parse(_conf.getStringValue("RPCModules"))).get(0));
+            = (JSONObject) (
+               ((JSONArray) p.parse(_conf.getStringValue("RPCModules"))).get(0)
+               );
          jsonRpc = _conf.getStringValue("JSONRPC");
          clientVersion = _conf.getStringValue("ClientVersion");
          isMining = _conf.getIntegerValue("Is_Mining") == 0 ? false : true;
@@ -219,7 +228,8 @@ public final class EthRPC extends BaseServlet {
             b.setData(ByteString.copyFrom(passphrase,
                                           StandardCharsets.UTF_8.name()));
 
-         } else if (method.equals(_conf.getStringValue("GetTransactionReceipt_Name"))) {
+         } else if (method.equals(
+                       _conf.getStringValue("GetTransactionReceipt_Name"))) {
             rpc = EthMethodName.GET_TX_RECEIPT;
             b.setMethod(EthMethod.GET_TX_RECEIPT);
             txHash = (String) params.get(0);
@@ -287,6 +297,44 @@ public final class EthRPC extends BaseServlet {
 
             localResponse(usersJsonArr, response, id);
             return;
+         } else if (method.equals(_conf.getStringValue("NewFilter_Name"))) {
+            //TODO: handle new filter
+            logger.warn("eth_newFilter method is not implemented yet");
+         } else if (method.equals(_conf.getStringValue("NewBlockFilter_Name"))) {
+            rpc = EthMethodName.NEW_BLOCK_FILTER;
+            b.setMethod(EthMethod.FILTER_REQUEST);
+            // build FilterRequet
+            Athena.FilterRequest.Builder fbuilder =
+               Athena.FilterRequest.newBuilder();
+            fbuilder.setType(FilterRequestType.NEW_BLOCK_FILTER);
+            b.setFilterRequest(fbuilder.build());
+         } else if (method.equals(
+                       _conf.getStringValue(
+                          "NewPendingTransactionFilter_Name"))) {
+            //TODO: handle new pending transaction filter
+            logger.warn("eth_newPendingTransactionFilter method is not" +
+                        "implemented yet");
+         } else if (method.equals(_conf.getStringValue("FilterChange_Name"))) {
+            rpc = EthMethodName.FILTER_CHANGES;
+            b.setMethod(EthMethod.FILTER_REQUEST);
+            // build FilterRequet
+            Athena.FilterRequest.Builder fbuilder =
+               Athena.FilterRequest.newBuilder();
+            fbuilder.setType(FilterRequestType.FILTER_CHANGE_REQUEST);
+            fbuilder.setFilterId(
+               APIHelper.hexStringToBinary((String) params.get(0)));
+            b.setFilterRequest(fbuilder.build());
+         } else if (method.equals(
+                       _conf.getStringValue("UninstallFilter_Name"))) {
+            rpc = EthMethodName.UNINSTALL_FILTER;
+            b.setMethod(EthMethod.FILTER_REQUEST);
+            // build FilterRequet
+            Athena.FilterRequest.Builder fbuilder =
+               Athena.FilterRequest.newBuilder();
+            fbuilder.setType(FilterRequestType.UNINSTALL_FILTER);
+            fbuilder.setFilterId(
+               APIHelper.hexStringToBinary((String) params.get(0)));
+            b.setFilterRequest(fbuilder.build());
          } else {
             logger.error("Invalid method name");
             errorResponse(response,
@@ -460,7 +508,7 @@ public final class EthRPC extends BaseServlet {
                        log);
          return;
       }
-      
+
       respObject = parseToJSON(athenaResponse);
 
       // Set method specific responses
@@ -483,6 +531,21 @@ public final class EthRPC extends BaseServlet {
             result.put("contractAddress", null);
          }
          respObject.put("result", result);
+      } else if (method.equals(EthMethodName.NEW_FILTER) ||
+                 method.equals(EthMethodName.NEW_BLOCK_FILTER) ||
+                 method.equals(EthMethodName.NEW_PENDING_TRANSACTION_FILTER)) {
+         ByteString filterBytes = ethResponse.getFilterResponse().getFilterId();
+         respObject.put("result", APIHelper.binaryStringToHex(filterBytes));
+      } else if (method.equals(EthMethodName.FILTER_CHANGES)) {
+         JSONArray arr = new JSONArray();
+         FilterResponse fresponse = ethResponse.getFilterResponse();
+         for (ByteString hash : fresponse.getBlockHashesList()) {
+            arr.add(APIHelper.binaryStringToHex(hash));
+         }
+         respObject.put("result", arr);
+      } else if (method.equals(EthMethodName.UNINSTALL_FILTER)) {
+         boolean success = ethResponse.getFilterResponse().getSuccess();
+         respObject.put("result", success);
       } else {
          respObject = errorMessage("Unknown response type from athena",
                                    req.getEthRequest(0).getId());
@@ -528,7 +591,6 @@ public final class EthRPC extends BaseServlet {
       // Extract the ethrpcexecute response from
       // the athena reponse envelope.
       EthResponse ethResponse = athenaResponse.getEthResponse(0);
-
       // Construct the response JSON object.
       JSONObject responseJson = new JSONObject();
       responseJson.put("id", ethResponse.getId());
