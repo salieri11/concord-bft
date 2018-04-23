@@ -85,7 +85,8 @@ private:
    void
    handle_eth_getStorageAt(const EthRequest &request);
    void
-
+   handle_eth_getCode(const EthRequest &request);
+   void
    handle_filter_requests(const EthRequest &request);
    void
    handle_new_block_filter(const EthRequest &request);

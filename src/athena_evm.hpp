@@ -138,6 +138,9 @@ public:
    EthTransaction get_transaction(const evm_uint256be &txhash) const;
    evm_uint256be get_storage_at(const evm_address &account,
                                 const evm_uint256be &key) const;
+   bool get_code(const evm_address &address,
+                 std::vector<uint8_t> &result_code,
+                 evm_uint256be &result_hash) const;
    FilterManager* get_filter_manager();
    std::vector<std::shared_ptr<EthBlock>> get_block_list(uint64_t latest,
                                                          uint64_t count) const;
@@ -220,9 +223,6 @@ private:
    void execute(evm_message &message,
                 const std::vector<uint8_t> &code,
                 evm_result &result /* out */);
-   bool get_code(const evm_address &address,
-                 std::vector<uint8_t> &result_code,
-                 evm_uint256be &result_hash);
    uint64_t get_nonce(const evm_address &address);
    uint64_t next_block_number();
 

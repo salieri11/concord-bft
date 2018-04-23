@@ -803,7 +803,7 @@ bool com::vmware::athena::EVM::get_code(
 bool com::vmware::athena::EVM::get_code(
    const evm_address &address,
    std::vector<uint8_t> &code /* out */,
-   evm_uint256be &hash /* out */)
+   evm_uint256be &hash /* out */) const
 {
    // no log here, because this is the internal version
    auto iter = contract_code.find(address);
