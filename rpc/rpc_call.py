@@ -129,6 +129,7 @@ class RPC():
                  self._url,
                  "--output", self._responseFile,
                  "--verbose"]
+      log.debug("RPC COMMAND: {}".format(curlCmd))
 
       with open (self._outputFile, "a") as f:
          # Make people's lives easier by printing a copy/pastable command.
@@ -140,7 +141,7 @@ class RPC():
 
       if os.path.isfile(self._responseFile):
          response = util.json_helper.readJsonFile(self._responseFile)
-
+         log.debug("RPC RESPONSE: {}".format(response))
          if "error" in response:
             exception = "RPC response contained an error.\n" \
                         "Data sent: '{}'\n".format(self._rpcData) + \

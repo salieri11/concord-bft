@@ -18,6 +18,7 @@ import traceback
 
 from . import test_suite
 from rpc.rpc_call import RPC
+from util.bytecode import getPushInstruction
 from util.debug import pp as pp
 from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x, \
    stringOnlyContains
@@ -220,7 +221,8 @@ class CoreVMTests(test_suite.TestSuite):
       user set up their Ethereum instance.
       Note that VMware will not use gas.
       '''
-      return HIGH_GAS if self._ethereumMode else "0x00"
+      # The product seems to be using gas for CALL.
+      return HIGH_GAS #if self._ethereumMode else "0x00"
 
    def _runRpcTest(self, testPath, testSource, testCompiled, testLogDir):
       ''' Runs one test. '''
@@ -247,7 +249,9 @@ class CoreVMTests(test_suite.TestSuite):
       self._unlockUser(rpc, user)
       log.info("Starting test '{}'".format(testName))
 
-      log.info("Creating contract for test {}".format(testName))
+      log.info("Creating contract for test {}, test code: {}". \
+               format(testName,
+                      testExecutionCode))
       txReceipt = self._createContract(user, rpc, testExecutionCode, gas)
 
       if txReceipt:
@@ -317,23 +321,7 @@ class CoreVMTests(test_suite.TestSuite):
       # in the bytecode, so pad it if necessary.
       numCodeBytes = int(len(code)/2)
       numCodeBytesString = decToEvenHexNo0x(numCodeBytes)
-
-      # Make sure we use the right PUSHX instruction to add the code
-      # length to the stack.
-      # 96 = 0x60 = PUSH1 = uint8
-      # 97 = 0x61 = PUSH2 = uint16
-      # 98 - 0x62 = PUSH3 = uint24
-      # ...
-      codeLengthPush = 96
-
-      for i in range(1, 32):
-         maxBytesSupportedByThisPush = 2 ** (i*8) - 1
-         if numCodeBytes <= maxBytesSupportedByThisPush:
-            break
-         else:
-            codeLengthPush += 1
-
-      codeLengthPush = hex(codeLengthPush)
+      codeLengthPush = getPushInstruction(numCodeBytes)
       codeLengthPush = trimHexIndicator(codeLengthPush)
 
       # Calculate the length of this prefix.  What makes it variable is the
@@ -583,13 +571,16 @@ class CoreVMTests(test_suite.TestSuite):
       if not len(gas) % 2 == 0:
          gas = "0" + gas
 
-      invokeCallBytecode = "0x60{}60{}60{}60{}60{}73{}62{}f1". \
+      gasPushInstruction = getPushInstruction(int(gas, 16))
+      gasPushInstruction = trimHexIndicator(gasPushInstruction)
+      invokeCallBytecode = "0x60{}60{}60{}60{}60{}73{}{}{}f1". \
                            format(lengthRetBytesHex,
                                   retOffset,
                                   argsLength,
                                   argsOffset,
                                   value,
                                   address,
+                                  gasPushInstruction,
                                   gas)
 
       # MLOAD only gets 32 bytes at a time, and some tests return multiple
@@ -643,6 +634,8 @@ class CoreVMTests(test_suite.TestSuite):
       info = None
       invokeCallBytecode = self._createCALLBytecode(contractAddress,
                                                     fullExpectedOut)
+      log.debug("CALL bytecode: {}".format(invokeCallBytecode))
+      log.debug("Creating the contract which will invoke the test contract.")
       txHash = rpc.sendTransaction(self._getAUser()["hash"],
                                    invokeCallBytecode,
                                    self._getGas())
