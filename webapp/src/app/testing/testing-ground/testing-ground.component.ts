@@ -8,6 +8,14 @@ import { EthApiService } from '../../shared/eth-api.service';
 import 'rxjs/add/operator/mergeMap';
 import { AthenaApiService } from '../../shared/athena-api.service';
 
+import { ADDRESS_LENGTH, ADDRESS_PATTERN } from '../../shared/shared.config';
+
+const addressValidators = [
+  Validators.maxLength(ADDRESS_LENGTH),
+  Validators.minLength(ADDRESS_LENGTH),
+  Validators.pattern(ADDRESS_PATTERN)
+];
+
 @Component({
   selector: 'app-testing-ground',
   templateUrl: './testing-ground.component.html',
@@ -33,14 +41,15 @@ export class TestingGroundComponent implements OnInit {
               private changeDetectorRef: ChangeDetectorRef) {
 
     this.dataForm = this.formBuilder.group({
-      from: ['', Validators.required],
-      to:   ['', Validators.required],
-      text: ['', Validators.required],
+      from: ['', [Validators.required, ...addressValidators]],
+      to:   ['', [Validators.required, ...addressValidators]],
+      text: ['', [Validators.required, ...addressValidators]],
     });
+
     this.dataForm.valueChanges.subscribe(() => this.dataHash = undefined);
 
     this.smartContractForm = this.formBuilder.group({
-      from: ['', Validators.required],
+      from: ['', [Validators.required, ...addressValidators]],
       file: [null, Validators.required],
     });
     this.smartContractForm.valueChanges.subscribe(() => this.smartContractHash = undefined);
