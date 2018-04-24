@@ -89,6 +89,8 @@
     "amount": "Amount",
     "transactionLength": "Trans Length",
     "status": "Status",
+    "success": "Success",
+    "failure": "Failure",
     "nodes": "Nodes",
     "hash": "Hash",
     "from": "From",

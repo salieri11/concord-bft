@@ -50,4 +50,5 @@ export interface Transaction {
   value: string;
   input: string;
   nonce: number;
+  status: number;
 }
