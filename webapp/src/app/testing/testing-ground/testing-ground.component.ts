@@ -44,7 +44,7 @@ export class TestingGroundComponent implements OnInit {
     this.dataForm = this.formBuilder.group({
       from: ['', [Validators.required, ...addressValidators]],
       to:   ['', [Validators.required, ...addressValidators]],
-      text: ['', [Validators.required, ...addressValidators]],
+      text: ['', [Validators.required, Validators.pattern(ADDRESS_PATTERN)]],
     });
 
     this.dataForm.valueChanges.subscribe(() => this.dataHash = undefined);
