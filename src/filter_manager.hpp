@@ -95,6 +95,10 @@ private:
    std::map<evm_uint256be, std::pair<uint64_t, EthFilterType>> filters_by_id;
    //TODO: add appropriate maps to hold the filters of type
    // pending transaction and log filters
+
+   // hack for geth bug; see note in create_new_block_filter
+   std::map<evm_uint256be, std::pair<uint64_t, EthFilterType>>
+      geth_delay_filters;
 };
 
 }
