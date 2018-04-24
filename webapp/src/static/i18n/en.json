@@ -113,6 +113,6 @@
     "copy": "Copy",
     "file": "File",
     "contractAddress": "Contract Address:",
-    "blockHash": "Block Hash:"
+    "transactionHash": "Transaction Hash:"
   }
 }

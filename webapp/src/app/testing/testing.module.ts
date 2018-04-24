@@ -8,6 +8,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 import { ClarityModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
+import { SharedModule } from '../shared/shared.module';
 
 import { TestingGroundComponent } from './testing-ground/testing-ground.component';
 
@@ -21,7 +22,8 @@ const routes: Routes = [
     ReactiveFormsModule,
     RouterModule.forChild(routes),
     ClarityModule,
-    TranslateModule
+    TranslateModule,
+    SharedModule
   ],
   declarations: [TestingGroundComponent]
 })

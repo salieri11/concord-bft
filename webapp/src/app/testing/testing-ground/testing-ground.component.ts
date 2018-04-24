@@ -4,6 +4,18 @@
 
 import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import 'rxjs/add/operator/mergeMap';
+
+import { EthApiService } from '../../shared/eth-api.service';
+import { AthenaApiService } from '../../shared/athena-api.service';
+
+import { ADDRESS_LENGTH, ADDRESS_PATTERN } from '../../shared/shared.config';
+
+const addressValidators = [
+  Validators.maxLength(ADDRESS_LENGTH),
+  Validators.minLength(ADDRESS_LENGTH),
+  Validators.pattern(ADDRESS_PATTERN)
+];
 
 @Component({
   selector: 'app-testing-ground',
@@ -24,16 +36,21 @@ export class TestingGroundComponent implements OnInit {
   private dataHash: string = undefined;
   private smartContractHash: string = undefined;
 
-  constructor(private formBuilder: FormBuilder, private changeDetectorRef: ChangeDetectorRef) {
+  constructor(private ethApiService: EthApiService,
+              private athenaApiService: AthenaApiService,
+              private formBuilder: FormBuilder,
+              private changeDetectorRef: ChangeDetectorRef) {
+
     this.dataForm = this.formBuilder.group({
-      from: ['from-address', Validators.required],
-      to:   ['', Validators.required],
-      text: ['', Validators.required],
+      from: ['', [Validators.required, ...addressValidators]],
+      to:   ['', [Validators.required, ...addressValidators]],
+      text: ['', [Validators.required, Validators.pattern(ADDRESS_PATTERN)]],
     });
+
     this.dataForm.valueChanges.subscribe(() => this.dataHash = undefined);
 
     this.smartContractForm = this.formBuilder.group({
-      from: ['from-address', Validators.required],
+      from: ['', [Validators.required, ...addressValidators]],
       file: [null, Validators.required],
     });
     this.smartContractForm.valueChanges.subscribe(() => this.smartContractHash = undefined);
@@ -61,13 +78,28 @@ export class TestingGroundComponent implements OnInit {
   }
 
   onSubmitData() {
-    console.log(this.dataForm.value.text);
-    this.dataHash = generateRandomHash();
+    this.ethApiService.sendTransaction({
+      from: this.dataForm.value.from,
+      to: this.dataForm.value.to,
+      data: this.dataForm.value.text,
+    }).subscribe(response => {
+      this.dataHash = response.result;
+    }, response => {
+      alert(response.error);
+    });
   }
 
   onSubmitSmartContract() {
-    console.log(this.smartContractForm.value.file);
-    this.smartContractHash = generateRandomHash();
+    this.ethApiService.sendTransaction({
+      from: this.smartContractForm.value.from,
+      data: this.smartContractForm.value.file
+    }).flatMap(response => {
+      return this.ethApiService.getTransactionReceipt(response.result);
+    }).subscribe(response => {
+      this.smartContractHash = response.result.contractAddress;
+    }, response => {
+      alert(response.error);
+    });
   }
 
   onCopyDataHash() {
@@ -94,14 +126,4 @@ function copyElementToClipboard(element) {
   }
 
   window.getSelection().removeAllRanges();
-}
-
-function generateRandomHash() {
-  const sampleSpace = '0123456789abcdefgh';
-  const hash = [];
-  for (let i = 0; i < 64; i++) {
-    const pos = Math.floor(Math.random() * sampleSpace.length);
-    hash.push(sampleSpace.charAt(pos));
-  }
-  return hash.join('');
 }

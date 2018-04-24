@@ -51,3 +51,36 @@ export interface Transaction {
   input: string;
   nonce: number;
 }
+
+export interface EthSendTransactionParams {
+  from: string;
+  to?: string;
+  data: string;
+}
+
+export type EthGetTransactionReceiptParams = string;
+
+export interface EthRequest {
+  id: number;
+  method: string;
+  jsonrpc: string;
+  params: [EthSendTransactionParams | EthGetTransactionReceiptParams];
+}
+
+export interface EthSendTransactionResponse {
+  id: number;
+  jsonrpc: string;
+  result: string;
+}
+
+export interface EthGetTransactionReceiptResponse {
+  id: number;
+  jsonrpc: string;
+  result: {
+    status: string;
+    transactionHash: string;
+    contractAddress: string;
+    blockHash: string;
+  };
+}
+

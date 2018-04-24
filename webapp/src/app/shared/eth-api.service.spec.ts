@@ -5,21 +5,21 @@
 import { TestBed, inject } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 
-import { AthenaApiService } from './athena-api.service';
-import { ATHENA_API_PREFIX } from './shared.config';
+import { EthApiService } from './eth-api.service';
+import { ETHEREUM_API_PREFIX } from './shared.config';
 
-describe('AthenaApiService', () => {
+describe('EthApiService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
       providers: [
-        {provide: ATHENA_API_PREFIX, useValue: '/api/athena'},
-        AthenaApiService
+        {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'},
+        EthApiService
       ]
     });
   });
 
-  it('should be created', inject([AthenaApiService], (service: AthenaApiService) => {
+  it('should be created', inject([EthApiService], (service: EthApiService) => {
     expect(service).toBeTruthy();
   }));
 });
