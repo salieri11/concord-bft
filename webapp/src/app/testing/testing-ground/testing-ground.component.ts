@@ -4,6 +4,9 @@
 
 import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { EthApiService } from '../../shared/eth-api.service';
+import 'rxjs/add/operator/mergeMap';
+import { AthenaApiService } from '../../shared/athena-api.service';
 
 @Component({
   selector: 'app-testing-ground',
@@ -24,16 +27,20 @@ export class TestingGroundComponent implements OnInit {
   private dataHash: string = undefined;
   private smartContractHash: string = undefined;
 
-  constructor(private formBuilder: FormBuilder, private changeDetectorRef: ChangeDetectorRef) {
+  constructor(private ethApiService: EthApiService,
+              private athenaApiService: AthenaApiService,
+              private formBuilder: FormBuilder,
+              private changeDetectorRef: ChangeDetectorRef) {
+
     this.dataForm = this.formBuilder.group({
-      from: ['from-address', Validators.required],
+      from: ['', Validators.required],
       to:   ['', Validators.required],
       text: ['', Validators.required],
     });
     this.dataForm.valueChanges.subscribe(() => this.dataHash = undefined);
 
     this.smartContractForm = this.formBuilder.group({
-      from: ['from-address', Validators.required],
+      from: ['', Validators.required],
       file: [null, Validators.required],
     });
     this.smartContractForm.valueChanges.subscribe(() => this.smartContractHash = undefined);
@@ -61,13 +68,24 @@ export class TestingGroundComponent implements OnInit {
   }
 
   onSubmitData() {
-    console.log(this.dataForm.value.text);
-    this.dataHash = generateRandomHash();
+    this.ethApiService.sendTransaction({
+      from: this.dataForm.value.from,
+      to: this.dataForm.value.to,
+      data: this.dataForm.value.text,
+    }).subscribe(result => {
+      this.dataHash = result.result;
+    });
   }
 
   onSubmitSmartContract() {
-    console.log(this.smartContractForm.value.file);
-    this.smartContractHash = generateRandomHash();
+    this.ethApiService.sendTransaction({
+      from: this.smartContractForm.value.from,
+      data: this.smartContractForm.value.file
+    }).flatMap(result => {
+      return this.ethApiService.getTransactionReceipt(result.result);
+    }).subscribe(result => {
+      this.smartContractHash = result.result.contractAddress;
+    });
   }
 
   onCopyDataHash() {

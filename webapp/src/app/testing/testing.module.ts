@@ -10,6 +10,7 @@ import { ClarityModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { TestingGroundComponent } from './testing-ground/testing-ground.component';
+import { SharedModule } from '../shared/shared.module';
 
 const routes: Routes = [
   {path: 'testing', component: TestingGroundComponent},
@@ -21,7 +22,8 @@ const routes: Routes = [
     ReactiveFormsModule,
     RouterModule.forChild(routes),
     ClarityModule,
-    TranslateModule
+    TranslateModule,
+    SharedModule
   ],
   declarations: [TestingGroundComponent]
 })

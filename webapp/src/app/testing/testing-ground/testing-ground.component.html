@@ -11,7 +11,7 @@
         <form (ngSubmit)="onSubmitData()" [formGroup]="dataForm">
           <div class="form-group">
             <label for="data-input-from" class="required">{{'testing.from' | translate}}</label>
-            <input id="data-input-from" type="text" readonly formControlName="from">
+            <input id="data-input-from" type="text" formControlName="from">
           </div>
           <div class="form-group">
             <label for="data-input-to" class="required">{{'testing.to' | translate}}</label>
@@ -46,7 +46,7 @@
         <form (ngSubmit)="onSubmitSmartContract()" [formGroup]="smartContractForm">
           <div class="form-group">
             <label for="smart-contract-from" class="required">{{'testing.from' | translate}}</label>
-            <input id="smart-contract-from" type="text" readonly required formControlName="from">
+            <input id="smart-contract-from" type="text" required formControlName="from">
           </div>
           <div class="form-group">
             <label for="smart-contract-file" class="required">{{'testing.file' | translate}}</label>
