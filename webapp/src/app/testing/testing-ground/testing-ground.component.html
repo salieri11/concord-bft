@@ -11,11 +11,11 @@
         <form (ngSubmit)="onSubmitData()" [formGroup]="dataForm">
           <div class="form-group">
             <label for="data-input-from" class="required">{{'testing.from' | translate}}</label>
-            <input id="data-input-from" type="text" formControlName="from">
+            <input id="data-input-from" type="text" required formControlName="from">
           </div>
           <div class="form-group">
             <label for="data-input-to" class="required">{{'testing.to' | translate}}</label>
-            <input id="data-input-to" type="text" formControlName="to">
+            <input id="data-input-to" type="text" required formControlName="to">
           </div>
           <div class="form-group">
             <label for="data-input-text" class="required">{{'testing.data' | translate}}</label>

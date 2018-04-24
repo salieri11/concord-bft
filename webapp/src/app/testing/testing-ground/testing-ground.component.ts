@@ -4,8 +4,9 @@
 
 import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { EthApiService } from '../../shared/eth-api.service';
 import 'rxjs/add/operator/mergeMap';
+
+import { EthApiService } from '../../shared/eth-api.service';
 import { AthenaApiService } from '../../shared/athena-api.service';
 
 import { ADDRESS_LENGTH, ADDRESS_PATTERN } from '../../shared/shared.config';
@@ -81,8 +82,10 @@ export class TestingGroundComponent implements OnInit {
       from: this.dataForm.value.from,
       to: this.dataForm.value.to,
       data: this.dataForm.value.text,
-    }).subscribe(result => {
-      this.dataHash = result.result;
+    }).subscribe(response => {
+      this.dataHash = response.result;
+    }, response => {
+      alert(response.error);
     });
   }
 
@@ -90,10 +93,12 @@ export class TestingGroundComponent implements OnInit {
     this.ethApiService.sendTransaction({
       from: this.smartContractForm.value.from,
       data: this.smartContractForm.value.file
-    }).flatMap(result => {
-      return this.ethApiService.getTransactionReceipt(result.result);
-    }).subscribe(result => {
-      this.smartContractHash = result.result.contractAddress;
+    }).flatMap(response => {
+      return this.ethApiService.getTransactionReceipt(response.result);
+    }).subscribe(response => {
+      this.smartContractHash = response.result.contractAddress;
+    }, response => {
+      alert(response.error);
     });
   }
 
@@ -121,14 +126,4 @@ function copyElementToClipboard(element) {
   }
 
   window.getSelection().removeAllRanges();
-}
-
-function generateRandomHash() {
-  const sampleSpace = '0123456789abcdefgh';
-  const hash = [];
-  for (let i = 0; i < 64; i++) {
-    const pos = Math.floor(Math.random() * sampleSpace.length);
-    hash.push(sampleSpace.charAt(pos));
-  }
-  return hash.join('');
 }

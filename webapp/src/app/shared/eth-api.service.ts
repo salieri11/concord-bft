@@ -3,8 +3,10 @@
  */
 
 import { Inject, Injectable } from '@angular/core';
-import { ETHEREUM_API_PREFIX } from './shared.config';
 import { HttpClient } from '@angular/common/http';
+
+import { ETHEREUM_API_PREFIX } from './shared.config';
+
 import {
   EthRequest,
   EthSendTransactionParams,

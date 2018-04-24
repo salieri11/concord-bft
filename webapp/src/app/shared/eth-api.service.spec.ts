@@ -3,13 +3,19 @@
  */
 
 import { TestBed, inject } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { EthApiService } from './eth-api.service';
+import { ETHEREUM_API_PREFIX } from './shared.config';
 
 describe('EthApiService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [EthApiService]
+      imports: [HttpClientTestingModule],
+      providers: [
+        {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'},
+        EthApiService
+      ]
     });
   });
 

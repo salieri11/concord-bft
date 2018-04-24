@@ -8,9 +8,9 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 import { ClarityModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
+import { SharedModule } from '../shared/shared.module';
 
 import { TestingGroundComponent } from './testing-ground/testing-ground.component';
-import { SharedModule } from '../shared/shared.module';
 
 const routes: Routes = [
   {path: 'testing', component: TestingGroundComponent},
