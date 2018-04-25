@@ -25,6 +25,7 @@
     "25": "Performance test.",
     "26": "For verification, the 'post' block contains fields like Byzantium, EIP150, etc... What to verify?",
     "27": "Requires a specific gas value",
+    "75": "https://github.com/vmwathena/athena/issues/75",
     "VMTests/vmIOandFlowOperations/kv1.json": "1",
     "VMTests/vmArithmeticTest/expXY.json": "1",
     "VMTests/vmArithmeticTest/expXY_success.json": "1",
@@ -193,5 +194,7 @@
     "VMTests/vmSystemOperations/TestNameRegistrator.json": "26",
     "VMTests/vmSystemOperations/CallRecursiveBomb1.json": "27",
     "VMTests/vmSystemOperations/CallRecursiveBomb2.json": "27",
-    "VMTests/vmSystemOperations/CallRecursiveBomb3.json": "27"
+    "VMTests/vmSystemOperations/CallRecursiveBomb3.json": "27",
+    "VMTests/vmRandomTest/201503120547PYTHON.json": "75"
+
 }
