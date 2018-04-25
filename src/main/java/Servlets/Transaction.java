@@ -14,8 +14,6 @@ package Servlets;
 import com.google.protobuf.ByteString;
 import com.vmware.athena.*;
 
-import connections.AthenaConnectionPool;
-import connections.IAthenaConnection;
 import io.undertow.util.StatusCodes;
 import java.io.IOException;
 import javax.servlet.http.HttpServletRequest;

@@ -13,7 +13,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 import configurations.IConfiguration;
-import com.vmware.athena.*;
 
 public class AthenaConnectionPool {
    private AtomicInteger _connectionCount;

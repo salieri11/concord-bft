@@ -10,8 +10,9 @@
  */
 package Servlets;
 
-import com.google.protobuf.ByteString;
 import com.vmware.athena.*;
+import com.vmware.athena.Athena.TransactionResponse;
+
 import io.undertow.util.StatusCodes;
 import java.io.IOException;
 
@@ -20,7 +21,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.JSONAware;
 
 /**
  * Servlet class.
@@ -92,8 +92,8 @@ public final class BlockNumber extends BaseServlet {
 
       JSONArray transactionArr = new JSONArray();
 
-      for (ByteString t: blockResponse.getTransactionList()) {
-         String hash = APIHelper.binaryStringToHex(t);
+      for (TransactionResponse t: blockResponse.getTransactionList()) {
+         String hash = APIHelper.binaryStringToHex(t.getHash());
          JSONObject txJSON = new JSONObject();
          txJSON.put("hash", hash);
          txJSON.put("url", _conf.getStringValue("Transaction_URLPrefix")
@@ -105,7 +105,7 @@ public final class BlockNumber extends BaseServlet {
       blockObj.put("transactions", transactionArr);
 
       blockObj.put("number", blockResponse.getNumber());
-
+      
       String hash = APIHelper.binaryStringToHex(blockResponse.getHash());
       String parentHash =
          APIHelper.binaryStringToHex(blockResponse.getParentHash());

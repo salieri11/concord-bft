@@ -8,7 +8,6 @@ import base.BaseTest;
 import connections.AthenaConnectionFactory;
 import connections.AthenaConnectionFactory.ConnectionType;
 import connections.AthenaConnectionPool;
-import connections.IAthenaCommunication;
 import connections.IAthenaConnection;
 
 public class ConnectionPoolTest extends BaseTest {

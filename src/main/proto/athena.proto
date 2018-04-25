@@ -66,6 +66,7 @@ message EthRequest {
       CALL_CONTRACT = 5;
       NEW_ACCOUNT = 6;
       FILTER_REQUEST = 7;
+      GET_CODE = 8;
    }
 
    optional EthMethod method = 1;
@@ -160,7 +161,7 @@ message BlockResponse {
    optional bytes parent_hash = 3;
    optional bytes nonce = 4;
    optional int64 size = 5;
-   repeated bytes transaction = 6;
+   repeated TransactionResponse transaction = 6;
 }
 
 message TransactionResponse {

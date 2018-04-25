@@ -10,13 +10,11 @@
  */
 package Servlets;
 
-import com.google.protobuf.ByteString;
 import com.vmware.athena.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;

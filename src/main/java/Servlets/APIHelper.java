@@ -101,4 +101,29 @@ public class APIHelper {
 
       return result;
    }
+   
+   /**
+    * Pads zeroes to the hex string to ensure a uniform length of 64 hex
+    * characters
+    *
+    * @param p
+    * @return
+    */
+   public static String padZeroes(String p) {
+      int zeroes = 0;
+      StringBuilder sb = new StringBuilder();
+      if (p.startsWith("0x")) {
+         p = p.substring(2);
+      }
+      if (p.length() < 64) {
+         zeroes = 64 - p.length();
+      }
+      sb.append("0x");
+      while (zeroes > 0) {
+         sb.append("0");
+         zeroes--;
+      }
+      sb.append(p);
+      return sb.toString();
+   }
 }

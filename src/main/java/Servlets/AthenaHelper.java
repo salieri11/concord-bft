@@ -10,7 +10,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import org.apache.log4j.Logger;
 import com.google.protobuf.InvalidProtocolBufferException;
-import connections.IAthenaCommunication;
 import connections.IAthenaConnection;
 import configurations.IConfiguration;
 

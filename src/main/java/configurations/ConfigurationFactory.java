@@ -1,7 +1,5 @@
 package configurations;
 
-import javax.naming.OperationNotSupportedException;
-
 public class ConfigurationFactory {
    public enum ConfigurationType {
       File,
