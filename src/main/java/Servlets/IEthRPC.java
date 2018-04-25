@@ -1,15 +1,15 @@
 package Servlets;
 
+import com.vmware.athena.Athena;
 import org.json.simple.JSONArray;
 import com.vmware.athena.Athena.AthenaRequest;
 import com.vmware.athena.Athena.AthenaResponse;
+import org.json.simple.JSONObject;
 
 public interface IEthRPC {
 
-   AthenaRequest handleRequest(Long id, String method,
-                               JSONArray params) throws Exception;
+   Athena.EthRequest buildRequest(JSONArray params) throws Exception;
 
-   String buildResponse(AthenaResponse athenaResponse, String txHash, String method);
+   JSONObject buildResponse(Athena.EthResponse ethResponse, JSONArray params);
 
-   String buildLocalResponse(Object data, Long id);
 }
