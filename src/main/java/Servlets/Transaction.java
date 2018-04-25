@@ -131,6 +131,14 @@ public final class Transaction extends BaseServlet {
       }
       responseJSON.put("nonce", txResponse.getNonce());
 
+      // Athena EVM has status code '0' for success and other Positive
+      // values to denote error. However, for JSON RPC '1' is success
+      // and '0' is failure. Here we need to reverse status value of athena
+      // response before returning it.
+      responseJSON.put("status",
+                       txResponse.getStatus() == 0 ? 1 : 0);
+
+
       return responseJSON;
    }
 }

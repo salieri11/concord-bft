@@ -22,5 +22,7 @@
     <dd *ngIf="transaction?.input">{{transaction?.input}}</dd>
     <dt>{{'transactions.nonce' | translate}}</dt>
     <dd>{{transaction?.nonce}}</dd>
+    <dt>{{'transactions.status' | translate}}</dt>
+    <dd>{{(transaction?.status ? 'transactions.success' : 'transactions.failure') | translate}}</dd>
   </dl>
 </div>
