@@ -47,14 +47,13 @@ int main(int argc, char** argv)
       /*** Create request ***/
 
       AthenaRequest athReq;
-      EthRequest *ethReq = athReq.add_eth_request();
+      TransactionRequest *tReq = athReq.mutable_transaction_request();
       std::string rcpthash;
 
-      ethReq->set_method(EthRequest_EthMethod_GET_TX_RECEIPT);
 
       if (opts.count(OPT_RECEIPT) > 0) {
          dehex0x(opts[OPT_RECEIPT].as<std::string>(), rcpthash);
-	 ethReq->set_data(rcpthash);
+	 tReq->set_hash(rcpthash);
       } else {
          std::cerr << "Please provide a transaction receipt." << std::endl;
          return -1;
@@ -73,10 +72,10 @@ int main(int argc, char** argv)
 
          /*** Handle Response ***/
 
-         if (athResp.eth_response_size() == 1) {
-            EthResponse ethResp = athResp.eth_response(0);
-            if (ethResp.has_status()) {
-               uint32_t status = ethResp.status();
+         if (athResp.has_transaction_response()) {
+            TransactionResponse tResp = athResp.transaction_response();
+            if (tResp.has_status()) {
+               uint32_t status = tResp.status();
                std::cout << "Transaction status: " << status
                          << " " << status_to_string(status) << std::endl;
             } else {
@@ -84,15 +83,13 @@ int main(int argc, char** argv)
                return -1;
             }
 
-            if (ethResp.has_contract_address()) {
+            if (tResp.has_contract_address()) {
                std::string result;
-               hex0x(ethResp.contract_address(), result);
+               hex0x(tResp.contract_address(), result);
                std::cout << "Contract address: " << result << std::endl;
             }
          } else {
-            std::cerr << "Wrong number of eth_responses: "
-                      << athResp.eth_response_size()
-                      << " (expected 1)" << std::endl;
+            std::cerr << "transaction response not found: " << std::endl;
             return -1;
          }
       } else {

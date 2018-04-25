@@ -16,7 +16,8 @@ namespace athena {
 
 typedef struct EthTransaction {
    uint64_t nonce;
-   // TODO: block info
+   evm_uint256be block_hash;
+   uint64_t block_number;
    evm_address from;
    evm_address to;
    evm_address contract_address;

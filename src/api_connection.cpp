@@ -380,9 +380,6 @@ api_connection::handle_eth_request(int i)
    case EthRequest_EthMethod_CALL_CONTRACT:
       handle_eth_callContract(request);
       break;
-   case EthRequest_EthMethod_GET_TX_RECEIPT:
-      handle_eth_getTxReceipt(request);
-      break;
    case EthRequest_EthMethod_GET_STORAGE_AT:
       handle_eth_getStorageAt(request);
       break;
@@ -533,27 +530,30 @@ api_connection::handle_transaction_request()
    }
 
    try {
-      evm_uint256be hash;
-      std::copy(request.hash().begin(), request.hash().end(), hash.bytes);
-      EthTransaction tx = athevm_.get_transaction(hash);
+      evm_uint256be txhash;
+      std::copy(request.hash().begin(), request.hash().end(), txhash.bytes);
+      EthTransaction tx = athevm_.get_transaction(txhash);
 
-      TransactionResponse* response =
-         athenaResponse_.mutable_transaction_response();
-      response->set_hash(request.hash());
-      response->set_from(tx.from.bytes, sizeof(evm_address));
+      LOG4CPLUS_DEBUG(logger_, "Looking up transaction receipt " << txhash);
+
+      TransactionResponse *tr = athenaResponse_.mutable_transaction_response();
+      tr->set_hash(txhash.bytes, sizeof(evm_uint256be));
+      tr->set_from(tx.from.bytes, sizeof(evm_address));
       if (tx.to != zero_address) {
-         response->set_to(tx.to.bytes, sizeof(evm_address));
+         tr->set_to(tx.to.bytes, sizeof(evm_address));
       }
       if (tx.contract_address != zero_address) {
-         response->set_contract_address(tx.contract_address.bytes,
-                                        sizeof(evm_address));
+         tr->set_contract_address(tx.contract_address.bytes,
+                                  sizeof(evm_address));
       }
       if (tx.input.size()) {
-         response->set_input(std::string(tx.input.begin(), tx.input.end()));
+         tr->set_input(std::string(tx.input.begin(), tx.input.end()));
       }
-      response->set_status(tx.status);
-      response->set_nonce(tx.nonce);
-      response->set_value(tx.value);
+      tr->set_status(tx.status == EVM_SUCCESS ? 1 : 0);
+      tr->set_nonce(tx.nonce);
+      tr->set_value(tx.value);
+      tr->set_block_hash(tx.block_hash.bytes, sizeof(evm_uint256be));
+      tr->set_block_number(tx.block_number);
    } catch (TransactionNotFoundException) {
       ErrorResponse *resp = athenaResponse_.add_error_response();
       resp->set_description("transaction not found");
@@ -664,38 +664,6 @@ api_connection::handle_eth_sendTransaction(const EthRequest &request)
    EthResponse *response = athenaResponse_.add_eth_response();
    response->set_id(request.id());
    response->set_data(txhash.bytes, sizeof(evm_uint256be));
-}
-
-/**
- * Handle an eth_getTransactionReceipt request.
- */
-void
-api_connection::handle_eth_getTxReceipt(const EthRequest &request)
-{
-   if (request.has_data() && request.data().size() == sizeof(evm_uint256be)) {
-      evm_uint256be txhash;
-      std::copy(request.data().begin(), request.data().end(), txhash.bytes);
-
-      LOG4CPLUS_DEBUG(logger_, "Looking up transaction receipt " << txhash);
-
-      try {
-         EthTransaction tx = athevm_.get_transaction(txhash);
-
-         EthResponse *response = athenaResponse_.add_eth_response();
-         response->set_id(request.id());
-         response->set_status(tx.status == EVM_SUCCESS ? 1 : 0);
-         if (tx.contract_address != zero_address) {
-            response->set_contract_address(tx.contract_address.bytes,
-                                           sizeof(evm_address));
-         }
-      } catch (TransactionNotFoundException) {
-         ErrorResponse *error = athenaResponse_.add_error_response();
-         error->set_description("Transaction not found");
-      }
-   } else {
-      ErrorResponse *error = athenaResponse_.add_error_response();
-      error->set_description("Missing or invalid transaction hash");
-   }
 }
 
 /**
