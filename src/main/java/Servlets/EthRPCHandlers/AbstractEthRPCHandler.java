@@ -13,6 +13,9 @@ import org.json.simple.JSONObject;
 
 public abstract class AbstractEthRPCHandler {
 
+   IConfiguration _conf
+      = ConfigurationFactory.getConfiguration(ConfigurationType.File);
+
    abstract public EthRequest
             buildRequest(JSONObject requestJson) throws Exception;
 
@@ -27,12 +30,8 @@ public abstract class AbstractEthRPCHandler {
       try {
          id = (long) requestJson.get("id");
       } catch (Exception e) {
-         IConfiguration _conf
-            = ConfigurationFactory.getConfiguration(ConfigurationType.File);
-         String jsonRpc = _conf.getStringValue("JSONRPC");
          throw new EthRPCHandlerException(buildError("'id' must be an integer",
-                                                     -1L,
-                                                     jsonRpc));
+                                                     -1L));
       }
       b.setId(id);
       return b;
@@ -43,20 +42,14 @@ public abstract class AbstractEthRPCHandler {
       try {
          params = (JSONArray) requestJson.get("params");
       } catch (ClassCastException cse) {
-         IConfiguration _conf
-            = ConfigurationFactory.getConfiguration(ConfigurationType.File);
-         String jsonRpc = _conf.getStringValue("JSONRPC");
          throw new EthRPCHandlerException(buildError("'params' must be an array",
-                                                     -1L,
-                                                     jsonRpc));
+                                                     -1L));
       }
       return params;
    }
 
    @SuppressWarnings("unchecked")
    JSONObject initializeResponseObject(EthResponse ethResponse) {
-      IConfiguration _conf
-         = ConfigurationFactory.getConfiguration(ConfigurationType.File);
       JSONObject respObject = new JSONObject();
       respObject.put("id", ethResponse.getId());
       respObject.put("jsonrpc", _conf.getStringValue("JSONRPC"));
@@ -64,10 +57,10 @@ public abstract class AbstractEthRPCHandler {
    }
 
    @SuppressWarnings("unchecked")
-   String buildError(String message, long id, String jsonRpc) {
+   String buildError(String message, long id) {
       JSONObject responseJson = new JSONObject();
       responseJson.put("id", id);
-      responseJson.put("jsonprc", jsonRpc);
+      responseJson.put("jsonprc", _conf.getStringValue("JSONRPC"));
 
       JSONObject error = new JSONObject();
       error.put("message", message);
