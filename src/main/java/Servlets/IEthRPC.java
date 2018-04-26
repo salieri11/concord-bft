@@ -1,5 +1,6 @@
 package Servlets;
 
+import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthResponse;
 
@@ -18,12 +19,26 @@ public interface IEthRPC {
 
    static EthRequest.Builder
           initializeRequestObject(JSONObject requestJson) throws Exception {
-      return null;
+      EthRequest.Builder b = Athena.EthRequest.newBuilder();
+      Long id;
+      try {
+         id = (Long) requestJson.get("id");
+      } catch (NumberFormatException e) {
+         throw new Exception("'id' must be an integer");
+      }
+      b.setId(id);
+      return b;
    }
 
    static JSONArray
           extractRequestParams(JSONObject requestJson) throws Exception {
-      return null;
+      JSONArray params;
+      try {
+         params = (JSONArray) requestJson.get("params");
+      } catch (ClassCastException cse) {
+         throw new Exception("'params' must be an array");
+      }
+      return params;
    }
 
    @SuppressWarnings("unchecked")
