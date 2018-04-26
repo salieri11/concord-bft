@@ -20,7 +20,11 @@ public abstract class AbstractEthRPCHandler {
             buildRequest(JSONObject requestJson) throws Exception;
 
    abstract public JSONObject buildResponse(EthResponse ethResponse,
-                                            JSONObject requestJson);
+                                            JSONObject requestJson) throws Exception;
+
+   String extractEthMethodName(JSONObject requestJson) {
+       return (String) requestJson.get("method");
+   }
 
    EthRequest.Builder
              initializeRequestObject(JSONObject requestJson) throws Exception {
