@@ -1,37 +1,51 @@
-package Servlets;
+package Servlets.EthRPCHandlers;
 
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+
+import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import com.google.protobuf.ByteString;
 import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.AthenaRequest;
 import com.vmware.athena.Athena.AthenaResponse;
 import com.vmware.athena.Athena.EthResponse;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 
+import Servlets.APIHelper;
 import configurations.ConfigurationFactory;
 import configurations.IConfiguration;
 import configurations.ConfigurationFactory.ConfigurationType;
 
-public class EthGetCodeHandler implements IEthRPC {
+public class EthNewAccountHandler implements AbstractEthRPCHandler {
+   private static Logger logger = Logger.getLogger(EthNewAccountHandler.class);
    private String jsonRpc;
    private IConfiguration _conf;
 
-   public EthGetCodeHandler() {
+   public EthNewAccountHandler() {
       _conf = ConfigurationFactory.getConfiguration(ConfigurationType.File);
       jsonRpc = _conf.getStringValue("JSONRPC");
    }
 
    public AthenaRequest handleRequest(Long id, String method,
                                       JSONArray params) throws Exception {
+
       Athena.EthRequest.Builder b = Athena.EthRequest.newBuilder();
       b.setId(id);
-      b.setMethod(EthMethod.GET_CODE);
-      b.setAddrTo(APIHelper.hexStringToBinary((String) params.get(0)));
-      // ignoring "block" argument for now
 
+      b.setMethod(EthMethod.NEW_ACCOUNT);
+      String passphrase = (String) params.get(0);
+
+      try {
+         b.setData(ByteString.copyFrom(passphrase,
+                                       StandardCharsets.UTF_8.name()));
+      } catch (UnsupportedEncodingException e) {
+         logger.error("Invalid passphrase");
+         throw e;
+      }
       Athena.EthRequest athenaEthRequest = b.build();
-
       // Envelope the request object into an athena request object.
       final Athena.AthenaRequest athenarequestObj
          = Athena.AthenaRequest.newBuilder()
@@ -43,8 +57,8 @@ public class EthGetCodeHandler implements IEthRPC {
    @SuppressWarnings("unchecked")
    @Override
    public String buildResponse(AthenaResponse athenaResponse, String txHash, String method) {
-      JSONObject respObject = new JSONObject();
       EthResponse ethResponse = athenaResponse.getEthResponse(0);
+      JSONObject respObject = new JSONObject();
       respObject.put("id", ethResponse.getId());
       respObject.put("jsonrpc", jsonRpc);
       respObject.put("result",

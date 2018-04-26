@@ -1,4 +1,4 @@
-package Servlets;
+package Servlets.EthRPCHandlers;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -10,7 +10,7 @@ import configurations.ConfigurationFactory;
 import configurations.IConfiguration;
 import configurations.ConfigurationFactory.ConfigurationType;
 
-public class EthLocalResponseHandler implements IEthRPC {
+public class EthLocalResponseHandler implements AbstractEthRPCHandler {
    private String jsonRpc;
    private IConfiguration _conf;
 

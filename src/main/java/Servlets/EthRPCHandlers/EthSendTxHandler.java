@@ -1,4 +1,4 @@
-package Servlets;
+package Servlets.EthRPCHandlers;
 
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
@@ -11,11 +11,12 @@ import com.vmware.athena.Athena.AthenaResponse;
 import com.vmware.athena.Athena.EthResponse;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 
+import Servlets.APIHelper;
 import configurations.ConfigurationFactory;
 import configurations.IConfiguration;
 import configurations.ConfigurationFactory.ConfigurationType;
 
-public class EthSendTxHandler implements IEthRPC {
+public class EthSendTxHandler implements AbstractEthRPCHandler {
    private static Logger logger = Logger.getLogger(EthSendTxHandler.class);
    private String jsonRpc;
    private IConfiguration _conf;

@@ -1,4 +1,4 @@
-package Servlets;
+package Servlets.EthRPCHandlers;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -8,11 +8,12 @@ import com.vmware.athena.Athena.AthenaRequest;
 import com.vmware.athena.Athena.AthenaResponse;
 import com.vmware.athena.Athena.EthResponse;
 
+import Servlets.APIHelper;
 import configurations.ConfigurationFactory;
 import configurations.IConfiguration;
 import configurations.ConfigurationFactory.ConfigurationType;
 
-public class EthGetStorageAtHandler implements IEthRPC {
+public class EthGetStorageAtHandler implements AbstractEthRPCHandler {
    private String jsonRpc;
    private IConfiguration _conf;
 
