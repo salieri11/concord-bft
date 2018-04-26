@@ -18,10 +18,8 @@ import traceback
 
 from . import test_suite
 from rpc.rpc_call import RPC
-from util.bytecode import getPushInstruction
 from util.debug import pp as pp
-from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x, \
-   stringOnlyContains
+from util.numbers_strings import trimHexIndicator, stringOnlyContains
 from util.product import Product
 import util.json_helper
 
@@ -29,17 +27,11 @@ log = logging.getLogger(__name__)
 
 INTENTIONALLY_SKIPPED_TESTS = "suites/skipped/core_vm_tests_to_skip.json"
 TEST_SOURCE_CODE_SUFFIX = "Filler.json"
-HIGH_GAS = "0x47e7c4"
 
 class CoreVMTests(test_suite.TestSuite):
    _args = None
-   _apiServerUrl = None
-   _userConfig = None
-   _ethereumMode = False
-   _productMode = True
    _resultFile = None
    _unintentionallySkippedFile = None
-   _userUnlocked = False
 
    def __init__(self, passedArgs):
       super(CoreVMTests, self).__init__(passedArgs)
@@ -204,26 +196,6 @@ class CoreVMTests(test_suite.TestSuite):
       '''
       return TEST_SOURCE_CODE_SUFFIX in name
 
-   def _getAUser(self):
-      '''
-      Gets a user hash from the user config file, based on whether we're using
-      the product or Ethereum.
-      '''
-      if self._ethereumMode:
-         return self._userConfig["ethereum"]["users"][0]
-      else:
-         return self._userConfig["product"]["users"][0]
-
-   def _getGas(self):
-      '''
-      Gas levels provided in test cases may not be enough.  Just set it high.
-      Maye this should be a config file setting, since it depends on how the
-      user set up their Ethereum instance.
-      Note that VMware will not use gas.
-      '''
-      # The product seems to be using gas for CALL.
-      return HIGH_GAS #if self._ethereumMode else "0x00"
-
    def _runRpcTest(self, testPath, testSource, testCompiled, testLogDir):
       ''' Runs one test. '''
       success = None
@@ -271,105 +243,6 @@ class CoreVMTests(test_suite.TestSuite):
          info = "Did not receive a transaction receipt."
 
       return (success, info)
-
-   def _addCodePrefix(self, code):
-      '''
-      When creating a contract with some code, that code will run the first time
-      only.  If we want to invoke code in a contract after running it, the code
-      needs to return the code to run.  For example, say we want to test code
-      which adds 5 to storage every time it is invoked:
-
-      PUSH1 00
-      SLOAD
-      PUSH1 05
-      ADD
-      PUSH1 00
-      SSTORE
-
-      600054600501600055
-
-      As-is, 5 will be put in storage on contract creation, and further
-      invocations of the contract will do nothing.  To invoke the code in
-      subsequent calls, add code to return that code in front:
-
-      Prefix                   Code we want to test
-      600980600c6000396000f300 600054600501600055
-
-      The prefix instructions are:
-      60: PUSH1 (Could be PUSH2, PUSH3, etc... depending on the next nunber.
-      09: Hex number of bytes of the code we want to test.
-      80: DUP1 because we're going to use the above number once for CODECOPY,
-          then again for RETURN.
-      60: PUSH
-      0c: Hex number of bytes offset where the code we want to test starts.
-          (In other words, the length of this prefix so that it is skipped.)
-      60: PUSH
-      00: Destination offset for the upcoming CODECOPY.  It's zero because we're
-          going to start writing at the beginning of memory.
-      39: CODECOPY (destOffset, offset, length).  These are three of the numbers
-          we put on the stack with the above code.
-      60: PUSH
-      00: Offset for the upcoming RETURN. (We want to return all of the code
-          copied to memory by the CODECOPY.)
-      f3: RETURN (offset, length).  The length param is the first PUSH.
-      00: STOP
-      '''
-      code = trimHexIndicator(code)
-
-      # Tests may have more than 0xff bytes (the byte1 test), so we may end
-      # up with three digits, like 0x9b0. We must have an even number of digits
-      # in the bytecode, so pad it if necessary.
-      numCodeBytes = int(len(code)/2)
-      numCodeBytesString = decToEvenHexNo0x(numCodeBytes)
-      codeLengthPush = getPushInstruction(numCodeBytes)
-      codeLengthPush = trimHexIndicator(codeLengthPush)
-
-      # Calculate the length of this prefix.  What makes it variable is the
-      # length of numCodeBytesString.  The prefix is 11 bytes without it.
-      prefixLength = 11 + int(len(numCodeBytesString)/2)
-      prefixLength = decToEvenHexNo0x(prefixLength)
-
-      prefix = "0x{}{}8060{}6000396000f300".format(codeLengthPush,
-                                                   numCodeBytesString,
-                                                   prefixLength)
-      return prefix + code
-
-   def _unlockUser(self, rpc, user):
-      '''
-      Don't know if we'll have a personal_* interface in the product, but
-      we can at least handle Ethereum for now.
-      '''
-      if self._ethereumMode and not self._userUnlocked:
-         log.debug("Unlocking account '{}'".format(user["hash"]))
-         rpc.unlockAccount(user["hash"], user["password"])
-         self._userUnlocked = True
-
-   def _createContract(self, user, rpc, testExecutionCode, gas):
-      '''
-      Create a contract and return a transaction receipt.
-      '''
-      txReceipt = None
-      txHash = rpc.sendTransaction(user["hash"], testExecutionCode, gas)
-
-      if txHash:
-         txReceipt = rpc.getTransactionReceipt(txHash, self._ethereumMode)
-
-      return txReceipt
-
-   def _invokeContract(self, user, rpc, contractAddress, testData, gas):
-      '''
-      Invoke the contract whose address is in txReceipt, passing in the
-      given testData as "data".
-      Returns the txReceipt of the call to the contract.
-      '''
-      txReceipt = None
-      txHash = rpc.sendTransaction(user["hash"], testData, gas,
-                                   contractAddress)
-
-      if txHash:
-         txReceipt = rpc.getTransactionReceipt(txHash, self._ethereumMode)
-
-      return txReceipt
 
    def _getExpectedOutResults(self, testCompiled):
       '''
@@ -540,85 +413,6 @@ class CoreVMTests(test_suite.TestSuite):
 
       return success, info
 
-   def _createCALLBytecode(self, contractAddress, expectedOut):
-      '''
-      Returns the bytecode to create a new contract which:
-      - Invokes CALL on the given contract address.
-      - Stores the returned result of CALL into storage. That way, the test
-        framework can retrieve the returned values.
-
-      Instructions:
-        PUSH1  {output size}
-        PUSH1  {output offset}
-        PUSH1  {input size}
-        PUSH1  {input offset}
-        PUSH1  {value}
-        PUSH20 {address}
-        PUSH3  {gas}
-        CALL
-      '''
-      lengthRetBytesDec = max(1, int(len(trimHexIndicator(expectedOut))/2))
-
-      # These are values pushed onto the stack for the CALL instruction.
-      lengthRetBytesHex = decToEvenHexNo0x(lengthRetBytesDec)
-      retOffset = "00"
-      argsLength = "00"
-      argsOffset = "00"
-      value = "00"
-      address = trimHexIndicator(contractAddress)
-      gas = trimHexIndicator(self._getGas())
-
-      if not len(gas) % 2 == 0:
-         gas = "0" + gas
-
-      gasPushInstruction = getPushInstruction(int(gas, 16))
-      gasPushInstruction = trimHexIndicator(gasPushInstruction)
-      invokeCallBytecode = "0x60{}60{}60{}60{}60{}73{}{}{}f1". \
-                           format(lengthRetBytesHex,
-                                  retOffset,
-                                  argsLength,
-                                  argsOffset,
-                                  value,
-                                  address,
-                                  gasPushInstruction,
-                                  gas)
-
-      # MLOAD only gets 32 bytes at a time, and some tests return multiple
-      # 32-byte values, so MLOAD and SSTORE 32-bytes at a time.
-      # e.g. Given an expected result of 0x<thirty-two 1's><thirty-two 2's>
-      # we will end up doing two SSTORE commands:
-      #   Storage slot 1: 11111111111111111111111111111111
-      #   Storage slot 2: 22222222222222222222222222222222
-      # We also may have expected storage of, say, 8 bytes, so be sure we
-      # always allocate at least one storage slot.
-      storageSlots = self._countStorageSlotsForBytes(lengthRetBytesDec)
-
-      for storageSlot in range(0, storageSlots):
-         memoryOffsetDec = storageSlot * 32
-         memoryOffsetHex = decToEvenHexNo0x(memoryOffsetDec)
-         storageSlotHex = decToEvenHexNo0x(storageSlot)
-
-         # Even if we were given 8 bytes as an expected return value, MLOAD
-         # only reads 32 bytes, so the 8 byte value will be stored in 32 bytes
-         # of storage.
-         # Instructions:
-         #   PUSH1  {memory offset}
-         #   MLOAD
-         #   PUSH1  {storage slot}
-         #   SSTORE
-         mloadStep = "60{}5160{}55".format(memoryOffsetHex, storageSlotHex)
-         invokeCallBytecode += mloadStep
-
-      return invokeCallBytecode
-
-   def _countStorageSlotsForBytes(self, numBytes):
-      storageSlots = int(numBytes/32)
-
-      if numBytes % 32 > 0:
-         storageSlots += 1
-
-      return storageSlots
-
    def _checkExpectedOut(self, rpc, contractAddress, fullExpectedOut):
       '''
       Checks the expected out, which is the return value of the code under test.
@@ -633,7 +427,7 @@ class CoreVMTests(test_suite.TestSuite):
       success = False
       info = None
       invokeCallBytecode = self._createCALLBytecode(contractAddress,
-                                                    fullExpectedOut)
+                                int(len(trimHexIndicator(fullExpectedOut))/2))
       log.debug("CALL bytecode: {}".format(invokeCallBytecode))
       log.debug("Creating the contract which will invoke the test contract.")
       txHash = rpc.sendTransaction(self._getAUser()["hash"],
