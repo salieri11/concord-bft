@@ -394,7 +394,7 @@ class CoreVMTests(test_suite.TestSuite):
                                                           contractAddress,
                                                           expectedStorage)
                testVerified = True
-            if expectedOut:
+            if success and expectedOut:
                success, info = self._checkExpectedOut(rpc,
                                                       contractAddress,
                                                       expectedOut)
