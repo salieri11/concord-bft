@@ -12,8 +12,10 @@ import {
   EthSendTransactionParams,
   EthGetTransactionReceiptParams,
   EthSendTransactionResponse,
-  EthGetTransactionReceiptResponse
+  EthGetTransactionReceiptResponse, EthSendCallParams, EthSendCallResponse
 } from './remote-interfaces';
+
+const DEFAULT_BLOCK_PARAMETER = 'latest';
 
 @Injectable()
 export class EthApiService {
@@ -28,6 +30,16 @@ export class EthApiService {
       params: [params]
     };
     return this.httpClient.post<EthSendTransactionResponse>(this.ethereumApiPrefix, request);
+  }
+
+  sendCall(params: EthSendCallParams) {
+    const request: EthRequest = {
+      id: 1,
+      jsonrpc: '2.0',
+      method: 'eth_call',
+      params: [params, DEFAULT_BLOCK_PARAMETER]
+    };
+    return this.httpClient.post<EthSendCallResponse>(this.ethereumApiPrefix, request);
   }
 
   getTransactionReceipt(hash: EthGetTransactionReceiptParams) {
