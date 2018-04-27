@@ -223,6 +223,7 @@ public final class EthDispatcher extends BaseServlet {
          logger.error(APIHelper.exceptionToString(e));
          responseString = errorMessage(e.getMessage(), id, jsonRpc);
       }
+      logger.debug("Response string: " + responseString);
       return responseString;
    }
 
