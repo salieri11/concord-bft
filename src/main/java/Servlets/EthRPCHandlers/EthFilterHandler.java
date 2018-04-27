@@ -1,34 +1,31 @@
 package Servlets.EthRPCHandlers;
 
+import Servlets.APIHelper;
+import Servlets.EthDispatcher;
+import com.google.protobuf.ByteString;
+import com.vmware.athena.Athena;
+import com.vmware.athena.Athena.EthRequest.EthMethod;
+import com.vmware.athena.Athena.EthResponse;
+import com.vmware.athena.Athena.FilterRequest;
+import com.vmware.athena.Athena.FilterRequest.FilterRequestType;
+import com.vmware.athena.Athena.FilterResponse;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-import com.google.protobuf.ByteString;
-import com.vmware.athena.Athena;
-import com.vmware.athena.Athena.AthenaRequest;
-import com.vmware.athena.Athena.EthResponse;
-import com.vmware.athena.Athena.FilterRequest;
-import com.vmware.athena.Athena.FilterRequest.FilterRequestType;
-
-import Servlets.APIHelper;
-
-import com.vmware.athena.Athena.FilterResponse;
-import com.vmware.athena.Athena.EthRequest.EthMethod;
-
 public class EthFilterHandler extends AbstractEthRPCHandler {
-
+    
     private static Logger logger = Logger.getLogger(EthFilterHandler.class);
-
+    
     public Athena.EthRequest
     buildRequest(JSONObject requestJson) throws Exception {
         Athena.EthRequest.Builder b = initializeRequestObject(requestJson);
-        String ethMethodName = extractEthMethodName(requestJson);
+        String ethMethodName = EthDispatcher.getEthMethodName(requestJson);
         JSONArray params = extractRequestParams(requestJson);
-
+        
         
         b.setMethod(EthMethod.FILTER_REQUEST);
-
+        
         if (ethMethodName.equals(_conf.getStringValue("NewFilter_Name"))) {
             // TODO: handle new filter
             logger.warn("eth_newFilter method is not implemented yet");
@@ -51,36 +48,41 @@ public class EthFilterHandler extends AbstractEthRPCHandler {
             fb.setFilterId(APIHelper.hexStringToBinary((String) params.get(0)));
             b.setFilterRequest(fb.build());
         }
-
+        
         Athena.EthRequest athenaEthRequest = b.build();
-
+        
         return athenaEthRequest;
     }
-
-
+    
+    
     public JSONObject buildResponse(EthResponse ethResponse,
-                                    JSONObject requestJson) {
-        JSONObject respObject = initializeResponseObject(ethResponse);
-        String ethMethodName = extractEthMethodName(requestJson);
-
-        if (ethMethodName.equals(_conf.getStringValue("NewFilter_Name"))
-            || ethMethodName.equals(_conf.getStringValue("NewBlockFilter_Name"))
-            || ethMethodName.equals(_conf.getStringValue("NewPendingTransactionFilter_Name"))) {
-            respObject.put("result",
-                APIHelper.binaryStringToHex(ethResponse.getFilterResponse()
-                    .getFilterId()));
-        } else if (ethMethodName.equals(_conf.getStringValue("FilterChange_Name"))) {
-            JSONArray arr = new JSONArray();
-            FilterResponse fresponse = ethResponse.getFilterResponse();
-            for (ByteString hash : fresponse.getBlockHashesList()) {
-                arr.add(APIHelper.binaryStringToHex(hash));
+                                    JSONObject requestJson) throws Exception {
+        try {
+            JSONObject respObject = initializeResponseObject(ethResponse);
+            String ethMethodName = EthDispatcher.getEthMethodName(requestJson);
+            
+            if (ethMethodName.equals(_conf.getStringValue("NewFilter_Name"))
+                || ethMethodName.equals(_conf.getStringValue("NewBlockFilter_Name"))
+                || ethMethodName.equals(_conf.getStringValue("NewPendingTransactionFilter_Name"))) {
+                respObject.put("result",
+                    APIHelper.binaryStringToHex(ethResponse.getFilterResponse()
+                        .getFilterId()));
+            } else if (ethMethodName.equals(_conf.getStringValue("FilterChange_Name"))) {
+                JSONArray arr = new JSONArray();
+                FilterResponse fresponse = ethResponse.getFilterResponse();
+                for (ByteString hash : fresponse.getBlockHashesList()) {
+                    arr.add(APIHelper.binaryStringToHex(hash));
+                }
+                respObject.put("result", arr);
+            } else {
+                respObject.put("result",
+                    ethResponse.getFilterResponse().getSuccess());
             }
-            respObject.put("result", arr);
-        } else {
-            respObject.put("result",
-                ethResponse.getFilterResponse().getSuccess());
+            return respObject;
+        } catch (Exception e) {
+            logger.error("Exception in Filter Handler build response", e);
+            throw e;
         }
-        return respObject;
     }
-
+    
 }

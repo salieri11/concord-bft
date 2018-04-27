@@ -54,7 +54,7 @@ public final class EthDispatcher extends BaseServlet {
          rpcList = (JSONArray) p.parse(_conf.getStringValue("EthRPCList"));
          rpcModules
             = (JSONObject) (((JSONArray) p.parse(_conf.getStringValue("RPCModules"))).get(0));
-         jsonRpc = _conf.getStringValue("JSONRPC");
+          jsonRpc = _conf.getStringValue("JSONRPC");
          clientVersion = _conf.getStringValue("ClientVersion");
          isMining = _conf.getIntegerValue("Is_Mining") == 0 ? false : true;
          coinbase = _conf.getStringValue("Coinbase");
@@ -123,7 +123,7 @@ public final class EthDispatcher extends BaseServlet {
             logger.error("Invalid request : Parameters should be in the "
                + "request body and in a JSON object format");
             processResponse(response,
-                            errorMessage("Unable to parse request", 0),
+                            errorMessage("Unable to parse request", 0, jsonRpc),
                             HttpServletResponse.SC_OK,
                             logger);
             return;
@@ -133,7 +133,7 @@ public final class EthDispatcher extends BaseServlet {
       } catch (ParseException e) {
          logger.error("Invalid request", e);
          processResponse(response,
-                         errorMessage("Unable to parse request", 0),
+                         errorMessage("Unable to parse request", 0, jsonRpc),
                          HttpServletResponse.SC_OK,
                          logger);
          return;
@@ -144,7 +144,7 @@ public final class EthDispatcher extends BaseServlet {
       } catch (NumberFormatException e) {
          logger.error("Invalid request parameter : id", e);
          processResponse(response,
-                         errorMessage("'id' must be an integer", 0),
+                         errorMessage("'id' must be an integer", 0, jsonRpc),
                          HttpServletResponse.SC_OK,
                          logger);
          return;
@@ -154,7 +154,7 @@ public final class EthDispatcher extends BaseServlet {
       if (method == null || method.trim().length() < 1) {
          logger.error("Invalid request parameter : method");
          processResponse(response,
-                         errorMessage("Invalid 'method' parameter", id),
+                         errorMessage("Invalid 'method' parameter", id, jsonRpc),
                          HttpServletResponse.SC_OK,
                          logger);
          return;
@@ -165,7 +165,7 @@ public final class EthDispatcher extends BaseServlet {
       } catch (ClassCastException cse) {
          logger.error("Invalid request parameter : params");
          processResponse(response,
-                         errorMessage("'params' must be an array", id),
+                         errorMessage("'params' must be an array", id, jsonRpc),
                          HttpServletResponse.SC_OK,
                          logger);
          return;
@@ -177,7 +177,7 @@ public final class EthDispatcher extends BaseServlet {
       } catch (Exception e) {
          logger.error("Invalid " + method + " request", e);
          processResponse(response,
-                         errorMessage(e.getMessage(), id),
+                         errorMessage(e.getMessage(), id, jsonRpc),
                          HttpServletResponse.SC_OK,
                          logger);
          return;
@@ -264,7 +264,7 @@ public final class EthDispatcher extends BaseServlet {
            }
        } catch (Exception e) {
            logger.error(APIHelper.exceptionToString(e));
-           responseString = errorMessage(e.getMessage(), id);
+           responseString = errorMessage(e.getMessage(), id, jsonRpc);
        }
        
        processResponse(response,
@@ -285,7 +285,7 @@ public final class EthDispatcher extends BaseServlet {
          if (conn == null) {
             processResponse(response,
                             errorMessage("Error communicating with athena",
-                                         req.getEthRequest(0).getId()),
+                                         req.getEthRequest(0).getId(), jsonRpc),
                             HttpServletResponse.SC_OK,
                             log);
             return null;
@@ -295,7 +295,7 @@ public final class EthDispatcher extends BaseServlet {
          if (!res) {
             processResponse(response,
                             errorMessage("Error communicating with athena",
-                                         req.getEthRequest(0).getId()),
+                                         req.getEthRequest(0).getId(), jsonRpc),
                             HttpServletResponse.SC_OK,
                             log);
             return null;
@@ -306,7 +306,7 @@ public final class EthDispatcher extends BaseServlet {
          if (athenaResponse == null) {
             processResponse(response,
                             errorMessage("Error reading response from athena",
-                                         req.getEthRequest(0).getId()),
+                                         req.getEthRequest(0).getId(), jsonRpc),
                             HttpServletResponse.SC_OK,
                             log);
             return null;
@@ -315,7 +315,7 @@ public final class EthDispatcher extends BaseServlet {
          logger.error("General exception communicating with athena: ", e);
          processResponse(response,
                          errorMessage("Error communicating with athena",
-                                      req.getEthRequest(0).getId()),
+                                      req.getEthRequest(0).getId(), jsonRpc),
                          HttpServletResponse.SC_OK,
                          log);
          return null;
@@ -327,7 +327,8 @@ public final class EthDispatcher extends BaseServlet {
    }
 
    @SuppressWarnings("unchecked")
-   private String errorMessage(String message, long id) {
+   public static String
+   errorMessage(String message, long id, String jsonRpc) {
       JSONObject responseJson = new JSONObject();
       responseJson.put("id", id);
       responseJson.put("jsonprc", jsonRpc);
@@ -339,7 +340,7 @@ public final class EthDispatcher extends BaseServlet {
       return responseJson.toJSONString();
    }
 
-   protected static String
+   public static String
    getEthMethodName(JSONObject ethRequestJson) throws Exception {
        try {
            return (String) ethRequestJson.get("method");
@@ -348,7 +349,7 @@ public final class EthDispatcher extends BaseServlet {
        }
    }
     
-    protected static long
+    public static long
     getEthRequestId(JSONObject ethRequestJson) throws Exception {
         try {
             return (long) ethRequestJson.get("id");

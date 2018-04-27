@@ -3,23 +3,21 @@ package Servlets.EthRPCHandlers;
 import Servlets.APIHelper;
 import Servlets.EthDispatcher;
 import com.vmware.athena.Athena;
+import configurations.ConfigurationFactory;
+import configurations.ConfigurationFactory.ConfigurationType;
+import configurations.IConfiguration;
 import connections.AthenaConnectionPool;
 import connections.IAthenaConnection;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-
-import configurations.ConfigurationFactory;
-import configurations.IConfiguration;
-import configurations.ConfigurationFactory.ConfigurationType;
 import org.json.simple.parser.JSONParser;
 
 public class EthLocalResponseHandler extends AbstractEthRPCHandler {
     
+    private static Logger logger = Logger.getLogger(EthFilterHandler.class);
     private String jsonRpc;
     private IConfiguration _conf;
-    
-    private static Logger logger = Logger.getLogger(EthFilterHandler.class);
     
     public EthLocalResponseHandler() {
         _conf = ConfigurationFactory.getConfiguration(ConfigurationType.File);
@@ -48,9 +46,9 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
     }
     
     public JSONObject buildResponse(Athena.EthResponse ethResponse,
-                                             JSONObject requestJson) throws Exception {
+                                    JSONObject requestJson) throws Exception {
         long id = (long) requestJson.get("id");
-        String ethMethodName = extractEthMethodName(requestJson);
+        String ethMethodName = EthDispatcher.getEthMethodName(requestJson);
         JSONArray params = extractRequestParams(requestJson);
         /* Here we can not use parents initializeResponseObject method because it
          * takes a valid EthResponse object as input parameter, however in local
@@ -68,15 +66,16 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
             if (params.size() != 1) {
                 logger.error("Invalid request parameter : params");
                 throw new EthRPCHandlerException(
-                    buildError("'params' must contain only one element", id));
+                    EthDispatcher.errorMessage("'params' must contain only one element", id, jsonRpc));
             }
-    
+            
             try {
                 localData = APIHelper.getKeccak256Hash((String) params.get(0));
+                logger.info("Generated keccak hash is: " + localData);
             } catch (Exception e) {
-                logger.error("Error in calculating Keccak hash");
+                logger.error("Error in calculating Keccak hash", e);
                 throw new EthRPCHandlerException(
-                    buildError("'invalid param", id));
+                    EthDispatcher.errorMessage("'invalid param", id, jsonRpc));
             }
         } else if (ethMethodName.equals(_conf.getStringValue("RPCModules_Name"))) {
             JSONParser p = new JSONParser();
@@ -99,7 +98,7 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
                 } catch (Exception e) {
                     logger.error("Unable to connect to athena.");
                     throw new EthRPCHandlerException(
-                        buildError("Unable to connect to athena.", id));
+                        EthDispatcher.errorMessage("Unable to connect to athena.", id, jsonRpc));
                 }
             } else {
                 EthDispatcher.netVersionSet = true;
@@ -119,7 +118,7 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
         
         result.put("result", localData);
         
-        return  result;
+        return result;
     }
     
     
