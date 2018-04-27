@@ -77,9 +77,9 @@ public final class EthDispatcher extends BaseServlet {
    }
 
    /**
-    * Services the Post request for executing the specified method. Retrieves
-    * the request parameters and forwards the request to Athena for execution.
-    * Receives a response from Athena and forwards it to the client.
+    * Services the Post request for executing the specified methods. Retrieves
+    * the request parameters and calls the dispatch function. Builds the
+    * response for sending to client.
     *
     * @param request
     *           The request received by the servlet
@@ -87,32 +87,49 @@ public final class EthDispatcher extends BaseServlet {
     *           The response object used to respond to the client
     * @throws IOException
     */
+   @SuppressWarnings("unchecked")
    protected void
              doPost(final HttpServletRequest request,
                     final HttpServletResponse response) throws IOException {
 
       // Retrieve the request fields
-      JSONObject requestParams = null;
+      JSONArray batchRequest = null;
+      JSONArray batchResponse = new JSONArray();
       JSONParser parser = new JSONParser();
       String responseString = null;
-
+      boolean isBatch = false;
       try {
          // Retrieve the parameters from the request body
          String paramString
             = request.getReader()
                      .lines()
                      .collect(Collectors.joining(System.lineSeparator()));
-         requestParams = (JSONObject) parser.parse(paramString);
+         logger.debug("Request Parameters: " + paramString);
 
-         if (requestParams == null) {
-            throw new Exception("Invalid request : Parameters should be in the "
-               + "request body and in a JSON object format");
+         // If we receive a single request, add it to a JSONArray for the sake
+         // of uniformity.
+         if (paramString.startsWith("[")) {
+            isBatch = true;
+            batchRequest = (JSONArray) parser.parse(paramString);
+            if (batchRequest == null || batchRequest.size() == 0) {
+               throw new Exception("Invalid request");
+            }
+         } else {
+            batchRequest = new JSONArray();
+            batchRequest.add((JSONObject) parser.parse(paramString));
          }
-         logger.debug("Request Parameters: " + requestParams.toJSONString());
 
-         // Dispatch requests to the corresponding handlers
-         responseString = dispatch(response, requestParams);
+         for (Object params : batchRequest) {
+            JSONObject requestParams = (JSONObject) params;
 
+            // Dispatch requests to the corresponding handlers
+            batchResponse.add(dispatch(response, requestParams));
+         }
+         if (isBatch) {
+            responseString = batchResponse.toJSONString();
+         } else {
+            responseString = ((JSONObject) batchResponse.get(0)).toJSONString();
+         }
       } catch (ParseException e) {
          logger.error("Invalid request", e);
          responseString = errorMessage("Unable to parse request", -1, jsonRpc);
@@ -138,10 +155,10 @@ public final class EthDispatcher extends BaseServlet {
       String responseString;
       AthenaResponse athenaResponse = null;
 
+      // Dispatch to appropriate handlers
       try {
          ethMethodName = getEthMethodName(requestJson);
          id = getEthRequestId(requestJson);
-         // Dispatch to appropriate handlers
          if (ethMethodName.equals(_conf.getStringValue("SendTransaction_Name"))
             || ethMethodName.equals(_conf.getStringValue("Call_Name"))) {
             handler = new EthSendTxHandler();
