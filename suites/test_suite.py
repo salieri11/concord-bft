@@ -8,7 +8,7 @@ import collections
 import json
 import logging
 import os
-from util.bytecode import getPushInstruction
+from util.bytecode import getPushInstruction, addBytePadding
 import util.json_helper
 from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
 from util.product import Product
@@ -245,58 +245,69 @@ class TestSuite(ABC):
 
       return txReceipt
 
-   def _createCALLBytecode(self, contractAddress, numBytesOut):
+   def _createCALLBytecode(self, contractAddress, numBytesOut, arguments):
       '''
       Returns the bytecode to create a new contract which:
       - Invokes CALL on the given contract address.
       - Stores the returned result of CALL into storage. That way, the test
         framework can retrieve the returned values.
-
-      Instructions:
-        PUSH1  {output size}
-        PUSH1  {output offset}
-        PUSH1  {input size}
-        PUSH1  {input offset}
-        PUSH1  {value}
-        PUSH20 {address}
-        PUSH3  {gas}
-        CALL
       '''
-      lengthRetBytesDec = max(1, numBytesOut)
+      arguments = trimHexIndicator(arguments)
 
-      # These are values pushed onto the stack for the CALL instruction.
-      lengthRetBytesHex = decToEvenHexNo0x(lengthRetBytesDec)
-      retOffset = "00"
-      argsLength = "00"
-      argsOffset = "00"
-      value = "00"
-      address = trimHexIndicator(contractAddress)
+      # Define memory in which to place the return bytes.
+      lengthRetBytes = numBytesOut
+      retBytesPushInstruction = getPushInstruction(lengthRetBytes)
+      retOffset = 0
+      retOffsetPushInstruction = getPushInstruction(retOffset)
+
+      # Start writing args at the next 32-bit boundary after the memory for
+      # the return value.
+      argsOffset = lengthRetBytes + 32 - lengthRetBytes % 32
+      argsOffsetPushInstruction = getPushInstruction(argsOffset)
+      memoryBytecode = ""
+      argsLength = 0
+      byteOffset = argsOffset
+
+      # Write one byte to memory at a time with MSTORE8 (53).  Test cases have
+      # varying numbers of bytes to pass in.
+      for i in range(0, len(arguments)-1, 2):
+         memoryBytecode += "60" + arguments[i:i+2]
+         memoryBytecode += trimHexIndicator(getPushInstruction(byteOffset))
+         memoryBytecode += decToEvenHexNo0x(byteOffset)
+         memoryBytecode += "53"
+         byteOffset += 1
+         argsLength += 1
+
+      argsLenPushInstruction = trimHexIndicator(getPushInstruction(argsLength))
+
+      # Define the rest of the fields for CALL.
+      value = 0
+      valuePushInstruction = getPushInstruction(value)
       gas = trimHexIndicator(self._getGas())
 
       if not len(gas) % 2 == 0:
          gas = "0" + gas
 
       gasPushInstruction = getPushInstruction(int(gas, 16))
-      gasPushInstruction = trimHexIndicator(gasPushInstruction)
-      invokeCallBytecode = "0x60{}60{}60{}60{}60{}73{}{}{}f1". \
-                           format(lengthRetBytesHex,
-                                  retOffset,
-                                  argsLength,
-                                  argsOffset,
-                                  value,
-                                  address,
-                                  gasPushInstruction,
-                                  gas)
+      invokeCallBytecode = "0x" + memoryBytecode
+      invokeCallBytecode += "{}{}{}{}{}{}{}{}{}{}73{}{}{}f1". \
+                            format(trimHexIndicator(retBytesPushInstruction),
+                                   decToEvenHexNo0x(lengthRetBytes),
+                                   trimHexIndicator(retOffsetPushInstruction),
+                                   decToEvenHexNo0x(retOffset),
+                                   trimHexIndicator(argsLenPushInstruction),
+                                   decToEvenHexNo0x(argsLength),
+                                   trimHexIndicator(argsOffsetPushInstruction),
+                                   decToEvenHexNo0x(argsOffset),
+                                   trimHexIndicator(valuePushInstruction),
+                                   decToEvenHexNo0x(value),
+                                   trimHexIndicator(contractAddress),
+                                   trimHexIndicator(gasPushInstruction),
+                                   gas)
 
-      # MLOAD only gets 32 bytes at a time, and some tests return multiple
-      # 32-byte values, so MLOAD and SSTORE 32-bytes at a time.
-      # e.g. Given an expected result of 0x<thirty-two 1's><thirty-two 2's>
-      # we will end up doing two SSTORE commands:
-      #   Storage slot 1: 11111111111111111111111111111111
-      #   Storage slot 2: 22222222222222222222222222222222
-      # We also may have expected storage of, say, 8 bytes, so be sure we
-      # always allocate at least one storage slot.
-      storageSlots = self._countStorageSlotsForBytes(lengthRetBytesDec)
+      # After the CALL has occurred, copy return memory to storage so it can
+      # be retrieved by the testing framework for test verification.
+      storageSlots = self._countStorageSlotsForBytes(lengthRetBytes)
 
       for storageSlot in range(0, storageSlots):
          memoryOffsetDec = storageSlot * 32
