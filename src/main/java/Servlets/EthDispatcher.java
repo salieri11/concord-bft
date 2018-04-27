@@ -12,6 +12,7 @@
  */
 package Servlets;
 
+import Servlets.EthRPCHandlers.*;
 import com.vmware.athena.*;
 import com.vmware.athena.Athena.AthenaResponse;
 import com.vmware.athena.Athena.ErrorResponse;
@@ -172,7 +173,7 @@ public final class EthDispatcher extends BaseServlet {
 
       // Dispatch requests to the corresponding handlers
       try {
-         dispatch(response, id, method, params, txHash);
+         dispatch(response, requestParams);
       } catch (Exception e) {
          logger.error("Invalid " + method + " request", e);
          processResponse(response,
@@ -184,155 +185,92 @@ public final class EthDispatcher extends BaseServlet {
    }
 
    @SuppressWarnings("unchecked")
-   private void dispatch(final HttpServletResponse response, Long id,
-                         String method, JSONArray params,
-                         String txHash) throws Exception {
-      Athena.AthenaRequest athenaRequestObj = null;
-      IEthRPC handler = null;
-      boolean isLocal = false;
-      String responseString = null;
-      Object localData = null;
+   private void dispatch(final HttpServletResponse response,
+                         JSONObject requestJson) throws Exception {
+       // Default initialize variables, so that if exception is thrown
+       // while initializing the variables error message can be constructed
+       // with default values.
+       long id = -1;
+       String ethMethodName;
+       Athena.AthenaRequest athenaRequestObj = null;
+       AbstractEthRPCHandler handler = null;
+       boolean isLocal = false;
+       String responseString;
+       Object localData = null;
+       AthenaResponse athenaResponse = null;
+    
+       try {
+           ethMethodName = getEthMethodName(requestJson);
+           id = getEthRequestId(requestJson);
+           // Dispatch to appropriate handlers
+           if (ethMethodName.equals(_conf.getStringValue("SendTransaction_Name"))
+               || ethMethodName.equals(_conf.getStringValue("Call_Name"))) {
+               handler = new EthSendTxHandler();
+           } else if (ethMethodName.equals(_conf.getStringValue("NewAccount_Name"))) {
+               handler = new EthNewAccountHandler();
+           } else if (ethMethodName.equals(_conf.getStringValue("GetTransactionReceipt_Name"))) {
+               handler = new EthGetTxReceiptHandler();
+           } else if (ethMethodName.equals(_conf.getStringValue("GetStorageAt_Name"))) {
+               handler = new EthGetStorageAtHandler();
+           } else if (ethMethodName.equals(_conf.getStringValue("GetCode_Name"))) {
+               handler = new EthGetCodeHandler();
+           } else if (ethMethodName.equals(_conf.getStringValue("NewFilter_Name"))
+               || ethMethodName.equals(_conf.getStringValue("NewBlockFilter_Name"))
+               || ethMethodName.equals(_conf.getStringValue("NewPendingTransactionFilter_Name"))
+               || ethMethodName.equals(_conf.getStringValue("FilterChange_Name"))
+               || ethMethodName.equals(_conf.getStringValue("UninstallFilter_Name"))) {
+               handler = new EthFilterHandler();
+           } else if (ethMethodName.equals(_conf.getStringValue("Web3SHA3_Name")) ||
+               ethMethodName.equals(_conf.getStringValue("RPCModules_Name")) ||
+               ethMethodName.equals(_conf.getStringValue("Coinbase_Name")) ||
+               ethMethodName.equals(_conf.getStringValue("ClientVersion_Name")) ||
+               ethMethodName.equals(_conf.getStringValue("Mining_Name")) ||
+               ethMethodName.equals(_conf.getStringValue("NetVersion_Name")) ||
+               ethMethodName.equals(_conf.getStringValue("Accounts_Name"))) {
+               handler = new EthLocalResponseHandler();
+           } else {
+               throw new Exception("Invalid method name.");
+           }
+           
+           if (!isLocal) {
+               Athena.EthRequest ethRequest = handler.buildRequest(requestJson);
 
-      // Dispatch to appropriate handlers
-
-      if (method.equals(_conf.getStringValue("SendTransaction_Name"))
-         || method.equals(_conf.getStringValue("Call_Name"))) {
-         handler = new EthSendTxHandler();
-      } else if (method.equals(_conf.getStringValue("NewAccount_Name"))) {
-         handler = new EthNewAccountHandler();
-      } else if (method.equals(_conf.getStringValue("GetTransactionReceipt_Name"))) {
-         handler = new EthGetTxReceiptHandler();
-         txHash = (String) params.get(0);
-      } else if (method.equals(_conf.getStringValue("GetStorageAt_Name"))) {
-         handler = new EthGetStorageAtHandler();
-      } else if (method.equals(_conf.getStringValue("GetCode_Name"))) {
-         handler = new EthGetCodeHandler();
-      } else if (method.equals(_conf.getStringValue("NewFilter_Name"))
-         || method.equals(_conf.getStringValue("NewBlockFilter_Name"))
-         || method.equals(_conf.getStringValue("NewPendingTransactionFilter_Name"))
-         || method.equals(_conf.getStringValue("FilterChange_Name"))
-         || method.equals(_conf.getStringValue("UninstallFilter_Name"))) {
-         handler = new EthFilterHandler();
-      }
-      // Local responses
-      else if (method.equals(_conf.getStringValue("Web3SHA3_Name"))) {
-         // Request should contain just one param value
-         if (params.size() != 1) {
-            logger.error("Invalid request parameter : params");
-            processResponse(response,
-                            errorMessage("'params' must contain only one element",
-                                         id),
-                            HttpServletResponse.SC_OK,
-                            logger);
-            return;
-         }
-         isLocal = true;
-         try {
-            localData = APIHelper.getKeccak256Hash((String) params.get(0));
-         } catch (Exception e) {
-            logger.error("Error in calculating Keccak hash");
-            processResponse(response,
-                            errorMessage("Invalid param", id),
-                            HttpServletResponse.SC_OK,
-                            logger);
-            return;
-         }
-         handler = new EthLocalResponseHandler();
-      } else {
-         isLocal = true;
-         if (method.equals(_conf.getStringValue("RPCModules_Name"))) {
-            handler = new EthLocalResponseHandler();
-            localData = rpcModules;
-         } else if (method.equals(_conf.getStringValue("Coinbase_Name"))) {
-            handler = new EthLocalResponseHandler();
-            localData = coinbase;
-         } else if (method.equals(_conf.getStringValue("ClientVersion_Name"))) {
-            handler = new EthLocalResponseHandler();
-            localData = clientVersion;
-         } else if (method.equals(_conf.getStringValue("Mining_Name"))) {
-            handler = new EthLocalResponseHandler();
-            localData = isMining;
-         } else if (method.equals(_conf.getStringValue("NetVersion_Name"))) {
-            if (!netVersionSet) {
-               // The act of creating a connection retrieves info about athena.
-               IAthenaConnection conn = null;
-               try {
-                  conn = AthenaConnectionPool.getInstance().getConnection();
-               } catch (IllegalStateException | InterruptedException e) {
-                  e.printStackTrace();
-               }
-               if (conn == null) {
-                  String failureMsg = "Unable to connect to athena.";
-                  logger.error(failureMsg);
-                  processResponse(response,
-                                  errorMessage(failureMsg, id),
-                                  HttpServletResponse.SC_OK,
-                                  logger);
-                  return;
+               Athena.AthenaRequest athenaRequest =
+                   Athena.AthenaRequest.newBuilder().
+                       addEthRequest(ethRequest).build();
+                   
+               athenaResponse
+                   = communicateWithAthena(athenaRequest, response, logger);
+               
+               // If there is an error reported by Athena
+               if (athenaResponse.getErrorResponseCount() > 0) {
+                   ErrorResponse errResponse =
+                       athenaResponse.getErrorResponse(0);
+                   responseString = "Error received from athena";
+                   if (errResponse.hasDescription()) {
+                       responseString = errResponse.getDescription();
+                   }
                } else {
-                  netVersionSet = true;
+                   responseString = handler.buildResponse(
+                       athenaResponse.getEthResponse(0), requestJson)
+                       .toJSONString();
                }
-            }
-            handler = new EthLocalResponseHandler();
-            localData = netVersion;
-         } else if (method.equals(_conf.getStringValue("Accounts_Name"))) {
-            JSONArray usersJsonArr = new JSONArray();
-            String usersStr = _conf.getStringValue("USERS");
-            if (usersStr != null && !usersStr.trim().isEmpty()) {
-               String[] usersArr = usersStr.split(",");
-
-               for (int i = 0; i < usersArr.length; i++) {
-                  usersJsonArr.add(usersArr[i]);
-               }
-            }
-            handler = new EthLocalResponseHandler();
-            localData = usersJsonArr;
-         } else {
-            logger.error("Invalid method name");
-            processResponse(response,
-                            errorMessage("Unknown method '" + method + "'", id),
-                            HttpServletResponse.SC_OK,
-                            logger);
-            return;
-         }
-      }
-
-      AthenaResponse athenaResponse = null;
-      if (!isLocal) {
-         try {
-            athenaRequestObj = handler.handleRequest(id, method, params);
-         } catch (Exception e) {
-            logger.error("Invalid " + method + " request", e);
-            processResponse(response,
-                            errorMessage(e.getMessage(), id),
-                            HttpServletResponse.SC_OK,
-                            logger);
-            return;
-         }
-         athenaResponse
-            = communicateWithAthena(athenaRequestObj, response, logger);
-         // If there is an error reported by Athena
-         if (athenaResponse.getErrorResponseCount() > 0) {
-            ErrorResponse errResponse = athenaResponse.getErrorResponse(0);
-            String description = "Error received from athena";
-            if (errResponse.hasDescription()) {
-               description = errResponse.getDescription();
-            }
-            processResponse(response,
-                            errorMessage(description, id),
-                            HttpServletResponse.SC_OK,
-                            logger);
-            return;
-         }
-         responseString = handler.buildResponse(athenaResponse, txHash, method);
-      } else {
-         responseString = handler.buildLocalResponse(localData, id);
-      }
-
-      processResponse(response,
-                      responseString,
-                      HttpServletResponse.SC_OK,
-                      logger);
+           } else {
+               // In local request we don't have valid eth resposne from
+               // athena. Just pass null.
+               responseString = handler.buildResponse(null,
+                   requestJson).toJSONString();
+           }
+       } catch (Exception e) {
+           logger.error(e);
+           responseString = errorMessage(e.getMessage(), id);
+       }
+       
+       processResponse(response,
+           responseString,
+           HttpServletResponse.SC_OK,
+           logger);
+       
       return;
    }
 
@@ -400,6 +338,24 @@ public final class EthDispatcher extends BaseServlet {
       return responseJson.toJSONString();
    }
 
+   protected static String
+   getEthMethodName(JSONObject ethRequestJson) throws Exception {
+       try {
+           return (String) ethRequestJson.get("method");
+       } catch (Exception e) {
+           throw new Exception("invalid method parameter in request.", e);
+       }
+   }
+    
+    protected static long
+    getEthRequestId(JSONObject ethRequestJson) throws Exception {
+        try {
+            return (long) ethRequestJson.get("id");
+        } catch (Exception e) {
+            throw new Exception("invalid id parameter in request.", e);
+        }
+    }
+   
    @Override
    protected JSONAware parseToJSON(AthenaResponse athenaResponse) {
       return null;

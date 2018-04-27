@@ -8,6 +8,9 @@ import org.bouncycastle.util.encoders.Hex;
 
 import com.google.protobuf.ByteString;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
 public class APIHelper {
 
    /**
@@ -125,5 +128,17 @@ public class APIHelper {
       }
       sb.append(p);
       return sb.toString();
+   }
+    
+    /**
+     * An utility function to convert java exceptions stack trace into Strings.
+     * @param e
+     * @return string of exception stack trace
+     */
+   public static String exceptionToString(Exception e) {
+       StringWriter sw = new StringWriter();
+       PrintWriter pw = new PrintWriter(sw);
+       e.printStackTrace(pw);
+       return sw.toString(); // stack trace as a string
    }
 }
