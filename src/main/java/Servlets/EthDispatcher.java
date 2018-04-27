@@ -228,6 +228,7 @@ public final class EthDispatcher extends BaseServlet {
                ethMethodName.equals(_conf.getStringValue("NetVersion_Name")) ||
                ethMethodName.equals(_conf.getStringValue("Accounts_Name"))) {
                handler = new EthLocalResponseHandler();
+               isLocal = true;
            } else {
                throw new Exception("Invalid method name.");
            }
@@ -262,7 +263,7 @@ public final class EthDispatcher extends BaseServlet {
                    requestJson).toJSONString();
            }
        } catch (Exception e) {
-           logger.error(e);
+           logger.error(APIHelper.exceptionToString(e));
            responseString = errorMessage(e.getMessage(), id);
        }
        

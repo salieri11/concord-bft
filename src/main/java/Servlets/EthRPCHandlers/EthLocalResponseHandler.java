@@ -63,14 +63,14 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
         
         Object localData = null;
         
-        // Request should contain just one param value
-        if (params.size() != 1) {
-            logger.error("Invalid request parameter : params");
-            throw new EthRPCHandlerException(
-                buildError("'params' must contain only one element", id));
-        }
-    
         if (ethMethodName.equals("Web3SHA3_Name")) {
+            // Request should contain just one param value
+            if (params.size() != 1) {
+                logger.error("Invalid request parameter : params");
+                throw new EthRPCHandlerException(
+                    buildError("'params' must contain only one element", id));
+            }
+    
             try {
                 localData = APIHelper.getKeccak256Hash((String) params.get(0));
             } catch (Exception e) {
