@@ -128,7 +128,7 @@ public final class EthDispatcher extends BaseServlet {
          if (isBatch) {
             responseString = batchResponse.toJSONString();
          } else {
-            responseString = ((JSONObject) batchResponse.get(0)).toJSONString();
+            responseString = (String) batchResponse.get(0);
          }
       } catch (ParseException e) {
          logger.error("Invalid request", e);
