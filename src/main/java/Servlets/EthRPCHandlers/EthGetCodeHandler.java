@@ -10,11 +10,10 @@ import com.vmware.athena.Athena.EthResponse;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 
 import Servlets.APIHelper;
-import Servlets.EthDispatcher;
 
 public class EthGetCodeHandler extends AbstractEthRPCHandler {
 
-   Logger logger = Logger.getLogger(EthDispatcher.class);
+   Logger logger = Logger.getLogger(EthGetCodeHandler.class);
 
    @Override
    public EthRequest buildRequest(JSONObject requestJson) throws Exception {
@@ -24,6 +23,11 @@ public class EthGetCodeHandler extends AbstractEthRPCHandler {
          b.setMethod(EthMethod.GET_CODE);
 
          JSONArray params = extractRequestParams(requestJson);
+         if (params == null) {
+            logger.error("'params' not present");
+            throw new EthRPCHandlerException(buildError("'params' not present",
+                                                        b.getId()));
+         }
          b.setAddrTo(APIHelper.hexStringToBinary((String) params.get(0)));
          // ignoring "block" argument for now
 

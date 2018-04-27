@@ -5,114 +5,103 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import com.google.protobuf.ByteString;
-import com.vmware.athena.Athena;
-import com.vmware.athena.Athena.AthenaRequest;
-import com.vmware.athena.Athena.AthenaResponse;
+import com.vmware.athena.Athena; 
+import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthResponse;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 
 import Servlets.APIHelper;
-import configurations.ConfigurationFactory;
-import configurations.IConfiguration;
-import configurations.ConfigurationFactory.ConfigurationType;
 
-public class EthSendTxHandler implements AbstractEthRPCHandler {
-   private static Logger logger = Logger.getLogger(EthSendTxHandler.class);
-   private String jsonRpc;
-   private IConfiguration _conf;
+public class EthSendTxHandler extends AbstractEthRPCHandler {
 
-   public EthSendTxHandler() {
-      _conf = ConfigurationFactory.getConfiguration(ConfigurationType.File);
-      jsonRpc = _conf.getStringValue("JSONRPC");
-   }
+   Logger logger = Logger.getLogger(EthGetStorageAtHandler.class);
 
-   public AthenaRequest handleRequest(Long id, String method,
-                                      JSONArray params) throws Exception {
-
+   @Override
+   public EthRequest buildRequest(JSONObject requestJson) throws Exception {
       boolean isSendTx = false;
-      Athena.EthRequest.Builder b = Athena.EthRequest.newBuilder();
-      b.setId(id);
-
-      if (method.equals(_conf.getStringValue("SendTransaction_Name"))) {
-         b.setMethod(EthMethod.SEND_TX);
-         isSendTx = true;
-      } else {
-         b.setMethod(EthMethod.CALL_CONTRACT);
-      }
-
       String from = null, to = null, data = null, value = null;
-      JSONObject obj = (JSONObject) params.get(0);
+      Athena.EthRequest ethRequest = null;
 
-      if (obj.containsKey("from")) {
-         from = (String) obj.get("from");
-      }
-      if (isSendTx && from == null) {
-         logger.error("From field missing in params");
-         throw new Exception("'from' must be specified");
-      }
+      try {
+         EthRequest.Builder b = initializeRequestObject(requestJson);
+         String method = extractEthMethodName(requestJson);
 
-      if (from != null) {
-         ByteString fromAddr = APIHelper.hexStringToBinary(from);
-         b.setAddrFrom(fromAddr);
-      }
+         if (method.equals(_conf.getStringValue("SendTransaction_Name"))) {
+            b.setMethod(EthMethod.SEND_TX);
+            isSendTx = true;
+         } else {
+            b.setMethod(EthMethod.CALL_CONTRACT);
+         }
 
-      if (obj.containsKey("to")) {
-         to = (String) obj.get("to");
-      }
-      if (!isSendTx && to == null) {
-         logger.error("To field missing in params");
-         throw new Exception("'to' must be specified");
-      }
+         JSONArray params = extractRequestParams(requestJson);
+         if (params == null) {
+            logger.error("'params' not present");
+            throw new EthRPCHandlerException(buildError("'params' not present",
+                                                        b.getId()));
+         }
 
-      if (to != null) {
-         ByteString toAddr = APIHelper.hexStringToBinary(to);
-         b.setAddrTo(toAddr);
-      }
+         JSONObject obj = (JSONObject) params.get(0);
 
-      if (obj.containsKey("data")) {
-         data = (String) obj.get("data");
-      }
+         if (obj.containsKey("from")) {
+            from = (String) obj.get("from");
+         }
+         if (isSendTx && from == null) {
+            logger.error("From field missing in params");
+            throw new Exception("'from' must be specified");
+         }
 
-      if (data != null) {
-         ByteString dataBytes = APIHelper.hexStringToBinary(data);
-         b.setData(dataBytes);
-      }
+         if (from != null) {
+            ByteString fromAddr = APIHelper.hexStringToBinary(from);
+            b.setAddrFrom(fromAddr);
+         }
 
-      if (obj.containsKey("value")) {
-         value = (String) obj.get("value");
-      }
+         if (obj.containsKey("to")) {
+            to = (String) obj.get("to");
+         }
+         if (!isSendTx && to == null) {
+            logger.error("To field missing in params");
+            throw new Exception("'to' must be specified");
+         }
 
-      if (value != null) {
-         ByteString valueBytes
-            = APIHelper.hexStringToBinary(APIHelper.padZeroes(value));
-         b.setValue(valueBytes);
-      }
+         if (to != null) {
+            ByteString toAddr = APIHelper.hexStringToBinary(to);
+            b.setAddrTo(toAddr);
+         }
 
-      Athena.EthRequest athenaEthRequest = b.build();
-      // Envelope the request object into an athena request object.
-      final Athena.AthenaRequest athenarequestObj
-         = Athena.AthenaRequest.newBuilder()
-                               .addEthRequest(athenaEthRequest)
-                               .build();
-      return athenarequestObj;
+         if (obj.containsKey("data")) {
+            data = (String) obj.get("data");
+         }
+
+         if (data != null) {
+            ByteString dataBytes = APIHelper.hexStringToBinary(data);
+            b.setData(dataBytes);
+         }
+
+         if (obj.containsKey("value")) {
+            value = (String) obj.get("value");
+         }
+
+         if (value != null) {
+            ByteString valueBytes
+               = APIHelper.hexStringToBinary(APIHelper.padZeroes(value));
+            b.setValue(valueBytes);
+         }
+         ethRequest = b.build();
+      } catch (Exception e) {
+         logger.error(e.getMessage());
+         throw e;
+      }
+      return ethRequest;
    }
 
    @SuppressWarnings("unchecked")
    @Override
-   public String buildResponse(AthenaResponse athenaResponse, String txHash, String method) {
-      EthResponse ethResponse = athenaResponse.getEthResponse(0);
-      
-      JSONObject respObject = new JSONObject();
-      respObject.put("id", ethResponse.getId());
-      respObject.put("jsonrpc", jsonRpc);
+   public JSONObject buildResponse(EthResponse ethResponse,
+                                   JSONObject requestJson) {
+      JSONObject respObject = initializeResponseObject(ethResponse);
       // Set method specific responses
       respObject.put("result",
                      APIHelper.binaryStringToHex(ethResponse.getData()));
-      return respObject.toJSONString();
-   }
-
-   @Override
-   public String buildLocalResponse(Object data, Long id) {
-      return null;
+      return respObject;
    }
 }

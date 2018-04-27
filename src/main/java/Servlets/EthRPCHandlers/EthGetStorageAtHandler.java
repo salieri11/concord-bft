@@ -1,61 +1,53 @@
 package Servlets.EthRPCHandlers;
 
+import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import com.vmware.athena.Athena;
-import com.vmware.athena.Athena.AthenaRequest;
-import com.vmware.athena.Athena.AthenaResponse;
+import com.vmware.athena.Athena.EthRequest;
+import com.vmware.athena.Athena.EthRequest.EthMethod;
 import com.vmware.athena.Athena.EthResponse;
 
 import Servlets.APIHelper;
-import configurations.ConfigurationFactory;
-import configurations.IConfiguration;
-import configurations.ConfigurationFactory.ConfigurationType;
 
-public class EthGetStorageAtHandler implements AbstractEthRPCHandler {
-   private String jsonRpc;
-   private IConfiguration _conf;
+public class EthGetStorageAtHandler extends AbstractEthRPCHandler {
 
-   public EthGetStorageAtHandler() {
-      _conf = ConfigurationFactory.getConfiguration(ConfigurationType.File);
-      jsonRpc = _conf.getStringValue("JSONRPC");
-   }
+   Logger logger = Logger.getLogger(EthGetStorageAtHandler.class);
 
-   public AthenaRequest handleRequest(Long id, String method,
-                                      JSONArray params) throws Exception {
-      Athena.EthRequest.Builder b = Athena.EthRequest.newBuilder();
-      b.setId(id);
-      b.setAddrTo(APIHelper.hexStringToBinary((String) params.get(0)));
+   @Override
+   public EthRequest buildRequest(JSONObject requestJson) throws Exception {
+      Athena.EthRequest ethRequest = null;
+      try {
+         EthRequest.Builder b = initializeRequestObject(requestJson);
+         b.setMethod(EthMethod.GET_STORAGE_AT);
 
-      String p = (String) params.get(1);
-      String s = APIHelper.padZeroes(p);
-      b.setData(APIHelper.hexStringToBinary(s));
+         JSONArray params = extractRequestParams(requestJson);
+         if (params == null) {
+            logger.error("'params' not present");
+            throw new EthRPCHandlerException(buildError("'params' not present",
+                                                        b.getId()));
+         }
+         b.setAddrTo(APIHelper.hexStringToBinary((String) params.get(0)));
+         String p = (String) params.get(1);
+         String s = APIHelper.padZeroes(p);
+         b.setData(APIHelper.hexStringToBinary(s));
 
-      Athena.EthRequest athenaEthRequest = b.build();
-      // Envelope the request object into an athena request object.
-      final Athena.AthenaRequest athenarequestObj
-         = Athena.AthenaRequest.newBuilder()
-                               .addEthRequest(athenaEthRequest)
-                               .build();
-      return athenarequestObj;
+         ethRequest = b.build();
+      } catch (Exception e) {
+         logger.error(e.getMessage());
+         throw e;
+      }
+      return ethRequest;
    }
 
    @SuppressWarnings("unchecked")
    @Override
-   public String buildResponse(AthenaResponse athenaResponse, String txHash, String method) {
-      EthResponse ethResponse = athenaResponse.getEthResponse(0);
-
-      JSONObject respObject = new JSONObject();
-      respObject.put("id", ethResponse.getId());
-      respObject.put("jsonrpc", jsonRpc);
+   public JSONObject buildResponse(EthResponse ethResponse,
+                                   JSONObject requestJson) {
+      JSONObject respObject = initializeResponseObject(ethResponse);
       respObject.put("result",
                      APIHelper.binaryStringToHex(ethResponse.getData()));
-      return respObject.toJSONString();
-   }
-
-   @Override
-   public String buildLocalResponse(Object data, Long id) {
-      return null;
+      return respObject;
    }
 }
