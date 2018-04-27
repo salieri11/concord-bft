@@ -41,23 +41,14 @@ public final class EthDispatcher extends BaseServlet {
    public static long netVersion;
    public static boolean netVersionSet = false;
    private JSONArray rpcList;
-   private JSONObject rpcModules;
    private String jsonRpc;
-   private String clientVersion;
-   private String coinbase;
-   private boolean isMining;
 
    public EthDispatcher() throws ParseException {
       super();
       JSONParser p = new JSONParser();
       try {
          rpcList = (JSONArray) p.parse(_conf.getStringValue("EthRPCList"));
-         rpcModules
-            = (JSONObject) (((JSONArray) p.parse(_conf.getStringValue("RPCModules"))).get(0));
-          jsonRpc = _conf.getStringValue("JSONRPC");
-         clientVersion = _conf.getStringValue("ClientVersion");
-         isMining = _conf.getIntegerValue("Is_Mining") == 0 ? false : true;
-         coinbase = _conf.getStringValue("Coinbase");
+         jsonRpc = _conf.getStringValue("JSONRPC");
       } catch (Exception e) {
          logger.error("Failed to read RPC information from config file", e);
       }
@@ -75,17 +66,14 @@ public final class EthDispatcher extends BaseServlet {
     */
    protected void doGet(final HttpServletRequest request,
                         final HttpServletResponse response) throws IOException {
-
+      String responseString = rpcList.toJSONString();
+      int statusCode = StatusCodes.OK;
       if (rpcList == null) {
          logger.error("Configurations not read.");
-         processResponse(response,
-                         (new JSONArray()).toJSONString(),
-                         HttpServletResponse.SC_SERVICE_UNAVAILABLE,
-                         logger);
-         return;
+         responseString = (new JSONArray()).toJSONString();
+         statusCode = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
       }
-
-      processResponse(response, rpcList.toJSONString(), StatusCodes.OK, logger);
+      processResponse(response, responseString, statusCode, logger);
    }
 
    /**
@@ -105,11 +93,8 @@ public final class EthDispatcher extends BaseServlet {
 
       // Retrieve the request fields
       JSONObject requestParams = null;
-      Long id = null;
-      String method = null;
-      JSONArray params = null;
-      String txHash = null;
       JSONParser parser = new JSONParser();
+      String responseString = null;
 
       try {
          // Retrieve the parameters from the request body
@@ -120,159 +105,108 @@ public final class EthDispatcher extends BaseServlet {
          requestParams = (JSONObject) parser.parse(paramString);
 
          if (requestParams == null) {
-            logger.error("Invalid request : Parameters should be in the "
+            throw new Exception("Invalid request : Parameters should be in the "
                + "request body and in a JSON object format");
-            processResponse(response,
-                            errorMessage("Unable to parse request", 0, jsonRpc),
-                            HttpServletResponse.SC_OK,
-                            logger);
-            return;
          }
          logger.debug("Request Parameters: " + requestParams.toJSONString());
 
+         // Dispatch requests to the corresponding handlers
+         responseString = dispatch(response, requestParams);
+
       } catch (ParseException e) {
          logger.error("Invalid request", e);
-         processResponse(response,
-                         errorMessage("Unable to parse request", 0, jsonRpc),
-                         HttpServletResponse.SC_OK,
-                         logger);
-         return;
-      }
-
-      try {
-         id = (Long) requestParams.get("id");
-      } catch (NumberFormatException e) {
-         logger.error("Invalid request parameter : id", e);
-         processResponse(response,
-                         errorMessage("'id' must be an integer", 0, jsonRpc),
-                         HttpServletResponse.SC_OK,
-                         logger);
-         return;
-      }
-
-      method = (String) requestParams.get("method");
-      if (method == null || method.trim().length() < 1) {
-         logger.error("Invalid request parameter : method");
-         processResponse(response,
-                         errorMessage("Invalid 'method' parameter", id, jsonRpc),
-                         HttpServletResponse.SC_OK,
-                         logger);
-         return;
-      }
-
-      try {
-         params = (JSONArray) requestParams.get("params");
-      } catch (ClassCastException cse) {
-         logger.error("Invalid request parameter : params");
-         processResponse(response,
-                         errorMessage("'params' must be an array", id, jsonRpc),
-                         HttpServletResponse.SC_OK,
-                         logger);
-         return;
-      }
-
-      // Dispatch requests to the corresponding handlers
-      try {
-         dispatch(response, requestParams);
+         responseString = errorMessage("Unable to parse request", -1, jsonRpc);
       } catch (Exception e) {
-         logger.error("Invalid " + method + " request", e);
-         processResponse(response,
-                         errorMessage(e.getMessage(), id, jsonRpc),
-                         HttpServletResponse.SC_OK,
-                         logger);
-         return;
+         logger.error(APIHelper.exceptionToString(e));
+         responseString = errorMessage(e.getMessage(), -1, jsonRpc);
       }
+      processResponse(response,
+                      responseString,
+                      HttpServletResponse.SC_OK,
+                      logger);
    }
 
-   @SuppressWarnings("unchecked")
-   private void dispatch(final HttpServletResponse response,
-                         JSONObject requestJson) throws Exception {
-       // Default initialize variables, so that if exception is thrown
-       // while initializing the variables error message can be constructed
-       // with default values.
-       long id = -1;
-       String ethMethodName;
-       Athena.AthenaRequest athenaRequestObj = null;
-       AbstractEthRPCHandler handler = null;
-       boolean isLocal = false;
-       String responseString;
-       Object localData = null;
-       AthenaResponse athenaResponse = null;
-    
-       try {
-           ethMethodName = getEthMethodName(requestJson);
-           id = getEthRequestId(requestJson);
-           // Dispatch to appropriate handlers
-           if (ethMethodName.equals(_conf.getStringValue("SendTransaction_Name"))
-               || ethMethodName.equals(_conf.getStringValue("Call_Name"))) {
-               handler = new EthSendTxHandler();
-           } else if (ethMethodName.equals(_conf.getStringValue("NewAccount_Name"))) {
-               handler = new EthNewAccountHandler();
-           } else if (ethMethodName.equals(_conf.getStringValue("GetTransactionReceipt_Name"))) {
-               handler = new EthGetTxReceiptHandler();
-           } else if (ethMethodName.equals(_conf.getStringValue("GetStorageAt_Name"))) {
-               handler = new EthGetStorageAtHandler();
-           } else if (ethMethodName.equals(_conf.getStringValue("GetCode_Name"))) {
-               handler = new EthGetCodeHandler();
-           } else if (ethMethodName.equals(_conf.getStringValue("NewFilter_Name"))
-               || ethMethodName.equals(_conf.getStringValue("NewBlockFilter_Name"))
-               || ethMethodName.equals(_conf.getStringValue("NewPendingTransactionFilter_Name"))
-               || ethMethodName.equals(_conf.getStringValue("FilterChange_Name"))
-               || ethMethodName.equals(_conf.getStringValue("UninstallFilter_Name"))) {
-               handler = new EthFilterHandler();
-           } else if (ethMethodName.equals(_conf.getStringValue("Web3SHA3_Name")) ||
-               ethMethodName.equals(_conf.getStringValue("RPCModules_Name")) ||
-               ethMethodName.equals(_conf.getStringValue("Coinbase_Name")) ||
-               ethMethodName.equals(_conf.getStringValue("ClientVersion_Name")) ||
-               ethMethodName.equals(_conf.getStringValue("Mining_Name")) ||
-               ethMethodName.equals(_conf.getStringValue("NetVersion_Name")) ||
-               ethMethodName.equals(_conf.getStringValue("Accounts_Name"))) {
-               handler = new EthLocalResponseHandler();
-               isLocal = true;
-           } else {
-               throw new Exception("Invalid method name.");
-           }
-           
-           if (!isLocal) {
-               Athena.EthRequest ethRequest = handler.buildRequest(requestJson);
+   private String dispatch(final HttpServletResponse response,
+                           JSONObject requestJson) throws Exception {
+      // Default initialize variables, so that if exception is thrown
+      // while initializing the variables error message can be constructed
+      // with default values.
+      long id = -1;
+      String ethMethodName;
+      AbstractEthRPCHandler handler = null;
+      boolean isLocal = false;
+      String responseString;
+      AthenaResponse athenaResponse = null;
 
-               Athena.AthenaRequest athenaRequest =
-                   Athena.AthenaRequest.newBuilder().
-                       addEthRequest(ethRequest).build();
-                   
-               athenaResponse
-                   = communicateWithAthena(athenaRequest, response, logger);
-               
-               // If there is an error reported by Athena
-               if (athenaResponse.getErrorResponseCount() > 0) {
-                   ErrorResponse errResponse =
-                       athenaResponse.getErrorResponse(0);
-                   responseString = "Error received from athena";
-                   if (errResponse.hasDescription()) {
-                       responseString = errResponse.getDescription();
-                   }
-               } else {
-                   responseString = handler.buildResponse(
-                       athenaResponse.getEthResponse(0), requestJson)
-                       .toJSONString();
+      try {
+         ethMethodName = getEthMethodName(requestJson);
+         id = getEthRequestId(requestJson);
+         // Dispatch to appropriate handlers
+         if (ethMethodName.equals(_conf.getStringValue("SendTransaction_Name"))
+            || ethMethodName.equals(_conf.getStringValue("Call_Name"))) {
+            handler = new EthSendTxHandler();
+         } else if (ethMethodName.equals(_conf.getStringValue("NewAccount_Name"))) {
+            handler = new EthNewAccountHandler();
+         } else if (ethMethodName.equals(_conf.getStringValue("GetTransactionReceipt_Name"))) {
+            handler = new EthGetTxReceiptHandler();
+         } else if (ethMethodName.equals(_conf.getStringValue("GetStorageAt_Name"))) {
+            handler = new EthGetStorageAtHandler();
+         } else if (ethMethodName.equals(_conf.getStringValue("GetCode_Name"))) {
+            handler = new EthGetCodeHandler();
+         } else if (ethMethodName.equals(_conf.getStringValue("NewFilter_Name"))
+            || ethMethodName.equals(_conf.getStringValue("NewBlockFilter_Name"))
+            || ethMethodName.equals(_conf.getStringValue("NewPendingTransactionFilter_Name"))
+            || ethMethodName.equals(_conf.getStringValue("FilterChange_Name"))
+            || ethMethodName.equals(_conf.getStringValue("UninstallFilter_Name"))) {
+            handler = new EthFilterHandler();
+         } else if (ethMethodName.equals(_conf.getStringValue("Web3SHA3_Name"))
+            || ethMethodName.equals(_conf.getStringValue("RPCModules_Name"))
+            || ethMethodName.equals(_conf.getStringValue("Coinbase_Name"))
+            || ethMethodName.equals(_conf.getStringValue("ClientVersion_Name"))
+            || ethMethodName.equals(_conf.getStringValue("Mining_Name"))
+            || ethMethodName.equals(_conf.getStringValue("NetVersion_Name"))
+            || ethMethodName.equals(_conf.getStringValue("Accounts_Name"))) {
+            handler = new EthLocalResponseHandler();
+            isLocal = true;
+         } else {
+            throw new Exception("Invalid method name.");
+         }
+
+         if (!isLocal) {
+            Athena.EthRequest ethRequest = handler.buildRequest(requestJson);
+
+            Athena.AthenaRequest athenaRequest
+               = Athena.AthenaRequest.newBuilder()
+                                     .addEthRequest(ethRequest)
+                                     .build();
+
+            athenaResponse
+               = communicateWithAthena(athenaRequest, response, logger);
+
+            // If there is an error reported by Athena
+            if (athenaResponse.getErrorResponseCount() > 0) {
+               ErrorResponse errResponse = athenaResponse.getErrorResponse(0);
+               responseString = "Error received from athena";
+               if (errResponse.hasDescription()) {
+                  responseString = errResponse.getDescription();
                }
-           } else {
-               // In local request we don't have valid eth resposne from
-               // athena. Just pass null.
-               responseString = handler.buildResponse(null,
-                   requestJson).toJSONString();
-           }
-       } catch (Exception e) {
-           logger.error(APIHelper.exceptionToString(e));
-           responseString = errorMessage(e.getMessage(), id, jsonRpc);
-       }
-       
-       processResponse(response,
-           responseString,
-           HttpServletResponse.SC_OK,
-           logger);
-       
-      return;
+            } else {
+               responseString
+                  = handler.buildResponse(athenaResponse.getEthResponse(0),
+                                          requestJson)
+                           .toJSONString();
+            }
+         } else {
+            // In local request we don't have valid eth resposne from
+            // athena. Just pass null.
+            responseString
+               = handler.buildResponse(null, requestJson).toJSONString();
+         }
+      } catch (Exception e) {
+         logger.error(APIHelper.exceptionToString(e));
+         responseString = errorMessage(e.getMessage(), id, jsonRpc);
+      }
+      return responseString;
    }
 
    private AthenaResponse communicateWithAthena(Athena.AthenaRequest req,
@@ -285,7 +219,8 @@ public final class EthDispatcher extends BaseServlet {
          if (conn == null) {
             processResponse(response,
                             errorMessage("Error communicating with athena",
-                                         req.getEthRequest(0).getId(), jsonRpc),
+                                         req.getEthRequest(0).getId(),
+                                         jsonRpc),
                             HttpServletResponse.SC_OK,
                             log);
             return null;
@@ -295,7 +230,8 @@ public final class EthDispatcher extends BaseServlet {
          if (!res) {
             processResponse(response,
                             errorMessage("Error communicating with athena",
-                                         req.getEthRequest(0).getId(), jsonRpc),
+                                         req.getEthRequest(0).getId(),
+                                         jsonRpc),
                             HttpServletResponse.SC_OK,
                             log);
             return null;
@@ -306,7 +242,8 @@ public final class EthDispatcher extends BaseServlet {
          if (athenaResponse == null) {
             processResponse(response,
                             errorMessage("Error reading response from athena",
-                                         req.getEthRequest(0).getId(), jsonRpc),
+                                         req.getEthRequest(0).getId(),
+                                         jsonRpc),
                             HttpServletResponse.SC_OK,
                             log);
             return null;
@@ -315,7 +252,8 @@ public final class EthDispatcher extends BaseServlet {
          logger.error("General exception communicating with athena: ", e);
          processResponse(response,
                          errorMessage("Error communicating with athena",
-                                      req.getEthRequest(0).getId(), jsonRpc),
+                                      req.getEthRequest(0).getId(),
+                                      jsonRpc),
                          HttpServletResponse.SC_OK,
                          log);
          return null;
@@ -327,8 +265,7 @@ public final class EthDispatcher extends BaseServlet {
    }
 
    @SuppressWarnings("unchecked")
-   public static String
-   errorMessage(String message, long id, String jsonRpc) {
+   public static String errorMessage(String message, long id, String jsonRpc) {
       JSONObject responseJson = new JSONObject();
       responseJson.put("id", id);
       responseJson.put("jsonprc", jsonRpc);
@@ -341,23 +278,23 @@ public final class EthDispatcher extends BaseServlet {
    }
 
    public static String
-   getEthMethodName(JSONObject ethRequestJson) throws Exception {
-       try {
-           return (String) ethRequestJson.get("method");
-       } catch (Exception e) {
-           throw new Exception("invalid method parameter in request.", e);
-       }
+          getEthMethodName(JSONObject ethRequestJson) throws Exception {
+      try {
+         return (String) ethRequestJson.get("method");
+      } catch (Exception e) {
+         throw new Exception("invalid method parameter in request.", e);
+      }
    }
-    
-    public static long
-    getEthRequestId(JSONObject ethRequestJson) throws Exception {
-        try {
-            return (long) ethRequestJson.get("id");
-        } catch (Exception e) {
-            throw new Exception("invalid id parameter in request.", e);
-        }
-    }
-   
+
+   public static long
+          getEthRequestId(JSONObject ethRequestJson) throws Exception {
+      try {
+         return (long) ethRequestJson.get("id");
+      } catch (Exception e) {
+         throw new Exception("invalid id parameter in request.", e);
+      }
+   }
+
    @Override
    protected JSONAware parseToJSON(AthenaResponse athenaResponse) {
       return null;
