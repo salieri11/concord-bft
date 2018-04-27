@@ -182,8 +182,7 @@ public class AthenaConnectionPool {
       _log.trace("putConnection enter");
 
       if (!_initialized.get())
-         throw new IllegalStateException(
-            "returnConnection, pool not initialized");
+         throw new IllegalStateException("returnConnection, pool not initialized");
 
       // cannot be null in normal flow
       if (conn == null) {
@@ -222,9 +221,8 @@ public class AthenaConnectionPool {
             putConnection(createConnection());
          }
 
-         _log.info(String.format(
-                      "AthenaConnectionPool initialized with %d connections",
-                      _connectionCount.get()));
+         _log.info(String.format("AthenaConnectionPool initialized with %d connections",
+                                 _connectionCount.get()));
       }
    }
 
@@ -248,8 +246,7 @@ public class AthenaConnectionPool {
     */
    public int getTotalConnections() {
       if (!_initialized.get()) {
-         throw new IllegalStateException(
-            "returnConnection, pool not initialized");
+         throw new IllegalStateException("returnConnection, pool not initialized");
       }
       return _connectionCount.get();
    }

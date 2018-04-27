@@ -104,7 +104,7 @@ public class APIHelper {
 
       return result;
    }
-   
+
    /**
     * Pads zeroes to the hex string to ensure a uniform length of 64 hex
     * characters
@@ -129,16 +129,17 @@ public class APIHelper {
       sb.append(p);
       return sb.toString();
    }
-    
-    /**
-     * An utility function to convert java exceptions stack trace into Strings.
-     * @param e
-     * @return string of exception stack trace
-     */
+
+   /**
+    * An utility function to convert java exceptions stack trace into Strings.
+    * 
+    * @param e
+    * @return string of exception stack trace
+    */
    public static String exceptionToString(Exception e) {
-       StringWriter sw = new StringWriter();
-       PrintWriter pw = new PrintWriter(sw);
-       e.printStackTrace(pw);
-       return sw.toString(); // stack trace as a string
+      StringWriter sw = new StringWriter();
+      PrintWriter pw = new PrintWriter(sw);
+      e.printStackTrace(pw);
+      return sw.toString(); // stack trace as a string
    }
 }

@@ -63,8 +63,7 @@ public final class BlockList extends BaseServlet {
       }
 
       // Construct a blocksListRequest object.
-      Athena.BlockListRequest.Builder b
-         = Athena.BlockListRequest.newBuilder();
+      Athena.BlockListRequest.Builder b = Athena.BlockListRequest.newBuilder();
       // If end is null, Athena assumes end is the latest block
       if (latest != null) {
          b.setLatest(latest);

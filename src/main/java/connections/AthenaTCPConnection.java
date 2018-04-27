@@ -115,8 +115,9 @@ public final class AthenaTCPConnection implements IAthenaCommunication,
          while (System.currentTimeMillis() - start < _receiveTimeout) {
             // we need to read at least the header before we can do anything
             if (msgSizeOffset < _receiveLengthSize) {
-               int count = is.read(msgSizeBuf, msgSizeOffset,
-                                   _receiveLengthSize-msgSizeOffset);
+               int count = is.read(msgSizeBuf,
+                                   msgSizeOffset,
+                                   _receiveLengthSize - msgSizeOffset);
                if (count < 0) {
                   _logger.error("No bytes read from athena");
                   break;
@@ -128,15 +129,15 @@ public final class AthenaTCPConnection implements IAthenaCommunication,
             // we have the header - find out how big the body is
             if (msgSizeOffset == _receiveLengthSize && msgSize < 0) {
                msgSize = ByteBuffer.wrap(msgSizeBuf)
-                  .order(ByteOrder.LITTLE_ENDIAN)
-                  .getShort();
+                                   .order(ByteOrder.LITTLE_ENDIAN)
+                                   .getShort();
                result = new byte[msgSize];
             }
 
             // now we can read the body
             if (result != null) {
-               int count = is.read(result, resultOffset,
-                                   msgSize-resultOffset);
+               int count
+                  = is.read(result, resultOffset, msgSize - resultOffset);
                if (count < 0) {
                   _logger.error("No bytes read from athena");
                   break;
@@ -154,9 +155,8 @@ public final class AthenaTCPConnection implements IAthenaCommunication,
          // if we didn't read the whole message, consider the stream corrupt and
          // close it
          if (resultOffset != msgSize) {
-            _logger.error("Failed to receive message (" +
-                          resultOffset + " != " + msgSize +
-                          "). Closing socket.");
+            _logger.error("Failed to receive message (" + resultOffset + " != "
+               + msgSize + "). Closing socket.");
             close();
             return null;
          }
