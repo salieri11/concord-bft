@@ -109,7 +109,8 @@
     "transactionCreationHint": "Enter data below to generate a unique hash",
     "smartContractHint": "Upload file below to generate a unique hash",
     "action": "Action",
-    "submitTransaction": "Submit Transaction",
+    "submit": "Submit",
+    "submitContract": "Submit Contract",
     "from": "From",
     "to": "To",
     "value": "Value",
@@ -119,6 +120,7 @@
     "copy": "Copy",
     "file": "File",
     "contractAddress": "Contract Address:",
-    "transactionHash": "Transaction Hash:"
+    "transactionHash": "Transaction Hash:",
+    "result": "Result:"
   }
 }

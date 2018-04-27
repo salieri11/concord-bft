@@ -173,6 +173,10 @@ export class TestingGroundComponent implements OnInit {
   onCopySmartContractHash() {
     copyElementToClipboard(this.smartContractHashRef.nativeElement);
   }
+
+  get isTransaction() {
+    return this.dataForm.value.type === TransactionActionOptions.transaction;
+  }
 }
 
 function copyElementToClipboard(element) {

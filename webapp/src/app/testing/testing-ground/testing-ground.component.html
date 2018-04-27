@@ -10,7 +10,7 @@
         </p>
         <form (ngSubmit)="onSubmitData()" [formGroup]="dataForm">
           <div class="form-group">
-            <label for="data-input-from" [ngClass]="{'required': dataForm.value.type === 'transaction'}">{{'testing.from' | translate}}</label>
+            <label for="data-input-from" [ngClass]="{'required': isTransaction}">{{'testing.from' | translate}}</label>
             <input id="data-input-from" type="text" placeholder="0x0123456789abcdefgh0123456789abcdefgh0123" required formControlName="from">
           </div>
           <div class="form-group">
@@ -37,13 +37,15 @@
             </div>
           </div>
           <button class="btn btn-primary" [disabled]="dataForm.invalid">
-            {{'testing.submitTransaction' | translate}}
+            {{'testing.submit' | translate}}
           </button>
         </form>
         <div class="inset-box mt-1">
           <div class="row flex-items-xs-middle">
             <div class="col-xs">
-              <small class="text-muted">{{'testing.transactionHash' | translate}}</small>
+              <small class="text-muted">
+                {{isTransaction ? ('testing.transactionHash' | translate) : ('testing.result' | translate)}}
+              </small>
               <span #dataHashRef>{{dataHash}}</span>
             </div>
             <div class="col-xs-2 text-right" [class.invisible]="!dataHash">
@@ -69,7 +71,7 @@
             <label for="smart-contract-file" class="required">{{'testing.file' | translate}}</label>
             <input id="smart-contract-file" type="file" name="userFile" required (change)="onSmartContractFileChange($event)">
           </div>
-          <button class="btn btn-primary" [disabled]="smartContractForm.invalid">{{'testing.submitData' | translate}}</button>
+          <button class="btn btn-primary" [disabled]="smartContractForm.invalid">{{'testing.submitContract' | translate}}</button>
           <div class="inset-box mt-1">
             <div class="row flex-items-xs-middle">
               <div class="col-xs">
