@@ -71,25 +71,25 @@ void com::vmware::athena::EVM::create_genesis_block(EVMInitParams params)
 
    std::map<evm_address, uint64_t> genesis_acts = params.get_initial_accounts();
    for (std::map<evm_address,uint64_t>::iterator it = genesis_acts.begin();
-       it != genesis_acts.end(); ++it) {
+        it != genesis_acts.end(); ++it) {
 
       EthTransaction tx = {
-         nonce : 0,
-         block_hash: zero_hash, // set to zero for now
-         block_number: 0,
-         from : zero_address,
-         to : it->first,
-         contract_address : zero_address,
-         input : std::vector<uint8_t>(),
-         status : EVM_SUCCESS,
-         value : it->second
+      nonce : 0,
+      block_hash : zero_hash, // set to zero for now
+      block_number : 0,
+      from : zero_address,
+      to : it->first,
+      contract_address : zero_address,
+      input : std::vector<uint8_t>(),
+      status : EVM_SUCCESS,
+      value : it->second
       };
 
       evm_uint256be txhash = hash_for_transaction(tx);
       transactions[txhash] = tx;
       txs.push_back(txhash);
       LOG4CPLUS_INFO(logger, "Created genesis transaction to address "
-                    << it->first <<" with value = " << it->second);
+                     << it->first <<" with value = " << it->second);
    }
 
    std::shared_ptr<EthBlock> blk = std::make_shared<EthBlock>();
@@ -268,10 +268,10 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
    uint64_t nonce = get_nonce(message.sender);
    uint64_t transfer_val = from_evm_uint256be(&message.value);
    EthTransaction tx = {
-   nonce: nonce,
-   block_hash: zero_hash, // set to zero for now
+   nonce : nonce,
+   block_hash : zero_hash, // set to zero for now
    // set to zero for now - will be set correctly when block is recorded
-   block_number: 0,
+   block_number : 0,
    from : message.sender,
    to : to_override,
    contract_address : contract_address,
@@ -508,10 +508,10 @@ bool com::vmware::athena::EVM::new_account(
              hash.bytes+sizeof(evm_uint256be),address.bytes);
 
    if(EVM::account_exists(&address) == 1) {
-       return false;
+      return false;
    } else {
-       balances[address] = 0;
-       return true;
+      balances[address] = 0;
+      return true;
    }
 }
 

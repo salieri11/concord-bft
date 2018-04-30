@@ -89,7 +89,7 @@ int main(int argc, char** argv)
                std::cout << "Contract address: " << result << std::endl;
             }
          } else {
-            std::cerr << "transaction response not found: " << std::endl;
+            std::cerr << "transaction response not found" << std::endl;
             return -1;
          }
       } else {
