@@ -1,30 +1,22 @@
 /**
  * url endpoint : /api/athena/eth
- *
+ * <p>
  * GET: Used to list available RPC methods. A list of currently exposed Eth RPC
  * methods is read from the config file and returned to the client.
- *
+ * <p>
  * POST: Used to call the named method. An EthRPCExecute request is sent to
  * Athena and to parse the responses into JSON. A TCP socket connection is made
  * to Athena and requests and responses are encoded in the Google Protocol
  * Buffer format.
- *
  */
 package Servlets;
 
-import Servlets.EthRPCHandlers.*;
-import com.vmware.athena.*;
-import com.vmware.athena.Athena.AthenaResponse;
-import com.vmware.athena.Athena.ErrorResponse;
-
-import connections.AthenaConnectionPool;
-import connections.IAthenaConnection;
-
-import io.undertow.util.StatusCodes;
 import java.io.IOException;
 import java.util.stream.Collectors;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONAware;
@@ -32,14 +24,23 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import com.vmware.athena.Athena;
+import com.vmware.athena.Athena.AthenaResponse;
+import com.vmware.athena.Athena.ErrorResponse;
+
+import Servlets.EthRPCHandlers.*;
+import connections.AthenaConnectionPool;
+import connections.IAthenaConnection;
+import io.undertow.util.StatusCodes;
+
 /**
  * Servlet class.
  */
 public final class EthDispatcher extends BaseServlet {
    private static final long serialVersionUID = 1L;
-   private static Logger logger = Logger.getLogger(EthDispatcher.class);
    public static long netVersion;
    public static boolean netVersionSet = false;
+   private static Logger logger = Logger.getLogger(EthDispatcher.class);
    private JSONArray rpcList;
    private String jsonRpc;
 
@@ -51,6 +52,37 @@ public final class EthDispatcher extends BaseServlet {
          jsonRpc = _conf.getStringValue("JSONRPC");
       } catch (Exception e) {
          logger.error("Failed to read RPC information from config file", e);
+      }
+   }
+
+   @SuppressWarnings("unchecked")
+   public static String errorMessage(String message, long id, String jsonRpc) {
+      JSONObject responseJson = new JSONObject();
+      responseJson.put("id", id);
+      responseJson.put("jsonprc", jsonRpc);
+
+      JSONObject error = new JSONObject();
+      error.put("message", message);
+      responseJson.put("error", error);
+
+      return responseJson.toJSONString();
+   }
+
+   public static String
+          getEthMethodName(JSONObject ethRequestJson) throws Exception {
+      try {
+         return (String) ethRequestJson.get("method");
+      } catch (Exception e) {
+         throw new Exception("invalid method parameter in request.", e);
+      }
+   }
+
+   public static long
+          getEthRequestId(JSONObject ethRequestJson) throws Exception {
+      try {
+         return (long) ethRequestJson.get("id");
+      } catch (Exception e) {
+         throw new Exception("invalid id parameter in request.", e);
       }
    }
 
@@ -123,12 +155,12 @@ public final class EthDispatcher extends BaseServlet {
             JSONObject requestParams = (JSONObject) params;
 
             // Dispatch requests to the corresponding handlers
-            batchResponse.add(dispatch(response, requestParams));
+            batchResponse.add(parser.parse(dispatch(response, requestParams)));
          }
          if (isBatch) {
             responseString = batchResponse.toJSONString();
          } else {
-            responseString = (String) batchResponse.get(0);
+            responseString = ((JSONObject) batchResponse.get(0)).toJSONString();
          }
       } catch (ParseException e) {
          logger.error("Invalid request", e);
@@ -137,6 +169,7 @@ public final class EthDispatcher extends BaseServlet {
          logger.error(APIHelper.exceptionToString(e));
          responseString = errorMessage(e.getMessage(), -1, jsonRpc);
       }
+      logger.debug("Response: " + responseString);
       processResponse(response,
                       responseString,
                       HttpServletResponse.SC_OK,
@@ -223,7 +256,6 @@ public final class EthDispatcher extends BaseServlet {
          logger.error(APIHelper.exceptionToString(e));
          responseString = errorMessage(e.getMessage(), id, jsonRpc);
       }
-      logger.debug("Response string: " + responseString);
       return responseString;
    }
 
@@ -280,37 +312,6 @@ public final class EthDispatcher extends BaseServlet {
       }
 
       return athenaResponse;
-   }
-
-   @SuppressWarnings("unchecked")
-   public static String errorMessage(String message, long id, String jsonRpc) {
-      JSONObject responseJson = new JSONObject();
-      responseJson.put("id", id);
-      responseJson.put("jsonprc", jsonRpc);
-
-      JSONObject error = new JSONObject();
-      error.put("message", message);
-      responseJson.put("error", error);
-
-      return responseJson.toJSONString();
-   }
-
-   public static String
-          getEthMethodName(JSONObject ethRequestJson) throws Exception {
-      try {
-         return (String) ethRequestJson.get("method");
-      } catch (Exception e) {
-         throw new Exception("invalid method parameter in request.", e);
-      }
-   }
-
-   public static long
-          getEthRequestId(JSONObject ethRequestJson) throws Exception {
-      try {
-         return (long) ethRequestJson.get("id");
-      } catch (Exception e) {
-         throw new Exception("invalid id parameter in request.", e);
-      }
    }
 
    @Override

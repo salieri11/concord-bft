@@ -17,8 +17,10 @@ public abstract class AbstractEthRPCHandler {
 
    protected String jsonRpc = _conf.getStringValue("JSONRPC");
 
-   abstract public EthRequest
-            buildRequest(JSONObject requestJson) throws Exception;
+   abstract public void
+            buildRequest(Athena.AthenaRequest.Builder builder, JSONObject
+                         requestJson) throws
+           Exception;
 
    abstract public JSONObject
             buildResponse(EthResponse ethResponse,
