@@ -505,8 +505,8 @@ api_connection::handle_block_request()
       response->set_size(1);
 
       for (auto t: block->transactions) {
-         std::string *tp = response->add_transaction();
-         tp->assign(t.bytes, t.bytes+sizeof(evm_uint256be));
+         TransactionResponse* tr = response->add_transaction();
+         build_transaction_response(t, tr);
       }
    } catch (BlockNotFoundException) {
       ErrorResponse *resp = athenaResponse_.add_error_response();
@@ -529,36 +529,45 @@ api_connection::handle_transaction_request()
       return;
    }
 
-   try {
-      evm_uint256be txhash;
-      std::copy(request.hash().begin(), request.hash().end(), txhash.bytes);
-      EthTransaction tx = athevm_.get_transaction(txhash);
+   evm_uint256be hash;
+   std::copy(request.hash().begin(), request.hash().end(), hash.bytes);
+   
+   TransactionResponse* response = 
+      athenaResponse_.mutable_transaction_response();
+   build_transaction_response(hash, response);
+}
 
-      LOG4CPLUS_DEBUG(logger_, "Looking up transaction receipt " << txhash);
+/**
+ * Build a transaction response object.
+ */
+void
+api_connection::build_transaction_response(evm_uint256be hash, 
+                                           TransactionResponse* response)
+{
+    try {
+       EthTransaction tx = athevm_.get_transaction(hash);
 
-      TransactionResponse *tr = athenaResponse_.mutable_transaction_response();
-      tr->set_hash(txhash.bytes, sizeof(evm_uint256be));
-      tr->set_from(tx.from.bytes, sizeof(evm_address));
-      if (tx.to != zero_address) {
-         tr->set_to(tx.to.bytes, sizeof(evm_address));
-      }
-      if (tx.contract_address != zero_address) {
-         tr->set_contract_address(tx.contract_address.bytes,
-                                  sizeof(evm_address));
-      }
-      if (tx.input.size()) {
-         tr->set_input(std::string(tx.input.begin(), tx.input.end()));
-      }
-      tr->set_status(tx.status == EVM_SUCCESS ? 1 : 0);
-      tr->set_nonce(tx.nonce);
-      tr->set_value(tx.value);
-      tr->set_block_hash(tx.block_hash.bytes, sizeof(evm_uint256be));
-      tr->set_block_number(tx.block_number);
-   } catch (TransactionNotFoundException) {
-      ErrorResponse *resp = athenaResponse_.add_error_response();
-      resp->set_description("transaction not found");
-      return;
-   }
+       response->set_hash(hash.bytes, sizeof(hash.bytes));
+       response->set_from(tx.from.bytes, sizeof(evm_address));
+       if (tx.to != zero_address) {
+          response->set_to(tx.to.bytes, sizeof(evm_address));
+       }
+       if (tx.contract_address != zero_address) {
+          response->set_contract_address(tx.contract_address.bytes,
+                                         sizeof(evm_address));
+       }
+       if (tx.input.size()) {
+          response->set_input(std::string(tx.input.begin(), tx.input.end()));
+       }
+       response->set_status(tx.status == EVM_SUCCESS ? 1 : 0);
+       response->set_nonce(tx.nonce);
+       response->set_value(tx.value);
+       response->set_block_hash(tx.block_hash.bytes, sizeof(evm_uint256be));
+       response->set_block_number(tx.block_number);
+    } catch (TransactionNotFoundException) {
+       ErrorResponse *resp = athenaResponse_.add_error_response();
+       resp->set_description("transaction not found");
+    }
 }
 
 evm_result

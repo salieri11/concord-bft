@@ -128,6 +128,10 @@ private:
 
    void
    process_incoming();
+   
+   void
+   build_transaction_response(evm_uint256be hash, 
+                              TransactionResponse* response);
 
    /* Socket being handled. */
    boost::asio::ip::tcp::socket socket_;

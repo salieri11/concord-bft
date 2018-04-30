@@ -105,7 +105,7 @@ void handle_block_response(AthenaResponse athResp) {
 
    for (int i = 0; i < blkResp.transaction_size(); i++) {
       std::string tx;
-      hex0x(blkResp.transaction(i), tx);
+      hex0x(blkResp.transaction(i).hash(), tx);
       std::cout << "   " << tx << std::endl;
    }
 }
