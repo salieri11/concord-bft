@@ -6,22 +6,20 @@ import org.json.simple.JSONObject;
 
 import com.google.protobuf.ByteString;
 import com.vmware.athena.Athena;
-import com.vmware.athena.Athena.EthResponse;
 
 import Servlets.APIHelper;
+import Servlets.EthDispatcher;
 
 /**
  * EthGetTxReceiptHandler is little different than other handlers because It
  * leverages already existing `TransactionReceipt` AthenaRequest to handle
- * `eth_getTransactionReceipt` requests. But this requires that the handler
- * understands and works with `AthenaRequest/Response` objects rather than
- * `EthRequest/Response` objects. Hence this handler provides similar
- * `buildRequest` & `buildResponse` methods but with `AthenaRequest/Response`
- * objects
+ * `eth_getTransactionReceipt` requests. Hence, unlike other handlers in this
+ * handler we actually put a `TransactionRequest` inside AthenaRequest and read
+ * a TransactionResponse from AthenaResponse.
  */
 public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
 
-   Logger logger = Logger.getLogger(EthGetStorageAtHandler.class);
+   Logger logger = Logger.getLogger(EthGetTxReceiptHandler.class);
 
    public void buildRequest(Athena.AthenaRequest.Builder builder,
                             JSONObject requestJson) throws Exception {
@@ -41,34 +39,59 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
       }
    }
 
+   /**
+    * Since the parents initializeResponseObject method takes EthResponse object
+    * as input we override it here to take in the id directly
+    * 
+    * @param id
+    * @return
+    */
+   @SuppressWarnings("unchecked")
+   JSONObject initializeResponseObject(long id) {
+      JSONObject respObject = new JSONObject();
+      respObject.put("id", id);
+      respObject.put("jsonrpc", jsonRpc);
+      return respObject;
+   }
+
    @SuppressWarnings("unchecked")
    @Override
    public JSONObject buildResponse(Athena.AthenaResponse athenaResponse,
                                    JSONObject requestJson) {
-      EthResponse ethResponse = athenaResponse.getEthResponse(0);
-      JSONObject respObject = initializeResponseObject(ethResponse);
-      JSONObject result = new JSONObject();
-      result.put("status",
-                 "0x" + Integer.toString(ethResponse.getStatus(), 16));
 
-      JSONArray params = null;
+      JSONObject respObject = new JSONObject();
       try {
-         params = extractRequestParams(requestJson);
+         Athena.TransactionResponse transactionResponse
+            = athenaResponse.getTransactionResponse();
+
+         respObject
+            = initializeResponseObject(EthDispatcher.getEthRequestId(requestJson));
+
+         JSONObject result = new JSONObject();
+
+         result.put("transactionHash",
+                    APIHelper.binaryStringToHex(transactionResponse.getHash()));
+         result.put("transactionIndex",
+                    transactionResponse.getTransactionIndex());
+         result.put("blockNumber", transactionResponse.getBlockNumber());
+         result.put("blockHash",
+                    APIHelper.binaryStringToHex(transactionResponse.getBlockHash()));
+         if (transactionResponse.hasContractAddress()) {
+            result.put("contractAddress",
+                       APIHelper.binaryStringToHex(transactionResponse.getContractAddress()));
+         } else {
+            result.put("contractAddress", null);
+         }
+         result.put("status",
+                    "0x"
+                       + Integer.toString(transactionResponse.getStatus(),
+                            16));
+         respObject.put("result", result);
       } catch (Exception e) {
          // This should never get triggered as params are already checked while
          // building the request
-         logger.error("'params' not present");
+         logger.fatal("'params' not present");
       }
-      String txHash = (String) params.get(0);
-
-      result.put("transactionHash", txHash);
-      if (ethResponse.hasContractAddress()) {
-         result.put("contractAddress",
-                    APIHelper.binaryStringToHex(ethResponse.getContractAddress()));
-      } else {
-         result.put("contractAddress", null);
-      }
-      respObject.put("result", result);
       return respObject;
    }
 }
