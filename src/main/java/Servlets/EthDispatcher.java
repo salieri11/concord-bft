@@ -223,15 +223,14 @@ public final class EthDispatcher extends BaseServlet {
          }
 
          if (!isLocal) {
-            Athena.EthRequest ethRequest = handler.buildRequest(requestJson);
+            Athena.AthenaRequest.Builder athenaRequestBuidler
+               = Athena.AthenaRequest.newBuilder();
 
-            Athena.AthenaRequest athenaRequest
-               = Athena.AthenaRequest.newBuilder()
-                                     .addEthRequest(ethRequest)
-                                     .build();
+            handler.buildRequest(athenaRequestBuidler, requestJson);
 
-            athenaResponse
-               = communicateWithAthena(athenaRequest, response, logger);
+            athenaResponse = communicateWithAthena(athenaRequestBuidler.build(),
+                                                   response,
+                                                   logger);
 
             // If there is an error reported by Athena
             if (athenaResponse.getErrorResponseCount() > 0) {
@@ -242,8 +241,7 @@ public final class EthDispatcher extends BaseServlet {
                }
             } else {
                responseString
-                  = handler.buildResponse(athenaResponse.getEthResponse(0),
-                                          requestJson)
+                  = handler.buildResponse(athenaResponse, requestJson)
                            .toJSONString();
             }
          } else {

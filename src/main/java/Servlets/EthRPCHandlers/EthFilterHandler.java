@@ -1,7 +1,9 @@
 package Servlets.EthRPCHandlers;
 
-import Servlets.APIHelper;
-import Servlets.EthDispatcher;
+import org.apache.log4j.Logger;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
 import com.google.protobuf.ByteString;
 import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
@@ -9,16 +11,16 @@ import com.vmware.athena.Athena.EthResponse;
 import com.vmware.athena.Athena.FilterRequest;
 import com.vmware.athena.Athena.FilterRequest.FilterRequestType;
 import com.vmware.athena.Athena.FilterResponse;
-import org.apache.log4j.Logger;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
+
+import Servlets.APIHelper;
+import Servlets.EthDispatcher;
 
 public class EthFilterHandler extends AbstractEthRPCHandler {
 
    private static Logger logger = Logger.getLogger(EthFilterHandler.class);
 
-   public Athena.EthRequest
-          buildRequest(JSONObject requestJson) throws Exception {
+   public void buildRequest(Athena.AthenaRequest.Builder builder,
+                            JSONObject requestJson) throws Exception {
       Athena.EthRequest.Builder b = initializeRequestObject(requestJson);
       String ethMethodName = EthDispatcher.getEthMethodName(requestJson);
       JSONArray params = extractRequestParams(requestJson);
@@ -50,13 +52,14 @@ public class EthFilterHandler extends AbstractEthRPCHandler {
 
       Athena.EthRequest athenaEthRequest = b.build();
 
-      return athenaEthRequest;
+      builder.addEthRequest(athenaEthRequest);
    }
 
    @SuppressWarnings("unchecked")
-   public JSONObject buildResponse(EthResponse ethResponse,
+   public JSONObject buildResponse(Athena.AthenaResponse athenaResponse,
                                    JSONObject requestJson) throws Exception {
       try {
+         EthResponse ethResponse = athenaResponse.getEthResponse(0);
          JSONObject respObject = initializeResponseObject(ethResponse);
          String ethMethodName = EthDispatcher.getEthMethodName(requestJson);
 

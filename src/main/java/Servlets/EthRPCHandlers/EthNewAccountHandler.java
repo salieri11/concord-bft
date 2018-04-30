@@ -1,25 +1,28 @@
 package Servlets.EthRPCHandlers;
 
-import Servlets.APIHelper;
-import Servlets.EthDispatcher;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+
+import org.apache.log4j.Logger;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
 import com.google.protobuf.ByteString;
 import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 import com.vmware.athena.Athena.EthResponse;
-import org.apache.log4j.Logger;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
+import Servlets.APIHelper;
+import Servlets.EthDispatcher;
 
 public class EthNewAccountHandler extends AbstractEthRPCHandler {
 
    Logger logger = Logger.getLogger(EthGetStorageAtHandler.class);
 
    @Override
-   public EthRequest buildRequest(JSONObject requestJson) throws Exception {
+   public void buildRequest(Athena.AthenaRequest.Builder athenaRequestBuilder,
+                            JSONObject requestJson) throws Exception {
       Athena.EthRequest ethRequest = null;
       try {
          EthRequest.Builder b = initializeRequestObject(requestJson);
@@ -48,13 +51,14 @@ public class EthNewAccountHandler extends AbstractEthRPCHandler {
          logger.error(e.getMessage());
          throw e;
       }
-      return ethRequest;
+      athenaRequestBuilder.addEthRequest(ethRequest);
    }
 
    @SuppressWarnings("unchecked")
    @Override
-   public JSONObject buildResponse(EthResponse ethResponse,
+   public JSONObject buildResponse(Athena.AthenaResponse athenaResponse,
                                    JSONObject requestJson) {
+      EthResponse ethResponse = athenaResponse.getEthResponse(0);
       JSONObject respObject = initializeResponseObject(ethResponse);
       respObject.put("result",
                      APIHelper.binaryStringToHex(ethResponse.getData()));

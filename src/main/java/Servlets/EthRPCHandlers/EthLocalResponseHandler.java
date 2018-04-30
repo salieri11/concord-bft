@@ -1,17 +1,19 @@
 package Servlets.EthRPCHandlers;
 
+import org.apache.log4j.Logger;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+
+import com.vmware.athena.Athena;
+
 import Servlets.APIHelper;
 import Servlets.EthDispatcher;
-import com.vmware.athena.Athena;
 import configurations.ConfigurationFactory;
 import configurations.ConfigurationFactory.ConfigurationType;
 import configurations.IConfiguration;
 import connections.AthenaConnectionPool;
 import connections.IAthenaConnection;
-import org.apache.log4j.Logger;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
 
 public class EthLocalResponseHandler extends AbstractEthRPCHandler {
 
@@ -24,9 +26,8 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
       jsonRpc = _conf.getStringValue("JSONRPC");
    }
 
-   public Athena.EthRequest
-          buildRequest(JSONObject requestJson) throws Exception {
-      return null;
+   public void buildRequest(Athena.AthenaRequest.Builder athenaRequestBuilder,
+                            JSONObject requestJson) throws Exception {
    }
 
    /**
@@ -46,7 +47,7 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
    }
 
    @SuppressWarnings("unchecked")
-   public JSONObject buildResponse(Athena.EthResponse ethResponse,
+   public JSONObject buildResponse(Athena.AthenaResponse athenaResponse,
                                    JSONObject requestJson) throws Exception {
       long id = (long) requestJson.get("id");
       String ethMethodName = EthDispatcher.getEthMethodName(requestJson);

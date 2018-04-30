@@ -1,20 +1,23 @@
 package Servlets.EthRPCHandlers;
 
-import Servlets.APIHelper;
+import org.apache.log4j.Logger;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
 import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 import com.vmware.athena.Athena.EthResponse;
-import org.apache.log4j.Logger;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
+
+import Servlets.APIHelper;
 
 public class EthGetStorageAtHandler extends AbstractEthRPCHandler {
 
    Logger logger = Logger.getLogger(EthGetStorageAtHandler.class);
 
    @Override
-   public EthRequest buildRequest(JSONObject requestJson) throws Exception {
+   public void buildRequest(Athena.AthenaRequest.Builder athenaRequestBuilder,
+                            JSONObject requestJson) throws Exception {
       Athena.EthRequest ethRequest = null;
       try {
          EthRequest.Builder b = initializeRequestObject(requestJson);
@@ -29,13 +32,14 @@ public class EthGetStorageAtHandler extends AbstractEthRPCHandler {
          logger.error("Exception in get storage at handler", e);
          throw e;
       }
-      return ethRequest;
+      athenaRequestBuilder.addEthRequest(ethRequest);
    }
 
    @SuppressWarnings("unchecked")
    @Override
-   public JSONObject buildResponse(EthResponse ethResponse,
+   public JSONObject buildResponse(Athena.AthenaResponse athenaResponse,
                                    JSONObject requestJson) {
+      EthResponse ethResponse = athenaResponse.getEthResponse(0);
       JSONObject respObject = initializeResponseObject(ethResponse);
       respObject.put("result",
                      APIHelper.binaryStringToHex(ethResponse.getData()));

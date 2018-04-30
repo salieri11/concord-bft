@@ -1,39 +1,51 @@
 package Servlets.EthRPCHandlers;
 
-import Servlets.APIHelper;
-import com.vmware.athena.Athena;
-import com.vmware.athena.Athena.EthRequest;
-import com.vmware.athena.Athena.EthRequest.EthMethod;
-import com.vmware.athena.Athena.EthResponse;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import com.google.protobuf.ByteString;
+import com.vmware.athena.Athena;
+import com.vmware.athena.Athena.EthResponse;
+
+import Servlets.APIHelper;
+
+/**
+ * EthGetTxReceiptHandler is little different than other handlers because It
+ * leverages already existing `TransactionReceipt` AthenaRequest to handle
+ * `eth_getTransactionReceipt` requests. But this requires that the handler
+ * understands and works with `AthenaRequest/Response` objects rather than
+ * `EthRequest/Response` objects. Hence this handler provides similar
+ * `buildRequest` & `buildResponse` methods but with `AthenaRequest/Response`
+ * objects
+ */
 public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
 
    Logger logger = Logger.getLogger(EthGetStorageAtHandler.class);
 
-   @Override
-   public EthRequest buildRequest(JSONObject requestJson) throws Exception {
-      Athena.EthRequest ethRequest = null;
+   public void buildRequest(Athena.AthenaRequest.Builder builder,
+                            JSONObject requestJson) throws Exception {
       try {
-         EthRequest.Builder b = initializeRequestObject(requestJson);
-         b.setMethod(EthMethod.GET_TX_RECEIPT);
+         logger.debug("Inside GetTXReceipt buildRequest");
+         // Construct a transaction request object.
          JSONArray params = extractRequestParams(requestJson);
          String txHash = (String) params.get(0);
-         b.setData(APIHelper.hexStringToBinary(txHash));
-         ethRequest = b.build();
+         ByteString hashBytes = APIHelper.hexStringToBinary(txHash);
+
+         Athena.TransactionRequest txRequestObj
+            = Athena.TransactionRequest.newBuilder().setHash(hashBytes).build();
+         builder.setTransactionRequest(txRequestObj);
       } catch (Exception e) {
          logger.error("Exception in tx receipt handler", e);
          throw e;
       }
-      return ethRequest;
    }
 
    @SuppressWarnings("unchecked")
    @Override
-   public JSONObject buildResponse(EthResponse ethResponse,
+   public JSONObject buildResponse(Athena.AthenaResponse athenaResponse,
                                    JSONObject requestJson) {
+      EthResponse ethResponse = athenaResponse.getEthResponse(0);
       JSONObject respObject = initializeResponseObject(ethResponse);
       JSONObject result = new JSONObject();
       result.put("status",

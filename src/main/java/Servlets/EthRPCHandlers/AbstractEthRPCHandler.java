@@ -1,14 +1,16 @@
 package Servlets.EthRPCHandlers;
 
-import Servlets.EthDispatcher;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
 import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthResponse;
+
+import Servlets.EthDispatcher;
 import configurations.ConfigurationFactory;
 import configurations.ConfigurationFactory.ConfigurationType;
 import configurations.IConfiguration;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 
 public abstract class AbstractEthRPCHandler {
 
@@ -17,13 +19,11 @@ public abstract class AbstractEthRPCHandler {
 
    protected String jsonRpc = _conf.getStringValue("JSONRPC");
 
-   abstract public void
-            buildRequest(Athena.AthenaRequest.Builder builder, JSONObject
-                         requestJson) throws
-           Exception;
+   abstract public void buildRequest(Athena.AthenaRequest.Builder builder,
+                                     JSONObject requestJson) throws Exception;
 
    abstract public JSONObject
-            buildResponse(EthResponse ethResponse,
+            buildResponse(Athena.AthenaResponse athenaResponse,
                           JSONObject requestJson) throws Exception;
 
    EthRequest.Builder

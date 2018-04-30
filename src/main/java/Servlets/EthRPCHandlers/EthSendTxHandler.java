@@ -1,22 +1,25 @@
 package Servlets.EthRPCHandlers;
 
-import Servlets.APIHelper;
-import Servlets.EthDispatcher;
+import org.apache.log4j.Logger;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+
 import com.google.protobuf.ByteString;
 import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 import com.vmware.athena.Athena.EthResponse;
-import org.apache.log4j.Logger;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
+
+import Servlets.APIHelper;
+import Servlets.EthDispatcher;
 
 public class EthSendTxHandler extends AbstractEthRPCHandler {
 
    Logger logger = Logger.getLogger(EthGetStorageAtHandler.class);
 
    @Override
-   public EthRequest buildRequest(JSONObject requestJson) throws Exception {
+   public void buildRequest(Athena.AthenaRequest.Builder athenaRequestBuilder,
+                            JSONObject requestJson) throws Exception {
       boolean isSendTx = false;
       String from = null, to = null, data = null, value = null;
       Athena.EthRequest ethRequest = null;
@@ -89,13 +92,14 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
          logger.error("Exception in send tx handler", e);
          throw e;
       }
-      return ethRequest;
+      athenaRequestBuilder.addEthRequest(ethRequest);
    }
 
    @SuppressWarnings("unchecked")
    @Override
-   public JSONObject buildResponse(EthResponse ethResponse,
+   public JSONObject buildResponse(Athena.AthenaResponse athenaResponse,
                                    JSONObject requestJson) {
+      EthResponse ethResponse = athenaResponse.getEthResponse(0);
       JSONObject respObject = initializeResponseObject(ethResponse);
       // Set method specific responses
       respObject.put("result",
