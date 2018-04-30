@@ -203,6 +203,8 @@ public final class EthDispatcher extends BaseServlet {
             handler = new EthGetStorageAtHandler();
          } else if (ethMethodName.equals(_conf.getStringValue("GetCode_Name"))) {
             handler = new EthGetCodeHandler();
+         } else if (ethMethodName.equals(_conf.getStringValue("GetBlockByHash_Name"))) {
+            handler = new EthGetBlockHandler();
          } else if (ethMethodName.equals(_conf.getStringValue("NewFilter_Name"))
             || ethMethodName.equals(_conf.getStringValue("NewBlockFilter_Name"))
             || ethMethodName.equals(_conf.getStringValue("NewPendingTransactionFilter_Name"))
@@ -223,12 +225,12 @@ public final class EthDispatcher extends BaseServlet {
          }
 
          if (!isLocal) {
-            Athena.AthenaRequest.Builder athenaRequestBuidler
+            Athena.AthenaRequest.Builder athenaRequestBuilder
                = Athena.AthenaRequest.newBuilder();
 
-            handler.buildRequest(athenaRequestBuidler, requestJson);
+            handler.buildRequest(athenaRequestBuilder, requestJson);
 
-            athenaResponse = communicateWithAthena(athenaRequestBuidler.build(),
+            athenaResponse = communicateWithAthena(athenaRequestBuilder.build(),
                                                    response,
                                                    logger);
 
