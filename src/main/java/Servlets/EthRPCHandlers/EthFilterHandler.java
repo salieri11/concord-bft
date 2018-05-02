@@ -15,10 +15,29 @@ import com.vmware.athena.Athena.FilterResponse;
 import Servlets.APIHelper;
 import Servlets.EthDispatcher;
 
+/**
+ * This handler is used to service following types of filter requests: 1.
+ * eth_newBlockFilter
+ *
+ * 2. eth_newFilter (TODO)
+ *
+ * 3. eth_newPendingTransactionFilter(TODO)
+ * 
+ * 4. eth_getFilterChanges 5. eth_uninstallFilter
+ */
 public class EthFilterHandler extends AbstractEthRPCHandler {
 
    private static Logger logger = Logger.getLogger(EthFilterHandler.class);
 
+   /**
+    * Builds the EthRequest Object from the type of eth request specified in
+    * requestJson. Adds the built request into AthenaRequest using given
+    * builder.
+    * 
+    * @param builder
+    * @param requestJson
+    * @throws Exception
+    */
    public void buildRequest(Athena.AthenaRequest.Builder builder,
                             JSONObject requestJson) throws Exception {
       Athena.EthRequest.Builder b = initializeRequestObject(requestJson);
@@ -55,6 +74,18 @@ public class EthFilterHandler extends AbstractEthRPCHandler {
       builder.addEthRequest(athenaEthRequest);
    }
 
+   /**
+    * Extracts the FilterResponse objects from passed athenaResponse object and
+    * returns a RPC JSONObject made from FilterResponse.
+    * 
+    * @param athenaResponse
+    *           Object of AthenaResponse
+    * @param requestJson
+    *           The original request Json
+    * @return the reply JSON object made from FilterResponse object inside
+    *         AthenaResponse.
+    * @throws Exception
+    */
    @SuppressWarnings("unchecked")
    public JSONObject buildResponse(Athena.AthenaResponse athenaResponse,
                                    JSONObject requestJson) throws Exception {

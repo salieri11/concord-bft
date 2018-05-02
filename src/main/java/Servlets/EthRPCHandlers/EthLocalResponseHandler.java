@@ -15,6 +15,26 @@ import configurations.IConfiguration;
 import connections.AthenaConnectionPool;
 import connections.IAthenaConnection;
 
+/**
+ * Handles the RPC requests which can be processes directly in helen without
+ * forwarding them to Athena. However, this is an exception. When handling
+ * `net_version` we do connect to athena but just get the version number from
+ * athena. This handler handles following eth RPC requests
+ *
+ * 1. web3_sha3
+ *
+ * 2. eth_coinbase
+ *
+ * 3. web3_clientVersion
+ *
+ * 4. eth_mining
+ *
+ * 5. net_version
+ *
+ * 6. eth_accounts
+ *
+ * 7. rpc_modules
+ */
 public class EthLocalResponseHandler extends AbstractEthRPCHandler {
 
    private static Logger logger = Logger.getLogger(EthFilterHandler.class);
@@ -26,6 +46,16 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
       jsonRpc = _conf.getStringValue("JSONRPC");
    }
 
+   /**
+    * This method does not build any request since we do not need to send any
+    * request to Athena for requests handled by this handler. However, having an
+    * empty method like this is probably not a very good idea. TODO: Figure out
+    * how to remove this empty method.
+    * 
+    * @param athenaRequestBuilder
+    * @param requestJson
+    * @throws Exception
+    */
    public void buildRequest(Athena.AthenaRequest.Builder athenaRequestBuilder,
                             JSONObject requestJson) throws Exception {
    }
@@ -37,6 +67,9 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
     * which can be handled locally we do not even call athena and hence do not
     * have a valid athena response. Hence we can not use the method provided by
     * parent class.
+    * 
+    * @param requestJson
+    * @return
     */
    @SuppressWarnings("unchecked")
    JSONObject initializeResponseObject(JSONObject requestJson) {
@@ -46,6 +79,23 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
       return respObject;
    }
 
+   /**
+    * Builds the response JSONObject by processing the given type of request
+    * locally. For example if the request is of type `web3_sha3` then here we
+    * will actually generate the hash of given data and produce a response
+    * object containing that hash. We do not do kind of processing in
+    * `buildRequest` method.
+    * 
+    * @param athenaResponse
+    *           The response receive from athena Note: Since, we do not build
+    *           anything in buildAthenaRequest and we also do not call athena
+    *           for these requests. Hence this method completely ignores the
+    *           athenaResponse object. It can be NULL
+    * @param requestJson
+    *           The original RPC request JSONObject.
+    * @return the JSONObject of the response.
+    * @throws Exception
+    */
    @SuppressWarnings("unchecked")
    public JSONObject buildResponse(Athena.AthenaResponse athenaResponse,
                                    JSONObject requestJson) throws Exception {
