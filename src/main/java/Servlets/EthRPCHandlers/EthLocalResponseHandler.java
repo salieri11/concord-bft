@@ -101,7 +101,6 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
                                    JSONObject requestJson) throws Exception {
       long id = (long) requestJson.get("id");
       String ethMethodName = EthDispatcher.getEthMethodName(requestJson);
-      JSONArray params = extractRequestParams(requestJson);
       /*
        * Here we can not use parents initializeResponseObject method because it
        * takes a valid EthResponse object as input parameter, however in local
@@ -115,6 +114,7 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
       Object localData = null;
 
       if (ethMethodName.equals(_conf.getStringValue("Web3SHA3_Name"))) {
+         JSONArray params = extractRequestParams(requestJson);
          // Request should contain just one param value
          if (params.size() != 1) {
             logger.error("Invalid request parameter : params");
