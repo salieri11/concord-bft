@@ -24,6 +24,16 @@ public class EthGetBlockHandler extends AbstractEthRPCHandler {
 
    Logger logger = Logger.getLogger(EthGetBlockHandler.class);
 
+   /**
+    * Builds the Athena request builder. Extracts the block hash from the
+    * request and uses it to set up an Athena Request builder with a
+    * BlockRequest. Also performs basic checks on parameters.
+    * 
+    * @param builder
+    *           Object in which request is built
+    * @param requestJson
+    *           Request parameters passed by the user
+    */
    @Override
    public void buildRequest(Builder builder,
                             JSONObject requestJson) throws Exception {
@@ -33,13 +43,14 @@ public class EthGetBlockHandler extends AbstractEthRPCHandler {
             throw new Exception("Params should contain 2 elements for this "
                + "request type");
          }
-         ByteString blockHash
-            = APIHelper.hexStringToBinary((String) params.get(0));
 
          // Perform type checking of the flag at this stage itself rather than
          // while building the reponse
          @SuppressWarnings("unused")
          boolean flag = (boolean) params.get(1);
+
+         ByteString blockHash
+            = APIHelper.hexStringToBinary((String) params.get(0));
 
          // Construct a blockNumberRequest object. Set its start field.
          final Athena.BlockRequest blockRequestObj
@@ -53,6 +64,17 @@ public class EthGetBlockHandler extends AbstractEthRPCHandler {
       }
    }
 
+   /**
+    * Builds the response object to be returned to the user. Checks the flag in
+    * the request to determine whether a list of transaction hashes or a list of
+    * transaction objects needs to be returned to the user.
+    * 
+    * @param athenaResponse
+    *           Response received from Athena
+    * @param requestJson
+    *           Request parameters passed by the user
+    * @return response to be returned to the user
+    */
    @SuppressWarnings("unchecked")
    @Override
    public JSONObject buildResponse(AthenaResponse athenaResponse,

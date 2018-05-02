@@ -4,10 +4,10 @@
  * GET: Used to list available RPC methods. A list of currently exposed Eth RPC
  * methods is read from the config file and returned to the client.
  * <p>
- * POST: Used to call the named method. An EthRPCExecute request is sent to
- * Athena and to parse the responses into JSON. A TCP socket connection is made
- * to Athena and requests and responses are encoded in the Google Protocol
- * Buffer format.
+ * POST: Used to execute the specified method. Request and response construction
+ * are handled by the appropriate handlers. A TCP socket connection is made to
+ * Athena and requests and responses are encoded in the Google Protocol Buffer
+ * format. Also supports a group of requests.
  */
 package Servlets;
 
@@ -55,6 +55,17 @@ public final class EthDispatcher extends BaseServlet {
       }
    }
 
+   /**
+    * Constructs the response in case of error.
+    * 
+    * @param message
+    *           Error message
+    * @param id
+    *           Request Id
+    * @param jsonRpc
+    *           RPC version
+    * @return Error message string
+    */
    @SuppressWarnings("unchecked")
    public static String errorMessage(String message, long id, String jsonRpc) {
       JSONObject responseJson = new JSONObject();
@@ -68,6 +79,14 @@ public final class EthDispatcher extends BaseServlet {
       return responseJson.toJSONString();
    }
 
+   /**
+    * Extracts the RPC method name from the request JSON
+    * 
+    * @param ethRequestJson
+    *           Request JSON
+    * @return Method name
+    * @throws Exception
+    */
    public static String
           getEthMethodName(JSONObject ethRequestJson) throws Exception {
       try {
@@ -77,6 +96,14 @@ public final class EthDispatcher extends BaseServlet {
       }
    }
 
+   /**
+    * Extracts the Request Id from the request JSON
+    * 
+    * @param ethRequestJson
+    *           Request JSON
+    * @return Request id
+    * @throws Exception
+    */
    public static long
           getEthRequestId(JSONObject ethRequestJson) throws Exception {
       try {
@@ -109,7 +136,7 @@ public final class EthDispatcher extends BaseServlet {
    }
 
    /**
-    * Services the Post request for executing the specified methods. Retrieves
+    * Services the POST request for executing the specified methods. Retrieves
     * the request parameters and calls the dispatch function. Builds the
     * response for sending to client.
     *
@@ -176,6 +203,18 @@ public final class EthDispatcher extends BaseServlet {
                       logger);
    }
 
+   /**
+    * Creates the appropriate handler object and calls its functions to
+    * construct an AthenaRequest object. Sends this request to Athena and
+    * converts its response into a format required by the user.
+    * 
+    * @param response
+    *           Servlet response object
+    * @param requestJson
+    *           Request parameters
+    * @return Response for user
+    * @throws Exception
+    */
    private String dispatch(final HttpServletResponse response,
                            JSONObject requestJson) throws Exception {
       // Default initialize variables, so that if exception is thrown
@@ -188,7 +227,8 @@ public final class EthDispatcher extends BaseServlet {
       String responseString;
       AthenaResponse athenaResponse = null;
 
-      // Dispatch to appropriate handlers
+      // Create object of the suitable handler based on the method specified in
+      // the request
       try {
          ethMethodName = getEthMethodName(requestJson);
          id = getEthRequestId(requestJson);
@@ -227,13 +267,10 @@ public final class EthDispatcher extends BaseServlet {
          if (!isLocal) {
             Athena.AthenaRequest.Builder athenaRequestBuilder
                = Athena.AthenaRequest.newBuilder();
-
             handler.buildRequest(athenaRequestBuilder, requestJson);
-
             athenaResponse = communicateWithAthena(athenaRequestBuilder.build(),
                                                    response,
                                                    logger);
-
             // If there is an error reported by Athena
             if (athenaResponse.getErrorResponseCount() > 0) {
                ErrorResponse errResponse = athenaResponse.getErrorResponse(0);
@@ -246,7 +283,10 @@ public final class EthDispatcher extends BaseServlet {
                   = handler.buildResponse(athenaResponse, requestJson)
                            .toJSONString();
             }
-         } else {
+         }
+         // There are some RPC methods which are handled locally by Helen. No
+         // need to talk to Athena for these cases.
+         else {
             // In local request we don't have valid eth resposne from
             // athena. Just pass null.
             responseString
@@ -259,6 +299,17 @@ public final class EthDispatcher extends BaseServlet {
       return responseString;
    }
 
+   /**
+    * Sends an AthenaRequest to Athena and receives Athena's response.
+    * 
+    * @param req
+    *           AthenaRequest object
+    * @param response
+    *           Servlet response handle
+    * @param log
+    *           Logger handle
+    * @return Response received from Athena
+    */
    private AthenaResponse communicateWithAthena(Athena.AthenaRequest req,
                                                 HttpServletResponse response,
                                                 Logger log) {
@@ -314,6 +365,10 @@ public final class EthDispatcher extends BaseServlet {
       return athenaResponse;
    }
 
+   /**
+    * Not required for this Servlet as each handler builds its response object
+    * separately.
+    */
    @Override
    protected JSONAware parseToJSON(AthenaResponse athenaResponse) {
       return null;

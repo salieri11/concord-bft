@@ -1,3 +1,8 @@
+/**
+ * This handler is used to service eth_sendTransaction and eth_call POST
+ * requests. These are bundled together here because functionally, the
+ * processing for both these request types is similar.
+ */
 package Servlets.EthRPCHandlers;
 
 import org.apache.log4j.Logger;
@@ -17,6 +22,18 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
 
    Logger logger = Logger.getLogger(EthGetStorageAtHandler.class);
 
+   /**
+    * Builds the Athena request builder. Extracts the method name, from, to,
+    * data and value fields from the request and uses it to set up an Athena
+    * Request builder with an EthRequest.
+    * 
+    * 'from' is mandatory for send tx and 'to' is mandatory for call contract.
+    * 
+    * @param builder
+    *           Object in which request is built
+    * @param requestJson
+    *           Request parameters passed by the user
+    */
    @Override
    public void buildRequest(Athena.AthenaRequest.Builder athenaRequestBuilder,
                             JSONObject requestJson) throws Exception {
@@ -95,6 +112,15 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
       athenaRequestBuilder.addEthRequest(ethRequest);
    }
 
+   /**
+    * Builds the response object to be returned to the user.
+    * 
+    * @param athenaResponse
+    *           Response received from Athena
+    * @param requestJson
+    *           Request parameters passed by the user
+    * @return response to be returned to the user
+    */
    @SuppressWarnings("unchecked")
    @Override
    public JSONObject buildResponse(Athena.AthenaResponse athenaResponse,

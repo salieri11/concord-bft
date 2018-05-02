@@ -1,3 +1,6 @@
+/**
+ * This handler is used to service eth_getStorageAt POST requests.
+ */
 package Servlets.EthRPCHandlers;
 
 import org.apache.log4j.Logger;
@@ -15,6 +18,16 @@ public class EthGetStorageAtHandler extends AbstractEthRPCHandler {
 
    Logger logger = Logger.getLogger(EthGetStorageAtHandler.class);
 
+   /**
+    * Builds the Athena request builder. Extracts the 'to' address and data from
+    * the request and uses it to set up an Athena Request builder with an
+    * EthRequest.
+    * 
+    * @param builder
+    *           Object in which request is built
+    * @param requestJson
+    *           Request parameters passed by the user
+    */
    @Override
    public void buildRequest(Athena.AthenaRequest.Builder athenaRequestBuilder,
                             JSONObject requestJson) throws Exception {
@@ -35,6 +48,15 @@ public class EthGetStorageAtHandler extends AbstractEthRPCHandler {
       athenaRequestBuilder.addEthRequest(ethRequest);
    }
 
+   /**
+    * Builds the response object to be returned to the user.
+    * 
+    * @param athenaResponse
+    *           Response received from Athena
+    * @param requestJson
+    *           Request parameters passed by the user
+    * @return response to be returned to the user
+    */
    @SuppressWarnings("unchecked")
    @Override
    public JSONObject buildResponse(Athena.AthenaResponse athenaResponse,

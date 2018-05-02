@@ -1,3 +1,6 @@
+/**
+ * This handler is used to service personal_newAccount POST requests.
+ */
 package Servlets.EthRPCHandlers;
 
 import java.io.UnsupportedEncodingException;
@@ -20,22 +23,25 @@ public class EthNewAccountHandler extends AbstractEthRPCHandler {
 
    Logger logger = Logger.getLogger(EthGetStorageAtHandler.class);
 
+   /**
+    * Builds the Athena request builder. Extracts the passphrase from the
+    * request and uses it to set up an Athena Request builder with an
+    * EthRequest.
+    * 
+    * @param builder
+    *           Object in which request is built
+    * @param requestJson
+    *           Request parameters passed by the user
+    */
    @Override
    public void buildRequest(Athena.AthenaRequest.Builder athenaRequestBuilder,
                             JSONObject requestJson) throws Exception {
       Athena.EthRequest ethRequest = null;
       try {
          EthRequest.Builder b = initializeRequestObject(requestJson);
-
          b.setMethod(EthMethod.NEW_ACCOUNT);
-
          JSONArray params = extractRequestParams(requestJson);
-         if (params == null) {
-            logger.error("'params' not present");
-            throw new EthRPCHandlerException(EthDispatcher.errorMessage("'params' not present",
-                                                                        b.getId(),
-                                                                        jsonRpc));
-         }
+
          String passphrase = (String) params.get(0);
          try {
             b.setData(ByteString.copyFrom(passphrase,
@@ -48,12 +54,21 @@ public class EthNewAccountHandler extends AbstractEthRPCHandler {
          }
          ethRequest = b.build();
       } catch (Exception e) {
-         logger.error(e.getMessage());
+         logger.error("Exception in new account handler", e);
          throw e;
       }
       athenaRequestBuilder.addEthRequest(ethRequest);
    }
 
+   /**
+    * Builds the response object to be returned to the user.
+    * 
+    * @param athenaResponse
+    *           Response received from Athena
+    * @param requestJson
+    *           Request parameters passed by the user
+    * @return response to be returned to the user
+    */
    @SuppressWarnings("unchecked")
    @Override
    public JSONObject buildResponse(Athena.AthenaResponse athenaResponse,
