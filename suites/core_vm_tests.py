@@ -100,7 +100,6 @@ class CoreVMTests(test_suite.TestSuite):
             info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                         testLogDir)
             self.writeResult(testName, result, info)
-
       log.info("Tests are done.")
 
       if self._productMode:
@@ -210,37 +209,32 @@ class CoreVMTests(test_suite.TestSuite):
                 testName,
                 self._apiServerUrl)
       gas = self._getGas()
-
-      testData = None
-      if "data" in testCompiled[testName]["exec"]:
-         testData = testCompiled[testName]["exec"]["data"]
-
-      if testData:
-         testExecutionCode = self._addCodePrefix(testExecutionCode)
-
+      testData = testCompiled[testName]["exec"]["data"]
       self._unlockUser(rpc, user)
-      log.info("Starting test '{}'".format(testName))
+      log.info("Starting test '{}'".format(testPath))
 
-      log.info("Creating contract for test {}, test code: {}". \
-               format(testName,
-                      testExecutionCode))
-      txReceipt = self._createContract(user, rpc, testExecutionCode, gas)
+      if expectTxSuccess:
+         testExecutionCode = self._addCodePrefix(testExecutionCode)
+         txReceipt = self._createContract(user, rpc, testExecutionCode, gas)
 
-      if txReceipt:
-         if testData:
+         if txReceipt:
             contractAddress = RPC.searchResponse(txReceipt, ["contractAddress"])
-            log.info("Invoking contract for test {}".format(testName))
-            txReceipt = self._invokeContract(user, rpc, contractAddress,
-                                             testData, gas)
-
-         success, info = self._checkResult(rpc,
-                                           contractAddress,
-                                           txReceipt,
-                                           expectedStorage,
-                                           expectedOut,
-                                           expectTxSuccess)
+            success, info = self._checkResult(rpc,
+                                              contractAddress,
+                                              testData,
+                                              txReceipt,
+                                              expectedStorage,
+                                              expectedOut)
+         else:
+            info = "Did not receive a transaction receipt."
       else:
-         info = "Did not receive a transaction receipt."
+         # If the bytecode is meant to fail, create the contract without
+         # prefix code so it will run immediately, and make sure it fails.
+         # Other types of tests involve calling the contract from another
+         # contract, and in that situation we can't get the status of the thing
+         # that got called; we just get the status of the ability to make a call.
+         txReceipt = self._createContract(user, rpc, testExecutionCode, gas)
+         success, info = self._checkTxStatus(rpc, txReceipt, expectTxSuccess)
 
       return (success, info)
 
@@ -367,10 +361,10 @@ class CoreVMTests(test_suite.TestSuite):
    def _checkResult(self,
                     rpc,
                     contractAddress,
+                    testData,
                     txReceipt,
                     expectedStorage,
-                    expectedOut,
-                    expectTxSuccess):
+                    expectedOut):
       '''
       Loops through the expected storage structure in the test case, comparing
       those values to the actual stored values in the block.
@@ -380,54 +374,55 @@ class CoreVMTests(test_suite.TestSuite):
       '''
       success = None
       info = None
-      txStatusCorrect, info = self._checkTxStatus(rpc, txReceipt, expectTxSuccess)
+      callerReceipt = self._callContractFromContract(rpc,
+                                                     contractAddress,
+                                                     testData,
+                                                     expectedOut)
 
-      if txStatusCorrect:
-         if not expectTxSuccess:
-            # Failed as expected.
-            success = True
-         else:
-            testVerified = False
+      # This Tx status indicates whether we could make the contract-to-contract
+      # call.  It does not indicate whether the callee experienced an error.
+      success, info = self._checkTxStatus(rpc, callerReceipt, True)
+      testVerified = False
 
-            if expectedStorage:
-               success, info = self._checkExpectedStorage(rpc,
-                                                          contractAddress,
-                                                          expectedStorage)
-               testVerified = True
-            if success and expectedOut:
-               success, info = self._checkExpectedOut(rpc,
-                                                      contractAddress,
-                                                      expectedOut)
-               testVerified = True
-            if not testVerified:
-               # The test may be checking gas, logs, or callcreates, which
-               # we're not checking (yet). This test should be added to the
-               # skip list so it is not run in the future.
-               success = None
-               info = "No expected storage found, and the test was expected " \
-                      "to be successful. Test needs verification by some " \
-                      "other method. Test will be marked skipped."
-      else:
-         # None or False.
-         success = txStatusCorrect
+      if success and expectedOut:
+         callerAddress = RPC.searchResponse(callerReceipt,
+                                            ["contractAddress"])
+         success, info = self._checkExpectedOut(rpc,
+                                                callerAddress,
+                                                expectedOut)
+         testVerified = True
+
+      if success and expectedStorage:
+         success, info = self._checkExpectedStorage(rpc,
+                                                    contractAddress,
+                                                    expectedStorage)
+         testVerified = True
+
+      if not testVerified:
+         # The test may be checking gas, logs, or callcreates, which
+         # we're not checking (yet). This test should be added to the
+         # skip list so it is not run in the future.
+         success = None
+         info = "No expected storage found, and the test was expected " \
+                "to be successful. Test needs verification by some " \
+                "other method. Test will be marked skipped."
 
       return success, info
 
-   def _checkExpectedOut(self, rpc, contractAddress, fullExpectedOut):
+   def _callContractFromContract(self, rpc, contractAddress, testData,
+                                 fullExpectedOut):
       '''
-      Checks the expected out, which is the return value of the code under test.
-      We do this by creating a new contract which invokes the contract under
-      test and saves the return value in storage, then checking the storage
-      storage of the new contract.
-      Returns whether it was successful, and an informational message if not.
+      Creates a new contract from which the contract under test is called.
+      This contract is executed immediately (has no prefix code).
       '''
-      log.debug("Checking expected out.")
-      fullExpectedOut = trimHexIndicator(fullExpectedOut)
-      lengthRetBytes = max(1, int(len(trimHexIndicator(fullExpectedOut))/2))
-      success = False
-      info = None
+      if fullExpectedOut:
+         trimmedExpectedOut = trimHexIndicator(fullExpectedOut)
+         numBytesOut = int(len(trimHexIndicator(trimmedExpectedOut))/2)
+      else:
+         numBytesOut = 0
+
       invokeCallBytecode = self._createCALLBytecode(contractAddress,
-                                int(len(trimHexIndicator(fullExpectedOut))/2))
+                                                    numBytesOut, testData)
       log.debug("CALL bytecode: {}".format(invokeCallBytecode))
       log.debug("Creating the contract which will invoke the test contract.")
       txHash = rpc.sendTransaction(self._getAUser()["hash"],
@@ -435,37 +430,44 @@ class CoreVMTests(test_suite.TestSuite):
                                    self._getGas())
       if txHash:
          txReceipt = rpc.getTransactionReceipt(txHash, self._ethereumMode)
-         contractAddress = RPC.searchResponse(txReceipt, ["contractAddress"])
-
-         if contractAddress:
-            storageSlots = self._countStorageSlotsForBytes(lengthRetBytes)
-            expectedOutRemaining = fullExpectedOut
-
-            for storageSlot in range(0, storageSlots):
-               actual = rpc.getStorageAt(contractAddress, hex(storageSlot))
-               actual = trimHexIndicator(actual)
-               expected = None
-
-               if len(expectedOutRemaining) >= 64:
-                  expected = expectedOutRemaining[:64]
-                  expectedOutRemaining = expectedOutRemaining[64:]
-               else:
-                  expected = expectedOutRemaining
-
-               if not len(actual) == len(expected):
-                  actual, info = self._trimActualForExpected(actual, expected)
-
-               if actual:
-                  success, info = self._compareActAndExpValues(actual, expected)
-
-               if not success:
-                  break
-         else:
-            info = "No contract address was in the transaction receipt when " \
-                   "creating a contract to check the expected output."
+         return txReceipt
       else:
-         info = "No transaction hash received when creating a contract to " \
-                "check the expected output"
+         Log.error("No transaction hash returned when creating the contract " \
+                   "to call another contract.")
+
+   def _checkExpectedOut(self, rpc, callerAddress, fullExpectedOut):
+      '''
+      Checks the expected out, which is the return value of the code under test
+      and has already been stored in the caller's storage.
+      Returns whether it was successful, and an informational message if not.
+      '''
+      log.debug("Checking expected out.")
+      fullExpectedOut = trimHexIndicator(fullExpectedOut)
+      lengthRetBytes = max(1, int(len(trimHexIndicator(fullExpectedOut))/2))
+      success = False
+      info = None
+      storageSlots = self._countStorageSlotsForBytes(lengthRetBytes)
+      expectedOutRemaining = fullExpectedOut
+
+      for storageSlot in range(0, storageSlots):
+         actual = rpc.getStorageAt(callerAddress, hex(storageSlot))
+         actual = trimHexIndicator(actual)
+         expected = None
+
+         if len(expectedOutRemaining) >= 64:
+            expected = expectedOutRemaining[:64]
+            expectedOutRemaining = expectedOutRemaining[64:]
+         else:
+            expected = expectedOutRemaining
+
+         if not len(actual) == len(expected):
+            actual, info = self._trimActualForExpected(actual, expected)
+
+         if actual:
+            success, info = self._compareActAndExpValues(actual, expected)
+
+         if not success:
+            break
 
       return success, info
 
@@ -478,10 +480,10 @@ class CoreVMTests(test_suite.TestSuite):
       '''
       removed = actual[len(expected):]
       newActual = actual[:len(expected)]
-      log.info("Actual received value '{}' was truncated to " \
-               "'{}' for comparison to the expected value " \
-               "'{}'.". \
-               format(actual, newActual, expected))
+      log.debug("Actual received value '{}' was truncated to " \
+                "'{}' for comparison to the expected value " \
+                "'{}'.". \
+                format(actual, newActual, expected))
 
       if stringOnlyContains(removed, "0"):
          return newActual, ""
