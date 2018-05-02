@@ -11,16 +11,28 @@ import Servlets.APIHelper;
 import Servlets.EthDispatcher;
 
 /**
- * EthGetTxReceiptHandler is little different than other handlers because It
- * leverages already existing `TransactionReceipt` AthenaRequest to handle
- * `eth_getTransactionReceipt` requests. Hence, unlike other handlers in this
- * handler we actually put a `TransactionRequest` inside AthenaRequest and read
- * a TransactionResponse from AthenaResponse.
+ * This Handler is used for handling all `eth_getTransactionReceipt` types of
+ * requests. EthGetTxReceiptHandler is little different than other handlers
+ * because It leverages already existing `TransactionReceipt` AthenaRequest to
+ * handle `eth_getTransactionReceipt` requests (see Transaction.java file which
+ * implements this API). Hence, in this handler we actually put a
+ * `TransactionRequest` inside AthenaRequest and read a TransactionResponse from
+ * AthenaResponse.
  */
 public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
 
    Logger logger = Logger.getLogger(EthGetTxReceiptHandler.class);
 
+   /**
+    * Builds a TransactionRequest object from given requestJson and inserts it
+    * into AthenaRequest Object.
+    * 
+    * @param builder
+    *           Athena Request Builder.
+    * @param requestJson
+    *           The JSONObject of original RPC request.
+    * @throws Exception
+    */
    public void buildRequest(Athena.AthenaRequest.Builder builder,
                             JSONObject requestJson) throws Exception {
       try {
@@ -41,7 +53,7 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
 
    /**
     * Since the parents initializeResponseObject method takes EthResponse object
-    * as input we override it here to take in the id directly
+    * as input we override it here to take in the id directly.
     * 
     * @param id
     * @return
@@ -54,6 +66,16 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
       return respObject;
    }
 
+   /**
+    * Builds a response JSON object by extracting TransactionResponse object
+    * from given AthenaResponse Object.
+    * 
+    * @param athenaResponse
+    *           The AthenaResponse object
+    * @param requestJson
+    *           The json object of original RPC request.
+    * @return the response JSONObject.
+    */
    @SuppressWarnings("unchecked")
    @Override
    public JSONObject buildResponse(Athena.AthenaResponse athenaResponse,
@@ -84,8 +106,7 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
          }
          result.put("status",
                     "0x"
-                       + Integer.toString(transactionResponse.getStatus(),
-                            16));
+                       + Integer.toString(transactionResponse.getStatus(), 16));
          respObject.put("result", result);
       } catch (Exception e) {
          // This should never get triggered as params are already checked while
