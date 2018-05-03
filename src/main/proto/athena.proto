@@ -62,6 +62,7 @@ message EthRequest {
         NEW_ACCOUNT = 6;
         FILTER_REQUEST = 7;
         GET_CODE = 8;
+        BLOCK_NUMBER = 9;
     }
 
     optional EthMethod method = 1;
