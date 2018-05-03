@@ -25,7 +25,7 @@ def main():
    parser.add_argument("bytecode",
                        help="Bytecode of the contract.")
    parser.add_argument("--addPrefix",
-                       help="Add a prefix for the bytecode to be runnable." \
+                       help="Add a prefix for the bytecode to be runnable. " \
                             "If you don't use this, and your own bytecode " \
                             "does not have some prefix code, your bytecode " \
                             "will be run once, when the contract is created, " \
@@ -35,9 +35,7 @@ def main():
    parser.add_argument("--callIt",
                        help="Create a second contract from which to call " \
                             "the contract containing your bytecode, and " \
-                            "call it. --returnIndices 32-byte chunks of the " \
-                            "return value of the call will be displayed. Not " \
-                            "implemented: \n" \
+                            "call it. Not implemented: \n" \
                             "Passing in a value for 'value'. \n" \
                             "NOTE: Contracts are always executed once " \
                             "when intially created. This argument is an " \
@@ -46,8 +44,9 @@ def main():
                        default=False,
                        action="store_true")
    parser.add_argument("--callData",
-                       help="Data to pass to the contract when using --callIt." \
-                            "In the callee, this data is available as msg.data.",
+                       help="Data to pass to the contract when using " \
+                            "--callIt. In the callee, this data is available " \
+                            "as msg.data or CALLDATALOAD (instruction 35).",
                        default="0x")
    parser.add_argument("--showStorage",
                        help="Display storage after execution. If --callIt " \
@@ -58,11 +57,11 @@ def main():
                        action="store_true")
    parser.add_argument("--storageIndices",
                        help="If using --showStorage, the number of storage " \
-                            "locations to display",
+                            "locations to display.",
                        default=1)
    parser.add_argument("--returnIndices",
                        help="If using --callIt, the number of 32-byte " \
-                            "chunks of return data to display",
+                            "chunks of return data to display.",
                        default=1)
    parser.add_argument("--ethereumMode",
                        help="Run against Ethereum instead of the product. " \
