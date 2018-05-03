@@ -271,9 +271,7 @@ public final class EthDispatcher extends BaseServlet {
             Athena.AthenaRequest.Builder athenaRequestBuilder
                = Athena.AthenaRequest.newBuilder();
             handler.buildRequest(athenaRequestBuilder, requestJson);
-            athenaResponse = communicateWithAthena(athenaRequestBuilder.build(),
-                                                   response,
-                                                   logger);
+            athenaResponse = communicateWithAthena(athenaRequestBuilder.build());
             // If there is an error reported by Athena
             if (athenaResponse.getErrorResponseCount() > 0) {
                ErrorResponse errResponse = athenaResponse.getErrorResponse(0);
@@ -307,67 +305,43 @@ public final class EthDispatcher extends BaseServlet {
     * 
     * @param req
     *           AthenaRequest object
-    * @param response
-    *           Servlet response handle
-    * @param log
-    *           Logger handle
     * @return Response received from Athena
     */
-   private AthenaResponse communicateWithAthena(Athena.AthenaRequest req,
-                                                HttpServletResponse response,
-                                                Logger log) {
+   private AthenaResponse communicateWithAthena(Athena.AthenaRequest req) throws Exception {
       IAthenaConnection conn = null;
       Athena.AthenaResponse athenaResponse = null;
       try {
          conn = AthenaConnectionPool.getInstance().getConnection();
          if (conn == null) {
-            processResponse(response,
-                            errorMessage("Error communicating with athena",
-                                         req.getEthRequest(0).getId(),
-                                         jsonRpc),
-                            HttpServletResponse.SC_OK,
-                            log);
-            return null;
+            throw new Exception(errorMessage("Error communicating with athena",
+                    req.getEthRequest(0).getId(),
+                    jsonRpc));
          }
-
+      
          boolean res = AthenaHelper.sendToAthena(req, conn, _conf);
          if (!res) {
-            processResponse(response,
-                            errorMessage("Error communicating with athena",
-                                         req.getEthRequest(0).getId(),
-                                         jsonRpc),
-                            HttpServletResponse.SC_OK,
-                            log);
-            return null;
+            throw new Exception(errorMessage("Error communicating with athena",
+                    req.getEthRequest(0).getId(),
+                    jsonRpc));
          }
-
+      
          // receive response from Athena
          athenaResponse = AthenaHelper.receiveFromAthena(conn);
          if (athenaResponse == null) {
-            processResponse(response,
-                            errorMessage("Error reading response from athena",
-                                         req.getEthRequest(0).getId(),
-                                         jsonRpc),
-                            HttpServletResponse.SC_OK,
-                            log);
-            return null;
+            throw new Exception(errorMessage("Error communicating with athena",
+                    req.getEthRequest(0).getId(),
+                    jsonRpc));
          }
       } catch (Exception e) {
          logger.error("General exception communicating with athena: ", e);
-         processResponse(response,
-                         errorMessage("Error communicating with athena",
-                                      req.getEthRequest(0).getId(),
-                                      jsonRpc),
-                         HttpServletResponse.SC_OK,
-                         log);
-         return null;
+         throw e;
       } finally {
          AthenaConnectionPool.getInstance().putConnection(conn);
       }
-
+   
       return athenaResponse;
    }
-
+   
    /**
     * Not required for this Servlet as each handler builds its response object
     * separately.
