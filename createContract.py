@@ -25,21 +25,30 @@ def main():
    parser.add_argument("bytecode",
                        help="Bytecode of the contract.")
    parser.add_argument("--addPrefix",
-                       help="Add a prefix for the bytecode to be runnable.",
+                       help="Add a prefix for the bytecode to be runnable." \
+                            "If you don't use this, and your own bytecode " \
+                            "does not have some prefix code, your bytecode " \
+                            "will be run once, when the contract is created, " \
+                            "and cannot be called again.",
                        default=False,
                        action="store_true")
    parser.add_argument("--callIt",
                        help="Create a second contract from which to call " \
                             "the contract containing your bytecode, and " \
-                            "call it. --returnBytes bytes of the return value " \
-                            "of the call will be displayed. Not implemented: " \
-                            "Passing in a value for 'value' or 'data'. \n" \
+                            "call it. --returnIndices 32-byte chunks of the " \
+                            "return value of the call will be displayed. Not " \
+                            "implemented: \n" \
+                            "Passing in a value for 'value'. \n" \
                             "NOTE: Contracts are always executed once " \
                             "when intially created. This argument is an " \
                             "additional call in order to get the return " \
-                            "value.",
+                            "value and pass in data with --callData.",
                        default=False,
                        action="store_true")
+   parser.add_argument("--callData",
+                       help="Data to pass to the contract when using --callIt." \
+                            "In the callee, this data is available as msg.data.",
+                       default="0x")
    parser.add_argument("--showStorage",
                        help="Display storage after execution. If --callIt " \
                             "is used, then storage will be displayed " \
@@ -57,7 +66,7 @@ def main():
                        default=1)
    parser.add_argument("--ethereumMode",
                        help="Run against Ethereum instead of the product. " \
-                            "Ethereum should already be running and mining.)",
+                            "Ethereum should already be running and mining.",
                        default=False,
                        action="store_true")
    parser.add_argument("--logLevel",
@@ -152,9 +161,13 @@ class BytecodeContractCreator(test_suite.TestSuite):
             if self._args.callIt:
                log.info("Creating the contract which will call the contract " \
                         "created earlier.")
-               returnBytes = 32*int(self._args.returnIndices)
+               numReturnBytes = 32*int(self._args.returnIndices)
                invokerCallBytecode = self.\
-                             _createCALLBytecode(contractAddress, returnBytes)
+                             _createCALLBytecode(contractAddress, numReturnBytes,
+                                                 self._args.callData)
+
+               invokerCallBytecode = self._addCodePrefix(invokerCallBytecode)
+
                invokerTxReceipt = self._createContract(user, rpc,
                                                        invokerCallBytecode, gas)
                invokerContractAddress = RPC.searchResponse(invokerTxReceipt,
