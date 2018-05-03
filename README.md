@@ -123,3 +123,101 @@ miner.start(2)
   the name of the test and the reason are stored in this file.  Example reasons
   include missing expected results and a transaction not being mined within the
   allotted time.
+
+
+## Contract Testing Tool
+The createContract utility uses the libraries in the testing framework to give
+you a handy way to create and execute bytecode.
+
+### Usage:
+```
+createContract.py [-h] [--addPrefix] [--callIt] [--callData CALLDATA]
+                  [--showStorage] [--storageIndices STORAGEINDICES]
+                  [--returnIndices RETURNINDICES] [--ethereumMode]
+                  [--logLevel LOGLEVEL]
+                  bytecode
+
+positional arguments:
+  bytecode              Bytecode of the contract.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --addPrefix           Add a prefix for the bytecode to be runnable. If you
+                        don't use this, and your own bytecode does not have
+                        some prefix code, your bytecode will be run once, when
+                        the contract is created, and cannot be called again.
+  --callIt              Create a second contract from which to call the
+                        contract containing your bytecode, and call it. Not
+                        implemented: Passing in a value for 'value'. NOTE:
+                        Contracts are always executed once when intially
+                        created. This argument is an additional call in order
+                        to get the return value and pass in data with
+                        --callData.
+  --callData CALLDATA   Data to pass to the contract when using --callIt. In
+                        the callee, this data is available as msg.data or
+                        CALLDATALOAD (instruction 35).
+  --showStorage         Display storage after execution. If --callIt is used,
+                        then storage will be displayed twice: Once after
+                        initial contract creation, and again after the
+                        invocation.
+  --storageIndices STORAGEINDICES
+                        If using --showStorage, the number of storage
+                        locations to display.
+  --returnIndices RETURNINDICES
+                        If using --callIt, the number of 32-byte chunks of
+                        return data to display.
+  --ethereumMode        Run against Ethereum instead of the product. Ethereum
+                        should already be running and mining.
+  --logLevel LOGLEVEL   Set the log level. Valid values:'DEBUG', 'INFO',
+                        'WARNING', 'ERROR', 'CRITICAL'
+```
+
+### Testing Tool Example
+Bytecode to test: 6003600055600035600155600460005260206000F3
+
+Store the number 3 in storage position 0:
+```
+60 03
+60 00
+55
+```
+
+Copy 32 bytes of passed in data, starting at 0, to storage position 1:
+```
+60 00
+35
+60 01
+55
+```
+
+Store the number 4 in memory.
+```
+60 04
+60 00
+52
+```
+
+Return 32 bytes of memory, starting at memory position 0:
+```
+60 20
+60 00
+F3
+```
+
+Create and test that bytecode.
+```
+./createContract.py 6003600055600035600155600460005260206000F3 --callIt --addPrefix --showStorage --storageIndices 2 --callData 1234567890abcdef
+Results directory: /tmp/createContract_20180503_1325_e0bfz6k0
+Creating initial contract with wrapped bytecode.
+Contract address: '0xB35B8B030A4BC592EA8CCF3684512CE083F108DC'
+Storage at contract '0xB35B8B030A4BC592EA8CCF3684512CE083F108DC' after contract creation:
+   0: 0x0000000000000000000000000000000000000000000000000000000000000000
+   1: 0x0000000000000000000000000000000000000000000000000000000000000000
+Creating the contract which will call the contract created earlier.
+Calling the contract which will call the contract created earlier.
+Storage at contract '0xB35B8B030A4BC592EA8CCF3684512CE083F108DC' after contract invocation:
+   0: 0x0000000000000000000000000000000000000000000000000000000000000003  <--- Storing the number 3 worked.
+   1: 0x1234567890ABCDEF000000000000000000000000000000000000000000000000  <--- Passed in args were able to be read.
+Data returned by the contract (32 bytes at a time):
+   0: 0x0000000000000000000000000000000000000000000000000000000000000004  <--- The bytecode was able to return a value.
+```
