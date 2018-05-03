@@ -1,11 +1,3 @@
-/**
- * This servlet is used to serve static content.
- * <p>
- * Endpoints serviced : - /assets/* : Loads content in the priv/www/assets
- * folder - /api and /api/ : Loads content from priv/swagger.json - /swagger/* :
- * Loads content from priv/www/swagger folder - /* : Loads content from
- * priv/www/index.html
- */
 package Servlets;
 
 import configurations.FileConfiguration;
@@ -26,7 +18,16 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * Servlet class.
+ * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * 
+ * <p>
+ * This servlet is used to serve static content. Endpoints serviced :
+ * <ul>
+ * <li>/assets/* : Loads content in the priv/www/assets folder</li>
+ * <li>/api and /api/ : Loads content from priv/swagger.json</li>
+ * <li>/swagger/* : Loads content from priv/www/swagger folder</li>
+ * <li>/* : Loads content from priv/www/index.html</li>
+ * </p>
  */
 public class StaticContent extends HttpServlet {
    private static final long serialVersionUID = 1L;

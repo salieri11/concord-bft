@@ -1,6 +1,3 @@
-/**
- * This handler is used to service eth_getBlockByHash POST requests.
- */
 package Servlets.EthRPCHandlers;
 
 import java.util.List;
@@ -20,6 +17,11 @@ import com.vmware.athena.Athena.AthenaResponse;
 import com.vmware.athena.Athena.BlockResponse;
 import com.vmware.athena.Athena.TransactionResponse;
 
+/**
+ * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * 
+ * This handler is used to service eth_getBlockByHash POST requests.
+ */
 public class EthGetBlockHandler extends AbstractEthRPCHandler {
 
    Logger logger = Logger.getLogger(EthGetBlockHandler.class);

@@ -1,14 +1,3 @@
-/**
- * url endpoint : /api/athena/eth
- * <p>
- * GET: Used to list available RPC methods. A list of currently exposed Eth RPC
- * methods is read from the config file and returned to the client.
- * <p>
- * POST: Used to execute the specified method. Request and response construction
- * are handled by the appropriate handlers. A TCP socket connection is made to
- * Athena and requests and responses are encoded in the Google Protocol Buffer
- * format. Also supports a group of requests.
- */
 package Servlets;
 
 import java.io.IOException;
@@ -34,7 +23,21 @@ import connections.IAthenaConnection;
 import io.undertow.util.StatusCodes;
 
 /**
- * Servlet class.
+ * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * 
+ * <p>url endpoint : /api/athena/eth</p>
+ * 
+ * <p>
+ * GET: Used to list available RPC methods. A list of currently exposed Eth RPC
+ * methods is read from the config file and returned to the client.
+ * </p>
+ * 
+ * <p>
+ * POST: Used to execute the specified method. Request and response
+ * construction are handled by the appropriate handlers. A TCP socket
+ * connection is made to Athena and requests and responses are encoded in the
+ * Google Protocol Buffer format. Also supports a group of requests.
+ * </p>
  */
 public final class EthDispatcher extends BaseServlet {
    private static final long serialVersionUID = 1L;

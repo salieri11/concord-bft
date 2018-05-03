@@ -1,6 +1,3 @@
-/**
- * This handler is used to service eth_getCode POST requests.
- */
 package Servlets.EthRPCHandlers;
 
 import org.apache.log4j.Logger;
@@ -14,6 +11,11 @@ import com.vmware.athena.Athena.EthResponse;
 
 import Servlets.APIHelper;
 
+/**
+ * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * 
+ * This handler is used to service eth_getCode POST requests.
+ */
 public class EthGetCodeHandler extends AbstractEthRPCHandler {
 
    Logger logger = Logger.getLogger(EthGetCodeHandler.class);

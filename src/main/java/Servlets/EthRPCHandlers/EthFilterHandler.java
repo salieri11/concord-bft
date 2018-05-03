@@ -16,14 +16,17 @@ import Servlets.APIHelper;
 import Servlets.EthDispatcher;
 
 /**
- * This handler is used to service following types of filter requests: 1.
- * eth_newBlockFilter
- *
- * 2. eth_newFilter (TODO)
- *
- * 3. eth_newPendingTransactionFilter(TODO)
+ * <p>Copyright 2018 VMware, all rights reserved</p>
  * 
- * 4. eth_getFilterChanges 5. eth_uninstallFilter
+ * <p>
+ * This handler is used to service following types of filter requests:
+ * <ul>
+ * <li>eth_newBlockFilter</li>
+ * <li>eth_newFilter(TODO)</li>
+ * <li>eth_newPendingTransactionFilter(TODO)</li>
+ * <li>eth_getFilterChanges</li>
+ * <li>eth_uninstallFilter</li>
+ * </ul></p>
  */
 public class EthFilterHandler extends AbstractEthRPCHandler {
 
