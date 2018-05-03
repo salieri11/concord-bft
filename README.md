@@ -130,6 +130,7 @@ The createContract utility uses the libraries in the testing framework to give
 you a handy way to create and execute bytecode.
 
 ### Options:
+```
   bytecode              Bytecode of the contract.
 
 optional arguments:
@@ -162,8 +163,9 @@ optional arguments:
                         should already be running and mining.
   --logLevel LOGLEVEL   Set the log level. Valid values:'DEBUG', 'INFO',
                         'WARNING', 'ERROR', 'CRITICAL'
+```
 
-## Tesing Tool Example
+### Tesing Tool Example
 Bytecode to test: 6003600055600035600155600460005260206000F3
 
 Store the number 3 in storage position 0:
@@ -173,7 +175,7 @@ Store the number 3 in storage position 0:
 55
 ```
 
-Copy 32 bytes of passed in data (function args), starting at 0, to storage position 1:
+Copy 32 bytes of passed in data, starting at 0, to storage position 1:
 ```
 60 00
 35
