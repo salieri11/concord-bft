@@ -23,9 +23,13 @@ import connections.IAthenaConnection;
 import io.undertow.util.StatusCodes;
 
 /**
- * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
  * 
- * <p>url endpoint : /api/athena/eth</p>
+ * <p>
+ * url endpoint : /api/athena/eth
+ * </p>
  * 
  * <p>
  * GET: Used to list available RPC methods. A list of currently exposed Eth RPC
@@ -33,10 +37,10 @@ import io.undertow.util.StatusCodes;
  * </p>
  * 
  * <p>
- * POST: Used to execute the specified method. Request and response
- * construction are handled by the appropriate handlers. A TCP socket
- * connection is made to Athena and requests and responses are encoded in the
- * Google Protocol Buffer format. Also supports a group of requests.
+ * POST: Used to execute the specified method. Request and response construction
+ * are handled by the appropriate handlers. A TCP socket connection is made to
+ * Athena and requests and responses are encoded in the Google Protocol Buffer
+ * format. Also supports a group of requests.
  * </p>
  */
 public final class EthDispatcher extends BaseServlet {
@@ -271,7 +275,8 @@ public final class EthDispatcher extends BaseServlet {
             Athena.AthenaRequest.Builder athenaRequestBuilder
                = Athena.AthenaRequest.newBuilder();
             handler.buildRequest(athenaRequestBuilder, requestJson);
-            athenaResponse = communicateWithAthena(athenaRequestBuilder.build());
+            athenaResponse
+               = communicateWithAthena(athenaRequestBuilder.build());
             // If there is an error reported by Athena
             if (athenaResponse.getErrorResponseCount() > 0) {
                ErrorResponse errResponse = athenaResponse.getErrorResponse(0);
@@ -307,30 +312,31 @@ public final class EthDispatcher extends BaseServlet {
     *           AthenaRequest object
     * @return Response received from Athena
     */
-   private AthenaResponse communicateWithAthena(Athena.AthenaRequest req) throws Exception {
+   private AthenaResponse
+           communicateWithAthena(Athena.AthenaRequest req) throws Exception {
       IAthenaConnection conn = null;
       Athena.AthenaResponse athenaResponse = null;
       try {
          conn = AthenaConnectionPool.getInstance().getConnection();
          if (conn == null) {
             throw new Exception(errorMessage("Error communicating with athena",
-                    req.getEthRequest(0).getId(),
-                    jsonRpc));
+                                             req.getEthRequest(0).getId(),
+                                             jsonRpc));
          }
-      
+
          boolean res = AthenaHelper.sendToAthena(req, conn, _conf);
          if (!res) {
             throw new Exception(errorMessage("Error communicating with athena",
-                    req.getEthRequest(0).getId(),
-                    jsonRpc));
+                                             req.getEthRequest(0).getId(),
+                                             jsonRpc));
          }
-      
+
          // receive response from Athena
          athenaResponse = AthenaHelper.receiveFromAthena(conn);
          if (athenaResponse == null) {
             throw new Exception(errorMessage("Error communicating with athena",
-                    req.getEthRequest(0).getId(),
-                    jsonRpc));
+                                             req.getEthRequest(0).getId(),
+                                             jsonRpc));
          }
       } catch (Exception e) {
          logger.error("General exception communicating with athena: ", e);
@@ -338,16 +344,17 @@ public final class EthDispatcher extends BaseServlet {
       } finally {
          AthenaConnectionPool.getInstance().putConnection(conn);
       }
-   
+
       return athenaResponse;
    }
-   
+
    /**
     * Not required for this Servlet as each handler builds its response object
     * separately.
     */
    @Override
    protected JSONAware parseToJSON(AthenaResponse athenaResponse) {
-      return null;
+      throw new UnsupportedOperationException("parseToJSON method is not "
+         + "supported in EthDispatcher Servlet");
    }
 }
