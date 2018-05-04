@@ -112,6 +112,34 @@ TEST(rlp_test, example_lipsum) {
 }
 
 
+TEST(utils_test, to_evm_uint256be_test) {
+   uint64_t val = 0xabcd1234;
+   evm_uint256be expected;
+   athena::to_evm_uint256be(val, &expected);
+   EXPECT_EQ(expected.bytes[31], 0x34);
+   EXPECT_EQ(expected.bytes[30], 0x12);
+   EXPECT_EQ(expected.bytes[29], 0xcd);
+   EXPECT_EQ(expected.bytes[28], 0xab);
+   for (int i = 0; i < 28; i++) {
+      EXPECT_EQ(expected.bytes[i], 0x00);
+   }
+
+}
+
+
+TEST(utils_test, from_evm_uint256be_test) {
+   uint64_t expected = 0x12121212abcd1234;
+   evm_uint256be val;
+   for (int i = 0; i < 28; i++) {
+      val.bytes[i] = 0x12;
+   }
+   val.bytes[28] = 0xab;
+   val.bytes[29] = 0xcd;
+   val.bytes[30] = 0x12;
+   val.bytes[31] = 0x34;
+   EXPECT_EQ(expected, athena::from_evm_uint256be(&val));
+}
+
 
 }
 

@@ -489,13 +489,16 @@ api_connection::handle_block_request()
    // blocks are generated instantaneously we can say that "latest" =
    // "pending". Here we will have to first convert -1 to current block number
    // in that case.
+   // TODO: Once SBFT is implemented blocks will not be generated instantaneously
+   // this will have to be changed at that time.
    try {
       shared_ptr<EthBlock> block;
       if (request.has_number()) {
          uint64_t requested_block_number = athevm_.current_block_number();
          if (request.number() >= 0 &&
-             request.number() < requested_block_number)
+             request.number() < requested_block_number) {
             requested_block_number = request.number();
+         }
          block = athevm_.get_block_for_number(requested_block_number);
       } else if (request.has_hash()) {
          evm_uint256be blkhash;
@@ -885,9 +888,6 @@ api_connection::handle_eth_blockNumber(const EthRequest &request) {
    response->set_id(request.id());
    evm_uint256be current_block;
    to_evm_uint256be(athevm_.current_block_number(), &current_block);
-   LOG4CPLUS_DEBUG(logger_, "Returning latest block number: "
-                   << athevm_.current_block_number()
-                   << " Also: " << from_evm_uint256be(&current_block));
    response->set_data(current_block.bytes, sizeof(evm_uint256be));
 }
 
