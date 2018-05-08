@@ -392,6 +392,9 @@ api_connection::handle_eth_request(int i)
    case EthRequest_EthMethod_GET_CODE:
       handle_eth_getCode(request);
       break;
+   case EthRequest_EthMethod_BLOCK_NUMBER:
+      handle_eth_blockNumber(request);
+      break;
    default:
       ErrorResponse *e = athenaResponse_.add_error_response();
       e->mutable_description()->assign("ETH Method Not Implemented");
@@ -479,10 +482,24 @@ api_connection::handle_block_request()
       return;
    }
 
+   // According to ethRPC requests the block number string can be either a hex
+   // number or it can be one of "latest", "earliest", "pending". Since, athena
+   // only accepts uint64_t for block number helen will replace "latest" with -1
+   // "earliest" with 0 (genesis block) and "pending" with -1 (since in athena
+   // blocks are generated instantaneously we can say that "latest" =
+   // "pending". Here we will have to first convert -1 to current block number
+   // in that case.
+   // TODO: Once SBFT is implemented blocks will not be generated instantaneously
+   // this will have to be changed at that time.
    try {
       shared_ptr<EthBlock> block;
       if (request.has_number()) {
-         block = athevm_.get_block_for_number(request.number());
+         uint64_t requested_block_number = athevm_.current_block_number();
+         if (request.number() >= 0 &&
+             request.number() < requested_block_number) {
+            requested_block_number = request.number();
+         }
+         block = athevm_.get_block_for_number(requested_block_number);
       } else if (request.has_hash()) {
          evm_uint256be blkhash;
          std::copy(request.hash().begin(), request.hash().end(), blkhash.bytes);
@@ -531,8 +548,8 @@ api_connection::handle_transaction_request()
 
    evm_uint256be hash;
    std::copy(request.hash().begin(), request.hash().end(), hash.bytes);
-   
-   TransactionResponse* response = 
+
+   TransactionResponse* response =
       athenaResponse_.mutable_transaction_response();
    build_transaction_response(hash, response);
 }
@@ -541,7 +558,7 @@ api_connection::handle_transaction_request()
  * Build a transaction response object.
  */
 void
-api_connection::build_transaction_response(evm_uint256be hash, 
+api_connection::build_transaction_response(evm_uint256be hash,
                                            TransactionResponse* response)
 {
     try {
@@ -862,6 +879,16 @@ api_connection::handle_uninstall_filter(const EthRequest &request)
       ErrorResponse *resp = athenaResponse_.add_error_response();
       resp->set_description(e.what());
    }
+}
+
+
+void
+api_connection::handle_eth_blockNumber(const EthRequest &request) {
+   EthResponse *response = athenaResponse_.add_eth_response();
+   response->set_id(request.id());
+   evm_uint256be current_block;
+   to_evm_uint256be(athevm_.current_block_number(), &current_block);
+   response->set_data(current_block.bytes, sizeof(evm_uint256be));
 }
 
 

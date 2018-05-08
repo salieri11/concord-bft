@@ -96,7 +96,8 @@ private:
    handle_uninstall_filter(const EthRequest &reqest);
    void
    handle_personal_newAccount(const EthRequest &request);
-
+   void
+   handle_eth_blockNumber(const EthRequest &request);
 
    /* Constructor. */
    api_connection(boost::asio::io_service &io_service,
@@ -128,9 +129,9 @@ private:
 
    void
    process_incoming();
-   
+
    void
-   build_transaction_response(evm_uint256be hash, 
+   build_transaction_response(evm_uint256be hash,
                               TransactionResponse* response);
 
    /* Socket being handled. */
