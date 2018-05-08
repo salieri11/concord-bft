@@ -250,7 +250,10 @@ public final class EthDispatcher extends BaseServlet {
             handler = new EthGetStorageAtHandler();
          } else if (ethMethodName.equals(_conf.getStringValue("GetCode_Name"))) {
             handler = new EthGetCodeHandler();
-         } else if (ethMethodName.equals(_conf.getStringValue("GetBlockByHash_Name"))) {
+         } else if (ethMethodName.equals(_conf.getStringValue
+                 ("GetBlockByHash_Name")) ||
+                 ethMethodName.equals(_conf.getStringValue
+                         ("GetBlockByNumber_Name"))) {
             handler = new EthGetBlockHandler();
          } else if (ethMethodName.equals(_conf.getStringValue("NewFilter_Name"))
             || ethMethodName.equals(_conf.getStringValue("NewBlockFilter_Name"))
@@ -267,7 +270,11 @@ public final class EthDispatcher extends BaseServlet {
             || ethMethodName.equals(_conf.getStringValue("Accounts_Name"))) {
             handler = new EthLocalResponseHandler();
             isLocal = true;
-         } else {
+         } else if (ethMethodName.equals(_conf.getStringValue
+                 ("BlockNumber_Name"))) {
+            handler = new EthBlockNumberHandler();
+         }
+         else {
             throw new Exception("Invalid method name.");
          }
 

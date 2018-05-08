@@ -7,19 +7,18 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import com.google.protobuf.ByteString;
-import com.vmware.athena.Athena.AthenaRequest.Builder;
-
-import Servlets.APIHelper;
-import Servlets.EthDispatcher;
-
 import com.vmware.athena.Athena;
+import com.vmware.athena.Athena.AthenaRequest.Builder;
 import com.vmware.athena.Athena.AthenaResponse;
 import com.vmware.athena.Athena.BlockResponse;
 import com.vmware.athena.Athena.TransactionResponse;
+import Servlets.APIHelper;
+import Servlets.EthDispatcher;
+
 
 /**
  * <p>Copyright 2018 VMware, all rights reserved.</p>
- * 
+ *
  * This handler is used to service eth_getBlockByHash POST requests.
  */
 public class EthGetBlockHandler extends AbstractEthRPCHandler {
@@ -30,7 +29,7 @@ public class EthGetBlockHandler extends AbstractEthRPCHandler {
     * Builds the Athena request builder. Extracts the block hash from the
     * request and uses it to set up an Athena Request builder with a
     * BlockRequest. Also performs basic checks on parameters.
-    * 
+    *
     * @param builder
     *           Object in which request is built
     * @param requestJson
@@ -46,17 +45,48 @@ public class EthGetBlockHandler extends AbstractEthRPCHandler {
                + "request type");
          }
 
+         String ethMethodName = EthDispatcher.getEthMethodName(requestJson);
+
          // Perform type checking of the flag at this stage itself rather than
-         // while building the reponse
+         // while building the response
          @SuppressWarnings("unused")
          boolean flag = (boolean) params.get(1);
 
-         ByteString blockHash
-            = APIHelper.hexStringToBinary((String) params.get(0));
-
          // Construct a blockNumberRequest object. Set its start field.
-         final Athena.BlockRequest blockRequestObj
-            = Athena.BlockRequest.newBuilder().setHash(blockHash).build();
+         final Athena.BlockRequest blockRequestObj;
+
+         if (ethMethodName.equals(_conf.getStringValue("GetBlockByNumber_Name"))) {
+            // Block number string can be either a hex number or it can be one
+            // of "latest", "earliest", "pending". Since, athena only accepts
+            // uint64_t for block number we will replace "latest" with -1
+            // "earliest" with 0 (genesis block) and "pending" with -1 (since
+            // in athena blocks are generated instantaneously we can say that
+            // "latest" = "pending"
+            String requestedBlockStr = (String) params.get(0);
+            long requestedBlockNumber = -1;
+            if (requestedBlockStr.equals("earliest")) {
+               requestedBlockNumber = 0;
+            } else if (requestedBlockStr.equals("latest")
+               || requestedBlockStr.equals("pending")) {
+               requestedBlockNumber = -1;
+            } else if (requestedBlockStr.startsWith("0x")) {
+               requestedBlockNumber
+                  = Long.parseLong(requestedBlockStr.substring(2), 16);
+            } else {
+               throw new Exception("Invalid block number requested. Block "
+                  + "number can either be 'latest', 'pending', 'earliest',"
+                  + " or a hex number starting with '0x'");
+            }
+            blockRequestObj
+               = Athena.BlockRequest.newBuilder()
+                                    .setNumber(requestedBlockNumber)
+                                    .build();
+         } else { // BlockByHash_Name
+            ByteString blockHash
+               = APIHelper.hexStringToBinary((String) params.get(0));
+            blockRequestObj
+               = Athena.BlockRequest.newBuilder().setHash(blockHash).build();
+         }
 
          // Add the request to the athena request builder
          builder.setBlockRequest(blockRequestObj);
@@ -70,7 +100,7 @@ public class EthGetBlockHandler extends AbstractEthRPCHandler {
     * Builds the response object to be returned to the user. Checks the flag in
     * the request to determine whether a list of transaction hashes or a list of
     * transaction objects needs to be returned to the user.
-    * 
+    *
     * @param athenaResponse
     *           Response received from Athena
     * @param requestJson
