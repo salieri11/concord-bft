@@ -15,7 +15,7 @@ public class APIHelper {
 
    /**
     * Converts a hex string into a binary string.
-    * 
+    *
     * @param param
     *           A hex string
     * @return A ByteString object
@@ -52,7 +52,7 @@ public class APIHelper {
 
    /**
     * Converts a hex character into its corresponding numerical value
-    * 
+    *
     * @param c
     * @return
     * @throws Exception
@@ -71,7 +71,7 @@ public class APIHelper {
 
    /**
     * Converts a bytestring to a hex string.
-    * 
+    *
     * @param binary
     *           Binary string
     * @return
@@ -81,15 +81,15 @@ public class APIHelper {
       StringBuilder sb = new StringBuilder("0x");
 
       for (byte b : resultBytes) {
-         sb.append((String.format("%02X ", b)));
+         sb.append((String.format("%02x", b)));
       }
-      String result = (sb.toString()).replace(" ", "");
+      String result = sb.toString();
       return result;
    }
 
    /**
     * Computes the Keccak-256 hash as per ethereum specifications
-    * 
+    *
     * @param hex
     * @return
     * @throws Exception

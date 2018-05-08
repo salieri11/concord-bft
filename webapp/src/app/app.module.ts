@@ -5,7 +5,7 @@
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgModule } from '@angular/core';
-import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { HttpClient, HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
 import { RouterModule, Routes } from '@angular/router';
 import { ClarityModule } from '@clr/angular';
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
@@ -16,6 +16,8 @@ import { NodesModule } from './nodes/nodes.module';
 import { BlocksModule } from './blocks/blocks.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { TestingModule } from './testing/testing.module';
+
+import { RequestInterceptor } from './app-interceptors';
 
 import { AppComponent } from './app.component';
 
@@ -53,7 +55,13 @@ export function HttpLoaderFactory(http: HttpClient) {
     TransactionsModule,
     TestingModule
   ],
-  providers: [],
+  providers: [
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: RequestInterceptor,
+      multi: true,
+    }
+  ],
   bootstrap: [AppComponent]
 })
 export class AppModule { }

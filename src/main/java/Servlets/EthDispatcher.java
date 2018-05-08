@@ -1,14 +1,3 @@
-/**
- * url endpoint : /api/athena/eth
- * <p>
- * GET: Used to list available RPC methods. A list of currently exposed Eth RPC
- * methods is read from the config file and returned to the client.
- * <p>
- * POST: Used to execute the specified method. Request and response construction
- * are handled by the appropriate handlers. A TCP socket connection is made to
- * Athena and requests and responses are encoded in the Google Protocol Buffer
- * format. Also supports a group of requests.
- */
 package Servlets;
 
 import java.io.IOException;
@@ -34,7 +23,25 @@ import connections.IAthenaConnection;
 import io.undertow.util.StatusCodes;
 
 /**
- * Servlet class.
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
+ * 
+ * <p>
+ * url endpoint : /api/athena/eth
+ * </p>
+ * 
+ * <p>
+ * GET: Used to list available RPC methods. A list of currently exposed Eth RPC
+ * methods is read from the config file and returned to the client.
+ * </p>
+ * 
+ * <p>
+ * POST: Used to execute the specified method. Request and response construction
+ * are handled by the appropriate handlers. A TCP socket connection is made to
+ * Athena and requests and responses are encoded in the Google Protocol Buffer
+ * format. Also supports a group of requests.
+ * </p>
  */
 public final class EthDispatcher extends BaseServlet {
    private static final long serialVersionUID = 1L;
@@ -275,9 +282,8 @@ public final class EthDispatcher extends BaseServlet {
             Athena.AthenaRequest.Builder athenaRequestBuilder
                = Athena.AthenaRequest.newBuilder();
             handler.buildRequest(athenaRequestBuilder, requestJson);
-            athenaResponse = communicateWithAthena(athenaRequestBuilder.build(),
-                                                   response,
-                                                   logger);
+            athenaResponse
+               = communicateWithAthena(athenaRequestBuilder.build());
             // If there is an error reported by Athena
             if (athenaResponse.getErrorResponseCount() > 0) {
                ErrorResponse errResponse = athenaResponse.getErrorResponse(0);
@@ -311,60 +317,37 @@ public final class EthDispatcher extends BaseServlet {
     * 
     * @param req
     *           AthenaRequest object
-    * @param response
-    *           Servlet response handle
-    * @param log
-    *           Logger handle
     * @return Response received from Athena
     */
-   private AthenaResponse communicateWithAthena(Athena.AthenaRequest req,
-                                                HttpServletResponse response,
-                                                Logger log) {
+   private AthenaResponse
+           communicateWithAthena(Athena.AthenaRequest req) throws Exception {
       IAthenaConnection conn = null;
       Athena.AthenaResponse athenaResponse = null;
       try {
          conn = AthenaConnectionPool.getInstance().getConnection();
          if (conn == null) {
-            processResponse(response,
-                            errorMessage("Error communicating with athena",
-                                         req.getEthRequest(0).getId(),
-                                         jsonRpc),
-                            HttpServletResponse.SC_OK,
-                            log);
-            return null;
+            throw new Exception(errorMessage("Error communicating with athena",
+                                             req.getEthRequest(0).getId(),
+                                             jsonRpc));
          }
 
          boolean res = AthenaHelper.sendToAthena(req, conn, _conf);
          if (!res) {
-            processResponse(response,
-                            errorMessage("Error communicating with athena",
-                                         req.getEthRequest(0).getId(),
-                                         jsonRpc),
-                            HttpServletResponse.SC_OK,
-                            log);
-            return null;
+            throw new Exception(errorMessage("Error communicating with athena",
+                                             req.getEthRequest(0).getId(),
+                                             jsonRpc));
          }
 
          // receive response from Athena
          athenaResponse = AthenaHelper.receiveFromAthena(conn);
          if (athenaResponse == null) {
-            processResponse(response,
-                            errorMessage("Error reading response from athena",
-                                         req.getEthRequest(0).getId(),
-                                         jsonRpc),
-                            HttpServletResponse.SC_OK,
-                            log);
-            return null;
+            throw new Exception(errorMessage("Error communicating with athena",
+                                             req.getEthRequest(0).getId(),
+                                             jsonRpc));
          }
       } catch (Exception e) {
          logger.error("General exception communicating with athena: ", e);
-         processResponse(response,
-                         errorMessage("Error communicating with athena",
-                                      req.getEthRequest(0).getId(),
-                                      jsonRpc),
-                         HttpServletResponse.SC_OK,
-                         log);
-         return null;
+         throw e;
       } finally {
          AthenaConnectionPool.getInstance().putConnection(conn);
       }
@@ -378,6 +361,7 @@ public final class EthDispatcher extends BaseServlet {
     */
    @Override
    protected JSONAware parseToJSON(AthenaResponse athenaResponse) {
-      return null;
+      throw new UnsupportedOperationException("parseToJSON method is not "
+         + "supported in EthDispatcher Servlet");
    }
 }

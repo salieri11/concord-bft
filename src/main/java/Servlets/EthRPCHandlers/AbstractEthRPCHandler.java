@@ -1,12 +1,3 @@
-/**
- * This abstract class serves as a template for all EthRPC Handler classes.
- * These handlers are used to construct AthenaRequest objects from user requests
- * and to construct responses for the user from AthenaResponses based on the
- * method specified by the user.
- * 
- * Concrete helper methods have been implemented for performing some common
- * actions on request/response objects.
- */
 package Servlets.EthRPCHandlers;
 
 import org.json.simple.JSONArray;
@@ -21,6 +12,17 @@ import configurations.ConfigurationFactory;
 import configurations.ConfigurationFactory.ConfigurationType;
 import configurations.IConfiguration;
 
+/**
+ * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * 
+ * <p>This abstract class serves as a template for all EthRPC Handler classes.
+ * These handlers are used to construct AthenaRequest objects from user
+ * requests and to construct responses for the user from AthenaResponses based
+ * on the method specified by the user.</p>
+ * 
+ * <p>Concrete helper methods have been implemented for performing some common
+ * actions on request/response objects.</p>
+ */
 public abstract class AbstractEthRPCHandler {
 
    // Configuration handles

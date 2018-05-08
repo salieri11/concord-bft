@@ -7,7 +7,7 @@
       <h2 class="mt-0 pl-1">{{transaction?.hash}}</h2>
     </div>
   </div>
-  <dl>
+  <dl class="break-word">
     <dt>{{'transactions.hash' | translate}}</dt>
     <dd>{{transaction?.hash}}</dd>
     <dt>{{'transactions.from' | translate}}</dt>
@@ -22,5 +22,7 @@
     <dd *ngIf="transaction?.input">{{transaction?.input}}</dd>
     <dt>{{'transactions.nonce' | translate}}</dt>
     <dd>{{transaction?.nonce}}</dd>
+    <dt>{{'transactions.status' | translate}}</dt>
+    <dd>{{(transaction?.status ? 'transactions.success' : 'transactions.failure') | translate}}</dd>
   </dl>
 </div>

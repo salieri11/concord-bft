@@ -1,8 +1,3 @@
-/**
- * This handler is used to service eth_sendTransaction and eth_call POST
- * requests. These are bundled together here because functionally, the
- * processing for both these request types is similar.
- */
 package Servlets.EthRPCHandlers;
 
 import org.apache.log4j.Logger;
@@ -18,6 +13,13 @@ import com.vmware.athena.Athena.EthResponse;
 import Servlets.APIHelper;
 import Servlets.EthDispatcher;
 
+/**
+ * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * 
+ * <p>This handler is used to service eth_sendTransaction and eth_call POST
+ * requests. These are bundled together here because functionally, the
+ * processing for both these request types is similar.</p>
+ */
 public class EthSendTxHandler extends AbstractEthRPCHandler {
 
    Logger logger = Logger.getLogger(EthGetStorageAtHandler.class);

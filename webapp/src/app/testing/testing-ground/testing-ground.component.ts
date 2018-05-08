@@ -4,6 +4,22 @@
 
 import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import 'rxjs/add/operator/mergeMap';
+
+import { EthApiService } from '../../shared/eth-api.service';
+
+import { ADDRESS_LENGTH, ADDRESS_PATTERN } from '../../shared/shared.config';
+
+const addressValidators = [
+  Validators.maxLength(ADDRESS_LENGTH),
+  Validators.minLength(ADDRESS_LENGTH),
+  Validators.pattern(ADDRESS_PATTERN)
+];
+
+enum TransactionActionOptions {
+  call = 'call',
+  transaction = 'transaction'
+}
 
 @Component({
   selector: 'app-testing-ground',
@@ -23,17 +39,57 @@ export class TestingGroundComponent implements OnInit {
 
   private dataHash: string = undefined;
   private smartContractHash: string = undefined;
+  private transactionActionOptions = TransactionActionOptions;
 
-  constructor(private formBuilder: FormBuilder, private changeDetectorRef: ChangeDetectorRef) {
+  constructor(private ethApiService: EthApiService,
+              private formBuilder: FormBuilder,
+              private changeDetectorRef: ChangeDetectorRef) {
+
     this.dataForm = this.formBuilder.group({
-      from: ['from-address', Validators.required],
-      to:   ['', Validators.required],
-      text: ['', Validators.required],
+      from:  ['', [Validators.required, ...addressValidators]],
+      to:    ['', [Validators.required, ...addressValidators]],
+      value: ['', Validators.required],
+      text:  ['', [Validators.required, Validators.pattern(ADDRESS_PATTERN)]],
+      type:  [TransactionActionOptions.transaction],
     });
+
     this.dataForm.valueChanges.subscribe(() => this.dataHash = undefined);
 
+    this.dataForm.controls.type.valueChanges.subscribe((changes) => {
+      switch (changes) {
+        case TransactionActionOptions.transaction:
+          this.dataForm.controls.from.setValidators([Validators.required, ...addressValidators]);
+          this.dataForm.controls.from.updateValueAndValidity({emitEvent : false});
+          break;
+        case TransactionActionOptions.call:
+          this.dataForm.controls.from.clearValidators();
+          this.dataForm.controls.from.updateValueAndValidity({emitEvent : false});
+          break;
+      }
+    });
+
+    this.dataForm.controls.text.valueChanges.subscribe((changes) => {
+      if (changes.length > 0) {
+        // Value is no longer required
+        this.dataForm.controls.value.clearValidators();
+        this.dataForm.controls.text.setValidators([Validators.required, Validators.pattern(ADDRESS_PATTERN)]);
+        this.dataForm.controls.value.updateValueAndValidity({emitEvent : false});
+        this.dataForm.controls.text.updateValueAndValidity({emitEvent : false});
+      }
+    });
+
+    this.dataForm.controls.value.valueChanges.subscribe((changes) => {
+      if (changes.length > 0) {
+        // Text is no longer required
+        this.dataForm.controls.text.clearValidators();
+        this.dataForm.controls.value.setValidators([Validators.required, Validators.pattern(ADDRESS_PATTERN)]);
+        this.dataForm.controls.text.updateValueAndValidity({emitEvent : false});
+        this.dataForm.controls.value.updateValueAndValidity({emitEvent : false});
+      }
+    });
+
     this.smartContractForm = this.formBuilder.group({
-      from: ['from-address', Validators.required],
+      from: ['', [Validators.required, ...addressValidators]],
       file: [null, Validators.required],
     });
     this.smartContractForm.valueChanges.subscribe(() => this.smartContractHash = undefined);
@@ -61,13 +117,53 @@ export class TestingGroundComponent implements OnInit {
   }
 
   onSubmitData() {
-    console.log(this.dataForm.value.text);
-    this.dataHash = generateRandomHash();
+    switch (this.dataForm.value.type) {
+      case TransactionActionOptions.transaction:
+        this.submitTransaction();
+        break;
+      case TransactionActionOptions.call:
+        this.submitCall();
+        break;
+    }
+  }
+
+  submitTransaction() {
+    this.ethApiService.sendTransaction({
+      from: this.dataForm.value.from,
+      to: this.dataForm.value.to,
+      data: this.dataForm.value.text.length === 0 ? null : this.dataForm.value.text,
+      value: this.dataForm.value.value.length === 0 ? null : this.dataForm.value.value,
+    }).subscribe(response => {
+      this.dataHash = response.result;
+    }, response => {
+      alert(response.error);
+    });
+  }
+
+  submitCall() {
+    this.ethApiService.sendCall({
+      from: this.dataForm.value.from.length === 0 ? null : this.dataForm.value.from,
+      to: this.dataForm.value.to,
+      data: this.dataForm.value.text.length === 0 ? null : this.dataForm.value.text,
+      value: this.dataForm.value.value.length === 0 ? null : this.dataForm.value.value,
+    }).subscribe(response => {
+      this.dataHash = response.result;
+    }, response => {
+      alert(response.error);
+    });
   }
 
   onSubmitSmartContract() {
-    console.log(this.smartContractForm.value.file);
-    this.smartContractHash = generateRandomHash();
+    this.ethApiService.sendTransaction({
+      from: this.smartContractForm.value.from,
+      data: this.smartContractForm.value.file
+    }).flatMap(response => {
+      return this.ethApiService.getTransactionReceipt(response.result);
+    }).subscribe(response => {
+      this.smartContractHash = response.result.contractAddress;
+    }, response => {
+      alert(response.error);
+    });
   }
 
   onCopyDataHash() {
@@ -76,6 +172,10 @@ export class TestingGroundComponent implements OnInit {
 
   onCopySmartContractHash() {
     copyElementToClipboard(this.smartContractHashRef.nativeElement);
+  }
+
+  get isTransaction() {
+    return this.dataForm.value.type === TransactionActionOptions.transaction;
   }
 }
 
@@ -94,14 +194,4 @@ function copyElementToClipboard(element) {
   }
 
   window.getSelection().removeAllRanges();
-}
-
-function generateRandomHash() {
-  const sampleSpace = '0123456789abcdefgh';
-  const hash = [];
-  for (let i = 0; i < 64; i++) {
-    const pos = Math.floor(Math.random() * sampleSpace.length);
-    hash.push(sampleSpace.charAt(pos));
-  }
-  return hash.join('');
 }

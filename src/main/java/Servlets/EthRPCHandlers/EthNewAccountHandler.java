@@ -1,6 +1,3 @@
-/**
- * This handler is used to service personal_newAccount POST requests.
- */
 package Servlets.EthRPCHandlers;
 
 import java.io.UnsupportedEncodingException;
@@ -19,6 +16,11 @@ import com.vmware.athena.Athena.EthResponse;
 import Servlets.APIHelper;
 import Servlets.EthDispatcher;
 
+/**
+ * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * 
+ * This handler is used to service personal_newAccount POST requests.
+ */
 public class EthNewAccountHandler extends AbstractEthRPCHandler {
 
    Logger logger = Logger.getLogger(EthGetStorageAtHandler.class);

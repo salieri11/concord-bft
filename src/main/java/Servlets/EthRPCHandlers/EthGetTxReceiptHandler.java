@@ -11,13 +11,15 @@ import Servlets.APIHelper;
 import Servlets.EthDispatcher;
 
 /**
- * This Handler is used for handling all `eth_getTransactionReceipt` types of
- * requests. EthGetTxReceiptHandler is little different than other handlers
+ * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * 
+ * <p>This Handler is used for handling all `eth_getTransactionReceipt` types 
+ * of requests. EthGetTxReceiptHandler is little different than other handlers
  * because It leverages already existing `TransactionReceipt` AthenaRequest to
  * handle `eth_getTransactionReceipt` requests (see Transaction.java file which
  * implements this API). Hence, in this handler we actually put a
- * `TransactionRequest` inside AthenaRequest and read a TransactionResponse from
- * AthenaResponse.
+ * `TransactionRequest` inside AthenaRequest and read a TransactionResponse
+ * from AthenaResponse.</p>
  */
 public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
 

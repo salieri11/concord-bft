@@ -1,6 +1,3 @@
-/**
- * This handler is used to service eth_getBlockByHash POST requests.
- */
 package Servlets.EthRPCHandlers;
 
 import java.util.List;
@@ -15,10 +12,15 @@ import com.vmware.athena.Athena.AthenaRequest.Builder;
 import com.vmware.athena.Athena.AthenaResponse;
 import com.vmware.athena.Athena.BlockResponse;
 import com.vmware.athena.Athena.TransactionResponse;
-
 import Servlets.APIHelper;
 import Servlets.EthDispatcher;
 
+
+/**
+ * <p>Copyright 2018 VMware, all rights reserved.</p>
+ *
+ * This handler is used to service eth_getBlockByHash POST requests.
+ */
 public class EthGetBlockHandler extends AbstractEthRPCHandler {
 
    Logger logger = Logger.getLogger(EthGetBlockHandler.class);
@@ -27,7 +29,7 @@ public class EthGetBlockHandler extends AbstractEthRPCHandler {
     * Builds the Athena request builder. Extracts the block hash from the
     * request and uses it to set up an Athena Request builder with a
     * BlockRequest. Also performs basic checks on parameters.
-    * 
+    *
     * @param builder
     *           Object in which request is built
     * @param requestJson
@@ -98,7 +100,7 @@ public class EthGetBlockHandler extends AbstractEthRPCHandler {
     * Builds the response object to be returned to the user. Checks the flag in
     * the request to determine whether a list of transaction hashes or a list of
     * transaction objects needs to be returned to the user.
-    * 
+    *
     * @param athenaResponse
     *           Response received from Athena
     * @param requestJson

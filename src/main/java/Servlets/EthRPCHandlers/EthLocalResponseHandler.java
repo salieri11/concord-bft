@@ -16,24 +16,22 @@ import connections.AthenaConnectionPool;
 import connections.IAthenaConnection;
 
 /**
+ * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * 
+ * <p>
  * Handles the RPC requests which can be processes directly in helen without
  * forwarding them to Athena. However, this is an exception. When handling
  * `net_version` we do connect to athena but just get the version number from
- * athena. This handler handles following eth RPC requests
- *
- * 1. web3_sha3
- *
- * 2. eth_coinbase
- *
- * 3. web3_clientVersion
- *
- * 4. eth_mining
- *
- * 5. net_version
- *
- * 6. eth_accounts
- *
- * 7. rpc_modules
+ * athena. This handler handles following eth RPC requests :
+ * <ul>
+ * <li>web3_sha3</li>
+ * <li>eth_coinbase</li>
+ * <li>web3_clientVersion</li>
+ * <li>eth_mining</li>
+ * <li>net_version</li>
+ * <li>eth_accounts</li>
+ * <li>rpc_modules</li>
+ * </ul></p>
  */
 public class EthLocalResponseHandler extends AbstractEthRPCHandler {
 
