@@ -221,6 +221,9 @@
                                     },
                                     "nonce": {
                                         "type": "integer"
+                                    },
+                                    "status": {
+                                        "type": "integer"
                                     }
                                 }
                             }
