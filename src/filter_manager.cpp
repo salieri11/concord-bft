@@ -72,6 +72,8 @@ com::vmware::athena::FilterManager::get_new_block_filter_changes(evm_uint256be f
       // First query against a new filter. Leave response empty, and move it to
       // the regular list to get a proper response next time.
       filters_by_id[filterId] = geth_delay_filters[filterId];
+      // remove this filter from delay filter map
+      geth_delay_filters.erase(filterId);
    }
    return ret;
 }
