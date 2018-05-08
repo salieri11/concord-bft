@@ -53,26 +53,26 @@ message FilterRequest {
 }
 
 message EthRequest {
-    enum EthMethod {
-        SEND_TX = 1;
-        SEND_TX_RAW = 2;
-        // GET_TX_RECEIPT = 3;
-        GET_STORAGE_AT = 4;
-        CALL_CONTRACT = 5;
-        NEW_ACCOUNT = 6;
-        FILTER_REQUEST = 7;
-        GET_CODE = 8;
-        BLOCK_NUMBER = 9;
-    }
+   enum EthMethod {
+      SEND_TX = 1;
+      SEND_TX_RAW = 2;
+      // GET_TX_RECEIPT = 3;
+      GET_STORAGE_AT = 4;
+      CALL_CONTRACT = 5;
+      NEW_ACCOUNT = 6;
+      FILTER_REQUEST = 7;
+      GET_CODE = 8;
+      BLOCK_NUMBER = 9;
+   }
 
-    optional EthMethod method = 1;
-    optional int64 id = 2;
-    optional bytes addr_to = 3;
-    optional bytes addr_from = 4;
-    optional bytes value = 5;
-    optional bytes data = 6;
-    optional bool create = 7;
-    optional FilterRequest filter_request = 8;
+   optional EthMethod method = 1;
+   optional int64 id = 2;
+   optional bytes addr_to = 3;
+   optional bytes addr_from = 4;
+   optional bytes value = 5;
+   optional bytes data = 6;
+   optional bool create = 7;
+   optional FilterRequest filter_request = 8;
 }
 
 message BlockListRequest {
