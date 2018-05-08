@@ -26,8 +26,7 @@ public final class AthenaConnectionFactory {
       case Mock:
          return new MockConnection(_conf);
       default:
-         throw new
-            UnsupportedOperationException("type not supported" + _type);
+         throw new UnsupportedOperationException("type not supported" + _type);
       }
    }
 }

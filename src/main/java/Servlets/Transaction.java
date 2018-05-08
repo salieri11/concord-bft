@@ -14,8 +14,6 @@ package Servlets;
 import com.google.protobuf.ByteString;
 import com.vmware.athena.*;
 
-import connections.AthenaConnectionPool;
-import connections.IAthenaConnection;
 import io.undertow.util.StatusCodes;
 import java.io.IOException;
 import javax.servlet.http.HttpServletRequest;
@@ -49,7 +47,7 @@ public final class Transaction extends BaseServlet {
       // Read the requested transaction hash from the uri
       String uri = request.getRequestURI();
 
-      //Allow trailing /
+      // Allow trailing /
       if (uri.charAt(uri.length() - 1) == '/') {
          uri = uri.substring(0, uri.length() - 1);
       }
@@ -73,9 +71,7 @@ public final class Transaction extends BaseServlet {
 
       // Construct a transaction request object.
       final Athena.TransactionRequest txRequestObj
-         = Athena.TransactionRequest.newBuilder()
-                                    .setHash(hashBytes)
-                                    .build();
+         = Athena.TransactionRequest.newBuilder().setHash(hashBytes).build();
 
       // Envelope the transaction request object into an athena object.
       final Athena.AthenaRequest athenarequestObj
@@ -117,8 +113,7 @@ public final class Transaction extends BaseServlet {
 
       if (txResponse.hasContractAddress()) {
          responseJSON.put("contractAddress",
-                          APIHelper.binaryStringToHex(
-                             txResponse.getContractAddress()));
+                          APIHelper.binaryStringToHex(txResponse.getContractAddress()));
       }
 
       if (txResponse.hasValue()) {

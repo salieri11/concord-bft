@@ -18,7 +18,7 @@ import javax.servlet.ServletException;
 import org.apache.log4j.Logger;
 import Servlets.BlockList;
 import Servlets.BlockNumber;
-import Servlets.EthRPC;
+import Servlets.EthDispatcher;
 import Servlets.MemberList;
 import Servlets.StaticContent;
 import configurations.ConfigurationFactory;
@@ -47,7 +47,7 @@ public class Server {
    private static String defaultContentServletName;
    private static String blockListServletName;
    private static String blockNumberServletName;
-   private static String ethRPCServletName;
+   private static String ethDispatcherServletName;
    private static String transactionServletName;
    private static String swaggerServletName;
    private static String assetsServletName;
@@ -87,7 +87,8 @@ public class Server {
          = conf.getStringValue("DefaultContent_ServletName");
       blockListServletName = conf.getStringValue("BlockList_ServletName");
       blockNumberServletName = conf.getStringValue("BlockNumber_ServletName");
-      ethRPCServletName = conf.getStringValue("EthRPC_ServletName");
+      ethDispatcherServletName
+         = conf.getStringValue("EthDispatcher_ServletName");
       transactionServletName = conf.getStringValue("Transaction_ServletName");
       swaggerServletName = conf.getStringValue("Swagger_ServletName");
       assetsServletName = conf.getStringValue("Assets_ServletName");
@@ -139,8 +140,8 @@ public class Server {
                        .addServlets(Servlets.servlet(blockNumberServletName,
                                                      BlockNumber.class)
                                             .addMapping(blockNumberEndpoint))
-                       .addServlets(Servlets.servlet(ethRPCServletName,
-                                                     EthRPC.class)
+                       .addServlets(Servlets.servlet(ethDispatcherServletName,
+                                                     EthDispatcher.class)
                                             .addMapping(ethRPCEndpoint)
                                             .addMapping(ethRPCEndpoint + '/'))
                        .addServlets(Servlets.servlet(transactionServletName,

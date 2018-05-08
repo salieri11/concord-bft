@@ -10,17 +10,18 @@
  */
 package Servlets;
 
-import com.google.protobuf.ByteString;
 import com.vmware.athena.*;
+import com.vmware.athena.Athena.TransactionResponse;
+
 import io.undertow.util.StatusCodes;
 import java.io.IOException;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import org.json.simple.JSONAware;
 
 /**
  * Servlet class.
@@ -49,7 +50,7 @@ public final class BlockNumber extends BaseServlet {
       try {
          String uri = request.getRequestURI();
 
-         //Allow trailing /
+         // Allow trailing /
          if (uri.charAt(uri.length() - 1) == '/') {
             uri = uri.substring(0, uri.length() - 1);
          }
@@ -87,17 +88,19 @@ public final class BlockNumber extends BaseServlet {
 
       // Extract the blocknumber response
       // from the athena reponse envelope.
-      Athena.BlockResponse blockResponse
-         = athenaResponse.getBlockResponse();
+      Athena.BlockResponse blockResponse = athenaResponse.getBlockResponse();
 
       JSONArray transactionArr = new JSONArray();
 
-      for (ByteString t: blockResponse.getTransactionList()) {
-         String hash = APIHelper.binaryStringToHex(t);
+      List<TransactionResponse> list
+         = (List<TransactionResponse>) blockResponse.getTransactionList();
+
+      for (TransactionResponse t : list) {
+         String hash = APIHelper.binaryStringToHex(t.getHash());
          JSONObject txJSON = new JSONObject();
          txJSON.put("hash", hash);
-         txJSON.put("url", _conf.getStringValue("Transaction_URLPrefix")
-                    + hash);
+         txJSON.put("url",
+                    _conf.getStringValue("Transaction_URLPrefix") + hash);
          transactionArr.add(txJSON);
       }
 
@@ -107,8 +110,8 @@ public final class BlockNumber extends BaseServlet {
       blockObj.put("number", blockResponse.getNumber());
 
       String hash = APIHelper.binaryStringToHex(blockResponse.getHash());
-      String parentHash =
-         APIHelper.binaryStringToHex(blockResponse.getParentHash());
+      String parentHash
+         = APIHelper.binaryStringToHex(blockResponse.getParentHash());
 
       blockObj.put("hash", hash);
       blockObj.put("parentHash", parentHash);

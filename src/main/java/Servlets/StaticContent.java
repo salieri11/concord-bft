@@ -1,32 +1,33 @@
-/**
- * This servlet is used to serve static content.
- *
- * Endpoints serviced :
- *  - /assets/* : Loads content in the priv/www/assets folder
- *  - /api and /api/ : Loads content from priv/swagger.json
- *  - /swagger/* : Loads content from priv/www/swagger folder
- *  - /* : Loads content from priv/www/index.html
- */
 package Servlets;
 
+import configurations.FileConfiguration;
+import configurations.IConfiguration;
+import io.undertow.util.CanonicalPathUtils;
+import io.undertow.util.StatusCodes;
+import org.apache.log4j.Logger;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.apache.log4j.Logger;
-import configurations.FileConfiguration;
-import configurations.IConfiguration;
-import io.undertow.util.CanonicalPathUtils;
-import io.undertow.util.StatusCodes;
 
 /**
- * Servlet class.
+ * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * 
+ * <p>
+ * This servlet is used to serve static content. Endpoints serviced :
+ * <ul>
+ * <li>/assets/* : Loads content in the priv/www/assets folder</li>
+ * <li>/api and /api/ : Loads content from priv/swagger.json</li>
+ * <li>/swagger/* : Loads content from priv/www/swagger folder</li>
+ * <li>/* : Loads content from priv/www/index.html</li>
+ * </p>
  */
 public class StaticContent extends HttpServlet {
    private static final long serialVersionUID = 1L;
@@ -35,16 +36,6 @@ public class StaticContent extends HttpServlet {
 
    public StaticContent() throws IOException {
       _conf = FileConfiguration.getInstance();
-   }
-
-   /**
-    * APIs serviced
-    */
-   private enum Api {
-      ASSETS,
-      SWAGGER,
-      API_LIST,
-      DEFAULT_CONTENT;
    }
 
    /**
@@ -119,8 +110,8 @@ public class StaticContent extends HttpServlet {
           * If the separator char is not / we want to replace it with a / and
           * canonicalise
           */
-         String contentPath = CanonicalPathUtils.canonicalize(
-            StaticContentHelper.getPath(request));
+         String contentPath
+            = CanonicalPathUtils.canonicalize(StaticContentHelper.getPath(request));
          contentPath = contentPath.replace('/', File.separatorChar);
 
          // Users need to request for a specific resource
@@ -169,5 +160,15 @@ public class StaticContent extends HttpServlet {
          logger.error("File not found : " + file.getAbsolutePath());
          throw e;
       }
+   }
+
+   /**
+    * APIs serviced
+    */
+   private enum Api {
+      ASSETS,
+      SWAGGER,
+      API_LIST,
+      DEFAULT_CONTENT;
    }
 }

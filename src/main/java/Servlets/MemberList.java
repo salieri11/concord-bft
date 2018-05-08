@@ -12,9 +12,6 @@
 package Servlets;
 
 import com.vmware.athena.*;
-import connections.AthenaConnectionPool;
-import connections.IAthenaCommunication;
-import connections.IAthenaConnection;
 
 import java.io.IOException;
 import java.util.ArrayList;
