@@ -162,7 +162,7 @@ message BlockResponse {
    optional bytes parent_hash = 3;
    optional bytes nonce = 4;
    optional int64 size = 5;
-   repeated bytes transaction = 6;
+   repeated TransactionResponse transaction = 6;
 }
 
 message TransactionResponse {
