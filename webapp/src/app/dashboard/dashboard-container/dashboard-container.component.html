@@ -46,41 +46,37 @@
       <h3 class="mt-0">{{'transactions.recentTransactions' | translate}}</h3>
     </div>
   </div>
-
-  <table class="table">
-    <thead>
-    <tr>
-      <th>{{'transactions.timestamp' | translate}}</th>
-      <th>{{'transactions.origination' | translate}}</th>
-      <th>{{'transactions.transactionType' | translate}}</th>
-      <th>{{'transactions.amount' | translate}}</th>
-      <th>{{'transactions.transactionLength' | translate}}</th>
-      <th>{{'transactions.status' | translate}}</th>
-      <th>{{'transactions.nodes' | translate}}</th>
-      <th></th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr>
-      <td>01-28-2017</td>
-      <td>Lindberg</td>
-      <td>Lorem ipsum dolor</td>
-      <td>$785</td>
-      <td>40.87 sec</td>
-      <td>Denied</td>
-      <td>75</td>
-      <td>
-        <clr-dropdown [clrCloseMenuOnItemClick]="false">
-          <button type="button" clrDropdownTrigger>
-            <clr-icon shape="ellipsis-horizontal" size="16"></clr-icon>
-          </button>
-          <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
-            <button type="button" clrDropdownItem>Lorem ipsum</button>
-            <button type="button" clrDropdownItem>Dolor sit amet</button>
-          </clr-dropdown-menu>
-        </clr-dropdown>
-      </td>
-    </tr>
-    </tbody>
-  </table>
+  <div class="row">
+    <div class="col-xs-12">
+      <table class="table">
+        <thead>
+        <tr>
+          <th class="left">{{'transactions.hash' | translate}}</th>
+          <th>{{'transactions.nonce' | translate}}</th>
+          <th>{{'transactions.status' | translate}}</th>
+          <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let transaction of recentTransactions">
+          <td class="left">{{transaction.hash}}</td>
+          <td>{{transaction.nonce}}</td>
+          <td>{{(transaction?.status ? 'transactions.success' : 'transactions.failure') | translate}}</td>
+          <td>
+            <clr-dropdown [clrCloseMenuOnItemClick]="false">
+              <button type="button" clrDropdownTrigger>
+                <clr-icon shape="ellipsis-horizontal" size="16"></clr-icon>
+              </button>
+              <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
+                <a clrDropdownItem [routerLink]="['/blocks', transaction.blockNumber, 'transactions', transaction.hash]">
+                  {{'blocks.viewDetail' | translate}}
+                </a>
+              </clr-dropdown-menu>
+            </clr-dropdown>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
