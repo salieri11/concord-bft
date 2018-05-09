@@ -9,13 +9,21 @@ import { ClarityModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
 import { SharedModule } from '../shared/shared.module';
 
+import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
+
 import { NodesContainerComponent } from './nodes-container/nodes-container.component';
 import { NodeDetailContainerComponent } from './node-detail-container/node-detail-container.component';
 import { TransactionFiltersModalComponent } from './transaction-filters-modal/transaction-filters-modal.component';
 
 const routes: Routes = [
-  {path: 'nodes', component: NodesContainerComponent},
-  {path: 'nodes/:id', component: NodeDetailContainerComponent}
+  {
+    path: 'nodes',
+    canActivateChild: [AuthenticatedGuard],
+    children: [
+      {path: '', component: NodesContainerComponent},
+      {path: ':id', component: NodeDetailContainerComponent}
+    ]
+  }
 ];
 
 @NgModule({

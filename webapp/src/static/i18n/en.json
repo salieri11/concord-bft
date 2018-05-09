@@ -22,6 +22,12 @@
     "lastXDays": "Last {{number}} Days",
     "today": "Today"
   },
+  "authentication": {
+    "welcome": "Welcome to",
+    "username": "Username",
+    "password": "Password",
+    "next": "Next"
+  },
   "dashboard": {
     "totalActiveNodes": "Total Active Nodes",
     "inactiveNodes": "Inactive Nodes",

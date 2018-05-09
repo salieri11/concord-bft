@@ -13,6 +13,7 @@ describe('athena-ui App', () => {
 
   it('should display the page title', () => {
     page.navigateTo();
+    page.fillLogInForm('test@vmware.com', 'password');
     expect(page.getPageTitle()).toEqual('VMware Athena');
   });
 });
