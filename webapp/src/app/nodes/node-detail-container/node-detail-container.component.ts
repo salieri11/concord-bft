@@ -5,8 +5,8 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 
 import { TransactionFiltersModalComponent } from '../transaction-filters-modal/transaction-filters-modal.component';
-import {BlockListingBlock} from "../../shared/remote-interfaces";
-import {AthenaApiService} from "../../shared/athena-api.service";
+import { BlockListingBlock } from '../../shared/remote-interfaces';
+import { AthenaApiService } from '../../shared/athena-api.service';
 
 @Component({
   selector: 'app-node-detail-container',
