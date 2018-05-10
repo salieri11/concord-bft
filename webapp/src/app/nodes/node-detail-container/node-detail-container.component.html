@@ -105,6 +105,11 @@
           <clr-dg-cell>{{transaction.nonce}}</clr-dg-cell>
           <clr-dg-cell>{{(transaction?.status ? 'transactions.success' : 'transactions.failure') | translate}}</clr-dg-cell>
         </clr-dg-row>
+        <clr-dg-footer>
+          <clr-dg-pagination #pagination [clrDgPageSize]="10">
+            {{'transactions.paginationSummary' | translate: { start: pagination.firstItem + 1, finish: pagination.lastItem + 1, total: pagination.totalItems} }}
+          </clr-dg-pagination>
+        </clr-dg-footer>
       </clr-datagrid>
     </div>
   </div>

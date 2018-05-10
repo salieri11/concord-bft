@@ -89,7 +89,8 @@
     "index": "Index",
     "hash": "Hash",
     "next": "Next",
-    "viewDetail": "View Detail"
+    "viewDetail": "View Detail",
+    "paginationSummary": "{{start}} - {{finish}} of {{total}} blocks"
   },
   "transactions": {
     "transactions": "Transactions",
@@ -111,7 +112,8 @@
     "value": "Value",
     "nonce": "Nonce",
     "parentHash": "Parent Hash",
-    "size": "Size"
+    "size": "Size",
+    "paginationSummary": "{{start}} - {{finish}} of {{total}} transactions"
   },
   "testing": {
     "testingGround": "Testing Ground",

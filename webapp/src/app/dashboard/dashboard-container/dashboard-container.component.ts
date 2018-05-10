@@ -3,6 +3,7 @@
  */
 
 import { Component, OnInit } from '@angular/core';
+
 import { AthenaApiService } from '../../shared/athena-api.service';
 import { BlockListingBlock } from '../../shared/remote-interfaces';
 
@@ -29,7 +30,7 @@ export class DashboardContainerComponent implements OnInit {
   ngOnInit() {
     // Get blocks, then get individual block, then build list of recent transactions from the data returned
     // This is temporary until there is an endpoint to fetch recent transactions
-    this.athenaApiService.getBlocks().subscribe((resp) => {
+    this.athenaApiService.getBlocks(1000).subscribe((resp) => {
       this.blocks = resp.blocks;
       this.fetchAndBuildBlockTransactions();
     });

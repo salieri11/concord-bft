@@ -3,7 +3,7 @@
  */
 
 import { Inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 
 import { ATHENA_API_PREFIX } from './shared.config';
 
@@ -23,8 +23,10 @@ export class AthenaApiService {
     return this.httpClient.get<Member[]>(this.apiPath('/members'));
   }
 
-  getBlocks() {
-    return this.httpClient.get<BlockListing>(this.apiPath('/blocks'));
+  getBlocks(count: number = 10) {
+    const params = new HttpParams().set('count', count.toString());
+
+    return this.httpClient.get<BlockListing>(this.apiPath('/blocks'), {params: params});
   }
 
   getBlocksByUrl(url: string) {

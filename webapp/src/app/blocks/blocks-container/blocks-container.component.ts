@@ -26,7 +26,7 @@ export class BlocksContainerComponent implements OnInit {
   }
 
   loadInitialBlocks() {
-    this.athenaApiService.getBlocks().subscribe(response => this.handleBlocksResponse(response));
+    this.athenaApiService.getBlocks(1000).subscribe(response => this.handleBlocksResponse(response));
   }
 
   loadNextBlocks() {

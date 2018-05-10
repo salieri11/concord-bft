@@ -23,7 +23,7 @@ export class NodeDetailContainerComponent implements OnInit {
   ngOnInit() {
     // Get blocks, then get individual block, then build list of recent transactions from the data returned
     // This is temporary until there is an endpoint to fetch recent transactions
-    this.athenaApiService.getBlocks().subscribe((resp) => {
+    this.athenaApiService.getBlocks(1000).subscribe((resp) => {
       this.blocks = resp.blocks;
       this.fetchAndBuildBlockTransactions();
     });
