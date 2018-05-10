@@ -1,5 +1,8 @@
 {
   "title": "VMware Athena",
+  "common": {
+    "all": "All"
+  },
   "nav": {
     "metrics": {
       "activeNodes": "Active Nodes {{value}}"
@@ -57,6 +60,8 @@
     "xSeconds": "{{seconds}} <small>seconds</small>",
     "location": "Location",
     "status": "Status",
+    "connected": "Connected",
+    "offline": "Offline",
     "totalActiveNodes": "Total Active Nodes",
     "inactiveNodes": "Inactive Nodes",
     "searchPlaceholder": "Search...",
