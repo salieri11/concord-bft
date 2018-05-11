@@ -3,6 +3,7 @@
  */
 
 import { Component, OnInit } from '@angular/core';
+import { FormGroup, FormBuilder } from '@angular/forms';
 import { ClrDatagridFilterInterface } from '@clr/angular';
 import { Subject } from 'rxjs/Subject';
 
@@ -14,15 +15,19 @@ import { Member } from '../../shared/remote-interfaces';
   styleUrls: ['./nodes-status-filter.component.scss']
 })
 export class NodesStatusFilterComponent implements OnInit, ClrDatagridFilterInterface<Member> {
-  options: string[] = [
+  private form: FormGroup;
+  private options: string[] = [
     '',
     'connected',
     'offline'
   ];
-  selectedOption = '';
   changes = new Subject<any>();
 
-  constructor() { }
+  constructor(private formBuilder: FormBuilder) {
+    this.form = this.formBuilder.group({
+      filterOption: ['']
+    });
+  }
 
   ngOnInit() {
   }
@@ -31,10 +36,10 @@ export class NodesStatusFilterComponent implements OnInit, ClrDatagridFilterInte
     this.changes.next(true);
   }
   isActive(): boolean {
-    return this.selectedOption !== '';
+    return this.form.controls.filterOption.value !== '';
   }
   accepts(member: Member): boolean {
-    return this.selectedOption === '' || member.status === this.selectedOption;
+    return this.form.controls.filterOption.value === '' || member.status === this.form.controls.filterOption.value;
   }
 
 }

@@ -4,7 +4,8 @@
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { FormsModule } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MockTranslateModule } from '../../mocks/mock-translate.module';
 
 import { NodesStatusFilterComponent } from './nodes-status-filter.component';
 
@@ -15,7 +16,8 @@ describe('NodesStatusFilterComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
-        FormsModule
+        ReactiveFormsModule,
+        MockTranslateModule
       ],
       declarations: [ NodesStatusFilterComponent ]
     })

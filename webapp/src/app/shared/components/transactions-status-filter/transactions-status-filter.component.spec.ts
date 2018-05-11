@@ -4,7 +4,8 @@
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { FormsModule } from '@angular/forms';
+import { ReactiveFormsModule } from '@angular/forms';
+import { MockSharedModule } from '../../shared.module';
 
 import { TransactionsStatusFilterComponent } from './transactions-status-filter.component';
 
@@ -15,9 +16,9 @@ describe('TransactionsStatusFilterComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
-        FormsModule
-      ],
-      declarations: [ TransactionsStatusFilterComponent ]
+        ReactiveFormsModule,
+        MockSharedModule
+      ]
     })
     .compileComponents();
   }));

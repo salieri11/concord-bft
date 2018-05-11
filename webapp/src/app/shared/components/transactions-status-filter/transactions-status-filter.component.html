@@ -1,7 +1,9 @@
-<div class="select">
-  <select name="node-status-filter" id="node-status-filter" (change)="onOptionChange()" [(ngModel)]="selectedOption">
-    <option value="-1">{{'common.all' | translate}}</option>
-    <option value="0">{{'transactions.failure' | translate}}</option>
-    <option value="1">{{'transactions.success' | translate}}</option>
-  </select>
-</div>
+<form [formGroup]="form">
+  <div class="select">
+    <select name="node-status-filter" id="node-status-filter" (change)="onOptionChange()" formControlName="filterOption">
+      <option value="-1">{{'common.all' | translate}}</option>
+      <option value="0">{{'transactions.failure' | translate}}</option>
+      <option value="1">{{'transactions.success' | translate}}</option>
+    </select>
+  </div>
+</form>

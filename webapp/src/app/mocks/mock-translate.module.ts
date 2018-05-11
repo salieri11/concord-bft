@@ -4,6 +4,8 @@
 
 import { Injectable, NgModule, Pipe, PipeTransform } from '@angular/core';
 
+import { TranslateService } from '@ngx-translate/core';
+
 @Pipe({name: 'translate'})
 export class MockTranslatePipe implements PipeTransform {
   transform(value: string): string {
@@ -12,16 +14,16 @@ export class MockTranslatePipe implements PipeTransform {
 }
 
 @Injectable()
-export class TranslateService {
+export class MockTranslateService  {
   getBrowserLang() {}
   setDefaultLang() {}
   use() {}
 }
 
 @NgModule({
-  providers: [TranslateService],
+  providers: [{provide: TranslateService, useClass: MockTranslateService}],
   declarations: [MockTranslatePipe],
   exports: [MockTranslatePipe]
 })
-export class MockTranslateModule { }
+export class MockTranslateModule {}
 

@@ -3,10 +3,7 @@
  */
 
 import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ClarityModule } from '@clr/angular';
 import { RouterModule, Routes } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
 import { SharedModule } from '../shared/shared.module';
 
 import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
@@ -25,11 +22,8 @@ const routes: Routes = [
 
 @NgModule({
   imports: [
-    CommonModule,
-    RouterModule.forChild(routes),
-    ClarityModule,
-    TranslateModule,
-    SharedModule
+    SharedModule,
+    RouterModule.forChild(routes)
   ],
   declarations: [DashboardContainerComponent]
 })

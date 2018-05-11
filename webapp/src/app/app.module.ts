@@ -57,7 +57,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     BlocksModule,
     TransactionsModule,
     TestingModule,
-    SharedModule
+    SharedModule.forRoot()
   ],
   providers: [
     {

@@ -3,13 +3,11 @@
  */
 
 import { TestBed, async } from '@angular/core/testing';
+
 import { RouterTestingModule } from '@angular/router/testing';
-import { ClarityModule } from '@clr/angular';
-import { MockTranslateModule, TranslateService as MockTranslateService } from './mocks/mock-translate.module';
-import { SharedModule } from './shared/shared.module';
+import { MockSharedModule } from './shared/shared.module';
 
 import { AppComponent } from './app.component';
-import { TranslateService } from '@ngx-translate/core';
 import { AuthenticationService } from './shared/authentication.service';
 
 describe('AppComponent', () => {
@@ -17,15 +15,10 @@ describe('AppComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         RouterTestingModule,
-        ClarityModule,
-        MockTranslateModule,
-        SharedModule
+        MockSharedModule
       ],
       declarations: [
-        AppComponent
-      ],
-      providers: [
-        { provide: TranslateService, useClass: MockTranslateService }
+        AppComponent,
       ]
     }).compileComponents();
   }));

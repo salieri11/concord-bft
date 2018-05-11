@@ -3,6 +3,7 @@
  */
 
 import { Component, OnInit } from '@angular/core';
+import { FormGroup, FormBuilder } from '@angular/forms';
 import { ClrDatagridFilterInterface } from '@clr/angular';
 import { Subject } from 'rxjs/Subject';
 
@@ -14,15 +15,19 @@ import { Transaction } from '../../remote-interfaces';
   styleUrls: ['./transactions-status-filter.component.scss']
 })
 export class TransactionsStatusFilterComponent implements OnInit, ClrDatagridFilterInterface<Transaction> {
-  options: string[] = [
+  private form: FormGroup;
+  private options: string[] = [
     '-1',
     '0',
     '1'
   ];
-  selectedOption = '-1';
   changes = new Subject<any>();
 
-  constructor() { }
+  constructor(private formBuilder: FormBuilder) {
+    this.form = this.formBuilder.group({
+      filterOption: ['-1']
+    });
+  }
 
   ngOnInit() {
   }
@@ -31,9 +36,9 @@ export class TransactionsStatusFilterComponent implements OnInit, ClrDatagridFil
     this.changes.next(true);
   }
   isActive(): boolean {
-    return this.selectedOption !== '-1';
+    return this.form.controls.filterOption.value !== '-1';
   }
   accepts(transaction: Transaction): boolean {
-    return this.selectedOption === '-1' || transaction.status.toString() === this.selectedOption;
+    return this.form.controls.filterOption.value === '-1' || transaction.status.toString() === this.form.controls.filterOption.value;
   }
 }
