@@ -4,7 +4,6 @@
 
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 import { ClarityModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
@@ -24,7 +23,6 @@ const routes: Routes = [
 @NgModule({
   imports: [
     CommonModule,
-    ReactiveFormsModule,
     RouterModule.forChild(routes),
     ClarityModule,
     TranslateModule,

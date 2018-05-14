@@ -9,6 +9,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 
 import { DashboardContainerComponent } from './dashboard-container.component';
+import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
 
 describe('DashboardContainerComponent', () => {
   let component: DashboardContainerComponent;
@@ -21,7 +22,7 @@ describe('DashboardContainerComponent', () => {
         HttpClientTestingModule,
         MockSharedModule
       ],
-      declarations: [ DashboardContainerComponent ],
+      declarations: [ DashboardContainerComponent, TransactionsStatusFilterComponent ]
     })
     .compileComponents();
   }));

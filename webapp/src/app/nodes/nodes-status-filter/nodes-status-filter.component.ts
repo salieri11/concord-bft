@@ -15,12 +15,8 @@ import { Member } from '../../shared/remote-interfaces';
   styleUrls: ['./nodes-status-filter.component.scss']
 })
 export class NodesStatusFilterComponent implements OnInit, ClrDatagridFilterInterface<Member> {
-  private form: FormGroup;
-  private options: string[] = [
-    '',
-    'connected',
-    'offline'
-  ];
+  readonly form: FormGroup;
+
   changes = new Subject<any>();
 
   constructor(private formBuilder: FormBuilder) {

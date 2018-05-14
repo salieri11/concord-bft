@@ -9,6 +9,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 
 import { NodeDetailContainerComponent } from './node-detail-container.component';
+import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
 
 describe('NodeDetailContainerComponent', () => {
   let component: NodeDetailContainerComponent;
@@ -21,7 +22,7 @@ describe('NodeDetailContainerComponent', () => {
         HttpClientTestingModule,
         MockSharedModule
       ],
-      declarations: [ NodeDetailContainerComponent ]
+      declarations: [ NodeDetailContainerComponent, TransactionsStatusFilterComponent ]
     })
     .compileComponents();
   }));

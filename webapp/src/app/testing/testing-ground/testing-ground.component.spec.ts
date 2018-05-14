@@ -5,7 +5,6 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { ReactiveFormsModule } from '@angular/forms';
 import { MockSharedModule } from '../../shared/shared.module';
 
 import { TestingGroundComponent } from './testing-ground.component';
@@ -18,7 +17,6 @@ describe('TestingGroundComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         HttpClientTestingModule,
-        ReactiveFormsModule,
         MockSharedModule
       ],
       declarations: [ TestingGroundComponent ]

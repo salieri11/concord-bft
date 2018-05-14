@@ -5,7 +5,6 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 
-import { ReactiveFormsModule } from '@angular/forms';
 import { SharedModule } from '../shared/shared.module';
 
 import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
@@ -28,7 +27,6 @@ const routes: Routes = [
 @NgModule({
   imports: [
     RouterModule.forChild(routes),
-    ReactiveFormsModule,
     SharedModule
   ],
   declarations: [NodesContainerComponent, NodeDetailContainerComponent, NodesStatusFilterComponent]

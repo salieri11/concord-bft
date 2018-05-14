@@ -6,7 +6,6 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { ReactiveFormsModule } from '@angular/forms';
 import { MockSharedModule } from '../../shared/shared.module';
 
 import { NodesContainerComponent } from './nodes-container.component';
@@ -21,7 +20,6 @@ describe('NodesContainerComponent', () => {
       imports: [
         RouterTestingModule,
         HttpClientTestingModule,
-        ReactiveFormsModule,
         MockSharedModule
       ],
       declarations: [ NodesContainerComponent, NodesStatusFilterComponent ]

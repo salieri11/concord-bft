@@ -29,7 +29,8 @@ import { TransactionsStatusFilterComponent } from './components/transactions-sta
     CommonModule,
     TranslateModule,
     ClarityModule,
-    TransactionsStatusFilterComponent
+    TransactionsStatusFilterComponent,
+    ReactiveFormsModule
   ]
 })
 export class SharedModule {
@@ -55,7 +56,6 @@ export class SharedModule {
     ClarityModule,
     ReactiveFormsModule
   ],
-  declarations: [TransactionsStatusFilterComponent],
   providers: [
     AuthenticationService,
     AuthenticatedGuard,
@@ -68,7 +68,7 @@ export class SharedModule {
     CommonModule,
     MockTranslateModule,
     ClarityModule,
-    TransactionsStatusFilterComponent
+    ReactiveFormsModule
   ]
 })
 export class MockSharedModule {}

@@ -15,12 +15,8 @@ import { Transaction } from '../../remote-interfaces';
   styleUrls: ['./transactions-status-filter.component.scss']
 })
 export class TransactionsStatusFilterComponent implements OnInit, ClrDatagridFilterInterface<Transaction> {
-  private form: FormGroup;
-  private options: string[] = [
-    '-1',
-    '0',
-    '1'
-  ];
+  readonly form: FormGroup;
+
   changes = new Subject<any>();
 
   constructor(private formBuilder: FormBuilder) {
