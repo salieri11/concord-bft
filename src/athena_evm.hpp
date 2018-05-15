@@ -15,7 +15,7 @@
 #include "filter_manager.hpp"
 #include "athena_types.hpp"
 #include "evm_init_params.hpp"
-
+#include "kvb/BlockchainDBAdapter.h"
 
 namespace com {
 namespace vmware {
@@ -125,7 +125,8 @@ class FilterManager;
 
 class EVM {
 public:
-   explicit EVM(EVMInitParams params);
+   explicit EVM(EVMInitParams params,
+                Blockchain::BlockchainDBAdapter &_db);
    ~EVM();
 
    /* Athena API */
@@ -180,6 +181,7 @@ private:
    athena_context athctx;
    evm_instance *evminst;
    log4cplus::Logger logger;
+   Blockchain::BlockchainDBAdapter &db;
 
    // chain to which we are connected
    uint64_t chainId;

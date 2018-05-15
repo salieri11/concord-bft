@@ -12,6 +12,13 @@
 #include "athena_evm.hpp"
 #include "configuration_manager.hpp"
 #include "evm_init_params.hpp"
+#include "kvb/DatabaseInterface.h"
+#include "kvb/BlockchainDBAdapter.h"
+#include "kvb/Comparators.h"
+#include "kvb/InMemoryDBClient.h"
+#ifdef USE_ROCKSDB
+#include "kvb/RocksDBClient.h"
+#endif
 
 using namespace boost::program_options;
 using boost::asio::ip::tcp;
@@ -37,6 +44,33 @@ void signalHandler(int signum) {
    }
 }
 
+Blockchain::IDBClient* open_database(variables_map &opts, Logger logger)
+{
+   if (opts.count("blockchain_db_impl") < 1) {
+      LOG4CPLUS_FATAL(logger, "Missing blockchain_db_impl config");
+      throw new EVMException("Missing blockchain_db_impl config");
+   }
+
+   string db_impl_name = opts["blockchain_db_impl"].as<std::string>();
+   if (db_impl_name == "memory") {
+      LOG4CPLUS_INFO(logger, "Using memory blockchain database");
+      return new Blockchain::InMemoryDBClient(
+         (Blockchain::IDBClient::KeyComparator)&Blockchain::InMemKeyComp);
+#ifdef USE_ROCKSDB
+   } else if (db_impl_name == "rocksdb") {
+      LOG4CPLUS_INFO(logger, "Using rocksdb blockchain database");
+      string rocks_path = opts["blockchain_db_path"].as<std::string>();
+      return new Blockchain::RocksDBClient(
+         rocks_path,
+         (Blockchain::IDBClient::KeyComparator)
+         &Blockchain::RocksKeyComparator);
+#endif
+   } else {
+      LOG4CPLUS_FATAL(logger, "Unknown blockchain_db_impl " << db_impl_name);
+      throw new EVMException("Unknown blockchain_db_impl");
+   }
+}
+
 /*
  * Start the service that listens for connections from Helen.
  */
@@ -57,8 +91,11 @@ run_service(variables_map &opts, Logger logger)
          LOG4CPLUS_WARN(logger, "No genesis block provided");
       }
 
+      Blockchain::IDBClient *dbclient = open_database(opts, logger);
+      Blockchain::BlockchainDBAdapter db(dbclient);
+
       // throws an exception if it fails
-      EVM athevm(params);
+      EVM athevm(params, db);
 
       std::string ip = opts["ip"].as<std::string>();
       short port = opts["port"].as<short>();
@@ -71,6 +108,8 @@ run_service(variables_map &opts, Logger logger)
 
       LOG4CPLUS_INFO(logger, "Listening on " << endpoint);
       api_service->run();
+
+      //TODO(BWF): close dbclient gracefully
 
    } catch (EVMInitParamException &ex) {
       LOG4CPLUS_FATAL(logger, ex.what());

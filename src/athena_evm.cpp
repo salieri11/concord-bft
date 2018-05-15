@@ -9,11 +9,12 @@
 #include <log4cplus/loggingmacros.h>
 #include <keccak.h>
 
-
 #include "athena_evm.hpp"
 #include "athena_log.hpp"
 #include "athena_types.hpp"
 #include "common/rlp.hpp"
+#include "kvb/BlockchainDBAdapter.h"
+#include "kvb/slice.h"
 
 #ifdef USE_HERA
 #include "hera.h"
@@ -27,16 +28,24 @@ using log4cplus::Logger;
 /**
  * Initialize the athena/evm context and start the evm instance.
  */
-com::vmware::athena::EVM::EVM(EVMInitParams params)
+com::vmware::athena::EVM::EVM(EVMInitParams params,
+                              Blockchain::BlockchainDBAdapter &_db)
    : logger(Logger::getInstance("com.vmware.athena.evm")),
      balances(params.get_initial_accounts()),
      chainId(params.get_chainID()),
-     filterManager(new FilterManager(*this))
+     filterManager(new FilterManager(*this)),
+     db(_db)
 {
    // wrap an evm context in an athena context
    athctx = {{&athena_fn_table}, this};
 
-   create_genesis_block(params);
+   Blockchain::Slice blockData;
+   bool blockFound;
+   db.getBlockById(0, blockData, blockFound);
+   if (!blockFound) {
+      // if we don't have a genesis block yet, load one
+      create_genesis_block(params);
+   }
 
 #ifdef USE_HERA
    evminst = hera_create();
@@ -705,7 +714,7 @@ void com::vmware::athena::EVM::call(
    // create copy of message struct since
    // call function needs non-const message object
    evm_message call_msg = *msg;
-   
+
    //Passing false ensures that this will not create a separate transaction
    run(call_msg, false, *result, txhash);
 }
