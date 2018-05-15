@@ -1,6 +1,7 @@
 file(GLOB athena_src "*.cpp" "*.hpp")
 
 add_subdirectory("common")
+add_subdirectory("kvb")
 
 add_executable(athena
   ${athena_src}
@@ -15,4 +16,5 @@ target_link_libraries(athena
   log4cplus
   ${EVM_LIBRARIES}
   ${Cryptopp_LIBRARIES}
-  utils)
+  utils
+  kvblockchain)

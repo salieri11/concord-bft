@@ -4,11 +4,13 @@
 
 #ifndef REPLICAIMP_H
 
+#include <log4cplus/loggingmacros.h>
+
 #include "BlockchainInterfaces.h"
 #include "HashDefs.h"
 #include <map>
 #include "BlockchainDBAdapter.h"
-#include "Database/InMemoryDBClient.h"
+#include "InMemoryDBClient.h"
 
 using namespace Blockchain::Utils;
 
@@ -139,6 +141,7 @@ namespace Blockchain {
       class StorageIterator : public ILocalKeyValueStorageReadOnlyIterator
       {
       private:
+         log4cplus::Logger logger;
          const ReplicaImp *rep;
          BlockId readVersion;
          KeyValuePair m_current;
@@ -208,6 +211,10 @@ namespace Blockchain {
 
       // DATA
 
+   private:
+      log4cplus::Logger logger;
+
+      //TODO(BWF): this was protected (not private) before adding logger
       bool m_running;
       Thread  m_thread;
       static TlsIndex m_sThreadLocalDataIdx;

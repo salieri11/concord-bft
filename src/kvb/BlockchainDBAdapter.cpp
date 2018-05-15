@@ -17,11 +17,14 @@
  *       -> Descending order of Block Id
  */
 
+#include <log4cplus/loggingmacros.h>
+
 #include "BlockchainDBAdapter.h"
 #include "BlockchainInterfaces.h"
-#include "DebugIS.h"
 #include "HexTools.h"
 #include <chrono>
+
+using log4cplus::Logger;
 
 namespace Blockchain
 {
@@ -111,7 +114,7 @@ BlockId extractBlockIdFromKey(Slice _key)
    size_t offset = _key.size() - sizeof(BlockId);
    BlockId id = *(BlockId*) (_key.data() + offset);
 
-   log4cplus::Logger logger(Logger::getInstance("com.vmware.athena.kvb"));
+   Logger logger(Logger::getInstance("com.vmware.athena.kvb"));
    LOG4CPLUS_DEBUG(logger, "Got block ID " << id << " from key " <<
                    sliceToString(_key) << ", offset " << offset);
    return id;
@@ -128,7 +131,7 @@ Slice extractKeyFromKeyComposedWithBlockId(Slice _composedKey)
    size_t sz = _composedKey.size() - sizeof(BlockId) - sizeof(EDBKeyType);
    Slice out = Slice(_composedKey.data() + sizeof(EDBKeyType), sz);
 
-   log4cplus::Logger logger(Logger::getInstance("com.vmware.athena.kvb"));
+   Logger logger(Logger::getInstance("com.vmware.athena.kvb"));
    LOG4CPLUS_DEBUG(logger,  "Got key " << sliceToString(out) <<
                    " from composed key " << sliceToString(_composedKey));
    return out;
@@ -210,7 +213,6 @@ Status BlockchainDBAdapter::updateKey(Key _key, BlockId _block, Value _value)
  */
 Status BlockchainDBAdapter::delKey(Slice _key, BlockId _blockId)
 {
-   DEBUG_RNAME("BlockchainDBAdapter::delKey");
    Slice composedKey = genDataDbKey(_key, _blockId);
 
    LOG4CPLUS_DEBUG(logger, "Deleting key " << sliceToString(_key) <<
@@ -502,7 +504,7 @@ Status BlockchainDBAdapter::seekAtLeast(IDBClient::IDBClientIterator *iter,
          if (!foundKey) {
              // If not found a key with actual block version < readVersion, then
              // we consider the next key as the key candidate.
-            LOG4CPLUS_DEBUG(5, "Find next key");
+            LOG4CPLUS_DEBUG(logger, "Find next key");
 
             // Start by exhausting the current key with all the newer blocks
             // records:
@@ -532,8 +534,8 @@ Status BlockchainDBAdapter::seekAtLeast(IDBClient::IDBClientIterator *iter,
    delete[] rocksKey.data();
 
    if (iter->isEnd() && !foundKey) {
-      LOG4CPLUS_DEBUG(5, "Reached end of map without finding lower bound key "
-                      "with suitable read version");
+      LOG4CPLUS_DEBUG(logger, "Reached end of map without finding lower bound "
+                      "key with suitable read version");
       m_isEnd = true;
       _isEnd = true;
       return Status::NotFound("Did not find key with suitable read version");

@@ -11,6 +11,8 @@
 #include <unistd.h>
 #endif
 
+#include <log4cplus/loggingmacros.h>
+
 #include "Comparators.h"
 
 #include "libbyz.h"
@@ -21,8 +23,9 @@
 #include "HashDefs.h"
 #include <inttypes.h>
 #include "HexTools.h"
-#include "DebugIS.h"
 #include <chrono>
+
+using log4cplus::Logger;
 
 namespace Blockchain {
 
@@ -213,6 +216,7 @@ ReplicaImp::ReplicaImp(const char *byzConfig,
                        const char *byzPrivateConfig,
                        ICommandsHandler *cmdHandler,
                        BlockchainDBAdapter *dbAdapter) :
+   logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb")),
    m_byzConfig(byzConfig),
    m_byzPrivateConfig(byzPrivateConfig),
    m_cmdHandler(cmdHandler),
@@ -254,7 +258,7 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs& updates,
    Status s = m_bcDbAdapter->addBlock(block, blockRaw);
    if (!s.ok())
    {
-      DEBUG_ERR("Failed to add block");
+      LOG4CPLUS_ERROR(logger, "Failed to add block");
       return s;
    }
 
@@ -364,14 +368,14 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Slice block)
           memcmp(blockRaw.data(), block.data(), block.size())) {
          // the replica is corrupted !
          // TODO(GG): what do we want to do now ?
-         // TODO(BWF): figure out LOG4CPLUS_FMT
-         LOG4CPLUS_ERROR(logger, "found block %u, size in db is %u, inserted "
-                         "is %u, data in db %s, data inserted %s \n",
-                         blockId,blockRaw.size(), block.size(),
-                         sliceToString(blockRaw).c_str(),
-                         sliceToString(block).c_str());
-         LOG4CPLUS_ERROR(logger, "Block size test %d, block data test %d\n",
-                         (blockRaw.size()!=block.size()),
+         LOG4CPLUS_ERROR(logger, "found block " << blockId <<
+                         ", size in db is " << blockRaw.size() <<
+                         ", inserted is " << block.size() <<
+                         ", data in db " << sliceToString(blockRaw).c_str() <<
+                         ", data inserted " << sliceToString(block).c_str());
+         LOG4CPLUS_ERROR(logger, "Block size test " <<
+                         (blockRaw.size()!=block.size()) <<
+                         ", block data test " <<
                          (memcmp(blockRaw.data(), block.data(), block.size())));
 
          // TODO(GG): If new block is empty, just revert block
@@ -601,7 +605,8 @@ Slice ReplicaImp::createBlockFromUpdates(
 
       return Slice(blockBuffer, blockSize);
    } catch (std::bad_alloc& ba) {
-      LOG4CPLUS_ERROR(logger, "Failed to alloc size " << blockSize <<
+      LOG4CPLUS_ERROR(Logger::getInstance("com.vmware.athena.kvb"),
+                      "Failed to alloc size " << blockSize <<
                       ", error: " << ba.what());
       char *emptyBlockBuffer = new char[1];
       memset(emptyBlockBuffer, 0, 1);
@@ -649,7 +654,8 @@ int ReplicaImp::get_block(int n, char **page)
    Slice blockRaw;
    Status s = r->getBcDbAdapter()->getBlockById(bId, blockRaw, found);
    if (!s.ok()) {
-      LOG4CPLUS_ERROR(logger, "error getting block by id " << bId);
+      LOG4CPLUS_ERROR(Logger::getInstance("com.vmware.athena.kvb"),
+                      "error getting block by id " << bId);
       return -1;
    }
 
@@ -669,7 +675,8 @@ int ReplicaImp::get_block(int n, char **page)
       blockRaw.clear();
    }
 
-   LOG4CPLUS_DEBUG(logger, "n " << n << " size " << size << " page " <<
+   LOG4CPLUS_DEBUG(Logger::getInstance("com.vmware.athena.kvb"),
+                   "n " << n << " size " << size << " page " <<
                    sliceToString(Slice(*page, size)));
    return size;
 }
@@ -746,6 +753,7 @@ DWORD WINAPI ReplicaImp::replicaInternalThread(LPVOID param)
    // blocks to the same object/page
    assert(10 * 1e6 < INT_MAX);
 
+   Logger logger(Logger::getInstance("com.vmware.athena.kvb"));
    LOG4CPLUS_DEBUG(logger, "initializing byz");
    // TODO(GG): clean & understand ....
    int used_mem = Byz_init_replica((char*)r->m_byzConfig,
@@ -778,7 +786,8 @@ IReplica* createReplica(const ReplicaConsensusConfig& consensusConfig,
                         ICommandsHandler* cmdHandler,
                         IDBClient* db)
 {
-   LOG4CPLUS_DEBUG(logger, "Creating replica");
+   LOG4CPLUS_DEBUG(Logger::getInstance("com.vmware.athena.kvb"),
+                   "Creating replica");
    BlockchainDBAdapter *dbAdapter = new BlockchainDBAdapter(db);
 
    ReplicaImp *r = new ReplicaImp(consensusConfig.byzConfig,
@@ -795,7 +804,8 @@ void release(IReplica *r)
 }
 
 
-ReplicaImp::StorageIterator::StorageIterator(const ReplicaImp *r) : rep(r)
+ReplicaImp::StorageIterator::StorageIterator(const ReplicaImp *r) :
+   rep(r), logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb"))
 {
    m_iter = r->getBcDbAdapter()->getIterator();
    m_currentBlock = r->getLastBlock();
@@ -908,7 +918,7 @@ bool ReplicaImp::StorageIterator::isEnd()
    Status s = rep->getBcDbAdapter()->isEnd(m_iter, isEnd);
 
    if (!s.ok()) {
-      LOG4CPLUS__FATAL(logger, "Failed to get current");
+      LOG4CPLUS_FATAL(logger, "Failed to get current");
       exit(1);
    }
 

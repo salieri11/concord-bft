@@ -6,7 +6,9 @@
 #ifndef BLOCKCHAINDBADAPTER_H
 #define BLOCKCHAINDBADAPTER_H
 
-#include "Database/DatabaseInterface.h"
+#include <log4cplus/loggingmacros.h>
+
+#include "DatabaseInterface.h"
 #include "BlockchainInterfaces.h"
 #include "slice.h"
 
@@ -28,7 +30,7 @@ namespace Blockchain {
    {
    public:
       BlockchainDBAdapter(IDBClient* _db) :
-         logger(Logger::getInstance("com.vmware.athena.kvb")),
+      logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb")),
          m_db(_db) {}
 
       IDBClient* getDb() { return m_db; }

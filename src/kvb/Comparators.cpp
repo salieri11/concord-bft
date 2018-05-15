@@ -2,15 +2,18 @@
 //
 // Storage key comparators implementation.
 
-#include "Database/RocksDBClient.h"
+#include <log4cplus/loggingmacros.h>
+
+#include "RocksDBClient.h"
 #include "Comparators.h"
-#include "DebugIS.h"
 #include "slice.h"
 #include "BlockchainDBAdapter.h"
 #include "HexTools.h"
 #include "BlockchainInterfaces.h"
 
 #include <chrono>
+
+using log4cplus::Logger;
 
 /* Comparators start */
 namespace Blockchain {
@@ -65,7 +68,7 @@ int RocksKeyComparator::Compare(const rocksdb::Slice& _a,
    Slice b = fromRocksdbSlice(_b);
    int ret = composedKeyComparison(a, b);
 
-   log4cplus::Logger logger(Logger::getInstance("com.vmware.athena.kvb"));
+   Logger logger(Logger::getInstance("com.vmware.athena.kvb"));
    LOG4CPLUS_DEBUG(logger, "Compared " << sliceToString((Slice&)a) <<
                    " with " << sliceToString((Slice&)b) <<
                    ", returning " << ret);
@@ -79,7 +82,7 @@ bool InMemKeyComp(const Slice& _a, const Slice& _b)
 {
    int comp = composedKeyComparison(_a, _b);
 
-   log4cplus::Logger logger(Logger::getInstance("com.vmware.athena.kvb"));
+   Logger logger(Logger::getInstance("com.vmware.athena.kvb"));
    LOG4CPLUS_DEBUG(logger, "Compared " << sliceToString((Slice&)_a) <<
                    " with " << sliceToString((Slice&)_b) <<
                    ", a<b == " << (comp<0));

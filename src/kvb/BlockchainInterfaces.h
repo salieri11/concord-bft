@@ -12,8 +12,7 @@
 #include <unordered_set>
 #include "slice.h"
 #include "status.h"
-#include "Database/DatabaseInterface.h"
-#include "MerkleTree/IMerkle.h"
+#include "DatabaseInterface.h"
 
 using std::string;
 using std::pair;
@@ -186,10 +185,6 @@ namespace Blockchain {
                          Slice key,
                          Slice& outValue,
                          BlockId& outBlock) const = 0;
-
-      // virtual Status getWithProof(Key key,
-      //                             Value& outValue,
-      //                             IMerkleProof& outProof) const = 0;
 
       virtual BlockId getLastBlock() const = 0;
       virtual Status getBlockData(BlockId blockId,
