@@ -1,5 +1,5 @@
 <clr-main-container>
-  <clr-header class="header-6">
+  <clr-header class="header-6" *ngIf="authenticated">
     <div class="branding">
       <a routerLink="/" class="nav-link">
         <clr-icon shape="vm-bug"></clr-icon>
@@ -20,11 +20,11 @@
       <clr-dropdown>
         <button class="nav-text" clrDropdownTrigger>
           <clr-icon shape="user" class="is-solid"></clr-icon>
-          john.doe@vmware.com
+          {{ username }}
           <clr-icon shape="caret down"></clr-icon>
         </button>
         <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
-          <a href="javascript:;" clrDropdownItem>{{'nav.logOut' | translate}}</a>
+          <a clrDropdownItem (click)="onLogOut()">{{'nav.logOut' | translate}}</a>
         </clr-dropdown-menu>
       </clr-dropdown>
     </div>
@@ -33,7 +33,7 @@
     <main class="content-area">
       <router-outlet></router-outlet>
     </main>
-    <clr-vertical-nav>
+    <clr-vertical-nav *ngIf="authenticated">
       <a clrVerticalNavLink routerLink="dashboard" routerLinkActive="active">
         <clr-icon clrVerticalNavIcon shape="home"></clr-icon>
         {{'nav.dashboard.title' | translate}}

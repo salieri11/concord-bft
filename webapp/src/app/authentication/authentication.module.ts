@@ -9,16 +9,13 @@ import { ClarityModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
 import { SharedModule } from '../shared/shared.module';
 
-import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
-
-import { TestingGroundComponent } from './testing-ground/testing-ground.component';
+import { LogInContainerComponent } from './log-in-container/log-in-container.component';
 
 const routes: Routes = [
   {
-    path: 'testing',
-    canActivateChild: [AuthenticatedGuard],
+    path: 'auth',
     children: [
-      {path: '', component: TestingGroundComponent}
+      {path: 'log-in', component: LogInContainerComponent},
     ]
   }
 ];
@@ -31,6 +28,6 @@ const routes: Routes = [
     TranslateModule,
     SharedModule
   ],
-  declarations: [TestingGroundComponent]
+  declarations: [LogInContainerComponent]
 })
-export class TestingModule { }
+export class AuthenticationModule { }

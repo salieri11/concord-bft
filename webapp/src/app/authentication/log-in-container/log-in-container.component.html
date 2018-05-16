@@ -1,0 +1,13 @@
+<div class="login-wrapper">
+  <form class="login" (ngSubmit)="onLogIn()" [formGroup]="loginForm">
+    <label class="title">
+      <h3 class="welcome">{{'authentication.welcome' | translate}}</h3>
+      {{'title' | translate}}
+    </label>
+    <div class="login-group">
+      <input class="username" type="text" id="login_username" [attr.placeholder]="'authentication.username' | translate" formControlName="email">
+      <input class="password" type="password" id="login_password" [attr.placeholder]="'authentication.password' | translate" formControlName="password">
+      <button type="submit" class="btn btn-primary" [disabled]="loginForm.invalid">{{'authentication.next' | translate}}</button>
+    </div>
+  </form>
+</div>

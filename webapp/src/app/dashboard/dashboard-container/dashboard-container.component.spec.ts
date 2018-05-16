@@ -3,11 +3,13 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
-import { ClarityModule } from '@clr/angular';
-import { MockTranslateModule } from '../../mocks/mock-translate.module';
+import { MockSharedModule } from '../../shared/shared.module';
 
 import { DashboardContainerComponent } from './dashboard-container.component';
+import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
 
 describe('DashboardContainerComponent', () => {
   let component: DashboardContainerComponent;
@@ -17,10 +19,10 @@ describe('DashboardContainerComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         RouterTestingModule,
-        ClarityModule,
-        MockTranslateModule
+        HttpClientTestingModule,
+        MockSharedModule
       ],
-      declarations: [ DashboardContainerComponent ],
+      declarations: [ DashboardContainerComponent, TransactionsStatusFilterComponent ]
     })
     .compileComponents();
   }));

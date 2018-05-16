@@ -21,29 +21,15 @@
 
 <div class="p-2">
   <h3 class="mt-0">{{'transactions.transactions' | translate}}</h3>
-  <table class="table">
-    <thead>
-    <tr>
-      <th class="text-left">{{'transactions.hash' | translate}}</th>
-      <th></th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr *ngFor="let transaction of block?.transactions">
-      <td class="text-left">{{transaction.hash}}</td>
-      <td>
-        <clr-dropdown [clrCloseMenuOnItemClick]="false">
-          <button type="button" class="px-0" clrDropdownTrigger>
-            <clr-icon shape="ellipsis-horizontal" size="16"></clr-icon>
-          </button>
-          <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
-            <a clrDropdownItem [routerLink]="['./transactions', transaction.hash]">
-              {{'blocks.viewDetail' | translate}}
-            </a>
-          </clr-dropdown-menu>
-        </clr-dropdown>
-      </td>
-    </tr>
-    </tbody>
-  </table>
+  <clr-datagrid>
+    <clr-dg-column>{{'transactions.hash' | translate}}</clr-dg-column>
+    <clr-dg-row *clrDgItems="let transaction of block?.transactions">
+      <clr-dg-action-overflow>
+        <a class="action-item" [routerLink]="['./transactions', transaction.hash]">
+          {{'blocks.viewDetail' | translate}}
+        </a>
+      </clr-dg-action-overflow>
+      <clr-dg-cell>{{transaction.hash}}</clr-dg-cell>
+    </clr-dg-row>
+  </clr-datagrid>
 </div>

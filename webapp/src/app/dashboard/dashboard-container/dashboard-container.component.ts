@@ -4,6 +4,9 @@
 
 import { Component, OnInit } from '@angular/core';
 
+import { AthenaApiService } from '../../shared/athena-api.service';
+import { BlockListingBlock } from '../../shared/remote-interfaces';
+
 @Component({
   selector: 'app-dashboard-container',
   templateUrl: './dashboard-container.component.html',
@@ -11,6 +14,9 @@ import { Component, OnInit } from '@angular/core';
 })
 export class DashboardContainerComponent implements OnInit {
 
+  blocks: BlockListingBlock[];
+  blockTransactions: any[] = [];
+  recentTransactions: any[] = [];
   mockStats = {
     totalActiveNodes: 28458,
     inactiveNodes: 583,
@@ -19,9 +25,11 @@ export class DashboardContainerComponent implements OnInit {
     averageValidationTime: 1.98
   };
 
-  constructor() { }
+  constructor(private athenaApiService: AthenaApiService) { }
 
   ngOnInit() {
+    this.athenaApiService.getRecentTransactions().subscribe((resp) => {
+      this.recentTransactions = resp;
+    });
   }
-
 }

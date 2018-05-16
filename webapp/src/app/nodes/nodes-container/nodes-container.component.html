@@ -70,46 +70,28 @@
 
 <div class="p-2">
   <div class="row">
-    <div class="col-xs-6">
+    <div class="col-xs-12">
       <h3 class="mt-0">{{'nodes.nodes' | translate}}</h3>
     </div>
-    <div class="col-xs-6">
-      <div class="form-group text-right">
-        <input type="text" [attr.placeholder]="'nodes.searchPlaceholder' | translate" />
-        <button type="button" class="btn btn-primary" (click)="onOpenFilterModal()">{{'nodes.filters' | translate}}</button>
-      </div>
-    </div>
   </div>
-
-  <table class="table">
-    <thead>
-    <tr>
-      <th>{{'nodes.location' | translate}}</th>
-      <th>{{'nodes.hostname' | translate}}</th>
-      <th>{{'nodes.address' | translate}}</th>
-      <th>{{'nodes.status' | translate}}</th>
-      <th></th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr *ngFor="let member of members">
-      <td>Lindberg</td>
-      <td>{{member.host}}</td>
-      <td>2001:0db8:85a3:0000:0000:8a2e:0370:7334:8080</td>
-      <td>{{member.status}}</td>
-      <td>
-        <clr-dropdown [clrCloseMenuOnItemClick]="false">
-          <button type="button" clrDropdownTrigger>
-            <clr-icon shape="ellipsis-horizontal" size="16"></clr-icon>
-          </button>
-          <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
-            <a clrDropdownItem [routerLink]="['/nodes', member.host]">{{'nodes.viewDetail' | translate}}</a>
-          </clr-dropdown-menu>
-        </clr-dropdown>
-      </td>
-    </tr>
-    </tbody>
-  </table>
+  <clr-datagrid>
+    <clr-dg-column>{{'nodes.location' | translate}}</clr-dg-column>
+    <clr-dg-column [clrDgField]="'host'">{{'nodes.hostname' | translate}}</clr-dg-column>
+    <clr-dg-column>{{'nodes.address' | translate}}</clr-dg-column>
+    <clr-dg-column>
+      {{'nodes.status' | translate}}
+      <clr-dg-filter [clrDgFilter]="statusFilter">
+        <app-nodes-status-filter #statusFilter></app-nodes-status-filter>
+      </clr-dg-filter>
+    </clr-dg-column>
+    <clr-dg-row *clrDgItems="let member of members">
+      <clr-dg-action-overflow>
+        <a class="action-item" [routerLink]="['/nodes', member.host]">{{'nodes.viewDetail' | translate}}</a>
+      </clr-dg-action-overflow>
+      <clr-dg-cell>Lindberg</clr-dg-cell>
+      <clr-dg-cell>{{member.host}}</clr-dg-cell>
+      <clr-dg-cell>2001:0db8:85a3:0000:0000:8a2e:0370:7334:8080</clr-dg-cell>
+      <clr-dg-cell>{{member.status}}</clr-dg-cell>
+    </clr-dg-row>
+  </clr-datagrid>
 </div>
-
-<app-transaction-filters-modal #filterModal (applyFilters)="onApplyFilters()"></app-transaction-filters-modal>

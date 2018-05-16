@@ -3,23 +3,27 @@
  */
 
 import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ClarityModule } from '@clr/angular';
 import { RouterModule, Routes } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
+import { SharedModule } from '../shared/shared.module';
+
+import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
 
 import { DashboardContainerComponent } from './dashboard-container/dashboard-container.component';
 
 const routes: Routes = [
-  {path: 'dashboard', component: DashboardContainerComponent}
+  {
+    path: 'dashboard',
+    canActivateChild: [AuthenticatedGuard],
+    children: [
+      {path: '', component: DashboardContainerComponent}
+    ]
+  }
 ];
 
 @NgModule({
   imports: [
-    CommonModule,
-    RouterModule.forChild(routes),
-    ClarityModule,
-    TranslateModule
+    SharedModule,
+    RouterModule.forChild(routes)
   ],
   declarations: [DashboardContainerComponent]
 })

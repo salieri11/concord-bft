@@ -4,14 +4,23 @@
 
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { TransactionDetailContainerComponent } from './transaction-detail-container/transaction-detail-container.component';
 import { RouterModule, Routes } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
 import { ClarityModule } from '@clr/angular';
 import { SharedModule } from '../shared/shared.module';
 
+import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
+
+import { TransactionDetailContainerComponent } from './transaction-detail-container/transaction-detail-container.component';
+
 const routes: Routes = [
-  {path: 'blocks/:blockNumber/transactions/:transactionHash', component: TransactionDetailContainerComponent},
+  {
+    path: 'blocks/:blockNumber/transactions',
+    canActivateChild: [AuthenticatedGuard],
+    children: [
+      {path: ':transactionHash', component: TransactionDetailContainerComponent},
+    ]
+  }
 ];
 
 @NgModule({
