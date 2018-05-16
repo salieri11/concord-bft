@@ -6,9 +6,13 @@
 #define ATHENA_TYPES_HPP
 
 #include "athena_log.hpp"
+#include "athena_types.hpp"
+#include "kvb/slice.h"
 
 const evm_address zero_address{{0}};
 const evm_uint256be zero_hash{{0}};
+
+const int64_t tx_storage_version = 1;
 
 namespace com {
 namespace vmware {
@@ -24,6 +28,10 @@ typedef struct EthTransaction {
    evm_status_code status;
    uint64_t value;
    // TODO: all the other fields
+
+   evm_uint256be hash();
+   void serialize(std::string &out);
+   static struct EthTransaction deserialize(Blockchain::Slice &input);
 } EthTransaction;
 
 typedef struct EthBlock {

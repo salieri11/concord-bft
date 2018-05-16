@@ -15,6 +15,7 @@
 #include "common/rlp.hpp"
 #include "kvb/BlockchainDBAdapter.h"
 #include "kvb/slice.h"
+#include "kvb/HexTools.h"
 
 #ifdef USE_HERA
 #include "hera.h"
@@ -76,6 +77,7 @@ com::vmware::athena::EVM::~EVM()
  */
 void com::vmware::athena::EVM::create_genesis_block(EVMInitParams params)
 {
+   std::map<evm_uint256be, EthTransaction> transactions;
    std::vector<evm_uint256be> txs;
 
    std::map<evm_address, uint64_t> genesis_acts = params.get_initial_accounts();
@@ -91,7 +93,7 @@ void com::vmware::athena::EVM::create_genesis_block(EVMInitParams params)
          .status = EVM_SUCCESS,
          .value = it->second};
 
-      evm_uint256be txhash = hash_for_transaction(tx);
+      evm_uint256be txhash = tx.hash();
       transactions[txhash] = tx;
       txs.push_back(txhash);
       LOG4CPLUS_INFO(logger, "Created genesis transaction to address "
@@ -105,6 +107,14 @@ void com::vmware::athena::EVM::create_genesis_block(EVMInitParams params)
    blk->hash = hash_for_block(blk);
    blocks_by_hash[blk->hash] = blk;
    blocks_by_number[blk->number] = blk;
+
+   for (std::pair<evm_uint256be, EthTransaction> elt: transactions) {
+      Blockchain::Slice txkey(reinterpret_cast<char*>(elt.first.bytes),
+                              sizeof(elt.first));
+      std::string txser;
+      elt.second.serialize(txser);
+      db.updateKey(txkey, 0, Blockchain::Slice(txser));
+   }
 }
 
 /**
@@ -276,7 +286,7 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
       .status = result.status_code,
       .value = transfer_val};
 
-   evm_uint256be txhash = hash_for_transaction(tx);
+   evm_uint256be txhash = tx.hash();
    pending.insert(pending.begin()+pending_index, tx);
    LOG4CPLUS_DEBUG(logger, "Recording transaction " << txhash);
 
@@ -292,12 +302,9 @@ void com::vmware::athena::EVM::record_block()
    // list of transaction hashes for the block
    std::vector<evm_uint256be> txlist;
    for (auto t: pending) {
-      evm_uint256be th = hash_for_transaction(t);
-      transactions[th] = t;
+      evm_uint256be th = t.hash();
       txlist.push_back(th);
    }
-
-   pending.clear();
 
    std::shared_ptr<EthBlock> blk = std::make_shared<EthBlock>();
    blk->number = next_block_number();
@@ -309,6 +316,16 @@ void com::vmware::athena::EVM::record_block()
                    " hash " << blk->hash);
    blocks_by_hash[blk->hash] = blk;
    blocks_by_number[blk->number] = blk;
+
+   for (auto t: pending) {
+      evm_uint256be th = t.hash();
+      Blockchain::Slice txkey(reinterpret_cast<char*>(th.bytes), sizeof(th));
+      std::string txser;
+      t.serialize(txser);
+      db.updateKey(txkey, blk->number, Blockchain::Slice(txser));
+   }
+
+   pending.clear();
 }
 
 /**
@@ -317,9 +334,27 @@ void com::vmware::athena::EVM::record_block()
 EthTransaction com::vmware::athena::EVM::get_transaction(
    const evm_uint256be &txhash) const
 {
-   auto iter = transactions.find(txhash);
-   if (iter != transactions.end()) {
-      return iter->second;
+   Blockchain::Slice searchKey(reinterpret_cast<const char*>(txhash.bytes),
+                               sizeof(txhash));
+   Blockchain::BlockId actualVersion;
+   Blockchain::Slice key, value;
+   bool isEnd;
+
+   auto iter = db.getIterator();
+   db.seekAtLeast(iter,
+                  searchKey,
+                  current_block_number(),
+                  actualVersion,
+                  key,
+                  value,
+                  isEnd);
+
+   LOG4CPLUS_DEBUG(logger, "Getting transaction \'" << txhash << "\'" <<
+                   "isEnd: " << isEnd << " key: " << sliceToString(key) <<
+                   " value.size: " << value.size());
+
+   if (!isEnd && key == searchKey) {
+      return EthTransaction::deserialize(value);
    }
 
    throw TransactionNotFoundException();
@@ -419,38 +454,6 @@ evm_address com::vmware::athena::EVM::contract_destination(
 /**
  * Compute the hash which will be used to reference the transaction.
  */
-evm_uint256be com::vmware::athena::EVM::hash_for_transaction(
-   const EthTransaction &tx) const
-{
-   /*
-    * WARNING: This is not the same as Ethereum's transaction hash right now,
-    * but is instead an approximation, in order to provide something to fill API
-    * holes. For now, the plan is:
-    *
-    * RLP([nonce, from, to/contract_address, input])
-    */
-
-   RLPBuilder rlpb;
-   rlpb.start_list();
-
-   // RLP building is done in reverse order - build flips it for us
-   rlpb.add(tx.input);
-   if (tx.contract_address == zero_address) {
-      rlpb.add(tx.to);
-   } else {
-      rlpb.add(tx.contract_address);
-   }
-   rlpb.add(tx.from);
-   rlpb.add(tx.nonce);
-   std::vector<uint8_t> rlp = rlpb.build();
-
-   // hash it
-   return keccak_hash(rlp);
-}
-
-/**
- * Compute the hash which will be used to reference the transaction.
- */
 evm_uint256be com::vmware::athena::EVM::hash_for_block(
    const std::shared_ptr<EthBlock> blk) const
 {
@@ -504,7 +507,7 @@ bool com::vmware::athena::EVM::new_account(
 }
 
 evm_uint256be com::vmware::athena::EVM::keccak_hash(
-   const std::vector<uint8_t> &data) const
+   const std::vector<uint8_t> &data)
 {
    static_assert(sizeof(evm_uint256be) == CryptoPP::Keccak_256::DIGESTSIZE,
                  "hash is not the same size as uint256");

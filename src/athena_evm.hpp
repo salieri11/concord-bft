@@ -196,9 +196,6 @@ private:
    // map from account address to latest nonce
    std::map<evm_address, uint64_t> nonces;
 
-   // the transactions we have processed; map is hash -> tx
-   std::map<evm_uint256be, EthTransaction> transactions;
-
    // transactions in flight for the current block
    std::vector<EthTransaction> pending;
 
@@ -221,14 +218,12 @@ private:
 
    void create_genesis_block(EVMInitParams params);
    evm_address contract_destination(const evm_message &message);
-   evm_uint256be keccak_hash(const std::vector<uint8_t> &data) const;
    void execute(evm_message &message,
                 const std::vector<uint8_t> &code,
                 evm_result &result /* out */);
    uint64_t get_nonce(const evm_address &address);
    uint64_t next_block_number();
 
-   evm_uint256be hash_for_transaction(const EthTransaction &tx) const;
    evm_uint256be hash_for_block(const std::shared_ptr<EthBlock> tx) const;
    evm_uint256be record_transaction(const size_t pending_index,
                                     const evm_message &message,
@@ -238,6 +233,11 @@ private:
    void record_block();
    std::vector<uint8_t> storage_key(const struct evm_address* address,
                                     const struct evm_uint256be* key) const;
+
+public:
+   // TODO(BWF): move to common?
+   static evm_uint256be keccak_hash(const std::vector<uint8_t> &data);
+
 };
 
 }
