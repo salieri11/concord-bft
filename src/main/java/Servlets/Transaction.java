@@ -11,15 +11,18 @@
  */
 package Servlets;
 
-import com.google.protobuf.ByteString;
-import com.vmware.athena.*;
-
-import io.undertow.util.StatusCodes;
 import java.io.IOException;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
+
+import com.google.protobuf.ByteString;
+import com.vmware.athena.Athena;
+
+import io.undertow.util.StatusCodes;
 
 /**
  * Servlet class.
@@ -131,8 +134,10 @@ public final class Transaction extends BaseServlet {
       // and '0' is failure. Here we need to reverse status value of athena
       // response before returning it.
       responseJSON.put("status",
-                       txResponse.getStatus() == 0 ? 1 : 0);
-
+                       "0x" + Integer.toString(
+                                               txResponse.getStatus() == 0 ? 1
+                                                  : 0,
+                                               16));
 
       return responseJSON;
    }
