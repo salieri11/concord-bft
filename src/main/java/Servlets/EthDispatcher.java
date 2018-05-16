@@ -26,16 +26,16 @@ import io.undertow.util.StatusCodes;
  * <p>
  * Copyright 2018 VMware, all rights reserved.
  * </p>
- * 
+ *
  * <p>
  * url endpoint : /api/athena/eth
  * </p>
- * 
+ *
  * <p>
  * GET: Used to list available RPC methods. A list of currently exposed Eth RPC
  * methods is read from the config file and returned to the client.
  * </p>
- * 
+ *
  * <p>
  * POST: Used to execute the specified method. Request and response construction
  * are handled by the appropriate handlers. A TCP socket connection is made to
@@ -64,7 +64,7 @@ public final class EthDispatcher extends BaseServlet {
 
    /**
     * Constructs the response in case of error.
-    * 
+    *
     * @param message
     *           Error message
     * @param id
@@ -88,7 +88,7 @@ public final class EthDispatcher extends BaseServlet {
 
    /**
     * Extracts the RPC method name from the request JSON
-    * 
+    *
     * @param ethRequestJson
     *           Request JSON
     * @return Method name
@@ -105,7 +105,7 @@ public final class EthDispatcher extends BaseServlet {
 
    /**
     * Extracts the Request Id from the request JSON
-    * 
+    *
     * @param ethRequestJson
     *           Request JSON
     * @return Request id
@@ -214,7 +214,7 @@ public final class EthDispatcher extends BaseServlet {
     * Creates the appropriate handler object and calls its functions to
     * construct an AthenaRequest object. Sends this request to Athena and
     * converts its response into a format required by the user.
-    * 
+    *
     * @param response
     *           Servlet response object
     * @param requestJson
@@ -222,7 +222,7 @@ public final class EthDispatcher extends BaseServlet {
     * @return Response for user
     * @throws Exception
     */
-   private String dispatch(final HttpServletResponse response,
+   String dispatch(final HttpServletResponse response,
                            JSONObject requestJson) throws Exception {
       // Default initialize variables, so that if exception is thrown
       // while initializing the variables error message can be constructed
@@ -287,9 +287,11 @@ public final class EthDispatcher extends BaseServlet {
             // If there is an error reported by Athena
             if (athenaResponse.getErrorResponseCount() > 0) {
                ErrorResponse errResponse = athenaResponse.getErrorResponse(0);
-               responseString = "Error received from athena";
+               responseString = errorMessage("Error received from athena",
+                                             id, jsonRpc);
                if (errResponse.hasDescription()) {
-                  responseString = errResponse.getDescription();
+                  responseString = errorMessage(errResponse.getDescription(),
+                                                id, jsonRpc);
                }
             } else {
                responseString
@@ -314,7 +316,7 @@ public final class EthDispatcher extends BaseServlet {
 
    /**
     * Sends an AthenaRequest to Athena and receives Athena's response.
-    * 
+    *
     * @param req
     *           AthenaRequest object
     * @return Response received from Athena

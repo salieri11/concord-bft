@@ -10,24 +10,23 @@
 package Servers;
 
 import static io.undertow.servlet.Servlets.deployment;
+
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
 import javax.servlet.ServletException;
+
 import org.apache.log4j.Logger;
-import Servlets.BlockList;
-import Servlets.BlockNumber;
-import Servlets.EthDispatcher;
-import Servlets.MemberList;
-import Servlets.StaticContent;
+
+import Servlets.*;
 import configurations.ConfigurationFactory;
-import configurations.IConfiguration;
 import configurations.ConfigurationFactory.ConfigurationType;
+import configurations.IConfiguration;
 import connections.AthenaConnectionFactory;
 import connections.AthenaConnectionFactory.ConnectionType;
 import connections.AthenaConnectionPool;
-import Servlets.Transaction;
 import io.undertow.Handlers;
 import io.undertow.Undertow;
 import io.undertow.server.handlers.PathHandler;
@@ -61,6 +60,8 @@ public class Server {
    private static String swaggerEndpoint;
    private static String assetsEndpoint;
    private static String apiListEndpoint;
+   private static String contractServletName;
+   private static String contractEndpoint;
 
    // Set current datetime for logging purposes
    static {
@@ -106,6 +107,8 @@ public class Server {
       swaggerEndpoint = conf.getStringValue("Swagger_Endpoint");
       assetsEndpoint = conf.getStringValue("Assets_Endpoint");
       apiListEndpoint = conf.getStringValue("ApiList_Endpoint");
+      contractServletName = conf.getStringValue("Contracts_ServletName");
+      contractEndpoint = conf.getStringValue("Contracts_Endpoint");
 
       DeploymentInfo servletBuilder
          = deployment().setClassLoader(Server.class.getClassLoader())
@@ -151,7 +154,13 @@ public class Server {
                                                + '/'))
                        .addServlet(Servlets.servlet(defaultContentServletName,
                                                     StaticContent.class)
-                                           .addMapping(defaultContentEndpoint));
+                                           .addMapping(defaultContentEndpoint))
+                       .addServlet(Servlets.servlet(contractServletName,
+                                                    ContractsServlet.class)
+                                           .addMapping(contractEndpoint)
+                                           .addMapping(contractEndpoint
+                                              + "/*"));
+
       DeploymentManager manager
          = Servlets.defaultContainer().addDeployment(servletBuilder);
       manager.deploy();
