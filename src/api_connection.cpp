@@ -559,6 +559,12 @@ api_connection::handle_transaction_request()
    }
 }
 
+/**
+ * Send a read-only request to the replicas. Returns true if the response
+ * contains something to forward (either a response message or an appropriate
+ * error message). Returns false if the response is empty (for example, if
+ * parsing failed).
+ */
 bool api_connection::send_read_only_request(AthenaRequest &req,
                                             AthenaResponse &resp)
 {
@@ -577,15 +583,16 @@ bool api_connection::send_read_only_request(AthenaRequest &req,
                       status.ToString());
       ErrorResponse *resp = athenaResponse_.add_error_response();
       resp->set_description("Internal Athena Error");
+      return true;
    }
 }
 
+// TODO(BWF): this will move to KVBCommandsHandler
 evm_result
 api_connection::run_evm(const EthRequest &request,
                         bool isTransaction,
                         evm_uint256be &txhash /* OUT */)
 {
-   // TODO: this is the thing we'll forward to SBFT/KVBlockchain/EVM
    evm_message message;
    evm_result result;
 
@@ -906,7 +913,9 @@ api_connection::handle_uninstall_filter(const EthRequest &request)
    }
 }
 
-
+// TODO(BWF): When KVB integration is complete, this class should not hold a
+// reference to the EVM. Communication with it should happen through
+// KVBlockchain/SBFT.
 api_connection::api_connection(
    io_service &io_service,
    connection_manager &manager,
