@@ -576,7 +576,8 @@ api_connection::build_transaction_response(evm_uint256be hash,
        if (tx.input.size()) {
           response->set_input(std::string(tx.input.begin(), tx.input.end()));
        }
-       response->set_status(tx.status == EVM_SUCCESS ? 1 : 0);
+       // send evm status as it is to helen
+       response->set_status(tx.status);
        response->set_nonce(tx.nonce);
        response->set_value(tx.value);
        response->set_block_hash(tx.block_hash.bytes, sizeof(evm_uint256be));
