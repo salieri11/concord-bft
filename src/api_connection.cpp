@@ -545,32 +545,38 @@ api_connection::handle_transaction_request()
       return;
    }
 
-   try {
-      evm_uint256be hash;
-      std::copy(request.hash().begin(), request.hash().end(), hash.bytes);
-      EthTransaction tx = athevm_.get_transaction(hash);
+   AthenaRequest internalRequest;
+   TransactionRequest *txReq = internalRequest.mutable_transaction_request();
+   txReq->CopyFrom(request);
 
-      TransactionResponse* response =
-         athenaResponse_.mutable_transaction_response();
-      response->set_hash(request.hash());
-      response->set_from(tx.from.bytes, sizeof(evm_address));
-      if (tx.to != zero_address) {
-         response->set_to(tx.to.bytes, sizeof(evm_address));
-      }
-      if (tx.contract_address != zero_address) {
-         response->set_contract_address(tx.contract_address.bytes,
-                                        sizeof(evm_address));
-      }
-      if (tx.input.size()) {
-         response->set_input(std::string(tx.input.begin(), tx.input.end()));
-      }
-      response->set_status(tx.status);
-      response->set_nonce(tx.nonce);
-      response->set_value(tx.value);
-   } catch (TransactionNotFoundException) {
+   AthenaResponse internalResponse;
+   if (send_read_only_request(internalRequest, internalResponse)) {
+      athenaResponse_.MergeFrom(internalResponse);
+   } else {
+      LOG4CPLUS_ERROR(logger_, "Error parsing read-only response");
       ErrorResponse *resp = athenaResponse_.add_error_response();
-      resp->set_description("transaction not found");
-      return;
+      resp->set_description("Internal Athena Error");
+   }
+}
+
+bool api_connection::send_read_only_request(AthenaRequest &req,
+                                            AthenaResponse &resp)
+{
+   std::string command;
+   req.SerializeToString(&command);
+   Blockchain::Slice cmdslice(command);
+   Blockchain::Slice replyslice;
+
+   Blockchain::Status status = client_->invokeCommandSynch(
+      cmdslice, true /* read only */, replyslice);
+
+   if (status.ok()) {
+      return resp.ParseFromArray(replyslice.data(), replyslice.size());
+   } else {
+      LOG4CPLUS_ERROR(logger_, "Error invoking read-only command: " <<
+                      status.ToString());
+      ErrorResponse *resp = athenaResponse_.add_error_response();
+      resp->set_description("Internal Athena Error");
    }
 }
 

@@ -7,6 +7,7 @@
 #include "kvb/BlockchainInterfaces.h"
 #include "kvb/slice.h"
 #include "athena_evm.hpp"
+#include "athena.pb.h"
 
 namespace com {
 namespace vmware {
@@ -36,6 +37,12 @@ public:
       const size_t maxReplySize,
       char *outReply,
       size_t &outReplySize) const override;
+
+   // Handlers
+   void handle_transaction_request(
+      AthenaRequest &athreq,
+      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+      AthenaResponse &athresp) const;
 };
 
 }

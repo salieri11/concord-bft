@@ -71,6 +71,9 @@ private:
    void
    handle_test_request();
 
+   bool
+   send_read_only_request(AthenaRequest &req, AthenaResponse &resp);
+
    evm_result
    run_evm(const EthRequest &request,
            bool isTransaction,

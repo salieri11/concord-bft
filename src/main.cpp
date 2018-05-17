@@ -104,12 +104,18 @@ run_service(variables_map &opts, Logger logger)
       // TODO(BWF): This works because this thread is going to be the same one
       // that calls the replica (athena is single-threaded).
       Blockchain::ReplicaConsensusConfig replicaConsensusConfig;
+      replicaConsensusConfig.byzConfig = "TODO(BWF):actualconfig";
+      replicaConsensusConfig.byzPrivateConfig = "TODO(BWF):actualconfig";
       Blockchain::IReplica *replica =
          Blockchain::createReplica(replicaConsensusConfig, &athkvb, dbclient);
+      replica->start();
 
       Blockchain::ClientConsensusConfig clientConsensusConfig;
+      clientConsensusConfig.byzConfig = "TODO(BWF):actualconfig";
+      clientConsensusConfig.byzPrivateConfig = "TODO(BWF):actualconfig";
       Blockchain::IClient *client =
          Blockchain::createClient(clientConsensusConfig);
+      client->start();
 
       std::string ip = opts["ip"].as<std::string>();
       short port = opts["port"].as<short>();

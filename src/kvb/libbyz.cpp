@@ -32,6 +32,12 @@ void Byz_init_client(char *byzConfig, char *byzPrivateConfig, int todo)
                   " Private=" << byzPrivateConfig);
 }
 
+int (*g_exec_command)(Byz_req *inb,
+                      Byz_rep *outb,
+                      Byz_buffer *non_det,
+                      int client,
+                      bool isReadOnly);
+
 int Byz_init_replica(char *byzConfig, char *byzPrivateConfig,
                      int todo1,
                      int (*exec_command)(Byz_req *inb,
@@ -61,7 +67,8 @@ int Byz_init_replica(char *byzConfig, char *byzPrivateConfig,
                   "Mock libbyz replica init. Public=" << byzConfig <<
                   " Private=" << byzPrivateConfig);
 
-   // TODO(BWF): stash callbacks somewhere
+   g_exec_command = exec_command;
+
    return 0;
 }
 
@@ -118,7 +125,10 @@ void Byz_invoke(Byz_req *request, Byz_rep *reply, bool isReadOnly) {
                   "Mock libbyz invoke. request.size=" << request->size <<
                   " isReadOnly=" << isReadOnly);
 
-   //TODO(BWF): call mock replica exec
+   g_exec_command(request, reply,
+                  nullptr, /* non_det */
+                  0, /* client */
+                  isReadOnly);
 }
 
 void Byz_modify(int todo, int *page) {
