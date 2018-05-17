@@ -11,6 +11,9 @@
 #include <map>
 #include "BlockchainDBAdapter.h"
 #include "InMemoryDBClient.h"
+#include "Threading.h"
+#include "ThreadLocalStorage.h"
+#include "libbyz.h"
 
 using namespace Blockchain::Utils;
 

@@ -19,10 +19,12 @@ class api_acceptor {
 public:
    api_acceptor(boost::asio::io_service &io_service,
                 boost::asio::ip::tcp::endpoint endpoint,
-                EVM &athevm);
+                EVM &athevm,
+                Blockchain::IClient *client);
 
 private:
    EVM &athevm_;
+   Blockchain::IClient *client_;
 
    void
    start_accept();

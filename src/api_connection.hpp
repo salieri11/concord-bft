@@ -33,7 +33,8 @@ public:
    static pointer
    create(boost::asio::io_service &io_service,
           connection_manager &connManager,
-          com::vmware::athena::EVM &athevm);
+          EVM &athevm,
+          Blockchain::IClient *client);
 
    boost::asio::ip::tcp::socket&
    socket();
@@ -101,7 +102,8 @@ private:
    /* Constructor. */
    api_connection(boost::asio::io_service &io_service,
                   connection_manager &connManager,
-                  com::vmware::athena::EVM &athevm);
+                  EVM &athevm,
+                  Blockchain::IClient *client);
 
    uint16_t
    get_message_length(const char * buffer);
@@ -148,7 +150,8 @@ private:
    log4cplus::Logger logger_;
 
    /* The VM to execute transactions in. */
-   com::vmware::athena::EVM &athevm_;
+   EVM &athevm_;
+   Blockchain::IClient *client_;
 
    connection_manager &connManager_;
 

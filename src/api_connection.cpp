@@ -45,9 +45,10 @@ using namespace com::vmware::athena;
 api_connection::pointer
 api_connection::create(io_service &io_service,
                        connection_manager &connManager,
-                       EVM &athevm)
+                       EVM &athevm,
+                       Blockchain::IClient *client)
 {
-   return pointer(new api_connection(io_service, connManager, athevm));
+   return pointer(new api_connection(io_service, connManager, athevm, client));
 }
 
 tcp::socket&
@@ -415,6 +416,7 @@ api_connection::handle_personal_newAccount(const EthRequest &request)
 
       LOG4CPLUS_INFO(logger_, "Creating new account with passphrase : "
                      << passphrase);
+
       evm_address address;
       bool error = athevm_.new_account(passphrase, address);
 
@@ -446,6 +448,17 @@ void
 api_connection::handle_block_list_request()
 {
    const BlockListRequest request = athenaRequest_.block_list_request();
+
+   // AthenaRequest internalReq;
+   // internalReq.set_block_list_request(request);
+   // AthenaResponse internalResp;
+   // submit_read_only_request(internalReq, internalResp);
+
+   // if (resp.has_block_list_response()) {
+   //    athenaResponse_.set_block_list_response(resp.block_list_response());
+   // } else if (resp.error_response_count() > 0) {
+   //    athenaResponse_.add_error_response(resp.error_response(0));
+   // }
 
    uint64_t latest = std::numeric_limits<uint64_t>::max();
    if (request.has_latest()) {
@@ -891,12 +904,14 @@ api_connection::handle_uninstall_filter(const EthRequest &request)
 api_connection::api_connection(
    io_service &io_service,
    connection_manager &manager,
-   EVM& athevm)
+   EVM& athevm,
+   Blockchain::IClient *client)
    : socket_(io_service),
      logger_(
         log4cplus::Logger::getInstance("com.vmware.athena.api_connection")),
      connManager_(manager),
-     athevm_(athevm)
+     athevm_(athevm),
+     client_(client)
 {
    // nothing to do here yet other than initialize the socket and logger
 }

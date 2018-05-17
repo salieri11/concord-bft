@@ -10,12 +10,15 @@
 #include "common/utils.hpp"
 #include "api_acceptor.hpp"
 #include "athena_evm.hpp"
+#include "athena_kvb.hpp"
 #include "configuration_manager.hpp"
 #include "evm_init_params.hpp"
 #include "kvb/DatabaseInterface.h"
 #include "kvb/BlockchainDBAdapter.h"
 #include "kvb/Comparators.h"
 #include "kvb/InMemoryDBClient.h"
+#include "kvb/ReplicaImp.h"
+#include "kvb/ClientImp.h"
 #ifdef USE_ROCKSDB
 #include "kvb/RocksDBClient.h"
 #endif
@@ -96,21 +99,36 @@ run_service(variables_map &opts, Logger logger)
 
       // throws an exception if it fails
       EVM athevm(params, db);
+      KVBCommandsHandler athkvb(athevm);
+
+      // TODO(BWF): This works because this thread is going to be the same one
+      // that calls the replica (athena is single-threaded).
+      Blockchain::ReplicaConsensusConfig replicaConsensusConfig;
+      Blockchain::IReplica *replica =
+         Blockchain::createReplica(replicaConsensusConfig, &athkvb, dbclient);
+
+      Blockchain::ClientConsensusConfig clientConsensusConfig;
+      Blockchain::IClient *client =
+         Blockchain::createClient(clientConsensusConfig);
 
       std::string ip = opts["ip"].as<std::string>();
       short port = opts["port"].as<short>();
 
       api_service = new io_service();
       tcp::endpoint endpoint(address::from_string(ip), port);
-      api_acceptor acceptor(*api_service, endpoint, athevm);
+      api_acceptor acceptor(*api_service, endpoint, athevm, client);
 
       signal(SIGINT, signalHandler);
 
       LOG4CPLUS_INFO(logger, "Listening on " << endpoint);
       api_service->run();
 
-      //TODO(BWF): close dbclient gracefully
+      client->stop();
+      Blockchain::release(client);
 
+      replica->stop();
+      replica->wait();
+      Blockchain::release(replica);
    } catch (EVMInitParamException &ex) {
       LOG4CPLUS_FATAL(logger, ex.what());
       return -1;
