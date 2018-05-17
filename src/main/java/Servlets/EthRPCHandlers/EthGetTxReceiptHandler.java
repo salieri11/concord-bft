@@ -11,15 +11,19 @@ import Servlets.APIHelper;
 import Servlets.EthDispatcher;
 
 /**
- * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
  * 
- * <p>This Handler is used for handling all `eth_getTransactionReceipt` types 
- * of requests. EthGetTxReceiptHandler is little different than other handlers
+ * <p>
+ * This Handler is used for handling all `eth_getTransactionReceipt` types of
+ * requests. EthGetTxReceiptHandler is little different than other handlers
  * because It leverages already existing `TransactionReceipt` AthenaRequest to
  * handle `eth_getTransactionReceipt` requests (see Transaction.java file which
  * implements this API). Hence, in this handler we actually put a
- * `TransactionRequest` inside AthenaRequest and read a TransactionResponse
- * from AthenaResponse.</p>
+ * `TransactionRequest` inside AthenaRequest and read a TransactionResponse from
+ * AthenaResponse.
+ * </p>
  */
 public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
 
@@ -106,9 +110,12 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
          } else {
             result.put("contractAddress", null);
          }
+
          result.put("status",
-                    "0x"
-                       + Integer.toString(transactionResponse.getStatus(), 16));
+                    "0x" + Integer.toString(
+                                            transactionResponse.getStatus() == 0
+                                               ? 1 : 0,
+                                            16));
          respObject.put("result", result);
       } catch (Exception e) {
          // This should never get triggered as params are already checked while

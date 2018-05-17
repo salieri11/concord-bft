@@ -22,7 +22,7 @@ import Servlets.EthDispatcher;
  */
 public class EthSendTxHandler extends AbstractEthRPCHandler {
 
-   Logger logger = Logger.getLogger(EthGetStorageAtHandler.class);
+   Logger logger = Logger.getLogger(EthSendTxHandler.class);
 
    /**
     * Builds the Athena request builder. Extracts the method name, from, to,
