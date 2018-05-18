@@ -574,7 +574,7 @@ bool api_connection::send_request(AthenaRequest &req,
    Blockchain::Slice replyslice;
 
    Blockchain::Status status = client_->invokeCommandSynch(
-      cmdslice, true /* read only */, replyslice);
+      cmdslice, isReadOnly, replyslice);
 
    if (status.ok()) {
       return resp.ParseFromArray(replyslice.data(), replyslice.size());

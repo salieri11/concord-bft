@@ -272,7 +272,13 @@ void com::vmware::athena::EVM::record_block(IBlocksAppender &blockAppender)
 
    std::shared_ptr<EthBlock> blk = std::make_shared<EthBlock>();
    blk->number = next_block_number();
-   blk->parent_hash = blocks_by_number[blk->number-1]->hash;
+
+   if (blk->number-1 == 0) {
+      blk->parent_hash = zero_hash;
+   } else {
+      blk->parent_hash = blocks_by_number[blk->number-1]->hash;
+   }
+
    blk->transactions = txlist;
    blk->hash = hash_for_block(blk);
 
