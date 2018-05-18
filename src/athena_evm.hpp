@@ -7,7 +7,6 @@
 
 #include <map>
 #include <vector>
-#include <unordered_map>
 #include <memory>
 #include <log4cplus/loggingmacros.h>
 #include "common/utils.hpp"
@@ -15,7 +14,7 @@
 #include "filter_manager.hpp"
 #include "athena_types.hpp"
 #include "evm_init_params.hpp"
-#include "kvb/BlockchainDBAdapter.h"
+#include "kvb/BlockchainInterfaces.h"
 
 namespace com {
 namespace vmware {
@@ -125,18 +124,24 @@ class FilterManager;
 
 class EVM {
 public:
-   explicit EVM(EVMInitParams params,
-                Blockchain::BlockchainDBAdapter &_db);
+   explicit EVM(EVMInitParams params);
    ~EVM();
 
    /* Athena API */
    void run(evm_message &message,
-                bool isTransaction,
-                evm_result &result,
-                evm_uint256be &txhash /* out */);
-   void create(evm_message &message, evm_result &result,
+            bool isTransaction,
+            const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+            Blockchain::IBlocksAppender &blockAppender,
+            evm_result &result, /* out */
+            evm_uint256be &txhash /* out */);
+   void create(evm_message &message,
+               const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+               Blockchain::IBlocksAppender &blockAppender,
+               evm_result &result, /* out */
                evm_uint256be &txhash /* out */);
-   EthTransaction get_transaction(const evm_uint256be &txhash) const;
+   EthTransaction get_transaction(
+      const evm_uint256be &txhash,
+      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage) const;
    evm_uint256be get_storage_at(const evm_address &account,
                                 const evm_uint256be &key) const;
    bool get_code(const evm_address &address,
@@ -181,10 +186,13 @@ private:
    athena_context athctx;
    evm_instance *evminst;
    log4cplus::Logger logger;
-   Blockchain::BlockchainDBAdapter &db;
 
    // chain to which we are connected
    uint64_t chainId;
+
+   // these two can only be used in the middle of a run or create call
+   Blockchain::ILocalKeyValueStorageReadOnly const *txctx_roStorage;
+   Blockchain::IBlocksAppender *txctx_blockAppender;
 
    // map from account address to account balance
    std::map<evm_address, uint64_t> balances;
@@ -229,8 +237,9 @@ private:
                                     const evm_message &message,
                                     const evm_result &result,
                                     const evm_address &to_override,
-                                    const evm_address &contract_address);
-   void record_block();
+                                    const evm_address &contract_address,
+                                    Blockchain::IBlocksAppender &blockAppender);
+   void record_block(Blockchain::IBlocksAppender &blockAppender);
    std::vector<uint8_t> storage_key(const struct evm_address* address,
                                     const struct evm_uint256be* key) const;
 

@@ -74,6 +74,51 @@ Blockchain::IDBClient* open_database(variables_map &opts, Logger logger)
    }
 }
 
+/**
+ * Create the initial transactions and a genesis block based on the
+ * genesis file.
+ */
+void create_genesis_block(Blockchain::IReplica* replica,
+                          EVMInitParams params,
+                          Logger logger)
+{
+   const Blockchain::ILocalKeyValueStorageReadOnly &storage =
+      replica->getReadOnlyStorage();
+   if (storage.getLastBlock() > 0) {
+      LOG4CPLUS_INFO(logger, "Blocks already loaded, skipping genesis");
+      return;
+   }
+
+   Blockchain::SetOfKeyValuePairs blockData;
+
+   std::map<evm_address, uint64_t> genesis_acts = params.get_initial_accounts();
+   for (std::map<evm_address,uint64_t>::iterator it = genesis_acts.begin();
+       it != genesis_acts.end(); ++it) {
+
+      EthTransaction tx{
+         .nonce = 0,
+         .from = zero_address,
+         .to = it->first,
+         .contract_address = zero_address,
+         .input = std::vector<uint8_t>(),
+         .status = EVM_SUCCESS,
+         .value = it->second};
+      evm_uint256be txhash = tx.hash();
+      LOG4CPLUS_INFO(logger, "Created genesis transaction to address "
+                    << txhash <<" with value = " << tx.value);
+
+      Blockchain::Slice txkey(reinterpret_cast<char*>(txhash.bytes),
+                              sizeof(txhash));
+      std::string txser;
+      tx.serialize(txser);
+      Blockchain::KeyValuePair kvp(txkey, Blockchain::Slice(txser));
+
+      blockData.insert(kvp);
+   }
+
+   replica->addBlockToIdleReplica(blockData);
+}
+
 /*
  * Start the service that listens for connections from Helen.
  */
@@ -98,7 +143,7 @@ run_service(variables_map &opts, Logger logger)
       Blockchain::BlockchainDBAdapter db(dbclient);
 
       // throws an exception if it fails
-      EVM athevm(params, db);
+      EVM athevm(params);
       KVBCommandsHandler athkvb(athevm);
 
       // TODO(BWF): This works because this thread is going to be the same one
@@ -108,6 +153,7 @@ run_service(variables_map &opts, Logger logger)
       replicaConsensusConfig.byzPrivateConfig = "TODO(BWF):actualconfig";
       Blockchain::IReplica *replica =
          Blockchain::createReplica(replicaConsensusConfig, &athkvb, dbclient);
+      create_genesis_block(replica, params, logger);
       replica->start();
 
       Blockchain::ClientConsensusConfig clientConsensusConfig;

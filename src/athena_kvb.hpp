@@ -43,6 +43,23 @@ public:
       AthenaRequest &athreq,
       const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
       AthenaResponse &athresp) const;
+   void handle_eth_request(
+      AthenaRequest &athreq,
+      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+      Blockchain::IBlocksAppender &blockAppender,
+      AthenaResponse &athresp) const;
+   void handle_eth_sendTransaction(
+      AthenaRequest &athreq,
+      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+      Blockchain::IBlocksAppender &blockAppender,
+      AthenaResponse &athresp) const;
+
+   evm_result run_evm(
+      const EthRequest &request,
+      bool isTransaction,
+      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+      Blockchain::IBlocksAppender &blockAppender,
+      evm_uint256be &txhash /* OUT */) const;
 };
 
 }

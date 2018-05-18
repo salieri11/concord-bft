@@ -374,10 +374,28 @@ api_connection::handle_eth_request(int i)
    // currently
    const EthRequest request = athenaRequest_.eth_request(i);
 
+   AthenaRequest internalRequest;
+   EthRequest *internalEthRequest = internalRequest.add_eth_request();
+   internalEthRequest->CopyFrom(request);
+   AthenaResponse internalResponse;
+
    switch (request.method()) {
    case EthRequest_EthMethod_SEND_TX:
-      handle_eth_sendTransaction(request);
+      if (send_request(internalRequest,
+                       false /* not read only */,
+                       internalResponse)) {
+         athenaResponse_.MergeFrom(internalResponse);
+      } else {
+         LOG4CPLUS_ERROR(logger_, "Error parsing response");
+         ErrorResponse *resp = athenaResponse_.add_error_response();
+         resp->set_description("Internal Athena Error");
+      }
       break;
+   case EthRequest_EthMethod_NEW_ACCOUNT:
+      // TODO(BWF): this will be a fall-through, as it is also modifying
+      handle_personal_newAccount(request);
+      break;
+   //TODO(BWF): The rest of these will be read-only
    case EthRequest_EthMethod_CALL_CONTRACT:
       handle_eth_callContract(request);
       break;
@@ -389,9 +407,6 @@ api_connection::handle_eth_request(int i)
       break;
    case EthRequest_EthMethod_FILTER_REQUEST:
       handle_filter_requests(request);
-      break;
-   case EthRequest_EthMethod_NEW_ACCOUNT:
-      handle_personal_newAccount(request);
       break;
    case EthRequest_EthMethod_GET_CODE:
       handle_eth_getCode(request);
@@ -448,17 +463,6 @@ void
 api_connection::handle_block_list_request()
 {
    const BlockListRequest request = athenaRequest_.block_list_request();
-
-   // AthenaRequest internalReq;
-   // internalReq.set_block_list_request(request);
-   // AthenaResponse internalResp;
-   // submit_read_only_request(internalReq, internalResp);
-
-   // if (resp.has_block_list_response()) {
-   //    athenaResponse_.set_block_list_response(resp.block_list_response());
-   // } else if (resp.error_response_count() > 0) {
-   //    athenaResponse_.add_error_response(resp.error_response(0));
-   // }
 
    uint64_t latest = std::numeric_limits<uint64_t>::max();
    if (request.has_latest()) {
@@ -550,7 +554,7 @@ api_connection::handle_transaction_request()
    txReq->CopyFrom(request);
 
    AthenaResponse internalResponse;
-   if (send_read_only_request(internalRequest, internalResponse)) {
+   if (send_request(internalRequest, true /* read only */, internalResponse)) {
       athenaResponse_.MergeFrom(internalResponse);
    } else {
       LOG4CPLUS_ERROR(logger_, "Error parsing read-only response");
@@ -560,13 +564,14 @@ api_connection::handle_transaction_request()
 }
 
 /**
- * Send a read-only request to the replicas. Returns true if the response
- * contains something to forward (either a response message or an appropriate
- * error message). Returns false if the response is empty (for example, if
- * parsing failed).
+ * Send a request to the replicas. Returns true if the response contains
+ * something to forward (either a response message or an appropriate error
+ * message). Returns false if the response is empty (for example, if parsing
+ * failed).
  */
-bool api_connection::send_read_only_request(AthenaRequest &req,
-                                            AthenaResponse &resp)
+bool api_connection::send_request(AthenaRequest &req,
+                                  bool isReadOnly,
+                                  AthenaResponse &resp)
 {
    std::string command;
    req.SerializeToString(&command);
@@ -587,70 +592,6 @@ bool api_connection::send_read_only_request(AthenaRequest &req,
    }
 }
 
-// TODO(BWF): this will move to KVBCommandsHandler
-evm_result
-api_connection::run_evm(const EthRequest &request,
-                        bool isTransaction,
-                        evm_uint256be &txhash /* OUT */)
-{
-   evm_message message;
-   evm_result result;
-
-   memset(&message, 0, sizeof(message));
-   memset(&result, 0, sizeof(result));
-
-   if (request.has_addr_from()) {
-      // TODO: test & return error if needed
-      assert(20 == request.addr_from().length());
-      memcpy(message.sender.bytes, request.addr_from().c_str(), 20);
-   }
-
-   if (request.has_data()) {
-      message.input_data =
-         reinterpret_cast<const uint8_t*>(request.data().c_str());
-      message.input_size = request.data().length();
-   }
-
-   if (request.has_value()) {
-      size_t req_offset, val_offset;
-      if (request.value().size() > sizeof(evm_uint256be)) {
-         // TODO: this should probably throw an error instead
-         req_offset = request.value().size()-sizeof(evm_uint256be);
-         val_offset = 0;
-      } else {
-         req_offset = 0;
-         val_offset = sizeof(evm_uint256be)-request.value().length();
-      }
-      std::copy(request.value().begin()+req_offset, request.value().end(),
-                message.value.bytes+val_offset);
-   }
-
-   // TODO: get this from the request
-   message.gas = 1000000;
-
-   if (request.has_addr_to()) {
-      message.kind = EVM_CALL;
-
-      // TODO: test & return error if needed
-      assert(20 == request.addr_to().length());
-      memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
-
-      athevm_.run(message, isTransaction, result, txhash);
-   } else {
-      message.kind = EVM_CREATE;
-
-      athevm_.create(message, result, txhash);
-   }
-
-   LOG4CPLUS_INFO(logger_, "Execution result -" <<
-                  " status_code: " << result.status_code <<
-                  " gas_left: " << result.gas_left <<
-                  " output_size: " << result.output_size);
-   return result;
-}
-
-
-
 /**
  * Handle the 'contract.method.call()' functionality of ethereum. This is
  * used when the method being called does not make any changes to the state
@@ -661,6 +602,11 @@ api_connection::run_evm(const EthRequest &request,
 void
 api_connection::handle_eth_callContract(const EthRequest &request)
 {
+   //TODO(BWF): send_read_only_request
+   LOG4CPLUS_WARN(logger_,
+                  "TODO: callContract disabled during KVB integration");
+
+   /*
    evm_uint256be txhash;
    evm_result &&result = run_evm(request, false, txhash);
    // Here we don't care about the txhash. Transaction was never
@@ -675,21 +621,7 @@ api_connection::handle_eth_callContract(const EthRequest &request)
       ErrorResponse *err = athenaResponse_.add_error_response();
       err->mutable_description()->assign("Error while calling contract");
    }
-}
-
-
-
-/**
- * Handle an eth_sendTransaction request.
- */
-void
-api_connection::handle_eth_sendTransaction(const EthRequest &request)
-{
-   evm_uint256be txhash;
-   evm_result &&result = run_evm(request, true, txhash);
-   EthResponse *response = athenaResponse_.add_eth_response();
-   response->set_id(request.id());
-   response->set_data(txhash.bytes, sizeof(evm_uint256be));
+   */
 }
 
 /**
@@ -699,24 +631,35 @@ void
 api_connection::handle_eth_getTxReceipt(const EthRequest &request)
 {
    if (request.has_data() && request.data().size() == sizeof(evm_uint256be)) {
-      evm_uint256be txhash;
-      std::copy(request.data().begin(), request.data().end(), txhash.bytes);
+      LOG4CPLUS_DEBUG(logger_, "Looking up transaction receipt " <<
+                      request.data());
 
-      LOG4CPLUS_DEBUG(logger_, "Looking up transaction receipt " << txhash);
+      AthenaRequest internalRequest;
+      TransactionRequest *txReq =
+         internalRequest.mutable_transaction_request();
+      txReq->set_hash(request.data());
+      AthenaResponse internalResponse;
 
-      try {
-         EthTransaction tx = athevm_.get_transaction(txhash);
+      if (send_request(internalRequest,
+                       true /* read only */,
+                       internalResponse)) {
+         if (internalResponse.has_transaction_response()) {
+            TransactionResponse txResp =
+               internalResponse.transaction_response();
 
-         EthResponse *response = athenaResponse_.add_eth_response();
-         response->set_id(request.id());
-         response->set_status(tx.status == EVM_SUCCESS ? 1 : 0);
-         if (tx.contract_address != zero_address) {
-            response->set_contract_address(tx.contract_address.bytes,
-                                           sizeof(evm_address));
+            EthResponse *response = athenaResponse_.add_eth_response();
+            response->set_id(request.id());
+            response->set_status(txResp.status() == EVM_SUCCESS ? 1 : 0);
+            if (txResp.has_contract_address()) {
+               response->set_contract_address(txResp.contract_address());
+            }
+         } else {
+            ErrorResponse *error = athenaResponse_.add_error_response();
+            error->MergeFrom(internalResponse.error_response(0));
          }
-      } catch (TransactionNotFoundException) {
+      } else {
          ErrorResponse *error = athenaResponse_.add_error_response();
-         error->set_description("Transaction not found");
+         error->set_description("Internal Athena Error");
       }
    } else {
       ErrorResponse *error = athenaResponse_.add_error_response();

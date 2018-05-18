@@ -13,7 +13,8 @@
 #include "athena_log.hpp"
 #include "athena_types.hpp"
 #include "common/rlp.hpp"
-#include "kvb/BlockchainDBAdapter.h"
+#include "kvb/BlockchainInterfaces.h"
+#include "kvb/HashDefs.h"
 #include "kvb/slice.h"
 #include "kvb/HexTools.h"
 
@@ -29,24 +30,14 @@ using log4cplus::Logger;
 /**
  * Initialize the athena/evm context and start the evm instance.
  */
-com::vmware::athena::EVM::EVM(EVMInitParams params,
-                              Blockchain::BlockchainDBAdapter &_db)
+com::vmware::athena::EVM::EVM(EVMInitParams params)
    : logger(Logger::getInstance("com.vmware.athena.evm")),
      balances(params.get_initial_accounts()),
      chainId(params.get_chainID()),
-     filterManager(new FilterManager(*this)),
-     db(_db)
+     filterManager(new FilterManager(*this))
 {
    // wrap an evm context in an athena context
    athctx = {{&athena_fn_table}, this};
-
-   Blockchain::Slice blockData;
-   bool blockFound;
-   db.getBlockById(0, blockData, blockFound);
-   if (!blockFound) {
-      // if we don't have a genesis block yet, load one
-      create_genesis_block(params);
-   }
 
 #ifdef USE_HERA
    evminst = hera_create();
@@ -72,52 +63,6 @@ com::vmware::athena::EVM::~EVM()
 }
 
 /**
- * Create the initial transactions and a genesis block based on the
- * genesis file.
- */
-void com::vmware::athena::EVM::create_genesis_block(EVMInitParams params)
-{
-   std::map<evm_uint256be, EthTransaction> transactions;
-   std::vector<evm_uint256be> txs;
-
-   std::map<evm_address, uint64_t> genesis_acts = params.get_initial_accounts();
-   for (std::map<evm_address,uint64_t>::iterator it = genesis_acts.begin();
-       it != genesis_acts.end(); ++it) {
-
-      EthTransaction tx{
-         .nonce = 0,
-         .from = zero_address,
-         .to = it->first,
-         .contract_address = zero_address,
-         .input = std::vector<uint8_t>(),
-         .status = EVM_SUCCESS,
-         .value = it->second};
-
-      evm_uint256be txhash = tx.hash();
-      transactions[txhash] = tx;
-      txs.push_back(txhash);
-      LOG4CPLUS_INFO(logger, "Created genesis transaction to address "
-                    << it->first <<" with value = " << it->second);
-   }
-
-   std::shared_ptr<EthBlock> blk = std::make_shared<EthBlock>();
-   blk->number = 0;
-   blk->parent_hash = zero_hash;
-   blk->transactions = txs;
-   blk->hash = hash_for_block(blk);
-   blocks_by_hash[blk->hash] = blk;
-   blocks_by_number[blk->number] = blk;
-
-   for (std::pair<evm_uint256be, EthTransaction> elt: transactions) {
-      Blockchain::Slice txkey(reinterpret_cast<char*>(elt.first.bytes),
-                              sizeof(elt.first));
-      std::string txser;
-      elt.second.serialize(txser);
-      db.updateKey(txkey, 0, Blockchain::Slice(txser));
-   }
-}
-
-/**
  * Run a contract, or just transfer value if the destination is not a
  * contract. Calling a contract can either be done with 'call' method or with
  * 'sendTransaction'. Generally pure methods (methods which don't change any
@@ -126,10 +71,13 @@ void com::vmware::athena::EVM::create_genesis_block(EVMInitParams params)
  * transaction is recorded. However for 'call' way there is no transaction to
  * record, it is a simple read storage operation.
  */
-void com::vmware::athena::EVM::run(evm_message &message,
-                                   bool isTransaction,
-                                   evm_result &result /* out */,
-                                   evm_uint256be &txhash /* out */)
+void com::vmware::athena::EVM::run(
+   evm_message &message,
+   bool isTransaction,
+   const ILocalKeyValueStorageReadOnly &roStorage,
+   IBlocksAppender &blockAppender,
+   evm_result &result /* out */,
+   evm_uint256be &txhash /* out */)
 {
    assert(message.kind != EVM_CREATE);
 
@@ -145,8 +93,12 @@ void com::vmware::athena::EVM::run(evm_message &message,
    if (get_code(&message.destination, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Loaded code from " << message.destination);
       message.code_hash = hash;
-      execute(message, code, result);
 
+      txctx_roStorage = &roStorage;
+      txctx_blockAppender = &blockAppender;
+      execute(message, code, result);
+      txctx_roStorage = nullptr;
+      txctx_blockAppender = nullptr;
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " << message.destination);
 
@@ -191,19 +143,23 @@ void com::vmware::athena::EVM::run(evm_message &message,
    if (isTransaction) {
       txhash = record_transaction(pending_index, message, result,
                                   message.destination,
-                                  zero_address); /* no contract created */
+                                  zero_address, /* no contract created */
+                                  blockAppender);
    } else if (message.depth == 0 && pending.size() > 0) {
       // our call generated other transactions - record their block
-      record_block();
+      record_block(blockAppender);
    }
 }
 
 /**
  * Create a contract.
  */
-void com::vmware::athena::EVM::create(evm_message &message,
-                                      evm_result &result /* out */,
-                                      evm_uint256be &txhash /* out */)
+void com::vmware::athena::EVM::create(
+   evm_message &message,
+   const ILocalKeyValueStorageReadOnly &roStorage,
+   IBlocksAppender &blockAppender,
+   evm_result &result /* out */,
+   evm_uint256be &txhash /* out */)
 {
    assert(message.kind == EVM_CREATE);
    assert(message.input_size > 0);
@@ -231,7 +187,11 @@ void com::vmware::athena::EVM::create(evm_message &message,
       // something random
       message.code_hash = keccak_hash(create_code);
 
+      txctx_roStorage = &roStorage;
+      txctx_blockAppender = &blockAppender;
       execute(message, create_code, result);
+      txctx_roStorage = nullptr;
+      txctx_blockAppender = nullptr;
 
       // TODO: check if the new contract is zero bytes in length;
       //       return error, not success in that case
@@ -261,7 +221,8 @@ void com::vmware::athena::EVM::create(evm_message &message,
       result.status_code == EVM_SUCCESS ? contract_address : zero_address;
    txhash = record_transaction(pending_index, message, result,
                                zero_address, /* creates are not addressed */
-                               recorded_contract_address);
+                               recorded_contract_address,
+                               blockAppender);
 }
 
 /**
@@ -272,7 +233,8 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
    const evm_message &message,
    const evm_result &result,
    const evm_address &to_override,
-   const evm_address &contract_address)
+   const evm_address &contract_address,
+   IBlocksAppender &blockAppender)
 {
    uint64_t nonce = get_nonce(message.sender);
    uint64_t transfer_val = from_evm_uint256be(&message.value);
@@ -291,14 +253,16 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
    LOG4CPLUS_DEBUG(logger, "Recording transaction " << txhash);
 
    if (message.depth == 0) {
-      record_block();
+      record_block(blockAppender);
    }
 
    return txhash;
 }
 
-void com::vmware::athena::EVM::record_block()
+void com::vmware::athena::EVM::record_block(IBlocksAppender &blockAppender)
 {
+   SetOfKeyValuePairs updates;
+
    // list of transaction hashes for the block
    std::vector<evm_uint256be> txlist;
    for (auto t: pending) {
@@ -322,8 +286,13 @@ void com::vmware::athena::EVM::record_block()
       Blockchain::Slice txkey(reinterpret_cast<char*>(th.bytes), sizeof(th));
       std::string txser;
       t.serialize(txser);
-      db.updateKey(txkey, blk->number, Blockchain::Slice(txser));
+      KeyValuePair kv(txkey, Blockchain::Slice(txser));
+      updates.insert(kv);
    }
+
+   BlockId outBlockId;
+   blockAppender.addBlock(updates, outBlockId);
+   LOG4CPLUS_INFO(logger, "Appended block number " << outBlockId);
 
    pending.clear();
 }
@@ -332,28 +301,22 @@ void com::vmware::athena::EVM::record_block()
  * Get a transaction given its hash.
  */
 EthTransaction com::vmware::athena::EVM::get_transaction(
-   const evm_uint256be &txhash) const
+   const evm_uint256be &txhash,
+   const ILocalKeyValueStorageReadOnly &roStorage) const
 {
    Blockchain::Slice searchKey(reinterpret_cast<const char*>(txhash.bytes),
                                sizeof(txhash));
    Blockchain::BlockId actualVersion;
-   Blockchain::Slice key, value;
-   bool isEnd;
+   Blockchain::Slice value;
 
-   auto iter = db.getIterator();
-   db.seekAtLeast(iter,
-                  searchKey,
-                  current_block_number(),
-                  actualVersion,
-                  key,
-                  value,
-                  isEnd);
+   Status status = roStorage.get(searchKey, value);
 
    LOG4CPLUS_DEBUG(logger, "Getting transaction \'" << txhash << "\'" <<
-                   "isEnd: " << isEnd << " key: " << sliceToString(key) <<
+                   "status: " << status.ToString() <<
+                   " key: " << sliceToString(searchKey) <<
                    " value.size: " << value.size());
 
-   if (!isEnd && key == searchKey) {
+   if (status.ok()) {
       return EthTransaction::deserialize(value);
    }
 
@@ -719,7 +682,9 @@ void com::vmware::athena::EVM::call(
    evm_message call_msg = *msg;
 
    //Passing false ensures that this will not create a separate transaction
-   run(call_msg, false, *result, txhash);
+   run(call_msg, false,
+       *txctx_roStorage, *txctx_blockAppender,
+       *result, txhash);
 }
 
 /**
