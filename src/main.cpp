@@ -104,19 +104,29 @@ void create_genesis_block(Blockchain::IReplica* replica,
          .status = EVM_SUCCESS,
          .value = it->second};
       evm_uint256be txhash = tx.hash();
-      LOG4CPLUS_INFO(logger, "Created genesis transaction to address "
-                    << txhash <<" with value = " << tx.value);
+      LOG4CPLUS_INFO(logger, "Created genesis transaction " << txhash <<
+                     " to address " << it->first <<
+                     " with value = " << tx.value);
 
-      Blockchain::Slice txkey(reinterpret_cast<char*>(txhash.bytes),
-                              sizeof(txhash));
-      std::string txser;
-      tx.serialize(txser);
-      Blockchain::KeyValuePair kvp(txkey, Blockchain::Slice(txser));
+      char *txkey_arr = new char[sizeof(txhash)];
+      std::copy(txhash.bytes, txhash.bytes+sizeof(txhash), txkey_arr);
+
+      char *txser;
+      size_t txser_length = tx.serialize(&txser);
+
+      Blockchain::KeyValuePair kvp(
+         Blockchain::Slice(txkey_arr, sizeof(txhash)),
+         Blockchain::Slice(txser, txser_length));
 
       blockData.insert(kvp);
    }
 
    replica->addBlockToIdleReplica(blockData);
+
+   for (auto kvp: blockData) {
+      delete[] kvp.first.data();
+      delete[] kvp.second.data();
+   }
 }
 
 /*

@@ -30,7 +30,7 @@ typedef struct EthTransaction {
    // TODO: all the other fields
 
    evm_uint256be hash();
-   void serialize(std::string &out);
+   size_t serialize(char** out);
    static struct EthTransaction deserialize(Blockchain::Slice &input);
 } EthTransaction;
 

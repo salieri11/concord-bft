@@ -86,7 +86,7 @@ evm_uint256be com::vmware::athena::EthTransaction::hash()
    return com::vmware::athena::EVM::keccak_hash(rlp);
 }
 
-void com::vmware::athena::EthTransaction::serialize(std::string &serialized)
+size_t com::vmware::athena::EthTransaction::serialize(char** serialized)
 {
    kvb::Transaction out;
 
@@ -112,11 +112,19 @@ void com::vmware::athena::EthTransaction::serialize(std::string &serialized)
    out.set_status(this->status);
    out.set_value(this->value);
 
-   out.SerializeToString(&serialized);
+   size_t size = out.ByteSize();
+
+   *serialized = (char*)malloc(size);
+   if (*serialized == NULL) {
+      throw new EVMException("Unable to allocate tx serialization");
+   }
+
+   out.SerializeToArray(*serialized, size);
+   return size;
 }
 
-struct com::vmware::athena::EthTransaction com::vmware::athena::EthTransaction::deserialize(
-   Blockchain::Slice &input)
+struct com::vmware::athena::EthTransaction
+com::vmware::athena::EthTransaction::deserialize(Blockchain::Slice &input)
 {
    kvb::Transaction intx;
    intx.ParseFromArray(input.data(), input.size());

@@ -283,16 +283,26 @@ void com::vmware::athena::EVM::record_block(IBlocksAppender &blockAppender)
 
    for (auto t: pending) {
       evm_uint256be th = t.hash();
-      Blockchain::Slice txkey(reinterpret_cast<char*>(th.bytes), sizeof(th));
-      std::string txser;
-      t.serialize(txser);
-      KeyValuePair kv(txkey, Blockchain::Slice(txser));
+
+      char *txkey_arr = new char[sizeof(th)];
+      std::copy(th.bytes, th.bytes+sizeof(th), txkey_arr);
+
+      char *txser;
+      size_t txser_length = t.serialize(&txser);
+
+      KeyValuePair kv(Blockchain::Slice(txkey_arr, sizeof(th)),
+                      Blockchain::Slice(txser, txser_length));
       updates.insert(kv);
    }
 
    BlockId outBlockId;
    blockAppender.addBlock(updates, outBlockId);
    LOG4CPLUS_INFO(logger, "Appended block number " << outBlockId);
+
+   for (auto kvp: updates) {
+      delete[] kvp.first.data();
+      delete[] kvp.second.data();
+   }
 
    pending.clear();
 }
