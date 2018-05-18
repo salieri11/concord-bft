@@ -96,13 +96,16 @@ void create_genesis_block(Blockchain::IReplica* replica,
        it != genesis_acts.end(); ++it) {
 
       EthTransaction tx{
-         .nonce = 0,
-         .from = zero_address,
-         .to = it->first,
-         .contract_address = zero_address,
-         .input = std::vector<uint8_t>(),
-         .status = EVM_SUCCESS,
-         .value = it->second};
+         nonce : 0,
+         block_hash : zero_hash, // set to zero for now
+         block_number : 0,
+         from : zero_address,
+         to : it->first,
+         contract_address : zero_address,
+         input : std::vector<uint8_t>(),
+         status : EVM_SUCCESS,
+         value : it->second
+      };
       evm_uint256be txhash = tx.hash();
       LOG4CPLUS_INFO(logger, "Created genesis transaction " << txhash <<
                      " to address " << it->first <<
@@ -120,6 +123,9 @@ void create_genesis_block(Blockchain::IReplica* replica,
 
       blockData.insert(kvp);
    }
+
+   // TODO(BWF): Add block entry, which should include its hash and parent hash.
+   // TODO(BWF): also need to put real block hash in tx before serializing
 
    replica->addBlockToIdleReplica(blockData);
 

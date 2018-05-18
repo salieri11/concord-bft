@@ -62,6 +62,11 @@ public:
       Blockchain::IBlocksAppender &blockAppender,
       AthenaResponse &athresp) const;
 
+   // Utilites
+   void build_transaction_response(evm_uint256be &hash,
+                                   EthTransaction &tx,
+                                   TransactionResponse* response) const;
+
    evm_result run_evm(
       const EthRequest &request,
       bool isTransaction,

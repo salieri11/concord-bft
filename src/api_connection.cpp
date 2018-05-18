@@ -399,9 +399,6 @@ api_connection::handle_eth_request(int i)
    case EthRequest_EthMethod_CALL_CONTRACT:
       handle_eth_callContract(request);
       break;
-   case EthRequest_EthMethod_GET_TX_RECEIPT:
-      handle_eth_getTxReceipt(request);
-      break;
    case EthRequest_EthMethod_GET_STORAGE_AT:
       handle_eth_getStorageAt(request);
       break;
@@ -410,6 +407,9 @@ api_connection::handle_eth_request(int i)
       break;
    case EthRequest_EthMethod_GET_CODE:
       handle_eth_getCode(request);
+      break;
+   case EthRequest_EthMethod_BLOCK_NUMBER:
+      handle_eth_blockNumber(request);
       break;
    default:
       ErrorResponse *e = athenaResponse_.add_error_response();
@@ -536,6 +536,7 @@ api_connection::handle_transaction_request()
    }
 }
 
+
 /**
  * Send a request to the replicas. Returns true if the response contains
  * something to forward (either a response message or an appropriate error
@@ -595,49 +596,6 @@ api_connection::handle_eth_callContract(const EthRequest &request)
       err->mutable_description()->assign("Error while calling contract");
    }
    */
-}
-
-/**
- * Handle an eth_getTransactionReceipt request.
- */
-void
-api_connection::handle_eth_getTxReceipt(const EthRequest &request)
-{
-   if (request.has_data() && request.data().size() == sizeof(evm_uint256be)) {
-      LOG4CPLUS_DEBUG(logger_, "Looking up transaction receipt " <<
-                      request.data());
-
-      AthenaRequest internalRequest;
-      TransactionRequest *txReq =
-         internalRequest.mutable_transaction_request();
-      txReq->set_hash(request.data());
-      AthenaResponse internalResponse;
-
-      if (send_request(internalRequest,
-                       true /* read only */,
-                       internalResponse)) {
-         if (internalResponse.has_transaction_response()) {
-            TransactionResponse txResp =
-               internalResponse.transaction_response();
-
-            EthResponse *response = athenaResponse_.add_eth_response();
-            response->set_id(request.id());
-            response->set_status(txResp.status() == EVM_SUCCESS ? 1 : 0);
-            if (txResp.has_contract_address()) {
-               response->set_contract_address(txResp.contract_address());
-            }
-         } else {
-            ErrorResponse *error = athenaResponse_.add_error_response();
-            error->MergeFrom(internalResponse.error_response(0));
-         }
-      } else {
-         ErrorResponse *error = athenaResponse_.add_error_response();
-         error->set_description("Internal Athena Error");
-      }
-   } else {
-      ErrorResponse *error = athenaResponse_.add_error_response();
-      error->set_description("Missing or invalid transaction hash");
-   }
 }
 
 /**
@@ -827,6 +785,15 @@ api_connection::handle_uninstall_filter(const EthRequest &request)
       ErrorResponse *resp = athenaResponse_.add_error_response();
       resp->set_description(e.what());
    }
+}
+
+void
+api_connection::handle_eth_blockNumber(const EthRequest &request) {
+   EthResponse *response = athenaResponse_.add_eth_response();
+   response->set_id(request.id());
+   evm_uint256be current_block;
+   to_evm_uint256be(athevm_.current_block_number(), &current_block);
+   response->set_data(current_block.bytes, sizeof(evm_uint256be));
 }
 
 // TODO(BWF): When KVB integration is complete, this class should not hold a

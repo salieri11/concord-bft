@@ -238,15 +238,19 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
 {
    uint64_t nonce = get_nonce(message.sender);
    uint64_t transfer_val = from_evm_uint256be(&message.value);
-   EthTransaction tx{
-      .nonce = nonce,
-      .from = message.sender,
-      .to = to_override,
-      .contract_address = contract_address,
-      .input = std::vector<uint8_t>(message.input_data,
-                                    message.input_data+message.input_size),
-      .status = result.status_code,
-      .value = transfer_val};
+   EthTransaction tx = {
+   nonce : nonce,
+   block_hash : zero_hash, // set to zero for now
+   // set to zero for now - will be set correctly when block is recorded
+   block_number : 0,
+   from : message.sender,
+   to : to_override,
+   contract_address : contract_address,
+   input : std::vector<uint8_t>(message.input_data,
+                                message.input_data+message.input_size),
+   status : result.status_code,
+   value : transfer_val
+   };
 
    evm_uint256be txhash = tx.hash();
    pending.insert(pending.begin()+pending_index, tx);
@@ -274,6 +278,7 @@ void com::vmware::athena::EVM::record_block(IBlocksAppender &blockAppender)
    blk->number = next_block_number();
 
    if (blk->number-1 == 0) {
+      // TODO(BWF): temporary during KVB transition
       blk->parent_hash = zero_hash;
    } else {
       blk->parent_hash = blocks_by_number[blk->number-1]->hash;
@@ -288,6 +293,9 @@ void com::vmware::athena::EVM::record_block(IBlocksAppender &blockAppender)
    blocks_by_number[blk->number] = blk;
 
    for (auto t: pending) {
+      t.block_hash = blk->hash;
+      t.block_number = blk->number;
+
       evm_uint256be th = t.hash();
 
       char *txkey_arr = new char[sizeof(th)];
@@ -549,10 +557,10 @@ bool com::vmware::athena::EVM::new_account(
              hash.bytes+sizeof(evm_uint256be),address.bytes);
 
    if(EVM::account_exists(&address) == 1) {
-       return false;
+      return false;
    } else {
-       balances[address] = 0;
-       return true;
+      balances[address] = 0;
+      return true;
    }
 }
 

@@ -101,9 +101,9 @@ size_t com::vmware::athena::EthTransaction::serialize(char** serialized)
    kvb::Transaction out;
 
    out.set_version(tx_storage_version);
-   //tx.set_block_number(this->block_number); // post master merge
+   out.set_block_number(this->block_number);
    out.set_nonce(this->nonce);
-   //tx.set_block_hash(this->block_hash.bytes, sizeof(this->block_hash)); // post master merge
+   out.set_block_hash(this->block_hash.bytes, sizeof(this->block_hash));
    out.set_from(this->from.bytes, sizeof(this->from));
 
    if (this->to != zero_address) {
@@ -142,13 +142,11 @@ com::vmware::athena::EthTransaction::deserialize(Blockchain::Slice &input)
    if (intx.version() == tx_storage_version) {
       EthTransaction outtx;
 
-      //outtx.block_number = intx.block_number(); // post master merge
+      outtx.block_number = intx.block_number();
       outtx.nonce = intx.nonce();
-      /* post master merge
       std::copy(intx.block_hash().begin(),
                 intx.block_hash().end(),
                 outtx.block_hash.bytes);
-      */
 
       if (intx.from().size() != sizeof(outtx.from)) {
          LOG4CPLUS_ERROR(log4cplus::Logger::getInstance("com.vmware.athena"),

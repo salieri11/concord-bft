@@ -139,33 +139,43 @@ void com::vmware::athena::KVBCommandsHandler::handle_transaction_request(
    const ILocalKeyValueStorageReadOnly &roStorage,
    AthenaResponse &athresp) const
 {
-   const TransactionRequest request = athreq.transaction_request();
-
    try {
+      const TransactionRequest request = athreq.transaction_request();
       evm_uint256be hash;
       std::copy(request.hash().begin(), request.hash().end(), hash.bytes);
       EthTransaction tx = athevm_.get_transaction(hash, roStorage);
 
       TransactionResponse* response = athresp.mutable_transaction_response();
-      response->set_hash(request.hash());
-      response->set_from(tx.from.bytes, sizeof(evm_address));
-      if (tx.to != zero_address) {
-         response->set_to(tx.to.bytes, sizeof(evm_address));
-      }
-      if (tx.contract_address != zero_address) {
-         response->set_contract_address(tx.contract_address.bytes,
-                                        sizeof(evm_address));
-      }
-      if (tx.input.size()) {
-         response->set_input(std::string(tx.input.begin(), tx.input.end()));
-      }
-      response->set_status(tx.status);
-      response->set_nonce(tx.nonce);
-      response->set_value(tx.value);
-   } catch (TransactionNotFoundException) {
-      ErrorResponse *resp = athresp.add_error_response();
-      resp->set_description("transaction not found");
+      build_transaction_response(hash, tx, response);
+    } catch (TransactionNotFoundException) {
+       ErrorResponse *resp = athresp.add_error_response();
+       resp->set_description("transaction not found");
+    }
+}
+
+void com::vmware::athena::KVBCommandsHandler::build_transaction_response(
+   evm_uint256be &hash,
+   EthTransaction &tx,
+   TransactionResponse *response) const
+{
+   response->set_hash(hash.bytes, sizeof(hash.bytes));
+   response->set_from(tx.from.bytes, sizeof(evm_address));
+   if (tx.to != zero_address) {
+      response->set_to(tx.to.bytes, sizeof(evm_address));
    }
+   if (tx.contract_address != zero_address) {
+      response->set_contract_address(tx.contract_address.bytes,
+                                     sizeof(evm_address));
+   }
+   if (tx.input.size()) {
+      response->set_input(std::string(tx.input.begin(), tx.input.end()));
+   }
+   // send evm status as it is to helen
+   response->set_status(tx.status);
+   response->set_nonce(tx.nonce);
+   response->set_value(tx.value);
+   response->set_block_hash(tx.block_hash.bytes, sizeof(evm_uint256be));
+   response->set_block_number(tx.block_number);
 }
 
 evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
@@ -266,10 +276,25 @@ void com::vmware::athena::KVBCommandsHandler::handle_block_request(
 {
    const BlockRequest request = athreq.block_request();
 
+   // According to ethRPC requests the block number string can be either a hex
+   // number or it can be one of "latest", "earliest", "pending". Since athena
+   // only accepts uint64_t for block number helen will replace "latest" with -1
+   // "earliest" with 0 (genesis block) and "pending" with -1 (since in athena
+   // blocks are generated instantaneously we can say that "latest" =
+   // "pending". Here we will have to first convert -1 to current block number
+   // in that case.
+   // TODO: Once SBFT is implemented blocks will not be generated instantaneously
+   // this will have to be changed at that time.
    try {
       std::shared_ptr<EthBlock> block;
       if (request.has_number()) {
-         block = athevm_.get_block_for_number(request.number(), roStorage);
+         uint64_t requested_block_number = athevm_.current_block_number();
+         if (request.number() >= 0 &&
+             request.number() < requested_block_number) {
+            requested_block_number = request.number();
+         }
+         block = athevm_.get_block_for_number(requested_block_number,
+                                              roStorage);
       } else if (request.has_hash()) {
          evm_uint256be blkhash;
          std::copy(request.hash().begin(), request.hash().end(), blkhash.bytes);
@@ -292,8 +317,15 @@ void com::vmware::athena::KVBCommandsHandler::handle_block_request(
       response->set_size(1);
 
       for (auto t: block->transactions) {
-         std::string *tp = response->add_transaction();
-         tp->assign(t.bytes, t.bytes+sizeof(evm_uint256be));
+         try {
+            EthTransaction tx = athevm_.get_transaction(t, roStorage);
+            TransactionResponse *txresp = response->add_transaction();
+            build_transaction_response(t, tx, txresp);
+         } catch (TransactionNotFoundException) {
+            LOG4CPLUS_ERROR(logger,
+                            "Unable to fetch block transaction " << t <<
+                            " from block " << block->number);
+         }
       }
    } catch (BlockNotFoundException) {
       ErrorResponse *resp = athresp.add_error_response();
