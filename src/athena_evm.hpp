@@ -152,8 +152,12 @@ public:
       uint64_t latest,
       uint64_t count,
       const Blockchain::ILocalKeyValueStorageReadOnly &roStorage) const;
-   std::shared_ptr<EthBlock> get_block_for_number(uint64_t number) const;
-   std::shared_ptr<EthBlock> get_block_for_hash(evm_uint256be hash) const;
+   std::shared_ptr<EthBlock> get_block_for_number(
+      uint64_t number,
+      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage) const;
+   std::shared_ptr<EthBlock> get_block_for_hash(
+      evm_uint256be hash,
+      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage) const;
    bool new_account(const std::string& passphrase, evm_address& address);
 
    /* EVM callbacks */

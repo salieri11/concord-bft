@@ -48,6 +48,8 @@ typedef struct EthBlock {
 // Byte-wise comparators for evm_uint256be and evm_address. This allows us to
 // use these types as keys in a std::map. Must be in the global namespace.
 bool operator<(const evm_uint256be &a, const evm_uint256be &b);
+bool operator!=(const evm_uint256be &a, const evm_uint256be &b);
+bool operator==(const evm_uint256be &a, const evm_uint256be &b);
 bool operator<(const evm_address &a, const evm_address &b);
 bool operator!=(const evm_address &a, const evm_address &b);
 bool operator==(const evm_address &a, const evm_address &b);

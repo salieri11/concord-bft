@@ -404,11 +404,35 @@ std::vector<std::shared_ptr<EthBlock>> com::vmware::athena::EVM::get_block_list(
  * Get block at given index.
  */
 std::shared_ptr<EthBlock> com::vmware::athena::EVM::get_block_for_number(
-   uint64_t number) const
+   uint64_t number,
+   const ILocalKeyValueStorageReadOnly &roStorage) const
 {
-   auto iter = blocks_by_number.find(number);
-   if (iter != blocks_by_number.end()) {
-      return iter->second;
+   if (number == 0) {
+      // genesis block is in KVBlockchain
+      // the genesis block is in KVBlockchain
+      SetOfKeyValuePairs outBlockData;
+      // "1" == for some reason KVBlockchain starts at block 1 instead of 0
+      Status status = roStorage.getBlockData(1, outBlockData);
+      if (status.ok()) {
+         std::shared_ptr<EthBlock> genesisBlock = std::make_shared<EthBlock>();
+         genesisBlock->number = 0;
+         genesisBlock->hash = zero_hash;
+         genesisBlock->parent_hash = zero_hash;
+         for (auto kvp: outBlockData) {
+            evm_uint256be txhash;
+            std::copy(kvp.first.data(),
+                      kvp.first.data()+kvp.first.size(),
+                      txhash.bytes);
+            genesisBlock->transactions.push_back(txhash);
+         }
+         return genesisBlock;
+      }
+   } else {
+      // TODO(BWF): other blocks are not yet in KVBlockchain
+      auto iter = blocks_by_number.find(number);
+      if (iter != blocks_by_number.end()) {
+         return iter->second;
+      }
    }
 
    throw BlockNotFoundException();
@@ -418,11 +442,34 @@ std::shared_ptr<EthBlock> com::vmware::athena::EVM::get_block_for_number(
  * Get block for given hash.
  */
 std::shared_ptr<EthBlock> com::vmware::athena::EVM::get_block_for_hash(
-   evm_uint256be hash) const
+   evm_uint256be hash,
+   const ILocalKeyValueStorageReadOnly &roStorage) const
 {
-   auto iter = blocks_by_hash.find(hash);
-   if (iter != blocks_by_hash.end()) {
-      return iter->second;
+   if (hash == zero_hash) {
+      //genesis block is in KVBlockchain
+      SetOfKeyValuePairs outBlockData;
+      // "1" == for some reason KVBlockchain starts at block 1 instead of 0
+      Status status = roStorage.getBlockData(1, outBlockData);
+      if (status.ok()) {
+         std::shared_ptr<EthBlock> genesisBlock = std::make_shared<EthBlock>();
+         genesisBlock->number = 0;
+         genesisBlock->hash = zero_hash;
+         genesisBlock->parent_hash = zero_hash;
+         for (auto kvp: outBlockData) {
+            evm_uint256be txhash;
+            std::copy(kvp.first.data(),
+                      kvp.first.data()+kvp.first.size(),
+                      txhash.bytes);
+            genesisBlock->transactions.push_back(txhash);
+         }
+         return genesisBlock;
+      }
+   } else {
+      // TODO(BWF): other blocks are not yet in KVBlockchain
+      auto iter = blocks_by_hash.find(hash);
+      if (iter != blocks_by_hash.end()) {
+         return iter->second;
+      }
    }
 
    throw BlockNotFoundException();

@@ -494,39 +494,17 @@ api_connection::handle_block_request()
       return;
    }
 
-   try {
-      shared_ptr<EthBlock> block;
-      if (request.has_number()) {
-         block = athevm_.get_block_for_number(request.number());
-      } else if (request.has_hash()) {
-         evm_uint256be blkhash;
-         std::copy(request.hash().begin(), request.hash().end(), blkhash.bytes);
-         block = athevm_.get_block_for_hash(blkhash);
-      }
+   AthenaRequest internalRequest;
+   BlockRequest *blkReq = internalRequest.mutable_block_request();
+   blkReq->CopyFrom(request);
 
-      BlockResponse* response = athenaResponse_.mutable_block_response();
-      response->set_number(block->number);
-      response->set_hash(block->hash.bytes, sizeof(evm_uint256be));
-      response->set_parent_hash(block->parent_hash.bytes, sizeof(evm_uint256be));
-
-      // TODO: We're not mining, so nonce is mostly irrelevant. Maybe there will
-      // be something relevant from KVBlockchain to put in here?
-      response->set_nonce(zero_hash.bytes, sizeof(evm_uint256be));
-
-      // TODO: This is supposed to be "the size of this block in bytes". This is
-      // a sum of transaction inputs, storage updates, log events, and maybe
-      // other things. It needs to be counted when the block is
-      // recorded. Does KVBlockchain have this facility built in?
-      response->set_size(1);
-
-      for (auto t: block->transactions) {
-         std::string *tp = response->add_transaction();
-         tp->assign(t.bytes, t.bytes+sizeof(evm_uint256be));
-      }
-   } catch (BlockNotFoundException) {
+   AthenaResponse internalResponse;
+   if (send_request(internalRequest, true /* read only */, internalResponse)) {
+      athenaResponse_.MergeFrom(internalResponse);
+   } else {
+      LOG4CPLUS_ERROR(logger_, "Error parsing read-only response");
       ErrorResponse *resp = athenaResponse_.add_error_response();
-      resp->set_description("block not found");
-      return;
+      resp->set_description("Internal Athena Error");
    }
 }
 

@@ -113,6 +113,8 @@ bool com::vmware::athena::KVBCommandsHandler::executeReadOnlyCommand(
       handle_transaction_request(command, roStorage, athresp);
    } else if (command.has_block_list_request()) {
       handle_block_list_request(command, roStorage, athresp);
+   } else if (command.has_block_request()) {
+      handle_block_request(command, roStorage, athresp);
    } else {
       LOG4CPLUS_ERROR(logger, "Unknown read-only command");
       ErrorResponse *resp = athresp.add_error_response();
@@ -254,5 +256,47 @@ void com::vmware::athena::KVBCommandsHandler::handle_block_list_request(
       BlockBrief* bb = response->add_block();
       bb->set_number(b->number);
       bb->set_hash(b->hash.bytes, sizeof(evm_uint256be));
+   }
+}
+
+void com::vmware::athena::KVBCommandsHandler::handle_block_request(
+   AthenaRequest &athreq,
+   const ILocalKeyValueStorageReadOnly &roStorage,
+   AthenaResponse &athresp) const
+{
+   const BlockRequest request = athreq.block_request();
+
+   try {
+      std::shared_ptr<EthBlock> block;
+      if (request.has_number()) {
+         block = athevm_.get_block_for_number(request.number(), roStorage);
+      } else if (request.has_hash()) {
+         evm_uint256be blkhash;
+         std::copy(request.hash().begin(), request.hash().end(), blkhash.bytes);
+         block = athevm_.get_block_for_hash(blkhash, roStorage);
+      }
+
+      BlockResponse* response = athresp.mutable_block_response();
+      response->set_number(block->number);
+      response->set_hash(block->hash.bytes, sizeof(evm_uint256be));
+      response->set_parent_hash(block->parent_hash.bytes, sizeof(evm_uint256be));
+
+      // TODO: We're not mining, so nonce is mostly irrelevant. Maybe there will
+      // be something relevant from KVBlockchain to put in here?
+      response->set_nonce(zero_hash.bytes, sizeof(evm_uint256be));
+
+      // TODO: This is supposed to be "the size of this block in bytes". This is
+      // a sum of transaction inputs, storage updates, log events, and maybe
+      // other things. It needs to be counted when the block is
+      // recorded. Does KVBlockchain have this facility built in?
+      response->set_size(1);
+
+      for (auto t: block->transactions) {
+         std::string *tp = response->add_transaction();
+         tp->assign(t.bytes, t.bytes+sizeof(evm_uint256be));
+      }
+   } catch (BlockNotFoundException) {
+      ErrorResponse *resp = athresp.add_error_response();
+      resp->set_description("block not found");
    }
 }
