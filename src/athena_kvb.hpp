@@ -43,6 +43,10 @@ public:
       AthenaRequest &athreq,
       const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
       AthenaResponse &athresp) const;
+   void handle_block_list_request(
+      AthenaRequest &athreq,
+      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+      AthenaResponse &athresp) const;
    void handle_eth_request(
       AthenaRequest &athreq,
       const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,

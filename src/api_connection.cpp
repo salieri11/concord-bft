@@ -464,24 +464,19 @@ api_connection::handle_block_list_request()
 {
    const BlockListRequest request = athenaRequest_.block_list_request();
 
-   uint64_t latest = std::numeric_limits<uint64_t>::max();
-   if (request.has_latest()) {
-      latest = request.latest();
-   }
+   AthenaRequest internalAthRequest;
+   BlockListRequest *internalBlockRequest =
+      internalAthRequest.mutable_block_list_request();
+   internalBlockRequest->CopyFrom(request);
+   AthenaResponse internalAthResponse;
 
-   uint64_t count = 10;
-   if (request.has_count()) {
-      count = request.count();
-   }
-
-   BlockListResponse* response = athenaResponse_.mutable_block_list_response();
-
-   std::vector<std::shared_ptr<EthBlock>> blocks =
-      athevm_.get_block_list(latest, count);
-   for (auto b: blocks) {
-      BlockBrief* bb = response->add_block();
-      bb->set_number(b->number);
-      bb->set_hash(b->hash.bytes, sizeof(evm_uint256be));
+   if (send_request(internalAthRequest,
+                    true /* read only */,
+                    internalAthResponse)) {
+      athenaResponse_.MergeFrom(internalAthResponse);
+   } else {
+      ErrorResponse *error = athenaResponse_.add_error_response();
+      error->set_description("Internal Athena Error");
    }
 }
 

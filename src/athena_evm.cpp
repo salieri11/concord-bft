@@ -349,7 +349,9 @@ evm_uint256be com::vmware::athena::EVM::get_storage_at(
  * the chain.
  */
 std::vector<std::shared_ptr<EthBlock>> com::vmware::athena::EVM::get_block_list(
-   uint64_t latest, uint64_t count) const
+   uint64_t latest,
+   uint64_t count,
+   const ILocalKeyValueStorageReadOnly &roStorage) const
 {
    if (latest > current_block_number()) {
       latest = current_block_number();
@@ -364,7 +366,29 @@ std::vector<std::shared_ptr<EthBlock>> com::vmware::athena::EVM::get_block_list(
 
    std::vector<std::shared_ptr<EthBlock>> result;
    for (int i = 0; i < count; i++) {
-      result.push_back(blocks_by_number.find(latest-i)->second);
+      if (latest-i == 0) {
+         // the genesis block is in KVBlockchain
+         SetOfKeyValuePairs outBlockData;
+         // "1" == for some reason KVBlockchain starts at block 1 instead of 0
+         Status status = roStorage.getBlockData(1, outBlockData);
+         if (status.ok()) {
+            std::shared_ptr<EthBlock> genesisBlock = std::make_shared<EthBlock>();
+            genesisBlock->number = 0;
+            genesisBlock->hash = zero_hash;
+            genesisBlock->parent_hash = zero_hash;
+            for (auto kvp: outBlockData) {
+               evm_uint256be txhash;
+               std::copy(kvp.first.data(),
+                         kvp.first.data()+kvp.first.size(),
+                         txhash.bytes);
+               genesisBlock->transactions.push_back(txhash);
+            }
+            result.push_back(genesisBlock);
+         }
+      } else {
+         // TODO(BWF): other blocks are not yet in KVBlockchain
+         result.push_back(blocks_by_number.find(latest-i)->second);
+      }
    }
 
    return result;

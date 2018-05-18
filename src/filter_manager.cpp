@@ -60,9 +60,11 @@ com::vmware::athena::FilterManager::get_new_block_filter_changes(evm_uint256be f
       LOG4CPLUS_DEBUG(logger, "New block filter change request:\n"
                       "current block: " << current_block <<
                       "last update sent: " << filters_by_id[filterId].first);
-      vector<shared_ptr<EthBlock>> block_list =
-         executing_evm->get_block_list(current_block,
-                                       new_block_count);
+      LOG4CPLUS_WARN(logger,
+                     "TODO: filters disabled during initial KVB integration");
+      vector<shared_ptr<EthBlock>> block_list;// = TODO(BWF): KVB integration
+//         executing_evm->get_block_list(current_block,
+//                                       new_block_count);
       for (auto it : block_list) {
          ret.push_back(it->hash);
       }

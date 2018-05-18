@@ -111,6 +111,8 @@ bool com::vmware::athena::KVBCommandsHandler::executeReadOnlyCommand(
    AthenaResponse athresp;
    if (command.has_transaction_request()) {
       handle_transaction_request(command, roStorage, athresp);
+   } else if (command.has_block_list_request()) {
+      handle_block_list_request(command, roStorage, athresp);
    } else {
       LOG4CPLUS_ERROR(logger, "Unknown read-only command");
       ErrorResponse *resp = athresp.add_error_response();
@@ -225,4 +227,32 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
                   " gas_left: " << result.gas_left <<
                   " output_size: " << result.output_size);
    return result;
+}
+
+void com::vmware::athena::KVBCommandsHandler::handle_block_list_request(
+   AthenaRequest &athreq,
+   const ILocalKeyValueStorageReadOnly &roStorage,
+   AthenaResponse &athresp) const
+{
+   const BlockListRequest request = athreq.block_list_request();
+
+   uint64_t latest = std::numeric_limits<uint64_t>::max();
+   if (request.has_latest()) {
+      latest = request.latest();
+   }
+
+   uint64_t count = 10;
+   if (request.has_count()) {
+      count = request.count();
+   }
+
+   BlockListResponse* response = athresp.mutable_block_list_response();
+
+   std::vector<std::shared_ptr<EthBlock>> blocks =
+      athevm_.get_block_list(latest, count, roStorage);
+   for (auto b: blocks) {
+      BlockBrief* bb = response->add_block();
+      bb->set_number(b->number);
+      bb->set_hash(b->hash.bytes, sizeof(evm_uint256be));
+   }
 }
