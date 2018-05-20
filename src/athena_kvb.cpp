@@ -147,10 +147,13 @@ void com::vmware::athena::KVBCommandsHandler::handle_transaction_request(
 
       TransactionResponse* response = athresp.mutable_transaction_response();
       build_transaction_response(hash, tx, response);
-    } catch (TransactionNotFoundException) {
-       ErrorResponse *resp = athresp.add_error_response();
-       resp->set_description("transaction not found");
-    }
+   } catch (TransactionNotFoundException) {
+      ErrorResponse *resp = athresp.add_error_response();
+      resp->set_description("transaction not found");
+   } catch (EVMException) {
+      ErrorResponse *resp = athresp.add_error_response();
+      resp->set_description("error retrieving transaction");
+   }
 }
 
 void com::vmware::athena::KVBCommandsHandler::build_transaction_response(
@@ -321,10 +324,15 @@ void com::vmware::athena::KVBCommandsHandler::handle_block_request(
             EthTransaction tx = athevm_.get_transaction(t, roStorage);
             TransactionResponse *txresp = response->add_transaction();
             build_transaction_response(t, tx, txresp);
-         } catch (TransactionNotFoundException) {
+         } catch (...) {
             LOG4CPLUS_ERROR(logger,
-                            "Unable to fetch block transaction " << t <<
+                            "Error fetching block transaction " << t <<
                             " from block " << block->number);
+
+	    // we can still fill out some of the info, though, which may help an
+	    // operator debug
+            TransactionResponse *txresp = response->add_transaction();
+	    txresp->set_hash(t.bytes, sizeof(evm_uint256be));
          }
       }
    } catch (BlockNotFoundException) {

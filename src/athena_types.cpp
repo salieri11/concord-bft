@@ -126,7 +126,7 @@ size_t com::vmware::athena::EthTransaction::serialize(char** serialized)
 
    *serialized = (char*)malloc(size);
    if (*serialized == NULL) {
-      throw new EVMException("Unable to allocate tx serialization");
+      throw EVMException("Unable to allocate tx serialization");
    }
 
    out.SerializeToArray(*serialized, size);
@@ -151,7 +151,7 @@ com::vmware::athena::EthTransaction::deserialize(Blockchain::Slice &input)
       if (intx.from().size() != sizeof(outtx.from)) {
          LOG4CPLUS_ERROR(log4cplus::Logger::getInstance("com.vmware.athena"),
                          "Invalid address length " << intx.from().size());
-         throw new EVMException("Invalid from address length");
+         throw EVMException("Invalid from address length");
       }
       std::copy(intx.from().begin(), intx.from().end(), outtx.from.bytes);
 
@@ -184,6 +184,6 @@ com::vmware::athena::EthTransaction::deserialize(Blockchain::Slice &input)
    } else {
       LOG4CPLUS_ERROR(log4cplus::Logger::getInstance("com.vmware.athena"),
                       "Unknown transaction storage version " << intx.version());
-      throw new EVMException("Unkown transaction storage version");
+      throw EVMException("Unkown transaction storage version");
    }
 }

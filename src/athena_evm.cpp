@@ -340,7 +340,7 @@ EthTransaction com::vmware::athena::EVM::get_transaction(
                    " key: " << sliceToString(searchKey) <<
                    " value.size: " << value.size());
 
-   if (status.ok()) {
+   if (status.ok() && value.size() > 0) {
       return EthTransaction::deserialize(value);
    }
 
