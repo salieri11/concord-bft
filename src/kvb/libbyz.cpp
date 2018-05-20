@@ -192,9 +192,8 @@ void Byz_invoke(Byz_req *request, Byz_rep *reply, bool isReadOnly) {
    g_request = request;
    g_response = reply;
    g_isReadOnly = isReadOnly;
-   mutexUnlock(&g_reqRespLock);
-
    singleSignal(&g_reqCond);
+   mutexUnlock(&g_reqRespLock);
 
    mutexLock(&g_reqRespLock);
    waitCondVar(&g_respCond, &g_reqRespLock);
