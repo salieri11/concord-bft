@@ -113,8 +113,9 @@ void Byz_replica_run() {
    log4cplus::Logger logger = Logger::getInstance("com.vmware.athena.libbyz");
    LOG4CPLUS_INFO(logger, "Mock libbyz replica run.");
 
+   mutexLock(&g_reqRespLock);
    while(true) {
-      mutexLock(&g_reqRespLock);
+      // mutex is unlocked while we wait for condition signal
       waitCondVar(&g_reqCond, &g_reqRespLock);
 
       LOG4CPLUS_INFO(logger, "Picked up request.");
@@ -132,10 +133,9 @@ void Byz_replica_run() {
       }
 
       singleSignal(&g_respCond);
-
       LOG4CPLUS_INFO(logger, "Finished request.");
-      mutexUnlock(&g_reqRespLock);
    }
+   mutexUnlock(&g_reqRespLock);
 
    LOG4CPLUS_INFO(logger, "Replica shutting down.");
 }
@@ -192,10 +192,10 @@ void Byz_invoke(Byz_req *request, Byz_rep *reply, bool isReadOnly) {
    g_request = request;
    g_response = reply;
    g_isReadOnly = isReadOnly;
-   singleSignal(&g_reqCond);
-   mutexUnlock(&g_reqRespLock);
 
-   mutexLock(&g_reqRespLock);
+   singleSignal(&g_reqCond);
+
+   // mutex is unlocked while we wait for condition signal
    waitCondVar(&g_respCond, &g_reqRespLock);
 
    // hygiene: don't accidentally overwrite those messages
