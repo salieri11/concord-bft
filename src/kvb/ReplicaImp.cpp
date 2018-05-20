@@ -631,7 +631,7 @@ SetOfKeyValuePairs ReplicaImp::fetchBlockData(Slice block)
          Slice keySlice(key, keyLen);
          Slice valSlice(val, valLen);
 
-         KeyValuePair kv(key, val);
+         KeyValuePair kv(keySlice, valSlice);
 
          retVal.insert(kv);
       }
