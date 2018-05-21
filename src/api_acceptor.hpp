@@ -10,6 +10,7 @@
 #include <log4cplus/loggingmacros.h>
 #include "api_connection.hpp"
 #include "connection_manager.hpp"
+#include "athena_kvb_client.hpp"
 
 namespace com {
 namespace vmware {
@@ -20,11 +21,13 @@ public:
    api_acceptor(boost::asio::io_service &io_service,
                 boost::asio::ip::tcp::endpoint endpoint,
                 EVM &athevm,
-                Blockchain::IClient *client);
+                FilterManager &filterManager,
+                KVBClient &client);
 
 private:
    EVM &athevm_;
-   Blockchain::IClient *client_;
+   FilterManager &filterManager_;
+   KVBClient &client_;
 
    void
    start_accept();

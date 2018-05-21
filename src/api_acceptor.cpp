@@ -12,9 +12,15 @@ using boost::system::error_code;
 
 using namespace com::vmware::athena;
 
-api_acceptor::api_acceptor(io_service &io_service, tcp::endpoint endpoint,
-                           EVM &athevm, Blockchain::IClient *client)
-   : acceptor_(io_service, endpoint), athevm_(athevm), client_(client),
+api_acceptor::api_acceptor(io_service &io_service,
+                           tcp::endpoint endpoint,
+                           EVM &athevm,
+                           FilterManager &filterManager,
+                           KVBClient &client)
+   : acceptor_(io_service, endpoint),
+     athevm_(athevm),
+     filterManager_(filterManager),
+     client_(client),
      logger_(log4cplus::Logger::getInstance("com.vmware.athena.api_acceptor"))
 {
    start_accept();
@@ -29,6 +35,7 @@ api_acceptor::start_accept()
       api_connection::create(acceptor_.get_io_service(),
                              connManager_,
                              athevm_,
+                             filterManager_,
                              client_);
 
    acceptor_.async_accept(new_connection->socket(),

@@ -178,13 +178,20 @@ run_service(variables_map &opts, Logger logger)
       Blockchain::IClient *client =
          Blockchain::createClient(clientConsensusConfig);
       client->start();
+      KVBClient kvbClient(client);
+
+      FilterManager filterManager;
 
       std::string ip = opts["ip"].as<std::string>();
       short port = opts["port"].as<short>();
 
       api_service = new io_service();
       tcp::endpoint endpoint(address::from_string(ip), port);
-      api_acceptor acceptor(*api_service, endpoint, athevm, client);
+      api_acceptor acceptor(*api_service,
+                            endpoint,
+                            athevm,
+                            filterManager,
+                            kvbClient);
 
       signal(SIGINT, signalHandler);
 

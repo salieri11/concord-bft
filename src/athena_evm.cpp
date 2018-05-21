@@ -33,8 +33,7 @@ using log4cplus::Logger;
 com::vmware::athena::EVM::EVM(EVMInitParams params)
    : logger(Logger::getInstance("com.vmware.athena.evm")),
      balances(params.get_initial_accounts()),
-     chainId(params.get_chainID()),
-     filterManager(new FilterManager(*this))
+     chainId(params.get_chainID())
 {
    // wrap an evm context in an athena context
    athctx = {{&athena_fn_table}, this};
@@ -58,7 +57,6 @@ com::vmware::athena::EVM::EVM(EVMInitParams params)
 com::vmware::athena::EVM::~EVM()
 {
    evminst->destroy(evminst);
-   delete filterManager;
    LOG4CPLUS_INFO(logger, "EVM stopped");
 }
 
@@ -585,12 +583,6 @@ uint64_t com::vmware::athena::EVM::get_nonce(const evm_address &address)
    nonces[address] = nonce+1;
    return nonce;
 }
-
-FilterManager*
-com::vmware::athena::EVM::get_filter_manager() {
-   return filterManager;
-}
-
 
 uint64_t com::vmware::athena::EVM::next_block_number()
 {

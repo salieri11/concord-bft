@@ -13,6 +13,7 @@
 #include "athena.pb.h"
 #include "filter_manager.hpp"
 #include "athena_evm.hpp"
+#include "athena_kvb_client.hpp"
 
 namespace com {
 namespace vmware {
@@ -34,7 +35,8 @@ public:
    create(boost::asio::io_service &io_service,
           connection_manager &connManager,
           EVM &athevm,
-          Blockchain::IClient *client);
+          FilterManager &filterManager,
+          KVBClient &client);
 
    boost::asio::ip::tcp::socket&
    socket();
@@ -107,7 +109,8 @@ private:
    api_connection(boost::asio::io_service &io_service,
                   connection_manager &connManager,
                   EVM &athevm,
-                  Blockchain::IClient *client);
+                  FilterManager &filterManager,
+                  KVBClient &client);
 
    uint16_t
    get_message_length(const char * buffer);
@@ -155,7 +158,8 @@ private:
 
    /* The VM to execute transactions in. */
    EVM &athevm_;
-   Blockchain::IClient *client_;
+   FilterManager &filterManager_;
+   KVBClient &client_;
 
    connection_manager &connManager_;
 
