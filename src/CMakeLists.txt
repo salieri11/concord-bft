@@ -17,4 +17,5 @@ target_link_libraries(athena
   ${EVM_LIBRARIES}
   ${Cryptopp_LIBRARIES}
   athena_utils
-  kvblockchain)
+  kvblockchain
+)

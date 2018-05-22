@@ -18,13 +18,14 @@ set(kvblockchain_sources
 )
 
 add_library(kvblockchain ${kvblockchain_sources})
-target_link_libraries(kvblockchain LINK_PUBLIC byz)
 
 target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils)
 target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils/Thread)
 target_include_directories(kvblockchain PUBLIC .../../submodules/P2_Blockchain/Utils/Crypto)
 target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils/Database)
 target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/AgreementModules/SbftForIntegMay18/libbyz)
+
+target_link_libraries(kvblockchain byz)
 
 # target_link_libraries(kvblockchain LINK_PUBLIC evmutils)
 # target_include_directories(kvblockchain PUBLIC .)
@@ -39,3 +40,5 @@ target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Ag
 if(USE_ROCKSDB)
 target_compile_definitions(kvblockchain PRIVATE USE_ROCKSDB=1)
 endif()
+
+target_compile_definitions(kvblockchain PUBLIC __BASE=1)

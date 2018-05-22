@@ -77,7 +77,14 @@ variables_map initialize_config(int argc, char **argv) {
        "Legal values: memory, rocksdb")
       ("blockchain_db_path",
        value<string>(),
-       "Path to blockchain database storage");
+       "Path to blockchain database storage")
+       /*
+       ("public_conf, pub",
+       value<string>()->required(),
+       "Path to the public configuration file")
+      ("private_conf, priv",
+      value<string>()->required(),
+      "Path to the private configuration file")*/;
 
    options_description all_options; // description of all options
    all_options.add(generic).add(config);
