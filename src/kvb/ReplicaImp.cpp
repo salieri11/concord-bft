@@ -233,10 +233,13 @@ ReplicaImp::ReplicaImp(const char *byzConfig,
 
    m_currentRepStatus = RepStatus::Idle;
    lastBlock = 0;
+
+   initEnvironment();
 }
 
 ReplicaImp::~ReplicaImp()
 {
+   freeEnvironment();
 }
 
 Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs& updates,

@@ -77,14 +77,10 @@ variables_map initialize_config(int argc, char **argv) {
        "Legal values: memory, rocksdb")
       ("blockchain_db_path",
        value<string>(),
-       "Path to blockchain database storage")
-       /*
-       ("public_conf, pub",
+       "Path cd o blockchain database storage")
+       ("instance-id,id",
        value<string>()->required(),
-       "Path to the public configuration file")
-      ("private_conf, priv",
-      value<string>()->required(),
-      "Path to the private configuration file")*/;
+       "Instance ID to match the SBFT configuration files");
 
    options_description all_options; // description of all options
    all_options.add(generic).add(config);
@@ -117,8 +113,14 @@ variables_map initialize_config(int argc, char **argv) {
       cerr << "Can not open config file: " << config_file
            << "\n" << " Going ahead with only command line options\n";
    } else {
-      store(parse_config_file(ifs, config), options_map);
+      try{
+      auto parsed = parse_config_file(ifs, config);
+      store(parsed, options_map);
       notify(options_map);
+   } catch (const error &ex)
+     {
+       std::cerr << ex.what() << '\n';
+     }
    }
 
    return options_map;

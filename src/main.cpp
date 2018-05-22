@@ -162,19 +162,23 @@ run_service(variables_map &opts, Logger logger)
       EVM athevm(params);
       KVBCommandsHandler athkvb(athevm);
 
+      string sbftClientPrivConfigFilePrefix = "./submodules/P2_Blockchain/SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3-cli-";
+      string sbftRepPrivConfigFilePrefix = "./submodules/P2_Blockchain/SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3-rep-";
+      string sbftPubConfigFile = "./submodules/P2_Blockchain/SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3.pub";
+
       // TODO(BWF): This works because this thread is going to be the same one
       // that calls the replica (athena is single-threaded).
       Blockchain::ReplicaConsensusConfig replicaConsensusConfig;
-      replicaConsensusConfig.byzConfig = "TODO(BWF):actualconfig";
-      replicaConsensusConfig.byzPrivateConfig = "TODO(BWF):actualconfig";
+      replicaConsensusConfig.byzConfig = sbftPubConfigFile.c_str();
+      replicaConsensusConfig.byzPrivateConfig = (sbftRepPrivConfigFilePrefix + opts["instance-id"].as<string>() + ".priv").c_str();
       Blockchain::IReplica *replica =
          Blockchain::createReplica(replicaConsensusConfig, &athkvb, dbclient);
-      create_genesis_block(replica, params, logger);
       replica->start();
+      create_genesis_block(replica, params, logger);
 
       Blockchain::ClientConsensusConfig clientConsensusConfig;
-      clientConsensusConfig.byzConfig = "TODO(BWF):actualconfig";
-      clientConsensusConfig.byzPrivateConfig = "TODO(BWF):actualconfig";
+      clientConsensusConfig.byzConfig = sbftPubConfigFile.c_str();
+      clientConsensusConfig.byzPrivateConfig = (sbftClientPrivConfigFilePrefix + opts["instance-id"].as<string>() + ".priv").c_str();
       Blockchain::IClient *client =
          Blockchain::createClient(clientConsensusConfig);
       client->start();

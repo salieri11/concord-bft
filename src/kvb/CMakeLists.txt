@@ -41,4 +41,4 @@ if(USE_ROCKSDB)
 target_compile_definitions(kvblockchain PRIVATE USE_ROCKSDB=1)
 endif()
 
-target_compile_definitions(kvblockchain PUBLIC __BASE=1)
+target_compile_definitions(kvblockchain PUBLIC __BASE=1 SPARSE_STATE=1 USE_TLS=1)
