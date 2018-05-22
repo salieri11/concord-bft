@@ -25,6 +25,10 @@ com::vmware::athena::KVBCommandsHandler::~KVBCommandsHandler()
 }
 
 
+/**
+ * Callback from SBFT/KVB. Process the request (mostly by talking to
+ * EVM). Returns false if the command is illegal or invalid; true otherwise.
+ */
 bool com::vmware::athena::KVBCommandsHandler::executeCommand(
       const Slice cmdSlice,
       const ILocalKeyValueStorageReadOnly &roStorage,
@@ -36,32 +40,32 @@ bool com::vmware::athena::KVBCommandsHandler::executeCommand(
    AthenaRequest command;
    command.ParseFromArray(cmdSlice.data(), cmdSlice.size());
 
+   bool result;
    AthenaResponse athresp;
    if (command.eth_request_size() > 0) {
-      handle_eth_request(command, roStorage, blockAppender, athresp);
+      result = handle_eth_request(command, roStorage, blockAppender, athresp);
    } else {
       LOG4CPLUS_ERROR(logger, "Unknown command");
       ErrorResponse *resp = athresp.add_error_response();
       resp->set_description("Internal Athena Error");
+      result = false;
    }
 
-   if (!athresp.SerializeToArray(outReply, maxReplySize)) {
+   if (athresp.SerializeToArray(outReply, maxReplySize)) {
+      outReplySize = athresp.ByteSize();
+   } else {
       LOG4CPLUS_ERROR(logger, "Reply is too large");
-
-      // TODO(BWF): is false the right thing here?
-      return false;
+      outReplySize = 0;
    }
 
-   outReplySize = athresp.ByteSize();
-
-   // TODO(BWF): what is the boolean for here?
-   return true;
+   return result;
 }
 
 /*
- * Handle an ETH RPC request.
+ * Handle an ETH RPC request. Returns false if the command was invalid; true
+ * otherwise.
  */
-void com::vmware::athena::KVBCommandsHandler::handle_eth_request(
+bool com::vmware::athena::KVBCommandsHandler::handle_eth_request(
    AthenaRequest &athreq,
    const ILocalKeyValueStorageReadOnly &roStorage,
    IBlocksAppender &blockAppender,
@@ -69,20 +73,22 @@ void com::vmware::athena::KVBCommandsHandler::handle_eth_request(
 {
    switch (athreq.eth_request(0).method()) {
    case EthRequest_EthMethod_SEND_TX:
-      handle_eth_sendTransaction(athreq, roStorage, blockAppender, athresp);
+      return handle_eth_sendTransaction(
+         athreq, roStorage, blockAppender, athresp);
       break;
       //TODO(BWF): move over all other api_connection::handle_eth_request cases
       //           some may go to a ready-only version
    default:
       ErrorResponse *e = athresp.add_error_response();
       e->mutable_description()->assign("ETH Method Not Implemented");
+      return false;
    }
 }
 
 /**
  * Handle an eth_sendTransaction request.
  */
-void com::vmware::athena::KVBCommandsHandler::handle_eth_sendTransaction(
+bool com::vmware::athena::KVBCommandsHandler::handle_eth_sendTransaction(
    AthenaRequest &athreq,
    const ILocalKeyValueStorageReadOnly &roStorage,
    IBlocksAppender &blockAppender,
@@ -96,8 +102,17 @@ void com::vmware::athena::KVBCommandsHandler::handle_eth_sendTransaction(
    EthResponse *response = athresp.add_eth_response();
    response->set_id(request.id());
    response->set_data(txhash.bytes, sizeof(evm_uint256be));
+
+   // nothing would cause us to fail to try to run a transaction yet, and even
+   // failed transactions get recorded, so commands here are always valid, so
+   // always return true (for now)
+   return true;
 }
 
+/**
+ * Callback from SBFT/KVB. Process the request (mostly by talking to
+ * EVM). Returns false if the command is illegal or invalid; true otherwise.
+ */
 bool com::vmware::athena::KVBCommandsHandler::executeReadOnlyCommand(
    const Slice cmdSlice,
    const ILocalKeyValueStorageReadOnly &roStorage,
@@ -108,33 +123,32 @@ bool com::vmware::athena::KVBCommandsHandler::executeReadOnlyCommand(
    AthenaRequest command;
    command.ParseFromArray(cmdSlice.data(), cmdSlice.size());
 
+   bool result;
    AthenaResponse athresp;
    if (command.has_transaction_request()) {
-      handle_transaction_request(command, roStorage, athresp);
+      result = handle_transaction_request(command, roStorage, athresp);
    } else if (command.has_block_list_request()) {
-      handle_block_list_request(command, roStorage, athresp);
+      result = handle_block_list_request(command, roStorage, athresp);
    } else if (command.has_block_request()) {
-      handle_block_request(command, roStorage, athresp);
+      result = handle_block_request(command, roStorage, athresp);
    } else {
       LOG4CPLUS_ERROR(logger, "Unknown read-only command");
       ErrorResponse *resp = athresp.add_error_response();
       resp->set_description("Internal Athena Error");
+      result = false;
    }
 
-   if (!athresp.SerializeToArray(outReply, maxReplySize)) {
+   if (athresp.SerializeToArray(outReply, maxReplySize)) {
+      outReplySize = athresp.ByteSize();
+   } else {
       LOG4CPLUS_ERROR(logger, "Reply is too large");
-
-      // TODO(BWF): is false the right thing here?
-      return false;
+      outReplySize = 0;
    }
 
-   outReplySize = athresp.ByteSize();
-
-   // TODO(BWF): what is the boolean for here?
-   return true;
+   return result;
 }
 
-void com::vmware::athena::KVBCommandsHandler::handle_transaction_request(
+bool com::vmware::athena::KVBCommandsHandler::handle_transaction_request(
    AthenaRequest &athreq,
    const ILocalKeyValueStorageReadOnly &roStorage,
    AthenaResponse &athresp) const
@@ -154,6 +168,9 @@ void com::vmware::athena::KVBCommandsHandler::handle_transaction_request(
       ErrorResponse *resp = athresp.add_error_response();
       resp->set_description("error retrieving transaction");
    }
+
+   // even requests for non-existent transactions are legal/valid
+   return true;
 }
 
 void com::vmware::athena::KVBCommandsHandler::build_transaction_response(
@@ -244,7 +261,7 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
    return result;
 }
 
-void com::vmware::athena::KVBCommandsHandler::handle_block_list_request(
+bool com::vmware::athena::KVBCommandsHandler::handle_block_list_request(
    AthenaRequest &athreq,
    const ILocalKeyValueStorageReadOnly &roStorage,
    AthenaResponse &athresp) const
@@ -270,9 +287,12 @@ void com::vmware::athena::KVBCommandsHandler::handle_block_list_request(
       bb->set_number(b->number);
       bb->set_hash(b->hash.bytes, sizeof(evm_uint256be));
    }
+
+   // all list requests are valid
+   return true;
 }
 
-void com::vmware::athena::KVBCommandsHandler::handle_block_request(
+bool com::vmware::athena::KVBCommandsHandler::handle_block_request(
    AthenaRequest &athreq,
    const ILocalKeyValueStorageReadOnly &roStorage,
    AthenaResponse &athresp) const
@@ -339,4 +359,7 @@ void com::vmware::athena::KVBCommandsHandler::handle_block_request(
       ErrorResponse *resp = athresp.add_error_response();
       resp->set_description("block not found");
    }
+
+   // even requests for non-existent blocks are legal/valid
+   return true;
 }

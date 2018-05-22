@@ -39,24 +39,24 @@ public:
       size_t &outReplySize) const override;
 
    // Handlers
-   void handle_transaction_request(
+   bool handle_transaction_request(
       AthenaRequest &athreq,
       const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
       AthenaResponse &athresp) const;
-   void handle_block_list_request(
+   bool handle_block_list_request(
       AthenaRequest &athreq,
       const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
       AthenaResponse &athresp) const;
-   void handle_block_request(
+   bool handle_block_request(
       AthenaRequest &athreq,
       const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
       AthenaResponse &athresp) const;
-   void handle_eth_request(
+   bool handle_eth_request(
       AthenaRequest &athreq,
       const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
       Blockchain::IBlocksAppender &blockAppender,
       AthenaResponse &athresp) const;
-   void handle_eth_sendTransaction(
+   bool handle_eth_sendTransaction(
       AthenaRequest &athreq,
       const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
       Blockchain::IBlocksAppender &blockAppender,

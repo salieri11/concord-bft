@@ -81,17 +81,18 @@ namespace Blockchain {
        *  virtual Status setStatusNotifier(StatusNotifier statusNotifier);
        */
 
-      // Used to update the local storage (may be needed for initializing and
-      // maintenance).  Can only be used when the replica's status is Idle.
-      // TODO(BWF): How can *read only* storage be used to *update*?
+      // Used to read from storage, only when a replica is Idle. Useful for
+      // initialization and maintenance.
       virtual const ILocalKeyValueStorageReadOnly& getReadOnlyStorage() = 0;
-      // write the updates by adding a block
+
+      // Used to append blocks to storage, only when a replica is Idle. Useful
+      // for initialization and maintenance.
       virtual Status addBlockToIdleReplica(
          const SetOfKeyValuePairs& updates) = 0;
    };
 
-   //TODO(BWF): Can create/release be migrated to constructor/destructor, to
-   //make use of RAII?
+   // TODO(BWF): It would be nice to migrate createReplica/release to
+   // constructor/destructor, to make use of RAII.
 
    // creates a new Replica object
    IReplica* createReplica(const ReplicaConsensusConfig& consensusConfig,
@@ -122,6 +123,15 @@ namespace Blockchain {
       virtual Status stop() = 0;
 
       virtual bool isRunning() = 0;
+
+      // Status of the client
+      enum ClientStatus
+      {
+         UnknownError = -1,
+         Idle = 0, // Idle == the internal threads are not running now
+         Running,
+         Stopping,
+      };
 
       typedef void(*CommandCompletion)(uint64_t completionToken,
                                        Status returnedStatus,
