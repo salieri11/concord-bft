@@ -8,7 +8,7 @@ set(kvblockchain_sources
   HashDefs.h
   HexTools.cpp HexTools.h
   InMemoryDBClient.cpp InMemoryDBClient.h
-  libbyz.cpp libbyz.h
+  #      libbyz.cpp libbyz.h
   ReplicaImp.cpp ReplicaImp.h
   RocksDBClient.cpp RocksDBClient.h
   SimpleThreadPool.h
@@ -18,6 +18,13 @@ set(kvblockchain_sources
 )
 
 add_library(kvblockchain ${kvblockchain_sources})
+target_link_libraries(kvblockchain LINK_PUBLIC byz)
+
+target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils)
+target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils/Thread)
+target_include_directories(kvblockchain PUBLIC .../../submodules/P2_Blockchain/Utils/Crypto)
+target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils/Database)
+target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/AgreementModules/SbftForIntegMay18/libbyz)
 
 # target_link_libraries(kvblockchain LINK_PUBLIC evmutils)
 # target_include_directories(kvblockchain PUBLIC .)
