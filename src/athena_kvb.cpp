@@ -413,8 +413,9 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_callContract(
    if (result.status_code == EVM_SUCCESS) {
       EthResponse *response = athresp.add_eth_response();
       response->set_id(request.id());
-      if (result.output_data != NULL && result.output_size > 0)
+      if (result.output_data != NULL && result.output_size > 0) {
          response->set_data(result.output_data, result.output_size);
+      }
    } else {
       ErrorResponse *err = athresp.add_error_response();
       err->mutable_description()->assign("Error while calling contract");

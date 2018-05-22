@@ -11,7 +11,6 @@
 #include <log4cplus/loggingmacros.h>
 #include "common/utils.hpp"
 #include "evm.h"
-#include "filter_manager.hpp"
 #include "athena_types.hpp"
 #include "evm_init_params.hpp"
 #include "kvb/BlockchainInterfaces.h"
@@ -116,12 +115,6 @@ const static struct evm_context_fn_table athena_fn_table = {
       ath_emit_log
 };
 
-
-// forward declaration to break circular references between
-// athena_evm.hpp and filter_manager.hpp
-class FilterManager;
-
-
 class EVM {
 public:
    explicit EVM(EVMInitParams params);
@@ -146,7 +139,6 @@ public:
    bool get_code(const evm_address &address,
                  std::vector<uint8_t> &result_code,
                  evm_uint256be &result_hash) const;
-   FilterManager* get_filter_manager();
    std::vector<std::shared_ptr<EthBlock>> get_block_list(
       uint64_t latest,
       uint64_t count,
@@ -222,9 +214,6 @@ private:
 
    // map from [(contract address)+(storage location)] to data at that location
    std::map<std::vector<uint8_t>, evm_uint256be> storage_map;
-
-   // Instace of filter manager
-   FilterManager *filterManager;
 
    void create_genesis_block(EVMInitParams params);
    evm_address contract_destination(const evm_message &message);
