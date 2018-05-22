@@ -12,37 +12,13 @@
 #include "common/utils.hpp"
 #include "evm.h"
 #include "athena_types.hpp"
+#include "athena_kvb_storage.hpp"
 #include "evm_init_params.hpp"
 #include "kvb/BlockchainInterfaces.h"
 
 namespace com {
 namespace vmware {
 namespace athena {
-
-class EVMException: public std::exception {
-public:
-   explicit EVMException(const std::string &what): msg(what) {};
-
-   virtual const char* what() const noexcept override
-   {
-      return msg.c_str();
-   }
-
-private:
-   std::string msg;
-};
-
-class TransactionNotFoundException: public EVMException {
-public:
-   TransactionNotFoundException() :
-      EVMException("Transaction not found") { }
-};
-
-class BlockNotFoundException: public EVMException {
-public:
-   BlockNotFoundException() :
-      EVMException("Block not found") { }
-};
 
 /**
  * Our wrapper around EVM's wrapper, where we can add pointers to the modules
@@ -122,33 +98,27 @@ public:
 
    /* Athena API */
    void run(evm_message &message,
-            const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-            Blockchain::IBlocksAppender *blockAppender,
+            KVBStorage &kvbStorage,
             evm_result &result, /* out */
             evm_uint256be &txhash /* out */);
    void create(evm_message &message,
-               const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-               Blockchain::IBlocksAppender &blockAppender,
+               KVBStorage &kvbStorage,
                evm_result &result, /* out */
                evm_uint256be &txhash /* out */);
-   EthTransaction get_transaction(
-      const evm_uint256be &txhash,
-      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage) const;
+   EthTransaction get_transaction(const evm_uint256be &txhash,
+                                  KVBStorage &kvbStorage) const;
    evm_uint256be get_storage_at(const evm_address &account,
                                 const evm_uint256be &key) const;
    bool get_code(const evm_address &address,
                  std::vector<uint8_t> &result_code,
                  evm_uint256be &result_hash) const;
-   std::vector<std::shared_ptr<EthBlock>> get_block_list(
-      uint64_t latest,
-      uint64_t count,
-      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage) const;
-   std::shared_ptr<EthBlock> get_block_for_number(
-      uint64_t number,
-      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage) const;
-   std::shared_ptr<EthBlock> get_block_for_hash(
-      evm_uint256be hash,
-      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage) const;
+   std::vector<EthBlock> get_block_list(uint64_t latest,
+                                        uint64_t count,
+                                        KVBStorage &kvbStorage) const;
+   EthBlock get_block_for_number(uint64_t number,
+                                 KVBStorage &kvbStorage) const;
+   EthBlock get_block_for_hash(evm_uint256be hash,
+                               KVBStorage &kvbStorage) const;
    bool new_account(const std::string& passphrase, evm_address& address);
 
    /* EVM callbacks */
@@ -187,9 +157,9 @@ private:
    // chain to which we are connected
    uint64_t chainId;
 
-   // these two can only be used in the middle of a run or create call
-   Blockchain::ILocalKeyValueStorageReadOnly const *txctx_roStorage;
-   Blockchain::IBlocksAppender *txctx_blockAppender;
+   // only available during `run` and `create` calls; will be in read-only mode
+   // during `run` calls that are read-only (non-transaction)
+   KVBStorage *txctx_kvbStorage;
 
    // map from account address to account balance
    std::map<evm_address, uint64_t> balances;
@@ -228,9 +198,8 @@ private:
                                     const evm_result &result,
                                     const evm_address &to_override,
                                     const evm_address &contract_address,
-                                    Blockchain::IBlocksAppender &blockAppender);
-   void record_block(EthTransaction &tx,
-                     Blockchain::IBlocksAppender &blockAppender);
+                                    KVBStorage &kvbStorage);
+   void record_block(EthTransaction &tx, KVBStorage &kvbStorage);
    std::vector<uint8_t> storage_key(const struct evm_address* address,
                                     const struct evm_uint256be* key) const;
 

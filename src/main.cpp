@@ -11,6 +11,7 @@
 #include "api_acceptor.hpp"
 #include "athena_evm.hpp"
 #include "athena_kvb.hpp"
+#include "athena_exception.hpp"
 #include "configuration_manager.hpp"
 #include "evm_init_params.hpp"
 #include "kvb/DatabaseInterface.h"
@@ -82,6 +83,7 @@ void create_genesis_block(Blockchain::IReplica* replica,
                           EVMInitParams params,
                           Logger logger)
 {
+   //TODO(BWF): rewrite this in terms of KVBStorage
    const Blockchain::ILocalKeyValueStorageReadOnly &storage =
       replica->getReadOnlyStorage();
    if (storage.getLastBlock() > 0) {

@@ -6,6 +6,7 @@
 #include "kvb/slice.h"
 #include "athena_evm.hpp"
 #include "athena_kvb.hpp"
+#include "athena_exception.hpp"
 #include "athena.pb.h"
 
 using Blockchain::Slice;
@@ -37,13 +38,15 @@ bool com::vmware::athena::KVBCommandsHandler::executeCommand(
       char *outReply,
       size_t &outReplySize) const
 {
+   KVBStorage kvbStorage(roStorage, &blockAppender);
+
    AthenaRequest command;
    command.ParseFromArray(cmdSlice.data(), cmdSlice.size());
 
    bool result;
    AthenaResponse athresp;
    if (command.eth_request_size() > 0) {
-      result = handle_eth_request(command, roStorage, blockAppender, athresp);
+      result = handle_eth_request(command, kvbStorage, athresp);
    } else {
       LOG4CPLUS_ERROR(logger, "Unknown command");
       ErrorResponse *resp = athresp.add_error_response();
@@ -67,14 +70,12 @@ bool com::vmware::athena::KVBCommandsHandler::executeCommand(
  */
 bool com::vmware::athena::KVBCommandsHandler::handle_eth_request(
    AthenaRequest &athreq,
-   const ILocalKeyValueStorageReadOnly &roStorage,
-   IBlocksAppender &blockAppender,
+   KVBStorage &kvbStorage,
    AthenaResponse &athresp) const
 {
    switch (athreq.eth_request(0).method()) {
    case EthRequest_EthMethod_SEND_TX:
-      return handle_eth_sendTransaction(
-         athreq, roStorage, blockAppender, athresp);
+      return handle_eth_sendTransaction(athreq, kvbStorage, athresp);
       break;
       //TODO(BWF): move over all other api_connection::handle_eth_request cases
       //           some may go to a ready-only version
@@ -90,15 +91,13 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_request(
  */
 bool com::vmware::athena::KVBCommandsHandler::handle_eth_sendTransaction(
    AthenaRequest &athreq,
-   const ILocalKeyValueStorageReadOnly &roStorage,
-   IBlocksAppender &blockAppender,
+   KVBStorage &kvbStorage,
    AthenaResponse &athresp) const
 {
    const EthRequest request = athreq.eth_request(0);
 
    evm_uint256be txhash;
-   evm_result &&result =
-      run_evm(request, roStorage, &blockAppender, txhash);
+   evm_result &&result = run_evm(request, kvbStorage, txhash);
    EthResponse *response = athresp.add_eth_response();
    response->set_id(request.id());
    response->set_data(txhash.bytes, sizeof(evm_uint256be));
@@ -120,19 +119,21 @@ bool com::vmware::athena::KVBCommandsHandler::executeReadOnlyCommand(
    char *outReply,
    size_t &outReplySize) const
 {
+   KVBStorage kvbStorage(roStorage);
+
    AthenaRequest command;
    command.ParseFromArray(cmdSlice.data(), cmdSlice.size());
 
    bool result;
    AthenaResponse athresp;
    if (command.has_transaction_request()) {
-      result = handle_transaction_request(command, roStorage, athresp);
+      result = handle_transaction_request(command, kvbStorage, athresp);
    } else if (command.has_block_list_request()) {
-      result = handle_block_list_request(command, roStorage, athresp);
+      result = handle_block_list_request(command, kvbStorage, athresp);
    } else if (command.has_block_request()) {
-      result = handle_block_request(command, roStorage, athresp);
+      result = handle_block_request(command, kvbStorage, athresp);
    } else if (command.eth_request_size() > 0) {
-      result = handle_eth_request_read_only(command, roStorage, athresp);
+      result = handle_eth_request_read_only(command, kvbStorage, athresp);
    } else {
       LOG4CPLUS_ERROR(logger, "Unknown read-only command");
       ErrorResponse *resp = athresp.add_error_response();
@@ -152,14 +153,14 @@ bool com::vmware::athena::KVBCommandsHandler::executeReadOnlyCommand(
 
 bool com::vmware::athena::KVBCommandsHandler::handle_transaction_request(
    AthenaRequest &athreq,
-   const ILocalKeyValueStorageReadOnly &roStorage,
+   KVBStorage &kvbStorage,
    AthenaResponse &athresp) const
 {
    try {
       const TransactionRequest request = athreq.transaction_request();
       evm_uint256be hash;
       std::copy(request.hash().begin(), request.hash().end(), hash.bytes);
-      EthTransaction tx = athevm_.get_transaction(hash, roStorage);
+      EthTransaction tx = athevm_.get_transaction(hash, kvbStorage);
 
       TransactionResponse* response = athresp.mutable_transaction_response();
       build_transaction_response(hash, tx, response);
@@ -202,8 +203,7 @@ void com::vmware::athena::KVBCommandsHandler::build_transaction_response(
 
 evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
    const EthRequest &request,
-   const ILocalKeyValueStorageReadOnly &roStorage,
-   IBlocksAppender *blockAppender,
+   KVBStorage &kvbStorage,
    evm_uint256be &txhash /* OUT */) const
 {
    evm_message message;
@@ -248,12 +248,12 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
       assert(20 == request.addr_to().length());
       memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
 
-      athevm_.run(message, roStorage, blockAppender, result, txhash);
+      athevm_.run(message, kvbStorage, result, txhash);
    } else {
       message.kind = EVM_CREATE;
 
-      assert(blockAppender);
-      athevm_.create(message, roStorage, *blockAppender, result, txhash);
+      assert(!kvbStorage.is_read_only());
+      athevm_.create(message, kvbStorage, result, txhash);
    }
 
    LOG4CPLUS_INFO(logger, "Execution result -" <<
@@ -265,7 +265,7 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
 
 bool com::vmware::athena::KVBCommandsHandler::handle_block_list_request(
    AthenaRequest &athreq,
-   const ILocalKeyValueStorageReadOnly &roStorage,
+   KVBStorage &kvbStorage,
    AthenaResponse &athresp) const
 {
    const BlockListRequest request = athreq.block_list_request();
@@ -282,12 +282,12 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_list_request(
 
    BlockListResponse* response = athresp.mutable_block_list_response();
 
-   std::vector<std::shared_ptr<EthBlock>> blocks =
-      athevm_.get_block_list(latest, count, roStorage);
+   std::vector<EthBlock> blocks =
+      athevm_.get_block_list(latest, count, kvbStorage);
    for (auto b: blocks) {
       BlockBrief* bb = response->add_block();
-      bb->set_number(b->number);
-      bb->set_hash(b->hash.bytes, sizeof(evm_uint256be));
+      bb->set_number(b.number);
+      bb->set_hash(b.hash.bytes, sizeof(evm_uint256be));
    }
 
    // all list requests are valid
@@ -296,7 +296,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_list_request(
 
 bool com::vmware::athena::KVBCommandsHandler::handle_block_request(
    AthenaRequest &athreq,
-   const ILocalKeyValueStorageReadOnly &roStorage,
+   KVBStorage &kvbStorage,
    AthenaResponse &athresp) const
 {
    const BlockRequest request = athreq.block_request();
@@ -311,7 +311,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_request(
    // TODO: Once SBFT is implemented blocks will not be generated instantaneously
    // this will have to be changed at that time.
    try {
-      std::shared_ptr<EthBlock> block;
+      EthBlock block;
       if (request.has_number()) {
          uint64_t requested_block_number = athevm_.current_block_number();
          if (request.number() >= 0 &&
@@ -319,17 +319,17 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_request(
             requested_block_number = request.number();
          }
          block = athevm_.get_block_for_number(requested_block_number,
-                                              roStorage);
+                                              kvbStorage);
       } else if (request.has_hash()) {
          evm_uint256be blkhash;
          std::copy(request.hash().begin(), request.hash().end(), blkhash.bytes);
-         block = athevm_.get_block_for_hash(blkhash, roStorage);
+         block = athevm_.get_block_for_hash(blkhash, kvbStorage);
       }
 
       BlockResponse* response = athresp.mutable_block_response();
-      response->set_number(block->number);
-      response->set_hash(block->hash.bytes, sizeof(evm_uint256be));
-      response->set_parent_hash(block->parent_hash.bytes, sizeof(evm_uint256be));
+      response->set_number(block.number);
+      response->set_hash(block.hash.bytes, sizeof(evm_uint256be));
+      response->set_parent_hash(block.parent_hash.bytes, sizeof(evm_uint256be));
 
       // TODO: We're not mining, so nonce is mostly irrelevant. Maybe there will
       // be something relevant from KVBlockchain to put in here?
@@ -341,15 +341,15 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_request(
       // recorded. Does KVBlockchain have this facility built in?
       response->set_size(1);
 
-      for (auto t: block->transactions) {
+      for (auto t: block.transactions) {
          try {
-            EthTransaction tx = athevm_.get_transaction(t, roStorage);
+            EthTransaction tx = athevm_.get_transaction(t, kvbStorage);
             TransactionResponse *txresp = response->add_transaction();
             build_transaction_response(t, tx, txresp);
          } catch (...) {
             LOG4CPLUS_ERROR(logger,
                             "Error fetching block transaction " << t <<
-                            " from block " << block->number);
+                            " from block " << block.number);
 
 	    // we can still fill out some of the info, though, which may help an
 	    // operator debug
@@ -372,12 +372,12 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_request(
  */
 bool com::vmware::athena::KVBCommandsHandler::handle_eth_request_read_only(
    AthenaRequest &athreq,
-   const ILocalKeyValueStorageReadOnly &roStorage,
+   KVBStorage &kvbStorage,
    AthenaResponse &athresp) const
 {
    switch (athreq.eth_request(0).method()) {
    case EthRequest_EthMethod_CALL_CONTRACT:
-      return handle_eth_callContract(athreq, roStorage, athresp);
+      return handle_eth_callContract(athreq, kvbStorage, athresp);
       break;
       //TODO(BWF): move over all other api_connection::handle_eth_request cases
       //           some may go to a ready-only version
@@ -397,15 +397,14 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_request_read_only(
  */
 bool com::vmware::athena::KVBCommandsHandler::handle_eth_callContract(
    AthenaRequest &athreq,
-   const ILocalKeyValueStorageReadOnly &roStorage,
+   KVBStorage &kvbStorage,
    AthenaResponse &athresp) const
 {
    const EthRequest request = athreq.eth_request(0);
 
    evm_uint256be txhash;
    evm_result &&result = run_evm(request,
-                                 roStorage,
-                                 nullptr, /* modifications not allowed */
+                                 kvbStorage,
                                  txhash);
    // Here we don't care about the txhash. Transaction was never
    // recorded, instead we focus on the result object and the
