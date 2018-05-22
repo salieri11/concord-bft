@@ -71,20 +71,12 @@ com::vmware::athena::EVM::~EVM()
  */
 void com::vmware::athena::EVM::run(
    evm_message &message,
-   bool isTransaction,
    const ILocalKeyValueStorageReadOnly &roStorage,
-   IBlocksAppender &blockAppender,
+   IBlocksAppender *blockAppender,
    evm_result &result /* out */,
    evm_uint256be &txhash /* out */)
 {
    assert(message.kind != EVM_CREATE);
-
-   // We add the transaction to the pending list after evaluating it, but we
-   // want the pending list to be in the order of execution start. This means
-   // the child transactions will be added before their parent. To solve that,
-   // remember where the latest point was before evaluation, so we can insert at
-   // that point later.
-   size_t pending_index = pending.size();
 
    std::vector<uint8_t> code;
    evm_uint256be hash;
@@ -93,7 +85,7 @@ void com::vmware::athena::EVM::run(
       message.code_hash = hash;
 
       txctx_roStorage = &roStorage;
-      txctx_blockAppender = &blockAppender;
+      txctx_blockAppender = blockAppender;
       execute(message, code, result);
       txctx_roStorage = nullptr;
       txctx_blockAppender = nullptr;
@@ -138,14 +130,15 @@ void com::vmware::athena::EVM::run(
       result.status_code = EVM_FAILURE;
    }
 
-   if (isTransaction) {
-      txhash = record_transaction(pending_index, message, result,
+   // blockAppender will be null if this is a call instead of a transaction,
+   // because calls are not allowed to modify state. Only one transaction will
+   // be recorded per execution, so wait for stack to pop to depth zero.
+   if (blockAppender && message.depth == 0) {
+      txhash = record_transaction(message,
+                                  result,
                                   message.destination,
                                   zero_address, /* no contract created */
-                                  blockAppender);
-   } else if (message.depth == 0 && pending.size() > 0) {
-      // our call generated other transactions - record their block
-      record_block(blockAppender);
+                                  *blockAppender);
    }
 }
 
@@ -161,13 +154,6 @@ void com::vmware::athena::EVM::create(
 {
    assert(message.kind == EVM_CREATE);
    assert(message.input_size > 0);
-
-   // We add the transaction to the pending list after evaluating it, but we
-   // want the pending list to be in the order of execution start. This means
-   // the child transactions will be added before their parent. To solve that,
-   // remember where the latest point was before evaluation, so we can insert at
-   // that point later.
-   size_t pending_index = pending.size();
 
    evm_address contract_address = contract_destination(message);
 
@@ -217,7 +203,7 @@ void com::vmware::athena::EVM::create(
    // don't expose the address if it wasn't used
    evm_address recorded_contract_address =
       result.status_code == EVM_SUCCESS ? contract_address : zero_address;
-   txhash = record_transaction(pending_index, message, result,
+   txhash = record_transaction(message, result,
                                zero_address, /* creates are not addressed */
                                recorded_contract_address,
                                blockAppender);
@@ -227,7 +213,6 @@ void com::vmware::athena::EVM::create(
  * Compute the hash for the transaction, and put the record in storage.
  */
 evm_uint256be com::vmware::athena::EVM::record_transaction(
-   const size_t pending_index,
    const evm_message &message,
    const evm_result &result,
    const evm_address &to_override,
@@ -251,26 +236,23 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
    };
 
    evm_uint256be txhash = tx.hash();
-   pending.insert(pending.begin()+pending_index, tx);
    LOG4CPLUS_DEBUG(logger, "Recording transaction " << txhash);
 
-   if (message.depth == 0) {
-      record_block(blockAppender);
-   }
+   assert(message.depth == 0);
+   record_block(tx, blockAppender);
 
    return txhash;
 }
 
-void com::vmware::athena::EVM::record_block(IBlocksAppender &blockAppender)
+void com::vmware::athena::EVM::record_block(EthTransaction &tx,
+                                            IBlocksAppender &blockAppender)
 {
-   SetOfKeyValuePairs updates;
+   evm_uint256be th = tx.hash();
 
-   // list of transaction hashes for the block
+   // list of transaction hashes for the block - we're doing just one
+   // transaciton per block
    std::vector<evm_uint256be> txlist;
-   for (auto t: pending) {
-      evm_uint256be th = t.hash();
-      txlist.push_back(th);
-   }
+   txlist.push_back(th);
 
    std::shared_ptr<EthBlock> blk = std::make_shared<EthBlock>();
    blk->number = next_block_number();
@@ -290,22 +272,23 @@ void com::vmware::athena::EVM::record_block(IBlocksAppender &blockAppender)
    blocks_by_hash[blk->hash] = blk;
    blocks_by_number[blk->number] = blk;
 
-   for (auto t: pending) {
-      t.block_hash = blk->hash;
-      t.block_number = blk->number;
+   tx.block_hash = blk->hash;
+   tx.block_number = blk->number;
 
-      evm_uint256be th = t.hash();
+   char *txkey_arr = new char[sizeof(th)];
+   std::copy(th.bytes, th.bytes+sizeof(th), txkey_arr);
 
-      char *txkey_arr = new char[sizeof(th)];
-      std::copy(th.bytes, th.bytes+sizeof(th), txkey_arr);
+   char *txser;
+   size_t txser_length = tx.serialize(&txser);
 
-      char *txser;
-      size_t txser_length = t.serialize(&txser);
+   KeyValuePair kv(Blockchain::Slice(txkey_arr, sizeof(th)),
+                   Blockchain::Slice(txser, txser_length));
 
-      KeyValuePair kv(Blockchain::Slice(txkey_arr, sizeof(th)),
-                      Blockchain::Slice(txser, txser_length));
-      updates.insert(kv);
-   }
+   // TODO(BWF): `updates` will eventually become a member variable, and it will
+   // accumulate all changes made by a transaction (like account value and
+   // contract storage)
+   SetOfKeyValuePairs updates;
+   updates.insert(kv);
 
    BlockId outBlockId;
    blockAppender.addBlock(updates, outBlockId);
@@ -315,8 +298,6 @@ void com::vmware::athena::EVM::record_block(IBlocksAppender &blockAppender)
       delete[] kvp.first.data();
       delete[] kvp.second.data();
    }
-
-   pending.clear();
 }
 
 /**
@@ -768,10 +749,7 @@ void com::vmware::athena::EVM::call(
    // call function needs non-const message object
    evm_message call_msg = *msg;
 
-   //Passing false ensures that this will not create a separate transaction
-   run(call_msg, false,
-       *txctx_roStorage, *txctx_blockAppender,
-       *result, txhash);
+   run(call_msg, *txctx_roStorage, txctx_blockAppender, *result, txhash);
 }
 
 /**

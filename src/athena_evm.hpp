@@ -129,9 +129,8 @@ public:
 
    /* Athena API */
    void run(evm_message &message,
-            bool isTransaction,
             const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-            Blockchain::IBlocksAppender &blockAppender,
+            Blockchain::IBlocksAppender *blockAppender,
             evm_result &result, /* out */
             evm_uint256be &txhash /* out */);
    void create(evm_message &message,
@@ -210,9 +209,6 @@ private:
    // map from account address to latest nonce
    std::map<evm_address, uint64_t> nonces;
 
-   // transactions in flight for the current block
-   std::vector<EthTransaction> pending;
-
    // the blocks we have created, in two mappings: by hash and by number.
    // using shared pointers inside the maps, so that the memory will be cleaned
    // up later.
@@ -239,13 +235,13 @@ private:
    uint64_t next_block_number();
 
    evm_uint256be hash_for_block(const std::shared_ptr<EthBlock> tx) const;
-   evm_uint256be record_transaction(const size_t pending_index,
-                                    const evm_message &message,
+   evm_uint256be record_transaction(const evm_message &message,
                                     const evm_result &result,
                                     const evm_address &to_override,
                                     const evm_address &contract_address,
                                     Blockchain::IBlocksAppender &blockAppender);
-   void record_block(Blockchain::IBlocksAppender &blockAppender);
+   void record_block(EthTransaction &tx,
+                     Blockchain::IBlocksAppender &blockAppender);
    std::vector<uint8_t> storage_key(const struct evm_address* address,
                                     const struct evm_uint256be* key) const;
 

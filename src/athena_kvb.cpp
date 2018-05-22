@@ -98,7 +98,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_sendTransaction(
 
    evm_uint256be txhash;
    evm_result &&result =
-      run_evm(request, true, roStorage, blockAppender, txhash);
+      run_evm(request, roStorage, &blockAppender, txhash);
    EthResponse *response = athresp.add_eth_response();
    response->set_id(request.id());
    response->set_data(txhash.bytes, sizeof(evm_uint256be));
@@ -131,6 +131,8 @@ bool com::vmware::athena::KVBCommandsHandler::executeReadOnlyCommand(
       result = handle_block_list_request(command, roStorage, athresp);
    } else if (command.has_block_request()) {
       result = handle_block_request(command, roStorage, athresp);
+   } else if (command.eth_request_size() > 0) {
+      result = handle_eth_request_read_only(command, roStorage, athresp);
    } else {
       LOG4CPLUS_ERROR(logger, "Unknown read-only command");
       ErrorResponse *resp = athresp.add_error_response();
@@ -200,9 +202,8 @@ void com::vmware::athena::KVBCommandsHandler::build_transaction_response(
 
 evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
    const EthRequest &request,
-   bool isTransaction,
    const ILocalKeyValueStorageReadOnly &roStorage,
-   IBlocksAppender &blockAppender,
+   IBlocksAppender *blockAppender,
    evm_uint256be &txhash /* OUT */) const
 {
    evm_message message;
@@ -247,11 +248,12 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
       assert(20 == request.addr_to().length());
       memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
 
-      athevm_.run(message, isTransaction, roStorage, blockAppender, result, txhash);
+      athevm_.run(message, roStorage, blockAppender, result, txhash);
    } else {
       message.kind = EVM_CREATE;
 
-      athevm_.create(message, roStorage, blockAppender, result, txhash);
+      assert(blockAppender);
+      athevm_.create(message, roStorage, *blockAppender, result, txhash);
    }
 
    LOG4CPLUS_INFO(logger, "Execution result -" <<
@@ -361,5 +363,63 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_request(
    }
 
    // even requests for non-existent blocks are legal/valid
+   return true;
+}
+
+/*
+ * Handle an ETH RPC request. Returns false if the command was invalid; true
+ * otherwise.
+ */
+bool com::vmware::athena::KVBCommandsHandler::handle_eth_request_read_only(
+   AthenaRequest &athreq,
+   const ILocalKeyValueStorageReadOnly &roStorage,
+   AthenaResponse &athresp) const
+{
+   switch (athreq.eth_request(0).method()) {
+   case EthRequest_EthMethod_CALL_CONTRACT:
+      return handle_eth_callContract(athreq, roStorage, athresp);
+      break;
+      //TODO(BWF): move over all other api_connection::handle_eth_request cases
+      //           some may go to a ready-only version
+   default:
+      ErrorResponse *e = athresp.add_error_response();
+      e->mutable_description()->assign("ETH Method Not Implemented");
+      return false;
+   }
+}
+
+/**
+ * Handle the 'contract.method.call()' functionality of ethereum. This is
+ * used when the method being called does not make any changes to the state
+ * of the system. Hence, in this case, we also do not record any transaction
+ * Instead the return value of the contract function call will be returned
+ * as the 'data' of EthResponse.
+ */
+bool com::vmware::athena::KVBCommandsHandler::handle_eth_callContract(
+   AthenaRequest &athreq,
+   const ILocalKeyValueStorageReadOnly &roStorage,
+   AthenaResponse &athresp) const
+{
+   const EthRequest request = athreq.eth_request(0);
+
+   evm_uint256be txhash;
+   evm_result &&result = run_evm(request,
+                                 roStorage,
+                                 nullptr, /* modifications not allowed */
+                                 txhash);
+   // Here we don't care about the txhash. Transaction was never
+   // recorded, instead we focus on the result object and the
+   // output_data field in it.
+   if (result.status_code == EVM_SUCCESS) {
+      EthResponse *response = athresp.add_eth_response();
+      response->set_id(request.id());
+      if (result.output_data != NULL && result.output_size > 0)
+         response->set_data(result.output_data, result.output_size);
+   } else {
+      ErrorResponse *err = athresp.add_error_response();
+      err->mutable_description()->assign("Error while calling contract");
+   }
+
+   // the request was valid, even if it failed
    return true;
 }

@@ -61,6 +61,14 @@ public:
       const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
       Blockchain::IBlocksAppender &blockAppender,
       AthenaResponse &athresp) const;
+   bool handle_eth_request_read_only(
+      AthenaRequest &athreq,
+      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+      AthenaResponse &athresp) const;
+   bool handle_eth_callContract(
+      AthenaRequest &athreq,
+      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+      AthenaResponse &athresp) const;
 
    // Utilites
    void build_transaction_response(evm_uint256be &hash,
@@ -69,9 +77,8 @@ public:
 
    evm_result run_evm(
       const EthRequest &request,
-      bool isTransaction,
       const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-      Blockchain::IBlocksAppender &blockAppender,
+      Blockchain::IBlocksAppender *blockAppender,
       evm_uint256be &txhash /* OUT */) const;
 };
 

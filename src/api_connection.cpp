@@ -400,7 +400,15 @@ api_connection::handle_eth_request(int i)
       break;
    //TODO(BWF): The rest of these will be read-only
    case EthRequest_EthMethod_CALL_CONTRACT:
-      handle_eth_callContract(request);
+      if (client_.send_request_sync(internalRequest,
+                                    true /* read only */,
+                                    internalResponse)) {
+         athenaResponse_.MergeFrom(internalResponse);
+      } else {
+         LOG4CPLUS_ERROR(logger_, "Error parsing response");
+         ErrorResponse *resp = athenaResponse_.add_error_response();
+         resp->set_description("Internal Athena Error");
+      }
       break;
    case EthRequest_EthMethod_GET_STORAGE_AT:
       handle_eth_getStorageAt(request);
@@ -543,38 +551,6 @@ api_connection::handle_transaction_request()
    }
 }
 
-
-/**
- * Handle the 'contract.method.call()' functionality of ethereum. This is
- * used when the method being called does not make any changes to the state
- * of the system. Hence, in this case, we also do not record any transaction
- * Instead the return value of the contract function call will be returned
- * as the 'data' of EthResponse.
- */
-void
-api_connection::handle_eth_callContract(const EthRequest &request)
-{
-   //TODO(BWF): client_.send_request (read-only)
-   LOG4CPLUS_WARN(logger_,
-                  "TODO: callContract disabled during KVB integration");
-
-   /*
-   evm_uint256be txhash;
-   evm_result &&result = run_evm(request, false, txhash);
-   // Here we don't care about the txhash. Transaction was never
-   // recorded, instead we focus on the result object and the
-   // output_data field in it.
-   if (result.status_code == EVM_SUCCESS) {
-      EthResponse *response = athenaResponse_.add_eth_response();
-      response->set_id(request.id());
-      if (result.output_data != NULL && result.output_size > 0)
-         response->set_data(result.output_data, result.output_size);
-   } else {
-      ErrorResponse *err = athenaResponse_.add_error_response();
-      err->mutable_description()->assign("Error while calling contract");
-   }
-   */
-}
 
 /**
  * Handle an eth_getStorageAt request.
