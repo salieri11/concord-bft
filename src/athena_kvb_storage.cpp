@@ -139,7 +139,7 @@ void com::vmware::athena::KVBStorage::write_block() {
       if (u.first.data()[0] == TYPE_TRANSACTION) {
          evm_uint256be txhash;
          std::copy(u.first.data()+1,
-                   u.first.data()+sizeof(txhash),
+                   u.first.data()+u.first.size(),
                    txhash.bytes);
          blk.transactions.push_back(txhash);
       }
