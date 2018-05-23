@@ -313,7 +313,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_request(
    try {
       EthBlock block;
       if (request.has_number()) {
-         uint64_t requested_block_number = athevm_.current_block_number();
+         uint64_t requested_block_number = kvbStorage.current_block_number();
          if (request.number() >= 0 &&
              request.number() < requested_block_number) {
             requested_block_number = request.number();

@@ -657,7 +657,7 @@ void
 api_connection::handle_new_block_filter(const EthRequest &request) {
    // TODO(BWF): replace this with a read-only client call
    //            (will be the same as handle_eth_blockNumber)
-   uint64_t current_block = athevm_.current_block_number();
+   uint64_t current_block = 0;//athevm_.current_block_number();
    evm_uint256be filterId =
       filterManager_.create_new_block_filter(current_block);
    EthResponse *response = athenaResponse_.add_eth_response();
@@ -692,7 +692,7 @@ api_connection::handle_get_filter_changes(const EthRequest &request)
       } else if (filterManager_.get_filter_type(filterId) ==
                  EthFilterType::NEW_BLOCK_FILTER) {
          // TODO(BWF): replace this with a read-only client call
-         uint64_t current_block = athevm_.current_block_number();
+         uint64_t current_block = 0;//athevm_.current_block_number();
          vector<evm_uint256be>  block_changes =
             filterManager_.get_new_block_filter_changes(
                filterId, current_block, client_);
@@ -749,7 +749,9 @@ api_connection::handle_eth_blockNumber(const EthRequest &request) {
    EthResponse *response = athenaResponse_.add_eth_response();
    response->set_id(request.id());
    evm_uint256be current_block;
-   to_evm_uint256be(athevm_.current_block_number(), &current_block);
+   // TODO(BWF): block number over sbft
+//   to_evm_uint256be(athevm_.current_block_number(), &current_block);
+   to_evm_uint256be(0, &current_block);
    response->set_data(current_block.bytes, sizeof(evm_uint256be));
 }
 

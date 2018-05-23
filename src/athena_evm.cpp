@@ -245,36 +245,6 @@ void com::vmware::athena::EVM::record_block(EthTransaction &tx,
 {
    kvbStorage.add_transaction(tx);
    kvbStorage.write_block();
-
-   //TODO(BWF): remove all of this after testing (leaving blocks_by_hash and
-   //blocks_by_number for the first iteration)
-   evm_uint256be th = tx.hash();
-
-   // list of transaction hashes for the block - we're doing just one
-   // transaciton per block
-   std::vector<evm_uint256be> txlist;
-   txlist.push_back(th);
-
-   std::shared_ptr<EthBlock> blk = std::make_shared<EthBlock>();
-   blk->number = next_block_number();
-
-   if (blk->number-1 == 0) {
-      // TODO(BWF): temporary during KVB transition
-      blk->parent_hash = zero_hash;
-   } else {
-      blk->parent_hash = blocks_by_number[blk->number-1]->hash;
-   }
-
-   blk->transactions = txlist;
-   blk->hash = hash_for_block(blk);
-
-   LOG4CPLUS_DEBUG(logger, "Recording block " << blk->number <<
-                   " hash " << blk->hash);
-   blocks_by_hash[blk->hash] = blk;
-   blocks_by_number[blk->number] = blk;
-
-   tx.block_hash = blk->hash;
-   tx.block_number = blk->number;
 }
 
 /**
@@ -307,8 +277,8 @@ std::vector<EthBlock> com::vmware::athena::EVM::get_block_list(
    uint64_t count,
    KVBStorage &kvbStorage) const
 {
-   if (latest > current_block_number()) {
-      latest = current_block_number();
+   if (latest > kvbStorage.current_block_number()) {
+      latest = kvbStorage.current_block_number();
    }
 
    if (count > latest+1) {
@@ -320,13 +290,7 @@ std::vector<EthBlock> com::vmware::athena::EVM::get_block_list(
 
    std::vector<EthBlock> result;
    for (int i = 0; i < count; i++) {
-      if (latest-i == 0) {
-         // the genesis block is in KVBlockchain
-         result.push_back(kvbStorage.get_block(0));
-      } else {
-         // TODO(BWF): other blocks are on the chain - try this next!
-         result.push_back(*(blocks_by_number.find(latest-i)->second));
-      }
+      result.push_back(kvbStorage.get_block(latest-i));
    }
 
    return result;
@@ -338,16 +302,7 @@ std::vector<EthBlock> com::vmware::athena::EVM::get_block_list(
 EthBlock com::vmware::athena::EVM::get_block_for_number(
    uint64_t number, KVBStorage &kvbStorage) const
 {
-   if (number == 0) {
-      // genesis block is in KVBlockchain
-      return kvbStorage.get_block(0);
-   } else {
-      // TODO(BWF): other blocks are not yet in KVBlockchain
-      auto iter = blocks_by_number.find(number);
-      if (iter != blocks_by_number.end()) {
-         return *(iter->second);
-      }
-   }
+   return kvbStorage.get_block(number);
 
    throw BlockNotFoundException();
 }
@@ -385,40 +340,6 @@ evm_address com::vmware::athena::EVM::contract_destination(
              hash.bytes+sizeof(evm_uint256be),
              address.bytes);
    return address;
-}
-
-/**
- * TODO(BWF): remove this version (it's now in athena_types)
- * Compute the hash which will be used to reference the transaction.
- */
-evm_uint256be com::vmware::athena::EVM::hash_for_block(
-   const std::shared_ptr<EthBlock> blk) const
-{
-   /*
-    * WARNING: This is not the same as Ethereum's block hash right now,
-    * but is instead an approximation, in order to provide something to fill API
-    * holes. For now, the plan is:
-    *
-    * RLP([number, parent_hash, [txhash1, txhash2, ...]])
-    */
-
-   RLPBuilder rlpb;
-   rlpb.start_list();
-
-   rlpb.start_list();
-   for (auto txh = blk->transactions.rbegin();
-        txh != blk->transactions.rend();
-        ++txh) {
-      rlpb.add(*txh);
-   }
-   rlpb.end_list();
-
-   rlpb.add(blk->parent_hash);
-   rlpb.add(blk->number);
-   std::vector<uint8_t> rlp = rlpb.build();
-
-   // hash it
-   return keccak_hash(rlp);
 }
 
 /**
@@ -463,16 +384,6 @@ uint64_t com::vmware::athena::EVM::get_nonce(const evm_address &address)
    }
    nonces[address] = nonce+1;
    return nonce;
-}
-
-uint64_t com::vmware::athena::EVM::next_block_number()
-{
-   return ++latestBlock;
-}
-
-uint64_t com::vmware::athena::EVM::current_block_number() const
-{
-   return latestBlock;
 }
 
 void com::vmware::athena::EVM::execute(evm_message &message,
@@ -661,10 +572,11 @@ void com::vmware::athena::EVM::get_block_hash(
 {
    LOG4CPLUS_DEBUG(logger, "EVM::get_block_hash called, block: " << number);
 
-   auto iter = blocks_by_number.find(number);
-   if (iter != blocks_by_number.end()) {
-      *result = iter->second->hash;
-   } else {
+   try {
+      assert(txctx_kvbStorage);
+      EthBlock blk = txctx_kvbStorage->get_block(number);
+      *result = blk.hash;
+   } catch (...) {
       *result = zero_hash;
    }
 }

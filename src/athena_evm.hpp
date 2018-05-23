@@ -147,8 +147,6 @@ public:
                        int64_t number);
    void get_tx_context(struct evm_tx_context* result);
 
-   uint64_t current_block_number() const;
-
 private:
    athena_context athctx;
    evm_instance *evminst;
@@ -171,17 +169,6 @@ private:
    // map from account address to latest nonce
    std::map<evm_address, uint64_t> nonces;
 
-   // the blocks we have created, in two mappings: by hash and by number.
-   // using shared pointers inside the maps, so that the memory will be cleaned
-   // up later.
-   //TODO: unoordered map
-   std::map<evm_uint256be, std::shared_ptr<EthBlock>> blocks_by_hash;
-   std::map<uint64_t, std::shared_ptr<EthBlock>> blocks_by_number;
-
-   // the latest block id we have used
-   // TODO: make this atomic
-   uint64_t latestBlock = 0;
-
    // map from [(contract address)+(storage location)] to data at that location
    std::map<std::vector<uint8_t>, evm_uint256be> storage_map;
 
@@ -191,9 +178,7 @@ private:
                 const std::vector<uint8_t> &code,
                 evm_result &result /* out */);
    uint64_t get_nonce(const evm_address &address);
-   uint64_t next_block_number();
 
-   evm_uint256be hash_for_block(const std::shared_ptr<EthBlock> tx) const;
    evm_uint256be record_transaction(const evm_message &message,
                                     const evm_result &result,
                                     const evm_address &to_override,

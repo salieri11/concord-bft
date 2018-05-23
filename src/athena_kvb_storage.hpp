@@ -62,6 +62,7 @@ public:
 
    bool is_read_only();
 
+   uint64_t current_block_number();
    EthBlock get_block(const evm_uint256be &hash);
    EthBlock get_block(uint64_t number);
    EthTransaction get_transaction(const evm_uint256be &hash);

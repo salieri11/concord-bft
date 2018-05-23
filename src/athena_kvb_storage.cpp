@@ -144,6 +144,7 @@ void com::vmware::athena::KVBStorage::write_block() {
          blk.transactions.push_back(txhash);
       }
    }
+   blk.hash = blk.get_hash();
 
    add_block(blk);
 
@@ -215,6 +216,12 @@ uint64_t com::vmware::athena::KVBStorage::next_block_number() {
    return roStorage_.getLastBlock();
 }
 
+uint64_t com::vmware::athena::KVBStorage::current_block_number() {
+   // Ethereum block number is 1+KVB block number. So, the most recent Ethereum
+   // block is one less than the most recent KVB block.
+   return roStorage_.getLastBlock()-1;
+}
+
 Status com::vmware::athena::KVBStorage::get(const Slice &key, Slice &value)
 {
    //TODO(BWF): this search will be very inefficient for a large set of changes
@@ -240,18 +247,11 @@ EthBlock com::vmware::athena::KVBStorage::get_block(uint64_t number)
                    " value.size: " << outBlockData.size());
 
    if (status.ok()) {
-      EthBlock genesisBlock;
-      genesisBlock.number = 0;
-      genesisBlock.hash = zero_hash;
-      genesisBlock.parent_hash = zero_hash;
       for (auto kvp: outBlockData) {
-         evm_uint256be txhash;
-         std::copy(kvp.first.data()+1,
-                   kvp.first.data()+kvp.first.size(),
-                   txhash.bytes);
-         genesisBlock.transactions.push_back(txhash);
+         if (kvp.first.data()[0] == TYPE_BLOCK) {
+            return EthBlock::deserialize(kvp.second);
+         }
       }
-      return genesisBlock;
    }
    throw BlockNotFoundException();
 }
