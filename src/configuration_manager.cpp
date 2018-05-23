@@ -44,6 +44,8 @@ variables_map initialize_config(int argc, char **argv) {
       ("config,c",
        value<string>(&config_file)->default_value(default_config_file),
        "Path for configuration file")
+      ("debug",
+      "Sleep for 20 seconds to attach debug");
       ;
 
    // The configuration parameters specific to this program
@@ -78,9 +80,10 @@ variables_map initialize_config(int argc, char **argv) {
       ("blockchain_db_path",
        value<string>(),
        "Path cd o blockchain database storage")
-       ("instance-id,id",
-       value<string>()->required(),
+       ("instance-id,i",
+       value<uint32_t>()->required(),
        "Instance ID to match the SBFT configuration files");
+
 
    options_description all_options; // description of all options
    all_options.add(generic).add(config);

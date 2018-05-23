@@ -38,11 +38,11 @@ namespace Blockchain {
    protected:
 
       // ctor & dtor
-      ClientImp(const char *byzConfig, const char *byzPrivateConfig);
+      ClientImp(string byzConfig, string byzPrivateConfig);
       ~ClientImp();
 
-      const char *m_byzConfig;
-      const char *m_byzPrivateConfig;
+      const string m_byzConfig;
+      const string m_byzPrivateConfig;
 
       const TlsIndex m_TlsData;
 

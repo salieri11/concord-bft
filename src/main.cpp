@@ -19,6 +19,8 @@
 #include "kvb/InMemoryDBClient.h"
 #include "kvb/ReplicaImp.h"
 #include "kvb/ClientImp.h"
+#include <thread>
+#include "libbyz.h"
 #ifdef USE_ROCKSDB
 #include "kvb/RocksDBClient.h"
 #endif
@@ -162,23 +164,34 @@ run_service(variables_map &opts, Logger logger)
       EVM athevm(params);
       KVBCommandsHandler athkvb(athevm);
 
-      string sbftClientPrivConfigFilePrefix = "./submodules/P2_Blockchain/SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3-cli-";
-      string sbftRepPrivConfigFilePrefix = "./submodules/P2_Blockchain/SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3-rep-";
-      string sbftPubConfigFile = "./submodules/P2_Blockchain/SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3.pub";
+      string sbftClientPrivConfigFilePrefix =
+              "./submodules/P2_Blockchain/SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3-cli-";
+      string sbftRepPrivConfigFilePrefix =
+              "./submodules/P2_Blockchain/SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3-rep-";
+      string sbftPubConfigFile =
+              "./submodules/P2_Blockchain/SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3.pub";
+
+      // TODO(IG): for Thread local storage. Dirty but need to check that works
+      // should be called exactly once per process
+      initEnvironment();
 
       // TODO(BWF): This works because this thread is going to be the same one
       // that calls the replica (athena is single-threaded).
       Blockchain::ReplicaConsensusConfig replicaConsensusConfig;
       replicaConsensusConfig.byzConfig = sbftPubConfigFile.c_str();
-      replicaConsensusConfig.byzPrivateConfig = (sbftRepPrivConfigFilePrefix + opts["instance-id"].as<string>() + ".priv").c_str();
+      replicaConsensusConfig.byzPrivateConfig =
+              sbftRepPrivConfigFilePrefix +
+              std::to_string(opts["instance-id"].as<uint32_t>()) + ".priv";
       Blockchain::IReplica *replica =
          Blockchain::createReplica(replicaConsensusConfig, &athkvb, dbclient);
       replica->start();
       create_genesis_block(replica, params, logger);
 
       Blockchain::ClientConsensusConfig clientConsensusConfig;
-      clientConsensusConfig.byzConfig = sbftPubConfigFile.c_str();
-      clientConsensusConfig.byzPrivateConfig = (sbftClientPrivConfigFilePrefix + opts["instance-id"].as<string>() + ".priv").c_str();
+      clientConsensusConfig.byzConfig = sbftPubConfigFile;
+      clientConsensusConfig.byzPrivateConfig =
+              sbftClientPrivConfigFilePrefix +
+              std::to_string(opts["instance-id"].as<uint32_t>()) + ".priv";
       Blockchain::IClient *client =
          Blockchain::createClient(clientConsensusConfig);
       client->start();
@@ -201,6 +214,11 @@ run_service(variables_map &opts, Logger logger)
       replica->stop();
       replica->wait();
       Blockchain::release(replica);
+
+      // TODO(IG): for Thread local storage. Dirty but need to check that works
+      // should be called exactly once per process
+      freeEnvironment();
+
    } catch (EVMInitParamException &ex) {
       LOG4CPLUS_FATAL(logger, ex.what());
       return -1;
@@ -215,6 +233,7 @@ run_service(variables_map &opts, Logger logger)
 int
 main(int argc, char** argv)
 {
+
    bool loggerInitialized = true;
    int result = 0;
 
@@ -228,6 +247,9 @@ main(int argc, char** argv)
 
       if (opts.count("help"))
          return result;
+
+      if (opts.count("debug"))
+         std::this_thread::sleep_for(chrono::seconds(20));
 
       // Initialize logger
       log4cplus::initialize();
