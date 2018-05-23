@@ -368,89 +368,78 @@ api_connection::handle_peer_request()
 void
 api_connection::handle_eth_request(int i)
 {
-   // TODO: forward to SBFT/KVBlockchain; just calling directly for now to
-   // demonstrate
-
-   // TODO: this is safe because we only handle one connection at a time
-   // currently
    const EthRequest request = athenaRequest_.eth_request(i);
 
-   AthenaRequest internalRequest;
-   EthRequest *internalEthRequest = internalRequest.add_eth_request();
-   internalEthRequest->CopyFrom(request);
-   AthenaResponse internalResponse;
-
-   switch (request.method()) {
-   case EthRequest_EthMethod_SEND_TX:
-      if (client_.send_request_sync(internalRequest,
-                                    false /* not read only */,
-                                    internalResponse)) {
-         athenaResponse_.MergeFrom(internalResponse);
-      } else {
-         LOG4CPLUS_ERROR(logger_, "Error parsing response");
-         ErrorResponse *resp = athenaResponse_.add_error_response();
-         resp->set_description("Internal Athena Error");
-      }
-      break;
-   case EthRequest_EthMethod_NEW_ACCOUNT:
-      handle_personal_newAccount(request);
-      break;
-   //TODO(BWF): The rest of these will be read-only
-   case EthRequest_EthMethod_CALL_CONTRACT:
-      if (client_.send_request_sync(internalRequest,
-                                    true /* read only */,
-                                    internalResponse)) {
-         athenaResponse_.MergeFrom(internalResponse);
-      } else {
-         LOG4CPLUS_ERROR(logger_, "Error parsing response");
-         ErrorResponse *resp = athenaResponse_.add_error_response();
-         resp->set_description("Internal Athena Error");
-      }
-      break;
-   case EthRequest_EthMethod_GET_STORAGE_AT:
-      handle_eth_getStorageAt(request);
-      break;
-   case EthRequest_EthMethod_FILTER_REQUEST:
+   if (request.method() == EthRequest_EthMethod_FILTER_REQUEST) {
       handle_filter_requests(request);
-      break;
-   case EthRequest_EthMethod_GET_CODE:
-      handle_eth_getCode(request);
-      break;
-   case EthRequest_EthMethod_BLOCK_NUMBER:
-      handle_eth_blockNumber(request);
-      break;
-   default:
-      ErrorResponse *e = athenaResponse_.add_error_response();
-      e->mutable_description()->assign("ETH Method Not Implemented");
+   } else {
+      bool validRequest;
+      bool isReadOnly = true;
+      switch(request.method()) {
+      case EthRequest_EthMethod_SEND_TX:
+         // TODO: complicated validation; let it through for now
+         validRequest = true;
+         isReadOnly = false;
+         break;
+      case EthRequest_EthMethod_NEW_ACCOUNT:
+         validRequest = is_valid_personal_newAccount(request);
+         isReadOnly = false;
+         break;
+      case EthRequest_EthMethod_CALL_CONTRACT:
+         // TODO: complicated validation; let it through for now
+         validRequest = true;
+         break;
+      case EthRequest_EthMethod_GET_STORAGE_AT:
+         validRequest = is_valid_eth_getStorageAt(request);
+         break;
+      case EthRequest_EthMethod_GET_CODE:
+         validRequest = is_valid_eth_getCode(request);
+         break;
+      case EthRequest_EthMethod_BLOCK_NUMBER:
+         // no parameters to validate
+         validRequest = true;
+         break;
+      default:
+         validRequest = false;
+         ErrorResponse *e = athenaResponse_.add_error_response();
+         e->mutable_description()->assign("ETH Method Not Implemented");
+      }
+
+      // If the request is valid, submit it to SBFT. If the request was not
+      // valid, the validation function should have added an error message to
+      // athenaResponse_.
+      if (validRequest) {
+         AthenaRequest internalRequest;
+         EthRequest *internalEthRequest = internalRequest.add_eth_request();
+         internalEthRequest->CopyFrom(request);
+         AthenaResponse internalResponse;
+
+         if (client_.send_request_sync(
+                internalRequest, isReadOnly, internalResponse)) {
+            athenaResponse_.MergeFrom(internalResponse);
+         } else {
+            LOG4CPLUS_ERROR(logger_, "Error parsing response");
+            ErrorResponse *resp = athenaResponse_.add_error_response();
+            resp->set_description("Internal Athena Error");
+         }
+      }
    }
 }
 
 /**
- * Verify a personal.newAccount request is valid, and forward to KVB if so.
+ * Verify a personal.newAccount request is valid (that it includes a pass
+ * phrase).
  */
-void
-api_connection::handle_personal_newAccount(const EthRequest &request)
+bool
+api_connection::is_valid_personal_newAccount(const EthRequest &request)
 {
    if (request.has_data()) {
-      // TODO(BWF): this can be deduped into handle_eth_request once all other
-      // methods in there are also handled by KVB
-      AthenaRequest internalRequest;
-      EthRequest *internalEthRequest = internalRequest.add_eth_request();
-      internalEthRequest->CopyFrom(request);
-      AthenaResponse internalResponse;
-
-      if (client_.send_request_sync(internalRequest,
-                                    false /* not read only */,
-                                    internalResponse)) {
-         athenaResponse_.MergeFrom(internalResponse);
-      } else {
-         LOG4CPLUS_ERROR(logger_, "Error parsing response");
-         ErrorResponse *resp = athenaResponse_.add_error_response();
-         resp->set_description("Internal Athena Error");
-      }
+      // request must have included a pass phrase
+      return true;
    } else {
       ErrorResponse *error = athenaResponse_.add_error_response();
       error->set_description("Missing passphrase");
+      return false;
    }
 }
 
@@ -540,63 +529,36 @@ api_connection::handle_transaction_request()
 
 
 /**
- * Handle an eth_getStorageAt request.
+ * Check that an eth_getStorageAt request is valid.
  */
-void
-api_connection::handle_eth_getStorageAt(const EthRequest &request)
+bool
+api_connection::is_valid_eth_getStorageAt(const EthRequest &request)
 {
    if (request.has_addr_to() && request.addr_to().size() == sizeof(evm_address)
        && request.has_data() && request.data().size() == sizeof(evm_uint256be))
    {
-      //TODO(BWF): this can be deduped to handle_eth_request once everything
-      //else there is moved over to KVB
-      AthenaRequest internalRequest;
-      EthRequest *internalEthRequest = internalRequest.add_eth_request();
-      internalEthRequest->CopyFrom(request);
-      AthenaResponse internalResponse;
-
-      if (client_.send_request_sync(internalRequest,
-                                    true /* read only */,
-                                    internalResponse)) {
-         athenaResponse_.MergeFrom(internalResponse);
-      } else {
-         LOG4CPLUS_ERROR(logger_, "Error parsing response");
-         ErrorResponse *resp = athenaResponse_.add_error_response();
-         resp->set_description("Internal Athena Error");
-      }
+      // must have the address of the contract, and the location to read
+      return true;
    } else {
       ErrorResponse *error = athenaResponse_.add_error_response();
       error->set_description("Missing account/contract or storage address");
+      return false;
    }
 }
 
 /**
- * Handle an eth_getCode request.
+ * Check that an eth_getCode request is valid.
  */
-void
-api_connection::handle_eth_getCode(const EthRequest &request)
+bool
+api_connection::is_valid_eth_getCode(const EthRequest &request)
 {
    if (request.has_addr_to() && request.addr_to().size() == sizeof(evm_address))
    {
-      //TODO(BWF): this can be deduped to handle_eth_request once everything
-      //else there is moved over to KVB
-      AthenaRequest internalRequest;
-      EthRequest *internalEthRequest = internalRequest.add_eth_request();
-      internalEthRequest->CopyFrom(request);
-      AthenaResponse internalResponse;
-
-      if (client_.send_request_sync(internalRequest,
-                                    true /* read only */,
-                                    internalResponse)) {
-         athenaResponse_.MergeFrom(internalResponse);
-      } else {
-         LOG4CPLUS_ERROR(logger_, "Error parsing response");
-         ErrorResponse *resp = athenaResponse_.add_error_response();
-         resp->set_description("Internal Athena Error");
-      }
+      return true;
    } else {
       ErrorResponse *error = athenaResponse_.add_error_response();
       error->set_description("Missing contract address");
+      return false;
    }
 }
 
@@ -648,8 +610,6 @@ api_connection::handle_filter_requests(const EthRequest &request)
  */
 void
 api_connection::handle_new_block_filter(const EthRequest &request) {
-   // TODO(BWF): replace this with a read-only client call
-   //            (will be the same as handle_eth_blockNumber)
    uint64_t current_block = current_block_number();
    evm_uint256be filterId =
       filterManager_.create_new_block_filter(current_block);
@@ -684,7 +644,6 @@ api_connection::handle_get_filter_changes(const EthRequest &request)
                         "newFilter API (LOG_FILTER) is not implemented yet");
       } else if (filterManager_.get_filter_type(filterId) ==
                  EthFilterType::NEW_BLOCK_FILTER) {
-         // TODO(BWF): replace this with a read-only client call
          uint64_t current_block = current_block_number();
          vector<evm_uint256be>  block_changes =
             filterManager_.get_new_block_filter_changes(
@@ -737,15 +696,6 @@ api_connection::handle_uninstall_filter(const EthRequest &request)
    }
 }
 
-void
-api_connection::handle_eth_blockNumber(const EthRequest &request) {
-   EthResponse *response = athenaResponse_.add_eth_response();
-   response->set_id(request.id());
-   evm_uint256be current_block;
-   to_evm_uint256be(current_block_number(), &current_block);
-   response->set_data(current_block.bytes, sizeof(evm_uint256be));
-}
-
 uint64_t api_connection::current_block_number() {
    AthenaRequest internalReq;
    EthRequest *ethReq = internalReq.add_eth_request();
@@ -766,9 +716,6 @@ uint64_t api_connection::current_block_number() {
    return 0;
 }
 
-// TODO(BWF): When KVB integration is complete, this class should not hold a
-// reference to the EVM. Communication with it should happen through
-// KVBlockchain/SBFT.
 api_connection::api_connection(
    io_service &io_service,
    connection_manager &manager,

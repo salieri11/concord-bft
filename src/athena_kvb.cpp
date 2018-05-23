@@ -80,8 +80,6 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_request(
    case EthRequest_EthMethod_NEW_ACCOUNT:
       return handle_personal_newAccount(athreq, kvbStorage, athresp);
       break;
-      //TODO(BWF): move over all other api_connection::handle_eth_request cases
-      //           some may go to a ready-only version
    default:
       ErrorResponse *e = athresp.add_error_response();
       e->mutable_description()->assign("ETH Method Not Implemented");
@@ -427,8 +425,6 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_request_read_only(
    case EthRequest_EthMethod_GET_STORAGE_AT:
       return handle_eth_getStorageAt(athreq, kvbStorage, athresp);
       break;
-      //TODO(BWF): move over all other api_connection::handle_eth_request cases
-      //           some may go to a ready-only version
    default:
       ErrorResponse *e = athresp.add_error_response();
       e->mutable_description()->assign("ETH Method Not Implemented");

@@ -80,16 +80,12 @@ private:
            evm_uint256be &txhash);
 
    /* Specific Ethereum Method handlers. */
-   void
-   handle_eth_sendTransaction(const EthRequest &request);
-   void
-   handle_eth_callContract(const EthRequest &request);
-   void
-   handle_eth_getTxReceipt(const EthRequest &request);
-   void
-   handle_eth_getStorageAt(const EthRequest &request);
-   void
-   handle_eth_getCode(const EthRequest &request);
+   bool
+   is_valid_eth_getStorageAt(const EthRequest &request);
+   bool
+   is_valid_eth_getCode(const EthRequest &request);
+   bool
+   is_valid_personal_newAccount(const EthRequest &request);
    void
    handle_filter_requests(const EthRequest &request);
    void
@@ -98,10 +94,6 @@ private:
    handle_get_filter_changes(const EthRequest &reqest);
    void
    handle_uninstall_filter(const EthRequest &reqest);
-   void
-   handle_personal_newAccount(const EthRequest &request);
-   void
-   handle_eth_blockNumber(const EthRequest &request);
 
    /* This serves not only eth_blockNumber, but also filter curiosity. */
    uint64_t current_block_number();
