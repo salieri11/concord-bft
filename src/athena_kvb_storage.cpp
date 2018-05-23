@@ -57,7 +57,7 @@ Slice com::vmware::athena::KVBStorage::kvb_key(
 {
    char *key = new char[1+length];
    key[0] = type;
-   std::copy(bytes, bytes+length, key);
+   std::copy(bytes, bytes+length, key+1);
    return Slice(key, length+1);
 }
 
@@ -109,8 +109,8 @@ Slice com::vmware::athena::KVBStorage::storage_key(
 ////////////////////////////////////////
 // WRITING
 
-Status com::vmware::athena::KVBStorage::put(const Slice &key,
-                                            const Slice &value)
+void com::vmware::athena::KVBStorage::put(const Slice &key,
+                                          const Slice &value)
 {
    if (!blockAppender_) {
       throw ReadOnlyModeException();
@@ -246,7 +246,7 @@ EthBlock com::vmware::athena::KVBStorage::get_block(uint64_t number)
       genesisBlock.parent_hash = zero_hash;
       for (auto kvp: outBlockData) {
          evm_uint256be txhash;
-         std::copy(kvp.first.data(),
+         std::copy(kvp.first.data()+1,
                    kvp.first.data()+kvp.first.size(),
                    txhash.bytes);
          genesisBlock.transactions.push_back(txhash);

@@ -75,23 +75,40 @@ Blockchain::IDBClient* open_database(variables_map &opts, Logger logger)
    }
 }
 
+class IdleBlockAppender : public Blockchain::IBlocksAppender {
+private:
+   Blockchain::IReplica *replica_;
+
+public:
+   IdleBlockAppender(Blockchain::IReplica *replica)
+      : replica_(replica) { }
+
+   virtual Blockchain::Status addBlock(
+      const Blockchain::SetOfKeyValuePairs &updates,
+      Blockchain::BlockId& outBlockId) override
+   {
+      outBlockId = 0;
+      return replica_->addBlockToIdleReplica(updates);
+   }
+};
+
 /**
  * Create the initial transactions and a genesis block based on the
  * genesis file.
  */
-void create_genesis_block(Blockchain::IReplica* replica,
+void create_genesis_block(Blockchain::IReplica *replica,
                           EVMInitParams params,
                           Logger logger)
 {
-   //TODO(BWF): rewrite this in terms of KVBStorage
    const Blockchain::ILocalKeyValueStorageReadOnly &storage =
       replica->getReadOnlyStorage();
+   IdleBlockAppender blockAppender(replica);
+   KVBStorage kvbStorage(storage, &blockAppender);
+
    if (storage.getLastBlock() > 0) {
       LOG4CPLUS_INFO(logger, "Blocks already loaded, skipping genesis");
       return;
    }
-
-   Blockchain::SetOfKeyValuePairs blockData;
 
    std::map<evm_address, uint64_t> genesis_acts = params.get_initial_accounts();
    for (std::map<evm_address,uint64_t>::iterator it = genesis_acts.begin();
@@ -112,29 +129,10 @@ void create_genesis_block(Blockchain::IReplica* replica,
       LOG4CPLUS_INFO(logger, "Created genesis transaction " << txhash <<
                      " to address " << it->first <<
                      " with value = " << tx.value);
-
-      char *txkey_arr = new char[sizeof(txhash)];
-      std::copy(txhash.bytes, txhash.bytes+sizeof(txhash), txkey_arr);
-
-      char *txser;
-      size_t txser_length = tx.serialize(&txser);
-
-      Blockchain::KeyValuePair kvp(
-         Blockchain::Slice(txkey_arr, sizeof(txhash)),
-         Blockchain::Slice(txser, txser_length));
-
-      blockData.insert(kvp);
+      kvbStorage.add_transaction(tx);
    }
 
-   // TODO(BWF): Add block entry, which should include its hash and parent hash.
-   // TODO(BWF): also need to put real block hash in tx before serializing
-
-   replica->addBlockToIdleReplica(blockData);
-
-   for (auto kvp: blockData) {
-      delete[] kvp.first.data();
-      delete[] kvp.second.data();
-   }
+   kvbStorage.write_block();
 }
 
 /*

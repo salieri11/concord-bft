@@ -47,8 +47,7 @@ private:
 
    Blockchain::Status get(const Blockchain::Slice &key,
                           Blockchain::Slice &out);
-   Blockchain::Status put(const Blockchain::Slice &key,
-                          const Blockchain::Slice &value);
+   void put(const Blockchain::Slice &key, const Blockchain::Slice &value);
 
    uint64_t next_block_number();
    void add_block(EthBlock &blk);
