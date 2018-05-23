@@ -32,6 +32,7 @@ private:
    const char TYPE_BALANCE     = 0x03;
    const char TYPE_CODE        = 0x04;
    const char TYPE_STORAGE     = 0x05;
+   const char TYPE_NONCE       = 0x06;
 
    Blockchain::Slice kvb_key(
       char type, const uint8_t *bytes, size_t length) const;
@@ -41,6 +42,7 @@ private:
    Blockchain::Slice transaction_key(const EthTransaction &tx) const;
    Blockchain::Slice transaction_key(const evm_uint256be &hash) const;
    Blockchain::Slice balance_key(const evm_address &addr) const;
+   Blockchain::Slice nonce_key(const evm_address &addr) const;
    Blockchain::Slice code_key(const evm_address &addr) const;
    Blockchain::Slice storage_key(const evm_address &addr,
                                  const evm_uint256be &location) const;
@@ -67,6 +69,7 @@ public:
    EthBlock get_block(uint64_t number);
    EthTransaction get_transaction(const evm_uint256be &hash);
    uint64_t get_balance(const evm_address &addr);
+   uint64_t get_nonce(const evm_address &addr);
    bool account_exists(const evm_address &addr);
    bool get_code(const evm_address &addr,
                  std::vector<uint8_t> &out,
@@ -77,6 +80,7 @@ public:
    void write_block();
    void add_transaction(EthTransaction &tx);
    void set_balance(const evm_address &addr, uint64_t balance);
+   void set_nonce(const evm_address &addr, uint64_t nonce);
    void set_code(const evm_address &addr,
                  const uint8_t *code,
                  size_t code_size);

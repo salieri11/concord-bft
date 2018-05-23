@@ -175,7 +175,7 @@ void com::vmware::athena::EVM::create(evm_message &message,
    assert(message.kind == EVM_CREATE);
    assert(message.input_size > 0);
 
-   evm_address contract_address = contract_destination(message);
+   evm_address contract_address = contract_destination(message, kvbStorage);
 
    std::vector<uint8_t> code;
    evm_uint256be hash;
@@ -228,7 +228,8 @@ void com::vmware::athena::EVM::create(evm_message &message,
 }
 
 /**
- * Compute the hash for the transaction, and put the record in storage.
+ * Increment the sender's nonce, Add the transaction and write a block with
+ * it. Message call depth must be zero.
  */
 evm_uint256be com::vmware::athena::EVM::record_transaction(
    const evm_message &message,
@@ -237,7 +238,9 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
    const evm_address &contract_address,
    KVBStorage &kvbStorage)
 {
-   uint64_t nonce = get_nonce(message.sender);
+   uint64_t nonce = kvbStorage.get_nonce(message.sender)+1;
+   kvbStorage.set_nonce(message.sender, nonce);
+
    uint64_t transfer_val = from_evm_uint256be(&message.value);
    EthTransaction tx = {
    nonce : nonce,
@@ -252,21 +255,15 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
    status : result.status_code,
    value : transfer_val
    };
+   kvbStorage.add_transaction(tx);
 
    evm_uint256be txhash = tx.hash();
    LOG4CPLUS_DEBUG(logger, "Recording transaction " << txhash);
 
    assert(message.depth == 0);
-   record_block(tx, kvbStorage);
+   kvbStorage.write_block();
 
    return txhash;
-}
-
-void com::vmware::athena::EVM::record_block(EthTransaction &tx,
-                                            KVBStorage &kvbStorage)
-{
-   kvbStorage.add_transaction(tx);
-   kvbStorage.write_block();
 }
 
 /**
@@ -343,13 +340,14 @@ EthBlock com::vmware::athena::EVM::get_block_for_hash(
  * of [sender_address, sender_nonce].
  */
 evm_address com::vmware::athena::EVM::contract_destination(
-   const evm_message &message)
+   const evm_message &message,
+   KVBStorage &kvbStorage)
 {
    RLPBuilder rlpb;
    rlpb.start_list();
 
    // RLP building is done in reverse order - build flips it for us
-   rlpb.add(get_nonce(message.sender));
+   rlpb.add(kvbStorage.get_nonce(message.sender));
    rlpb.add(message.sender);
    std::vector<uint8_t> rlp = rlpb.build();
 
@@ -418,16 +416,6 @@ evm_uint256be com::vmware::athena::EVM::keccak_hash(
    evm_uint256be hash;
    keccak.CalculateDigest(hash.bytes, data, size);
    return hash;
-}
-
-uint64_t com::vmware::athena::EVM::get_nonce(const evm_address &address)
-{
-   uint64_t nonce = 1;
-   if (nonces.count(address) > 0) {
-      nonce = nonces[address];
-   }
-   nonces[address] = nonce+1;
-   return nonce;
 }
 
 void com::vmware::athena::EVM::execute(evm_message &message,

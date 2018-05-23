@@ -161,22 +161,18 @@ private:
    // during `run` calls that are read-only (non-transaction)
    KVBStorage *txctx_kvbStorage;
 
-   // map from account address to latest nonce
-   std::map<evm_address, uint64_t> nonces;
-
    void create_genesis_block(EVMInitParams params);
-   evm_address contract_destination(const evm_message &message);
+   evm_address contract_destination(const evm_message &message,
+                                    KVBStorage &kvbStorage);
    void execute(evm_message &message,
                 const std::vector<uint8_t> &code,
                 evm_result &result /* out */);
-   uint64_t get_nonce(const evm_address &address);
 
    evm_uint256be record_transaction(const evm_message &message,
                                     const evm_result &result,
                                     const evm_address &to_override,
                                     const evm_address &contract_address,
                                     KVBStorage &kvbStorage);
-   void record_block(EthTransaction &tx, KVBStorage &kvbStorage);
 
 public:
    // TODO(BWF): move to common?

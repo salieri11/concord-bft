@@ -36,3 +36,8 @@ message Code {
    optional bytes code = 2;
    optional bytes hash = 3;             // 32 bytes
 }
+
+message Nonce {
+   optional int64 version = 1;
+   optional int64 nonce = 2;
+}

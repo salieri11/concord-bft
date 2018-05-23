@@ -24,6 +24,7 @@ using namespace com::vmware::athena;
 // GENERAL
 
 const int64_t balance_storage_version = 1;
+const int64_t nonce_storage_version = 1;
 const int64_t code_storage_version = 1;
 
 // read-only mode
@@ -90,6 +91,12 @@ Slice com::vmware::athena::KVBStorage::balance_key(
    const evm_address &addr) const
 {
    return kvb_key(TYPE_BALANCE, addr.bytes, sizeof(addr));
+}
+
+Slice com::vmware::athena::KVBStorage::nonce_key(
+   const evm_address &addr) const
+{
+   return kvb_key(TYPE_NONCE, addr.bytes, sizeof(addr));
 }
 
 Slice com::vmware::athena::KVBStorage::code_key(const evm_address &addr) const
@@ -191,6 +198,19 @@ void com::vmware::athena::KVBStorage::set_balance(const evm_address &addr,
    proto.SerializeToArray(ser, sersize);
 
    put(balance_key(addr), Slice(ser, sersize));
+}
+
+void com::vmware::athena::KVBStorage::set_nonce(const evm_address &addr,
+                                                uint64_t nonce)
+{
+   kvb::Nonce proto;
+   proto.set_version(nonce_storage_version);
+   proto.set_nonce(nonce);
+   size_t sersize = proto.ByteSize();
+   char *ser = new char[sersize];
+   proto.SerializeToArray(ser, sersize);
+
+   put(nonce_key(addr), Slice(ser, sersize));
 }
 
 void com::vmware::athena::KVBStorage::set_code(const evm_address &addr,
@@ -332,6 +352,32 @@ uint64_t com::vmware::athena::KVBStorage::get_balance(const evm_address &addr)
    }
 
    // untouched accounts have a balance of 0
+   return 0;
+}
+
+uint64_t com::vmware::athena::KVBStorage::get_nonce(const evm_address &addr)
+{
+   Slice kvbkey = nonce_key(addr);
+   Slice value;
+   Status status = get(kvbkey, value);
+
+   LOG4CPLUS_DEBUG(logger, "Getting nonce " << addr <<
+                   " status: " << status.ToString() <<
+                   " key: " << sliceToString(kvbkey) <<
+                   " value.size: " << value.size());
+
+   if (status.ok() && value.size() > 0) {
+      kvb::Nonce nonce;
+      if (nonce.ParseFromArray(value.data(), value.size())) {
+         if (nonce.version() == nonce_storage_version) {
+            return nonce.nonce();
+         } else {
+            throw EVMException("Unknown nonce storage version");
+         }
+      }
+   }
+
+   // untouched accounts have a nonce of 0
    return 0;
 }
 
