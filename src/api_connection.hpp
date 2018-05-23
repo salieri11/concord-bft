@@ -105,6 +105,9 @@ private:
    void
    handle_eth_blockNumber(const EthRequest &request);
 
+   /* This serves not only eth_blockNumber, but also filter curiosity. */
+   uint64_t current_block_number();
+
    /* Constructor. */
    api_connection(boost::asio::io_service &io_service,
                   connection_manager &connManager,

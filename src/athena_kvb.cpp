@@ -379,6 +379,9 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_request_read_only(
    case EthRequest_EthMethod_CALL_CONTRACT:
       return handle_eth_callContract(athreq, kvbStorage, athresp);
       break;
+   case EthRequest_EthMethod_BLOCK_NUMBER:
+      return handle_eth_blockNumber(athreq, kvbStorage, athresp);
+      break;
       //TODO(BWF): move over all other api_connection::handle_eth_request cases
       //           some may go to a ready-only version
    default:
@@ -422,4 +425,15 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_callContract(
 
    // the request was valid, even if it failed
    return true;
+}
+
+bool com::vmware::athena::KVBCommandsHandler::handle_eth_blockNumber(
+   AthenaRequest &athreq,
+   KVBStorage &kvbStorage,
+   AthenaResponse &athresp) const
+{
+   EthResponse *response = athresp.add_eth_response();
+   evm_uint256be current_block;
+   to_evm_uint256be(kvbStorage.current_block_number(), &current_block);
+   response->set_data(current_block.bytes, sizeof(evm_uint256be));
 }
