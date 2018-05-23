@@ -34,7 +34,6 @@ using log4cplus::Logger;
  */
 com::vmware::athena::EVM::EVM(EVMInitParams params)
    : logger(Logger::getInstance("com.vmware.athena.evm")),
-     balances(params.get_initial_accounts()),
      chainId(params.get_chainID())
 {
    // wrap an evm context in an athena context
@@ -91,36 +90,54 @@ void com::vmware::athena::EVM::run(evm_message &message,
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " << message.destination);
 
-      uint64_t transfer_val = from_evm_uint256be(&message.value);
+      if (!kvbStorage.is_read_only()) {
+         uint64_t transfer_val = from_evm_uint256be(&message.value);
 
-      // Don't allow if source account does not exist.
-      if (account_exists(&message.sender) == 0) {
-         result.status_code = EVM_FAILURE;
-         LOG4CPLUS_INFO(logger, "Source account with address "
-                        << message.sender << ", does not exist.");
-      }
+         try {
+            uint64_t sender_balance = kvbStorage.get_balance(message.sender);
+            uint64_t destination_balance =
+               kvbStorage.get_balance(message.destination);
 
-      // Don't allow if source account has insufficient balance.
-      else if (balances[message.sender] < transfer_val) {
-         result.status_code = EVM_FAILURE;
-         LOG4CPLUS_INFO(logger, "Account with address " << message.sender <<
-                        ", does not have sufficient funds (" <<
-                        balances[message.sender] << ").");
-      }
+            // Don't allow if source account does not exist.
+            if (!kvbStorage.account_exists(message.sender)) {
+               result.status_code = EVM_FAILURE;
+               LOG4CPLUS_INFO(logger, "Source account with address "
+                              << message.sender << ", does not exist.");
+            }
 
-      // Don't allow if destination account does not exist.
-      else if (account_exists(&message.destination) == 0) {
+            // Don't allow if source account has insufficient balance.
+            else if (sender_balance < transfer_val) {
+               result.status_code = EVM_FAILURE;
+               LOG4CPLUS_INFO(logger,
+                              "Account with address " << message.sender <<
+                              ", does not have sufficient funds (" <<
+                              sender_balance << ").");
+            }
+
+            // Don't allow if destination account does not exist.
+            else if (!kvbStorage.account_exists(message.destination)) {
+               result.status_code = EVM_FAILURE;
+               LOG4CPLUS_INFO(logger, "Destination account with address "
+                              << message.destination << " does not exist.");
+            }
+            else {
+               kvbStorage.set_balance(message.destination,
+                                      destination_balance += transfer_val);
+               kvbStorage.set_balance(message.sender,
+                                      sender_balance -= transfer_val);
+               result.status_code = EVM_SUCCESS;
+               LOG4CPLUS_DEBUG(logger, "Transferred  " << transfer_val <<
+                               " units to: " << message.destination <<
+                               " from: " << message.sender);
+            }
+         } catch (...) {
+            LOG4CPLUS_DEBUG(logger, "Failed to decode balances");
+            result.status_code = EVM_FAILURE;
+         }
+      } else {
+         LOG4CPLUS_DEBUG(logger,
+                         "Balance transfer attempted in read-only mode.");
          result.status_code = EVM_FAILURE;
-         LOG4CPLUS_INFO(logger, "Destination account with address "
-                        << message.destination << " does not exist.");
-      }
-      else {
-         balances[message.destination] += transfer_val;
-         balances[message.sender] -= transfer_val;
-         result.status_code = EVM_SUCCESS;
-         LOG4CPLUS_DEBUG(logger, "Transferred  " << transfer_val <<
-                         " units to: " << message.destination <<
-                         " from: " << message.sender);
       }
    } else {
       LOG4CPLUS_DEBUG(logger, "Input data, but no code at " <<
@@ -348,18 +365,34 @@ evm_address com::vmware::athena::EVM::contract_destination(
  * user and uses its last 20 bytes as the account address.
  */
 bool com::vmware::athena::EVM::new_account(
-   const std::string& passphrase, evm_address& address)
+   const std::string& passphrase,
+   KVBStorage &kvbStorage,
+   evm_address& address /* OUT */)
 {
    std::vector<uint8_t> vec(passphrase.begin(), passphrase.end());
    evm_uint256be hash = keccak_hash(vec);
 
    std::copy(hash.bytes+(sizeof(evm_uint256be)-sizeof(evm_address)),
-             hash.bytes+sizeof(evm_uint256be),address.bytes);
+             hash.bytes+sizeof(evm_uint256be),
+             address.bytes);
 
-   if(EVM::account_exists(&address) == 1) {
+   if(kvbStorage.account_exists(address)) {
       return false;
    } else {
-      balances[address] = 0;
+      kvbStorage.set_balance(address, 0);
+      EthTransaction tx{
+         nonce : 0,
+         block_hash : zero_hash, // set to zero for now
+         block_number : 0,
+         from : zero_address,
+         to : address,
+         contract_address : zero_address,
+         input : std::vector<uint8_t>(),
+         status : EVM_SUCCESS,
+         value : 0
+      };
+      kvbStorage.add_transaction(tx);
+      kvbStorage.write_block();
       return true;
    }
 }
@@ -408,10 +441,12 @@ int com::vmware::athena::EVM::account_exists(
    LOG4CPLUS_INFO(logger, "EVM::account_exists called, address: " <<
                   *address);
 
-   if (balances.count(*address) == 0)
-      return 0;
+   assert(txctx_kvbStorage);
+   if (txctx_kvbStorage->account_exists(*address)) {
+      return 1;
+   }
 
-   return 1;
+   return 0;
 };
 
 /**
@@ -478,9 +513,16 @@ void com::vmware::athena::EVM::get_balance(
 {
    LOG4CPLUS_INFO(logger, "EVM::get_balance called, address: " << *address);
 
-   if (balances.count(*address))
-      to_evm_uint256be(balances[*address], result);
-   else {
+   assert(txctx_kvbStorage);
+   if (txctx_kvbStorage->account_exists(*address)) {
+      try {
+         to_evm_uint256be(txctx_kvbStorage->get_balance(*address), result);
+      } catch (...) {
+         // if the account's balance couldn't be deserialized, it's safest to
+         // return zero from here
+         to_evm_uint256be(0, result);
+      }
+   } else {
       to_evm_uint256be(0, result);
    }
 }

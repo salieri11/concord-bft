@@ -119,7 +119,9 @@ public:
                                  KVBStorage &kvbStorage) const;
    EthBlock get_block_for_hash(evm_uint256be hash,
                                KVBStorage &kvbStorage) const;
-   bool new_account(const std::string& passphrase, evm_address& address);
+   bool new_account(const std::string &passphrase,
+                    KVBStorage &kvbStorage,
+                    evm_address &address /* OUT */);
 
    /* EVM callbacks */
    int account_exists(const struct evm_address* address);
@@ -158,9 +160,6 @@ private:
    // only available during `run` and `create` calls; will be in read-only mode
    // during `run` calls that are read-only (non-transaction)
    KVBStorage *txctx_kvbStorage;
-
-   // map from account address to account balance
-   std::map<evm_address, uint64_t> balances;
 
    // map from contract address to a pair of (contract code, code hash)
    std::map<evm_address, std::pair<std::vector<uint8_t>, evm_uint256be>>

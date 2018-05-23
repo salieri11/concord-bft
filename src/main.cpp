@@ -130,6 +130,9 @@ void create_genesis_block(Blockchain::IReplica *replica,
                      " to address " << it->first <<
                      " with value = " << tx.value);
       kvbStorage.add_transaction(tx);
+
+      // also set the balance record
+      kvbStorage.set_balance(it->first, it->second);
    }
 
    kvbStorage.write_block();

@@ -178,16 +178,17 @@ void com::vmware::athena::KVBStorage::add_transaction(EthTransaction &tx)
    put(txaddr, Slice(txser, txser_length));
 }
 
-void com::vmware::athena::KVBStorage::set_balance(evm_address &addr,
+void com::vmware::athena::KVBStorage::set_balance(const evm_address &addr,
                                                   uint64_t balance)
 {
    kvb::Balance proto;
    proto.set_version(balance_storage_version);
    proto.set_balance(balance);
-   std::string str;
-   proto.SerializeToString(&str);
+   size_t sersize = proto.ByteSize();
+   char *ser = new char[sersize];
+   proto.SerializeToArray(ser, sersize);
 
-   put(balance_key(addr), Slice(str));
+   put(balance_key(addr), Slice(ser, sersize));
 }
 
 void com::vmware::athena::KVBStorage::set_code(evm_address &addr,
@@ -318,7 +319,27 @@ uint64_t com::vmware::athena::KVBStorage::get_balance(const evm_address &addr)
       }
    }
 
-   throw AccountNotFoundException();
+   // untouched accounts have a balance of 0
+   return 0;
+}
+
+bool com::vmware::athena::KVBStorage::account_exists(const evm_address &addr)
+{
+   Slice kvbkey = balance_key(addr);
+   Slice value;
+   Status status = get(kvbkey, value);
+
+   LOG4CPLUS_DEBUG(logger, "Getting balance " << addr <<
+                   " status: " << status.ToString() <<
+                   " key: " << sliceToString(kvbkey) <<
+                   " value.size: " << value.size());
+
+   if (status.ok() && value.size() > 0) {
+      // if there was a balance recorded, the account exists
+      return true;
+   }
+
+   return false;
 }
 
 bool com::vmware::athena::KVBStorage::get_code(const evm_address &addr,

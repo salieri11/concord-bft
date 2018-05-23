@@ -395,7 +395,6 @@ api_connection::handle_eth_request(int i)
       }
       break;
    case EthRequest_EthMethod_NEW_ACCOUNT:
-      // TODO(BWF): this will be a fall-through, as it is also modifying
       handle_personal_newAccount(request);
       break;
    //TODO(BWF): The rest of these will be read-only
@@ -429,37 +428,27 @@ api_connection::handle_eth_request(int i)
 }
 
 /**
- * Handle a personal.newAccount request.
- * This method currently sets the account address as the last 20 bytes
- * of the hash of the passphrase provided by the user.
+ * Verify a personal.newAccount request is valid, and forward to KVB if so.
  */
 void
 api_connection::handle_personal_newAccount(const EthRequest &request)
 {
-
    if (request.has_data()) {
-      const string& passphrase = request.data();
+      // TODO(BWF): this can be deduped into handle_eth_request once all other
+      // methods in there are also handled by KVB
+      AthenaRequest internalRequest;
+      EthRequest *internalEthRequest = internalRequest.add_eth_request();
+      internalEthRequest->CopyFrom(request);
+      AthenaResponse internalResponse;
 
-      LOG4CPLUS_INFO(logger_, "Creating new account with passphrase : "
-                     << passphrase);
-
-      evm_address address;
-      bool error = athevm_.new_account(passphrase, address);
-
-      /**
-       * This is an extremely hacky approach for setting the user address
-       * as this means that multiple accounts cannot have the same password.
-       * TODO : Implement the ethereum way of setting account addresses.
-       * (Note : See https://github.com/vmwathena/athena/issues/55)
-       */
-      if (error == false) {
-         LOG4CPLUS_INFO(logger_, "Use another passphrase : "
-                        << passphrase);
-         ErrorResponse *error = athenaResponse_.add_error_response();
-         error->set_description("Use another passphrase");
+      if (client_.send_request_sync(internalRequest,
+                                    false /* not read only */,
+                                    internalResponse)) {
+         athenaResponse_.MergeFrom(internalResponse);
       } else {
-         EthResponse *response = athenaResponse_.add_eth_response();
-         response->set_data(address.bytes, sizeof(evm_address));
+         LOG4CPLUS_ERROR(logger_, "Error parsing response");
+         ErrorResponse *resp = athenaResponse_.add_error_response();
+         resp->set_description("Internal Athena Error");
       }
    } else {
       ErrorResponse *error = athenaResponse_.add_error_response();

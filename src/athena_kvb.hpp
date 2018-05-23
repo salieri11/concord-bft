@@ -59,6 +59,10 @@ public:
       AthenaRequest &athreq,
       KVBStorage &kvbStorage,
       AthenaResponse &athresp) const;
+   bool handle_personal_newAccount(
+      AthenaRequest &athreq,
+      KVBStorage &kvbStorage,
+      AthenaResponse &athresp) const;
    bool handle_eth_request_read_only(
       AthenaRequest &athreq,
       KVBStorage &kvbStorage,
