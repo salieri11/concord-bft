@@ -574,8 +574,14 @@ void com::vmware::athena::EVM::get_block_hash(
 
    try {
       assert(txctx_kvbStorage);
-      EthBlock blk = txctx_kvbStorage->get_block(number);
-      *result = blk.hash;
+      if (number < 0 || number > txctx_kvbStorage->current_block_number()) {
+         // KVBlockchain internals assert that the value passed to get_block is
+         // <= the latest block number
+         *result = zero_hash;
+      } else {
+         EthBlock blk = txctx_kvbStorage->get_block(number);
+         *result = blk.hash;
+      }
    } catch (...) {
       *result = zero_hash;
    }
