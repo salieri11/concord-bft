@@ -210,9 +210,10 @@ void com::vmware::athena::KVBStorage::set_code(const evm_address &addr,
    put(code_key(addr), Slice(ser, sersize));
 }
 
-void com::vmware::athena::KVBStorage::set_storage(evm_address &addr,
-                                                  evm_uint256be &location,
-                                                  evm_uint256be &data)
+void com::vmware::athena::KVBStorage::set_storage(
+   const evm_address &addr,
+   const evm_uint256be &location,
+   const evm_uint256be &data)
 {
    char *str = new char[sizeof(data)];
    std::copy(data.bytes, data.bytes+sizeof(data), str);
@@ -383,6 +384,8 @@ bool com::vmware::athena::KVBStorage::get_code(const evm_address &addr,
             throw EVMException("Unkown code storage version");
          }
       } else {
+         LOG4CPLUS_ERROR(logger,
+                         "Unable to decode storage for contract at " << addr);
          throw EVMException("Corrupt code storage");
       }
    }
@@ -405,7 +408,14 @@ evm_uint256be com::vmware::athena::KVBStorage::get_storage(
 
    evm_uint256be out;
    if (status.ok() && value.size() > 0) {
-      std::copy(value.data(), value.data()+value.size(), out.bytes);
+      if (value.size() == sizeof(evm_uint256be)) {
+         std::copy(value.data(), value.data()+value.size(), out.bytes);
+      } else {
+         LOG4CPLUS_ERROR(logger, "Contract " << addr <<
+                         " storage " << location <<
+                         " only had " << value.size() << " bytes.");
+         throw EVMException("Corrupt contract storage");
+      }
    } else {
       std::memset(out.bytes, 0, sizeof(out));
    }

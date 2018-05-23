@@ -164,9 +164,6 @@ private:
    // map from account address to latest nonce
    std::map<evm_address, uint64_t> nonces;
 
-   // map from [(contract address)+(storage location)] to data at that location
-   std::map<std::vector<uint8_t>, evm_uint256be> storage_map;
-
    void create_genesis_block(EVMInitParams params);
    evm_address contract_destination(const evm_message &message);
    void execute(evm_message &message,
@@ -180,8 +177,6 @@ private:
                                     const evm_address &contract_address,
                                     KVBStorage &kvbStorage);
    void record_block(EthTransaction &tx, KVBStorage &kvbStorage);
-   std::vector<uint8_t> storage_key(const struct evm_address* address,
-                                    const struct evm_uint256be* key) const;
 
 public:
    // TODO(BWF): move to common?

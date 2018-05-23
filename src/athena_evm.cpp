@@ -461,24 +461,6 @@ int com::vmware::athena::EVM::account_exists(
 };
 
 /**
- * Construct a key into storage_map, based on the contract address and storage
- * location.
- */
-std::vector<uint8_t> com::vmware::athena::EVM::storage_key(
-   const struct evm_address* address,
-   const struct evm_uint256be* key) const
-{
-   // we're just using the key appended to the address as the key into our
-   // internal storage for now
-   std::vector<uint8_t> storagekey(address->bytes,
-                                   address->bytes+sizeof(evm_address));
-   storagekey.insert(storagekey.end(),
-                     key->bytes,
-                     key->bytes+sizeof(evm_uint256be));
-   return storagekey;
-}
-
-/**
  * Get the value stored at the given key. If the key is not found, the value is
  * zeroed out.
  */
@@ -490,13 +472,8 @@ void com::vmware::athena::EVM::get_storage(
    LOG4CPLUS_DEBUG(logger, "EVM::get_storage called, address: " <<
                    *address << " key: " << *key);
 
-   std::vector<uint8_t> storagekey = storage_key(address, key);
-   auto iter = storage_map.find(storagekey);
-   if (iter != storage_map.end()) {
-      *result = iter->second;
-   } else {
-      memset(result, 0, 32);
-   }
+   assert(txctx_kvbStorage);
+   *result = txctx_kvbStorage->get_storage(*address, *key);
 }
 
 /**
@@ -510,9 +487,8 @@ void com::vmware::athena::EVM::set_storage(
    LOG4CPLUS_DEBUG(logger, "EVM::set_storage called, address: " <<
                    *address << " key: " << *key << " value: " << *value);
 
-   std::vector<uint8_t> storagekey = storage_key(address, key);
-
-   storage_map[storagekey] = *value;
+   assert(txctx_kvbStorage);
+   txctx_kvbStorage->set_storage(*address, *key, *value);
 }
 
 /**

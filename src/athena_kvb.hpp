@@ -79,6 +79,10 @@ public:
       AthenaRequest &athreq,
       KVBStorage &kvbStorage,
       AthenaResponse &athresp) const;
+   bool handle_eth_getStorageAt(
+      AthenaRequest &athreq,
+      KVBStorage &kvbStorage,
+      AthenaResponse &athresp) const;
 
    // Utilites
    void build_transaction_response(evm_uint256be &hash,

@@ -80,9 +80,9 @@ public:
    void set_code(const evm_address &addr,
                  const uint8_t *code,
                  size_t code_size);
-   void set_storage(evm_address &addr,
-                    evm_uint256be &location,
-                    evm_uint256be &data);
+   void set_storage(const evm_address &addr,
+                    const evm_uint256be &location,
+                    const evm_uint256be &data);
 };
 
 }

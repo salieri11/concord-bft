@@ -550,17 +550,22 @@ api_connection::handle_eth_getStorageAt(const EthRequest &request)
    if (request.has_addr_to() && request.addr_to().size() == sizeof(evm_address)
        && request.has_data() && request.data().size() == sizeof(evm_uint256be))
    {
-      evm_address account;
-      std::copy(request.addr_to().begin(), request.addr_to().end(),
-                account.bytes);
-      evm_uint256be key;
-      std::copy(request.data().begin(), request.data().end(), key.bytes);
-      //TODO: ignoring block number at the moment
+      //TODO(BWF): this can be deduped to handle_eth_request once everything
+      //else there is moved over to KVB
+      AthenaRequest internalRequest;
+      EthRequest *internalEthRequest = internalRequest.add_eth_request();
+      internalEthRequest->CopyFrom(request);
+      AthenaResponse internalResponse;
 
-      evm_uint256be data = athevm_.get_storage_at(account, key);
-      EthResponse *response = athenaResponse_.add_eth_response();
-      response->set_id(request.id());
-      response->set_data(data.bytes, sizeof(data));
+      if (client_.send_request_sync(internalRequest,
+                                    true /* read only */,
+                                    internalResponse)) {
+         athenaResponse_.MergeFrom(internalResponse);
+      } else {
+         LOG4CPLUS_ERROR(logger_, "Error parsing response");
+         ErrorResponse *resp = athenaResponse_.add_error_response();
+         resp->set_description("Internal Athena Error");
+      }
    } else {
       ErrorResponse *error = athenaResponse_.add_error_response();
       error->set_description("Missing account/contract or storage address");
