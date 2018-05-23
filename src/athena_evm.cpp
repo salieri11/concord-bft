@@ -34,7 +34,8 @@ using log4cplus::Logger;
  */
 com::vmware::athena::EVM::EVM(EVMInitParams params)
    : logger(Logger::getInstance("com.vmware.athena.evm")),
-     chainId(params.get_chainID())
+     chainId(params.get_chainID()),
+     txctx_kvbStorage(nullptr)
 {
    // wrap an evm context in an athena context
    athctx = {{&athena_fn_table}, this};
@@ -83,10 +84,15 @@ void com::vmware::athena::EVM::run(evm_message &message,
       LOG4CPLUS_DEBUG(logger, "Loaded code from " << message.destination);
       message.code_hash = hash;
 
-      assert(txctx_kvbStorage == nullptr || txctx_kvbStorage == &kvbStorage);
-      txctx_kvbStorage = &kvbStorage;
+      if (message.depth == 0) {
+         assert(!txctx_kvbStorage);
+         txctx_kvbStorage = &kvbStorage;
+      }
+      assert(txctx_kvbStorage == &kvbStorage);
       execute(message, code, result);
-      txctx_kvbStorage = nullptr;
+      if (message.depth == 0) {
+         txctx_kvbStorage = nullptr;
+      }
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " << message.destination);
 
@@ -185,10 +191,15 @@ void com::vmware::athena::EVM::create(evm_message &message,
       // something random
       message.code_hash = keccak_hash(create_code);
 
-      assert(txctx_kvbStorage == nullptr);
-      txctx_kvbStorage = &kvbStorage;
+      if (message.depth == 0) {
+         assert(!txctx_kvbStorage);
+         txctx_kvbStorage = &kvbStorage;
+      }
+      assert(txctx_kvbStorage == &kvbStorage);
       execute(message, create_code, result);
-      txctx_kvbStorage = nullptr;
+      if (message.depth == 0) {
+         txctx_kvbStorage = nullptr;
+      }
 
       // TODO: check if the new contract is zero bytes in length;
       //       return error, not success in that case
@@ -599,6 +610,7 @@ void com::vmware::athena::EVM::call(
    // call function needs non-const message object
    evm_message call_msg = *msg;
 
+   assert(txctx_kvbStorage);
    run(call_msg, *txctx_kvbStorage, *result, txhash);
 }
 
