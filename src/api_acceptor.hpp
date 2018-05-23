@@ -20,12 +20,10 @@ class api_acceptor {
 public:
    api_acceptor(boost::asio::io_service &io_service,
                 boost::asio::ip::tcp::endpoint endpoint,
-                EVM &athevm,
                 FilterManager &filterManager,
                 KVBClient &client);
 
 private:
-   EVM &athevm_;
    FilterManager &filterManager_;
    KVBClient &client_;
 

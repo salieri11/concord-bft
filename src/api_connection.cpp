@@ -24,7 +24,6 @@
 #include <boost/predef/detail/endian_compat.h>
 
 #include "evm.h"
-#include "athena_evm.hpp"
 #include "api_connection.hpp"
 #include "connection_manager.hpp"
 #include "athena_log.hpp"
@@ -46,12 +45,11 @@ using namespace com::vmware::athena;
 api_connection::pointer
 api_connection::create(io_service &io_service,
                        connection_manager &connManager,
-                       EVM &athevm,
                        FilterManager &filterManager,
                        KVBClient &client)
 {
    return pointer(new api_connection(
-                     io_service, connManager, athevm, filterManager, client));
+                     io_service, connManager, filterManager, client));
 }
 
 tcp::socket&
@@ -774,14 +772,12 @@ uint64_t api_connection::current_block_number() {
 api_connection::api_connection(
    io_service &io_service,
    connection_manager &manager,
-   EVM& athevm,
    FilterManager &filterManager,
    KVBClient &client)
    : socket_(io_service),
      logger_(
         log4cplus::Logger::getInstance("com.vmware.athena.api_connection")),
      connManager_(manager),
-     athevm_(athevm),
      filterManager_(filterManager),
      client_(client)
 {

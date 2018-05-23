@@ -192,7 +192,6 @@ run_service(variables_map &opts, Logger logger)
       tcp::endpoint endpoint(address::from_string(ip), port);
       api_acceptor acceptor(*api_service,
                             endpoint,
-                            athevm,
                             filterManager,
                             kvbClient);
 

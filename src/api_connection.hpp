@@ -12,7 +12,6 @@
 
 #include "athena.pb.h"
 #include "filter_manager.hpp"
-#include "athena_evm.hpp"
 #include "athena_kvb_client.hpp"
 
 namespace com {
@@ -34,7 +33,6 @@ public:
    static pointer
    create(boost::asio::io_service &io_service,
           connection_manager &connManager,
-          EVM &athevm,
           FilterManager &filterManager,
           KVBClient &client);
 
@@ -111,7 +109,6 @@ private:
    /* Constructor. */
    api_connection(boost::asio::io_service &io_service,
                   connection_manager &connManager,
-                  EVM &athevm,
                   FilterManager &filterManager,
                   KVBClient &client);
 
@@ -159,8 +156,6 @@ private:
    /* Logger. */
    log4cplus::Logger logger_;
 
-   /* The VM to execute transactions in. */
-   EVM &athevm_;
    FilterManager &filterManager_;
    KVBClient &client_;
 
