@@ -79,7 +79,7 @@ void com::vmware::athena::EVM::run(evm_message &message,
 
    std::vector<uint8_t> code;
    evm_uint256be hash;
-   if (get_code(&message.destination, code, hash)) {
+   if (kvbStorage.get_code(message.destination, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Loaded code from " << message.destination);
       message.code_hash = hash;
 
@@ -173,7 +173,7 @@ void com::vmware::athena::EVM::create(evm_message &message,
 
    std::vector<uint8_t> code;
    evm_uint256be hash;
-   if (!get_code(contract_address, code, hash)) {
+   if (!kvbStorage.get_code(contract_address, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Creating contract at " << contract_address);
 
       std::vector<uint8_t> create_code =
@@ -195,15 +195,9 @@ void com::vmware::athena::EVM::create(evm_message &message,
       if (result.status_code == EVM_SUCCESS) {
          LOG4CPLUS_DEBUG(logger, "Contract created at " << contract_address <<
                          " with " << result.output_size << "bytes of code.");
-
-         // store the hash as well, so we don't have to recompute it for every
-         // execution
-         code = std::vector<uint8_t>(result.output_data,
-                                     result.output_data+result.output_size);
-         hash = keccak_hash(code);
-
-         contract_code[contract_address] =
-            std::pair<std::vector<uint8_t>, evm_uint256be>(code, hash);
+         kvbStorage.set_code(contract_address,
+                             result.output_data,
+                             result.output_size);
          result.create_address = contract_address;
       }
    } else {
@@ -400,12 +394,18 @@ bool com::vmware::athena::EVM::new_account(
 evm_uint256be com::vmware::athena::EVM::keccak_hash(
    const std::vector<uint8_t> &data)
 {
+   return keccak_hash(&data[0], data.size());
+}
+
+evm_uint256be com::vmware::athena::EVM::keccak_hash(
+   const uint8_t *data, size_t size)
+{
    static_assert(sizeof(evm_uint256be) == CryptoPP::Keccak_256::DIGESTSIZE,
                  "hash is not the same size as uint256");
 
    CryptoPP::Keccak_256 keccak;
    evm_uint256be hash;
-   keccak.CalculateDigest(hash.bytes, &data[0], data.size());
+   keccak.CalculateDigest(hash.bytes, data, size);
    return hash;
 }
 
@@ -548,11 +548,8 @@ bool com::vmware::athena::EVM::get_code(
    evm_uint256be &hash /* out */) const
 {
    // no log here, because this is the internal version
-   auto iter = contract_code.find(address);
-   if (iter != contract_code.end()) {
-      // iter->second == map value
-      code = iter->second.first;
-      hash = iter->second.second;
+   assert(txctx_kvbStorage);
+   if (txctx_kvbStorage->get_code(address, code, hash)) {
       return true;
    }
 

@@ -30,3 +30,9 @@ message Balance {
    // TODO: balance should be uint256be
    optional int64 balance = 2;          // 32 bytes
 }
+
+message Code {
+   optional int64 version = 1;
+   optional bytes code = 2;
+   optional bytes hash = 3;             // 32 bytes
+}

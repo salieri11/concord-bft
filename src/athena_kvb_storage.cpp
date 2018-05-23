@@ -10,6 +10,7 @@
 #include "athena_kvb_storage.hpp"
 #include "athena_exception.hpp"
 #include "athena_storage.pb.h"
+#include "athena_evm.hpp"
 #include "kvb/slice.h"
 #include "kvb/BlockchainInterfaces.h"
 #include "kvb/HashDefs.h"
@@ -23,6 +24,7 @@ using namespace com::vmware::athena;
 // GENERAL
 
 const int64_t balance_storage_version = 1;
+const int64_t code_storage_version = 1;
 
 // read-only mode
 com::vmware::athena::KVBStorage::KVBStorage(
@@ -191,12 +193,21 @@ void com::vmware::athena::KVBStorage::set_balance(const evm_address &addr,
    put(balance_key(addr), Slice(ser, sersize));
 }
 
-void com::vmware::athena::KVBStorage::set_code(evm_address &addr,
-                                               std::vector<uint8_t> &code)
+void com::vmware::athena::KVBStorage::set_code(const evm_address &addr,
+                                               const uint8_t *code,
+                                               size_t code_size)
 {
-   char *str = new char[code.size()];
-   std::copy(code.begin(), code.end(), str);
-   put(code_key(addr), Slice(str, code.size()));
+   kvb::Code proto;
+   proto.set_version(code_storage_version);
+   proto.set_code(code, code_size);
+   evm_uint256be hash = EVM::keccak_hash(code, code_size);
+   proto.set_hash(hash.bytes, sizeof(hash));
+
+   size_t sersize = proto.ByteSize();
+   char *ser = new char[sersize];
+   proto.SerializeToArray(ser, sersize);
+
+   put(code_key(addr), Slice(ser, sersize));
 }
 
 void com::vmware::athena::KVBStorage::set_storage(evm_address &addr,
@@ -343,7 +354,8 @@ bool com::vmware::athena::KVBStorage::account_exists(const evm_address &addr)
 }
 
 bool com::vmware::athena::KVBStorage::get_code(const evm_address &addr,
-                                               std::vector<uint8_t> &out)
+                                               std::vector<uint8_t> &out,
+                                               evm_uint256be &hash)
 {
    Slice kvbkey = code_key(addr);
    Slice value;
@@ -355,10 +367,24 @@ bool com::vmware::athena::KVBStorage::get_code(const evm_address &addr,
                    " value.size: " << value.size());
 
    if (status.ok() && value.size() > 0) {
-      std::copy(value.data(),
-                value.data()+value.size(),
-                std::back_inserter(out));
-      return true;
+      kvb::Code code;
+      if (code.ParseFromArray(value.data(), value.size())) {
+         if (code.version() == code_storage_version) {
+            std::copy(code.code().begin(),
+                      code.code().end(),
+                      std::back_inserter(out));
+            std::copy(code.hash().begin(),
+                      code.hash().end(),
+                      hash.bytes);
+            return true;
+         } else {
+            LOG4CPLUS_ERROR(logger, "Unknown code storage version" <<
+                            code.version());
+            throw EVMException("Unkown code storage version");
+         }
+      } else {
+         throw EVMException("Corrupt code storage");
+      }
    }
 
    return false;

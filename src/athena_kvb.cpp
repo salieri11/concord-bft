@@ -421,6 +421,9 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_request_read_only(
    case EthRequest_EthMethod_BLOCK_NUMBER:
       return handle_eth_blockNumber(athreq, kvbStorage, athresp);
       break;
+   case EthRequest_EthMethod_GET_CODE:
+      return handle_eth_getCode(athreq, kvbStorage, athresp);
+      break;
       //TODO(BWF): move over all other api_connection::handle_eth_request cases
       //           some may go to a ready-only version
    default:
@@ -475,4 +478,28 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_blockNumber(
    evm_uint256be current_block;
    to_evm_uint256be(kvbStorage.current_block_number(), &current_block);
    response->set_data(current_block.bytes, sizeof(evm_uint256be));
+}
+
+bool com::vmware::athena::KVBCommandsHandler::handle_eth_getCode(
+   AthenaRequest &athreq,
+   KVBStorage &kvbStorage,
+   AthenaResponse &athresp) const
+{
+   const EthRequest request = athreq.eth_request(0);
+   evm_address account;
+   std::copy(request.addr_to().begin(), request.addr_to().end(),
+             account.bytes);
+   //TODO(BWF): now that we're using KVB for storage, we can handle the block
+   //number parameter
+
+   std::vector<uint8_t> code;
+   evm_uint256be hash;
+   if (kvbStorage.get_code(account, code, hash)) {
+      EthResponse *response = athresp.add_eth_response();
+      response->set_data(std::string(code.begin(), code.end()));
+   } else {
+      ErrorResponse *error = athresp.add_error_response();
+      error->set_description("No code found at given address");
+   }
+
 }

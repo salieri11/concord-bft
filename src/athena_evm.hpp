@@ -161,10 +161,6 @@ private:
    // during `run` calls that are read-only (non-transaction)
    KVBStorage *txctx_kvbStorage;
 
-   // map from contract address to a pair of (contract code, code hash)
-   std::map<evm_address, std::pair<std::vector<uint8_t>, evm_uint256be>>
-      contract_code;
-
    // map from account address to latest nonce
    std::map<evm_address, uint64_t> nonces;
 
@@ -190,6 +186,7 @@ private:
 public:
    // TODO(BWF): move to common?
    static evm_uint256be keccak_hash(const std::vector<uint8_t> &data);
+   static evm_uint256be keccak_hash(const uint8_t *data, size_t size);
 
 };
 

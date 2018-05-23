@@ -68,14 +68,18 @@ public:
    EthTransaction get_transaction(const evm_uint256be &hash);
    uint64_t get_balance(const evm_address &addr);
    bool account_exists(const evm_address &addr);
-   bool get_code(const evm_address &addr, std::vector<uint8_t> &out);
+   bool get_code(const evm_address &addr,
+                 std::vector<uint8_t> &out,
+                 evm_uint256be &hash);
    evm_uint256be get_storage(const evm_address &addr,
                              const evm_uint256be &location);
 
    void write_block();
    void add_transaction(EthTransaction &tx);
    void set_balance(const evm_address &addr, uint64_t balance);
-   void set_code(evm_address &addr, std::vector<uint8_t> &code);
+   void set_code(const evm_address &addr,
+                 const uint8_t *code,
+                 size_t code_size);
    void set_storage(evm_address &addr,
                     evm_uint256be &location,
                     evm_uint256be &data);
