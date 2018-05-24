@@ -111,11 +111,6 @@ public:
                KVBStorage &kvbStorage,
                evm_result &result, /* out */
                evm_uint256be &txhash /* out */);
-   EthTransaction get_transaction(const evm_uint256be &txhash,
-                                  KVBStorage &kvbStorage) const;
-   std::vector<EthBlock> get_block_list(uint64_t latest,
-                                        uint64_t count,
-                                        KVBStorage &kvbStorage) const;
    bool new_account(const std::string &passphrase,
                     KVBStorage &kvbStorage,
                     evm_address &address /* OUT */);

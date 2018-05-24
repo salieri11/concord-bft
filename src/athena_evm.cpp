@@ -247,44 +247,6 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
 }
 
 /**
- * Get a transaction given its hash.
- */
-EthTransaction com::vmware::athena::EVM::get_transaction(
-   const evm_uint256be &txhash,
-   KVBStorage &kvbStorage) const
-{
-   return kvbStorage.get_transaction(txhash);
-}
-
-/**
- * Get the list of blocks, starting at latest, and going back count-1 steps in
- * the chain.
- */
-std::vector<EthBlock> com::vmware::athena::EVM::get_block_list(
-   uint64_t latest,
-   uint64_t count,
-   KVBStorage &kvbStorage) const
-{
-   if (latest > kvbStorage.current_block_number()) {
-      latest = kvbStorage.current_block_number();
-   }
-
-   if (count > latest+1) {
-      count = latest+1;
-   }
-
-   LOG4CPLUS_DEBUG(logger, "Getting block list from " << latest
-                   << " to " << (latest-count));
-
-   std::vector<EthBlock> result;
-   for (int i = 0; i < count; i++) {
-      result.push_back(kvbStorage.get_block(latest-i));
-   }
-
-   return result;
-}
-
-/**
  * Contract destination is the low 20 bytes of the SHA3 hash of the RLP encoding
  * of [sender_address, sender_nonce].
  */

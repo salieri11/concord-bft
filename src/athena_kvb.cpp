@@ -197,7 +197,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_transaction_request(
       const TransactionRequest request = athreq.transaction_request();
       evm_uint256be hash;
       std::copy(request.hash().begin(), request.hash().end(), hash.bytes);
-      EthTransaction tx = athevm_.get_transaction(hash, kvbStorage);
+      EthTransaction tx = kvbStorage.get_transaction(hash);
 
       TransactionResponse* response = athresp.mutable_transaction_response();
       build_transaction_response(hash, tx, response);
@@ -300,6 +300,10 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
    return result;
 }
 
+/**
+ * Get the list of blocks, starting at latest, and going back count-1 steps in
+ * the chain.
+ */
 bool com::vmware::athena::KVBCommandsHandler::handle_block_list_request(
    AthenaRequest &athreq,
    KVBStorage &kvbStorage,
@@ -311,17 +315,24 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_list_request(
    if (request.has_latest()) {
       latest = request.latest();
    }
+   if (latest > kvbStorage.current_block_number()) {
+      latest = kvbStorage.current_block_number();
+   }
 
    uint64_t count = 10;
    if (request.has_count()) {
       count = request.count();
    }
+   if (count > latest+1) {
+      count = latest+1;
+   }
+
+   LOG4CPLUS_DEBUG(logger, "Getting block list from " << latest
+                   << " to " << (latest-count));
 
    BlockListResponse* response = athresp.mutable_block_list_response();
-
-   std::vector<EthBlock> blocks =
-      athevm_.get_block_list(latest, count, kvbStorage);
-   for (auto b: blocks) {
+   for (int i = 0; i < count; i++) {
+      EthBlock b = kvbStorage.get_block(latest-i);
       BlockBrief* bb = response->add_block();
       bb->set_number(b.number);
       bb->set_hash(b.hash.bytes, sizeof(evm_uint256be));
@@ -379,7 +390,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_request(
 
       for (auto t: block.transactions) {
          try {
-            EthTransaction tx = athevm_.get_transaction(t, kvbStorage);
+            EthTransaction tx = kvbStorage.get_transaction(t);
             TransactionResponse *txresp = response->add_transaction();
             build_transaction_response(t, tx, txresp);
          } catch (...) {
