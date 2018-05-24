@@ -17,6 +17,8 @@
 #include "athena_kvb.hpp"
 #include "athena_exception.hpp"
 #include "athena.pb.h"
+#include "HexTools.h"
+#include <google/protobuf/text_format.h>
 
 using Blockchain::Slice;
 using Blockchain::ILocalKeyValueStorageReadOnly;
@@ -50,17 +52,25 @@ bool com::vmware::athena::KVBCommandsHandler::executeCommand(
    KVBStorage kvbStorage(roStorage, &blockAppender);
 
    AthenaRequest command;
-   command.ParseFromArray(cmdSlice.data(), cmdSlice.size());
-
    bool result;
    AthenaResponse athresp;
-   if (command.eth_request_size() > 0) {
-      result = handle_eth_request(command, kvbStorage, athresp);
+   if (command.ParseFromArray(cmdSlice.data(), cmdSlice.size())) {
+      if (command.eth_request_size() > 0) {
+         result = handle_eth_request(command, kvbStorage, athresp);
+      } else {
+         // Read-only commands are not allowed to be sent to the general read-write
+         // executeCommand. We ignore any that we know are read-only that arrive
+         // here.
+         std::string pbtext;
+         google::protobuf::TextFormat::PrintToString(command, &pbtext);
+         LOG4CPLUS_ERROR(logger, "Unknown command: " << pbtext);
+         ErrorResponse *resp = athresp.add_error_response();
+         resp->set_description("Internal Athena Error");
+         result = false;
+      }
    } else {
-      // Read-only commands are not allowed to be sent to the general read-write
-      // executeCommand. We ignore any that we know are read-only that arrive
-      // here.
-      LOG4CPLUS_ERROR(logger, "Unknown command");
+      LOG4CPLUS_ERROR(logger, "Unable to parse command: " <<
+                      sliceToString(cmdSlice));
       ErrorResponse *resp = athresp.add_error_response();
       resp->set_description("Internal Athena Error");
       result = false;
