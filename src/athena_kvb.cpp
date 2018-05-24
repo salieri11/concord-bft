@@ -58,15 +58,13 @@ bool com::vmware::athena::KVBCommandsHandler::executeCommand(
       if (command.eth_request_size() > 0) {
          result = handle_eth_request(command, kvbStorage, athresp);
       } else {
-         // Read-only commands are not allowed to be sent to the general read-write
-         // executeCommand. We ignore any that we know are read-only that arrive
-         // here.
-         std::string pbtext;
-         google::protobuf::TextFormat::PrintToString(command, &pbtext);
-         LOG4CPLUS_ERROR(logger, "Unknown command: " << pbtext);
-         ErrorResponse *resp = athresp.add_error_response();
-         resp->set_description("Internal Athena Error");
-         result = false;
+         // SBFT may decide to try one of our read-only commands in read-write
+         // mode, for example if it has failed several times. So, go check the
+         // read-only list if othing matched here.
+         LOG4CPLUS_INFO(logger,
+                        "Unknown read-write command. Trying read-only.");
+         return executeReadOnlyCommand(
+            cmdSlice, roStorage, maxReplySize, outReply, outReplySize);
       }
    } else {
       LOG4CPLUS_ERROR(logger, "Unable to parse command: " <<
@@ -102,11 +100,15 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_request(
    case EthRequest_EthMethod_NEW_ACCOUNT:
       return handle_personal_newAccount(athreq, kvbStorage, athresp);
       break;
-      // Other ETH RPC requests are handled in handle_eth_request_read_only.
    default:
-      ErrorResponse *e = athresp.add_error_response();
-      e->mutable_description()->assign("ETH Method Not Implemented");
-      return false;
+      // SBFT may decide to try one of our read-only commands in read-write
+      // mode, for example if it has failed several times. So, go check the
+      // read-only list if othing matched here.
+
+      // Be a little extra cautious, and create a read-only KVBStorage object,
+      // to prvent accidental modifications.
+      KVBStorage roKvbStorage(kvbStorage.getReadOnlyStorage());
+      return handle_eth_request_read_only(athreq, roKvbStorage, athresp);
    }
 }
 
@@ -182,20 +184,28 @@ bool com::vmware::athena::KVBCommandsHandler::executeReadOnlyCommand(
    KVBStorage kvbStorage(roStorage);
 
    AthenaRequest command;
-   command.ParseFromArray(cmdSlice.data(), cmdSlice.size());
-
    bool result;
    AthenaResponse athresp;
-   if (command.has_transaction_request()) {
-      result = handle_transaction_request(command, kvbStorage, athresp);
-   } else if (command.has_block_list_request()) {
-      result = handle_block_list_request(command, kvbStorage, athresp);
-   } else if (command.has_block_request()) {
-      result = handle_block_request(command, kvbStorage, athresp);
-   } else if (command.eth_request_size() > 0) {
-      result = handle_eth_request_read_only(command, kvbStorage, athresp);
+   if (command.ParseFromArray(cmdSlice.data(), cmdSlice.size())) {
+      if (command.has_transaction_request()) {
+         result = handle_transaction_request(command, kvbStorage, athresp);
+      } else if (command.has_block_list_request()) {
+         result = handle_block_list_request(command, kvbStorage, athresp);
+      } else if (command.has_block_request()) {
+         result = handle_block_request(command, kvbStorage, athresp);
+      } else if (command.eth_request_size() > 0) {
+         result = handle_eth_request_read_only(command, kvbStorage, athresp);
+      } else {
+         std::string pbtext;
+         google::protobuf::TextFormat::PrintToString(command, &pbtext);
+         LOG4CPLUS_ERROR(logger, "Unknown read-only command: " << pbtext);
+         ErrorResponse *resp = athresp.add_error_response();
+         resp->set_description("Internal Athena Error");
+         result = false;
+      }
    } else {
-      LOG4CPLUS_ERROR(logger, "Unknown read-only command");
+      LOG4CPLUS_ERROR(logger, "Unable to parse read-only command: " <<
+                      sliceToString(cmdSlice));
       ErrorResponse *resp = athresp.add_error_response();
       resp->set_description("Internal Athena Error");
       result = false;

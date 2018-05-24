@@ -66,6 +66,7 @@ public:
    ~KVBStorage();
 
    bool is_read_only();
+   const Blockchain::ILocalKeyValueStorageReadOnly& getReadOnlyStorage();
 
    uint64_t current_block_number();
    EthBlock get_block(const evm_uint256be &hash);
