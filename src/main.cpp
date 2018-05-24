@@ -11,6 +11,7 @@
 #include "api_acceptor.hpp"
 #include "athena_evm.hpp"
 #include "athena_kvb.hpp"
+#include "athena_exception.hpp"
 #include "configuration_manager.hpp"
 #include "evm_init_params.hpp"
 #include "kvb/DatabaseInterface.h"
@@ -77,26 +78,53 @@ Blockchain::IDBClient* open_database(variables_map &opts, Logger logger)
 }
 
 /**
+ * IdleBlockAppender is a shim to wrap IReplica::addBlocktoIdleReplica in an
+ * IBlocksAppender interface, so that it can be rewrapped in a KVBStorage
+ * object, thus allowing the create_genesis_block function to use the same
+ * functions as athena_evm to put data in the genesis block.
+ */
+class IdleBlockAppender : public Blockchain::IBlocksAppender {
+private:
+   Blockchain::IReplica *replica_;
+
+public:
+   IdleBlockAppender(Blockchain::IReplica *replica)
+      : replica_(replica) { }
+
+   virtual Blockchain::Status addBlock(
+      const Blockchain::SetOfKeyValuePairs &updates,
+      Blockchain::BlockId& outBlockId) override
+   {
+      outBlockId = 0; // genesis only!
+      return replica_->addBlockToIdleReplica(updates);
+   }
+};
+
+/**
  * Create the initial transactions and a genesis block based on the
  * genesis file.
  */
-void create_genesis_block(Blockchain::IReplica* replica,
+void create_genesis_block(Blockchain::IReplica *replica,
                           EVMInitParams params,
                           Logger logger)
 {
    const Blockchain::ILocalKeyValueStorageReadOnly &storage =
       replica->getReadOnlyStorage();
+   IdleBlockAppender blockAppender(replica);
+   KVBStorage kvbStorage(storage, &blockAppender);
+
    if (storage.getLastBlock() > 0) {
       LOG4CPLUS_INFO(logger, "Blocks already loaded, skipping genesis");
       return;
    }
 
-   Blockchain::SetOfKeyValuePairs blockData;
-
    std::map<evm_address, uint64_t> genesis_acts = params.get_initial_accounts();
    for (std::map<evm_address,uint64_t>::iterator it = genesis_acts.begin();
-       it != genesis_acts.end(); ++it) {
+	it != genesis_acts.end();
+	++it) {
 
+      // store a transaction for each initial balance in the genesis block
+      // defintition
       EthTransaction tx{
          nonce : 0,
          block_hash : zero_hash, // set to zero for now
@@ -112,29 +140,13 @@ void create_genesis_block(Blockchain::IReplica* replica,
       LOG4CPLUS_INFO(logger, "Created genesis transaction " << txhash <<
                      " to address " << it->first <<
                      " with value = " << tx.value);
+      kvbStorage.add_transaction(tx);
 
-      char *txkey_arr = new char[sizeof(txhash)];
-      std::copy(txhash.bytes, txhash.bytes+sizeof(txhash), txkey_arr);
-
-      char *txser;
-      size_t txser_length = tx.serialize(&txser);
-
-      Blockchain::KeyValuePair kvp(
-         Blockchain::Slice(txkey_arr, sizeof(txhash)),
-         Blockchain::Slice(txser, txser_length));
-
-      blockData.insert(kvp);
+      // also set the balance record
+      kvbStorage.set_balance(it->first, it->second);
    }
 
-   // TODO(BWF): Add block entry, which should include its hash and parent hash.
-   // TODO(BWF): also need to put real block hash in tx before serializing
-
-   replica->addBlockToIdleReplica(blockData);
-
-   for (auto kvp: blockData) {
-      delete[] kvp.first.data();
-      delete[] kvp.second.data();
-   }
+   kvbStorage.write_block();
 }
 
 /*
@@ -195,18 +207,27 @@ run_service(variables_map &opts, Logger logger)
       Blockchain::IClient *client =
          Blockchain::createClient(clientConsensusConfig);
       client->start();
+      KVBClient kvbClient(client);
+
+      FilterManager filterManager;
 
       std::string ip = opts["ip"].as<std::string>();
       short port = opts["port"].as<short>();
 
       api_service = new io_service();
       tcp::endpoint endpoint(address::from_string(ip), port);
-      api_acceptor acceptor(*api_service, endpoint, athevm, client);
+      api_acceptor acceptor(*api_service,
+                            endpoint,
+                            filterManager,
+                            kvbClient);
 
       signal(SIGINT, signalHandler);
 
       LOG4CPLUS_INFO(logger, "Listening on " << endpoint);
       api_service->run();
+
+      // If we return from `run`, the service was stopped and we are shutting
+      // down.
 
       client->stop();
       Blockchain::release(client);

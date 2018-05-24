@@ -7,6 +7,7 @@
 #include <keccak.h>
 
 #include "athena_types.hpp"
+#include "athena_exception.hpp"
 #include "kvb/slice.h"
 #include "athena_storage.pb.h"
 #include "common/rlp.hpp"
@@ -68,7 +69,7 @@ bool operator==(const evm_address &a, const evm_address &b)
 /**
  * Compute the hash which will be used to reference the transaction.
  */
-evm_uint256be com::vmware::athena::EthTransaction::hash()
+evm_uint256be com::vmware::athena::EthTransaction::hash() const
 {
    /*
     * WARNING: This is not the same as Ethereum's transaction hash right now,
@@ -185,5 +186,96 @@ com::vmware::athena::EthTransaction::deserialize(Blockchain::Slice &input)
       LOG4CPLUS_ERROR(log4cplus::Logger::getInstance("com.vmware.athena"),
                       "Unknown transaction storage version " << intx.version());
       throw EVMException("Unkown transaction storage version");
+   }
+}
+
+/**
+ * Compute the hash which will be used to reference the transaction.
+ */
+evm_uint256be com::vmware::athena::EthBlock::get_hash() const
+{
+   /*
+    * WARNING: This is not the same as Ethereum's block hash right now,
+    * but is instead an approximation, in order to provide something to fill API
+    * holes. For now, the plan is:
+    *
+    * RLP([number, parent_hash, [txhash1, txhash2, ...]])
+    */
+
+   RLPBuilder rlpb;
+   rlpb.start_list();
+
+   rlpb.start_list();
+   for (auto txh = this->transactions.rbegin();
+        txh != this->transactions.rend();
+        ++txh) {
+      rlpb.add(*txh);
+   }
+   rlpb.end_list();
+
+   rlpb.add(this->parent_hash);
+   rlpb.add(this->number);
+   std::vector<uint8_t> rlp = rlpb.build();
+
+   // hash it
+   return com::vmware::athena::EVM::keccak_hash(rlp);
+}
+
+size_t com::vmware::athena::EthBlock::serialize(char** serialized)
+{
+   kvb::Block out;
+
+   out.set_version(blk_storage_version);
+   out.set_number(this->number);
+   out.set_hash(this->hash.bytes, sizeof(this->hash));
+   out.set_parent_hash(this->parent_hash.bytes, sizeof(this->parent_hash));
+
+   for (auto t: this->transactions) {
+      out.add_transaction(t.bytes, sizeof(evm_uint256be));
+   }
+
+   size_t size = out.ByteSize();
+
+   *serialized = (char*)malloc(size);
+   if (*serialized == NULL) {
+      throw EVMException("Unable to allocate tx serialization");
+   }
+
+   out.SerializeToArray(*serialized, size);
+   return size;
+}
+
+struct com::vmware::athena::EthBlock
+com::vmware::athena::EthBlock::deserialize(Blockchain::Slice &input)
+{
+   kvb::Block inblk;
+   inblk.ParseFromArray(input.data(), input.size());
+
+   if (inblk.version() == blk_storage_version) {
+      EthBlock outblk;
+
+      outblk.number = inblk.number();
+      std::copy(inblk.hash().begin(), inblk.hash().end(), outblk.hash.bytes);
+      std::copy(inblk.parent_hash().begin(),
+                inblk.parent_hash().end(),
+                outblk.parent_hash.bytes);
+
+      for (int i = 0; i < inblk.transaction_size(); i++) {
+         std::string txhashstr = inblk.transaction(i);
+         if (txhashstr.size() != sizeof(evm_uint256be)) {
+            LOG4CPLUS_ERROR(log4cplus::Logger::getInstance("com.vmware.athena"),
+                            "Invalid hash length " << txhashstr.size());
+            throw EVMException("Invalid transaction hash length");
+         }
+         evm_uint256be txhash;
+         std::copy(txhashstr.begin(), txhashstr.end(), txhash.bytes);
+         outblk.transactions.push_back(txhash);
+      }
+
+      return outblk;
+   } else {
+      LOG4CPLUS_ERROR(log4cplus::Logger::getInstance("com.vmware.athena"),
+                      "Unknown block storage version " << inblk.version());
+      throw EVMException("Unkown block storage version");
    }
 }

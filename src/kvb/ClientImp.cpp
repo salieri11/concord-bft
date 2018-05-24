@@ -132,16 +132,6 @@ static TlsIndex _allocTlsforClientImp()
    return i;
 }
 
-// TODO(BWF): Why is this defined here when RepStatus is in
-// BlockchainInterfaces?
-enum ClientStatus
-{
-   UnknownError = -1,
-   Idle = 0, // Idle == the internal threads are not running now
-   Running,
-   Stopping,
-};
-
 /**
  * Starts the thread pool for the client.
  */

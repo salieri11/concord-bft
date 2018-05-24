@@ -39,27 +39,49 @@ public:
       size_t &outReplySize) const override;
 
    // Handlers
-   void handle_transaction_request(
+   bool handle_transaction_request(
       AthenaRequest &athreq,
-      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+      KVBStorage &kvbStorage,
       AthenaResponse &athresp) const;
-   void handle_block_list_request(
+   bool handle_block_list_request(
       AthenaRequest &athreq,
-      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+      KVBStorage &kvbStorage,
       AthenaResponse &athresp) const;
-   void handle_block_request(
+   bool handle_block_request(
       AthenaRequest &athreq,
-      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+      KVBStorage &kvbStorage,
       AthenaResponse &athresp) const;
-   void handle_eth_request(
+   bool handle_eth_request(
       AthenaRequest &athreq,
-      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-      Blockchain::IBlocksAppender &blockAppender,
+      KVBStorage &kvbStorage,
       AthenaResponse &athresp) const;
-   void handle_eth_sendTransaction(
+   bool handle_eth_sendTransaction(
       AthenaRequest &athreq,
-      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-      Blockchain::IBlocksAppender &blockAppender,
+      KVBStorage &kvbStorage,
+      AthenaResponse &athresp) const;
+   bool handle_personal_newAccount(
+      AthenaRequest &athreq,
+      KVBStorage &kvbStorage,
+      AthenaResponse &athresp) const;
+   bool handle_eth_request_read_only(
+      AthenaRequest &athreq,
+      KVBStorage &kvbStorage,
+      AthenaResponse &athresp) const;
+   bool handle_eth_callContract(
+      AthenaRequest &athreq,
+      KVBStorage &kvbStorage,
+      AthenaResponse &athresp) const;
+   bool handle_eth_blockNumber(
+      AthenaRequest &athreq,
+      KVBStorage &kvbStorage,
+      AthenaResponse &athresp) const;
+   bool handle_eth_getCode(
+      AthenaRequest &athreq,
+      KVBStorage &kvbStorage,
+      AthenaResponse &athresp) const;
+   bool handle_eth_getStorageAt(
+      AthenaRequest &athreq,
+      KVBStorage &kvbStorage,
       AthenaResponse &athresp) const;
 
    // Utilites
@@ -69,9 +91,7 @@ public:
 
    evm_result run_evm(
       const EthRequest &request,
-      bool isTransaction,
-      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-      Blockchain::IBlocksAppender &blockAppender,
+      KVBStorage &kvbStorage,
       evm_uint256be &txhash /* OUT */) const;
 };
 

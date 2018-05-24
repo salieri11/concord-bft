@@ -1,14 +1,14 @@
 // Copyright 2018 VMware, all rights reserved
 
 #include "filter_manager.hpp"
-
+#include "athena_kvb_client.hpp"
+#include "athena_types.hpp"
 
 using namespace std;
 using namespace com::vmware::athena;
 using log4cplus::Logger;
 
-com::vmware::athena::FilterManager::FilterManager(EVM &evm):
-   executing_evm(&evm),
+com::vmware::athena::FilterManager::FilterManager():
    logger(Logger::getInstance("com.vmware.athena.FilterManager")){
 }
 
@@ -16,9 +16,10 @@ com::vmware::athena::FilterManager::FilterManager(EVM &evm):
  * creates a new block filter and returns the id corresponding to that filter
  */
 evm_uint256be
-com::vmware::athena::FilterManager::create_new_block_filter() {
+com::vmware::athena::FilterManager::create_new_block_filter(
+   uint64_t current_block)
+{
    evm_uint256be new_filter_id = next_filter_id();
-   uint64_t current_block = executing_evm->current_block_number();
    // Note: Currently athena is single-threaded and hence only handles one
    // request at a time. Also, currently in athena we create a new block for
    // every transaction (Basically, there is no delay in block creation like
@@ -52,24 +53,49 @@ com::vmware::athena::FilterManager::create_new_block_filter() {
  * to 'getFilterChanges' with this filterId
  */
 vector<evm_uint256be>
-com::vmware::athena::FilterManager::get_new_block_filter_changes(evm_uint256be filterId) {
-   vector<evm_uint256be> ret;
+com::vmware::athena::FilterManager::get_new_block_filter_changes(
+   evm_uint256be filterId,
+   uint64_t current_block,
+   KVBClient &client)
+{
+   vector<evm_uint256be> block_changes;
    if (filters_by_id.count(filterId)) {
-      uint64_t current_block = executing_evm->current_block_number();
       uint64_t new_block_count = current_block - filters_by_id[filterId].first;
       LOG4CPLUS_DEBUG(logger, "New block filter change request:\n"
                       "current block: " << current_block <<
                       "last update sent: " << filters_by_id[filterId].first);
-      LOG4CPLUS_WARN(logger,
-                     "TODO: filters disabled during initial KVB integration");
-      vector<shared_ptr<EthBlock>> block_list;// = TODO(BWF): KVB integration
-//         executing_evm->get_block_list(current_block,
-//                                       new_block_count);
-      for (auto it : block_list) {
-         ret.push_back(it->hash);
+
+      AthenaRequest request;
+      BlockListRequest *blockRequest = request.mutable_block_list_request();
+      blockRequest->set_latest(current_block);
+      blockRequest->set_count(new_block_count);
+
+      AthenaResponse response;
+      if (client.send_request_sync(request, true /* read only */, response)) {
+         if (response.has_block_list_response()) {
+            BlockListResponse blockResponse = response.block_list_response();
+
+            // TODO: this might not always be true if the filter is far behind
+            assert(blockResponse.block_size() == new_block_count);
+
+            // copy all hashes to response
+            for (int i = 0; i < blockResponse.block_size(); i++) {
+               BlockBrief block = blockResponse.block(i);
+               evm_uint256be block_hash;
+               std::copy(block.hash().begin(),
+                         block.hash().end(),
+                         block_hash.bytes);
+               block_changes.push_back(block_hash);
+            }
+
+            // update last read state of filter
+            filters_by_id[filterId].first = current_block;
+         } else if (response.error_response_size() > 0) {
+            throw FilterException(response.error_response(0).description());
+         }
+      } else {
+         throw FilterException("Error retrieving block list");
       }
-      // update state of this filter
-      filters_by_id[filterId].first = current_block;
    } else if (geth_delay_filters.count(filterId)) {
       // First query against a new filter. Leave response empty, and move it to
       // the regular list to get a proper response next time.
@@ -77,7 +103,8 @@ com::vmware::athena::FilterManager::get_new_block_filter_changes(evm_uint256be f
       // remove this filter from delay filter map
       geth_delay_filters.erase(filterId);
    }
-   return ret;
+
+   return block_changes;
 }
 
 evm_uint256be

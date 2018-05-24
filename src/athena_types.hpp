@@ -13,6 +13,7 @@ const evm_address zero_address{{0}};
 const evm_uint256be zero_hash{{0}};
 
 const int64_t tx_storage_version = 1;
+const int64_t blk_storage_version = 1;
 
 namespace com {
 namespace vmware {
@@ -30,7 +31,7 @@ typedef struct EthTransaction {
    uint64_t value;
    // TODO: all the other fields
 
-   evm_uint256be hash();
+   evm_uint256be hash() const;
    size_t serialize(char** out);
    static struct EthTransaction deserialize(Blockchain::Slice &input);
 } EthTransaction;
@@ -40,6 +41,10 @@ typedef struct EthBlock {
    evm_uint256be hash;
    evm_uint256be parent_hash;
    std::vector<evm_uint256be> transactions;
+
+   evm_uint256be get_hash() const;
+   size_t serialize(char** out);
+   static struct EthBlock deserialize(Blockchain::Slice &input);
 } EthBlock;
 
 }

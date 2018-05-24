@@ -9,7 +9,7 @@ message Block {
    optional int64 number = 2;
    optional bytes hash = 3;             // 32 bytes
    optional bytes parent_hash = 4;      // 32 bytes
-   repeated bytes transactions = 5;     // 32 bytes
+   repeated bytes transaction = 5;      // 32 bytes
 }
 
 message Transaction {
@@ -25,10 +25,19 @@ message Transaction {
    optional int64 value = 10;           // 32 bytes
 }
 
-message Account {
+message Balance {
    optional int64 version = 1;
-   optional bytes address = 2;          // 20 bytes
-   optional bytes balance = 3;          // 32 bytes
-   optional bytes code = 4;
-   optional bytes code_hash = 5;        // 32 bytes
+   // TODO: balance should be uint256be
+   optional int64 balance = 2;          // 32 bytes
+}
+
+message Code {
+   optional int64 version = 1;
+   optional bytes code = 2;
+   optional bytes hash = 3;             // 32 bytes
+}
+
+message Nonce {
+   optional int64 version = 1;
+   optional int64 nonce = 2;
 }
