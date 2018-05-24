@@ -15,6 +15,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONAware;
+import org.json.simple.JSONObject;
 
 public abstract class BaseServlet extends HttpServlet {
    protected static final long serialVersionUID = 1L;
@@ -84,15 +85,39 @@ public abstract class BaseServlet extends HttpServlet {
          AthenaConnectionPool.getInstance().putConnection(conn);
       }
 
-      JSONAware respObject = parseToJSON(athenaResponse);
-      String json = respObject == null ? null : respObject.toJSONString();
+      String json;
+      int status;
+      if (athenaResponse.getErrorResponseCount() == 0) {
+         JSONAware respObject = parseToJSON(athenaResponse);
+         json = respObject == null ? null : respObject.toJSONString();
+         status = respObject == null
+            ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR
+            : HttpServletResponse.SC_OK;
+      } else {
+         Athena.ErrorResponse errorResp = athenaResponse.getErrorResponse(0);
 
-      processResponse(response,
-                      json,
-                      json == null
-                         ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR
-                         : HttpServletResponse.SC_OK,
-                      log);
+         String message = errorResp.getDescription();
+         JSONObject respObject = new JSONObject();
+         respObject.put("error", message);
+         json = respObject.toJSONString();
+
+         // trying to be a little fancy with status codes here, but we should
+         // probably change ErrorResponse to include a "code" field, so Athena
+         // can signal exactly what kind of error happened
+         if (message.contains("not found")) {
+            // block/transaction not found
+            status = HttpServletResponse.SC_NOT_FOUND;
+         } else if (message.contains("Missing") ||
+                    message.contains("request")) {
+            // Missing required parameter
+            // Invalid ... request
+            status = HttpServletResponse.SC_BAD_REQUEST;
+         } else {
+            status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
+         }
+      }
+
+      processResponse(response, json, status, log);
    }
 
    /**
