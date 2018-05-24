@@ -34,12 +34,8 @@ using log4cplus::Logger;
  */
 com::vmware::athena::EVM::EVM(EVMInitParams params)
    : logger(Logger::getInstance("com.vmware.athena.evm")),
-     chainId(params.get_chainID()),
-     txctx_kvbStorage(nullptr)
+     chainId(params.get_chainID())
 {
-   // wrap an evm context in an athena context
-   athctx = {{&athena_fn_table}, this};
-
 #ifdef USE_HERA
    evminst = hera_create();
 #else
@@ -84,15 +80,7 @@ void com::vmware::athena::EVM::run(evm_message &message,
       LOG4CPLUS_DEBUG(logger, "Loaded code from " << message.destination);
       message.code_hash = hash;
 
-      if (message.depth == 0) {
-         assert(!txctx_kvbStorage);
-         txctx_kvbStorage = &kvbStorage;
-      }
-      assert(txctx_kvbStorage == &kvbStorage);
-      execute(message, code, result);
-      if (message.depth == 0) {
-         txctx_kvbStorage = nullptr;
-      }
+      execute(message, kvbStorage, code, result);
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " << message.destination);
 
@@ -191,15 +179,7 @@ void com::vmware::athena::EVM::create(evm_message &message,
       // something random
       message.code_hash = keccak_hash(create_code);
 
-      if (message.depth == 0) {
-         assert(!txctx_kvbStorage);
-         txctx_kvbStorage = &kvbStorage;
-      }
-      assert(txctx_kvbStorage == &kvbStorage);
-      execute(message, create_code, result);
-      if (message.depth == 0) {
-         txctx_kvbStorage = nullptr;
-      }
+      execute(message, kvbStorage, create_code, result);
 
       // TODO: check if the new contract is zero bytes in length;
       //       return error, not success in that case
@@ -277,17 +257,6 @@ EthTransaction com::vmware::athena::EVM::get_transaction(
 }
 
 /**
- * Get the value written at the given key in contract storage.
- */
-evm_uint256be com::vmware::athena::EVM::get_storage_at(
-   const evm_address &account, const evm_uint256be &key) const
-{
-   evm_uint256be result;
-   get_storage(&result, &account, &key);
-   return result;
-}
-
-/**
  * Get the list of blocks, starting at latest, and going back count-1 steps in
  * the chain.
  */
@@ -313,26 +282,6 @@ std::vector<EthBlock> com::vmware::athena::EVM::get_block_list(
    }
 
    return result;
-}
-
-/**
- * Get block at given index.
- */
-EthBlock com::vmware::athena::EVM::get_block_for_number(
-   uint64_t number, KVBStorage &kvbStorage) const
-{
-   return kvbStorage.get_block(number);
-
-   throw BlockNotFoundException();
-}
-
-/**
- * Get block for given hash.
- */
-EthBlock com::vmware::athena::EVM::get_block_for_hash(
-   evm_uint256be hash, KVBStorage &kvbStorage) const
-{
-   return kvbStorage.get_block(hash);
 }
 
 /**
@@ -419,199 +368,18 @@ evm_uint256be com::vmware::athena::EVM::keccak_hash(
 }
 
 void com::vmware::athena::EVM::execute(evm_message &message,
+                                       KVBStorage &kvbStorage,
                                        const std::vector<uint8_t> &code,
                                        evm_result &result)
 {
+   // wrap an evm context in an athena context
+   athena_context athctx = {{&athena_fn_table},
+                            this,
+                            &kvbStorage,
+                            &logger};
+
    result = evminst->execute(evminst, &athctx.evmctx, EVM_BYZANTIUM,
                              &message, &code[0], code.size());
-}
-
-
-/**
- * Does the account at the address exist?
- *
- * TODO: is this called for both accounts and contracts?
- *
- * Returns 1 if the account exists, 0 otherwise.
- */
-int com::vmware::athena::EVM::account_exists(
-   const struct evm_address* address)
-{
-   LOG4CPLUS_INFO(logger, "EVM::account_exists called, address: " <<
-                  *address);
-
-   assert(txctx_kvbStorage);
-   if (txctx_kvbStorage->account_exists(*address)) {
-      return 1;
-   }
-
-   return 0;
-};
-
-/**
- * Get the value stored at the given key. If the key is not found, the value is
- * zeroed out.
- */
-void com::vmware::athena::EVM::get_storage(
-   struct evm_uint256be* result,
-   const struct evm_address* address,
-   const struct evm_uint256be* key) const
-{
-   LOG4CPLUS_DEBUG(logger, "EVM::get_storage called, address: " <<
-                   *address << " key: " << *key);
-
-   assert(txctx_kvbStorage);
-   *result = txctx_kvbStorage->get_storage(*address, *key);
-}
-
-/**
- * Set the value stored at the given key.
- */
-void com::vmware::athena::EVM::set_storage(
-   const struct evm_address* address,
-   const struct evm_uint256be* key,
-   const struct evm_uint256be* value)
-{
-   LOG4CPLUS_DEBUG(logger, "EVM::set_storage called, address: " <<
-                   *address << " key: " << *key << " value: " << *value);
-
-   assert(txctx_kvbStorage);
-   txctx_kvbStorage->set_storage(*address, *key, *value);
-}
-
-/**
- * Get the gas balance for a given account.
- */
-void com::vmware::athena::EVM::get_balance(
-   struct evm_uint256be* result,
-   const struct evm_address* address)
-{
-   LOG4CPLUS_INFO(logger, "EVM::get_balance called, address: " << *address);
-
-   assert(txctx_kvbStorage);
-   if (txctx_kvbStorage->account_exists(*address)) {
-      try {
-         to_evm_uint256be(txctx_kvbStorage->get_balance(*address), result);
-      } catch (...) {
-         // if the account's balance couldn't be deserialized, it's safest to
-         // return zero from here
-         to_evm_uint256be(0, result);
-      }
-   } else {
-      to_evm_uint256be(0, result);
-   }
-}
-
-/**
- * Get the code for the contract at the given address.
- *
- * Returns the size in bytes of the code.
- */
-bool com::vmware::athena::EVM::get_code(
-   const struct evm_address *address,
-   std::vector<uint8_t> &code /* out */,
-   evm_uint256be &hash /* out */)
-{
-   LOG4CPLUS_INFO(logger, "ath_get_code called, address: " << *address);
-
-   return get_code(*address, code, hash);
-}
-
-bool com::vmware::athena::EVM::get_code(
-   const evm_address &address,
-   std::vector<uint8_t> &code /* out */,
-   evm_uint256be &hash /* out */) const
-{
-   // no log here, because this is the internal version
-   assert(txctx_kvbStorage);
-   if (txctx_kvbStorage->get_code(address, code, hash)) {
-      return true;
-   }
-
-   return false;
-}
-
-/**
- * Cause a contract to self-destruct.
- */
-void com::vmware::athena::EVM::selfdestruct(
-   const struct evm_address* address,
-   const struct evm_address* beneficiary)
-{
-   LOG4CPLUS_INFO(logger, "ath_selfdestruct called, address: " <<
-                  *address << " beneficiary: " << *beneficiary);
-
-   // TODO: Actually self-destruct contract.
-}
-
-/**
- * Log a message.
- */
-void com::vmware::athena::EVM::emit_log(
-   const struct evm_address* address,
-   const uint8_t* data,
-   size_t data_size,
-   const struct evm_uint256be topics[],
-   size_t topics_count)
-{
-   LOG4CPLUS_INFO(logger, "EVM::emit_log called, address: " << *address);
-
-   // TODO: Actually log the message.
-}
-
-/**
- * Handle a call inside a contract, EVM callback function
- */
-void com::vmware::athena::EVM::call(
-   struct evm_result* result,
-   const struct evm_message* msg)
-{
-   LOG4CPLUS_DEBUG(logger, "EVM::call called; depth = " << msg->depth);
-   assert(msg->depth > 0);
-   evm_uint256be txhash;
-   LOG4CPLUS_INFO(logger, msg);
-   // create copy of message struct since
-   // call function needs non-const message object
-   evm_message call_msg = *msg;
-
-   assert(txctx_kvbStorage);
-   run(call_msg, *txctx_kvbStorage, *result, txhash);
-}
-
-/**
- * Get the hash for the block at the given index.
- */
-void com::vmware::athena::EVM::get_block_hash(
-   struct evm_uint256be* result,
-   int64_t number)
-{
-   LOG4CPLUS_DEBUG(logger, "EVM::get_block_hash called, block: " << number);
-
-   try {
-      assert(txctx_kvbStorage);
-      if (number < 0 || number > txctx_kvbStorage->current_block_number()) {
-         // KVBlockchain internals assert that the value passed to get_block is
-         // <= the latest block number
-         *result = zero_hash;
-      } else {
-         EthBlock blk = txctx_kvbStorage->get_block(number);
-         *result = blk.hash;
-      }
-   } catch (...) {
-      *result = zero_hash;
-   }
-}
-
-/**
- * Get the transaction context.
- */
-void com::vmware::athena::EVM::get_tx_context(
-   struct evm_tx_context* result)
-{
-   LOG4CPLUS_INFO(logger, "EVM::get_tx_context called");
-
-   // TODO: Actually get the transaction context. For now, set to known value.
-   memset(result, 0, sizeof(*result));
 }
 
 extern "C" {
@@ -624,37 +392,82 @@ extern "C" {
       return reinterpret_cast<const athena_context*>(evmctx)->ath_object;
    }
 
+   const athena_context* ath_context(const struct evm_context* evmctx) {
+      return reinterpret_cast<const athena_context*>(evmctx);
+   }
+
    int ath_account_exists(struct evm_context* evmctx,
                           const struct evm_address* address) {
-      return ath_object(evmctx)->account_exists(address);
+      LOG4CPLUS_INFO(*(ath_context(evmctx)->logger),
+                     "EVM::account_exists called, address: " << *address);
+
+      if (ath_context(evmctx)->kvbStorage->account_exists(*address)) {
+         return 1;
+      }
+      return 0;
    }
+
    void ath_get_storage(struct evm_uint256be* result,
                         struct evm_context* evmctx,
                         const struct evm_address* address,
                         const struct evm_uint256be* key) {
-      ath_object(evmctx)->get_storage(result, address, key);
+      LOG4CPLUS_DEBUG(*(ath_context(evmctx)->logger),
+                      "EVM::get_storage called, address: " << *address <<
+                      " key: " << *key);
+
+      *result = ath_context(evmctx)->kvbStorage->get_storage(*address, *key);
    }
+
    void ath_set_storage(struct evm_context* evmctx,
                         const struct evm_address* address,
                         const struct evm_uint256be* key,
                         const struct evm_uint256be* value) {
-      ath_object(evmctx)->set_storage(address, key, value);
+      LOG4CPLUS_DEBUG(*(ath_context(evmctx)->logger),
+                      "EVM::set_storage called, address: " << *address <<
+                      " key: " << *key << " value: " << *value);
+
+      ath_context(evmctx)->kvbStorage->set_storage(*address, *key, *value);
    }
+
    void ath_get_balance(struct evm_uint256be* result,
                         struct evm_context* evmctx,
                         const struct evm_address* address) {
-      ath_object(evmctx)->get_balance(result, address);
+      LOG4CPLUS_INFO(*(ath_context(evmctx)->logger),
+                     "EVM::get_balance called, address: " << *address);
+
+      try {
+         to_evm_uint256be(
+            ath_context(evmctx)->kvbStorage->get_balance(*address), result);
+      } catch (...) {
+         // if the account's balance couldn't be deserialized, it's safest to
+         // return zero from here
+         to_evm_uint256be(0, result);
+      }
    }
+
    size_t ath_get_code_size(struct evm_context* evmctx,
                             const struct evm_address* address) {
-      return ath_get_code(nullptr, evmctx, address);
+      LOG4CPLUS_INFO(*(ath_context(evmctx)->logger),
+                     "ath_get_code_size called, address: " << *address);
+      std::vector<uint8_t> code;
+      evm_uint256be hash;
+      if (ath_context(evmctx)->kvbStorage->get_code(*address, code, hash)) {
+         return code.size();
+      }
+
+      return 0;
    }
+
    size_t ath_get_code(const uint8_t** result_code,
                        struct evm_context* evmctx,
                        const struct evm_address* address) {
+      LOG4CPLUS_INFO(*(ath_context(evmctx)->logger),
+                     "ath_get_code called, address: " << *address);
+
       std::vector<uint8_t> stored_code;
       evm_uint256be hash;
-      if (ath_object(evmctx)->get_code(address, stored_code, hash)) {
+      if (ath_context(evmctx)->kvbStorage->get_code(
+             *address, stored_code, hash)) {
          if (result_code) {
             *result_code = (uint8_t*)malloc(stored_code.size());
             if (*result_code) {
@@ -665,32 +478,79 @@ extern "C" {
       }
       return 0;
    }
+
    void ath_selfdestruct(struct evm_context* evmctx,
                          const struct evm_address* address,
                          const struct evm_address* beneficiary) {
-      ath_object(evmctx)->selfdestruct(address, beneficiary);
+      LOG4CPLUS_INFO(*(ath_context(evmctx)->logger),
+                     "ath_selfdestruct called, address: " << *address <<
+                     " beneficiary: " << *beneficiary);
+
+      // TODO: Actually self-destruct contract.
    }
+
    void ath_emit_log(struct evm_context* evmctx,
                      const struct evm_address* address,
                      const uint8_t* data,
                      size_t data_size,
                      const struct evm_uint256be topics[],
                      size_t topics_count) {
-      ath_object(evmctx)->emit_log(address, data, data_size,
-                                   topics, topics_count);
+      LOG4CPLUS_INFO(*(ath_context(evmctx)->logger),
+                     "EVM::emit_log called, address: " << *address);
+
+      // TODO: Actually log the message.
    }
+
    void ath_call(struct evm_result* result,
                  struct evm_context* evmctx,
                  const struct evm_message* msg) {
-      ath_object(evmctx)->call(result, msg);
+      // create copy of message struct since
+      // call function needs non-const message object
+      evm_message call_msg = *msg;
+
+      LOG4CPLUS_DEBUG(*(ath_context(evmctx)->logger),
+                      "EVM::call called: " << call_msg);
+
+      // our block-creation scheme will get confused if the EVM isn't
+      // incrementing the depth for us
+      assert(msg->depth > 0);
+
+      // txhash is a throw-away - we don't get a transaction from a call
+      evm_uint256be txhash;
+      ath_object(evmctx)->run(call_msg,
+                              *(ath_context(evmctx)->kvbStorage),
+                              *result,
+                              txhash);
    }
+
    void ath_get_block_hash(struct evm_uint256be* result,
                            struct evm_context* evmctx,
                            int64_t number) {
-      ath_object(evmctx)->get_block_hash(result, number);
+      LOG4CPLUS_DEBUG(*(ath_context(evmctx)->logger),
+                      "EVM::get_block_hash called, block: " << number);
+
+      try {
+         if (number < 0 ||
+             number > ath_context(evmctx)->kvbStorage->current_block_number()) {
+            // KVBlockchain internals assert that the value passed to get_block
+            // is <= the latest block number
+            *result = zero_hash;
+         } else {
+            EthBlock blk = ath_context(evmctx)->kvbStorage->get_block(number);
+            *result = blk.hash;
+         }
+      } catch (...) {
+         *result = zero_hash;
+      }
    }
+
    void ath_get_tx_context(struct evm_tx_context* result,
                            struct evm_context* evmctx) {
-      ath_object(evmctx)->get_tx_context(result);
+      LOG4CPLUS_INFO(*(ath_context(evmctx)->logger),
+                     "EVM::get_tx_context called");
+
+      // TODO: Actually get the transaction context. For now, set to known
+      // value. What is the "transaction context" anyway?
+      memset(result, 0, sizeof(*result));
    }
 }

@@ -355,12 +355,11 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_request(
              request.number() < requested_block_number) {
             requested_block_number = request.number();
          }
-         block = athevm_.get_block_for_number(requested_block_number,
-                                              kvbStorage);
+         block = kvbStorage.get_block(requested_block_number);
       } else if (request.has_hash()) {
          evm_uint256be blkhash;
          std::copy(request.hash().begin(), request.hash().end(), blkhash.bytes);
-         block = athevm_.get_block_for_hash(blkhash, kvbStorage);
+         block = kvbStorage.get_block(blkhash);
       }
 
       BlockResponse* response = athresp.mutable_block_response();

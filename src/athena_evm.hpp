@@ -20,23 +20,29 @@ namespace com {
 namespace vmware {
 namespace athena {
 
-/**
- * Our wrapper around EVM's wrapper, where we can add pointers to the modules
- * we're using to keep state.
- */
-typedef struct athena_context {
-   /** evmctx must be first, so we can cast to our wrapper */
-   struct evm_context evmctx;
-   class EVM *ath_object;
-} athena_context;
+// forward declaration for callbacks.
+class EVM;
 
-extern "C" {
 /**
  * This extern block of ath_* functions are callbacks that the EVM uses to interact
  * with our state-keeping layer.
  */
+extern "C" {
+   /**
+    * Our wrapper around EVM's wrapper, where we can add pointers to the modules
+    * we're using to keep state.
+    */
+   typedef struct athena_context {
+      /** evmctx must be first, so we can cast to our wrapper */
+      struct evm_context evmctx;
+      class EVM *ath_object;
+      class KVBStorage *kvbStorage;
+      log4cplus::Logger *logger;
+   } athena_context;
 
    EVM* ath_object(const struct evm_context* evmctx);
+   const athena_context* ath_context(const struct evm_context* evmctx);
+
    int ath_account_exists(struct evm_context* evmctx,
                           const struct evm_address* address);
    void ath_get_storage(struct evm_uint256be* result,
@@ -72,24 +78,24 @@ extern "C" {
                            int64_t number);
    void ath_get_tx_context(struct evm_tx_context* result,
                            struct evm_context* evmctx);
-}
 
-/**
- * Function dispatch table for EVM. Specified by EEI.
- */
-const static struct evm_context_fn_table athena_fn_table = {
-      ath_account_exists,
-      ath_get_storage,
-      ath_set_storage,
-      ath_get_balance,
-      ath_get_code_size,
-      ath_get_code,
-      ath_selfdestruct,
-      ath_call,
-      ath_get_tx_context,
-      ath_get_block_hash,
-      ath_emit_log
-};
+  /*
+   * Function dispatch table for EVM. Specified by EEI.
+   */
+   const static struct evm_context_fn_table athena_fn_table = {
+         ath_account_exists,
+         ath_get_storage,
+         ath_set_storage,
+         ath_get_balance,
+         ath_get_code_size,
+         ath_get_code,
+         ath_selfdestruct,
+         ath_call,
+         ath_get_tx_context,
+         ath_get_block_hash,
+         ath_emit_log
+      };
+}
 
 class EVM {
 public:
@@ -107,64 +113,24 @@ public:
                evm_uint256be &txhash /* out */);
    EthTransaction get_transaction(const evm_uint256be &txhash,
                                   KVBStorage &kvbStorage) const;
-   evm_uint256be get_storage_at(const evm_address &account,
-                                const evm_uint256be &key) const;
-   bool get_code(const evm_address &address,
-                 std::vector<uint8_t> &result_code,
-                 evm_uint256be &result_hash) const;
    std::vector<EthBlock> get_block_list(uint64_t latest,
                                         uint64_t count,
                                         KVBStorage &kvbStorage) const;
-   EthBlock get_block_for_number(uint64_t number,
-                                 KVBStorage &kvbStorage) const;
-   EthBlock get_block_for_hash(evm_uint256be hash,
-                               KVBStorage &kvbStorage) const;
    bool new_account(const std::string &passphrase,
                     KVBStorage &kvbStorage,
                     evm_address &address /* OUT */);
 
-   /* EVM callbacks */
-   int account_exists(const struct evm_address* address);
-   void get_storage(struct evm_uint256be* result,
-                    const struct evm_address* address,
-                    const struct evm_uint256be* key) const;
-   void set_storage(const struct evm_address* address,
-                    const struct evm_uint256be* key,
-                    const struct evm_uint256be* value);
-   void get_balance(struct evm_uint256be* result,
-                    const struct evm_address* address);
-   bool get_code(const struct evm_address* address,
-                 std::vector<uint8_t> &result_code,
-                 evm_uint256be &result_hash);
-   void selfdestruct(const struct evm_address* address,
-                     const struct evm_address* beneficiary);
-   void emit_log(const struct evm_address* address,
-                 const uint8_t* data,
-                 size_t data_size,
-                 const struct evm_uint256be topics[],
-                 size_t topics_count);
-   void call(struct evm_result* result,
-             const struct evm_message* msg);
-   void get_block_hash(struct evm_uint256be* result,
-                       int64_t number);
-   void get_tx_context(struct evm_tx_context* result);
-
 private:
-   athena_context athctx;
    evm_instance *evminst;
    log4cplus::Logger logger;
 
    // chain to which we are connected
    uint64_t chainId;
 
-   // only available during `run` and `create` calls; will be in read-only mode
-   // during `run` calls that are read-only (non-transaction)
-   KVBStorage *txctx_kvbStorage;
-
-   void create_genesis_block(EVMInitParams params);
    evm_address contract_destination(const evm_message &message,
                                     KVBStorage &kvbStorage);
    void execute(evm_message &message,
+                KVBStorage &kvbStorage,
                 const std::vector<uint8_t> &code,
                 evm_result &result /* out */);
 
