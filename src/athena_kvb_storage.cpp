@@ -3,6 +3,60 @@
 // Wrapper around KVB to provide EVM execution storage context. This class
 // defines the mapping of EVM object to KVB address. It also records updates to
 // be used in minting a block when a transaction finishes.
+//
+// Initializing a KVBStorage object without an IBlocksAppender causes it to
+// operate in read-only mode. A ReadOnlyModeException will be thrown if any of
+// the set/add/write functions are called on a KVBStorage object in read-only
+// mode.
+//
+// To add a block, first call the set/add functions to prepare data for the
+// block. When all data has been prepared, call `write_block`. A key-value pair
+// with the block metadata is added for you. After calling `write_block`, the
+// staging area is cleared, and more objects can be prepared for a new block, if
+// desired.
+//
+// After calling set/add/write, a copy of the data has been made, which is
+// managed by this object. The original value passed to the set/add/write
+// function can be safely destroyed or modified.
+//
+// KVBlockchain writes a block as a set of key-value pairs. We use the first
+// byte of a key to signify the type of the value (see the `TYPE_*` constants in
+// `athena_kvb_storage.hpp`. Values are mostly Protocol Buffer encodings,
+// defined in `athena_storage.proto`, with the exception being contract data
+// (not code). All protobuf messages include a "version" field, so we can handle
+// upgrades to storage at a later date.
+//
+// Storage layouts:
+//
+// * Block
+//   - Key: TYPE_BLOCK+[block hash (32 bytes)]
+//   - Value: com::vmware::athena::kvb::Block protobuf
+//   - Notes: Do not confuse this with the KVB block. This is Ethereum-level
+//            block information.
+//
+// * Transaction
+//   - Key: TYPE_TRANSACTION+[transaction hash (32 bytes)]
+//   - Value: com::vmware::athena::kvb::Transaction protobuf
+//
+// * Account or Contract Balance
+//   - Key: TYPE_BALANCE+[account/contract address (20 bytes)]
+//   - Value: com::vmware::athena::kvb::Balance protobuf
+//   - Notes: Yes, it seems a little overkill to wrap a number in a protobuf
+//            encoding, but this saves hassle with endian encoding.
+//
+// * Contract Code
+//   - Key: TYPE_CODE+[contract address (20 bytes)]
+//   - Value: com::vmware::athena::kvb::Code protobuf
+//
+// * Contract Data
+//   - Key: TYPE_STORAGE+[contract address (20 bytes)]+[location (32 bytes)]
+//   - Value: 32 bytes directly copied from an evm_uint256be
+//   - Notes: aka "storage"
+//
+// * Account Nonce
+//   - Key: TYPE_NONCE+[account address (20 bytes)]
+//   - Value: com::vmware::athena::kvb::Nonce protobuf
+//   - Notes: As with balance, using protobuf solves encoding issues.
 
 #include <vector>
 #include <cstring>
@@ -23,6 +77,7 @@ using namespace com::vmware::athena;
 ////////////////////////////////////////
 // GENERAL
 
+/* Current storage versions. */
 const int64_t balance_storage_version = 1;
 const int64_t nonce_storage_version = 1;
 const int64_t code_storage_version = 1;
@@ -46,6 +101,17 @@ com::vmware::athena::KVBStorage::KVBStorage(
 {
 }
 
+com::vmware::athena::KVBStorage::~KVBStorage()
+{
+   // Release the memory used for staging.
+   for (auto kvp: updates) {
+      delete[] kvp.first.data();
+      delete[] kvp.second.data();
+   }
+
+   // We don't own the blockAppender we're pointing to, so leave it alone.
+}
+
 bool com::vmware::athena::KVBStorage::is_read_only()
 {
    // if we don't have a blockAppender, we are read-only
@@ -55,6 +121,10 @@ bool com::vmware::athena::KVBStorage::is_read_only()
 ////////////////////////////////////////
 // ADDRESSING
 
+/**
+ * Constructs a key: one byte of `type`, concatenated with `length` bytes of
+ * `bytes`.
+ */
 Slice com::vmware::athena::KVBStorage::kvb_key(
    char type, const uint8_t *bytes, size_t length) const
 {
@@ -64,6 +134,9 @@ Slice com::vmware::athena::KVBStorage::kvb_key(
    return Slice(key, length+1);
 }
 
+/**
+ * Convenience functions for constructing a key for each object type.
+ */
 Slice com::vmware::athena::KVBStorage::block_key(const EthBlock &blk) const
 {
    return kvb_key(TYPE_BLOCK, blk.get_hash().bytes, sizeof(evm_uint256be));
@@ -118,6 +191,10 @@ Slice com::vmware::athena::KVBStorage::storage_key(
 ////////////////////////////////////////
 // WRITING
 
+/**
+ * Add a key-value pair to be stored in the block. Throws ReadOnlyModeException
+ * if this object is in read-only mode.
+ */
 void com::vmware::athena::KVBStorage::put(const Slice &key,
                                           const Slice &value)
 {
@@ -129,11 +206,17 @@ void com::vmware::athena::KVBStorage::put(const Slice &key,
    updates.insert(kvp);
 }
 
+/**
+ * Add a block to the database, containing all of the key-value pairs that have
+ * been prepared. A ReadOnlyModeException will be thrown if this object is in
+ * read-only mode.
+ */
 void com::vmware::athena::KVBStorage::write_block() {
    if (!blockAppender_) {
       throw ReadOnlyModeException();
    }
 
+   // Prepare the block metadata
    EthBlock blk;
    blk.number = next_block_number();
 
@@ -155,20 +238,28 @@ void com::vmware::athena::KVBStorage::write_block() {
    }
    blk.hash = blk.get_hash();
 
+   // Add the block metadata to the key-value pair set
    add_block(blk);
 
+   // Actually write the block
    BlockId outBlockId;
    blockAppender_->addBlock(updates, outBlockId);
    LOG4CPLUS_INFO(logger, "Appended block number " << outBlockId);
 
+   // Release all the storage our staging was using
    for (auto kvp: updates) {
       delete[] kvp.first.data();
       delete[] kvp.second.data();
    }
 
+   // Prepare to stage another block
    updates.clear();
 }
 
+/**
+ * Preparation functions for each value type in a block. These creates
+ * serialized versions of the objects and store them in a staging area.
+ */
 void com::vmware::athena::KVBStorage::add_block(EthBlock &blk)
 {
    Slice blkaddr = block_key(blk);
@@ -243,18 +334,30 @@ void com::vmware::athena::KVBStorage::set_storage(
 ////////////////////////////////////////
 // READING
 
+/**
+ * Get the number of the block that will be added when write_block is called.
+ */
 uint64_t com::vmware::athena::KVBStorage::next_block_number() {
    // Ethereum block number is 1+KVB block number. So, the most recent KVB block
    // number is actually the next Ethereum block number.
    return roStorage_.getLastBlock();
 }
 
+/**
+ * Get the number of the most recent block that was added.
+ */
 uint64_t com::vmware::athena::KVBStorage::current_block_number() {
    // Ethereum block number is 1+KVB block number. So, the most recent Ethereum
    // block is one less than the most recent KVB block.
    return roStorage_.getLastBlock()-1;
 }
 
+/**
+ * Get a value from storage. The staging area is searched first, so that it can
+ * be used as a sort of current execution environment. If the key is not found
+ * in the staging area, its value in the most recent block in which it was
+ * written will be returned.
+ */
 Status com::vmware::athena::KVBStorage::get(const Slice &key, Slice &value)
 {
    //TODO(BWF): this search will be very inefficient for a large set of changes
@@ -268,11 +371,14 @@ Status com::vmware::athena::KVBStorage::get(const Slice &key, Slice &value)
    return roStorage_.get(key, value);
 }
 
+/**
+ * Fetch functions for each value type.
+ */
 EthBlock com::vmware::athena::KVBStorage::get_block(uint64_t number)
 {
    SetOfKeyValuePairs outBlockData;
 
-   // "1" == KVBlockchain starts at block 1 instead of 0
+   // "1+" == KVBlockchain starts at block 1, but Ethereum starts at 0
    Status status = roStorage_.getBlockData(1+number, outBlockData);
 
    LOG4CPLUS_DEBUG(logger, "Getting block number " << number <<
@@ -301,8 +407,8 @@ EthBlock com::vmware::athena::KVBStorage::get_block(const evm_uint256be &hash)
                    " value.size: " << value.size());
 
    if (status.ok() && value.size() > 0) {
-      // TODO: we may store less for block; use this part to get the number,
-      // then to get_block(number) to rebuild the transaction list from KV pairs
+      // TODO: we may store less for block, by using this part to get the number,
+      // then get_block(number) to rebuild the transaction list from KV pairs
       return EthBlock::deserialize(value);
    }
 
@@ -400,6 +506,10 @@ bool com::vmware::athena::KVBStorage::account_exists(const evm_address &addr)
    return false;
 }
 
+/**
+ * Code and hash will be copied to `out`, if found, and `true` will be
+ * returned. If no code is found, `false` is returned.
+ */
 bool com::vmware::athena::KVBStorage::get_code(const evm_address &addr,
                                                std::vector<uint8_t> &out,
                                                evm_uint256be &hash)

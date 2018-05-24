@@ -27,6 +27,7 @@ private:
    Blockchain::SetOfKeyValuePairs updates;
    log4cplus::Logger logger;
 
+   /* Value of "type" byte, at the start of each key. */
    const char TYPE_BLOCK       = 0x01;
    const char TYPE_TRANSACTION = 0x02;
    const char TYPE_BALANCE     = 0x03;
@@ -61,6 +62,8 @@ public:
    // read-write mode
    KVBStorage(const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
               Blockchain::IBlocksAppender *blockAppender);
+
+   ~KVBStorage();
 
    bool is_read_only();
 

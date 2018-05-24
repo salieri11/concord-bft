@@ -1,6 +1,15 @@
 // Copyright 2018 VMware, all rights reserved
 //
 // KVBlockchain replica command handler interface for EVM.
+//
+// This is where the replica side of Athena starts. Commands that arrive here
+// were sent from KVBClient (which was probably used by api_connection).
+//
+// KVBlockchain calls either executeCommand or executeReadOnlyCommand, depending
+// on whether the request was marked read-only. This handler knows which
+// requests are which, and therefore only handles request types that are
+// properly marked (that is, if this handler thinks a request is read-only, it
+// will not accept it as a read-write command).
 
 #include "kvb/BlockchainInterfaces.h"
 #include "kvb/slice.h"
@@ -48,6 +57,9 @@ bool com::vmware::athena::KVBCommandsHandler::executeCommand(
    if (command.eth_request_size() > 0) {
       result = handle_eth_request(command, kvbStorage, athresp);
    } else {
+      // Read-only commands are not allowed to be sent to the general read-write
+      // executeCommand. We ignore any that we know are read-only that arrive
+      // here.
       LOG4CPLUS_ERROR(logger, "Unknown command");
       ErrorResponse *resp = athresp.add_error_response();
       resp->set_description("Internal Athena Error");
@@ -80,6 +92,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_request(
    case EthRequest_EthMethod_NEW_ACCOUNT:
       return handle_personal_newAccount(athreq, kvbStorage, athresp);
       break;
+      // Other ETH RPC requests are handled in handle_eth_request_read_only.
    default:
       ErrorResponse *e = athresp.add_error_response();
       e->mutable_description()->assign("ETH Method Not Implemented");
@@ -103,7 +116,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_sendTransaction(
    response->set_id(request.id());
    response->set_data(txhash.bytes, sizeof(evm_uint256be));
 
-   // nothing would cause us to fail to try to run a transaction yet, and even
+   // Nothing would cause us to fail to try to run a transaction (yet), and even
    // failed transactions get recorded, so commands here are always valid, so
    // always return true (for now)
    return true;
@@ -120,14 +133,10 @@ bool com::vmware::athena::KVBCommandsHandler::handle_personal_newAccount(
    AthenaResponse &athresp) const
 {
    const EthRequest request = athreq.eth_request(0);
-
    const string& passphrase = request.data();
 
    LOG4CPLUS_INFO(logger, "Creating new account with passphrase : "
                   << passphrase);
-
-   evm_address address;
-   bool error = athevm_.new_account(passphrase, kvbStorage, address);
 
    /**
     * This is an extremely hacky approach for setting the user address
@@ -135,14 +144,18 @@ bool com::vmware::athena::KVBCommandsHandler::handle_personal_newAccount(
     * TODO : Implement the ethereum way of setting account addresses.
     * (Note : See https://github.com/vmwathena/athena/issues/55)
     */
-   if (error == false) {
+   evm_address address;
+   if (athevm_.new_account(passphrase, kvbStorage, address)) {
+      EthResponse *response = athresp.add_eth_response();
+      response->set_data(address.bytes, sizeof(evm_address));
+   } else {
       LOG4CPLUS_INFO(logger, "Use another passphrase : " << passphrase);
       ErrorResponse *error = athresp.add_error_response();
       error->set_description("Use another passphrase");
-   } else {
-      EthResponse *response = athresp.add_eth_response();
-      response->set_data(address.bytes, sizeof(evm_address));
    }
+
+   // requests are valid, even if they fail
+   return true;
 }
 
 /**
@@ -188,6 +201,9 @@ bool com::vmware::athena::KVBCommandsHandler::executeReadOnlyCommand(
    return result;
 }
 
+/**
+ * Fetch a transaction from storage.
+ */
 bool com::vmware::athena::KVBCommandsHandler::handle_transaction_request(
    AthenaRequest &athreq,
    KVBStorage &kvbStorage,
@@ -213,6 +229,10 @@ bool com::vmware::athena::KVBCommandsHandler::handle_transaction_request(
    return true;
 }
 
+/**
+ * Populate a TransactionResponse protobuf with data from an EthTransaction
+ * struct.
+ */
 void com::vmware::athena::KVBCommandsHandler::build_transaction_response(
    evm_uint256be &hash,
    EthTransaction &tx,
@@ -236,68 +256,6 @@ void com::vmware::athena::KVBCommandsHandler::build_transaction_response(
    response->set_value(tx.value);
    response->set_block_hash(tx.block_hash.bytes, sizeof(evm_uint256be));
    response->set_block_number(tx.block_number);
-}
-
-evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
-   const EthRequest &request,
-   KVBStorage &kvbStorage,
-   evm_uint256be &txhash /* OUT */) const
-{
-   evm_message message;
-   evm_result result;
-
-   memset(&message, 0, sizeof(message));
-   memset(&result, 0, sizeof(result));
-
-   if (request.has_addr_from()) {
-      // TODO: test & return error if needed
-      assert(20 == request.addr_from().length());
-      memcpy(message.sender.bytes, request.addr_from().c_str(), 20);
-   }
-
-   if (request.has_data()) {
-      message.input_data =
-         reinterpret_cast<const uint8_t*>(request.data().c_str());
-      message.input_size = request.data().length();
-   }
-
-   if (request.has_value()) {
-      size_t req_offset, val_offset;
-      if (request.value().size() > sizeof(evm_uint256be)) {
-         // TODO: this should probably throw an error instead
-         req_offset = request.value().size()-sizeof(evm_uint256be);
-         val_offset = 0;
-      } else {
-         req_offset = 0;
-         val_offset = sizeof(evm_uint256be)-request.value().length();
-      }
-      std::copy(request.value().begin()+req_offset, request.value().end(),
-                message.value.bytes+val_offset);
-   }
-
-   // TODO: get this from the request
-   message.gas = 1000000;
-
-   if (request.has_addr_to()) {
-      message.kind = EVM_CALL;
-
-      // TODO: test & return error if needed
-      assert(20 == request.addr_to().length());
-      memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
-
-      athevm_.run(message, kvbStorage, result, txhash);
-   } else {
-      message.kind = EVM_CREATE;
-
-      assert(!kvbStorage.is_read_only());
-      athevm_.create(message, kvbStorage, result, txhash);
-   }
-
-   LOG4CPLUS_INFO(logger, "Execution result -" <<
-                  " status_code: " << result.status_code <<
-                  " gas_left: " << result.gas_left <<
-                  " output_size: " << result.output_size);
-   return result;
 }
 
 /**
@@ -342,6 +300,9 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_list_request(
    return true;
 }
 
+/**
+ * Fetch a block from the database.
+ */
 bool com::vmware::athena::KVBCommandsHandler::handle_block_request(
    AthenaRequest &athreq,
    KVBStorage &kvbStorage,
@@ -478,6 +439,9 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_callContract(
    return true;
 }
 
+/**
+ * Get the latest written block number.
+ */
 bool com::vmware::athena::KVBCommandsHandler::handle_eth_blockNumber(
    AthenaRequest &athreq,
    KVBStorage &kvbStorage,
@@ -491,6 +455,9 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_blockNumber(
    return true;
 }
 
+/**
+ * Get the code stored for a contract.
+ */
 bool com::vmware::athena::KVBCommandsHandler::handle_eth_getCode(
    AthenaRequest &athreq,
    KVBStorage &kvbStorage,
@@ -516,6 +483,9 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_getCode(
    return true;
 }
 
+/**
+ * Get the data stored for the given contract at the given location
+ */
 bool com::vmware::athena::KVBCommandsHandler::handle_eth_getStorageAt(
    AthenaRequest &athreq,
    KVBStorage &kvbStorage,
@@ -537,4 +507,69 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_getStorageAt(
    response->set_data(data.bytes, sizeof(data));
 
    return true;
+}
+
+/**
+ * Pass a transaction or call to the EVM for execution.
+ */
+evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
+   const EthRequest &request,
+   KVBStorage &kvbStorage,
+   evm_uint256be &txhash /* OUT */) const
+{
+   evm_message message;
+   evm_result result;
+
+   memset(&message, 0, sizeof(message));
+   memset(&result, 0, sizeof(result));
+
+   if (request.has_addr_from()) {
+      // TODO: test & return error if needed
+      assert(20 == request.addr_from().length());
+      memcpy(message.sender.bytes, request.addr_from().c_str(), 20);
+   }
+
+   if (request.has_data()) {
+      message.input_data =
+         reinterpret_cast<const uint8_t*>(request.data().c_str());
+      message.input_size = request.data().length();
+   }
+
+   if (request.has_value()) {
+      size_t req_offset, val_offset;
+      if (request.value().size() > sizeof(evm_uint256be)) {
+         // TODO: this should probably throw an error instead
+         req_offset = request.value().size()-sizeof(evm_uint256be);
+         val_offset = 0;
+      } else {
+         req_offset = 0;
+         val_offset = sizeof(evm_uint256be)-request.value().length();
+      }
+      std::copy(request.value().begin()+req_offset, request.value().end(),
+                message.value.bytes+val_offset);
+   }
+
+   // TODO: get this from the request
+   message.gas = 1000000;
+
+   if (request.has_addr_to()) {
+      message.kind = EVM_CALL;
+
+      // TODO: test & return error if needed
+      assert(20 == request.addr_to().length());
+      memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
+
+      athevm_.run(message, kvbStorage, result, txhash);
+   } else {
+      message.kind = EVM_CREATE;
+
+      assert(!kvbStorage.is_read_only());
+      athevm_.create(message, kvbStorage, result, txhash);
+   }
+
+   LOG4CPLUS_INFO(logger, "Execution result -" <<
+                  " status_code: " << result.status_code <<
+                  " gas_left: " << result.gas_left <<
+                  " output_size: " << result.output_size);
+   return result;
 }

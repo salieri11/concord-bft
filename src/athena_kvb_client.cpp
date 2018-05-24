@@ -1,6 +1,9 @@
 // Copyright 2018 VMware, all rights reserved
 //
 // Layer between api_connection and Blockchain::IClient
+//
+// This is the end of the client side of Athena. Commands sent from here will
+// end up at KVBCommandsHandler.
 
 #include <log4cplus/loggingmacros.h>
 

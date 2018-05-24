@@ -75,6 +75,12 @@ Blockchain::IDBClient* open_database(variables_map &opts, Logger logger)
    }
 }
 
+/**
+ * IdleBlockAppender is a shim to wrap IReplica::addBlocktoIdleReplica in an
+ * IBlocksAppender interface, so that it can be rewrapped in a KVBStorage
+ * object, thus allowing the create_genesis_block function to use the same
+ * functions as athena_evm to put data in the genesis block.
+ */
 class IdleBlockAppender : public Blockchain::IBlocksAppender {
 private:
    Blockchain::IReplica *replica_;
@@ -87,7 +93,7 @@ public:
       const Blockchain::SetOfKeyValuePairs &updates,
       Blockchain::BlockId& outBlockId) override
    {
-      outBlockId = 0;
+      outBlockId = 0; // genesis only!
       return replica_->addBlockToIdleReplica(updates);
    }
 };
@@ -112,8 +118,11 @@ void create_genesis_block(Blockchain::IReplica *replica,
 
    std::map<evm_address, uint64_t> genesis_acts = params.get_initial_accounts();
    for (std::map<evm_address,uint64_t>::iterator it = genesis_acts.begin();
-       it != genesis_acts.end(); ++it) {
+	it != genesis_acts.end();
+	++it) {
 
+      // store a transaction for each initial balance in the genesis block
+      // defintition
       EthTransaction tx{
          nonce : 0,
          block_hash : zero_hash, // set to zero for now
@@ -199,6 +208,9 @@ run_service(variables_map &opts, Logger logger)
 
       LOG4CPLUS_INFO(logger, "Listening on " << endpoint);
       api_service->run();
+
+      // If we return from `run`, the service was stopped and we are shutting
+      // down.
 
       client->stop();
       Blockchain::release(client);

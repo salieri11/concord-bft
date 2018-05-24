@@ -17,6 +17,11 @@
 // athena.proto). Responses are encoded the same way, though as
 // AthenaResponse messages. TODO: do we need to support requests or
 // responses more than 64k in length?
+//
+// Most of what this class does is pass requests from the external socket to
+// KVBlockchain/SBFT via KVBClient, and then pass the results back to the
+// socket. Some verification is done where possible, to avoid sending commands
+// through SBFT if they would just generate errors on the replica side.
 
 #include <iostream>
 #include <limits>
