@@ -287,9 +287,12 @@ public final class EthDispatcher extends BaseServlet {
             // If there is an error reported by Athena
             if (athenaResponse.getErrorResponseCount() > 0) {
                ErrorResponse errResponse = athenaResponse.getErrorResponse(0);
-               responseString = "Error received from athena";
                if (errResponse.hasDescription()) {
-                  responseString = errResponse.getDescription();
+                  responseString = errorMessage(
+                     errResponse.getDescription(), id, jsonRpc);
+               } else {
+                  responseString = errorMessage(
+                     "Error received from athena", id, jsonRpc);
                }
             } else {
                responseString
