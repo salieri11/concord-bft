@@ -8,13 +8,36 @@
                "parameters": ["-jar", "~/source/helen/helen-1.0-SNAPSHOT-jar-with-dependencies.jar"]
             }
          },
-         "athena":
+         "athena1":
          {
              "buildRoot": "~/source/athena/build",
              "athena1":{
                  "launchCommand": "src/athena",
                  "parameters": ["--logger_config",
-                                "./resources/athena_logging.properties"]
+                                "./resources/athena_logging.properties",
+                                "-i", "1"]
+             }
+         },
+         "athena2":
+         {
+             "buildRoot": "~/source/athena/build",
+             "athena2":{
+                 "launchCommand": "src/athena",
+                 "parameters": ["--logger_config",
+                                "./resources/athena_logging.properties",
+                                "-i", "2",
+                                "-p", "5459"]
+             }
+         },
+         "athena3":
+         {
+             "buildRoot": "~/source/athena/build",
+             "athena3":{
+                 "launchCommand": "src/athena",
+                 "parameters": ["--logger_config",
+                                "./resources/athena_logging.properties",
+                                "-i", "3",
+                                "-p", "5460"]
              }
          }
       },

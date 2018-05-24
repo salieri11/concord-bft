@@ -58,7 +58,11 @@ class Product():
                   if executable.startswith("replica") and previousParam == "-d":
                      param = os.path.join(self._resultsDir, param)
                      os.makedirs(param)
-                  elif previousParam in ["-c", "-p", "-e", "-k"]:
+                  elif (not executable.startswith("athena") and
+                        previousParam == "-p"):
+                     # -p is "path" for geth, but "port" for athena
+                     param = os.path.join(buildRoot, param)
+                  elif previousParam in ["-c", "-e", "-k"]:
                      param = os.path.join(buildRoot, param)
 
                   cmd.append(os.path.expanduser(param))
