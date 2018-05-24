@@ -21,6 +21,8 @@ static const string default_config_file = "./resources/athena.config";
 // default period to check for logging properties changes (milliseconds)
 static const int default_log_props_time_ms = 60000; // 60sec
 
+// default implementation of blockchain storage
+static const string default_blockchain_db_impl = "memory";
 
 variables_map initialize_config(int argc, char **argv) {
    // A map to hold key-value pairs of all options
@@ -68,7 +70,14 @@ variables_map initialize_config(int argc, char **argv) {
        "Interval (in ms) to check for updates to logging properties file")
       ("genesis_block",
        value<string>(),
-       "Absolute path of file which contains genesis block json");
+       "Absolute path of file which contains genesis block json")
+      ("blockchain_db_impl",
+       value<string>()->default_value(default_blockchain_db_impl),
+       "Name of the DB implementation backing the blockchain. "
+       "Legal values: memory, rocksdb")
+      ("blockchain_db_path",
+       value<string>(),
+       "Path to blockchain database storage");
 
    options_description all_options; // description of all options
    all_options.add(generic).add(config);

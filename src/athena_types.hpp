@@ -6,9 +6,14 @@
 #define ATHENA_TYPES_HPP
 
 #include "athena_log.hpp"
+#include "athena_types.hpp"
+#include "kvb/slice.h"
 
 const evm_address zero_address{{0}};
 const evm_uint256be zero_hash{{0}};
+
+const int64_t tx_storage_version = 1;
+const int64_t blk_storage_version = 1;
 
 namespace com {
 namespace vmware {
@@ -25,6 +30,10 @@ typedef struct EthTransaction {
    evm_status_code status;
    uint64_t value;
    // TODO: all the other fields
+
+   evm_uint256be hash() const;
+   size_t serialize(char** out);
+   static struct EthTransaction deserialize(Blockchain::Slice &input);
 } EthTransaction;
 
 typedef struct EthBlock {
@@ -32,6 +41,10 @@ typedef struct EthBlock {
    evm_uint256be hash;
    evm_uint256be parent_hash;
    std::vector<evm_uint256be> transactions;
+
+   evm_uint256be get_hash() const;
+   size_t serialize(char** out);
+   static struct EthBlock deserialize(Blockchain::Slice &input);
 } EthBlock;
 
 }
@@ -41,6 +54,8 @@ typedef struct EthBlock {
 // Byte-wise comparators for evm_uint256be and evm_address. This allows us to
 // use these types as keys in a std::map. Must be in the global namespace.
 bool operator<(const evm_uint256be &a, const evm_uint256be &b);
+bool operator!=(const evm_uint256be &a, const evm_uint256be &b);
+bool operator==(const evm_uint256be &a, const evm_uint256be &b);
 bool operator<(const evm_address &a, const evm_address &b);
 bool operator!=(const evm_address &a, const evm_address &b);
 bool operator==(const evm_address &a, const evm_address &b);

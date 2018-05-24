@@ -1,0 +1,48 @@
+// Copyright 2018 VMware, all rights reserved
+//
+// Exceptions used in Athena
+
+namespace com {
+namespace vmware {
+namespace athena {
+
+class EVMException: public std::exception {
+public:
+   explicit EVMException(const std::string &what): msg(what) {};
+
+   virtual const char* what() const noexcept override
+   {
+      return msg.c_str();
+   }
+
+private:
+   std::string msg;
+};
+
+class ReadOnlyModeException: public EVMException {
+public:
+   ReadOnlyModeException() :
+      EVMException("Write attempted on read-only storage") { }
+};
+
+class TransactionNotFoundException: public EVMException {
+public:
+   TransactionNotFoundException() :
+      EVMException("Transaction not found") { }
+};
+
+class BlockNotFoundException: public EVMException {
+public:
+   BlockNotFoundException() :
+      EVMException("Block not found") { }
+};
+
+class AccountNotFoundException: public EVMException {
+public:
+   AccountNotFoundException() :
+      EVMException("Account or contract not found") { }
+};
+
+}
+}
+}

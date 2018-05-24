@@ -12,7 +12,7 @@
 
 #include "athena.pb.h"
 #include "filter_manager.hpp"
-#include "athena_evm.hpp"
+#include "athena_kvb_client.hpp"
 
 namespace com {
 namespace vmware {
@@ -33,7 +33,8 @@ public:
    static pointer
    create(boost::asio::io_service &io_service,
           connection_manager &connManager,
-          com::vmware::athena::EVM &athevm);
+          FilterManager &filterManager,
+          KVBClient &client);
 
    boost::asio::ip::tcp::socket&
    socket();
@@ -70,22 +71,21 @@ private:
    void
    handle_test_request();
 
+   bool
+   send_request(AthenaRequest &req, bool isReadOnly, AthenaResponse &resp);
+
    evm_result
    run_evm(const EthRequest &request,
            bool isTransaction,
            evm_uint256be &txhash);
 
    /* Specific Ethereum Method handlers. */
-   void
-   handle_eth_sendTransaction(const EthRequest &request);
-   void
-   handle_eth_callContract(const EthRequest &request);
-   void
-   handle_eth_getTxReceipt(const EthRequest &request);
-   void
-   handle_eth_getStorageAt(const EthRequest &request);
-   void
-   handle_eth_getCode(const EthRequest &request);
+   bool
+   is_valid_eth_getStorageAt(const EthRequest &request);
+   bool
+   is_valid_eth_getCode(const EthRequest &request);
+   bool
+   is_valid_personal_newAccount(const EthRequest &request);
    void
    handle_filter_requests(const EthRequest &request);
    void
@@ -94,15 +94,15 @@ private:
    handle_get_filter_changes(const EthRequest &reqest);
    void
    handle_uninstall_filter(const EthRequest &reqest);
-   void
-   handle_personal_newAccount(const EthRequest &request);
-   void
-   handle_eth_blockNumber(const EthRequest &request);
+
+   /* This serves not only eth_blockNumber, but also filter curiosity. */
+   uint64_t current_block_number();
 
    /* Constructor. */
    api_connection(boost::asio::io_service &io_service,
                   connection_manager &connManager,
-                  com::vmware::athena::EVM &athevm);
+                  FilterManager &filterManager,
+                  KVBClient &client);
 
    uint16_t
    get_message_length(const char * buffer);
@@ -130,10 +130,6 @@ private:
    void
    process_incoming();
 
-   void
-   build_transaction_response(evm_uint256be hash,
-                              TransactionResponse* response);
-
    /* Socket being handled. */
    boost::asio::ip::tcp::socket socket_;
 
@@ -152,8 +148,8 @@ private:
    /* Logger. */
    log4cplus::Logger logger_;
 
-   /* The VM to execute transactions in. */
-   com::vmware::athena::EVM &athevm_;
+   FilterManager &filterManager_;
+   KVBClient &client_;
 
    connection_manager &connManager_;
 

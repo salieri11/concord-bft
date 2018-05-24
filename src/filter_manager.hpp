@@ -12,7 +12,7 @@
 #include <log4cplus/configurator.h>
 #include "evm.h"
 #include "common/utils.hpp"
-#include "athena_evm.hpp"
+#include "athena_kvb_client.hpp"
 
 namespace com {
 namespace vmware {
@@ -57,14 +57,16 @@ class EVM;
 class FilterManager {
 
 public:
-   FilterManager(EVM &evm);
+   FilterManager();
 
    EthFilterType get_filter_type(evm_uint256be filterId);
 
-   evm_uint256be create_new_block_filter();
+   evm_uint256be create_new_block_filter(uint64_t current_block);
 
    std::vector<evm_uint256be>
-   get_new_block_filter_changes(evm_uint256be filterId);
+   get_new_block_filter_changes(evm_uint256be filterId,
+                                uint64_t current_block,
+                                KVBClient &client);
 
    //TODO: figure out proper storage/return types for log filter
    //and implement below methods.
@@ -73,7 +75,7 @@ public:
    std::vector<evm_uint256be>
    get_new_pending_transaction_filter_changes(evm_uint256be filterId);
 
-   evm_uint256be create_new_filter();
+   evm_uint256be create_new_filter(uint64_t current_block);
 
    void
    get_filter_changes(evm_uint256be filterId);
@@ -86,11 +88,6 @@ public:
 private:
 
    log4cplus::Logger logger;
-   // Pointer to the evm which is currently executing
-   // note: this can not be a reference otherwise due to circular
-   // dependency between EVM & FilterManager compiler won't be able to compile
-   // these classes.
-   const EVM *executing_evm;
    uint64_t last_filter_id = 0;
    std::map<evm_uint256be, std::pair<uint64_t, EthFilterType>> filters_by_id;
    //TODO: add appropriate maps to hold the filters of type
