@@ -8,7 +8,9 @@ PBFT.
 
 The project is composed of three components:
 
- * (SBFT)[vmwathena/sbft] is the consensus engine for Athena
+ * ~(SBFT)[vmwathena/sbft]~ (temporarily
+   (P2_Blockchain)[vmwathena/P2_Blockchain]) is the consensus engine
+   for Athena.
 
  * (athena)[vmwathena/athena] (this repo) provides a key-value
    abstraction atop SBFT, and an Etherium VM compatibility layer on
@@ -142,7 +144,23 @@ Note: the build directory starts with and underscore (_) it is required to use t
 
 ### Athena
 
-Once dependencies are installed, build athena:
+Once dependencies are installed, make sure you have initialized the
+P2_blockchain submodule. The first time you build, this is done by:
+
+```shell
+athena$ git submodule init
+athena$ git submodule update --recursive
+```
+
+When subsequent updates are needed, omit the `init` command, and just
+run the `update` command. Tip: you can change your local URL for
+P2_Blockchain by issuing the following command:
+
+```shell
+athena$ git config submodule.submodules/P2_Blockchain.url <alternate url>
+```
+
+Once the submodule is updated, build athena:
 
 ```shell
 athena$ mkdir build
@@ -154,10 +172,21 @@ athena/build$ make
 This should produce an `athena` executable. Run it to start athena:
 
 ```shell
-athena/build$ ./src/athena
+athena/build$ ./src/athena -c resources/athena1.config
 2018-03-28T17:35:10.712 [140229951600448] INFO  athena.main %% VMware Project Athena starting [/home/bfink/vmwathena/athena/src/main.cpp:84]
 2018-03-28T17:35:10.713 [140229951600448] INFO  athena.evm %% EVM started [/home/bfink/vmwathena/athena/src/athena_evm.cpp:43]
 2018-03-28T17:35:10.713 [140229951600448] INFO  athena.main %% Listening on 0.0.0.0:5458 [/home/bfink/vmwathena/athena/src/main.cpp:54]
+```
+
+You will need to start an additional two replicas in other terminals
+to actually make progress in handling commands:
+
+```shell
+athena/build$ ./src/athena -c resources/athena2.config
+```
+
+```shell
+athena/build$ ./src/athena -c resources/athena3.config
 ```
 
 With Athena running, you probably want to go set up
