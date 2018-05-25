@@ -116,14 +116,9 @@ variables_map initialize_config(int argc, char **argv) {
       cerr << "Can not open config file: " << config_file
            << "\n" << " Going ahead with only command line options\n";
    } else {
-      try{
       auto parsed = parse_config_file(ifs, config);
       store(parsed, options_map);
       notify(options_map);
-   } catch (const error &ex)
-     {
-       std::cerr << ex.what() << '\n';
-     }
    }
 
    return options_map;
