@@ -44,6 +44,7 @@ namespace Blockchain
 
          // Returns next keys if not found for this key
          virtual KeyValuePair seekAtLeast(Slice _searchKey) = 0;
+         virtual KeyValuePair previous() = 0;
          virtual KeyValuePair next() = 0;
          virtual KeyValuePair getCurrent() = 0;
          virtual bool isEnd() = 0;

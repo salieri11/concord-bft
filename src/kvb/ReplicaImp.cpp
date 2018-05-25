@@ -57,12 +57,6 @@ Status ReplicaImp::start()
 
    m_currentRepStatus = RepStatus::Starting;
 
-   Status s = m_bcDbAdapter->getDb()->init();
-
-   if (!s.ok()) {
-      return s;
-   }
-
    bool res = createThread(&m_thread, replicaInternalThread, this);
 
    if (!res) {
@@ -442,7 +436,7 @@ Slice ReplicaImp::getBlockInternal(BlockId blockId) const
    bool found;
    Status s = m_bcDbAdapter->getBlockById(blockId, retVal, found);
    if (!s.ok()) {
-       // TODO(SG): To do something smarter
+      // TODO(SG): To do something smarter
       LOG4CPLUS_ERROR(logger, "An error occurred in get block");
       return Slice();
    }
@@ -794,6 +788,22 @@ IReplica* createReplica(const ReplicaConsensusConfig& consensusConfig,
                                   consensusConfig.byzPrivateConfig,
                                   cmdHandler,
                                   dbAdapter);
+
+   //Initialization of the database object is done here so that we can
+   //read the latest block number and take a decision regarding
+   //genesis block creation.
+   Status s = db->init();
+
+   if (!s.ok()) {
+      LOG4CPLUS_FATAL(Logger::getInstance("com.vmware.athena.kvb"),
+                      "Failure in Database Initialization");
+      throw ReplicaInitException("Failure in Database Initialization");
+   }
+
+   //Get the latest block count from persistence.
+   //Will always be 0 for either InMemory mode or for persistence mode
+   //when no database files exist.
+   r->lastBlock = dbAdapter->getLatestBlock();
    return r;
 }
 

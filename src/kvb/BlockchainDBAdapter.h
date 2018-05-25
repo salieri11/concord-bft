@@ -18,10 +18,10 @@ namespace Blockchain {
    enum class _EDBKeyType
    {
       E_DB_KEY_TYPE_FIRST = 1,
-      E_DB_KEY_TYPE_BLOCK = E_DB_KEY_TYPE_FIRST,
-      E_DB_KEY_TYPE_KEY,
-      E_DB_KEY_TYPE_LAST
-   };
+         E_DB_KEY_TYPE_BLOCK = E_DB_KEY_TYPE_FIRST,
+         E_DB_KEY_TYPE_KEY,
+         E_DB_KEY_TYPE_LAST
+         };
 
    // TODO(BWF): What's the point of this redefinition?
    typedef _EDBKeyType EDBKeyType;
@@ -29,7 +29,7 @@ namespace Blockchain {
    class BlockchainDBAdapter
    {
    public:
-      BlockchainDBAdapter(IDBClient* _db) :
+   BlockchainDBAdapter(IDBClient* _db) :
       logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb")),
          m_db(_db) {}
 
@@ -84,6 +84,8 @@ namespace Blockchain {
       Status delBlock(BlockId _blockId);
 
       void monitor() const;
+
+      BlockId getLatestBlock();
 
    private:
       log4cplus::Logger logger;

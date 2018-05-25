@@ -23,6 +23,7 @@
 #include "BlockchainInterfaces.h"
 #include "HexTools.h"
 #include <chrono>
+#include <limits>
 
 using log4cplus::Logger;
 
@@ -51,7 +52,6 @@ Slice genDbKey(EDBKeyType _type, Slice _key, BlockId _blockId)
    copyToAndAdvance(out, &offset, sz, (char*) &_type, sizeof(EDBKeyType));
    copyToAndAdvance(out, &offset, sz, (char*) _key.data(), _key.size());
    copyToAndAdvance(out, &offset, sz, (char*) &_blockId, sizeof(BlockId));
-
    return Slice(out, sz);
 }
 
@@ -502,8 +502,8 @@ Status BlockchainDBAdapter::seekAtLeast(IDBClient::IDBClientIterator *iter,
          LOG4CPLUS_DEBUG(logger, "Read version " << currentBlockId << " > " <<
                          _readVersion);
          if (!foundKey) {
-             // If not found a key with actual block version < readVersion, then
-             // we consider the next key as the key candidate.
+            // If not found a key with actual block version < readVersion, then
+            // we consider the next key as the key candidate.
             LOG4CPLUS_DEBUG(logger, "Find next key");
 
             // Start by exhausting the current key with all the newer blocks
@@ -606,8 +606,8 @@ Status BlockchainDBAdapter::next(IDBClient::IDBClientIterator *iter,
          p = composedToSimple(iter->next());
       } else {
          if (!foundKey) {
-             // If not found a key with actual block version < readVersion, then
-             // we consider the next key as the key candidate.
+            // If not found a key with actual block version < readVersion, then
+            // we consider the next key as the key candidate.
 
             // Start by exhausting the current key with all the newer blocks
             // records:
@@ -687,5 +687,42 @@ Status BlockchainDBAdapter::isEnd(IDBClient::IDBClientIterator *iter,
 void BlockchainDBAdapter::monitor() const
 {
    m_db->monitor();
+}
+
+/**
+ * @brief Used to retrieve the latest block.
+ *
+ * Searches for the key with the largest block id component.
+ *
+ * @return Block ID of the latest block.
+ */
+BlockId BlockchainDBAdapter::getLatestBlock()
+{
+   //Note: RocksDB stores keys in a sorted fashion as per the logic
+   //provided in a custom comparator (for our case, refer to
+   //Comparators.cpp). In short, keys of type 'block' are stored
+   //first followed by keys of type 'key'. All keys of type 'block'
+   //are sorted in ascending order of block ids.
+
+   //Generate maximal key for type 'block'
+   Slice maxKey = genDbKey(EDBKeyType::E_DB_KEY_TYPE_BLOCK, Slice(""),
+                           std::numeric_limits<uint64_t>::max());
+   IDBClient::IDBClientIterator *iter = m_db->getIterator();
+
+   //Since we use the maximal key, SeekAtLeast will take the iterator
+   //to one position beyond the key corresponding to the largest block id.
+   KeyValuePair x = iter->seekAtLeast(maxKey);
+
+   //Read the previous key
+   x = iter->previous();
+
+   if((x.first).size() == 0) { //no blocks
+      return 0;
+   }
+
+   LOG4CPLUS_DEBUG(logger, "Latest block ID " <<
+                   extractBlockIdFromKey(x.first));
+
+   return extractBlockIdFromKey(x.first);
 }
 }
