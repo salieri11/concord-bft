@@ -17,7 +17,7 @@
 #include "athena_kvb.hpp"
 #include "athena_exception.hpp"
 #include "athena.pb.h"
-#include "HexTools.h"
+#include "kvb/HexTools.h"
 #include <google/protobuf/text_format.h>
 
 using Blockchain::Slice;
