@@ -105,8 +105,7 @@ struct ClientImpDataForSynchOperation
 /**
  * Shim for getting SimpleThreadPool data back to requester.
  */
-static void
-   handlerForSynchOperations(uint64_t completionToken,
+static void handlerForSynchOperations(uint64_t completionToken,
                                       Status returnedStatus,
                                       Slice outreply)
 {

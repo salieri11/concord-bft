@@ -176,13 +176,6 @@ run_service(variables_map &opts, Logger logger)
       EVM athevm(params);
       KVBCommandsHandler athkvb(athevm);
 
-      string sbftClientPrivConfigFilePrefix =
-              "./submodules/P2_Blockchain/SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3-cli-";
-      string sbftRepPrivConfigFilePrefix =
-              "./submodules/P2_Blockchain/SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3-rep-";
-      string sbftPubConfigFile =
-              "./submodules/P2_Blockchain/SBFTExampleConfigs/f1-c0-cl3/config-sbft-f1-c0-cl3.pub";
-
       // TODO(IG): for Thread local storage. Dirty but need to check that works
       // should be called exactly once per process
       initEnvironment();
@@ -190,20 +183,18 @@ run_service(variables_map &opts, Logger logger)
       // TODO(BWF): This works because this thread is going to be the same one
       // that calls the replica (athena is single-threaded).
       Blockchain::ReplicaConsensusConfig replicaConsensusConfig;
-      replicaConsensusConfig.byzConfig = sbftPubConfigFile.c_str();
+      replicaConsensusConfig.byzConfig = opts["SBFT.public"].as<std::string>();
       replicaConsensusConfig.byzPrivateConfig =
-              sbftRepPrivConfigFilePrefix +
-              std::to_string(opts["instance-id"].as<uint32_t>()) + ".priv";
+         opts["SBFT.replica"].as<std::string>();
       Blockchain::IReplica *replica =
          Blockchain::createReplica(replicaConsensusConfig, &athkvb, dbclient);
       replica->start();
       create_genesis_block(replica, params, logger);
 
       Blockchain::ClientConsensusConfig clientConsensusConfig;
-      clientConsensusConfig.byzConfig = sbftPubConfigFile;
+      clientConsensusConfig.byzConfig = opts["SBFT.public"].as<std::string>();
       clientConsensusConfig.byzPrivateConfig =
-              sbftClientPrivConfigFilePrefix +
-              std::to_string(opts["instance-id"].as<uint32_t>()) + ".priv";
+         opts["SBFT.client"].as<std::string>();
       Blockchain::IClient *client =
          Blockchain::createClient(clientConsensusConfig);
       client->start();
@@ -254,8 +245,7 @@ run_service(variables_map &opts, Logger logger)
 int
 main(int argc, char** argv)
 {
-
-   bool loggerInitialized = true;
+   bool loggerInitialized = false;
    int result = 0;
 
    try {

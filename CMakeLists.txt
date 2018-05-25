@@ -18,7 +18,9 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 #find_package(Log4Cplus REQUIRED)
 configure_file(resources/log4cplus.properties resources/log4cplus.properties COPYONLY)
-configure_file(resources/athena.config resources/athena.config COPYONLY)
+configure_file(resources/athena1.config resources/athena1.config COPYONLY)
+configure_file(resources/athena2.config resources/athena2.config COPYONLY)
+configure_file(resources/athena3.config resources/athena3.config COPYONLY)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 if(DEFINED USE_HERA)

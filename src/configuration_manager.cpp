@@ -79,11 +79,18 @@ variables_map initialize_config(int argc, char **argv) {
        "Legal values: memory, rocksdb")
       ("blockchain_db_path",
        value<string>(),
-       "Path cd o blockchain database storage")
-       ("instance-id,i",
-       value<uint32_t>()->required(),
-       "Instance ID to match the SBFT configuration files");
-
+       "Path to blockchain database storage")
+      // TOD(BWF): these are required, but this file needs to be rearranged to
+      // make that work
+      ("SBFT.public",
+       value<string>(),
+       "Path to SBFT public config file")
+      ("SBFT.replica",
+       value<string>(),
+       "Path to SBFT private replica config file")
+      ("SBFT.client",
+       value<string>(),
+       "Path to SBFT private client config file");
 
    options_description all_options; // description of all options
    all_options.add(generic).add(config);
