@@ -21,7 +21,6 @@
 #include "kvb/ReplicaImp.h"
 #include "kvb/ClientImp.h"
 #include <thread>
-#include "libbyz.h"
 #ifdef USE_ROCKSDB
 #include "kvb/RocksDBClient.h"
 #endif
@@ -176,12 +175,9 @@ run_service(variables_map &opts, Logger logger)
       EVM athevm(params);
       KVBCommandsHandler athkvb(athevm);
 
-      // TODO(IG): for Thread local storage. Dirty but need to check that works
-      // should be called exactly once per process
-      initEnvironment();
+      // For Thread local storage. Should be called exactly once per process.
+      Blockchain::initEnv();
 
-      // TODO(BWF): This works because this thread is going to be the same one
-      // that calls the replica (athena is single-threaded).
       Blockchain::ReplicaConsensusConfig replicaConsensusConfig;
       replicaConsensusConfig.byzConfig = opts["SBFT.public"].as<std::string>();
       replicaConsensusConfig.byzPrivateConfig =
@@ -227,9 +223,8 @@ run_service(variables_map &opts, Logger logger)
       replica->wait();
       Blockchain::release(replica);
 
-      // TODO(IG): for Thread local storage. Dirty but need to check that works
-      // should be called exactly once per process
-      freeEnvironment();
+      // For Thread local storage. Should be called exactly once per process.
+      Blockchain::freeEnv();
 
    } catch (EVMInitParamException &ex) {
       LOG4CPLUS_FATAL(logger, ex.what());
