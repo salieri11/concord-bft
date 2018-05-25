@@ -15,7 +15,7 @@
                  "launchCommand": "src/athena",
                  "parameters": ["--logger_config",
                                 "./resources/athena_logging.properties",
-                                "-i", "1"]
+                                "-c", "resources/athena1.config"]
              }
          },
          "athena2":
@@ -25,8 +25,7 @@
                  "launchCommand": "src/athena",
                  "parameters": ["--logger_config",
                                 "./resources/athena_logging.properties",
-                                "-i", "2",
-                                "-p", "5459"]
+                                "-c", "resources/athena2.config"]
              }
          },
          "athena3":
@@ -36,8 +35,7 @@
                  "launchCommand": "src/athena",
                  "parameters": ["--logger_config",
                                 "./resources/athena_logging.properties",
-                                "-i", "3",
-                                "-p", "5460"]
+                                "-c", "resources/athena3.config"]
              }
          }
       },
