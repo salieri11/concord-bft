@@ -208,6 +208,23 @@ KeyValuePair InMemoryDBClientIterator::seekAtLeast(Slice _searchKey)
 }
 
 /**
+ * @brief Decrements the iterator.
+ *
+ * Decrements the iterator and returns the previous key value pair.
+ *
+ * @return The previous key value pair.
+ */
+KeyValuePair InMemoryDBClientIterator::previous()
+{
+   if(m_current == m_parentClient->getMap().begin()) {
+      LOG4CPLUS_WARN(logger, "Iterator already at first key");
+      return KeyValuePair();
+   }
+   --m_current;
+   return KeyValuePair(m_current->first, m_current->second);
+}
+
+/**
  * @brief Increments the iterator.
  *
  * Increments the iterator and returns the next key value pair.
