@@ -168,4 +168,16 @@ public class APIHelper {
       
       return responseJson.toJSONString();
    }
+   
+   public static void fillErrorMessage(JSONObject object, String message, long
+           id,
+                                String jsonRpc) {
+         object.put("id", id);
+         object.put("jsonprc", jsonRpc);
+      
+         JSONObject error = new JSONObject();
+         error.put("message", message);
+         object.put("error", error);
+         return;
+   }
 }

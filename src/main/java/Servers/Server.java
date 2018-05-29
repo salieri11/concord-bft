@@ -194,7 +194,7 @@ public class Server {
 
    /**
     * Removes trailing '/' character
-    * 
+    *
     * @param api
     * @return
     */

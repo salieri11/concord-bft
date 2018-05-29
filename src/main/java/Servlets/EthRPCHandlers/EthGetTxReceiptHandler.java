@@ -108,7 +108,8 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
          }
          result.put("status",
                     "0x"
-                       + Integer.toString(transactionResponse.getStatus(), 16));
+                       + Integer.toString(transactionResponse.getStatus() ==
+                            0 ? 1 : 0, 16));
          respObject.put("result", result);
       } catch (Exception e) {
          // This should never get triggered as params are already checked while

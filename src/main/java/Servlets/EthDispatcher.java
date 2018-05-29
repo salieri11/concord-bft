@@ -189,7 +189,7 @@ public final class EthDispatcher extends BaseServlet {
             JSONObject requestParams = (JSONObject) params;
 
             // Dispatch requests to the corresponding handlers
-            batchResponse.add(parser.parse(dispatch(response, requestParams)));
+            batchResponse.add(parser.parse(dispatch(requestParams)));
          }
          if (isBatch) {
             responseString = batchResponse.toJSONString();
@@ -215,15 +215,12 @@ public final class EthDispatcher extends BaseServlet {
     * construct an AthenaRequest object. Sends this request to Athena and
     * converts its response into a format required by the user.
     *
-    * @param response
-    *           Servlet response object
     * @param requestJson
     *           Request parameters
     * @return Response for user
     * @throws Exception
     */
-   String dispatch(final HttpServletResponse response,
-                           JSONObject requestJson) throws Exception {
+   String dispatch(JSONObject requestJson) throws Exception {
       // Default initialize variables, so that if exception is thrown
       // while initializing the variables error message can be constructed
       // with default values.
