@@ -44,6 +44,8 @@ variables_map initialize_config(int argc, char **argv) {
       ("config,c",
        value<string>(&config_file)->default_value(default_config_file),
        "Path for configuration file")
+      ("debug",
+      "Sleep for 20 seconds to attach debug");
       ;
 
    // The configuration parameters specific to this program
@@ -77,7 +79,18 @@ variables_map initialize_config(int argc, char **argv) {
        "Legal values: memory, rocksdb")
       ("blockchain_db_path",
        value<string>(),
-       "Path to blockchain database storage");
+       "Path to blockchain database storage")
+      // TOD(BWF): these are required, but this file needs to be rearranged to
+      // make that work
+      ("SBFT.public",
+       value<string>(),
+       "Path to SBFT public config file")
+      ("SBFT.replica",
+       value<string>(),
+       "Path to SBFT private replica config file")
+      ("SBFT.client",
+       value<string>(),
+       "Path to SBFT private client config file");
 
    options_description all_options; // description of all options
    all_options.add(generic).add(config);
@@ -110,7 +123,8 @@ variables_map initialize_config(int argc, char **argv) {
       cerr << "Can not open config file: " << config_file
            << "\n" << " Going ahead with only command line options\n";
    } else {
-      store(parse_config_file(ifs, config), options_map);
+      auto parsed = parse_config_file(ifs, config);
+      store(parsed, options_map);
       notify(options_map);
    }
 

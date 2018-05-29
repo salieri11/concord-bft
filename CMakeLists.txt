@@ -5,6 +5,7 @@ project(athena)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS Off)
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
 
 # Storage options
 set(USE_ROCKSDB True)
@@ -17,7 +18,11 @@ include_directories(${Boost_INCLUDE_DIRS})
 
 #find_package(Log4Cplus REQUIRED)
 configure_file(resources/log4cplus.properties resources/log4cplus.properties COPYONLY)
-configure_file(resources/athena.config resources/athena.config COPYONLY)
+configure_file(resources/athena1.config resources/athena1.config COPYONLY)
+configure_file(resources/athena2.config resources/athena2.config COPYONLY)
+configure_file(resources/athena3.config resources/athena3.config COPYONLY)
+file(COPY submodules/P2_Blockchain/SBFTExampleConfigs/f1-c0-cl3
+     DESTINATION resources/)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 if(DEFINED USE_HERA)
@@ -36,7 +41,7 @@ include_directories(${Cryptopp_INCLUDE_DIRS})
 add_subdirectory("proto")
 add_subdirectory("src")
 add_subdirectory("tools")
-
+add_subdirectory("submodules")
 
 ## Unit tests with googletest
 find_package(GTEST REQUIRED)

@@ -13,7 +13,7 @@ configure_file(resources/genesis.json resources/genesis.json COPYONLY)
 
 target_link_libraries(Tests
   ${GTEST_LIBRARIES}
-  utils
+  athena_utils
   gtest
   gtest_main
   pthread)

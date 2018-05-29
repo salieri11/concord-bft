@@ -118,6 +118,16 @@ bool com::vmware::athena::KVBStorage::is_read_only()
    return !blockAppender_;
 }
 
+/**
+ * Allow access to read-only storage object, to enabled downgrades to read-only
+ * KVBStorage when convenient.
+ */
+const Blockchain::ILocalKeyValueStorageReadOnly&
+com::vmware::athena::KVBStorage::getReadOnlyStorage()
+{
+   return roStorage_;
+}
+
 ////////////////////////////////////////
 // ADDRESSING
 

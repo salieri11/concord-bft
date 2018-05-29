@@ -21,8 +21,8 @@ public:
 
    virtual void onThreadBegin()
    {
-      Byz_init_client((char*)client.m_byzConfig,
-                      (char*)client.m_byzPrivateConfig,
+      Byz_init_client(client.m_byzConfig.c_str(),
+                      client.m_byzPrivateConfig.c_str(),
                       0);
    }
 
@@ -240,7 +240,7 @@ void release(IClient* r)
    delete p;
 }
 
-ClientImp::ClientImp(const char* byzConfig, const char* byzPrivateConfig) :
+ClientImp::ClientImp(string byzConfig, string byzPrivateConfig) :
    m_byzConfig(byzConfig),
    m_byzPrivateConfig(byzPrivateConfig),
    m_TlsData(_allocTlsforClientImp()),

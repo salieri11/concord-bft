@@ -20,6 +20,7 @@
 #include "kvb/InMemoryDBClient.h"
 #include "kvb/ReplicaImp.h"
 #include "kvb/ClientImp.h"
+#include <thread>
 #ifdef USE_ROCKSDB
 #include "kvb/RocksDBClient.h"
 #endif
@@ -174,19 +175,22 @@ run_service(variables_map &opts, Logger logger)
       EVM athevm(params);
       KVBCommandsHandler athkvb(athevm);
 
-      // TODO(BWF): This works because this thread is going to be the same one
-      // that calls the replica (athena is single-threaded).
+      // For Thread local storage. Should be called exactly once per process.
+      Blockchain::initEnv();
+
       Blockchain::ReplicaConsensusConfig replicaConsensusConfig;
-      replicaConsensusConfig.byzConfig = "TODO(BWF):actualconfig";
-      replicaConsensusConfig.byzPrivateConfig = "TODO(BWF):actualconfig";
+      replicaConsensusConfig.byzConfig = opts["SBFT.public"].as<std::string>();
+      replicaConsensusConfig.byzPrivateConfig =
+         opts["SBFT.replica"].as<std::string>();
       Blockchain::IReplica *replica =
          Blockchain::createReplica(replicaConsensusConfig, &athkvb, dbclient);
-      create_genesis_block(replica, params, logger);
       replica->start();
+      create_genesis_block(replica, params, logger);
 
       Blockchain::ClientConsensusConfig clientConsensusConfig;
-      clientConsensusConfig.byzConfig = "TODO(BWF):actualconfig";
-      clientConsensusConfig.byzPrivateConfig = "TODO(BWF):actualconfig";
+      clientConsensusConfig.byzConfig = opts["SBFT.public"].as<std::string>();
+      clientConsensusConfig.byzPrivateConfig =
+         opts["SBFT.client"].as<std::string>();
       Blockchain::IClient *client =
          Blockchain::createClient(clientConsensusConfig);
       client->start();
@@ -219,6 +223,8 @@ run_service(variables_map &opts, Logger logger)
       replica->wait();
       Blockchain::release(replica);
 
+      // For Thread local storage. Should be called exactly once per process.
+      Blockchain::freeEnv();
    } catch (std::exception &ex) {
       LOG4CPLUS_FATAL(logger, ex.what());
       return -1;
@@ -230,7 +236,7 @@ run_service(variables_map &opts, Logger logger)
 int
 main(int argc, char** argv)
 {
-   bool loggerInitialized = true;
+   bool loggerInitialized = false;
    int result = 0;
 
    try {
@@ -243,6 +249,9 @@ main(int argc, char** argv)
 
       if (opts.count("help"))
          return result;
+
+      if (opts.count("debug"))
+         std::this_thread::sleep_for(chrono::seconds(20));
 
       // Initialize logger
       log4cplus::initialize();

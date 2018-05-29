@@ -1,0 +1,4 @@
+[submodule "submodules/P2_Blockchain"]
+	path = submodules/P2_Blockchain
+	url = https://github.com/vmwathena/P2_Blockchain.git
+	branch = master

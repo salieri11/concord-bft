@@ -22,6 +22,7 @@
 #include "ReplicaImp.h"
 #include "HashDefs.h"
 #include <inttypes.h>
+#include <cstdlib>
 #include "HexTools.h"
 #include <chrono>
 
@@ -206,8 +207,8 @@ Status ReplicaImp::addBlock(const SetOfKeyValuePairs &updates,
 }
 
 
-ReplicaImp::ReplicaImp(const char *byzConfig,
-                       const char *byzPrivateConfig,
+ReplicaImp::ReplicaImp(string byzConfig,
+                       string byzPrivateConfig,
                        ICommandsHandler *cmdHandler,
                        BlockchainDBAdapter *dbAdapter) :
    logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb")),
@@ -218,6 +219,7 @@ ReplicaImp::ReplicaImp(const char *byzConfig,
    m_InternalStorageWrapperForIdleMode(this),
    m_bcDbAdapter(dbAdapter)
 {
+
    // TODO(GG): add synchronization (to handle concurrent executions)
    if (m_sThreadLocalDataIdx == 0) {
       int res = Utils::allocTlsIndex(&m_sThreadLocalDataIdx);
@@ -750,8 +752,8 @@ DWORD WINAPI ReplicaImp::replicaInternalThread(LPVOID param)
    Logger logger(Logger::getInstance("com.vmware.athena.kvb"));
    LOG4CPLUS_DEBUG(logger, "initializing byz");
    // TODO(GG): clean & understand ....
-   int used_mem = Byz_init_replica((char*)r->m_byzConfig,
-                                   (char*)r->m_byzPrivateConfig,
+   int used_mem = Byz_init_replica(r->m_byzConfig.c_str(),
+                                   r->m_byzPrivateConfig.c_str(),
                                    10 * 1e6,
                                    exec_command,
                                    0,
