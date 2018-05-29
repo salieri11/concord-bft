@@ -8,7 +8,7 @@ set(CMAKE_CXX_EXTENSIONS Off)
 #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
 
 # Storage options
-set(USE_ROCKSDB False)
+set(USE_ROCKSDB True)
 
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIRS})

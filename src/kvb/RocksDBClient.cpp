@@ -329,6 +329,32 @@ KeyValuePair RocksDBClientIterator::seekAtLeast(Slice _searchKey)
 }
 
 /**
+ * @brief Decrements the iterator.
+ *
+ * Decrements the iterator and returns the previous key value pair.
+ *
+ * @return The previous key value pair.
+ */
+KeyValuePair RocksDBClientIterator::previous()
+{
+   m_iter->Prev();
+
+   if (!m_iter->Valid()) {
+      LOG4CPLUS_ERROR(logger, "Iterator out of bounds");
+      return KeyValuePair();
+   }
+
+   Slice key = fromRocksdbSlice(m_iter->key());
+   Slice value = fromRocksdbSlice(m_iter->value());
+
+   LOG4CPLUS_DEBUG(logger, "Key " << sliceToString(key) << " value " <<
+                   sliceToString(value));
+   m_status = Status::OK();
+
+   return KeyValuePair(key,value);
+}
+
+/**
  * @brief Increments the iterator.
  *
  * Increments the iterator and returns the next key value pair.

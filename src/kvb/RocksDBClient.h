@@ -46,6 +46,7 @@ namespace Blockchain
       // Inherited via IDBClientIterator
       virtual KeyValuePair first() override;
       virtual KeyValuePair seekAtLeast(Slice _searchKey) override;
+      virtual KeyValuePair previous() override;
       virtual KeyValuePair next() override;
       virtual KeyValuePair getCurrent() override;
       virtual bool isEnd() override;
@@ -66,8 +67,8 @@ namespace Blockchain
    class RocksDBClient : public IDBClient
    {
    public:
-      RocksDBClient(std::string _dbPath, rocksdb::Comparator *_comparator)
-         : logger(log4cplus::Logger::getInstance("com.athena.vmware.kvb")),
+   RocksDBClient(std::string _dbPath, rocksdb::Comparator *_comparator)
+      : logger(log4cplus::Logger::getInstance("com.athena.vmware.kvb")),
          m_dbPath(_dbPath), m_comparator(_comparator) {}
 
       virtual Status init() override;

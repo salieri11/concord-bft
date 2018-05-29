@@ -28,10 +28,17 @@ add_library(kvblockchain ${kvblockchain_sources})
 target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils/Crypto)
 target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/AgreementModules/SbftForIntegMay18/libbyz)
 
-target_link_libraries(kvblockchain byz)
+target_link_libraries(kvblockchain PUBLIC byz)
 
 if(USE_ROCKSDB)
+find_library(ROCKSDB rocksdb)
+find_library(LIBBZ2 bz2)
+find_library(LIBLZ4 lz4)
+find_library(LIBZSTD zstd)
+find_library(LIBZ z)
+find_library(LIBSNAPPY snappy)
 target_compile_definitions(kvblockchain PRIVATE USE_ROCKSDB=1)
+target_link_libraries(kvblockchain PUBLIC ${ROCKSDB} ${LIBBZ2} ${LIBLZ4} ${LIBZSTD} ${LIBZ} ${LIBSNAPPY})
 endif()
 
 target_compile_definitions(kvblockchain PUBLIC __BASE=1 SPARSE_STATE=1 USE_TLS=1)

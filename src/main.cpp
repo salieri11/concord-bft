@@ -33,6 +33,7 @@ using log4cplus::Logger;
 
 using namespace com::vmware::athena;
 using namespace std;
+using namespace Blockchain;
 
 // the Boost service hosting our Helen connections
 static io_service *api_service;
@@ -67,8 +68,7 @@ Blockchain::IDBClient* open_database(variables_map &opts, Logger logger)
       string rocks_path = opts["blockchain_db_path"].as<std::string>();
       return new Blockchain::RocksDBClient(
          rocks_path,
-         (Blockchain::IDBClient::KeyComparator)
-         &Blockchain::RocksKeyComparator);
+         new Blockchain::RocksKeyComparator());
 #endif
    } else {
       LOG4CPLUS_FATAL(logger, "Unknown blockchain_db_impl " << db_impl_name);
@@ -125,16 +125,16 @@ void create_genesis_block(Blockchain::IReplica *replica,
       // store a transaction for each initial balance in the genesis block
       // defintition
       EthTransaction tx{
-         nonce : 0,
-         block_hash : zero_hash, // set to zero for now
-         block_number : 0,
-         from : zero_address,
-         to : it->first,
-         contract_address : zero_address,
-         input : std::vector<uint8_t>(),
-         status : EVM_SUCCESS,
-         value : it->second
-      };
+      nonce : 0,
+            block_hash : zero_hash, // set to zero for now
+            block_number : 0,
+            from : zero_address,
+            to : it->first,
+            contract_address : zero_address,
+            input : std::vector<uint8_t>(),
+            status : EVM_SUCCESS,
+            value : it->second
+            };
       evm_uint256be txhash = tx.hash();
       LOG4CPLUS_INFO(logger, "Created genesis transaction " << txhash <<
                      " to address " << it->first <<
@@ -225,11 +225,7 @@ run_service(variables_map &opts, Logger logger)
 
       // For Thread local storage. Should be called exactly once per process.
       Blockchain::freeEnv();
-
-   } catch (EVMInitParamException &ex) {
-      LOG4CPLUS_FATAL(logger, ex.what());
-      return -1;
-   } catch (EVMException &ex) {
+   } catch (std::exception &ex) {
       LOG4CPLUS_FATAL(logger, ex.what());
       return -1;
    }

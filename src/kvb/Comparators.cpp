@@ -40,7 +40,19 @@ int composedKeyComparison(const Slice& _a, const Slice& _b)
    // if this is a block, we stop with key comparison - it doesn't have a block
    // id component (that would be redundant)
    if (aType == ((char)EDBKeyType::E_DB_KEY_TYPE_BLOCK)) {
-      return _a.compare(_b);
+
+      //Extract the block ids to compare so that endianness of environment
+      //does not matter.
+      BlockId aId = extractBlockIdFromKey(_a);
+      BlockId bId = extractBlockIdFromKey(_b);
+
+      if(aId < bId) {
+         return -1;
+      } else if(bId < aId) {
+         return 1;
+      } else {
+         return 0;
+      }
    }
 
    Slice aKey = extractKeyFromKeyComposedWithBlockId(_a);
@@ -53,7 +65,13 @@ int composedKeyComparison(const Slice& _a, const Slice& _b)
       BlockId bId = extractBlockIdFromKey(_b);
 
       // within a type+key, block ids are sorted in reverse order
-      return bId - aId;
+      if(aId < bId) {
+         return 1;
+      } else if(bId < aId) {
+         return -1;
+      } else {
+         return 0;
+      }
    }
 
    return keyComp;
@@ -90,5 +108,4 @@ bool InMemKeyComp(const Slice& _a, const Slice& _b)
    // Check: comp < 0 ==> _a < _b
    return comp < 0;
 }
-
 }

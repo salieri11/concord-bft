@@ -19,6 +19,20 @@ using namespace Blockchain::Utils;
 
 namespace Blockchain {
 
+   class ReplicaInitException : public std::exception
+   {
+   public:
+      explicit ReplicaInitException(const std::string &what): msg(what) {};
+
+      virtual const char* what() const noexcept override
+      {
+         return msg.c_str();
+      }
+
+   private:
+      std::string msg;
+   };
+
    class ReplicaImp : public IReplica,
       public ILocalKeyValueStorageReadOnly,
       public IBlocksAppender
