@@ -219,15 +219,7 @@ run_service(variables_map &opts, Logger logger)
       replica->wait();
       Blockchain::release(replica);
 
-      //TODO: Maybe combine all these catches as we are not doing any
-      //specific error handling for either
-   } catch (EVMInitParamException &ex) {
-      LOG4CPLUS_FATAL(logger, ex.what());
-      return -1;
-   } catch (EVMException &ex) {
-      LOG4CPLUS_FATAL(logger, ex.what());
-      return -1;
-   } catch (ReplicaInitException &ex) {
+   } catch (std::exception &ex) {
       LOG4CPLUS_FATAL(logger, ex.what());
       return -1;
    }
