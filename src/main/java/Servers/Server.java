@@ -70,8 +70,13 @@ public class Server {
    }
 
    public static void main(String[] args) throws IOException, ServletException {
-
       final Logger logger = Logger.getLogger(Server.class);
+      if (args.length == 1) {
+         // This accepts only 1 argument and it is name of configuration file
+         ConfigurationFactory.init(args[0]);
+      } else {
+         ConfigurationFactory.init();
+      }
 
       // Read configurations file
       IConfiguration conf

@@ -8,51 +8,44 @@
 package configurations;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
+import org.apache.log4j.Logger;
 import org.json.simple.parser.ParseException;
 
 public class FileConfiguration implements IConfiguration {
 
-   // Java way to eager initialize singleton with
-   // ctor that throws exceptions. Static initializer block can throw
-   // unchecked exception to class loader
-   private static FileConfiguration _single_instance;
-   static {
-      try {
-         _single_instance = new FileConfiguration();
-      } catch (IOException e) {
-         throw new ExceptionInInitializerError(e);
-      } catch (ParseException e) {
-         throw new ExceptionInInitializerError(e);
-      }
-   }
-
    protected Properties _configurations;
+   private Logger logger = Logger.getLogger(FileConfiguration.class);
 
    /**
-    * Loads the configurations file
+    * Loads default config.properties file
+    * 
+    * @throws IOException
+    * @throws ParseException
+    */
+   protected FileConfiguration() {
+      this("config.properties");
+   }
+
+   /**
+    * Loads the given configurations file
     * 
     * @throws IOException
     * @throws ParseException
     **/
-   protected FileConfiguration() throws IOException, ParseException {
+   protected FileConfiguration(String propertiesFile) {
       _configurations = new Properties();
-      try (InputStream input = new FileInputStream("config.properties")) {
+      try (InputStream input = new FileInputStream(propertiesFile)) {
          _configurations.load(input);
+      } catch (FileNotFoundException fe) {
+         logger.warn("Configuration initialization error: ", fe);
+      } catch (IOException ie) {
+         logger.warn("Configuration initialization error: ", ie);
       }
-   }
-
-   /**
-    * Static method to create/retrieve the instance of this class
-    * 
-    * @return Instance of this class
-    * @throws IOException
-    */
-   public static FileConfiguration getInstance() {
-      return _single_instance;
    }
 
    /**
