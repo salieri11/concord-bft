@@ -60,8 +60,8 @@ namespace Blockchain {
 
       // CTOR & DTOR
 
-      ReplicaImp(const char *byzConfig,
-                 const char *byzPrivateConfig,
+      ReplicaImp(string byzConfig,
+                 string byzPrivateConfig,
                  ICommandsHandler *cmdHandler,
                  BlockchainDBAdapter *dbAdapter);
       ~ReplicaImp();
@@ -81,8 +81,8 @@ namespace Blockchain {
 
       // CONSTANTS
 
-      const char *m_byzConfig;
-      const char *m_byzPrivateConfig;
+      const std::string m_byzConfig;
+      const std::string m_byzPrivateConfig;
       const ICommandsHandler *m_cmdHandler;
 
       // INTERNAL TYPES

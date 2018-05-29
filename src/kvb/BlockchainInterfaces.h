@@ -47,8 +47,8 @@ namespace Blockchain {
    // structs representing the actual configuration
    struct ReplicaConsensusConfig
    {
-      char* byzConfig;
-      char* byzPrivateConfig;
+      std::string byzConfig;
+      std::string byzPrivateConfig;
    };
 
    // Represents a replica of the blockchain database
@@ -111,8 +111,8 @@ namespace Blockchain {
    // structs representing the actual configuration
    struct ClientConsensusConfig
    {
-      char* byzConfig;
-      char* byzPrivateConfig;
+      std::string byzConfig;
+      std::string byzPrivateConfig;
    };
 
    // Represents a client of the blockchain database

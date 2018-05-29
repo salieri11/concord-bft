@@ -8,7 +8,6 @@ set(kvblockchain_sources
   HashDefs.h
   HexTools.cpp HexTools.h
   InMemoryDBClient.cpp InMemoryDBClient.h
-  libbyz.cpp libbyz.h
   ReplicaImp.cpp ReplicaImp.h
   RocksDBClient.cpp RocksDBClient.h
   SimpleThreadPool.h
@@ -19,16 +18,20 @@ set(kvblockchain_sources
 
 add_library(kvblockchain ${kvblockchain_sources})
 
-# target_link_libraries(kvblockchain LINK_PUBLIC evmutils)
-# target_include_directories(kvblockchain PUBLIC .)
-# target_include_directories(kvblockchain PUBLIC ../../../Utils)
-# target_include_directories(kvblockchain PUBLIC ../../../Utils/Thread)
-# target_include_directories(kvblockchain PUBLIC ../../../Utils/Crypto)
-# target_include_directories(kvblockchain PUBLIC ../../../Utils/Database)
-# target_include_directories(kvblockchain PUBLIC ../../../AgreementModules/SBFT/libbyz)
-# target_include_directories(kvblockchain PUBLIC ../../../rocksdb/include)
-# target_include_directories(kvblockchain PUBLIC ../Inc)
+# TODO(BWF): Files from these three paths are included in kvb/; we
+# should migrate any fixes from kvb/ back to P2_Blockchain, and then
+# just use them from the submodule
+#target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils)
+#target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils/Thread)
+#target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils/Database)
+
+target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils/Crypto)
+target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/AgreementModules/SbftForIntegMay18/libbyz)
+
+target_link_libraries(kvblockchain byz)
 
 if(USE_ROCKSDB)
 target_compile_definitions(kvblockchain PRIVATE USE_ROCKSDB=1)
 endif()
+
+target_compile_definitions(kvblockchain PUBLIC __BASE=1 SPARSE_STATE=1 USE_TLS=1)

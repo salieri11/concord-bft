@@ -16,5 +16,6 @@ target_link_libraries(athena
   log4cplus
   ${EVM_LIBRARIES}
   ${Cryptopp_LIBRARIES}
-  utils
-  kvblockchain)
+  athena_utils
+  kvblockchain
+)

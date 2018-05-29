@@ -10,6 +10,9 @@ else(DEFINED EVM_INCLUDE_DIR_NOTFOUND)
    set(Evmjit_INCLUDE_DIRS ${Evmjit_INCLUDE_DIR})
    link_directories(${Evmjit_INCLUDE_DIR}/../build/libevmjit/
      ${Evmjit_INCLUDE_DIR}/../deps/lib/)
-
+if(APPLE)
+   set(Evmjit_LIBRARIES evmjit-standalone dl)
+else()
    set(Evmjit_LIBRARIES evmjit-standalone-thin dl)
+endif(APPLE)
 endif(DEFINED EVM_INCLUDE_DIR_NOTFOUND)
