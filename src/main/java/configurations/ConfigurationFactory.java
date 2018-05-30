@@ -1,19 +1,23 @@
 package configurations;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
 public class ConfigurationFactory {
 
    private static String configFile = "config.properties";
    private static FileConfiguration fileConfiguration = null;
    private static TestConfiguration testConfiguration = null;
 
-   public static void init() {
+   public static void init() throws
+           IOException {
       if (fileConfiguration == null && testConfiguration == null) {
          fileConfiguration = new FileConfiguration(configFile);
          testConfiguration = new TestConfiguration();
       }
    }
 
-   public static void init(String configFile) {
+   public static void init(String configFile) throws IOException {
       ConfigurationFactory.configFile = configFile;
       init();
    }

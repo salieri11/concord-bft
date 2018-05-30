@@ -27,7 +27,8 @@ public class FileConfiguration implements IConfiguration {
     * @throws IOException
     * @throws ParseException
     */
-   protected FileConfiguration() {
+   protected FileConfiguration() throws
+           IOException {
       this("config.properties");
    }
 
@@ -37,14 +38,11 @@ public class FileConfiguration implements IConfiguration {
     * @throws IOException
     * @throws ParseException
     **/
-   protected FileConfiguration(String propertiesFile) {
+   protected FileConfiguration(String propertiesFile) throws
+           IOException {
       _configurations = new Properties();
       try (InputStream input = new FileInputStream(propertiesFile)) {
          _configurations.load(input);
-      } catch (FileNotFoundException fe) {
-         logger.warn("Configuration initialization error: ", fe);
-      } catch (IOException ie) {
-         logger.warn("Configuration initialization error: ", ie);
       }
    }
 
