@@ -13,6 +13,8 @@
 #include "athcmdconn.hpp"
 #include "athena.pb.h"
 
+#include "evm.h"
+
 using namespace boost::program_options;
 using namespace com::vmware::athena;
 
@@ -27,10 +29,30 @@ void add_options(options_description &desc) {
 
 std::string status_to_string(int32_t status) {
    switch (status) {
-   case 0:
-      return "(failure)";
-   case 1:
+   case EVM_SUCCESS:
       return "(success)";
+   case EVM_FAILURE:
+      return "(failure)";
+   case EVM_OUT_OF_GAS:
+      return "(out of gas)";
+   case EVM_UNDEFINED_INSTRUCTION:
+      return "(undefined instruction)";
+   case EVM_BAD_JUMP_DESTINATION:
+      return "(bad jump destination)";
+   case EVM_STACK_OVERFLOW:
+      return "(stack overflow)";
+   case EVM_REVERT:
+      return "(revert)";
+   case EVM_STATIC_MODE_ERROR:
+      return "(static mode error)";
+   case EVM_INVALID_INSTRUCTION:
+      return "(invalid instruction)";
+   case EVM_INVALID_MEMORY_ACCESS:
+      return "(invalid memory access)";
+   case EVM_REJECTED:
+      return "(rejected)";
+   case EVM_INTERNAL_ERROR:
+      return "(internal error)";
    default:
       return "(error: unknown status value)";
    }
