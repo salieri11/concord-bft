@@ -39,8 +39,8 @@ public class StaticContent extends HttpServlet {
    private IConfiguration _conf;
 
    public StaticContent() throws IOException {
-      _conf
-         = ConfigurationFactory.getConfiguration(ConfigurationFactory.ConfigurationType.File);
+      _conf = ConfigurationFactory.getConfiguration(
+              ConfigurationFactory.ConfigurationType.File);
    }
 
    /**

@@ -3,12 +3,14 @@ package configurations;
 public class ConfigurationFactory {
 
    private static String configFile = "config.properties";
-   private static FileConfiguration fileConfiguration;
-   private static TestConfiguration testConfiguration;
+   private static FileConfiguration fileConfiguration = null;
+   private static TestConfiguration testConfiguration = null;
 
    public static void init() {
-      fileConfiguration = new FileConfiguration(configFile);
-      testConfiguration = new TestConfiguration();
+      if (fileConfiguration == null && testConfiguration == null) {
+         fileConfiguration = new FileConfiguration(configFile);
+         testConfiguration = new TestConfiguration();
+      }
    }
 
    public static void init(String configFile) {
