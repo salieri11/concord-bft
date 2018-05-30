@@ -11,7 +11,7 @@ import org.json.simple.parser.ParseException;
 
 public class TestConfiguration extends FileConfiguration {
    
-   public TestConfiguration() {
+   public TestConfiguration() throws IOException {
       super();
    }
 
