@@ -1,3 +1,6 @@
+## IMPORTANT: You must have initialized and updated the submodules
+## before building the docker image! See README.md.
+
 ## Build image
 FROM ubuntu:latest
 LABEL Description="Build environment for Athena"
@@ -49,34 +52,120 @@ WORKDIR /evmjit/build
 RUN cmake ..
 RUN cmake --build . --config RelWithDebInfo
 
+RUN apt-get update && apt-get -y install \
+    libgmp3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /
+RUN git clone https://github.com/relic-toolkit/relic
+WORKDIR /relic/build
+RUN cmake -DALLOC=AUTO -DWORD=64 -DRAND=UDEV -DSHLIB=ON -DSTLIB=ON -DSTBIN=OFF -DTIMER=HREAL -DCHECK=on -DVERBS=on -DARITH=x64-asm-254 -DFP_PRIME=254 -DFP_METHD="INTEG;INTEG;INTEG;MONTY;LOWER;SLIDE" -DCOMP="-O3 -funroll-loops -fomit-frame-pointer -finline-small-functions -march=native -mtune=native" -DFP_PMERS=off -DFP_QNRES=on -DFPX_METHD="INTEG;INTEG;LAZYR" -DPP_METHD="LAZYR;OATEP" .. && make && make install
+
+RUN apt-get update && apt-get -y install \
+    libbz2-dev \
+    liblz4-dev \
+    libsnappy-dev \
+    libzstd-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /
+RUN wget https://github.com/facebook/rocksdb/archive/v5.7.3.tar.gz \
+    && tar -xzf v5.7.3.tar.gz \
+    && rm v5.7.3.tar.gz
+WORKDIR /rocksdb-5.7.3
+RUN make static_lib && make install
+
 WORKDIR /athena
 COPY . /athena
 WORKDIR /athena/build
 RUN cmake .. && make
 
-## Run image
-FROM ubuntu:latest
+
+## Base Run image
+FROM ubuntu:latest as runimg
 LABEL Description="Athena"
 
 RUN apt-get update && apt-get -y install \
+    libbz2-1.0 \
+    libgmp10 \
+    liblz4-1 \
     libprotobuf9v5 \
+    libsnappy1v5 \
+    libzstd0 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=0 /usr/local/lib/libcryptopp* /usr/local/lib/
 COPY --from=0 /usr/lib/libboost* /usr/lib/
 COPY --from=0 /usr/local/lib/liblog4cplus* /usr/local/lib/
 # evmjit is statically compiled, so we don't need to copy
+COPY --from=0 /usr/local/lib/librelic* /usr/local/lib/
 
 WORKDIR /athena/resources
-COPY --from=0 /athena/build/resources/* /athena/resources/
+COPY --from=0 /athena/build/resources/log4cplus.properties /athena/resources/
 COPY --from=0 /athena/build/src/athena /athena/athena
 COPY --from=0 /athena/build/tools/ath_* /athena/
-
 COPY --from=0 /athena/test/resources/genesis.json /athena/resources/
-RUN sed -i -e "s/tmp/athena\/resources/g" /athena/resources/athena.config
+
+# replace localhost with docker-compose container name in public config
+COPY --from=0 /athena/build/resources/f1-c0-cl3/*.pub /athena/resources/f1-c0-cl3/
+RUN sed -i -e "s/replica1 127.0.0.1/replica1 athena1/g" \
+           -e "s/replica2 127.0.0.1/replica2 athena2/g" \
+           -e "s/replica3 127.0.0.1/replica3 athena3/g" \
+           -e "s/client1 127.0.0.1/client1 athena1/g" \
+           -e "s/client2 127.0.0.1/client2 athena2/g" \
+           -e "s/client3 127.0.0.1/client3 athena3/g" \
+    /athena/resources/f1-c0-cl3/*.pub
+
+
+## Node1 image
+FROM runimg
+COPY --from=0 /athena/build/resources/athena1.config /athena/resources/
+RUN sed -i -e "s/tmp/athena\/resources/g" /athena/resources/athena1.config
+
+COPY --from=1 /athena/resources/f1-c0-cl3/*.pub /athena/resources/f1-c0-cl3/
+COPY --from=0 /athena/build/resources/f1-c0-cl3/*1.priv /athena/resources/f1-c0-cl3/
 
 WORKDIR /athena
 CMD export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
-    /athena/athena
-
+    /athena/athena -c /athena/resources/athena1.config
+# athena<->helen
 EXPOSE 5458
+# SBFT
+EXPOSE 3701/udp
+EXPOSE 3705/udp
+
+
+## Node2 image
+FROM runimg
+COPY --from=0 /athena/build/resources/athena2.config /athena/resources/
+RUN sed -i -e "s/tmp/athena\/resources/g" /athena/resources/athena2.config
+
+COPY --from=1 /athena/resources/f1-c0-cl3/*.pub /athena/resources/f1-c0-cl3/
+COPY --from=0 /athena/build/resources/f1-c0-cl3/*2.priv /athena/resources/f1-c0-cl3/
+
+WORKDIR /athena
+CMD export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
+    /athena/athena -c /athena/resources/athena2.config
+# athena<->helen
+EXPOSE 5459
+# SBFT
+EXPOSE 3702/udp
+EXPOSE 3706/udp
+
+
+## Node3 image
+FROM runimg
+COPY --from=0 /athena/build/resources/athena3.config /athena/resources/
+RUN sed -i -e "s/tmp/athena\/resources/g" /athena/resources/athena3.config
+
+COPY --from=1 /athena/resources/f1-c0-cl3/*.pub /athena/resources/f1-c0-cl3/
+COPY --from=0 /athena/build/resources/f1-c0-cl3/*3.priv /athena/resources/f1-c0-cl3/
+
+WORKDIR /athena
+CMD export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
+    /athena/athena -c /athena/resources/athena3.config
+# athena<->helen
+EXPOSE 5460
+# SBFT
+EXPOSE 3703/udp
+EXPOSE 3707/udp
