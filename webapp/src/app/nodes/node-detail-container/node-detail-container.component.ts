@@ -2,9 +2,10 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 
-import { TransactionFiltersModalComponent } from '../transaction-filters-modal/transaction-filters-modal.component';
+import { BlockListingBlock } from '../../shared/remote-interfaces';
+import { AthenaApiService } from '../../shared/athena-api.service';
 
 @Component({
   selector: 'app-node-detail-container',
@@ -12,18 +13,16 @@ import { TransactionFiltersModalComponent } from '../transaction-filters-modal/t
   styleUrls: ['./node-detail-container.component.scss']
 })
 export class NodeDetailContainerComponent implements OnInit {
-  @ViewChild('filterModal') filterModal: TransactionFiltersModalComponent;
 
-  constructor() { }
+  blocks: BlockListingBlock[];
+  blockTransactions: any[] = [];
+  recentTransactions: any[] = [];
+
+  constructor(private athenaApiService: AthenaApiService) { }
 
   ngOnInit() {
-  }
-
-  onOpenFilterModal() {
-    this.filterModal.open();
-  }
-
-  onApplyFilters() {
-    // TODO: action on apply filters
+    this.athenaApiService.getRecentTransactions().subscribe((resp) => {
+      this.recentTransactions = resp;
+    });
   }
 }

@@ -11,15 +11,19 @@ import Servlets.APIHelper;
 import Servlets.EthDispatcher;
 
 /**
- * <p>Copyright 2018 VMware, all rights reserved.</p>
- * 
- * <p>This Handler is used for handling all `eth_getTransactionReceipt` types 
- * of requests. EthGetTxReceiptHandler is little different than other handlers
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
+ *
+ * <p>
+ * This Handler is used for handling all `eth_getTransactionReceipt` types of
+ * requests. EthGetTxReceiptHandler is little different than other handlers
  * because It leverages already existing `TransactionReceipt` AthenaRequest to
  * handle `eth_getTransactionReceipt` requests (see Transaction.java file which
  * implements this API). Hence, in this handler we actually put a
- * `TransactionRequest` inside AthenaRequest and read a TransactionResponse
- * from AthenaResponse.</p>
+ * `TransactionRequest` inside AthenaRequest and read a TransactionResponse from
+ * AthenaResponse.
+ * </p>
  */
 public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
 
@@ -28,7 +32,7 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
    /**
     * Builds a TransactionRequest object from given requestJson and inserts it
     * into AthenaRequest Object.
-    * 
+    *
     * @param builder
     *           Athena Request Builder.
     * @param requestJson
@@ -56,7 +60,7 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
    /**
     * Since the parents initializeResponseObject method takes EthResponse object
     * as input we override it here to take in the id directly.
-    * 
+    *
     * @param id
     * @return
     */
@@ -71,7 +75,7 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
    /**
     * Builds a response JSON object by extracting TransactionResponse object
     * from given AthenaResponse Object.
-    * 
+    *
     * @param athenaResponse
     *           The AthenaResponse object
     * @param requestJson
@@ -106,6 +110,7 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
          } else {
             result.put("contractAddress", null);
          }
+
          result.put("status",
                     "0x"
                        + Integer.toString(transactionResponse.getStatus() ==

@@ -3,7 +3,7 @@
  */
 
 import { Inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 
 import { ATHENA_API_PREFIX } from './shared.config';
 
@@ -11,8 +11,11 @@ import {
   Member,
   Block,
   BlockListing,
-  Transaction
+  Transaction, BlockListingBlock
 } from './remote-interfaces';
+import { Observable } from 'rxjs/Observable';
+import 'rxjs/add/observable/forkJoin';
+import 'rxjs/add/observable/of';
 
 @Injectable()
 export class AthenaApiService {
@@ -23,8 +26,10 @@ export class AthenaApiService {
     return this.httpClient.get<Member[]>(this.apiPath('/members'));
   }
 
-  getBlocks() {
-    return this.httpClient.get<BlockListing>(this.apiPath('/blocks'));
+  getBlocks(count: number = 10) {
+    const params = new HttpParams().set('count', count.toString());
+
+    return this.httpClient.get<BlockListing>(this.apiPath('/blocks'), {params: params});
   }
 
   getBlocksByUrl(url: string) {
@@ -37,6 +42,35 @@ export class AthenaApiService {
 
   getTransaction(transactionHash: string) {
     return this.httpClient.get<Transaction>(this.apiPath(`/transactions/${transactionHash}`));
+  }
+
+  getRecentTransactions() {
+    // Get blocks, then get individual block, then build list of recent transactions from the data returned
+    // This is temporary until there is an endpoint to fetch recent transactions
+
+    return this.getBlocks(1000).flatMap(resp => {
+      const blockObservables = resp.blocks.map((block) => this.getBlock(block.number));
+
+      return Observable.forkJoin(blockObservables).flatMap(blocksResp => {
+        let blockTransactions: any[] = [];
+
+        blocksResp.forEach((block) => {
+          const tempTransactions: any = (block as Block).transactions;
+          tempTransactions.map(x => x.blockNumber = (block as Block).number);
+          blockTransactions = blockTransactions.concat(tempTransactions);
+        });
+
+        const transactionObservables = blockTransactions.map((blockTransaction) => this.getTransaction(blockTransaction.hash));
+
+        return Observable.forkJoin(transactionObservables).flatMap(transationsResp => {
+          const transactions = transationsResp.map((transaction, index) => {
+            return { blockNumber: blockTransactions[index].blockNumber, ...transaction };
+          });
+
+          return Observable.of(transactions);
+        });
+      });
+    });
   }
 
   apiPath(path: string) {

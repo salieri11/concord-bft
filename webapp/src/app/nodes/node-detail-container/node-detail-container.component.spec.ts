@@ -3,11 +3,13 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { ClarityModule } from '@clr/angular';
+
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { MockSharedModule } from '../../shared/shared.module';
 
 import { NodeDetailContainerComponent } from './node-detail-container.component';
-import { TransactionFiltersModalComponent } from '../transaction-filters-modal/transaction-filters-modal.component';
-import { MockTranslateModule } from '../../mocks/mock-translate.module';
+import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
 
 describe('NodeDetailContainerComponent', () => {
   let component: NodeDetailContainerComponent;
@@ -16,10 +18,11 @@ describe('NodeDetailContainerComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
-        ClarityModule,
-        MockTranslateModule
+        RouterTestingModule,
+        HttpClientTestingModule,
+        MockSharedModule
       ],
-      declarations: [ NodeDetailContainerComponent, TransactionFiltersModalComponent ]
+      declarations: [ NodeDetailContainerComponent, TransactionsStatusFilterComponent ]
     })
     .compileComponents();
   }));

@@ -6,11 +6,9 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { ClarityModule } from '@clr/angular';
-import { MockTranslateModule } from '../../mocks/mock-translate.module';
 
 import { TransactionDetailContainerComponent } from './transaction-detail-container.component';
-import { SharedModule } from '../../shared/shared.module';
+import { MockSharedModule } from '../../shared/shared.module';
 
 describe('TransactionDetailContainerComponent', () => {
   let component: TransactionDetailContainerComponent;
@@ -21,9 +19,7 @@ describe('TransactionDetailContainerComponent', () => {
       imports: [
         RouterTestingModule,
         HttpClientTestingModule,
-        ClarityModule,
-        MockTranslateModule,
-        SharedModule
+        MockSharedModule
       ],
       declarations: [ TransactionDetailContainerComponent ]
     })

@@ -2,12 +2,11 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 
 import { AthenaApiService } from '../../shared/athena-api.service';
 
 import { Member } from '../../shared/remote-interfaces';
-import { TransactionFiltersModalComponent } from '../transaction-filters-modal/transaction-filters-modal.component';
 
 @Component({
   selector: 'app-nodes-container',
@@ -15,7 +14,6 @@ import { TransactionFiltersModalComponent } from '../transaction-filters-modal/t
   styleUrls: ['./nodes-container.component.scss']
 })
 export class NodesContainerComponent implements OnInit {
-  @ViewChild('filterModal') filterModal: TransactionFiltersModalComponent;
 
   mockStats = {
     totalActiveNodes: 28458,
@@ -35,13 +33,5 @@ export class NodesContainerComponent implements OnInit {
 
   loadMembers() {
     this.athenaApiService.getMembers().subscribe(members => this.members = members);
-  }
-
-  onOpenFilterModal() {
-    this.filterModal.open();
-  }
-
-  onApplyFilters() {
-    // TODO: action on apply filters
   }
 }

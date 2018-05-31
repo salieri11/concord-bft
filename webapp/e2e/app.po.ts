@@ -9,6 +9,12 @@ export class AppPage {
     return browser.get('/');
   }
 
+  fillLogInForm(email, password) {
+    element(by.css('#login_username')).sendKeys(email);
+    element(by.css('#login_password')).sendKeys(password);
+    element(by.css('.login-group button[type="submit"]')).click();
+  }
+
   getPageTitle() {
     return element(by.css('.branding .title')).getText();
   }

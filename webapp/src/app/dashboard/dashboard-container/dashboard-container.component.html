@@ -46,41 +46,33 @@
       <h3 class="mt-0">{{'transactions.recentTransactions' | translate}}</h3>
     </div>
   </div>
-
-  <table class="table">
-    <thead>
-    <tr>
-      <th>{{'transactions.timestamp' | translate}}</th>
-      <th>{{'transactions.origination' | translate}}</th>
-      <th>{{'transactions.transactionType' | translate}}</th>
-      <th>{{'transactions.amount' | translate}}</th>
-      <th>{{'transactions.transactionLength' | translate}}</th>
-      <th>{{'transactions.status' | translate}}</th>
-      <th>{{'transactions.nodes' | translate}}</th>
-      <th></th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr>
-      <td>01-28-2017</td>
-      <td>Lindberg</td>
-      <td>Lorem ipsum dolor</td>
-      <td>$785</td>
-      <td>40.87 sec</td>
-      <td>Denied</td>
-      <td>75</td>
-      <td>
-        <clr-dropdown [clrCloseMenuOnItemClick]="false">
-          <button type="button" clrDropdownTrigger>
-            <clr-icon shape="ellipsis-horizontal" size="16"></clr-icon>
-          </button>
-          <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
-            <button type="button" clrDropdownItem>Lorem ipsum</button>
-            <button type="button" clrDropdownItem>Dolor sit amet</button>
-          </clr-dropdown-menu>
-        </clr-dropdown>
-      </td>
-    </tr>
-    </tbody>
-  </table>
+  <div class="row">
+    <div class="col-xs-12">
+      <clr-datagrid>
+        <clr-dg-column [clrDgSortBy]="'hash'">{{'transactions.hash' | translate}}</clr-dg-column>
+        <clr-dg-column>{{'transactions.nonce' | translate}}</clr-dg-column>
+        <clr-dg-column>
+          {{'transactions.status' | translate}}
+          <clr-dg-filter [clrDgFilter]="statusFilter">
+            <app-transactions-status-filter #statusFilter></app-transactions-status-filter>
+          </clr-dg-filter>
+        </clr-dg-column>
+        <clr-dg-row *clrDgItems="let transaction of recentTransactions">
+          <clr-dg-action-overflow>
+            <a class="action-item" [routerLink]="['/blocks', transaction.blockNumber, 'transactions', transaction.hash]">
+              {{'blocks.viewDetail' | translate}}
+            </a>
+          </clr-dg-action-overflow>
+          <clr-dg-cell>{{transaction.hash}}</clr-dg-cell>
+          <clr-dg-cell>{{transaction.nonce}}</clr-dg-cell>
+          <clr-dg-cell>{{(transaction?.status ? 'transactions.success' : 'transactions.failure') | translate}}</clr-dg-cell>
+        </clr-dg-row>
+        <clr-dg-footer>
+          <clr-dg-pagination #pagination [clrDgPageSize]="10">
+            {{'transactions.paginationSummary' | translate: { start: pagination.firstItem + 1, finish: pagination.lastItem + 1, total: pagination.totalItems} }}
+          </clr-dg-pagination>
+        </clr-dg-footer>
+      </clr-datagrid>
+    </div>
+  </div>
 </div>

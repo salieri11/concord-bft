@@ -1,5 +1,8 @@
 {
   "title": "VMware Athena",
+  "common": {
+    "all": "All"
+  },
   "nav": {
     "metrics": {
       "activeNodes": "Active Nodes {{value}}"
@@ -21,6 +24,12 @@
   "time": {
     "lastXDays": "Last {{number}} Days",
     "today": "Today"
+  },
+  "authentication": {
+    "welcome": "Welcome to",
+    "username": "Username",
+    "password": "Password",
+    "next": "Next"
   },
   "dashboard": {
     "totalActiveNodes": "Total Active Nodes",
@@ -51,6 +60,8 @@
     "xSeconds": "{{seconds}} <small>seconds</small>",
     "location": "Location",
     "status": "Status",
+    "connected": "Connected",
+    "offline": "Offline",
     "totalActiveNodes": "Total Active Nodes",
     "inactiveNodes": "Inactive Nodes",
     "searchPlaceholder": "Search...",
@@ -78,7 +89,8 @@
     "index": "Index",
     "hash": "Hash",
     "next": "Next",
-    "viewDetail": "View Detail"
+    "viewDetail": "View Detail",
+    "paginationSummary": "{{start}} - {{finish}} of {{total}} blocks"
   },
   "transactions": {
     "transactions": "Transactions",
@@ -100,7 +112,8 @@
     "value": "Value",
     "nonce": "Nonce",
     "parentHash": "Parent Hash",
-    "size": "Size"
+    "size": "Size",
+    "paginationSummary": "{{start}} - {{finish}} of {{total}} transactions"
   },
   "testing": {
     "testingGround": "Testing Ground",

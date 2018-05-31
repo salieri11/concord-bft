@@ -30,34 +30,20 @@
 
 <div class="p-2">
   <h3 class="mt-0">{{'blocks.blocks' | translate}}</h3>
-
-  <table class="table">
-    <thead>
-    <tr>
-      <th class="text-right">{{'blocks.index' | translate}}</th>
-      <th class="text-left">{{'blocks.hash' | translate}}</th>
-      <th></th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr *ngFor="let block of blocks">
-      <td class="text-right">{{block.number}}</td>
-      <td class="text-left">{{block.hash}}</td>
-      <td>
-        <clr-dropdown [clrCloseMenuOnItemClick]="false">
-          <button type="button" class="px-0" clrDropdownTrigger>
-            <clr-icon shape="ellipsis-horizontal" size="16"></clr-icon>
-          </button>
-          <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
-            <a clrDropdownItem [routerLink]="['/blocks', block.number]">{{'blocks.viewDetail' | translate}}</a>
-          </clr-dropdown-menu>
-        </clr-dropdown>
-      </td>
-    </tr>
-    </tbody>
-  </table>
-
-  <div class="text-right">
-    <button class="btn btn-primary" [disabled]="!nextBlockUrl" (click)="loadNextBlocks()">{{'blocks.next' | translate}}</button>
-  </div>
+  <clr-datagrid>
+    <clr-dg-column [clrDgField]="'number'">{{'blocks.index' | translate}}</clr-dg-column>
+    <clr-dg-column>{{'blocks.hash' | translate}}</clr-dg-column>
+    <clr-dg-row *clrDgItems="let block of blocks">
+      <clr-dg-action-overflow>
+        <a class="action-item" [routerLink]="['/blocks', block.number]">{{'blocks.viewDetail' | translate}}</a>
+      </clr-dg-action-overflow>
+      <clr-dg-cell>{{block.number}}</clr-dg-cell>
+      <clr-dg-cell>{{block.hash}}</clr-dg-cell>
+    </clr-dg-row>
+    <clr-dg-footer>
+      <clr-dg-pagination #pagination [clrDgPageSize]="10">
+        {{'blocks.paginationSummary' | translate: { start: pagination.firstItem + 1, finish: pagination.lastItem + 1, total: pagination.totalItems} }}
+      </clr-dg-pagination>
+    </clr-dg-footer>
+  </clr-datagrid>
 </div>
