@@ -184,8 +184,8 @@ run_service(variables_map &opts, Logger logger)
          opts["SBFT.replica"].as<std::string>();
       Blockchain::IReplica *replica =
          Blockchain::createReplica(replicaConsensusConfig, &athkvb, dbclient);
-      replica->start();
       create_genesis_block(replica, params, logger);
+      replica->start();
 
       Blockchain::ClientConsensusConfig clientConsensusConfig;
       clientConsensusConfig.byzConfig = opts["SBFT.public"].as<std::string>();
