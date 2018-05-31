@@ -82,7 +82,7 @@ RUN cmake .. && make
 
 
 ## Base Run image
-FROM ubuntu:latest as runimg
+FROM ubuntu:latest
 LABEL Description="Athena"
 
 RUN apt-get update && apt-get -y install \
@@ -108,7 +108,7 @@ WORKDIR /athena/resources
 COPY --from=0 /athena/build/resources/log4cplus.properties /athena/resources/
 COPY --from=0 /athena/build/src/athena /athena/athena
 COPY --from=0 /athena/build/tools/ath_* /athena/
-COPY --from=0 /athena/tools/find-docker-instances.sh /athena/resources/
+COPY --from=0 /athena/docker/find-docker-instances.sh /athena/resources/
 COPY --from=0 /athena/test/resources/genesis.json /athena/resources/
 
 # replace localhost with docker-compose container name in public config
@@ -120,66 +120,3 @@ RUN sed -i -e "s/replica1/athena1/g" \
            -e "s/client2/athena2/g" \
            -e "s/client3/athena3/g" \
     /athena/resources/f1-c0-cl3/*.pub
-
-
-## Node1 image
-FROM runimg
-COPY --from=0 /athena/build/resources/athena1.config /athena/resources/
-RUN sed -i -e "s/tmp/athena\/resources/g" /athena/resources/athena1.config
-
-COPY --from=1 /athena/resources/f1-c0-cl3/*.pub /athena/resources/f1-c0-cl3/
-COPY --from=0 /athena/build/resources/f1-c0-cl3/*1.priv /athena/resources/f1-c0-cl3/
-
-WORKDIR /athena
-CMD export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
-    /athena/resources/find-docker-instances.sh \
-       /athena/resources/f1-c0-cl3/*.pub athena1 athena2 athena3 && \
-    /athena/athena -c /athena/resources/athena1.config
-# athena<->helen
-EXPOSE 5458
-# SBFT
-EXPOSE 3701/udp
-EXPOSE 3705/udp
-RUN echo athena1:
-
-
-## Node2 image
-FROM runimg
-COPY --from=0 /athena/build/resources/athena2.config /athena/resources/
-RUN sed -i -e "s/tmp/athena\/resources/g" /athena/resources/athena2.config
-
-COPY --from=1 /athena/resources/f1-c0-cl3/*.pub /athena/resources/f1-c0-cl3/
-COPY --from=0 /athena/build/resources/f1-c0-cl3/*2.priv /athena/resources/f1-c0-cl3/
-
-WORKDIR /athena
-CMD export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
-    /athena/resources/find-docker-instances.sh \
-       /athena/resources/f1-c0-cl3/*.pub athena1 athena2 athena3 && \
-    /athena/athena -c /athena/resources/athena2.config
-# athena<->helen
-EXPOSE 5459
-# SBFT
-EXPOSE 3702/udp
-EXPOSE 3706/udp
-RUN echo athena2:
-
-
-## Node3 image
-FROM runimg
-COPY --from=0 /athena/build/resources/athena3.config /athena/resources/
-RUN sed -i -e "s/tmp/athena\/resources/g" /athena/resources/athena3.config
-
-COPY --from=1 /athena/resources/f1-c0-cl3/*.pub /athena/resources/f1-c0-cl3/
-COPY --from=0 /athena/build/resources/f1-c0-cl3/*3.priv /athena/resources/f1-c0-cl3/
-
-WORKDIR /athena
-CMD export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
-    /athena/resources/find-docker-instances.sh \
-       /athena/resources/f1-c0-cl3/*.pub athena1 athena2 athena3 && \
-    /athena/athena -c /athena/resources/athena3.config
-# athena<->helen
-EXPOSE 5460
-# SBFT
-EXPOSE 3703/udp
-EXPOSE 3707/udp
-RUN echo athena3:
