@@ -11,7 +11,12 @@ RUN apt-get update && apt-get -y install \
     cmake \
     g++ \
     git \
+    libbz2-dev \
+    libgmp3-dev \
+    liblz4-dev \
     libprotobuf-dev \
+    libsnappy-dev \
+    libzstd-dev \
     protobuf-compiler \
     python2.7 \
     wget \
@@ -52,21 +57,10 @@ WORKDIR /evmjit/build
 RUN cmake ..
 RUN cmake --build . --config RelWithDebInfo
 
-RUN apt-get update && apt-get -y install \
-    libgmp3-dev \
-    && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /
 RUN git clone https://github.com/relic-toolkit/relic
 WORKDIR /relic/build
 RUN cmake -DALLOC=AUTO -DWORD=64 -DRAND=UDEV -DSHLIB=ON -DSTLIB=ON -DSTBIN=OFF -DTIMER=HREAL -DCHECK=on -DVERBS=on -DARITH=x64-asm-254 -DFP_PRIME=254 -DFP_METHD="INTEG;INTEG;INTEG;MONTY;LOWER;SLIDE" -DCOMP="-O3 -funroll-loops -fomit-frame-pointer -finline-small-functions -march=native -mtune=native" -DFP_PMERS=off -DFP_QNRES=on -DFPX_METHD="INTEG;INTEG;LAZYR" -DPP_METHD="LAZYR;OATEP" .. && make && make install
-
-RUN apt-get update && apt-get -y install \
-    libbz2-dev \
-    liblz4-dev \
-    libsnappy-dev \
-    libzstd-dev \
-    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /
 RUN wget https://github.com/facebook/rocksdb/archive/v5.7.3.tar.gz \
@@ -86,16 +80,13 @@ FROM ubuntu:latest
 LABEL Description="Athena"
 
 RUN apt-get update && apt-get -y install \
+    bind9-host \
     libbz2-1.0 \
     libgmp10 \
     liblz4-1 \
     libprotobuf9v5 \
     libsnappy1v5 \
     libzstd0 \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update && apt-get -y install \
-    bind9-host \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=0 /usr/local/lib/libcryptopp* /usr/local/lib/
