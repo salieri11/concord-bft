@@ -221,7 +221,7 @@ void com::vmware::athena::KVBStorage::put(const Slice &key,
  * been prepared. A ReadOnlyModeException will be thrown if this object is in
  * read-only mode.
  */
-void com::vmware::athena::KVBStorage::write_block() {
+Status com::vmware::athena::KVBStorage::write_block() {
    if (!blockAppender_) {
       throw ReadOnlyModeException();
    }
@@ -253,8 +253,12 @@ void com::vmware::athena::KVBStorage::write_block() {
 
    // Actually write the block
    BlockId outBlockId;
-   blockAppender_->addBlock(updates, outBlockId);
-   LOG4CPLUS_INFO(logger, "Appended block number " << outBlockId);
+   Status status = blockAppender_->addBlock(updates, outBlockId);
+   if (status.ok()) {
+      LOG4CPLUS_INFO(logger, "Appended block number " << outBlockId);
+   } else {
+      LOG4CPLUS_ERROR(logger, "Failed to append block");
+   }
 
    // Release all the storage our staging was using
    for (auto kvp: updates) {
@@ -264,6 +268,7 @@ void com::vmware::athena::KVBStorage::write_block() {
 
    // Prepare to stage another block
    updates.clear();
+   return status;
 }
 
 /**

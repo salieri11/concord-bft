@@ -243,9 +243,11 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs& updates,
    BlockId block = lastBlock;
    SetOfKeyValuePairs updatesInNewBlock;
 
-   // TODO(GG): sizeof(int) is not enough - byz engine should support "BlockId"
-   int page = block;
-   Byz_modify(1, &page);
+   if (getReplicaStatus() == RepStatus::Running) {
+      // TODO(GG): sizeof(int) is not enough - byz engine should support "BlockId"
+      int page = block;
+      Byz_modify(1, &page);
+   }
 
    LOG4CPLUS_DEBUG(logger,
                    "addBlockInternal: Got " << updates.size() << " updates");

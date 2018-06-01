@@ -54,7 +54,7 @@ Blockchain::IDBClient* open_database(variables_map &opts, Logger logger)
 {
    if (opts.count("blockchain_db_impl") < 1) {
       LOG4CPLUS_FATAL(logger, "Missing blockchain_db_impl config");
-      throw new EVMException("Missing blockchain_db_impl config");
+      throw EVMException("Missing blockchain_db_impl config");
    }
 
    string db_impl_name = opts["blockchain_db_impl"].as<std::string>();
@@ -72,7 +72,7 @@ Blockchain::IDBClient* open_database(variables_map &opts, Logger logger)
 #endif
    } else {
       LOG4CPLUS_FATAL(logger, "Unknown blockchain_db_impl " << db_impl_name);
-      throw new EVMException("Unknown blockchain_db_impl");
+      throw EVMException("Unknown blockchain_db_impl");
    }
 }
 
@@ -103,9 +103,9 @@ public:
  * Create the initial transactions and a genesis block based on the
  * genesis file.
  */
-void create_genesis_block(Blockchain::IReplica *replica,
-                          EVMInitParams params,
-                          Logger logger)
+Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
+                                        EVMInitParams params,
+                                        Logger logger)
 {
    const Blockchain::ILocalKeyValueStorageReadOnly &storage =
       replica->getReadOnlyStorage();
@@ -114,7 +114,7 @@ void create_genesis_block(Blockchain::IReplica *replica,
 
    if (storage.getLastBlock() > 0) {
       LOG4CPLUS_INFO(logger, "Blocks already loaded, skipping genesis");
-      return;
+      return Blockchain::Status::OK();
    }
 
    std::map<evm_address, uint64_t> genesis_acts = params.get_initial_accounts();
@@ -145,7 +145,7 @@ void create_genesis_block(Blockchain::IReplica *replica,
       kvbStorage.set_balance(it->first, it->second);
    }
 
-   kvbStorage.write_block();
+   return kvbStorage.write_block();
 }
 
 /*
@@ -184,8 +184,17 @@ run_service(variables_map &opts, Logger logger)
          opts["SBFT.replica"].as<std::string>();
       Blockchain::IReplica *replica =
          Blockchain::createReplica(replicaConsensusConfig, &athkvb, dbclient);
+
+      // Genesis must be added before the replica is started.
+      Blockchain::Status genesis_status =
+         create_genesis_block(replica, params, logger);
+      if (!genesis_status.ok()) {
+         LOG4CPLUS_FATAL(logger, "Unable to load genesis block: " <<
+                         genesis_status.ToString());
+         throw EVMException("Unable to load genesis block");
+      }
+
       replica->start();
-      create_genesis_block(replica, params, logger);
 
       Blockchain::ClientConsensusConfig clientConsensusConfig;
       clientConsensusConfig.byzConfig = opts["SBFT.public"].as<std::string>();
