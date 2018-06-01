@@ -1,0 +1,19 @@
+## Node1 image
+FROM athenabase
+
+COPY resources/athena1.config /athena/resources/
+RUN sed -i -e "s/tmp/athena\/resources/g" /athena/resources/athena1.config
+
+COPY submodules/P2_Blockchain/SBFTExampleConfigs/f1-c0-cl3/*1.priv \
+     /athena/resources/f1-c0-cl3/
+
+WORKDIR /athena
+CMD export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
+    /athena/resources/find-docker-instances.sh \
+       /athena/resources/f1-c0-cl3/*.pub athena1 athena2 athena3 && \
+    /athena/athena -c /athena/resources/athena1.config
+# athena<->helen
+EXPOSE 5458
+# SBFT
+EXPOSE 3701/udp
+EXPOSE 3705/udp
