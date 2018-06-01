@@ -11,8 +11,8 @@ COPY config.properties .
 COPY helen*.jar .
 
 # prepare for docker-compose, where athena is available from a virtual
-# host named "athena"
-RUN sed -i -e "s/AthenaHostName=.*/AthenaHostName=athena/g" config.properties
+# host named "athena1"
+RUN sed -i -e "s/AthenaHostName=.*/AthenaHostName=athena1/g" config.properties
 
 CMD java -jar helen*.jar
 
