@@ -17,6 +17,8 @@ RUN apt-get update && apt-get -y install \
     libprotobuf-dev \
     libsnappy-dev \
     libzstd-dev \
+    llvm-5.0 \
+    llvm-5.0-dev \
     protobuf-compiler \
     python2.7 \
     wget \
@@ -54,7 +56,7 @@ WORKDIR /evmjit
 RUN git checkout 4e9f3d76292c7de0c6613427761f843b1719f614
 RUN mkdir build
 WORKDIR /evmjit/build
-RUN cmake ..
+RUN cmake -DLLVM_DIR=/usr/lib/llvm-5.0/lib/cmake/llvm ..
 RUN cmake --build . --config RelWithDebInfo
 
 WORKDIR /
@@ -87,6 +89,7 @@ RUN apt-get update && apt-get -y install \
     libprotobuf9v5 \
     libsnappy1v5 \
     libzstd0 \
+    llvm-5.0 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=0 /usr/local/lib/libcryptopp* /usr/local/lib/

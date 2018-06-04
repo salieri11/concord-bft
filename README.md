@@ -105,7 +105,7 @@ $ cd evmjit
 $ git checkout 4e9f3d76292c7de0c6613427761f843b1719f614
 $ mkdir build
 $ cd build
-$ cmake ..
+$ cmake -DLLVM_DIR=/usr/lib/llvm-5.0/lib/cmake/llvm ..
 $ cmake --build . --config RelWithDebInfo
 ```
 
