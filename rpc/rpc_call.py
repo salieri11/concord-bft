@@ -215,6 +215,16 @@ class RPC():
       response = self._call()
       return self.getResultFromResponse(response)
 
+   def getBlockNumber(self):
+      '''
+      Gets the latest block number in the blockchain.
+      '''
+      self._rpcData["method"] = "eth_blockNumber"
+      #self._rpcData["params"] = []
+
+      response = self._call()
+      return self.getResultFromResponse(response)
+
    def _getTransactionReceipt(self, txHash):
       '''
       NOTE: This is the bare RPC call.  You probably want to call
@@ -271,6 +281,16 @@ class RPC():
          raise(error)
 
       return receipt["status"]
+
+   def newAccount(self, password):
+      '''
+      Given a password, creates an account.
+      '''
+      self._rpcData["method"] = "personal_newAccount"
+      self._rpcData["params"] = [password]
+
+      response = self._call()
+      return self.getResultFromResponse(response)
 
    def unlockAccount(self, hsh, password):
       '''
