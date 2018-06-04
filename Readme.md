@@ -14,6 +14,9 @@ localhost by default.
 
 [Athena](https://github.com/vmwathena/athena)
 
+[Solidity compiler] Install solidity compiler (`solc`) with version >= 0.4.20
+for `ubuntu` solidity compiler can be installed using `sudo apt-get install solc`
+
 ### macOS Setup
 
 Install Java from the link above in the prerequisites, but maven can
