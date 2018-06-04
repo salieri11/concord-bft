@@ -157,8 +157,6 @@
       "title": "Version",
       "version": "Version",
       "address": "Address",
-      "bytecode": "Bytecode",
-      "sourceCode": "Source Code",
       "functions": "Functions",
       "gas": "Gas",
       "value": "Value",
@@ -166,8 +164,10 @@
       "call": "Call",
       "send": "Send",
       "preview": "Preview",
-      "download": "Download",
-      "selectVersion": "Select Version"
+      "selectVersion": "Select Version",
+      "functionParameters": "Function Parameters",
+      "downloadBytecode": "Download Bytecode",
+      "downloadSourceCode": "Download Source Code"
     }
   }
 

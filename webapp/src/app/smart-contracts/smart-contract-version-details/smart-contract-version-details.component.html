@@ -1,10 +1,10 @@
 <h2 class="mt-0">
   {{version?.version}}
   <button (click)="onSourceCodeDownload()" type="button" class="btn btn-primary-outline btn-icon ml-1">
-    <clr-icon size="16" shape="code" title="Download Source Code"></clr-icon>
+    <clr-icon size="16" shape="code" [attr.title]="'smartContracts.version.downloadSourceCode' | translate"></clr-icon>
   </button>
   <button (click)="onByteCodeDownload()" type="button" class="btn btn-primary-outline btn-icon">
-    <clr-icon size="16" shape="file-settings" title="Download Bytecode"></clr-icon>
+    <clr-icon size="16" shape="file-settings" [attr.title]="'smartContracts.version.downloadBytecode' | translate"></clr-icon>
   </button>
 </h2>
 <div class="form">
@@ -34,7 +34,7 @@
     </div>
 
     <div *ngIf="inputs?.length" class="form-block" formGroupName="functionInputs">
-      <label>Function Parameters</label>
+      <label>{{'smartContracts.version.functionParameters' | translate}}</label>
       <div *ngFor="let control of inputs">
         <div class="form-group">
           <label class="required">{{ control.name }}</label>
