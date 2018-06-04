@@ -20,36 +20,42 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
   @Input() version: SmartContractVersion;
   @ViewChild('payloadPreviewModal') payloadPreviewModal: ContractPayloadPreviewModalComponent;
   functions;
-  contractForm: FormGroup;
+  versionForm: FormGroup;
   inputs = [];
-  functionName;
+  alertMessage: string;
+  alertType: string;
+  resultType: string;
   functionDefinition;
 
   constructor (private athenaApiService: AthenaApiService, private ethApiService: EthApiService) {
-    this.contractForm = new FormGroup({
-      gas:  new FormControl('', [Validators.required]),
-      value: new FormControl(''),
-      from: new FormControl('', [Validators.required]),
-      functionInputs: new FormGroup({})
+    this.versionForm = new FormGroup({
+      functionName: new FormControl(''),
+      contractForm: new FormGroup({
+        gas:  new FormControl('', [Validators.required]),
+        value: new FormControl(''),
+        from: new FormControl('', [Validators.required]),
+        functionInputs: new FormGroup({})
+      })
     });
   }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes.version) {
       this.functions = changes.version.currentValue.metadata.output.abi.filter(abi => abi.type === 'function');
-      this.contractForm.reset();
+      this.versionForm.reset();
       if (this.functions.length) {
         this.functionDefinition = this.functions[0];
-        this.functionName = this.functionDefinition.name;
+        this.versionForm.patchValue({
+          functionName: this.functionDefinition.name
+        });
       } else {
         this.functionDefinition = undefined;
-        this.functionName = undefined;
       }
     }
   }
 
   getFunctionDetails() {
-    const result = this.functions.filter( func => func.name === this.functionName);
+    const result = this.functions.filter( func => func.name === this.versionForm.value.functionName);
     if (result.length > 0) {
       this.inputs = result[0].inputs;
       this.functionDefinition = result[0];
@@ -61,8 +67,8 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
     for (let i = 0; i < this.inputs.length; i++) {
       inputFormGroup.addControl(this.inputs[i].name, new FormControl(''));
     }
-    this.contractForm.setControl('functionInputs', inputFormGroup);
-    this.contractForm.reset();
+    (this.versionForm.get('contractForm') as FormGroup).setControl('functionInputs', inputFormGroup);
+    this.versionForm.get('contractForm').reset();
   }
 
   getType(controlType: string) {
@@ -121,28 +127,49 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
 
   onCall() {
     this.ethApiService.sendCall(this.encodeFunction()).subscribe((resp) => {
-      console.log(resp);
+      if(resp.error) {
+        this.handleError(resp);
+      } else {
+        this.alertMessage = resp.result;
+        this.alertType = 'alert-success';
+        this.resultType = 'call';
+      }
+    }, (errorResp) => {
+      this.handleError(errorResp);
     });
   }
 
   onSend() {
     this.ethApiService.sendTransaction(this.encodeFunction()).subscribe((resp) => {
       console.log(resp);
+      if(resp.error) {
+        this.handleError(resp);
+      } else {
+        this.alertMessage = resp.result;
+        this.alertType = 'alert-success';
+        this.resultType = 'send';
+      }
+    }, (errorResp) => {
+      this.handleError(errorResp);
     });
   }
 
+  handleError(error) {
+    this.alertMessage = error.error;
+    this.alertType = 'alert-danger';
+    this.resultType = 'error';
+  }
+
   encodeFunction() {
-    const paramsForm = this.contractForm.get('functionInputs');
-
+    const paramsForm = this.versionForm.get('contractForm').get('functionInputs');
     const params = this.inputs.map(input => paramsForm.value[input.name]);
-
     const output = Web3EthAbi.encodeFunctionCall(this.functionDefinition, params);
 
     return {
-      from: this.contractForm.value.from,
+      from: this.versionForm.value.contractForm.from,
       to: this.version.address,
-      gas: this.contractForm.value.gas,
-      value: this.contractForm.value.value,
+      gas: this.versionForm.value.contractForm.gas,
+      value: this.versionForm.value.contractForm.value,
       data: output
     };
   }

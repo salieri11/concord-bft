@@ -166,12 +166,18 @@ export interface EthSendCallResponse {
   id: number;
   jsonrpc: string;
   result: string;
+  error?: {
+    message: string
+  };
 }
 
 export interface EthSendTransactionResponse {
   id: number;
   jsonrpc: string;
   result: string;
+  error?: {
+    message: string
+  };
 }
 
 export interface EthGetTransactionReceiptResponse {
