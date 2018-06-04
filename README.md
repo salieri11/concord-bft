@@ -95,7 +95,16 @@ You may also need to export CPLUS_INCLUDE_PATH variable set to /usr/local/includ
 Athena uses the [Evmjit](https://github.com/ethereum/evmjit) VM to
 execute Ethereum code. While we're figuring out dependency management,
 please clone evmjit to the same directory you cloned athena (i.e. one
-directory up from this README file), and build it:
+directory up from this README file), and build it.
+
+First make sure you have LLVM 5.0 installed, or your build will take a
+*long* time:
+
+```shell
+$ apt-get install llvm-5.0 llvm-5.0-dev
+```
+
+Then clone and build Evmjit (note the path to LLVM cmake files):
 
 ```shell
 athena$ cd ..
