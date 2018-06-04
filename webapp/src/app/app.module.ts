@@ -17,6 +17,7 @@ import { NodesModule } from './nodes/nodes.module';
 import { BlocksModule } from './blocks/blocks.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { TestingModule } from './testing/testing.module';
+import { SmartContractsModule } from './smart-contracts/smart-contracts.module';
 import { SharedModule } from './shared/shared.module';
 
 import { RequestInterceptor } from './app-interceptors';
@@ -43,7 +44,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     BrowserAnimationsModule,
     HttpClientModule,
     ClarityModule,
-    RouterModule.forRoot(appRoutes, {enableTracing: true}),
+    RouterModule.forRoot(appRoutes, {enableTracing: false}),
     TranslateModule.forRoot({
       loader: {
         provide: TranslateLoader,
@@ -56,6 +57,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     NodesModule,
     BlocksModule,
     TransactionsModule,
+    SmartContractsModule,
     TestingModule,
     SharedModule.forRoot()
   ],

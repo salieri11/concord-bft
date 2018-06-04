@@ -1,7 +1,10 @@
 {
   "title": "VMware Athena",
   "common": {
-    "all": "All"
+    "all": "All",
+    "close": "Close",
+    "cancel": "Cancel",
+    "create": "Create"
   },
   "nav": {
     "metrics": {
@@ -18,6 +21,9 @@
     },
     "testing": {
       "title": "Testing"
+    },
+    "smartContracts": {
+      "title": "Smart Contracts"
     },
     "logOut": "Log Out"
   },
@@ -135,5 +141,34 @@
     "contractAddress": "Contract Address:",
     "transactionHash": "Transaction Hash:",
     "result": "Result:"
+  },
+  "smartContracts": {
+    "smartContracts": "Smart Contracts",
+    "smartContractUpload": "Upload Smart Contracts",
+    "contractId": "Contract ID",
+    "createContract": "Create Contract",
+    "createContractError": "There was an error uploading your contract. Please correct any errors and try again:",
+    "viewDetail": "View Details",
+    "name": "Name",
+    "owner": "Owner",
+    "file": "File",
+    "preview": "Preview",
+    "version": {
+      "title": "Version",
+      "version": "Version",
+      "address": "Address",
+      "bytecode": "Bytecode",
+      "sourceCode": "Source Code",
+      "functions": "Functions",
+      "gas": "Gas",
+      "value": "Value",
+      "from": "From",
+      "call": "Call",
+      "send": "Send",
+      "preview": "Preview",
+      "download": "Download",
+      "selectVersion": "Select Version"
+    }
   }
+
 }

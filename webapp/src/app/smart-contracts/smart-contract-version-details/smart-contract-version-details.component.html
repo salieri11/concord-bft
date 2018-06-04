@@ -1,0 +1,60 @@
+<h2 class="mt-0">
+  {{version?.version}}
+  <button (click)="onSourceCodeDownload()" type="button" class="btn btn-primary-outline btn-icon ml-1">
+    <clr-icon size="16" shape="code" title="Download Source Code"></clr-icon>
+  </button>
+  <button (click)="onByteCodeDownload()" type="button" class="btn btn-primary-outline btn-icon">
+    <clr-icon size="16" shape="file-settings" title="Download Bytecode"></clr-icon>
+  </button>
+</h2>
+<div class="form">
+  <div class="form-group">
+    <label>{{'smartContracts.version.functions' | translate}}</label>
+    <div class="select">
+      <select id="selected-function" name="function" *ngIf="functions?.length" [(ngModel)]="functionName" (change)="getFunctionDetails()">
+        <option *ngFor="let func of functions" [value]="func.name">{{ func.name }}</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="functionName">
+  <form class="pt-0" [formGroup]="contractForm">
+    <div class="form-group">
+      <label class="required">{{'smartContracts.version.gas' | translate}}</label>
+      <input type="text" formControlName="gas">
+    </div>
+    <div class="form-group">
+      <label>{{'smartContracts.version.value' | translate}}</label>
+      <input type="text" formControlName="value">
+    </div>
+    <div class="form-group">
+      <label class="required">{{'smartContracts.version.from' | translate}}</label>
+      <input type="text" formControlName="from">
+    </div>
+
+    <div *ngIf="inputs?.length" class="form-block" formGroupName="functionInputs">
+      <label>Function Parameters</label>
+      <div *ngFor="let control of inputs">
+        <div class="form-group">
+          <label class="required">{{ control.name }}</label>
+          <input [placeholder]="control.type" [type]="getType(control.type)" [formControlName]="control.name"/>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <button type="button" class="btn btn-primary" (click)="onCall()">
+        {{'smartContracts.version.call' | translate}}
+      </button>
+      <button type="button" class="btn btn-primary" (click)="onSend()">
+        {{'smartContracts.version.send' | translate}}
+      </button>
+      <button type="button" class="btn btn-outline" (click)="onPreview()">
+        {{'smartContracts.version.preview' | translate}}
+      </button>
+    </div>
+  </form>
+</div>
+
+<app-contract-payload-preview-modal #payloadPreviewModal></app-contract-payload-preview-modal>
