@@ -2,7 +2,7 @@
 ## before building the docker image! See README.md.
 
 ## Build image
-FROM ubuntu:latest
+FROM ubuntu:16.04
 LABEL Description="Build environment for Athena"
 
 RUN apt-get update && apt-get -y install \
@@ -76,7 +76,7 @@ RUN cmake .. && make
 
 
 ## Base Run image
-FROM ubuntu:latest
+FROM ubuntu:16.04
 LABEL Description="Athena"
 
 RUN apt-get update && apt-get -y install \
