@@ -105,7 +105,11 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
   }
 
   onByteCodeDownload() {
-    this.onDownload(this.version.bytecode, 'abiDownload.sol');
+    this.onDownload(this.version.bytecode, 'abiDownload.bin');
+  }
+
+  onMetadataDownload() {
+    this.onDownload(JSON.stringify(this.version.metadata, null, 4), 'version_meta.json');
   }
 
   onDownload(source, file) {
@@ -127,7 +131,7 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
 
   onCall() {
     this.ethApiService.sendCall(this.encodeFunction()).subscribe((resp) => {
-      if(resp.error) {
+      if (resp.error) {
         this.handleError(resp);
       } else {
         this.alertMessage = resp.result;
@@ -142,7 +146,7 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
   onSend() {
     this.ethApiService.sendTransaction(this.encodeFunction()).subscribe((resp) => {
       console.log(resp);
-      if(resp.error) {
+      if (resp.error) {
         this.handleError(resp);
       } else {
         this.alertMessage = resp.result;

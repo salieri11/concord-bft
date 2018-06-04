@@ -167,7 +167,8 @@
       "selectVersion": "Select Version",
       "functionParameters": "Function Parameters",
       "downloadBytecode": "Download Bytecode",
-      "downloadSourceCode": "Download Source Code"
+      "downloadSourceCode": "Download Source Code",
+      "downloadMetadata": "Download Metadata"
     }
   }
 
