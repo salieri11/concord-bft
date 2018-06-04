@@ -129,10 +129,14 @@ class KVBTests(test_suite.TestSuite):
 
    def _test_disk_persistence(self, rpc):
       '''
-      Check if blocks persist to disk
+      Check if blocks persist to disk.
+      Note: This test is not valid when Athena uses an in memory database.
       '''
       if self._productMode:
          pre = int(rpc.getBlockNumber(), 16)
+
+         if pre <= 0:
+            return (True, "No blocks to restore.")
          
          #Kill and reboot Athena
          global p
@@ -149,6 +153,7 @@ class KVBTests(test_suite.TestSuite):
          post = int(rpc.getBlockNumber(), 16)
 
          if post < pre:
-            return (False, "Blocks not persisted to disk correctly.")
+            return (False, "Blocks not persisted to disk correctly." + 
+              "Note: This test should fail if Athena uses an in memory database.")
 
       return (True, None)
