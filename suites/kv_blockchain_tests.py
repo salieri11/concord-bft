@@ -111,21 +111,26 @@ class KVBTests(test_suite.TestSuite):
       '''
       Check if blocks are getting added
       '''
-      pre = int(rpc.getBlockNumber(), 16)
+      if self._productMode:
+         pre = int(rpc.getBlockNumber(), 16)
 
-      #Create a user. This should create a block
-      random.seed(datetime.now())
-      password = random.random()
-      #print("using " + str(password) + " as password for creating new account")
+         #Create a user. This should create a block
+         random.seed(datetime.now())
+         password = random.random()
+         #print("using " + str(password) + " as password for creating new account")
       
-      hash = rpc.newAccount(str(password))
-      post = int(rpc.getBlockNumber(), 16)
+         hash = rpc.newAccount(str(password))
+         post = int(rpc.getBlockNumber(), 16)
 
-      if post - pre != 1:
-         return (False, "Blocks not created properly. "
-         + str(post - pre) + " blocks getting created instead of 1")
+         if post - pre != 1:
+            return (False, "Blocks not created properly. "
+            + str(post - pre) + " blocks getting created instead of 1")
 
-      return (True, None)
+         return (True, None)
+
+      else:
+         #Skip the test if running in Ethereum mode
+         return (None, None)
 
    def _test_disk_persistence(self, rpc):
       '''
@@ -136,7 +141,7 @@ class KVBTests(test_suite.TestSuite):
          pre = int(rpc.getBlockNumber(), 16)
 
          if pre <= 0:
-            return (True, "No blocks to restore.")
+            return (None, "No blocks to restore.")
          
          #Kill and reboot Athena
          global p
