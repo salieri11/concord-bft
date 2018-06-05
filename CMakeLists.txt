@@ -33,6 +33,8 @@ else(DEFINED USE_HERA)
   find_package(Evmjit REQUIRED)
   include_directories(${Evmjit_INCLUDE_DIRS})
   set(EVM_LIBRARIES ${Evmjit_LIBRARIES})
+
+  find_package(LLVM REQUIRED CONFIG)
 endif(DEFINED USE_HERA)
 
 find_package(Cryptopp REQUIRED)
