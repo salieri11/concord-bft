@@ -240,8 +240,9 @@ public class ContractsServlet extends BaseServlet {
       JSONObject responseJSON = new JSONObject();
       if (request.getMethod().equalsIgnoreCase("GET")) {
          // If uri has trailing backslash remove it
-         if (uri.charAt(uri.length() - 1) == '/')
+         if (uri.charAt(uri.length() - 1) == '/') {
             uri = uri.substring(0, uri.length() - 1);
+         }
          // remove contract endpoint common prefix
          uri = uri.replace(contractEndpoint, "");
          String tokens[] = uri.split("/");
@@ -461,10 +462,12 @@ public class ContractsServlet extends BaseServlet {
 
    
    private boolean isSameAddress(String address1, String address2) {
-      if (!address1.startsWith("0x"))
+      if (!address1.startsWith("0x")) {
          address1 = "0x" + address1;
-      if (!address2.startsWith("0x"))
+      }
+      if (!address2.startsWith("0x")) {
          address2 = "0x" + address2;
+      }
       return address1.equals(address2);
    }
    
