@@ -64,6 +64,10 @@ public class Compiler {
     * @param root The Path of root directory which should be deleted.
     */
    private static void deleteDirectoryTree(Path root) {
+      if (root == null || !Files.exists(root)) {
+         return;
+      }
+      
       try {
          Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
             @Override
@@ -234,8 +238,9 @@ public class Compiler {
     */
    public static Result compile(String solidityCode) {
       Result result = new Result();
+      Path sourceFile = null;
       try {
-         Path sourceFile = createSourceFiles(solidityCode);
+         sourceFile = createSourceFiles(solidityCode);
          // We need a command of form
          // solc --bin --metadata -o outputDir inputFile
          String command[] = { "solc", "--bin", "--metadata", "-o",
@@ -263,11 +268,11 @@ public class Compiler {
          result.setStdout(stdOut);
          result.setStderr(stdErr);
          
-         // Delete the created source files
-         deleteDirectoryTree(sourceFile.getParent());
-         
       } catch (IOException | InterruptedException e) {
          logger.warn("Error in compilation:" + e);
+      } finally {
+         // Delete the created source files
+         deleteDirectoryTree(sourceFile.getParent());
       }
       return result;
    }
