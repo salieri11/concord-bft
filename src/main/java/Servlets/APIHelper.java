@@ -3,14 +3,14 @@
  */
 package Servlets;
 
-import org.bouncycastle.jcajce.provider.digest.Keccak;
-import org.bouncycastle.util.encoders.Hex;
-
-import com.google.protobuf.ByteString;
-import org.json.simple.JSONObject;
-
 import java.io.PrintWriter;
 import java.io.StringWriter;
+
+import org.bouncycastle.jcajce.provider.digest.Keccak;
+import org.bouncycastle.util.encoders.Hex;
+import org.json.simple.JSONObject;
+
+import com.google.protobuf.ByteString;
 
 public class APIHelper {
 
@@ -143,8 +143,7 @@ public class APIHelper {
       e.printStackTrace(pw);
       return sw.toString(); // stack trace as a string
    }
-   
-   
+
    /**
     * Constructs the response in case of error.
     *
@@ -161,23 +160,22 @@ public class APIHelper {
       JSONObject responseJson = new JSONObject();
       responseJson.put("id", id);
       responseJson.put("jsonprc", jsonRpc);
-      
+
       JSONObject error = new JSONObject();
       error.put("message", message);
       responseJson.put("error", error);
-      
+
       return responseJson.toJSONString();
    }
-   
-   public static void fillErrorMessage(JSONObject object, String message, long
-           id,
-                                String jsonRpc) {
-         object.put("id", id);
-         object.put("jsonprc", jsonRpc);
-      
-         JSONObject error = new JSONObject();
-         error.put("message", message);
-         object.put("error", error);
-         return;
+
+   public static void fillErrorMessage(JSONObject object, String message,
+                                       long id, String jsonRpc) {
+      object.put("id", id);
+      object.put("jsonprc", jsonRpc);
+
+      JSONObject error = new JSONObject();
+      error.put("message", message);
+      object.put("error", error);
+      return;
    }
 }

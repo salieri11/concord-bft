@@ -43,7 +43,7 @@ public class ContractsServlet extends BaseServlet {
          registryManager = ContractRegistryManager.getInstance();
       } catch (Exception e) {
          logger.fatal("Unable to instantiate ContractRegistryManager", e);
-         System.exit(0);
+         System.exit(1);
       }
    }
    
@@ -256,15 +256,12 @@ public class ContractsServlet extends BaseServlet {
             // GET `api/athena/contracts/{contract-id}/versions/{version-id}`
             respStatus = handleGetVersion(tokens[1], tokens[3], responseJSON);
          }
-      } else if (request.getMethod().equalsIgnoreCase("POST")) {
-         // POST
-         respStatus = handlePost(request, response, responseJSON);
       } else {
          // throw error
          JSONObject error = new JSONObject();
-         error.put("message", "Requested resource not found!");
+         error.put("message", "Requested Method not allowed!");
          responseJSON.put("error", error);
-         respStatus = HttpServletResponse.SC_NOT_FOUND;
+         respStatus = HttpServletResponse.SC_METHOD_NOT_ALLOWED;
       }
       processResponse(response,
                       responseJSON.toJSONString(),
@@ -493,7 +490,7 @@ public class ContractsServlet extends BaseServlet {
                           final HttpServletResponse response,
                           JSONObject responseJSON) {
       long id = -1;
-      int respStatus = HttpServletResponse.SC_OK;
+      int respStatus;
       try {
          String paramString
             = request.getReader()
@@ -523,7 +520,7 @@ public class ContractsServlet extends BaseServlet {
                  !isSameAddress(registryManager.getBriefContractInfo(contractId).getOwnerAddress(), (from))) {
             // It is a new version of
             // existing contract but from address doesn't match
-            respStatus = HttpServletResponse.SC_UNAUTHORIZED;
+            respStatus = HttpServletResponse.SC_FORBIDDEN;
             APIHelper.fillErrorMessage(responseJSON,
                                        "Only original "
                                           + "owner can deploy the new version of a contract",
@@ -540,16 +537,19 @@ public class ContractsServlet extends BaseServlet {
                                                        id,
                                                        result,
                                                        solidityCode);
+               respStatus = HttpServletResponse.SC_OK;
                responseJSON.put("result", resultArray);
                responseJSON.put("id", id);
                responseJSON.put("jsonrpc", jsonRpc);
             } else if (result.isSuccess() && result.getByteCodeMap().size() !=
                     1) {
+               respStatus = HttpServletResponse.SC_BAD_REQUEST;
                APIHelper.fillErrorMessage(responseJSON,
                        "Uploaded file must have exactly one contract",
                        id,
                        jsonRpc);
             } else {
+               respStatus = HttpServletResponse.SC_BAD_REQUEST;
                APIHelper.fillErrorMessage(responseJSON,
                        "Compilation failure:\n"
                                + result.getStderr(),
@@ -583,7 +583,12 @@ public class ContractsServlet extends BaseServlet {
    protected void
              doPost(final HttpServletRequest request,
                     final HttpServletResponse response) throws IOException {
-      dispatch(request, response);
+      JSONObject responseJSON = new JSONObject();
+      int respStatus = handlePost(request, response, responseJSON);
+      processResponse(response,
+              responseJSON.toJSONString(),
+              respStatus,
+              logger);
    }
 
    /**

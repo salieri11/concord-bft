@@ -38,7 +38,7 @@ public class DatabaseService {
       } catch (Exception e) {
          logger.fatal("Error in initializing database: ", e);
          // TODO: is there a better way than doing system.exit?
-         System.exit(0);
+         System.exit(1);
       }
    }
 
