@@ -14,6 +14,8 @@ localhost by default.
 
 [Athena](https://github.com/vmwathena/athena)
 
+[Protocol Buffers v2.x](https://developers.google.com/protocol-buffers/docs/proto)
+
 ### macOS Setup
 
 Install Java from the link above in the prerequisites, but maven can
