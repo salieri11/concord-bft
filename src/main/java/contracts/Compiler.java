@@ -2,10 +2,8 @@ package contracts;
 
 import java.io.*;
 import java.nio.charset.Charset;
-import java.nio.file.DirectoryIteratorException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
@@ -57,10 +55,37 @@ public class Compiler {
       try (BufferedWriter writer
          = Files.newBufferedWriter(sourceFile, Charset.defaultCharset())) {
          writer.write(contents);
-      } catch (IOException e) {
-         throw e;
       }
       return sourceFile;
+   }
+   
+   /**
+    * Recursively deletes the given directory tree rooted at `root`.
+    * @param root The Path of root directory which should be deleted.
+    */
+   private static void deleteDirectoryTree(Path root) {
+      try {
+         Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+               if (exc == null) {
+                  Files.delete(dir);
+               } else {
+                  logger.warn("Exception while deleting: " + dir, exc);
+               }
+               return FileVisitResult.CONTINUE;
+            }
+   
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+               Files.delete(file);
+               return FileVisitResult.CONTINUE;
+            }
+         });
+      } catch (Exception e) {
+         logger.warn("Exception while deleting directory tree starting at: " +
+                 root, e);
+      }
    }
 
    /**
@@ -151,8 +176,6 @@ public class Compiler {
                                readFileContents(file));
             }
          }
-      } catch (IOException | DirectoryIteratorException e) {
-         throw e;
       }
       return byteCodeMap;
    }
@@ -177,8 +200,6 @@ public class Compiler {
                                readFileContents(file));
             }
          }
-      } catch (IOException | DirectoryIteratorException e) {
-         throw e;
       }
       return metadataMap;
    }
@@ -241,7 +262,10 @@ public class Compiler {
 
          result.setStdout(stdOut);
          result.setStderr(stdErr);
-
+         
+         // Delete the created source files
+         deleteDirectoryTree(sourceFile.getParent());
+         
       } catch (IOException | InterruptedException e) {
          logger.warn("Error in compilation:" + e);
       }

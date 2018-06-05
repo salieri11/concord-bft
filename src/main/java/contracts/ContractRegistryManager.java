@@ -88,6 +88,9 @@ public class ContractRegistryManager {
       + ", " + CONTRACT_OWNER_COLUMN_LABEL + " from " + CONTRACTS_TABLE_NAME
       + " where " + CONTRACT_ID_COLUMN_LABEL + " = ?";
 
+   // TODO: we might have to write method which closes all these statement
+   // objects. However, that will only have to be done when our servlet dies
+   // which won't happen very frequently.
    private PreparedStatement insertNewVersionPstmt;
    private PreparedStatement hasContractPstmt;
    private PreparedStatement hasVersionPstmt;
@@ -342,5 +345,4 @@ public class ContractRegistryManager {
       }
       return versions;
    }
-
 }
