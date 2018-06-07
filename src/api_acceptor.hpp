@@ -24,8 +24,11 @@ public:
                 KVBClient &client);
 
 private:
+   boost::asio::ip::tcp::acceptor acceptor_;
    FilterManager &filterManager_;
    KVBClient &client_;
+   log4cplus::Logger logger_;
+   connection_manager connManager_;
 
    void
    start_accept();
@@ -33,12 +36,6 @@ private:
    void
    handle_accept(api_connection::pointer new_connection,
                  const boost::system::error_code &error);
-
-   boost::asio::ip::tcp::acceptor acceptor_;
-
-   log4cplus::Logger logger_;
-
-   connection_manager connManager_;
 };
 }
 }

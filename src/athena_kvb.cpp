@@ -25,8 +25,8 @@ using Blockchain::ILocalKeyValueStorageReadOnly;
 using Blockchain::IBlocksAppender;
 
 com::vmware::athena::KVBCommandsHandler::KVBCommandsHandler(EVM &athevm) :
-   athevm_(athevm),
-   logger(log4cplus::Logger::getInstance("com.vmware.athena"))
+   logger(log4cplus::Logger::getInstance("com.vmware.athena")),
+   athevm_(athevm)
 {
    // no other initialization necessary
 }

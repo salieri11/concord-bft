@@ -148,10 +148,10 @@ private:
    /* Logger. */
    log4cplus::Logger logger_;
 
+   connection_manager &connManager_;
+
    FilterManager &filterManager_;
    KVBClient &client_;
-
-   connection_manager &connManager_;
 
    boost::asio::ip::tcp::endpoint remotePeer_;
 

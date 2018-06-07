@@ -211,10 +211,10 @@ ReplicaImp::ReplicaImp(string byzConfig,
                        string byzPrivateConfig,
                        ICommandsHandler *cmdHandler,
                        BlockchainDBAdapter *dbAdapter) :
-   logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb")),
    m_byzConfig(byzConfig),
    m_byzPrivateConfig(byzPrivateConfig),
    m_cmdHandler(cmdHandler),
+   logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb")),
    m_running(false),
    m_InternalStorageWrapperForIdleMode(this),
    m_bcDbAdapter(dbAdapter)
@@ -819,7 +819,8 @@ void release(IReplica *r)
 
 
 ReplicaImp::StorageIterator::StorageIterator(const ReplicaImp *r) :
-   rep(r), logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb"))
+   logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb")),
+   rep(r)
 {
    m_iter = r->getBcDbAdapter()->getIterator();
    m_currentBlock = r->getLastBlock();
