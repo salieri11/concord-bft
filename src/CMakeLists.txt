@@ -1,6 +1,7 @@
 file(GLOB athena_src "*.cpp" "*.hpp")
 
-string(APPEND CMAKE_XXX_FLAGS " -Wall")
+string(APPEND CMAKE_CXX_FLAGS " -Wall")
+string(APPEND CMAKE_CXX_FLAGS " -Werror")
 
 add_subdirectory("common")
 add_subdirectory("kvb")
