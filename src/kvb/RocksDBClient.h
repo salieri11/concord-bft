@@ -42,6 +42,9 @@ namespace Blockchain
 
    public:
       RocksDBClientIterator(const RocksDBClient *_parentClient);
+      virtual ~RocksDBClientIterator() {
+	 delete m_iter;
+      }
 
       // Inherited via IDBClientIterator
       virtual KeyValuePair first() override;

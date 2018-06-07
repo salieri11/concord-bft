@@ -156,8 +156,6 @@ Status RocksDBClient::freeIterator(IDBClientIterator* _iter) const
       return Status::InvalidArgument("Invalid iterator");
    }
 
-   RocksDBClientIterator *iter = (RocksDBClientIterator*)_iter;
-   delete iter->m_iter;
    delete (RocksDBClientIterator*)_iter;
 
    return Status::OK();

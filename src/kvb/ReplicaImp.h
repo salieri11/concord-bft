@@ -164,11 +164,14 @@ namespace Blockchain {
          KeyValuePair m_current;
          BlockId m_currentBlock;
          bool m_isEnd;
-         IDBClient *m_db;
          IDBClient::IDBClientIterator *m_iter;
 
       public:
          StorageIterator(const ReplicaImp *r);
+	 virtual ~StorageIterator() {
+	    // allocated by calls to rep::...::getIterator
+	    delete m_iter;
+	 }
 
          virtual void setReadVersion(BlockId _readVersion)
          {
