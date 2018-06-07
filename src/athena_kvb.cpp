@@ -123,7 +123,13 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_sendTransaction(
    const EthRequest request = athreq.eth_request(0);
 
    evm_uint256be txhash;
-   evm_result &&result = run_evm(request, kvbStorage, txhash);
+   run_evm(request, kvbStorage, txhash);
+
+   // The result of run_evm is ignored here. As noted below, nothing currently
+   // causes transactions to fail in a way that they do not get recorded. We
+   // always return the transaction hash to the application here, and it must
+   // fetch the receipt to find out the result.
+
    EthResponse *response = athresp.add_eth_response();
    response->set_id(request.id());
    response->set_data(txhash.bytes, sizeof(evm_uint256be));
