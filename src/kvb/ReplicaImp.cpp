@@ -662,7 +662,7 @@ int ReplicaImp::get_block(int n, char **page)
       *page = new char[size];
       memcpy(*page, blockRaw.data(), size);
    } else {
-      *page = "";
+      *page = nullptr;
       size = 0;
    }
 

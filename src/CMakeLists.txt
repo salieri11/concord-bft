@@ -1,5 +1,7 @@
 file(GLOB athena_src "*.cpp" "*.hpp")
 
+string(APPEND CMAKE_XXX_FLAGS " -Wall")
+
 add_subdirectory("common")
 add_subdirectory("kvb")
 
