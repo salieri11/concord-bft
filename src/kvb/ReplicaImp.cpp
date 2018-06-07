@@ -34,14 +34,14 @@ TlsIndex ReplicaImp::m_sThreadLocalDataIdx = 0;
 
 struct blockEntry
 {
-   int16_t keyOffset;
-   int16_t keySize;
-   int16_t valOffset;
-   int16_t valSize;
+   uint16_t keyOffset;
+   uint16_t keySize;
+   uint16_t valOffset;
+   uint16_t valSize;
 };
 struct blockHeader
 {
-   int16_t numberOfElements;
+   uint16_t numberOfElements;
    blockEntry entries[1]; // n>0 entries
 };
 
@@ -685,7 +685,7 @@ void ReplicaImp::put_blocks(int count, int *sizes, int *indices, char **pages)
    getTlsVal(m_sThreadLocalDataIdx, &t);
    ReplicaImp *r = (ReplicaImp*)t;
 
-   for (size_t i = 0; i < count; i++) {
+   for (int i = 0; i < count; i++) {
       BlockId blockId = indices[i];
       size_t blockSize = sizes[i];
       char *blockPtr = pages[i];

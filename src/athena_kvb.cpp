@@ -309,7 +309,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_list_request(
                    << " to " << (latest-count));
 
    BlockListResponse* response = athresp.mutable_block_list_response();
-   for (int i = 0; i < count; i++) {
+   for (uint64_t i = 0; i < count; i++) {
       EthBlock b = kvbStorage.get_block(latest-i);
       BlockBrief* bb = response->add_block();
       bb->set_number(b.number);
@@ -344,7 +344,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_request(
       if (request.has_number()) {
          uint64_t requested_block_number = kvbStorage.current_block_number();
          if (request.number() >= 0 &&
-             request.number() < requested_block_number) {
+             (uint64_t)request.number() < requested_block_number) {
             requested_block_number = request.number();
          }
          block = kvbStorage.get_block(requested_block_number);
