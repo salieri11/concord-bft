@@ -35,7 +35,7 @@ void dehex0x(const std::string &str, std::string &bin /* out */) {
 
    if (binsize > 0) {
       bin.resize(binsize);
-      for (int i = 0; i < binsize; i++) {
+      for (size_t i = 0; i < binsize; i++) {
 	 bin[i] = (hexval(str[i*2+adjust]) << 4)
             | hexval(str[i*2+adjust+1]);
       }
@@ -46,7 +46,7 @@ void dehex0x(const std::string &str, std::string &bin /* out */) {
 
 char hexchar(char c) {
    assert(c < 16);
-   return "0123456789abcdef"[c];
+   return "0123456789abcdef"[(uint8_t)c];
 }
 
 /**
