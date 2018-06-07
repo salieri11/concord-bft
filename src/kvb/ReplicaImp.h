@@ -78,7 +78,7 @@ namespace Blockchain {
                  string byzPrivateConfig,
                  ICommandsHandler *cmdHandler,
                  BlockchainDBAdapter *dbAdapter);
-      ~ReplicaImp();
+      virtual ~ReplicaImp();
 
       // METHODS
 
