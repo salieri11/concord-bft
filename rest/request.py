@@ -31,6 +31,7 @@ class Request():
    _baseUrl = None
    _subPath = None
    _params = ""
+   _data = None
 
    def __init__(self, logDir, testName, baseUrl):
       self._logDir = logDir
@@ -40,6 +41,7 @@ class Request():
       self._baseUrl = baseUrl
       self._subPath = ""
       self._params = ""
+
 
    def _send(self):
       '''
@@ -56,11 +58,19 @@ class Request():
       Request._idCounter += 1
       lock.release()
 
-      curlCmd = ["curl",
-                 "-H", "Accept: application/json",
-                 self._baseUrl+self._subPath+self._params,
-                 "--output", self._responseFile,
-                 "--verbose"]
+      if self._data is None:
+         curlCmd = ["curl",
+                    "-H", "Accept: application/json",
+                    self._baseUrl+self._subPath+self._params,
+                    "--output", self._responseFile,
+                    "--verbose"]
+      else:
+         curlCmd = ["curl",
+                    "-H", "Accept: application/json",
+                    "--data", json.dumps(self._data),
+                    self._baseUrl+self._subPath+self._params,
+                    "--output", self._responseFile,
+                    "--verbose"]
 
       with open (self._outputFile, "a") as f:
          # Make people's lives easier by printing a copy/pastable command.
@@ -147,5 +157,27 @@ class Request():
       self._subPath = '/api/athena/transactions/'+txhash
       self._params = ""
       self._endpointName = "transaction"
+
+      return self._send()
+
+   def uploadContract(self, data):
+      '''
+      Does an upload new contract POST request
+      '''
+      self._subPath = '/api/athena/contracts'
+      self._params = ""
+      self._endpointName = "contracts management"
+      self._data = data
+
+      return self._send()
+
+   def callContractAPI(self, apiPath, params):
+      '''
+      Calls a contract management API. Does a GET request.
+      '''
+      self._subPath = apiPath
+      self._params = params
+      self._endpointName = "contracts management"
+      self._data = None
 
       return self._send()

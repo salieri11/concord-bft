@@ -38,47 +38,59 @@ class Product():
       productLogsDir = os.path.join(self._resultsDir, PRODUCT_LOGS_DIR)
       os.makedirs(productLogsDir, exist_ok=True)
 
-      for project in self._userProductConfig["launch"]:
-         projectSection = self._userProductConfig["launch"][project]
-         buildRoot = projectSection["buildRoot"]
-         buildRoot = os.path.expanduser(buildRoot)
+      # since we change directories while launching products, save cwd here
+      # and chdir to that once all launches are done
+      original_cwd = os.getcwd()
 
-         for executable in projectSection:
-            if executable != "buildRoot":
-               executableSection = self._userProductConfig["launch"] \
-                                   [project][executable]
-               cmd = [os.path.join(buildRoot,
-                                   executableSection["launchCommand"])]
+      for launchElement in self._userProductConfig["launch"]:
+         for project in launchElement:
+            projectSection = launchElement[project]
+            buildRoot = projectSection["buildRoot"]
+            buildRoot = os.path.expanduser(buildRoot)
 
-               # Add paramters.
-               # If it is a replica and we see the "-d" parameter, the next
-               # parameter needs to have the results directory prepended to it.
-               previousParam = None
-               for param in executableSection["parameters"]:
-                  if executable.startswith("replica") and previousParam == "-d":
-                     param = os.path.join(self._resultsDir, param)
-                     os.makedirs(param)
-                  elif (not executable.startswith("athena") and
-                        previousParam == "-p"):
-                     # -p is "path" for geth, but "port" for athena
-                     param = os.path.join(buildRoot, param)
-                  elif previousParam in ["-c", "-e", "-k"]:
-                     param = os.path.join(buildRoot, param)
+            for executable in projectSection:
+               if executable == "buildRoot":
+                  os.chdir(buildRoot)
+               elif executable != "buildRoot":
+                  executableSection = launchElement \
+                                      [project][executable]
+                  # cmd = [os.path.join(buildRoot,
+                  #                     executableSection["launchCommand"])]
+                  cmd = [os.path.join(executableSection["launchCommand"])]
 
-                  cmd.append(os.path.expanduser(param))
-                  previousParam = param
+                  # Add paramters.
+                  # If it is a replica and we see the "-d" parameter, the next
+                  # parameter needs to have the results directory prepended to it.
+                  previousParam = None
+                  for param in executableSection["parameters"]:
+                     if executable.startswith("replica") and previousParam == "-d":
+                        param = os.path.join(self._resultsDir, param)
+                        os.makedirs(param)
+                     elif (not executable.startswith("athena") and
+                           previousParam == "-p"):
+                        # -p is "path" for geth, but "port" for athena
+                        param = os.path.join(buildRoot, param)
+                     elif previousParam in ["-c", "-e", "-k"]:
+                        param = os.path.join(buildRoot, param)
 
-               log = open(os.path.join(productLogsDir, executable + ".log"),
-                          "wb+")
-               self._logs.append(log)
-               p = subprocess.Popen(cmd,
-                                    stdout=log,
-                                    stderr=subprocess.STDOUT)
-               self._processes.append(p)
+                     cmd.append(os.path.expanduser(param))
+                     previousParam = param
+
+                  print ("Running:", cmd, " from: ", os.getcwd())
+                  log = open(os.path.join(productLogsDir, executable + ".log"),
+                             "wb+")
+                  self._logs.append(log)
+                  p = subprocess.Popen(cmd,
+                                       stdout=log,
+                                       stderr=subprocess.STDOUT)
+                  self._processes.append(p)
 
       # All pieces should be launched now.
       if not self._waitForProductStartup():
          raise Exception("The product did not start. Exiting.")
+
+      # switch back to original cwd
+      os.chdir(original_cwd)
 
    def stopProduct(self):
       '''

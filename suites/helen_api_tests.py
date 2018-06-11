@@ -16,6 +16,8 @@ from rest.request import Request
 import util.json_helper
 
 log = logging.getLogger(__name__)
+testContractId = "TestHelloWorld"
+testContractVersion = "TestVersion1"
 
 class HelenAPITests(test_suite.TestSuite):
    _args = None
@@ -87,10 +89,16 @@ class HelenAPITests(test_suite.TestSuite):
 
    def _getTests(self):
       return [("getMembers", self._test_getMembers), \
-              ("swaggerDef", self._test_getSwaggerDef), \
-              ("blockList", self._test_getBlockList), \
-              ("block", self._test_getBlocks), \
-              ("transaction", self._test_getTransactions)]
+              # ("swaggerDef", self._test_getSwaggerDef), \
+              # ("blockList", self._test_getBlockList), \
+              # ("block", self._test_getBlocks), \
+              # ("transaction", self._test_getTransactions), \
+              ("contract_upload", self._test_contractUpload), \
+              ("get_contracts", self._test_getAllContracts), \
+              ("version_upload", self._test_versionUpload), \
+              ("get_versions", self._test_getAllVersions), \
+              ("get_version", self._test_getVersion), \
+              ("duplicate_contract", self._test_duplicateContractUpload)]
 
    # Tests: expect one argument, a Request, and produce a 2-tuple
    # (bool success, string info)
@@ -225,6 +233,89 @@ class HelenAPITests(test_suite.TestSuite):
             return (False, "'hash' field does not match requested hash.")
 
       return (True, None)
+
+   def _test_contractUpload(self, request):
+      hello_world_contract = open("resources/contracts/HelloWorld.sol", 'r')
+      data = {
+         "id": 1,
+      };
+      data["from"] = "0x1111111111111111111111111111111111111111"
+      data["contract_id"] = testContractId
+      data["version"] = testContractVersion
+      data["sourcecode"] = hello_world_contract.read()
+      result = request.uploadContract(data)["result"];
+      if result[0]["error"] is None:
+         return (True, None)
+      else:
+         return (False, "Contract upload failed with error '{}'".format(result["error"]));
+
+
+   def _test_getAllContracts(self, request):
+      result = request.callContractAPI('/api/athena/contracts', "")
+      result = result["result"][0]
+      if (result["contract_id"] == testContractId and
+          result["url"] == "/api/athena/contracts/" + testContractId):
+         return (True, None)
+      else:
+         return (False, "GET /api/athena/contracts did not return correct response")
+
+   def _test_duplicateContractUpload(self, request):
+      hello_world_contract = open("resources/contracts/HelloWorld.sol", 'r')
+      data = {
+         "id": 1,
+      };
+      data["from"] = "0x1111111111111111111111111111111111111111"
+      data["contract_id"] = testContractId
+      data["version"] = testContractVersion
+      data["sourcecode"] = hello_world_contract.read()
+      try:
+         result = request.uploadContract(data);
+      except Exception as e:
+         print(e)
+         return (True, None)
+      return (False, "Duplicate contract should not be allowed")
+
+   def _test_versionUpload(self, request):
+      hello_world_contract = open("resources/contracts/HelloWorld.sol", 'r')
+      data = {
+         "id": 1,
+      };
+      data["from"] = "0x1111111111111111111111111111111111111111"
+      data["contract_id"] = testContractId
+      data["version"] = "TestVersion2"
+      data["sourcecode"] = hello_world_contract.read()
+      result = request.uploadContract(data)["result"];
+      if result[0]["error"] is None:
+         return (True, None)
+      else:
+         return (False,
+                 "Contract upload failed with error '{}'".format(result["error"]));
+
+
+   def _test_getAllVersions(self, request):
+      uri = '/api/athena/contracts/' + testContractId
+      total_versions = 2
+      result = request.callContractAPI(uri, "")
+      result = result["result"]
+      if (result["contract_id"] == testContractId and
+          len(result["versions"]) == total_versions):
+         return (True, None)
+      else:
+         return (False, "GET /api/athena/contracts/" + testContractId \
+                 + " did not return correct response")
+
+   def _test_getVersion(self, request):
+      uri = '/api/athena/contracts/' + testContractId \
+            + '/versions/' + testContractVersion
+      result = request.callContractAPI(uri, "")
+      result = result["result"]
+      if (result["contract_id"] == testContractId and
+          result["version"] == testContractVersion):
+         return (True, None)
+      else:
+         return (False, "GET /api/athena/contracts/" + testContractId \
+                 + "/versions/" + testContractVersion \
+                 + " did not return correct response")
 
    def requireFields(self, ob, fieldList):
       for f in fieldList:
