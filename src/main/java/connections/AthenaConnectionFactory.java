@@ -21,6 +21,7 @@ public final class AthenaConnectionFactory {
       _type = type;
       _conf = conf;
 
+      //Read list of athenas from config
       athenaList = new ArrayList<>();
       String authorities = _conf.getStringValue("AthenaAuthorities");
       String[] authorityList = authorities.split(",");
@@ -36,6 +37,8 @@ public final class AthenaConnectionFactory {
                                      UnsupportedOperationException {
       switch (_type) {
       case TCP:
+         
+         //Randomly select an Athena instance to connect to
          int randomInt = rand.nextInt(athenaList.size());
          Authority athenaInstance = athenaList.get(randomInt);
          AthenaTCPConnection connection

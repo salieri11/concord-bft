@@ -47,8 +47,6 @@ public final class AthenaTCPConnection implements IAthenaConnection {
 
       // Create the TCP connection and input and output streams
       try {
-         /*String host = _conf.getStringValue("AthenaHostName");
-         int port = _conf.getIntegerValue("AthenaPort");*/
          _socket = new Socket(host, port);
          _socket.setTcpNoDelay(true);
          _socket.setSoTimeout(_receiveTimeout);
