@@ -18,6 +18,12 @@ import { BlocksModule } from './blocks/blocks.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { TestingModule } from './testing/testing.module';
 import { SharedModule } from './shared/shared.module';
+import { OrgManagementModule } from './org-management/org-management.module';
+import { BlockchainsModule } from './blockchains/blockchains.module';
+import { ChannelsModule } from './channels/channels.module';
+import { ConsortiumManagementModule } from './consortium-management/consortium-management.module';
+import { KubernetesManagementModule } from './kubernetes-management/kubernetes-management.module';
+import { GlobalErrorHandlerService, ErrorAlertService } from './shared/global-error-handler.service';
 
 import { RequestInterceptor } from './app-interceptors';
 
@@ -43,7 +49,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     BrowserAnimationsModule,
     HttpClientModule,
     ClarityModule,
-    RouterModule.forRoot(appRoutes, {enableTracing: true}),
+    RouterModule.forRoot(appRoutes),
     TranslateModule.forRoot({
       loader: {
         provide: TranslateLoader,
@@ -57,14 +63,21 @@ export function HttpLoaderFactory(http: HttpClient) {
     BlocksModule,
     TransactionsModule,
     TestingModule,
-    SharedModule.forRoot()
+    SharedModule.forRoot(),
+    OrgManagementModule,
+    BlockchainsModule,
+    ConsortiumManagementModule,
+    KubernetesManagementModule,
+    ChannelsModule,
   ],
   providers: [
     {
       provide: HTTP_INTERCEPTORS,
       useClass: RequestInterceptor,
       multi: true,
-    }
+    },
+    GlobalErrorHandlerService,
+    ErrorAlertService
   ],
   bootstrap: [AppComponent]
 })

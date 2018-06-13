@@ -1,0 +1,42 @@
+@import "../../theme";
+
+.grid-container {
+	.search-box {
+		float: right;
+	}
+	// .datagrid .datagrid-cell {
+	// 	min-width: 2rem;
+	// }
+}
+.info-cell .signpost {
+	h3 {
+		margin-top: 0;
+		margin-bottom: 10px;
+	}
+	ol li {
+		padding: 5px 0;
+	}
+}
+
+@-webkit-keyframes new {
+  from { background-color: $lightBlue; }
+  to { background-color: inherit; }
+}
+@-moz-keyframes new {
+  from { background-color: $lightBlue; }
+  to { background-color: inherit; }
+}
+@-o-keyframes new {
+  from { background-color: $lightBlue; }
+  to { background-color: inherit; }
+}
+@keyframes new {
+  from { background-color: $lightBlue; }
+  to { background-color: inherit; }
+}
+.new-row {
+  -webkit-animation: new .75s 2; /* Safari 4+ */
+  -moz-animation:    new .75s 2; /* Fx 5+ */
+  -o-animation:      new .75s 2; /* Opera 12+ */
+  animation:         new .75s 2; /* IE 10+ */
+}

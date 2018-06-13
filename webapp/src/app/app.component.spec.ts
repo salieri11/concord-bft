@@ -6,6 +6,7 @@ import { TestBed, async } from '@angular/core/testing';
 
 import { RouterTestingModule } from '@angular/router/testing';
 import { MockSharedModule } from './shared/shared.module';
+import { ErrorAlertService } from './shared/global-error-handler.service';
 
 import { AppComponent } from './app.component';
 import { AuthenticationService } from './shared/authentication.service';
@@ -19,6 +20,9 @@ describe('AppComponent', () => {
       ],
       declarations: [
         AppComponent,
+      ],
+      providers: [
+        ErrorAlertService
       ]
     }).compileComponents();
   }));

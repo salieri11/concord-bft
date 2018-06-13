@@ -1,0 +1,67 @@
+<div class="p-2">
+    <h1>
+      <clr-icon shape="blocks-group" size="36"></clr-icon> {{ blockchain.name }}
+    <!--   |
+        <clr-dropdown>
+            <button class="nav-icon" clrDropdownTrigger>
+                {{ 'blockchains.actions.title' | translate }}
+                <clr-icon shape="caret down"></clr-icon>
+            </button>
+            <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
+                <button type="button" (click)="openAddCluster()" clrDropdownItem>
+                    {{ 'blockchains.actions.options.add.title' | translate }}
+                </button>
+                <button type="button" (click)="confirmDeleteCluster()" clrDropdownItem>
+                    {{ 'blockchains.actions.options.delete.title' | translate }}
+                </button>
+            </clr-dropdown-menu>
+        </clr-dropdown> -->
+    </h1>
+
+    <span class="label">
+    	{{ 'blockchains.detail.status' | translate }} <span class="badge badge-info">{{ blockchain.state }}</span>
+    </span>
+    <span class="label">
+    	{{ 'blockchains.detail.consensusType' | translate }} <span class="badge badge-success">{{ blockchain.consensusType }}</span>
+    </span>
+    <a [href]="blockchain.k8sDashboardUrl"
+        target="_blank"
+        [ngClass]="{'disabled': !blockchain.k8sDashboardUrl}"
+        class="btn btn-primary btn-link btn-sm">
+        <clr-icon shape="pop-out"></clr-icon> Open Kubernetes Dashboard
+    </a>
+    <a [href]="blockchain.fabricExplorerUrl"
+        target="_blank"
+        [ngClass]="{'disabled': !blockchain.fabricExplorerUrl}"
+        class="btn btn-primary btn-link btn-sm">
+        <clr-icon shape="pop-out"></clr-icon> Open Fabric Dashboard
+    </a>
+    <div class="tabs-container">
+        <clr-tabs>
+            <clr-tab>
+                <button clrTabLink id="link1">Organizations</button>
+                <clr-tab-content id="content1" *clrIfActive="true">
+                    <ng-container *ngIf="orgUrl">
+                        <app-org-list [url]="orgUrl"></app-org-list>
+                    </ng-container>
+                </clr-tab-content>
+            </clr-tab>
+    <!--         <clr-tab>
+                <button clrTabLink>Channels</button>
+                <clr-tab-content *clrIfActive>
+                    <ng-container *ngIf="channelUrl">
+        		      <fb-channel-list [url]="channelUrl"></fb-channel-list>
+                    </ng-container>
+                </clr-tab-content>
+            </clr-tab> -->
+    <!--         <clr-tab>
+                <button clrTabLink>Peers</button>
+                <clr-tab-content *clrIfActive>
+                    <ng-container *ngIf="peerUrl">
+                        <fb-peer-list [url]="peerUrl"></fb-peer-list>
+                    </ng-container>
+                </clr-tab-content>
+            </clr-tab> -->
+        </clr-tabs>
+    </div>
+</div>

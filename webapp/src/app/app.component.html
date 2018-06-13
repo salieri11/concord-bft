@@ -1,4 +1,13 @@
 <clr-main-container>
+  <clr-alerts>
+    <clr-alert *ngFor="let alert of alerts" [clrAlertType]="'alert-danger'" [clrAlertAppLevel]="true">
+        <clr-alert-item>
+            <span class="alert-text">
+                {{ alert.message }}
+            </span>
+        </clr-alert-item>
+    </clr-alert>
+  </clr-alerts>
   <clr-header class="header-6" *ngIf="authenticated">
     <div class="branding">
       <a routerLink="/" class="nav-link">
@@ -43,12 +52,28 @@
         {{'nav.nodeList.title' | translate}}
       </a>
       <a clrVerticalNavLink routerLink="blocks" routerLinkActive="active">
-        <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon>
+        <clr-icon clrVerticalNavIcon shape="block"></clr-icon>
         {{'nav.blockList.title' | translate}}
       </a>
       <a clrVerticalNavLink routerLink="testing" routerLinkActive="active">
         <clr-icon clrVerticalNavIcon shape="file-settings"></clr-icon>
         {{'nav.testing.title' | translate}}
+      </a>
+      <div class="nav-divider"></div>
+      <label class="nav-header">
+        {{ 'nav.sysadmin.title' | translate }}
+      </label>
+      <a clrVerticalNavLink [routerLink]="['/blockchains']" routerLinkActive="active">
+          <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon> {{ 'nav.blockchains.title' | translate }}
+      </a>
+      <a clrVerticalNavLink [routerLink]="['/consortium']" routerLinkActive="active">
+          <clr-icon clrVerticalNavIcon shape="users"></clr-icon> {{ 'nav.consortium.title' | translate }}
+      </a>
+      <a clrVerticalNavLink [routerLink]="['/organization']" routerLinkActive="active">
+          <clr-icon clrVerticalNavIcon shape="organization"></clr-icon> {{ 'nav.organization.title' | translate }}
+      </a>
+      <a clrVerticalNavLink [routerLink]="['/kubernetes']" routerLinkActive="active">
+          <clr-icon clrVerticalNavIcon shape="host"></clr-icon> {{ 'nav.kubernetes.title' | translate }}
       </a>
     </clr-vertical-nav>
   </div>

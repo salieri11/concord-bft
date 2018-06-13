@@ -2,12 +2,13 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs/Subscription';
 
 import { TranslateService } from '@ngx-translate/core';
 import { AuthenticationService } from './shared/authentication.service';
+import { GlobalErrorHandlerService, ErrorAlertService } from './shared/global-error-handler.service';
 
 @Component({
   selector: 'app-root',
@@ -16,15 +17,19 @@ import { AuthenticationService } from './shared/authentication.service';
 })
 export class AppComponent implements OnDestroy {
   title = 'app';
-
+  alerts: any = [];
   authenticationChange: Subscription;
 
   authenticated = false;
   username: string;
 
-  constructor (private translate: TranslateService,
-               private authenticationService: AuthenticationService,
-               private router: Router) {
+  constructor(
+    private translate: TranslateService,
+    private authenticationService: AuthenticationService,
+    private router: Router,
+    private alertService: ErrorAlertService,
+    public zone: NgZone,
+  ) {
     const browserLang = translate.getBrowserLang();
 
     translate.setDefaultLang('en');
@@ -34,6 +39,9 @@ export class AppComponent implements OnDestroy {
       this.authenticated = email !== undefined;
       this.username = email;
     });
+
+    this.alertService.notify
+      .subscribe(error => this.addAlert(error));
   }
 
   ngOnDestroy(): void {
@@ -43,5 +51,16 @@ export class AppComponent implements OnDestroy {
   onLogOut() {
     this.authenticationService.logOut();
     this.router.navigate(['auth', 'log-in']);
+  }
+
+  private addAlert(alert: any): void {
+    if (alert && alert.message) {
+      let alertItem = {
+        message: alert.message
+      }
+      if (this.alerts.indexOf(alertItem) === -1) {
+        this.zone.run(() => this.alerts.push(alertItem));
+      }
+    }
   }
 }

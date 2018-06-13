@@ -46,12 +46,23 @@
 }
 
 // Add right border to active link, force white nav icon
-.clr-vertical-nav .nav-link {
-  &.active,
-  &:hover {
+.clr-vertical-nav.has-icons {
+  .nav-link.active,
+  .nav-link:hover,
+  .nav-group-content:hover {
     border-right: 5px solid $clr-action-blue-light;
     .nav-icon {
       fill: #fff;
+    }
+  }
+  .nav-group-children .nav-link {
+    padding-left: 1.5rem;
+    height: 2rem;
+    line-height: 2rem;
+
+    .nav-icon {
+      height: .9rem;
+      width: .9rem;
     }
   }
 }

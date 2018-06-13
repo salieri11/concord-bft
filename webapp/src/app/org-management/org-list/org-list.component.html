@@ -1,0 +1,92 @@
+<div class="list-container">
+
+	<app-grid #grid [options]="gridOptions"
+	         (selectedRowsEvent)="selectedRowChange($event)"></app-grid>
+
+    <clr-modal [(clrModalOpen)]="openModalForm" [clrModalSize]="modalSize">
+        <h3 class="modal-title">{{ modalTitle }}</h3>
+        <div class="modal-body">
+            <ng-container [ngSwitch]="formType">
+                <ng-container *ngSwitchCase="'add'">
+                    <form [formGroup]="addOrgForm" (ngSubmit)="addOrg()">
+                        <section class="form-block">
+                            <div class="form-group">
+                                <label for="name">
+                                    {{ 'organization.addOrgForm.inputs.name.title' | translate }}
+                                </label>
+                                <input formControlName="name" type="text" id="name" [placeholder]="'organization.addOrgForm.inputs.name.placeholder' | translate" size=35>
+                            </div>
+                            <div class="form-group">
+                                <label for="peerNumber">
+                                    {{ 'organization.addOrgForm.inputs.peerNumber.title' | translate }}
+                                </label>
+                                <input formControlName="peerNumber" type="text" id="peerNumber" [placeholder]="'organization.addOrgForm.inputs.peerNumber.placeholder' | translate" size=35>
+                            </div>
+                            <div class="form-group">
+                                <label for="domain">
+                                    {{ 'organization.addOrgForm.inputs.domain.title' | translate }}
+                                </label>
+                                <input formControlName="domain" type="text" id="domain" [placeholder]="'organization.addOrgForm.inputs.domain.placeholder' | translate" size=35>
+                            </div>
+                            <div class="form-group">
+                                <label for="type">
+                                    {{ 'organization.addOrgForm.inputs.type.title' | translate }}
+                                </label>
+                                <div class="select">
+                                    <select formControlName="type" id="type">
+                                        <option *ngFor="let type of orgTypes" [value]="type">{{ type }}</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </section>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" (click)="openModalForm = false">Cancel</button>
+                        <button type="submit" class="btn btn-primary" [disabled]="addOrgForm.status !== 'VALID'" [clrLoading]="addingOrg" [disabled]="addingOrg">
+                            {{ 'organization.addOrgForm.submit.title' | translate }}
+                        </button>
+                    </div>
+                    </form>
+                </ng-container>
+                <ng-container *ngSwitchCase="'import'">
+                    <form [formGroup]="importOrgForm" (ngSubmit)="importOrg()">
+                        <section class="form-block">
+                            <div class="form-group">
+                                <label for="name">
+                                    {{ 'organization.importOrgForm.inputs.name.title' | translate }}
+                                </label>
+                                <input type="text" formControlName="name" id="name" [placeholder]="'organization.importOrgForm.inputs.name.placeholder' | translate" size=35>
+                            </div>
+                            <div class="form-group">
+                                <label for="certificate">
+                                    {{ 'organization.importOrgForm.inputs.certificate.title' | translate }}
+                                </label>
+                                <input type="file" id="certificate" formControlName="certificate" size=35 (change)="onCertificteChange(event)">
+                            </div>
+                            <div class="form-group">
+                                <label for="privateKey">
+                                    {{ 'organization.importOrgForm.inputs.privateKey.title' | translate }}
+                                </label>
+                                <input type="file" id="privateKey" formControlName="privateKey" size=35 (change)="onPrivateKeyChange(event)">
+                            </div>
+                        </section>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" (click)="openModalForm = false">Cancel</button>
+                        <button type="submit" class="btn btn-primary" (click)="addOrg()" [disabled]="importOrgForm.status !== 'VALID'">
+                            {{ 'organization.importOrgForm.submit.title' | translate }}
+                        </button>
+                    </div>
+                    </form>
+                </ng-container>
+                <ng-container *ngSwitchCase="'delete'">
+                    <p>Are you sure you want to delete <span *ngFor="let r of selectedRows">{{ r.name }} </span> ?</p>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" (click)="openModalForm = false">Cancel</button>
+                        <button type="button" class="btn btn-primary" (click)="deleteOrg()">
+                            {{ 'organization.deleteOrgForm.submit.title' | translate }}
+                        </button>
+                    </div>
+                </ng-container>
+            </ng-container>
+        </div>
+    </clr-modal>
+</div>

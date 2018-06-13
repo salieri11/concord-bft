@@ -8,3 +8,20 @@ services:
     image: beerriot/p2bc:helen20180424dtw-lab
     ports:
       - 8080:8080
+  andes:
+    image: andes/andes-baas
+    ports:
+     - 8000:8080
+  postgres:
+    image: postgres
+    hostname: andes-postgres
+    container_name: andes-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: andes
+      POSTGRES_PASSWORD: 12345
+      POSTGRES_DB: andes
+    ports:
+      - 5432:5432
+    volumes:
+      - ./postgres-data:/var/lib/postgresql

@@ -2,6 +2,8 @@
 @import "theme";                                   // Clarity variable overrides and global styles
 @import "~@clr/ui/src/utils/components.clarity";   // Include Clarity components
 @import "clarity-overrides";                       // Clarity overrides that can not be controlled through variables
+@import "app/app.component";                       // Clarity overrides that can not be controlled through variables
+@import "app/grid/grid.component";
 
 .graph-placeholder {
   width: 100%;
