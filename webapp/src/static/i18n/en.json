@@ -90,6 +90,7 @@
     "averageXSeconds": "Avg {{value}} sec"
   },
   "blocks": {
+    "title": "Block",
     "blocks": "Blocks",
     "blockActivity": "Block Activity",
     "index": "Index",
@@ -99,6 +100,7 @@
     "paginationSummary": "{{start}} - {{finish}} of {{total}} blocks"
   },
   "transactions": {
+    "title": "Transaction",
     "transactions": "Transactions",
     "recentTransactions": "Recent Transactions",
     "timestamp": "Timestamp",

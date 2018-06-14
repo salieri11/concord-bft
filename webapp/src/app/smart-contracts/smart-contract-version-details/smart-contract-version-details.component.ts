@@ -2,13 +2,16 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Component, Input, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
-import { EthSendCallParams, EthSendTransactionParams, SmartContractVersion } from '../../shared/remote-interfaces';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { Component, Input, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
+
+import { EthSendCallParams, EthSendTransactionParams, SmartContractVersion } from '../../shared/remote-interfaces';
 import * as Web3EthAbi from 'web3-eth-abi';
+
 import { AthenaApiService } from '../../shared/athena-api.service';
 import { EthApiService } from '../../shared/eth-api.service';
 import { ContractPayloadPreviewModalComponent } from '../contract-payload-preview-modal/contract-payload-preview-modal.component';
+import { isHexAddress, isHexadecimal } from '../custom-validators';
 
 @Component({
   selector: 'app-smart-contract-version-details',
@@ -27,13 +30,13 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
   resultType: string;
   functionDefinition;
 
-  constructor (private athenaApiService: AthenaApiService, private ethApiService: EthApiService) {
+  constructor(private athenaApiService: AthenaApiService, private ethApiService: EthApiService) {
     this.versionForm = new FormGroup({
       functionName: new FormControl(''),
       contractForm: new FormGroup({
-        gas:  new FormControl('', [Validators.required]),
-        value: new FormControl(''),
-        from: new FormControl('', [Validators.required]),
+        gas: new FormControl('', [Validators.required, isHexadecimal]),
+        value: new FormControl('', [isHexadecimal]),
+        from: new FormControl('', [Validators.required, isHexAddress]),
         functionInputs: new FormGroup({})
       })
     });
@@ -43,6 +46,7 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
     if (changes.version) {
       this.functions = changes.version.currentValue.metadata.output.abi.filter(abi => abi.type === 'function');
       this.versionForm.reset();
+      this.versionForm.value.contractForm.functionInputs = new FormGroup({});
       if (this.functions.length) {
         this.functionDefinition = this.functions[0];
         this.versionForm.patchValue({
@@ -55,7 +59,9 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
   }
 
   getFunctionDetails() {
-    const result = this.functions.filter( func => func.name === this.versionForm.value.functionName);
+    this.versionForm.get('contractForm').reset();
+    this.versionForm.get('contractForm').value.functionInputs = new FormGroup({});
+    const result = this.functions.filter(func => func.name === this.versionForm.value.functionName);
     if (result.length > 0) {
       this.inputs = result[0].inputs;
       this.functionDefinition = result[0];
@@ -63,41 +69,6 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
       this.inputs = [];
       this.functionDefinition = null;
     }
-    const inputFormGroup = new FormGroup({});
-    for (let i = 0; i < this.inputs.length; i++) {
-      inputFormGroup.addControl(this.inputs[i].name, new FormControl(''));
-    }
-    (this.versionForm.get('contractForm') as FormGroup).setControl('functionInputs', inputFormGroup);
-    this.versionForm.get('contractForm').reset();
-  }
-
-  getType(controlType: string) {
-    let type;
-    switch (controlType) {
-      case 'uint256':
-      case 'uint8':
-      case 'uint32':
-      case 'uint16':
-      case 'uint24':
-      case 'int256':
-      case 'int8':
-      case 'int32':
-      case 'int16':
-      case 'int24':
-      case 'uint':
-      case 'int':
-        type = 'number';
-        break;
-      case 'address':
-        type = 'text';
-        break;
-      case 'string':
-        type = 'text';
-        break;
-      default:
-        type = 'text';
-    }
-    return type;
   }
 
   onSourceCodeDownload() {

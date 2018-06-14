@@ -4,30 +4,33 @@
       <h2 class="mt-0">
         {{version?.version}}
         <button (click)="onSourceCodeDownload()" type="button" class="btn btn-primary-outline btn-icon ml-1">
-          <clr-icon size="16" shape="code" [attr.title]="'smartContracts.version.downloadSourceCode' | translate"></clr-icon>
+          <clr-icon size="16" shape="code"
+                    [attr.title]="'smartContracts.version.downloadSourceCode' | translate"></clr-icon>
         </button>
         <button (click)="onByteCodeDownload()" type="button" class="btn btn-primary-outline btn-icon">
-          <clr-icon size="16" shape="file-settings" [attr.title]="'smartContracts.version.downloadBytecode' | translate"></clr-icon>
+          <clr-icon size="16" shape="file-settings"
+                    [attr.title]="'smartContracts.version.downloadBytecode' | translate"></clr-icon>
         </button>
         <button (click)="onMetadataDownload()" type="button" class="btn btn-primary-outline btn-icon">
-          <clr-icon size="16" shape="view-list" [attr.title]="'smartContracts.version.downloadMetadata' | translate"></clr-icon>
+          <clr-icon size="16" shape="view-list"
+                    [attr.title]="'smartContracts.version.downloadMetadata' | translate"></clr-icon>
         </button>
       </h2>
       <div class="form">
         <div class="form-group">
           <label>{{'smartContracts.version.functions' | translate}}</label>
           <div class="select">
-            <select id="selected-function" name="function" *ngIf="functions?.length" formControlName="functionName" (change)="getFunctionDetails()">
+            <select id="selected-function" name="function" *ngIf="functions?.length" formControlName="functionName"
+                    (change)="getFunctionDetails()">
               <option *ngFor="let func of functions" [value]="func.name">{{ func.name }}</option>
             </select>
           </div>
         </div>
       </div>
-
       <div *ngIf="versionForm.value.functionName" formGroupName="contractForm">
         <div class="form-group">
           <label class="required">{{'smartContracts.version.gas' | translate}}</label>
-          <input type="text" formControlName="gas">
+          <input type="text" formControlName="gas" required>
         </div>
         <div class="form-group">
           <label>{{'smartContracts.version.value' | translate}}</label>
@@ -35,18 +38,10 @@
         </div>
         <div class="form-group">
           <label class="required">{{'smartContracts.version.from' | translate}}</label>
-          <input type="text" formControlName="from">
+          <input type="text" formControlName="from" required>
         </div>
-
-        <div *ngIf="inputs?.length" class="form-block" formGroupName="functionInputs">
-          <label>{{'smartContracts.version.functionParameters' | translate}}</label>
-          <div *ngFor="let control of inputs">
-            <div class="form-group">
-              <label class="required">{{ control.name }}</label>
-              <input [placeholder]="control.type" [type]="getType(control.type)" [formControlName]="control.name"/>
-            </div>
-          </div>
-        </div>
+        <app-smart-contracts-solidity-function-inputs [formGroup]="versionForm.get('contractForm.functionInputs')"
+                                                      [functionInputs]="inputs"></app-smart-contracts-solidity-function-inputs>
       </div>
     </div>
     <div class="col-sm-6 col-xs-12">
@@ -62,13 +57,13 @@
       </clr-alert>
     </div>
     <div class="col-xs-12">
-      <button type="button" class="btn btn-primary" (click)="onCall()">
+      <button type="button" class="btn btn-primary" (click)="onCall()" [disabled]="versionForm.invalid">
         {{'smartContracts.version.call' | translate}}
       </button>
-      <button type="button" class="btn btn-primary" (click)="onSend()">
+      <button type="button" class="btn btn-primary" (click)="onSend()" [disabled]="versionForm.invalid">
         {{'smartContracts.version.send' | translate}}
       </button>
-      <button type="button" class="btn btn-outline" (click)="onPreview()">
+      <button type="button" class="btn btn-outline" (click)="onPreview()" [disabled]="versionForm.invalid">
         {{'smartContracts.version.preview' | translate}}
       </button>
     </div>
