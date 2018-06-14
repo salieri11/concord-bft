@@ -493,7 +493,8 @@ extern "C" {
 
       try {
          if (number < 0 ||
-             number > ath_context(evmctx)->kvbStorage->current_block_number()) {
+             (uint64_t)number >
+	        ath_context(evmctx)->kvbStorage->current_block_number()) {
             // KVBlockchain internals assert that the value passed to get_block
             // is <= the latest block number
             *result = zero_hash;

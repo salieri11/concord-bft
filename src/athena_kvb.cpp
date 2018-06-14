@@ -25,8 +25,8 @@ using Blockchain::ILocalKeyValueStorageReadOnly;
 using Blockchain::IBlocksAppender;
 
 com::vmware::athena::KVBCommandsHandler::KVBCommandsHandler(EVM &athevm) :
-   athevm_(athevm),
-   logger(log4cplus::Logger::getInstance("com.vmware.athena"))
+   logger(log4cplus::Logger::getInstance("com.vmware.athena")),
+   athevm_(athevm)
 {
    // no other initialization necessary
 }
@@ -123,7 +123,13 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_sendTransaction(
    const EthRequest request = athreq.eth_request(0);
 
    evm_uint256be txhash;
-   evm_result &&result = run_evm(request, kvbStorage, txhash);
+   run_evm(request, kvbStorage, txhash);
+
+   // The result of run_evm is ignored here. As noted below, nothing currently
+   // causes transactions to fail in a way that they do not get recorded. We
+   // always return the transaction hash to the application here, and it must
+   // fetch the receipt to find out the result.
+
    EthResponse *response = athresp.add_eth_response();
    response->set_id(request.id());
    response->set_data(txhash.bytes, sizeof(evm_uint256be));
@@ -309,7 +315,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_list_request(
                    << " to " << (latest-count));
 
    BlockListResponse* response = athresp.mutable_block_list_response();
-   for (int i = 0; i < count; i++) {
+   for (uint64_t i = 0; i < count; i++) {
       EthBlock b = kvbStorage.get_block(latest-i);
       BlockBrief* bb = response->add_block();
       bb->set_number(b.number);
@@ -344,7 +350,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_request(
       if (request.has_number()) {
          uint64_t requested_block_number = kvbStorage.current_block_number();
          if (request.number() >= 0 &&
-             request.number() < requested_block_number) {
+             (uint64_t)request.number() < requested_block_number) {
             requested_block_number = request.number();
          }
          block = kvbStorage.get_block(requested_block_number);

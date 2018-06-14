@@ -76,7 +76,7 @@ com::vmware::athena::FilterManager::get_new_block_filter_changes(
             BlockListResponse blockResponse = response.block_list_response();
 
             // TODO: this might not always be true if the filter is far behind
-            assert(blockResponse.block_size() == new_block_count);
+            assert((uint64_t)blockResponse.block_size() == new_block_count);
 
             // copy all hashes to response
             for (int i = 0; i < blockResponse.block_size(); i++) {

@@ -21,6 +21,10 @@
 
 namespace Blockchain
 {
+   // Counter for number of read requests
+   static unsigned int g_rocksdb_called_read;
+   static bool g_rocksdb_print_measurements;
+
 /**
  * @brief Converts a Slice object to a RocksDB Slice object.
  *
@@ -156,8 +160,6 @@ Status RocksDBClient::freeIterator(IDBClientIterator* _iter) const
       return Status::InvalidArgument("Invalid iterator");
    }
 
-   RocksDBClientIterator *iter = (RocksDBClientIterator*)_iter;
-   delete iter->m_iter;
    delete (RocksDBClientIterator*)_iter;
 
    return Status::OK();

@@ -39,7 +39,7 @@ namespace Blockchain {
 
       // ctor & dtor
       ClientImp(string byzConfig, string byzPrivateConfig);
-      ~ClientImp();
+      virtual ~ClientImp();
 
       const string m_byzConfig;
       const string m_byzPrivateConfig;
