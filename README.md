@@ -233,8 +233,8 @@ cd
 wget https://github.com/facebook/rocksdb/archive/v5.7.3.tar.gz
 tar -xzf v5.7.3.tar.gz
 cd rocksdb-5.7.3
-make static_lib
-sudo make install
+make shared_lib
+sudo make install-shared
 ```
 
 Tell CMakeLists that you want to use RocksDB:
