@@ -69,7 +69,7 @@ RUN wget https://github.com/facebook/rocksdb/archive/v5.7.3.tar.gz \
     && tar -xzf v5.7.3.tar.gz \
     && rm v5.7.3.tar.gz
 WORKDIR /rocksdb-5.7.3
-RUN make static_lib && make install
+RUN make shared_lib && make install-shared
 
 WORKDIR /athena
 COPY . /athena
@@ -97,6 +97,7 @@ COPY --from=0 /usr/lib/libboost* /usr/lib/
 COPY --from=0 /usr/local/lib/liblog4cplus* /usr/local/lib/
 # evmjit is statically compiled, so we don't need to copy
 COPY --from=0 /usr/local/lib/librelic* /usr/local/lib/
+COPY --from=0 /usr/local/lib/librocksdb.* /usr/local/lib/
 
 WORKDIR /athena/resources
 COPY --from=0 /athena/build/resources/log4cplus.properties /athena/resources/
