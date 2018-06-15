@@ -70,13 +70,12 @@ class Product():
                            previousParam == "-p"):
                         # -p is "path" for geth, but "port" for athena
                         param = os.path.join(buildRoot, param)
-                     elif previousParam in ["-c", "-e", "-k"]:
-                        param = os.path.join(buildRoot, param)
+                     # elif previousParam in ["-c", "-e", "-k"]:
+                     #    param = os.path.join(buildRoot, param)
 
                      cmd.append(os.path.expanduser(param))
                      previousParam = param
 
-                  print ("Running:", cmd, " from: ", os.getcwd())
                   log = open(os.path.join(productLogsDir, executable + ".log"),
                              "wb+")
                   self._logs.append(log)
@@ -84,13 +83,13 @@ class Product():
                                        stdout=log,
                                        stderr=subprocess.STDOUT)
                   self._processes.append(p)
+            # switch back to original cwd
+            os.chdir(original_cwd)
 
       # All pieces should be launched now.
       if not self._waitForProductStartup():
          raise Exception("The product did not start. Exiting.")
 
-      # switch back to original cwd
-      os.chdir(original_cwd)
 
    def stopProduct(self):
       '''
