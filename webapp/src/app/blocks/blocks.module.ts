@@ -16,8 +16,8 @@ const routes: Routes = [
     path: 'blocks',
     canActivateChild: [AuthenticatedGuard],
     children: [
-      {path: '', component: BlocksContainerComponent},
-      {path: ':blockNumber', component: BlockDetailContainerComponent}
+      { path: '', component: BlocksContainerComponent },
+      { path: ':blockNumber', component: BlockDetailContainerComponent }
     ]
   }
 ];

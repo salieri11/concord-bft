@@ -1,32 +1,35 @@
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
 import { Injectable } from '@angular/core';
 
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/operator/map';
-import { ErrorObservable } from 'rxjs/observable/ErrorObservable';
 import { Consortium, ConsortiumResponse } from './consortium.model';
 import { GridListResponse } from '../../grid/shared/grid.model';
 
-
 @Injectable()
 export class ConsortiumService {
-  consortiumUrl: string = '/api/consortium';
+  consortiumUrl = '/api/consortium';
   headers: HttpHeaders = new HttpHeaders({
-    'Content-Type':  'application/json',
+    'Content-Type': 'application/json',
     // 'Authorization': 'my-auth-token'
   });
 
   constructor(private http: HttpClient) { }
 
   getList(params?: any): Observable<GridListResponse> {
-    let options = {headers: this.headers};
+    const options = { headers: this.headers };
 
     if (params) {
       let httpParams = new HttpParams();
 
-      for (let prop in params) {
-        httpParams = httpParams.set(prop, params[prop]);
+      for (const prop in params) {
+        if (params[prop]) {
+          httpParams = httpParams.set(prop, params[prop]);
+        }
       }
 
       options['params'] = httpParams;
@@ -45,43 +48,43 @@ export class ConsortiumService {
         total: response.page.totalElements,
         totalPages: response.page.totalPages
       }
-    }
+    };
   }
 
   create(org: Consortium): Observable<any> {
-    return this.http.post<Consortium>(this.consortiumUrl, org, {headers: this.headers});
+    return this.http.post<Consortium>(this.consortiumUrl, org, { headers: this.headers });
   }
 
   delete(id: number): Observable<any> {
-    let url = `${this.consortiumUrl}${id}/`
-    return this.http.delete(url, {headers: this.headers});
+    const url = `${this.consortiumUrl}${id}/`;
+    return this.http.delete(url, { headers: this.headers });
   }
 
-  getFakeData(params: any): Observable<GridListResponse> {
-    let d = new Date(),
-    data = {
-      objects: [{
-        id: 1,
-        name: 'Consortium A',
-        members: ['Org1', 'Org2', 'Org3'],
-        createdOn: d.setDate(d.getDate() - 5),
-      }, {
-        id: 1,
-        name: 'Consortium B',
-        members: ['Org1', 'Org2', 'Org3'],
-        createdOn: d.setDate(d.getDate() - 10),
-      }, {
-        id: 1,
-        name: 'Consortium C',
-        members: ['Org1', 'Org2', 'Org3'],
-        createdOn: d.setDate(d.getDate() - 15),
-      }],
-      meta: {
-        size: 10,
-        total: 10,
-        totalPages: 10
-      }
-    }
+  getFakeData(): Observable<GridListResponse> {
+    const d = new Date(),
+      data = {
+        objects: [{
+          id: 1,
+          name: 'Consortium A',
+          members: ['Org1', 'Org2', 'Org3'],
+          createdOn: d.setDate(d.getDate() - 5),
+        }, {
+          id: 1,
+          name: 'Consortium B',
+          members: ['Org1', 'Org2', 'Org3'],
+          createdOn: d.setDate(d.getDate() - 10),
+        }, {
+          id: 1,
+          name: 'Consortium C',
+          members: ['Org1', 'Org2', 'Org3'],
+          createdOn: d.setDate(d.getDate() - 15),
+        }],
+        meta: {
+          size: 10,
+          total: 10,
+          totalPages: 10
+        }
+      };
 
     return new Observable(observer => {
       observer.next(data);

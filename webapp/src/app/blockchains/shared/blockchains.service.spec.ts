@@ -1,3 +1,7 @@
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
+
 import { TestBed, inject } from '@angular/core/testing';
 
 import { HttpClient, HttpHandler } from '@angular/common/http';

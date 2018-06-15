@@ -1,21 +1,25 @@
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
+
 export class Channel {
-	id?: number;
-	name: string;
-	entryPoint: string;
-	state: string;
-	action?: string;
-	createdOn: number;
-	_links: any;
+  id?: number;
+  name: string;
+  entryPoint: string;
+  state: string;
+  action?: string;
+  createdOn: number;
+  _links: any;
 }
 
 export interface ChannelResponse {
-	_embedded: {
-		channels: Array<Channel>,
-		_links: any,
-	};
-	page: {
-		size: number,
-		totalElements: number,
-		totalPages: number
-	}
+  _embedded: {
+    channels: Array<Channel>,
+    _links: any,
+  };
+  page: {
+    size: number,
+    totalElements: number,
+    totalPages: number
+  };
 }

@@ -4,6 +4,16 @@
     "all": "All"
   },
   "nav": {
+    "menu": {
+      "title": "Menu",
+      "options": {
+          "deploy": {"title": "Deploy"},
+          "addOrg": {"title": "Add Organization"},
+          "addBlockchains": {"title": "Add Blockchain"},
+          "addConsortium": {"title": "Add Consortium"},
+          "addKubernetes": {"title": "Add Kubernetes"}
+      }
+    },
     "metrics": {
       "activeNodes": "Active Nodes {{value}}"
     },
@@ -49,6 +59,9 @@
   "grid": {
     "search": {
         "placeholder": "Search"
+    },
+    "pagination": {
+        "of": "of"
     }
   },
   "dashboard": {
@@ -420,9 +433,6 @@
           "membersCount": {
               "title": "Members"
           },
-          "consensusType": {
-              "title": "Consensus Type"
-          },
           "channelsCount": {
               "title": "Channels Count"
           },
@@ -448,7 +458,11 @@
     },
     "detail": {
       "status": "Status",
-      "consensusType": "Consensus Type"
+      "consensusType": "Consensus Type",
+      "openKube": "Open Kubernetes Dashboard",
+      "openFabric": "Open Fabric Dashboard",
+      "orgTab": "Organizations",
+      "channelTab": "Channels"
     },
     "addBlockchainForm": {
       "title": "Create Blockchain",
@@ -485,5 +499,8 @@
         "title": "Yes"
       }
     }
+  },
+  "deleteModal": {
+    "bodyText": "Are you sure you want to delete"
   }
 }

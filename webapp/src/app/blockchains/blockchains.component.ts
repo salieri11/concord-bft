@@ -1,17 +1,17 @@
-import { Observable } from 'rxjs/Observable';
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
 import {
-  ChangeDetectorRef,
   Component,
   OnInit,
   ViewChild,
 } from '@angular/core';
 import {
-  FormArray,
   FormBuilder,
   FormGroup,
   Validators
 } from '@angular/forms';
-import { ActivatedRoute, Params } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 
 import { TranslateService } from '@ngx-translate/core';
 
@@ -29,10 +29,10 @@ import { OrgManagementService } from '../org-management/shared/org-management.se
 })
 export class BlockchainsComponent implements OnInit {
   @ViewChild('grid') grid: GridComponent;
-  openModalForm: boolean = false;
-  modalTitle: string = '';
+  openModalForm = false;
+  modalTitle = '';
   formType: string;
-  modalSize: string = 'md';
+  modalSize = 'md';
   addBlockchainForm: FormGroup;
   gridOptions: GridOptions = new GridOptions();
 
@@ -47,7 +47,6 @@ export class BlockchainsComponent implements OnInit {
     private orgService: OrgManagementService,
     private kubeService: KubernetesService,
     private fb: FormBuilder,
-    private changeDetectorRef: ChangeDetectorRef,
     private translate: TranslateService,
     private route: ActivatedRoute
   ) {
@@ -66,7 +65,7 @@ export class BlockchainsComponent implements OnInit {
   ngOnInit() {
     this.route.fragment.subscribe(fragment => {
       switch (fragment) {
-        case "add":
+        case 'add':
           this.createAddBlockchainForm();
           this.openAddBlockchain();
           break;
@@ -84,8 +83,8 @@ export class BlockchainsComponent implements OnInit {
 
   addBlockchain(): void {
     const formModel = this.addBlockchainForm.value;
-    let orgs = formModel.peerOrg.map(id => {
-        return { id: id.toString() }
+    const orgs = formModel.peerOrg.map(id => {
+        return { id: id.toString() };
       });
     orgs.push({id: formModel.ordererOrg });
 
@@ -95,7 +94,7 @@ export class BlockchainsComponent implements OnInit {
       consensusType: formModel.consensusType,
       kubernetesBlockchain: { id: formModel.kubernetes },
       cli: formModel.createCli,
-    }
+    };
 
     this.blockchainsService.create(blockchain)
       .subscribe(response => this.handleBlockchainAdd(response));
@@ -143,7 +142,7 @@ export class BlockchainsComponent implements OnInit {
     this.kubeService.getList()
       .subscribe(kubes => {
         this.kubes = kubes.objects;
-      })
+      });
   }
 
   private createAddBlockchainForm() {
@@ -161,14 +160,14 @@ export class BlockchainsComponent implements OnInit {
     this.formType = type;
 
     switch (type) {
-      case "add":
+      case 'add':
         this.modalSize = 'md';
         this.translate.get('blockchains.addBlockchainForm.title')
           .subscribe(title => this.modalTitle = title);
 
         break;
 
-      case "delete":
+      case 'delete':
         this.modalSize = 'sm';
         this.translate.get('blockchains.deleteBlockchainForm.title')
           .subscribe(title => this.modalTitle = title);

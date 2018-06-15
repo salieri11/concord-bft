@@ -6,9 +6,8 @@ import { Component, OnDestroy, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs/Subscription';
 
-import { TranslateService } from '@ngx-translate/core';
 import { AuthenticationService } from './shared/authentication.service';
-import { GlobalErrorHandlerService, ErrorAlertService } from './shared/global-error-handler.service';
+import { ErrorAlertService } from './shared/global-error-handler.service';
 
 @Component({
   selector: 'app-root',
@@ -24,17 +23,11 @@ export class AppComponent implements OnDestroy {
   username: string;
 
   constructor(
-    private translate: TranslateService,
     private authenticationService: AuthenticationService,
     private router: Router,
     private alertService: ErrorAlertService,
     public zone: NgZone,
   ) {
-    const browserLang = translate.getBrowserLang();
-
-    translate.setDefaultLang('en');
-    translate.use(browserLang);
-
     this.authenticationChange = authenticationService.user.subscribe(email => {
       this.authenticated = email !== undefined;
       this.username = email;
@@ -55,9 +48,9 @@ export class AppComponent implements OnDestroy {
 
   private addAlert(alert: any): void {
     if (alert && alert.message) {
-      let alertItem = {
+      const alertItem = {
         message: alert.message
-      }
+      };
       if (this.alerts.indexOf(alertItem) === -1) {
         this.zone.run(() => this.alerts.push(alertItem));
       }

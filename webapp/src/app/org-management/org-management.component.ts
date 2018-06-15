@@ -1,9 +1,12 @@
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
+
 import {
   Component,
   OnInit,
   ViewChild,
 } from '@angular/core';
-import { TranslateService } from '@ngx-translate/core';
 
 import { OrgListComponent } from './org-list/org-list.component';
 
@@ -16,13 +19,7 @@ import { OrgListComponent } from './org-list/org-list.component';
 export class OrgManagementComponent implements OnInit {
   @ViewChild('orgList') orgList: OrgListComponent;
 
+  constructor() {}
 
-  constructor(private translate: TranslateService,) {
-    const browserLang = translate.getBrowserLang();
-    translate.setDefaultLang('en');
-    translate.use(browserLang);
-  }
-
-  ngOnInit() {
-  }
+  ngOnInit() {}
 }

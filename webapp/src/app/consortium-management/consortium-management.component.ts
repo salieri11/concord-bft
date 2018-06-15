@@ -1,65 +1,67 @@
-import { Observable } from 'rxjs/Observable';
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
 import {
-	ChangeDetectorRef,
+  ChangeDetectorRef,
   Component,
   OnInit,
   ViewChild,
 } from '@angular/core';
 import {
-  FormArray,
   FormBuilder,
   FormGroup,
   Validators,
 } from '@angular/forms';
-import { ActivatedRoute, Params } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 
-import { GridOptions, GridColumn } from '../grid/shared/grid.model';
+import { GridOptions } from '../grid/shared/grid.model';
 import { GridComponent } from '../grid/grid.component';
 import { ConsortiumService } from './shared/consortium.service';
 import { Consortium } from './shared/consortium.model';
 
 
 @Component({
-  selector: 'fb-consortium-management',
+  selector: 'app-consortium-management',
   templateUrl: './consortium-management.component.html',
   styleUrls: ['./consortium-management.component.scss']
 })
 export class ConsortiumManagementComponent implements OnInit {
   @ViewChild('grid') grid: GridComponent;
-  openModalForm: boolean = false;
-  modalTitle: string = '';
+  openModalForm = false;
+  modalTitle = '';
   formType: string;
-  modalSize: string = 'md';
+  modalSize = 'md';
   gridOptions: GridOptions = new GridOptions();
 
   addConsortiumForm: FormGroup;
-	get credentialType(): any {
-    return this.addConsortiumForm.get('credentialType')
-  };
+  get credentialType(): any {
+    return this.addConsortiumForm.get('credentialType');
+  }
   deleteConsortiumForm: FormGroup;
   selectedRows: Array<Consortium>;
-  credentialOptions: Array<{name?: string; value: string}> = [
-  		{value: 'userAuth'},
-  		{value: 'certificate'},
-  		{value: 'configFile'},
+  credentialOptions: Array<{ name?: string; value: string }> = [
+    { value: 'userAuth' },
+    { value: 'certificate' },
+    { value: 'configFile' },
   ];
 
   constructor(
     private consortiumService: ConsortiumService,
     private changeDetectorRef: ChangeDetectorRef,
     private fb: FormBuilder,
-    private translate: TranslateService,
-    private route: ActivatedRoute
+    private translate: TranslateService
   ) {
+    const browserLang = translate.getBrowserLang();
+    translate.setDefaultLang('en');
+    translate.use(browserLang);
 
-    this.gridOptions.getData = (params?: any) => {
-      return this.consortiumService.getFakeData(params);
+    this.gridOptions.getData = () => {
+      return this.consortiumService.getFakeData();
       // return this.consortiumService.getList(params);
     };
 
     translate.get('consortium.grid')
-      .subscribe(grid => this.handleGrid(grid))
+      .subscribe(grid => this.handleGrid(grid));
   }
 
   ngOnInit() {
@@ -76,18 +78,18 @@ export class ConsortiumManagementComponent implements OnInit {
   addConsortium(): void {
     const formModel = this.addConsortiumForm.value;
 
-    let consortium: Consortium = {
+    const consortium: Consortium = {
       name: formModel.name,
       members: formModel.members,
-    }
+    };
 
     this.openModalForm = false;
 
     this.consortiumService.create(consortium)
-     .subscribe(response => this.handleAdd(response));
+      .subscribe(response => this.handleAdd(response));
   }
 
-  confirmDeleteConsortium(id: number): void {
+  confirmDeleteConsortium(): void {
     this.openModal('delete');
   }
 
@@ -127,7 +129,7 @@ export class ConsortiumManagementComponent implements OnInit {
     this.formType = type;
 
     switch (type) {
-      case "add":
+      case 'add':
         this.createAddConsortiumForm();
         this.modalSize = 'md';
         this.translate.get('consortium.addConsortiumForm.title')
@@ -135,7 +137,7 @@ export class ConsortiumManagementComponent implements OnInit {
 
         break;
 
-      case "delete":
+      case 'delete':
         this.modalSize = 'sm';
         this.translate.get('consortium.deleteConsortiumForm.title')
           .subscribe(title => this.modalTitle = title);
@@ -168,16 +170,16 @@ export class ConsortiumManagementComponent implements OnInit {
       name: grid.columns.members.title,
       type: 'info',
       renderCell: {
-      	main: (row: Consortium) => {
-  	    	return row.members.length;
-	      },
-      	info: (row: Consortium) => {
-  	    	return `<h3>Members</h3>
-        		<ol class="list">
-							${row.members.join(',').split(',').map((members, i) => `
-    					<li>${members}</li>`).join('')}
-        		</ol>`
-	      }
+        main: (row: Consortium) => {
+          return row.members.length;
+        },
+        info: (row: Consortium) => {
+          return `<h3>Members</h3>
+            <ol class="list">
+              ${row.members.join(',').split(',').map((members) => `
+              <li>${members}</li>`).join('')}
+            </ol>`;
+        }
       }
     }, {
       id: 'createdOn',

@@ -1,3 +1,7 @@
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
+
 import { NgModule } from '@angular/core';
 import { Routes, RouterModule } from '@angular/router';
 
@@ -9,9 +13,6 @@ const routes: Routes = [
         path: 'consortium',
         canActivate: [AuthenticatedGuard],
         component: ConsortiumManagementComponent,
-       //  children: [
-			    // { path: ':id', component: BlockchainComponent },
-       //  ]
     },
 
 ];

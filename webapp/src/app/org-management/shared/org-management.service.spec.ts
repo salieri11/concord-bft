@@ -1,3 +1,7 @@
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
+
 import { TestBed, inject } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 
@@ -6,7 +10,7 @@ import { OrgManagementService } from './org-management.service';
 describe('OrgManagementService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-    	imports: [HttpClientTestingModule],
+      imports: [HttpClientTestingModule],
       providers: [OrgManagementService]
     });
   });

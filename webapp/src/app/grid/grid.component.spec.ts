@@ -1,6 +1,9 @@
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { Observable } from 'rxjs/Observable';
-import { ClarityModule } from "@clr/angular";
+import { ClarityModule } from '@clr/angular';
 import { RouterTestingModule } from '@angular/router/testing';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -9,7 +12,6 @@ import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 
-import { GridListResponse, GridMeta } from './shared/grid.model';
 import { GridComponent } from './grid.component';
 
 import { ErrorAlertService } from '../shared/global-error-handler.service';
@@ -64,8 +66,8 @@ describe('GridComponent', () => {
           observer.complete();
         });
       },
-      paginationTitle: "string"
-    }
+      paginationTitle: 'string'
+    };
       fixture.detectChanges();
   });
 

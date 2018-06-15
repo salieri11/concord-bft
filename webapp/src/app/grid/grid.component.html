@@ -62,7 +62,7 @@
                 <clr-dg-footer>
                     <clr-dg-pagination #pagination [clrDgPageSize]="meta.size">
                         {{ pagination.firstItem + 1 }} - {{ pagination.lastItem + 1 }}
-                        of {{ meta.total }} {{ options.paginationTitle }}
+                        {{ 'grid.pagination.of' | translate }} {{ meta.total }} {{ options.paginationTitle }}
                     </clr-dg-pagination>
                 </clr-dg-footer>
             </clr-datagrid>

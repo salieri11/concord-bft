@@ -1,15 +1,17 @@
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { BrowserModule }    from '@angular/platform-browser';
+import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule } from '@angular/forms';  // <-- #1 import module
 import { FormsModule } from '@angular/forms';  // <-- #1 import module
-import { ClarityModule } from "@clr/angular";
+import { ClarityModule } from '@clr/angular';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { GridModule } from '../../grid/grid.module';
 
-import { ActivatedRoute, Params } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 
 import { BlockchainComponent } from './blockchain.component';
 import { OrgListComponent } from '../../org-management/org-list/org-list.component';
@@ -54,7 +56,12 @@ describe('BlockchainComponent', () => {
         BlockchainComponent,
         OrgListComponent,
       ],
-      providers: [BlockchainsService, KubernetesService, OrgManagementService, {
+      providers: [
+        BlockchainsService,
+        KubernetesService,
+        OrgManagementService,
+        TranslateService,
+        {
         provide: ActivatedRoute,
         useValue: {
           params: {

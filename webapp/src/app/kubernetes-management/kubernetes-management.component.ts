@@ -1,46 +1,47 @@
-import { Observable } from 'rxjs/Observable';
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
+
 import {
-	ChangeDetectorRef,
+  ChangeDetectorRef,
   Component,
   OnInit,
   ViewChild
 } from '@angular/core';
 import {
-  FormArray,
   FormBuilder,
   FormGroup,
   Validators
 } from '@angular/forms';
-import { ActivatedRoute, Params } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 
-import { GridOptions, GridColumn } from '../grid/shared/grid.model';
+import { GridOptions } from '../grid/shared/grid.model';
 import { GridComponent } from '../grid/grid.component';
 import { KubernetesService } from './shared/kubernetes.service';
 import { Kubernetes } from './shared/kubernetes.model';
 
-
 @Component({
-  selector: 'baas-kubernetes-management',
+  selector: 'app-kubernetes-management',
   templateUrl: './kubernetes-management.component.html',
   styleUrls: ['./kubernetes-management.component.scss']
 })
 export class KubernetesManagementComponent implements OnInit {
   @ViewChild('grid') grid: GridComponent;
-  openModalForm: boolean = false;
-  modalTitle: string = '';
+  openModalForm = false;
+  modalTitle = '';
   formType: string;
-  modalSize: string = 'md';
+  modalSize = 'md';
   gridOptions: GridOptions = new GridOptions();
 
   addKubeForm: FormGroup;
-	get credentialType(): any { return this.addKubeForm.get('credentialType') };
+  get credentialType(): any { return this.addKubeForm.get('credentialType'); }
   deleteKubeForm: FormGroup;
   selectedRows: Array<Kubernetes>;
-  credentialOptions: Array<{name?: string; value: string}> = [
-  		{value: 'basic_auth', name: 'Basic Auth'},
-  		{value: 'certificate', name: 'Certificate'},
-  		{value: 'configFile', name: 'configFile'},
+  credentialOptions: Array<{ name?: string; value: string }> = [
+    { value: 'basic_auth', name: 'Basic Auth' },
+    { value: 'certificate', name: 'Certificate' },
+    { value: 'configFile', name: 'configFile' },
   ];
 
   constructor(
@@ -50,30 +51,34 @@ export class KubernetesManagementComponent implements OnInit {
     private translate: TranslateService,
     private route: ActivatedRoute
   ) {
+    const browserLang = translate.getBrowserLang();
+    translate.setDefaultLang('en');
+    translate.use(browserLang);
 
     this.gridOptions.getData = (params?: any) => {
       return this.kubeService.getList(params);
     };
 
     translate.get('kubernetes.grid')
-      .subscribe(grid => this.handleGrid(grid))
+      .subscribe(grid => this.handleGrid(grid));
 
     translate.get('kubernetes.addKubeForm.inputs.credentialType.options')
-      .subscribe(options => this.handleCredentialTypes(options))
+      .subscribe(options => this.handleCredentialTypes(options));
   }
 
   ngOnInit() {
     this.route.fragment.subscribe(fragment => {
-        switch (fragment) {
-          case "add":
-            this.openAddKube();
-            break;
+      switch (fragment) {
+        case 'add':
+          this.openAddKube();
+          break;
 
-          default:
-            // code...
-            break;
-        }
-    });  }
+        default:
+          // code...
+          break;
+      }
+    });
+  }
 
   selectedRowChange(rows: Array<Kubernetes>): void {
     this.selectedRows = rows;
@@ -86,51 +91,51 @@ export class KubernetesManagementComponent implements OnInit {
   addKube(): void {
     const formModel = this.addKubeForm.value;
 
-    let kube: Kubernetes = {
+    const kube: Kubernetes = {
       name: formModel.name,
       apiServerUrl: formModel.apiServerUrl,
       credential: {
         type: formModel.credentialType,
         value: undefined
       }
-    }
+    };
 
     switch (formModel.credentialType) {
-    	case "basic_auth":
-    		kube.credential.value = {
+      case 'basic_auth':
+        kube.credential.value = {
           username: formModel.username,
-    		  password: formModel.password
-        }
-    		break;
+          password: formModel.password
+        };
+        break;
 
-    	case "certificate":
-    		kube.credential.value = {
+      case 'certificate':
+        kube.credential.value = {
           certificate: formModel.certificate,
-    		  private_key: formModel.key
-        }
-    		break;
+          private_key: formModel.key
+        };
+        break;
 
-    	case "config":
-    		kube.credential.value = {
+      case 'config':
+        kube.credential.value = {
           file: formModel.configFile
-        }
-    		break;
+        };
+        break;
 
-    	default:
-    		console.warn("Whoops! a credential type wasn't caught")
-    		break;
+      default:
+        console.warn('Whoops! a credential type wasn\'t caught');
+        break;
     }
 
     this.kubeService.create(kube)
-     .subscribe(response => {
-       if (!response) {
-         response = kube;
-       }
-       this.handleAdd(response)
+      .subscribe(response => {
+        if (!response) {
+          response = kube;
+        }
+        this.handleAdd(response);
       });
   }
 
-  confirmDeleteKube(id: number): void {
+  confirmDeleteKube(): void {
     this.openModal('delete');
   }
 
@@ -176,7 +181,7 @@ export class KubernetesManagementComponent implements OnInit {
     this.formType = type;
 
     switch (type) {
-      case "add":
+      case 'add':
         this.createAddKubeForm();
         this.modalSize = 'md';
         this.translate.get('kubernetes.addKubeForm.title')
@@ -184,7 +189,7 @@ export class KubernetesManagementComponent implements OnInit {
 
         break;
 
-      case "delete":
+      case 'delete':
         this.modalSize = 'sm';
         this.translate.get('kubernetes.deleteKubeForm.title')
           .subscribe(title => this.modalTitle = title);
@@ -257,8 +262,8 @@ export class KubernetesManagementComponent implements OnInit {
   }
 
   private handleCredentialTypes(options: any): void {
-  	this.credentialOptions.forEach(option => {
-  		option.name = options[option.value].title;
-  	});
+    this.credentialOptions.forEach(option => {
+      option.name = options[option.value].title;
+    });
   }
 }

@@ -1,20 +1,24 @@
-export interface Consortium {
-	id?: number;
-	name: string;
-	members: Array<string>;
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
 
-	createdOn?: number;
-	updatedOn?: number;
+export interface Consortium {
+  id?: number;
+  name: string;
+  members: Array<string>;
+
+  createdOn?: number;
+  updatedOn?: number;
 }
 
 export interface ConsortiumResponse {
-	_embedded: {
-		organizations: Array<Consortium>,
-		_links: any,
-	};
-	page: {
-		size: number,
-		totalElements: number,
-		totalPages: number
-	}
+  _embedded: {
+    organizations: Array<Consortium>,
+    _links: any,
+  };
+  page: {
+    size: number,
+    totalElements: number,
+    totalPages: number
+  };
 }

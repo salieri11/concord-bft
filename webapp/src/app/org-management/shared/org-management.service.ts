@@ -1,16 +1,19 @@
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
+
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/operator/map';
-import { ErrorObservable } from 'rxjs/observable/ErrorObservable';
 import { Org, OrgResponse } from './org-management.model';
 import { GridListResponse } from '../../grid/shared/grid.model';
 
 
 @Injectable()
 export class OrgManagementService {
-  orgUrl: string = '/api/organizations';
+  orgUrl = '/api/organizations';
   headers: HttpHeaders = new HttpHeaders({
     'Content-Type':  'application/json',
     // 'Authorization': 'my-auth-token'
@@ -21,7 +24,7 @@ export class OrgManagementService {
   }
 
   getList(params: any, changeUrl?: string): Observable<GridListResponse> {
-    let options = {headers: this.headers};
+    const options = {headers: this.headers};
     let url = this.orgUrl;
 
     if (changeUrl) {
@@ -31,8 +34,10 @@ export class OrgManagementService {
     if (params) {
       let httpParams = new HttpParams();
 
-      for (let prop in params) {
-        httpParams = httpParams.set(prop, params[prop]);
+      for (const prop in params) {
+        if (params[prop]) {
+          httpParams = httpParams.set(prop, params[prop]);
+        }
       }
 
       options['params'] = httpParams;
@@ -43,16 +48,16 @@ export class OrgManagementService {
   }
 
   getUsableOrgs(): Observable<GridListResponse> {
-    const url = '/api/organizations/search/usablePeerOrgs'
-    let options = {headers: this.headers};
+    const url = '/api/organizations/search/usablePeerOrgs';
+    const options = {headers: this.headers};
 
     return this.http.get<any>(url, options)
     .map(response => this.handleResponse(response));
   }
 
   getOrdererOrgs(): Observable<GridListResponse> {
-    let options = {headers: this.headers};
-    const url = 'api/organizations/search/usableOrdererOrgs'
+    const options = {headers: this.headers};
+    const url = 'api/organizations/search/usableOrdererOrgs';
 
     return this.http.get<any>(url, options)
     .map(response => this.handleResponse(response));
@@ -65,9 +70,9 @@ export class OrgManagementService {
       meta: {
         size: response.page ? response.page.size : 0,
         total: response.page ? response.page.totalElements : 0,
-        totalPages: response.page ? response.page.totalPages: 0
+        totalPages: response.page ? response.page.totalPages : 0
       }
-    }
+    };
   }
 
   create(org: Org): Observable<any> {
@@ -75,12 +80,12 @@ export class OrgManagementService {
   }
 
   delete(id: number): Observable<any> {
-    let url = `${this.orgUrl}/${id}`
+    const url = `${this.orgUrl}/${id}`;
     return this.http.delete(url, {headers: this.headers});
   }
 
   import(body): Observable<any> {
-    let url = `${this.orgUrl}/import`;
+    const url = `${this.orgUrl}/import`;
 
     const httpOptions = {
       headers: new HttpHeaders({
@@ -89,11 +94,11 @@ export class OrgManagementService {
       })
     };
 
-    return this.http.post(url, body, {headers: this.headers});
+    return this.http.post(url, body, httpOptions);
   }
 
-  getFakeData(params: any): Observable<Array<Org>> {
-    let d = new Date(),
+  getFakeData(): Observable<Array<Org>> {
+    const d = new Date(),
       data = [{
         id: 1,
         name: 'Org1',

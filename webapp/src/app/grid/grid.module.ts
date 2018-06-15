@@ -1,13 +1,17 @@
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
+
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GridComponent } from './grid.component';
-import { ClarityModule } from "@clr/angular";
-import { FormsModule }   from '@angular/forms';
-import { BrowserModule }    from '@angular/platform-browser';
+import { ClarityModule } from '@clr/angular';
+import { FormsModule } from '@angular/forms';
+import { BrowserModule } from '@angular/platform-browser';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { RouterModule } from '@angular/router';
-import { ErrorAlertService } from '../shared/global-error-handler.service'
+import { ErrorAlertService } from '../shared/global-error-handler.service';
 
 
 @NgModule({
@@ -22,7 +26,7 @@ import { ErrorAlertService } from '../shared/global-error-handler.service'
   declarations: [GridComponent],
   providers: [ErrorAlertService],
   exports: [
-      GridComponent,
+    GridComponent,
   ],
 })
 export class GridModule { }

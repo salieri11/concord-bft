@@ -1,3 +1,6 @@
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ChannelListComponent } from './channel-list.component';
@@ -8,9 +11,9 @@ describe('ChannelListComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ ChannelListComponent ]
+      declarations: [ChannelListComponent]
     })
-    .compileComponents();
+      .compileComponents();
   }));
 
   beforeEach(() => {

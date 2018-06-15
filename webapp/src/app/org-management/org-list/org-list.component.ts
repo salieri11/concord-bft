@@ -1,4 +1,7 @@
-import { Observable } from 'rxjs/Observable';
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
+
 import {
   Input,
   ChangeDetectorRef,
@@ -7,7 +10,6 @@ import {
   ViewChild,
 } from '@angular/core';
 import {
-  FormArray,
   FormBuilder,
   FormGroup,
   Validators
@@ -16,7 +18,7 @@ import { ActivatedRoute } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
-import { GridOptions, GridColumn } from '../../grid/shared/grid.model';
+import { GridOptions } from '../../grid/shared/grid.model';
 import { GridComponent } from '../../grid/grid.component';
 import { OrgManagementService } from '../shared/org-management.service';
 import { Org } from '../shared/org-management.model';
@@ -29,14 +31,14 @@ import { Org } from '../shared/org-management.model';
 export class OrgListComponent implements OnInit {
   @Input('url') url: string;
   @ViewChild('grid') grid: GridComponent;
-  openModalForm: boolean = false;
-  modalTitle: string = '';
+  openModalForm = false;
+  modalTitle = '';
   formType: string;
-  modalSize: string = 'md';
+  modalSize = 'md';
   gridOptions: GridOptions = new GridOptions();
 
   addOrgForm: FormGroup;
-  addingOrg: boolean = false;
+  addingOrg = false;
   importOrgForm: FormGroup;
   deleteOrgForm: FormGroup;
   selectedRows: Array<Org>;
@@ -59,13 +61,13 @@ export class OrgListComponent implements OnInit {
     };
 
     translate.get('organization.grid')
-      .subscribe(grid => this.handleGrid(grid))
+      .subscribe(grid => this.handleGrid(grid));
   }
 
   ngOnInit() {
     this.route.fragment.subscribe(fragment => {
         switch (fragment) {
-          case "add":
+          case 'add':
             this.openAddOrg();
             break;
 
@@ -94,7 +96,7 @@ export class OrgListComponent implements OnInit {
       peerNumber: formModel.peerNumber,
       type: formModel.type,
       domain: formModel.domain
-    }
+    };
 
     this.orgService.create(org)
      .subscribe(
@@ -124,14 +126,14 @@ export class OrgListComponent implements OnInit {
     reader.readAsText(event.target.files[0]);
   }
 
-  importOrg(body: any): void {
+  importOrg(): void {
     const formModel = this.importOrgForm.value;
 
     const orgImport = {
       name: formModel.name,
       certificate: formModel.certificate,
       privateKey: formModel.privateKey,
-    }
+    };
 
     this.orgService.import(orgImport)
       .subscribe(
@@ -157,7 +159,7 @@ export class OrgListComponent implements OnInit {
     reader.readAsText(event.target.files[0]);
   }
 
-  confirmDeleteOrg(id: number): void {
+  confirmDeleteOrg(): void {
     this.openModal('delete');
   }
 
@@ -168,7 +170,7 @@ export class OrgListComponent implements OnInit {
           response => this.handleDeletion(response),
           error => this.handleError(error),
         );
-    })
+    });
   }
 
   private createAddOrgForm() {
@@ -192,7 +194,7 @@ export class OrgListComponent implements OnInit {
     this.formType = type;
 
     switch (type) {
-      case "add":
+      case 'add':
         this.createAddOrgForm();
         this.modalSize = 'md';
         this.translate.get('organization.addOrgForm.title')
@@ -200,7 +202,7 @@ export class OrgListComponent implements OnInit {
 
         break;
 
-      case "import":
+      case 'import':
         this.modalSize = 'md';
         this.translate.get('organization.importOrgForm.title')
           .subscribe(title => this.modalTitle = title);
@@ -208,7 +210,7 @@ export class OrgListComponent implements OnInit {
 
         break;
 
-      case "delete":
+      case 'delete':
         this.modalSize = 'sm';
         this.translate.get('organization.deleteOrgForm.title')
           .subscribe(title => this.modalTitle = title);
@@ -246,8 +248,8 @@ export class OrgListComponent implements OnInit {
   }
 
   private handleGrid(grid: any): void {
-    console.log('grid')
-    console.log(grid)
+    console.log('grid');
+    console.log(grid);
     this.gridOptions.paginationTitle = grid.pagination.title;
 
     this.gridOptions.columns = [{

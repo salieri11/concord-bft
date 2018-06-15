@@ -1,11 +1,13 @@
-import { Injectable, ErrorHandler } from '@angular/core';
-import {HttpErrorResponse} from '@angular/common/http';
-import { BehaviorSubject } from 'rxjs/BehaviorSubject';
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
 
+import { Injectable, ErrorHandler } from '@angular/core';
+import { BehaviorSubject } from 'rxjs/BehaviorSubject';
 
 @Injectable()
 export class ErrorAlertService {
-	notify: BehaviorSubject<any> = new BehaviorSubject(null);
+  notify: BehaviorSubject<any> = new BehaviorSubject(null);
 
   constructor() {
   }
@@ -19,13 +21,11 @@ export class ErrorAlertService {
 @Injectable()
 export class GlobalErrorHandlerService implements ErrorHandler {
 
-	constructor(
-		private alert: ErrorAlertService
-	) {}
+  constructor(
+    private alert: ErrorAlertService
+  ) { }
 
-	handleError(error: any) {
-    // if (error instanceof HttpErrorResponse) {
-	    this.alert.add(error);
-    // }
+  handleError(error: any) {
+    this.alert.add(error);
   }
 }

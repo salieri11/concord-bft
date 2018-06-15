@@ -1,11 +1,11 @@
 <clr-main-container>
   <clr-alerts>
     <clr-alert *ngFor="let alert of alerts" [clrAlertType]="'alert-danger'" [clrAlertAppLevel]="true">
-        <clr-alert-item>
-            <span class="alert-text">
+      <clr-alert-item>
+        <span class="alert-text">
                 {{ alert.message }}
             </span>
-        </clr-alert-item>
+      </clr-alert-item>
     </clr-alert>
   </clr-alerts>
   <clr-header class="header-6" *ngIf="authenticated">
@@ -14,6 +14,25 @@
         <clr-icon shape="vm-bug"></clr-icon>
         <span class="title">{{'title' | translate}}</span>
       </a>
+    </div>
+    <div class="header-nav">
+      <clr-dropdown>
+        <button class="nav-icon" clrDropdownTrigger>
+          {{ 'nav.menu.title' | translate }}
+          <clr-icon shape="caret down"></clr-icon>
+        </button>
+        <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
+           <h4 class="dropdown-header">System Admin</h4>
+          <a clrDropdownItem>
+            <clr-icon shape="wand"></clr-icon> {{ 'nav.menu.options.deploy.title' | translate }}</a>
+          <a [routerLink]="['/organization']" fragment="add" clrDropdownItem>
+            <clr-icon shape="organization"></clr-icon> {{ 'nav.menu.options.addOrg.title' | translate }}</a>
+          <a [routerLink]="['/blockchains']" fragment="add" clrDropdownItem>
+            <clr-icon shape="blocks-group"></clr-icon> {{ 'nav.menu.options.addBlockchains.title' | translate }}</a>
+          <a [routerLink]="['/kubernetes']" fragment="add" clrDropdownItem>
+            <clr-icon shape="host"></clr-icon> {{ 'nav.menu.options.addKubernetes.title' | translate }}</a>
+        </clr-dropdown-menu>
+      </clr-dropdown>
     </div>
     <div class="header-actions">
       <div class="nav-text active-nodes">
@@ -64,16 +83,16 @@
         {{ 'nav.sysadmin.title' | translate }}
       </label>
       <a clrVerticalNavLink [routerLink]="['/blockchains']" routerLinkActive="active">
-          <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon> {{ 'nav.blockchains.title' | translate }}
+        <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon> {{ 'nav.blockchains.title' | translate }}
       </a>
       <a clrVerticalNavLink [routerLink]="['/consortium']" routerLinkActive="active">
-          <clr-icon clrVerticalNavIcon shape="users"></clr-icon> {{ 'nav.consortium.title' | translate }}
+        <clr-icon clrVerticalNavIcon shape="users"></clr-icon> {{ 'nav.consortium.title' | translate }}
       </a>
       <a clrVerticalNavLink [routerLink]="['/organization']" routerLinkActive="active">
-          <clr-icon clrVerticalNavIcon shape="organization"></clr-icon> {{ 'nav.organization.title' | translate }}
+        <clr-icon clrVerticalNavIcon shape="organization"></clr-icon> {{ 'nav.organization.title' | translate }}
       </a>
       <a clrVerticalNavLink [routerLink]="['/kubernetes']" routerLinkActive="active">
-          <clr-icon clrVerticalNavIcon shape="host"></clr-icon> {{ 'nav.kubernetes.title' | translate }}
+        <clr-icon clrVerticalNavIcon shape="host"></clr-icon> {{ 'nav.kubernetes.title' | translate }}
       </a>
     </clr-vertical-nav>
   </div>

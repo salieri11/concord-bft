@@ -56,7 +56,7 @@
                     </form>
                 </ng-container>
                 <ng-container *ngSwitchCase="'delete'">
-                    <p>Are you sure you want to delete <span *ngFor="let r of selectedRows">{{ r.name }} </span> ?</p>
+                    <p>{{ 'deleteModal.bodyText' | translate}} <span *ngFor="let r of selectedRows">{{ r.name }} </span> ?</p>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline" (click)="openModalForm = false">Cancel</button>
                         <button type="button" class="btn btn-primary" (click)="deleteConsortium()">
