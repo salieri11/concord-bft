@@ -226,8 +226,7 @@ class HelenAPITests(test_suite.TestSuite):
 
             (present, missing) = self.requireFields(
                 txResult,
-                ["hash", "from", "to", "value", "input", "blockHash",
-                 "blockNumber", "transactionIndex", "nonce"])
+                ["hash", "from", "value", "input", "nonce"])
             if not present:
                 return (False, "No '{}' field in tx response.".format(missing))
 
