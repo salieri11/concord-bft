@@ -51,10 +51,12 @@ public final class AthenaTCPConnection implements IAthenaConnection {
          _socket.setTcpNoDelay(true);
          _socket.setSoTimeout(_receiveTimeout);
       } catch (UnknownHostException e) {
-         _logger.error("Error creating TCP connection with Athena");
+         _logger.error("Error creating TCP connection with Athena. Host= " 
+                       + host + ", port= " + port);
          throw new UnknownHostException();
       } catch (IOException e) {
-         _logger.error("Error creating input/output stream with Athena");
+         _logger.error("Error creating input/output stream with Athena. Host= "
+                       + host + ", port= " + port);
          throw new IOException();
       }
 

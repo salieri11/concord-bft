@@ -3,6 +3,7 @@ package connections;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 
 import configurations.IConfiguration;
 
@@ -10,7 +11,7 @@ public final class AthenaConnectionFactory {
    private ConnectionType _type;
    private IConfiguration _conf;
    private ArrayList<Authority> athenaList;
-   private Random rand;
+   private AtomicLong nextAuthority;
 
    public enum ConnectionType {
       TCP,
@@ -30,17 +31,17 @@ public final class AthenaConnectionFactory {
          Authority a = new Authority(group[0], Integer.parseInt(group[1]));
          athenaList.add(a);
       }
-      rand = new Random();
+      nextAuthority.set(0);
    }
 
    public IAthenaConnection create() throws IOException,
                                      UnsupportedOperationException {
       switch (_type) {
       case TCP:
-         
-         //Randomly select an Athena instance to connect to
-         int randomInt = rand.nextInt(athenaList.size());
-         Authority athenaInstance = athenaList.get(randomInt);
+         //Select an Athena instance to connect with in a round robin fashion
+         int chosenAuthority 
+            = (int)nextAuthority.getAndIncrement() % athenaList.size();
+         Authority athenaInstance = athenaList.get(chosenAuthority);
          AthenaTCPConnection connection
             = new AthenaTCPConnection(_conf,
                                       athenaInstance.getHost(),
