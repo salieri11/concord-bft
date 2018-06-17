@@ -9,6 +9,9 @@ import json
 import logging
 import os
 import traceback
+import string
+import random
+from time import sleep
 
 from . import test_suite
 from util.product import Product
@@ -16,6 +19,7 @@ from rest.request import Request
 import util.json_helper
 
 log = logging.getLogger(__name__)
+
 
 class HelenAPITests(test_suite.TestSuite):
    _args = None
@@ -36,7 +40,7 @@ class HelenAPITests(test_suite.TestSuite):
       if self._productMode:
          try:
             p = self.launchProduct(self._args.resultsDir,
-                                   self._apiBaseServerUrl+"/api/athena/eth",
+                                   self._apiBaseServerUrl + "/api/athena/eth",
                                    self._userConfig["product"])
          except Exception as e:
             log.error(traceback.format_exc())
@@ -90,7 +94,13 @@ class HelenAPITests(test_suite.TestSuite):
               ("swaggerDef", self._test_getSwaggerDef), \
               ("blockList", self._test_getBlockList), \
               ("block", self._test_getBlocks), \
-              ("transaction", self._test_getTransactions)]
+              ("transaction", self._test_getTransactions), \
+              ("contract_upload", self._test_contractUpload), \
+              ("get_contracts", self._test_getAllContracts), \
+              ("version_upload", self._test_versionUpload), \
+              ("get_versions", self._test_getAllVersions), \
+              ("get_version", self._test_getVersion), \
+              ("duplicate_contract", self._test_duplicateContractUpload)]
 
    # Tests: expect one argument, a Request, and produce a 2-tuple
    # (bool success, string info)
@@ -126,8 +136,8 @@ class HelenAPITests(test_suite.TestSuite):
       (present, missing) = self.requireFields(result, ["info", "paths"])
       if not present:
          return (False,
-                 "No '{}' field in result; unlikely to be swagger.".format(
-                    missing))
+                 "No '{}' field in result; unlikely to be swagger."
+                 .format(missing))
 
       if not "title" in result["info"]:
          return (False, "No 'title' in result['info']; unlikely to be swagger")
@@ -164,9 +174,9 @@ class HelenAPITests(test_suite.TestSuite):
          earliestFound = min(earliestFound, b["number"]) \
                          if earliestFound else b["number"]
 
-      if (latestFound-earliestFound) != len(result["blocks"])-1:
+      if (latestFound - earliestFound) != len(result["blocks"]) - 1:
          return (False, "Range of block IDs does not equal length of list")
-      if latestBlock and (not latestBlock-1 == latestFound):
+      if latestBlock and (not latestBlock - 1 == latestFound):
          return (False, "Latest block in response is not immediately prior"
                  " to earliest block in previous response")
 
@@ -216,8 +226,7 @@ class HelenAPITests(test_suite.TestSuite):
 
          (present, missing) = self.requireFields(
             txResult,
-            ["hash", "from", "to", "value", "input", "blockHash",
-             "blockNumber", "transactionIndex", "nonce"])
+            ["hash", "from", "value", "input", "nonce"])
          if not present:
             return (False, "No '{}' field in tx response.".format(missing))
 
@@ -226,8 +235,123 @@ class HelenAPITests(test_suite.TestSuite):
 
       return (True, None)
 
+   def contract_upload_util(self, request, contractId,
+                            contractVersion, sourceCode):
+      '''
+      A helper method to upload simple hello world contract.
+      '''
+      data = {
+         "id": 1,
+      };
+      data["from"] = "0x1111111111111111111111111111111111111111"
+      data["contract_id"] = contractId
+      data["version"] = contractVersion
+      data["sourcecode"] = sourceCode
+      return request.uploadContract(data)["result"]
+
+   def random_string_generator(self, size=6, chars=string.ascii_uppercase + string.digits):
+      return ''.join(random.choice(chars) for _ in range(size))
+
+   def upload_mock_contract(self, request, contractId=None,
+                            contractVersion=None):
+      if contractId is None:
+         contractId = self.random_string_generator()
+      if contractVersion is None:
+         contractVersion = self.random_string_generator()
+
+      contractFile = open("resources/contracts/HelloWorld.sol", 'r')
+      result = self.contract_upload_util(request, contractId, contractVersion,
+                                         contractFile.read())
+      if result[0]["error"] is None:
+         return (contractId, contractVersion)
+      else:
+         raise Exception("Contract upload failed with error '{}'".format(result["error"]))
+
+   def has_contract(self, request, contractId, contractVersion):
+      result = request.callContractAPI('/api/athena/contracts/' + contractId
+                                       + '/versions/' + contractVersion, "")
+      try:
+         if (result["result"]["contract_id"] == contractId and
+             result["result"]["version"] == contractVersion):
+            return True
+      except Exception as e:
+         print(e)
+         return False
+
+   def _test_contractUpload(self, request):
+      contractId, contractVersion = self.upload_mock_contract(request)
+      result = request.callContractAPI('/api/athena/contracts/' + contractId
+                                       + '/versions/' + contractVersion, "")
+      if self.has_contract(request, contractId, contractVersion):
+         return (True, None)
+      else:
+         return (False, "Unable to retrieve uploaded contract")
+
+   def _test_getAllContracts(self, request):
+      result = request.callContractAPI('/api/athena/contracts', "")
+      existingCount = len(result["result"])
+      contractId, contractVersion = self.upload_mock_contract(request)
+      result = request.callContractAPI('/api/athena/contracts', "")
+      newCount = len(result["result"])
+      result = result["result"][0]
+      if (self.has_contract(request, contractId, contractVersion) and
+          existingCount + 1 == newCount):
+         return (True, None)
+      else:
+         return (False,
+                 "GET /api/athena/contracts did not return correct response." \
+                 "Expected count to be {} but found {}".format(existingCount + 1,
+                                                               newCount))
+
+   def _test_duplicateContractUpload(self, request):
+      contractId, contractVersion = self.upload_mock_contract(request)
+      try:
+         self.upload_mock_contract(request, contractId, contractVersion);
+      except Exception as e:
+         print(e)
+         return (True, None)
+      return (False, "Duplicate upload should not be allowed.")
+
+   def _test_versionUpload(self, request):
+      contractId, contractVersion = self.upload_mock_contract(request)
+      _, newContractVersion = self.upload_mock_contract(request, contractId)
+      if (self.has_contract(request, contractId, newContractVersion) and
+          newContractVersion != contractVersion):
+         return (True, None)
+      else:
+         return (False, "Contract upload failed.");
+
+   def _test_getAllVersions(self, request):
+      contractId, contractVersion = self.upload_mock_contract(request)
+      _, newContractVersion = self.upload_mock_contract(request, contractId)
+      uri = '/api/athena/contracts/' + contractId
+      expectedVersionCount = 2
+      result = request.callContractAPI(uri, "")
+      result = result["result"]
+      if (result["contract_id"] == contractId and
+          len(result["versions"]) == expectedVersionCount):
+         return (True, None)
+      else:
+         return (False,
+                 "GET /api/athena/contracts/{} did not return correct response" \
+                 " expected {} versions".format(contractId, expectedVersionCount))
+
+   def _test_getVersion(self, request):
+      contractId, contractVersion = self.upload_mock_contract(request)
+      uri = '/api/athena/contracts/' + contractId \
+            + '/versions/' + contractVersion
+      result = request.callContractAPI(uri, "")
+      result = result["result"]
+      if (result["contract_id"] == contractId and
+          result["version"] == contractVersion):
+         return (True, None)
+      else:
+         return (False,
+                 "GET /api/athena/contracts/{}/versions/{} did not return" \
+                 " correct response".format(contractId, contractVersion))
+
    def requireFields(self, ob, fieldList):
       for f in fieldList:
-         if not f in fieldList:
+         if not f in ob:
             return (False, f)
       return (True, None)
