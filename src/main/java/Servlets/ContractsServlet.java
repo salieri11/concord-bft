@@ -1,6 +1,10 @@
 package Servlets;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -48,6 +52,25 @@ public class ContractsServlet extends BaseServlet {
    }
    
    /**
+    * Encodes the given string as per URL encoding rules
+    * @param str
+    * @return
+    */
+   private String urlEncode(String str) {
+      String encodedStr;
+      try {
+         encodedStr = URLEncoder.encode(str,
+                 StandardCharsets.UTF_8.name());
+      } catch (UnsupportedEncodingException e) {
+         encodedStr = str;
+         logger.warn("URL encoding exception", e);
+      }
+      return encodedStr;
+   }
+   
+   
+   
+   /**
     * Builds a JSON which is sent as a response object for `GET
     * api/athena/contracts` queries
     * 
@@ -61,7 +84,7 @@ public class ContractsServlet extends BaseServlet {
          JSONObject contract = new JSONObject();
          contract.put("contract_id", cinfo.getContractId());
          contract.put("owner", cinfo.getOwnerAddress());
-         contract.put("url", contractEndpoint + "/" + cinfo.getContractId());
+         contract.put("url", contractEndpoint + "/" + urlEncode(cinfo.getContractId()));
          cArray.add(contract);
       }
       return cArray;
@@ -120,8 +143,10 @@ public class ContractsServlet extends BaseServlet {
          version.put("metadata", metadata);
          // TODO : is there a better way to do it?
          version.put("url",
-                     contractEndpoint + "/" + briefVersionInfo.getContractId() + "/versions/" +
-                             briefVersionInfo.getVersionName());
+                     contractEndpoint + "/" +
+                             urlEncode(briefVersionInfo.getContractId()) +
+                             "/versions/" +
+                             urlEncode(briefVersionInfo.getVersionName()));
          versions.add(version);
       }
       contract.put("versions", versions);
@@ -236,6 +261,12 @@ public class ContractsServlet extends BaseServlet {
    protected void dispatch(final HttpServletRequest request,
                            final HttpServletResponse response) {
       String uri = request.getRequestURI();
+      try {
+         uri = URLDecoder.decode(uri, StandardCharsets.UTF_8.name());
+      } catch (UnsupportedEncodingException e) {
+         logger.warn("URI decoding failed: ", e);
+      }
+      logger.debug("Decoded URI: " + uri);
       int respStatus = HttpServletResponse.SC_OK;
       JSONObject responseJSON = new JSONObject();
       if (request.getMethod().equalsIgnoreCase("GET")) {
@@ -439,8 +470,10 @@ public class ContractsServlet extends BaseServlet {
                     solidityCode);
             
             if (success) {
-               deploymentResult.put("url", contractEndpoint + "/" +
-                       contractId + "/" + "versions/" + contractVersion);
+               deploymentResult.put("url",
+                       contractEndpoint + "/" +
+                               urlEncode(contractId) + "/versions/" +
+                               urlEncode(contractVersion));
                deploymentResult.put("error", null);
             } else {
                deploymentResult.put("url", null);
