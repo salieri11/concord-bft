@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import database.ServiceUnavailableException;
 import org.apache.log4j.Logger;
 
 import database.DatabaseService;
@@ -100,7 +101,8 @@ public class ContractRegistryManager {
    private PreparedStatement getContractOwnerPstmt;
    private PreparedStatement getContractInfoPstmt;
 
-   private ContractRegistryManager() throws SQLException {
+   private ContractRegistryManager() throws SQLException, ServiceUnavailableException {
+      
       Connection con = DatabaseService.getDatabaseConnection();
       con.createStatement().executeUpdate(createNewTableQuery);
 

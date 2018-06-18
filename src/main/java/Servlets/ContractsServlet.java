@@ -30,7 +30,6 @@ import com.vmware.athena.Athena;
  * A servlet which handles all contract management queries sent to
  * `api/athena/contracts/*` URI.
  */
-//TODO: add tests in hermes
 public class ContractsServlet extends BaseServlet {
 
    private static final long serialVersionUID = 1L;
@@ -47,7 +46,7 @@ public class ContractsServlet extends BaseServlet {
          registryManager = ContractRegistryManager.getInstance();
       } catch (Exception e) {
          logger.fatal("Unable to instantiate ContractRegistryManager", e);
-         System.exit(1);
+         registryManager = null;
       }
    }
    
@@ -269,7 +268,17 @@ public class ContractsServlet extends BaseServlet {
       logger.debug("Decoded URI: " + uri);
       int respStatus = HttpServletResponse.SC_OK;
       JSONObject responseJSON = new JSONObject();
-      if (request.getMethod().equalsIgnoreCase("GET")) {
+    
+      // TODO: this nullcheck is fragile. We need to redesign this database
+      // service classes so that other servlets work even if database is
+      // unavailable
+      if (registryManager == null) {
+         // throw error
+         JSONObject error = new JSONObject();
+         error.put("message", "Service unavailable.");
+         responseJSON.put("error", error);
+         respStatus = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
+      } else if (request.getMethod().equalsIgnoreCase("GET")) {
          // If uri has trailing backslash remove it
          if (uri.charAt(uri.length() - 1) == '/') {
             uri = uri.substring(0, uri.length() - 1);
@@ -616,8 +625,17 @@ public class ContractsServlet extends BaseServlet {
    protected void
              doPost(final HttpServletRequest request,
                     final HttpServletResponse response) throws IOException {
+      int respStatus;
       JSONObject responseJSON = new JSONObject();
-      int respStatus = handlePost(request, response, responseJSON);
+      if (registryManager == null) {
+         respStatus = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
+         // throw error
+         JSONObject error = new JSONObject();
+         error.put("message", "Service unavailable.");
+         responseJSON.put("error", error);
+      } else {
+         respStatus = handlePost(request, response, responseJSON);
+      }
       processResponse(response,
               responseJSON.toJSONString(),
               respStatus,

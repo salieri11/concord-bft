@@ -19,30 +19,41 @@ public class DatabaseService {
 
    // TODO: create a pool of connection objects rather than using just a single
    // object
-   private static Connection db;
+   private static Connection db = null;
+   private static boolean initDone = false;
    private static Logger logger = Logger.getLogger(DatabaseService.class);
    private static IConfiguration _conf;
-   static {
+   
+   private static void init() throws Exception {
       _conf
          = ConfigurationFactory.getConfiguration(ConfigurationFactory.ConfigurationType.File);
-      try {
-         String url = _conf.getStringValue("DB_PROTOCOL") + "://"
-            + _conf.getStringValue("DB_IP") + ":"
-            + _conf.getStringValue("DB_PORT") + "/"
-            + _conf.getStringValue("DB_NAME") + "?"
-            + _conf.getStringValue("DB_OPTIONS");
-         logger.debug("Connecting to database at: " + url);
-         db = DriverManager.getConnection(url,
-                                          _conf.getStringValue("DB_USER"),
-                                          _conf.getStringValue("DB_PASSWORD"));
-      } catch (Exception e) {
-         logger.fatal("Error in initializing database: ", e);
-         // TODO: is there a better way than doing system.exit?
-         System.exit(1);
-      }
+      String url = _conf.getStringValue("DB_PROTOCOL") + "://"
+              + _conf.getStringValue("DB_IP") + ":"
+              + _conf.getStringValue("DB_PORT") + "/"
+              + _conf.getStringValue("DB_NAME") + "?"
+              + _conf.getStringValue("DB_OPTIONS");
+      logger.debug("Connecting to database at: " + url);
+      db = DriverManager.getConnection(url,
+              _conf.getStringValue("DB_USER"),
+              _conf.getStringValue("DB_PASSWORD"));
    }
 
-   public static Connection getDatabaseConnection() {
+   public static synchronized Connection getDatabaseConnection() throws
+           ServiceUnavailableException {
+      if (!initDone) {
+         try {
+            init();
+         } catch (Exception e) {
+            logger.error(e);
+         }
+         initDone = true;
+      }
+      
+      if (initDone && db == null) {
+         throw new ServiceUnavailableException("Database service is not " +
+                 "available");
+      }
+      
       return db;
    }
 }
