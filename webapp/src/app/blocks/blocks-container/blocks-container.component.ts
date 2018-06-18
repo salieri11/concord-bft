@@ -5,7 +5,7 @@
 import { Component, OnInit } from '@angular/core';
 
 import { AthenaApiService } from '../../shared/athena-api.service';
-import { BlockListing, BlockListingBlock } from '../../shared/remote-interfaces';
+import { BlockListing, BlockListingBlock} from '../../shared/remote-interfaces';
 
 /**
  * Displays a paginated listing of blocks

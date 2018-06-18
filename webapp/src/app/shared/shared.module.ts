@@ -16,21 +16,25 @@ import { AthenaApiService } from './athena-api.service';
 import { EthApiService } from './eth-api.service';
 import { ATHENA_API_PREFIX, ETHEREUM_API_PREFIX } from './shared.config';
 import { TransactionsStatusFilterComponent } from './components/transactions-status-filter/transactions-status-filter.component';
+import {TransactionListViewComponent} from "./components/transaction-list-view/transaction-list-view.component";
+import {RouterModule} from "@angular/router";
 
 @NgModule({
   imports: [
     CommonModule,
     TranslateModule,
     ClarityModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    RouterModule
   ],
-  declarations: [TransactionsStatusFilterComponent],
+  declarations: [TransactionsStatusFilterComponent, TransactionListViewComponent],
   exports: [
     CommonModule,
     TranslateModule,
     ClarityModule,
     TransactionsStatusFilterComponent,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    TransactionListViewComponent
   ]
 })
 export class SharedModule {

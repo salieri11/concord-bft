@@ -26,6 +26,8 @@ export class TransactionDetailContainerComponent implements OnInit {
   }
 
   loadTransaction(transactionHash) {
-    this.athenaApiService.getTransaction(transactionHash).subscribe(transaction => this.transaction = transaction);
+    this.athenaApiService.getTransaction(transactionHash).subscribe(transaction => {
+      this.transaction = transaction;
+    });
   }
 }

@@ -1,28 +1,55 @@
-<div class="p-2 bg-header">
-  <div class="row">
-    <div *ngIf="blockNumber" class="col-md flex-items-xs-middle media">
-      <a [routerLink]="['/blocks', blockNumber]">
-        <clr-icon shape="circle-arrow" class="is-highlight" size="28" dir="left"></clr-icon>
-      </a>
-      <h2 class="mt-0 pl-1">{{transaction?.hash}}</h2>
+<div class="p-2 break-word">
+  <h2 class="mt-0">
+    <div class="row flex-items-xs-middle media">
+      <div class="col-xs-1">
+        <clr-icon shape="file" size="36"></clr-icon>
+      </div>
+      <div class="col-xs-11">
+        {{'transactions.title' | translate}}: {{transaction?.hash}}
+      </div>
     </div>
+  </h2>
+  <div>
+    <table class="table table-vertical table-noborder">
+      <tbody>
+      <tr>
+        <th>{{'transactions.hash' | translate}}</th>
+        <td>{{transaction?.hash}}</td>
+      </tr>
+      <tr>
+        <th>{{'transactions.from' | translate}}</th>
+        <td>{{transaction?.from}}</td>
+      </tr>
+      <tr *ngIf="transaction?.to">
+        <th>{{'transactions.to' | translate}}</th>
+        <td>{{transaction?.to}}</td>
+      </tr>
+      <tr *ngIf="transaction?.contractAddress">
+        <th>{{'transactions.contractAddress' | translate}}</th>
+        <td>{{transaction?.contractAddress}}</td>
+      </tr>
+      <tr *ngIf="transaction?.value">
+        <th>{{'transactions.value' | translate}}</th>
+        <td>{{transaction?.value}}</td>
+      </tr>
+      <tr *ngIf="transaction?.input">
+        <th>{{'transactions.input' | translate}}</th>
+        <td>{{transaction?.input}}</td>
+      </tr>
+      <tr>
+        <th>{{'transactions.nonce' | translate}}</th>
+        <td>{{transaction?.nonce}}</td>
+      </tr>
+      <tr>
+        <th>{{'transactions.status' | translate}}</th>
+        <td>{{(transaction?.status ? 'transactions.success' : 'transactions.failure') | translate}}</td>
+      </tr>
+      <tr *ngIf="blockNumber">
+        <th>{{'blocks.title' | translate}}</th>
+        <td><a [routerLink]="['/blocks', blockNumber]">{{blockNumber}}</a></td>
+      </tr>
+      </tbody>
+    </table>
   </div>
-  <dl class="break-word">
-    <dt>{{'transactions.hash' | translate}}</dt>
-    <dd>{{transaction?.hash}}</dd>
-    <dt>{{'transactions.from' | translate}}</dt>
-    <dd>{{transaction?.from}}</dd>
-    <dt *ngIf="transaction?.to">{{'transactions.to' | translate}}</dt>
-    <dd *ngIf="transaction?.to">{{transaction.to}}</dd>
-    <dt *ngIf="transaction?.contractAddress">{{'transactions.contractAddress' | translate}}</dt>
-    <dd *ngIf="transaction?.contractAddress">{{transaction.contractAddress}}</dd>
-    <dt *ngIf="transaction?.value">{{'transactions.value' | translate}}</dt>
-    <dd *ngIf="transaction?.value">{{transaction?.value}}</dd>
-    <dt *ngIf="transaction?.input">{{'transactions.input' | translate}}</dt>
-    <dd *ngIf="transaction?.input">{{transaction?.input}}</dd>
-    <dt>{{'transactions.nonce' | translate}}</dt>
-    <dd>{{transaction?.nonce}}</dd>
-    <dt>{{'transactions.status' | translate}}</dt>
-    <dd>{{(transaction?.status ? 'transactions.success' : 'transactions.failure') | translate}}</dd>
-  </dl>
 </div>
+

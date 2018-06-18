@@ -2,12 +2,13 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Component, OnDestroy, NgZone } from '@angular/core';
-import { Router } from '@angular/router';
-import { Subscription } from 'rxjs/Subscription';
+import {Component, OnDestroy, NgZone} from '@angular/core';
+import {Router} from '@angular/router';
+import {Subscription} from 'rxjs/Subscription';
 
-import { AuthenticationService } from './shared/authentication.service';
-import { ErrorAlertService } from './shared/global-error-handler.service';
+import {AuthenticationService} from './shared/authentication.service';
+import {ErrorAlertService} from './shared/global-error-handler.service';
+import {TranslateService} from "@ngx-translate/core";
 
 @Component({
   selector: 'app-root',
@@ -27,7 +28,13 @@ export class AppComponent implements OnDestroy {
     private router: Router,
     private alertService: ErrorAlertService,
     public zone: NgZone,
+    private translate: TranslateService
   ) {
+    const browserLang = translate.getBrowserLang();
+
+    translate.setDefaultLang('en');
+    translate.use(browserLang);
+
     this.authenticationChange = authenticationService.user.subscribe(email => {
       this.authenticated = email !== undefined;
       this.username = email;

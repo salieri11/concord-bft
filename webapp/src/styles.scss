@@ -11,3 +11,12 @@
 .break-word {
   word-wrap: break-word;
 }
+
+a.label-link, a.label-link:hover {
+  display: block;
+  height: 100%;
+  width: 100%;
+  color: black !important;
+  text-decoration: none !important;
+  cursor: pointer;
+}
