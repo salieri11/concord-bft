@@ -7,6 +7,7 @@ import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import { AuthenticationService } from '../../shared/authentication.service';
+import { Personas } from '../../shared/persona.service';
 
 @Component({
   selector: 'app-log-in-container',
@@ -17,6 +18,13 @@ export class LogInContainerComponent {
 
   readonly loginForm: FormGroup;
   private authenticationChange;
+  private personaOptions: Array<{ name ?: string; value: string; }> = [
+    { value: Personas.SystemsAdmin, name: 'Systems Admin' },
+    { value: Personas.ConsortiumAdmin, name: 'Consortium Admin' },
+    { value: Personas.OrgAdmin, name: 'Org Admin' },
+    { value: Personas.OrgDeveloper, name: 'Org Developer' },
+    { value: Personas.OrgUser, name: 'Org User' },
+  ];
 
   constructor(private authenticationService: AuthenticationService,
               private formBuilder: FormBuilder,
@@ -29,11 +37,12 @@ export class LogInContainerComponent {
 
     this.loginForm = this.formBuilder.group({
       email: ['', [Validators.required]],
-      password: ['', [Validators.required]]
+      password: ['', [Validators.required]],
+      persona: [this.personaOptions[0].value]
     });
   }
 
   onLogIn() {
-    this.authenticationService.logIn(this.loginForm.value.email, 'password');
+    this.authenticationService.logIn(this.loginForm.value.email, 'password', this.loginForm.value.persona);
   }
 }

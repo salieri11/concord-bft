@@ -16,6 +16,7 @@ import { AthenaApiService } from './athena-api.service';
 import { EthApiService } from './eth-api.service';
 import { ATHENA_API_PREFIX, ETHEREUM_API_PREFIX } from './shared.config';
 import { TransactionsStatusFilterComponent } from './components/transactions-status-filter/transactions-status-filter.component';
+import { PersonaService } from './persona.service';
 
 @NgModule({
   imports: [
@@ -43,7 +44,8 @@ export class SharedModule {
         {provide: ATHENA_API_PREFIX, useValue: '/api/athena'},
         {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'},
         AthenaApiService,
-        EthApiService
+        EthApiService,
+        PersonaService
       ]
     };
   }
@@ -62,7 +64,8 @@ export class SharedModule {
     {provide: ATHENA_API_PREFIX, useValue: '/api/athena'},
     {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'},
     AthenaApiService,
-    EthApiService
+    EthApiService,
+    PersonaService
   ],
   exports: [
     CommonModule,
