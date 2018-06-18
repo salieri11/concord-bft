@@ -26,25 +26,3 @@ docker exec -it cockroach1 ./cockroach sql --insecure -e 'CREATE DATABASE IF NOT
 
 # Allow helen_admin all access to helen database
 docker exec -it cockroach1 ./cockroach sql --insecure -e 'GRANT ALL ON DATABASE helen TO helen_admin'
-
-
-## Run image
-# FROM cockroachdb/cockroach:v2.0.2
-# LABEL Description="cockroachdb"
-# RUN start
-
-# EXPOSE 26257
-# EXPOSE 8080
-
-# WORKDIR /
-# COPY priv priv
-# COPY config.properties .
-# COPY helen*.jar .
-
-# prepare for docker-compose, where athena is available from a virtual
-# host named "athena"
-# RUN sed -i -e "s/AthenaHostName=.*/AthenaHostName=athena/g" config.properties
-
-# CMD java -jar helen*.jar
-
-# EXPOSE 8080
