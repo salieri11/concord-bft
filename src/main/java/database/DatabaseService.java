@@ -23,23 +23,22 @@ public class DatabaseService {
    private static boolean initDone = false;
    private static Logger logger = Logger.getLogger(DatabaseService.class);
    private static IConfiguration _conf;
-   
+
    private static void init() throws Exception {
       _conf
          = ConfigurationFactory.getConfiguration(ConfigurationFactory.ConfigurationType.File);
       String url = _conf.getStringValue("DB_PROTOCOL") + "://"
-              + _conf.getStringValue("DB_IP") + ":"
-              + _conf.getStringValue("DB_PORT") + "/"
-              + _conf.getStringValue("DB_NAME") + "?"
-              + _conf.getStringValue("DB_OPTIONS");
+         + _conf.getStringValue("DB_IP") + ":" + _conf.getStringValue("DB_PORT")
+         + "/" + _conf.getStringValue("DB_NAME") + "?"
+         + _conf.getStringValue("DB_OPTIONS");
       logger.debug("Connecting to database at: " + url);
       db = DriverManager.getConnection(url,
-              _conf.getStringValue("DB_USER"),
-              _conf.getStringValue("DB_PASSWORD"));
+                                       _conf.getStringValue("DB_USER"),
+                                       _conf.getStringValue("DB_PASSWORD"));
    }
 
-   public static synchronized Connection getDatabaseConnection() throws
-           ServiceUnavailableException {
+   public static synchronized Connection
+          getDatabaseConnection() throws ServiceUnavailableException {
       if (!initDone) {
          try {
             init();
@@ -48,12 +47,12 @@ public class DatabaseService {
          }
          initDone = true;
       }
-      
+
       if (initDone && db == null) {
-         throw new ServiceUnavailableException("Database service is not " +
-                 "available");
+         throw new ServiceUnavailableException("Database service is not "
+            + "available");
       }
-      
+
       return db;
    }
 }

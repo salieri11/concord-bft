@@ -7,10 +7,10 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import database.ServiceUnavailableException;
 import org.apache.log4j.Logger;
 
 import database.DatabaseService;
+import database.ServiceUnavailableException;
 
 /**
  * <p>
@@ -20,7 +20,7 @@ import database.DatabaseService;
  * A class which provides functions for doing contract management queries over
  * the database.
  */
-//TODO: Have all database queries and configs in separate DBconfig file.
+// TODO: Have all database queries and configs in separate DBconfig file.
 public class ContractRegistryManager {
    private static ContractRegistryManager self = null;
    private static Object instanceLock = new Object();
@@ -38,7 +38,6 @@ public class ContractRegistryManager {
    private String CONTRACT_SEQUENCE_NUMBER_LABEL = "sequence_number";
    private int MAX_ADDRESS_LEN = 66; // 32 bytes + '0x'
 
-   
    // TODO: Later on we might feel the need to split these things into
    // multiple tables but as of now having everything in single table is easier.
    // sequence_number is of cockroach DB SERIAL type which ensures that every
@@ -56,35 +55,35 @@ public class ContractRegistryManager {
 
    private String insertNewVersionQuery
       = "INSERT into " + CONTRACTS_TABLE_NAME + " values (?, ?, ?, ?, ?, ?, ?)";
-   
+
    private String hasContractQuery
       = "SELECT " + CONTRACT_ID_COLUMN_LABEL + " from " + CONTRACTS_TABLE_NAME
          + " where " + CONTRACT_ID_COLUMN_LABEL + " = ?";
-   
+
    private String hasVersionQuery = "SELECT " + CONTRACT_ID_COLUMN_LABEL
       + " from " + CONTRACTS_TABLE_NAME + " where " + CONTRACT_ID_COLUMN_LABEL
       + " = ? AND " + CONTRACT_VERSION_COLUMN_LABEL + " = ?";
-   
+
    private String getVersionQuery = "SELECT * from " + CONTRACTS_TABLE_NAME
       + " where " + CONTRACT_ID_COLUMN_LABEL + " = ? AND "
       + CONTRACT_VERSION_COLUMN_LABEL + " = ?";
-   
+
    private String getAllContractsShortQuery
       = "SELECT DISTINCT " + CONTRACT_ID_COLUMN_LABEL + ", "
          + CONTRACT_OWNER_COLUMN_LABEL + " from " + CONTRACTS_TABLE_NAME;
-   
+
    // We need versions sorted in descending order of sequence_number column.
    private String getAllVersionsShortQuery
       = "SELECT " + CONTRACT_VERSION_COLUMN_LABEL + ", "
          + CONTRACT_METADATA_COLUMN_LABEL + ", " + CONTRACT_ADDRESS_COLUMN_LABEL
          + ", " + CONTRACT_OWNER_COLUMN_LABEL + " from " + CONTRACTS_TABLE_NAME
-         + " where " + CONTRACT_ID_COLUMN_LABEL + " = ? ORDER BY " +
-           CONTRACT_SEQUENCE_NUMBER_LABEL + " DESC";
-   
+         + " where " + CONTRACT_ID_COLUMN_LABEL + " = ? ORDER BY "
+         + CONTRACT_SEQUENCE_NUMBER_LABEL + " DESC";
+
    private String getContractOwnerQuery
       = "SELECT DISTINCT" + CONTRACT_OWNER_COLUMN_LABEL + " from "
          + CONTRACTS_TABLE_NAME + " where " + CONTRACT_ID_COLUMN_LABEL + " = ?";
-   
+
    private String getContractInfoQuery = "SELECT " + CONTRACT_ID_COLUMN_LABEL
       + ", " + CONTRACT_OWNER_COLUMN_LABEL + " from " + CONTRACTS_TABLE_NAME
       + " where " + CONTRACT_ID_COLUMN_LABEL + " = ?";
@@ -101,8 +100,9 @@ public class ContractRegistryManager {
    private PreparedStatement getContractOwnerPstmt;
    private PreparedStatement getContractInfoPstmt;
 
-   private ContractRegistryManager() throws SQLException, ServiceUnavailableException {
-      
+   private ContractRegistryManager() throws SQLException,
+                                     ServiceUnavailableException {
+
       Connection con = DatabaseService.getDatabaseConnection();
       con.createStatement().executeUpdate(createNewTableQuery);
 
@@ -134,8 +134,8 @@ public class ContractRegistryManager {
                } catch (Exception e) {
                   logger.fatal("Error in initializing database.", e);
                   self = null;
-                  throw new Exception("Error in initializing database." + e
-                          .getMessage());
+                  throw new Exception("Error in initializing database."
+                     + e.getMessage());
                }
             }
          }
