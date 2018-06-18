@@ -13,3 +13,7 @@
 .header-nav clr-dropdown {
 	padding: 0 1rem;
 }
+
+.header .header-actions > .dropdown .dropdown-toggle.nav-icon clr-icon[shape^="cog"] {
+  transform: translate(-50%, -50%);
+}

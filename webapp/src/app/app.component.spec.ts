@@ -10,6 +10,7 @@ import { ErrorAlertService } from './shared/global-error-handler.service';
 
 import { AppComponent } from './app.component';
 import { AuthenticationService } from './shared/authentication.service';
+import { CanViewDirective } from './shared/directives/can-view.directive';
 
 describe('AppComponent', () => {
   beforeEach(async(() => {
@@ -20,6 +21,7 @@ describe('AppComponent', () => {
       ],
       declarations: [
         AppComponent,
+        CanViewDirective
       ],
       providers: [
         ErrorAlertService
@@ -35,7 +37,7 @@ describe('AppComponent', () => {
 
   describe('when authenticated', () => {
     beforeEach(() => {
-      (TestBed.get(AuthenticationService) as AuthenticationService).logIn('test@vmware.com', 'asdfasdf');
+      (TestBed.get(AuthenticationService) as AuthenticationService).logIn('test@vmware.com', 'asdfasdf', 'systems_admin');
     });
     afterEach(() => {
       (TestBed.get(AuthenticationService) as AuthenticationService).logOut();

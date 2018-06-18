@@ -17,6 +17,7 @@ import { EthApiService } from './eth-api.service';
 import { ATHENA_API_PREFIX, ETHEREUM_API_PREFIX } from './shared.config';
 import { TransactionsStatusFilterComponent } from './components/transactions-status-filter/transactions-status-filter.component';
 import { PersonaService } from './persona.service';
+import { CanViewDirective } from './directives/can-view.directive';
 
 @NgModule({
   imports: [
@@ -25,13 +26,14 @@ import { PersonaService } from './persona.service';
     ClarityModule,
     ReactiveFormsModule
   ],
-  declarations: [TransactionsStatusFilterComponent],
+  declarations: [TransactionsStatusFilterComponent, CanViewDirective],
   exports: [
     CommonModule,
     TranslateModule,
     ClarityModule,
     TransactionsStatusFilterComponent,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    CanViewDirective
   ]
 })
 export class SharedModule {

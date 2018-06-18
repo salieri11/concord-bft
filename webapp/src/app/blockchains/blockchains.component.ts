@@ -21,6 +21,7 @@ import { Blockchain } from './shared/blockchains.model';
 import { BlockchainsService } from './shared/blockchains.service';
 import { KubernetesService } from '../kubernetes-management/shared/kubernetes.service';
 import { OrgManagementService } from '../org-management/shared/org-management.service';
+import { Personas } from '../shared/persona.service';
 
 @Component({
   selector: 'app-blockchains',
@@ -28,6 +29,7 @@ import { OrgManagementService } from '../org-management/shared/org-management.se
   styleUrls: ['./blockchains.component.scss']
 })
 export class BlockchainsComponent implements OnInit {
+  static personasAllowed = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   @ViewChild('grid') grid: GridComponent;
   openModalForm = false;
   modalTitle = '';

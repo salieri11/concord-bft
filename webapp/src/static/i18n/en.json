@@ -14,6 +14,9 @@
           "addKubernetes": {"title": "Add Kubernetes"}
       }
     },
+    "personaSelector": {
+      "title": "Role"
+    },
     "metrics": {
       "activeNodes": "Active Nodes {{value}}"
     },
@@ -502,5 +505,8 @@
   },
   "deleteModal": {
     "bodyText": "Are you sure you want to delete"
+  },
+  "globalError": {
+    "routingError": "You do not have permission to visit this route."
   }
 }

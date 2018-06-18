@@ -22,6 +22,7 @@ import { GridOptions } from '../../grid/shared/grid.model';
 import { GridComponent } from '../../grid/grid.component';
 import { OrgManagementService } from '../shared/org-management.service';
 import { Org } from '../shared/org-management.model';
+import { Personas } from '../../shared/persona.service';
 
 @Component({
   selector: 'app-org-list',
@@ -29,6 +30,7 @@ import { Org } from '../shared/org-management.model';
   styleUrls: ['./org-list.component.scss']
 })
 export class OrgListComponent implements OnInit {
+  static personasAllowed = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   @Input('url') url: string;
   @ViewChild('grid') grid: GridComponent;
   openModalForm = false;

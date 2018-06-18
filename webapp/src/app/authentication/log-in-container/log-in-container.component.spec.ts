@@ -11,6 +11,7 @@ import { MockTranslateModule } from '../../mocks/mock-translate.module';
 import { AuthenticationService } from '../../shared/authentication.service';
 
 import { LogInContainerComponent } from './log-in-container.component';
+import { PersonaService } from '../../shared/persona.service';
 
 describe('LogInContainerComponent', () => {
   let component: LogInContainerComponent;
@@ -23,7 +24,7 @@ describe('LogInContainerComponent', () => {
         ReactiveFormsModule,
         MockTranslateModule
       ],
-      providers: [AuthenticationService],
+      providers: [AuthenticationService, PersonaService],
       declarations: [ LogInContainerComponent ]
     })
     .compileComponents();

@@ -20,6 +20,7 @@ import { GridOptions } from '../grid/shared/grid.model';
 import { GridComponent } from '../grid/grid.component';
 import { KubernetesService } from './shared/kubernetes.service';
 import { Kubernetes, CredType } from './shared/kubernetes.model';
+import { Personas } from '../shared/persona.service';
 
 
 @Component({
@@ -28,6 +29,7 @@ import { Kubernetes, CredType } from './shared/kubernetes.model';
   styleUrls: ['./kubernetes-management.component.scss']
 })
 export class KubernetesManagementComponent implements OnInit {
+  static personasAllowed: any[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   @ViewChild('grid') grid: GridComponent;
   openModalForm = false;
   modalTitle = '';

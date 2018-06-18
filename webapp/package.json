@@ -9,7 +9,7 @@
     "build:local:prod": "ng build --prod --deploy-url assets && npm run build:move",
     "build:local:dev": "ng build --deploy-url assets && npm run build:move",
     "build:move": "cp -a dist/. ../priv/www/assets && mv ../priv/www/assets/index.html ../priv/www",
-    "test": "ng test --sourcemaps=false",
+    "test": "ng test",
     "lint": "ng lint",
     "lint-fix": "ng lint -fix",
     "e2e": "ng e2e --port 49152 --proxy-config e2e-proxy.conf.json"

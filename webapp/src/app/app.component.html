@@ -47,7 +47,7 @@
           <clr-icon shape="cog"></clr-icon>
         </a>
         <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
-          <h4 class="dropdown-header">Access Level</h4>
+          <h4 class="dropdown-header">{{ 'nav.personaSelector.title' | translate }}</h4>
           <div class="select form-group" clrDropdownItem>
             <form [formGroup]="personaFormGroup" class="pt-0">
               <select name="personaSelect"
@@ -93,22 +93,36 @@
         <clr-icon clrVerticalNavIcon shape="file-settings"></clr-icon>
         {{'nav.testing.title' | translate}}
       </a>
-      <div class="nav-divider"></div>
-      <label class="nav-header">
-        {{ 'nav.sysadmin.title' | translate }}
-      </label>
-      <a clrVerticalNavLink [routerLink]="['/blockchains']" routerLinkActive="active">
-        <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon> {{ 'nav.blockchains.title' | translate }}
-      </a>
-      <a clrVerticalNavLink [routerLink]="['/consortium']" routerLinkActive="active">
-        <clr-icon clrVerticalNavIcon shape="users"></clr-icon> {{ 'nav.consortium.title' | translate }}
-      </a>
-      <a clrVerticalNavLink [routerLink]="['/organization']" routerLinkActive="active">
-        <clr-icon clrVerticalNavIcon shape="organization"></clr-icon> {{ 'nav.organization.title' | translate }}
-      </a>
-      <a clrVerticalNavLink [routerLink]="['/kubernetes']" routerLinkActive="active">
-        <clr-icon clrVerticalNavIcon shape="host"></clr-icon> {{ 'nav.kubernetes.title' | translate }}
-      </a>
+      <ng-container *appCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
+        <div class="nav-divider"></div>
+        <label class="nav-header">
+          {{ 'nav.sysadmin.title' | translate }}
+        </label>
+        <a clrVerticalNavLink
+           [routerLink]="['/blockchains']"
+           routerLinkActive="active"
+           *appCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
+          <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon> {{ 'nav.blockchains.title' | translate }}
+        </a>
+        <a clrVerticalNavLink
+           [routerLink]="['/consortium']"
+           routerLinkActive="active"
+           *appCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
+          <clr-icon clrVerticalNavIcon shape="users"></clr-icon> {{ 'nav.consortium.title' | translate }}
+        </a>
+        <a clrVerticalNavLink
+           [routerLink]="['/organization']"
+           routerLinkActive="active"
+           *appCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
+          <clr-icon clrVerticalNavIcon shape="organization"></clr-icon> {{ 'nav.organization.title' | translate }}
+        </a>
+        <a clrVerticalNavLink
+           [routerLink]="['/kubernetes']"
+           routerLinkActive="active"
+           *appCanView="personas.SystemsAdmin">
+          <clr-icon clrVerticalNavIcon shape="host"></clr-icon> {{ 'nav.kubernetes.title' | translate }}
+        </a>
+      </ng-container>
     </clr-vertical-nav>
   </div>
 </clr-main-container>

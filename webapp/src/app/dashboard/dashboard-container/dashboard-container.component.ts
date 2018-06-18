@@ -14,6 +14,8 @@ import { BlockListingBlock } from '../../shared/remote-interfaces';
 })
 export class DashboardContainerComponent implements OnInit {
 
+  authorizedPersonas = ['org_admin'];
+
   blocks: BlockListingBlock[];
   blockTransactions: any[] = [];
   recentTransactions: any[] = [];

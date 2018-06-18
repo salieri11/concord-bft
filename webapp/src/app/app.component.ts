@@ -25,8 +25,9 @@ export class AppComponent implements OnDestroy {
   authenticated = false;
   username: string;
   personaFormGroup: FormGroup;
+  personas = Personas;
 
-  private personaOptions: Array<{ name ?: string; value: string; }> = [
+  personaOptions: Array<{ name ?: string; value: string; }> = [
     { value: Personas.SystemsAdmin, name: 'Systems Admin' },
     { value: Personas.ConsortiumAdmin, name: 'Consortium Admin' },
     { value: Personas.OrgAdmin, name: 'Org Admin' },
@@ -42,10 +43,10 @@ export class AppComponent implements OnDestroy {
     private translate: TranslateService,
     private personaService: PersonaService
   ) {
-    const browserLang = translate.getBrowserLang();
+    const browserLang = this.translate.getBrowserLang();
 
-    translate.setDefaultLang('en');
-    translate.use(browserLang);
+    this.translate.setDefaultLang('en');
+    this.translate.use(browserLang);
 
     this.personaFormGroup = new FormGroup({
       persona: new FormControl(this.personaService.currentPersona)
@@ -68,7 +69,7 @@ export class AppComponent implements OnDestroy {
   }
 
   onPersonaChange() {
-    this.personaService.currentPersona = this.personaFormGroup.value;
+    this.personaService.currentPersona = this.personaFormGroup.value.persona;
   }
 
   onLogOut() {
