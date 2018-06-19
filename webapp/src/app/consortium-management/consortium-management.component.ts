@@ -27,7 +27,7 @@ import { Personas } from '../shared/persona.service';
   styleUrls: ['./consortium-management.component.scss']
 })
 export class ConsortiumManagementComponent implements OnInit {
-  static personasAllowed = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
+  static personasAllowed: string[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   @ViewChild('grid') grid: GridComponent;
   openModalForm = false;
   modalTitle = '';
@@ -36,9 +36,11 @@ export class ConsortiumManagementComponent implements OnInit {
   gridOptions: GridOptions = new GridOptions();
 
   addConsortiumForm: FormGroup;
+
   get credentialType(): any {
     return this.addConsortiumForm.get('credentialType');
   }
+
   deleteConsortiumForm: FormGroup;
   selectedRows: Array<Consortium>;
   credentialOptions: Array<{ name?: string; value: string }> = [
