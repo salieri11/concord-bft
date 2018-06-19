@@ -12,13 +12,13 @@ import {
   FormGroup,
   Validators,
 } from '@angular/forms';
-import {TranslateService} from '@ngx-translate/core';
+import { TranslateService } from '@ngx-translate/core';
 
-import {GridOptions} from '../grid/shared/grid.model';
-import {GridComponent} from '../grid/grid.component';
-import {ConsortiumService} from './shared/consortium.service';
-import {Consortium} from './shared/consortium.model';
-import {Personas} from '../shared/persona.service';
+import { GridOptions } from '../grid/shared/grid.model';
+import { GridComponent } from '../grid/grid.component';
+import { ConsortiumService } from './shared/consortium.service';
+import { Consortium } from './shared/consortium.model';
+import { Personas } from '../shared/persona.service';
 
 
 @Component({
@@ -44,9 +44,9 @@ export class ConsortiumManagementComponent implements OnInit {
   deleteConsortiumForm: FormGroup;
   selectedRows: Array<Consortium>;
   credentialOptions: Array<{ name?: string; value: string }> = [
-    {value: 'userAuth'},
-    {value: 'certificate'},
-    {value: 'configFile'},
+    { value: 'userAuth' },
+    { value: 'certificate' },
+    { value: 'configFile' },
   ];
 
   constructor(
