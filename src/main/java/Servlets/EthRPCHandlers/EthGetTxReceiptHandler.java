@@ -14,7 +14,7 @@ import Servlets.EthDispatcher;
  * <p>
  * Copyright 2018 VMware, all rights reserved.
  * </p>
- * 
+ *
  * <p>
  * This Handler is used for handling all `eth_getTransactionReceipt` types of
  * requests. EthGetTxReceiptHandler is little different than other handlers
@@ -32,7 +32,7 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
    /**
     * Builds a TransactionRequest object from given requestJson and inserts it
     * into AthenaRequest Object.
-    * 
+    *
     * @param builder
     *           Athena Request Builder.
     * @param requestJson
@@ -60,7 +60,7 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
    /**
     * Since the parents initializeResponseObject method takes EthResponse object
     * as input we override it here to take in the id directly.
-    * 
+    *
     * @param id
     * @return
     */
@@ -75,7 +75,7 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
    /**
     * Builds a response JSON object by extracting TransactionResponse object
     * from given AthenaResponse Object.
-    * 
+    *
     * @param athenaResponse
     *           The AthenaResponse object
     * @param requestJson
@@ -111,11 +111,13 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
             result.put("contractAddress", null);
          }
 
+         // Athena EVM has status code '0' for success and other Positive
+         // values to denote error. However, for JSON RPC '1' is success
+         // and '0' is failure. Here we need to reverse status value of athena
+         // response before returning it.
          result.put("status",
-                    "0x" + Integer.toString(
-                                            transactionResponse.getStatus() == 0
-                                               ? 1 : 0,
-                                            16));
+                    "0x" + Integer.toString(transactionResponse.getStatus() == 0
+                       ? 1 : 0));
          respObject.put("result", result);
       } catch (Exception e) {
          // This should never get triggered as params are already checked while
