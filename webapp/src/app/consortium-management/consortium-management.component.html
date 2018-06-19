@@ -1,0 +1,69 @@
+<div class="p-2">
+  <h2 class="page-title">
+    <clr-icon shape="users" size="30"></clr-icon> {{ 'consortium.title' | translate }} |
+    <clr-dropdown>
+      <button class="nav-link" clrDropdownTrigger>
+        {{ 'consortium.actions.title' | translate }}
+        <clr-icon shape="caret down"></clr-icon>
+      </button>
+      <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
+        <button type="button" (click)="openAddConsortium()" clrDropdownItem>
+          {{ 'consortium.actions.options.add.title' | translate }}
+        </button>
+        <button type="button" [disabled]="selectedRows.length === 0" (click)="confirmDeleteConsortium()" clrDropdownItem>
+          {{ 'consortium.actions.options.delete.title' | translate }}
+        </button>
+      </clr-dropdown-menu>
+    </clr-dropdown>
+  </h2>
+  <app-grid #grid [options]="gridOptions" (selectedRowsEvent)="selectedRowChange($event)"></app-grid>
+  <clr-modal [(clrModalOpen)]="openModalForm" [clrModalSize]="modalSize">
+    <h3 class="modal-title">{{ modalTitle }}</h3>
+    <div class="modal-body">
+      <ng-container [ngSwitch]="formType">
+        <ng-container *ngSwitchCase="'add'">
+          <form [formGroup]="addConsortiumForm" (ngSubmit)="addConsortium()">
+            <section class="form-block">
+              <div class="form-group">
+                <label for="name">
+                  {{ 'consortium.addConsortiumForm.inputs.name.title' | translate }}
+                </label>
+                <input formControlName="name" type="text" id="name" [placeholder]="'consortium.addConsortiumForm.inputs.name.placeholder' | translate"
+                  size=35>
+              </div>
+              <div class="form-group">
+                <label for="members">
+                  {{ 'consortium.addConsortiumForm.inputs.members.title' | translate }}
+                </label>
+                <div class="select multiple">
+                  <select multiple formControlName="members" id="members">
+                    <option value="1">Org 1</option>
+                    <option value="2">Org 2</option>
+                    <option value="3">Org 3</option>
+                    <option value="4">Org 4</option>
+                  </select>
+                </div>
+              </div>
+            </section>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline" (click)="openModalForm = false">Cancel</button>
+              <button type="submit" class="btn btn-primary" (click)="addConsortium()" [disabled]="addConsortiumForm.status !== 'VALID'">
+                {{ 'consortium.addConsortiumForm.submit.title' | translate }}
+              </button>
+            </div>
+          </form>
+        </ng-container>
+        <ng-container *ngSwitchCase="'delete'">
+          <p>{{ 'deleteModal.bodyText' | translate}}
+            <span *ngFor="let r of selectedRows">{{ r.name }} </span> ?</p>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" (click)="openModalForm = false">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="deleteConsortium()">
+              {{ 'consortium.deleteConsortiumForm.submit.title' | translate }}
+            </button>
+          </div>
+        </ng-container>
+      </ng-container>
+    </div>
+  </clr-modal>
+</div>

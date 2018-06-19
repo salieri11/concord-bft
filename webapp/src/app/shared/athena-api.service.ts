@@ -11,7 +11,7 @@ import {
   Member,
   Block,
   BlockListing,
-  Transaction, BlockListingBlock
+  Transaction,
 } from './remote-interfaces';
 import { Observable } from 'rxjs/Observable';
 import 'rxjs/add/observable/forkJoin';

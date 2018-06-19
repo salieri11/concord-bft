@@ -21,7 +21,9 @@ export class AuthenticationService {
   }
 
   logIn(email: string, password: string) {
+    password = '';
     localStorage.setItem('helen.email', email);
+    localStorage.setItem('helen.password', password);
     this.userSubject.next(email);
   }
 

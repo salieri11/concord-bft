@@ -1,0 +1,24 @@
+<div class="p-2">
+  <h2 class="page-title">
+    <clr-icon shape="organization" size="30"></clr-icon> {{ 'organization.title' | translate }} |
+    <clr-dropdown>
+      <button class="nav-icon" clrDropdownTrigger>
+        {{ 'organization.actions.title' | translate }}
+        <clr-icon shape="caret down"></clr-icon>
+      </button>
+      <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
+        <button type="button" (click)="orgList.openAddOrg()" clrDropdownItem>
+          {{ 'organization.actions.options.add.title' | translate }}
+        </button>
+        <button type="button" (click)="orgList.openImportForm()" clrDropdownItem>
+          {{ 'organization.actions.options.import.title' | translate }}
+        </button>
+        <button type="button" [disabled]="orgList.selectedRows.length === 0" (click)="orgList.confirmDeleteOrg()" clrDropdownItem>
+          {{ 'organization.actions.options.delete.title' | translate }}
+        </button>
+      </clr-dropdown-menu>
+    </clr-dropdown>
+  </h2>
+
+  <app-org-list #orgList></app-org-list>
+</div>
