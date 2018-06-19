@@ -3,7 +3,7 @@
  */
 
 import { Injectable } from '@angular/core';
-import { ActivatedRouteSnapshot, CanActivate, CanActivateChild, Router, RouterStateSnapshot } from '@angular/router';
+import { CanActivate, CanActivateChild, Router } from '@angular/router';
 
 import { AuthenticationService } from './authentication.service';
 
@@ -11,7 +11,7 @@ import { AuthenticationService } from './authentication.service';
 export class AuthenticatedGuard implements CanActivateChild, CanActivate {
   constructor(private router: Router, private authenticationService: AuthenticationService) {}
 
-  canActivateChild(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
+  canActivateChild(): boolean {
     if (!this.authenticationService.isAuthenticated()) {
       this.router.navigate(['auth', 'log-in']);
       return false;
@@ -20,7 +20,7 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
     }
   }
 
-  canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
+  canActivate(): boolean {
     if (!this.authenticationService.isAuthenticated()) {
       this.router.navigate(['auth', 'log-in']);
       return false;

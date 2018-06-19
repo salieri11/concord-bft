@@ -27,13 +27,18 @@ enum TransactionActionOptions {
 })
 export class TestingGroundComponent implements OnInit {
 
-  private dataForm: FormGroup;
+  transactionActionOptions = TransactionActionOptions;
+  dataForm: FormGroup;
+  smartContractForm: FormGroup;
 
   @ViewChild('dataHashRef')
-  private dataHashRef: ElementRef;
+  dataHashRef: ElementRef;
 
-  private dataHash: string = undefined;
-  transactionActionOptions = TransactionActionOptions;
+  @ViewChild('smartContractHashRef')
+  smartContractHashRef: ElementRef;
+
+  dataHash: string = undefined;
+  smartContractHash: string = undefined;
 
   constructor(private ethApiService: EthApiService,
               private formBuilder: FormBuilder) {

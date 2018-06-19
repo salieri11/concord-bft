@@ -111,10 +111,13 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
             result.put("contractAddress", null);
          }
 
+         // Athena EVM has status code '0' for success and other Positive
+         // values to denote error. However, for JSON RPC '1' is success
+         // and '0' is failure. Here we need to reverse status value of athena
+         // response before returning it.
          result.put("status",
-                    "0x"
-                       + Integer.toString(transactionResponse.getStatus() ==
-                            0 ? 1 : 0, 16));
+                    "0x" + Integer.toString(transactionResponse.getStatus() == 0
+                       ? 1 : 0));
          respObject.put("result", result);
       } catch (Exception e) {
          // This should never get triggered as params are already checked while

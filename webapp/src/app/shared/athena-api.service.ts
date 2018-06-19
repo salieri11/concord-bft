@@ -18,7 +18,9 @@ import {
   BlockListing,
   Transaction,
   SmartContract,
-  SmartContractVersion, SmartContractResponse, ApiResponse
+  SmartContractVersion,
+  SmartContractResponse,
+  ApiResponse
 } from './remote-interfaces';
 
 @Injectable()

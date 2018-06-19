@@ -1,14 +1,16 @@
 package Servlets;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import contracts.*;
-import contracts.Compiler;
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONAware;
@@ -18,6 +20,9 @@ import org.json.simple.parser.ParseException;
 
 import com.vmware.athena.Athena;
 
+import contracts.*;
+import contracts.Compiler;
+
 /**
  * <p>
  * Copyright 2018 VMware, all rights reserved.
@@ -26,7 +31,6 @@ import com.vmware.athena.Athena;
  * A servlet which handles all contract management queries sent to
  * `api/athena/contracts/*` URI.
  */
-//TODO: add tests in hermes
 public class ContractsServlet extends BaseServlet {
 
    private static final long serialVersionUID = 1L;
@@ -36,17 +40,33 @@ public class ContractsServlet extends BaseServlet {
    private final String contractEndpoint
       = _conf.getStringValue("Contracts_Endpoint");
    private ContractRegistryManager registryManager;
-   
-   
+
    public ContractsServlet() {
       try {
          registryManager = ContractRegistryManager.getInstance();
       } catch (Exception e) {
          logger.fatal("Unable to instantiate ContractRegistryManager", e);
-         System.exit(0);
+         registryManager = null;
       }
    }
-   
+
+   /**
+    * Encodes the given string as per URL encoding rules
+    * 
+    * @param str
+    * @return
+    */
+   private String urlEncode(String str) {
+      String encodedStr;
+      try {
+         encodedStr = URLEncoder.encode(str, StandardCharsets.UTF_8.name());
+      } catch (UnsupportedEncodingException e) {
+         encodedStr = str;
+         logger.warn("URL encoding exception", e);
+      }
+      return encodedStr;
+   }
+
    /**
     * Builds a JSON which is sent as a response object for `GET
     * api/athena/contracts` queries
@@ -55,13 +75,16 @@ public class ContractsServlet extends BaseServlet {
     */
    private JSONArray buildContractsJSON() {
       JSONArray cArray = new JSONArray();
-      List<BriefContractInfo> cInfoList = registryManager.getAllBriefContractInfo();
-      
-      for(BriefContractInfo cinfo : cInfoList) {
+      List<BriefContractInfo> cInfoList
+         = registryManager.getAllBriefContractInfo();
+
+      for (BriefContractInfo cinfo : cInfoList) {
          JSONObject contract = new JSONObject();
          contract.put("contract_id", cinfo.getContractId());
          contract.put("owner", cinfo.getOwnerAddress());
-         contract.put("url", contractEndpoint + "/" + cinfo.getContractId());
+         contract.put("url",
+                      contractEndpoint + "/"
+                         + urlEncode(cinfo.getContractId()));
          cArray.add(contract);
       }
       return cArray;
@@ -83,19 +106,18 @@ public class ContractsServlet extends BaseServlet {
       responseObject.put("result", buildContractsJSON());
       return HttpServletResponse.SC_OK;
    }
-   
+
    /**
-    * Builds a JSONObject from the given List of
-    * BriefVersionInfo objects. This JSONObject is
-    * generated as per the response format of `GET
+    * Builds a JSONObject from the given List of BriefVersionInfo objects. This
+    * JSONObject is generated as per the response format of `GET
     * api/athena/contracts/{contract_id}` request type.
     *
     * @param briefVersionInfoList
-    * @return Returns the json object containing information about all
-    * versions present in the list.
+    * @return Returns the json object containing information about all versions
+    *         present in the list.
     */
-   private JSONObject buildContractJSON(List<BriefVersionInfo>
-           briefVersionInfoList) {
+   private JSONObject
+           buildContractJSON(List<BriefVersionInfo> briefVersionInfoList) {
       // construct response json from contract object
       boolean contractInfoAdded = false;
       JSONObject contract = new JSONObject();
@@ -110,8 +132,8 @@ public class ContractsServlet extends BaseServlet {
          JSONObject metadata = null;
          try {
             JSONParser parser = new JSONParser();
-            metadata = (JSONObject) parser.parse(briefVersionInfo.getMetaData
-                    ());
+            metadata
+               = (JSONObject) parser.parse(briefVersionInfo.getMetaData());
          } catch (ParseException e) {
             logger.warn("Metadata parsing failed", e);
          }
@@ -120,8 +142,10 @@ public class ContractsServlet extends BaseServlet {
          version.put("metadata", metadata);
          // TODO : is there a better way to do it?
          version.put("url",
-                     contractEndpoint + "/" + briefVersionInfo.getContractId() + "/versions/" +
-                             briefVersionInfo.getVersionName());
+                     contractEndpoint + "/"
+                        + urlEncode(briefVersionInfo.getContractId())
+                        + "/versions/"
+                        + urlEncode(briefVersionInfo.getVersionName()));
          versions.add(version);
       }
       contract.put("versions", versions);
@@ -143,8 +167,8 @@ public class ContractsServlet extends BaseServlet {
    private int handleGetContract(String contractId, JSONObject responseObject) {
       int respStatus = HttpServletResponse.SC_OK;
       if (registryManager.hasContract(contractId)) {
-         responseObject.put("result", buildContractJSON(
-                 registryManager.getAllBriefVersionInfo(contractId)));
+         responseObject.put("result",
+                            buildContractJSON(registryManager.getAllBriefVersionInfo(contractId)));
       } else {
          JSONObject error = new JSONObject();
          respStatus = HttpServletResponse.SC_NOT_FOUND;
@@ -153,11 +177,12 @@ public class ContractsServlet extends BaseServlet {
       }
       return respStatus;
    }
-   
+
    /**
     * Builds a JSONObject representing the given version of the given contract
     * object. The JSONObject is generated to follow the response format of `GET
     * api/athena/contracts/{contract_id}/versions/{version}` request.
+    * 
     * @param versionInfo
     * @return The generated JSON with all details of the specific version
     */
@@ -199,15 +224,15 @@ public class ContractsServlet extends BaseServlet {
                                 JSONObject responseObject) {
       int respStatus = HttpServletResponse.SC_OK;
       try {
-         FullVersionInfo fvInfo = registryManager.getContractVersion(contractId,
-                 contractVersion);
+         FullVersionInfo fvInfo
+            = registryManager.getContractVersion(contractId, contractVersion);
          responseObject.put("result", buildVersionJSON(fvInfo));
       } catch (ContractRetrievalException e) {
          JSONObject error = new JSONObject();
          respStatus = HttpServletResponse.SC_NOT_FOUND;
          error.put("message",
-                 "No contract found with id: " + contractId + " and version: "
-                         + contractVersion);
+                   "No contract found with id: " + contractId + " and version: "
+                      + contractVersion);
          responseObject.put("error", error);
       }
       return respStatus;
@@ -236,12 +261,29 @@ public class ContractsServlet extends BaseServlet {
    protected void dispatch(final HttpServletRequest request,
                            final HttpServletResponse response) {
       String uri = request.getRequestURI();
+      try {
+         uri = URLDecoder.decode(uri, StandardCharsets.UTF_8.name());
+      } catch (UnsupportedEncodingException e) {
+         logger.warn("URI decoding failed: ", e);
+      }
+      logger.debug("Decoded URI: " + uri);
       int respStatus = HttpServletResponse.SC_OK;
       JSONObject responseJSON = new JSONObject();
-      if (request.getMethod().equalsIgnoreCase("GET")) {
+
+      // TODO: this nullcheck is fragile. We need to redesign this database
+      // service classes so that other servlets work even if database is
+      // unavailable
+      if (registryManager == null) {
+         // throw error
+         JSONObject error = new JSONObject();
+         error.put("message", "Service unavailable.");
+         responseJSON.put("error", error);
+         respStatus = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
+      } else if (request.getMethod().equalsIgnoreCase("GET")) {
          // If uri has trailing backslash remove it
-         if (uri.charAt(uri.length() - 1) == '/')
+         if (uri.charAt(uri.length() - 1) == '/') {
             uri = uri.substring(0, uri.length() - 1);
+         }
          // remove contract endpoint common prefix
          uri = uri.replace(contractEndpoint, "");
          String tokens[] = uri.split("/");
@@ -255,15 +297,12 @@ public class ContractsServlet extends BaseServlet {
             // GET `api/athena/contracts/{contract-id}/versions/{version-id}`
             respStatus = handleGetVersion(tokens[1], tokens[3], responseJSON);
          }
-      } else if (request.getMethod().equalsIgnoreCase("POST")) {
-         // POST
-         respStatus = handlePost(request, response, responseJSON);
       } else {
          // throw error
          JSONObject error = new JSONObject();
-         error.put("message", "Requested resource not found!");
+         error.put("message", "Requested Method not allowed!");
          responseJSON.put("error", error);
-         respStatus = HttpServletResponse.SC_NOT_FOUND;
+         respStatus = HttpServletResponse.SC_METHOD_NOT_ALLOWED;
       }
       processResponse(response,
                       responseJSON.toJSONString(),
@@ -432,17 +471,22 @@ public class ContractsServlet extends BaseServlet {
             logger.info("New contract deployed at: "
                + extractContractAddress(txReceipt));
 
-            boolean success = registryManager.addNewContractVersion(contractId,
-                    from,
-                    contractVersion,
-                    extractContractAddress(txReceipt),
-                    result.getMetadataMap().get(contractName),
-                    result.getByteCodeMap().get(contractName),
-                    solidityCode);
-            
+            boolean success
+               = registryManager.addNewContractVersion(contractId,
+                                                       from,
+                                                       contractVersion,
+                                                       extractContractAddress(txReceipt),
+                                                       result.getMetadataMap()
+                                                             .get(contractName),
+                                                       result.getByteCodeMap()
+                                                             .get(contractName),
+                                                       solidityCode);
+
             if (success) {
-               deploymentResult.put("url", contractEndpoint + "/" +
-                       contractId + "/" + "versions/" + contractVersion);
+               deploymentResult.put("url",
+                                    contractEndpoint + "/"
+                                       + urlEncode(contractId) + "/versions/"
+                                       + urlEncode(contractVersion));
                deploymentResult.put("error", null);
             } else {
                deploymentResult.put("url", null);
@@ -459,15 +503,16 @@ public class ContractsServlet extends BaseServlet {
       return resultArray;
    }
 
-   
    private boolean isSameAddress(String address1, String address2) {
-      if (!address1.startsWith("0x"))
+      if (!address1.startsWith("0x")) {
          address1 = "0x" + address1;
-      if (!address2.startsWith("0x"))
+      }
+      if (!address2.startsWith("0x")) {
          address2 = "0x" + address2;
+      }
       return address1.equals(address2);
    }
-   
+
    /**
     * Handles the POST request for `/api/athena/contracts` API. A POST request
     * expects a solidity code as a part of the POST body. The POST body must be
@@ -490,7 +535,7 @@ public class ContractsServlet extends BaseServlet {
                           final HttpServletResponse response,
                           JSONObject responseJSON) {
       long id = -1;
-      int respStatus = HttpServletResponse.SC_OK;
+      int respStatus;
       try {
          String paramString
             = request.getReader()
@@ -515,12 +560,14 @@ public class ContractsServlet extends BaseServlet {
                                           + "same name and version already exists",
                                        id,
                                        jsonRpc);
-            
-         } else if (registryManager.hasContract(contractId) &&
-                 !isSameAddress(registryManager.getBriefContractInfo(contractId).getOwnerAddress(), (from))) {
+
+         } else if (registryManager.hasContract(contractId)
+            && !isSameAddress(registryManager.getBriefContractInfo(contractId)
+                                             .getOwnerAddress(),
+                              (from))) {
             // It is a new version of
             // existing contract but from address doesn't match
-            respStatus = HttpServletResponse.SC_UNAUTHORIZED;
+            respStatus = HttpServletResponse.SC_FORBIDDEN;
             APIHelper.fillErrorMessage(responseJSON,
                                        "Only original "
                                           + "owner can deploy the new version of a contract",
@@ -537,21 +584,24 @@ public class ContractsServlet extends BaseServlet {
                                                        id,
                                                        result,
                                                        solidityCode);
+               respStatus = HttpServletResponse.SC_OK;
                responseJSON.put("result", resultArray);
                responseJSON.put("id", id);
                responseJSON.put("jsonrpc", jsonRpc);
-            } else if (result.isSuccess() && result.getByteCodeMap().size() !=
-                    1) {
+            } else if (result.isSuccess()
+               && result.getByteCodeMap().size() != 1) {
+               respStatus = HttpServletResponse.SC_BAD_REQUEST;
                APIHelper.fillErrorMessage(responseJSON,
-                       "Uploaded file must have exactly one contract",
-                       id,
-                       jsonRpc);
+                                          "Uploaded file must have exactly one contract",
+                                          id,
+                                          jsonRpc);
             } else {
+               respStatus = HttpServletResponse.SC_BAD_REQUEST;
                APIHelper.fillErrorMessage(responseJSON,
-                       "Compilation failure:\n"
-                               + result.getStderr(),
-                       id,
-                       jsonRpc);
+                                          "Compilation failure:\n"
+                                             + result.getStderr(),
+                                          id,
+                                          jsonRpc);
             }
          }
       } catch (ParseException pe) {
@@ -580,7 +630,21 @@ public class ContractsServlet extends BaseServlet {
    protected void
              doPost(final HttpServletRequest request,
                     final HttpServletResponse response) throws IOException {
-      dispatch(request, response);
+      int respStatus;
+      JSONObject responseJSON = new JSONObject();
+      if (registryManager == null) {
+         respStatus = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
+         // throw error
+         JSONObject error = new JSONObject();
+         error.put("message", "Service unavailable.");
+         responseJSON.put("error", error);
+      } else {
+         respStatus = handlePost(request, response, responseJSON);
+      }
+      processResponse(response,
+                      responseJSON.toJSONString(),
+                      respStatus,
+                      logger);
    }
 
    /**

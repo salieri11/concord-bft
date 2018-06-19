@@ -7,6 +7,16 @@
     "create": "Create"
   },
   "nav": {
+    "menu": {
+      "title": "Menu",
+      "options": {
+          "deploy": {"title": "Deploy"},
+          "addOrg": {"title": "Add Organization"},
+          "addBlockchains": {"title": "Add Blockchain"},
+          "addConsortium": {"title": "Add Consortium"},
+          "addKubernetes": {"title": "Add Kubernetes"}
+      }
+    },
     "metrics": {
       "activeNodes": "Active Nodes {{value}}"
     },
@@ -25,6 +35,21 @@
     "smartContracts": {
       "title": "Smart Contracts"
     },
+    "sysadmin": {
+        "title": "SYSTEM ADMIN"
+    },
+    "organization": {
+      "title": "Organizations"
+    },
+    "blockchains": {
+      "title": "Blockchains"
+    },
+    "consortium": {
+      "title": "Consortiums"
+    },
+    "kubernetes": {
+      "title": "Kubernetes"
+    },
     "logOut": "Log Out"
   },
   "time": {
@@ -36,6 +61,14 @@
     "username": "Username",
     "password": "Password",
     "next": "Next"
+  },
+  "grid": {
+    "search": {
+        "placeholder": "Search"
+    },
+    "pagination": {
+        "of": "of"
+    }
   },
   "dashboard": {
     "totalActiveNodes": "Total Active Nodes",
@@ -172,6 +205,339 @@
       "downloadSourceCode": "Download Source Code",
       "downloadMetadata": "Download Metadata"
     }
+  },
+  "organization": {
+    "title": "Organization Management",
+    "actions": {
+      "title": "Actions",
+      "options": {
+        "add": {
+          "title": "Add Org"
+        },
+        "import": {
+          "title": "Import Org"
+        },
+        "delete": {
+          "title": "Delete Org"
+        }
+      }
+    },
+    "grid": {
+      "pagination": {
+        "title": "Orgs"
+      },
+      "columns": {
+          "name": {
+              "title": "Name"
+          },
+          "domain": {
+              "title": "Domain"
+          },
+          "type": {
+              "title": "Type"
+          },
+          "created": {
+              "title": "Created On"
+          }
+      }
+    },
+    "addOrgForm": {
+      "title": "Add Organization",
+      "inputs": {
+        "name": {
+          "title": "Name",
+          "placeholder": "MyOrganization"
+        },
+        "peerNumber": {
+          "title": "Peer Number",
+          "placeholder": "1234"
+        },
+        "domain": {
+          "title": "Domain",
+          "placeholder": "MyDomain"
+        },
+        "type": {
+          "title": "Type",
+          "placeholder": "peer1"
+        }
+      },
+      "submit": {
+        "title": "Add"
+      }
+    },
+    "importOrgForm": {
+      "title": "Import Organization",
+      "inputs": {
+        "name": {
+          "title": "Name",
+          "placeholder": "Org1"
+        },
+        "certificate": {
+          "title": "Upload Certificate"
+        },
+        "privateKey": {
+          "title": "Upload Private Key"
+        }
+      },
+      "submit": {
+        "title": "Import"
+      }
+    },
+    "deleteOrgForm": {
+      "title": "Delete Org(s)",
+      "submit": {
+        "title": "Yes"
+      }
+    }
+  },
+  "kubernetes": {
+    "title": "Kubernetes Management",
+    "actions": {
+      "title": "Actions",
+      "options": {
+        "add": {
+          "title": "Add Instance"
+        },
+        "delete": {
+          "title": "Delete Instance"
+        }
+      }
+    },
+    "grid": {
+      "pagination": {
+        "title": "Instances"
+      },
+      "columns": {
+          "id": {
+              "title": "ID"
+          },
+          "name": {
+              "title": "Name"
+          },
+          "apiServerUrl": {
+              "title": "API Server"
+          },
+          "ca": {
+              "title": "CA"
+          },
+          "kubectlCliUrl": {
+              "title": "Kube CLI URL"
+          },
+          "helmCliUrl": {
+              "title": "Helm URL"
+          },
+          "credentialType": {
+              "title": "Credential Type"
+          },
+          "insecure": {
+              "title": "Insecure"
+          },
+          "created": {
+              "title": "Created On"
+          },
+          "updated": {
+              "title": "Updated On"
+          }
+      }
+    },
+    "addKubeForm": {
+      "title": "Add Kubernetes",
+      "inputs": {
+        "name": {
+          "title": "Name",
+          "placeholder": "MyKubernetes"
+        },
+        "apiServerUrl": {
+          "title": "API Server URL",
+          "placeholder": "https://1.1.1.1"
+        },
+        "credentialType": {
+          "title": "Credential type",
+          "options": {
+            "basic_auth": {
+              "title": "User Auth"
+            },
+            "certificate": {
+              "title": "Cert/Key"
+            },
+            "configFile": {
+              "title": "Config File"
+            }
+          }
+        },
+        "username": {
+          "title": "Username",
+          "placeholder": "myUsername"
+        },
+        "password": {
+          "title": "Password"
+        },
+        "certificate": {
+          "title": "Certificate",
+          "placeholder": "Paste certificate here"
+        },
+        "key": {
+          "title": "Key",
+          "placeholder": "Paste key here"
+        },
+        "configFile": {
+          "title": "Config File"
+        }
+      },
+      "submit": {
+        "title": "Add"
+      }
+    },
+    "deleteKubeForm": {
+      "title": "Delete Instance(s)",
+      "submit": {
+        "title": "Yes"
+      }
+    }
+  },
+  "consortium": {
+    "title": "Consortium Management",
+    "actions": {
+      "title": "Actions",
+      "options": {
+        "add": {
+          "title": "Add Instance"
+        },
+        "delete": {
+          "title": "Delete Instance"
+        }
+      }
+    },
+    "grid": {
+      "pagination": {
+        "title": "Consortium"
+      },
+      "columns": {
+          "name": {
+              "title": "Name"
+          },
+          "members": {
+              "title": "Members"
+          },
+          "created": {
+              "title": "Created On"
+          }
+      }
+    },
+    "addConsortiumForm": {
+      "title": "Add Consortium",
+      "inputs": {
+        "name": {
+          "title": "Name",
+          "placeholder": "MyConsortium"
+        },
+        "members": {
+          "title": "Members"
+        }
+      },
+      "submit": {
+        "title": "Add"
+      }
+    },
+    "deleteConsortiumForm": {
+      "title": "Delete Instance(s)",
+      "submit": {
+        "title": "Yes"
+      }
+    }
+  },
+  "blockchains": {
+    "title": "Blockchain Management",
+    "actions": {
+      "title": "Actions",
+      "options": {
+        "add": {
+          "title": "Create Blockchain"
+        },
+        "delete": {
+          "title": "Delete Blockchain"
+        }
+      }
+    },
+    "grid": {
+      "pagination": {
+        "title": "Blockchains"
+      },
+      "columns": {
+          "name": {
+              "title": "Name"
+          },
+          "membersCount": {
+              "title": "Members"
+          },
+          "channelsCount": {
+              "title": "Channels Count"
+          },
+          "consensusType": {
+              "title": "Consensus Type"
+          },
+          "fabricExplorerUrl": {
+              "title": "Fabric Dashboard"
+          },
+          "k8sDashboardUrl": {
+              "title": "Kubernetes Dashboard"
+          },
+          "status": {
+              "title": "Status"
+          },
+          "action": {
+              "title": "Last Action"
+          },
+          "created": {
+              "title": "Created On"
+          }
+      }
+    },
+    "detail": {
+      "status": "Status",
+      "consensusType": "Consensus Type",
+      "openKube": "Open Kubernetes Dashboard",
+      "openFabric": "Open Fabric Dashboard",
+      "orgTab": "Organizations",
+      "channelTab": "Channels"
+    },
+    "addBlockchainForm": {
+      "title": "Create Blockchain",
+      "inputs": {
+        "name": {
+          "title": "Name",
+          "placeholder": "Blockchain"
+        },
+        "peerOrg": {
+          "title": "Peer Organization"
+        },
+        "consensusType": {
+          "title": "Consensus Type",
+          "placeholder": "1234"
+        },
+        "ordererOrg": {
+          "title": "Orderer Org"
+        },
+        "kubernetes": {
+          "title": "Kubernetes Instance",
+          "placeholder": "1234"
+        },
+        "createCli": {
+          "title": "Create Cli"
+        }
+      },
+      "submit": {
+        "title": "Create"
+      }
+    },
+    "deleteBlockchainForm": {
+      "title": "Delete Blockchain(s)",
+      "submit": {
+        "title": "Yes"
+      }
+    }
+  },
+  "deleteModal": {
+    "bodyText": "Are you sure you want to delete"
   }
-
 }

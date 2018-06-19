@@ -1,0 +1,68 @@
+<div class="grid-container">
+  <div class="row">
+    <div class="col-sm-12">
+      <form class="search-box">
+        <clr-icon shape="search"></clr-icon>
+        <input type="text" [placeholder]="'grid.search.placeholder' | translate" name="search" [(ngModel)]="search" (keyup)="searchList()">
+      </form>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-sm-12">
+      <clr-datagrid #datagrid [(clrDgSelected)]="selectedRows" (clrDgRefresh)="refresh($event)" [clrDgLoading]="loading">
+        <clr-dg-column *ngFor="let col of options.columns" [clrDgSortBy]="col.id">
+          {{ col.name}}
+        </clr-dg-column>
+
+        <clr-dg-row *ngFor="let row of rows" [clrDgItem]="row" [ngClass]="{'new-row': row._flash}">
+          <ng-container *ngFor="let col of options.columns">
+            <ng-container [ngSwitch]="col.type">
+              <ng-container *ngSwitchCase="'date'">
+                <clr-dg-cell>{{ row[col.id] | date }}</clr-dg-cell>
+              </ng-container>
+              <ng-container *ngSwitchCase="'link'">
+                <clr-dg-cell>
+                  <a *ngIf="row[col.id]" [routerLink]="col.genLink(row)">
+                    {{ row[col.id] }}
+                  </a>
+                  <ng-container *ngIf="!row[col.id]">None</ng-container>
+                </clr-dg-cell>
+              </ng-container>
+              <ng-container *ngSwitchCase="'externalLink'">
+                <clr-dg-cell>
+                  <a *ngIf="row[col.id]" [href]="col.genLink(row)" target="_blank">
+                    {{ row[col.id] }}
+                  </a>
+                  <ng-container *ngIf="!row[col.id]">None</ng-container>
+                </clr-dg-cell>
+              </ng-container>
+              <ng-container *ngSwitchCase="'string'">
+                <clr-dg-cell>{{ row[col.id] || 'None' }}</clr-dg-cell>
+              </ng-container>
+              <ng-container *ngSwitchCase="'info'">
+                <clr-dg-cell class="info-cell">
+                  <span>{{ col.renderCell.main(row) }}
+                    <clr-signpost>
+                      <clr-signpost-content *clrIfOpen>
+                        <span [innerHtml]="col.renderCell.info(row)"></span>
+                      </clr-signpost-content>
+                    </clr-signpost>
+                  </span>
+                </clr-dg-cell>
+              </ng-container>
+              <ng-container *ngSwitchDefault>
+                <clr-dg-cell>{{ row[col.id] || 'None' }}</clr-dg-cell>
+              </ng-container>
+            </ng-container>
+          </ng-container>
+        </clr-dg-row>
+        <clr-dg-footer>
+          <clr-dg-pagination #pagination [clrDgPageSize]="meta.size">
+            {{ pagination.firstItem + 1 }} - {{ pagination.lastItem + 1 }} {{ 'grid.pagination.of' | translate }} {{ meta.total }} {{
+            options.paginationTitle }}
+          </clr-dg-pagination>
+        </clr-dg-footer>
+      </clr-datagrid>
+    </div>
+  </div>
+</div>

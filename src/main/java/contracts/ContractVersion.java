@@ -92,8 +92,9 @@ public class ContractVersion implements FullVersionInfo {
    public static boolean isValidContractAddress(String hash) {
       // has to be 20 byte hex string = 40 char string
       // we allows it to either start with 0x or not
-      if (hash.startsWith("0x"))
+      if (hash.startsWith("0x")) {
          hash = hash.substring(2);
+      }
       return hash.length() == 40 && hash.matches("[0-9a-zA-Z]+");
    }
    
@@ -110,8 +111,9 @@ public class ContractVersion implements FullVersionInfo {
    }
    
    public boolean isOwner(String address) {
-      if (!address.startsWith("0x"))
+      if (!address.startsWith("0x")) {
          address = "0x" + address;
+      }
       return ownerAddress.equals(address);
    }
    
