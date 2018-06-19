@@ -5,10 +5,9 @@
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { Component, Input, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
 
-import { EthSendCallParams, EthSendTransactionParams, SmartContractVersion } from '../../shared/remote-interfaces';
+import { SmartContractVersion } from '../../shared/remote-interfaces';
 import * as Web3EthAbi from 'web3-eth-abi';
 
-import { AthenaApiService } from '../../shared/athena-api.service';
 import { EthApiService } from '../../shared/eth-api.service';
 import { ContractPayloadPreviewModalComponent } from '../contract-payload-preview-modal/contract-payload-preview-modal.component';
 import { isHexAddress, isHexadecimal } from '../custom-validators';
@@ -30,7 +29,7 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
   resultType: string;
   functionDefinition;
 
-  constructor(private athenaApiService: AthenaApiService, private ethApiService: EthApiService) {
+  constructor(private ethApiService: EthApiService) {
     this.versionForm = new FormGroup({
       functionName: new FormControl(''),
       contractForm: new FormGroup({

@@ -19,7 +19,6 @@ import {
   Transaction,
   SmartContract,
   SmartContractVersion,
-  SmartContractResponse,
   ApiResponse
 } from './remote-interfaces';
 

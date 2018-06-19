@@ -46,7 +46,7 @@ export class CreateContractModalComponent implements OnInit {
   ngOnInit() {
   }
 
-  open(open) {
+  open() {
     this.smartContractForm.reset();
     this.isOpen = true;
   }
