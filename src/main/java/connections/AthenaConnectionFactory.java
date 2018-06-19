@@ -21,6 +21,7 @@ public final class AthenaConnectionFactory {
    public AthenaConnectionFactory(ConnectionType type, IConfiguration conf) {
       _type = type;
       _conf = conf;
+      nextAuthority = new AtomicLong();
 
       //Read list of athenas from config
       athenaList = new ArrayList<>();
@@ -31,7 +32,7 @@ public final class AthenaConnectionFactory {
          Authority a = new Authority(group[0], Integer.parseInt(group[1]));
          athenaList.add(a);
       }
-      nextAuthority.set(0);
+      //nextAuthority.set(0);
    }
 
    public IAthenaConnection create() throws IOException,
