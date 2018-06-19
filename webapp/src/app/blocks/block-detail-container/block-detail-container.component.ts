@@ -29,7 +29,7 @@ export class BlockDetailContainerComponent implements OnInit {
 
   loadBlock(blockNumber) {
     this.athenaApiService.getBlock(blockNumber).subscribe(block => {
-      this.block = block
+      this.block = block;
     });
   }
 }

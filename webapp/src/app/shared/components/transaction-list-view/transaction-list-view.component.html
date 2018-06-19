@@ -16,25 +16,10 @@
           </clr-dg-filter>
         </clr-dg-column>
         <clr-dg-row *clrDgItems="let transaction of recentTransactions">
-           <clr-dg-cell><a class="label-link" [routerLink]="['/blocks', transaction.blockNumber, 'transactions', transaction.hash]">{{transaction?.hash}}</a></clr-dg-cell>
-          <clr-dg-cell>{{transaction.nonce}}</clr-dg-cell>
+           <clr-dg-cell><a [routerLink]="['/blocks', transaction.blockNumber, 'transactions', transaction.hash]">{{transaction?.hash}}</a></clr-dg-cell>
+          <clr-dg-cell>{{transaction?.nonce}}</clr-dg-cell>
           <clr-dg-cell>{{(transaction?.status ? 'transactions.success' : 'transactions.failure') | translate}}</clr-dg-cell>
-          <clr-dg-row-detail *clrIfExpanded>
-            <div>
-              <table class="table table-vertical table-noborder">
-                <tbody>
-                <tr>
-                  <td>{{'blocks.title' | translate}}</td>
-                  <td><a [routerLink]="['/blocks', transaction.blockNumber, 'transactions', transaction.hash]">{{transaction?.blockNumber}}</a></td>
-                </tr>
-                <tr>
-                  <td>{{'nodes.title' | translate}}</td>
-                  <td></td>
-                </tr>
-                </tbody>
-              </table>
-            </div>
-          </clr-dg-row-detail>
+          <app-transaction-details *clrIfExpanded [transactionHash]="transaction?.hash" ngProjectAs="clr-dg-row-detail"></app-transaction-details>
         </clr-dg-row>
         <clr-dg-footer>
           <clr-dg-pagination #pagination [clrDgPageSize]="10">

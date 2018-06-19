@@ -5,51 +5,10 @@
         <clr-icon shape="file" size="36"></clr-icon>
       </div>
       <div class="col-xs-11">
-        {{'transactions.title' | translate}}: {{transaction?.hash}}
+        {{'transactions.title' | translate}}: {{transactionHash}}
       </div>
     </div>
   </h2>
-  <div>
-    <table class="table table-vertical table-noborder">
-      <tbody>
-      <tr>
-        <th>{{'transactions.hash' | translate}}</th>
-        <td>{{transaction?.hash}}</td>
-      </tr>
-      <tr>
-        <th>{{'transactions.from' | translate}}</th>
-        <td>{{transaction?.from}}</td>
-      </tr>
-      <tr *ngIf="transaction?.to">
-        <th>{{'transactions.to' | translate}}</th>
-        <td>{{transaction?.to}}</td>
-      </tr>
-      <tr *ngIf="transaction?.contractAddress">
-        <th>{{'transactions.contractAddress' | translate}}</th>
-        <td>{{transaction?.contractAddress}}</td>
-      </tr>
-      <tr *ngIf="transaction?.value">
-        <th>{{'transactions.value' | translate}}</th>
-        <td>{{transaction?.value}}</td>
-      </tr>
-      <tr *ngIf="transaction?.input">
-        <th>{{'transactions.input' | translate}}</th>
-        <td>{{transaction?.input}}</td>
-      </tr>
-      <tr>
-        <th>{{'transactions.nonce' | translate}}</th>
-        <td>{{transaction?.nonce}}</td>
-      </tr>
-      <tr>
-        <th>{{'transactions.status' | translate}}</th>
-        <td>{{(transaction?.status ? 'transactions.success' : 'transactions.failure') | translate}}</td>
-      </tr>
-      <tr *ngIf="blockNumber">
-        <th>{{'blocks.title' | translate}}</th>
-        <td><a [routerLink]="['/blocks', blockNumber]">{{blockNumber}}</a></td>
-      </tr>
-      </tbody>
-    </table>
-  </div>
+  <app-transaction-details [transactionHash]="transactionHash"></app-transaction-details>
 </div>
 

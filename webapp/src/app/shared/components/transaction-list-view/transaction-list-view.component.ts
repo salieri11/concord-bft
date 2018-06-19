@@ -1,6 +1,10 @@
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
+
 import { Component, OnInit } from '@angular/core';
 
-import {AthenaApiService} from "../../athena-api.service";
+import { AthenaApiService } from '../../athena-api.service';
 
 @Component({
   selector: 'app-transaction-list-view',

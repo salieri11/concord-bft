@@ -1,7 +1,11 @@
-import {Component, Input, OnInit} from '@angular/core';
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
 
-import {Block} from "../../shared/remote-interfaces";
-import {AthenaApiService} from "../../shared/athena-api.service";
+import { Component, Input, OnInit } from '@angular/core';
+
+import { Block } from '../../shared/remote-interfaces';
+import { AthenaApiService } from '../../shared/athena-api.service';
 
 @Component({
   selector: 'app-block-details',
@@ -18,12 +22,12 @@ export class BlockDetailsComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.loadBlock();
+    this.loadBlock(this.blockNumber);
   }
 
-  loadBlock() {
+  loadBlock(blockNumber: number) {
     this.loading = true;
-    this.athenaApiService.getBlock(this.blockNumber).subscribe(response => {
+    this.athenaApiService.getBlock(blockNumber).subscribe(response => {
       this.block = response;
       this.loading = false;
     });

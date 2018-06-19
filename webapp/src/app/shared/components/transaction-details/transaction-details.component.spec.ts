@@ -4,21 +4,21 @@
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { TransactionListViewComponent } from './transaction-list-view.component';
+import { TransactionDetailsComponent } from './transaction-details.component';
 
-describe('TransactionListViewComponent', () => {
-  let component: TransactionListViewComponent;
-  let fixture: ComponentFixture<TransactionListViewComponent>;
+describe('TransactionDetailsComponent', () => {
+  let component: TransactionDetailsComponent;
+  let fixture: ComponentFixture<TransactionDetailsComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ TransactionListViewComponent ]
+      declarations: [ TransactionDetailsComponent ]
     })
     .compileComponents();
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(TransactionListViewComponent);
+    fixture = TestBed.createComponent(TransactionDetailsComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
