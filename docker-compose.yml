@@ -9,7 +9,7 @@ services:
     ports:
       - 8080:8080
   andes:
-    image: andes/andes-baas
+    image: beerriot/p2bc:andes-baas20180618
     ports:
      - 8000:8080
   postgres:

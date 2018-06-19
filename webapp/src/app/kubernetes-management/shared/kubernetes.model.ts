@@ -46,3 +46,9 @@ export interface KubernetesResponse {
     totalPages: number
   };
 }
+
+export enum CredType {
+  BasicAuth = 'basic_auth',
+  Certificate = 'certificate',
+  ConfigFile = 'configFile'
+}

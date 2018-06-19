@@ -6,7 +6,7 @@ import {
   ChangeDetectorRef,
   Component,
   OnInit,
-  ViewChild
+  ViewChild,
 } from '@angular/core';
 import {
   FormBuilder,
@@ -19,7 +19,8 @@ import { TranslateService } from '@ngx-translate/core';
 import { GridOptions } from '../grid/shared/grid.model';
 import { GridComponent } from '../grid/grid.component';
 import { KubernetesService } from './shared/kubernetes.service';
-import { Kubernetes } from './shared/kubernetes.model';
+import { Kubernetes, CredType } from './shared/kubernetes.model';
+
 
 @Component({
   selector: 'app-kubernetes-management',
@@ -38,10 +39,11 @@ export class KubernetesManagementComponent implements OnInit {
   get credentialType(): any { return this.addKubeForm.get('credentialType'); }
   deleteKubeForm: FormGroup;
   selectedRows: Array<Kubernetes>;
+  credType = CredType;
   credentialOptions: Array<{ name?: string; value: string }> = [
-    { value: 'basic_auth', name: 'Basic Auth' },
-    { value: 'certificate', name: 'Certificate' },
-    { value: 'configFile', name: 'configFile' },
+    { value: CredType.BasicAuth, name: 'Basic Auth' },
+    { value: CredType.Certificate, name: 'Certificate' },
+    { value: CredType.ConfigFile, name: 'Config File' },
   ];
 
   constructor(
@@ -51,10 +53,6 @@ export class KubernetesManagementComponent implements OnInit {
     private translate: TranslateService,
     private route: ActivatedRoute
   ) {
-    const browserLang = translate.getBrowserLang();
-    translate.setDefaultLang('en');
-    translate.use(browserLang);
-
     this.gridOptions.getData = (params?: any) => {
       return this.kubeService.getList(params);
     };

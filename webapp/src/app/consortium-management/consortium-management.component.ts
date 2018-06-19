@@ -51,9 +51,6 @@ export class ConsortiumManagementComponent implements OnInit {
     private fb: FormBuilder,
     private translate: TranslateService
   ) {
-    const browserLang = translate.getBrowserLang();
-    translate.setDefaultLang('en');
-    translate.use(browserLang);
 
     this.gridOptions.getData = () => {
       return this.consortiumService.getFakeData();

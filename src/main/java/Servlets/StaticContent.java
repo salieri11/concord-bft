@@ -1,15 +1,5 @@
 package Servlets;
 
-import configurations.FileConfiguration;
-import configurations.IConfiguration;
-import io.undertow.util.CanonicalPathUtils;
-import io.undertow.util.StatusCodes;
-import org.apache.log4j.Logger;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -17,8 +7,22 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+
+import configurations.ConfigurationFactory;
+import configurations.IConfiguration;
+import io.undertow.util.CanonicalPathUtils;
+import io.undertow.util.StatusCodes;
+
 /**
- * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
  * 
  * <p>
  * This servlet is used to serve static content. Endpoints serviced :
@@ -35,7 +39,8 @@ public class StaticContent extends HttpServlet {
    private IConfiguration _conf;
 
    public StaticContent() throws IOException {
-      _conf = FileConfiguration.getInstance();
+      _conf = ConfigurationFactory.getConfiguration(
+              ConfigurationFactory.ConfigurationType.File);
    }
 
    /**
