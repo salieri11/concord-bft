@@ -20,8 +20,7 @@ import Servlets.AthenaHelper;
 import Servlets.EthDispatcher;
 import configurations.*;
 
-public final class AthenaTCPConnection implements IAthenaCommunication,
-                                       IAthenaConnection {
+public final class AthenaTCPConnection implements IAthenaConnection {
    private Socket _socket;
    private AtomicBoolean _disposed;
    private final int _receiveTimeout; // ms
@@ -40,7 +39,7 @@ public final class AthenaTCPConnection implements IAthenaCommunication,
     *
     * @throws IOException
     */
-   public AthenaTCPConnection(IConfiguration conf) throws IOException {
+   public AthenaTCPConnection(IConfiguration conf, String host, int port) throws IOException {
       _conf = conf;
       _receiveLengthSize = _conf.getIntegerValue("ReceiveHeaderSizeBytes");
       _receiveTimeout = _conf.getIntegerValue("ReceiveTimeoutMs");
@@ -48,16 +47,16 @@ public final class AthenaTCPConnection implements IAthenaCommunication,
 
       // Create the TCP connection and input and output streams
       try {
-         String host = _conf.getStringValue("AthenaHostName");
-         int port = _conf.getIntegerValue("AthenaPort");
          _socket = new Socket(host, port);
          _socket.setTcpNoDelay(true);
          _socket.setSoTimeout(_receiveTimeout);
       } catch (UnknownHostException e) {
-         _logger.error("Error creating TCP connection with Athena");
+         _logger.error("Error creating TCP connection with Athena. Host= " 
+                       + host + ", port= " + port);
          throw new UnknownHostException();
       } catch (IOException e) {
-         _logger.error("Error creating input/output stream with Athena");
+         _logger.error("Error creating input/output stream with Athena. Host= "
+                       + host + ", port= " + port);
          throw new IOException();
       }
 
