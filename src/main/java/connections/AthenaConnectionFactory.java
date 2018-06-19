@@ -32,7 +32,6 @@ public final class AthenaConnectionFactory {
          Authority a = new Authority(group[0], Integer.parseInt(group[1]));
          athenaList.add(a);
       }
-      //nextAuthority.set(0);
    }
 
    public IAthenaConnection create() throws IOException,
