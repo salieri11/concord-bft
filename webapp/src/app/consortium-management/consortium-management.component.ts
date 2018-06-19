@@ -12,13 +12,13 @@ import {
   FormGroup,
   Validators,
 } from '@angular/forms';
-import { TranslateService } from '@ngx-translate/core';
+import {TranslateService} from '@ngx-translate/core';
 
-import { GridOptions } from '../grid/shared/grid.model';
-import { GridComponent } from '../grid/grid.component';
-import { ConsortiumService } from './shared/consortium.service';
-import { Consortium } from './shared/consortium.model';
-import { Personas } from '../shared/persona.service';
+import {GridOptions} from '../grid/shared/grid.model';
+import {GridComponent} from '../grid/grid.component';
+import {ConsortiumService} from './shared/consortium.service';
+import {Consortium} from './shared/consortium.model';
+import {Personas} from '../shared/persona.service';
 
 
 @Component({
@@ -27,7 +27,7 @@ import { Personas } from '../shared/persona.service';
   styleUrls: ['./consortium-management.component.scss']
 })
 export class ConsortiumManagementComponent implements OnInit {
-  static personasAllowed = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
+  static personasAllowed: string[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   @ViewChild('grid') grid: GridComponent;
   openModalForm = false;
   modalTitle = '';
@@ -36,15 +36,17 @@ export class ConsortiumManagementComponent implements OnInit {
   gridOptions: GridOptions = new GridOptions();
 
   addConsortiumForm: FormGroup;
+
   get credentialType(): any {
     return this.addConsortiumForm.get('credentialType');
   }
+
   deleteConsortiumForm: FormGroup;
   selectedRows: Array<Consortium>;
   credentialOptions: Array<{ name?: string; value: string }> = [
-    { value: 'userAuth' },
-    { value: 'certificate' },
-    { value: 'configFile' },
+    {value: 'userAuth'},
+    {value: 'certificate'},
+    {value: 'configFile'},
   ];
 
   constructor(

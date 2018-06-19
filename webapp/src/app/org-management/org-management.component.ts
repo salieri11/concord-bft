@@ -18,7 +18,7 @@ import { Personas } from '../shared/persona.service';
   styleUrls: ['./org-management.component.scss']
 })
 export class OrgManagementComponent implements OnInit {
-  static personasAllowed = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
+  static personasAllowed: string[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   @ViewChild('orgList') orgList: OrgListComponent;
 
   constructor() {}

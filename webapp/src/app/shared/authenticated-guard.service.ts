@@ -29,7 +29,7 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
   }
 
   canActivate(route: ActivatedRouteSnapshot): boolean {
-    const personasAllowed: any = (route.component as any).personasAllowed;
+    const personasAllowed: string[] = (route.component as any).personasAllowed;
 
     if (!this.authenticationService.isAuthenticated()) {
       this.router.navigate(['auth', 'log-in']);
