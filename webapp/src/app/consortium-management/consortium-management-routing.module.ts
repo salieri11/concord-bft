@@ -9,11 +9,11 @@ import { ConsortiumManagementComponent } from './consortium-management.component
 import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
 
 const routes: Routes = [
-    {
-        path: 'consortium',
-        canActivate: [AuthenticatedGuard],
-        component: ConsortiumManagementComponent,
-    },
+  {
+    path: 'consortium',
+    canActivate: [AuthenticatedGuard],
+    component: ConsortiumManagementComponent,
+  },
 
 ];
 

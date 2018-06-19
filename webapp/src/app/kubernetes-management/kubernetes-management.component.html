@@ -1,109 +1,112 @@
 <div class="p-2">
-    <h2 class="page-title">
-      <clr-icon shape="host" size="30"></clr-icon> {{ 'kubernetes.title' | translate }} |
-        <clr-dropdown>
-            <button class="nav-icon" clrDropdownTrigger>
-                {{ 'kubernetes.actions.title' | translate }}
-                <clr-icon shape="caret down"></clr-icon>
+  <h2 class="page-title">
+    <clr-icon shape="host" size="30"></clr-icon> {{ 'kubernetes.title' | translate }} |
+    <clr-dropdown>
+      <button class="nav-icon" clrDropdownTrigger>
+        {{ 'kubernetes.actions.title' | translate }}
+        <clr-icon shape="caret down"></clr-icon>
+      </button>
+      <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
+        <button type="button" (click)="openAddKube()" clrDropdownItem>
+          {{ 'kubernetes.actions.options.add.title' | translate }}
+        </button>
+        <button type="button" [disabled]="selectedRows.length === 0" (click)="confirmDeleteKube()" clrDropdownItem>
+          {{ 'kubernetes.actions.options.delete.title' | translate }}
+        </button>
+      </clr-dropdown-menu>
+    </clr-dropdown>
+  </h2>
+  <app-grid #grid [options]="gridOptions" (selectedRowsEvent)="selectedRowChange($event)"></app-grid>
+  <clr-modal [(clrModalOpen)]="openModalForm" [clrModalSize]="modalSize">
+    <h3 class="modal-title">{{ modalTitle }}</h3>
+    <div class="modal-body">
+      <ng-container [ngSwitch]="formType">
+        <ng-container *ngSwitchCase="'add'">
+          <form [formGroup]="addKubeForm" (ngSubmit)="addKube()">
+            <section class="form-block">
+              <div class="form-group">
+                <label for="name">
+                  {{ 'kubernetes.addKubeForm.inputs.name.title' | translate }}
+                </label>
+                <input formControlName="name" type="text" id="name" [placeholder]="'kubernetes.addKubeForm.inputs.name.placeholder' | translate"
+                  size=35>
+              </div>
+              <div class="form-group">
+                <label for="apiServerUrl">
+                  {{ 'kubernetes.addKubeForm.inputs.apiServerUrl.title' | translate }}
+                </label>
+                <input formControlName="apiServerUrl" type="text" id="apiServerUrl" [placeholder]="'kubernetes.addKubeForm.inputs.apiServerUrl.placeholder' | translate"
+                  size=35>
+              </div>
+              <div class="form-group">
+                <label for="credentialType">
+                  {{ 'kubernetes.addKubeForm.inputs.credentialType.title' | translate }}
+                </label>
+                <div class="select">
+                  <select formControlName="credentialType" id="credentialType">
+                    <option *ngFor="let cred of credentialOptions" [value]="cred.value">{{ cred.name }}</option>
+                  </select>
+                </div>
+              </div>
+              <div [hidden]="credentialType.value !== credType.BasicAuth">
+                <div class="form-group">
+                  <label for="username">
+                    {{ 'kubernetes.addKubeForm.inputs.username.title' | translate }}
+                  </label>
+                  <input formControlName="username" type="text" id="username" [placeholder]="'kubernetes.addKubeForm.inputs.username.placeholder' | translate"
+                    size=35>
+                </div>
+                <div class="form-group">
+                  <label for="password">
+                    {{ 'kubernetes.addKubeForm.inputs.password.title' | translate }}
+                  </label>
+                  <input formControlName="password" type="password" id="password" size=35>
+                </div>
+              </div>
+              <div [hidden]="credentialType.value !== credType.Certificate">
+                <div class="form-group">
+                  <label for="certificate">
+                    {{ 'kubernetes.addKubeForm.inputs.certificate.title' | translate }}
+                  </label>
+                  <textarea formControlName="certificate" type="text" id="certificate" [placeholder]="'kubernetes.addKubeForm.inputs.certificate.placeholder' | translate"
+                    size=35></textarea>
+                </div>
+                <div class="form-group">
+                  <label for="key">
+                    {{ 'kubernetes.addKubeForm.inputs.key.title' | translate }}
+                  </label>
+                  <textarea formControlName="key" type="text" id="key" [placeholder]="'kubernetes.addKubeForm.inputs.key.placeholder' | translate"
+                    size=35></textarea>
+                </div>
+              </div>
+              <div [hidden]="credentialType.value !== credType.ConfigFile">
+                <div class="form-group">
+                  <label for="configFile">
+                    {{ 'kubernetes.addKubeForm.inputs.configFile.title' | translate }}
+                  </label>
+                  <input type="file" id="configFile" formControlName="configFile" size=35 (change)="onConfigFileChange(event)">
+                </div>
+              </div>
+            </section>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline" (click)="openModalForm = false">Cancel</button>
+              <button type="submit" class="btn btn-primary" [disabled]="addKubeForm.status !== 'VALID'">
+                {{ 'kubernetes.addKubeForm.submit.title' | translate }}
+              </button>
+            </div>
+          </form>
+        </ng-container>
+        <ng-container *ngSwitchCase="'delete'">
+          <p>{{ 'deleteModal.bodyText' | translate}}
+            <span *ngFor="let r of selectedRows">{{ r.name }} </span> ?</p>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline" (click)="openModalForm = false">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="deleteKube()">
+              {{ 'kubernetes.deleteKubeForm.submit.title' | translate }}
             </button>
-            <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
-                <button type="button" (click)="openAddKube()" clrDropdownItem>
-                    {{ 'kubernetes.actions.options.add.title' | translate }}
-                </button>
-                <button type="button" [disabled]="selectedRows.length === 0" (click)="confirmDeleteKube()" clrDropdownItem>
-                    {{ 'kubernetes.actions.options.delete.title' | translate }}
-                </button>
-            </clr-dropdown-menu>
-        </clr-dropdown>
-    </h2>
-
-    <app-grid #grid [options]="gridOptions"
-             (selectedRowsEvent)="selectedRowChange($event)"></app-grid>
-
-    <clr-modal [(clrModalOpen)]="openModalForm" [clrModalSize]="modalSize">
-        <h3 class="modal-title">{{ modalTitle }}</h3>
-        <div class="modal-body">
-            <ng-container [ngSwitch]="formType">
-                <ng-container *ngSwitchCase="'add'">
-                    <form [formGroup]="addKubeForm" (ngSubmit)="addKube()">
-                        <section class="form-block">
-                            <div class="form-group">
-                                <label for="name">
-                                    {{ 'kubernetes.addKubeForm.inputs.name.title' | translate }}
-                                </label>
-                                <input formControlName="name" type="text" id="name" [placeholder]="'kubernetes.addKubeForm.inputs.name.placeholder' | translate" size=35>
-                            </div>
-                            <div class="form-group">
-                                <label for="apiServerUrl">
-                                    {{ 'kubernetes.addKubeForm.inputs.apiServerUrl.title' | translate }}
-                                </label>
-                                <input formControlName="apiServerUrl" type="text" id="apiServerUrl" [placeholder]="'kubernetes.addKubeForm.inputs.apiServerUrl.placeholder' | translate" size=35>
-                            </div>
-                            <div class="form-group">
-                                <label for="credentialType">
-                                    {{ 'kubernetes.addKubeForm.inputs.credentialType.title' | translate }}
-                                </label>
-                                <div class="select">
-                                    <select formControlName="credentialType" id="credentialType">
-                                        <option *ngFor="let cred of credentialOptions" [value]="cred.value">{{ cred.name }}</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div [hidden]="credentialType.value !== credType.BasicAuth">
-    	                        <div class="form-group">
-    	                            <label for="username">
-    	                                {{ 'kubernetes.addKubeForm.inputs.username.title' | translate }}
-    	                            </label>
-    	                            <input formControlName="username" type="text" id="username" [placeholder]="'kubernetes.addKubeForm.inputs.username.placeholder' | translate" size=35>
-    	                        </div>
-    	                        <div class="form-group">
-    	                            <label for="password">
-    	                                {{ 'kubernetes.addKubeForm.inputs.password.title' | translate }}
-    	                            </label>
-    	                            <input formControlName="password" type="password" id="password" size=35>
-    	                        </div>
-                        	</div>
-                            <div [hidden]="credentialType.value !== credType.Certificate">
-    	                        <div class="form-group">
-    	                            <label for="certificate">
-    	                                {{ 'kubernetes.addKubeForm.inputs.certificate.title' | translate }}
-    	                            </label>
-    	                            <textarea formControlName="certificate" type="text" id="certificate" [placeholder]="'kubernetes.addKubeForm.inputs.certificate.placeholder' | translate" size=35></textarea>
-    	                        </div>
-    	                        <div class="form-group">
-    	                            <label for="key">
-    	                                {{ 'kubernetes.addKubeForm.inputs.key.title' | translate }}
-    	                            </label>
-    	                            <textarea formControlName="key" type="text" id="key" [placeholder]="'kubernetes.addKubeForm.inputs.key.placeholder' | translate" size=35></textarea>
-    	                        </div>
-                        	</div>
-                            <div [hidden]="credentialType.value !== credType.ConfigFile">
-    	                        <div class="form-group">
-    	                            <label for="configFile">
-    	                                {{ 'kubernetes.addKubeForm.inputs.configFile.title' | translate }}
-    	                            </label>
-    	                            <input type="file" id="configFile" formControlName="configFile" size=35 (change)="onConfigFileChange(event)">
-    	                        </div>
-    	                    </div>
-                        </section>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline" (click)="openModalForm = false">Cancel</button>
-                        <button type="submit" class="btn btn-primary" [disabled]="addKubeForm.status !== 'VALID'">
-                            {{ 'kubernetes.addKubeForm.submit.title' | translate }}
-                        </button>
-                    </div>
-                    </form>
-                </ng-container>
-                <ng-container *ngSwitchCase="'delete'">
-                    <p>{{ 'deleteModal.bodyText' | translate}} <span *ngFor="let r of selectedRows">{{ r.name }} </span> ?</p>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline" (click)="openModalForm = false">Cancel</button>
-                        <button type="button" class="btn btn-primary" (click)="deleteKube()">
-                            {{ 'kubernetes.deleteKubeForm.submit.title' | translate }}
-                        </button>
-                    </div>
-                </ng-container>
-            </ng-container>
-        </div>
-    </clr-modal>
+          </div>
+        </ng-container>
+      </ng-container>
+    </div>
+  </clr-modal>
 </div>

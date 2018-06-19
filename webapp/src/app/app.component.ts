@@ -5,6 +5,7 @@
 import { Component, OnDestroy, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs/Subscription';
+import { TranslateService } from '@ngx-translate/core';
 
 import { AuthenticationService } from './shared/authentication.service';
 import { ErrorAlertService } from './shared/global-error-handler.service';
@@ -26,8 +27,13 @@ export class AppComponent implements OnDestroy {
     private authenticationService: AuthenticationService,
     private router: Router,
     private alertService: ErrorAlertService,
+    private translate: TranslateService,
     public zone: NgZone,
   ) {
+    const browserLang = this.translate.getBrowserLang();
+    this.translate.setDefaultLang('en');
+    this.translate.use(browserLang);
+
     this.authenticationChange = authenticationService.user.subscribe(email => {
       this.authenticated = email !== undefined;
       this.username = email;
