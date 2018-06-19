@@ -19,6 +19,7 @@ public abstract class BaseTest extends TestCase {
 
    @SuppressWarnings("rawtypes")
    protected BaseTest(Class clazz) throws IOException {
+      ConfigurationFactory.init();
       _conf = ConfigurationFactory.getConfiguration(ConfigurationType.Test);
       _log = Logger.getLogger(clazz);
    }

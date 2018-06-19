@@ -14,7 +14,14 @@ localhost by default.
 
 [Athena](https://github.com/vmwathena/athena)
 
+[Solidity compiler] Install solidity compiler (`solc`) with version >= 0.4.20
+for `ubuntu` solidity compiler can be installed using `sudo apt-get install solc`
+
+[CockroachDB] Install cockroachDB on the same machine as helen.
+A simple configuration guide for CockroachDB is provided in `cockroachdb_setup.md`.
+
 [Protocol Buffers v2.x](https://developers.google.com/protocol-buffers/docs/proto)
+
 
 ### macOS Setup
 

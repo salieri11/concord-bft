@@ -10,23 +10,9 @@ import java.io.IOException;
 import org.json.simple.parser.ParseException;
 
 public class TestConfiguration extends FileConfiguration {
-   private static TestConfiguration _instance;
-   static {
-      try {
-         _instance = new TestConfiguration();
-      } catch (IOException e) {
-         throw new ExceptionInInitializerError(e);
-      } catch (ParseException e) {
-         throw new ExceptionInInitializerError(e);
-      }
-   }
-
-   private TestConfiguration() throws IOException, ParseException {
+   
+   public TestConfiguration() throws IOException {
       super();
-   }
-
-   public static TestConfiguration getInstance() {
-      return _instance;
    }
 
    public void setConnectionPoolSize(int value) {
