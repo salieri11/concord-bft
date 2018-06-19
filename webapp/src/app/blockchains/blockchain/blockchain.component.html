@@ -1,12 +1,14 @@
 <div class="p-2">
   <h2 class="page-title">
-      <clr-icon shape="blocks-group" size="36"></clr-icon> {{ blockchain.name }}
+    <clr-icon shape="blocks-group" size="36"></clr-icon> {{ blockchain.name }}
   </h2>
   <span class="label">
-      {{ 'blockchains.detail.status' | translate }} <span class="badge badge-info">{{ blockchain.state }}</span>
+    {{ 'blockchains.detail.status' | translate }}
+    <span class="badge badge-info">{{ blockchain.state }}</span>
   </span>
   <span class="label">
-      {{ 'blockchains.detail.consensusType' | translate }} <span class="badge badge-success">{{ blockchain.consensusType }}</span>
+    {{ 'blockchains.detail.consensusType' | translate }}
+    <span class="badge badge-success">{{ blockchain.consensusType }}</span>
   </span>
   <a [href]="blockchain.k8sDashboardUrl" target="_blank" [ngClass]="{'disabled': !blockchain.k8sDashboardUrl}" class="btn btn-primary btn-link btn-sm">
     <clr-icon shape="pop-out"></clr-icon> {{ 'blockchains.detail.openKube' | translate }}

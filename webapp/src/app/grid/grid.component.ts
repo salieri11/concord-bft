@@ -18,7 +18,6 @@ import {
   ClrDatagridStateInterface,
   ClrDatagridPagination
 } from '@clr/angular';
-import { TranslateService } from '@ngx-translate/core';
 
 
 import {
@@ -49,14 +48,9 @@ export class GridComponent implements OnInit {
   previousState: ClrDatagridStateInterface;
 
   constructor(
-    translate: TranslateService,
     private errorService: ErrorAlertService,
     private zone: NgZone,
-  ) {
-    const browserLang = translate.getBrowserLang();
-    translate.setDefaultLang('en');
-    translate.use(browserLang);
-  }
+  ) {}
 
   ngOnInit() {
     this.datagrid.selection.change

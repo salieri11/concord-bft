@@ -55,10 +55,6 @@ export class KubernetesManagementComponent implements OnInit {
     private translate: TranslateService,
     private route: ActivatedRoute
   ) {
-    const browserLang = translate.getBrowserLang();
-    translate.setDefaultLang('en');
-    translate.use(browserLang);
-
     this.gridOptions.getData = (params?: any) => {
       return this.kubeService.getList(params);
     };

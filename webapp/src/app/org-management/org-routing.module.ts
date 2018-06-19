@@ -9,11 +9,11 @@ import { OrgManagementComponent } from '../org-management/org-management.compone
 import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
 
 const routes: Routes = [
-    {
-        path: 'organization',
-        canActivate: [AuthenticatedGuard],
-        component: OrgManagementComponent
-    },
+  {
+    path: 'organization',
+    canActivate: [AuthenticatedGuard],
+    component: OrgManagementComponent
+  },
 ];
 
 @NgModule({

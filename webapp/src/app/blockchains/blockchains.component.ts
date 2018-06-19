@@ -52,10 +52,6 @@ export class BlockchainsComponent implements OnInit {
     private translate: TranslateService,
     private route: ActivatedRoute
   ) {
-    const browserLang = translate.getBrowserLang();
-    translate.setDefaultLang('en');
-    translate.use(browserLang);
-
     this.gridOptions.getData = (params?: any) => {
       return this.blockchainsService.getList(params);
     };

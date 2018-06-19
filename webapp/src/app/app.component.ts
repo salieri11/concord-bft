@@ -5,12 +5,12 @@
 import { Component, OnDestroy, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs/Subscription';
+import { TranslateService } from '@ngx-translate/core';
+import { FormGroup, FormControl } from '@angular/forms';
 
 import { AuthenticationService } from './shared/authentication.service';
 import { ErrorAlertService } from './shared/global-error-handler.service';
 import { Personas, PersonaService } from './shared/persona.service';
-import { TranslateService } from '@ngx-translate/core';
-import { FormGroup, FormControl } from '@angular/forms';
 
 @Component({
   selector: 'app-root',
@@ -39,8 +39,8 @@ export class AppComponent implements OnDestroy {
     private authenticationService: AuthenticationService,
     private router: Router,
     private alertService: ErrorAlertService,
-    public zone: NgZone,
     private translate: TranslateService,
+    public zone: NgZone,
     private personaService: PersonaService
   ) {
     const browserLang = this.translate.getBrowserLang();

@@ -3,8 +3,8 @@
     <clr-alert *ngFor="let alert of alerts" [clrAlertType]="'alert-danger'" [clrAlertAppLevel]="true">
       <clr-alert-item>
         <span class="alert-text">
-                {{ alert.message }}
-            </span>
+          {{ alert.message }}
+        </span>
       </clr-alert-item>
     </clr-alert>
   </clr-alerts>
@@ -22,7 +22,7 @@
           <clr-icon shape="caret down"></clr-icon>
         </button>
         <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
-           <h4 class="dropdown-header">System Admin</h4>
+          <h4 class="dropdown-header">System Admin</h4>
           <a clrDropdownItem>
             <clr-icon shape="wand"></clr-icon> {{ 'nav.menu.options.deploy.title' | translate }}</a>
           <a [routerLink]="['/organization']" fragment="add" clrDropdownItem>
