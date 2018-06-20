@@ -240,14 +240,12 @@ class HelenAPITests(test_suite.TestSuite):
       '''
       A helper method to upload simple hello world contract.
       '''
-      data = {
-         "id": 1,
-      };
+      data = {};
       data["from"] = "0x1111111111111111111111111111111111111111"
       data["contract_id"] = contractId
       data["version"] = contractVersion
       data["sourcecode"] = sourceCode
-      return request.uploadContract(data)["result"]
+      return request.uploadContract(data)
 
    def random_string_generator(self, size=6, chars=string.ascii_uppercase + string.digits):
       return ''.join(random.choice(chars) for _ in range(size))
@@ -271,8 +269,8 @@ class HelenAPITests(test_suite.TestSuite):
       result = request.callContractAPI('/api/athena/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
       try:
-         if (result["result"]["contract_id"] == contractId and
-             result["result"]["version"] == contractVersion):
+         if (result["contract_id"] == contractId and
+             result["version"] == contractVersion):
             return True
       except Exception as e:
          print(e)
@@ -289,11 +287,11 @@ class HelenAPITests(test_suite.TestSuite):
 
    def _test_getAllContracts(self, request):
       result = request.callContractAPI('/api/athena/contracts', "")
-      existingCount = len(result["result"])
+      existingCount = len(result)
       contractId, contractVersion = self.upload_mock_contract(request)
       result = request.callContractAPI('/api/athena/contracts', "")
-      newCount = len(result["result"])
-      result = result["result"][0]
+      newCount = len(result)
+      result = result[0]
       if (self.has_contract(request, contractId, contractVersion) and
           existingCount + 1 == newCount):
          return (True, None)
@@ -327,7 +325,6 @@ class HelenAPITests(test_suite.TestSuite):
       uri = '/api/athena/contracts/' + contractId
       expectedVersionCount = 2
       result = request.callContractAPI(uri, "")
-      result = result["result"]
       if (result["contract_id"] == contractId and
           len(result["versions"]) == expectedVersionCount):
          return (True, None)
@@ -341,7 +338,6 @@ class HelenAPITests(test_suite.TestSuite):
       uri = '/api/athena/contracts/' + contractId \
             + '/versions/' + contractVersion
       result = request.callContractAPI(uri, "")
-      result = result["result"]
       if (result["contract_id"] == contractId and
           result["version"] == contractVersion):
          return (True, None)

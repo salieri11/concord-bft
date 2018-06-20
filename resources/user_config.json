@@ -44,7 +44,7 @@
             "launchCommand": "src/athena",
             "parameters": [
               "--logger_config",
-              "./resources/logc4plus.properties",
+              "./resources/log4cplus.properties",
               "-c",
               "resources/athena2.config"
             ]
@@ -58,7 +58,7 @@
             "launchCommand": "src/athena",
             "parameters": [
               "--logger_config",
-              "./resources/logc4plus.properties",
+              "./resources/log4cplus.properties",
               "-c",
               "resources/athena3.config"
             ]
