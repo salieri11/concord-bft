@@ -47,28 +47,7 @@ export function HttpLoaderFactory(http: HttpClient) {
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
-    HttpClientModule,
-    ClarityModule,
-    RouterModule.forRoot(appRoutes),
-    TranslateModule.forRoot({
-      loader: {
-        provide: TranslateLoader,
-        useFactory: HttpLoaderFactory,
-        deps: [HttpClient]
-      }
-    }),
-    AuthenticationModule,
-    DashboardModule,
-    NodesModule,
-    BlocksModule,
-    TransactionsModule,
-    TestingModule,
-    SharedModule.forRoot(),
-    OrgManagementModule,
-    BlockchainsModule,
-    ConsortiumManagementModule,
-    KubernetesManagementModule,
-    ChannelsModule,
+
   ],
   providers: [
     {
