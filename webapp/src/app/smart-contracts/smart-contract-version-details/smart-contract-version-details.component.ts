@@ -54,6 +54,7 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
       } else {
         this.functionDefinition = undefined;
       }
+      this.getFunctionDetails();
     }
   }
 
