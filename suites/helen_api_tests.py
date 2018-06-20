@@ -28,6 +28,7 @@ class HelenAPITests(test_suite.TestSuite):
    _ethereumMode = False
    _productMode = True
    _resultFile = None
+   p = None
 
    def __init__(self, passedArgs):
       super(HelenAPITests, self).__init__(passedArgs)
@@ -38,6 +39,7 @@ class HelenAPITests(test_suite.TestSuite):
    def run(self):
       ''' Runs all of the tests. '''
       if self._productMode:
+         global p
          try:
             p = self.launchProduct(self._args.resultsDir,
                                    self._apiBaseServerUrl + "/api/athena/eth",
@@ -100,7 +102,8 @@ class HelenAPITests(test_suite.TestSuite):
               ("version_upload", self._test_versionUpload), \
               ("get_versions", self._test_getAllVersions), \
               ("get_version", self._test_getVersion), \
-              ("duplicate_contract", self._test_duplicateContractUpload)]
+              ("duplicate_contract", self._test_duplicateContractUpload), \
+              ("resilience", self._test_resilience)]
 
    # Tests: expect one argument, a Request, and produce a 2-tuple
    # (bool success, string info)
@@ -349,6 +352,52 @@ class HelenAPITests(test_suite.TestSuite):
          return (False,
                  "GET /api/athena/contracts/{}/versions/{} did not return" \
                  " correct response".format(contractId, contractVersion))
+
+   #Tests the resiliency of the system by providing an erroneous Athena 
+   #Authority to Helen.
+   def _test_resilience(self, request):
+      if self._productMode:
+         global p
+         p.stopProduct()
+
+         #Provide a Helen config which has an erroneous Athena Authority listed
+         test_config = self._userConfig["product"]
+         test_config["launch"][1]["apiServer"]["helen1"]["parameters"][2] = \
+         "config_resiliencyTest.properties"
+
+         #Launch product with this config
+         try:
+            p = self.launchProduct(self._args.resultsDir,
+                                   self._apiServerUrl,
+                                   test_config)
+         except Exception as e:
+            log.error(traceback.format_exc())
+            return self._resultFile
+
+         tests = self._getTests()
+         print("\nRe-running a few tests to test resiliency")
+
+         #Run a few tests to check whether the system works the way it is 
+         #supposed to.
+         for (testName, testFun) in tests[:4]:
+            testLogDir = os.path.join(self._testLogDir, "resilience_" + testName)
+            try:
+               print(testName)
+               result, info = self._runRestTest(testName,
+                                                testFun,
+                                                testLogDir)
+            except Exception as e:
+               result = False
+               info = str(e)
+               traceback.print_tb(e.__traceback__)
+               log.error("Exception running ReST test: '{}'".format(info))
+
+            #If any test fails, declare failure
+            if result != True:
+               return (False, testName + " test failed.")
+
+         print("\n")
+      return (True, None)
 
    def requireFields(self, ob, fieldList):
       for f in fieldList:
