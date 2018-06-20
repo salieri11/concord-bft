@@ -1,5 +1,7 @@
 package Servlets;
 
+import static Servlets.APIHelper.errorJSON;
+
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -164,9 +166,9 @@ public class ContractsServlet extends BaseServlet {
             = new RESTResult(HttpServletResponse.SC_OK,
                              buildContractJSON(registryManager.getAllBriefVersionInfo(contractId)));
       } else {
-         JSONObject error = new JSONObject();
-         error.put("error", "No contract found with id: " + contractId);
-         result = new RESTResult(HttpServletResponse.SC_NOT_FOUND, error);
+         result = new RESTResult(HttpServletResponse.SC_NOT_FOUND,
+                                 errorJSON("No contract found with id: "
+                                    + contractId));
       }
       return result;
    }
@@ -217,11 +219,10 @@ public class ContractsServlet extends BaseServlet {
          result = new RESTResult(HttpServletResponse.SC_OK,
                                  buildVersionJSON(fvInfo));
       } catch (ContractRetrievalException e) {
-         JSONObject error = new JSONObject();
-         error.put("error",
-                   "No contract found with id: " + contractId + " and version: "
-                      + contractVersion);
-         result = new RESTResult(HttpServletResponse.SC_NOT_FOUND, error);
+         result = new RESTResult(HttpServletResponse.SC_NOT_FOUND,
+                                 errorJSON("No contract found with id: "
+                                    + contractId + " and version: "
+                                    + contractVersion));
       }
       return result;
    }
@@ -255,19 +256,14 @@ public class ContractsServlet extends BaseServlet {
          logger.warn("URI decoding failed: ", e);
       }
       logger.debug("Decoded URI: " + uri);
-      int respStatus;
-      JSONObject responseJSON = new JSONObject();
-      String responseString;
+      RESTResult result;
       // TODO: this nullcheck is fragile. We need to redesign this database
       // service classes so that other servlets work even if database is
       // unavailable
       if (registryManager == null) {
-         // throw error
-         responseJSON.put("error", "Service unavailable.");
-         respStatus = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
-         responseString = responseJSON.toJSONString();
+         result = new RESTResult(HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+                                 errorJSON("Service unavailable."));
       } else if (request.getMethod().equalsIgnoreCase("GET")) {
-         RESTResult result;
          // If uri has trailing backslash remove it
          if (uri.charAt(uri.length() - 1) == '/') {
             uri = uri.substring(0, uri.length() - 1);
@@ -288,14 +284,14 @@ public class ContractsServlet extends BaseServlet {
             result = new RESTResult(HttpServletResponse.SC_BAD_REQUEST,
                                     new JSONObject());
          }
-         respStatus = result.responseStatus;
-         responseString = result.getResultString();
       } else {
-         responseJSON.put("error", "Requested Method not allowed!");
-         respStatus = HttpServletResponse.SC_METHOD_NOT_ALLOWED;
-         responseString = responseJSON.toJSONString();
+         result = new RESTResult(HttpServletResponse.SC_METHOD_NOT_ALLOWED,
+                                 errorJSON("Requested Method not allowed!"));
       }
-      processResponse(response, responseString, respStatus, logger);
+      processResponse(response,
+                      result.getResultString(),
+                      result.responseStatus,
+                      logger);
    }
 
    /**
@@ -510,17 +506,12 @@ public class ContractsServlet extends BaseServlet {
     *           HttpRequest object
     * @param response
     *           HttpResponse object
-    * @param responseJSON
-    *           The JSONObject which should be filled with the results of
-    *           processing. The results of processing will be inserted into this
-    *           json object under "result" (in case of success) or "error" (in
-    *           case of failure) keys.
-    * @return
+    *
+    * @return The RESTResult object containing result of this request
     */
-   private int handlePost(final HttpServletRequest request,
-                          final HttpServletResponse response,
-                          JSONObject responseJSON) {
-      int respStatus;
+   private RESTResult handlePost(final HttpServletRequest request,
+                                 final HttpServletResponse response) {
+      RESTResult restResult;
       try {
          String paramString
             = request.getReader()
@@ -539,20 +530,20 @@ public class ContractsServlet extends BaseServlet {
          // Check if contract with same id already exists, if yes
          // then version number must be different
          if (registryManager.hasContractVersion(contractId, contractVersion)) {
-            respStatus = HttpServletResponse.SC_CONFLICT;
-            responseJSON.put("error",
-                             "contract with same name and version "
-                                + "already exists");
+            restResult
+               = new RESTResult(HttpServletResponse.SC_CONFLICT,
+                                errorJSON("contract with same name and version "
+                                   + "already exists"));
          } else if (registryManager.hasContract(contractId)
             && !isSameAddress(registryManager.getBriefContractInfo(contractId)
                                              .getOwnerAddress(),
                               (from))) {
             // It is a new version of
             // existing contract but from address doesn't match
-            respStatus = HttpServletResponse.SC_FORBIDDEN;
-            responseJSON.put("error",
-                             "Only original "
-                                + "owner can deploy the new version of a contract");
+            restResult
+               = new RESTResult(HttpServletResponse.SC_FORBIDDEN,
+                                errorJSON("contract with same name and version "
+                                   + "already exists"));
          } else {
             // Compile the given solidity code
             Compiler.Result result = Compiler.compile(solidityCode);
@@ -563,38 +554,32 @@ public class ContractsServlet extends BaseServlet {
                                                        from,
                                                        result,
                                                        solidityCode);
-               respStatus = HttpServletResponse.SC_OK;
-               // In all other cases we return a single error jsonobject
-               // but in this case we return a jsonarray. And these two can not
-               // be cast into one another. So we put `resultArray` inside
-               // responseJSON as `responseJSON.put("result", resultArray)`
-               // and inside `doPost` method we check for this and return
-               // correct data. This is not a very clean interface and will have
-               // to be changed later on.
-               responseJSON.put("result", resultArray);
+               restResult
+                  = new RESTResult(HttpServletResponse.SC_OK, resultArray);
             } else if (result.isSuccess()
                && result.getByteCodeMap().size() != 1) {
-               respStatus = HttpServletResponse.SC_BAD_REQUEST;
-               responseJSON.put("error",
-                                "Uploaded file must have exactly one"
-                                   + " contract");
+               restResult
+                  = new RESTResult(HttpServletResponse.SC_BAD_REQUEST,
+                                   errorJSON("Uploaded file must have exactly one"
+                                      + " contract"));
             } else {
-               respStatus = HttpServletResponse.SC_BAD_REQUEST;
-               responseJSON.put("error",
-                                "Compilation failure:\n" + result.getStderr());
+               restResult = new RESTResult(HttpServletResponse.SC_BAD_REQUEST,
+                                           errorJSON("Compilation failure:\n"
+                                              + result.getStderr()));
             }
          }
       } catch (ParseException pe) {
          logger.warn("Exception while parsing request JSON", pe);
-         respStatus = HttpServletResponse.SC_BAD_REQUEST;
-         responseJSON.put("error", "unable to parse request.");
+         restResult = new RESTResult(HttpServletResponse.SC_BAD_REQUEST,
+                                     errorJSON("unable to parse request."));
       } catch (Exception e) {
          logger.warn("Exception in request processing", e);
-         respStatus = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
-         responseJSON.put("error", e.getMessage());
+         restResult
+            = new RESTResult(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                             errorJSON(e.getMessage()));
       }
-      logger.debug("Response: " + responseJSON.toJSONString());
-      return respStatus;
+
+      return restResult;
    }
 
    /**
@@ -607,23 +592,17 @@ public class ContractsServlet extends BaseServlet {
    protected void
              doPost(final HttpServletRequest request,
                     final HttpServletResponse response) throws IOException {
-      int respStatus;
-      JSONObject responseJSON = new JSONObject();
-      String responseString;
+      RESTResult result;
       if (registryManager == null) {
-         respStatus = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
-         responseJSON.put("error", "Service unavailable.");
-         responseString = responseJSON.toJSONString();
+         result = new RESTResult(HttpServletResponse.SC_SERVICE_UNAVAILABLE,
+                                 errorJSON("Service unavailable."));
       } else {
-         respStatus = handlePost(request, response, responseJSON);
-         if (responseJSON.containsKey("result")) {
-            responseString
-               = ((JSONArray) responseJSON.get("result")).toJSONString();
-         } else {
-            responseString = responseJSON.toJSONString();
-         }
+         result = handlePost(request, response);
       }
-      processResponse(response, responseString, respStatus, logger);
+      processResponse(response,
+                      result.getResultString(),
+                      result.responseStatus,
+                      logger);
    }
 
    /**
