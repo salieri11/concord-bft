@@ -8,17 +8,17 @@
     <div class="col-xs-12">
       <clr-datagrid>
         <clr-dg-column [clrDgSortBy]="'hash'">{{'transactions.hash' | translate}}</clr-dg-column>
-        <clr-dg-column>{{'transactions.nonce' | translate}}</clr-dg-column>
-        <clr-dg-column>
+        <clr-dg-column *ngIf="!transactions">{{'transactions.nonce' | translate}}</clr-dg-column>
+        <clr-dg-column *ngIf="!transactions">
           {{'transactions.status' | translate}}
           <clr-dg-filter [clrDgFilter]="statusFilter">
             <app-transactions-status-filter #statusFilter></app-transactions-status-filter>
           </clr-dg-filter>
         </clr-dg-column>
-        <clr-dg-row *clrDgItems="let transaction of recentTransactions">
+        <clr-dg-row *clrDgItems="let transaction of RecentTransactions">
            <clr-dg-cell><a [routerLink]="['/blocks', transaction.blockNumber, 'transactions', transaction.hash]">{{transaction?.hash}}</a></clr-dg-cell>
-          <clr-dg-cell>{{transaction?.nonce}}</clr-dg-cell>
-          <clr-dg-cell>{{(transaction?.status ? 'transactions.success' : 'transactions.failure') | translate}}</clr-dg-cell>
+          <clr-dg-cell *ngIf="!transactions">{{transaction?.nonce}}</clr-dg-cell>
+          <clr-dg-cell *ngIf="!transactions">{{(transaction?.status ? 'transactions.success' : 'transactions.failure') | translate}}</clr-dg-cell>
           <app-transaction-details *clrIfExpanded [transactionHash]="transaction?.hash" ngProjectAs="clr-dg-row-detail"></app-transaction-details>
         </clr-dg-row>
         <clr-dg-footer>
