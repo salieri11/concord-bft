@@ -21,7 +21,5 @@ export class TransactionListViewComponent implements OnInit {
     this.athenaApiService.getRecentTransactions().subscribe((resp) => {
       this.recentTransactions = resp;
     });
-    console.log(this.recentTransactions);
   }
-
 }

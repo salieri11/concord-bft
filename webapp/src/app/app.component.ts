@@ -9,7 +9,6 @@ import { TranslateService } from '@ngx-translate/core';
 
 import { AuthenticationService } from './shared/authentication.service';
 import { ErrorAlertService } from './shared/global-error-handler.service';
-import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-root',
