@@ -12,7 +12,7 @@ import { Block } from '../../shared/remote-interfaces';
  * Displays a single block's details
  */
 @Component({
-  selector: 'app-block-detail-container',
+  selector: 'athena-block-detail-container',
   templateUrl: './block-detail-container.component.html',
   styleUrls: ['./block-detail-container.component.scss']
 })

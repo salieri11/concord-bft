@@ -11,7 +11,7 @@ import { BlockListing, BlockListingBlock } from '../../shared/remote-interfaces'
  * Displays a paginated listing of blocks
  */
 @Component({
-  selector: 'app-blocks-container',
+  selector: 'athena-blocks-container',
   templateUrl: './blocks-container.component.html',
   styleUrls: ['./blocks-container.component.scss']
 })

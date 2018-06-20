@@ -22,7 +22,7 @@ enum TransactionActionOptions {
 }
 
 @Component({
-  selector: 'app-testing-ground',
+  selector: 'athena-testing-ground',
   templateUrl: './testing-ground.component.html',
   styleUrls: ['./testing-ground.component.scss']
 })

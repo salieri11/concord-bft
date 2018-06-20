@@ -22,7 +22,7 @@
         <button clrTabLink id="link1">{{ 'blockchains.detail.orgTab' | translate }}</button>
         <clr-tab-content id="content1" *clrIfActive="true">
           <ng-container *ngIf="orgUrl">
-            <app-org-list [url]="orgUrl"></app-org-list>
+            <athena-org-list [url]="orgUrl"></athena-org-list>
           </ng-container>
         </clr-tab-content>
       </clr-tab>

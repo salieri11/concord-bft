@@ -29,7 +29,7 @@ import {
 import { ErrorAlertService } from '../shared/global-error-handler.service';
 
 @Component({
-  selector: 'app-grid',
+  selector: 'athena-grid',
   templateUrl: './grid.component.html',
   styleUrls: ['./grid.component.scss']
 })

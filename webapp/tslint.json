@@ -125,13 +125,13 @@
     "directive-selector": [
       true,
       "attribute",
-      "app",
+      "athena",
       "camelCase"
     ],
     "component-selector": [
       true,
       "element",
-      "app",
+      "athena",
       "kebab-case"
     ],
     "no-output-on-prefix": true,

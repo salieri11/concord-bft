@@ -54,7 +54,7 @@
         <clr-dg-column>
           {{'transactions.status' | translate}}
           <clr-dg-filter [clrDgFilter]="statusFilter">
-            <app-transactions-status-filter #statusFilter></app-transactions-status-filter>
+            <athena-transactions-status-filter #statusFilter></athena-transactions-status-filter>
           </clr-dg-filter>
         </clr-dg-column>
         <clr-dg-row *clrDgItems="let transaction of recentTransactions">

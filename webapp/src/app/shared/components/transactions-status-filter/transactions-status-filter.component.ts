@@ -10,7 +10,7 @@ import { Subject } from 'rxjs/Subject';
 import { Transaction } from '../../remote-interfaces';
 
 @Component({
-  selector: 'app-transactions-status-filter',
+  selector: 'athena-transactions-status-filter',
   templateUrl: './transactions-status-filter.component.html',
   styleUrls: ['./transactions-status-filter.component.scss']
 })

@@ -16,7 +16,7 @@
       "test": "test.ts",
       "tsconfig": "tsconfig.app.json",
       "testTsconfig": "tsconfig.spec.json",
-      "prefix": "app",
+      "prefix": "athena",
       "styles": [
         "../node_modules/@clr/icons/clr-icons.min.css",
         "styles.scss"
