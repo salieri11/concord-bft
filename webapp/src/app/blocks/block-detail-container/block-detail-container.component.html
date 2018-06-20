@@ -1,17 +1,11 @@
 <div class="p-2 break-word">
-  <h2 class="mt-0 pl-1">
-    <div class="row flex-items-xs-middle media">
-      <div class="col-xs-1">
-        <clr-icon shape="block" size="36"></clr-icon>
-      </div>
-      <div class="col-xs-11">
-        {{'blocks.title' | translate}}: {{block?.number}} {{block?.hash}}
-      </div>
-    </div>
+  <h2 class="page-title">
+    <clr-icon shape="block" size="36"></clr-icon>
+    {{'blocks.title' | translate}}: {{block?.number}} {{block?.hash}}
   </h2>
 
   <div>
-    <table class="table table-vertical table-noborder">
+    <table class="table table-vertical">
       <tbody>
       <tr>
         <th>{{'transactions.parentHash' | translate}}</th>
@@ -31,4 +25,4 @@
 
 </div>
 
-<app-transaction-list-view [transactions]="block?.transactions"></app-transaction-list-view>
+<app-transaction-list-view [transactions]="block?.transactions" [blockNumber]="block?.number"></app-transaction-list-view>

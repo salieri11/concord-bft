@@ -1,7 +1,7 @@
 <div class="p-2">
   <div class="row">
     <div class="col-xs-12">
-      <h3 class="mt-0">{{'transactions.transactions' | translate}}</h3>
+      <h3 class="page-title">{{'transactions.transactions' | translate}}</h3>
     </div>
   </div>
   <div class="row">
@@ -15,11 +15,13 @@
             <app-transactions-status-filter #statusFilter></app-transactions-status-filter>
           </clr-dg-filter>
         </clr-dg-column>
-        <clr-dg-row *clrDgItems="let transaction of RecentTransactions">
-           <clr-dg-cell><a [routerLink]="['/blocks', transaction.blockNumber, 'transactions', transaction.hash]">{{transaction?.hash}}</a></clr-dg-cell>
+        <clr-dg-row *clrDgItems="let transaction of transactions">
+           <clr-dg-cell><a [routerLink]="['/blocks', transaction.blockNumber ? transaction.blockNumber : blockNumber, 'transactions', transaction.hash]">{{transaction?.hash}}</a></clr-dg-cell>
           <clr-dg-cell *ngIf="!transactions">{{transaction?.nonce}}</clr-dg-cell>
           <clr-dg-cell *ngIf="!transactions">{{(transaction?.status ? 'transactions.success' : 'transactions.failure') | translate}}</clr-dg-cell>
-          <app-transaction-details *clrIfExpanded [transactionHash]="transaction?.hash" ngProjectAs="clr-dg-row-detail"></app-transaction-details>
+          <clr-dg-row-detail>
+            <app-transaction-details *clrIfExpanded [transactionHash]="transaction?.hash" ngProjectAs="clr-dg-row-detail"></app-transaction-details>
+          </clr-dg-row-detail>
         </clr-dg-row>
         <clr-dg-footer>
           <clr-dg-pagination #pagination [clrDgPageSize]="10">
@@ -30,3 +32,4 @@
     </div>
   </div>
 </div>
+

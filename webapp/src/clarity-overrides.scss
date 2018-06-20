@@ -82,6 +82,7 @@
 
 .datagrid-host {
   padding-top: 0;
+  height: auto !important;
 }
 
 .header .dropdown button.dropdown-toggle:not(.btn) {
@@ -91,6 +92,9 @@
 .page-title {
   margin-top: 0;
 
+  clr-icon {
+    margin-top: -5px;
+  }
   .dropdown-toggle {
     font-size: .75rem;
     padding-right: 15px;

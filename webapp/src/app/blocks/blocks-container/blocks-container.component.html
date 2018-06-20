@@ -29,14 +29,16 @@
 <img class="graph-placeholder" src="assets/static/images/node-activity-large.png">
 
 <div class="p-2">
-  <h3 class="mt-0">{{'blocks.blocks' | translate}}</h3>
+  <h3 class="page-title">{{'blocks.blocks' | translate}}</h3>
   <clr-datagrid>
     <clr-dg-column [clrDgField]="'number'">{{'blocks.index' | translate}}</clr-dg-column>
     <clr-dg-column>{{'blocks.hash' | translate}}</clr-dg-column>
     <clr-dg-row *clrDgItems="let block of blocks">
       <clr-dg-cell><a [routerLink]="['/blocks', block.number]">{{block.number}}</a></clr-dg-cell>
       <clr-dg-cell>{{block.hash}}</clr-dg-cell>
-      <app-block-details *clrIfExpanded ngProjectAs="clr-dg-row-detail" [blockNumber]="block?.number"></app-block-details>
+      <clr-dg-row-detail>
+        <app-block-details *clrIfExpanded ngProjectAs="clr-dg-row-detail" [blockNumber]="block?.number"></app-block-details>
+      </clr-dg-row-detail>
     </clr-dg-row>
     <clr-dg-footer>
       <clr-dg-pagination #pagination [clrDgPageSize]="10">

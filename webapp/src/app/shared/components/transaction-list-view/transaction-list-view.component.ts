@@ -4,8 +4,6 @@
 
 import { Component, Input, OnInit } from '@angular/core';
 
-import { AthenaApiService } from '../../athena-api.service';
-
 @Component({
   selector: 'app-transaction-list-view',
   templateUrl: './transaction-list-view.component.html',
@@ -13,26 +11,11 @@ import { AthenaApiService } from '../../athena-api.service';
 })
 export class TransactionListViewComponent implements OnInit {
   @Input() transactions: any[];
+  @Input() blockNumber?: number;
 
-  recentTransactions: any[] = [];
-
-  constructor(private athenaApiService: AthenaApiService) {
+  constructor() {
   }
 
   ngOnInit() {
   }
-
-  get RecentTransactions() {
-    console.log(this.transactions);
-    if (this.transactions === undefined) {
-    this.athenaApiService.getRecentTransactions().subscribe((resp) => {
-      this.recentTransactions = resp;
-    });
-    } else {
-      this.recentTransactions=this.transactions;
-    }
-    return this.recentTransactions;
-  }
-
 }
-
