@@ -282,7 +282,7 @@ public class ContractsServlet extends BaseServlet {
             result = handleGetVersion(tokens[1], tokens[3]);
          } else {
             result = new RESTResult(HttpServletResponse.SC_BAD_REQUEST,
-                                    new JSONObject());
+                                    errorJSON("Resource not found"));
          }
       } else {
          result = new RESTResult(HttpServletResponse.SC_METHOD_NOT_ALLOWED,
@@ -578,7 +578,7 @@ public class ContractsServlet extends BaseServlet {
             = new RESTResult(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
                              errorJSON(e.getMessage()));
       }
-
+      logger.debug("Response: " + restResult);
       return restResult;
    }
 
@@ -651,6 +651,11 @@ public class ContractsServlet extends BaseServlet {
             return jsonArray.toJSONString();
          else
             return jsonObject.toJSONString();
+      }
+      
+      public String toString() {
+         return "Status: " + responseStatus +
+                 " Result: " + getResultString();
       }
    }
 }
