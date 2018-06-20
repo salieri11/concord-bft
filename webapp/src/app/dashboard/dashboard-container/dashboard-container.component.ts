@@ -2,9 +2,8 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 
-import { AthenaApiService } from '../../shared/athena-api.service';
 import { BlockListingBlock } from '../../shared/remote-interfaces';
 
 @Component({
@@ -12,7 +11,7 @@ import { BlockListingBlock } from '../../shared/remote-interfaces';
   templateUrl: './dashboard-container.component.html',
   styleUrls: ['./dashboard-container.component.scss']
 })
-export class DashboardContainerComponent implements OnInit {
+export class DashboardContainerComponent {
 
   blocks: BlockListingBlock[];
   blockTransactions: any[] = [];
@@ -25,11 +24,5 @@ export class DashboardContainerComponent implements OnInit {
     averageValidationTime: 1.98
   };
 
-  constructor(private athenaApiService: AthenaApiService) { }
-
-  ngOnInit() {
-    this.athenaApiService.getRecentTransactions().subscribe((resp) => {
-      this.recentTransactions = resp;
-    });
-  }
+  constructor() { }
 }

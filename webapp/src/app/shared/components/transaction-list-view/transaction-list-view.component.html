@@ -1,7 +1,7 @@
 <div class="p-2">
   <div class="row">
     <div class="col-xs-12">
-      <h3 class="mt-0">{{'transactions.transactions' | translate}}</h3>
+      <h3 class="page-title">{{'transactions.transactions' | translate}}</h3>
     </div>
   </div>
   <div class="row">
@@ -16,14 +16,19 @@
           </clr-dg-filter>
         </clr-dg-column>
         <clr-dg-row *clrDgItems="let transaction of recentTransactions">
-           <clr-dg-cell><a [routerLink]="['/blocks', transaction.blockNumber, 'transactions', transaction.hash]">{{transaction?.hash}}</a></clr-dg-cell>
+          <clr-dg-cell>
+            <a [routerLink]="['/blocks', transaction.blockNumber, 'transactions', transaction.hash]">{{transaction?.hash}}</a>
+          </clr-dg-cell>
           <clr-dg-cell>{{transaction?.nonce}}</clr-dg-cell>
           <clr-dg-cell>{{(transaction?.status ? 'transactions.success' : 'transactions.failure') | translate}}</clr-dg-cell>
-          <app-transaction-details *clrIfExpanded [transactionHash]="transaction?.hash" ngProjectAs="clr-dg-row-detail"></app-transaction-details>
+          <clr-dg-row-detail>
+            <app-transaction-details *clrIfExpanded [transactionHash]="transaction?.hash" ngProjectAs="clr-dg-row-detail"></app-transaction-details>
+          </clr-dg-row-detail>
         </clr-dg-row>
         <clr-dg-footer>
           <clr-dg-pagination #pagination [clrDgPageSize]="10">
-            {{'transactions.paginationSummary' | translate: { start: pagination.firstItem + 1, finish: pagination.lastItem + 1, total: pagination.totalItems} }}
+            {{'transactions.paginationSummary' | translate: { start: pagination.firstItem + 1, finish: pagination.lastItem + 1, total:
+            pagination.totalItems} }}
           </clr-dg-pagination>
         </clr-dg-footer>
       </clr-datagrid>

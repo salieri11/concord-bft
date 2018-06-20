@@ -1,13 +1,7 @@
 <div class="p-2 break-word">
-  <h2 class="mt-0">
-    <div class="row flex-items-xs-middle media">
-      <div class="col-xs-1">
-        <clr-icon shape="file" size="36"></clr-icon>
-      </div>
-      <div class="col-xs-11">
-        {{'transactions.title' | translate}}: {{transactionHash}}
-      </div>
-    </div>
+  <h2 class="page-title">
+      <clr-icon shape="file" size="30"></clr-icon>
+      {{'transactions.title' | translate}}: {{transactionHash}}
   </h2>
   <app-transaction-details [transactionHash]="transactionHash"></app-transaction-details>
 </div>
