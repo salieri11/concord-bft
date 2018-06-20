@@ -44,40 +44,6 @@ public class ContractsServlet extends BaseServlet {
    private ContractRegistryManager registryManager;
    private Random random = new Random();
 
-   
-   private static class RESTResult {
-      private int responseStatus; // Http status code of response
-      // The response can either be a jsonObject or jsonArray.
-      private JSONObject jsonObject;
-      private JSONArray jsonArray;
-   
-      
-      public RESTResult(int responseStatus, JSONObject jsonObject) {
-         this.responseStatus = responseStatus;
-         this.jsonObject = jsonObject;
-         jsonArray = null;
-      }
-      
-      public RESTResult(int responseStatus, JSONArray jsonArray) {
-         this.responseStatus = responseStatus;
-         this.jsonArray = jsonArray;
-         jsonObject = null;
-      }
-      
-      /**
-       * Returns the string object of jsonObject or jsonArray (whichever is
-       * present).
-       * @return json string of result
-       */
-      public String getResultString() {
-         if (jsonArray != null)
-            return jsonArray.toJSONString();
-         else
-            return jsonObject.toJSONString();
-      }
-   }
-   
-   
    public ContractsServlet() {
       try {
          registryManager = ContractRegistryManager.getInstance();
@@ -89,7 +55,7 @@ public class ContractsServlet extends BaseServlet {
 
    /**
     * Encodes the given string as per URL encoding rules
-    * 
+    *
     * @param str
     * @return
     */
@@ -107,7 +73,7 @@ public class ContractsServlet extends BaseServlet {
    /**
     * Builds a JSON which is sent as a response object for `GET
     * api/athena/contracts` queries
-    * 
+    *
     * @return JSONObject which should be returned to client
     */
    private JSONArray buildContractsJSON() {
@@ -130,7 +96,7 @@ public class ContractsServlet extends BaseServlet {
    /**
     * Processes the `GET api/athena/contracts` request and puts the generated
     * result inside @responseObject.
-    * 
+    *
     * @param responseObject
     *           The JSONObject which will contain the result generated during
     *           processing. This is an *OUT* parameter i.e this method will put
@@ -141,8 +107,8 @@ public class ContractsServlet extends BaseServlet {
     */
    private RESTResult handleGetContracts(JSONObject responseObject) {
       responseObject.put("result", buildContractsJSON());
-      RESTResult result = new RESTResult(HttpServletResponse.SC_OK,
-              buildContractsJSON());
+      RESTResult result
+         = new RESTResult(HttpServletResponse.SC_OK, buildContractsJSON());
       return result;
    }
 
@@ -193,7 +159,7 @@ public class ContractsServlet extends BaseServlet {
 
    /**
     * Handles the `GET api/athena/contracts/{contract_id}` request.
-    * 
+    *
     * @param contractId
     *           The `contract_id` variable present in the request URI
     * @param responseObject
@@ -203,17 +169,17 @@ public class ContractsServlet extends BaseServlet {
     *           responseObject.put("result", resultJSONObject);
     * @return The Http status code of response
     */
-   private RESTResult handleGetContract(String contractId, JSONObject responseObject) {
+   private RESTResult handleGetContract(String contractId,
+                                        JSONObject responseObject) {
       RESTResult result;
       if (registryManager.hasContract(contractId)) {
-         result = new RESTResult(HttpServletResponse.SC_OK,
-                 buildContractJSON(registryManager.getAllBriefVersionInfo
-                         (contractId)));
+         result
+            = new RESTResult(HttpServletResponse.SC_OK,
+                             buildContractJSON(registryManager.getAllBriefVersionInfo(contractId)));
       } else {
          JSONObject error = new JSONObject();
          error.put("message", "No contract found with id: " + contractId);
-         result = new RESTResult(HttpServletResponse.SC_NOT_FOUND,
-                 error);
+         result = new RESTResult(HttpServletResponse.SC_NOT_FOUND, error);
       }
       return result;
    }
@@ -222,7 +188,7 @@ public class ContractsServlet extends BaseServlet {
     * Builds a JSONObject representing the given version of the given contract
     * object. The JSONObject is generated to follow the response format of `GET
     * api/athena/contracts/{contract_id}/versions/{version}` request.
-    * 
+    *
     * @param versionInfo
     * @return The generated JSON with all details of the specific version
     */
@@ -248,7 +214,7 @@ public class ContractsServlet extends BaseServlet {
    /**
     * Handles the `GET api/athena/contracts/{contract_id}/versions/{version }`
     * request.
-    * 
+    *
     * @param contractId
     *           The value of `{contract_id}` from URI
     * @param contractVersion
@@ -260,19 +226,20 @@ public class ContractsServlet extends BaseServlet {
     *           responseObject.put("result", resultJSONObject);
     * @return The http status code of response.
     */
-   private RESTResult handleGetVersion(String contractId, String contractVersion,
+   private RESTResult handleGetVersion(String contractId,
+                                       String contractVersion,
                                        JSONObject responseObject) {
       RESTResult result;
       try {
          FullVersionInfo fvInfo
             = registryManager.getContractVersion(contractId, contractVersion);
          result = new RESTResult(HttpServletResponse.SC_OK,
-                 buildVersionJSON(fvInfo));
+                                 buildVersionJSON(fvInfo));
       } catch (ContractRetrievalException e) {
          JSONObject error = new JSONObject();
          error.put("message",
-                 "No contract found with id: " + contractId + " and version: "
-                         + contractVersion);
+                   "No contract found with id: " + contractId + " and version: "
+                      + contractVersion);
          result = new RESTResult(HttpServletResponse.SC_NOT_FOUND, error);
          responseObject.put("error", error);
       }
@@ -295,7 +262,7 @@ public class ContractsServlet extends BaseServlet {
     * handlers, hence we have a single ContractsServlet for any request of URI
     * type `api/athena/contracts/*` and then this dispatch method properly
     * forwards it to correct method.
-    * 
+    *
     * @param request
     * @param response
     */
@@ -339,7 +306,7 @@ public class ContractsServlet extends BaseServlet {
             result = handleGetVersion(tokens[1], tokens[3], responseJSON);
          } else {
             result = new RESTResult(HttpServletResponse.SC_BAD_REQUEST,
-                    new JSONObject());
+                                    new JSONObject());
          }
          respStatus = result.responseStatus;
          responseString = result.getResultString();
@@ -351,17 +318,14 @@ public class ContractsServlet extends BaseServlet {
          respStatus = HttpServletResponse.SC_METHOD_NOT_ALLOWED;
          responseString = responseJSON.toJSONString();
       }
-      processResponse(response,
-                      responseString,
-                      respStatus,
-                      logger);
+      processResponse(response, responseString, respStatus, logger);
    }
 
    /**
     * Handles the GET request for `/api/athena/contracts/<name>` API. GET
     * request returns the solidity code, bytecode and metadata information of
     * that contract
-    * 
+    *
     * @param request
     * @param response
     * @throws IOException
@@ -375,7 +339,7 @@ public class ContractsServlet extends BaseServlet {
    /**
     * Builds a JSONObject which represents a request of type
     * `eth_sendTransaction` (Ethereum send transaction)
-    * 
+    *
     * @param from
     *           Address from which new contract creation request was sent
     * @param id
@@ -403,7 +367,7 @@ public class ContractsServlet extends BaseServlet {
    /**
     * Builds an Ethereum Get Transaction Receipt (eth_getTransactionReceipt)
     * request JSON object.
-    * 
+    *
     * @param id
     *           The request id
     * @param transactionHash
@@ -426,7 +390,7 @@ public class ContractsServlet extends BaseServlet {
    /**
     * Extracts the contracts address from the response of the
     * `eth_getTransactionReceipt` request.
-    * 
+    *
     * @param jsonStr
     *           The string representing JSONObject of the response of
     *           `eth_getTransactionReceipt` request.
@@ -451,7 +415,7 @@ public class ContractsServlet extends BaseServlet {
     * in a loop. After every request we call `eth_getTransactionReceipt` to
     * either get the address at which contract was deployed or the error in case
     * of failure.
-    * 
+    *
     * @param contractId
     *           The unique contract_id provided by the user
     * @param contractVersion
@@ -493,7 +457,8 @@ public class ContractsServlet extends BaseServlet {
          // and forward it to EthDispatcher.
          JSONObject sendTxrequest
             = buildEthSendTxRequest(from,
-                                    random.nextInt(), // some request ID for JSON RPC
+                                    random.nextInt(), // some request ID for
+                                                      // JSON RPC
                                     result.getByteCodeMap().get(contractName));
          String responseString = new EthDispatcher().dispatch(sendTxrequest);
          logger.trace("Dispatcher response: " + responseString);
@@ -563,7 +528,7 @@ public class ContractsServlet extends BaseServlet {
     * a JSON having a key "params" and value being a strings of solidity
     * contract code. Every single of these contract codes are compiled and
     * deployed to athena
-    * 
+    *
     * @param request
     *           HttpRequest object
     * @param response
@@ -587,7 +552,7 @@ public class ContractsServlet extends BaseServlet {
          logger.debug(paramString);
          JSONParser parser = new JSONParser();
          JSONObject requestObject = (JSONObject) parser.parse(paramString);
-         
+
          // First extract some fields from requestParams
          String from = (String) requestObject.get("from");
          String contractId = (String) requestObject.get("contract_id");
@@ -598,8 +563,9 @@ public class ContractsServlet extends BaseServlet {
          // then version number must be different
          if (registryManager.hasContractVersion(contractId, contractVersion)) {
             respStatus = HttpServletResponse.SC_CONFLICT;
-            responseJSON.put("error", "contract with same name and version " +
-                    "already exists");
+            responseJSON.put("error",
+                             "contract with same name and version "
+                                + "already exists");
          } else if (registryManager.hasContract(contractId)
             && !isSameAddress(registryManager.getBriefContractInfo(contractId)
                                              .getOwnerAddress(),
@@ -607,8 +573,9 @@ public class ContractsServlet extends BaseServlet {
             // It is a new version of
             // existing contract but from address doesn't match
             respStatus = HttpServletResponse.SC_FORBIDDEN;
-            responseJSON.put("error", "Only original " +
-                    "owner can deploy the new version of a contract");
+            responseJSON.put("error",
+                             "Only original "
+                                + "owner can deploy the new version of a contract");
          } else {
             // Compile the given solidity code
             Compiler.Result result = Compiler.compile(solidityCode);
@@ -631,12 +598,13 @@ public class ContractsServlet extends BaseServlet {
             } else if (result.isSuccess()
                && result.getByteCodeMap().size() != 1) {
                respStatus = HttpServletResponse.SC_BAD_REQUEST;
-               responseJSON.put("error", "Uploaded file must have exactly one" +
-                       " contract");
+               responseJSON.put("error",
+                                "Uploaded file must have exactly one"
+                                   + " contract");
             } else {
                respStatus = HttpServletResponse.SC_BAD_REQUEST;
-               responseJSON.put("error", "Compilation failure:\n" + result
-                       .getStderr());
+               responseJSON.put("error",
+                                "Compilation failure:\n" + result.getStderr());
             }
          }
       } catch (ParseException pe) {
@@ -654,7 +622,7 @@ public class ContractsServlet extends BaseServlet {
 
    /**
     * Accepts a POST requests and forwards it to the dispatcher.
-    * 
+    *
     * @param request
     * @param response
     * @throws IOException
@@ -672,16 +640,13 @@ public class ContractsServlet extends BaseServlet {
       } else {
          respStatus = handlePost(request, response, responseJSON);
          if (responseJSON.containsKey("result")) {
-            responseString = ((JSONArray) responseJSON.get("result"))
-                    .toJSONString();
+            responseString
+               = ((JSONArray) responseJSON.get("result")).toJSONString();
          } else {
             responseString = responseJSON.toJSONString();
          }
       }
-      processResponse(response,
-                      responseString,
-                      respStatus,
-                      logger);
+      processResponse(response, responseString, respStatus, logger);
    }
 
    /**
@@ -699,5 +664,37 @@ public class ContractsServlet extends BaseServlet {
              parseToJSON(Athena.AthenaResponse athenaResponse) throws UnsupportedOperationException {
       throw new UnsupportedOperationException("parseToJSON is not supported "
          + "in " + "ContractsServlet");
+   }
+
+   private static class RESTResult {
+      private int responseStatus; // Http status code of response
+      // The response can either be a jsonObject or jsonArray.
+      private JSONObject jsonObject;
+      private JSONArray jsonArray;
+
+      public RESTResult(int responseStatus, JSONObject jsonObject) {
+         this.responseStatus = responseStatus;
+         this.jsonObject = jsonObject;
+         jsonArray = null;
+      }
+
+      public RESTResult(int responseStatus, JSONArray jsonArray) {
+         this.responseStatus = responseStatus;
+         this.jsonArray = jsonArray;
+         jsonObject = null;
+      }
+
+      /**
+       * Returns the string object of jsonObject or jsonArray (whichever is
+       * present).
+       *
+       * @return json string of result
+       */
+      public String getResultString() {
+         if (jsonArray != null)
+            return jsonArray.toJSONString();
+         else
+            return jsonObject.toJSONString();
+      }
    }
 }
