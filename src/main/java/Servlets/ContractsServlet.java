@@ -542,8 +542,8 @@ public class ContractsServlet extends BaseServlet {
             // existing contract but from address doesn't match
             restResult
                = new RESTResult(HttpServletResponse.SC_FORBIDDEN,
-                                errorJSON("contract with same name and version "
-                                   + "already exists"));
+                                errorJSON("Only original owner can deploy the" +
+                                        " new version of a contract"));
          } else {
             // Compile the given solidity code
             Compiler.Result result = Compiler.compile(solidityCode);
@@ -625,19 +625,11 @@ public class ContractsServlet extends BaseServlet {
    private static class RESTResult {
       private int responseStatus; // Http status code of response
       // The response can either be a jsonObject or jsonArray.
-      private JSONObject jsonObject;
-      private JSONArray jsonArray;
+      private JSONAware json;
 
-      public RESTResult(int responseStatus, JSONObject jsonObject) {
+      public RESTResult(int responseStatus, JSONAware json) {
          this.responseStatus = responseStatus;
-         this.jsonObject = jsonObject;
-         jsonArray = null;
-      }
-
-      public RESTResult(int responseStatus, JSONArray jsonArray) {
-         this.responseStatus = responseStatus;
-         this.jsonArray = jsonArray;
-         jsonObject = null;
+         this.json = json;
       }
 
       /**
@@ -647,15 +639,12 @@ public class ContractsServlet extends BaseServlet {
        * @return json string of result
        */
       public String getResultString() {
-         if (jsonArray != null)
-            return jsonArray.toJSONString();
-         else
-            return jsonObject.toJSONString();
+         return json.toJSONString();
       }
       
       public String toString() {
          return "Status: " + responseStatus +
-                 " Result: " + getResultString();
+                 " Result: " + json.toJSONString();
       }
    }
 }

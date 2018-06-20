@@ -9,330 +9,569 @@
     },
     "version": "1.0.0"
   },
-  "servers": [
-    {
-      "url": "/api",
-      "description": "Local API endpoint"
-    }
-  ],
+  "servers": [{
+    "url": "/api",
+    "description": "Local API endpoint"
+  }],
   "paths": {
     "/athena/members": {
       "summary": "Athena Concensus Membership List",
       "get": {
-        "summary": "List nodes that are members",
-        "operationId": "memberListGet",
-        "responses": {
-          "200": {
-            "description": "Members",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "host": {
-                        "type": "string"
-                      },
-                      "port": {
-                        "type": "integer"
-                      },
-                      "status": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+	"summary": "List nodes that are members",
+	"operationId": "memberListGet",
+	"responses": {
+	  "200": {
+	    "description": "Members",
+	    "content": {
+	      "application/json": {
+		"schema": {
+		  "type": "array",
+		  "items": {
+		    "type": "object",
+		    "properties": {
+		      "host": {
+			"type": "string"
+		      },
+		      "port": {
+			"type": "integer"
+		      },
+		      "status": {
+			"type": "string"
+		      }
+		    }
+		  }
+		}
+	      }
+	    }
+	  }
+	}
       }
     },
     "/athena/blocks": {
-        "summary": "Athena Blocks",
-        "get": {
-            "summary": "List blocks in the chain, most recent first",
-            "operationId": "blockListGet",
-            "parameters": [
-                {
-                    "name": "latest",
-                    "in": "query",
-                    "description": "most recent block to start with",
-                    "required": false,
-                    "schema": {
-                        "type": "integer",
-                        "format": "string"
-                    }
-                },
-                {
-                    "name": "count",
-                    "in": "query",
-                    "description": "number of blocks to return",
-                    "required": false,
-                    "schema": {
-                        "type": "integer",
-                        "format": "string"
-                    }
-                }
-            ],
-            "responses": {
-                "200": {
-                    "description": "Blocks",
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "blocks": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "object",
-                                            "properties": {
-                                                "number": {
-                                                    "type": "integer"
-                                                },
-                                                "hash": {
-                                                    "type": "string"
-                                                },
-                                                "url": {
-                                                    "type": "string"
-                                                }
-                                            }
-                                        }
-                                    },
-                                    "next": {
-                                        "type": "string"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+      "summary": "Athena Blocks",
+      "get": {
+	"summary": "List blocks in the chain, most recent first",
+	"operationId": "blockListGet",
+	"parameters": [{
+	  "name": "latest",
+	  "in": "query",
+	  "description": "most recent block to start with",
+	  "required": false,
+	  "schema": {
+	    "type": "integer",
+	    "format": "string"
+	  }
+	},
+		       {
+			 "name": "count",
+			 "in": "query",
+			 "description": "number of blocks to return",
+			 "required": false,
+			 "schema": {
+			   "type": "integer",
+			   "format": "string"
+			 }
+		       }
+		      ],
+	"responses": {
+	  "200": {
+	    "description": "Blocks",
+	    "content": {
+	      "application/json": {
+		"schema": {
+		  "type": "object",
+		  "properties": {
+		    "blocks": {
+		      "type": "array",
+		      "items": {
+			"type": "object",
+			"properties": {
+			  "number": {
+			    "type": "integer"
+			  },
+			  "hash": {
+			    "type": "string"
+			  },
+			  "url": {
+			    "type": "string"
+			  }
+			}
+		      }
+		    },
+		    "next": {
+		      "type": "string"
+		    }
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+      }
     },
     "/athena/blocks/{index}": {
-        "summary": "Specific Athena Block",
-        "get": {
-            "summary": "Get a specific block, by its number in the chain",
-            "operationId": "blockGet",
-            "parameters": [
-                {
-                    "name": "index",
-                    "in": "path",
-                    "description": "the index of the block to get",
-                    "required": "false",
-                    "schema": {
-                        "type": "integer",
-                        "format": "string"
-                    },
-                    "style": "simple"
-                }
-            ],
-            "responses": {
-                "200": {
-                    "description": "Block",
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "number": {
-                                        "type": "integer"
-                                    },
-                                    "hash": {
-                                        "type": "string"
-                                    },
-                                    "parentHash": {
-                                        "type": "string"
-                                    },
-                                    "nonce": {
-                                        "type": "string"
-                                    },
-                                    "size": {
-                                        "type": "integer"
-                                    },
-                                    "transactions": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "string"
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+      "summary": "Specific Athena Block",
+      "get": {
+	"summary": "Get a specific block, by its number in the chain",
+	"operationId": "blockGet",
+	"parameters": [{
+	  "name": "index",
+	  "in": "path",
+	  "description": "the index of the block to get",
+	  "required": "false",
+	  "schema": {
+	    "type": "integer",
+	    "format": "string"
+	  },
+	  "style": "simple"
+	}],
+	"responses": {
+	  "200": {
+	    "description": "Block",
+	    "content": {
+	      "application/json": {
+		"schema": {
+		  "type": "object",
+		  "properties": {
+		    "number": {
+		      "type": "integer"
+		    },
+		    "hash": {
+		      "type": "string"
+		    },
+		    "parentHash": {
+		      "type": "string"
+		    },
+		    "nonce": {
+		      "type": "string"
+		    },
+		    "size": {
+		      "type": "integer"
+		    },
+		    "transactions": {
+		      "type": "array",
+		      "items": {
+			"type": "string"
+		      }
+		    }
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+      }
     },
     "/athena/transactions/{hash}": {
-        "summary": "Specific Athena Block",
-        "get": {
-            "summary": "Get a specific transaction, by its hash",
-            "operationId": "txGet",
-            "parameters": [
-                {
-                    "name": "hash",
-                    "in": "path",
-                    "description": "the hash of the index to get",
-                    "required": "false",
-                    "schema": {
-                        "type": "string"
-                    },
-                    "style": "simple"
-                }
-            ],
-            "responses": {
-                "200": {
-                    "description": "Transaction",
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "hash": {
-                                        "type": "string"
-                                    },
-                                    "from": {
-                                        "type": "string"
-                                    },
-                                    "to": {
-                                        "type": "string"
-                                    },
-                                    "contractAddress": {
-                                        "type": "string"
-                                    },
-                                    "value": {
-                                        "type": "integer"
-                                    },
-                                    "input": {
-                                        "type": "string"
-                                    },
-                                    "blockHash": {
-                                        "type": "string"
-                                    },
-                                    "blockNumber": {
-                                        "type": "integer"
-                                    },
-                                    "transactionIndex": {
-                                        "type": "integer"
-                                    },
-                                    "nonce": {
-                                        "type": "integer"
-                                    },
-                                    "status": {
-                                        "type": "integer"
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+      "summary": "Specific Athena Block",
+      "get": {
+	"summary": "Get a specific transaction, by its hash",
+	"operationId": "txGet",
+	"parameters": [{
+	  "name": "hash",
+	  "in": "path",
+	  "description": "the hash of the index to get",
+	  "required": "false",
+	  "schema": {
+	    "type": "string"
+	  },
+	  "style": "simple"
+	}],
+	"responses": {
+	  "200": {
+	    "description": "Transaction",
+	    "content": {
+	      "application/json": {
+		"schema": {
+		  "type": "object",
+		  "properties": {
+		    "hash": {
+		      "type": "string"
+		    },
+		    "from": {
+		      "type": "string"
+		    },
+		    "to": {
+		      "type": "string"
+		    },
+		    "contractAddress": {
+		      "type": "string"
+		    },
+		    "value": {
+		      "type": "integer"
+		    },
+		    "input": {
+		      "type": "string"
+		    },
+		    "blockHash": {
+		      "type": "string"
+		    },
+		    "blockNumber": {
+		      "type": "integer"
+		    },
+		    "transactionIndex": {
+		      "type": "integer"
+		    },
+		    "nonce": {
+		      "type": "integer"
+		    },
+		    "status": {
+		      "type": "integer"
+		    }
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+      }
     },
     "/athena/eth": {
       "summary": "Ethereum JSON RPC API",
       "get": {
-        "summary": "List available RPC methods",
-        "operationId": "ethJsonRpcGet",
-        "responses": {
-          "200": {
-            "description": "RPC Method List",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "name": {
-                        "type": "string"
-                      },
-                      "params": {
-                        "type": "array",
-                        "items": {}
-                      },
-                      "returns": {}
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+	"summary": "List available RPC methods",
+	"operationId": "ethJsonRpcGet",
+	"responses": {
+	  "200": {
+	    "description": "RPC Method List",
+	    "content": {
+	      "application/json": {
+		"schema": {
+		  "type": "array",
+		  "items": {
+		    "type": "object",
+		    "properties": {
+		      "name": {
+			"type": "string"
+		      },
+		      "params": {
+			"type": "array",
+			"items": {}
+		      },
+		      "returns": {}
+		    }
+		  }
+		}
+	      }
+	    }
+	  }
+	}
       },
       "post": {
-        "summary": "Call the named procedure",
-        "externalDocs": {
-          "description": "Ethereum JSON RPC Docs",
-          "url": "https://ethereum.gitbooks.io/frontier-guide/content/rpc.html"
-        },
-        "operationId": "ethJsonRpcPost",
-        "requestBody": {
-          "description": "RPC Request",
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "id",
-                  "jsonrpc",
-                  "method",
-                  "params"
-                ],
-                "properties": {
-                  "id": {
-                    "type": "integer"
-                  },
-                  "jsonrpc": {
-                    "type": "string"
-                  },
-                  "method": {
-                    "type": "string"
-                  },
-                  "params": {
-                    "type": "array",
-                    "items": {}
-                  }
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "RPC Result",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "required": [
-                    "id",
-                    "jsonrpc"
-                  ],
-                  "properties": {
-                    "id": {
-                      "type": "integer"
-                    },
-                    "jsonrpc": {
-                      "type": "string"
-                    },
-                    "result": {
-                      "type": {}
-                    },
-                    "error": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
+	"summary": "Call the named procedure",
+	"externalDocs": {
+	  "description": "Ethereum JSON RPC Docs",
+	  "url": "https://ethereum.gitbooks.io/frontier-guide/content/rpc.html"
+	},
+	"operationId": "ethJsonRpcPost",
+	"requestBody": {
+	  "description": "RPC Request",
+	  "content": {
+	    "application/json": {
+	      "schema": {
+		"type": "object",
+		"required": [
+		  "id",
+		  "jsonrpc",
+		  "method",
+		  "params"
+		],
+		"properties": {
+		  "id": {
+		    "type": "integer"
+		  },
+		  "jsonrpc": {
+		    "type": "string"
+		  },
+		  "method": {
+		    "type": "string"
+		  },
+		  "params": {
+		    "type": "array",
+		    "items": {}
+		  }
+		}
+	      }
+	    }
+	  },
+	  "required": true
+	},
+	"responses": {
+	  "200": {
+	    "description": "RPC Result",
+	    "content": {
+	      "application/json": {
+		"schema": {
+		  "type": "object",
+		  "required": [
+		    "id",
+		    "jsonrpc"
+		  ],
+		  "properties": {
+		    "id": {
+		      "type": "integer"
+		    },
+		    "jsonrpc": {
+		      "type": "string"
+		    },
+		    "result": {
+		      "type": {}
+		    },
+		    "error": {
+		      "type": "string"
+		    }
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    },
+    "/athena/contracts": {
+      "summary": "Athena contracts",
+      "get": {
+	"summary": "List all deployed contracts",
+	"operationId": "contractsGet",
+	"responses": {
+	  "200": {
+	    "description": "Returns a list of all contracts deployed to athena",
+	    "content": {
+	      "application/json": {
+		"schema": {
+		  "type": "array",
+		  "items": {
+		    "type": "object",
+		    "properties": {
+		      "contract_id": {
+			"type": "string",
+			"description": "string representing id of this contract"
+		      },
+		      "owner": {
+			"type": "string",
+			"description": "string representing address of the owner of this contract"
+		      },
+		      "url": {
+			"type": "string",
+			"description": "The URI representing this specific contract"
+		      }
+		    }
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+      },
+      "post": {
+	"summary": "Deploy and new contract to athena",
+	"operationId": "contractsPost",
+	"requestBody": {
+	  "description": "New contract POST request body",
+	  "content": {
+	    "application/json": {
+	      "schema": {
+		"type": "object",
+		"required": [
+		  "contract_id",
+		  "version",
+		  "from",
+		  "sourcecode"
+		],
+		"properties": {
+		  "contract_id": {
+		    "type": "string",
+		    "description": "string representing contract id"
+		  },
+		  "version": {
+		    "type": "string",
+		    "description": "string representing version number of this contract"
+		  },
+		  "from": {
+		    "type": "string",
+		    "description": "string representing owners address"
+		  },
+		  "sourcecode": {
+		    "type": "string",
+		    "description": "string representing solidity source code of this version"
+		  }
+		}
+	      }
+	    }
+	  },
+	  "required": true
+	},
+	"responses": {
+	  "200": {
+	    "description": "description of deployed contract",
+	    "content": {
+	      "application/json": {
+		"schema": {
+		  "type": "array",
+		  "items": {
+		    "required": [
+		      "contract_id",
+		      "version",
+		      "url",
+		      "error"
+		    ],
+		    "properties": {
+		      "contract_id": {
+			"type": "string",
+			"description": "string representing id of this contract"
+		      },
+		      "version": {
+			"type": "string",
+			"description": "string representing name of this version"
+		      },
+		      "url": {
+			"type": "string",
+			"description": "The URI representing this specific version"
+		      },
+		      "error": {
+			"type": "string",
+			"description": "Error message if any error occured during deployment, null otherwise"
+		      }
+		    }
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    },
+    "/athena/contracts/{contract_id}": {
+      "get": {
+	"summary": "Get a contract with id `contract_id`",
+	"operationId": "GetContractById",
+	"parameters": [{
+	  "name": "contract_id",
+	  "in": "path",
+	  "description": "the id of the contract to get",
+	  "required": "true",
+	  "schema": {
+	    "type": "string",
+	    "format": "string"
+	  },
+	  "style": "simple"
+	}],
+	"responses": {
+	  "200": {
+	    "description": "Details of the particular contract",
+	    "content": {
+	      "application/json": {
+		"schema": {
+		  "type": "object",
+		  "properties": {
+		    "contract_id": {
+		      "type": "string",
+		      "description": "string representing id of this contract"
+		    },
+		    "owner": {
+		      "type": "string",
+		      "description": "string representing address of the owner of this contract"
+		    },
+		    "versions": {
+		      "type": "array",
+		      "items": {
+			"properties": {
+			  "address": {
+			    "type": "string",
+			    "description": "string representing address at which this version is deployed"
+			  },
+			  "metadata": {
+			    "type": "object",
+			    "description": "A metadata JSON object about source code of this version generated by solidity compiler"
+			  },
+			  "version": {
+			    "type": "string",
+			    "description": "string representing name of this version"
+			  },
+			  "url": {
+			    "type": "string",
+			    "description": "The URI representing this specific version"
+			  }
+			}
+		      }
+		    }
+		  }
+		}
+	      }
+	    }
+	  }
+	}
+      }
+    },
+    "/athena/contracts/{contract_id}/versions/{version_name}": {
+      "get": {
+	"summary": "Get a contract identified by given `contract_id` and `version_name`",
+	"operationId": "GetContractByIdAndVersion",
+	"parameters": [{
+	  "name": "contract_id",
+	  "in": "path",
+	  "description": "the id of the contract to get",
+	  "required": "true",
+	  "schema": {
+	    "type": "string",
+	    "format": "string"
+	  },
+	  "style": "simple"
+	},
+		       {
+			 "name": "version_name",
+			 "in": "path",
+			 "description": "name of the version of contract to get",
+			 "required": "true",
+			 "schema": {
+			   "type": "string",
+			   "format": "string"
+			 },
+			 "style": "simple"
+		       }
+		      ],
+	"responses": {
+	  "200": {
+	    "description": "All details of a particular version of this particular contract ",
+	    "content": {
+	      "application/json": {
+		"schema": {
+		  "type": "object",
+		  "properties": {
+		    "contract_id": {
+		      "type": "string",
+		      "description": "string representing id of this contract"
+		    },
+		    "owner": {
+		      "type": "string",
+		      "description": "string representing address of the owner of this contract"
+		    },
+		    "version": {
+		      "type": "string",
+		      "description": "string representing name of this version"
+		    },
+		    "metadata": {
+		      "type": "object",
+		      "description": "A metadata JSON object about source code of this version generated by solidity compiler"
+		    },
+		    "address": {
+		      "type": "string",
+		      "description": "string representing address at which this version is deployed"
+		    },
+		    "bytecode": {
+		      "type": "string",
+		      "description": "string representing compiled bytecode of this version"
+		    },
+		    "sourcecode": {
+		      "type": "string",
+		      "description": "string representing the actual source code of this version"
+		    }
+		  }
+		}
+	      }
+	    }
+	  }
+	}
       }
     }
   }
