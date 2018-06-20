@@ -6,7 +6,6 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
 
@@ -97,16 +96,9 @@ public class ContractsServlet extends BaseServlet {
     * Processes the `GET api/athena/contracts` request and puts the generated
     * result inside @responseObject.
     *
-    * @param responseObject
-    *           The JSONObject which will contain the result generated during
-    *           processing. This is an *OUT* parameter i.e this method will put
-    *           the result inside this object. The result will be either a
-    *           JSONObject or a JSONArray and will be stored with "result" as
-    *           the key. For e.g responseObject.put("result", resultJSONObject);
-    * @return The Http status code of response.
+    * @return the RESTResult object which contains response of this request.
     */
-   private RESTResult handleGetContracts(JSONObject responseObject) {
-      responseObject.put("result", buildContractsJSON());
+   private RESTResult handleGetContracts() {
       RESTResult result
          = new RESTResult(HttpServletResponse.SC_OK, buildContractsJSON());
       return result;
@@ -162,15 +154,10 @@ public class ContractsServlet extends BaseServlet {
     *
     * @param contractId
     *           The `contract_id` variable present in the request URI
-    * @param responseObject
-    *           The JSONObject in which the result of this request should be
-    *           stored. The result will be either a JSONObject or a JSONArray
-    *           and will be stored with "result" as the key. For e.g
-    *           responseObject.put("result", resultJSONObject);
-    * @return The Http status code of response
+    *
+    * @return The RESTResult object containing result of this request
     */
-   private RESTResult handleGetContract(String contractId,
-                                        JSONObject responseObject) {
+   private RESTResult handleGetContract(String contractId) {
       RESTResult result;
       if (registryManager.hasContract(contractId)) {
          result
@@ -178,7 +165,7 @@ public class ContractsServlet extends BaseServlet {
                              buildContractJSON(registryManager.getAllBriefVersionInfo(contractId)));
       } else {
          JSONObject error = new JSONObject();
-         error.put("message", "No contract found with id: " + contractId);
+         error.put("error", "No contract found with id: " + contractId);
          result = new RESTResult(HttpServletResponse.SC_NOT_FOUND, error);
       }
       return result;
@@ -219,16 +206,10 @@ public class ContractsServlet extends BaseServlet {
     *           The value of `{contract_id}` from URI
     * @param contractVersion
     *           The value of `{version}` from URI
-    * @param responseObject
-    *           The response JSONObject inside which the generated response will
-    *           be stored.The result will be either a JSONObject or a JSONArray
-    *           and will be stored with "result" as the key. For e.g
-    *           responseObject.put("result", resultJSONObject);
-    * @return The http status code of response.
+    * @return The RESTResult object containing result of this request
     */
    private RESTResult handleGetVersion(String contractId,
-                                       String contractVersion,
-                                       JSONObject responseObject) {
+                                       String contractVersion) {
       RESTResult result;
       try {
          FullVersionInfo fvInfo
@@ -237,11 +218,10 @@ public class ContractsServlet extends BaseServlet {
                                  buildVersionJSON(fvInfo));
       } catch (ContractRetrievalException e) {
          JSONObject error = new JSONObject();
-         error.put("message",
+         error.put("error",
                    "No contract found with id: " + contractId + " and version: "
                       + contractVersion);
          result = new RESTResult(HttpServletResponse.SC_NOT_FOUND, error);
-         responseObject.put("error", error);
       }
       return result;
    }
@@ -297,13 +277,13 @@ public class ContractsServlet extends BaseServlet {
          String tokens[] = uri.split("/");
          if (tokens.length == 1) {
             // GET `api/athena/contracts`
-            result = handleGetContracts(responseJSON);
+            result = handleGetContracts();
          } else if (tokens.length == 2) {
             // GET `api/athena/contracts/{contract_id}`
-            result = handleGetContract(tokens[1], responseJSON);
+            result = handleGetContract(tokens[1]);
          } else if (tokens.length == 4) {
             // GET `api/athena/contracts/{contract-id}/versions/{version-id}`
-            result = handleGetVersion(tokens[1], tokens[3], responseJSON);
+            result = handleGetVersion(tokens[1], tokens[3]);
          } else {
             result = new RESTResult(HttpServletResponse.SC_BAD_REQUEST,
                                     new JSONObject());
@@ -311,10 +291,7 @@ public class ContractsServlet extends BaseServlet {
          respStatus = result.responseStatus;
          responseString = result.getResultString();
       } else {
-         // throw error
-         JSONObject error = new JSONObject();
-         error.put("message", "Requested Method not allowed!");
-         responseJSON.put("error", error);
+         responseJSON.put("error", "Requested Method not allowed!");
          respStatus = HttpServletResponse.SC_METHOD_NOT_ALLOWED;
          responseString = responseJSON.toJSONString();
       }
