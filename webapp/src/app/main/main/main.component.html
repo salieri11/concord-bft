@@ -8,7 +8,7 @@
       </clr-alert-item>
     </clr-alert>
   </clr-alerts>
-  <clr-header class="header-6" *ngIf="authenticated">
+  <clr-header class="header-6">
     <div class="branding">
       <a routerLink="/" class="nav-link">
         <clr-icon shape="vm-bug"></clr-icon>
@@ -61,7 +61,7 @@
       </clr-dropdown>
     </div>
   </clr-header>
-  <div class="content-container" *ngIf="authenticated">
+  <div class="content-container">
     <main class="content-area">
       <router-outlet></router-outlet>
     </main>

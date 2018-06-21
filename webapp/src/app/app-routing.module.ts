@@ -4,9 +4,10 @@
 
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
+import { MainComponent } from "./main/main/main.component";
 
 const appRoutes: Routes = [
-  {path: '',}
+  {path: '', component: MainComponent}
 ];
 
 @NgModule({
