@@ -440,8 +440,7 @@ public class ContractsServlet extends BaseServlet {
 
          // Build response object for this particular deployment
          JSONObject deploymentResult = new JSONObject();
-         deploymentResult.put("contract_id", contractId);
-         deploymentResult.put("version", contractVersion);
+
 
          if (ethResponse.containsKey("result")) {
             String transactionHash = (String) ethResponse.get("result");
@@ -465,19 +464,18 @@ public class ContractsServlet extends BaseServlet {
                                                        solidityCode);
 
             if (success) {
+               deploymentResult.put("contract_id", contractId);
+               deploymentResult.put("version", contractVersion);
                deploymentResult.put("url",
                                     contractEndpoint + "/"
                                        + urlEncode(contractId) + "/versions/"
                                        + urlEncode(contractVersion));
-               deploymentResult.put("error", null);
             } else {
-               deploymentResult.put("url", null);
                deploymentResult.put("error", "deployment failed.");
             }
          } else {
             // If transactionHash == null then there was error from
             // athena, forward it to client as it is
-            deploymentResult.put("url", null);
             deploymentResult.put("error", "deployment failed.");
          }
          resultArray.add(deploymentResult);

@@ -416,12 +416,6 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "required": [
-                      "contract_id",
-                      "version",
-                      "url",
-                      "error"
-                    ],
                     "properties": {
                       "contract_id": {
                         "type": "string",
