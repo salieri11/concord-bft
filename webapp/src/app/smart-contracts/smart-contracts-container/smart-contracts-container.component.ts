@@ -24,6 +24,6 @@ export class SmartContractsContainerComponent implements OnInit {
   }
 
   loadSmartContracts() {
-    this.athenaApiService.getSmartContracts().subscribe(smartContracts => this.smartContracts = smartContracts.result);
+    this.athenaApiService.getSmartContracts().subscribe(smartContracts => this.smartContracts = smartContracts);
   }
 }

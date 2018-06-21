@@ -18,8 +18,7 @@ import {
   BlockListing,
   Transaction,
   SmartContract,
-  SmartContractVersion,
-  ApiResponse
+  SmartContractVersion
 } from './remote-interfaces';
 
 @Injectable()
@@ -79,15 +78,15 @@ export class AthenaApiService {
   }
 
   getSmartContracts() {
-    return this.httpClient.get<ApiResponse<SmartContract[]>>(this.apiPath('/contracts'));
+    return this.httpClient.get<SmartContract[]>(this.apiPath('/contracts'));
   }
 
   getSmartContract(contractId: string) {
-    return this.httpClient.get<ApiResponse<SmartContract>>(this.apiPath(`/contracts/${contractId}`));
+    return this.httpClient.get<SmartContract>(this.apiPath(`/contracts/${contractId}`));
   }
 
   getVersionDetails(contractId: string, version: string) {
-    return this.httpClient.get<ApiResponse<SmartContractVersion>>(this.apiPath(`/contracts/${contractId}/versions/${version}`));
+    return this.httpClient.get<SmartContractVersion>(this.apiPath(`/contracts/${contractId}/versions/${version}`));
   }
 
   postContract(contract) {

@@ -35,11 +35,11 @@ export class SmartContractDetailContainerComponent implements OnInit {
   }
 
   loadSmartContract(contractId) {
-    this.athenaApiService.getSmartContract(contractId).subscribe(smartContract => this.smartContract = smartContract.result);
+    this.athenaApiService.getSmartContract(contractId).subscribe(smartContract => this.smartContract = smartContract);
   }
 
   loadVersionDetails(contractId, version) {
-    this.athenaApiService.getVersionDetails(contractId, version).subscribe(versionResponse => this.version = versionResponse.result);
+    this.athenaApiService.getVersionDetails(contractId, version).subscribe(versionResponse => this.version = versionResponse);
   }
 
   getVersionInfo() {

@@ -101,7 +101,7 @@ export class ContractFormComponent implements OnInit {
     this.modalState.loading = false;
     this.modalState.completed = false;
     this.modalState.error = true;
-    this.modalState.errorMessage = response.error.message;
+    this.modalState.errorMessage = response.error;
   }
 
   private handleSmartContract(response) {
@@ -110,7 +110,7 @@ export class ContractFormComponent implements OnInit {
       this.modalState.loading = false;
       this.modalState.completed = false;
       this.modalState.error = true;
-      this.modalState.errorMessage = response.error.message;
+      this.modalState.errorMessage = response.error;
     } else {
       this.isOpen = false;
       this.contractCreated.emit();

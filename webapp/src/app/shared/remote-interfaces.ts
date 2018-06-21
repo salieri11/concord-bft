@@ -130,13 +130,6 @@ export interface SmartContractCreateResult {
   url: string;
 }
 
-export interface ApiResponse<T> {
-  id: number;
-  result: T;
-}
-
-export type SmartContractResponse = ApiResponse<SmartContractCreateResult[]>;
-
 export interface EthSendCallParams {
   from?: string;
   to?: string;
