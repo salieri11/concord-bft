@@ -5,10 +5,10 @@ import { BlocksModule } from "../blocks/blocks.module";
 import { OrgManagementModule } from "../org-management/org-management.module";
 import { BlockchainsModule } from "../blockchains/blockchains.module";
 import { ChannelsModule } from "../channels/channels.module";
-import { HttpClient, HttpClientModule } from "@angular/common/http";
+import { HTTP_INTERCEPTORS, HttpClient, HttpClientModule } from "@angular/common/http";
 import { TranslateLoader, TranslateModule } from "@ngx-translate/core";
 import { HttpLoaderFactory } from "../app.module";
-import { RouterModule } from "@angular/router";
+import { RouterModule, Routes } from "@angular/router";
 import { ConsortiumManagementModule } from "../consortium-management/consortium-management.module";
 import { NodesModule } from "../nodes/nodes.module";
 import { TransactionsModule } from "../transactions/transactions.module";
@@ -18,15 +18,22 @@ import { DashboardModule } from "../dashboard/dashboard.module";
 import { TestingModule } from "../testing/testing.module";
 import { ClarityModule } from "@clr/angular";
 import { AuthenticationModule } from "../authentication/authentication.module";
+import { ErrorAlertService, GlobalErrorHandlerService } from "../shared/global-error-handler.service";
+import { RequestInterceptor } from "../app-interceptors";
 
 
+const routes: Routes = [
+  { path: '',
+    redirectTo: 'dashboard',
+    pathMatch: 'full'
+  }
+];
 
 @NgModule({
   imports: [
     CommonModule,
     HttpClientModule,
-    ClarityModule,
-    //RouterModule.forRoot(routes),
+    RouterModule.forRoot(routes),
     TranslateModule.forRoot({
       loader: {
         provide: TranslateLoader,
@@ -47,6 +54,15 @@ import { AuthenticationModule } from "../authentication/authentication.module";
     KubernetesManagementModule,
     ChannelsModule,
   ],
-  declarations: [MainComponentComponent]
+  declarations: [MainComponentComponent],
+  providers: [
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: RequestInterceptor,
+      multi: true,
+    },
+    GlobalErrorHandlerService,
+    ErrorAlertService
+  ],
 })
 export class MainModule { }
