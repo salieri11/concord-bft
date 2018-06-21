@@ -1,7 +1,3 @@
-/*
- * Copyright 2018 VMware, all rights reserved.
- */
-
 import { Component, Input, OnInit } from '@angular/core';
 
 @Component({
@@ -13,9 +9,9 @@ export class TransactionListViewComponent implements OnInit {
   @Input() transactions: any[];
   @Input() blockNumber?: number;
 
-  constructor() {
-  }
+  constructor() { }
 
   ngOnInit() {
   }
+
 }

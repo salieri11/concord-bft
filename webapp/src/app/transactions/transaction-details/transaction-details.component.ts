@@ -3,8 +3,8 @@
  */
 
 import { Component, Input, OnInit } from '@angular/core';
-import { Transaction } from '../../remote-interfaces';
-import { AthenaApiService } from '../../athena-api.service';
+import { Transaction } from "../../shared/remote-interfaces";
+import { AthenaApiService } from "../../shared/athena-api.service";
 
 @Component({
   selector: 'app-transaction-details',

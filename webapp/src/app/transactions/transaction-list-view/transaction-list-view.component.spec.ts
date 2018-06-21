@@ -14,7 +14,7 @@ describe('TransactionListViewComponent', () => {
     TestBed.configureTestingModule({
       declarations: [ TransactionListViewComponent ]
     })
-    .compileComponents();
+      .compileComponents();
   }));
 
   beforeEach(() => {

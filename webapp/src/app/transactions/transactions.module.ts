@@ -12,6 +12,8 @@ import { SharedModule } from '../shared/shared.module';
 import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
 
 import { TransactionDetailContainerComponent } from './transaction-detail-container/transaction-detail-container.component';
+import { TransactionListViewComponent } from './transaction-list-view/transaction-list-view.component';
+import { TransactionDetailsComponent } from './transaction-details/transaction-details.component';
 
 const routes: Routes = [
   {
@@ -31,6 +33,11 @@ const routes: Routes = [
     TranslateModule,
     SharedModule
   ],
-  declarations: [TransactionDetailContainerComponent]
+  declarations: [TransactionDetailContainerComponent, TransactionListViewComponent, TransactionDetailsComponent],
+  exports: [
+    TransactionListViewComponent,
+    TransactionDetailsComponent
+  ]
+
 })
 export class TransactionsModule { }
