@@ -260,10 +260,10 @@ class HelenAPITests(test_suite.TestSuite):
       contractFile = open("resources/contracts/HelloWorld.sol", 'r')
       result = self.contract_upload_util(request, contractId, contractVersion,
                                          contractFile.read())
-      if result[0]["error"] is None:
+      if "url" in result[0]:
          return (contractId, contractVersion)
       else:
-         raise Exception("Contract upload failed with error '{}'".format(result["error"]))
+         raise Exception("Contract upload failed with error '{}'".format(result[0]["error"]))
 
    def has_contract(self, request, contractId, contractVersion):
       result = request.callContractAPI('/api/athena/contracts/' + contractId
