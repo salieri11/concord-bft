@@ -7,21 +7,13 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgModule } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
+import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 
+import { ClarityModule } from '@clr/angular';
 
 import { AppComponent } from './app.component';
-import { ClarityModule } from "@clr/angular";
-import { TranslateLoader, TranslateModule } from "@ngx-translate/core";
-import { RouterModule, Routes } from "@angular/router";
-import { MainComponent } from "./main/main/main.component";
-import { MainModule } from "./main/main.module";
-
-const appRoutes: Routes = [
-  {
-    path: '', component: MainComponent
-  }
-];
-
+import { MainModule } from './main/main.module';
+import { AppRoutingModule } from './app-routing.module';
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, '/assets/static/i18n/', '.json');
@@ -36,7 +28,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     BrowserAnimationsModule,
     MainModule,
     ClarityModule,
-    RouterModule.forRoot(appRoutes),
+    AppRoutingModule,
     TranslateModule.forRoot({
       loader: {
         provide: TranslateLoader,
@@ -45,7 +37,6 @@ export function HttpLoaderFactory(http: HttpClient) {
       }
     })
   ],
-  providers: [],
   bootstrap: [AppComponent]
 })
 export class AppModule {

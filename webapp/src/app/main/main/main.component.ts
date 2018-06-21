@@ -1,8 +1,12 @@
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
+
 import { Component, NgZone, OnDestroy } from '@angular/core';
-import { Router } from "@angular/router";
-import { AuthenticationService } from "../../shared/authentication.service";
-import { ErrorAlertService } from "../../shared/global-error-handler.service";
-import { Subscription } from "rxjs/Subscription";
+import { Router } from '@angular/router';
+import { AuthenticationService } from '../../shared/authentication.service';
+import { ErrorAlertService } from '../../shared/global-error-handler.service';
+import { Subscription } from 'rxjs/Subscription';
 
 @Component({
   selector: 'app-main',
