@@ -48,8 +48,8 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
   }
 
   getFunctionDetails() {
+    (this.versionForm.get('contractForm') as FormGroup).setControl('functionInputs', new FormGroup({}));
     this.versionForm.get('contractForm').reset();
-    this.versionForm.get('contractForm').value.functionInputs = new FormGroup({});
     const result = this.functions.filter(func => func.name === this.versionForm.value.functionName);
     if (result.length > 0) {
       this.inputs = result[0].inputs;
