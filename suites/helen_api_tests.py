@@ -28,7 +28,6 @@ class HelenAPITests(test_suite.TestSuite):
    _ethereumMode = False
    _productMode = True
    _resultFile = None
-   p = None
 
    def __init__(self, passedArgs):
       super(HelenAPITests, self).__init__(passedArgs)
@@ -39,7 +38,6 @@ class HelenAPITests(test_suite.TestSuite):
    def run(self):
       ''' Runs all of the tests. '''
       if self._productMode:
-         global p
          try:
             p = self.launchProduct(self._args.resultsDir,
                                    self._apiBaseServerUrl + "/api/athena/eth",
