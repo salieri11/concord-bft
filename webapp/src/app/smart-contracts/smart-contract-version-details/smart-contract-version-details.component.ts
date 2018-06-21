@@ -85,9 +85,7 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
         this.alertType = 'alert-success';
         this.resultType = 'call';
       }
-    }, (errorResp) => {
-      this.handleError(errorResp);
-    });
+    }, errorResp => this.handleError(errorResp));
   }
 
   onSend() {
@@ -100,9 +98,7 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
         this.alertType = 'alert-success';
         this.resultType = 'send';
       }
-    }, (errorResp) => {
-      this.handleError(errorResp);
-    });
+    }, errorResp => this.handleError(errorResp));
   }
 
 
