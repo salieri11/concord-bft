@@ -3,14 +3,14 @@
  */
 
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { Component, Input, OnChanges, SimpleChanges, ViewChild } from '@angular/core';
+import { Component, Input, OnChanges, SimpleChanges, SimpleChange, ViewChild } from '@angular/core';
 
 import { SmartContractVersion } from '../../shared/remote-interfaces';
 import * as Web3EthAbi from 'web3-eth-abi';
 
 import { EthApiService } from '../../shared/eth-api.service';
 import { ContractPayloadPreviewModalComponent } from '../contract-payload-preview-modal/contract-payload-preview-modal.component';
-import { isHexAddress, isHexadecimal } from '../custom-validators';
+import { isHexAddress, isHexadecimal } from '../shared/custom-validators';
 
 @Component({
   selector: 'app-smart-contract-version-details',
@@ -43,18 +43,7 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes.version) {
-      this.functions = changes.version.currentValue.metadata.output.abi.filter(abi => abi.type === 'function');
-      this.versionForm.reset();
-      this.versionForm.value.contractForm.functionInputs = new FormGroup({});
-      if (this.functions.length) {
-        this.functionDefinition = this.functions[0];
-        this.versionForm.patchValue({
-          functionName: this.functionDefinition.name
-        });
-      } else {
-        this.functionDefinition = undefined;
-      }
-      this.getFunctionDetails();
+      this.onVersionChange(changes.version);
     }
   }
 
@@ -81,19 +70,6 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
 
   onMetadataDownload() {
     this.onDownload(JSON.stringify(this.version.metadata, null, 4), 'version_meta.json');
-  }
-
-  onDownload(source, file) {
-    const a: HTMLAnchorElement = document.createElement('a');
-    document.body.appendChild(a);
-    a.style.display = 'none';
-
-    const blob = new Blob([source], {type: 'octet/stream'});
-    const url = window.URL.createObjectURL(blob);
-    a.href = url;
-    a.download = file;
-    a.click();
-    window.URL.revokeObjectURL(url);
   }
 
   onPreview() {
@@ -129,13 +105,8 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
     });
   }
 
-  handleError(error) {
-    this.alertMessage = error.error;
-    this.alertType = 'alert-danger';
-    this.resultType = 'error';
-  }
 
-  encodeFunction() {
+  private encodeFunction() {
     const paramsForm = this.versionForm.get('contractForm').get('functionInputs');
     const params = this.inputs.map(input => paramsForm.value[input.name]);
     const output = Web3EthAbi.encodeFunctionCall(this.functionDefinition, params);
@@ -147,5 +118,39 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
       value: this.versionForm.value.contractForm.value,
       data: output
     };
+  }
+
+  private handleError(error) {
+    this.alertMessage = error.error;
+    this.alertType = 'alert-danger';
+    this.resultType = 'error';
+  }
+
+  private onDownload(source, file) {
+    const a: HTMLAnchorElement = document.createElement('a');
+    document.body.appendChild(a);
+    a.style.display = 'none';
+
+    const blob = new Blob([source], {type: 'octet/stream'});
+    const url = window.URL.createObjectURL(blob);
+    a.href = url;
+    a.download = file;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  private onVersionChange(version: SimpleChange) {
+    this.functions = version.currentValue.metadata.output.abi.filter(abi => abi.type === 'function');
+    this.versionForm.reset();
+    this.versionForm.value.contractForm.functionInputs = new FormGroup({});
+    if (this.functions.length) {
+      this.functionDefinition = this.functions[0];
+      this.versionForm.patchValue({
+        functionName: this.functionDefinition.name
+      });
+    } else {
+      this.functionDefinition = undefined;
+    }
+    this.getFunctionDetails();
   }
 }

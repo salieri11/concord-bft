@@ -5,6 +5,7 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { SmartContractsSolidityFunctionInputsComponent } from './smart-contracts-solidity-function-inputs.component';
+import { MockSharedModule } from '../../shared/shared.module';
 
 describe('SmartContractsSolidityFunctionInputsComponent', () => {
   let component: SmartContractsSolidityFunctionInputsComponent;
@@ -12,6 +13,9 @@ describe('SmartContractsSolidityFunctionInputsComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
+      imports: [
+        MockSharedModule
+      ],
       declarations: [ SmartContractsSolidityFunctionInputsComponent ]
     })
     .compileComponents();

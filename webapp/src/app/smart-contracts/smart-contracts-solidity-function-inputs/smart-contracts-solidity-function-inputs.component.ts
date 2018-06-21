@@ -6,7 +6,7 @@ import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/cor
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 
 import { AbiFunctionParameter } from '../../shared/remote-interfaces';
-import { isHexAddress, isInt, isUint } from '../custom-validators';
+import { isHexAddress, isInt, isUint } from '../shared/custom-validators';
 
 @Component({
   selector: 'app-smart-contracts-solidity-function-inputs',

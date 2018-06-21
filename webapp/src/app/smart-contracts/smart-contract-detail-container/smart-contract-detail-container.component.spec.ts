@@ -12,6 +12,9 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { SmartContractDetailContainerComponent } from './smart-contract-detail-container.component';
 import { SmartContractVersionDetailsComponent } from '../smart-contract-version-details/smart-contract-version-details.component';
 import { ContractPayloadPreviewModalComponent } from '../contract-payload-preview-modal/contract-payload-preview-modal.component';
+import {
+  SmartContractsSolidityFunctionInputsComponent
+} from '../smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
 
 describe('SmartContractDetailContainerComponent', () => {
   let component: SmartContractDetailContainerComponent;
@@ -25,7 +28,12 @@ describe('SmartContractDetailContainerComponent', () => {
         FormsModule,
         HttpClientTestingModule
       ],
-      declarations: [ SmartContractDetailContainerComponent, SmartContractVersionDetailsComponent, ContractPayloadPreviewModalComponent]
+      declarations: [
+        SmartContractDetailContainerComponent,
+        SmartContractVersionDetailsComponent,
+        ContractPayloadPreviewModalComponent,
+        SmartContractsSolidityFunctionInputsComponent
+      ]
     })
     .compileComponents();
   }));

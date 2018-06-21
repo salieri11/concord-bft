@@ -8,7 +8,7 @@ import { MockSharedModule } from '../../shared/shared.module';
 import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 
-import { CreateContractModalComponent } from '../create-contract-modal/create-contract-modal.component';
+import { ContractFormComponent } from '../contract-form/contract-form.component';
 import { SmartContractsContainerComponent } from './smart-contracts-container.component';
 
 describe('SmartContractsContainerComponent', () => {
@@ -22,7 +22,7 @@ describe('SmartContractsContainerComponent', () => {
         HttpClientTestingModule,
         MockSharedModule
       ],
-      declarations: [ SmartContractsContainerComponent, CreateContractModalComponent ]
+      declarations: [ SmartContractsContainerComponent, ContractFormComponent ]
     })
     .compileComponents();
   }));

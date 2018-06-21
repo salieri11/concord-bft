@@ -7,13 +7,13 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { ClarityModule } from '@clr/angular';
 import { ReactiveFormsModule } from '@angular/forms';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+
 import { MockSharedModule } from '../../shared/shared.module';
+import { ContractFormComponent } from './contract-form.component';
 
-import { CreateContractModalComponent } from './create-contract-modal.component';
-
-describe('CreateContractModalComponent', () => {
-  let component: CreateContractModalComponent;
-  let fixture: ComponentFixture<CreateContractModalComponent>;
+describe('ContractFormComponent', () => {
+  let component: ContractFormComponent;
+  let fixture: ComponentFixture<ContractFormComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
@@ -23,13 +23,13 @@ describe('CreateContractModalComponent', () => {
         HttpClientTestingModule,
         MockSharedModule
       ],
-      declarations: [ CreateContractModalComponent ]
+      declarations: [ ContractFormComponent ]
     })
     .compileComponents();
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(CreateContractModalComponent);
+    fixture = TestBed.createComponent(ContractFormComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

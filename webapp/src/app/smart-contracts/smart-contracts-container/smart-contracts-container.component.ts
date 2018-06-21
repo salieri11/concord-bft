@@ -5,7 +5,7 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 
 import { AthenaApiService } from '../../shared/athena-api.service';
-import { CreateContractModalComponent } from '../create-contract-modal/create-contract-modal.component';
+import { ContractFormComponent } from '../contract-form/contract-form.component';
 
 @Component({
   selector: 'app-smart-contracts-container',
@@ -13,12 +13,11 @@ import { CreateContractModalComponent } from '../create-contract-modal/create-co
   styleUrls: ['./smart-contracts-container.component.scss']
 })
 export class SmartContractsContainerComponent implements OnInit {
-  @ViewChild('createContractModal') createContractModal: CreateContractModalComponent;
+  @ViewChild('contractFormModal') contractFormModal: ContractFormComponent;
 
   smartContracts = [];
 
   constructor( private athenaApiService: AthenaApiService ) { }
-
 
   ngOnInit() {
     this.loadSmartContracts();

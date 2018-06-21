@@ -13,7 +13,7 @@ import { SmartContractsContainerComponent } from './smart-contracts-container/sm
 import { SmartContractDetailContainerComponent } from './smart-contract-detail-container/smart-contract-detail-container.component';
 import { SmartContractVersionDetailsComponent } from './smart-contract-version-details/smart-contract-version-details.component';
 import { ContractPayloadPreviewModalComponent } from './contract-payload-preview-modal/contract-payload-preview-modal.component';
-import { CreateContractModalComponent } from './create-contract-modal/create-contract-modal.component';
+import { ContractFormComponent } from './contract-form/contract-form.component';
 import {
   SmartContractsSolidityFunctionInputsComponent
 } from './smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
@@ -46,7 +46,7 @@ const routes: Routes = [
     SmartContractDetailContainerComponent,
     SmartContractVersionDetailsComponent,
     ContractPayloadPreviewModalComponent,
-    CreateContractModalComponent,
+    ContractFormComponent,
     SmartContractsSolidityFunctionInputsComponent
   ]
 })

@@ -4,12 +4,16 @@
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
+import { RouterTestingModule } from '@angular/router/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 import { FormsModule } from '@angular/forms';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { SmartContractVersionDetailsComponent } from './smart-contract-version-details.component';
 import { ContractPayloadPreviewModalComponent } from '../contract-payload-preview-modal/contract-payload-preview-modal.component';
+import {
+  SmartContractsSolidityFunctionInputsComponent
+} from '../smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
 
 describe('SmartContractVersionDetailsComponent', () => {
   let component: SmartContractVersionDetailsComponent;
@@ -18,11 +22,16 @@ describe('SmartContractVersionDetailsComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
+        RouterTestingModule,
         MockSharedModule,
         HttpClientTestingModule,
         FormsModule
       ],
-      declarations: [ SmartContractVersionDetailsComponent, ContractPayloadPreviewModalComponent ]
+      declarations: [
+        SmartContractVersionDetailsComponent,
+        ContractPayloadPreviewModalComponent,
+        SmartContractsSolidityFunctionInputsComponent
+      ]
     })
     .compileComponents();
   }));

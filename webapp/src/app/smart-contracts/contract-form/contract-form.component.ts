@@ -3,8 +3,9 @@
  */
 
 import { Component, OnInit, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
-import { ADDRESS_LENGTH, ADDRESS_PATTERN } from '../../shared/shared.config';
 import { Validators, FormGroup, FormBuilder } from '@angular/forms';
+
+import { ADDRESS_LENGTH, ADDRESS_PATTERN } from '../../shared/shared.config';
 import { AthenaApiService } from '../../shared/athena-api.service';
 
 const addressValidators = [
@@ -13,12 +14,19 @@ const addressValidators = [
   Validators.pattern(ADDRESS_PATTERN)
 ];
 
+interface ModalState {
+  completed: boolean;
+  error: boolean;
+  loading: boolean;
+  errorMessage?: string;
+}
+
 @Component({
-  selector: 'app-create-contract-modal',
-  templateUrl: './create-contract-modal.component.html',
-  styleUrls: ['./create-contract-modal.component.scss']
+  selector: 'app-contract-form',
+  templateUrl: './contract-form.component.html',
+  styleUrls: ['./contract-form.component.scss']
 })
-export class CreateContractModalComponent implements OnInit {
+export class ContractFormComponent implements OnInit {
 
   @Input() isOpen = false;
   @Output() contractCreated: EventEmitter<void> = new EventEmitter<void>();
@@ -83,34 +91,29 @@ export class CreateContractModalComponent implements OnInit {
       contract_id: this.smartContractForm.value.contractId,
       version: this.smartContractForm.value.version,
       sourcecode: this.smartContractForm.value.file
-    }).subscribe(response => {
-      if (response.error) {
-        this.handleError(response);
-        this.modalState.loading = false;
-        this.modalState.completed = false;
-        this.modalState.error = true;
-        this.modalState.errorMessage = response.error.message;
-      } else {
-        this.isOpen = false;
-        this.contractCreated.emit();
-      }
-    }, response => {
-      this.handleError(response.error);
-    });
+    }).subscribe(
+      response => this.handleSmartContract(response),
+      response => this.handleError(response.error)
+    );
   }
 
-  handleError(response) {
+  private handleError(response) {
     this.modalState.loading = false;
     this.modalState.completed = false;
     this.modalState.error = true;
     this.modalState.errorMessage = response.error.message;
   }
 
-}
-
-interface ModalState {
-  completed: boolean;
-  error: boolean;
-  loading: boolean;
-  errorMessage?: string;
+  private handleSmartContract(response) {
+    if (response.error) {
+      this.handleError(response);
+      this.modalState.loading = false;
+      this.modalState.completed = false;
+      this.modalState.error = true;
+      this.modalState.errorMessage = response.error.message;
+    } else {
+      this.isOpen = false;
+      this.contractCreated.emit();
+    }
+  }
 }
