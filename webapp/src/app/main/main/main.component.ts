@@ -1,33 +1,28 @@
-import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
-import { Subscription } from "rxjs/Subscription";
+import { Component, NgZone, OnDestroy } from '@angular/core';
 import { Router } from "@angular/router";
-import { TranslateService } from "@ngx-translate/core";
 import { AuthenticationService } from "../../shared/authentication.service";
 import { ErrorAlertService } from "../../shared/global-error-handler.service";
+import { Subscription } from "rxjs/Subscription";
 
 @Component({
-  selector: 'app-main-component',
-  templateUrl: './main-component.component.html',
-  styleUrls: ['./main-component.component.scss']
+  selector: 'app-main',
+  templateUrl: './main.component.html',
+  styleUrls: ['./main.component.scss']
 })
-export class MainComponentComponent implements OnDestroy {
+export class MainComponent implements OnDestroy {
   title = 'app';
   alerts: any = [];
   authenticationChange: Subscription;
 
   authenticated = false;
   username: string;
+
   constructor(
     private authenticationService: AuthenticationService,
     private router: Router,
     private alertService: ErrorAlertService,
-    private translate: TranslateService,
     public zone: NgZone,
   ) {
-    const browserLang = this.translate.getBrowserLang();
-    this.translate.setDefaultLang('en');
-    this.translate.use(browserLang);
-
     this.authenticationChange = authenticationService.user.subscribe(email => {
       this.authenticated = email !== undefined;
       this.username = email;

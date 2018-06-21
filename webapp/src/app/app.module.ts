@@ -10,8 +10,17 @@ import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 
 
 import { AppComponent } from './app.component';
-import { MainModule } from "./main/main.module";
 import { ClarityModule } from "@clr/angular";
+import { TranslateLoader, TranslateModule } from "@ngx-translate/core";
+import { RouterModule, Routes } from "@angular/router";
+import { MainComponent } from "./main/main/main.component";
+import { MainModule } from "./main/main.module";
+
+const appRoutes: Routes = [
+  {
+    path: '', component: MainComponent
+  }
+];
 
 
 export function HttpLoaderFactory(http: HttpClient) {
@@ -26,7 +35,15 @@ export function HttpLoaderFactory(http: HttpClient) {
     BrowserModule,
     BrowserAnimationsModule,
     MainModule,
-    ClarityModule
+    ClarityModule,
+    RouterModule.forRoot(appRoutes),
+    TranslateModule.forRoot({
+      loader: {
+        provide: TranslateLoader,
+        useFactory: HttpLoaderFactory,
+        deps: [HttpClient]
+      }
+    })
   ],
   providers: [],
   bootstrap: [AppComponent]
