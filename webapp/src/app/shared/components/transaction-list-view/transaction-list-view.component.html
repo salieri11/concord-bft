@@ -8,28 +8,42 @@
     <div class="col-xs-12">
       <clr-datagrid>
         <clr-dg-column [clrDgSortBy]="'hash'">{{'transactions.hash' | translate}}</clr-dg-column>
-        <clr-dg-column *ngIf="!transactions">{{'transactions.nonce' | translate}}</clr-dg-column>
-        <clr-dg-column *ngIf="!transactions">
+        <clr-dg-column>{{'transactions.nonce' | translate}}</clr-dg-column>
+        <clr-dg-column>
           {{'transactions.status' | translate}}
           <clr-dg-filter [clrDgFilter]="statusFilter">
             <app-transactions-status-filter #statusFilter></app-transactions-status-filter>
           </clr-dg-filter>
         </clr-dg-column>
         <clr-dg-row *clrDgItems="let transaction of transactions">
-           <clr-dg-cell><a [routerLink]="['/blocks', transaction.blockNumber ? transaction.blockNumber : blockNumber, 'transactions', transaction.hash]">{{transaction?.hash}}</a></clr-dg-cell>
-          <clr-dg-cell *ngIf="!transactions">{{transaction?.nonce}}</clr-dg-cell>
-          <clr-dg-cell *ngIf="!transactions">{{(transaction?.status ? 'transactions.success' : 'transactions.failure') | translate}}</clr-dg-cell>
+          <clr-dg-cell>
+            <a [routerLink]="['/blocks', transaction.blockNumber ? transaction.blockNumber : blockNumber, 'transactions', transaction.hash]">{{transaction?.hash}}</a>
+          </clr-dg-cell>
+          <clr-dg-cell>{{(transaction.nonce !== undefined ? transaction.nonce : 'transactions.none' | translate)  }}</clr-dg-cell>
+          <clr-dg-cell>
+            <ng-container [ngSwitch]="transaction.status">
+              <ng-container *ngSwitchCase="1">
+                {{'transactions.success' | translate}}
+              </ng-container>
+              <ng-container *ngSwitchCase="0">
+                {{ 'transactions.failure' | translate }}
+              </ng-container>
+              <ng-container *ngSwitchDefault>
+                {{ 'transactions.none' | translate }}
+              </ng-container>
+            </ng-container>
+          </clr-dg-cell>
           <clr-dg-row-detail>
             <app-transaction-details *clrIfExpanded [transactionHash]="transaction?.hash" ngProjectAs="clr-dg-row-detail"></app-transaction-details>
           </clr-dg-row-detail>
         </clr-dg-row>
         <clr-dg-footer>
           <clr-dg-pagination #pagination [clrDgPageSize]="10">
-            {{'transactions.paginationSummary' | translate: { start: pagination.firstItem + 1, finish: pagination.lastItem + 1, total: pagination.totalItems} }}
+            {{'transactions.paginationSummary' | translate: { start: pagination.firstItem + 1, finish: pagination.lastItem + 1, total:
+            pagination.totalItems} }}
           </clr-dg-pagination>
         </clr-dg-footer>
       </clr-datagrid>
     </div>
   </div>
 </div>
-

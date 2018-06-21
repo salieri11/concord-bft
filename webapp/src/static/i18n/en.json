@@ -140,6 +140,7 @@
     "status": "Status",
     "success": "Success",
     "failure": "Failure",
+    "none": "null",
     "nodes": "Nodes",
     "hash": "Hash",
     "from": "From",
