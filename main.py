@@ -37,6 +37,9 @@ def main():
                        "specific file relative to the VMTests directory. e.g. " \
                        "'--tests vmArithmeticTest' or " \
                        "'--tests vmArithmeticTest/add0.json'")
+   parser.add_argument("--config",
+                       help="User config file to be considered.")
+
    args = parser.parse_args()
 
    if (args.resultsDir == None):

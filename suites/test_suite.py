@@ -61,7 +61,10 @@ class TestSuite(ABC):
       '''
       Loads the main config file.
       '''
-      self._userConfig = util.json_helper.readJsonFile(CONFIG_JSON)
+      if self._args.config == None:
+         self._userConfig = util.json_helper.readJsonFile(CONFIG_JSON)
+      else:
+         self._userConfig = util.json_helper.readJsonFile(self._args.config)
 
       if "ethereum" in self._userConfig and \
          "testRoot" in self._userConfig["ethereum"]:

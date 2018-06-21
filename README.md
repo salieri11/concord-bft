@@ -59,6 +59,8 @@ Hermes is the repository for the vmwareathena project's testing framework.
 - Create a debug build of P2_Blockchain, allowing for the default output
   directory. (~/builds/p2-blockchain/debug)
 - Run `./main.py CoreVMTests`
+- An alternate Hermes config file may be specified by using [--config].
+  example : `./main.py CoreVMTests --config resources/user_config_resilience.json`
 
 ## Launching geth:
 - If running the test suite against geth as a reference implementation, you need
