@@ -1,3 +1,7 @@
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
+
 import { Component, Input, OnInit } from '@angular/core';
 
 @Component({

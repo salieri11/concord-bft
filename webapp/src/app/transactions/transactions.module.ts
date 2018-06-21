@@ -6,11 +6,11 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Routes } from '@angular/router';
 import { TranslateModule } from '@ngx-translate/core';
+
 import { ClarityModule } from '@clr/angular';
+
 import { SharedModule } from '../shared/shared.module';
-
 import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
-
 import { TransactionDetailContainerComponent } from './transaction-detail-container/transaction-detail-container.component';
 import { TransactionListViewComponent } from './transaction-list-view/transaction-list-view.component';
 import { TransactionDetailsComponent } from './transaction-details/transaction-details.component';

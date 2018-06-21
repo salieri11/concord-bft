@@ -9,7 +9,7 @@ import { SharedModule } from '../shared/shared.module';
 import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
 
 import { DashboardContainerComponent } from './dashboard-container/dashboard-container.component';
-import { TransactionsModule } from "../transactions/transactions.module";
+import { TransactionsModule } from '../transactions/transactions.module';
 
 const routes: Routes = [
   {

@@ -11,7 +11,7 @@ import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
 import { BlocksContainerComponent } from './blocks-container/blocks-container.component';
 import { BlockDetailContainerComponent } from './block-detail-container/block-detail-container.component';
 import { BlockDetailsComponent } from './block-details/block-details.component';
-import { TransactionsModule } from "../transactions/transactions.module";
+import { TransactionsModule } from '../transactions/transactions.module';
 
 const routes: Routes = [
   {
