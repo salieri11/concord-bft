@@ -1,35 +1,28 @@
-<div class="p-2 bg-header">
-  <div class="row">
-    <div class="col-md flex-items-xs-middle media">
-      <a routerLink="/blocks">
-        <clr-icon shape="circle-arrow" class="is-highlight" size="28" dir="left"></clr-icon>
-      </a>
-      <h2 class="mt-0 pl-1">{{block?.number}}</h2>
-    </div>
+<div class="p-2 break-word">
+  <h2 class="page-title">
+    <clr-icon shape="block" size="36"></clr-icon>
+    {{'blocks.title' | translate}}: {{block?.number}} {{block?.hash}}
+  </h2>
+
+  <div>
+    <table class="table table-vertical">
+      <tbody>
+      <tr>
+        <th>{{'transactions.parentHash' | translate}}</th>
+        <td>{{block?.parentHash}}</td>
+      </tr>
+      <tr>
+        <th>{{'transactions.nonce' | translate}}</th>
+        <td>{{block?.nonce}}</td>
+      </tr>
+      <tr>
+        <th>{{'transactions.size' | translate}}</th>
+        <td>{{block?.size}}</td>
+      </tr>
+      </tbody>
+    </table>
   </div>
-  <dl class="break-word">
-    <dt>{{'transactions.hash' | translate}}</dt>
-    <dd>{{block?.hash}}</dd>
-    <dt>{{'transactions.nonce' | translate}}</dt>
-    <dd>{{block?.nonce}}</dd>
-    <dt>{{'transactions.parentHash' | translate}}</dt>
-    <dd>{{block?.parentHash}}</dd>
-    <dt>{{'transactions.hash' | translate}}</dt>
-    <dd>{{block?.size}}</dd>
-  </dl>
+
 </div>
 
-<div class="p-2">
-  <h3 class="mt-0">{{'transactions.transactions' | translate}}</h3>
-  <clr-datagrid>
-    <clr-dg-column>{{'transactions.hash' | translate}}</clr-dg-column>
-    <clr-dg-row *clrDgItems="let transaction of block?.transactions">
-      <clr-dg-action-overflow>
-        <a class="action-item" [routerLink]="['./transactions', transaction.hash]">
-          {{'blocks.viewDetail' | translate}}
-        </a>
-      </clr-dg-action-overflow>
-      <clr-dg-cell>{{transaction.hash}}</clr-dg-cell>
-    </clr-dg-row>
-  </clr-datagrid>
-</div>
+<app-transaction-list-view [transactions]="block?.transactions" [blockNumber]="block?.number"></app-transaction-list-view>

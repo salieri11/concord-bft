@@ -10,6 +10,8 @@ import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
 
 import { BlocksContainerComponent } from './blocks-container/blocks-container.component';
 import { BlockDetailContainerComponent } from './block-detail-container/block-detail-container.component';
+import { BlockDetailsComponent } from './block-details/block-details.component';
+import { TransactionsModule } from '../transactions/transactions.module';
 
 const routes: Routes = [
   {
@@ -20,13 +22,19 @@ const routes: Routes = [
       { path: ':blockNumber', component: BlockDetailContainerComponent }
     ]
   }
+
 ];
 
 @NgModule({
   imports: [
     SharedModule,
+    TransactionsModule,
     RouterModule.forChild(routes)
   ],
-  declarations: [BlocksContainerComponent, BlockDetailContainerComponent]
+  declarations: [
+    BlocksContainerComponent,
+    BlockDetailContainerComponent,
+    BlockDetailsComponent
+    ]
 })
 export class BlocksModule { }

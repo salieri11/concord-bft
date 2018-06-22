@@ -9,6 +9,7 @@ import { SharedModule } from '../shared/shared.module';
 import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
 
 import { DashboardContainerComponent } from './dashboard-container/dashboard-container.component';
+import { TransactionsModule } from '../transactions/transactions.module';
 
 const routes: Routes = [
   {
@@ -23,6 +24,7 @@ const routes: Routes = [
 @NgModule({
   imports: [
     SharedModule,
+    TransactionsModule,
     RouterModule.forChild(routes)
   ],
   declarations: [DashboardContainerComponent]

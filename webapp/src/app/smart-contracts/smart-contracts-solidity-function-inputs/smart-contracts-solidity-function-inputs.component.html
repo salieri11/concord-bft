@@ -1,0 +1,7 @@
+<div *ngIf="functionInputs?.length" [formGroup]="formGroup">
+  <label>{{'smartContracts.version.functionParameters' | translate}}</label>
+  <div *ngFor="let input of functionInputs" class="form-group">
+    <label class="required">{{input.name}}</label>
+    <input type="text" [formControlName]="input.name" required>
+  </div>
+</div>

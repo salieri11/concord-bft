@@ -28,12 +28,13 @@
     "@clr/angular": "^0.11.21",
     "@clr/icons": "^0.11.21",
     "@clr/ui": "^0.11.21",
-    "@ngx-translate/core": "~9.1.1",
+    "@ngx-translate/core": "^9.1.1",
     "@ngx-translate/http-loader": "^2.0.1",
     "@webcomponents/custom-elements": "^1.0.0",
     "bootstrap": "4.0.0-alpha.5",
     "core-js": "^2.4.1",
     "rxjs": "^5.5.6",
+    "web3-eth-abi": "^1.0.0-beta.34",
     "zone.js": "^0.8.19"
   },
   "devDependencies": {
