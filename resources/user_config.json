@@ -82,5 +82,9 @@
         "password": "11111"
       }
     ]
+  },
+  "performance": {
+    "url": "http://pa-dbc1122.eng.vmware.com/bfink/vmwathena/test-data/",
+    "filename": "NORMALIZED_COMMANDS.txt.gz"
   }
 }

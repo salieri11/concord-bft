@@ -12,6 +12,7 @@ import time
 import traceback
 
 from util.debug import pp as pp
+#from collections import deque
 
 log = logging.getLogger(__name__)
 
@@ -194,7 +195,7 @@ class RPC():
       response = self._call()
       return self.getResultFromResponse(response)
 
-   def sendTransaction(self, caller, data, gas = None, to = None):
+   def sendTransaction(self, caller, data, gas = None, to = None, value = None):
       '''
       Given a blockchain user hash and some data (e.g. bytecode), submits
       it to the blockchain and returns the result field of the response, which
