@@ -3,7 +3,7 @@
  */
 
 import { mergeMap } from 'rxjs/operators';
-import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import { EthApiService } from '../../shared/eth-api.service';
@@ -26,6 +26,7 @@ enum TransactionActionOptions {
   styleUrls: ['./testing-ground.component.scss']
 })
 export class TestingGroundComponent implements OnInit {
+
   transactionActionOptions = TransactionActionOptions;
   dataForm: FormGroup;
   smartContractForm: FormGroup;
@@ -40,8 +41,7 @@ export class TestingGroundComponent implements OnInit {
   smartContractHash: string = undefined;
 
   constructor(private ethApiService: EthApiService,
-              private formBuilder: FormBuilder,
-              private changeDetectorRef: ChangeDetectorRef) {
+              private formBuilder: FormBuilder) {
 
     this.dataForm = this.formBuilder.group({
       from:  ['', [Validators.required, ...addressValidators]],
@@ -85,33 +85,9 @@ export class TestingGroundComponent implements OnInit {
         this.dataForm.controls.value.updateValueAndValidity({emitEvent : false});
       }
     });
-
-    this.smartContractForm = this.formBuilder.group({
-      from: ['', [Validators.required, ...addressValidators]],
-      file: [null, Validators.required],
-    });
-    this.smartContractForm.valueChanges.subscribe(() => this.smartContractHash = undefined);
   }
 
   ngOnInit() {
-  }
-
-  onSmartContractFileChange(event) {
-    if (event.target.files.length === 0) {
-      this.smartContractForm.patchValue({
-        file: null
-      });
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      this.smartContractForm.patchValue({
-        file: reader.result
-      });
-      this.changeDetectorRef.markForCheck();
-    };
-    reader.readAsText(event.target.files[0]);
   }
 
   onSubmitData() {
@@ -166,10 +142,6 @@ export class TestingGroundComponent implements OnInit {
 
   onCopyDataHash() {
     copyElementToClipboard(this.dataHashRef.nativeElement);
-  }
-
-  onCopySmartContractHash() {
-    copyElementToClipboard(this.smartContractHashRef.nativeElement);
   }
 
   get isTransaction() {

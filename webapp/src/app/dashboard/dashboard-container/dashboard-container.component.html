@@ -41,38 +41,5 @@
 </div>
 
 <div class="p-2">
-  <div class="row flex-items-xs-middle">
-    <div class="col-sm">
-      <h3 class="mt-0">{{'transactions.recentTransactions' | translate}}</h3>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-xs-12">
-      <clr-datagrid>
-        <clr-dg-column [clrDgSortBy]="'hash'">{{'transactions.hash' | translate}}</clr-dg-column>
-        <clr-dg-column>{{'transactions.nonce' | translate}}</clr-dg-column>
-        <clr-dg-column>
-          {{'transactions.status' | translate}}
-          <clr-dg-filter [clrDgFilter]="statusFilter">
-            <app-transactions-status-filter #statusFilter></app-transactions-status-filter>
-          </clr-dg-filter>
-        </clr-dg-column>
-        <clr-dg-row *clrDgItems="let transaction of recentTransactions">
-          <clr-dg-action-overflow>
-            <a class="action-item" [routerLink]="['/blocks', transaction.blockNumber, 'transactions', transaction.hash]">
-              {{'blocks.viewDetail' | translate}}
-            </a>
-          </clr-dg-action-overflow>
-          <clr-dg-cell>{{transaction.hash}}</clr-dg-cell>
-          <clr-dg-cell>{{transaction.nonce}}</clr-dg-cell>
-          <clr-dg-cell>{{(transaction?.status ? 'transactions.success' : 'transactions.failure') | translate}}</clr-dg-cell>
-        </clr-dg-row>
-        <clr-dg-footer>
-          <clr-dg-pagination #pagination [clrDgPageSize]="10">
-            {{'transactions.paginationSummary' | translate: { start: pagination.firstItem + 1, finish: pagination.lastItem + 1, total: pagination.totalItems} }}
-          </clr-dg-pagination>
-        </clr-dg-footer>
-      </clr-datagrid>
-    </div>
-  </div>
+  <app-transaction-list-view [transactions]="recentTransactions"></app-transaction-list-view>
 </div>

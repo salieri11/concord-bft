@@ -27,8 +27,8 @@ export class AppComponent implements OnDestroy {
     private authenticationService: AuthenticationService,
     private router: Router,
     private alertService: ErrorAlertService,
-    private translate: TranslateService,
     public zone: NgZone,
+    private translate: TranslateService
   ) {
     const browserLang = this.translate.getBrowserLang();
     this.translate.setDefaultLang('en');

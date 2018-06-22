@@ -17,6 +17,7 @@ import { NodesModule } from './nodes/nodes.module';
 import { BlocksModule } from './blocks/blocks.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { TestingModule } from './testing/testing.module';
+import { SmartContractsModule } from './smart-contracts/smart-contracts.module';
 import { SharedModule } from './shared/shared.module';
 import { OrgManagementModule } from './org-management/org-management.module';
 import { BlockchainsModule } from './blockchains/blockchains.module';
@@ -62,13 +63,14 @@ export function HttpLoaderFactory(http: HttpClient) {
     NodesModule,
     BlocksModule,
     TransactionsModule,
+    SmartContractsModule,
     TestingModule,
     SharedModule.forRoot(),
     OrgManagementModule,
     BlockchainsModule,
     ConsortiumManagementModule,
     KubernetesManagementModule,
-    ChannelsModule,
+    ChannelsModule
   ],
   providers: [
     {
