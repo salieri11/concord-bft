@@ -91,6 +91,7 @@
     "apply": "Apply"
   },
   "nodes": {
+    "title": "Node",
     "nodes": "Nodes",
     "nodeActivity": "Node Activity",
     "overallNodeHealth": "Overall Node Health",
@@ -126,6 +127,7 @@
     "title": "Block",
     "blocks": "Blocks",
     "blockActivity": "Block Activity",
+    "number": "Block Number",
     "index": "Index",
     "hash": "Hash",
     "next": "Next",
@@ -144,6 +146,7 @@
     "status": "Status",
     "success": "Success",
     "failure": "Failure",
+    "none": "null",
     "nodes": "Nodes",
     "hash": "Hash",
     "from": "From",

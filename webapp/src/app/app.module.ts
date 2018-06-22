@@ -70,7 +70,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     BlockchainsModule,
     ConsortiumManagementModule,
     KubernetesManagementModule,
-    ChannelsModule,
+    ChannelsModule
   ],
   providers: [
     {
