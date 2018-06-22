@@ -9,10 +9,8 @@ import {
   HttpEvent,
   HttpInterceptor, HttpResponse,
 } from '@angular/common/http';
-
-import { Observable } from 'rxjs/Observable';
-import 'rxjs/add/operator/do';
-import 'rxjs/add/observable/throw';
+import { Observable, throwError } from 'rxjs';
+import { tap } from 'rxjs/operators';
 
 /**
  * Checks for successful HTTP responses (status code 2XX) that are actually errors and throws.
@@ -23,11 +21,11 @@ import 'rxjs/add/observable/throw';
 @Injectable()
 export class RequestInterceptor implements HttpInterceptor {
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    return next.handle(request).do((event: HttpEvent<any>) => {
+    return next.handle(request).pipe(tap((event: HttpEvent<any>) => {
       // Make sure this is a response from the Ethereum endpoint and that there is an error present
       if (event instanceof HttpResponse && event.url.indexOf('/api/athena/eth') !== -1 && event.body.error) {
-        throw Observable.throw(event.body.error.message);
+        throw throwError(event.body.error.message);
       }
-    });
+    }));
   }
 }
