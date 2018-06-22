@@ -5,6 +5,11 @@
 import { Inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 
+import { Observable } from 'rxjs/Observable';
+import 'rxjs/add/observable/forkJoin';
+import 'rxjs/add/observable/of';
+import 'rxjs/add/operator/mergeMap';
+
 import { ATHENA_API_PREFIX } from './shared.config';
 
 import {
@@ -12,10 +17,9 @@ import {
   Block,
   BlockListing,
   Transaction,
+  SmartContract,
+  SmartContractVersion
 } from './remote-interfaces';
-import { Observable } from 'rxjs/Observable';
-import 'rxjs/add/observable/forkJoin';
-import 'rxjs/add/observable/of';
 
 @Injectable()
 export class AthenaApiService {
@@ -71,6 +75,22 @@ export class AthenaApiService {
         });
       });
     });
+  }
+
+  getSmartContracts() {
+    return this.httpClient.get<SmartContract[]>(this.apiPath('/contracts'));
+  }
+
+  getSmartContract(contractId: string) {
+    return this.httpClient.get<SmartContract>(this.apiPath(`/contracts/${contractId}`));
+  }
+
+  getVersionDetails(contractId: string, version: string) {
+    return this.httpClient.get<SmartContractVersion>(this.apiPath(`/contracts/${contractId}/versions/${version}`));
+  }
+
+  postContract(contract) {
+    return this.httpClient.post<any>(this.apiPath('/contracts'), contract);
   }
 
   apiPath(path: string) {

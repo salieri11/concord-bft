@@ -1,7 +1,10 @@
 {
   "title": "VMware Athena",
   "common": {
-    "all": "All"
+    "all": "All",
+    "close": "Close",
+    "cancel": "Cancel",
+    "create": "Create"
   },
   "nav": {
     "menu": {
@@ -28,6 +31,9 @@
     },
     "testing": {
       "title": "Testing"
+    },
+    "smartContracts": {
+      "title": "Smart Contracts"
     },
     "sysadmin": {
         "title": "SYSTEM ADMIN"
@@ -117,6 +123,7 @@
     "averageXSeconds": "Avg {{value}} sec"
   },
   "blocks": {
+    "title": "Block",
     "blocks": "Blocks",
     "blockActivity": "Block Activity",
     "index": "Index",
@@ -126,6 +133,7 @@
     "paginationSummary": "{{start}} - {{finish}} of {{total}} blocks"
   },
   "transactions": {
+    "title": "Transaction",
     "transactions": "Transactions",
     "recentTransactions": "Recent Transactions",
     "timestamp": "Timestamp",
@@ -168,6 +176,35 @@
     "contractAddress": "Contract Address:",
     "transactionHash": "Transaction Hash:",
     "result": "Result:"
+  },
+  "smartContracts": {
+    "smartContracts": "Smart Contracts",
+    "smartContractUpload": "Upload Smart Contracts",
+    "contractId": "Contract ID",
+    "createContract": "Create Contract",
+    "createContractError": "There was an error uploading your contract. Please correct any errors and try again:",
+    "viewDetail": "View Details",
+    "name": "Name",
+    "owner": "Owner",
+    "file": "File",
+    "preview": "Preview",
+    "version": {
+      "title": "Version",
+      "version": "Version",
+      "address": "Address",
+      "functions": "Functions",
+      "gas": "Gas",
+      "value": "Value",
+      "from": "From",
+      "call": "Call",
+      "send": "Send",
+      "preview": "Preview",
+      "selectVersion": "Select Version",
+      "functionParameters": "Function Parameters",
+      "downloadBytecode": "Download Bytecode",
+      "downloadSourceCode": "Download Source Code",
+      "downloadMetadata": "Download Metadata"
+    }
   },
   "organization": {
     "title": "Organization Management",

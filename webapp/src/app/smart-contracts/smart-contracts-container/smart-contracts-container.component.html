@@ -1,0 +1,29 @@
+<div class="p-2">
+  <div class="row">
+    <div class="col-xs-6">
+      <h2 class="page-title">
+        <clr-icon shape="scroll" size="36"></clr-icon> {{'smartContracts.smartContracts' | translate}}
+      </h2>
+    </div>
+
+    <div class="col-xs-6">
+      <div class="text-right">
+        <button type="button" class="btn btn-primary" (click)="contractFormModal.open()">{{'common.create' | translate}}</button>
+      </div>
+    </div>
+  </div>
+
+  <clr-datagrid>
+    <clr-dg-column>{{'smartContracts.contractId' | translate}}</clr-dg-column>
+    <clr-dg-column>{{'smartContracts.owner' | translate}}</clr-dg-column>
+    <clr-dg-row *clrDgItems="let smartContract of smartContracts">
+      <clr-dg-action-overflow>
+        <a class="action-item" [routerLink]="['/smart-contracts', smartContract.contract_id]">{{'smartContracts.viewDetail' | translate}}</a>
+      </clr-dg-action-overflow>
+      <clr-dg-cell>{{ smartContract.contract_id }}</clr-dg-cell>
+      <clr-dg-cell>{{ smartContract.owner }}</clr-dg-cell>
+    </clr-dg-row>
+  </clr-datagrid>
+</div>
+
+<app-contract-form #contractFormModal (contractCreated)="loadSmartContracts()"></app-contract-form>

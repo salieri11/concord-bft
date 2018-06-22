@@ -20,6 +20,9 @@ const routes: Routes = [
     children: [
       {path: ':transactionHash', component: TransactionDetailContainerComponent},
     ]
+  },
+  {
+    path: 'transactions/:transactionHash', component: TransactionDetailContainerComponent
   }
 ];
 
