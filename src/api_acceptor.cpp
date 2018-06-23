@@ -3,6 +3,7 @@
 // Acceptor for connections from the API/UI servers.
 
 #include <boost/bind.hpp>
+#include <boost/thread.hpp>
 #include "api_acceptor.hpp"
 
 using boost::asio::ip::tcp;
@@ -46,7 +47,8 @@ void
 api_acceptor::handle_accept(api_connection::pointer new_connection,
                             const error_code &error)
 {
-   LOG4CPLUS_TRACE(logger_, "handle_accept enter");
+   LOG4CPLUS_TRACE(logger_, "handle_accept enter, thread id: " <<
+                   boost::this_thread::get_id());
    if (!error) {
       connManager_.start_connection(new_connection);
    } else {

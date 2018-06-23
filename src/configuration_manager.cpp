@@ -24,6 +24,9 @@ static const int default_log_props_time_ms = 60000; // 60sec
 // default implementation of blockchain storage
 static const string default_blockchain_db_impl = "memory";
 
+// default size of API worker thread pool
+static const int default_api_worker_thread_pool_size = 4;
+
 variables_map initialize_config(int argc, char **argv) {
    // A map to hold key-value pairs of all options
    variables_map options_map;
@@ -90,7 +93,10 @@ variables_map initialize_config(int argc, char **argv) {
        "Path to SBFT private replica config file")
       ("SBFT.client",
        value<string>(),
-       "Path to SBFT private client config file");
+       "Path to SBFT private client config file")
+      ("api_worker_pool_size",
+       value<int>()->default_value(default_api_worker_thread_pool_size),
+       "Number of threads to create for handling TCP connections");
 
    options_description all_options; // description of all options
    all_options.add(generic).add(config);
