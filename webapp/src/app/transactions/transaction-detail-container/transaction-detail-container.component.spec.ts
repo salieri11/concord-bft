@@ -3,12 +3,12 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 
-import { TransactionDetailContainerComponent } from './transaction-detail-container.component';
 import { MockSharedModule } from '../../shared/shared.module';
+import { TransactionDetailContainerComponent } from './transaction-detail-container.component';
+import { TransactionDetailsComponent } from '../transaction-details/transaction-details.component';
 
 describe('TransactionDetailContainerComponent', () => {
   let component: TransactionDetailContainerComponent;
@@ -21,7 +21,10 @@ describe('TransactionDetailContainerComponent', () => {
         HttpClientTestingModule,
         MockSharedModule
       ],
-      declarations: [ TransactionDetailContainerComponent ]
+      declarations: [
+        TransactionDetailContainerComponent,
+        TransactionDetailsComponent
+      ]
     })
     .compileComponents();
   }));

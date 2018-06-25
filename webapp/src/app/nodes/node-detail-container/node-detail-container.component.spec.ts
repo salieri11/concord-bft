@@ -10,6 +10,8 @@ import { MockSharedModule } from '../../shared/shared.module';
 
 import { NodeDetailContainerComponent } from './node-detail-container.component';
 import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
+import { TransactionListViewComponent } from '../../transactions/transaction-list-view/transaction-list-view.component';
+import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
 
 describe('NodeDetailContainerComponent', () => {
   let component: NodeDetailContainerComponent;
@@ -22,7 +24,12 @@ describe('NodeDetailContainerComponent', () => {
         HttpClientTestingModule,
         MockSharedModule
       ],
-      declarations: [ NodeDetailContainerComponent, TransactionsStatusFilterComponent ]
+      declarations: [
+        NodeDetailContainerComponent,
+        TransactionsStatusFilterComponent,
+        TransactionListViewComponent,
+        TransactionDetailsComponent
+      ]
     })
     .compileComponents();
   }));

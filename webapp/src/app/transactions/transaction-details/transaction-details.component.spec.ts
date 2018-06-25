@@ -3,7 +3,9 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
+import { MockSharedModule } from '../../shared/shared.module';
 import { TransactionDetailsComponent } from './transaction-details.component';
 
 describe('TransactionDetailsComponent', () => {
@@ -12,7 +14,13 @@ describe('TransactionDetailsComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [ TransactionDetailsComponent ]
+      imports: [
+        HttpClientTestingModule,
+        MockSharedModule
+      ],
+      declarations: [
+        TransactionDetailsComponent
+      ]
     })
       .compileComponents();
   }));

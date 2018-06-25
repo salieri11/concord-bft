@@ -7,11 +7,6 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { of as observableOf, forkJoin as observableForkJoin } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
 
-import { Observable } from 'rxjs/Observable';
-import 'rxjs/add/observable/forkJoin';
-import 'rxjs/add/observable/of';
-import 'rxjs/add/operator/mergeMap';
-
 import { ATHENA_API_PREFIX } from './shared.config';
 
 import {
