@@ -3,8 +3,8 @@
  */
 
 import { Injectable, NgModule, Pipe, PipeTransform } from '@angular/core';
-
 import { TranslateService } from '@ngx-translate/core';
+import { of } from 'rxjs';
 
 @Pipe({name: 'translate'})
 export class MockTranslatePipe implements PipeTransform {
@@ -18,6 +18,7 @@ export class MockTranslateService  {
   getBrowserLang() {}
   setDefaultLang() {}
   use() {}
+  get(value) { return of(value); }
 }
 
 @NgModule({

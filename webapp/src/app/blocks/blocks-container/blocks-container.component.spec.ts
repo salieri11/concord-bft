@@ -9,6 +9,7 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 
 import { BlocksContainerComponent } from './blocks-container.component';
+import { BlockDetailsComponent } from '../block-details/block-details.component';
 
 describe('BlocksContainerComponent', () => {
   let component: BlocksContainerComponent;
@@ -21,7 +22,10 @@ describe('BlocksContainerComponent', () => {
         HttpClientTestingModule,
         MockSharedModule
       ],
-      declarations: [ BlocksContainerComponent ]
+      declarations: [
+        BlocksContainerComponent,
+        BlockDetailsComponent
+      ]
     })
     .compileComponents();
   }));

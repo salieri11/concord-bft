@@ -5,7 +5,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormGroup, FormBuilder } from '@angular/forms';
 import { ClrDatagridFilterInterface } from '@clr/angular';
-import { Subject } from 'rxjs/Subject';
+import { Subject } from 'rxjs';
 
 import { Member } from '../../shared/remote-interfaces';
 

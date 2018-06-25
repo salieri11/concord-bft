@@ -3,29 +3,18 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { BrowserModule } from '@angular/platform-browser';
-import { ReactiveFormsModule } from '@angular/forms';  // <-- #1 import module
 import { FormsModule } from '@angular/forms';  // <-- #1 import module
-import { HttpClientModule, HttpClient } from '@angular/common/http';
-import { ClarityModule } from '@clr/angular';
-import { CommonModule } from '@angular/common';
-import { GridModule } from '../grid/grid.module';
-
+import { RouterModule } from '@angular/router';
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { ActivatedRoute } from '@angular/router';
-import { TranslateService } from '@ngx-translate/core';
-import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
-import { TranslateHttpLoader } from '@ngx-translate/http-loader';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
+import { GridModule } from '../grid/grid.module';
 import { BlockchainsComponent } from './blockchains.component';
+import { MockSharedModule } from '../shared/shared.module';
 import { BlockchainsService } from './shared/blockchains.service';
-import { OrgManagementService } from '../org-management/shared/org-management.service';
 import { KubernetesService } from '../kubernetes-management/shared/kubernetes.service';
-
-export function HttpLoaderFactory(http: HttpClient) {
-  return new TranslateHttpLoader(http, './static/i18n/', '.json');
-}
+import { OrgManagementService } from '../org-management/shared/org-management.service';
 
 describe('BlockchainsComponent', () => {
   let component: BlockchainsComponent;
@@ -34,26 +23,15 @@ describe('BlockchainsComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
-        CommonModule,
-        ClarityModule,
-        BrowserAnimationsModule,
-        BrowserModule,
-        HttpClientModule,
-        ReactiveFormsModule,
+        HttpClientTestingModule,
         FormsModule,
         GridModule,
-        TranslateModule.forRoot({
-          loader: {
-            provide: TranslateLoader,
-            useFactory: HttpLoaderFactory,
-            deps: [HttpClient]
-          }
-        })
+        MockSharedModule,
+        NoopAnimationsModule
       ],
       declarations: [ BlockchainsComponent ],
       providers: [
         BlockchainsService,
-        TranslateService,
         OrgManagementService,
         KubernetesService,
         {
@@ -68,6 +46,13 @@ describe('BlockchainsComponent', () => {
         }
       ]
     })
+    .overrideModule(GridModule, {set: {
+      imports: [
+        FormsModule,
+        MockSharedModule,
+        RouterModule
+      ],
+    }})
     .compileComponents();
   }));
 

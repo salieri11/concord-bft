@@ -3,13 +3,11 @@
  */
 
 import { Injectable } from '@angular/core';
-
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { map } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 
-import { Observable } from 'rxjs/Observable';
-import 'rxjs/add/operator/map';
 import { Blockchain, BlockchainResponse } from './blockchains.model';
-
 import { GridListResponse } from '../../grid/shared/grid.model';
 
 @Injectable()
@@ -38,8 +36,8 @@ export class BlockchainsService {
       options['params'] = httpParams;
     }
 
-    return this.http.get<BlockchainResponse>(url, options)
-    .map(response => this.handleResponse(response));
+    return this.http.get<BlockchainResponse>(url, options).pipe(
+    map(response => this.handleResponse(response)));
   }
 
   get(id: string): Observable<Blockchain> {
