@@ -44,7 +44,6 @@ class PerformanceTests(test_suite.TestSuite):
       return "PerformanceTests"
 
    def run(self):
-      ''' Runs all of the tests. '''
       if self._productMode:
          global p
          try:
@@ -61,30 +60,26 @@ class PerformanceTests(test_suite.TestSuite):
          self.writeResult("All tests", None, info)
          return self._resultFile
 
-      tests = self._getTests()
+      testLogDir = os.path.join(self._testLogDir, "Performance")
 
-      for (testName, testFun) in tests:
-         testLogDir = os.path.join(self._testLogDir, testName)
+      try:
+         result, info = self._test_performance()
 
-         try:
-            result, info = self._runRestTest(testName,
-                                             testFun,
-                                             testLogDir)
-         except Exception as e:
-            result = False
-            info = str(e)
-            traceback.print_tb(e.__traceback__)
-            log.error("Exception running performance test: '{}'".format(info))
+      except Exception as e:
+         result = False
+         info = str(e)
+         traceback.print_tb(e.__traceback__)
+         log.error("Exception running performance test: '{}'".format(info))
 
-         if info:
-            info += "  "
-         else:
-            info = ""
+      if info:
+         info += "  "
+      else:
+         info = ""
 
-         relativeLogDir = self.makeRelativeTestPath(testLogDir)
-         info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
+      relativeLogDir = self.makeRelativeTestPath(testLogDir)
+      info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                      testLogDir)
-         self.writeResult(testName, result, info)
+      self.writeResult("Performance", result, info)
 
       log.info("Tests are done.")
 
@@ -93,30 +88,27 @@ class PerformanceTests(test_suite.TestSuite):
 
       return self._resultFile
 
-   def _runRestTest(self, testName, testFun, testLogDir):
-      log.info("Starting test '{}'".format(testName))
-      return testFun()
 
-   def _getTests(self):
-      return [("Performance", self._test_performance)]
-
-
-   def plotData(self, period_list, avg_latency_list, peak_latency_list, stdev_latency_list, var_latency_list, percentile_list_99):
+   #Plot a graph and save it
+   def plotData(self, period_list, avg_latency_list, peak_latency_list, 
+                stdev_latency_list, var_latency_list, percentile_list_99):
       avg_latency, = plt.plot(period_list, avg_latency_list, label="Average")
       peak_latency, = plt.plot(period_list, peak_latency_list, label="Peak")
-      stdev_latency, = plt.plot(period_list, stdev_latency_list, label="Std Deviation")
+      stdev_latency, = plt.plot(period_list, stdev_latency_list, 
+                                label="Std Deviation")
       var_latency, = plt.plot(period_list, var_latency_list, label="Variance")
-      percentile_99, = plt.plot(period_list, percentile_list_99, label="99th percentile")
+      percentile_99, = plt.plot(period_list, percentile_list_99, 
+                                label="99th percentile")
       plt.title("Latency vs Time")
       plt.xlabel("Time (seconds)")
       plt.ylabel("Latency (seconds)")
       plt.grid(color='r', linestyle='-', linewidth=0.5)
       plt.legend()
-      #plt.show()
       path = os.path.join(self._testLogDir, "latencyVStime.png")
       plt.savefig(path)
 
 
+   #Interpret the results
    def parse_results(self, result_file):
       print("Parsing results..")
       period_list = []
@@ -162,7 +154,8 @@ class PerformanceTests(test_suite.TestSuite):
          var_latency_list.append(statistics.pvariance(current_latency_vals))
          percentile_list_99.append(np.percentile(current_latency_vals, 99))
 
-      self.plotData(period_list, avg_latency_list, peak_latency_list, stdev_latency_list, var_latency_list, percentile_list_99)
+      self.plotData(period_list, avg_latency_list, peak_latency_list, 
+                    stdev_latency_list, var_latency_list, percentile_list_99)
       
 
    def _test_performance(self):
@@ -181,6 +174,7 @@ class PerformanceTests(test_suite.TestSuite):
             rpc = RPC(testLogDir, testName, self._apiServerUrl)
 
             print("Sending requests..")
+            print("")
             count = 1
             t_peak_response = sys.float_info.min
 
@@ -201,7 +195,7 @@ class PerformanceTests(test_suite.TestSuite):
                      data = None
 
                   t_start_req = time.time()
-                  if request_type == "01": #78
+                  if request_type == "01":
                      #ignoring 'to'
                      if data == None:
                         continue
@@ -237,10 +231,10 @@ class PerformanceTests(test_suite.TestSuite):
             self.parse_results(result_file)
       
          t_total = t_end_test - t_start_test
-         print()
+         print("")
          print("Peak Response Time = " + str(t_peak_response) + " seconds")
          print("Total Time = " + str(t_total) + " seconds")
          print("Throughput = " + str(count/t_total) + " RPS")
-         print()
+         print("")
 
       return (True, None)
