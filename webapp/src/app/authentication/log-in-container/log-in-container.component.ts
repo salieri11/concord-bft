@@ -18,7 +18,7 @@ export class LogInContainerComponent implements OnDestroy {
 
   readonly loginForm: FormGroup;
   private authenticationChange;
-  private personaOptions: Array<{ name ?: string; value: string; }> = [
+  personaOptions: Array<{ name ?: string; value: string; }> = [
     { value: Personas.SystemsAdmin, name: 'Systems Admin' },
     { value: Personas.ConsortiumAdmin, name: 'Consortium Admin' },
     { value: Personas.OrgAdmin, name: 'Org Admin' },
