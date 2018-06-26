@@ -14,14 +14,9 @@
   </div>
 
   <clr-datagrid>
-    <clr-dg-column>{{'smartContracts.contractId' | translate}}</clr-dg-column>
-    <clr-dg-column>{{'smartContracts.owner' | translate}}</clr-dg-column>
+    <clr-dg-column>{{'smartContracts.contractId' | translate}} : {{'smartContracts.owner' | translate}}</clr-dg-column>
     <clr-dg-row *clrDgItems="let smartContract of smartContracts">
-      <clr-dg-action-overflow>
-        <a class="action-item" [routerLink]="['/smart-contracts', smartContract.contract_id]">{{'smartContracts.viewDetail' | translate}}</a>
-      </clr-dg-action-overflow>
-      <clr-dg-cell>{{ smartContract.contract_id }}</clr-dg-cell>
-      <clr-dg-cell>{{ smartContract.owner }}</clr-dg-cell>
+      <clr-dg-cell> <a [routerLink]="['/smart-contracts', smartContract.contract_id]">{{ smartContract.contract_id }} : {{ smartContract.owner }}</a></clr-dg-cell>
     </clr-dg-row>
   </clr-datagrid>
 </div>
