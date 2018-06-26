@@ -11,7 +11,7 @@ import { FormsModule } from '@angular/forms';  // <-- #1 import module
 import { ClarityModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
 import { HttpClientModule } from '@angular/common/http';
-import { RouterModule } from "@angular/router";
+import { RouterModule } from '@angular/router';
 
 import { OrgManagementModule } from '../org-management/org-management.module';
 import { ChannelsModule } from '../channels/channels.module';

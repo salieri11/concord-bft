@@ -6,6 +6,6 @@ import { Routes } from '@angular/router';
 
 import { OrgManagementComponent } from './org-management.component';
 
-export const OrganizationRoutes: Routes = [
+export const organizationRoutes: Routes = [
   { path: '', component: OrgManagementComponent },
 ];

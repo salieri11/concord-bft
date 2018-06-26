@@ -25,7 +25,6 @@ export class SmartContractDetailContainerComponent implements OnInit {
   ngOnInit() {
     this.route.params.subscribe(params => {
       if (!this.smartContract || this.smartContract.contract_id !== params.contractId) {
-        debugger;
         this.loadSmartContract(params.contractId);
       }
       if (params.version) {
@@ -37,12 +36,10 @@ export class SmartContractDetailContainerComponent implements OnInit {
 
   loadSmartContract(contractId) {
     this.athenaApiService.getSmartContract(contractId).subscribe(smartContract => this.smartContract = smartContract);
-    debugger;
   }
 
   loadVersionDetails(contractId, version) {
     this.athenaApiService.getVersionDetails(contractId, version).subscribe(versionResponse => this.version = versionResponse);
-    debugger;
   }
 
   getVersionInfo() {

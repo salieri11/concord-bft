@@ -22,7 +22,7 @@ import { ErrorAlertService, GlobalErrorHandlerService } from '../shared/global-e
 import { RequestInterceptor } from '../app-interceptors';
 import { SharedModule } from '../shared/shared.module';
 import { MainRoutingModule } from './main/main-routing.module';
-import { SmartContractsModule } from "../smart-contracts/smart-contracts.module";
+import { SmartContractsModule } from '../smart-contracts/smart-contracts.module';
 
 
 @NgModule({

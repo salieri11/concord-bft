@@ -4,9 +4,10 @@
 
 import { Component, NgZone, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+
 import { AuthenticationService } from '../../shared/authentication.service';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
-import { Subscription } from 'rxjs/Subscription';
 
 @Component({
   selector: 'app-main',

@@ -14,8 +14,8 @@ import { testingRoutes } from '../../testing/testing-routing';
 import { blockChainsRoutes } from '../../blockchains/blockchains-routing';
 import { consortiumManagementRoutes } from '../../consortium-management/consortium-management-routing';
 import { kubernetesManagementRoutes } from '../../kubernetes-management/kubernetes-management-routing';
-import { OrganizationRoutes } from '../../org-management/org-routing';
-import { smartContractRoutes } from "../../smart-contracts/smart-contracts-routing";
+import { organizationRoutes } from '../../org-management/org-routing';
+import { smartContractRoutes } from '../../smart-contracts/smart-contracts-routing';
 
 const routes: Routes = [
   {
@@ -31,7 +31,7 @@ const routes: Routes = [
       { path: 'testing', children: testingRoutes },
       { path: 'blockchains', children: blockChainsRoutes },
       { path: 'consortium', children: consortiumManagementRoutes },
-      { path: 'organization', children: OrganizationRoutes },
+      { path: 'organization', children: organizationRoutes },
       { path: 'kubernetes', children: kubernetesManagementRoutes }
     ]
   }
