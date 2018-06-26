@@ -6,7 +6,6 @@ import { Component, OnDestroy, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
-import { FormGroup, FormControl } from '@angular/forms';
 
 import { AuthenticationService } from './shared/authentication.service';
 import { ErrorAlertService } from './shared/global-error-handler.service';
@@ -24,7 +23,6 @@ export class AppComponent implements OnDestroy {
 
   authenticated = false;
   username: string;
-  personaFormGroup: FormGroup;
   personas = Personas;
 
   personaOptions: Array<{ name ?: string; value: string; }> = [
@@ -48,15 +46,10 @@ export class AppComponent implements OnDestroy {
     this.translate.setDefaultLang('en');
     this.translate.use(browserLang);
 
-    this.personaFormGroup = new FormGroup({
-      persona: new FormControl(this.personaService.currentPersona)
-    });
-
     this.authenticationChange = authenticationService.user.subscribe(user => {
       this.authenticated = user.email !== undefined && user.persona !== undefined;
       this.username = user.email;
       this.personaService.currentPersona = user.persona;
-      this.personaFormGroup.patchValue({ persona: user.persona });
     });
 
     this.alertService.notify
@@ -68,8 +61,8 @@ export class AppComponent implements OnDestroy {
     this.authenticationChange.unsubscribe();
   }
 
-  onPersonaChange() {
-    this.personaService.currentPersona = this.personaFormGroup.value.persona;
+  onPersonaChange(persona: string) {
+    this.personaService.currentPersona = persona;
   }
 
   onLogOut() {
