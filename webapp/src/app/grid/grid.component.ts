@@ -2,8 +2,6 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import 'rxjs/add/operator/debounceTime';
-
 import {
   Component,
   OnInit,
@@ -25,7 +23,6 @@ import {
   GridListResponse,
   GridMeta
 } from './shared/grid.model';
-
 import { ErrorAlertService } from '../shared/global-error-handler.service';
 
 @Component({

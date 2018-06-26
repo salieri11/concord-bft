@@ -12,6 +12,7 @@ import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
 import { NodesContainerComponent } from './nodes-container/nodes-container.component';
 import { NodeDetailContainerComponent } from './node-detail-container/node-detail-container.component';
 import { NodesStatusFilterComponent } from './nodes-status-filter/nodes-status-filter.component';
+import { TransactionsModule } from '../transactions/transactions.module';
 
 const routes: Routes = [
   {
@@ -27,6 +28,7 @@ const routes: Routes = [
 @NgModule({
   imports: [
     RouterModule.forChild(routes),
+    TransactionsModule,
     SharedModule
   ],
   declarations: [NodesContainerComponent, NodeDetailContainerComponent, NodesStatusFilterComponent]

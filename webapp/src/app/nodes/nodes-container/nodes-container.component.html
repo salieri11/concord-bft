@@ -85,11 +85,8 @@
       </clr-dg-filter>
     </clr-dg-column>
     <clr-dg-row *clrDgItems="let member of members">
-      <clr-dg-action-overflow>
-        <a class="action-item" [routerLink]="['/nodes', member.host]">{{'nodes.viewDetail' | translate}}</a>
-      </clr-dg-action-overflow>
       <clr-dg-cell>Lindberg</clr-dg-cell>
-      <clr-dg-cell>{{member.host}}</clr-dg-cell>
+      <clr-dg-cell><a [routerLink]="['/nodes', member.host]">{{member.host}}</a></clr-dg-cell>
       <clr-dg-cell>2001:0db8:85a3:0000:0000:8a2e:0370:7334:8080</clr-dg-cell>
       <clr-dg-cell>{{member.status}}</clr-dg-cell>
     </clr-dg-row>

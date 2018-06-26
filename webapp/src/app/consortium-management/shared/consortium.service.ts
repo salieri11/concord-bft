@@ -1,12 +1,12 @@
 /*
  * Copyright 2018 VMware, all rights reserved.
  */
+
 import { Injectable } from '@angular/core';
-
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
-import { Observable } from 'rxjs/Observable';
-import 'rxjs/add/operator/map';
 import { Consortium, ConsortiumResponse } from './consortium.model';
 import { GridListResponse } from '../../grid/shared/grid.model';
 
@@ -35,8 +35,8 @@ export class ConsortiumService {
       options['params'] = httpParams;
     }
 
-    return this.http.get<ConsortiumResponse>(this.consortiumUrl, options)
-      .map(response => this.handleResponse(response));
+    return this.http.get<ConsortiumResponse>(this.consortiumUrl, options).pipe(
+      map(response => this.handleResponse(response)));
   }
 
   private handleResponse(response: ConsortiumResponse): GridListResponse {

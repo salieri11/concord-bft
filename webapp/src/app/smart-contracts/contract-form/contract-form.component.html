@@ -1,0 +1,38 @@
+<form [formGroup]="smartContractForm" (ngSubmit)="onSubmitSmartContract()">
+  <clr-modal [(clrModalOpen)]="isOpen">
+    <h3 class="modal-title">{{'smartContracts.createContract' | translate}}</h3>
+    <div class="modal-body">
+      <div *ngIf="modalState.error">
+        <clr-alert [clrAlertClosable]="false" clrAlertType="danger">
+          <div class="alert-item">
+          <span class="alert-text">
+            {{'smartContracts.createContractError' | translate}}
+            <br><br>
+            {{modalState.errorMessage}}
+          </span>
+          </div>
+        </clr-alert>
+      </div>
+        <div class="form-group">
+          <label for="smart-contract-from" class="required">{{'smartContracts.version.from' | translate}}</label>
+          <input id="smart-contract-from" type="text" placeholder="0x0123456789abcdefgh0123456789abcdefgh0123" required formControlName="from">
+        </div>
+        <div class="form-group">
+          <label for="smart-contract-contract-id" class="required">{{'smartContracts.contractId' | translate}}</label>
+          <input id="smart-contract-contract-id" type="text" placeholder="" required formControlName="contractId">
+        </div>
+        <div class="form-group">
+          <label for="smart-contract-version" class="required">{{'smartContracts.version.version' | translate}}</label>
+          <input id="smart-contract-version" type="text" placeholder="" required formControlName="version">
+        </div>
+        <div class="form-group">
+          <label for="smart-contract-file" class="required">{{'smartContracts.file' | translate}}</label>
+          <input id="smart-contract-file" type="file" name="userFile" required (change)="onSmartContractFileChange($event)">
+        </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-primary" (click)="onClose()">{{'common.cancel' | translate}}</button>
+      <button type="submit" class="btn btn-primary" [disabled]="smartContractForm.invalid">{{'common.create' | translate}}</button>
+    </div>
+  </clr-modal>
+</form>
