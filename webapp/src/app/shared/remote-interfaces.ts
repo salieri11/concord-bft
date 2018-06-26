@@ -67,7 +67,7 @@ export interface SmartContract {
 }
 
 export interface SmartContractVersion {
-  contractId: string;
+  contract_id: string;
   version: string;
   owner: string;
   metadata: SmartContractMetadata;
