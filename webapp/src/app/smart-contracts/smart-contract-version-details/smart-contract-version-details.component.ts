@@ -116,9 +116,7 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
   }
 
   private generateFileName() {
-    let filename = `${this.version.contract_id} ${this.version.version}`;
-
-    return filename.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    return `${this.version.contract_id}_${this.version.version}`;
   }
 
   private handleError(error) {
