@@ -4,11 +4,8 @@
 
 import { Inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-
-import { Observable } from 'rxjs/Observable';
-import 'rxjs/add/observable/forkJoin';
-import 'rxjs/add/observable/of';
-import 'rxjs/add/operator/mergeMap';
+import { of as observableOf, forkJoin as observableForkJoin } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
 
 import { ATHENA_API_PREFIX } from './shared.config';
 
@@ -52,10 +49,10 @@ export class AthenaApiService {
     // Get blocks, then get individual block, then build list of recent transactions from the data returned
     // This is temporary until there is an endpoint to fetch recent transactions
 
-    return this.getBlocks(1000).flatMap(resp => {
+    return this.getBlocks(1000).pipe(mergeMap(resp => {
       const blockObservables = resp.blocks.map((block) => this.getBlock(block.number));
 
-      return Observable.forkJoin(blockObservables).flatMap(blocksResp => {
+      return observableForkJoin(blockObservables).pipe(mergeMap(blocksResp => {
         let blockTransactions: any[] = [];
 
         blocksResp.forEach((block) => {
@@ -66,15 +63,15 @@ export class AthenaApiService {
 
         const transactionObservables = blockTransactions.map((blockTransaction) => this.getTransaction(blockTransaction.hash));
 
-        return Observable.forkJoin(transactionObservables).flatMap(transationsResp => {
+        return observableForkJoin(transactionObservables).pipe(mergeMap(transationsResp => {
           const transactions = transationsResp.map((transaction, index) => {
             return { blockNumber: blockTransactions[index].blockNumber, ...transaction };
           });
 
-          return Observable.of(transactions);
-        });
-      });
-    });
+          return observableOf(transactions);
+        }));
+      }));
+    }));
   }
 
   getSmartContracts() {

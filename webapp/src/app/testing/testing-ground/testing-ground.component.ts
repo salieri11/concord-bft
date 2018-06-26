@@ -2,11 +2,11 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
+import { mergeMap } from 'rxjs/operators';
 import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import { EthApiService } from '../../shared/eth-api.service';
-
 import { ADDRESS_LENGTH, ADDRESS_PATTERN } from '../../shared/shared.config';
 
 const addressValidators = [
@@ -122,6 +122,19 @@ export class TestingGroundComponent implements OnInit {
       value: this.dataForm.value.value.length === 0 ? null : this.dataForm.value.value,
     }).subscribe(response => {
       this.dataHash = response.result;
+    }, response => {
+      alert(response.error);
+    });
+  }
+
+  onSubmitSmartContract() {
+    this.ethApiService.sendTransaction({
+      from: this.smartContractForm.value.from,
+      data: this.smartContractForm.value.file
+    }).pipe(mergeMap(response => {
+      return this.ethApiService.getTransactionReceipt(response.result);
+    })).subscribe(response => {
+      this.smartContractHash = response.result.contractAddress;
     }, response => {
       alert(response.error);
     });

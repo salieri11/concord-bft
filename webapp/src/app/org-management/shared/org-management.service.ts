@@ -2,11 +2,11 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
+import { map } from 'rxjs/operators';
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
 
-import { Observable } from 'rxjs/Observable';
-import 'rxjs/add/operator/map';
 import { Org, OrgResponse } from './org-management.model';
 import { GridListResponse } from '../../grid/shared/grid.model';
 
@@ -43,24 +43,24 @@ export class OrgManagementService {
       options['params'] = httpParams;
     }
 
-    return this.http.get<OrgResponse>(url, options)
-      .map(response => this.handleResponse(response));
+    return this.http.get<OrgResponse>(url, options).pipe(
+      map(response => this.handleResponse(response)));
   }
 
   getUsableOrgs(): Observable<GridListResponse> {
     const url = '/api/organizations/search/usablePeerOrgs';
     const options = {headers: this.headers};
 
-    return this.http.get<any>(url, options)
-    .map(response => this.handleResponse(response));
+    return this.http.get<any>(url, options).pipe(
+    map(response => this.handleResponse(response)));
   }
 
   getOrdererOrgs(): Observable<GridListResponse> {
     const options = {headers: this.headers};
     const url = 'api/organizations/search/usableOrdererOrgs';
 
-    return this.http.get<any>(url, options)
-    .map(response => this.handleResponse(response));
+    return this.http.get<any>(url, options).pipe(
+    map(response => this.handleResponse(response)));
   }
 
   private handleResponse(response: OrgResponse): GridListResponse {

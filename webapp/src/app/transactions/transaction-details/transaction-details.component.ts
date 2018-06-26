@@ -3,6 +3,7 @@
  */
 
 import { Component, Input, OnInit } from '@angular/core';
+
 import { Transaction } from '../../shared/remote-interfaces';
 import { AthenaApiService } from '../../shared/athena-api.service';
 

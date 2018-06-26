@@ -152,7 +152,7 @@ export interface EthRequest {
   id: number;
   method: string;
   jsonrpc: string;
-  params: [EthSendTransactionParams | EthGetTransactionReceiptParams | EthSendCallParams];
+  params: [EthSendTransactionParams | EthGetTransactionReceiptParams | EthSendCallParams] | [EthSendCallParams, string];
 }
 
 export interface EthSendCallResponse {
