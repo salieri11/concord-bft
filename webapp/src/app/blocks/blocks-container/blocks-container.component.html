@@ -35,7 +35,7 @@
     <clr-dg-row *clrDgItems="let block of blocks">
       <clr-dg-cell><a [routerLink]="['/blocks', block.number]">{{block.number}} : {{block.hash}}</a></clr-dg-cell>
       <clr-dg-row-detail>
-        <app-block-details *clrIfExpanded ngProjectAs="clr-dg-row-detail" [blockNumber]="block?.number"></app-block-details>
+        <athena-block-details *clrIfExpanded ngProjectAs="clr-dg-row-detail" [blockNumber]="block?.number"></athena-block-details>
       </clr-dg-row-detail>
     </clr-dg-row>
     <clr-dg-footer>

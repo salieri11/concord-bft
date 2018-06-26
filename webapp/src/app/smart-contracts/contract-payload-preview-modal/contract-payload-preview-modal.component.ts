@@ -5,7 +5,7 @@
 import { Component } from '@angular/core';
 
 @Component({
-  selector: 'app-contract-payload-preview-modal',
+  selector: 'athena-contract-payload-preview-modal',
   templateUrl: './contract-payload-preview-modal.component.html',
   styleUrls: ['./contract-payload-preview-modal.component.scss']
 })
