@@ -17,13 +17,16 @@ export class SmartContractsContainerComponent implements OnInit {
 
   smartContracts = [];
 
-  constructor( private athenaApiService: AthenaApiService ) { }
+  constructor(private athenaApiService: AthenaApiService) {
+  }
 
   ngOnInit() {
     this.loadSmartContracts();
   }
 
   loadSmartContracts() {
-    this.athenaApiService.getSmartContracts().subscribe(smartContracts => this.smartContracts = smartContracts);
+    this.athenaApiService.getSmartContracts().subscribe(smartContracts => {
+      this.smartContracts = smartContracts;
+    });
   }
 }

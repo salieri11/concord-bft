@@ -15,7 +15,7 @@ export class TransactionDetailsComponent implements OnInit {
   @Input() transactionHash: string;
 
   transaction: Transaction;
-  loading: boolean;
+
   constructor(private athenaApiService: AthenaApiService) { }
 
   ngOnInit() {
@@ -23,10 +23,8 @@ export class TransactionDetailsComponent implements OnInit {
   }
 
   loadTransaction(transactionHash: string) {
-    this.loading = true;
     this.athenaApiService.getTransaction(transactionHash).subscribe((response) => {
       this.transaction = response;
-      this.loading = false;
     });
   }
 }

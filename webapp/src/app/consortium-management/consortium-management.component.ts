@@ -19,7 +19,6 @@ import { GridComponent } from '../grid/grid.component';
 import { ConsortiumService } from './shared/consortium.service';
 import { Consortium } from './shared/consortium.model';
 
-
 @Component({
   selector: 'app-consortium-management',
   templateUrl: './consortium-management.component.html',

@@ -33,7 +33,7 @@
   <clr-datagrid>
     <clr-dg-column [clrDgField]="'number'">{{'blocks.index' | translate}}:{{'blocks.hash' | translate}}</clr-dg-column>
     <clr-dg-row *clrDgItems="let block of blocks">
-      <clr-dg-cell><a [routerLink]="['/blocks', block.number]">{{block.number}} : {{block.hash}}</a></clr-dg-cell>
+      <clr-dg-cell><a [routerLink]="[block.number]">{{block.number}} : {{block.hash}}</a></clr-dg-cell>
       <clr-dg-row-detail>
         <app-block-details *clrIfExpanded ngProjectAs="clr-dg-row-detail" [blockNumber]="block?.number"></app-block-details>
       </clr-dg-row-detail>

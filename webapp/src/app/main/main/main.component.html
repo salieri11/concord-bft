@@ -66,19 +66,23 @@
       <router-outlet></router-outlet>
     </main>
     <clr-vertical-nav>
-      <a clrVerticalNavLink routerLink="dashboard" routerLinkActive="active">
+      <a clrVerticalNavLink routerLink="/dashboard" routerLinkActive="active">
         <clr-icon clrVerticalNavIcon shape="home"></clr-icon>
         {{'nav.dashboard.title' | translate}}
       </a>
-      <a clrVerticalNavLink routerLink="nodes" routerLinkActive="active">
+      <a clrVerticalNavLink routerLink="/nodes" routerLinkActive="active">
         <clr-icon clrVerticalNavIcon shape="network-globe"></clr-icon>
         {{'nav.nodeList.title' | translate}}
       </a>
-      <a clrVerticalNavLink routerLink="blocks" routerLinkActive="active">
+      <a clrVerticalNavLink routerLink="/blocks" routerLinkActive="active">
         <clr-icon clrVerticalNavIcon shape="block"></clr-icon>
         {{'nav.blockList.title' | translate}}
       </a>
-      <a clrVerticalNavLink routerLink="testing" routerLinkActive="active">
+      <a clrVerticalNavLink routerLink="/smart-contracts" routerLinkActive="active">
+        <clr-icon clrVerticalNavIcon shape="file-settings"></clr-icon>
+        {{'nav.smartContracts.title' | translate}}
+      </a>
+      <a clrVerticalNavLink routerLink="/testing" routerLinkActive="active">
         <clr-icon clrVerticalNavIcon shape="file-settings"></clr-icon>
         {{'nav.testing.title' | translate}}
       </a>

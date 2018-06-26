@@ -7,17 +7,15 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { BrowserModule } from '@angular/platform-browser';
 import { ReactiveFormsModule } from '@angular/forms';  // <-- #1 import module
 import { FormsModule } from '@angular/forms';  // <-- #1 import module
-
 import { HttpClientModule } from '@angular/common/http';
-import { ClarityModule } from '@clr/angular';
 import { CommonModule } from '@angular/common';
-import { GridModule } from '../grid/grid.module';
 import { TranslateModule } from '@ngx-translate/core';
 
-import { ConsortiumService } from './shared/consortium.service';
+import { ClarityModule } from '@clr/angular';
 
+import { GridModule } from '../grid/grid.module';
+import { ConsortiumService } from './shared/consortium.service';
 import { ConsortiumManagementComponent } from './consortium-management.component';
-import { ConsortiumRoutingModule } from './consortium-management-routing.module';
 
 @NgModule({
   imports: [
@@ -29,8 +27,7 @@ import { ConsortiumRoutingModule } from './consortium-management-routing.module'
     ReactiveFormsModule,
     FormsModule,
     GridModule,
-    TranslateModule,
-    ConsortiumRoutingModule,
+    TranslateModule
   ],
   declarations: [ConsortiumManagementComponent],
   providers: [

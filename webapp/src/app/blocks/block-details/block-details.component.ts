@@ -16,7 +16,6 @@ export class BlockDetailsComponent implements OnInit {
   @Input() blockNumber: number;
 
   block: Block;
-  loading: boolean;
 
   constructor(private athenaApiService: AthenaApiService) {
   }
@@ -26,11 +25,8 @@ export class BlockDetailsComponent implements OnInit {
   }
 
   loadBlock(blockNumber: number) {
-    this.loading = true;
     this.athenaApiService.getBlock(blockNumber).subscribe(response => {
       this.block = response;
-      this.loading = false;
     });
   }
-
 }
