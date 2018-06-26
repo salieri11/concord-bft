@@ -4,7 +4,7 @@
 
 import { Component, OnDestroy, NgZone } from '@angular/core';
 import { Router } from '@angular/router';
-import { Subscription } from 'rxjs/Subscription';
+import { Subscription } from 'rxjs';
 import { TranslateService } from '@ngx-translate/core';
 import { FormGroup, FormControl } from '@angular/forms';
 
@@ -39,9 +39,9 @@ export class AppComponent implements OnDestroy {
     private authenticationService: AuthenticationService,
     private router: Router,
     private alertService: ErrorAlertService,
-    private translate: TranslateService,
     public zone: NgZone,
-    private personaService: PersonaService
+    private personaService: PersonaService,
+    private translate: TranslateService
   ) {
     const browserLang = this.translate.getBrowserLang();
 

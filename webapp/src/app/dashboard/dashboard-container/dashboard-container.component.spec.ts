@@ -10,6 +10,8 @@ import { MockSharedModule } from '../../shared/shared.module';
 
 import { DashboardContainerComponent } from './dashboard-container.component';
 import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
+import { TransactionListViewComponent } from '../../transactions/transaction-list-view/transaction-list-view.component';
+import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
 
 describe('DashboardContainerComponent', () => {
   let component: DashboardContainerComponent;
@@ -22,7 +24,12 @@ describe('DashboardContainerComponent', () => {
         HttpClientTestingModule,
         MockSharedModule
       ],
-      declarations: [ DashboardContainerComponent, TransactionsStatusFilterComponent ]
+      declarations: [
+        DashboardContainerComponent,
+        TransactionsStatusFilterComponent,
+        TransactionListViewComponent,
+        TransactionDetailsComponent
+      ]
     })
     .compileComponents();
   }));

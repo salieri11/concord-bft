@@ -29,20 +29,19 @@
 <img class="graph-placeholder" src="assets/static/images/node-activity-large.png">
 
 <div class="p-2">
-  <h3 class="mt-0">{{'blocks.blocks' | translate}}</h3>
+  <h3 class="page-title">{{'blocks.blocks' | translate}}</h3>
   <clr-datagrid>
-    <clr-dg-column [clrDgField]="'number'">{{'blocks.index' | translate}}</clr-dg-column>
-    <clr-dg-column>{{'blocks.hash' | translate}}</clr-dg-column>
+    <clr-dg-column [clrDgField]="'number'">{{'blocks.index' | translate}}:{{'blocks.hash' | translate}}</clr-dg-column>
     <clr-dg-row *clrDgItems="let block of blocks">
-      <clr-dg-action-overflow>
-        <a class="action-item" [routerLink]="['/blocks', block.number]">{{'blocks.viewDetail' | translate}}</a>
-      </clr-dg-action-overflow>
-      <clr-dg-cell>{{block.number}}</clr-dg-cell>
-      <clr-dg-cell>{{block.hash}}</clr-dg-cell>
+      <clr-dg-cell><a [routerLink]="['/blocks', block.number]">{{block.number}} : {{block.hash}}</a></clr-dg-cell>
+      <clr-dg-row-detail>
+        <app-block-details *clrIfExpanded ngProjectAs="clr-dg-row-detail" [blockNumber]="block?.number"></app-block-details>
+      </clr-dg-row-detail>
     </clr-dg-row>
     <clr-dg-footer>
       <clr-dg-pagination #pagination [clrDgPageSize]="10">
-        {{'blocks.paginationSummary' | translate: { start: pagination.firstItem + 1, finish: pagination.lastItem + 1, total: pagination.totalItems} }}
+        {{'blocks.paginationSummary' | translate: { start: pagination.firstItem + 1, finish: pagination.lastItem + 1,
+        total: pagination.totalItems} }}
       </clr-dg-pagination>
     </clr-dg-footer>
   </clr-datagrid>

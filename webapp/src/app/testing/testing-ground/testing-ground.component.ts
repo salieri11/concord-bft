@@ -2,12 +2,11 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { mergeMap } from 'rxjs/operators';
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import 'rxjs/add/operator/mergeMap';
 
 import { EthApiService } from '../../shared/eth-api.service';
-
 import { ADDRESS_LENGTH, ADDRESS_PATTERN } from '../../shared/shared.config';
 
 const addressValidators = [
@@ -27,6 +26,7 @@ enum TransactionActionOptions {
   styleUrls: ['./testing-ground.component.scss']
 })
 export class TestingGroundComponent implements OnInit {
+
   transactionActionOptions = TransactionActionOptions;
   dataForm: FormGroup;
   smartContractForm: FormGroup;
@@ -41,8 +41,7 @@ export class TestingGroundComponent implements OnInit {
   smartContractHash: string = undefined;
 
   constructor(private ethApiService: EthApiService,
-              private formBuilder: FormBuilder,
-              private changeDetectorRef: ChangeDetectorRef) {
+              private formBuilder: FormBuilder) {
 
     this.dataForm = this.formBuilder.group({
       from:  ['', [Validators.required, ...addressValidators]],
@@ -86,33 +85,9 @@ export class TestingGroundComponent implements OnInit {
         this.dataForm.controls.value.updateValueAndValidity({emitEvent : false});
       }
     });
-
-    this.smartContractForm = this.formBuilder.group({
-      from: ['', [Validators.required, ...addressValidators]],
-      file: [null, Validators.required],
-    });
-    this.smartContractForm.valueChanges.subscribe(() => this.smartContractHash = undefined);
   }
 
   ngOnInit() {
-  }
-
-  onSmartContractFileChange(event) {
-    if (event.target.files.length === 0) {
-      this.smartContractForm.patchValue({
-        file: null
-      });
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      this.smartContractForm.patchValue({
-        file: reader.result
-      });
-      this.changeDetectorRef.markForCheck();
-    };
-    reader.readAsText(event.target.files[0]);
   }
 
   onSubmitData() {
@@ -156,9 +131,9 @@ export class TestingGroundComponent implements OnInit {
     this.ethApiService.sendTransaction({
       from: this.smartContractForm.value.from,
       data: this.smartContractForm.value.file
-    }).flatMap(response => {
+    }).pipe(mergeMap(response => {
       return this.ethApiService.getTransactionReceipt(response.result);
-    }).subscribe(response => {
+    })).subscribe(response => {
       this.smartContractHash = response.result.contractAddress;
     }, response => {
       alert(response.error);
@@ -167,10 +142,6 @@ export class TestingGroundComponent implements OnInit {
 
   onCopyDataHash() {
     copyElementToClipboard(this.dataHashRef.nativeElement);
-  }
-
-  onCopySmartContractHash() {
-    copyElementToClipboard(this.smartContractHashRef.nativeElement);
   }
 
   get isTransaction() {

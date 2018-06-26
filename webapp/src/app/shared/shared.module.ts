@@ -16,6 +16,7 @@ import { AthenaApiService } from './athena-api.service';
 import { EthApiService } from './eth-api.service';
 import { ATHENA_API_PREFIX, ETHEREUM_API_PREFIX } from './shared.config';
 import { TransactionsStatusFilterComponent } from './components/transactions-status-filter/transactions-status-filter.component';
+import { RouterModule } from '@angular/router';
 import { PersonaService } from './persona.service';
 import { CanViewDirective } from './directives/can-view.directive';
 
@@ -24,7 +25,8 @@ import { CanViewDirective } from './directives/can-view.directive';
     CommonModule,
     TranslateModule,
     ClarityModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    RouterModule
   ],
   declarations: [TransactionsStatusFilterComponent, CanViewDirective],
   exports: [

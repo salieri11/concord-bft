@@ -2,7 +2,7 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Component } from '@angular/core';
+import { Component, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -14,7 +14,7 @@ import { Personas } from '../../shared/persona.service';
   templateUrl: './log-in-container.component.html',
   styleUrls: ['./log-in-container.component.scss']
 })
-export class LogInContainerComponent {
+export class LogInContainerComponent implements OnDestroy {
 
   readonly loginForm: FormGroup;
   private authenticationChange;
@@ -40,6 +40,10 @@ export class LogInContainerComponent {
       password: ['', [Validators.required]],
       persona: [this.personaOptions[0].value]
     });
+  }
+
+  ngOnDestroy () {
+    this.authenticationChange.unsubscribe();
   }
 
   onLogIn() {
