@@ -4,7 +4,13 @@
 
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+
 import { PersonaService } from './persona.service';
+
+export interface User {
+  email: string;
+  persona: string;
+}
 
 @Injectable()
 export class AuthenticationService {
