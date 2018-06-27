@@ -22,7 +22,7 @@ interface ModalState {
 }
 
 @Component({
-  selector: 'app-contract-form',
+  selector: 'athena-contract-form',
   templateUrl: './contract-form.component.html',
   styleUrls: ['./contract-form.component.scss']
 })

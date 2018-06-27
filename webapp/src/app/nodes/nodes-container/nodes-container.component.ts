@@ -9,7 +9,7 @@ import { AthenaApiService } from '../../shared/athena-api.service';
 import { Member } from '../../shared/remote-interfaces';
 
 @Component({
-  selector: 'app-nodes-container',
+  selector: 'athena-nodes-container',
   templateUrl: './nodes-container.component.html',
   styleUrls: ['./nodes-container.component.scss']
 })

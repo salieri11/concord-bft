@@ -10,7 +10,7 @@ import { Subject } from 'rxjs';
 import { Member } from '../../shared/remote-interfaces';
 
 @Component({
-  selector: 'app-nodes-status-filter',
+  selector: 'athena-nodes-status-filter',
   templateUrl: './nodes-status-filter.component.html',
   styleUrls: ['./nodes-status-filter.component.scss']
 })

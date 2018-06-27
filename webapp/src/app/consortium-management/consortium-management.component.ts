@@ -21,7 +21,7 @@ import { Consortium } from './shared/consortium.model';
 
 
 @Component({
-  selector: 'app-consortium-management',
+  selector: 'athena-consortium-management',
   templateUrl: './consortium-management.component.html',
   styleUrls: ['./consortium-management.component.scss']
 })

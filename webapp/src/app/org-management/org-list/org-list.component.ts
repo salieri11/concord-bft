@@ -24,7 +24,7 @@ import { OrgManagementService } from '../shared/org-management.service';
 import { Org } from '../shared/org-management.model';
 
 @Component({
-  selector: 'app-org-list',
+  selector: 'athena-org-list',
   templateUrl: './org-list.component.html',
   styleUrls: ['./org-list.component.scss']
 })
