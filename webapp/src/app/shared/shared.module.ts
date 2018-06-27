@@ -12,7 +12,6 @@ import { MockTranslateModule } from '../mocks/mock-translate.module';
 
 import { AuthenticationService } from './authentication.service';
 import { AuthenticatedGuard } from './authenticated-guard.service';
-import { EthApiService } from './eth-api.service';
 import { ATHENA_API_PREFIX, ETHEREUM_API_PREFIX } from './shared.config';
 import { TransactionsStatusFilterComponent } from './components/transactions-status-filter/transactions-status-filter.component';
 import { RouterModule } from '@angular/router';
@@ -42,8 +41,7 @@ export class SharedModule {
         AuthenticationService,
         AuthenticatedGuard,
         {provide: ATHENA_API_PREFIX, useValue: '/api/athena'},
-        {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'},
-        EthApiService
+        {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'}
       ]
     };
   }
@@ -60,8 +58,7 @@ export class SharedModule {
     AuthenticationService,
     AuthenticatedGuard,
     {provide: ATHENA_API_PREFIX, useValue: '/api/athena'},
-    {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'},
-    EthApiService
+    {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'}
   ],
   exports: [
     CommonModule,
