@@ -134,12 +134,6 @@ private:
                                     const evm_address &to_override,
                                     const evm_address &contract_address,
                                     KVBStorage &kvbStorage);
-
-public:
-   // TODO(BWF): move to common?
-   static evm_uint256be keccak_hash(const std::vector<uint8_t> &data);
-   static evm_uint256be keccak_hash(const uint8_t *data, size_t size);
-
 };
 
 }

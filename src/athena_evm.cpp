@@ -7,7 +7,6 @@
 #include <stdexcept>
 #include <memory>
 #include <log4cplus/loggingmacros.h>
-#include <keccak.h>
 
 #include "athena_evm.hpp"
 #include "athena_exception.hpp"
@@ -15,6 +14,7 @@
 #include "athena_log.hpp"
 #include "athena_types.hpp"
 #include "common/rlp.hpp"
+#include "common/athena_eth_hash.hpp"
 #include "kvb/BlockchainInterfaces.h"
 #include "kvb/HashDefs.h"
 #include "kvb/slice.h"
@@ -177,7 +177,7 @@ void com::vmware::athena::EVM::create(evm_message &message,
 
       // we need a hash for this, or evmjit will cache its compilation under
       // something random
-      message.code_hash = keccak_hash(create_code);
+      message.code_hash = EthHash::keccak_hash(create_code);
 
       execute(message, kvbStorage, create_code, result);
 
@@ -263,7 +263,7 @@ evm_address com::vmware::athena::EVM::contract_destination(
    std::vector<uint8_t> rlp = rlpb.build();
 
    // hash it
-   evm_uint256be hash = keccak_hash(rlp);
+   evm_uint256be hash = EthHash::keccak_hash(rlp);
 
    // the lower 20 bytes are the address
    evm_address address;
@@ -284,7 +284,7 @@ bool com::vmware::athena::EVM::new_account(
    evm_address& address /* OUT */)
 {
    std::vector<uint8_t> vec(passphrase.begin(), passphrase.end());
-   evm_uint256be hash = keccak_hash(vec);
+   evm_uint256be hash = EthHash::keccak_hash(vec);
 
    std::copy(hash.bytes+(sizeof(evm_uint256be)-sizeof(evm_address)),
              hash.bytes+sizeof(evm_uint256be),
@@ -309,24 +309,6 @@ bool com::vmware::athena::EVM::new_account(
       kvbStorage.write_block();
       return true;
    }
-}
-
-evm_uint256be com::vmware::athena::EVM::keccak_hash(
-   const std::vector<uint8_t> &data)
-{
-   return keccak_hash(&data[0], data.size());
-}
-
-evm_uint256be com::vmware::athena::EVM::keccak_hash(
-   const uint8_t *data, size_t size)
-{
-   static_assert(sizeof(evm_uint256be) == CryptoPP::Keccak_256::DIGESTSIZE,
-                 "hash is not the same size as uint256");
-
-   CryptoPP::Keccak_256 keccak;
-   evm_uint256be hash;
-   keccak.CalculateDigest(hash.bytes, data, size);
-   return hash;
 }
 
 void com::vmware::athena::EVM::execute(evm_message &message,
