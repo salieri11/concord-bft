@@ -2,17 +2,15 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Directive, OnInit, OnDestroy, Input, TemplateRef, ViewContainerRef } from '@angular/core';
-import { Subscription } from 'rxjs';
+import { Directive, OnInit, Input, TemplateRef, ViewContainerRef } from '@angular/core';
 
 import { PersonaService } from '../persona.service';
 
 @Directive({
   selector: '[appCanView]'
 })
-export class CanViewDirective implements OnInit, OnDestroy {
+export class CanViewDirective implements OnInit {
   @Input('appCanView') appCanView: string | string[];
-  private subscription: Subscription;
 
   constructor(private templateRef: TemplateRef<any>,
               private viewContainer: ViewContainerRef,
@@ -20,9 +18,6 @@ export class CanViewDirective implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.applyPermission();
-    this.subscription = this.personaService.personaChanged$.subscribe(() => {
-      this.applyPermission();
-    });
   }
 
   private applyPermission(): void {
@@ -31,9 +26,5 @@ export class CanViewDirective implements OnInit, OnDestroy {
     } else if (!this.personaService.hasAuthorization(this.appCanView)) {
       this.viewContainer.clear();
     }
-  }
-
-  ngOnDestroy() {
-    this.subscription.unsubscribe();
   }
 }

@@ -7,6 +7,7 @@ import { ActivatedRoute, Params } from '@angular/router';
 
 import { BlockchainsService } from '../shared/blockchains.service';
 import { Blockchain } from '../shared/blockchains.model';
+import { Personas } from '../../shared/persona.service';
 
 @Component({
   selector: 'app-blockchain',
@@ -14,6 +15,7 @@ import { Blockchain } from '../shared/blockchains.model';
   styleUrls: ['./blockchain.component.scss']
 })
 export class BlockchainComponent implements OnInit {
+  static personasAllowed: string[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   blockchain: Blockchain = new Blockchain();
   orgUrl: string;
   channelUrl: string;

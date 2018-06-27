@@ -63,6 +63,7 @@ export class AppComponent implements OnDestroy {
 
   onPersonaChange(persona: string) {
     this.personaService.currentPersona = persona;
+    location.reload();
   }
 
   onLogOut() {
