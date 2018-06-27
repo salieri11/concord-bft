@@ -15,7 +15,7 @@ import { Personas } from '../../shared/persona.service';
   styleUrls: ['./blockchain.component.scss']
 })
 export class BlockchainComponent implements OnInit {
-  static personasAllowed: string[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
+  static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   blockchain: Blockchain = new Blockchain();
   orgUrl: string;
   channelUrl: string;

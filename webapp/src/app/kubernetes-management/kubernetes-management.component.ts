@@ -29,7 +29,7 @@ import { Personas } from '../shared/persona.service';
   styleUrls: ['./kubernetes-management.component.scss']
 })
 export class KubernetesManagementComponent implements OnInit {
-  static personasAllowed: string[] = [Personas.SystemsAdmin];
+  static personasAllowed: Personas[] = [Personas.SystemsAdmin];
   @ViewChild('grid') grid: GridComponent;
   openModalForm = false;
   modalTitle = '';

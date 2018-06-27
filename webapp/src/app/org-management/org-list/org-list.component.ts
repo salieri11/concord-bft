@@ -30,7 +30,7 @@ import { Personas } from '../../shared/persona.service';
   styleUrls: ['./org-list.component.scss']
 })
 export class OrgListComponent implements OnInit {
-  static personasAllowed: string[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
+  static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   @Input('url') url: string;
   @ViewChild('grid') grid: GridComponent;
   openModalForm = false;

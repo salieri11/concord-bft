@@ -16,7 +16,7 @@ export enum Personas {
 @Injectable()
 export class PersonaService {
 
-  private _currentPersona: string;
+  private _currentPersona: Personas;
 
   constructor() {}
 
@@ -24,12 +24,12 @@ export class PersonaService {
     return this._currentPersona;
   }
 
-  set currentPersona(persona: string) {
+  set currentPersona(persona: Personas) {
     this._currentPersona = persona;
     localStorage.setItem('helen.persona', persona);
   }
 
-  public hasAuthorization(roles: any): boolean {
+  public hasAuthorization(roles: Personas | Personas[]): boolean {
     roles = Array.isArray(roles) ? roles : [roles];
     return roles.indexOf(this.currentPersona) !== -1;
   }

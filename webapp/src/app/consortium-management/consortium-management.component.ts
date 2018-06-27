@@ -27,7 +27,7 @@ import { Personas } from '../shared/persona.service';
   styleUrls: ['./consortium-management.component.scss']
 })
 export class ConsortiumManagementComponent implements OnInit {
-  static personasAllowed: string[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
+  static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   @ViewChild('grid') grid: GridComponent;
   openModalForm = false;
   modalTitle = '';

@@ -4,13 +4,13 @@
 
 import { Directive, OnInit, Input, TemplateRef, ViewContainerRef } from '@angular/core';
 
-import { PersonaService } from '../persona.service';
+import {Personas, PersonaService} from '../persona.service';
 
 @Directive({
   selector: '[athenaCanView]'
 })
 export class CanViewDirective implements OnInit {
-  @Input('athenaCanView') athenaCanView: string | string[];
+  @Input('athenaCanView') athenaCanView: Personas | Personas[];
 
   constructor(private templateRef: TemplateRef<any>,
               private viewContainer: ViewContainerRef,

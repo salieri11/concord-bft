@@ -5,11 +5,11 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 
-import { PersonaService } from './persona.service';
+import { Personas, PersonaService } from './persona.service';
 
 export interface User {
   email: string;
-  persona: string;
+  persona: Personas;
 }
 
 @Injectable()
@@ -26,7 +26,7 @@ export class AuthenticationService {
     return localStorage['helen.email'] !== undefined;
   }
 
-  logIn(email: string, password: string, persona: string) {
+  logIn(email: string, password: string, persona: Personas) {
     password = '';
     localStorage.setItem('helen.email', email);
     localStorage.setItem('helen.password', password);

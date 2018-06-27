@@ -29,7 +29,7 @@ import { Personas } from '../shared/persona.service';
   styleUrls: ['./blockchains.component.scss']
 })
 export class BlockchainsComponent implements OnInit {
-  static personasAllowed: string[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
+  static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   @ViewChild('grid') grid: GridComponent;
   openModalForm = false;
   modalTitle = '';

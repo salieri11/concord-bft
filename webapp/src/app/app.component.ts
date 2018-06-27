@@ -25,7 +25,7 @@ export class AppComponent implements OnDestroy {
   username: string;
   personas = Personas;
 
-  personaOptions: Array<{ name ?: string; value: string; }> = [
+  personaOptions: Array<{ name ?: string; value: Personas; }> = [
     { value: Personas.SystemsAdmin, name: 'Systems Admin' },
     { value: Personas.ConsortiumAdmin, name: 'Consortium Admin' },
     { value: Personas.OrgAdmin, name: 'Org Admin' },
@@ -61,7 +61,7 @@ export class AppComponent implements OnDestroy {
     this.authenticationChange.unsubscribe();
   }
 
-  onPersonaChange(persona: string) {
+  onPersonaChange(persona: Personas) {
     this.personaService.currentPersona = persona;
     location.reload();
   }

@@ -6,7 +6,7 @@ import { Injectable } from '@angular/core';
 import { ActivatedRouteSnapshot, CanActivate, CanActivateChild, Router } from '@angular/router';
 
 import { AuthenticationService } from './authentication.service';
-import { PersonaService } from './persona.service';
+import { Personas, PersonaService } from './persona.service';
 import { ErrorAlertService } from './global-error-handler.service';
 import { TranslateService } from '@ngx-translate/core';
 
@@ -29,7 +29,7 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
   }
 
   canActivate(route: ActivatedRouteSnapshot): boolean {
-    const personasAllowed: string[] = (route.component as any).personasAllowed;
+    const personasAllowed: Personas[] = (route.component as any).personasAllowed;
 
     if (!this.authenticationService.isAuthenticated()) {
       this.router.navigate(['auth', 'log-in']);
