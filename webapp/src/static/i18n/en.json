@@ -543,6 +543,13 @@
       }
     }
   },
+  "personas" : {
+    "systemsAdmin": "Systems Admin",
+    "consortiumAdmin": "Consortium Admin",
+    "orgAdmin": "Org Admin",
+    "orgDeveloper": "Org Developer",
+    "orgUser": "Org User"
+  },
   "deleteModal": {
     "bodyText": "Are you sure you want to delete"
   },

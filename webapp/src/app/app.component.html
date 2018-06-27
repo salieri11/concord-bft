@@ -53,7 +53,7 @@
                   *ngFor="let persona of personaOptions"
                   [ngClass]="{'active': persona.value === personaService.currentPersona}"
                   clrDropdownItem>
-            {{ persona.name }}
+            {{ persona.name | translate }}
           </button>
         </clr-dropdown-menu>
       </clr-dropdown>
