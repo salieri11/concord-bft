@@ -10,7 +10,9 @@ import { Observable } from 'rxjs';
 import { Blockchain, BlockchainResponse } from './blockchains.model';
 import { GridListResponse } from '../../grid/shared/grid.model';
 
-@Injectable()
+@Injectable({
+  providedIn: 'root'
+})
 export class BlockchainsService {
   blockchainsUrl = '/api/clusters';
   headers: HttpHeaders = new HttpHeaders({

@@ -10,7 +10,9 @@ import { map } from 'rxjs/operators';
 import { Consortium, ConsortiumResponse } from './consortium.model';
 import { GridListResponse } from '../../grid/shared/grid.model';
 
-@Injectable()
+@Injectable({
+  providedIn: 'root'
+})
 export class ConsortiumService {
   consortiumUrl = '/api/consortium';
   headers: HttpHeaders = new HttpHeaders({

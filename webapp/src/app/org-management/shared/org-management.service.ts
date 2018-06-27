@@ -11,7 +11,9 @@ import { Org, OrgResponse } from './org-management.model';
 import { GridListResponse } from '../../grid/shared/grid.model';
 
 
-@Injectable()
+@Injectable({
+  providedIn: 'root'
+})
 export class OrgManagementService {
   orgUrl = '/api/organizations';
   headers: HttpHeaders = new HttpHeaders({

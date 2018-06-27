@@ -10,7 +10,9 @@ import { map } from 'rxjs/operators';
 import { Kubernetes, KubernetesResponse } from './kubernetes.model';
 import { GridListResponse } from '../../grid/shared/grid.model';
 
-@Injectable()
+@Injectable({
+  providedIn: 'root'
+})
 export class KubernetesService {
   kubeUrl = '/api/k8sclusters';
   headers: HttpHeaders = new HttpHeaders({
