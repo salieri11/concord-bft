@@ -4,8 +4,8 @@
 
 import { Component, OnInit } from '@angular/core';
 
-import { AthenaApiService } from '../../shared/athena-api.service';
 import { BlockListing, BlockListingBlock } from '../../shared/remote-interfaces';
+import { BlocksService } from '../shared/blocks.service';
 
 /**
  * Displays a paginated listing of blocks
@@ -19,18 +19,18 @@ export class BlocksContainerComponent implements OnInit {
   blocks: BlockListingBlock[] = [];
   nextBlockUrl: string;
 
-  constructor(private athenaApiService: AthenaApiService) {}
+  constructor(private blocksService: BlocksService) {}
 
   ngOnInit() {
     this.loadInitialBlocks();
   }
 
   loadInitialBlocks() {
-    this.athenaApiService.getBlocks(1000).subscribe(response => this.handleBlocksResponse(response));
+    this.blocksService.getBlocks(1000).subscribe(response => this.handleBlocksResponse(response));
   }
 
   loadNextBlocks() {
-    this.athenaApiService.getBlocksByUrl(this.nextBlockUrl).subscribe(response => this.handleBlocksResponse(response));
+    this.blocksService.getBlocksByUrl(this.nextBlockUrl).subscribe(response => this.handleBlocksResponse(response));
   }
 
   handleBlocksResponse(response: BlockListing) {

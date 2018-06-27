@@ -4,9 +4,8 @@
 
 import { Component, OnInit } from '@angular/core';
 
-import { AthenaApiService } from '../../shared/athena-api.service';
-
 import { Member } from '../../shared/remote-interfaces';
+import { NodesService } from '../shared/nodes.service';
 
 @Component({
   selector: 'athena-nodes-container',
@@ -25,13 +24,13 @@ export class NodesContainerComponent implements OnInit {
 
   members: Member[] = [];
 
-  constructor(private athenaApiService: AthenaApiService) {}
+  constructor(private nodesService: NodesService) {}
 
   ngOnInit() {
     this.loadMembers();
   }
 
   loadMembers() {
-    this.athenaApiService.getMembers().subscribe(members => this.members = members);
+    this.nodesService.getMembers().subscribe(members => this.members = members);
   }
 }

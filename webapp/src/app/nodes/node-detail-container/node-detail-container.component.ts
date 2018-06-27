@@ -5,7 +5,7 @@
 import { Component, OnInit } from '@angular/core';
 
 import { BlockListingBlock } from '../../shared/remote-interfaces';
-import { AthenaApiService } from '../../shared/athena-api.service';
+import { TransactionsService } from '../../transactions/shared/transactions.service';
 
 @Component({
   selector: 'athena-node-detail-container',
@@ -18,10 +18,10 @@ export class NodeDetailContainerComponent implements OnInit {
   blockTransactions: any[] = [];
   recentTransactions: any[] = [];
 
-  constructor(private athenaApiService: AthenaApiService) { }
+  constructor(private transactionsService: TransactionsService) { }
 
   ngOnInit() {
-    this.athenaApiService.getRecentTransactions().subscribe((resp) => {
+    this.transactionsService.getRecentTransactions().subscribe((resp) => {
       this.recentTransactions = resp;
     });
   }

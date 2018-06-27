@@ -5,7 +5,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 
 import { Transaction } from '../../shared/remote-interfaces';
-import { AthenaApiService } from '../../shared/athena-api.service';
+import { TransactionsService } from '../shared/transactions.service';
 
 @Component({
   selector: 'athena-transaction-details',
@@ -17,7 +17,7 @@ export class TransactionDetailsComponent implements OnInit {
 
   transaction: Transaction;
   loading = false;
-  constructor(private athenaApiService: AthenaApiService) { }
+  constructor(private transactionsService: TransactionsService) { }
 
   ngOnInit() {
     this.loadTransaction(this.transactionHash);
@@ -25,7 +25,7 @@ export class TransactionDetailsComponent implements OnInit {
 
   loadTransaction(transactionHash: string) {
     this.loading = true;
-    this.athenaApiService.getTransaction(transactionHash).subscribe((response) => {
+    this.transactionsService.getTransaction(transactionHash).subscribe((response) => {
       this.transaction = response;
       this.loading = false;
     });

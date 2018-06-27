@@ -5,8 +5,8 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { AthenaApiService } from '../../shared/athena-api.service';
 import { SmartContract, SmartContractVersion } from '../../shared/remote-interfaces';
+import { SmartContractsService } from '../shared/smart-contracts.service';
 
 @Component({
   selector: 'athena-smart-contract-detail-container',
@@ -20,7 +20,7 @@ export class SmartContractDetailContainerComponent implements OnInit {
   version: SmartContractVersion;
   versionSelected;
 
-  constructor(private athenaApiService: AthenaApiService, private route: ActivatedRoute, private router: Router) {}
+  constructor(private smartContractsService: SmartContractsService, private route: ActivatedRoute, private router: Router) {}
 
   ngOnInit() {
     this.route.params.subscribe(params => {
@@ -35,11 +35,11 @@ export class SmartContractDetailContainerComponent implements OnInit {
   }
 
   loadSmartContract(contractId) {
-    this.athenaApiService.getSmartContract(contractId).subscribe(smartContract => this.smartContract = smartContract);
+    this.smartContractsService.getSmartContract(contractId).subscribe(smartContract => this.smartContract = smartContract);
   }
 
   loadVersionDetails(contractId, version) {
-    this.athenaApiService.getVersionDetails(contractId, version).subscribe(versionResponse => this.version = versionResponse);
+    this.smartContractsService.getVersionDetails(contractId, version).subscribe(versionResponse => this.version = versionResponse);
   }
 
   getVersionInfo() {

@@ -6,7 +6,7 @@ import { Component, OnInit, Input, Output, EventEmitter, ChangeDetectorRef } fro
 import { Validators, FormGroup, FormBuilder } from '@angular/forms';
 
 import { ADDRESS_LENGTH, ADDRESS_PATTERN } from '../../shared/shared.config';
-import { AthenaApiService } from '../../shared/athena-api.service';
+import { SmartContractsService } from '../shared/smart-contracts.service';
 
 const addressValidators = [
   Validators.maxLength(ADDRESS_LENGTH),
@@ -36,7 +36,7 @@ export class ContractFormComponent implements OnInit {
 
   constructor(private formBuilder: FormBuilder,
               private changeDetectorRef: ChangeDetectorRef,
-              private athenaApiService: AthenaApiService) {
+              private smartContractsService: SmartContractsService) {
     this.smartContractForm = this.formBuilder.group({
       from: ['', [Validators.required, ...addressValidators]],
       contractId: ['', [Validators.required]],
@@ -85,7 +85,7 @@ export class ContractFormComponent implements OnInit {
     this.modalState.error = false;
     this.modalState.completed = false;
     this.modalState.loading = true;
-    this.athenaApiService.postContract({
+    this.smartContractsService.postContract({
       id: 1,
       from: this.smartContractForm.value.from,
       contract_id: this.smartContractForm.value.contractId,
