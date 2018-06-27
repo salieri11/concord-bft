@@ -7,10 +7,10 @@ import { Directive, OnInit, Input, TemplateRef, ViewContainerRef } from '@angula
 import { PersonaService } from '../persona.service';
 
 @Directive({
-  selector: '[appCanView]'
+  selector: '[athenaCanView]'
 })
 export class CanViewDirective implements OnInit {
-  @Input('appCanView') appCanView: string | string[];
+  @Input('athenaCanView') athenaCanView: string | string[];
 
   constructor(private templateRef: TemplateRef<any>,
               private viewContainer: ViewContainerRef,
@@ -21,9 +21,9 @@ export class CanViewDirective implements OnInit {
   }
 
   private applyPermission(): void {
-    if (this.personaService.hasAuthorization(this.appCanView) && this.viewContainer.length === 0) {
+    if (this.personaService.hasAuthorization(this.athenaCanView) && this.viewContainer.length === 0) {
       this.viewContainer.createEmbeddedView(this.templateRef);
-    } else if (!this.personaService.hasAuthorization(this.appCanView)) {
+    } else if (!this.personaService.hasAuthorization(this.athenaCanView)) {
       this.viewContainer.clear();
     }
   }
