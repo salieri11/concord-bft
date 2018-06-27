@@ -15,7 +15,6 @@ import { ErrorAlertService } from '../../shared/global-error-handler.service';
   styleUrls: ['./main.component.scss']
 })
 export class MainComponent implements OnDestroy {
-  title = 'app';
   alerts: any = [];
   authenticationChange: Subscription;
 
