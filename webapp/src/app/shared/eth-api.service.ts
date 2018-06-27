@@ -13,7 +13,7 @@ import {
   EthGetTransactionReceiptParams,
   EthSendTransactionResponse,
   EthGetTransactionReceiptResponse, EthSendCallParams, EthSendCallResponse
-} from './remote-interfaces';
+} from './eth-api.model';
 
 const DEFAULT_BLOCK_PARAMETER = 'latest';
 

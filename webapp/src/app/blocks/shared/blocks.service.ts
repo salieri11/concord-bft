@@ -6,7 +6,7 @@ import { Inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 
 import { ATHENA_API_PREFIX } from '../../shared/shared.config';
-import { Block, BlockListing } from '../../shared/remote-interfaces';
+import { Block, BlockListing } from './blocks.model';
 import { AthenaApiService } from '../../shared/athena-api.service';
 
 const BLOCKS_PATH = '/blocks/';

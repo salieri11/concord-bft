@@ -5,7 +5,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
-import { Block } from '../../shared/remote-interfaces';
+import { Block } from '../shared/blocks.model';
 import { BlocksService } from '../shared/blocks.service';
 
 /**

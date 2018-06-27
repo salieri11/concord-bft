@@ -5,7 +5,7 @@
 import { Inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
-import { Member } from '../../shared/remote-interfaces';
+import { Member } from './nodes.model';
 import { ATHENA_API_PREFIX } from '../../shared/shared.config';
 import { AthenaApiService } from '../../shared/athena-api.service';
 

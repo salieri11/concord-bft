@@ -4,7 +4,7 @@
 
 import { Component, OnInit } from '@angular/core';
 
-import { BlockListing, BlockListingBlock } from '../../shared/remote-interfaces';
+import { BlockListing, BlockListingBlock } from '../shared/blocks.model';
 import { BlocksService } from '../shared/blocks.service';
 
 /**

@@ -4,7 +4,7 @@
 
 import { Component, Input, OnInit } from '@angular/core';
 
-import { Block } from '../../shared/remote-interfaces';
+import { Block } from '../shared/blocks.model';
 import { BlocksService } from '../shared/blocks.service';
 
 @Component({

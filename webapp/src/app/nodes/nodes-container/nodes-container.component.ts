@@ -4,7 +4,7 @@
 
 import { Component, OnInit } from '@angular/core';
 
-import { Member } from '../../shared/remote-interfaces';
+import { Member } from '../shared/nodes.model';
 import { NodesService } from '../shared/nodes.service';
 
 @Component({

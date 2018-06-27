@@ -8,7 +8,8 @@ import { of as observableOf, forkJoin as observableForkJoin } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
 
 import { ATHENA_API_PREFIX } from '../../shared/shared.config';
-import { Block, Transaction } from '../../shared/remote-interfaces';
+import { Block } from '../../blocks/shared/blocks.model';
+import { Transaction } from './transactions.model';
 import { BlocksService } from '../../blocks/shared/blocks.service';
 import { AthenaApiService } from '../../shared/athena-api.service';
 

@@ -6,7 +6,7 @@ import { Inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
 import { ATHENA_API_PREFIX } from '../../shared/shared.config';
-import { SmartContract, SmartContractVersion } from '../../shared/remote-interfaces';
+import { SmartContract, SmartContractVersion } from './smart-contracts.model';
 import { AthenaApiService } from '../../shared/athena-api.service';
 
 const CONTRACTS_PATH = '/contracts/';

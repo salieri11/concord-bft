@@ -5,7 +5,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
-import { SmartContract, SmartContractVersion } from '../../shared/remote-interfaces';
+import { SmartContract, SmartContractVersion } from '../shared/smart-contracts.model';
 import { SmartContractsService } from '../shared/smart-contracts.service';
 
 @Component({
