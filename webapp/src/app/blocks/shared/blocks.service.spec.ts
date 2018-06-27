@@ -3,13 +3,20 @@
  */
 
 import { TestBed, inject } from '@angular/core/testing';
+import { HttpClient, HttpHandler } from '@angular/common/http';
 
 import { BlocksService } from './blocks.service';
+import { ATHENA_API_PREFIX } from '../../shared/shared.config';
 
 describe('BlocksService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [BlocksService]
+      providers: [
+        BlocksService,
+        {provide: ATHENA_API_PREFIX, useValue: '/api/athena'},
+        HttpClient,
+        HttpHandler
+      ]
     });
   });
 
