@@ -547,6 +547,6 @@
     "bodyText": "Are you sure you want to delete"
   },
   "globalError": {
-    "routingError": "You do not have permission to visit this route."
+    "routingError": "You do not have permission to visit this section of Athena, please contact your sysadmin for more info."
   }
 }
