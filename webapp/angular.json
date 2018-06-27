@@ -133,11 +133,11 @@
   "defaultProject": "athena-ui",
   "schematics": {
     "@schematics/angular:component": {
-      "prefix": "app",
+      "prefix": "athena",
       "styleext": "scss"
     },
     "@schematics/angular:directive": {
-      "prefix": "app"
+      "prefix": "athena"
     }
   }
 }

@@ -8,7 +8,7 @@ import { Transaction } from '../../shared/remote-interfaces';
 import { AthenaApiService } from '../../shared/athena-api.service';
 
 @Component({
-  selector: 'app-transaction-details',
+  selector: 'athena-transaction-details',
   templateUrl: './transaction-details.component.html',
   styleUrls: ['./transaction-details.component.scss']
 })

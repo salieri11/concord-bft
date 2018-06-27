@@ -10,7 +10,7 @@ import { Blockchain } from '../shared/blockchains.model';
 import { Personas } from '../../shared/persona.service';
 
 @Component({
-  selector: 'app-blockchain',
+  selector: 'athena-blockchain',
   templateUrl: './blockchain.component.html',
   styleUrls: ['./blockchain.component.scss']
 })

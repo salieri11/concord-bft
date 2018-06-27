@@ -12,7 +12,7 @@
         <clr-dg-column>
           {{'transactions.status' | translate}}
           <clr-dg-filter [clrDgFilter]="statusFilter">
-            <app-transactions-status-filter #statusFilter></app-transactions-status-filter>
+            <athena-transactions-status-filter #statusFilter></athena-transactions-status-filter>
           </clr-dg-filter>
         </clr-dg-column>
         <clr-dg-row *clrDgItems="let transaction of transactions">
@@ -34,7 +34,7 @@
             </ng-container>
           </clr-dg-cell>
           <clr-dg-row-detail>
-            <app-transaction-details *clrIfExpanded [transactionHash]="transaction?.hash" ngProjectAs="clr-dg-row-detail"></app-transaction-details>
+            <athena-transaction-details *clrIfExpanded [transactionHash]="transaction?.hash" ngProjectAs="clr-dg-row-detail"></athena-transaction-details>
           </clr-dg-row-detail>
         </clr-dg-row>
         <clr-dg-footer>

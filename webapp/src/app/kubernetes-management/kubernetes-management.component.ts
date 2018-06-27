@@ -24,7 +24,7 @@ import { Personas } from '../shared/persona.service';
 
 
 @Component({
-  selector: 'app-kubernetes-management',
+  selector: 'athena-kubernetes-management',
   templateUrl: './kubernetes-management.component.html',
   styleUrls: ['./kubernetes-management.component.scss']
 })

@@ -13,7 +13,7 @@ import { Personas } from '../shared/persona.service';
 
 
 @Component({
-  selector: 'app-org-management',
+  selector: 'athena-org-management',
   templateUrl: './org-management.component.html',
   styleUrls: ['./org-management.component.scss']
 })

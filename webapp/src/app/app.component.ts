@@ -12,7 +12,7 @@ import { ErrorAlertService } from './shared/global-error-handler.service';
 import { Personas, PersonaService } from './shared/persona.service';
 
 @Component({
-  selector: 'app-root',
+  selector: 'athena-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })

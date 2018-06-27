@@ -8,7 +8,7 @@ import { Block } from '../../shared/remote-interfaces';
 import { AthenaApiService } from '../../shared/athena-api.service';
 
 @Component({
-  selector: 'app-block-details',
+  selector: 'athena-block-details',
   templateUrl: './block-details.component.html',
   styleUrls: ['./block-details.component.scss']
 })
@@ -16,7 +16,6 @@ export class BlockDetailsComponent implements OnInit {
   @Input() blockNumber: number;
 
   block: Block;
-  loading: boolean;
 
   constructor(private athenaApiService: AthenaApiService) {
   }
@@ -26,10 +25,8 @@ export class BlockDetailsComponent implements OnInit {
   }
 
   loadBlock(blockNumber: number) {
-    this.loading = true;
     this.athenaApiService.getBlock(blockNumber).subscribe(response => {
       this.block = response;
-      this.loading = false;
     });
   }
 

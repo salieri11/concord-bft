@@ -10,7 +10,7 @@ import { AuthenticationService } from '../../shared/authentication.service';
 import { Personas } from '../../shared/persona.service';
 
 @Component({
-  selector: 'app-log-in-container',
+  selector: 'athena-log-in-container',
   templateUrl: './log-in-container.component.html',
   styleUrls: ['./log-in-container.component.scss']
 })

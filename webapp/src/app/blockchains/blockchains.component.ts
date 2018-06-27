@@ -24,7 +24,7 @@ import { OrgManagementService } from '../org-management/shared/org-management.se
 import { Personas } from '../shared/persona.service';
 
 @Component({
-  selector: 'app-blockchains',
+  selector: 'athena-blockchains',
   templateUrl: './blockchains.component.html',
   styleUrls: ['./blockchains.component.scss']
 })

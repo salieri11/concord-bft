@@ -9,7 +9,7 @@ import { ContractFormComponent } from '../contract-form/contract-form.component'
 import { Personas } from '../../shared/persona.service';
 
 @Component({
-  selector: 'app-smart-contracts-container',
+  selector: 'athena-smart-contracts-container',
   templateUrl: './smart-contracts-container.component.html',
   styleUrls: ['./smart-contracts-container.component.scss']
 })
