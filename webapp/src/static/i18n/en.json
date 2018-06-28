@@ -17,6 +17,9 @@
           "addKubernetes": {"title": "Add Kubernetes"}
       }
     },
+    "personaSelector": {
+      "title": "Role"
+    },
     "metrics": {
       "activeNodes": "Active Nodes {{value}}"
     },
@@ -540,7 +543,17 @@
       }
     }
   },
+  "personas" : {
+    "systemsAdmin": "Systems Admin",
+    "consortiumAdmin": "Consortium Admin",
+    "orgAdmin": "Org Admin",
+    "orgDeveloper": "Org Developer",
+    "orgUser": "Org User"
+  },
   "deleteModal": {
     "bodyText": "Are you sure you want to delete"
+  },
+  "globalError": {
+    "routingError": "You do not have permission to visit this section of Athena, please contact your sysadmin for more info."
   }
 }
