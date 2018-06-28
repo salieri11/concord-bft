@@ -10,7 +10,7 @@ import { AuthenticationService } from '../../shared/authentication.service';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
 
 @Component({
-  selector: 'app-main',
+  selector: 'athena-main',
   templateUrl: './main.component.html',
   styleUrls: ['./main.component.scss']
 })
