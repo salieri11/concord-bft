@@ -9,7 +9,7 @@ import { BlockchainsService } from '../shared/blockchains.service';
 import { Blockchain } from '../shared/blockchains.model';
 
 @Component({
-  selector: 'app-blockchain',
+  selector: 'athena-blockchain',
   templateUrl: './blockchain.component.html',
   styleUrls: ['./blockchain.component.scss']
 })

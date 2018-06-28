@@ -8,7 +8,7 @@ import { AthenaApiService } from '../../shared/athena-api.service';
 import { BlockListingBlock } from '../../shared/remote-interfaces';
 
 @Component({
-  selector: 'app-dashboard-container',
+  selector: 'athena-dashboard-container',
   templateUrl: './dashboard-container.component.html',
   styleUrls: ['./dashboard-container.component.scss']
 })

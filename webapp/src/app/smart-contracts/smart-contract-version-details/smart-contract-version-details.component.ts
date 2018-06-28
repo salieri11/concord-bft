@@ -13,7 +13,7 @@ import { ContractPayloadPreviewModalComponent } from '../contract-payload-previe
 import { isHexAddress, isHexadecimal } from '../shared/custom-validators';
 
 @Component({
-  selector: 'app-smart-contract-version-details',
+  selector: 'athena-smart-contract-version-details',
   templateUrl: './smart-contract-version-details.component.html',
   styleUrls: ['./smart-contract-version-details.component.scss']
 })
@@ -61,15 +61,15 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
   }
 
   onSourceCodeDownload() {
-    this.onDownload(this.version.sourcecode, 'sourceCode.sol');
+    this.onDownload(this.version.sourcecode, `${this.generateFileName()}_source_code.sol`);
   }
 
   onByteCodeDownload() {
-    this.onDownload(this.version.bytecode, 'abiDownload.bin');
+    this.onDownload(this.version.bytecode, `${this.generateFileName()}_bytecode.bin`);
   }
 
   onMetadataDownload() {
-    this.onDownload(JSON.stringify(this.version.metadata, null, 4), 'version_meta.json');
+    this.onDownload(JSON.stringify(this.version.metadata, null, 4), `${this.generateFileName()}_metadata.json`);
   }
 
   onPreview() {
@@ -101,7 +101,6 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
     }, errorResp => this.handleError(errorResp));
   }
 
-
   private encodeFunction() {
     const paramsForm = this.versionForm.get('contractForm').get('functionInputs');
     const params = this.inputs.map(input => paramsForm.value[input.name]);
@@ -114,6 +113,10 @@ export class SmartContractVersionDetailsComponent implements OnChanges {
       value: this.versionForm.value.contractForm.value,
       data: output
     };
+  }
+
+  private generateFileName() {
+    return `${this.version.contract_id}_${this.version.version}`;
   }
 
   private handleError(error) {

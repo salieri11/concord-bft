@@ -9,7 +9,7 @@ import { AthenaApiService } from '../../shared/athena-api.service';
 import { SmartContract, SmartContractVersion } from '../../shared/remote-interfaces';
 
 @Component({
-  selector: 'app-smart-contract-detail-container',
+  selector: 'athena-smart-contract-detail-container',
   templateUrl: './smart-contract-detail-container.component.html',
   styleUrls: ['./smart-contract-detail-container.component.scss']
 
