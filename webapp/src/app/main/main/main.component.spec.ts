@@ -11,7 +11,8 @@ import { MockSharedModule } from '../../shared/shared.module';
 import { AuthenticationService } from '../../shared/authentication.service';
 
 import { MainComponent } from './main.component';
-import { CanViewDirective } from "../../shared/directives/can-view.directive";
+import { CanViewDirective } from '../../shared/directives/can-view.directive';
+import { Personas } from '../../shared/persona.service';
 
 describe('MainComponent', () => {
   let component: MainComponent;
@@ -45,7 +46,7 @@ describe('MainComponent', () => {
 
   describe('when authenticated', () => {
     beforeEach(() => {
-      (TestBed.get(AuthenticationService) as AuthenticationService).logIn('test@vmware.com', 'asdfasdf', 'systems_admin');
+      (TestBed.get(AuthenticationService) as AuthenticationService).logIn('test@vmware.com', 'asdfasdf', Personas.SystemsAdmin);
     });
     afterEach(() => {
       (TestBed.get(AuthenticationService) as AuthenticationService).logOut();
