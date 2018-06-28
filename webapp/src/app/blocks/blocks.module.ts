@@ -8,18 +8,18 @@ import { SharedModule } from '../shared/shared.module';
 
 import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
 
-import { BlocksContainerComponent } from './blocks-container/blocks-container.component';
-import { BlockDetailContainerComponent } from './block-detail-container/block-detail-container.component';
+import { BlocksListComponent } from './blocks-list/blocks-list.component';
 import { BlockDetailsComponent } from './block-details/block-details.component';
 import { TransactionsModule } from '../transactions/transactions.module';
+import { BlockComponent } from './block/block.component';
 
 const routes: Routes = [
   {
     path: 'blocks',
     canActivateChild: [AuthenticatedGuard],
     children: [
-      { path: '', component: BlocksContainerComponent },
-      { path: ':blockNumber', component: BlockDetailContainerComponent }
+      { path: '', component: BlocksListComponent },
+      { path: ':blockNumber', component: BlockComponent }
     ]
   }
 
@@ -32,8 +32,8 @@ const routes: Routes = [
     RouterModule.forChild(routes)
   ],
   declarations: [
-    BlocksContainerComponent,
-    BlockDetailContainerComponent,
+    BlocksListComponent,
+    BlockComponent,
     BlockDetailsComponent
     ]
 })

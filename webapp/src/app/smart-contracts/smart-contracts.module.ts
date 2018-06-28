@@ -9,28 +9,28 @@ import { FormsModule } from '@angular/forms';
 import { SharedModule } from '../shared/shared.module';
 
 import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
-import { SmartContractsContainerComponent } from './smart-contracts-container/smart-contracts-container.component';
-import { SmartContractDetailContainerComponent } from './smart-contract-detail-container/smart-contract-detail-container.component';
-import { SmartContractVersionDetailsComponent } from './smart-contract-version-details/smart-contract-version-details.component';
-import { ContractPayloadPreviewModalComponent } from './contract-payload-preview-modal/contract-payload-preview-modal.component';
+import { SmartContractsComponent } from './smart-contracts/smart-contracts.component';
+import { SmartContractComponent } from './smart-contract/smart-contract.component';
+import { SmartContractVersionComponent } from './smart-contract-version/smart-contract-version.component';
 import { ContractFormComponent } from './contract-form/contract-form.component';
 import {
   SmartContractsSolidityFunctionInputsComponent
 } from './smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
+import { ContractPayloadPreviewFormComponent } from './contract-payload-preview-form/contract-payload-preview-form.component';
 
 const routes: Routes = [
   {
     path: 'smart-contracts',
     canActivateChild: [AuthenticatedGuard],
     children: [
-      { path: '', component: SmartContractsContainerComponent },
+      { path: '', component: SmartContractsComponent },
       {
         path: ':contractId',
-        component: SmartContractDetailContainerComponent
+        component: SmartContractComponent
       },
       {
         path: ':contractId/versions/:version',
-        component: SmartContractDetailContainerComponent
+        component: SmartContractComponent
       },
     ]
   }];
@@ -42,10 +42,10 @@ const routes: Routes = [
     FormsModule
   ],
   declarations: [
-    SmartContractsContainerComponent,
-    SmartContractDetailContainerComponent,
-    SmartContractVersionDetailsComponent,
-    ContractPayloadPreviewModalComponent,
+    SmartContractsComponent,
+    SmartContractComponent,
+    SmartContractVersionComponent,
+    ContractPayloadPreviewFormComponent,
     ContractFormComponent,
     SmartContractsSolidityFunctionInputsComponent
   ]

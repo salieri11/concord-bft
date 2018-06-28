@@ -19,8 +19,8 @@ import { GridOptions } from '../grid/shared/grid.model';
 import { GridComponent } from '../grid/grid.component';
 import { Blockchain } from './shared/blockchains.model';
 import { BlockchainsService } from './shared/blockchains.service';
-import { KubernetesService } from '../kubernetes-management/shared/kubernetes.service';
-import { OrgManagementService } from '../org-management/shared/org-management.service';
+import { KubernetesService } from '../kubernetes/shared/kubernetes.service';
+import { OrgService } from '../orgs/shared/org.service';
 
 @Component({
   selector: 'app-blockchains',
@@ -44,7 +44,7 @@ export class BlockchainsComponent implements OnInit {
 
   constructor(
     private blockchainsService: BlockchainsService,
-    private orgService: OrgManagementService,
+    private orgService: OrgService,
     private kubeService: KubernetesService,
     private fb: FormBuilder,
     private translate: TranslateService,

@@ -9,18 +9,18 @@ import { SharedModule } from '../shared/shared.module';
 
 import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
 
-import { NodesContainerComponent } from './nodes-container/nodes-container.component';
-import { NodeDetailContainerComponent } from './node-detail-container/node-detail-container.component';
+import { NodeComponent } from './node/node.component';
 import { NodesStatusFilterComponent } from './nodes-status-filter/nodes-status-filter.component';
 import { TransactionsModule } from '../transactions/transactions.module';
+import { NodesComponent } from './nodes/nodes.component';
 
 const routes: Routes = [
   {
     path: 'nodes',
     canActivateChild: [AuthenticatedGuard],
     children: [
-      {path: '', component: NodesContainerComponent},
-      {path: ':id', component: NodeDetailContainerComponent}
+      { path: '', component: NodesComponent },
+      { path: ':id', component: NodeComponent }
     ]
   }
 ];
@@ -31,6 +31,6 @@ const routes: Routes = [
     TransactionsModule,
     SharedModule
   ],
-  declarations: [NodesContainerComponent, NodeDetailContainerComponent, NodesStatusFilterComponent]
+  declarations: [NodesComponent, NodeComponent, NodesStatusFilterComponent]
 })
 export class NodesModule { }

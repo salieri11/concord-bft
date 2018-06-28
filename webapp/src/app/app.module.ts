@@ -19,16 +19,16 @@ import { TransactionsModule } from './transactions/transactions.module';
 import { TestingModule } from './testing/testing.module';
 import { SmartContractsModule } from './smart-contracts/smart-contracts.module';
 import { SharedModule } from './shared/shared.module';
-import { OrgManagementModule } from './org-management/org-management.module';
+import { OrgsModule } from './orgs/orgs.module';
 import { BlockchainsModule } from './blockchains/blockchains.module';
 import { ChannelsModule } from './channels/channels.module';
-import { ConsortiumManagementModule } from './consortium-management/consortium-management.module';
-import { KubernetesManagementModule } from './kubernetes-management/kubernetes-management.module';
 import { GlobalErrorHandlerService, ErrorAlertService } from './shared/global-error-handler.service';
 
 import { RequestInterceptor } from './app-interceptors';
 
 import { AppComponent } from './app.component';
+import { ConsortiumModule } from './consortium/consortium.module';
+import { KubernetesModule } from './kubernetes/kubernetes.module';
 
 const appRoutes: Routes = [
   { path: '',
@@ -66,10 +66,10 @@ export function HttpLoaderFactory(http: HttpClient) {
     SmartContractsModule,
     TestingModule,
     SharedModule.forRoot(),
-    OrgManagementModule,
+    OrgsModule,
     BlockchainsModule,
-    ConsortiumManagementModule,
-    KubernetesManagementModule,
+    ConsortiumModule,
+    KubernetesModule,
     ChannelsModule
   ],
   providers: [

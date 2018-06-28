@@ -11,8 +11,8 @@ import { ClarityModule } from '@clr/angular';
 
 import { SharedModule } from '../shared/shared.module';
 import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
-import { TransactionDetailContainerComponent } from './transaction-detail-container/transaction-detail-container.component';
-import { TransactionListViewComponent } from './transaction-list-view/transaction-list-view.component';
+import { TransactionComponent } from './transaction/transaction.component';
+import { TransactionsListComponent } from './transactions-list/transactions-list.component';
 import { TransactionDetailsComponent } from './transaction-details/transaction-details.component';
 
 const routes: Routes = [
@@ -20,11 +20,11 @@ const routes: Routes = [
     path: 'blocks/:blockNumber/transactions',
     canActivateChild: [AuthenticatedGuard],
     children: [
-      {path: ':transactionHash', component: TransactionDetailContainerComponent},
+      {path: ':transactionHash', component: TransactionComponent},
     ]
   },
   {
-    path: 'transactions/:transactionHash', component: TransactionDetailContainerComponent
+    path: 'transactions/:transactionHash', component: TransactionComponent
   }
 ];
 
@@ -36,9 +36,9 @@ const routes: Routes = [
     TranslateModule,
     SharedModule
   ],
-  declarations: [TransactionDetailContainerComponent, TransactionListViewComponent, TransactionDetailsComponent],
+  declarations: [TransactionComponent, TransactionsListComponent, TransactionDetailsComponent],
   exports: [
-    TransactionListViewComponent,
+    TransactionsListComponent,
     TransactionDetailsComponent
   ]
 

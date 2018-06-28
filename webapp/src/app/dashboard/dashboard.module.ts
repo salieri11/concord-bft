@@ -8,15 +8,15 @@ import { SharedModule } from '../shared/shared.module';
 
 import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
 
-import { DashboardContainerComponent } from './dashboard-container/dashboard-container.component';
 import { TransactionsModule } from '../transactions/transactions.module';
+import { DashboardComponent } from './dashboard-container/dashboard.component';
 
 const routes: Routes = [
   {
     path: 'dashboard',
     canActivateChild: [AuthenticatedGuard],
     children: [
-      {path: '', component: DashboardContainerComponent}
+      {path: '', component: DashboardComponent}
     ]
   }
 ];
@@ -27,7 +27,7 @@ const routes: Routes = [
     TransactionsModule,
     RouterModule.forChild(routes)
   ],
-  declarations: [DashboardContainerComponent]
+  declarations: [DashboardComponent]
 })
 export class DashboardModule { }
 
