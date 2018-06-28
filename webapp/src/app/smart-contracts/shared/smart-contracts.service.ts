@@ -7,9 +7,7 @@ import { HttpClient } from '@angular/common/http';
 
 import { ATHENA_API_PREFIX } from '../../shared/shared.config';
 import { SmartContract, SmartContractVersion } from './smart-contracts.model';
-import { AthenaApiService } from '../../shared/athena-api.service';
-
-const CONTRACTS_PATH = '/contracts/';
+import { AthenaApiService } from '../../shared/athena-api';
 
 @Injectable({
   providedIn: 'root'
@@ -20,20 +18,24 @@ export class SmartContractsService extends AthenaApiService {
     super(athenaApiPrefix);
   }
 
+  get apiSubPath() {
+    return 'contracts';
+  }
+
   getSmartContracts() {
-    return this.httpClient.get<SmartContract[]>(this.apiPath(CONTRACTS_PATH));
+    return this.httpClient.get<SmartContract[]>(this.resourcePath());
   }
 
   getSmartContract(contractId: string) {
-    return this.httpClient.get<SmartContract>(this.apiPath(`${CONTRACTS_PATH}${contractId}`));
+    return this.httpClient.get<SmartContract>(this.resourcePath(contractId));
   }
 
   getVersionDetails(contractId: string, version: string) {
-    return this.httpClient.get<SmartContractVersion>(this.apiPath(`${CONTRACTS_PATH}${contractId}/versions/${version}`));
+    return this.httpClient.get<SmartContractVersion>(this.resourcePath(`${contractId}/versions/${version}`));
   }
 
   postContract(contract) {
-    return this.httpClient.post<any>(this.apiPath(CONTRACTS_PATH), contract);
+    return this.httpClient.post<any>(this.resourcePath(), contract);
   }
 
 }

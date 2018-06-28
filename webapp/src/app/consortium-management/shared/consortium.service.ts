@@ -2,42 +2,37 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Inject, Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { Consortium, ConsortiumResponse } from './consortium.model';
 import { GridListResponse } from '../../grid/shared/grid.model';
+import { AndesApi } from '../../shared/andes-api';
+import { ANDES_API_PREFIX } from '../../shared/shared.config';
 
 @Injectable({
   providedIn: 'root'
 })
-export class ConsortiumService {
-  consortiumUrl = '/api/consortium';
-  headers: HttpHeaders = new HttpHeaders({
-    'Content-Type': 'application/json',
-    // 'Authorization': 'my-auth-token'
-  });
+export class ConsortiumService extends AndesApi {
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, @Inject(ANDES_API_PREFIX) andesApiPrefix: string) {
+    super(andesApiPrefix);
+  }
+
+  get apiSubPath() {
+    return 'consortium';
+  }
 
   getList(params?: any): Observable<GridListResponse> {
     const options = { headers: this.headers };
 
     if (params) {
-      let httpParams = new HttpParams();
-
-      for (const prop in params) {
-        if (params[prop]) {
-          httpParams = httpParams.set(prop, params[prop]);
-        }
-      }
-
-      options['params'] = httpParams;
+      options['params'] = this.buildHttpParams(params);
     }
 
-    return this.http.get<ConsortiumResponse>(this.consortiumUrl, options).pipe(
+    return this.http.get<ConsortiumResponse>(this.resourcePath(), options).pipe(
       map(response => this.handleResponse(response)));
   }
 
@@ -54,11 +49,11 @@ export class ConsortiumService {
   }
 
   create(org: Consortium): Observable<any> {
-    return this.http.post<Consortium>(this.consortiumUrl, org, { headers: this.headers });
+    return this.http.post<Consortium>(this.resourcePath(), org, { headers: this.headers });
   }
 
   delete(id: number): Observable<any> {
-    const url = `${this.consortiumUrl}${id}/`;
+    const url = this.resourcePath(id);
     return this.http.delete(url, { headers: this.headers });
   }
 

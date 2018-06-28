@@ -7,9 +7,7 @@ import { HttpClient } from '@angular/common/http';
 
 import { Member } from './nodes.model';
 import { ATHENA_API_PREFIX } from '../../shared/shared.config';
-import { AthenaApiService } from '../../shared/athena-api.service';
-
-const NODES_PATH = '/members/';
+import { AthenaApiService } from '../../shared/athena-api';
 
 @Injectable({
   providedIn: 'root'
@@ -20,8 +18,11 @@ export class NodesService extends AthenaApiService {
     super(athenaApiPrefix);
   }
 
-  getMembers() {
-    return this.httpClient.get<Member[]>(this.apiPath(NODES_PATH));
+  get apiSubPath() {
+    return 'members';
   }
 
+  getMembers() {
+    return this.httpClient.get<Member[]>(this.resourcePath());
+  }
 }

@@ -3,46 +3,38 @@
  */
 
 import { map } from 'rxjs/operators';
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Inject, Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { Org, OrgResponse } from './org-management.model';
 import { GridListResponse } from '../../grid/shared/grid.model';
-
+import { AndesApi } from '../../shared/andes-api';
+import { ANDES_API_PREFIX } from '../../shared/shared.config';
 
 @Injectable({
   providedIn: 'root'
 })
-export class OrgManagementService {
-  orgUrl = '/api/organizations';
-  headers: HttpHeaders = new HttpHeaders({
-    'Content-Type':  'application/json',
-    // 'Authorization': 'my-auth-token'
-  });
+export class OrgManagementService extends AndesApi {
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, @Inject(ANDES_API_PREFIX) andesApiPrefix: string) {
+    super(andesApiPrefix);
+  }
 
+  get apiSubPath() {
+    return 'organizations';
   }
 
   getList(params: any, changeUrl?: string): Observable<GridListResponse> {
     const options = {headers: this.headers};
-    let url = this.orgUrl;
+    let url = this.resourcePath();
 
     if (changeUrl) {
       url = changeUrl;
     }
 
     if (params) {
-      let httpParams = new HttpParams();
-
-      for (const prop in params) {
-        if (params[prop]) {
-          httpParams = httpParams.set(prop, params[prop]);
-        }
-      }
-
-      options['params'] = httpParams;
+      options['params'] = this.buildHttpParams(params);
     }
 
     return this.http.get<OrgResponse>(url, options).pipe(
@@ -50,7 +42,7 @@ export class OrgManagementService {
   }
 
   getUsableOrgs(): Observable<GridListResponse> {
-    const url = '/api/organizations/search/usablePeerOrgs';
+    const url = this.resourcePath('search/usablePeerOrgs');
     const options = {headers: this.headers};
 
     return this.http.get<any>(url, options).pipe(
@@ -59,7 +51,7 @@ export class OrgManagementService {
 
   getOrdererOrgs(): Observable<GridListResponse> {
     const options = {headers: this.headers};
-    const url = 'api/organizations/search/usableOrdererOrgs';
+    const url = this.resourcePath('search/usableOrdererOrgs');
 
     return this.http.get<any>(url, options).pipe(
     map(response => this.handleResponse(response)));
@@ -78,25 +70,18 @@ export class OrgManagementService {
   }
 
   create(org: Org): Observable<any> {
-    return this.http.post<Org>(this.orgUrl, org, {headers: this.headers});
+    return this.http.post<Org>(this.resourcePath(), org, {headers: this.headers});
   }
 
   delete(id: number): Observable<any> {
-    const url = `${this.orgUrl}/${id}`;
+    const url = this.resourcePath(id);
     return this.http.delete(url, {headers: this.headers});
   }
 
   import(body): Observable<any> {
-    const url = `${this.orgUrl}/import`;
+    const url = this.resourcePath('import');
 
-    const httpOptions = {
-      headers: new HttpHeaders({
-        'Content-Type': 'Application/Octet-Stream'
-        // 'Authorization': 'my-auth-token'
-      })
-    };
-
-    return this.http.post(url, body, httpOptions);
+    return this.http.post(url, body, {headers: this.headers});
   }
 
   getFakeData(): Observable<Array<Org>> {

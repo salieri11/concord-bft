@@ -7,9 +7,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 
 import { ATHENA_API_PREFIX } from '../../shared/shared.config';
 import { Block, BlockListing } from './blocks.model';
-import { AthenaApiService } from '../../shared/athena-api.service';
-
-const BLOCKS_PATH = '/blocks/';
+import { AthenaApiService } from '../../shared/athena-api';
 
 @Injectable({
   providedIn: 'root'
@@ -20,10 +18,14 @@ export class BlocksService extends AthenaApiService {
     super(athenaApiPrefix);
   }
 
+  get apiSubPath() {
+    return 'blocks';
+  }
+
   getBlocks(count: number = 10) {
     const params = new HttpParams().set('count', count.toString());
 
-    return this.httpClient.get<BlockListing>(this.apiPath(BLOCKS_PATH), {params: params});
+    return this.httpClient.get<BlockListing>(this.resourcePath(), {params: params});
   }
 
   getBlocksByUrl(url: string) {
@@ -31,6 +33,6 @@ export class BlocksService extends AthenaApiService {
   }
 
   getBlock(blockNumber) {
-    return this.httpClient.get<Block>(this.apiPath(`${BLOCKS_PATH}${blockNumber}`));
+    return this.httpClient.get<Block>(this.resourcePath(blockNumber));
   }
 }

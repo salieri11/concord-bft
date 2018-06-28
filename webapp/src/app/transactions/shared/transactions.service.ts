@@ -11,9 +11,7 @@ import { ATHENA_API_PREFIX } from '../../shared/shared.config';
 import { Block } from '../../blocks/shared/blocks.model';
 import { Transaction } from './transactions.model';
 import { BlocksService } from '../../blocks/shared/blocks.service';
-import { AthenaApiService } from '../../shared/athena-api.service';
-
-const TRANSACTIONS_PATH = '/transactions/';
+import { AthenaApiService } from '../../shared/athena-api';
 
 @Injectable({
   providedIn: 'root'
@@ -28,9 +26,12 @@ export class TransactionsService extends AthenaApiService {
     super(athenaApiPrefix);
   }
 
+  get apiSubPath() {
+    return 'transactions';
+  }
 
   getTransaction(transactionHash: string) {
-    return this.httpClient.get<Transaction>(this.apiPath(`${TRANSACTIONS_PATH}${transactionHash}`));
+    return this.httpClient.get<Transaction>(this.resourcePath(transactionHash));
   }
 
   getRecentTransactions() {
