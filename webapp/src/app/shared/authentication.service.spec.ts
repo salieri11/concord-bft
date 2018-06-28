@@ -5,11 +5,12 @@
 import { TestBed, inject } from '@angular/core/testing';
 
 import { AuthenticationService } from './authentication.service';
+import { PersonaService } from './persona.service';
 
 describe('AuthenticationService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [AuthenticationService]
+      providers: [AuthenticationService, PersonaService]
     });
   });
 
@@ -22,17 +23,17 @@ describe('AuthenticationService', () => {
   }));
 
   it('should broadcast an email after log in', inject([AuthenticationService], function(service: AuthenticationService) {
-    service.logIn('test@vmware.com', 'asdfasdf');
-    const subscription = service.user.subscribe(email => {
-      expect(email).toEqual('test@vmware.com');
+    service.logIn('test@vmware.com', 'asdfasdf', 'systems_admin');
+    const subscription = service.user.subscribe(user => {
+      expect(user.email).toEqual('test@vmware.com');
     });
     subscription.unsubscribe();
   }));
 
   it('should broadcast undefined after log out', inject([AuthenticationService], function(service: AuthenticationService) {
     service.logOut();
-    const subscription = service.user.subscribe(email => {
-      expect(email).toBeUndefined();
+    const subscription = service.user.subscribe(user => {
+      expect(user.email).toBeUndefined();
     });
     subscription.unsubscribe();
   }));

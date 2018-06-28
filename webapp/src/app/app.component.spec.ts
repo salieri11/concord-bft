@@ -8,6 +8,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { MockSharedModule } from './shared/shared.module';
 
 import { AppComponent } from './app.component';
+import { CanViewDirective } from './shared/directives/can-view.directive';
 
 describe('AppComponent', () => {
   beforeEach(async(() => {

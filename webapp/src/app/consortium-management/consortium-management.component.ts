@@ -18,6 +18,7 @@ import { GridOptions } from '../grid/shared/grid.model';
 import { GridComponent } from '../grid/grid.component';
 import { ConsortiumService } from './shared/consortium.service';
 import { Consortium } from './shared/consortium.model';
+import { Personas } from '../shared/persona.service';
 
 @Component({
   selector: 'athena-consortium-management',
@@ -25,6 +26,7 @@ import { Consortium } from './shared/consortium.model';
   styleUrls: ['./consortium-management.component.scss']
 })
 export class ConsortiumManagementComponent implements OnInit {
+  static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   @ViewChild('grid') grid: GridComponent;
   openModalForm = false;
   modalTitle = '';
@@ -33,9 +35,11 @@ export class ConsortiumManagementComponent implements OnInit {
   gridOptions: GridOptions = new GridOptions();
 
   addConsortiumForm: FormGroup;
+
   get credentialType(): any {
     return this.addConsortiumForm.get('credentialType');
   }
+
   deleteConsortiumForm: FormGroup;
   selectedRows: Array<Consortium>;
   credentialOptions: Array<{ name?: string; value: string }> = [
