@@ -11,7 +11,7 @@ import { AuthenticationService } from './shared/authentication.service';
 import { ErrorAlertService } from './shared/global-error-handler.service';
 
 @Component({
-  selector: 'app-root',
+  selector: 'athena-root',
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })

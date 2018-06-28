@@ -23,7 +23,7 @@ import { KubernetesService } from '../kubernetes/shared/kubernetes.service';
 import { OrgService } from '../orgs/shared/org.service';
 
 @Component({
-  selector: 'app-blockchains',
+  selector: 'athena-blockchains',
   templateUrl: './blockchains.component.html',
   styleUrls: ['./blockchains.component.scss']
 })

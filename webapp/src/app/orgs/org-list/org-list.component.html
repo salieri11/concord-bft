@@ -1,6 +1,6 @@
 <div class="list-container">
 
-  <app-grid #grid [options]="gridOptions" (selectedRowsEvent)="selectedRowChange($event)"></app-grid>
+  <athena-grid #grid [options]="gridOptions" (selectedRowsEvent)="selectedRowChange($event)"></athena-grid>
 
   <clr-modal [(clrModalOpen)]="openModalForm" [clrModalSize]="modalSize">
     <h3 class="modal-title">{{ modalTitle }}</h3>

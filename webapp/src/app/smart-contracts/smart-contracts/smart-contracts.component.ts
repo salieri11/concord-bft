@@ -8,7 +8,7 @@ import { AthenaApiService } from '../../shared/athena-api.service';
 import { ContractFormComponent } from '../contract-form/contract-form.component';
 
 @Component({
-  selector: 'app-smart-contracts',
+  selector: 'athena-smart-contracts',
   templateUrl: './smart-contracts.component.html',
   styleUrls: ['./smart-contracts.component.scss']
 })

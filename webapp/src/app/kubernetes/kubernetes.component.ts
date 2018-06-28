@@ -23,7 +23,7 @@ import { Kubernetes, CredType } from './shared/kubernetes.model';
 
 
 @Component({
-  selector: 'app-kubernetes',
+  selector: 'athena-kubernetes',
   templateUrl: './kubernetes.component.html',
   styleUrls: ['./kubernetes.component.scss']
 })

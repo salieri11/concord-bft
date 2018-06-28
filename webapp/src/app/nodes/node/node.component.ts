@@ -8,7 +8,7 @@ import { BlockListingBlock } from '../../shared/remote-interfaces';
 import { AthenaApiService } from '../../shared/athena-api.service';
 
 @Component({
-  selector: 'app-node',
+  selector: 'athena-node',
   templateUrl: './node.component.html',
   styleUrls: ['./node.component.scss']
 })

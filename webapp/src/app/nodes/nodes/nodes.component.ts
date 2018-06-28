@@ -9,7 +9,7 @@ import { AthenaApiService } from '../../shared/athena-api.service';
 import { Member } from '../../shared/remote-interfaces';
 
 @Component({
-  selector: 'app-nodes',
+  selector: 'athena-nodes',
   templateUrl: './nodes.component.html',
   styleUrls: ['./nodes.component.scss']
 })
@@ -34,5 +34,4 @@ export class NodesComponent implements OnInit {
   loadMembers() {
     this.athenaApiService.getMembers().subscribe(members => this.members = members);
   }
-
 }

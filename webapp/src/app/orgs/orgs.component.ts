@@ -12,7 +12,7 @@ import { OrgListComponent } from './org-list/org-list.component';
 
 
 @Component({
-  selector: 'app-org',
+  selector: 'athena-org',
   templateUrl: './orgs.component.html',
   styleUrls: ['./orgs.component.scss']
 })

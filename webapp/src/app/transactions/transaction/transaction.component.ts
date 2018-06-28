@@ -7,7 +7,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Transaction } from '../../shared/remote-interfaces';
 
 @Component({
-  selector: 'app-transaction',
+  selector: 'athena-transaction',
   templateUrl: './transaction.component.html',
   styleUrls: ['./transaction.component.scss']
 })

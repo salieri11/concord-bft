@@ -13,7 +13,7 @@ import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview
 import { isHexAddress, isHexadecimal } from '../shared/custom-validators';
 
 @Component({
-  selector: 'app-smart-contract-version',
+  selector: 'athena-smart-contract-version',
   templateUrl: './smart-contract-version.component.html',
   styleUrls: ['./smart-contract-version.component.scss']
 })
