@@ -13,7 +13,6 @@ import { TransactionsService } from '../../transactions/shared/transactions.serv
   styleUrls: ['./dashboard-container.component.scss']
 })
 export class DashboardContainerComponent implements OnInit {
-
   blocks: BlockListingBlock[];
   blockTransactions: any[] = [];
   recentTransactions: any[] = [];

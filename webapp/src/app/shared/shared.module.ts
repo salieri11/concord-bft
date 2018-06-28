@@ -15,6 +15,8 @@ import { AuthenticatedGuard } from './authenticated-guard.service';
 import { ANDES_API_PREFIX, ATHENA_API_PREFIX, ETHEREUM_API_PREFIX } from './shared.config';
 import { TransactionsStatusFilterComponent } from './components/transactions-status-filter/transactions-status-filter.component';
 import { RouterModule } from '@angular/router';
+import { PersonaService } from './persona.service';
+import { CanViewDirective } from './directives/can-view.directive';
 
 @NgModule({
   imports: [
@@ -24,13 +26,14 @@ import { RouterModule } from '@angular/router';
     ReactiveFormsModule,
     RouterModule
   ],
-  declarations: [TransactionsStatusFilterComponent],
+  declarations: [TransactionsStatusFilterComponent, CanViewDirective],
   exports: [
     CommonModule,
     TranslateModule,
     ClarityModule,
     TransactionsStatusFilterComponent,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    CanViewDirective
   ]
 })
 export class SharedModule {
@@ -42,7 +45,8 @@ export class SharedModule {
         AuthenticatedGuard,
         {provide: ANDES_API_PREFIX, useValue: '/api'},
         {provide: ATHENA_API_PREFIX, useValue: '/api/athena'},
-        {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'}
+        {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'},
+        PersonaService
       ]
     };
   }
@@ -60,7 +64,8 @@ export class SharedModule {
     AuthenticatedGuard,
     {provide: ANDES_API_PREFIX, useValue: '/api'},
     {provide: ATHENA_API_PREFIX, useValue: '/api/athena'},
-    {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'}
+    {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'},
+    PersonaService
   ],
   exports: [
     CommonModule,

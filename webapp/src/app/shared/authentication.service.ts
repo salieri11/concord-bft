@@ -5,13 +5,20 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 
+import { Personas, PersonaService } from './persona.service';
+
+export interface User {
+  email: string;
+  persona: Personas;
+}
+
 @Injectable()
 export class AuthenticationService {
-  private userSubject: BehaviorSubject<string>;
-  readonly user: Observable<string>;
+  private userSubject: BehaviorSubject<User>;
+  readonly user: Observable<User>;
 
-  constructor() {
-    this.userSubject = new BehaviorSubject<string>(localStorage['helen.email']);
+  constructor(private personaService: PersonaService) {
+    this.userSubject = new BehaviorSubject<User>({email: localStorage['helen.email'], persona: localStorage['helen.persona']});
     this.user = this.userSubject.asObservable();
   }
 
@@ -19,15 +26,21 @@ export class AuthenticationService {
     return localStorage['helen.email'] !== undefined;
   }
 
-  logIn(email: string, password: string) {
+  logIn(email: string, password: string, persona: Personas) {
     password = '';
     localStorage.setItem('helen.email', email);
     localStorage.setItem('helen.password', password);
-    this.userSubject.next(email);
+    this.personaService.currentPersona = persona;
+    this.userSubject.next({
+      email: email,
+      persona: persona
+    });
   }
 
   logOut() {
     localStorage.removeItem('helen.email');
-    this.userSubject.next(undefined);
+    localStorage.removeItem('helen.persona');
+    this.personaService.currentPersona = undefined;
+    this.userSubject.next({email: localStorage['helen.email'], persona: localStorage['helen.persona']});
   }
 }

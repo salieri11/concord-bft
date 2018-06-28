@@ -7,6 +7,11 @@
     <div class="login-group">
       <input class="username" type="text" id="login_username" [attr.placeholder]="'authentication.username' | translate" formControlName="email">
       <input class="password" type="password" id="login_password" [attr.placeholder]="'authentication.password' | translate" formControlName="password">
+      <div class="select">
+        <select name="persona" id="persona" formControlName="persona">
+          <option *ngFor="let persona of personaOptions" [value]="persona.value">{{persona.name | translate}}</option>
+        </select>
+      </div>
       <button type="submit" class="btn btn-primary" [disabled]="loginForm.invalid">{{'authentication.next' | translate}}</button>
     </div>
   </form>

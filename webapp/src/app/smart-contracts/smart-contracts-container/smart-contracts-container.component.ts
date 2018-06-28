@@ -6,6 +6,7 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 
 import { ContractFormComponent } from '../contract-form/contract-form.component';
 import { SmartContractsService } from '../shared/smart-contracts.service';
+import { Personas } from '../../shared/persona.service';
 
 @Component({
   selector: 'athena-smart-contracts-container',
@@ -16,6 +17,7 @@ export class SmartContractsContainerComponent implements OnInit {
   @ViewChild('contractFormModal') contractFormModal: ContractFormComponent;
 
   smartContracts = [];
+  personas = Personas;
 
   constructor( private smartContractsService: SmartContractsService ) { }
 

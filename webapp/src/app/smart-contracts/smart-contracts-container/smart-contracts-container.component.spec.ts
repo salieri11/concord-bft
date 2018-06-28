@@ -10,6 +10,7 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { ContractFormComponent } from '../contract-form/contract-form.component';
 import { SmartContractsContainerComponent } from './smart-contracts-container.component';
+import { CanViewDirective } from '../../shared/directives/can-view.directive';
 
 describe('SmartContractsContainerComponent', () => {
   let component: SmartContractsContainerComponent;
@@ -22,7 +23,7 @@ describe('SmartContractsContainerComponent', () => {
         HttpClientTestingModule,
         MockSharedModule
       ],
-      declarations: [ SmartContractsContainerComponent, ContractFormComponent ]
+      declarations: [ SmartContractsContainerComponent, ContractFormComponent, CanViewDirective ]
     })
     .compileComponents();
   }));
