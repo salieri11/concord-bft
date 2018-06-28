@@ -11,6 +11,7 @@ import { MockSharedModule } from '../../shared/shared.module';
 import { AuthenticationService } from '../../shared/authentication.service';
 
 import { MainComponent } from './main.component';
+import { CanViewDirective } from "../../shared/directives/can-view.directive";
 
 describe('MainComponent', () => {
   let component: MainComponent;
@@ -24,6 +25,7 @@ describe('MainComponent', () => {
       ],
       declarations: [
         MainComponent,
+        CanViewDirective
       ],
       providers: [
         ErrorAlertService
@@ -43,7 +45,7 @@ describe('MainComponent', () => {
 
   describe('when authenticated', () => {
     beforeEach(() => {
-      (TestBed.get(AuthenticationService) as AuthenticationService).logIn('test@vmware.com', 'asdfasdf');
+      (TestBed.get(AuthenticationService) as AuthenticationService).logIn('test@vmware.com', 'asdfasdf', 'systems_admin');
     });
     afterEach(() => {
       (TestBed.get(AuthenticationService) as AuthenticationService).logOut();
@@ -52,7 +54,7 @@ describe('MainComponent', () => {
     it('should render a nav bar title', async(() => {
       const testFixture = TestBed.createComponent(MainComponent);
       testFixture.detectChanges();
-      const compiled = fixture.debugElement.nativeElement;
+      const compiled = testFixture.debugElement.nativeElement;
       expect(compiled.querySelector('.branding .title').textContent).toContain('title');
     }));
   });

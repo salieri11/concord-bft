@@ -24,17 +24,13 @@
         <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
           <h4 class="dropdown-header">System Admin</h4>
           <a clrDropdownItem>
-            <clr-icon shape="wand"></clr-icon>
-            {{ 'nav.menu.options.deploy.title' | translate }}</a>
-          <a [routerLink]="['/organization']" fragment="add" clrDropdownItem>
-            <clr-icon shape="organization"></clr-icon>
-            {{ 'nav.menu.options.addOrg.title' | translate }}</a>
-          <a [routerLink]="['/blockchains']" fragment="add" clrDropdownItem>
-            <clr-icon shape="blocks-group"></clr-icon>
-            {{ 'nav.menu.options.addBlockchains.title' | translate }}</a>
-          <a [routerLink]="['/kubernetes']" fragment="add" clrDropdownItem>
-            <clr-icon shape="host"></clr-icon>
-            {{ 'nav.menu.options.addKubernetes.title' | translate }}</a>
+            <clr-icon shape="wand"></clr-icon> {{ 'nav.menu.options.deploy.title' | translate }}</a>
+          <a [routerLink]="['/organization']" fragment="add" clrDropdownItem *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
+            <clr-icon shape="organization"></clr-icon> {{ 'nav.menu.options.addOrg.title' | translate }}</a>
+          <a [routerLink]="['/blockchains']" fragment="add" clrDropdownItem *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
+            <clr-icon shape="blocks-group"></clr-icon> {{ 'nav.menu.options.addBlockchains.title' | translate }}</a>
+          <a [routerLink]="['/kubernetes']" fragment="add" clrDropdownItem *athenaCanView="personas.SystemsAdmin">
+            <clr-icon shape="host"></clr-icon> {{ 'nav.menu.options.addKubernetes.title' | translate }}</a>
         </clr-dropdown-menu>
       </clr-dropdown>
     </div>
@@ -46,9 +42,21 @@
       <a href="javascript:;" class="nav-link nav-icon">
         <clr-icon shape="search"></clr-icon>
       </a>
-      <a href="javascript:;" class="nav-link nav-icon">
-        <clr-icon shape="cog"></clr-icon>
-      </a>
+      <clr-dropdown class="persona-selector">
+        <button type="button" class="nav-link nav-icon" clrDropdownTrigger>
+          <clr-icon shape="cog"></clr-icon>
+        </button>
+        <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
+          <h4 class="dropdown-header">{{ 'nav.personaSelector.title' | translate }}</h4>
+          <button type="button"
+                  (click)="onPersonaChange(persona.value)"
+                  *ngFor="let persona of personaOptions"
+                  [ngClass]="{'active': persona.value === personaService.currentPersona}"
+                  clrDropdownItem>
+            {{ persona.name | translate }}
+          </button>
+        </clr-dropdown-menu>
+      </clr-dropdown>
       <clr-dropdown>
         <button class="nav-text" clrDropdownTrigger>
           <clr-icon shape="user" class="is-solid"></clr-icon>
@@ -86,26 +94,36 @@
         <clr-icon clrVerticalNavIcon shape="file-settings"></clr-icon>
         {{'nav.testing.title' | translate}}
       </a>
-      <div class="nav-divider"></div>
-      <label class="nav-header">
-        {{ 'nav.sysadmin.title' | translate }}
-      </label>
-      <a clrVerticalNavLink [routerLink]="['/blockchains']" routerLinkActive="active">
-        <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon>
-        {{ 'nav.blockchains.title' | translate }}
-      </a>
-      <a clrVerticalNavLink [routerLink]="['/consortium']" routerLinkActive="active">
-        <clr-icon clrVerticalNavIcon shape="users"></clr-icon>
-        {{ 'nav.consortium.title' | translate }}
-      </a>
-      <a clrVerticalNavLink [routerLink]="['/organization']" routerLinkActive="active">
-        <clr-icon clrVerticalNavIcon shape="organization"></clr-icon>
-        {{ 'nav.organization.title' | translate }}
-      </a>
-      <a clrVerticalNavLink [routerLink]="['/kubernetes']" routerLinkActive="active">
-        <clr-icon clrVerticalNavIcon shape="host"></clr-icon>
-        {{ 'nav.kubernetes.title' | translate }}
-      </a>
+      <ng-container *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
+        <div class="nav-divider"></div>
+        <label class="nav-header">
+          {{ 'nav.sysadmin.title' | translate }}
+        </label>
+        <a clrVerticalNavLink
+           [routerLink]="['/blockchains']"
+           routerLinkActive="active"
+           *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
+          <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon> {{ 'nav.blockchains.title' | translate }}
+        </a>
+        <a clrVerticalNavLink
+           [routerLink]="['/consortium']"
+           routerLinkActive="active"
+           *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
+          <clr-icon clrVerticalNavIcon shape="users"></clr-icon> {{ 'nav.consortium.title' | translate }}
+        </a>
+        <a clrVerticalNavLink
+           [routerLink]="['/organization']"
+           routerLinkActive="active"
+           *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
+          <clr-icon clrVerticalNavIcon shape="organization"></clr-icon> {{ 'nav.organization.title' | translate }}
+        </a>
+        <a clrVerticalNavLink
+           [routerLink]="['/kubernetes']"
+           routerLinkActive="active"
+           *athenaCanView="personas.SystemsAdmin">
+          <clr-icon clrVerticalNavIcon shape="host"></clr-icon> {{ 'nav.kubernetes.title' | translate }}
+        </a>
+      </ng-container>
     </clr-vertical-nav>
   </div>
 </clr-main-container>
