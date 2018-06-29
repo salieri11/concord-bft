@@ -17,6 +17,9 @@ public:
    EthSign();
    ~EthSign();
 
+   std::vector<uint8_t> sign(const evm_uint256be hash,
+                             const evm_uint256be key) const;
+
    evm_address ecrecover(const evm_uint256be hash,
                          const uint8_t version,
                          const evm_uint256be r,
