@@ -10,6 +10,17 @@
   width: 1px;
   top: .41667rem;
 }
+
 .header-nav clr-dropdown {
   padding: 0 1rem;
+}
+
+.header .header-actions > .dropdown .dropdown-toggle.nav-icon clr-icon[shape^="cog"] {
+  transform: translate(-50%, -50%);
+}
+
+.persona-selector {
+  .dropdown-item.active {
+    font-weight: bold;
+  }
 }
