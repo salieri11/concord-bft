@@ -11,6 +11,7 @@ import { ErrorAlertService } from './shared/global-error-handler.service';
 import { AppComponent } from './app.component';
 import { AuthenticationService } from './shared/authentication.service';
 import { CanViewDirective } from './shared/directives/can-view.directive';
+import { Personas } from './shared/persona.service';
 
 describe('AppComponent', () => {
   beforeEach(async(() => {
@@ -37,7 +38,7 @@ describe('AppComponent', () => {
 
   describe('when authenticated', () => {
     beforeEach(() => {
-      (TestBed.get(AuthenticationService) as AuthenticationService).logIn('test@vmware.com', 'asdfasdf', 'systems_admin');
+      (TestBed.get(AuthenticationService) as AuthenticationService).logIn('test@vmware.com', 'asdfasdf', Personas.SystemsAdmin);
     });
     afterEach(() => {
       (TestBed.get(AuthenticationService) as AuthenticationService).logOut();
