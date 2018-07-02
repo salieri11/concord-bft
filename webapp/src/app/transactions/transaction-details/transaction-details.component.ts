@@ -16,7 +16,7 @@ export class TransactionDetailsComponent implements OnInit {
   @Input() transactionHash: string;
 
   transaction: Transaction;
-  loading = false;
+
   constructor(private transactionsService: TransactionsService) { }
 
   ngOnInit() {
@@ -24,10 +24,8 @@ export class TransactionDetailsComponent implements OnInit {
   }
 
   loadTransaction(transactionHash: string) {
-    this.loading = true;
     this.transactionsService.getTransaction(transactionHash).subscribe((response) => {
       this.transaction = response;
-      this.loading = false;
     });
   }
 }
