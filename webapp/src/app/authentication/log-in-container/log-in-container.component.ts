@@ -7,7 +7,7 @@ import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import { AuthenticationService } from '../../shared/authentication.service';
-import { Personas } from '../../shared/persona.service';
+import { personaOptions } from '../../shared/persona.service';
 
 @Component({
   selector: 'athena-log-in-container',
@@ -18,13 +18,7 @@ export class LogInContainerComponent implements OnDestroy {
 
   readonly loginForm: FormGroup;
   private authenticationChange;
-  personaOptions: Array<{ name ?: string; value: string; }> = [
-    { value: Personas.SystemsAdmin, name: 'personas.systemsAdmin' },
-    { value: Personas.ConsortiumAdmin, name: 'personas.consortiumAdmin' },
-    { value: Personas.OrgAdmin, name: 'personas.orgAdmin' },
-    { value: Personas.OrgDeveloper, name: 'personas.orgDeveloper' },
-    { value: Personas.OrgUser, name: 'personas.orgUser' }
-  ];
+  personaOptions = personaOptions;
 
   constructor(private authenticationService: AuthenticationService,
               private formBuilder: FormBuilder,

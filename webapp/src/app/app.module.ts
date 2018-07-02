@@ -50,7 +50,7 @@ export function HttpLoaderFactory(http: HttpClient) {
     BrowserAnimationsModule,
     HttpClientModule,
     ClarityModule,
-    RouterModule.forRoot(appRoutes),
+    RouterModule.forRoot(appRoutes, {enableTracing: true}),
     TranslateModule.forRoot({
       loader: {
         provide: TranslateLoader,

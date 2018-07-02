@@ -4,7 +4,7 @@
 
 import { Directive, OnInit, Input, TemplateRef, ViewContainerRef } from '@angular/core';
 
-import {Personas, PersonaService} from '../persona.service';
+import { Personas, PersonaService } from '../persona.service';
 
 @Directive({
   selector: '[athenaCanView]'
