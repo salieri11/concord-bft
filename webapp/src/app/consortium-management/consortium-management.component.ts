@@ -20,7 +20,6 @@ import { ConsortiumService } from './shared/consortium.service';
 import { Consortium } from './shared/consortium.model';
 import { Personas } from '../shared/persona.service';
 
-
 @Component({
   selector: 'athena-consortium-management',
   templateUrl: './consortium-management.component.html',

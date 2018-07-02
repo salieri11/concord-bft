@@ -29,5 +29,4 @@ export class BlockDetailsComponent implements OnInit {
       this.block = response;
     });
   }
-
 }
