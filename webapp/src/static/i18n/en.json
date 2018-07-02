@@ -573,7 +573,7 @@
     "routingError": "You do not have permission to visit this section of Athena, please contact your sysadmin for more info."
   },
   "users": {
-    "title": "Users",
+    "title": "User Management",
     "actions": {
       "title": "Actions",
       "options": {
