@@ -19,9 +19,15 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
               private translateService: TranslateService) {
   }
 
-  canActivateChild(): boolean {
+  canActivateChild(childRoute: ActivatedRouteSnapshot): boolean {
+    const personasAllowed: Personas[] = childRoute.component ? (childRoute.component as any).personasAllowed : null;
+
     if (!this.authenticationService.isAuthenticated()) {
       this.router.navigate(['auth', 'log-in']);
+      return false;
+    } else if (personasAllowed && !this.personaService.hasAuthorization(personasAllowed)) {
+      this.handleRoutingFailure();
+      this.router.navigate(['dashboard']);
       return false;
     } else {
       return true;
@@ -44,9 +50,7 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
   }
 
   handleRoutingFailure() {
-    this.translateService.get('globalError.routingError').subscribe((message) => {
-      this.errorService.add(new Error(message));
-    });
+    this.errorService.add(new Error(this.translateService.instant('globalError.routingError')));
   }
 }
 
