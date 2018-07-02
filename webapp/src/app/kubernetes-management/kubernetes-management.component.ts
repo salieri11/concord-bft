@@ -43,9 +43,9 @@ export class KubernetesManagementComponent implements OnInit {
   selectedRows: Array<Kubernetes>;
   credType = CredType;
   credentialOptions: Array<{ name?: string; value: string }> = [
-    { value: CredType.BasicAuth, name: 'Basic Auth' },
-    { value: CredType.Certificate, name: 'Certificate' },
-    { value: CredType.ConfigFile, name: 'Config File' },
+    { value: CredType.BasicAuth, name: 'kubernetes.addKubeForm.inputs.credentialType.options.basic_auth.title' },
+    { value: CredType.Certificate, name: 'kubernetes.addKubeForm.inputs.credentialType.options.certificate.title' },
+    { value: CredType.ConfigFile, name: 'kubernetes.addKubeForm.inputs.credentialType.options.configFile.title' },
   ];
 
   constructor(
@@ -59,11 +59,7 @@ export class KubernetesManagementComponent implements OnInit {
       return this.kubeService.getList(params);
     };
 
-    translate.get('kubernetes.grid')
-      .subscribe(grid => this.handleGrid(grid));
-
-    translate.get('kubernetes.addKubeForm.inputs.credentialType.options')
-      .subscribe(options => this.handleCredentialTypes(options));
+    this.handleGrid();
   }
 
   ngOnInit() {
@@ -211,59 +207,53 @@ export class KubernetesManagementComponent implements OnInit {
     this.openModalForm = false;
   }
 
-  private handleGrid(grid: any): void {
-    this.gridOptions.paginationTitle = grid.pagination.title;
+  private handleGrid(): void {
+    this.gridOptions.paginationTitle = 'kubernetes.grid.pagination.title';
     this.gridOptions.columns = [{
       id: 'name',
-      name: grid.columns.name.title,
+      name: 'kubernetes.grid.columns.name.title',
       type: 'string'
     }, {
       id: 'apiServerUrl',
-      name: grid.columns.apiServerUrl.title,
+      name: 'kubernetes.grid.columns.apiServerUrl.title',
       type: 'externalLink',
       genLink: (row: Kubernetes) => {
         return `http://${row.apiServerUrl}`;
       }
     }, {
       id: 'kubectlCliUrl',
-      name: grid.columns.kubectlCliUrl.title,
+      name: 'kubernetes.grid.columns.kubectlCliUrl.title',
       type: 'externalLink',
       genLink: (row: Kubernetes) => {
         return row.kubectlCliUrl;
       }
     }, {
       id: 'helmCliUrl',
-      name: grid.columns.helmCliUrl.title,
+      name: 'kubernetes.grid.columns.helmCliUrl.title',
       type: 'externalLink',
       genLink: (row: Kubernetes) => {
         return row.helmCliUrl;
       }
     }, {
       id: 'ca',
-      name: grid.columns.ca.title,
+      name: 'kubernetes.grid.columns.ca.title',
       type: 'string'
     }, {
       id: 'credentialType',
-      name: grid.columns.credentialType.title,
+      name: 'kubernetes.grid.columns.credentialType.title',
       type: 'string'
     }, {
       id: 'insecure',
-      name: grid.columns.insecure.title,
+      name: 'kubernetes.grid.columns.insecure.title',
       type: 'string'
     }, {
       id: 'createdOn',
-      name: grid.columns.created.title,
+      name: 'kubernetes.grid.columns.created.title',
       type: 'date'
     }, {
       id: 'updatedOn',
-      name: grid.columns.updated.title,
+      name: 'kubernetes.grid.columns.updated.title',
       type: 'date'
     }];
-  }
-
-  private handleCredentialTypes(options: any): void {
-    this.credentialOptions.forEach(option => {
-      option.name = options[option.value].title;
-    });
   }
 }

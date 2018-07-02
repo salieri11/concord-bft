@@ -7,7 +7,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';  // <-- #1 import module
-import { HttpClientModule } from '@angular/common/http';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { GridModule } from '../../grid/grid.module';
 import { OrgListComponent } from './org-list.component';
@@ -24,7 +24,7 @@ describe('OrgListComponent', () => {
         MockSharedModule,
         BrowserAnimationsModule,
         BrowserModule,
-        HttpClientModule,
+        HttpClientTestingModule,
         FormsModule,
         GridModule
       ],

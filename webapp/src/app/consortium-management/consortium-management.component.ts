@@ -60,8 +60,7 @@ export class ConsortiumManagementComponent implements OnInit {
       // return this.consortiumService.getList(params);
     };
 
-    translate.get('consortium.grid')
-      .subscribe(grid => this.handleGrid(grid));
+    this.handleGrid();
   }
 
   ngOnInit() {
@@ -159,15 +158,15 @@ export class ConsortiumManagementComponent implements OnInit {
     this.grid.reload();
   }
 
-  private handleGrid(grid: any): void {
-    this.gridOptions.paginationTitle = grid.pagination.title;
+  private handleGrid(): void {
+    this.gridOptions.paginationTitle = 'consortium.grid.pagination.title';
     this.gridOptions.columns = [{
       id: 'name',
-      name: grid.columns.name.title,
+      name: 'consortium.grid.columns.name.title',
       type: 'string'
     }, {
       id: 'members',
-      name: grid.columns.members.title,
+      name: 'consortium.grid.columns.members.title',
       type: 'info',
       renderCell: {
         main: (row: Consortium) => {
@@ -183,7 +182,7 @@ export class ConsortiumManagementComponent implements OnInit {
       }
     }, {
       id: 'createdOn',
-      name: grid.columns.created.title,
+      name: 'consortium.grid.columns.created.title',
       type: 'date'
     }];
   }
