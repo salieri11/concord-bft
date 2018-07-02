@@ -176,44 +176,44 @@ export class BlockchainsComponent implements OnInit {
   }
 
   private handleGrid(): void {
-    this.gridOptions.paginationTitle = 'blockchains.grid.pagination.title';
+    this.gridOptions.paginationTitle = this.translate.instant('blockchains.grid.pagination.title');
 
     this.gridOptions.columns = [{
       id: 'name',
-      name: 'blockchains.grid.columns.name.title',
+      name: this.translate.instant('blockchains.grid.columns.name.title'),
       type: 'link',
       genLink: (row: Blockchain) => {
         return `/blockchains/${row.id}`;
       }
     }, {
       id: 'consensusType',
-      name: 'blockchains.grid.columns.consensusType.title',
+      name: this.translate.instant('blockchains.grid.columns.consensusType.title'),
       type: 'string'
     }, {
       id: 'state',
-      name: 'blockchains.grid.columns.status.title',
+      name: this.translate.instant('blockchains.grid.columns.status.title'),
       type: 'string'
     }, {
       id: 'lastAction',
-      name: 'blockchains.grid.columns.action.title',
+      name: this.translate.instant('blockchains.grid.columns.action.title'),
       type: 'string'
     }, {
       id: 'k8sDashboardUrl',
-      name: 'blockchains.grid.columns.k8sDashboardUrl.title',
+      name: this.translate.instant('blockchains.grid.columns.k8sDashboardUrl.title'),
       type: 'externalLink',
       genLink: (row: Blockchain) => {
         return row.k8sDashboardUrl;
       }
     }, {
       id: 'fabricExplorerUrl',
-      name: 'blockchains.grid.columns.fabricExplorerUrl.title',
+      name: this.translate.instant('blockchains.grid.columns.fabricExplorerUrl.title'),
       type: 'externalLink',
       genLink: (row: Blockchain) => {
         return row.fabricExplorerUrl;
       }
     }, {
       id: 'createdOn',
-      name: 'blockchains.grid.columns.created.title',
+      name: this.translate.instant('blockchains.grid.columns.created.title'),
       type: 'date'
     }
     ];

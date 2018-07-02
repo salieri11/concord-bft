@@ -159,14 +159,14 @@ export class ConsortiumManagementComponent implements OnInit {
   }
 
   private handleGrid(): void {
-    this.gridOptions.paginationTitle = 'consortium.grid.pagination.title';
+    this.gridOptions.paginationTitle = this.translate.instant('consortium.grid.pagination.title');
     this.gridOptions.columns = [{
       id: 'name',
-      name: 'consortium.grid.columns.name.title',
+      name: this.translate.instant('consortium.grid.columns.name.title'),
       type: 'string'
     }, {
       id: 'members',
-      name: 'consortium.grid.columns.members.title',
+      name: this.translate.instant('consortium.grid.columns.members.title'),
       type: 'info',
       renderCell: {
         main: (row: Consortium) => {
@@ -182,7 +182,7 @@ export class ConsortiumManagementComponent implements OnInit {
       }
     }, {
       id: 'createdOn',
-      name: 'consortium.grid.columns.created.title',
+      name: this.translate.instant('consortium.grid.columns.created.title'),
       type: 'date'
     }];
   }
