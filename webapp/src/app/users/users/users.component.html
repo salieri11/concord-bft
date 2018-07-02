@@ -1,0 +1,23 @@
+<div class="p-2">
+  <h2 class="page-title">
+    <clr-icon shape="administrator" size="30"></clr-icon> {{ 'users.title' | translate }}
+    <clr-dropdown>
+      <button class="nav-link" clrDropdownTrigger>
+        {{ 'users.actions.title' | translate }}
+        <clr-icon shape="caret down"></clr-icon>
+      </button>
+      <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
+        <button type="button" (click)="usersList.openAddUserForm()" clrDropdownItem>
+          {{ 'users.actions.options.add.title' | translate }}
+        </button>
+        <button type="button" [disabled]="usersList.selectedRows.length !== 1" (click)="usersList.openEditUserForm()" clrDropdownItem>
+          {{ 'users.actions.options.edit.title' | translate }}
+        </button>
+        <button type="button" [disabled]="usersList.selectedRows.length === 0" (click)="usersList.confirmUserDeletion()" clrDropdownItem>
+          {{ 'users.actions.options.delete.title' | translate }}
+        </button>
+      </clr-dropdown-menu>
+    </clr-dropdown>
+  </h2>
+  <athena-users-list #usersList></athena-users-list>
+</div>

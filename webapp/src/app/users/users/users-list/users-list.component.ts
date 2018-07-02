@@ -1,3 +1,7 @@
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
+
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
@@ -107,9 +111,8 @@ export class UsersListComponent implements OnInit {
       email: this.editUserForm.value.email,
       persona: this.editUserForm.value.persona,
       createdOn: this.user.createdOn,
-      updatedOn: date.getDate()
+      updatedOn: date.getTime()
     };
-
     this.openModalForm = false;
     this.usersService.editUser(editUser);
     this.grid.clearSelection();

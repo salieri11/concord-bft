@@ -8,7 +8,7 @@ import { Subscription } from 'rxjs';
 
 import { AuthenticationService } from '../../shared/authentication.service';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
-import { Personas, PersonaService } from '../../shared/persona.service';
+import { personaOptions, Personas, PersonaService } from '../../shared/persona.service';
 
 @Component({
   selector: 'athena-main',
@@ -24,13 +24,7 @@ export class MainComponent implements OnDestroy {
   personas = Personas;
 
 
-  personaOptions: Array<{ name ?: string; value: Personas; }> = [
-    { value: Personas.SystemsAdmin, name: 'personas.systemsAdmin' },
-    { value: Personas.ConsortiumAdmin, name: 'personas.consortiumAdmin' },
-    { value: Personas.OrgAdmin, name: 'personas.orgAdmin' },
-    { value: Personas.OrgDeveloper, name: 'personas.orgDeveloper' },
-    { value: Personas.OrgUser, name: 'personas.orgUser' }
-  ];
+  personaOptions = personaOptions;
 
   constructor(
     private authenticationService: AuthenticationService,

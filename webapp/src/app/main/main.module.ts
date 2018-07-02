@@ -23,6 +23,7 @@ import { RequestInterceptor } from '../app-interceptors';
 import { SharedModule } from '../shared/shared.module';
 import { MainRoutingModule } from './main/main-routing.module';
 import { SmartContractsModule } from '../smart-contracts/smart-contracts.module';
+import { UsersModule } from '../users/users.module';
 
 
 @NgModule({
@@ -42,7 +43,8 @@ import { SmartContractsModule } from '../smart-contracts/smart-contracts.module'
     ConsortiumManagementModule,
     KubernetesManagementModule,
     SmartContractsModule,
-    ChannelsModule
+    ChannelsModule,
+    UsersModule
   ],
   declarations: [MainComponent],
   providers: [
