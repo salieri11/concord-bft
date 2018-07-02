@@ -13,7 +13,6 @@ import { BlockListingBlock } from '../../shared/remote-interfaces';
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit {
-
   blocks: BlockListingBlock[];
   blockTransactions: any[] = [];
   recentTransactions: any[] = [];

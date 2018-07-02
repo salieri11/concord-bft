@@ -21,6 +21,7 @@ import { Blockchain } from './shared/blockchains.model';
 import { BlockchainsService } from './shared/blockchains.service';
 import { KubernetesService } from '../kubernetes/shared/kubernetes.service';
 import { OrgService } from '../orgs/shared/org.service';
+import { Personas } from '../shared/persona.service';
 
 @Component({
   selector: 'athena-blockchains',
@@ -28,6 +29,7 @@ import { OrgService } from '../orgs/shared/org.service';
   styleUrls: ['./blockchains.component.scss']
 })
 export class BlockchainsComponent implements OnInit {
+  static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   @ViewChild('grid') grid: GridComponent;
   openModalForm = false;
   modalTitle = '';

@@ -11,11 +11,11 @@ import { FormsModule } from '@angular/forms';  // <-- #1 import module
 import { ClarityModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
 import { HttpClientModule } from '@angular/common/http';
-import { GridModule } from '../grid/grid.module';
+import { RouterModule } from '@angular/router';
+
 import { OrgsModule } from '../orgs/orgs.module';
 import { ChannelsModule } from '../channels/channels.module';
-import { BlockchainsRoutingModule } from './blockchains-routing.module';
-
+import { GridModule } from '../grid/grid.module';
 import { BlockchainsComponent } from './blockchains.component';
 import { BlockchainsService } from './shared/blockchains.service';
 import { KubernetesService } from '../kubernetes/shared/kubernetes.service';
@@ -34,7 +34,7 @@ import { BlockchainComponent } from './blockchain/blockchain.component';
     OrgsModule,
     ChannelsModule,
     TranslateModule,
-    BlockchainsRoutingModule,
+    RouterModule
   ],
   declarations: [
     BlockchainsComponent,

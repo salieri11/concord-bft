@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 
 import { OrgListComponent } from './org-list/org-list.component';
+import { Personas } from '../shared/persona.service';
 
 
 @Component({
@@ -17,6 +18,7 @@ import { OrgListComponent } from './org-list/org-list.component';
   styleUrls: ['./orgs.component.scss']
 })
 export class OrgsComponent implements OnInit {
+  static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   @ViewChild('orgList') orgList: OrgListComponent;
 
   constructor() {}
