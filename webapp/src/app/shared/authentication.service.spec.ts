@@ -5,7 +5,7 @@
 import { TestBed, inject } from '@angular/core/testing';
 
 import { AuthenticationService } from './authentication.service';
-import { PersonaService } from './persona.service';
+import { Personas, PersonaService } from './persona.service';
 
 describe('AuthenticationService', () => {
   beforeEach(() => {
@@ -23,7 +23,7 @@ describe('AuthenticationService', () => {
   }));
 
   it('should broadcast an email after log in', inject([AuthenticationService], function(service: AuthenticationService) {
-    service.logIn('test@vmware.com', 'asdfasdf', 'systems_admin');
+    service.logIn('test@vmware.com', 'asdfasdf', Personas.SystemsAdmin);
     const subscription = service.user.subscribe(user => {
       expect(user.email).toEqual('test@vmware.com');
     });

@@ -57,3 +57,5 @@ priv/www/assets/*
 .cache-main
 .scala_dependencies
 .worksheet
+
+.idea
