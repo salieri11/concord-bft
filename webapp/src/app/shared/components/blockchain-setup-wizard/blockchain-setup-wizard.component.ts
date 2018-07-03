@@ -32,9 +32,7 @@ export class BlockchainSetupWizardComponent implements OnInit {
     {value: 'aws-australia', displayValue: 'AWS Australia'}
   ];
 
-  constructor() { }
-
-  ngOnInit() {
+  constructor() {
     this.form = new FormGroup({
       blockchain: new FormGroup({
         type: new FormControl('')
@@ -63,12 +61,14 @@ export class BlockchainSetupWizardComponent implements OnInit {
       }),
       advancedSettings: new FormGroup({
         networkName: new FormControl(''),
-        numberOfNodes: new FormControl(10),
+        numberOfNodes: new FormControl(),
         publicNodesRegions: new FormControl(''),
         privateNode: new FormControl('')
       })
     });
   }
+
+  ngOnInit() {}
 
   open() {
     this.isOpen = true;
