@@ -10,13 +10,13 @@ import { User, UserResponse } from './user.model';
 import { HttpClient } from '@angular/common/http';
 import { GridListResponse } from '../../grid/shared/grid.model';
 import { map } from 'rxjs/operators';
-import { ANDES_API_PREFIX } from "../../shared/shared.config";
-import { AndesApi } from "../../shared/andes-api";
+import { ANDES_API_PREFIX } from '../../shared/shared.config';
+import { AndesApi } from '../../shared/andes-api';
 
 @Injectable({
   providedIn: 'root'
 })
-export class UsersService extends AndesApi{
+export class UsersService extends AndesApi {
 
   constructor(private http: HttpClient, @Inject(ANDES_API_PREFIX) andesApiPrefix: string) {
     super(andesApiPrefix);

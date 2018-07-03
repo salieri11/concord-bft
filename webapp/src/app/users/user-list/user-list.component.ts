@@ -56,7 +56,7 @@ export class UserListComponent implements OnInit {
       id: 'organization',
       name: grid.columns.organization.title,
       type: 'string'
-    },{
+    }, {
       id: 'persona',
       name: grid.columns.persona.title,
       type: 'string'

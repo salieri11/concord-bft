@@ -5,14 +5,14 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { UserListComponent } from './user-list.component';
-import { TranslateLoader, TranslateModule, TranslateService } from "@ngx-translate/core";
-import { UsersService } from "../shared/users.service";
-import { MockSharedModule } from "../../shared/shared.module";
-import { ActivatedRoute } from "@angular/router";
-import { HttpClient } from "@angular/common/http";
-import { GridModule } from "../../grid/grid.module";
-import { HttpClientTestingModule } from "@angular/common/http/testing";
-import { HttpLoaderFactory } from "../user/user.component.spec";
+import { TranslateLoader, TranslateModule, TranslateService } from '@ngx-translate/core';
+import { UsersService } from '../shared/users.service';
+import { MockSharedModule } from '../../shared/shared.module';
+import { ActivatedRoute } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { GridModule } from '../../grid/grid.module';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { HttpLoaderFactory } from '../user/user.component.spec';
 
 describe('UserListComponent', () => {
   let component: UserListComponent;

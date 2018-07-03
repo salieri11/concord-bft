@@ -7,7 +7,7 @@ import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import { AuthenticationService } from '../../shared/authentication.service';
-import { PersonaService } from "../../shared/persona.service";
+import { PersonaService } from '../../shared/persona.service';
 
 @Component({
   selector: 'athena-log-in-container',

@@ -3,9 +3,10 @@
  */
 
 import { TestBed, inject } from '@angular/core/testing';
-import { HttpClientTestingModule } from "@angular/common/http/testing";
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { UsersService } from './users.service';
+import { ANDES_API_PREFIX } from "../../shared/shared.config";
 
 describe('UsersService', () => {
   beforeEach(() => {
@@ -13,7 +14,10 @@ describe('UsersService', () => {
       imports: [
         HttpClientTestingModule
       ],
-      providers: [UsersService]
+      providers: [
+        UsersService,
+        {provide: ANDES_API_PREFIX, useValue: '/api'},
+      ]
     });
   });
 
