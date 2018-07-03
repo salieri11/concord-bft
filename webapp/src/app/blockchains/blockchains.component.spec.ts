@@ -15,8 +15,8 @@ import { MockSharedModule } from '../shared/shared.module';
 import { BlockchainsService } from './shared/blockchains.service';
 import { KubernetesService } from '../kubernetes/shared/kubernetes.service';
 import { OrgService } from '../orgs/shared/org.service';
-import { BlockchainsListComponent } from "./blockchains-list/blockchains-list.component";
-import { BlockchainFormComponent } from "./blockchain-form/blockchain-form.component";
+import { BlockchainsListComponent } from './blockchains-list/blockchains-list.component';
+import { BlockchainFormComponent } from './blockchain-form/blockchain-form.component';
 
 describe('BlockchainsComponent', () => {
   let component: BlockchainsComponent;

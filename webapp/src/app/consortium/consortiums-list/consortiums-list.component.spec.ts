@@ -3,14 +3,17 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { TranslateLoader, TranslateModule } from "@ngx-translate/core";
-import { HttpClient } from "@angular/common/http";
-import { HttpClientTestingModule } from "@angular/common/http/testing";
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { ConsortiumsListComponent } from './consortiums-list.component';
-import { GridModule } from "../../grid/grid.module";
-import { HttpLoaderFactory } from "../../kubernetes/kubernetes.component.spec";
-import { ConsortiumService } from "../shared/consortium.service";
+import { GridModule } from '../../grid/grid.module';
+import { ConsortiumService } from '../shared/consortium.service';
+import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
+import { HttpClient } from '@angular/common/http';
+import { HttpLoaderFactory } from '../../app.module';
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { MockSharedModule } from '../../shared/shared.module';
 
 describe('ConsortiumsListComponent', () => {
   let component: ConsortiumsListComponent;
@@ -29,10 +32,19 @@ describe('ConsortiumsListComponent', () => {
           }
         })
       ],
-      declarations: [ ConsortiumsListComponent ],
-      providers: [ ConsortiumService ]
+      declarations: [ConsortiumsListComponent],
+      providers: [ConsortiumService]
     })
-    .compileComponents();
+      .overrideModule(GridModule, {
+        set: {
+          imports: [
+            FormsModule,
+            MockSharedModule,
+            RouterModule
+          ],
+        }
+      })
+      .compileComponents();
   }));
 
   beforeEach(() => {

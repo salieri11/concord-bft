@@ -3,15 +3,15 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { RouterTestingModule } from "@angular/router/testing";
-import { HttpClientTestingModule } from "@angular/common/http/testing";
+import { RouterTestingModule } from '@angular/router/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { BlockchainFormComponent } from './blockchain-form.component';
-import { KubernetesService } from "../../kubernetes/shared/kubernetes.service";
-import { BlockchainsService } from "../shared/blockchains.service";
-import { OrgService } from "../../orgs/shared/org.service";
-import { MockSharedModule } from "../../shared/shared.module";
-import { ErrorAlertService } from "../../shared/global-error-handler.service";
+import { KubernetesService } from '../../kubernetes/shared/kubernetes.service';
+import { BlockchainsService } from '../shared/blockchains.service';
+import { MockSharedModule } from '../../shared/shared.module';
+import { ErrorAlertService } from '../../shared/global-error-handler.service';
+import { OrgService } from '../../orgs/shared/org.service';
 
 describe('BlockchainFormComponent', () => {
   let component: BlockchainFormComponent;

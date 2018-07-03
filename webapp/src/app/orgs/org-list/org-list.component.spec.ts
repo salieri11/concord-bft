@@ -3,15 +3,14 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { HttpClient } from '@angular/common/http';
-import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
-import { TranslateHttpLoader } from '@ngx-translate/http-loader';
-import { HttpClientTestingModule } from "@angular/common/http/testing";
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { GridModule } from '../../grid/grid.module';
 import { OrgListComponent } from './org-list.component';
 import { OrgService } from '../shared/org.service';
 import { MockSharedModule } from '../../shared/shared.module';
+import { ActivatedRoute, RouterModule } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 
 describe('OrgListComponent', () => {
   let component: OrgListComponent;
@@ -21,15 +20,12 @@ describe('OrgListComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         MockSharedModule,
-        BrowserAnimationsModule,
-        BrowserModule,
         HttpClientTestingModule,
-        FormsModule,
         GridModule
       ],
       declarations: [OrgListComponent],
       providers: [
-        OrgsService,
+        OrgService,
         {
           provide: ActivatedRoute,
           useValue: {

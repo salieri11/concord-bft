@@ -3,12 +3,12 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule } from "@angular/common/http/testing";
-import { RouterTestingModule } from "@angular/router/testing";
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { RouterTestingModule } from '@angular/router/testing';
 
 import { KubernetesFormComponent } from './kubernetes-form.component';
-import { MockSharedModule } from "../../shared/shared.module";
-import { KubernetesService } from "../shared/kubernetes.service";
+import { MockSharedModule } from '../../shared/shared.module';
+import { KubernetesService } from '../shared/kubernetes.service';
 
 describe('KubernetesFormComponent', () => {
   let component: KubernetesFormComponent;

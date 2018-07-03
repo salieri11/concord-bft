@@ -10,12 +10,11 @@ import { HttpClientModule } from '@angular/common/http';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 
 import { GridModule } from '../grid/grid.module';
-import { OrgManagementComponent } from './org-management.component';
 import { OrgListComponent } from './org-list/org-list.component';
 import { OrgService } from './shared/org.service';
-import { MockSharedModule } from "../shared/shared.module";
-import { OrgFormComponent } from "./org-form/org-form.component";
+import { OrgFormComponent } from './org-form/org-form.component';
 import { MockSharedModule } from '../shared/shared.module';
+import { OrgsComponent } from './orgs.component';
 
 describe('OrgsComponent', () => {
   let component: OrgsComponent;

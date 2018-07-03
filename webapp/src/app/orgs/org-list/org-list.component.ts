@@ -41,8 +41,7 @@ export class OrgListComponent implements OnInit {
       return this.orgService.getList(params, this.url);
     };
 
-    translate.get('organization.grid')
-      .subscribe(grid => this.handleGrid(grid));
+    this.handleGrid();
   }
 
   ngOnInit() {
@@ -52,26 +51,24 @@ export class OrgListComponent implements OnInit {
     this.selected.emit(rows);
   }
 
-  private handleGrid(grid: any): void {
-    console.log('grid');
-    console.log(grid);
-    this.gridOptions.paginationTitle = grid.pagination.title;
+  private handleGrid(): void {
+    this.gridOptions.paginationTitle = this.translate.instant('organization.grid.pagination.title');
 
     this.gridOptions.columns = [{
       id: 'name',
-      name: grid.columns.name.title,
+      name: this.translate.instant('organization.grid.columns.name.title'),
       type: 'string'
     }, {
       id: 'domain',
-      name: grid.columns.domain.title,
+      name: this.translate.instant('organization.grid.columns.domain.title'),
       type: 'string'
     }, {
       id: 'type',
-      name: grid.columns.type.title,
+      name: this.translate.instant('organization.grid.columns.type.title'),
       type: 'string'
     }, {
       id: 'createdOn',
-      name: grid.columns.created.title,
+      name: this.translate.instant('organization.grid.columns.created.title'),
       type: 'date'
     }];
   }

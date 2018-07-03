@@ -17,8 +17,6 @@ import { OrgsModule } from '../orgs/orgs.module';
 import { ChannelsModule } from '../channels/channels.module';
 import { GridModule } from '../grid/grid.module';
 import { BlockchainsComponent } from './blockchains.component';
-import { BlockchainsService } from './shared/blockchains.service';
-import { KubernetesService } from '../kubernetes/shared/kubernetes.service';
 import { BlockchainComponent } from './blockchain/blockchain.component';
 import { BlockchainsListComponent } from './blockchains-list/blockchains-list.component';
 import { BlockchainFormComponent } from './blockchain-form/blockchain-form.component';

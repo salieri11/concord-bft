@@ -3,14 +3,17 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule } from "@angular/common/http/testing";
-import { TranslateLoader, TranslateModule } from "@ngx-translate/core";
-import { HttpClient } from "@angular/common/http";
-import { HttpLoaderFactory } from "../blockchain/blockchain.component.spec";
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
-import { BlockchainsService } from "../shared/blockchains.service";
+import { BlockchainsService } from '../shared/blockchains.service';
 import { BlockchainsListComponent } from './blockchains-list.component';
-import { GridModule } from "../../grid/grid.module";
+import { GridModule } from '../../grid/grid.module';
+import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
+import { HttpClient } from '@angular/common/http';
+import { HttpLoaderFactory } from '../../app.module';
+import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+import { MockSharedModule } from '../../shared/shared.module';
 
 describe('BlockchainsListComponent', () => {
   let component: BlockchainsListComponent;
@@ -35,6 +38,15 @@ describe('BlockchainsListComponent', () => {
 
       ]
     })
+      .overrideModule(GridModule, {
+        set: {
+          imports: [
+            FormsModule,
+            MockSharedModule,
+            RouterModule
+          ],
+        }
+      })
       .compileComponents();
   }));
 

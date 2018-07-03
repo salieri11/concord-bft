@@ -42,9 +42,7 @@ export class BlockchainFormComponent implements OnInit {
     private kubeService: KubernetesService,
     private fb: FormBuilder,
     private route: ActivatedRoute
-  ) {
-
-  }
+  ) { }
 
   ngOnInit() {
     this.route.fragment.subscribe(fragment => {
@@ -161,7 +159,5 @@ export class BlockchainFormComponent implements OnInit {
     this.openModalForm = true;
 
   }
-
-
 
 }

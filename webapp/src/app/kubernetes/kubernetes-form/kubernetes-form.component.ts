@@ -48,7 +48,6 @@ export class KubernetesFormComponent implements OnInit {
     private route: ActivatedRoute
   ) {
 
-    this.handleGrid();
     this.translate.get('kubernetes.addKubeForm.inputs.credentialType.options')
       .subscribe(options => this.handleCredentialTypes(options));
   }

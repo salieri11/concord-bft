@@ -15,7 +15,7 @@ import { ANDES_API_PREFIX } from '../../shared/shared.config';
 @Injectable({
   providedIn: 'root'
 })
-export class OrService extends AndesApi {
+export class OrgService extends AndesApi {
 
   constructor(private http: HttpClient, @Inject(ANDES_API_PREFIX) andesApiPrefix: string) {
     super(andesApiPrefix);

@@ -10,9 +10,11 @@ import { HttpClientModule } from '@angular/common/http';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 
 import { GridModule } from '../grid/grid.module';
-import { KubernetesManagementComponent } from './kubernetes-management.component';
 import { KubernetesService } from './shared/kubernetes.service';
 import { MockSharedModule } from '../shared/shared.module';
+import { KubernetesComponent } from './kubernetes.component';
+import { KubernetesListComponent } from './kubernetes-list/kubernetes-list.component';
+import { KubernetesFormComponent } from './kubernetes-form/kubernetes-form.component';
 
 describe('KubernetesComponent', () => {
   let component: KubernetesComponent;

@@ -27,12 +27,12 @@ export class ConsortiumFormComponent implements OnInit {
   modalSize = 'md';
 
   addConsortiumForm: FormGroup;
+  deleteConsortiumForm: FormGroup;
 
   get credentialType(): any {
     return this.addConsortiumForm.get('credentialType');
   }
 
-  deleteConsortiumForm: FormGroup;
   credentialOptions: Array<{ name?: string; value: string }> = [
     { value: 'userAuth' },
     { value: 'certificate' },
@@ -44,15 +44,7 @@ export class ConsortiumFormComponent implements OnInit {
     private changeDetectorRef: ChangeDetectorRef,
     private fb: FormBuilder,
     private translate: TranslateService
-  ) {
-
-    this.gridOptions.getData = () => {
-      return this.consortiumService.getFakeData();
-      // return this.consortiumService.getList(params);
-    };
-
-    this.handleGrid();
-  }
+  ) { }
 
   ngOnInit() {
   }

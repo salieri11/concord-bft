@@ -10,9 +10,11 @@ import { FormsModule } from '@angular/forms';  // <-- #1 import module
 import { HttpClientModule } from '@angular/common/http';
 
 import { GridModule } from '../grid/grid.module';
-import { ConsortiumManagementComponent } from './consortium-management.component';
 import { ConsortiumService } from './shared/consortium.service';
 import { MockSharedModule } from '../shared/shared.module';
+import { ConsortiumComponent } from './consortium.component';
+import { ConsortiumsListComponent } from './consortiums-list/consortiums-list.component';
+import { ConsortiumFormComponent } from './consortium-form/consortium-form.component';
 
 describe('ConsortiumComponent', () => {
   let component: ConsortiumComponent;

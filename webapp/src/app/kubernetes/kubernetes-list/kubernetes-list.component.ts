@@ -32,8 +32,7 @@ export class KubernetesListComponent implements OnInit {
       return this.kubeService.getList(params);
     };
 
-    this.translate.get('kubernetes.grid')
-      .subscribe(grid => this.handleGrid(grid));
+    this.handleGrid();
   }
 
   ngOnInit() {
@@ -43,52 +42,52 @@ export class KubernetesListComponent implements OnInit {
     this.selected.emit(rows);
   }
 
-  private handleGrid(grid: any): void {
-    this.gridOptions.paginationTitle = grid.pagination.title;
+  private handleGrid(): void {
+    this.gridOptions.paginationTitle = this.translate.instant('kubernetes.grid.pagination.title');
     this.gridOptions.columns = [{
       id: 'name',
-      name: grid.columns.name.title,
+      name: this.translate.instant('kubernetes.grid.columns.name.title'),
       type: 'string'
     }, {
       id: 'apiServerUrl',
-      name: grid.columns.apiServerUrl.title,
+      name: this.translate.instant('kubernetes.grid.columns.apiServerUrl.title'),
       type: 'externalLink',
       genLink: (row: Kubernetes) => {
         return `http://${row.apiServerUrl}`;
       }
     }, {
       id: 'kubectlCliUrl',
-      name: grid.columns.kubectlCliUrl.title,
+      name: this.translate.instant('kubernetes.grid.columns.kubectlCliUrl.title'),
       type: 'externalLink',
       genLink: (row: Kubernetes) => {
         return row.kubectlCliUrl;
       }
     }, {
       id: 'helmCliUrl',
-      name: grid.columns.helmCliUrl.title,
+      name: this.translate.instant('kubernetes.grid.columns.helmCliUrl.title'),
       type: 'externalLink',
       genLink: (row: Kubernetes) => {
         return row.helmCliUrl;
       }
     }, {
       id: 'ca',
-      name: grid.columns.ca.title,
+      name: this.translate.instant('kubernetes.grid.columns.ca.title'),
       type: 'string'
     }, {
       id: 'credentialType',
-      name: grid.columns.credentialType.title,
+      name: this.translate.instant('kubernetes.grid.columns.credentialType.title'),
       type: 'string'
     }, {
       id: 'insecure',
-      name: grid.columns.insecure.title,
+      name: this.translate.instant('kubernetes.grid.columns.insecure.title'),
       type: 'string'
     }, {
       id: 'createdOn',
-      name: grid.columns.created.title,
+      name: this.translate.instant('kubernetes.grid.columns.created.title'),
       type: 'date'
     }, {
       id: 'updatedOn',
-      name: grid.columns.updated.title,
+      name: this.translate.instant('kubernetes.grid.columns.updated.title'),
       type: 'date'
     }];
   }

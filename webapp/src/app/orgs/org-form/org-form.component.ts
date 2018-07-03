@@ -192,7 +192,6 @@ export class OrgFormComponent implements OnInit {
     }
 
     this.openModalForm = true;
-
   }
 
   private handleAdd(response): void {
