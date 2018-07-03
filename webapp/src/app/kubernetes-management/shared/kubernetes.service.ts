@@ -2,40 +2,37 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { Inject, Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 import { Kubernetes, KubernetesResponse } from './kubernetes.model';
 import { GridListResponse } from '../../grid/shared/grid.model';
+import { AndesApi } from '../../shared/andes-api';
+import { ANDES_API_PREFIX } from '../../shared/shared.config';
 
-@Injectable()
-export class KubernetesService {
-  kubeUrl = '/api/k8sclusters';
-  headers: HttpHeaders = new HttpHeaders({
-    'Content-Type':  'application/json',
-    // 'Authorization': 'my-auth-token'
-  });
+@Injectable({
+  providedIn: 'root'
+})
+export class KubernetesService extends AndesApi {
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, @Inject(ANDES_API_PREFIX) andesApiPrefix: string) {
+    super(andesApiPrefix);
+  }
+
+  get apiSubPath() {
+    return 'k8sclusters';
+  }
 
   getList(params?: any): Observable<GridListResponse> {
     const options = {headers: this.headers};
 
     if (params) {
-      let httpParams = new HttpParams();
-
-      for (const prop in params) {
-        if (params[prop]) {
-          httpParams = httpParams.set(prop, params[prop]);
-        }
-      }
-
-      options['params'] = httpParams;
+      options['params'] = this.buildHttpParams(params);
     }
 
-    return this.http.get<KubernetesResponse>(this.kubeUrl, options).pipe(
+    return this.http.get<KubernetesResponse>(this.resourcePath(), options).pipe(
       map(response => this.handleResponse(response)));
   }
 
@@ -65,11 +62,11 @@ export class KubernetesService {
   }
 
   create(org: Kubernetes): Observable<any> {
-    return this.http.post<Kubernetes>(this.kubeUrl, org, {headers: this.headers});
+    return this.http.post<Kubernetes>(this.resourcePath(), org, {headers: this.headers});
   }
 
   delete(id: number): Observable<any> {
-    const url = `${this.kubeUrl}/${id}`;
+    const url = this.resourcePath(id);
     return this.http.delete(url, {headers: this.headers});
   }
 
@@ -110,4 +107,5 @@ export class KubernetesService {
       observer.complete();
     });
   }
+
 }

@@ -45,6 +45,16 @@
   }
 }
 
+.clr-vertical-nav {
+  label.nav-header {
+    color: $white;
+    line-height: 1.5rem;
+  }
+  .nav-divider {
+    border: 1px solid $offWhite;
+  }
+}
+
 // Add right border to active link, force white nav icon
 .clr-vertical-nav.has-icons {
   .nav-link.active,

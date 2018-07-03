@@ -44,7 +44,7 @@
                 </label>
                 <div class="select">
                   <select formControlName="credentialType" id="credentialType">
-                    <option *ngFor="let cred of credentialOptions" [value]="cred.value">{{ cred.name }}</option>
+                    <option *ngFor="let cred of credentialOptions" [value]="cred.value">{{ cred.name | translate }}</option>
                   </select>
                 </div>
               </div>

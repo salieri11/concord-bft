@@ -14,7 +14,6 @@ import { TranslateModule } from '@ngx-translate/core';
 import { ClarityModule } from '@clr/angular';
 
 import { GridModule } from '../grid/grid.module';
-import { ConsortiumService } from './shared/consortium.service';
 import { ConsortiumManagementComponent } from './consortium-management.component';
 
 @NgModule({
@@ -29,9 +28,6 @@ import { ConsortiumManagementComponent } from './consortium-management.component
     GridModule,
     TranslateModule
   ],
-  declarations: [ConsortiumManagementComponent],
-  providers: [
-    ConsortiumService
-  ]
+  declarations: [ConsortiumManagementComponent]
 })
 export class ConsortiumManagementModule { }

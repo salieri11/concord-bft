@@ -4,8 +4,8 @@
 
 import { Component, Input, OnInit } from '@angular/core';
 
-import { Block } from '../../shared/remote-interfaces';
-import { AthenaApiService } from '../../shared/athena-api.service';
+import { Block } from '../shared/blocks.model';
+import { BlocksService } from '../shared/blocks.service';
 
 @Component({
   selector: 'athena-block-details',
@@ -17,7 +17,7 @@ export class BlockDetailsComponent implements OnInit {
 
   block: Block;
 
-  constructor(private athenaApiService: AthenaApiService) {
+  constructor(private blocksService: BlocksService) {
   }
 
   ngOnInit() {
@@ -25,7 +25,7 @@ export class BlockDetailsComponent implements OnInit {
   }
 
   loadBlock(blockNumber: number) {
-    this.athenaApiService.getBlock(blockNumber).subscribe(response => {
+    this.blocksService.getBlock(blockNumber).subscribe(response => {
       this.block = response;
     });
   }
