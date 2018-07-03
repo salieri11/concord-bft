@@ -4,7 +4,7 @@
     <strong>{{nodeProperties.location}}</strong>
     <div *ngFor="let node of nodeProperties.nodes">
       <a [routerLink]="['/nodes', node.id]">
-        <small><strong>{{node.consortiumName}}</strong> - {{ node.blockchainType }} - {{ node.status | uppercase }}</small></a>
+        <small><strong>{{node.consortiumName}}</strong> - {{ node.blockchainType }} - {{ node.status }}</small></a>
     </div>
   </div>
 </div>
