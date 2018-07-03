@@ -4,17 +4,19 @@
 
 import { Routes } from '@angular/router';
 
-import { BlockDetailContainerComponent } from './block-detail-container/block-detail-container.component';
-import { BlocksContainerComponent } from './blocks-container/blocks-container.component';
-import { TransactionDetailContainerComponent } from '../transactions/transaction-detail-container/transaction-detail-container.component';
+import { BlocksListComponent } from './blocks-list/blocks-list.component';
+import { BlockComponent } from './block/block.component';
+import { TransactionComponent } from '../transactions/transaction/transaction.component';
+
+
 
 export const blockRoutes: Routes = [
-  { path: '', component: BlocksContainerComponent },
+  { path: '', component: BlocksListComponent },
   {
     path: ':blockNumber',
-    component: BlockDetailContainerComponent,
+    component: BlockComponent,
   },
   {
-    path: ':blockNumber/transactions/:transactionHash', component: TransactionDetailContainerComponent
+    path: ':blockNumber/transactions/:transactionHash', component: TransactionComponent
   }
 ];

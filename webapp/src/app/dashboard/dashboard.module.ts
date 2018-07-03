@@ -5,9 +5,6 @@
 import { NgModule } from '@angular/core';
 
 import { SharedModule } from '../shared/shared.module';
-
-import { AuthenticatedGuard } from '../shared/authenticated-guard.service';
-
 import { TransactionsModule } from '../transactions/transactions.module';
 import { DashboardComponent } from './dashboard-container/dashboard.component';
 

@@ -7,18 +7,19 @@
         <clr-icon shape="caret down"></clr-icon>
       </button>
       <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
-        <button type="button" (click)="orgList.openAddOrg()" clrDropdownItem>
+        <button type="button" (click)="orgForm.openAddOrg()" clrDropdownItem>
           {{ 'organization.actions.options.add.title' | translate }}
         </button>
-        <button type="button" (click)="orgList.openImportForm()" clrDropdownItem>
+        <button type="button" (click)="orgForm.openImportForm()" clrDropdownItem>
           {{ 'organization.actions.options.import.title' | translate }}
         </button>
-        <button type="button" [disabled]="orgList.selectedRows.length === 0" (click)="orgList.confirmDeleteOrg()" clrDropdownItem>
+        <button type="button" [disabled]="selected.length === 0" (click)="orgForm.confirmDeleteOrg()" clrDropdownItem>
           {{ 'organization.actions.options.delete.title' | translate }}
         </button>
       </clr-dropdown-menu>
     </clr-dropdown>
   </h2>
 
-  <athena-org-list #orgList></athena-org-list>
+  <athena-org-list #orgList (selected)="orgsSelectionChange($event)"></athena-org-list>
+  <athena-orgs-form #orgForm [selected]="selected" (addOrganization)="addOrg($event)" (deleteOrganizations)="deleteOrg()"></athena-orgs-form>
 </div>

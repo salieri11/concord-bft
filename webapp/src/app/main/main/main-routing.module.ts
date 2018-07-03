@@ -12,10 +12,10 @@ import { blockRoutes } from '../../blocks/blocks-routing';
 import { nodeRoutes } from '../../nodes/nodes-routing';
 import { testingRoutes } from '../../testing/testing-routing';
 import { blockChainsRoutes } from '../../blockchains/blockchains-routing';
-import { consortiumManagementRoutes } from '../../consortium-management/consortium-management-routing';
-import { kubernetesManagementRoutes } from '../../kubernetes-management/kubernetes-management-routing';
-import { organizationRoutes } from '../../org-management/org-routing';
 import { smartContractRoutes } from '../../smart-contracts/smart-contracts-routing';
+import { consortiumRoutes } from '../../consortium/consortium-routing';
+import { kubernetesRoutes } from '../../kubernetes/kubernetes-routing';
+import { orgRoutes } from '../../orgs/orgs-routing';
 
 const routes: Routes = [
   {
@@ -30,9 +30,9 @@ const routes: Routes = [
       { path: 'smart-contracts', children: smartContractRoutes },
       { path: 'testing', children: testingRoutes },
       { path: 'blockchains', children: blockChainsRoutes },
-      { path: 'consortium', children: consortiumManagementRoutes },
-      { path: 'organization', children: organizationRoutes },
-      { path: 'kubernetes', children: kubernetesManagementRoutes }
+      { path: 'consortium', children: consortiumRoutes },
+      { path: 'organization', children: orgRoutes },
+      { path: 'kubernetes', children: kubernetesRoutes }
     ]
   }
 ];

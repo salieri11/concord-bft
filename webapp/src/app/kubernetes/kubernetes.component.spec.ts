@@ -5,21 +5,18 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { BrowserModule } from '@angular/platform-browser';
-import { ReactiveFormsModule } from '@angular/forms';  // <-- #1 import module
-import { FormsModule } from '@angular/forms';  // <-- #1 import module
-import { HttpClientModule, HttpClient } from '@angular/common/http';
-import { ClarityModule } from '@clr/angular';
-import { CommonModule } from '@angular/common';
-import { GridModule } from '../grid/grid.module';
-
-import { ActivatedRoute } from '@angular/router';
-
-import { TranslateService } from '@ngx-translate/core';
+import { HttpClient } from '@angular/common/http';
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
+import { HttpClientTestingModule } from "@angular/common/http/testing";
+import { RouterTestingModule } from "@angular/router/testing";
 
+import { GridModule } from '../grid/grid.module';
 import { KubernetesService } from './shared/kubernetes.service';
 import { KubernetesComponent } from './kubernetes.component';
+import { MockSharedModule } from "../shared/shared.module";
+import { KubernetesListComponent } from "./kubernetes-list/kubernetes-list.component";
+import { KubernetesFormComponent } from "./kubernetes-form/kubernetes-form.component";
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './static/i18n/', '.json');
@@ -32,13 +29,11 @@ describe('KubernetesComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
-        CommonModule,
-        ClarityModule,
+        MockSharedModule,
         BrowserAnimationsModule,
         BrowserModule,
-        HttpClientModule,
-        ReactiveFormsModule,
-        FormsModule,
+        HttpClientTestingModule,
+        RouterTestingModule,
         GridModule,
         TranslateModule.forRoot({
           loader: {
@@ -48,20 +43,9 @@ describe('KubernetesComponent', () => {
           }
         })
       ],
-      declarations: [ KubernetesComponent ],
+      declarations: [ KubernetesComponent, KubernetesListComponent, KubernetesFormComponent ],
       providers: [
-        KubernetesService,
-        TranslateService,
-        {
-          provide: ActivatedRoute,
-          useValue: {
-            fragment: {
-              subscribe: (fn: (value) => void) => fn(
-                'add'
-              ),
-            }
-          },
-        }
+        KubernetesService
       ]
     })
     .compileComponents();

@@ -8,13 +8,10 @@ import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 
 import { MainComponent } from './main/main.component';
 import { BlocksModule } from '../blocks/blocks.module';
-import { OrgManagementModule } from '../org-management/org-management.module';
 import { BlockchainsModule } from '../blockchains/blockchains.module';
 import { ChannelsModule } from '../channels/channels.module';
-import { ConsortiumManagementModule } from '../consortium-management/consortium-management.module';
 import { NodesModule } from '../nodes/nodes.module';
 import { TransactionsModule } from '../transactions/transactions.module';
-import { KubernetesManagementModule } from '../kubernetes-management/kubernetes-management.module';
 import { DashboardModule } from '../dashboard/dashboard.module';
 import { TestingModule } from '../testing/testing.module';
 import { AuthenticationModule } from '../authentication/authentication.module';
@@ -23,6 +20,9 @@ import { RequestInterceptor } from '../app-interceptors';
 import { SharedModule } from '../shared/shared.module';
 import { MainRoutingModule } from './main/main-routing.module';
 import { SmartContractsModule } from '../smart-contracts/smart-contracts.module';
+import { OrgsModule } from '../orgs/orgs.module';
+import { ConsortiumModule } from '../consortium/consortium.module';
+import { KubernetesModule } from '../kubernetes/kubernetes.module';
 
 
 @NgModule({
@@ -37,10 +37,10 @@ import { SmartContractsModule } from '../smart-contracts/smart-contracts.module'
     BlocksModule,
     TransactionsModule,
     TestingModule,
-    OrgManagementModule,
+    OrgsModule,
     BlockchainsModule,
-    ConsortiumManagementModule,
-    KubernetesManagementModule,
+    ConsortiumModule,
+    KubernetesModule,
     SmartContractsModule,
     ChannelsModule
   ],

@@ -16,6 +16,8 @@ import { ClarityModule } from '@clr/angular';
 import { GridModule } from '../grid/grid.module';
 import { KubernetesService } from './shared/kubernetes.service';
 import { KubernetesComponent } from './kubernetes.component';
+import { KubernetesListComponent } from './kubernetes-list/kubernetes-list.component';
+import { KubernetesFormComponent } from './kubernetes-form/kubernetes-form.component';
 
 @NgModule({
   imports: [
@@ -29,7 +31,7 @@ import { KubernetesComponent } from './kubernetes.component';
     GridModule,
     TranslateModule
   ],
-  declarations: [KubernetesComponent],
+  declarations: [KubernetesComponent, KubernetesListComponent, KubernetesFormComponent],
   providers: [
     KubernetesService
   ]

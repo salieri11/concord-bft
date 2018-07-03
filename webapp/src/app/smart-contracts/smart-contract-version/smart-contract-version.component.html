@@ -40,8 +40,8 @@
           <label class="required">{{'smartContracts.version.from' | translate}}</label>
           <input type="text" formControlName="from" required>
         </div>
-        <app-smart-contracts-solidity-function-inputs [formGroup]="versionForm.get('contractForm.functionInputs')"
-                                                      [functionInputs]="inputs"></app-smart-contracts-solidity-function-inputs>
+        <athena-smart-contracts-solidity-function-inputs [formGroup]="versionForm.get('contractForm.functionInputs')"
+                                                      [functionInputs]="inputs"></athena-smart-contracts-solidity-function-inputs>
       </div>
     </div>
     <div class="col-sm-6 col-xs-12">

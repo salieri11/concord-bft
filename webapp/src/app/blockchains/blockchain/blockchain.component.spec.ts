@@ -1,30 +1,23 @@
 /*
  * Copyright 2018 VMware, all rights reserved.
  */
+
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { CommonModule } from '@angular/common';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { BrowserModule } from '@angular/platform-browser';
-import { ReactiveFormsModule } from '@angular/forms';  // <-- #1 import module
-import { FormsModule } from '@angular/forms';  // <-- #1 import module
-import { ClarityModule } from '@clr/angular';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
-import { GridModule } from '../../grid/grid.module';
-
 import { ActivatedRoute } from '@angular/router';
-
-import { BlockchainComponent } from './blockchain.component';
-import { OrgListComponent } from '../../orgs/org-list/org-list.component';
-
 import { TranslateService } from '@ngx-translate/core';
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 
+import { ClarityModule } from '@clr/angular';
 
+import { BlockchainComponent } from './blockchain.component';
+import { OrgListComponent } from '../../orgs/org-list/org-list.component';
 import { BlockchainsService } from '../shared/blockchains.service';
-import { KubernetesService } from '../../kubernetes/shared/kubernetes.service';
-import { OrgService } from '../../orgs/shared/org.service';
-
+import { GridModule } from "../../grid/grid.module";
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './static/i18n/', '.json');
 }
@@ -41,8 +34,6 @@ describe('BlockchainComponent', () => {
         BrowserAnimationsModule,
         BrowserModule,
         HttpClientModule,
-        ReactiveFormsModule,
-        FormsModule,
         GridModule,
         TranslateModule.forRoot({
           loader: {
@@ -58,8 +49,6 @@ describe('BlockchainComponent', () => {
       ],
       providers: [
         BlockchainsService,
-        KubernetesService,
-        OrgService,
         TranslateService,
         {
         provide: ActivatedRoute,

@@ -20,6 +20,8 @@ import { BlockchainsComponent } from './blockchains.component';
 import { BlockchainsService } from './shared/blockchains.service';
 import { KubernetesService } from '../kubernetes/shared/kubernetes.service';
 import { BlockchainComponent } from './blockchain/blockchain.component';
+import { BlockchainsListComponent } from './blockchains-list/blockchains-list.component';
+import { BlockchainFormComponent } from './blockchain-form/blockchain-form.component';
 
 @NgModule({
   imports: [
@@ -39,6 +41,8 @@ import { BlockchainComponent } from './blockchain/blockchain.component';
   declarations: [
     BlockchainsComponent,
     BlockchainComponent,
+    BlockchainsListComponent,
+    BlockchainFormComponent,
   ],
   providers: [BlockchainsService, KubernetesService]
 })

@@ -6,22 +6,19 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { BrowserModule } from '@angular/platform-browser';
-import { ReactiveFormsModule } from '@angular/forms';  // <-- #1 import module
-import { FormsModule } from '@angular/forms';  // <-- #1 import module
-import { HttpClientModule, HttpClient } from '@angular/common/http';
-import { ClarityModule } from '@clr/angular';
-import { CommonModule } from '@angular/common';
-import { GridModule } from '../grid/grid.module';
-
+import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
-
 import { TranslateService } from '@ngx-translate/core';
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
+import { HttpClientTestingModule } from "@angular/common/http/testing";
 
+import { GridModule } from '../grid/grid.module';
 import { OrgsComponent } from './orgs.component';
 import { OrgListComponent } from './org-list/org-list.component';
 import { OrgService } from './shared/org.service';
+import { MockSharedModule } from "../shared/shared.module";
+import { OrgFormComponent } from "./org-form/org-form.component";
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './static/i18n/', '.json');
@@ -34,14 +31,11 @@ describe('OrgsComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
-        CommonModule,
-        ClarityModule,
+        MockSharedModule,
+        GridModule,
         BrowserAnimationsModule,
         BrowserModule,
-        HttpClientModule,
-        ReactiveFormsModule,
-        FormsModule,
-        GridModule,
+        HttpClientTestingModule,
         TranslateModule.forRoot({
           loader: {
             provide: TranslateLoader,
@@ -53,6 +47,7 @@ describe('OrgsComponent', () => {
       declarations: [
         OrgsComponent,
         OrgListComponent,
+        OrgFormComponent
       ],
       providers: [
         OrgService,
