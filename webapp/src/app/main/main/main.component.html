@@ -100,12 +100,6 @@
           {{ 'nav.sysadmin.title' | translate }}
         </label>
         <a clrVerticalNavLink
-           [routerLink]="['/users']"
-           routerLinkActive="active"
-           *athenaCanView="[personas.SystemsAdmin]">
-          <clr-icon clrVerticalNavIcon shape="administrator"></clr-icon> {{ 'nav.users.title' | translate }}
-        </a>
-        <a clrVerticalNavLink
            [routerLink]="['/blockchains']"
            routerLinkActive="active"
            *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
@@ -128,6 +122,12 @@
            routerLinkActive="active"
            *athenaCanView="personas.SystemsAdmin">
           <clr-icon clrVerticalNavIcon shape="host"></clr-icon> {{ 'nav.kubernetes.title' | translate }}
+        </a>
+        <a clrVerticalNavLink
+           [routerLink]="['/users']"
+           routerLinkActive="active"
+           *athenaCanView="[personas.SystemsAdmin]">
+          <clr-icon clrVerticalNavIcon shape="administrator"></clr-icon> {{ 'nav.users.title' | translate }}
         </a>
       </ng-container>
     </clr-vertical-nav>

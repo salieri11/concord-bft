@@ -7,7 +7,7 @@ import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import { AuthenticationService } from '../../shared/authentication.service';
-import { personaOptions } from '../../shared/persona.service';
+import { PersonaService } from "../../shared/persona.service";
 
 @Component({
   selector: 'athena-log-in-container',
@@ -18,7 +18,7 @@ export class LogInContainerComponent implements OnDestroy {
 
   readonly loginForm: FormGroup;
   private authenticationChange;
-  personaOptions = personaOptions;
+  personaOptions = PersonaService.getOptions();
 
   constructor(private authenticationService: AuthenticationService,
               private formBuilder: FormBuilder,

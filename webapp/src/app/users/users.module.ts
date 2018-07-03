@@ -9,10 +9,11 @@ import { TranslateModule } from '@ngx-translate/core';
 
 import { ClarityModule } from '@clr/angular';
 
-import { UsersComponent } from './users/users.component';
+import { UserComponent } from './user/user.component';
 import { GridModule } from '../grid/grid.module';
-import { UsersService } from './users/shared/users.service';
-import { UsersListComponent } from './users/users-list/users-list.component';
+import { UsersService } from './shared/users.service';
+import { UserListComponent } from './user-list/user-list.component';
+import { UserFormComponent } from './user-form/user-form.component';
 
 @NgModule({
   imports: [
@@ -22,7 +23,7 @@ import { UsersListComponent } from './users/users-list/users-list.component';
     TranslateModule,
     ReactiveFormsModule
   ],
-  declarations: [UsersComponent, UsersListComponent],
+  declarations: [UserComponent, UserListComponent, UserFormComponent],
   providers: [UsersService]
 })
 export class UsersModule { }

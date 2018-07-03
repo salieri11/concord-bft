@@ -6,7 +6,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 import { Personas, PersonaService } from './persona.service';
-import { User } from '../users/users/shared/user.model';
+import { User } from '../users/shared/user.model';
 
 @Injectable()
 export class AuthenticationService {

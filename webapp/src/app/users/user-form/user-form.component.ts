@@ -2,56 +2,46 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
 
-import { personaOptions, Personas } from '../../../shared/persona.service';
-import { GridOptions } from '../../../grid/shared/grid.model';
-import { UsersService } from '../shared/users.service';
-import { GridComponent } from '../../../grid/grid.component';
 import { User } from '../shared/user.model';
+import { UsersService } from '../shared/users.service';
+import { Personas, PersonaService } from '../../shared/persona.service';
 
 @Component({
-  selector: 'athena-users-list',
-  templateUrl: './users-list.component.html',
-  styleUrls: ['./users-list.component.scss']
+  selector: 'athena-user-form',
+  templateUrl: './user-form.component.html',
+  styleUrls: ['./user-form.component.scss']
 })
-export class UsersListComponent implements OnInit {
+export class UserFormComponent implements OnInit {
   static personasAllowed: Personas[] = [Personas.SystemsAdmin];
-  @ViewChild('grid') grid: GridComponent;
+  @Input('selected') selected: Array<User>;
+  @Output('createUser') createUser: EventEmitter<any> = new EventEmitter<any>();
+  @Output('deleteUsers') deleteUsers: EventEmitter<any> = new EventEmitter<any>();
+  @Output('updateUser') updateUser: EventEmitter<any> = new EventEmitter<any>();
+
   openModalForm = false;
   modalTitle = '';
   formType: string;
   modalSize = 'md';
-  gridOptions: GridOptions = new GridOptions();
-  selectedRows: Array<User>;
   user: User;
   addUserForm: FormGroup;
   editUserForm: FormGroup;
-  personaOptions = personaOptions;
+  personaOptions = PersonaService.getOptions();
 
   constructor(private translate: TranslateService, private usersService: UsersService, private fb: FormBuilder) {
-    this.gridOptions.getData = () => {
-      return this.usersService.getFakeData();
-    };
-
-    this.translate.get('users.grid').subscribe(grid => this.handleGrid(grid));
   }
 
   ngOnInit() {
   }
 
-  selectedRowChange(rows: Array<User>): void {
-    this.selectedRows = rows;
-  }
-
   deleteUser(): void {
-    this.selectedRows.forEach(user => {
-      this.usersService.deleteUser(user.id);
+    this.selected.forEach(user => {
+      this.usersService.deleteUser(user.id)
+        .subscribe(response => this.handleDeletion(response));
     });
-    this.openModalForm = false;
-    this.grid.clearSelection();
   }
 
   private createEditUserForm(): void {
@@ -61,7 +51,7 @@ export class UsersListComponent implements OnInit {
       email: ['', Validators.required],
       persona: ['', Validators.required]
     }));
-    this.user = this.selectedRows[0];
+    this.user = this.selected[0];
     this.editUserForm.patchValue(this.user);
   }
 
@@ -99,7 +89,8 @@ export class UsersListComponent implements OnInit {
     };
 
     this.openModalForm = false;
-    this.usersService.createUser(addUser);
+    this.usersService.createUser(addUser)
+      .subscribe(response => this.handleAdd(response));
   }
 
   editUser() {
@@ -114,8 +105,26 @@ export class UsersListComponent implements OnInit {
       updatedOn: date.getTime()
     };
     this.openModalForm = false;
-    this.usersService.editUser(editUser);
-    this.grid.clearSelection();
+    this.usersService.editUser(editUser)
+      .subscribe(response => this.handleEdit(response));
+  }
+
+  private handleAdd(response): void {
+    console.log('add response', response);
+    this.openModalForm = false;
+    this.createUser.emit(response);
+  }
+
+  private handleEdit(response): void {
+    console.log('add response', response);
+    this.openModalForm = false;
+    this.updateUser.emit(response);
+  }
+
+  private handleDeletion(response): void {
+    console.log('deletion response', response);
+    this.openModalForm = false;
+    this.deleteUsers.emit();
   }
 
   private openModal(type: string): void {
@@ -142,33 +151,4 @@ export class UsersListComponent implements OnInit {
     this.openModalForm = true;
   }
 
-  handleGrid(grid: any): void {
-    this.gridOptions.paginationTitle = grid.pagination.title;
-    this.gridOptions.columns = [{
-      id: 'firstName',
-      name: grid.columns.firstName.title,
-      type: 'string'
-    }, {
-      id: 'lastName',
-      name: grid.columns.lastName.title,
-      type: 'string'
-    }, {
-      id: 'email',
-      name: grid.columns.email.title,
-      type: 'string'
-    }, {
-      id: 'persona',
-      name: grid.columns.persona.title,
-      type: 'string'
-    }, {
-      id: 'createdOn',
-      name: grid.columns.createdOn.title,
-      type: 'date'
-    }, {
-      id: 'updatedOn',
-      name: grid.columns.updatedOn.title,
-      type: 'date'
-    }
-    ];
-  }
 }
