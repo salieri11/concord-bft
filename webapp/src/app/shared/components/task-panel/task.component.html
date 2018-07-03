@@ -1,0 +1,45 @@
+<div class="task-container"
+     [ngClass]="{'focused': focused, 'hidden': hidden}">
+  <div class="title">
+    <clr-icon shape="arrow"
+              dir="left"
+              *ngIf="focused"
+              size="22"
+              (click)="back()"></clr-icon>
+    <clr-icon shape="check-circle"
+              size="22"
+              class="is-solid is-success"></clr-icon>
+    <clr-icon shape="exclamation-circle"
+              size="22"
+              class="is-solid is-error"></clr-icon>
+
+    <ng-content select="h4"></ng-content>
+
+    <clr-icon *ngIf="state !== StateEnum.IN_PROGRESS"
+              (click)="clear()"
+              shape="times"
+              size="18"
+              class="is-solid"></clr-icon>
+  </div>
+
+  <div class="progress"
+       [ngClass]="{
+            'loop': progress === null || progress === -1,
+            'labeled': progress !== null && progress !== -1
+        }">
+    <progress max="100"
+              value="{{progress}}"></progress>
+    <span *ngIf="progress !== null && progress !== -1">{{progress}} %</span>
+  </div>
+
+  <ng-content select=".description"></ng-content>
+
+  <div class="button-container"
+       *ngIf="!hideButtons">
+    <button class="dismiss"
+            (click)="dismiss()">Dismiss</button>
+    <button *ngIf="cancelable"
+            class="cancel"
+            (click)="cancel()">Cancel</button>
+  </div>
+</div>

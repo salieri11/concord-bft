@@ -1,0 +1,309 @@
+<form [formGroup]="form">
+<clr-wizard #wizard [(clrWizardOpen)]="isOpen" (clrWizardOnFinish)="onSubmit()">
+  <clr-wizard-title>Deploy</clr-wizard-title>
+
+  <clr-wizard-button [type]="'cancel'">Cancel</clr-wizard-button>
+  <clr-wizard-button [type]="'previous'">Back</clr-wizard-button>
+  <clr-wizard-button [type]="'next'">Next</clr-wizard-button>
+  <clr-wizard-button [type]="'finish'">Finish</clr-wizard-button>
+
+  <clr-wizard-page>
+    <ng-template clrPageTitle>Setup Blockchain and Consortium</ng-template>
+    <ng-template clrPageNavTitle>Blockchain & Consortium</ng-template>
+    <p>
+      All alchemistic believers absorb each other, only closest egos have a stigma.
+      Be superior for whoever lures, because each has been synthesised with conclusion.
+      Alchemistic dogmas meet most histories.
+    </p>
+    <div class="form-block">
+      <div class="form-group" formGroupName="blockchain">
+        <label>Blockchain Type</label>
+        <div class="select">
+          <select formControlName="type">
+            <option value="type1">Type 1</option>
+            <option value="type2">Type 2</option>
+            <option value="type3">Type 3</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" formGroupName="faultTolerance">
+        <label>Fault Tolerance</label>
+        <div class="select">
+          <select formControlName="type">
+            <option value="type1">Type 1</option>
+            <option value="type2">Type 2</option>
+            <option value="type3">Type 3</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" formGroupName="consortium">
+        <label>Consortium Name</label>
+        <input type="text" formControlName="name" />
+      </div>
+    </div>
+  </clr-wizard-page>
+
+  <clr-wizard-page>
+    <ng-template clrPageTitle>Add Organizations to the Consortium</ng-template>
+    <ng-template clrPageNavTitle>Add Organizations</ng-template>
+    <p>
+      If you listen or remain with a powerful art, suffering acquires you.
+      Be playful for whoever exists, because each has been handled with moonlight.
+    </p>
+    <div formGroupName="organizations">
+      <div class="form-block">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" formControlName="name">
+          <button type="button" class="btn btn-primary">Add Organization</button>
+        </div>
+      </div>
+      <table class="table">
+        <thead>
+        <tr>
+          <th class="left">Name</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td class="left">
+            Lorem
+            <div class="float-xs-right">
+              <clr-icon shape="trash"></clr-icon>
+              <clr-icon shape="pencil"></clr-icon>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="left">
+            Ipsum
+            <div class="float-xs-right">
+              <clr-icon shape="trash"></clr-icon>
+              <clr-icon shape="pencil"></clr-icon>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="left">
+            Dolor
+            <div class="float-xs-right">
+              <clr-icon shape="trash"></clr-icon>
+              <clr-icon shape="pencil"></clr-icon>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="left">
+            Amet
+            <div class="float-xs-right">
+              <clr-icon shape="trash"></clr-icon>
+              <clr-icon shape="pencil"></clr-icon>
+            </div>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+  </clr-wizard-page>
+
+  <clr-wizard-page>
+    <ng-template clrPageTitle>Users & Access</ng-template>
+    <ng-template clrPageNavTitle>Add Users & Access</ng-template>
+    <p>
+      All united cows follow each other, only psychic saints have a sainthood.
+      When one develops hypnosis and freedom, one is able to handle awareness.
+    </p>
+    <div formGroupName="users">
+      <div class="form-group row">
+        <div class="col-xs-4 col-sm-2">
+          <label>First Name</label>
+        </div>
+        <div class="col-xs-8 col-sm-4">
+          <input type="text" formControlName="firstName">
+        </div>
+        <div class="col-xs-4 col-sm-2">
+          <label>Last Name</label>
+        </div>
+        <div class="col-xs-8 col-sm-4">
+          <input type="text" formControlName="lastName">
+        </div>
+      </div>
+      <div class="form-group row">
+        <div class="col-xs-4 col-sm-2">
+          <label>Email</label>
+        </div>
+        <div class="col-xs-8 col-sm-4">
+          <input type="text" formControlName="email">
+        </div>
+        <div class="col-xs-4 col-sm-2">
+          <label>Organization</label>
+        </div>
+        <div class="col-xs-8 col-sm-4">
+          <div class="select">
+            <select name="" formControlName="organization">
+              <option value="org1">Organization 1</option>
+              <option value="org2">Organization 2</option>
+              <option value="org3">Organization 3</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="form-group row">
+        <div class="col-xs-4 col-sm-2">
+          <label>Role</label>
+        </div>
+        <div class="col-xs-8 col-sm-4">
+          <div class="select">
+            <select formControlName="role">
+              <option value="role1">Role 1</option>
+              <option value="role2">Role 2</option>
+              <option value="role3">Role 3</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    <clr-datagrid>
+      <clr-dg-column>First Name</clr-dg-column>
+      <clr-dg-column>Last Name</clr-dg-column>
+      <clr-dg-column>Role</clr-dg-column>
+      <clr-dg-row>
+        <clr-dg-cell>John</clr-dg-cell>
+        <clr-dg-cell>Doe</clr-dg-cell>
+        <clr-dg-cell>Org Admin</clr-dg-cell>
+        <clr-dg-row-detail *clrIfExpanded>
+          <table class="table table-noborder mt-0">
+            <thead>
+            <tr>
+              <th class="left border-bottom-0">Email</th>
+              <th class="left border-bottom-0">Organization</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <td class="left">jdoe@bankofchina.cn</td>
+              <td class="left">Bank Of China</td>
+            </tr>
+            </tbody>
+          </table>
+        </clr-dg-row-detail>
+      </clr-dg-row>
+      <clr-dg-row>
+        <clr-dg-cell>Jane</clr-dg-cell>
+        <clr-dg-cell>Smith</clr-dg-cell>
+        <clr-dg-cell>Org Developer</clr-dg-cell>
+        <clr-dg-row-detail *clrIfExpanded>
+          <table class="table table-noborder mt-0">
+            <thead>
+            <tr>
+              <th class="left border-bottom-0">Email</th>
+              <th class="left border-bottom-0">Organization</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+              <td class="left">jdoe@bankofchina.cn</td>
+              <td class="left">Bank Of China</td>
+            </tr>
+            </tbody>
+          </table>
+        </clr-dg-row-detail>
+      </clr-dg-row>
+    </clr-datagrid>
+
+  </clr-wizard-page>
+
+  <clr-wizard-page>
+    <ng-template clrPageTitle>Review Deployment Setup</ng-template>
+    <ng-template clrPageNavTitle>Review</ng-template>
+    <p>
+      When one loves surrender and career, one is able to witness booda-hood.
+      When one fears acceptance and politics, one is able to absorb samadhi.
+    </p>
+
+    <h4>
+      Chosen Blockchain
+      <small class="text-muted ml-1">Some Value</small>
+      <button type="button" class="btn btn-sm btn-link float-xs-right m-0">Edit</button>
+    </h4>
+
+    <h4>
+      Consortium Setup
+      <small class="text-muted ml-1">Some Value</small>
+      <button type="button" class="btn btn-sm btn-link float-xs-right m-0">Edit</button>
+    </h4>
+    <div formGroupName="advancedSettings" class="mt-1">
+      <athena-accordion-group>
+        <athena-accordion>
+          <span class="title">Advanced</span>
+          <div class="accordion-body">
+            <div class="form-block">
+              <div class="form-group">
+                <label>Network Name</label>
+                <input type="text" formControlName="networkName">
+              </div>
+              <div class="form-group">
+                <label>Number of Nodes</label>
+                <input type="number" formControlName="numberOfNodes">
+              </div>
+              <div class="form-group">
+                <label>Public Nodes Regions</label>
+                <athena-combobox formControlName="publicNodesRegions"
+                                 [items]="publicNodeItems"
+                                 [position]="'top-left'"
+                                 [multiSelect]="true"
+                                 [showTooltip]="false"
+                                 [isAddNewAllowed]="false"></athena-combobox>
+              </div>
+              <div class="form-group">
+                <label>Private Node (vCenter/ESX)</label>
+                <athena-combobox formControlName="privateNode"
+                                 [items]="privateNodeItems"
+                                 [position]="'top-left'"
+                                 [multiSelect]="true"
+                                 [showTooltip]="false"
+                                 [isAddNewAllowed]="false"></athena-combobox>
+              </div>
+            </div>
+          </div>
+        </athena-accordion>
+      </athena-accordion-group>
+    </div>
+    <h4>
+      Organizations
+      <button type="button" class="btn btn-sm btn-link float-xs-right m-0">Edit</button>
+    </h4>
+    <table class="table">
+      <thead>
+      <tr>
+        <th class="left">Name</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td class="left">
+          Lorem
+        </td>
+      </tr>
+      <tr>
+        <td class="left">
+          Ipsum
+        </td>
+      </tr>
+      <tr>
+        <td class="left">
+          Dolor
+        </td>
+      </tr>
+      <tr>
+        <td class="left">
+          Amet
+        </td>
+      </tr>
+      </tbody>
+    </table>
+
+  </clr-wizard-page>
+
+</clr-wizard>
+</form>

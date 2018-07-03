@@ -3,6 +3,7 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { FormsModule } from '@angular/forms';
 
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -12,6 +13,12 @@ import { DashboardContainerComponent } from './dashboard-container.component';
 import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
 import { TransactionListViewComponent } from '../../transactions/transaction-list-view/transaction-list-view.component';
 import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
+import { BlockchainSetupWizardComponent } from '../../shared/components/blockchain-setup-wizard/blockchain-setup-wizard.component';
+import { VmwComboboxComponent } from '../../shared/components/combobox/combobox.component';
+import { VmwAccordionGroupComponent } from '../../shared/components/accordion/accordion-group.component';
+import { VmwAccordionComponent } from '../../shared/components/accordion/accordion.component';
+import { VmwComboboxItemsComponent } from '../../shared/components/combobox/combobox-items/combobox-items.component';
+import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 
 describe('DashboardContainerComponent', () => {
   let component: DashboardContainerComponent;
@@ -22,13 +29,22 @@ describe('DashboardContainerComponent', () => {
       imports: [
         RouterTestingModule,
         HttpClientTestingModule,
-        MockSharedModule
+        MockSharedModule,
+        FormsModule
       ],
       declarations: [
         DashboardContainerComponent,
         TransactionsStatusFilterComponent,
         TransactionListViewComponent,
-        TransactionDetailsComponent
+        TransactionDetailsComponent,
+        BlockchainSetupWizardComponent,
+        VmwComboboxComponent,
+        VmwComboboxItemsComponent,
+        VmwAccordionComponent,
+        VmwAccordionGroupComponent
+      ],
+      providers: [
+        VmwTasksService
       ]
     })
     .compileComponents();

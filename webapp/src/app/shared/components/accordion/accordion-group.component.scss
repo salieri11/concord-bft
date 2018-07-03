@@ -1,0 +1,17 @@
+.accordion-group {
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  border-bottom: none;
+}
+
+:host.no-border {
+  .accordion-group {
+    border: none;
+  }
+}
+
+::ng-deep .dark {
+  .accordion-group {
+    border-color: #000;
+  }
+}
