@@ -4,7 +4,7 @@
 
 import { Component, OnInit, ViewChild, Output, EventEmitter } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { ClrWizard } from '@clr/angular';
+import { ClrWizard, ClrWizardPage } from '@clr/angular';
 
 @Component({
   selector: 'athena-blockchain-setup-wizard',
@@ -13,6 +13,9 @@ import { ClrWizard } from '@clr/angular';
 })
 export class BlockchainSetupWizardComponent implements OnInit {
   @ViewChild('wizard') wizard: ClrWizard;
+  @ViewChild('blockConsortiumPage') blockConsortiumPage: ClrWizardPage;
+  @ViewChild('orgsPage') orgsPage: ClrWizardPage;
+  @ViewChild('usersPage') usersPage: ClrWizardPage;
   @Output('setupComplete') setupComplete: EventEmitter<any> = new EventEmitter<any>();
 
   isOpen = false;
@@ -82,6 +85,10 @@ export class BlockchainSetupWizardComponent implements OnInit {
     selectedUsers.setValue(selectedUsers.value.concat([this.userForm.value]));
 
     this.userForm.reset();
+  }
+
+  jumpTo(page: ClrWizardPage) {
+    this.wizard.navService.setCurrentPage(page);
   }
 
   open() {

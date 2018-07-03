@@ -7,7 +7,8 @@
   <clr-wizard-button [type]="'next'">Next</clr-wizard-button>
   <clr-wizard-button [type]="'finish'">Finish</clr-wizard-button>
 
-  <clr-wizard-page [clrWizardPageNextDisabled]="!form.controls.blockchain.valid || !form.controls.consortium.valid || !form.controls.faultTolerance.valid">
+  <clr-wizard-page #blockConsortiumPage
+                   [clrWizardPageNextDisabled]="!form.controls.blockchain.valid || !form.controls.consortium.valid || !form.controls.faultTolerance.valid">
     <ng-template clrPageTitle>Setup Blockchain and Consortium</ng-template>
     <ng-template clrPageNavTitle>Blockchain & Consortium</ng-template>
     <p>
@@ -43,7 +44,7 @@
     </div>
   </clr-wizard-page>
 
-  <clr-wizard-page [clrWizardPageNextDisabled]="!form.controls.organizations.valid">
+  <clr-wizard-page #orgsPage [clrWizardPageNextDisabled]="!form.controls.organizations.valid">
     <ng-template clrPageTitle>Add Organizations to the Consortium</ng-template>
     <ng-template clrPageNavTitle>Add Organizations</ng-template>
     <p>
@@ -79,7 +80,7 @@
     </div>
   </clr-wizard-page>
 
-  <clr-wizard-page [clrWizardPageNextDisabled]="!form.controls.users.valid">
+  <clr-wizard-page #usersPage [clrWizardPageNextDisabled]="!form.controls.users.valid">
     <ng-template clrPageTitle>Users & Access</ng-template>
     <ng-template clrPageNavTitle>Add Users & Access</ng-template>
     <p>
@@ -177,13 +178,13 @@
     <h4>
       Chosen Blockchain
       <small class="text-muted ml-1">{{form.value.blockchain.type}}</small>
-      <button type="button" class="btn btn-sm btn-link float-xs-right m-0">Edit</button>
+      <button type="button" class="btn btn-sm btn-link float-xs-right m-0" (click)="jumpTo(blockConsortiumPage)">Edit</button>
     </h4>
 
     <h4>
       Consortium Setup
       <small class="text-muted ml-1">{{form.value.consortium.name}}</small>
-      <button type="button" class="btn btn-sm btn-link float-xs-right m-0">Edit</button>
+      <button type="button" class="btn btn-sm btn-link float-xs-right m-0" (click)="jumpTo(blockConsortiumPage)">Edit</button>
     </h4>
     <div formGroupName="advancedSettings" class="mt-1">
       <athena-accordion-group>
@@ -224,7 +225,7 @@
     </div>
     <h4>
       Organizations
-      <button type="button" class="btn btn-sm btn-link float-xs-right m-0">Edit</button>
+      <button type="button" class="btn btn-sm btn-link float-xs-right m-0" (click)="jumpTo(orgsPage)">Edit</button>
     </h4>
     <table class="table">
       <thead>
@@ -242,7 +243,7 @@
     </table>
     <h4>
       Users & Access
-      <button type="button" class="btn btn-sm btn-link float-xs-right m-0">Edit</button>
+      <button type="button" class="btn btn-sm btn-link float-xs-right m-0" (click)="jumpTo(usersPage)">Edit</button>
       <clr-datagrid>
         <clr-dg-column>First Name</clr-dg-column>
         <clr-dg-column>Last Name</clr-dg-column>
