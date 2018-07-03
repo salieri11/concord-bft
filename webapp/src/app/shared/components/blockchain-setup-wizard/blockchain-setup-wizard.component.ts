@@ -3,7 +3,7 @@
  */
 
 import { Component, OnInit, ViewChild, Output, EventEmitter } from '@angular/core';
-import { FormControl, FormGroup, FormArray } from '@angular/forms';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { ClrWizard } from '@clr/angular';
 
 @Component({
@@ -17,6 +17,8 @@ export class BlockchainSetupWizardComponent implements OnInit {
 
   isOpen = false;
   form: FormGroup;
+  orgForm: FormGroup;
+  userForm: FormGroup;
   privateNodeItems = [
     {value: 'london-datacenter', displayValue: 'london-datacenter'},
     {value: 'us-datacenter', displayValue: 'us-datacenter'},
@@ -35,45 +37,61 @@ export class BlockchainSetupWizardComponent implements OnInit {
   constructor() {
     this.form = new FormGroup({
       blockchain: new FormGroup({
-        type: new FormControl('')
+        type: new FormControl('', Validators.required)
       }),
       faultTolerance: new FormGroup({
-        type: new FormControl('')
+        type: new FormControl('', Validators.required)
       }),
       consortium: new FormGroup({
-        name: new FormControl('')
+        name: new FormControl('', Validators.required)
       }),
-      organizations: new FormGroup({
-        name: new FormControl(''),
-        selectedOrganizations: new FormArray([
-          new FormControl(null)
-        ])
-      }),
-      users: new FormGroup({
-        firstName: new FormControl(''),
-        lastName: new FormControl(''),
-        email: new FormControl(''),
-        organization: new FormControl(''),
-        role: new FormControl(''),
-        selectedUsers: new FormArray([
-          new FormControl(null)
-        ])
-      }),
+      organizations: new FormControl([], Validators.required),
+      users: new FormControl([], Validators.required),
       advancedSettings: new FormGroup({
-        networkName: new FormControl(''),
-        numberOfNodes: new FormControl(),
-        publicNodesRegions: new FormControl(''),
-        privateNode: new FormControl('')
+        networkName: new FormControl('', Validators.required),
+        numberOfNodes: new FormControl(null, Validators.required),
+        publicNodesRegions: new FormControl('', Validators.required),
+        privateNode: new FormControl('', Validators.required)
       })
+    });
+
+    this.orgForm = new FormGroup({
+      name: new FormControl('', Validators.required)
+    });
+
+    this.userForm = new FormGroup({
+      firstName: new FormControl('', Validators.required),
+      lastName: new FormControl('', Validators.required),
+      email: new FormControl('', Validators.required),
+      organization: new FormControl('', Validators.required),
+      role: new FormControl('', Validators.required)
     });
   }
 
   ngOnInit() {}
 
+  addOrg() {
+    let selectedOrgs = this.form.get('organizations');
+    selectedOrgs.setValue(selectedOrgs.value.concat([this.orgForm.value]));
+
+    this.orgForm.reset();
+  }
+
+  addUser() {
+    let selectedUsers= this.form.get('users');
+    selectedUsers.setValue(selectedUsers.value.concat([this.userForm.value]));
+
+    this.userForm.reset();
+  }
+
   open() {
     this.isOpen = true;
     this.wizard.reset();
     this.form.reset();
+    this.form.patchValue({
+      organizations: [],
+      users: []
+    })
   }
 
   onSubmit() {
