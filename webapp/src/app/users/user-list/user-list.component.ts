@@ -28,7 +28,7 @@ export class UserListComponent implements OnInit {
       return this.usersService.getFakeData();
     };
 
-    this.translate.get('users.grid').subscribe(grid => this.handleGrid(grid));
+    this.handleGrid();
   }
 
   ngOnInit() {
@@ -38,35 +38,35 @@ export class UserListComponent implements OnInit {
     this.selected.emit(rows);
   }
 
-  handleGrid(grid: any): void {
-    this.gridOptions.paginationTitle = grid.pagination.title;
+  handleGrid(): void {
+    this.gridOptions.paginationTitle = this.translate.instant('users.grid.pagination.title');
     this.gridOptions.columns = [{
       id: 'firstName',
-      name: grid.columns.firstName.title,
+      name: this.translate.instant('users.grid.columns.firstName'),
       type: 'string'
     }, {
       id: 'lastName',
-      name: grid.columns.lastName.title,
+      name: this.translate.instant('users.grid.columns.lastName'),
       type: 'string'
     }, {
       id: 'email',
-      name: grid.columns.email.title,
+      name: this.translate.instant('users.grid.columns.email'),
       type: 'string'
     }, {
       id: 'organization',
-      name: grid.columns.organization.title,
+      name: this.translate.instant('users.grid.columns.organization'),
       type: 'string'
     }, {
       id: 'persona',
-      name: grid.columns.persona.title,
+      name: this.translate.instant('users.grid.columns.persona'),
       type: 'string'
     }, {
       id: 'createdOn',
-      name: grid.columns.createdOn.title,
+      name: this.translate.instant('users.grid.columns.createdOn'),
       type: 'date'
     }, {
       id: 'updatedOn',
-      name: grid.columns.updatedOn.title,
+      name: this.translate.instant('users.grid.columns.updatedOn'),
       type: 'date'
     }
     ];
