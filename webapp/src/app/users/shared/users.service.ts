@@ -2,43 +2,40 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Injectable } from '@angular/core';
+import { Inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs/index';
 
 import { Personas } from '../../shared/persona.service';
 import { User, UserResponse } from './user.model';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { GridListResponse } from '../../grid/shared/grid.model';
 import { map } from 'rxjs/operators';
+import { ANDES_API_PREFIX } from "../../shared/shared.config";
+import { AndesApi } from "../../shared/andes-api";
 
-@Injectable()
-export class UsersService {
-  userUrl = '/api/user';
-  headers: HttpHeaders = new HttpHeaders({
-    'Content-Type': 'application/json',
-    // 'Authorization': 'my-auth-token'
-  });
+@Injectable({
+  providedIn: 'root'
+})
+export class UsersService extends AndesApi{
+
+  constructor(private http: HttpClient, @Inject(ANDES_API_PREFIX) andesApiPrefix: string) {
+    super(andesApiPrefix);
+  }
+
   users: User[] = [];
 
-  constructor(private http: HttpClient) {
+  get apiSubPath() {
+    return 'user';
   }
 
   getList(params?: any): Observable<GridListResponse> {
     const options = { headers: this.headers };
 
     if (params) {
-      let httpParams = new HttpParams();
-
-      for (const prop in params) {
-        if (params[prop]) {
-          httpParams = httpParams.set(prop, params[prop]);
-        }
-      }
-
-      options['params'] = httpParams;
+      options['params'] = this.buildHttpParams(params);
     }
 
-    return this.http.get<UserResponse>(this.userUrl, options).pipe(
+    return this.http.get<UserResponse>(this.resourcePath(), options).pipe(
       map(response => this.handleResponse(response)));
   }
 
@@ -63,6 +60,7 @@ export class UsersService {
           lastName: 'Foller',
           email: 'donnett@email.com',
           persona: Personas.ConsortiumAdmin,
+          organization: 'Organization 1',
           updatedOn: d.setDate(d.getDate() - 10),
           createdOn: d.setDate(d.getDate() - 10)
         }, {
@@ -70,6 +68,7 @@ export class UsersService {
           firstName: 'Abel',
           lastName: 'Dilliard',
           email: 'abel@email.com',
+          organization: 'Organization 2',
           persona: Personas.OrgAdmin,
           updatedOn: d.setDate(d.getDate() - 10),
           createdOn: d.setDate(d.getDate() - 10)
@@ -78,6 +77,7 @@ export class UsersService {
           firstName: 'Sage',
           lastName: 'Venere',
           email: 'sage@email.com',
+          organization: 'Organization 1',
           persona: Personas.SystemsAdmin,
           updatedOn: d.setDate(d.getDate() - 10),
           createdOn: d.setDate(d.getDate() - 10)
@@ -97,15 +97,15 @@ export class UsersService {
   }
 
   createUser(user: User): Observable<any> {
-    return this.http.post<User>(this.userUrl, user, {headers: this.headers });
+    return this.http.post<User>(this.resourcePath(), user, {headers: this.headers });
   }
 
   deleteUser(userId: number): Observable<any> {
-    const url = `${this.userUrl}${userId}/`;
+    const url = this.resourcePath(userId);
     return this.http.delete(url, { headers: this.headers });
   }
 
   editUser(user: User) {
-    return this.http.put<User>(this.userUrl, user, {headers: this.headers });
+    return this.http.put<User>(this.resourcePath(), user, {headers: this.headers });
   }
 }

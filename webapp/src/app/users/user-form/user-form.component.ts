@@ -60,6 +60,8 @@ export class UserFormComponent implements OnInit {
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],
       email: ['', Validators.required],
+      password: ['', Validators.required],
+      organization: ['', Validators.required],
       persona: ['', Validators.required]
     }));
   }

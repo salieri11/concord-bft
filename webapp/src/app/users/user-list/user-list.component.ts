@@ -53,6 +53,10 @@ export class UserListComponent implements OnInit {
       name: grid.columns.email.title,
       type: 'string'
     }, {
+      id: 'organization',
+      name: grid.columns.organization.title,
+      type: 'string'
+    },{
       id: 'persona',
       name: grid.columns.persona.title,
       type: 'string'

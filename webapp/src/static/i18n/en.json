@@ -602,6 +602,9 @@
         "email": {
           "title": "Email"
         },
+        "organization": {
+          "title": "Organization"
+        },
         "persona": {
           "title": "Role"
         },
@@ -651,6 +654,14 @@
         "email": {
           "title": "Email",
           "placeholder": "emailid@doamin.com"
+        },
+        "password": {
+          "title": "Password",
+          "placeholder": "********"
+        },
+        "organization": {
+          "title": "Organization",
+          "placeholder": "Organization"
         },
         "role": {
           "title": "Role",

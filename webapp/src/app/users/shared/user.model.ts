@@ -9,6 +9,8 @@ export interface User {
   firstName?: string;
   lastName?: string;
   email: string;
+  password?: string;
+  organization?: string;
   persona: Personas;
   createdOn?: number;
   updatedOn?: number;
