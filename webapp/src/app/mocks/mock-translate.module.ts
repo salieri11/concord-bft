@@ -19,6 +19,7 @@ export class MockTranslateService  {
   setDefaultLang() {}
   use() {}
   get(value) { return of(value); }
+  instant(value) { return value; }
 }
 
 @NgModule({

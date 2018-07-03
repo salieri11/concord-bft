@@ -14,7 +14,6 @@ import { TranslateModule } from '@ngx-translate/core';
 
 import { GridModule } from '../grid/grid.module';
 import { KubernetesManagementComponent } from './kubernetes-management.component';
-import { KubernetesService } from './shared/kubernetes.service';
 
 @NgModule({
   imports: [
@@ -28,9 +27,6 @@ import { KubernetesService } from './shared/kubernetes.service';
     GridModule,
     TranslateModule
   ],
-  declarations: [KubernetesManagementComponent],
-  providers: [
-    KubernetesService
-  ]
+  declarations: [KubernetesManagementComponent]
 })
 export class KubernetesManagementModule { }

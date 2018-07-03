@@ -13,11 +13,13 @@ import {
   EthGetTransactionReceiptParams,
   EthSendTransactionResponse,
   EthGetTransactionReceiptResponse, EthSendCallParams, EthSendCallResponse
-} from './remote-interfaces';
+} from './eth-api.model';
 
 const DEFAULT_BLOCK_PARAMETER = 'latest';
 
-@Injectable()
+@Injectable({
+  providedIn: 'root'
+})
 export class EthApiService {
 
   constructor(@Inject(ETHEREUM_API_PREFIX) private ethereumApiPrefix: string, private httpClient: HttpClient) {}

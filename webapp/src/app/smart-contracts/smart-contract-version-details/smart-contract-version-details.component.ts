@@ -5,7 +5,7 @@
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { Component, Input, OnChanges, SimpleChanges, SimpleChange, ViewChild } from '@angular/core';
 
-import { SmartContractVersion } from '../../shared/remote-interfaces';
+import { SmartContractVersion } from '../shared/smart-contracts.model';
 import * as Web3EthAbi from 'web3-eth-abi';
 
 import { EthApiService } from '../../shared/eth-api.service';

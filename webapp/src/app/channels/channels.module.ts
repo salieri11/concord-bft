@@ -14,7 +14,6 @@ import { GridModule } from '../grid/grid.module';
 
 import { ChannelsComponent } from './channels.component';
 import { ChannelListComponent } from './channel-list/channel-list.component';
-import { ChannelService } from './shared/channel.service';
 
 @NgModule({
   imports: [
@@ -28,7 +27,6 @@ import { ChannelService } from './shared/channel.service';
     GridModule,
   ],
   declarations: [ChannelsComponent, ChannelListComponent],
-  providers: [ChannelService],
   exports: [ChannelListComponent],
 })
 export class ChannelsModule { }

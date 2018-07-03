@@ -12,9 +12,7 @@ import { MockTranslateModule } from '../mocks/mock-translate.module';
 
 import { AuthenticationService } from './authentication.service';
 import { AuthenticatedGuard } from './authenticated-guard.service';
-import { AthenaApiService } from './athena-api.service';
-import { EthApiService } from './eth-api.service';
-import { ATHENA_API_PREFIX, ETHEREUM_API_PREFIX } from './shared.config';
+import { ANDES_API_PREFIX, ATHENA_API_PREFIX, ETHEREUM_API_PREFIX } from './shared.config';
 import { TransactionsStatusFilterComponent } from './components/transactions-status-filter/transactions-status-filter.component';
 import { RouterModule } from '@angular/router';
 import { PersonaService } from './persona.service';
@@ -71,10 +69,9 @@ export class SharedModule {
       providers: [
         AuthenticationService,
         AuthenticatedGuard,
+        {provide: ANDES_API_PREFIX, useValue: '/api'},
         {provide: ATHENA_API_PREFIX, useValue: '/api/athena'},
         {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'},
-        AthenaApiService,
-        EthApiService,
         PersonaService,
         VmwTasksService
       ]
@@ -92,10 +89,9 @@ export class SharedModule {
   providers: [
     AuthenticationService,
     AuthenticatedGuard,
+    {provide: ANDES_API_PREFIX, useValue: '/api'},
     {provide: ATHENA_API_PREFIX, useValue: '/api/athena'},
     {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'},
-    AthenaApiService,
-    EthApiService,
     PersonaService
   ],
   exports: [

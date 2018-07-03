@@ -5,8 +5,8 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
-import { AthenaApiService } from '../../shared/athena-api.service';
-import { BlockListingBlock } from '../../shared/remote-interfaces';
+import { BlockListingBlock } from '../../blocks/shared/blocks.model';
+import { TransactionsService } from '../../transactions/shared/transactions.service';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { BlockchainSetupWizardComponent } from '../../shared/components/blockchain-setup-wizard/blockchain-setup-wizard.component';
 
@@ -29,10 +29,10 @@ export class DashboardContainerComponent implements OnInit {
     averageValidationTime: 1.98
   };
 
-  constructor(private athenaApiService: AthenaApiService, private taskService: VmwTasksService, private route: ActivatedRoute) { }
+  constructor(private transactionsService: TransactionsService, private taskService: VmwTasksService, private route: ActivatedRoute) { }
 
   ngOnInit() {
-    this.athenaApiService.getRecentTransactions().subscribe((resp) => {
+    this.transactionsService.getRecentTransactions().subscribe((resp) => {
       this.recentTransactions = resp;
     });
 

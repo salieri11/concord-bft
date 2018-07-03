@@ -5,7 +5,7 @@
 import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 
-import { AbiFunctionParameter } from '../../shared/remote-interfaces';
+import { AbiFunctionParameter } from '../shared/smart-contracts.model';
 import { isHexAddress, isInt, isUint } from '../shared/custom-validators';
 
 @Component({
