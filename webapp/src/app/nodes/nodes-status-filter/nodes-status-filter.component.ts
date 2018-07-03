@@ -7,7 +7,7 @@ import { FormGroup, FormBuilder } from '@angular/forms';
 import { ClrDatagridFilterInterface } from '@clr/angular';
 import { Subject } from 'rxjs';
 
-import { Member } from '../../shared/remote-interfaces';
+import { Member } from '../shared/nodes.model';
 
 @Component({
   selector: 'athena-nodes-status-filter',

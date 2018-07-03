@@ -14,7 +14,6 @@ import { TranslateModule } from '@ngx-translate/core';
 import { ClarityModule } from '@clr/angular';
 
 import { GridModule } from '../grid/grid.module';
-import { ConsortiumService } from './shared/consortium.service';
 import { ConsortiumComponent } from './consortium.component';
 import { ConsortiumFormComponent } from './consortium-form/consortium-form.component';
 import { ConsortiumsListComponent } from './consortiums-list/consortiums-list.component';
@@ -31,9 +30,6 @@ import { ConsortiumsListComponent } from './consortiums-list/consortiums-list.co
     GridModule,
     TranslateModule
   ],
-  declarations: [ConsortiumComponent, ConsortiumFormComponent, ConsortiumsListComponent],
-  providers: [
-    ConsortiumService
-  ]
+  declarations: [ConsortiumComponent, ConsortiumFormComponent, ConsortiumsListComponent]
 })
 export class ConsortiumModule { }

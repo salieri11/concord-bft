@@ -43,7 +43,6 @@ import { BlockchainFormComponent } from './blockchain-form/blockchain-form.compo
     BlockchainComponent,
     BlockchainsListComponent,
     BlockchainFormComponent,
-  ],
-  providers: [BlockchainsService, KubernetesService]
+  ]
 })
 export class BlockchainsModule { }

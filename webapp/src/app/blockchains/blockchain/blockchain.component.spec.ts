@@ -3,24 +3,20 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { CommonModule } from '@angular/common';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { BrowserModule } from '@angular/platform-browser';
-import { HttpClientModule, HttpClient } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';  // <-- #1 import module
+import { HttpClientModule } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
-import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
-import { TranslateHttpLoader } from '@ngx-translate/http-loader';
-
-import { ClarityModule } from '@clr/angular';
 
 import { BlockchainComponent } from './blockchain.component';
-import { OrgListComponent } from '../../orgs/org-list/org-list.component';
+import { OrgListComponent } from '../../org-management/org-list/org-list.component';
+import { GridModule } from '../../grid/grid.module';
 import { BlockchainsService } from '../shared/blockchains.service';
-import { GridModule } from "../../grid/grid.module";
-export function HttpLoaderFactory(http: HttpClient) {
-  return new TranslateHttpLoader(http, './static/i18n/', '.json');
-}
+import { KubernetesService } from '../../kubernetes-management/shared/kubernetes.service';
+import { OrgManagementService } from '../../org-management/shared/org-management.service';
+import { MockSharedModule } from '../../shared/shared.module';
 
 describe('BlockchainComponent', () => {
   let component: BlockchainComponent;
@@ -29,19 +25,12 @@ describe('BlockchainComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
-        CommonModule,
-        ClarityModule,
+        MockSharedModule,
         BrowserAnimationsModule,
         BrowserModule,
         HttpClientModule,
-        GridModule,
-        TranslateModule.forRoot({
-          loader: {
-            provide: TranslateLoader,
-            useFactory: HttpLoaderFactory,
-            deps: [HttpClient]
-          }
-        })
+        FormsModule,
+        GridModule
       ],
       declarations: [
         BlockchainComponent,
@@ -49,6 +38,8 @@ describe('BlockchainComponent', () => {
       ],
       providers: [
         BlockchainsService,
+        KubernetesService,
+        OrgManagementService,
         TranslateService,
         {
         provide: ActivatedRoute,

@@ -4,8 +4,8 @@
 
 import { Component, OnInit, ViewChild } from '@angular/core';
 
-import { AthenaApiService } from '../../shared/athena-api.service';
 import { ContractFormComponent } from '../contract-form/contract-form.component';
+import { SmartContractsService } from '../shared/smart-contracts.service';
 import { Personas } from '../../shared/persona.service';
 
 @Component({
@@ -19,16 +19,13 @@ export class SmartContractsComponent implements OnInit {
   smartContracts = [];
   personas = Personas;
 
-  constructor(private athenaApiService: AthenaApiService) {
-  }
+  constructor( private smartContractsService: SmartContractsService ) { }
 
   ngOnInit() {
     this.loadSmartContracts();
   }
 
   loadSmartContracts() {
-    this.athenaApiService.getSmartContracts().subscribe(smartContracts => {
-      this.smartContracts = smartContracts;
-    });
+    this.smartContractsService.getSmartContracts().subscribe(smartContracts => this.smartContracts = smartContracts);
   }
 }

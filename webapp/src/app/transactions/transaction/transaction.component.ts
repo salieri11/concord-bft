@@ -5,7 +5,7 @@
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
-import { Transaction } from '../../shared/remote-interfaces';
+import { Transaction } from '../shared/transactions.model';
 
 @Component({
   selector: 'athena-transaction',

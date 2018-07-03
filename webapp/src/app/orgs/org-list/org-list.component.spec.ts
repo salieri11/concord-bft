@@ -11,11 +11,7 @@ import { HttpClientTestingModule } from "@angular/common/http/testing";
 import { GridModule } from '../../grid/grid.module';
 import { OrgListComponent } from './org-list.component';
 import { OrgService } from '../shared/org.service';
-
-export function HttpLoaderFactory(http: HttpClient) {
-  return new TranslateHttpLoader(http, './static/i18n/', '.json');
-}
-
+import { MockSharedModule } from '../../shared/shared.module';
 
 describe('OrgListComponent', () => {
   let component: OrgListComponent;
@@ -24,22 +20,35 @@ describe('OrgListComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
-        GridModule,
+        MockSharedModule,
+        BrowserAnimationsModule,
+        BrowserModule,
         HttpClientTestingModule,
-        TranslateModule.forRoot({
-          loader: {
-            provide: TranslateLoader,
-            useFactory: HttpLoaderFactory,
-            deps: [HttpClient]
-          }
-        })
+        FormsModule,
+        GridModule
       ],
       declarations: [OrgListComponent],
       providers: [
-        OrgService
-      ]
+        OrgsService,
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            fragment: {
+              subscribe: (fn: (value) => void) => fn(
+                'add'
+              ),
+            },
+          },
+        }]
     })
-      .compileComponents();
+    .overrideModule(GridModule, {set: {
+      imports: [
+        FormsModule,
+        MockSharedModule,
+        RouterModule
+      ],
+    }})
+    .compileComponents();
   }));
 
   beforeEach(() => {

@@ -3,26 +3,19 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { BrowserModule } from '@angular/platform-browser';
-import { HttpClient } from '@angular/common/http';
-import { ActivatedRoute } from '@angular/router';
-import { TranslateService } from '@ngx-translate/core';
-import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
-import { TranslateHttpLoader } from '@ngx-translate/http-loader';
-import { HttpClientTestingModule } from "@angular/common/http/testing";
+import { FormsModule } from '@angular/forms';  // <-- #1 import module
+import { HttpClientModule } from '@angular/common/http';
+import { ActivatedRoute, RouterModule } from '@angular/router';
 
 import { GridModule } from '../grid/grid.module';
-import { OrgsComponent } from './orgs.component';
+import { OrgManagementComponent } from './org-management.component';
 import { OrgListComponent } from './org-list/org-list.component';
 import { OrgService } from './shared/org.service';
 import { MockSharedModule } from "../shared/shared.module";
 import { OrgFormComponent } from "./org-form/org-form.component";
-
-export function HttpLoaderFactory(http: HttpClient) {
-  return new TranslateHttpLoader(http, './static/i18n/', '.json');
-}
+import { MockSharedModule } from '../shared/shared.module';
 
 describe('OrgsComponent', () => {
   let component: OrgsComponent;
@@ -32,17 +25,11 @@ describe('OrgsComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         MockSharedModule,
-        GridModule,
         BrowserAnimationsModule,
         BrowserModule,
-        HttpClientTestingModule,
-        TranslateModule.forRoot({
-          loader: {
-            provide: TranslateLoader,
-            useFactory: HttpLoaderFactory,
-            deps: [HttpClient]
-          }
-        })
+        HttpClientModule,
+        FormsModule,
+        GridModule
       ],
       declarations: [
         OrgsComponent,
@@ -51,7 +38,6 @@ describe('OrgsComponent', () => {
       ],
       providers: [
         OrgService,
-        TranslateService,
         {
           provide: ActivatedRoute,
           useValue: {
@@ -64,6 +50,13 @@ describe('OrgsComponent', () => {
         }
       ]
     })
+      .overrideModule(GridModule, {set: {
+        imports: [
+          FormsModule,
+          MockSharedModule,
+          RouterModule
+        ],
+      }})
       .compileComponents();
   }));
 

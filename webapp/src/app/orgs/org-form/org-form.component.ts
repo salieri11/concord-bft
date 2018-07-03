@@ -41,19 +41,19 @@ export class OrgFormComponent implements OnInit {
     private translate: TranslateService,
     private route: ActivatedRoute,
     private errorService: ErrorAlertService
-  ) { }
+  )  { }
 
   ngOnInit() {
     this.route.fragment.subscribe(fragment => {
-      switch (fragment) {
-        case 'add':
-          this.openAddOrg();
-          break;
+        switch (fragment) {
+          case 'add':
+            this.openAddOrg();
+            break;
 
-        default:
-          // code...
-          break;
-      }
+          default:
+            // code...
+            break;
+        }
     });
   }
 

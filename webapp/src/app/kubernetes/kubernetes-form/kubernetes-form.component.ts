@@ -35,9 +35,9 @@ export class KubernetesFormComponent implements OnInit {
 
   credType = CredType;
   credentialOptions: Array<{ name?: string; value: string }> = [
-    { value: CredType.BasicAuth, name: 'Basic Auth' },
-    { value: CredType.Certificate, name: 'Certificate' },
-    { value: CredType.ConfigFile, name: 'Config File' },
+    { value: CredType.BasicAuth, name: 'kubernetes.addKubeForm.inputs.credentialType.options.basic_auth.title' },
+    { value: CredType.Certificate, name: 'kubernetes.addKubeForm.inputs.credentialType.options.certificate.title' },
+    { value: CredType.ConfigFile, name: 'kubernetes.addKubeForm.inputs.credentialType.options.configFile.title' },
   ];
 
   constructor(
@@ -48,6 +48,7 @@ export class KubernetesFormComponent implements OnInit {
     private route: ActivatedRoute
   ) {
 
+    this.handleGrid();
     this.translate.get('kubernetes.addKubeForm.inputs.credentialType.options')
       .subscribe(options => this.handleCredentialTypes(options));
   }

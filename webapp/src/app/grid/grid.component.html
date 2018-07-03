@@ -11,7 +11,7 @@
     <div class="col-sm-12">
       <clr-datagrid #datagrid [(clrDgSelected)]="selectedRows" (clrDgRefresh)="refresh($event)" [clrDgLoading]="loading">
         <clr-dg-column *ngFor="let col of options.columns" [clrDgSortBy]="col.id">
-          {{ col.name}}
+          {{ col.name }}
         </clr-dg-column>
 
         <clr-dg-row *ngFor="let row of rows" [clrDgItem]="row" [ngClass]="{'new-row': row._flash}">

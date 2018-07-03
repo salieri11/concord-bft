@@ -31,9 +31,6 @@ import { KubernetesFormComponent } from './kubernetes-form/kubernetes-form.compo
     GridModule,
     TranslateModule
   ],
-  declarations: [KubernetesComponent, KubernetesListComponent, KubernetesFormComponent],
-  providers: [
-    KubernetesService
-  ]
+  declarations: [KubernetesComponent, KubernetesListComponent, KubernetesFormComponent]
 })
 export class KubernetesModule { }

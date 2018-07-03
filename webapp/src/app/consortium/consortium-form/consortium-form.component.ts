@@ -46,6 +46,12 @@ export class ConsortiumFormComponent implements OnInit {
     private translate: TranslateService
   ) {
 
+    this.gridOptions.getData = () => {
+      return this.consortiumService.getFakeData();
+      // return this.consortiumService.getList(params);
+    };
+
+    this.handleGrid();
   }
 
   ngOnInit() {
@@ -138,5 +144,4 @@ export class ConsortiumFormComponent implements OnInit {
     this.openModalForm = false;
     this.consortiumDelete.emit(response);
   }
-
 }
