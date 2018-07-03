@@ -7,7 +7,7 @@
   <clr-wizard-button [type]="'next'">Next</clr-wizard-button>
   <clr-wizard-button [type]="'finish'">Finish</clr-wizard-button>
 
-  <clr-wizard-page>
+  <clr-wizard-page [clrWizardPageNextDisabled]="!form.controls.blockchain.valid || !form.controls.consortium.valid || !form.controls.faultTolerance.valid">
     <ng-template clrPageTitle>Setup Blockchain and Consortium</ng-template>
     <ng-template clrPageNavTitle>Blockchain & Consortium</ng-template>
     <p>
@@ -43,7 +43,7 @@
     </div>
   </clr-wizard-page>
 
-  <clr-wizard-page>
+  <clr-wizard-page [clrWizardPageNextDisabled]="!form.controls.organizations.valid">
     <ng-template clrPageTitle>Add Organizations to the Consortium</ng-template>
     <ng-template clrPageNavTitle>Add Organizations</ng-template>
     <p>
@@ -55,7 +55,7 @@
         <div class="form-group">
           <label>Name</label>
           <input type="text" formControlName="name">
-          <button type="button" class="btn btn-primary" (click)="addOrg()">Add Organization</button>
+          <button type="button" class="btn btn-primary" (click)="addOrg()" [disabled]="!orgForm.valid">Add Organization</button>
         </div>
       </div>
       <table class="table">
@@ -79,7 +79,7 @@
     </div>
   </clr-wizard-page>
 
-  <clr-wizard-page>
+  <clr-wizard-page [clrWizardPageNextDisabled]="!form.controls.users.valid">
     <ng-template clrPageTitle>Users & Access</ng-template>
     <ng-template clrPageNavTitle>Add Users & Access</ng-template>
     <p>
@@ -134,7 +134,7 @@
         </div>
       </div>
       <div class="form-group">
-        <button class="btn btn-primary" type="button" (click)="addUser()">Add User</button>
+        <button class="btn btn-primary" type="button" (click)="addUser()" [disabled]="!userForm.valid">Add User</button>
       </div>
     </div>
     <clr-datagrid>

@@ -48,10 +48,10 @@ export class BlockchainSetupWizardComponent implements OnInit {
       organizations: new FormControl([], Validators.required),
       users: new FormControl([], Validators.required),
       advancedSettings: new FormGroup({
-        networkName: new FormControl('', Validators.required),
-        numberOfNodes: new FormControl(null, Validators.required),
-        publicNodesRegions: new FormControl('', Validators.required),
-        privateNode: new FormControl('', Validators.required)
+        networkName: new FormControl(''),
+        numberOfNodes: new FormControl(null),
+        publicNodesRegions: new FormControl(''),
+        privateNode: new FormControl('')
       })
     });
 
