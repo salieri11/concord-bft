@@ -1,15 +1,11 @@
 #########################################################################
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
-# Tests covering Helen's non-ethereum ReST API.
-# (i.e. everything under /api/, excluding /api/athena/eth)
+# Utility to test the performance of the Helen+Athena ecosystem
 #########################################################################
-import collections
-import json
 import logging
 import os
 import traceback
-import string
 import urllib.request
 import gzip
 import io
@@ -19,9 +15,6 @@ import statistics
 import numpy as np
 
 from . import test_suite
-from util.product import Product
-from rest.request import Request
-import util.json_helper
 from rpc.rpc_call import RPC
 from matplotlib import pyplot as plt
 
@@ -126,14 +119,14 @@ class PerformanceTests(test_suite.TestSuite):
          first_val = lines[1]
          first_line = first_val.rstrip('\n')
          first_line_vals = first_line.split('|')
-         current_period = first_line_vals[1]
-         previous_period = first_line_vals[1]
+         current_period = int(first_line_vals[1])
+         previous_period = int(first_line_vals[1])
          current_latency_vals.append(float(first_line_vals[2]))
 
          for line in lines[2:]:
             line = line.rstrip('\n')
             vals = line.split('|')
-            current_period = vals[1]
+            current_period = int(vals[1])
 
             if current_period != previous_period:
                period_list.append(previous_period)
@@ -164,77 +157,77 @@ class PerformanceTests(test_suite.TestSuite):
          url = self._userConfig["performance"]["url"]
 
          print("Accessing test file...")
-         with urllib.request.urlopen(url + filename) as response:
-            print("Decompressing test file...")
-            compressedFile = io.BytesIO(response.read())
-            decompressedFile = gzip.GzipFile(fileobj=compressedFile)
+         try:
+            with urllib.request.urlopen(url + filename) as response:
+               print("Decompressing test file...")
+               compressedFile = io.BytesIO(response.read())
+               decompressedFile = gzip.GzipFile(fileobj=compressedFile)
 
-            testName = "performance"
-            testLogDir = os.path.join(self._testLogDir, testName)
-            rpc = RPC(testLogDir, testName, self._apiServerUrl)
+               testName = "performance"
+               testLogDir = os.path.join(self._testLogDir, testName)
+               rpc = RPC(testLogDir, testName, self._apiServerUrl)
 
-            print("Sending requests..")
-            print("")
-            count = 1
-            t_peak_response = sys.float_info.min
+               print("Sending requests..")
+               print("")
+               count = 1
+               t_peak_response = sys.float_info.min
 
-            result_file = os.path.join(self._testLogDir, "performance_logs.csv")
-            with open(result_file, 'w') as result_file_obj:
-               result_file_obj.write("ReqNo|Clock|ExecutionTime\n")
-               
-               t_start_test = time.time()
-               t_end_test = None
-               for row in decompressedFile:
-                  line = row.rstrip()
-                  request_type = line[0:2].decode()
-                  from_addr = line[2:42].decode()
-                  to_addr = line[42:82].decode()
-                  value = line[82:146].decode()
-                  data = line[146:].decode()
-                  if data == "":
-                     data = None
+               result_file = os.path.join(self._testLogDir, "performance_logs.csv")
+               with open(result_file, 'w') as result_file_obj:
+                  result_file_obj.write("ReqNo|Clock|ExecutionTime\n")
 
-                  t_start_req = time.time()
-                  if request_type == "01":
-                     #ignoring 'to'
-                     if data == None:
-                        continue
+                  t_start_test = time.time()
+                  t_end_test = None
+                  for row in decompressedFile:
 
-                     rpc.sendTransaction(from_addr,
-                                         data,
-                                         self._getGas(),
-                                         value = value)
+                     line = row.rstrip()
+                     request_type = line[0:2].decode()
+                     from_addr = line[2:42].decode()
+                     to_addr = line[42:82].decode()
+                     value = line[82:146].decode()
+                     data = line[146:].decode()
+                     if data == "":
+                        data = None
 
-                  else:
-                     rpc.sendTransaction(from_addr,
-                                         data,
-                                         self._getGas(),
-                                         to_addr,
-                                         value)
-                  t_req = time.time() - t_start_req
-                  
-                  if t_req > t_peak_response:
-                     t_peak_response = t_req
+                     t_start_req = time.time()
+                     if request_type == "01":
+                        #ignoring 'to'
+                        if data == None:
+                           continue
 
-                  result_file_obj.write(str(count) + "|" + \
-                     str(int(time.time()) - int(t_start_test)) + "|" + 
-                     str(t_req) + "\n")
-                  
-                  count += 1
-                  if count % 100 == 0:
-                     print(str(count) + " requests done")
-                  
-                  if count > 500:
-                     break
+                        rpc.sendTransaction(from_addr,
+                                            data,
+                                            self._getGas(),
+                                            value = value)
 
-               t_end_test = time.time()
+                     else:
+                        rpc.sendTransaction(from_addr,
+                                            data,
+                                            self._getGas(),
+                                            to_addr,
+                                            value)
+                     t_req = time.time() - t_start_req
+
+                     if t_req > t_peak_response:
+                        t_peak_response = t_req
+
+                     result_file_obj.write(str(count) + "|" + \
+                        str(int(time.time()) - int(t_start_test)) + "|" +
+                        str(t_req) + "\n")
+
+                     count += 1
+                     if count % 100 == 0:
+                        print(str(count) + " requests done")
+
+         finally:
+            t_end_test = time.time()
             self.parse_results(result_file)
-      
-         t_total = t_end_test - t_start_test
-         print("")
-         print("Peak Response Time = " + str(t_peak_response) + " seconds")
-         print("Total Time = " + str(t_total) + " seconds")
-         print("Throughput = " + str(count/t_total) + " RPS")
-         print("")
+            t_total = t_end_test - t_start_test
+            print("")
+            print(count)
+            print("Peak Response Time = " + str(t_peak_response) + " seconds")
+            print("Total Time = " + str(t_total) + " seconds")
+            print("Throughput = " + str(count/t_total) + " RPS")
+            print("")
 
       return (True, None)
