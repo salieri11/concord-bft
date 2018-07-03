@@ -23,8 +23,8 @@ export class LogInContainerComponent implements OnDestroy {
   constructor(private authenticationService: AuthenticationService,
               private formBuilder: FormBuilder,
               private router: Router) {
-    this.authenticationChange = this.authenticationService.user.subscribe(email => {
-      if (email) {
+    this.authenticationChange = this.authenticationService.user.subscribe(user => {
+      if (user.email) {
         this.router.navigate(['/dashboard']);
       }
     });

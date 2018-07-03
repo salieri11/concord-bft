@@ -17,8 +17,6 @@ import { OrgManagementModule } from '../org-management/org-management.module';
 import { ChannelsModule } from '../channels/channels.module';
 import { GridModule } from '../grid/grid.module';
 import { BlockchainsComponent } from './blockchains.component';
-import { BlockchainsService } from './shared/blockchains.service';
-import { KubernetesService } from '../kubernetes-management/shared/kubernetes.service';
 import { BlockchainComponent } from './blockchain/blockchain.component';
 
 @NgModule({
@@ -39,7 +37,6 @@ import { BlockchainComponent } from './blockchain/blockchain.component';
   declarations: [
     BlockchainsComponent,
     BlockchainComponent,
-  ],
-  providers: [BlockchainsService, KubernetesService]
+  ]
 })
 export class BlockchainsModule { }

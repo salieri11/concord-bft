@@ -7,7 +7,7 @@ import { FormGroup, FormBuilder } from '@angular/forms';
 import { ClrDatagridFilterInterface } from '@clr/angular';
 import { Subject } from 'rxjs';
 
-import { Transaction } from '../../remote-interfaces';
+import { Transaction } from '../../../transactions/shared/transactions.model';
 
 @Component({
   selector: 'athena-transactions-status-filter',

@@ -16,7 +16,6 @@ import { GridModule } from '../grid/grid.module';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { OrgManagementComponent } from './org-management.component';
-import { OrgManagementService } from './shared/org-management.service';
 import { OrgListComponent } from './org-list/org-list.component';
 
 @NgModule({
@@ -35,9 +34,6 @@ import { OrgListComponent } from './org-list/org-list.component';
   declarations: [
     OrgManagementComponent,
     OrgListComponent
-  ],
-  providers: [
-    OrgManagementService
   ],
   exports: [
     OrgListComponent
