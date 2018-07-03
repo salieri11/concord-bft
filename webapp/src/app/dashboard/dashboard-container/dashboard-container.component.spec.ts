@@ -12,6 +12,7 @@ import { DashboardContainerComponent } from './dashboard-container.component';
 import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
 import { TransactionListViewComponent } from '../../transactions/transaction-list-view/transaction-list-view.component';
 import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
+import { WorldMapComponent } from '../world-map/world-map.component';
 
 describe('DashboardContainerComponent', () => {
   let component: DashboardContainerComponent;
@@ -28,7 +29,8 @@ describe('DashboardContainerComponent', () => {
         DashboardContainerComponent,
         TransactionsStatusFilterComponent,
         TransactionListViewComponent,
-        TransactionDetailsComponent
+        TransactionDetailsComponent,
+        WorldMapComponent
       ]
     })
     .compileComponents();

@@ -7,6 +7,8 @@ import { Component, OnInit } from '@angular/core';
 import { BlockListingBlock } from '../../blocks/shared/blocks.model';
 import { TransactionsService } from '../../transactions/shared/transactions.service';
 
+import * as NodeGeoJson from '../features.json';
+
 @Component({
   selector: 'athena-dashboard-container',
   templateUrl: './dashboard-container.component.html',
@@ -14,8 +16,8 @@ import { TransactionsService } from '../../transactions/shared/transactions.serv
 })
 export class DashboardContainerComponent implements OnInit {
   blocks: BlockListingBlock[];
-  blockTransactions: any[] = [];
   recentTransactions: any[] = [];
+  nodeGeoJson: any = NodeGeoJson;
   mockStats = {
     totalActiveNodes: 28458,
     inactiveNodes: 583,

@@ -1,0 +1,95 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -84.3880,
+          33.7490
+        ]
+      },
+      "properties": {
+        "location": "Atlanta, GA, USA",
+        "nodes": [
+          {
+            "id": "athena1",
+            "consortiumName": "Consort 1",
+            "blockchainType": "Athena",
+            "status": "Unhealthy"
+          },
+          {
+            "id": "athena2",
+            "consortiumName": "Consort 1",
+            "blockchainType": "Athena",
+            "status": "Deploying"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.4194,
+          37.7749
+        ]
+      },
+      "properties": {
+        "location": "San Francisco, CA, USA",
+        "nodes": [
+          {
+            "id": "athena3",
+            "consortiumName": "Consort 2",
+            "blockchainType": "Hyperledger",
+            "status": "Unhealthy"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -0.1278,
+          51.5074
+        ]
+      },
+      "properties": {
+        "location": "London, England",
+        "nodes": [
+          {
+            "id": "athena4",
+            "consortiumName": "Consort 3",
+            "blockchainType": "Athena",
+            "status": "Healthy"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          77.2090,
+          28.6139
+        ]
+      },
+      "properties": {
+        "location": "New Delhi, England",
+        "nodes": [
+          {
+            "id": "athena5",
+            "consortiumName": "Consort 4",
+            "blockchainType": "SuperChain",
+            "status": "Deploying"
+          }
+        ]
+      }
+    }
+  ]
+}
