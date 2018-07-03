@@ -191,8 +191,6 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     }
   }
 
-
-
   /**
    * Unset various properties to hide the active hovered tooltip/overlay
    */
@@ -258,6 +256,18 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
 }
 
 /**
+ * Clamp a given number between two given ranges
+ *
+ * @param {number} value The value to clamp
+ * @param {number} min The smallest value
+ * @param {number} max The largest value
+ * @returns {number} A value within the range of min and max
+ */
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+/**
  * An ol.style.Style generating function. Needs to be generated per node to show difference in size according to how
  * many nodes at the location.
  *
@@ -320,16 +330,4 @@ function vectorTileFeatureToGeoJsonFeature(feature) {
       coordinates
     }
   };
-}
-
-/**
- * Clamp a given number between two given ranges
- *
- * @param {number} value The value to clamp
- * @param {number} min The smallest value
- * @param {number} max The largest value
- * @returns {number} A value within the range of min and max
- */
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value));
 }
