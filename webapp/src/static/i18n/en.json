@@ -662,6 +662,10 @@
           "title": "Password",
           "placeholder": "********"
         },
+        "confirmPassword": {
+          "title": "Confirm Password",
+          "placeholder": "********"
+        },
         "organization": {
           "title": "Organization",
           "placeholder": "Organization"

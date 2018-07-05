@@ -38,11 +38,11 @@
             </div>
             <div class="form-group">
               <label for="confirmPassword">
-                {{ 'users.addUserForm.inputs.password.title' | translate }}
+                {{ 'users.addUserForm.inputs.confirmPassword.title' | translate }}
               </label>
               <input formControlName="confirmPassword"
                      type="password" id="confirmPassword"
-                     [placeholder]="'users.addUserForm.inputs.password.placeholder' | translate"
+                     [placeholder]="'users.addUserForm.inputs.confirmPassword.placeholder' | translate"
                      size=35 required>
               <span *ngIf="(addUserForm.get('confirmPassword').touched ||addUserForm.get('confirmPassword').dirty) && addUserForm.get('confirmPassword').hasError('mismatch')">{{ 'users.addUserForm.errors.password.mismatch' | translate }}</span>
             </div>
