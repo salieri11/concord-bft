@@ -9,11 +9,13 @@
 #include "BlockchainInterfaces.h"
 #include "HashDefs.h"
 #include <map>
+#include <functional>
 #include "BlockchainDBAdapter.h"
 #include "InMemoryDBClient.h"
 #include "Threading.h"
 #include "ThreadLocalStorage.h"
 #include "libbyz.h"
+#include <string>
 
 using namespace Blockchain::Utils;
 
@@ -77,7 +79,12 @@ namespace Blockchain {
       ReplicaImp(string byzConfig,
                  string byzPrivateConfig,
                  ICommandsHandler *cmdHandler,
-                 BlockchainDBAdapter *dbAdapter);
+                 BlockchainDBAdapter *dbAdapter,
+                 std::function<void(
+                         int64_t,
+                         std::string,
+                         int16_t,
+                         std::string)> fPeerConnectivityCallback);
       virtual ~ReplicaImp();
 
       // METHODS
@@ -98,6 +105,11 @@ namespace Blockchain {
       const std::string m_byzConfig;
       const std::string m_byzPrivateConfig;
       const ICommandsHandler *m_cmdHandler;
+
+      // data
+      std::function<void(
+              int64_t, std::string, int16_t, std::string)>
+              m_fPeerConnectivityCallback;
 
       // INTERNAL TYPES
 
@@ -241,6 +253,7 @@ namespace Blockchain {
       RepStatus m_currentRepStatus;
       StorageWrapperForIdleMode m_InternalStorageWrapperForIdleMode;
 
+
       // storage - TODO(GG): add support for leveldb/rocksdb
       BlockchainDBAdapter* m_bcDbAdapter;
       BlockId lastBlock = 0;
@@ -271,7 +284,12 @@ namespace Blockchain {
       friend IReplica* createReplica(
          const ReplicaConsensusConfig &consensusConfig,
          ICommandsHandler *cmdHandler,
-         IDBClient *db);
+         IDBClient *db,
+         std::function<void(
+                 int64_t,
+                 std::string,
+                 int16_t,
+                 std::string)> fPeerConnectivityCallback);
       friend void release(IReplica *r);
    };
 }

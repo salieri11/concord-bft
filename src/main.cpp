@@ -21,6 +21,9 @@
 #include "kvb/ReplicaImp.h"
 #include "kvb/ClientImp.h"
 #include <thread>
+#include <string>
+#include "status_aggregator.hpp"
+
 #ifdef USE_ROCKSDB
 #include "kvb/RocksDBClient.h"
 #endif
@@ -178,12 +181,18 @@ run_service(variables_map &opts, Logger logger)
       // For Thread local storage. Should be called exactly once per process.
       Blockchain::initEnv();
 
+      // init status aggregation object
+      StatusAggregator sag;
+
       Blockchain::ReplicaConsensusConfig replicaConsensusConfig;
       replicaConsensusConfig.byzConfig = opts["SBFT.public"].as<std::string>();
       replicaConsensusConfig.byzPrivateConfig =
          opts["SBFT.replica"].as<std::string>();
       Blockchain::IReplica *replica =
-         Blockchain::createReplica(replicaConsensusConfig, &athkvb, dbclient);
+         Blockchain::createReplica(replicaConsensusConfig,
+                                   &athkvb,
+                                   dbclient,
+                                   sag.get_update_connectivity_fn());
 
       // Genesis must be added before the replica is started.
       Blockchain::Status genesis_status =

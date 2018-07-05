@@ -97,4 +97,14 @@ StatusAggregator::get_update_connectivity_fn() {
 vector<PeerConnectivityStatus>
 StatusAggregator::get_peers_info() {
    std::lock_guard<std::mutex> lock(_inQueueMutex);
+   vector<PeerConnectivityStatus> res;
+   for (auto it = _pPeerStatusMap->begin(); it != _pPeerStatusMap->end(); it++ ) {
+      auto infoMapIt = it->second->find(PeerInfoType::Connectivity);
+      if(infoMapIt != it->second->end()) {
+         auto stPtr = static_cast<PeerConnectivityStatus*>(infoMapIt->second);
+         res.push_back(*stPtr);
+      }
+   }
+
+   return res;
 }
