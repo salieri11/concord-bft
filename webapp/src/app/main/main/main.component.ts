@@ -22,8 +22,6 @@ export class MainComponent implements OnDestroy {
   authenticated = false;
   username: string;
   personas = Personas;
-
-
   personaOptions = PersonaService.getOptions();
 
   constructor(
@@ -48,6 +46,7 @@ export class MainComponent implements OnDestroy {
   }
 
   onPersonaChange(persona: Personas) {
+    localStorage.setItem('helen.persona', persona);
     this.personaService.currentPersona = persona;
     location.reload();
   }

@@ -593,6 +593,9 @@
         "title": "Users"
       },
       "columns": {
+        "name": {
+          "title": "Name"
+        },
         "firstName": {
           "title": "FirstName"
         },
@@ -666,6 +669,12 @@
         "role": {
           "title": "Role",
           "placeholder": "persona"
+        }
+      },
+      "errors": {
+        "password": {
+          "minLength": "Password must be at least 8 characters long.",
+          "mismatch": "Passwords do not match."
         }
       },
       "submit": {

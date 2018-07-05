@@ -30,8 +30,21 @@
               <label for="password">
                 {{ 'users.addUserForm.inputs.password.title' | translate }}
               </label>
-              <input formControlName="password" type="password" id="password" [placeholder]="'users.addUserForm.inputs.password.placeholder' | translate"
-                     size=35>
+              <input formControlName="password"
+                     type="password" id="password"
+                     [placeholder]="'users.addUserForm.inputs.password.placeholder' | translate"
+                     size=35 required>
+              <span *ngIf="addUserForm.get('password').hasError('minlength')">{{ 'users.addUserForm.errors.password.minLength' | translate }}</span>
+            </div>
+            <div class="form-group">
+              <label for="confirmPassword">
+                {{ 'users.addUserForm.inputs.password.title' | translate }}
+              </label>
+              <input formControlName="confirmPassword"
+                     type="password" id="confirmPassword"
+                     [placeholder]="'users.addUserForm.inputs.password.placeholder' | translate"
+                     size=35 required>
+              <span *ngIf="(addUserForm.get('confirmPassword').touched ||addUserForm.get('confirmPassword').dirty) && addUserForm.get('confirmPassword').hasError('mismatch')">{{ 'users.addUserForm.errors.password.mismatch' | translate }}</span>
             </div>
             <div class="form-group">
               <label for="organization">

@@ -56,6 +56,7 @@ export class UsersService extends AndesApi {
       data = {
         objects: [{
           id: 1,
+          name: 'Donnette Foller',
           firstName: 'Donette',
           lastName: 'Foller',
           email: 'donnett@email.com',
@@ -65,6 +66,7 @@ export class UsersService extends AndesApi {
           createdOn: d.setDate(d.getDate() - 10)
         }, {
           id: 2,
+          name: 'Abel Dilliard',
           firstName: 'Abel',
           lastName: 'Dilliard',
           email: 'abel@email.com',
@@ -74,6 +76,7 @@ export class UsersService extends AndesApi {
           createdOn: d.setDate(d.getDate() - 10)
         }, {
           id: 3,
+          name: 'Sage Venere',
           firstName: 'Sage',
           lastName: 'Venere',
           email: 'sage@email.com',

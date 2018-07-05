@@ -41,32 +41,28 @@ export class UserListComponent implements OnInit {
   handleGrid(): void {
     this.gridOptions.paginationTitle = this.translate.instant('users.grid.pagination.title');
     this.gridOptions.columns = [{
-      id: 'firstName',
-      name: this.translate.instant('users.grid.columns.firstName'),
-      type: 'string'
-    }, {
-      id: 'lastName',
-      name: this.translate.instant('users.grid.columns.lastName'),
+      id: 'name',
+      name: this.translate.instant('users.grid.columns.name.title'),
       type: 'string'
     }, {
       id: 'email',
-      name: this.translate.instant('users.grid.columns.email'),
+      name: this.translate.instant('users.grid.columns.email.title'),
       type: 'string'
     }, {
       id: 'organization',
-      name: this.translate.instant('users.grid.columns.organization'),
+      name: this.translate.instant('users.grid.columns.organization.title'),
       type: 'string'
     }, {
       id: 'persona',
-      name: this.translate.instant('users.grid.columns.persona'),
+      name: this.translate.instant('users.grid.columns.persona.title'),
       type: 'string'
     }, {
       id: 'createdOn',
-      name: this.translate.instant('users.grid.columns.createdOn'),
+      name: this.translate.instant('users.grid.columns.createdOn.title'),
       type: 'date'
     }, {
       id: 'updatedOn',
-      name: this.translate.instant('users.grid.columns.updatedOn'),
+      name: this.translate.instant('users.grid.columns.updatedOn.title'),
       type: 'date'
     }
     ];

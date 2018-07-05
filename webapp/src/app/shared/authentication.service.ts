@@ -14,8 +14,12 @@ export class AuthenticationService {
   readonly user: Observable<User>;
 
   constructor(private personaService: PersonaService) {
-    this.userSubject = new BehaviorSubject<User>({email: localStorage['helen.email'], persona: localStorage['helen.persona']});
+    this.userSubject = new BehaviorSubject<User>({
+      email: localStorage['helen.email'],
+      persona: localStorage['helen.persona']
+    });
     this.user = this.userSubject.asObservable();
+    this.personaService.currentPersona = localStorage['helen.persona'];
   }
 
   isAuthenticated() {

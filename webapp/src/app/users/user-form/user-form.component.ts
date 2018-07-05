@@ -9,6 +9,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { User } from '../shared/user.model';
 import { UsersService } from '../shared/users.service';
 import { Personas, PersonaService } from '../../shared/persona.service';
+import { matchPasswordValidator } from "../shared/custom-validators";
 
 @Component({
   selector: 'athena-user-form',
@@ -60,7 +61,8 @@ export class UserFormComponent implements OnInit {
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],
       email: ['', Validators.required],
-      password: ['', Validators.required],
+      password: ['', [Validators.required, Validators.minLength(8)]],
+      confirmPassword: ['', [Validators.required, Validators.minLength(8), matchPasswordValidator('password')]],
       organization: ['', Validators.required],
       persona: ['', Validators.required]
     }));
@@ -85,6 +87,7 @@ export class UserFormComponent implements OnInit {
       firstName: addUserFormModel.firstName,
       lastName: addUserFormModel.lastName,
       email: addUserFormModel.email,
+      password: addUserFormModel.password,
       persona: addUserFormModel.persona,
       createdOn: date.getDate(),
       updatedOn: date.getDate()
