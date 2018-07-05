@@ -83,7 +83,11 @@ public final class BlockNumber extends BaseServlet {
 
       } catch (Exception e) {
          _logger.error("Invalid block number or hash");
-         processResponse(response, "error", StatusCodes.BAD_REQUEST, _logger);
+         processResponse(response,
+                         APIHelper.errorJSON("Invalid block number or hash")
+                                  .toJSONString(),
+                         StatusCodes.BAD_REQUEST,
+                         _logger);
       }
    }
 

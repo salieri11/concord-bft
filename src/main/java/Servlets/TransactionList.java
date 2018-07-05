@@ -40,34 +40,37 @@ public class TransactionList extends BaseServlet {
       ByteString latest = null;
       long count = _conf.getLongValue("TransactionList_DefaultCount");
       Athena.AthenaRequest athenaRequest;
-      Athena.TransactionListRequest.Builder txListReqBuilder
-         = Athena.TransactionListRequest.newBuilder();
-
-      if (paramMap.containsKey("latest")) {
-         try {
+      
+      try {
+         Athena.TransactionListRequest.Builder txListReqBuilder
+                 = Athena.TransactionListRequest.newBuilder();
+   
+         if (paramMap.containsKey("latest")) {
             latest = APIHelper.hexStringToBinary(paramMap.get("latest")[0]);
             txListReqBuilder.setLatest(latest);
-            logger.info("latest transaction: " + latest);
-         } catch (Exception e) {
-            logger.warn("Invalid latest transaction hash, using default "
-               + "value", e);
          }
-      }
-
-      if (paramMap.containsKey("count")) {
-         if (paramMap.get("count")[0].chars().allMatch(Character::isDigit)) {
-            count = Long.parseLong(paramMap.get("count")[0]);
+   
+         if (paramMap.containsKey("count")) {
+            if (paramMap.get("count")[0].chars().allMatch(Character::isDigit)) {
+               count = Long.parseLong(paramMap.get("count")[0]);
+            }
          }
+         txListReqBuilder.setCount(count);
+         logger.info("requested count: " + count);
+   
+         athenaRequest
+                 = Athena.AthenaRequest.newBuilder()
+                 .setTransactionListRequest(txListReqBuilder.build())
+                 .build();
+   
+         processGet(athenaRequest, response, logger);
+      } catch (Exception e) {
+         logger.warn("Exception in transaction list", e);
+         processResponse(response,
+                 APIHelper.errorJSON(e.getMessage()).toJSONString(),
+                 HttpServletResponse.SC_BAD_REQUEST,
+                 logger);
       }
-      txListReqBuilder.setCount(count);
-      logger.info("requested count: " + count);
-
-      athenaRequest
-         = Athena.AthenaRequest.newBuilder()
-                               .setTransactionListRequest(txListReqBuilder.build())
-                               .build();
-
-      processGet(athenaRequest, response, logger);
    }
 
    /**

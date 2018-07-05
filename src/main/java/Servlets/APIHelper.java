@@ -30,7 +30,7 @@ public class APIHelper {
       String curr = param.trim();
 
       if (curr.length() % 2 != 0) {
-         return null;
+         throw new Exception("Hex string invalid.");
       }
 
       if (curr.equals("0x")) {
