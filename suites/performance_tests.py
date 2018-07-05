@@ -6,9 +6,7 @@
 import logging
 import os
 import traceback
-import urllib.request
 import gzip
-import io
 import time
 import sys
 import statistics
@@ -85,6 +83,7 @@ class PerformanceTests(test_suite.TestSuite):
    #Plot a graph and save it
    def plotData(self, period_list, avg_latency_list, peak_latency_list, 
                 stdev_latency_list, var_latency_list, percentile_list_99):
+      print("Plotting graph..")
       avg_latency, = plt.plot(period_list, avg_latency_list, label="Average")
       peak_latency, = plt.plot(period_list, peak_latency_list, label="Peak")
       stdev_latency, = plt.plot(period_list, stdev_latency_list, 
@@ -154,14 +153,9 @@ class PerformanceTests(test_suite.TestSuite):
    def _test_performance(self):
       if self._productMode:
          filename = self._userConfig["performance"]["filename"]
-         url = self._userConfig["performance"]["url"]
 
-         print("Accessing test file...")
          try:
-            with urllib.request.urlopen(url + filename) as response:
-               print("Decompressing test file...")
-               compressedFile = io.BytesIO(response.read())
-               decompressedFile = gzip.GzipFile(fileobj=compressedFile)
+            with gzip.open(filename, 'r') as decompressedFile:
 
                testName = "performance"
                testLogDir = os.path.join(self._testLogDir, testName)
@@ -177,7 +171,6 @@ class PerformanceTests(test_suite.TestSuite):
                   result_file_obj.write("ReqNo|Clock|ExecutionTime\n")
 
                   t_start_test = time.time()
-                  t_end_test = None
                   for row in decompressedFile:
 
                      line = row.rstrip()
@@ -192,7 +185,7 @@ class PerformanceTests(test_suite.TestSuite):
                      t_start_req = time.time()
                      if request_type == "01":
                         #ignoring 'to'
-                        if data == None:
+                        if data is None:
                            continue
 
                         rpc.sendTransaction(from_addr,
@@ -220,14 +213,12 @@ class PerformanceTests(test_suite.TestSuite):
                         print(str(count) + " requests done")
 
          finally:
-            t_end_test = time.time()
+            t_total = time.time() - t_start_test
             self.parse_results(result_file)
-            t_total = t_end_test - t_start_test
-            print("")
-            print(count)
+
             print("Peak Response Time = " + str(t_peak_response) + " seconds")
             print("Total Time = " + str(t_total) + " seconds")
             print("Throughput = " + str(count/t_total) + " RPS")
             print("")
 
-      return (True, None)
+      return True, None

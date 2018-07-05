@@ -2,17 +2,13 @@
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 import json
-import util.json_helper
 import logging
 import os
 import subprocess
-from subprocess import CompletedProcess, PIPE
 import threading
 import time
-import traceback
 
-from util.debug import pp as pp
-#from collections import deque
+import util.json_helper
 
 log = logging.getLogger(__name__)
 
@@ -212,6 +208,9 @@ class RPC():
 
       if to:
          self._rpcData["params"][0]["to"] = to
+
+      if value:
+         self._rpcData["params"][0]["value"] = value
 
       response = self._call()
       return self.getResultFromResponse(response)

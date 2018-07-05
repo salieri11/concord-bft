@@ -62,6 +62,23 @@ Hermes is the repository for the vmwareathena project's testing framework.
 - An alternate Hermes config file may be specified by using [--config].
   example : `./main.py CoreVMTests --config resources/user_config_resilience.json`
 
+## Running the Performance Test suite:
+- The performance test utility assumes the format specified [here](https://vmwblockchain.atlassian.net/browse/ATH-4?filter=-5)
+  for the test file.
+- A sample test file can be downloaded from [here](http://pa-dbc1122.eng.vmware.com/bfink/vmwathena/test-data/NORMALIZED_COMMANDS.txt.gz)
+- Note: The test file should be a *.txt.gz file and it should be present in the same location as main.py.
+- The name of the file may be specified in resources/user_config.json under performance->filename.
+- Install dependencies:
+```
+sudo apt-get install python3-matplotlib
+sudo pip3 install numpy
+```
+- Usage:
+```
+./main.py PerformanceTests
+```
+- To terminate the test early use command-C. This will stop the test and will only parse results attained up until that point.
+
 ## Launching geth:
 - If running the test suite against geth as a reference implementation, you need
   to set it up and launch it.  Some default config files have been checked in.
