@@ -3,6 +3,7 @@
  */
 
 import { Component, OnInit, ViewChild, Output, EventEmitter } from '@angular/core';
+import { Router } from '@angular/router';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { ClrWizard, ClrWizardPage } from '@clr/angular';
 
@@ -19,6 +20,10 @@ export class BlockchainSetupWizardComponent implements OnInit {
   @Output('setupComplete') setupComplete: EventEmitter<any> = new EventEmitter<any>();
 
   isOpen = false;
+  isEditingOrg = false;
+  orgIndex: number = null;
+  isEditingUser = false;
+  userIndex: number = null;
   form: FormGroup;
   orgForm: FormGroup;
   userForm: FormGroup;
@@ -37,7 +42,7 @@ export class BlockchainSetupWizardComponent implements OnInit {
     {value: 'aws-australia', displayValue: 'AWS Australia'}
   ];
 
-  constructor() {
+  constructor(private router: Router) {
     this.form = new FormGroup({
       blockchain: new FormGroup({
         type: new FormControl('', Validators.required)
@@ -75,20 +80,70 @@ export class BlockchainSetupWizardComponent implements OnInit {
 
   addOrg() {
     let selectedOrgs = this.form.get('organizations');
-    selectedOrgs.setValue(selectedOrgs.value.concat([this.orgForm.value]));
+
+    if(this.isEditingOrg) {
+      selectedOrgs.value[this.orgIndex] = this.orgForm.value;
+      selectedOrgs.setValue(selectedOrgs.value);
+      this.isEditingOrg = false;
+      this.orgIndex = null;
+    } else {
+      selectedOrgs.setValue(selectedOrgs.value.concat([this.orgForm.value]));
+    }
 
     this.orgForm.reset();
   }
 
   addUser() {
     let selectedUsers= this.form.get('users');
-    selectedUsers.setValue(selectedUsers.value.concat([this.userForm.value]));
+
+    if(this.isEditingUser) {
+      selectedUsers.value[this.userIndex] = this.userForm.value;
+      selectedUsers.setValue(selectedUsers.value);
+      this.isEditingUser = false;
+      this.userIndex = null;
+    } else {
+      selectedUsers.setValue(selectedUsers.value.concat([this.userForm.value]));
+    }
 
     this.userForm.reset();
   }
 
   jumpTo(page: ClrWizardPage) {
     this.wizard.navService.setCurrentPage(page);
+  }
+
+  resetFragment() {
+    this.router.navigate(['/dashboard']);
+  }
+
+  onEditOrg(index: number) {
+    this.orgIndex = index;
+    this.isEditingOrg = true;
+    this.orgForm.patchValue(this.form.get('organizations').value[index]);
+  }
+
+  deleteOrg(index: number) {
+    let selectedOrgs = this.form.get('organizations');
+
+    // @ts-ignore: no unused locals
+    selectedOrgs.setValue(selectedOrgs.value.filter((item, i) => {
+      return index !== i;
+    }));
+  }
+
+  onEditUser(index: nubmer) {
+    this.userIndex = index;
+    this.isEditingUser = true;
+    this.userForm.patchValue(this.form.get('users').value[index]);
+  }
+
+  deleteUser(index: number) {
+    let selectedUsers = this.form.get('users');
+
+    // @ts-ignore: no unused locals
+    selectedUsers.setValue(selectedUsers.value.filter((item, i) => {
+      return index !== i;
+    }));
   }
 
   open() {
@@ -98,11 +153,16 @@ export class BlockchainSetupWizardComponent implements OnInit {
     this.form.patchValue({
       organizations: [],
       users: []
-    })
+    });
+    this.userForm.reset();
+    this.orgForm.reset();
+    this.isEditingOrg = false;
+    this.isEditingUser = false;
   }
 
   onSubmit() {
     this.setupComplete.emit(this.form.value);
+    this.resetFragment();
   }
 
 }

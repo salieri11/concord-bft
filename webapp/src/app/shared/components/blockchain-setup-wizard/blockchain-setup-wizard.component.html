@@ -1,5 +1,5 @@
 <form [formGroup]="form">
-<clr-wizard #wizard [(clrWizardOpen)]="isOpen" (clrWizardOnFinish)="onSubmit()">
+<clr-wizard #wizard [(clrWizardOpen)]="isOpen" (clrWizardOnFinish)="onSubmit()" (clrWizardOnCancel)="resetFragment()">
   <clr-wizard-title>Deploy</clr-wizard-title>
 
   <clr-wizard-button [type]="'cancel'">Cancel</clr-wizard-button>
@@ -56,7 +56,7 @@
         <div class="form-group">
           <label>Name</label>
           <input type="text" formControlName="name">
-          <button type="button" class="btn btn-primary" (click)="addOrg()" [disabled]="!orgForm.valid">Add Organization</button>
+          <button type="button" class="btn btn-primary-outline btn-sm" (click)="addOrg()" [disabled]="!orgForm.valid">Add Organization</button>
         </div>
       </div>
       <table class="table">
@@ -66,12 +66,12 @@
         </tr>
         </thead>
         <tbody>
-        <tr *ngFor="let org of form?.value.organizations">
+        <tr *ngFor="let org of form?.value.organizations; let i = index">
           <td class="left">
             {{org.name}}
-            <div class="float-xs-right">
-              <clr-icon shape="trash"></clr-icon>
-              <clr-icon shape="pencil"></clr-icon>
+            <div class="float-xs-right table-actions">
+              <clr-icon shape="trash" (click)="deleteOrg(i)"></clr-icon>
+              <clr-icon shape="pencil" (click)="onEditOrg(i)"></clr-icon>
             </div>
           </td>
         </tr>
@@ -93,13 +93,13 @@
           <label>First Name</label>
         </div>
         <div class="col-xs-8 col-sm-4">
-          <input type="text" formControlName="firstName">
+          <input type="text" formControlName="firstName" class="form-control">
         </div>
         <div class="col-xs-4 col-sm-2">
           <label>Last Name</label>
         </div>
         <div class="col-xs-8 col-sm-4">
-          <input type="text" formControlName="lastName">
+          <input type="text" formControlName="lastName" class="form-control">
         </div>
       </div>
       <div class="form-group row">
@@ -107,7 +107,7 @@
           <label>Email</label>
         </div>
         <div class="col-xs-8 col-sm-4">
-          <input type="text" formControlName="email">
+          <input type="text" formControlName="email" class="form-control">
         </div>
         <div class="col-xs-4 col-sm-2">
           <label>Organization</label>
@@ -134,18 +134,24 @@
           </div>
         </div>
       </div>
-      <div class="form-group">
-        <button class="btn btn-primary" type="button" (click)="addUser()" [disabled]="!userForm.valid">Add User</button>
+      <div class="text-right">
+        <button class="btn btn-sm btn-primary-outline" type="button" (click)="addUser()" [disabled]="!userForm.valid">Add User</button>
       </div>
     </div>
     <clr-datagrid>
       <clr-dg-column>First Name</clr-dg-column>
       <clr-dg-column>Last Name</clr-dg-column>
       <clr-dg-column>Role</clr-dg-column>
-      <clr-dg-row *ngFor="let user of form?.value.users">
+      <clr-dg-row *ngFor="let user of form?.value.users; let i = index">
         <clr-dg-cell>{{user.firstName}}</clr-dg-cell>
         <clr-dg-cell>{{user.lastName}}</clr-dg-cell>
-        <clr-dg-cell>{{user.role}}</clr-dg-cell>
+        <clr-dg-cell>
+          {{user.role}}
+          <div class="float-xs-right table-actions">
+            <clr-icon shape="trash" (click)="deleteUser(i)"></clr-icon>
+            <clr-icon shape="pencil" (click)="onEditUser(i)"></clr-icon>
+          </div>
+        </clr-dg-cell>
         <clr-dg-row-detail *clrIfExpanded>
           <table class="table table-noborder mt-0">
             <thead>
