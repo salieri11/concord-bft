@@ -20,7 +20,7 @@ export class GridOptions {
   getData: any;
   url?: string;
   columns: Array<GridColumn>;
-  paginationTitle: 'string';
+  paginationTitle: string;
   constructor() {}
 }
 

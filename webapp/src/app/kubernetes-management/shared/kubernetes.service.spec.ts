@@ -4,12 +4,16 @@
 import { TestBed, inject } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { KubernetesService } from './kubernetes.service';
+import { ANDES_API_PREFIX } from '../../shared/shared.config';
 
 describe('KubernetesService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
-      providers: [KubernetesService]
+      providers: [
+        KubernetesService,
+        {provide: ANDES_API_PREFIX, useValue: '/api'},
+      ]
     });
   });
 

@@ -4,41 +4,37 @@
 
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { NgModule } from '@angular/core';
-import { HttpClient, HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
-import { RouterModule, Routes } from '@angular/router';
-import { ClarityModule } from '@clr/angular';
-import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
+import { NgModule, Injector, APP_INITIALIZER } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { LOCATION_INITIALIZED } from '@angular/common';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
+import { TranslateLoader, TranslateModule, TranslateService } from '@ngx-translate/core';
 
-import { AuthenticationModule } from './authentication/authentication.module';
-import { DashboardModule } from './dashboard/dashboard.module';
-import { NodesModule } from './nodes/nodes.module';
-import { BlocksModule } from './blocks/blocks.module';
-import { TransactionsModule } from './transactions/transactions.module';
-import { TestingModule } from './testing/testing.module';
-import { SmartContractsModule } from './smart-contracts/smart-contracts.module';
-import { SharedModule } from './shared/shared.module';
-import { OrgManagementModule } from './org-management/org-management.module';
-import { BlockchainsModule } from './blockchains/blockchains.module';
-import { ChannelsModule } from './channels/channels.module';
-import { ConsortiumManagementModule } from './consortium-management/consortium-management.module';
-import { KubernetesManagementModule } from './kubernetes-management/kubernetes-management.module';
-import { GlobalErrorHandlerService, ErrorAlertService } from './shared/global-error-handler.service';
-
-import { RequestInterceptor } from './app-interceptors';
+import { ClarityModule } from '@clr/angular';
 
 import { AppComponent } from './app.component';
-
-const appRoutes: Routes = [
-  { path: '',
-    redirectTo: 'dashboard',
-    pathMatch: 'full'
-  }
-];
+import { MainModule } from './main/main.module';
+import { AppRoutingModule } from './app-routing.module';
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, '/assets/static/i18n/', '.json');
+}
+
+export function langInitializerFactory(translate: TranslateService, injector: Injector) {
+  return () => new Promise<any>((resolve: any) => {
+    const locationInitialized = injector.get(LOCATION_INITIALIZED, Promise.resolve(null));
+    locationInitialized.then(() => {
+      const langToSet = 'en';
+      translate.setDefaultLang('en');
+      translate.use(langToSet).subscribe(() => {
+        console.info(`Successfully initialized '${langToSet}' language.'`);
+      }, err => {
+        console.error(`Problem with '${langToSet}' language initialization: ${err}`);
+      }, () => {
+        resolve(null);
+      });
+    });
+  });
 }
 
 @NgModule({
@@ -48,39 +44,26 @@ export function HttpLoaderFactory(http: HttpClient) {
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
-    HttpClientModule,
+    MainModule,
     ClarityModule,
-    RouterModule.forRoot(appRoutes),
+    AppRoutingModule,
     TranslateModule.forRoot({
       loader: {
         provide: TranslateLoader,
         useFactory: HttpLoaderFactory,
         deps: [HttpClient]
       }
-    }),
-    AuthenticationModule,
-    DashboardModule,
-    NodesModule,
-    BlocksModule,
-    TransactionsModule,
-    SmartContractsModule,
-    TestingModule,
-    SharedModule.forRoot(),
-    OrgManagementModule,
-    BlockchainsModule,
-    ConsortiumManagementModule,
-    KubernetesManagementModule,
-    ChannelsModule
+    })
   ],
   providers: [
     {
-      provide: HTTP_INTERCEPTORS,
-      useClass: RequestInterceptor,
-      multi: true,
+      provide: APP_INITIALIZER,
+      useFactory: langInitializerFactory,
+      deps: [TranslateService, Injector],
+      multi: true
     },
-    GlobalErrorHandlerService,
-    ErrorAlertService
   ],
   bootstrap: [AppComponent]
 })
-export class AppModule { }
+export class AppModule {
+}
