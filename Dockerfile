@@ -31,9 +31,12 @@ RUN cmake .. && make
 
 WORKDIR /
 RUN git clone https://github.com/weidai11/cryptopp.git
-WORKDIR /cryptopp/build
+WORKDIR /cryptopp
 RUN git checkout CRYPTOPP_5_6_5
-RUN cmake .. && make && make install
+COPY ./cross-platform-cryptopp.patch .
+RUN git apply --whitespace=nowarn cross-platform-cryptopp.patch
+WORKDIR /cryptopp/build
+RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64" .. && make && make install
 
 WORKDIR /
 RUN wget https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.gz \
