@@ -36,6 +36,22 @@ private:
    void add_list_size(size_t size);
 };
 
+class RLPParser {
+public:
+   RLPParser(std::vector<uint8_t> &rlp) :
+      rlp_(rlp), offset(0) { };
+
+   std::vector<uint8_t> next();
+   bool at_end();
+
+private:
+   std::vector<uint8_t> &rlp_;
+   int offset;
+
+   std::vector<uint8_t> short_run(size_t length);
+   std::vector<uint8_t> long_run(size_t length_length);
+};
+
 }
 }
 }

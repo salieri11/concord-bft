@@ -37,3 +37,14 @@ target_link_libraries(ath_getblk
                       athcmdutil
                       proto ${PROTOBUF_LIBRARIES}
                       ${Boost_LIBRARIES})
+
+include_directories("~/deps/secp256k1/include" "../src")
+find_library(SECP256K1_LIBRARY secp256k1 PATHS /home/bfink/deps/secp256k1/.libs)
+add_executable(ecrecover
+  "ecrecover.cpp")
+target_link_libraries(ecrecover
+                      athcmdutil
+                      athena_utils
+                      log4cplus
+                      ${Cryptopp_LIBRARIES}
+                      ${SECP256K1_LIBRARY})

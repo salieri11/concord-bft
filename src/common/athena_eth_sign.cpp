@@ -95,13 +95,6 @@ evm_address com::vmware::athena::EthSign::ecrecover(const evm_uint256be hash,
              pubkeyhash.bytes+sizeof(evm_uint256be),
              address.bytes);
 
-   static const char hexes[] = "0123456789abcdef";
-   std::cout << "address: ";
-   for (int i = 0; i < sizeof(evm_address); i++) {
-      std::cout << hexes[address.bytes[i] >> 4] << hexes[address.bytes[i] & 0x0f];
-   }
-   std::cout << std::endl;
-
    return address;
 }
 
