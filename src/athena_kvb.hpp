@@ -43,6 +43,10 @@ public:
       AthenaRequest &athreq,
       KVBStorage &kvbStorage,
       AthenaResponse &athresp) const;
+   bool handle_transaction_list_request(
+      AthenaRequest &athreq,
+      KVBStorage &kvbStorage,
+      AthenaResponse &athresp) const;
    bool handle_block_list_request(
       AthenaRequest &athreq,
       KVBStorage &kvbStorage,

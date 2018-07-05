@@ -19,6 +19,8 @@
 #include "athena.pb.h"
 #include "kvb/HexTools.h"
 #include <google/protobuf/text_format.h>
+#include <iterator>
+#include <vector>
 
 using Blockchain::Slice;
 using Blockchain::ILocalKeyValueStorageReadOnly;
@@ -195,6 +197,8 @@ bool com::vmware::athena::KVBCommandsHandler::executeReadOnlyCommand(
    if (command.ParseFromArray(cmdSlice.data(), cmdSlice.size())) {
       if (command.has_transaction_request()) {
          result = handle_transaction_request(command, kvbStorage, athresp);
+      } else if (command.has_transaction_list_request()) {
+         result = handle_transaction_list_request(command, kvbStorage, athresp);
       } else if (command.has_block_list_request()) {
          result = handle_block_list_request(command, kvbStorage, athresp);
       } else if (command.has_block_request()) {
@@ -254,6 +258,71 @@ bool com::vmware::athena::KVBCommandsHandler::handle_transaction_request(
    // even requests for non-existent transactions are legal/valid
    return true;
 }
+
+
+/**
+ * Fetch a transaction list from storage.
+ */
+bool com::vmware::athena::KVBCommandsHandler::handle_transaction_list_request(
+   AthenaRequest &athreq,
+   KVBStorage &kvbStorage,
+   AthenaResponse &athresp) const
+{
+
+   try {
+      const TransactionListRequest request = athreq.transaction_list_request();
+      uint16_t remaining = request.count();
+      TransactionListResponse *response = athresp.mutable_transaction_list_response();
+      std::vector<evm_uint256be>::iterator it;
+      EthBlock curr_block;
+
+      if (request.has_latest()) {
+         evm_uint256be latest_tr;
+         std::copy(request.latest().begin(), request.latest().end(),
+                   latest_tr.bytes);
+         EthTransaction tr = kvbStorage.get_transaction(latest_tr);
+         curr_block = kvbStorage.get_block(tr.block_number);
+         it = std::find(curr_block.transactions.begin(),
+                        curr_block.transactions.end(), tr.hash());
+      } else {
+         curr_block = kvbStorage.get_block(kvbStorage.current_block_number());
+         it = curr_block.transactions.begin();
+      }
+
+      while (remaining > 0) {
+         if (it == curr_block.transactions.end()) {
+            if (curr_block.number == 0)
+               break;
+            curr_block = kvbStorage.get_block(curr_block.number - 1);
+            it = curr_block.transactions.begin();
+         }
+         response->add_transaction((*it).bytes, sizeof(evm_uint256be));
+         it++;
+         remaining--;
+      }
+
+      // add next transaction hash if we have not reached end of block 0
+      if (it != curr_block.transactions.end()) {
+         response->set_next((*it).bytes, sizeof(evm_uint256be));
+      } else if (it == curr_block.transactions.end() && curr_block.number > 0) {
+         curr_block = kvbStorage.get_block(curr_block.number - 1);
+         it = curr_block.transactions.begin();
+         response->set_next((*it).bytes, sizeof(evm_uint256be));
+      }
+
+   } catch (TransactionNotFoundException) {
+      ErrorResponse *resp = athresp.add_error_response();
+      resp->set_description("latest transaction not found");
+   } catch (EVMException) {
+      ErrorResponse *resp = athresp.add_error_response();
+      resp->set_description("error retrieving transactions");
+   }
+
+   // even requests for non-existent transactions are legal/valid
+   return true;
+}
+
+
 
 /**
  * Populate a TransactionResponse protobuf with data from an EthTransaction

@@ -69,6 +69,9 @@ private:
    handle_transaction_request();
 
    void
+   handle_transaction_list_request();
+
+   void
    handle_test_request();
 
    bool
