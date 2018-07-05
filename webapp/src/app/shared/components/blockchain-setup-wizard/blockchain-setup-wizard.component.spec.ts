@@ -4,6 +4,7 @@
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
+import { RouterTestingModule } from '@angular/router/testing';
 
 import { BlockchainSetupWizardComponent } from './blockchain-setup-wizard.component';
 import { MockSharedModule } from '../../shared.module';
@@ -18,7 +19,11 @@ describe('BlockchainSetupWizardComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      imports: [MockSharedModule, FormsModule],
+      imports: [
+        RouterTestingModule,
+        MockSharedModule,
+        FormsModule
+      ],
       declarations: [
         BlockchainSetupWizardComponent,
         VmwComboboxComponent,

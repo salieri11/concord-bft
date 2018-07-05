@@ -7,8 +7,8 @@ import { ActivatedRoute } from '@angular/router';
 
 import { BlockListingBlock } from '../../blocks/shared/blocks.model';
 import { TransactionsService } from '../../transactions/shared/transactions.service';
-import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { BlockchainSetupWizardComponent } from '../../shared/components/blockchain-setup-wizard/blockchain-setup-wizard.component';
+import { TaskManagerService } from '../../shared/task-manager.service';
 
 @Component({
   selector: 'athena-dashboard-container',
@@ -29,7 +29,11 @@ export class DashboardContainerComponent implements OnInit {
     averageValidationTime: 1.98
   };
 
-  constructor(private transactionsService: TransactionsService, private taskService: VmwTasksService, private route: ActivatedRoute) { }
+  constructor(
+    private transactionsService: TransactionsService,
+    private taskManager: TaskManagerService,
+    private route: ActivatedRoute
+  ) { }
 
   ngOnInit() {
     this.transactionsService.getRecentTransactions().subscribe((resp) => {
@@ -49,22 +53,11 @@ export class DashboardContainerComponent implements OnInit {
     });
   }
 
-  addTask() {
-    this.taskService.trackTask({
-      title: 'Test',
-      description: 'Description',
-      failedMessage: 'Something bad happened',
-      completedMessage: 'This is done now',
-      progress: 25,
-      remaining: 100
-    });
-  }
-
   setupBlockchain() {
     this.setupWizard.open();
   }
 
   onSetupComplete(blockchainInfo) {
-    console.log(blockchainInfo);
+    this.taskManager.handleBlockchainSetup(blockchainInfo);
   }
 }

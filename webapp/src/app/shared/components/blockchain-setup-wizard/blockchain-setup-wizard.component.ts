@@ -79,9 +79,9 @@ export class BlockchainSetupWizardComponent implements OnInit {
   ngOnInit() {}
 
   addOrg() {
-    let selectedOrgs = this.form.get('organizations');
+    const selectedOrgs = this.form.get('organizations');
 
-    if(this.isEditingOrg) {
+    if (this.isEditingOrg) {
       selectedOrgs.value[this.orgIndex] = this.orgForm.value;
       selectedOrgs.setValue(selectedOrgs.value);
       this.isEditingOrg = false;
@@ -94,9 +94,9 @@ export class BlockchainSetupWizardComponent implements OnInit {
   }
 
   addUser() {
-    let selectedUsers= this.form.get('users');
+    const selectedUsers = this.form.get('users');
 
-    if(this.isEditingUser) {
+    if (this.isEditingUser) {
       selectedUsers.value[this.userIndex] = this.userForm.value;
       selectedUsers.setValue(selectedUsers.value);
       this.isEditingUser = false;
@@ -123,7 +123,7 @@ export class BlockchainSetupWizardComponent implements OnInit {
   }
 
   deleteOrg(index: number) {
-    let selectedOrgs = this.form.get('organizations');
+    const selectedOrgs = this.form.get('organizations');
 
     // @ts-ignore: no unused locals
     selectedOrgs.setValue(selectedOrgs.value.filter((item, i) => {
@@ -131,14 +131,14 @@ export class BlockchainSetupWizardComponent implements OnInit {
     }));
   }
 
-  onEditUser(index: nubmer) {
+  onEditUser(index: number) {
     this.userIndex = index;
     this.isEditingUser = true;
     this.userForm.patchValue(this.form.get('users').value[index]);
   }
 
   deleteUser(index: number) {
-    let selectedUsers = this.form.get('users');
+    const selectedUsers = this.form.get('users');
 
     // @ts-ignore: no unused locals
     selectedUsers.setValue(selectedUsers.value.filter((item, i) => {
