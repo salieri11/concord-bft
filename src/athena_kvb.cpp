@@ -297,7 +297,9 @@ bool com::vmware::athena::KVBCommandsHandler::handle_transaction_list_request(
                next = *it;
                break;
             } else {
-               response->add_transaction((*it).bytes, sizeof(evm_uint256be));
+               TransactionResponse *tr = response->add_transaction();
+               EthTransaction tx = kvbStorage.get_transaction(*it);
+               build_transaction_response(*it, tx, tr);
                it++;
                remaining--;
             }

@@ -387,11 +387,12 @@ uint64_t com::vmware::athena::KVBStorage::current_block_number() {
  */
 Status com::vmware::athena::KVBStorage::get(const Slice &key, Slice &value)
 {
-   //TODO(Amit): All updates other than transactions are stored in 'updates'
-   // structure while transactions are stored in a separate `pending_transactions`
-   // vector. Hence, this search will not work if someone calls `get` for a
-   // transaction that is not yet commited (i.e is still in `pending_transactions`
-   // vector).
+   // TODO(Amit): All updates other than transactions are stored in 'updates'
+   // structure while transactions are stored in a separate
+   // `pending_transactions` vector (read more about that in `add_transaction`
+   // function). Hence, this search will not work if someone calls `get` for a
+   // transaction that is not yet commited (i.e is still in
+   // `pending_transactions` vector).
 
    //TODO(BWF): this search will be very inefficient for a large set of changes
    for (auto u: updates) {

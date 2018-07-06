@@ -166,7 +166,7 @@ message BlockListResponse {
 }
 
 message TransactionListResponse {
-   repeated bytes transaction = 1;
+   repeated TransactionResponse transaction = 1;
    optional bytes next = 2;
 }
 
