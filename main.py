@@ -10,7 +10,7 @@ import os
 from tempfile import mkdtemp
 from time import strftime, localtime
 
-from suites import core_vm_tests, helen_api_tests, ext_rpc_tests, kv_blockchain_tests
+from suites import core_vm_tests, helen_api_tests, ext_rpc_tests, kv_blockchain_tests, performance_tests
 from util import html, json_helper
 
 log = None
@@ -84,6 +84,8 @@ def createTestSuite(args):
       return ext_rpc_tests.ExtendedRPCTests(args)
    elif (args.suite == "KVBlockchainTests"):
       return kv_blockchain_tests.KVBTests(args)
+   elif (args.suite == "PerformanceTests"):
+      return performance_tests.PerformanceTests(args)
 
 def createResultsDir(suiteName):
    prefix = suiteName + "_" + strftime("%Y%m%d_%H%M_", localtime())

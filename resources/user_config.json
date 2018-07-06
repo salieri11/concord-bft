@@ -82,5 +82,8 @@
         "password": "11111"
       }
     ]
+  },
+  "performance": {
+    "filename": "NORMALIZED_COMMANDS.txt.gz"
   }
 }
