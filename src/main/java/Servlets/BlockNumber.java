@@ -59,14 +59,12 @@ public final class BlockNumber extends BaseServlet {
 
          String urlParam = uri.substring(uri.lastIndexOf('/') + 1);
          final Athena.BlockRequest blockRequestObj;
-         // check if param is a number of hash
+         // check if param is a number or hash
          if (urlParam.chars().allMatch(Character::isDigit)) {
             number = Long.parseLong(urlParam);
-            // Construct a blockNumberRequest object. Set its start field.
             blockRequestObj
                = Athena.BlockRequest.newBuilder().setNumber(number).build();
          } else {
-            // Construct a blockNumberRequest object. Set its start field.
             blockRequestObj
                = Athena.BlockRequest.newBuilder()
                                     .setHash(APIHelper.hexStringToBinary(urlParam))
