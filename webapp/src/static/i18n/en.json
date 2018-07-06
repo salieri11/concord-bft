@@ -581,7 +581,8 @@
       "navTitle": "Add Organizations",
       "description": "If you listen or remain with a powerful art, suffering acquires you. Be playful for whoever exists, because each has been handled with moonlight.",
       "addOrganization": "Add Organization",
-      "name": "Name"
+      "name": "Name",
+      "location": "Location"
     },
     "usersAndAccess": {
       "pageTitle": "Users & Access",
@@ -620,6 +621,28 @@
         "awsAfrica": "AWS Africa",
         "awsAustralia": "AWS Australia"
       }
+    },
+    "locations": {
+      "beijing": "Beijing, China",
+      "brussels": "Brussels, Belgium",
+      "cairo": "Cairo, Egypt",
+      "delhi": "Delhi, India",
+      "johannesburg": "Johannesburg, South Africa",
+      "lasVegas": "Las Vegas, United States",
+      "london": "London, United Kingdom",
+      "mexicoCity": "Mexico City, Mexico",
+      "milan": "Milan, Italy",
+      "moscow": "Moscow, Russia",
+      "newYork": "New York, United States",
+      "paloAlto": "Palo Alto, United States",
+      "paris": "Paris, France",
+      "rioDeJaneiro": "Rio de Janeiro, Brazil",
+      "santiago": "Santiago, Chile",
+      "seoul": "Seoul, South Korea",
+      "sydney": "Sydney, Australia",
+      "tokyo": "Tokyo, Japan",
+      "toronto": "Toronto, Canada",
+      "vienna": "Vienna, Austria"
     }
   },
   "mockTasks": {

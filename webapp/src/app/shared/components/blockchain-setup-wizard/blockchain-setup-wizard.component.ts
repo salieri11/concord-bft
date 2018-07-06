@@ -8,6 +8,8 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { ClrWizard, ClrWizardPage } from '@clr/angular';
 import { TranslateService } from '@ngx-translate/core';
 
+import { Personas } from '../../persona.service';
+
 @Component({
   selector: 'athena-blockchain-setup-wizard',
   templateUrl: './blockchain-setup-wizard.component.html',
@@ -28,6 +30,35 @@ export class BlockchainSetupWizardComponent implements OnInit {
   form: FormGroup;
   orgForm: FormGroup;
   userForm: FormGroup;
+  locationOptions = [
+    {value: 'beijing', name: 'blockchainSetupWizard.locations.beijing'},
+    {value: 'brussels', name: 'blockchainSetupWizard.locations.brussels'},
+    {value: 'cairo', name: 'blockchainSetupWizard.locations.cairo'},
+    {value: 'delhi', name: 'blockchainSetupWizard.locations.delhi'},
+    {value: 'johannesburg', name: 'blockchainSetupWizard.locations.johannesburg'},
+    {value: 'lasVegas', name: 'blockchainSetupWizard.locations.lasVegas'},
+    {value: 'london', name: 'blockchainSetupWizard.locations.london'},
+    {value: 'mexicoCity', name: 'blockchainSetupWizard.locations.mexicoCity'},
+    {value: 'milan', name: 'blockchainSetupWizard.locations.milan'},
+    {value: 'moscow', name: 'blockchainSetupWizard.locations.moscow'},
+    {value: 'newYork', name: 'blockchainSetupWizard.locations.newYork'},
+    {value: 'paloAlto', name: 'blockchainSetupWizard.locations.paloAlto'},
+    {value: 'paris', name: 'blockchainSetupWizard.locations.paris'},
+    {value: 'rioDeJaneiro', name: 'blockchainSetupWizard.locations.rioDeJaneiro'},
+    {value: 'santiago', name: 'blockchainSetupWizard.locations.santiago'},
+    {value: 'seoul', name: 'blockchainSetupWizard.locations.seoul'},
+    {value: 'sydney', name: 'blockchainSetupWizard.locations.sydney'},
+    {value: 'tokyo', name: 'blockchainSetupWizard.locations.tokyo'},
+    {value: 'toronto', name: 'blockchainSetupWizard.locations.toronto'},
+    {value: 'vienna', name: 'blockchainSetupWizard.locations.vienna'},
+  ];
+  personaOptions: Array<{ name ?: string; value: Personas; }> = [
+    { value: Personas.SystemsAdmin, name: 'personas.systemsAdmin' },
+    { value: Personas.ConsortiumAdmin, name: 'personas.consortiumAdmin' },
+    { value: Personas.OrgAdmin, name: 'personas.orgAdmin' },
+    { value: Personas.OrgDeveloper, name: 'personas.orgDeveloper' },
+    { value: Personas.OrgUser, name: 'personas.orgUser' }
+  ];
   privateNodeItems = [
     {
       value: 'london-datacenter',
@@ -95,7 +126,8 @@ export class BlockchainSetupWizardComponent implements OnInit {
     });
 
     this.orgForm = new FormGroup({
-      name: new FormControl('', Validators.required)
+      name: new FormControl('', Validators.required),
+      location: new FormControl('', Validators.required)
     });
 
     this.userForm = new FormGroup({

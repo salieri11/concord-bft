@@ -44,23 +44,41 @@
     <ng-template clrPageNavTitle>{{'blockchainSetupWizard.addOrgs.navTitle' | translate}}</ng-template>
     <p>{{'blockchainSetupWizard.addOrgs.description' | translate}}</p>
     <div [formGroup]="orgForm">
-      <div class="form-block">
-        <div class="form-group">
-          <label>Name</label>
-          <input type="text" formControlName="name">
-          <button type="button" class="btn btn-primary-outline btn-sm" (click)="addOrg()" [disabled]="!orgForm.valid">{{'blockchainSetupWizard.addOrgs.addOrganization' | translate}}</button>
+      <div class="form-group row">
+        <div class="col-xs-4 col-sm-2">
+          <label>{{'blockchainSetupWizard.addOrgs.name' | translate}}</label>
         </div>
+        <div class="col-xs-8 col-sm-4">
+          <input type="text" formControlName="name" class="form-control">
+        </div>
+        <div class="col-xs-4 col-sm-2">
+          <label>{{'blockchainSetupWizard.addOrgs.location' | translate}}</label>
+        </div>
+        <div class="col-xs-8 col-sm-4">
+          <div class="select">
+            <select formControlName="location">
+              <option *ngFor="let location of locationOptions" value="{{location.value}}">{{location.name | translate}}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="text-right">
+        <button type="button" class="btn btn-primary-outline btn-sm" (click)="addOrg()" [disabled]="!orgForm.valid">{{'blockchainSetupWizard.addOrgs.addOrganization' | translate}}</button>
       </div>
       <table class="table">
         <thead>
         <tr>
           <th class="left">{{'blockchainSetupWizard.addOrgs.name' | translate}}</th>
+          <th class="left">{{'blockchainSetupWizard.addOrgs.location' | translate}}</th>
         </tr>
         </thead>
         <tbody>
         <tr *ngFor="let org of form?.value.organizations; let i = index">
           <td class="left">
             {{org.name}}
+          </td>
+          <td class="left">
+            {{'blockchainSetupWizard.locations.' + org.location | translate}}
             <div class="float-xs-right table-actions">
               <clr-icon shape="trash" (click)="deleteOrg(i)"></clr-icon>
               <clr-icon shape="pencil" (click)="onEditOrg(i)"></clr-icon>
@@ -116,9 +134,7 @@
         <div class="col-xs-8 col-sm-4">
           <div class="select">
             <select formControlName="role">
-              <option value="role1">Role 1</option>
-              <option value="role2">Role 2</option>
-              <option value="role3">Role 3</option>
+              <option *ngFor="let persona of personaOptions" value="{{persona.value}}">{{persona.name | translate}}</option>
             </select>
           </div>
         </div>
@@ -223,12 +239,16 @@
       <thead>
       <tr>
         <th class="left">{{'blockchainSetupWizard.addOrgs.name' | translate}}</th>
+        <th class="left">{{'blockchainSetupWizard.addOrgs.location' | translate}}</th>
       </tr>
       </thead>
       <tbody>
       <tr *ngFor="let org of form?.value.organizations">
         <td class="left">
           {{org.name}}
+        </td>
+        <td class="left">
+          {{'blockchainSetupWizard.locations.' + org.location | translate}}
         </td>
       </tr>
       </tbody>
