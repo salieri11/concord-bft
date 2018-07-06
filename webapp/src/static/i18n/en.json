@@ -4,7 +4,11 @@
     "all": "All",
     "close": "Close",
     "cancel": "Cancel",
-    "create": "Create"
+    "create": "Create",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish",
+    "edit": "Edit"
   },
   "nav": {
     "menu": {
@@ -19,6 +23,10 @@
     },
     "personaSelector": {
       "title": "Role"
+    },
+    "actions": {
+      "title": "Actions",
+      "resetTasks": "Reset Tasks"
     },
     "metrics": {
       "activeNodes": "Active Nodes {{value}}"
@@ -555,5 +563,70 @@
   },
   "globalError": {
     "routingError": "You do not have permission to visit this section of Athena, please contact your sysadmin for more info."
+  },
+  "blockchainSetupWizard": {
+    "title": "Deploy",
+    "blockchainAndConsortium": {
+      "pageTitle": "Setup Blockchain and Consortium",
+      "navTitle": "Blockchain & Consortium",
+      "description": "All alchemistic believers absorb each other, only closest egos have a stigma. Be superior for whoever lures, because each has been synthesised with conclusion. Alchemistic dogmas meet most histories.",
+      "blockchainType": "Blockchain Type",
+      "faultTolerance": "Fault Tolerance",
+      "global": "Global",
+      "local": "Local",
+      "consortiumName": "Consortium Name"
+    },
+    "addOrgs": {
+      "pageTitle": "Add Organizations to the Consortium",
+      "navTitle": "Add Organizations",
+      "description": "If you listen or remain with a powerful art, suffering acquires you. Be playful for whoever exists, because each has been handled with moonlight.",
+      "addOrganization": "Add Organization",
+      "name": "Name"
+    },
+    "usersAndAccess": {
+      "pageTitle": "Users & Access",
+      "navTitle": "Add Users & Access",
+      "description": "All united cows follow each other, only psychic saints have a sainthood. When one develops hypnosis and freedom, one is able to handle awareness.",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "organization": "Organization",
+      "role": "Role",
+      "addUser": "Add User"
+    },
+    "reviewDeployment": {
+      "pageTitle": "Review Deployment Setup",
+      "navTitle": "Review",
+      "description": "When one loves surrender and career, one is able to witness booda-hood. When one fears acceptance and politics, one is able to absorb samadhi.",
+      "chosenBlockchain": "Chosen Blockchain",
+      "consortiumSetup": "Consortium Setup",
+      "advanced": "Advanced",
+      "networkName": "Network Name",
+      "numberOfNodes": "Number of Nodes",
+      "publicNodesRegions": "Public Nodes Regions",
+      "privateNode": "Private Node (vCenter/ESX)",
+      "organizations": "Organizations",
+      "privateNodeValues": {
+        "londonDatacenter": "london-datacenter",
+        "usDatacenter": "us-datacenter"
+      },
+      "publicNodeValues": {
+        "awsSouthAsia": "AWS South Asia",
+        "awsEastAsia": "AWS East Asia",
+        "awsNorthAmerica": "AWS North America",
+        "awsSouthAmerica": "AWS South America",
+        "awsWesternEurope": "AWS Western Europe",
+        "awsEasternEurope": "AWS Eastern Europe",
+        "awsAfrica": "AWS Africa",
+        "awsAustralia": "AWS Australia"
+      }
+    }
+  },
+  "mockTasks": {
+    "creatingOrg": "Creating Organizations",
+    "addingUsers": "Adding Users",
+    "creatingConsortium": "Creating Consortium",
+    "vmInstance": "VM Instance",
+    "blockchainInstance": "Blockchain Instance"
   }
 }

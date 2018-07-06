@@ -55,9 +55,9 @@
                   clrDropdownItem>
             {{ persona.name | translate }}
           </button>
-          <h4 class="dropdown-header">Actions</h4>
+          <h4 class="dropdown-header">{{'nav.actions.title' | translate}}</h4>
           <button clrDropdownItem (click)="onResetTasks()">
-            Reset Tasks
+            {{'nav.actions.resetTasks' | translate}}
           </button>
         </clr-dropdown-menu>
       </clr-dropdown>

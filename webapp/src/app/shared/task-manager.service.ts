@@ -5,6 +5,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { first } from 'rxjs/operators';
+import { TranslateService } from '@ngx-translate/core';
 
 import { VmwTasksService, VmwTaskState } from './components/task-panel/tasks.service';
 
@@ -17,7 +18,7 @@ export class TaskManagerService {
 
   private intervals: number[] = [];
 
-  constructor(private tasksService: VmwTasksService) {
+  constructor(private tasksService: VmwTasksService, private translateService: TranslateService) {
     this.taskChangeSubject = new BehaviorSubject<void>(null);
     this.taskChange = this.taskChangeSubject.asObservable();
 
@@ -46,23 +47,23 @@ export class TaskManagerService {
 
     const tasks = [
       {
-        title: 'Creating Organizations',
+        title: this.translateService.instant('mockTasks.creatingOrg'),
         progress: -1
       },
       {
-        title: 'Adding Users',
+        title: this.translateService.instant('mockTasks.addingUsers'),
         progress: -1
       },
       {
-        title: 'Creating Consortium',
+        title: this.translateService.instant('mockTasks.creatingConsortium'),
         progress: -1
       },
       {
-        title: 'VM Instance',
+        title: this.translateService.instant('mockTasks.vmInstance'),
         progress: -1
       },
       {
-        title: 'Blockchain Instance',
+        title: this.translateService.instant('mockTasks.blockchainInstance'),
         progress: -1
       }
     ];

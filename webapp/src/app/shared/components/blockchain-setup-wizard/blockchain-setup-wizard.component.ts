@@ -6,6 +6,7 @@ import { Component, OnInit, ViewChild, Output, EventEmitter } from '@angular/cor
 import { Router } from '@angular/router';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { ClrWizard, ClrWizardPage } from '@clr/angular';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'athena-blockchain-setup-wizard',
@@ -28,21 +29,51 @@ export class BlockchainSetupWizardComponent implements OnInit {
   orgForm: FormGroup;
   userForm: FormGroup;
   privateNodeItems = [
-    {value: 'london-datacenter', displayValue: 'london-datacenter'},
-    {value: 'us-datacenter', displayValue: 'us-datacenter'},
+    {
+      value: 'london-datacenter',
+      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.privateNodeValues.londonDatacenter')
+    },
+    {
+      value: 'us-datacenter',
+      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.privateNodeValues.usDatacenter')
+    },
   ];
   publicNodeItems = [
-    {value: 'aws-south-asia', displayValue: 'AWS South Asia'},
-    {value: 'aws-east-asia', displayValue: 'AWS East Asia'},
-    {value: 'aws-north-america', displayValue: 'AWS North America'},
-    {value: 'aws-south-america', displayValue: 'AWS South America'},
-    {value: 'aws-western-europe', displayValue: 'AWS Western Europe'},
-    {value: 'aws-eastern-europe', displayValue: 'AWS Eastern Europe'},
-    {value: 'aws-africa', displayValue: 'AWS Africa'},
-    {value: 'aws-australia', displayValue: 'AWS Australia'}
+    {
+      value: 'aws-south-asia',
+      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.publicNodeValues.awsSouthAsia')
+    },
+    {
+      value: 'aws-east-asia',
+      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.publicNodeValues.awsEastAsia')
+    },
+    {
+      value: 'aws-north-america',
+      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.publicNodeValues.awsNorthAmerica')
+    },
+    {
+      value: 'aws-south-america',
+      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.publicNodeValues.awsSouthAmerica')
+    },
+    {
+      value: 'aws-western-europe',
+      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.publicNodeValues.awsWesternEurope')
+    },
+    {
+      value: 'aws-eastern-europe',
+      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.publicNodeValues.awsEasternEurope')
+    },
+    {
+      value: 'aws-africa',
+      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.publicNodeValues.awsAfrica')
+    },
+    {
+      value: 'aws-australia',
+      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.publicNodeValues.awsAustralia')
+    }
   ];
 
-  constructor(private router: Router) {
+  constructor(private router: Router, private translateService: TranslateService) {
     this.form = new FormGroup({
       blockchain: new FormGroup({
         type: new FormControl('', Validators.required)
