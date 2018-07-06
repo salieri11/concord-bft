@@ -55,6 +55,10 @@
                   clrDropdownItem>
             {{ persona.name | translate }}
           </button>
+          <h4 class="dropdown-header">Actions</h4>
+          <button clrDropdownItem (click)="onResetTasks()">
+            Reset Tasks
+          </button>
         </clr-dropdown-menu>
       </clr-dropdown>
       <clr-dropdown>

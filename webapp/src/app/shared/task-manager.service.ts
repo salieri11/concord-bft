@@ -4,6 +4,7 @@
 
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { first } from 'rxjs/operators';
 
 import { VmwTasksService, VmwTaskState } from './components/task-panel/tasks.service';
 
@@ -13,6 +14,8 @@ import { VmwTasksService, VmwTaskState } from './components/task-panel/tasks.ser
 export class TaskManagerService {
   taskChangeSubject: BehaviorSubject<void>;
   taskChange: Observable<void>;
+
+  private intervals: number[] = [];
 
   constructor(private tasksService: VmwTasksService) {
     this.taskChangeSubject = new BehaviorSubject<void>(null);
@@ -73,6 +76,24 @@ export class TaskManagerService {
     this.addTasks(tasks, taskId);
   }
 
+  resetTasks() {
+    const result = this.tasksService.tasks$.pipe(first());
+
+    result.subscribe((tasks) => {
+      tasks.forEach((task) => {
+        task.clear();
+      });
+    });
+
+    this.intervals.forEach((interval) => {
+      clearInterval(interval);
+    });
+
+    localStorage.setItem('helen.setups.completed', JSON.stringify([]));
+    localStorage.setItem('helen.setups.pending', JSON.stringify([]));
+    localStorage.setItem('helen.setups.tasks', JSON.stringify({}));
+  }
+
   private addTasks(tasks, taskId) {
     const runningTasks = tasks.map((task) => {
       return this.tasksService.trackTask(task);
@@ -97,7 +118,7 @@ export class TaskManagerService {
   private mockUpdateTasks(tasks, taskId) {
     let currentIndex = 0;
 
-    const interval = setInterval(() => {
+    const interval: number = <any>setInterval(() => {
       const localTasks = JSON.parse(localStorage.getItem('helen.setups.tasks'));
 
       if (currentIndex === tasks.length) {
@@ -127,8 +148,9 @@ export class TaskManagerService {
           currentIndex += 1;
         }
       }
-
     }, 1000);
+
+    this.intervals.push(interval);
   }
 }
 
