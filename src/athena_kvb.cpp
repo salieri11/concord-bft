@@ -275,6 +275,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_transaction_list_request(
       TransactionListResponse *response = athresp.mutable_transaction_list_response();
       std::vector<evm_uint256be>::iterator it;
       EthBlock curr_block;
+      evm_uint256be next;
 
       if (request.has_latest()) {
          evm_uint256be latest_tr;
@@ -289,25 +290,29 @@ bool com::vmware::athena::KVBCommandsHandler::handle_transaction_list_request(
          it = curr_block.transactions.begin();
       }
 
-      while (remaining > 0) {
-         if (it == curr_block.transactions.end()) {
-            if (curr_block.number == 0)
+
+      while (remaining >= 0) {
+         while (it != curr_block.transactions.end()) {
+            if (remaining == 0) {
+               next = *it;
                break;
+            } else {
+               response->add_transaction((*it).bytes, sizeof(evm_uint256be));
+               it++;
+               remaining--;
+            }
+         }
+
+         if (curr_block.number == 0) {
+            break;
+         } else {
             curr_block = kvbStorage.get_block(curr_block.number - 1);
             it = curr_block.transactions.begin();
          }
-         response->add_transaction((*it).bytes, sizeof(evm_uint256be));
-         it++;
-         remaining--;
       }
 
-      // add next transaction hash if we have not reached end of block 0
       if (it != curr_block.transactions.end()) {
-         response->set_next((*it).bytes, sizeof(evm_uint256be));
-      } else if (it == curr_block.transactions.end() && curr_block.number > 0) {
-         curr_block = kvbStorage.get_block(curr_block.number - 1);
-         it = curr_block.transactions.begin();
-         response->set_next((*it).bytes, sizeof(evm_uint256be));
+         response->set_next(next.bytes, sizeof(evm_uint256be));
       }
 
    } catch (TransactionNotFoundException) {
