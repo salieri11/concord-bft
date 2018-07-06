@@ -138,11 +138,15 @@ int main(int argc, char **argv) {
       unsignedTX_b.add(gas);
    }
    if (gasPrice == 0) {
-      unsignedTX_b.add(gasPrice);
+      unsignedTX_b.add(empty);
    } else {
       unsignedTX_b.add(gasPrice);
    }
-   unsignedTX_b.add(nonce);
+   if (nonce == 0) {
+      unsignedTX_b.add(empty);
+   } else {
+      unsignedTX_b.add(nonce);
+   }
 
    std::vector<uint8_t> unsignedTX = unsignedTX_b.build();
 
