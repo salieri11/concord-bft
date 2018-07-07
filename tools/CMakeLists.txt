@@ -48,3 +48,12 @@ target_link_libraries(ecrecover
                       log4cplus
                       ${Cryptopp_LIBRARIES}
                       ${SECP256K1_LIBRARY})
+
+add_executable(ecsign
+  "ecsign.cpp")
+target_link_libraries(ecsign
+                      athcmdutil
+                      athena_utils
+                      log4cplus
+                      ${Cryptopp_LIBRARIES}
+                      ${SECP256K1_LIBRARY})
