@@ -11,6 +11,8 @@ import time
 import sys
 import statistics
 import numpy as np
+import matplotlib
+matplotlib.use('Agg')
 
 from . import test_suite
 from rpc.rpc_call import RPC
