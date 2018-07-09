@@ -1,0 +1,25 @@
+<div class="p-2">
+  <h2 class="page-title">
+    <clr-icon shape="host" size="30"></clr-icon> {{ 'kubernetes.title' | translate }} |
+    <clr-dropdown>
+      <button class="nav-icon" clrDropdownTrigger>
+        {{ 'kubernetes.actions.title' | translate }}
+        <clr-icon shape="caret down"></clr-icon>
+      </button>
+      <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
+        <button type="button" (click)="kubernetesForm.openAddKube()" clrDropdownItem>
+          {{ 'kubernetes.actions.options.add.title' | translate }}
+        </button>
+        <button type="button" [disabled]="selected.length === 0" (click)="kubernetesForm.confirmDeleteKube()" clrDropdownItem>
+          {{ 'kubernetes.actions.options.delete.title' | translate }}
+        </button>
+      </clr-dropdown-menu>
+    </clr-dropdown>
+  </h2>
+
+  <athena-kubernetes-list #kubernetesList (selected)="kubernetesSelectionChange($event)"></athena-kubernetes-list>
+  <athena-kubernetes-form #kubernetesForm
+                          [selected]="selected"
+                          (addKubernetes)="addKubernetes($event)"
+                          (deleteKubernetes)="deleteKubernetes()"></athena-kubernetes-form>
+</div>

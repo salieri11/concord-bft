@@ -4,11 +4,11 @@
 
 import { Routes } from '@angular/router';
 
-import { NodesContainerComponent } from './nodes-container/nodes-container.component';
-import { NodeDetailContainerComponent } from './node-detail-container/node-detail-container.component';
+import { NodesComponent } from './nodes/nodes.component';
+import { NodeComponent } from './node/node.component';
 
 export const nodeRoutes: Routes = [
-  { path: '', component: NodesContainerComponent },
-  { path: ':id', component: NodeDetailContainerComponent }
+  { path: '', component: NodesComponent },
+  { path: ':id', component: NodeComponent }
 ];
 

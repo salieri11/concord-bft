@@ -1,0 +1,45 @@
+<img class="graph-placeholder" src="assets/static/images/node-location-large.png">
+
+<div class="p-2 bg-header">
+  <div class="row">
+    <div class="col-md">
+      <p class="p7 mt-0">
+        {{'dashboard.totalActiveNodes' | translate}}
+      </p>
+      <h2 class="mt-0">{{mockStats.totalActiveNodes | number}}</h2>
+    </div>
+    <div class="col-md">
+      <p class="p7 mt-0">
+        {{'dashboard.inactiveNodes' | translate}}
+      </p>
+      <h2 class="mt-0">{{mockStats.inactiveNodes | number}}</h2>
+    </div>
+    <div class="col-md">
+      <p class="p7 mt-0">
+        {{'dashboard.overallNodeHealth' | translate}}
+      </p>
+      <h2 class="mt-0">{{mockStats.overallNodeHealth | percent:"1.0-2"}}</h2>
+      <div class="progress success">
+        <progress max="100" [value]="mockStats.overallNodeHealth * 100"></progress>
+      </div>
+    </div>
+    <div class="col-md">
+      <p class="p7 mt-0">
+        {{'dashboard.transactionsPerSecond' | translate}}
+      </p>
+      <h2 class="mt-0">{{mockStats.transactionsPerSecond | number}}</h2>
+    </div>
+    <div class="col-md">
+      <p class="p7 mt-0">
+        {{'dashboard.averageValidationTime' | translate}}
+      </p>
+      <h2 class="mt-0"
+          [innerHTML]="'dashboard.xSeconds' | translate:{seconds: (mockStats.averageValidationTime | number:'1.0-2')}">
+      </h2>
+    </div>
+  </div>
+</div>
+
+<div class="p-2">
+  <athena-transaction-list [transactions]="recentTransactions"></athena-transaction-list>
+</div>

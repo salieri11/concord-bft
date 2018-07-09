@@ -3,17 +3,18 @@
  */
 
 import { Routes } from '@angular/router';
-import { SmartContractsContainerComponent } from './smart-contracts-container/smart-contracts-container.component';
-import { SmartContractDetailContainerComponent } from './smart-contract-detail-container/smart-contract-detail-container.component';
+
+import { SmartContractComponent } from './smart-contract/smart-contract.component';
+import { SmartContractsComponent } from './smart-contracts/smart-contracts.component';
 
 export const smartContractRoutes: Routes = [
-  { path: '', component: SmartContractsContainerComponent },
+  { path: '', component: SmartContractsComponent },
   {
     path: ':contractId',
-    component: SmartContractDetailContainerComponent
+    component: SmartContractComponent
   },
   {
     path: ':contractId/versions/:version',
-    component: SmartContractDetailContainerComponent
+    component: SmartContractComponent
   }
 ];

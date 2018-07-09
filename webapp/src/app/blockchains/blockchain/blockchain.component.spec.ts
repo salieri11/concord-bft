@@ -1,6 +1,7 @@
 /*
  * Copyright 2018 VMware, all rights reserved.
  */
+
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { BrowserModule } from '@angular/platform-browser';
@@ -10,12 +11,12 @@ import { ActivatedRoute } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 
 import { BlockchainComponent } from './blockchain.component';
-import { OrgListComponent } from '../../org-management/org-list/org-list.component';
 import { GridModule } from '../../grid/grid.module';
 import { BlockchainsService } from '../shared/blockchains.service';
-import { KubernetesService } from '../../kubernetes-management/shared/kubernetes.service';
-import { OrgManagementService } from '../../org-management/shared/org-management.service';
 import { MockSharedModule } from '../../shared/shared.module';
+import { OrgListComponent } from '../../orgs/org-list/org-list.component';
+import { KubernetesService } from '../../kubernetes/shared/kubernetes.service';
+import { OrgService } from '../../orgs/shared/org.service';
 
 describe('BlockchainComponent', () => {
   let component: BlockchainComponent;
@@ -38,7 +39,7 @@ describe('BlockchainComponent', () => {
       providers: [
         BlockchainsService,
         KubernetesService,
-        OrgManagementService,
+        OrgService,
         TranslateService,
         {
         provide: ActivatedRoute,

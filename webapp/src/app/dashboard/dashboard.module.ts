@@ -5,15 +5,15 @@
 import { NgModule } from '@angular/core';
 
 import { SharedModule } from '../shared/shared.module';
-import { DashboardContainerComponent } from './dashboard-container/dashboard-container.component';
 import { TransactionsModule } from '../transactions/transactions.module';
+import { DashboardComponent } from './dashboard-container/dashboard.component';
 
 @NgModule({
   imports: [
     SharedModule,
     TransactionsModule,
   ],
-  declarations: [DashboardContainerComponent]
+  declarations: [DashboardComponent]
 })
 export class DashboardModule { }
 

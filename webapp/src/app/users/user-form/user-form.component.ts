@@ -9,7 +9,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { User } from '../shared/user.model';
 import { UsersService } from '../shared/users.service';
 import { Personas, PersonaService } from '../../shared/persona.service';
-import { matchPasswordValidator } from "../shared/custom-validators";
+import { matchPasswordValidator } from '../shared/custom-validators';
 
 @Component({
   selector: 'athena-user-form',
