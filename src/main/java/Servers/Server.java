@@ -48,6 +48,7 @@ public class Server {
    private static String blockNumberServletName;
    private static String ethDispatcherServletName;
    private static String transactionServletName;
+   private static String transactionListServletName;
    private static String swaggerServletName;
    private static String assetsServletName;
    private static String apiListServletName;
@@ -57,6 +58,7 @@ public class Server {
    private static String blockNumberEndpoint;
    private static String ethRPCEndpoint;
    private static String transactionEndpoint;
+   private static String transactionListEndpoint;
    private static String swaggerEndpoint;
    private static String assetsEndpoint;
    private static String apiListEndpoint;
@@ -96,6 +98,8 @@ public class Server {
       ethDispatcherServletName
          = conf.getStringValue("EthDispatcher_ServletName");
       transactionServletName = conf.getStringValue("Transaction_ServletName");
+      transactionListServletName
+         = conf.getStringValue("TransactionList_ServletName");
       swaggerServletName = conf.getStringValue("Swagger_ServletName");
       assetsServletName = conf.getStringValue("Assets_ServletName");
       apiListServletName = conf.getStringValue("ApiList_ServletName");
@@ -109,6 +113,7 @@ public class Server {
       ethRPCEndpoint
          = removeTrailingSlash(conf.getStringValue("EthRPC_Endpoint"));
       transactionEndpoint = conf.getStringValue("Transaction_Endpoint");
+      transactionListEndpoint = conf.getStringValue("TransactionList_Endpoint");
       swaggerEndpoint = conf.getStringValue("Swagger_Endpoint");
       assetsEndpoint = conf.getStringValue("Assets_Endpoint");
       apiListEndpoint = conf.getStringValue("ApiList_Endpoint");
@@ -156,6 +161,11 @@ public class Server {
                                                      Transaction.class)
                                             .addMapping(transactionEndpoint)
                                             .addMapping(transactionEndpoint
+                                               + '/'))
+                       .addServlets(Servlets.servlet(transactionListServletName,
+                                                     TransactionList.class)
+                                            .addMapping(transactionListEndpoint)
+                                            .addMapping(transactionListEndpoint
                                                + '/'))
                        .addServlet(Servlets.servlet(defaultContentServletName,
                                                     StaticContent.class)

@@ -31,6 +31,35 @@ public final class Transaction extends BaseServlet {
    private static final long serialVersionUID = 1L;
    private static final Logger logger = Logger.getLogger(Transaction.class);
 
+   protected static JSONObject
+             buildTransactionResponseJSON(Athena.TransactionResponse tr) {
+      // Construct the reponse JSON object.
+      JSONObject responseJSON = new JSONObject();
+
+      responseJSON.put("hash", APIHelper.binaryStringToHex(tr.getHash()));
+      responseJSON.put("from", APIHelper.binaryStringToHex(tr.getFrom()));
+
+      if (tr.hasTo()) {
+         responseJSON.put("to", APIHelper.binaryStringToHex(tr.getTo()));
+      }
+
+      if (tr.hasContractAddress()) {
+         responseJSON.put("contractAddress",
+                          APIHelper.binaryStringToHex(tr.getContractAddress()));
+      }
+
+      if (tr.hasValue()) {
+         responseJSON.put("value", Long.toString(tr.getValue()));
+      }
+
+      if (tr.hasInput()) {
+         responseJSON.put("input", APIHelper.binaryStringToHex(tr.getInput()));
+      }
+      responseJSON.put("nonce", tr.getNonce());
+
+      return responseJSON;
+   }
+
    /**
     * Services a get request. Constructs a protobuf request of type transaction
     * request (enveloped in an athena request) as defined in athena.proto. Sends
@@ -101,41 +130,14 @@ public final class Transaction extends BaseServlet {
       Athena.TransactionResponse txResponse
          = athenaResponse.getTransactionResponse();
 
-      // Construct the reponse JSON object.
-      JSONObject responseJSON = new JSONObject();
-
-      responseJSON.put("hash",
-                       APIHelper.binaryStringToHex(txResponse.getHash()));
-      responseJSON.put("from",
-                       APIHelper.binaryStringToHex(txResponse.getFrom()));
-
-      if (txResponse.hasTo()) {
-         responseJSON.put("to",
-                          APIHelper.binaryStringToHex(txResponse.getTo()));
-      }
-
-      if (txResponse.hasContractAddress()) {
-         responseJSON.put("contractAddress",
-                          APIHelper.binaryStringToHex(txResponse.getContractAddress()));
-      }
-
-      if (txResponse.hasValue()) {
-         responseJSON.put("value", Long.toString(txResponse.getValue()));
-      }
-
-      if (txResponse.hasInput()) {
-         responseJSON.put("input",
-                          APIHelper.binaryStringToHex(txResponse.getInput()));
-      }
-      responseJSON.put("nonce", txResponse.getNonce());
+      JSONObject responseJSON = buildTransactionResponseJSON(txResponse);
 
       // Athena EVM has status code '0' for success and other Positive
       // values to denote error. However, for JSON RPC '1' is success
       // and '0' is failure. Here we need to reverse status value of athena
       // response before returning it.
-      responseJSON.put("status",
-                       txResponse.getStatus() == 0 ? 1 : 0);
-      
+      responseJSON.put("status", txResponse.getStatus() == 0 ? 1 : 0);
+
       return responseJSON;
    }
 }
