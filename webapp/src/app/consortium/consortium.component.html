@@ -1,0 +1,25 @@
+<div class="p-2">
+  <h2 class="page-title">
+    <clr-icon shape="users" size="30"></clr-icon> {{ 'consortium.title' | translate }} |
+    <clr-dropdown>
+      <button class="nav-link" clrDropdownTrigger>
+        {{ 'consortium.actions.title' | translate }}
+        <clr-icon shape="caret down"></clr-icon>
+      </button>
+      <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
+        <button type="button" (click)="consortiumForm.openAddConsortium()" clrDropdownItem>
+          {{ 'consortium.actions.options.add.title' | translate }}
+        </button>
+        <button type="button" [disabled]="selected.length === 0" (click)="consortiumForm.confirmDeleteConsortium()" clrDropdownItem>
+          {{ 'consortium.actions.options.delete.title' | translate }}
+        </button>
+      </clr-dropdown-menu>
+    </clr-dropdown>
+  </h2>
+  <athena-consortium-list #consortiusmList (selected)="selectedRowChange($event)"></athena-consortium-list>
+  <athena-consortium-form #consortiumForm
+                          [selected]="selected"
+                          (consortiumAdd)="addToConsortiumsList($event)"
+                          (consortiumDelete)="deleteFromConsortiumsList()">
+  </athena-consortium-form>
+</div>
