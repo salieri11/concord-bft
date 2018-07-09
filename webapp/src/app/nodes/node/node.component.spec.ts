@@ -8,15 +8,14 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 
-import { DashboardContainerComponent } from './dashboard-container.component';
 import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
 import { TransactionListComponent } from '../../transactions/transaction-list/transaction-list.component';
 import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
-import { WorldMapComponent } from '../world-map/world-map.component';
+import { NodeComponent } from './node.component';
 
-describe('DashboardContainerComponent', () => {
-  let component: DashboardContainerComponent;
-  let fixture: ComponentFixture<DashboardContainerComponent>;
+describe('NodeComponent', () => {
+  let component: NodeComponent;
+  let fixture: ComponentFixture<NodeComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
@@ -26,18 +25,17 @@ describe('DashboardContainerComponent', () => {
         MockSharedModule
       ],
       declarations: [
-        DashboardContainerComponent,
+        NodeComponent,
         TransactionsStatusFilterComponent,
         TransactionListComponent,
-        TransactionDetailsComponent,
-        WorldMapComponent
+        TransactionDetailsComponent
       ]
     })
     .compileComponents();
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(DashboardContainerComponent);
+    fixture = TestBed.createComponent(NodeComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
