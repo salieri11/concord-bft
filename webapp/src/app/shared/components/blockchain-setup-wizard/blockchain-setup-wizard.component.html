@@ -17,9 +17,8 @@
         <label>{{'blockchainSetupWizard.blockchainAndConsortium.blockchainType' | translate}}</label>
         <div class="select">
           <select formControlName="type">
-            <option value="type1">Type 1</option>
-            <option value="type2">Type 2</option>
-            <option value="type3">Type 3</option>
+            <option value="athena">{{'blockchainSetupWizard.blockchainAndConsortium.athena' | translate}}</option>
+            <option value="hyperledger">{{'blockchainSetupWizard.blockchainAndConsortium.hyperledger' | translate}}</option>
           </select>
         </div>
       </div>
@@ -185,7 +184,7 @@
 
     <h4>
       {{'blockchainSetupWizard.reviewDeployment.chosenBlockchain' | translate}}
-      <small class="text-muted ml-1">{{form.value.blockchain.type}}</small>
+      <small class="text-muted ml-1">{{'blockchainSetupWizard.blockchainAndConsortium.' + form.value.blockchain.type | translate}}</small>
       <button type="button" class="btn btn-sm btn-link float-xs-right m-0" (click)="jumpTo(blockConsortiumPage)">{{'common.edit' | translate}}</button>
     </h4>
 
