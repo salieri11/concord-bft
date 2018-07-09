@@ -9,7 +9,7 @@ import {
 
 import { Blockchain } from './shared/blockchains.model';
 import { Personas } from '../shared/persona.service';
-import { BlockchainsListComponent } from './blockchains-list/blockchains-list.component';
+import { BlockchainListComponent } from './blockchain-list/blockchain-list.component';
 import { BlockchainFormComponent } from './blockchain-form/blockchain-form.component';
 
 @Component({
@@ -19,7 +19,7 @@ import { BlockchainFormComponent } from './blockchain-form/blockchain-form.compo
 })
 export class BlockchainsComponent implements OnInit {
   static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
-  @ViewChild('blockchainsList') blockchainsList: BlockchainsListComponent;
+  @ViewChild('blockchainsList') blockchainsList: BlockchainListComponent;
   @ViewChild('blockchainsForm') blockchainsForm: BlockchainFormComponent;
 
   selected: Array<Blockchain>;

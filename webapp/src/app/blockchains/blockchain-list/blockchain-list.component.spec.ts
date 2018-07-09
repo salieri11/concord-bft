@@ -5,9 +5,9 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 
-import { ConsortiumsListComponent } from './consortiums-list.component';
+import { BlockchainsService } from '../shared/blockchains.service';
+import { BlockchainListComponent } from './blockchain-list.component';
 import { GridModule } from '../../grid/grid.module';
-import { ConsortiumService } from '../shared/consortium.service';
 import { TranslateLoader, TranslateModule } from '@ngx-translate/core';
 import { HttpClient } from '@angular/common/http';
 import { HttpLoaderFactory } from '../../app.module';
@@ -15,9 +15,9 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { MockSharedModule } from '../../shared/shared.module';
 
-describe('ConsortiumsListComponent', () => {
-  let component: ConsortiumsListComponent;
-  let fixture: ComponentFixture<ConsortiumsListComponent>;
+describe('BlockchainListComponent', () => {
+  let component: BlockchainListComponent;
+  let fixture: ComponentFixture<BlockchainListComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
@@ -32,8 +32,11 @@ describe('ConsortiumsListComponent', () => {
           }
         })
       ],
-      declarations: [ConsortiumsListComponent],
-      providers: [ConsortiumService]
+      declarations: [BlockchainListComponent],
+      providers: [
+        BlockchainsService,
+
+      ]
     })
       .overrideModule(GridModule, {
         set: {
@@ -48,7 +51,7 @@ describe('ConsortiumsListComponent', () => {
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(ConsortiumsListComponent);
+    fixture = TestBed.createComponent(BlockchainListComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

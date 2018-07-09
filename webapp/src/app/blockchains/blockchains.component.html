@@ -17,7 +17,7 @@
       </clr-dropdown-menu>
     </clr-dropdown>
   </h2>
-  <athena-blockchains-list #blockchainsList (selected)="blockchainsSelectionChange($event)"></athena-blockchains-list>
+  <athena-blockchain-list #blockchainsList (selected)="blockchainsSelectionChange($event)"></athena-blockchain-list>
   <athena-blockchain-form #blockchainsForm
                           [selected]="selected"
                           (addBlockchains)="addBlockchains($event)"

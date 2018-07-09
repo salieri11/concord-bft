@@ -18,7 +18,7 @@ import { ChannelsModule } from '../channels/channels.module';
 import { GridModule } from '../grid/grid.module';
 import { BlockchainsComponent } from './blockchains.component';
 import { BlockchainComponent } from './blockchain/blockchain.component';
-import { BlockchainsListComponent } from './blockchains-list/blockchains-list.component';
+import { BlockchainListComponent } from './blockchain-list/blockchain-list.component';
 import { BlockchainFormComponent } from './blockchain-form/blockchain-form.component';
 
 @NgModule({
@@ -39,7 +39,7 @@ import { BlockchainFormComponent } from './blockchain-form/blockchain-form.compo
   declarations: [
     BlockchainsComponent,
     BlockchainComponent,
-    BlockchainsListComponent,
+    BlockchainListComponent,
     BlockchainFormComponent,
   ]
 })

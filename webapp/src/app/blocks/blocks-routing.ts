@@ -4,14 +4,14 @@
 
 import { Routes } from '@angular/router';
 
-import { BlocksListComponent } from './blocks-list/blocks-list.component';
+import { BlockListComponent } from './block-list/block-list.component';
 import { BlockComponent } from './block/block.component';
 import { TransactionComponent } from '../transactions/transaction/transaction.component';
 
 
 
 export const blockRoutes: Routes = [
-  { path: '', component: BlocksListComponent },
+  { path: '', component: BlockListComponent },
   {
     path: ':blockNumber',
     component: BlockComponent,

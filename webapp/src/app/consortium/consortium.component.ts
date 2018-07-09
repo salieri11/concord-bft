@@ -10,7 +10,7 @@ import {
 
 import { Personas } from '../shared/persona.service';
 import { ConsortiumFormComponent } from './consortium-form/consortium-form.component';
-import { ConsortiumsListComponent } from './consortiums-list/consortiums-list.component';
+import { ConsortiumListComponent } from './consortium-list/consortium-list.component';
 import { Consortium } from './shared/consortium.model';
 
 @Component({
@@ -21,7 +21,7 @@ import { Consortium } from './shared/consortium.model';
 export class ConsortiumComponent implements OnInit {
   static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   @ViewChild('consortiumForm') consortiumForm: ConsortiumFormComponent;
-  @ViewChild('consortiumsList') consortiumsList: ConsortiumsListComponent;
+  @ViewChild('consortiumsList') consortiumsList: ConsortiumListComponent;
 
   selected: Array<Consortium>;
 

@@ -6,7 +6,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule } from '@angular/router';
 
 import { SharedModule } from '../shared/shared.module';
-import { BlocksListComponent } from './blocks-list/blocks-list.component';
+import { BlockListComponent } from './block-list/block-list.component';
 import { BlockDetailsComponent } from './block-details/block-details.component';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { BlockComponent } from './block/block.component';
@@ -18,7 +18,7 @@ import { BlockComponent } from './block/block.component';
     TransactionsModule
   ],
   declarations: [
-    BlocksListComponent,
+    BlockListComponent,
     BlockComponent,
     BlockDetailsComponent
   ]

@@ -15,7 +15,7 @@ import { MockSharedModule } from '../shared/shared.module';
 import { BlockchainsService } from './shared/blockchains.service';
 import { KubernetesService } from '../kubernetes/shared/kubernetes.service';
 import { OrgService } from '../orgs/shared/org.service';
-import { BlockchainsListComponent } from './blockchains-list/blockchains-list.component';
+import { BlockchainListComponent } from './blockchain-list/blockchain-list.component';
 import { BlockchainFormComponent } from './blockchain-form/blockchain-form.component';
 
 describe('BlockchainsComponent', () => {
@@ -31,7 +31,7 @@ describe('BlockchainsComponent', () => {
         MockSharedModule,
         NoopAnimationsModule
       ],
-      declarations: [ BlockchainsComponent, BlockchainsListComponent, BlockchainFormComponent ],
+      declarations: [ BlockchainsComponent, BlockchainListComponent, BlockchainFormComponent ],
       providers: [
         BlockchainsService,
         OrgService,

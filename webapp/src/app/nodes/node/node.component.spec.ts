@@ -10,7 +10,7 @@ import { MockSharedModule } from '../../shared/shared.module';
 
 import { NodeComponent } from './node.component';
 import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
-import { TransactionsListComponent } from '../../transactions/transactions-list/transactions-list.component';
+import { TransactionListComponent } from '../../transactions/transaction-list/transaction-list.component';
 import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
 
 describe('NodeComponent', () => {
@@ -27,7 +27,7 @@ describe('NodeComponent', () => {
       declarations: [
         NodeComponent,
         TransactionsStatusFilterComponent,
-        TransactionsListComponent,
+        TransactionListComponent,
         TransactionDetailsComponent
       ]
     })

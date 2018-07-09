@@ -7,7 +7,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { MockSharedModule } from '../../shared/shared.module';
-import { TransactionsListComponent } from '../../transactions/transactions-list/transactions-list.component';
+import { TransactionListComponent } from '../../transactions/transaction-list/transaction-list.component';
 import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
 import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
 import { BlockComponent } from './block.component';
@@ -25,7 +25,7 @@ describe('BlockComponent', () => {
       ],
       declarations: [
         BlockComponent,
-        TransactionsListComponent,
+        TransactionListComponent,
         TransactionsStatusFilterComponent,
         TransactionDetailsComponent
       ]

@@ -7,13 +7,13 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 
-import { TransactionsListComponent } from './transactions-list.component';
+import { TransactionListComponent } from './transaction-list.component';
 import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
 import { TransactionDetailsComponent } from '../transaction-details/transaction-details.component';
 
-describe('TransactionsListComponent', () => {
-  let component: TransactionsListComponent;
-  let fixture: ComponentFixture<TransactionsListComponent>;
+describe('TransactionListComponent', () => {
+  let component: TransactionListComponent;
+  let fixture: ComponentFixture<TransactionListComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
@@ -23,7 +23,7 @@ describe('TransactionsListComponent', () => {
         MockSharedModule
       ],
       declarations: [
-        TransactionsListComponent,
+        TransactionListComponent,
         TransactionsStatusFilterComponent,
         TransactionDetailsComponent
       ]
@@ -32,7 +32,7 @@ describe('TransactionsListComponent', () => {
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(TransactionsListComponent);
+    fixture = TestBed.createComponent(TransactionListComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

@@ -13,11 +13,11 @@ import { ConsortiumService } from '../shared/consortium.service';
 import { Org } from '../../orgs/shared/org.model';
 
 @Component({
-  selector: 'athena-consortiums-list',
-  templateUrl: './consortiums-list.component.html',
-  styleUrls: ['./consortiums-list.component.scss']
+  selector: 'athena-consortium-list',
+  templateUrl: './consortium-list.component.html',
+  styleUrls: ['./consortium-list.component.scss']
 })
-export class ConsortiumsListComponent implements OnInit {
+export class ConsortiumListComponent implements OnInit {
   static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   @ViewChild('grid') grid: GridComponent;
   @Output() selected: EventEmitter<any> = new EventEmitter<any>();

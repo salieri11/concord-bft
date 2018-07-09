@@ -16,7 +16,7 @@
       </clr-dropdown-menu>
     </clr-dropdown>
   </h2>
-  <athena-consortiums-list #consortiusmList (selected)="selectedRowChange($event)"></athena-consortiums-list>
+  <athena-consortium-list #consortiusmList (selected)="selectedRowChange($event)"></athena-consortium-list>
   <athena-consortium-form #consortiumForm
                           [selected]="selected"
                           (consortiumAdd)="addToConsortiumsList($event)"

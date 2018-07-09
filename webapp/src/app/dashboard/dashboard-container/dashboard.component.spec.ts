@@ -9,7 +9,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 
 import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
-import { TransactionsListComponent } from '../../transactions/transactions-list/transactions-list.component';
+import { TransactionListComponent } from '../../transactions/transaction-list/transaction-list.component';
 import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
 import { DashboardComponent } from './dashboard.component';
 
@@ -27,7 +27,7 @@ describe('DashboardComponent', () => {
       declarations: [
         DashboardComponent,
         TransactionsStatusFilterComponent,
-        TransactionsListComponent,
+        TransactionListComponent,
         TransactionDetailsComponent
       ]
     })

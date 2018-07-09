@@ -11,7 +11,7 @@ import { ClarityModule } from '@clr/angular';
 
 import { SharedModule } from '../shared/shared.module';
 import { TransactionComponent } from './transaction/transaction.component';
-import { TransactionsListComponent } from './transactions-list/transactions-list.component';
+import { TransactionListComponent } from './transaction-list/transaction-list.component';
 import { TransactionDetailsComponent } from './transaction-details/transaction-details.component';
 
 
@@ -23,9 +23,9 @@ import { TransactionDetailsComponent } from './transaction-details/transaction-d
     TranslateModule,
     SharedModule
   ],
-  declarations: [TransactionComponent, TransactionsListComponent, TransactionDetailsComponent],
+  declarations: [TransactionComponent, TransactionListComponent, TransactionDetailsComponent],
   exports: [
-    TransactionsListComponent,
+    TransactionListComponent,
     TransactionDetailsComponent
   ]
 

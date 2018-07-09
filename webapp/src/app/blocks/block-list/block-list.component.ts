@@ -11,11 +11,11 @@ import { BlocksService } from '../shared/blocks.service';
  * Displays a paginated listing of blocks
  */
 @Component({
-  selector: 'athena-blocks-list',
-  templateUrl: './blocks-list.component.html',
-  styleUrls: ['./blocks-list.component.scss']
+  selector: 'athena-block-list',
+  templateUrl: './block-list.component.html',
+  styleUrls: ['./block-list.component.scss']
 })
-export class BlocksListComponent implements OnInit {
+export class BlockListComponent implements OnInit {
   blocks: BlockListingBlock[] = [];
   nextBlockUrl: string;
 

@@ -5,11 +5,11 @@
 import { Component, Input, OnInit } from '@angular/core';
 
 @Component({
-  selector: 'athena-transactions-list',
-  templateUrl: './transactions-list.component.html',
-  styleUrls: ['./transactions-list.component.scss']
+  selector: 'athena-transaction-list',
+  templateUrl: './transaction-list.component.html',
+  styleUrls: ['./transaction-list.component.scss']
 })
-export class TransactionsListComponent implements OnInit {
+export class TransactionListComponent implements OnInit {
   @Input() transactions: any[];
   @Input() blockNumber?: number;
 

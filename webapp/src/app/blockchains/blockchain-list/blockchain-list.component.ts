@@ -13,11 +13,11 @@ import { Org } from '../../orgs/shared/org.model';
 import { Personas } from '../../shared/persona.service';
 
 @Component({
-  selector: 'athena-blockchains-list',
-  templateUrl: './blockchains-list.component.html',
-  styleUrls: ['./blockchains-list.component.scss']
+  selector: 'athena-blockchain-list',
+  templateUrl: './blockchain-list.component.html',
+  styleUrls: ['./blockchain-list.component.scss']
 })
-export class BlockchainsListComponent implements OnInit {
+export class BlockchainListComponent implements OnInit {
   static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin];
   @ViewChild('grid') grid: GridComponent;
   @Output('selected') selected: EventEmitter<any> = new EventEmitter<any>();

@@ -9,11 +9,11 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 
 import { BlockDetailsComponent } from '../block-details/block-details.component';
-import { BlocksListComponent } from './blocks-list.component';
+import { BlockListComponent } from './block-list.component';
 
-describe('BlocksListComponent', () => {
-  let component: BlocksListComponent;
-  let fixture: ComponentFixture<BlocksListComponent>;
+describe('BlockListComponent', () => {
+  let component: BlockListComponent;
+  let fixture: ComponentFixture<BlockListComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
@@ -23,7 +23,7 @@ describe('BlocksListComponent', () => {
         MockSharedModule
       ],
       declarations: [
-        BlocksListComponent,
+        BlockListComponent,
         BlockDetailsComponent
       ]
     })
@@ -31,7 +31,7 @@ describe('BlocksListComponent', () => {
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(BlocksListComponent);
+    fixture = TestBed.createComponent(BlockListComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
