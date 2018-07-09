@@ -6,12 +6,12 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          -84.3880,
-          33.7490
+          -82.996216,
+          40.367474
         ]
       },
       "properties": {
-        "location": "Atlanta, GA, USA",
+        "location": "Ohio, US East",
         "nodes": [
           {
             "id": "athena1",
@@ -33,12 +33,12 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          -122.4194,
-          37.7749
+          -78.024902,
+          37.926868
         ]
       },
       "properties": {
-        "location": "San Francisco, CA, USA",
+        "location": "N. Virginia US East",
         "nodes": [
           {
             "id": "athena3",
@@ -54,12 +54,12 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          -0.1278,
-          51.5074
+          -119.417931,
+          36.778259
         ]
       },
       "properties": {
-        "location": "London, England",
+        "location": "N. California, US West",
         "nodes": [
           {
             "id": "athena4",
@@ -75,17 +75,290 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          77.2090,
-          28.6139
+          -122.679565,
+          45.512794
         ]
       },
       "properties": {
-        "location": "New Delhi, England",
+        "location": "Oregon, US West",
         "nodes": [
           {
             "id": "athena5",
             "consortiumName": "Consort 4",
+            "blockchainType": "Athena",
+            "status": "Deploying"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.753372,
+          35.685360
+        ]
+      },
+      "properties": {
+        "location": "Tokyo, Asia Pacific",
+        "nodes": [
+          {
+            "id": "athena6",
+            "consortiumName": "Consort 5",
             "blockchainType": "SuperChain",
+            "status": "Deploying"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.5022,
+          34.6937
+        ]
+      },
+      "properties": {
+        "location": "Osaka-Local, Asia Pacific",
+        "nodes": [
+          {
+            "id": "athena7",
+            "consortiumName": "Consort 6",
+            "blockchainType": "Hyperledger",
+            "status": "Deploying"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          72.854118,
+          19.228825
+        ]
+      },
+      "properties": {
+        "location": "Mumbai, Asia Pacific",
+        "nodes": [
+          {
+            "id": "athena8",
+            "consortiumName": "Consort 7",
+            "blockchainType": "SuperChain",
+            "status": "Deploying"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          103.851959,
+          1.290270
+        ]
+      },
+      "properties": {
+        "location": "Singapore, Asia Pacific",
+        "nodes": [
+          {
+            "id": "athena9",
+            "consortiumName": "Consort 8",
+            "blockchainType": "Hyperledger",
+            "status": "Deploying"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          151.209900,
+          -33.865143
+        ]
+      },
+      "properties": {
+        "location": "Sydney, Asia Pacific",
+        "nodes": [
+          {
+            "id": "athena10",
+            "consortiumName": "Consort 9",
+            "blockchainType": "Athena",
+            "status": "Deploying"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.411079,
+          43.761539
+        ]
+      },
+      "properties": {
+        "location": "Canada, Central",
+        "nodes": [
+          {
+            "id": "athena11",
+            "consortiumName": "Consort 10",
+            "blockchainType": "SuperChain",
+            "status": "Deploying"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.363625,
+          39.913818
+        ]
+      },
+      "properties": {
+        "location": "China, Beijing",
+        "nodes": [
+          {
+            "id": "athena12",
+            "consortiumName": "Consort 11",
+            "blockchainType": "Athena",
+            "status": "Deploying"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          106.249290,
+          38.488800
+        ]
+      },
+      "properties": {
+        "location": "China, Ningxia",
+        "nodes": [
+          {
+            "id": "athena13",
+            "consortiumName": "Consort 12",
+            "blockchainType": "SuperChain",
+            "status": "Deploying"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          8.682127,
+          50.110924
+        ]
+      },
+      "properties": {
+        "location": "Frankfurt, EU",
+        "nodes": [
+          {
+            "id": "athena14",
+            "consortiumName": "Consort 13",
+            "blockchainType": "SuperChain",
+            "status": "Deploying"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -6.266155,
+          53.350140
+        ]
+      },
+      "properties": {
+        "location": "Ireland, EU",
+        "nodes": [
+          {
+            "id": "athena15",
+            "consortiumName": "Consort 14",
+            "blockchainType": "Hyperledger",
+            "status": "Deploying"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -0.076132,
+          51.508530
+        ]
+      },
+      "properties": {
+        "location": "London, EU",
+        "nodes": [
+          {
+            "id": "athena16",
+            "consortiumName": "Consort 15",
+            "blockchainType": "SuperChain",
+            "status": "Deploying"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          2.349014,
+          48.864716
+        ]
+      },
+      "properties": {
+        "location": "Paris, EU",
+        "nodes": [
+          {
+            "id": "athena17",
+            "consortiumName": "Consort 16",
+            "blockchainType": "Hyperledger",
+            "status": "Deploying"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -46.625290,
+          -23.533773
+        ]
+      },
+      "properties": {
+        "location": "São Paulo, South America",
+        "nodes": [
+          {
+            "id": "athena2",
+            "consortiumName": "Consort 17",
+            "blockchainType": "Athena",
             "status": "Deploying"
           }
         ]

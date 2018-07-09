@@ -29,7 +29,7 @@ import { getCenter } from 'ol/extent';
 import { unByKey } from 'ol/Observable';
 import { easeOut } from 'ol/easing';
 
-import { NodeProperties } from './world-map.models';
+import { NodeProperties } from './world-map.model';
 
 @Component({
   selector: 'athena-world-map',
@@ -61,6 +61,26 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   constructor(private http: HttpClient, private ref: ChangeDetectorRef) {}
 
   ngAfterViewInit() {
+    this.initMap();
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes.features) {
+      this.featureCollection.clear();
+      this.featureCollection.extend(new GeoJSON().readFeatures(changes.features.currentValue, {
+        dataProjection: null,
+        featureProjection: getProjection('EPSG:3857')
+      }));
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.animationInterval) {
+      clearInterval(this.animationInterval);
+    }
+  }
+
+  private initMap() {
     const tilePixels = new Projection({
       code: 'TILE_PIXELS',
       units: 'tile-pixels'
@@ -83,7 +103,7 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     // Overlay container for the tooltip on node hover
     this.overlay = new Overlay({
       element: this.tooltipContainer.nativeElement,
-      positioning: 'center-center',
+      positioning: 'right',
       autoPan: true,
       autoPanAnimation: {
         source: null,
@@ -126,7 +146,8 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       target: this.mapContainer.nativeElement,
       view: new View({
         center: fromLonLat([0, 30]),
-        zoom: 2
+        zoom: 2,
+        zoomFactor: 1.75
       })
     });
     this.map.addInteraction(nodeFeatureHoverInteraction);
@@ -173,22 +194,6 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       this.map.getLayers().insertAt(0, countryOutlineLayer);
       this.map.updateSize();
     });
-  }
-
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes.features) {
-      this.featureCollection.clear();
-      this.featureCollection.extend(new GeoJSON().readFeatures(changes.features.currentValue, {
-        dataProjection: null,
-        featureProjection: getProjection('EPSG:3857')
-      }));
-    }
-  }
-
-  ngOnDestroy(): void {
-    if (this.animationInterval) {
-      clearInterval(this.animationInterval);
-    }
   }
 
   /**
