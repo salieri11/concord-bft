@@ -40,16 +40,16 @@ public class TransactionList extends BaseServlet {
       ByteString latest = null;
       long count = _conf.getLongValue("TransactionList_DefaultCount");
       Athena.AthenaRequest athenaRequest;
-      
+
       try {
          Athena.TransactionListRequest.Builder txListReqBuilder
-                 = Athena.TransactionListRequest.newBuilder();
-   
+            = Athena.TransactionListRequest.newBuilder();
+
          if (paramMap.containsKey("latest")) {
             latest = APIHelper.hexStringToBinary(paramMap.get("latest")[0]);
             txListReqBuilder.setLatest(latest);
          }
-   
+
          if (paramMap.containsKey("count")) {
             if (paramMap.get("count")[0].chars().allMatch(Character::isDigit)) {
                count = Long.parseLong(paramMap.get("count")[0]);
@@ -57,19 +57,19 @@ public class TransactionList extends BaseServlet {
          }
          txListReqBuilder.setCount(count);
          logger.info("requested count: " + count);
-   
+
          athenaRequest
-                 = Athena.AthenaRequest.newBuilder()
-                 .setTransactionListRequest(txListReqBuilder.build())
-                 .build();
-   
+            = Athena.AthenaRequest.newBuilder()
+                                  .setTransactionListRequest(txListReqBuilder.build())
+                                  .build();
+
          processGet(athenaRequest, response, logger);
       } catch (Exception e) {
          logger.warn("Exception in transaction list", e);
          processResponse(response,
-                 APIHelper.errorJSON(e.getMessage()).toJSONString(),
-                 HttpServletResponse.SC_BAD_REQUEST,
-                 logger);
+                         APIHelper.errorJSON(e.getMessage()).toJSONString(),
+                         HttpServletResponse.SC_BAD_REQUEST,
+                         logger);
       }
    }
 
@@ -91,14 +91,14 @@ public class TransactionList extends BaseServlet {
       // Construct the reponse JSON object.
       JSONObject responseJSON = new JSONObject();
       JSONArray trArray = new JSONArray();
-      for (ByteString hash : txListResponse.getTransactionList()) {
-         JSONObject tr = new JSONObject();
-         tr.put("hash", APIHelper.binaryStringToHex(hash));
-         tr.put("url",
-                transactionListEndpoint + "/"
-                   + APIHelper.binaryStringToHex(hash));
-         trArray.add(tr);
+      for (Athena.TransactionResponse tr : txListResponse.getTransactionList()) {
+         JSONObject trJson = Transaction.buildTransactionResponseJSON(tr);
+         trJson.put("url",
+                    transactionListEndpoint + "/"
+                       + APIHelper.binaryStringToHex(tr.getHash()));
+         trArray.add(trJson);
       }
+
       responseJSON.put("transactions", trArray);
       if (txListResponse.hasNext()) {
          responseJSON.put("next",
