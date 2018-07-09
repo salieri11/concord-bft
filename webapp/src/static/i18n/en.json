@@ -10,11 +10,24 @@
     "menu": {
       "title": "Menu",
       "options": {
-          "deploy": {"title": "Deploy"},
-          "addOrg": {"title": "Add Organization"},
-          "addBlockchains": {"title": "Add Blockchain"},
-          "addConsortium": {"title": "Add Consortium"},
-          "addKubernetes": {"title": "Add Kubernetes"}
+        "deploy": {
+          "title": "Deploy"
+        },
+        "addOrg": {
+          "title": "Add Organization"
+        },
+        "addBlockchains": {
+          "title": "Add Blockchain"
+        },
+        "addConsortium": {
+          "title": "Add Consortium"
+        },
+        "addKubernetes": {
+          "title": "Add Kubernetes"
+        },
+        "addUsers": {
+          "title": "Add Users"
+        }
       }
     },
     "personaSelector": {
@@ -39,7 +52,7 @@
       "title": "Smart Contracts"
     },
     "sysadmin": {
-        "title": "SYSTEM ADMIN"
+      "title": "SYSTEM ADMIN"
     },
     "organization": {
       "title": "Organizations"
@@ -52,6 +65,9 @@
     },
     "kubernetes": {
       "title": "Kubernetes"
+    },
+    "users": {
+      "title": "Users"
     },
     "logOut": "Log Out"
   },
@@ -67,10 +83,10 @@
   },
   "grid": {
     "search": {
-        "placeholder": "Search"
+      "placeholder": "Search"
     },
     "pagination": {
-        "of": "of"
+      "of": "of"
     }
   },
   "dashboard": {
@@ -233,18 +249,18 @@
         "title": "Orgs"
       },
       "columns": {
-          "name": {
-              "title": "Name"
-          },
-          "domain": {
-              "title": "Domain"
-          },
-          "type": {
-              "title": "Type"
-          },
-          "created": {
-              "title": "Created On"
-          }
+        "name": {
+          "title": "Name"
+        },
+        "domain": {
+          "title": "Domain"
+        },
+        "type": {
+          "title": "Type"
+        },
+        "created": {
+          "title": "Created On"
+        }
       }
     },
     "addOrgForm": {
@@ -314,36 +330,36 @@
         "title": "Instances"
       },
       "columns": {
-          "id": {
-              "title": "ID"
-          },
-          "name": {
-              "title": "Name"
-          },
-          "apiServerUrl": {
-              "title": "API Server"
-          },
-          "ca": {
-              "title": "CA"
-          },
-          "kubectlCliUrl": {
-              "title": "Kube CLI URL"
-          },
-          "helmCliUrl": {
-              "title": "Helm URL"
-          },
-          "credentialType": {
-              "title": "Credential Type"
-          },
-          "insecure": {
-              "title": "Insecure"
-          },
-          "created": {
-              "title": "Created On"
-          },
-          "updated": {
-              "title": "Updated On"
-          }
+        "id": {
+          "title": "ID"
+        },
+        "name": {
+          "title": "Name"
+        },
+        "apiServerUrl": {
+          "title": "API Server"
+        },
+        "ca": {
+          "title": "CA"
+        },
+        "kubectlCliUrl": {
+          "title": "Kube CLI URL"
+        },
+        "helmCliUrl": {
+          "title": "Helm URL"
+        },
+        "credentialType": {
+          "title": "Credential Type"
+        },
+        "insecure": {
+          "title": "Insecure"
+        },
+        "created": {
+          "title": "Created On"
+        },
+        "updated": {
+          "title": "Updated On"
+        }
       }
     },
     "addKubeForm": {
@@ -419,15 +435,15 @@
         "title": "Consortium"
       },
       "columns": {
-          "name": {
-              "title": "Name"
-          },
-          "members": {
-              "title": "Members"
-          },
-          "created": {
-              "title": "Created On"
-          }
+        "name": {
+          "title": "Name"
+        },
+        "members": {
+          "title": "Members"
+        },
+        "created": {
+          "title": "Created On"
+        }
       }
     },
     "addConsortiumForm": {
@@ -470,33 +486,33 @@
         "title": "Blockchains"
       },
       "columns": {
-          "name": {
-              "title": "Name"
-          },
-          "membersCount": {
-              "title": "Members"
-          },
-          "channelsCount": {
-              "title": "Channels Count"
-          },
-          "consensusType": {
-              "title": "Consensus Type"
-          },
-          "fabricExplorerUrl": {
-              "title": "Fabric Dashboard"
-          },
-          "k8sDashboardUrl": {
-              "title": "Kubernetes Dashboard"
-          },
-          "status": {
-              "title": "Status"
-          },
-          "action": {
-              "title": "Last Action"
-          },
-          "created": {
-              "title": "Created On"
-          }
+        "name": {
+          "title": "Name"
+        },
+        "membersCount": {
+          "title": "Members"
+        },
+        "channelsCount": {
+          "title": "Channels Count"
+        },
+        "consensusType": {
+          "title": "Consensus Type"
+        },
+        "fabricExplorerUrl": {
+          "title": "Fabric Dashboard"
+        },
+        "k8sDashboardUrl": {
+          "title": "Kubernetes Dashboard"
+        },
+        "status": {
+          "title": "Status"
+        },
+        "action": {
+          "title": "Last Action"
+        },
+        "created": {
+          "title": "Created On"
+        }
       }
     },
     "detail": {
@@ -543,7 +559,7 @@
       }
     }
   },
-  "personas" : {
+  "personas": {
     "systemsAdmin": "Systems Admin",
     "consortiumAdmin": "Consortium Admin",
     "orgAdmin": "Org Admin",
@@ -555,5 +571,125 @@
   },
   "globalError": {
     "routingError": "You do not have permission to visit this section of Athena, please contact your sysadmin for more info."
+  },
+  "users": {
+    "title": "User Management",
+    "actions": {
+      "title": "Actions",
+      "options": {
+        "add": {
+          "title": "Add User"
+        },
+        "edit": {
+          "title": "Edit User"
+        },
+        "delete": {
+          "title": "Delete User"
+        }
+      }
+    },
+    "grid": {
+      "pagination": {
+        "title": "Users"
+      },
+      "columns": {
+        "name": {
+          "title": "Name"
+        },
+        "firstName": {
+          "title": "FirstName"
+        },
+        "lastName": {
+          "title": "LastName"
+        },
+        "email": {
+          "title": "Email"
+        },
+        "organization": {
+          "title": "Organization"
+        },
+        "persona": {
+          "title": "Role"
+        },
+        "createdOn": {
+          "title": "Created On"
+        },
+        "updatedOn": {
+          "title": "Updated On"
+        }
+      }
+    },
+    "editUserForm": {
+      "title": "Edit User",
+      "inputs": {
+        "firstName": {
+          "title": "First Name",
+          "placeholder": "First Name"
+        },
+        "lastName": {
+          "title": "Last Name",
+          "placeholder": "Last Name"
+        },
+        "email": {
+          "title": "Email",
+          "placeholder": "emailid@doamin.com"
+        },
+        "role": {
+          "title": "Role",
+          "placeholder": "persona"
+        }
+      },
+      "submit": {
+        "title": "Submit"
+      }
+    },
+    "addUserForm": {
+      "title": "Add User",
+      "inputs": {
+        "firstName": {
+          "title": "First Name",
+          "placeholder": "First Name"
+        },
+        "lastName": {
+          "title": "Last Name",
+          "placeholder": "Last Name"
+        },
+        "email": {
+          "title": "Email",
+          "placeholder": "emailid@doamin.com"
+        },
+        "password": {
+          "title": "Password",
+          "placeholder": "********"
+        },
+        "confirmPassword": {
+          "title": "Confirm Password",
+          "placeholder": "********"
+        },
+        "organization": {
+          "title": "Organization",
+          "placeholder": "Organization"
+        },
+        "role": {
+          "title": "Role",
+          "placeholder": "persona"
+        }
+      },
+      "errors": {
+        "password": {
+          "minLength": "Password must be at least 8 characters long.",
+          "mismatch": "Passwords do not match."
+        }
+      },
+      "submit": {
+        "title": "Submit"
+      }
+    },
+    "deleteUserForm": {
+      "title": "Delete User(s)",
+      "submit": {
+        "title": "Yes"
+      }
+    }
   }
 }

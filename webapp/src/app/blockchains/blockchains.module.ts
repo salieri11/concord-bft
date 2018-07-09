@@ -13,11 +13,13 @@ import { TranslateModule } from '@ngx-translate/core';
 import { HttpClientModule } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 
-import { OrgManagementModule } from '../org-management/org-management.module';
+import { OrgsModule } from '../orgs/orgs.module';
 import { ChannelsModule } from '../channels/channels.module';
 import { GridModule } from '../grid/grid.module';
 import { BlockchainsComponent } from './blockchains.component';
 import { BlockchainComponent } from './blockchain/blockchain.component';
+import { BlockchainListComponent } from './blockchain-list/blockchain-list.component';
+import { BlockchainFormComponent } from './blockchain-form/blockchain-form.component';
 
 @NgModule({
   imports: [
@@ -29,7 +31,7 @@ import { BlockchainComponent } from './blockchain/blockchain.component';
     ReactiveFormsModule,
     FormsModule,
     GridModule,
-    OrgManagementModule,
+    OrgsModule,
     ChannelsModule,
     TranslateModule,
     RouterModule
@@ -37,6 +39,8 @@ import { BlockchainComponent } from './blockchain/blockchain.component';
   declarations: [
     BlockchainsComponent,
     BlockchainComponent,
+    BlockchainListComponent,
+    BlockchainFormComponent,
   ]
 })
 export class BlockchainsModule { }

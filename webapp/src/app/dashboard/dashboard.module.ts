@@ -7,7 +7,7 @@ import { RouterModule } from '@angular/router';
 
 import { SharedModule } from '../shared/shared.module';
 import { TransactionsModule } from '../transactions/transactions.module';
-import { DashboardContainerComponent } from './dashboard-container/dashboard-container.component';
+import { DashboardComponent } from './dashboard-container/dashboard.component';
 import { WorldMapComponent } from './world-map/world-map.component';
 
 @NgModule({
@@ -16,7 +16,7 @@ import { WorldMapComponent } from './world-map/world-map.component';
     RouterModule,
     TransactionsModule,
   ],
-  declarations: [DashboardContainerComponent, WorldMapComponent]
+  declarations: [DashboardComponent, WorldMapComponent]
 })
 export class DashboardModule { }
 

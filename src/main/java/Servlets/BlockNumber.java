@@ -10,18 +10,20 @@
  */
 package Servlets;
 
-import com.vmware.athena.*;
-import com.vmware.athena.Athena.TransactionResponse;
-
-import io.undertow.util.StatusCodes;
 import java.io.IOException;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+
+import com.vmware.athena.Athena;
+import com.vmware.athena.Athena.TransactionResponse;
+
+import io.undertow.util.StatusCodes;
 
 /**
  * Servlet class.
@@ -56,23 +58,35 @@ public final class BlockNumber extends BaseServlet {
          }
 
          String urlParam = uri.substring(uri.lastIndexOf('/') + 1);
-         number = Long.parseLong(urlParam);
-      } catch (NumberFormatException e) {
-         _logger.error("Invalid block number");
-         processResponse(response, "error", StatusCodes.BAD_REQUEST, _logger);
+         final Athena.BlockRequest blockRequestObj;
+         // check if param is a number or hash
+         if (urlParam.chars().allMatch(Character::isDigit)) {
+            number = Long.parseLong(urlParam);
+            blockRequestObj
+               = Athena.BlockRequest.newBuilder().setNumber(number).build();
+         } else {
+            blockRequestObj
+               = Athena.BlockRequest.newBuilder()
+                                    .setHash(APIHelper.hexStringToBinary(urlParam))
+                                    .build();
+         }
+
+         // Envelope the blockRequest object into an athena object.
+         final Athena.AthenaRequest athenaRequestObj
+            = Athena.AthenaRequest.newBuilder()
+                                  .setBlockRequest(blockRequestObj)
+                                  .build();
+
+         processGet(athenaRequestObj, response, _logger);
+
+      } catch (Exception e) {
+         _logger.error("Invalid block number or hash");
+         processResponse(response,
+                         APIHelper.errorJSON("Invalid block number or hash")
+                                  .toJSONString(),
+                         StatusCodes.BAD_REQUEST,
+                         _logger);
       }
-
-      // Construct a blockNumberRequest object. Set its start field.
-      final Athena.BlockRequest blockRequestObj
-         = Athena.BlockRequest.newBuilder().setNumber(number).build();
-
-      // Envelope the blockRequest object into an athena object.
-      final Athena.AthenaRequest athenaRequestObj
-         = Athena.AthenaRequest.newBuilder()
-                               .setBlockRequest(blockRequestObj)
-                               .build();
-
-      processGet(athenaRequestObj, response, _logger);
    }
 
    /**

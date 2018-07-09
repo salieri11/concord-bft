@@ -10,8 +10,8 @@ import { TranslateModule } from '@ngx-translate/core';
 import { ClarityModule } from '@clr/angular';
 
 import { SharedModule } from '../shared/shared.module';
-import { TransactionDetailContainerComponent } from './transaction-detail-container/transaction-detail-container.component';
-import { TransactionListViewComponent } from './transaction-list-view/transaction-list-view.component';
+import { TransactionComponent } from './transaction/transaction.component';
+import { TransactionListComponent } from './transaction-list/transaction-list.component';
 import { TransactionDetailsComponent } from './transaction-details/transaction-details.component';
 
 
@@ -23,11 +23,10 @@ import { TransactionDetailsComponent } from './transaction-details/transaction-d
     TranslateModule,
     SharedModule
   ],
-  declarations: [TransactionDetailContainerComponent, TransactionListViewComponent, TransactionDetailsComponent],
+  declarations: [TransactionComponent, TransactionListComponent, TransactionDetailsComponent],
   exports: [
-    TransactionListViewComponent,
-    TransactionDetailsComponent,
-    TransactionDetailContainerComponent
+    TransactionListComponent,
+    TransactionDetailsComponent
   ]
 
 })
