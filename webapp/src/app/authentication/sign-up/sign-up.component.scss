@@ -1,0 +1,22 @@
+.signup {
+  .form-group {
+    input {
+      min-width: 220px;
+    }
+    .select {
+      width: 220px;
+    }
+  }
+}
+.logo {
+  text-align: center;
+  margin-top: 1rem;
+}
+form, button {
+  margin-top: 1rem;
+  label {
+    text-align: left !important;
+  }
+}
+
+

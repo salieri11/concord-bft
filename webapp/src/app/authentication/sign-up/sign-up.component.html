@@ -1,0 +1,114 @@
+<div class="main-container signup">
+  <header class="header-7">
+    <div class="branding">
+      <a [routerLink]="['/']" class="nav-link">
+        <clr-icon shape="vm-bug"></clr-icon>
+        <span class="title">{{ 'title' | translate }}</span>
+      </a>
+    </div>
+    <div class="header-actions sign" style="align-items:center;">
+      <a [routerLink]="['/auth', 'login']" class="nav-link nav-icon">{{ 'nav.login' | translate }}</a>
+      <a class="vmware-logo qa-vm-label" rel="noopener" target="_blank" href="http://www.vmware.com/"></a>
+    </div>
+  </header>
+  <div class="content-container">
+    <div class="content-area">
+      <div class="row flex-items-xs-center">
+        <div class="col-xl-8 col-lg-12">
+          <h1>{{ 'title' | translate }}</h1>
+          <p>{{ 'signUp.description' | translate }}</p>
+          <h4>{{ 'signUp.callToAction' | translate }}</h4>
+        </div>
+      </div>
+      <form [formGroup]="signupForm" (ngSubmit)="signUp()">
+        <section class="form-block">
+          <div class="row flex-items-xs-center call-outs">
+            <div class="col-xl-4 col-lg-6 col-md-12">
+              <div class="form-group">
+                <label for="aForm_1">{{ 'signUp.form.firstName' | translate }}</label>
+                <input type="text" formControlName="firstName">
+              </div>
+            </div>
+            <div class="col-xl-4 col-lg-6 col-md-12">
+              <div class="form-group">
+                <label for="aForm_1">{{ 'signUp.form.lastName' | translate }}</label>
+                <input type="text" formControlName="lastName">
+              </div>
+            </div>
+          </div>
+          <div class="row flex-items-xs-center call-outs">
+            <div class="col-xl-4 col-lg-6 col-md-12">
+              <div class="form-group">
+                <label for="aForm_1">{{ 'signUp.form.email' | translate }}</label>
+                <input type="text" formControlName="email">
+              </div>
+            </div>
+            <div class="col-xl-4 col-lg-6 col-md-12">
+              <div class="form-group">
+                <label for="aForm_1">{{ 'signUp.form.company' | translate }}</label>
+                <input type="text" formControlName="company">
+              </div>
+            </div>
+          </div>
+          <div class="row flex-items-xs-center call-outs">
+            <div class="col-xl-4 col-lg-6 col-md-12">
+              <div class="form-group">
+                <label for="aForm_1">{{ 'signUp.form.jobTitle' | translate }}</label>
+                <input type="text" formControlName="jobTitle">
+              </div>
+            </div>
+            <div class="col-xl-4 col-lg-6 col-md-12">
+              <div class="form-group">
+                <label for="aForm_1">{{ 'signUp.form.country' | translate }}</label>
+                <div class="select">
+                  <select formControlName="country">
+                    <option *ngFor="let country of countryList" [value]="country">
+                      {{ country }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row flex-items-xs-center call-outs">
+            <div class="col-xl-4 col-lg-6 col-md-12">
+              <div class="form-group">
+                <label for="aForm_1">{{ 'signUp.form.relationship' | translate }}</label>
+                <div class="select">
+                  <select formControlName="relationship">
+                    <option value="Customer">{{ 'signUp.form.relationshipOptions.customer' | translate }}</option>
+                    <option value="Employee">{{ 'signUp.form.relationshipOptions.employee' | translate }}</option>
+                    <option value="Ecosystems Partner">{{ 'signUp.form.relationshipOptions.ecosystem' | translate }}</option>
+                    <option value="Solution Provider">{{ 'signUp.form.relationshipOptions.solutions' | translate }}</option>
+                    <option value="Service Provider">{{ 'signUp.form.relationshipOptions.service' | translate }}</option>
+                    <option value="Reseller Partner">{{ 'signUp.form.relationshipOptions.reseller' | translate }}</option>
+                    <option value="Other">{{ 'signUp.form.relationshipOptions.other' | translate }}</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div class="col-xl-4 col-lg-6 col-md-12">
+              <div class="form-group">
+                <label for="aForm_1">{{ 'signUp.form.numberOfEmployees' | translate }}</label>
+                <div class="select">
+                  <select formControlName="numberOfEmployees">
+                    <option value="0-99">0-99</option>
+                    <option value="100-499">100-499</option>
+                    <option value="500-999">500-999</option>
+                    <option value="1000-4999">1000-4999</option>
+                    <option value="5000+">5000+</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row flex-items-xs-center">
+            <div class="col-xl-8 col-lg-12">
+              <button type="submit" class="btn btn-primary" [disabled]="signupForm.status !== 'VALID'">{{ 'signUp.form.submit' | translate }}</button>
+            </div>
+          </div>
+        </section>
+      </form>
+    </div>
+  </div>
+</div>

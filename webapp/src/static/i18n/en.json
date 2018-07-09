@@ -14,6 +14,10 @@
     "menu": {
       "title": "Menu",
       "options": {
+        "contract": {
+          "title": "Create Smart Contract"
+        },
+        "sysAdminTitle": "System Admin",
         "deploy": {
           "title": "Deploy"
         },
@@ -77,6 +81,7 @@
     "users": {
       "title": "Users"
     },
+    "login": "Login",
     "logOut": "Log Out",
     "settings": "Settings"
   },
@@ -96,6 +101,59 @@
     },
     "pagination": {
       "of": "of"
+    }
+  },
+  "marketing": {
+    "subTitle": "Deploy The Industries Most Advanced Permissioned Blockchains",
+    "description": "The Athena blockchain delivers the fastest TPS in the industry. Deploy and Manage Athena, Hyperledger, Corda or Quorom for your consortium and organizations today.",
+    "callToAction": "Get Started",
+    "midHeading": "Get the most advanced enterprise blockchain",
+    "itemOne": {
+      "title": "Leading Consensus Protocol",
+      "description": "With the highest transactions per second and fastest time to finality."
+    },
+    "itemTwo": {
+      "title": "Enhanced Sercurity",
+      "description": "Deploy across multiple provider, permissioned blockchain nodes and networks using advanced cryptographic techniques."
+    },
+    "itemThree": {
+      "title": "Cost Effective and Greener Solutions",
+      "description": "Say goodbye to the high capital investment of proof of work.  Say goodbye to the high C02 with proof of stake."
+    }
+  },
+  "signUp": {
+    "description": "VMware Athena delivers the industries most advanced blockchain with the SBFT protocol.",
+    "callToAction": "Complete your information to get started.",
+    "form": {
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "company": "Company",
+      "jobTitle": "Job Title (Optional)",
+      "country": "Country",
+      "relationship": "Relationship with VMware",
+      "relationshipOptions": {
+        "customer": "Customer",
+        "employee": "Employee",
+        "ecosystem": "Ecosystems Partner",
+        "solutions": "Solution Provider",
+        "service": "Service Provider",
+        "reseller": "Reseller Partner",
+        "other": "Other"
+      },
+      "numberOfEmployees": "Number of Employees",
+      "submit": "Sign Up"
+    }
+  },
+  "onboarding": {
+    "title": "Welcome to Athena",
+    "setupOrg": {
+      "title": "Setup Organization",
+      "description": "Start adding other users to your organization, create smart contracts, get your blockchain credentials and start making trasactions on behalf of your organization."
+    },
+    "deployBlockchain": {
+      "title": "Deploy Blockchain",
+      "description": "Deploy an Athena, Hyperledger, Corda or Quorom blockchain and invite organizations to start performing transactions on your priveledged blockchain."
     }
   },
   "dashboard": {
@@ -702,6 +760,7 @@
     },
     "settings": {
       "title": "User Settings",
+      "orgTitle": "My Organizations and Certificates",
       "firstName": "First Name",
       "lastName": "Last Name",
       "email": "Email",

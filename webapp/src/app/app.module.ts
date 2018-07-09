@@ -17,6 +17,7 @@ import { ClarityModule } from '@clr/angular';
 import { AppComponent } from './app.component';
 import { MainModule } from './main/main.module';
 import { AppRoutingModule } from './app-routing.module';
+import { MarketingModule } from './marketing/marketing.module';
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, '/assets/static/i18n/', '.json');
@@ -46,11 +47,12 @@ export function langInitializerFactory(translate: TranslateService, injector: In
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
+    AppRoutingModule,
     MainModule,
     ClarityModule,
-    AppRoutingModule,
     RouterModule,
     TourNgxPopperModule.forRoot(),
+    MarketingModule,
     TranslateModule.forRoot({
       loader: {
         provide: TranslateLoader,

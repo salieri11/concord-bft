@@ -10,7 +10,7 @@ import { Subscription } from 'rxjs';
 import { BlockListingBlock } from '../../blocks/shared/blocks.model';
 import { TransactionsService } from '../../transactions/shared/transactions.service';
 import { BlockchainWizardComponent } from '../../shared/components/blockchain-wizard/blockchain-wizard.component';
-import { TaskManagerService, getCompletedSetups, getPendingSetups } from '../../shared/task-manager.service';
+import { TaskManagerService, getCompletedSetups, getPendingSetups, setCompletedSetups } from '../../shared/task-manager.service';
 import { TourService } from '../../shared/tour.service';
 
 import * as NodeGeoJson from '../features.json';
@@ -58,10 +58,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.setupBlockchain();
           break;
         case 'orgTour':
+          this.populateMap();
           setTimeout(() => {
             this.tourService.startTour();
           });
           break;
+
         default:
           // code...
           break;
@@ -81,6 +83,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   setupBlockchain() {
     this.taskManager.resetTasks();
     this.setupWizard.open();
+  }
+
+  populateMap(): void {
+    setCompletedSetups(this.taskManager.getMockInitData());
+    this.handleTaskChange();
   }
 
   onSetupComplete(blockchainInfo: any) {

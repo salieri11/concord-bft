@@ -72,7 +72,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
   onLogOut() {
     this.authenticationService.logOut();
-    this.router.navigate(['auth', 'log-in']);
+    this.router.navigate(['']);
   }
 
   onResetTasks() {
