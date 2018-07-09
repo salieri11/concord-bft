@@ -23,6 +23,7 @@ import { SmartContractsModule } from '../smart-contracts/smart-contracts.module'
 import { OrgsModule } from '../orgs/orgs.module';
 import { ConsortiumModule } from '../consortium/consortium.module';
 import { KubernetesModule } from '../kubernetes/kubernetes.module';
+import { UsersModule } from '../users/users.module';
 
 
 @NgModule({
@@ -42,7 +43,8 @@ import { KubernetesModule } from '../kubernetes/kubernetes.module';
     ConsortiumModule,
     KubernetesModule,
     SmartContractsModule,
-    ChannelsModule
+    ChannelsModule,
+    UsersModule
   ],
   declarations: [MainComponent],
   providers: [
