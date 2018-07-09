@@ -25,10 +25,13 @@
 using Blockchain::Slice;
 using Blockchain::ILocalKeyValueStorageReadOnly;
 using Blockchain::IBlocksAppender;
+using namespace boost::program_options;
 
-com::vmware::athena::KVBCommandsHandler::KVBCommandsHandler(EVM &athevm) :
+com::vmware::athena::KVBCommandsHandler::KVBCommandsHandler(EVM &athevm,
+                                                            variables_map &config_map) :
    logger(log4cplus::Logger::getInstance("com.vmware.athena")),
-   athevm_(athevm)
+   athevm_(athevm),
+   config(config_map)
 {
    // no other initialization necessary
 }
@@ -271,11 +274,12 @@ bool com::vmware::athena::KVBCommandsHandler::handle_transaction_list_request(
 
    try {
       const TransactionListRequest request = athreq.transaction_list_request();
-      uint16_t remaining = request.count();
+      uint16_t remaining = std::min(
+         config["transaction_list_max_count"].as<int>(),
+         static_cast<int>(request.count()));
       TransactionListResponse *response = athresp.mutable_transaction_list_response();
       std::vector<evm_uint256be>::iterator it;
       EthBlock curr_block;
-      evm_uint256be next;
 
       if (request.has_latest()) {
          evm_uint256be latest_tr;
@@ -294,7 +298,6 @@ bool com::vmware::athena::KVBCommandsHandler::handle_transaction_list_request(
       while (remaining >= 0) {
          while (it != curr_block.transactions.end()) {
             if (remaining == 0) {
-               next = *it;
                break;
             } else {
                TransactionResponse *tr = response->add_transaction();
@@ -314,6 +317,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_transaction_list_request(
       }
 
       if (it != curr_block.transactions.end()) {
+         evm_uint256be next = *it;
          response->set_next(next.bytes, sizeof(evm_uint256be));
       }
 
