@@ -139,7 +139,7 @@ export class TaskManagerService {
         this.taskChangeSubject.next(null);
       } else {
         if (tasks[currentIndex].taskInfo.progress < 100) {
-          const progress = tasks[currentIndex].taskInfo.progress + 10;
+          const progress = tasks[currentIndex].taskInfo.progress + 3;
           tasks[currentIndex].taskInfo.progress = progress > 100 ? 100 : progress;
           localTasks[taskId][currentIndex].progress = tasks[currentIndex].taskInfo.progress;
           setLocalTasks(localTasks);
