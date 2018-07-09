@@ -297,6 +297,9 @@ api_connection::dispatch()
    if (athenaRequest_.has_transaction_request()) {
       handle_transaction_request();
    }
+   if (athenaRequest_.has_transaction_list_request()) {
+      handle_transaction_list_request();
+   }
    if (athenaRequest_.has_test_request()) {
       handle_test_request();
    }
@@ -530,6 +533,28 @@ api_connection::handle_transaction_request()
       ErrorResponse *resp = athenaResponse_.add_error_response();
       resp->set_description("Internal Athena Error");
    }
+}
+
+
+void
+api_connection::handle_transaction_list_request() {
+   const TransactionListRequest request = athenaRequest_.transaction_list_request();
+
+   AthenaRequest internalRequest;
+   TransactionListRequest* txListReq = internalRequest.mutable_transaction_list_request();
+   txListReq->CopyFrom(request);
+
+   AthenaResponse internalResponse;
+   if (client_.send_request_sync(internalRequest,
+                                 true,
+                                 internalResponse)) {
+      athenaResponse_.MergeFrom(internalResponse);
+   } else {
+      LOG4CPLUS_ERROR(logger_, "Error parsing read-only response");
+      ErrorResponse *resp = athenaResponse_.add_error_response();
+      resp->set_description("Internal Athena Error");
+   }
+
 }
 
 
