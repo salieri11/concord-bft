@@ -10,7 +10,6 @@ export enum Personas {
   OrgAdmin = 'org_admin',
   OrgDeveloper = 'org_developer',
   OrgUser = 'org_user'
-
 }
 
 @Injectable()
@@ -18,7 +17,19 @@ export class PersonaService {
 
   private _currentPersona: Personas;
 
-  constructor() {}
+  constructor() {
+  }
+
+  static getOptions(): Array<{ name?: string; value: Personas; }> {
+    const personaOptions: Array<{ name?: string; value: Personas; }> = [
+      { value: Personas.SystemsAdmin, name: 'personas.systemsAdmin' },
+      { value: Personas.ConsortiumAdmin, name: 'personas.consortiumAdmin' },
+      { value: Personas.OrgAdmin, name: 'personas.orgAdmin' },
+      { value: Personas.OrgDeveloper, name: 'personas.orgDeveloper' },
+      { value: Personas.OrgUser, name: 'personas.orgUser' }
+    ];
+    return personaOptions;
+  }
 
   get currentPersona() {
     return this._currentPersona;

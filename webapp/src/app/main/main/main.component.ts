@@ -23,15 +23,7 @@ export class MainComponent implements OnDestroy {
   authenticated = false;
   username: string;
   personas = Personas;
-
-
-  personaOptions: Array<{ name ?: string; value: Personas; }> = [
-    { value: Personas.SystemsAdmin, name: 'personas.systemsAdmin' },
-    { value: Personas.ConsortiumAdmin, name: 'personas.consortiumAdmin' },
-    { value: Personas.OrgAdmin, name: 'personas.orgAdmin' },
-    { value: Personas.OrgDeveloper, name: 'personas.orgDeveloper' },
-    { value: Personas.OrgUser, name: 'personas.orgUser' }
-  ];
+  personaOptions = PersonaService.getOptions();
 
   constructor(
     private authenticationService: AuthenticationService,
@@ -56,6 +48,7 @@ export class MainComponent implements OnDestroy {
   }
 
   onPersonaChange(persona: Personas) {
+    localStorage.setItem('helen.persona', persona);
     this.personaService.currentPersona = persona;
     location.reload();
   }

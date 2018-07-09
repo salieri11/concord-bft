@@ -6,11 +6,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 import { Personas, PersonaService } from './persona.service';
-
-export interface User {
-  email: string;
-  persona: Personas;
-}
+import { User } from '../users/shared/user.model';
 
 @Injectable()
 export class AuthenticationService {
@@ -18,8 +14,12 @@ export class AuthenticationService {
   readonly user: Observable<User>;
 
   constructor(private personaService: PersonaService) {
-    this.userSubject = new BehaviorSubject<User>({email: localStorage['helen.email'], persona: localStorage['helen.persona']});
+    this.userSubject = new BehaviorSubject<User>({
+      email: localStorage['helen.email'],
+      persona: localStorage['helen.persona']
+    });
     this.user = this.userSubject.asObservable();
+    this.personaService.currentPersona = localStorage['helen.persona'];
   }
 
   isAuthenticated() {
