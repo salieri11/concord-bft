@@ -22,6 +22,6 @@
   <athena-user-list #usersList (selected)="onSelectedUsersChange($event)"></athena-user-list>
   <athena-user-form #userForm [selected]="selected"
                     (createUser)="addUser($event)"
-                    (updateUser)="editUser($event)"
+                    (updateUser)="editUser()"
                     (deleteUsers)="deleteUsers()"></athena-user-form>
 </div>
