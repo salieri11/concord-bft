@@ -6,7 +6,7 @@ import { TestBed, inject } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { UsersService } from './users.service';
-import { ANDES_API_PREFIX } from "../../shared/shared.config";
+import { ANDES_API_PREFIX } from '../../shared/shared.config';
 
 describe('UsersService', () => {
   beforeEach(() => {

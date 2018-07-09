@@ -1,5 +1,9 @@
-import { AbstractControl, ValidatorFn } from "@angular/forms";
-import { Subscription } from "rxjs/internal/Subscription";
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
+
+import { AbstractControl, ValidatorFn } from '@angular/forms';
+import { Subscription } from 'rxjs/internal/Subscription';
 
 export function matchPasswordValidator(passwordFormControlName: string): ValidatorFn {
   return (control: AbstractControl): any => {
@@ -12,5 +16,5 @@ export function matchPasswordValidator(passwordFormControlName: string): Validat
       });
     }
     return (otherPasswordFormControl && control.value !== otherPasswordFormControl.value) ? { mismatch: true } : null;
-  }
+  };
 }
