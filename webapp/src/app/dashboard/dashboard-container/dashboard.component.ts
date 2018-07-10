@@ -10,6 +10,8 @@ import { TransactionsService } from '../../transactions/shared/transactions.serv
 import { BlockchainSetupWizardComponent } from '../../shared/components/blockchain-setup-wizard/blockchain-setup-wizard.component';
 import { TaskManagerService } from '../../shared/task-manager.service';
 
+import * as NodeGeoJson from '../features.json';
+
 @Component({
   selector: 'athena-dashboard',
   templateUrl: './dashboard.component.html',
@@ -18,8 +20,8 @@ import { TaskManagerService } from '../../shared/task-manager.service';
 export class DashboardComponent implements OnInit {
   @ViewChild('setupWizard') setupWizard: BlockchainSetupWizardComponent;
   blocks: BlockListingBlock[];
-  blockTransactions: any[] = [];
   recentTransactions: any[] = [];
+  nodeGeoJson: any = NodeGeoJson;
   mockStats = {
     totalActiveNodes: 28458,
     inactiveNodes: 583,

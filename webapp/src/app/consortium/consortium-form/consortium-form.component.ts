@@ -110,15 +110,13 @@ export class ConsortiumFormComponent implements OnInit {
       case 'add':
         this.createAddConsortiumForm();
         this.modalSize = 'md';
-        this.translate.get('consortium.addConsortiumForm.title')
-          .subscribe(title => this.modalTitle = title);
+        this.modalTitle = this.translate.instant('consortium.addConsortiumForm.title');
 
         break;
 
       case 'delete':
         this.modalSize = 'sm';
-        this.translate.get('consortium.deleteConsortiumForm.title')
-          .subscribe(title => this.modalTitle = title);
+        this.modalTitle = this.translate.instant('consortium.deleteConsortiumForm.title');
         break;
     }
 

@@ -19,6 +19,7 @@ import { VmwAccordionGroupComponent } from '../../shared/components/accordion/ac
 import { VmwAccordionComponent } from '../../shared/components/accordion/accordion.component';
 import { VmwComboboxItemsComponent } from '../../shared/components/combobox/combobox-items/combobox-items.component';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
+import { WorldMapComponent } from '../world-map/world-map.component';
 
 describe('DashboardComponent', () => {
   let component: DashboardComponent;
@@ -34,6 +35,7 @@ describe('DashboardComponent', () => {
       ],
       declarations: [
         DashboardComponent,
+        WorldMapComponent,
         TransactionsStatusFilterComponent,
         TransactionListComponent,
         TransactionDetailsComponent,

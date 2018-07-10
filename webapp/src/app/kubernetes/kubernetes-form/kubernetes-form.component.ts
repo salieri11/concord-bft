@@ -47,9 +47,7 @@ export class KubernetesFormComponent implements OnInit {
     private translate: TranslateService,
     private route: ActivatedRoute
   ) {
-
-    this.translate.get('kubernetes.addKubeForm.inputs.credentialType.options')
-      .subscribe(options => this.handleCredentialTypes(options));
+    this.handleCredentialTypes();
   }
 
   ngOnInit() {
@@ -166,15 +164,12 @@ export class KubernetesFormComponent implements OnInit {
       case 'add':
         this.createAddKubeForm();
         this.modalSize = 'md';
-        this.translate.get('kubernetes.addKubeForm.title')
-          .subscribe(title => this.modalTitle = title);
-
+        this.modalTitle = this.translate.instant('kubernetes.addKubeForm.title');
         break;
 
       case 'delete':
         this.modalSize = 'sm';
-        this.translate.get('kubernetes.deleteKubeForm.title')
-          .subscribe(title => this.modalTitle = title);
+        this.modalTitle = this.translate.instant('kubernetes.deleteKubeForm.title');
         break;
     }
 
@@ -193,9 +188,9 @@ export class KubernetesFormComponent implements OnInit {
     this.openModalForm = false;
   }
 
-  private handleCredentialTypes(options: any): void {
+  private handleCredentialTypes(): void {
     this.credentialOptions.forEach(option => {
-      option.name = options[option.value].title;
+      option.name = this.translate.instant(option.name);
     });
   }
 

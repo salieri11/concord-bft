@@ -68,7 +68,7 @@ export class BlockchainFormComponent implements OnInit {
     const orgs = formModel.peerOrg.map(id => {
       return { id: id.toString() };
     });
-    orgs.push({id: formModel.ordererOrg });
+    orgs.push({ id: formModel.ordererOrg });
 
     const blockchain = {
       name: formModel.name,
@@ -144,15 +144,12 @@ export class BlockchainFormComponent implements OnInit {
     switch (type) {
       case 'add':
         this.modalSize = 'md';
-        this.translate.get('blockchains.addBlockchainForm.title')
-          .subscribe(title => this.modalTitle = title);
-
+        this.modalTitle = this.translate.instant('blockchains.addBlockchainForm.title');
         break;
 
       case 'delete':
         this.modalSize = 'sm';
-        this.translate.get('blockchains.deleteBlockchainForm.title')
-          .subscribe(title => this.modalTitle = title);
+        this.modalTitle = this.translate.instant('blockchains.deleteBlockchainForm.title');
         break;
     }
 
