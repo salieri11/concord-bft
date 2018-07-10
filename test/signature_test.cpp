@@ -280,6 +280,47 @@ TEST(sign_test, medium_basic) {
    // expect_match(given_rlpHash, prefix_message_hash, true);
 }
 
+TEST(sign_test, personal_check) {
+   const string given_unsignedTx_s("0xf8cb0164831e84808080b8bb60606040523415600e57600080fd5b609f8061001c6000396000f300606060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806320965255146044575b600080fd5b3415604e57600080fd5b6054606a565b6040518082815260200191505060405180910390f35b6000600c9050905600a165627a7a72305820b68d14c31445a2b927e84f3ffa433ef0535b98ef5e84d0385d52022b172fd0990029835734b58080");
+   const string given_v_s("0x1b");
+   const string given_r_s("0798ffdc7dedd9332dd1db991ed59e016120a06b041e888b43152d1374550cc4");
+   const string given_s_s("0a6b6cb66fdce8df289a4284cb980dd61dae4a588b978d679790efc63f7450e5");
+   const string given_from_s("0x59825ed03aa4f65e2b52e1c17dca5eb875196c9b");
+
+   vector<uint8_t> given_unsignedTx = com::vmware::athena::dehex(given_unsignedTx_s);
+   evm_uint256be given_r = uint256_from_string(given_r_s);
+   evm_uint256be given_s = uint256_from_string(given_s_s);
+   uint8_t given_v = 0;
+
+   evm_uint256be unsignedRlpHash = com::vmware::athena::EthHash::keccak_hash(given_unsignedTx);
+   com::vmware::athena::EthSign verifier;
+   evm_address from = verifier.ecrecover(unsignedRlpHash, given_v, given_r, given_s);
+
+   evm_address given_from = addr_from_string(given_from_s);
+   expect_match(given_from, from, true);
+}
+
+TEST(sign_test, personal_bad_check) {
+   const string given_unsignedTx_s("0xf8cb0164831e84808080b8bb60606040523415600e57600080fd5b609f8061001c6000396000f300606060405260043610603f576000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806320965255146044575b600080fd5b3415604e57600080fd5b6054606a565b6040518082815260200191505060405180910390f35b6000600c9050905600a165627a7a72305820b68d14c31445a2b927e84f3ffa433ef0535b98ef5e84d0385d52022b172fd0990029835734b58080");
+   const string given_v_s("0x1b");
+   const string given_r_s("0798ffdc7dedd9332dd1db991ed59e016120a06b041e888b43152d1374550cc4");
+   const string given_s_s("0a6b6cb66fdce8df289a4284cb980dd61dae4a588b978d679790efc63f7450e5");
+   const string given_from_s("0x59825ed03aa4f65e2b52e1c17dca5eb875196c9b");
+
+   vector<uint8_t> given_unsignedTx = com::vmware::athena::dehex(given_unsignedTx_s);
+   evm_uint256be given_r = uint256_from_string(given_r_s);
+   evm_uint256be given_s = uint256_from_string(given_s_s);
+   uint8_t given_v = 0;
+
+   evm_uint256be unsignedRlpHash = com::vmware::athena::EthHash::keccak_hash(given_unsignedTx);
+   std::cout << "unsignedRlpHash: " << hash_to_string(unsignedRlpHash) << std::endl;
+   com::vmware::athena::EthSign verifier;
+   evm_address from = verifier.ecrecover(unsignedRlpHash, given_v, given_r, given_s);
+
+   evm_address given_from = addr_from_string(given_from_s);
+   expect_match(given_from, from, true);
+}
+
 }
 
 int main(int argc, char **argv) {

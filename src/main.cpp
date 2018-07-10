@@ -8,6 +8,7 @@
 #include <log4cplus/loggingmacros.h>
 #include <log4cplus/configurator.h>
 #include "common/utils.hpp"
+#include "common/athena_eth_sign.hpp"
 #include "api_acceptor.hpp"
 #include "athena_evm.hpp"
 #include "athena_kvb.hpp"
@@ -173,7 +174,8 @@ run_service(variables_map &opts, Logger logger)
 
       // throws an exception if it fails
       EVM athevm(params);
-      KVBCommandsHandler athkvb(athevm);
+      EthSign verifier;
+      KVBCommandsHandler athkvb(athevm, verifier);
 
       // For Thread local storage. Should be called exactly once per process.
       Blockchain::initEnv();

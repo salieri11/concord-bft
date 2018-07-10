@@ -13,6 +13,9 @@
 
 #include "kvb/BlockchainInterfaces.h"
 #include "kvb/slice.h"
+#include "common/rlp.hpp"
+#include "common/athena_eth_sign.hpp"
+#include "common/athena_eth_hash.hpp"
 #include "athena_evm.hpp"
 #include "athena_kvb.hpp"
 #include "athena_exception.hpp"
@@ -24,8 +27,10 @@ using Blockchain::Slice;
 using Blockchain::ILocalKeyValueStorageReadOnly;
 using Blockchain::IBlocksAppender;
 
-com::vmware::athena::KVBCommandsHandler::KVBCommandsHandler(EVM &athevm) :
+com::vmware::athena::KVBCommandsHandler::KVBCommandsHandler(EVM &athevm,
+                                                            EthSign &verifier) :
    athevm_(athevm),
+   verifier_(verifier),
    logger(log4cplus::Logger::getInstance("com.vmware.athena"))
 {
    // no other initialization necessary
@@ -530,6 +535,91 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_getStorageAt(
 }
 
 /**
+ * Extract "from" address from request+signature.
+ */
+void com::vmware::athena::KVBCommandsHandler::recover_from(
+   const EthRequest &request, evm_address *sender) const
+{
+   static const std::vector<uint8_t> empty;
+
+   if (request.has_sig_v() &&
+       request.has_sig_r() && request.sig_r().size() == sizeof(evm_uint256be) &&
+       request.has_sig_s() && request.sig_s().size() == sizeof(evm_uint256be)) {
+      // First we have to reconstruct the original message
+      RLPBuilder rlpb;
+      rlpb.start_list();
+
+      int8_t actualV;
+      uint64_t chainID = request.sig_v();
+      if (chainID > 28) {
+         // EIP155
+         rlpb.add(empty); // Signature S
+         rlpb.add(empty); // Signature R
+
+         if (chainID % 2) {
+            actualV = 0;
+            chainID = (chainID - 35) / 2;
+         } else {
+            actualV = 1;
+            chainID = (chainID - 26) / 2;
+         }
+         rlpb.add(chainID); // Signature V
+      } else if (chainID >= 27) {
+         actualV = chainID - 27;
+         chainID = 0;
+      }
+
+      if (request.has_data()) {
+         rlpb.add(request.data());
+      } else {
+         rlpb.add(empty);
+      }
+
+      if (request.has_value()) {
+         rlpb.add(request.value());
+      } else {
+         rlpb.add(empty);
+      }
+
+      if (request.has_addr_to()) {
+         rlpb.add(request.addr_to());
+      } else {
+         rlpb.add(empty);
+      }
+
+      if (request.has_gas()) {
+         rlpb.add(request.gas());
+      } else {
+         rlpb.add(empty);
+      }
+
+      if (request.has_gas_price()) {
+         rlpb.add(request.gas_price());
+      } else {
+         rlpb.add(empty);
+      }
+
+      if (request.has_nonce()) {
+         rlpb.add(request.nonce());
+      } else {
+         rlpb.add(empty);
+      }
+
+      std::vector<uint8_t> rlp = rlpb.build();
+      evm_uint256be rlp_hash = com::vmware::athena::EthHash::keccak_hash(rlp);
+
+      // Then we can check it against the signature.
+
+      evm_uint256be sigR;
+      std::copy(request.sig_r().begin(), request.sig_r().end(), sigR.bytes);
+      evm_uint256be sigS;
+      std::copy(request.sig_s().begin(), request.sig_s().end(), sigS.bytes);
+
+      *sender = verifier_.ecrecover(rlp_hash, actualV, sigR, sigS);
+   }
+}
+
+/**
  * Pass a transaction or call to the EVM for execution.
  */
 evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
@@ -547,6 +637,19 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
       // TODO: test & return error if needed
       assert(20 == request.addr_from().length());
       memcpy(message.sender.bytes, request.addr_from().c_str(), 20);
+
+      if (request.has_sig_v() && request.has_sig_r() && request.has_sig_s()) {
+         evm_address sig_from;
+         recover_from(request, &sig_from);
+
+         if (message.sender != sig_from) {
+            // TODO: return error, but let's get this check working first
+            LOG4CPLUS_FATAL(logger, "Message sender does not match signature");
+            assert(false);
+         }
+      }
+   } else {
+      recover_from(request, &message.sender);
    }
 
    if (request.has_data()) {

@@ -94,9 +94,20 @@ int main(int argc, char** argv)
                std::cerr << "EthResponse has no data" << std::endl;
                return -1;
             }
+         } else if (athResp.error_response_size() == 1) {
+            ErrorResponse errorResp = athResp.error_response(0);
+            if (errorResp.has_description()) {
+               std::cout << "Error Response: "
+                         << errorResp.description() << std::endl;
+               return -1;
+            } else {
+               std::cout << "Error response had no description" << std::endl;
+               return -1;
+            }
          } else {
-            std::cerr << "Wrong number of eth_responses: "
-                      << athResp.eth_response_size()
+            std::cerr << "Wrong number of eth_responses ("
+                      << athResp.eth_response_size() << ") or errors ("
+                      << athResp.error_response_size() << ")"
                       << " (expected 1)" << std::endl;
             return -1;
          }

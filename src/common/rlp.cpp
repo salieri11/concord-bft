@@ -68,6 +68,13 @@ void com::vmware::athena::RLPBuilder::add(const uint8_t *data, size_t size)
    add_string_size(size);
 }
 
+void com::vmware::athena::RLPBuilder::add(const std::string &str)
+{
+   assert(!finished);
+   std::reverse_copy(str.begin(), str.end(), std::back_inserter(buffer));
+   add_string_size(str.size());
+}
+
 void com::vmware::athena::RLPBuilder::add(const evm_address &address)
 {
    assert(!finished);

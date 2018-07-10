@@ -16,6 +16,7 @@ class RLPBuilder {
 public:
    void add(const std::vector<uint8_t> &vec);
    void add(const uint8_t *data, size_t size);
+   void add(const std::string &str);
    void add(const evm_address &address);
    void add(const evm_uint256be &uibe);
    void add(uint64_t number);

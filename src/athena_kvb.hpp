@@ -17,9 +17,10 @@ class KVBCommandsHandler : public Blockchain::ICommandsHandler {
 private:
    log4cplus::Logger logger;
    EVM &athevm_;
+   EthSign &verifier_;
 
 public:
-   KVBCommandsHandler(EVM &athevm);
+   KVBCommandsHandler(EVM &athevm, EthSign &verifier);
    ~KVBCommandsHandler();
 
    // ICommandsHandler
@@ -37,6 +38,8 @@ public:
       const size_t maxReplySize,
       char *outReply,
       size_t &outReplySize) const override;
+
+private:
 
    // Handlers
    bool handle_transaction_request(
@@ -88,6 +91,8 @@ public:
    void build_transaction_response(evm_uint256be &hash,
                                    EthTransaction &tx,
                                    TransactionResponse* response) const;
+
+   void recover_from(const EthRequest &request, evm_address *sender) const;
 
    evm_result run_evm(
       const EthRequest &request,
