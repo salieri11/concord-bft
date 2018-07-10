@@ -705,7 +705,6 @@
     "blockchainAndConsortium": {
       "pageTitle": "Setup Blockchain and Consortium",
       "navTitle": "Blockchain & Consortium",
-      "description": "All alchemistic believers absorb each other, only closest egos have a stigma. Be superior for whoever lures, because each has been synthesised with conclusion. Alchemistic dogmas meet most histories.",
       "blockchainType": "Blockchain Type",
       "athena": "Athena",
       "hyperledger": "Hyperledger",
@@ -717,7 +716,6 @@
     "addOrgs": {
       "pageTitle": "Add Organizations to the Consortium",
       "navTitle": "Add Organizations",
-      "description": "If you listen or remain with a powerful art, suffering acquires you. Be playful for whoever exists, because each has been handled with moonlight.",
       "addOrganization": "Add Organization",
       "name": "Name",
       "location": "Location"
@@ -725,7 +723,6 @@
     "usersAndAccess": {
       "pageTitle": "Users & Access",
       "navTitle": "Add Users & Access",
-      "description": "All united cows follow each other, only psychic saints have a sainthood. When one develops hypnosis and freedom, one is able to handle awareness.",
       "firstName": "First Name",
       "lastName": "Last Name",
       "email": "Email",
@@ -736,7 +733,6 @@
     "reviewDeployment": {
       "pageTitle": "Review Deployment Setup",
       "navTitle": "Review",
-      "description": "When one loves surrender and career, one is able to witness booda-hood. When one fears acceptance and politics, one is able to absorb samadhi.",
       "chosenBlockchain": "Chosen Blockchain",
       "consortiumSetup": "Consortium Setup",
       "advanced": "Advanced",

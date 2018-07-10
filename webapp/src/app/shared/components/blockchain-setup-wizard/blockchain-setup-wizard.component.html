@@ -11,7 +11,6 @@
                    [clrWizardPageNextDisabled]="!form.controls.blockchain.valid || !form.controls.consortium.valid || !form.controls.faultTolerance.valid">
     <ng-template clrPageTitle>{{'blockchainSetupWizard.blockchainAndConsortium.pageTitle' | translate}}</ng-template>
     <ng-template clrPageNavTitle>{{'blockchainSetupWizard.blockchainAndConsortium.navTitle' | translate}}</ng-template>
-    <p>{{'blockchainSetupWizard.blockchainAndConsortium.description' | translate}}</p>
     <div class="form-block">
       <div class="form-group" formGroupName="blockchain">
         <label>{{'blockchainSetupWizard.blockchainAndConsortium.blockchainType' | translate}}</label>
@@ -41,7 +40,6 @@
   <clr-wizard-page #orgsPage [clrWizardPageNextDisabled]="!form.controls.organizations.valid">
     <ng-template clrPageTitle>{{'blockchainSetupWizard.addOrgs.pageTitle' | translate}}</ng-template>
     <ng-template clrPageNavTitle>{{'blockchainSetupWizard.addOrgs.navTitle' | translate}}</ng-template>
-    <p>{{'blockchainSetupWizard.addOrgs.description' | translate}}</p>
     <div [formGroup]="orgForm">
       <div class="form-group row">
         <div class="col-xs-4 col-sm-2">
@@ -92,7 +90,6 @@
   <clr-wizard-page #usersPage [clrWizardPageNextDisabled]="!form.controls.users.valid">
     <ng-template clrPageTitle>{{'blockchainSetupWizard.usersAndAccess.pageTitle' | translate}}</ng-template>
     <ng-template clrPageNavTitle>{{'blockchainSetupWizard.usersAndAccess.navTitle' | translate}}</ng-template>
-    <p>{{'blockchainSetupWizard.usersAndAccess.description' | translate}}</p>
     <div [formGroup]="userForm">
       <div class="form-group row">
         <div class="col-xs-4 col-sm-2">
@@ -180,8 +177,6 @@
   <clr-wizard-page>
     <ng-template clrPageTitle>{{'blockchainSetupWizard.reviewDeployment.pageTitle' | translate}}</ng-template>
     <ng-template clrPageNavTitle>{{'blockchainSetupWizard.reviewDeployment.navTitle' | translate}}</ng-template>
-    <p>{{'blockchainSetupWizard.reviewDeployment.description' | translate}}</p>
-
     <h4>
       {{'blockchainSetupWizard.reviewDeployment.chosenBlockchain' | translate}}
       <small class="text-muted ml-1">{{'blockchainSetupWizard.blockchainAndConsortium.' + form.value.blockchain.type | translate}}</small>
