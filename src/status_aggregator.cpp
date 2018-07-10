@@ -25,25 +25,45 @@ typedef unordered_map<PeerInfoType, BasePeerStatus*, EnumHash> STAT_MAP;
 typedef STAT_MAP * STAT_MAP_PTR;
 
 typedef unordered_map<int64_t, STAT_MAP_PTR> PEER_STAT_MAP;
-typedef unordered_map<int64_t, STAT_MAP_PTR> * PEER_STAT_MAP_PTR;
+typedef PEER_STAT_MAP * PEER_STAT_MAP_PTR;
 
 
 PEER_STAT_MAP_PTR _pPeerStatusMap = nullptr;
 std::mutex _inQueueMutex;
-io_service _ioService;
+std::shared_ptr<io_service> _pIoService = nullptr;
+std::shared_ptr<io_service::work> _pWork = nullptr;
 thread_group _threadPool;
 
 const int16_t POOL_SIZE = 1;
 
 StatusAggregator::StatusAggregator() {
-   _pPeerStatusMap = PEER_STAT_MAP_PTR();
+   // std::this_thread::sleep_for(std::chrono::seconds(20));
+   _pPeerStatusMap = new PEER_STAT_MAP();
+
+   _pIoService = std::shared_ptr<io_service>(new io_service());
+   _pWork =
+           std::shared_ptr<io_service::work>(
+                   new io_service::work(*_pIoService));
+
    for(auto i = 0; i < POOL_SIZE; i++)
-      _threadPool.create_thread(bind(&io_service::run, &_ioService));
+      _threadPool.create_thread(boost::bind(&io_service::run, _pIoService));
 }
 
 StatusAggregator::~StatusAggregator() {
-   _ioService.stop();
+   if(_pPeerStatusMap) {
+      for(auto it=_pPeerStatusMap->begin();
+              it != _pPeerStatusMap->end();
+              it++) {
+         if(it->second)
+            delete it->second;
+      }
+
+      delete _pPeerStatusMap;
+   }
+
+   _pWork.reset();
    _threadPool.join_all();
+   _pIoService->stop();
 }
 
 void
@@ -82,7 +102,7 @@ update_connectivity_internal(int64_t peerId,
 
 void
 update_connectivity(int64_t peerId, string adress, int16_t port, string state) {
-   _ioService.post(bind(update_connectivity_internal,
+   _pIoService->post(boost::bind(&update_connectivity_internal,
                         peerId,
                         adress,
                         port,
@@ -98,7 +118,8 @@ vector<PeerConnectivityStatus>
 StatusAggregator::get_peers_info() {
    std::lock_guard<std::mutex> lock(_inQueueMutex);
    vector<PeerConnectivityStatus> res;
-   for (auto it = _pPeerStatusMap->begin(); it != _pPeerStatusMap->end(); it++ ) {
+   for (auto it = _pPeerStatusMap->begin();
+           it != _pPeerStatusMap->end(); it++ ) {
       auto infoMapIt = it->second->find(PeerInfoType::Connectivity);
       if(infoMapIt != it->second->end()) {
          auto stPtr = static_cast<PeerConnectivityStatus*>(infoMapIt->second);

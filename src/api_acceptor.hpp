@@ -11,6 +11,7 @@
 #include "api_connection.hpp"
 #include "connection_manager.hpp"
 #include "athena_kvb_client.hpp"
+#include "status_aggregator.hpp"
 
 namespace com {
 namespace vmware {
@@ -21,7 +22,8 @@ public:
    api_acceptor(boost::asio::io_service &io_service,
                 boost::asio::ip::tcp::endpoint endpoint,
                 FilterManager &filterManager,
-                KVBClient &client);
+                KVBClient &client,
+                StatusAggregator &sag);
 
 private:
    boost::asio::ip::tcp::acceptor acceptor_;
@@ -29,6 +31,7 @@ private:
    KVBClient &client_;
    log4cplus::Logger logger_;
    connection_manager connManager_;
+   StatusAggregator sag_;
 
    void
    start_accept();

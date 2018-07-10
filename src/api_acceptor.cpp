@@ -14,10 +14,12 @@ using namespace com::vmware::athena;
 api_acceptor::api_acceptor(io_service &io_service,
                            tcp::endpoint endpoint,
                            FilterManager &filterManager,
-                           KVBClient &client)
+                           KVBClient &client,
+                           StatusAggregator &sag)
    : acceptor_(io_service, endpoint),
      filterManager_(filterManager),
      client_(client),
+     sag_(sag),
      logger_(log4cplus::Logger::getInstance("com.vmware.athena.api_acceptor"))
 {
    start_accept();
@@ -32,7 +34,8 @@ api_acceptor::start_accept()
       api_connection::create(acceptor_.get_io_service(),
                              connManager_,
                              filterManager_,
-                             client_);
+                             client_,
+                              sag_);
 
    acceptor_.async_accept(new_connection->socket(),
                           boost::bind(&api_acceptor::handle_accept,

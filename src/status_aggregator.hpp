@@ -9,13 +9,17 @@
 #include <vector>
 #include <functional>
 #include <string>
+#include "athena.pb.h"
 
 namespace com {
 namespace vmware {
 namespace athena {
 
    typedef void(*UPDATE_CONNECTIVITY_FN)
-           (int64_t, std::string, int16_t, std::string state);
+           (int64_t peerId,
+            std::string peerAdress,
+            int16_t peerPort,
+            std::string state);
 
    enum class PeerInfoType {
       Connectivity

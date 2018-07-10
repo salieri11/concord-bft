@@ -13,6 +13,7 @@
 #include "athena.pb.h"
 #include "filter_manager.hpp"
 #include "athena_kvb_client.hpp"
+#include "status_aggregator.hpp"
 
 namespace com {
 namespace vmware {
@@ -34,7 +35,8 @@ public:
    create(boost::asio::io_service &io_service,
           connection_manager &connManager,
           FilterManager &filterManager,
-          KVBClient &client);
+          KVBClient &client,
+         StatusAggregator &sag);
 
    boost::asio::ip::tcp::socket&
    socket();
@@ -102,7 +104,8 @@ private:
    api_connection(boost::asio::io_service &io_service,
                   connection_manager &connManager,
                   FilterManager &filterManager,
-                  KVBClient &client);
+                  KVBClient &client,
+                  StatusAggregator &sag);
 
    uint16_t
    get_message_length(const char * buffer);
@@ -165,6 +168,8 @@ private:
    char outMsgBuffer_ [BUFFER_LENGTH];
 
    const uint8_t MSG_LENGTH_BYTES = 2;
+
+   StatusAggregator sag_;
 };
 
 }

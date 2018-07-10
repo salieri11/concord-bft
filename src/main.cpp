@@ -224,7 +224,8 @@ run_service(variables_map &opts, Logger logger)
       api_acceptor acceptor(*api_service,
                             endpoint,
                             filterManager,
-                            kvbClient);
+                            kvbClient,
+                            sag);
 
       signal(SIGINT, signalHandler);
 
