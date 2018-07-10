@@ -45,15 +45,15 @@ export class OrgFormComponent implements OnInit {
 
   ngOnInit() {
     this.route.fragment.subscribe(fragment => {
-        switch (fragment) {
-          case 'add':
-            this.openAddOrg();
-            break;
+      switch (fragment) {
+        case 'add':
+          this.openAddOrg();
+          break;
 
-          default:
-            // code...
-            break;
-        }
+        default:
+          // code...
+          break;
+      }
     });
   }
 
@@ -171,23 +171,20 @@ export class OrgFormComponent implements OnInit {
       case 'add':
         this.createAddOrgForm();
         this.modalSize = 'md';
-        this.translate.get('organization.addOrgForm.title')
-          .subscribe(title => this.modalTitle = title);
+        this.modalTitle = this.translate.instant('organization.addOrgForm.title');
 
         break;
 
       case 'import':
         this.modalSize = 'md';
-        this.translate.get('organization.importOrgForm.title')
-          .subscribe(title => this.modalTitle = title);
+        this.modalTitle = this.translate.instant('organization.importOrgForm.title');
         this.createImportOrgForm();
 
         break;
 
       case 'delete':
         this.modalSize = 'sm';
-        this.translate.get('organization.deleteOrgForm.title')
-          .subscribe(title => this.modalTitle = title);
+        this.modalTitle = this.translate.instant('organization.deleteOrgForm.title');
         break;
     }
 
