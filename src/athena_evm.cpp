@@ -233,7 +233,12 @@ evm_uint256be com::vmware::athena::EVM::record_transaction(
    input : std::vector<uint8_t>(message.input_data,
                                 message.input_data+message.input_size),
    status : result.status_code,
-   value : transfer_val
+   value : transfer_val,
+   gas_price : 0, // TODO: get from message?
+   gas_limit : 0, // TODO: get from message?
+   sig_r : zero_hash, // TODO: get from message?
+   sig_s : zero_hash, // TODO: get from message?
+   sig_v : 0 // TODO: get from message?
    };
    kvbStorage.add_transaction(tx);
 
@@ -303,7 +308,12 @@ bool com::vmware::athena::EVM::new_account(
          contract_address : zero_address,
          input : std::vector<uint8_t>(),
          status : EVM_SUCCESS,
-         value : 0
+         value : 0,
+         gas_price : 0, // TODO: get from message?
+         gas_limit : 0, // TODO: get from message?
+         sig_r : zero_hash, // TODO: get from message?
+         sig_s : zero_hash, // TODO: get from message?
+         sig_v : 0 // TODO: get from message?
       };
       kvbStorage.add_transaction(tx);
       kvbStorage.write_block();

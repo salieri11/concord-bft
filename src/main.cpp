@@ -134,7 +134,12 @@ Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
             contract_address : zero_address,
             input : std::vector<uint8_t>(),
             status : EVM_SUCCESS,
-            value : it->second
+            value : it->second,
+            gas_price : 0, // TODO: get from message?
+            gas_limit : 0, // TODO: get from message?
+            sig_r : zero_hash, // TODO: get from message?
+            sig_s : zero_hash, // TODO: get from message?
+            sig_v : 0 // TODO: get from message?
             };
       evm_uint256be txhash = tx.hash();
       LOG4CPLUS_INFO(logger, "Created genesis transaction " << txhash <<

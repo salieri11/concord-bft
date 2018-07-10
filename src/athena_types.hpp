@@ -35,7 +35,7 @@ typedef struct EthTransaction {
    evm_uint256be sig_s;
    uint8_t sig_v;
 
-   std::vector<uint8_t>&& rlp() const;
+   std::vector<uint8_t> rlp() const;
    evm_uint256be hash() const;
    size_t serialize(char** out);
    static struct EthTransaction deserialize(Blockchain::Slice &input);

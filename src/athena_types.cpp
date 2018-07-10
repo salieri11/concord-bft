@@ -13,6 +13,7 @@
 #include "common/rlp.hpp"
 #include "common/athena_eth_hash.hpp"
 #include "kvb/HexTools.h"
+#include "athena_log.hpp"
 
 using namespace com::vmware::athena::kvb;
 
@@ -66,7 +67,7 @@ bool operator==(const evm_address &a, const evm_address &b)
    return memcmp(a.bytes, b.bytes, sizeof(evm_address)) == 0;
 }
 
-std::vector<uint8_t>&& com::vmware::athena::EthTransaction::rlp() const
+std::vector<uint8_t> com::vmware::athena::EthTransaction::rlp() const
 {
    RLPBuilder rlpb;
    rlpb.start_list();
