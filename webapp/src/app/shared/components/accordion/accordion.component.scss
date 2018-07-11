@@ -1,3 +1,5 @@
+@import "../../../../styles/theme";
+
 $xxs-width: 321px;
 
 $xs-width: 543px;
@@ -37,9 +39,15 @@ $xxl-min-width: 1919px;
   -webkit-transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
   -moz-transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
   transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  border-bottom: 1px solid #DDDDDD;
+  border-color: #DDDDDD;
+  vertical-align: middle;
+  padding: 8px 12px;
+  cursor: default;
+  position: relative;
 
   &:hover {
-    background-color: #EEEEEE;
+    background-color: $offWhite;
   }
 
   clr-icon[shape="caret down"],
@@ -48,11 +56,6 @@ $xxl-min-width: 1919px;
     height: 16px;
   }
 
-  border-bottom: 1px solid #DDDDDD;
-  border-color: #DDDDDD;
-  vertical-align: middle;
-  padding: 8px 12px;
-  cursor: default;
 
   &.expandable {
     cursor: pointer;
@@ -65,7 +68,6 @@ $xxl-min-width: 1919px;
     }
   }
 
-  position: relative;
 
   .title-container {
     display: inline-block;
@@ -97,7 +99,8 @@ $xxl-min-width: 1919px;
   }
 
   .title {
-    font-weight: bold;
+    font-weight: 600;
+    font-size: 0.458333rem
   }
 
   .accordion-subheader {
@@ -175,10 +178,10 @@ $xxl-min-width: 1919px;
 .expanded {
   > .accordion-header {
     border-bottom: 1px solid #CCCCCC;
-    background-color: #DDDDDD;
+    background-color: $lightGrey;
 
     &:hover {
-      background-color: #DDDDDD;
+      background-color: $lightGrey;
     }
   }
 
@@ -250,6 +253,6 @@ $xxl-min-width: 1919px;
   }
 
   .accordion-header:hover {
-    background-color: rgba(0,0,0,0.3) !important;
+    background-color: $lightGrey !important;
   }
 }

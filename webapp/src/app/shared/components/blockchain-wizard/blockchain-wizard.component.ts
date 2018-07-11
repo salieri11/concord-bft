@@ -31,26 +31,26 @@ export class BlockchainWizardComponent implements OnInit {
   orgForm: FormGroup;
   userForm: FormGroup;
   locationOptions = [
-    {value: 'beijing', name: 'blockchainWizard.locations.beijing'},
-    {value: 'brussels', name: 'blockchainWizard.locations.brussels'},
-    {value: 'cairo', name: 'blockchainWizard.locations.cairo'},
-    {value: 'delhi', name: 'blockchainWizard.locations.delhi'},
-    {value: 'johannesburg', name: 'blockchainWizard.locations.johannesburg'},
-    {value: 'lasVegas', name: 'blockchainWizard.locations.lasVegas'},
-    {value: 'london', name: 'blockchainWizard.locations.london'},
-    {value: 'mexicoCity', name: 'blockchainWizard.locations.mexicoCity'},
-    {value: 'milan', name: 'blockchainWizard.locations.milan'},
-    {value: 'moscow', name: 'blockchainWizard.locations.moscow'},
-    {value: 'newYork', name: 'blockchainWizard.locations.newYork'},
-    {value: 'paloAlto', name: 'blockchainWizard.locations.paloAlto'},
-    {value: 'paris', name: 'blockchainWizard.locations.paris'},
-    {value: 'rioDeJaneiro', name: 'blockchainWizard.locations.rioDeJaneiro'},
-    {value: 'santiago', name: 'blockchainWizard.locations.santiago'},
-    {value: 'seoul', name: 'blockchainWizard.locations.seoul'},
-    {value: 'sydney', name: 'blockchainWizard.locations.sydney'},
-    {value: 'tokyo', name: 'blockchainWizard.locations.tokyo'},
-    {value: 'toronto', name: 'blockchainWizard.locations.toronto'},
-    {value: 'vienna', name: 'blockchainWizard.locations.vienna'},
+    { value: 'sydney', name: 'blockchainWizard.locations.sydney' },
+    { value: 'vienna', name: 'blockchainWizard.locations.vienna' },
+    { value: 'brussels', name: 'blockchainWizard.locations.brussels' },
+    { value: 'rioDeJaneiro', name: 'blockchainWizard.locations.rioDeJaneiro' },
+    { value: 'toronto', name: 'blockchainWizard.locations.toronto' },
+    { value: 'santiago', name: 'blockchainWizard.locations.santiago' },
+    { value: 'beijing', name: 'blockchainWizard.locations.beijing' },
+    { value: 'cairo', name: 'blockchainWizard.locations.cairo' },
+    { value: 'paris', name: 'blockchainWizard.locations.paris' },
+    { value: 'delhi', name: 'blockchainWizard.locations.delhi' },
+    { value: 'milan', name: 'blockchainWizard.locations.milan' },
+    { value: 'tokyo', name: 'blockchainWizard.locations.tokyo' },
+    { value: 'mexicoCity', name: 'blockchainWizard.locations.mexicoCity' },
+    { value: 'moscow', name: 'blockchainWizard.locations.moscow' },
+    { value: 'seoul', name: 'blockchainWizard.locations.seoul' },
+    { value: 'johannesburg', name: 'blockchainWizard.locations.johannesburg' },
+    { value: 'london', name: 'blockchainWizard.locations.london' },
+    { value: 'lasVegas', name: 'blockchainWizard.locations.lasVegas' },
+    { value: 'newYork', name: 'blockchainWizard.locations.newYork' },
+    { value: 'paloAlto', name: 'blockchainWizard.locations.paloAlto' },
   ];
   personaOptions: Array<{ name ?: string; value: Personas; }> = [
     { value: Personas.SystemsAdmin, name: 'personas.systemsAdmin' },
@@ -133,7 +133,7 @@ export class BlockchainWizardComponent implements OnInit {
     this.userForm = new FormGroup({
       firstName: new FormControl('', Validators.required),
       lastName: new FormControl('', Validators.required),
-      email: new FormControl('', Validators.required),
+      email: new FormControl('', [Validators.required, Validators.email]),
       organization: new FormControl('', Validators.required),
       role: new FormControl('', Validators.required)
     });
@@ -179,12 +179,6 @@ export class BlockchainWizardComponent implements OnInit {
     this.router.navigate(['/dashboard']);
   }
 
-  onEditOrg(index: number) {
-    this.orgIndex = index;
-    this.isEditingOrg = true;
-    this.orgForm.patchValue(this.form.get('organizations').value[index]);
-  }
-
   deleteOrg(index: number) {
     const selectedOrgs = this.form.get('organizations');
 
@@ -192,12 +186,6 @@ export class BlockchainWizardComponent implements OnInit {
     selectedOrgs.setValue(selectedOrgs.value.filter((item, i) => {
       return index !== i;
     }));
-  }
-
-  onEditUser(index: number) {
-    this.userIndex = index;
-    this.isEditingUser = true;
-    this.userForm.patchValue(this.form.get('users').value[index]);
   }
 
   deleteUser(index: number) {
