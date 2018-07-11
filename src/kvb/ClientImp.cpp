@@ -58,6 +58,10 @@ public:
       m_completionCallback = completionCallback;
    }
 
+   virtual ~InternalClientJob() {
+      delete m_pCommandBuffer;
+   }
+
    virtual void execute()
    {
       Byz_rep reply;
@@ -81,7 +85,6 @@ public:
 
    virtual void release()
    {
-      delete m_pCommandBuffer;
       delete this;
    }
 

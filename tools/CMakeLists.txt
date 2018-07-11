@@ -1,3 +1,6 @@
+string(APPEND CMAKE_CXX_FLAGS " -Wall")
+string(APPEND CMAKE_CXX_FLAGS " -Werror")
+
 add_library(athcmdutil STATIC
             "athcmdconn.cpp" "athcmdconn.hpp"
             "athcmdfmt.cpp" "athcmdfmt.hpp"

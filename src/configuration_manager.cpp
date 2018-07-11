@@ -24,6 +24,8 @@ static const int default_log_props_time_ms = 60000; // 60sec
 // default implementation of blockchain storage
 static const string default_blockchain_db_impl = "memory";
 
+static const int default_transaction_list_max_count = 10;
+
 variables_map initialize_config(int argc, char **argv) {
    // A map to hold key-value pairs of all options
    variables_map options_map;
@@ -90,7 +92,10 @@ variables_map initialize_config(int argc, char **argv) {
        "Path to SBFT private replica config file")
       ("SBFT.client",
        value<string>(),
-       "Path to SBFT private client config file");
+       "Path to SBFT private client config file")
+      ("transaction_list_max_count",
+       value<int>()->default_value(default_transaction_list_max_count),
+       "Maximum transactions returned for a transaction list query");
 
    options_description all_options; // description of all options
    all_options.add(generic).add(config);

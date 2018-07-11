@@ -20,7 +20,7 @@ std::string addr_to_string(evm_address a)
 {
    static const char hexes[] = "0123456789abcdef";
    std::string out;
-   for (int i = 0; i < sizeof(evm_address); i++) {
+   for (size_t i = 0; i < sizeof(evm_address); i++) {
       out.append(hexes+(a.bytes[i] >> 4), 1)
          .append(hexes+(a.bytes[i] & 0x0f), 1);
    }
@@ -35,7 +35,7 @@ uint64_t uint_from_vector(std::vector<uint8_t> v, const char *label)
    }
 
    uint64_t u = 0;
-   for (int i = 0; i < v.size(); i++) {
+   for (size_t i = 0; i < v.size(); i++) {
       u = u << 8;
       u += v[i];
    }

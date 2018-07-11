@@ -30,10 +30,6 @@ namespace Blockchain
 {
    // Measurements
 
-   // Counter for number of read requests
-   static unsigned int g_rocksdb_called_read;
-   static bool g_rocksdb_print_measurements;
-
    class RocksDBClient;
 
    class RocksDBClientIterator : public IDBClient::IDBClientIterator
@@ -42,6 +38,9 @@ namespace Blockchain
 
    public:
       RocksDBClientIterator(const RocksDBClient *_parentClient);
+      virtual ~RocksDBClientIterator() {
+	 delete m_iter;
+      }
 
       // Inherited via IDBClientIterator
       virtual KeyValuePair first() override;

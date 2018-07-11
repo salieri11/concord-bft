@@ -35,7 +35,7 @@ vector<uint8_t> com::vmware::athena::dehex(const std::string &str) {
 
    vector<uint8_t> ret;
 
-   for (int i = 0; i < binsize; i++) {
+   for (size_t i = 0; i < binsize; i++) {
       ret.push_back((hexval(str[i*2+adjust]) << 4)
                     | hexval(str[i*2+adjust+1]));
    }
@@ -47,7 +47,7 @@ vector<uint8_t> com::vmware::athena::dehex(const std::string &str) {
 */
 void com::vmware::athena::to_evm_uint256be(uint64_t val, evm_uint256be *ret) {
    uint8_t mask = 0xff;
-   for (int i = 0; i < sizeof(evm_uint256be); i++) {
+   for (size_t i = 0; i < sizeof(evm_uint256be); i++) {
       uint8_t byte = val & mask;
       ret->bytes[sizeof(evm_uint256be) - i - 1] = byte; // big endian order
       val = val >> 8;
@@ -62,7 +62,7 @@ uint64_t com::vmware::athena::from_evm_uint256be(const evm_uint256be *val)
 {
    const size_t offset = sizeof(evm_uint256be) - sizeof(uint64_t);
    uint64_t ret = 0;
-   for (int i = 0; i < sizeof(uint64_t); i++) {
+   for (size_t i = 0; i < sizeof(uint64_t); i++) {
       ret = ret << 8;
       ret |= val->bytes[i+offset];
    }

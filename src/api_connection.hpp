@@ -69,6 +69,9 @@ private:
    handle_transaction_request();
 
    void
+   handle_transaction_list_request();
+
+   void
    handle_test_request();
 
    bool
@@ -145,10 +148,10 @@ private:
    /* Logger. */
    log4cplus::Logger logger_;
 
+   connection_manager &connManager_;
+
    FilterManager &filterManager_;
    KVBClient &client_;
-
-   connection_manager &connManager_;
 
    boost::asio::ip::tcp::endpoint remotePeer_;
 

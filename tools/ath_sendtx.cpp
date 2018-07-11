@@ -89,7 +89,7 @@ int main(int argc, char** argv)
          std::string sig_v_s;
          dehex0x(opts[OPT_SIG_V].as<std::string>(), sig_v_s);
          sig_v = 0;
-         for (int i = 0; i < sig_v_s.size(); i++) {
+         for (size_t i = 0; i < sig_v_s.size(); i++) {
             sig_v = (sig_v << 8) + sig_v_s[i];
          }
 	 ethReq->set_sig_v(sig_v);

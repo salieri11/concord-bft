@@ -20,7 +20,7 @@ std::string addr_to_string(evm_address a)
 {
    static const char hexes[] = "0123456789abcdef";
    std::string out;
-   for (int i = 0; i < sizeof(evm_address); i++) {
+   for (size_t i = 0; i < sizeof(evm_address); i++) {
       out.append(hexes+(a.bytes[i] >> 4), 1)
          .append(hexes+(a.bytes[i] & 0x0f), 1);
    }
@@ -31,7 +31,7 @@ std::string vec_to_string(std::vector<uint8_t> v)
 {
    static const char hexes[] = "0123456789abcdef";
    std::string out;
-   for (int i = 0; i < v.size(); i++) {
+   for (size_t i = 0; i < v.size(); i++) {
       out.append(hexes+(v[i] >> 4), 1)
          .append(hexes+(v[i] & 0x0f), 1);
    }
@@ -46,7 +46,7 @@ uint64_t uint_from_vector(std::vector<uint8_t> v, const char *label)
    }
 
    uint64_t u = 0;
-   for (int i = 0; i < v.size(); i++) {
+   for (size_t i = 0; i < v.size(); i++) {
       u = u << 8;
       u += v[i];
    }
@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
       cerr << "Encoded: 0x" << vec_to_string(sanity) << endl;
       return -1;
    }
-   for (int i = 0; i < sanity.size(); i++) {
+   for (size_t i = 0; i < sanity.size(); i++) {
       if (sanity[i] != tx[i]) {
          cerr << "Re-encode pre-signing did not match input. Signature will not match." << endl;
          cerr << "Encoded: 0x" << vec_to_string(sanity) << endl;

@@ -173,7 +173,7 @@ std::vector<uint8_t> com::vmware::athena::RLPParser::long_run(
    size_t length_length)
 {
    size_t length = 0;
-   for (int i = 0; i < length_length; i++) {
+   for (size_t i = 0; i < length_length; i++) {
       length = length << 8;
       length += rlp_[offset];
       offset++;

@@ -47,7 +47,7 @@ public:
 
 private:
    std::vector<uint8_t> &rlp_;
-   int offset;
+   size_t offset;
 
    std::vector<uint8_t> short_run(size_t length);
    std::vector<uint8_t> long_run(size_t length_length);

@@ -1,5 +1,8 @@
 file(GLOB athena_src "*.cpp" "*.hpp")
 
+string(APPEND CMAKE_CXX_FLAGS " -Wall")
+string(APPEND CMAKE_CXX_FLAGS " -Werror")
+
 add_subdirectory("common")
 add_subdirectory("kvb")
 
@@ -16,6 +19,8 @@ find_library(SECP256K1_LIBRARY secp256k1 PATHS /home/bfink/deps/secp256k1/.libs)
 if(USE_ROCKSDB)
 target_compile_definitions(athena PRIVATE USE_ROCKSDB=1)
 endif()
+
+target_compile_definitions(athena PRIVATE __BASE=1 SPARSE_STATE=1 USE_TLS=1)
 
 target_link_libraries(athena
   proto ${PROTOBUF_LIBRARIES}

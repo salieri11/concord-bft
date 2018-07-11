@@ -51,6 +51,8 @@ namespace Blockchain
 
          // Status of last operation
          virtual Status getStatus() = 0;
+
+	 virtual ~IDBClientIterator() { }
       };
 
       virtual IDBClientIterator* getIterator() const = 0;

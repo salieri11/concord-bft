@@ -21,7 +21,7 @@ using namespace com::vmware::athena::kvb;
 // key in a std::map. Must be in the global namespace.
 bool operator<(const evm_uint256be &a, const evm_uint256be &b)
 {
-   for (int i = 0; i < sizeof(evm_uint256be); ++i) {
+   for (size_t i = 0; i < sizeof(evm_uint256be); ++i) {
       if (a.bytes[i] < b.bytes[i]) {
          return true;
       } else if (a.bytes[i] > b.bytes[i]) {
@@ -46,7 +46,7 @@ bool operator==(const evm_uint256be &a, const evm_uint256be &b)
 // key in a std::map. Must be in the global namespace.
 bool operator<(const evm_address &a, const evm_address &b)
 {
-   for (int i = 0; i < sizeof(evm_address); ++i) {
+   for (size_t i = 0; i < sizeof(evm_address); ++i) {
       if (a.bytes[i] < b.bytes[i]) {
          return true;
       } else if (a.bytes[i] > b.bytes[i]) {

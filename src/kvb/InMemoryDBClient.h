@@ -39,6 +39,7 @@ namespace Blockchain
    InMemoryDBClientIterator(InMemoryDBClient *_parentClient) :
       logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb")),
          m_parentClient(_parentClient) {}
+      virtual ~InMemoryDBClientIterator() { }
 
       // Inherited via IDBClientIterator
       virtual KeyValuePair first() override;

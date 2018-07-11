@@ -34,14 +34,14 @@ TlsIndex ReplicaImp::m_sThreadLocalDataIdx = 0;
 
 struct blockEntry
 {
-   int16_t keyOffset;
-   int16_t keySize;
-   int16_t valOffset;
-   int16_t valSize;
+   uint16_t keyOffset;
+   uint16_t keySize;
+   uint16_t valOffset;
+   uint16_t valSize;
 };
 struct blockHeader
 {
-   int16_t numberOfElements;
+   uint16_t numberOfElements;
    blockEntry entries[1]; // n>0 entries
 };
 
@@ -211,10 +211,10 @@ ReplicaImp::ReplicaImp(string byzConfig,
                        string byzPrivateConfig,
                        ICommandsHandler *cmdHandler,
                        BlockchainDBAdapter *dbAdapter) :
-   logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb")),
    m_byzConfig(byzConfig),
    m_byzPrivateConfig(byzPrivateConfig),
    m_cmdHandler(cmdHandler),
+   logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb")),
    m_running(false),
    m_InternalStorageWrapperForIdleMode(this),
    m_bcDbAdapter(dbAdapter)
@@ -662,7 +662,7 @@ int ReplicaImp::get_block(int n, char **page)
       *page = new char[size];
       memcpy(*page, blockRaw.data(), size);
    } else {
-      *page = "";
+      *page = nullptr;
       size = 0;
    }
 
@@ -685,7 +685,7 @@ void ReplicaImp::put_blocks(int count, int *sizes, int *indices, char **pages)
    getTlsVal(m_sThreadLocalDataIdx, &t);
    ReplicaImp *r = (ReplicaImp*)t;
 
-   for (size_t i = 0; i < count; i++) {
+   for (int i = 0; i < count; i++) {
       BlockId blockId = indices[i];
       size_t blockSize = sizes[i];
       char *blockPtr = pages[i];
@@ -819,7 +819,8 @@ void release(IReplica *r)
 
 
 ReplicaImp::StorageIterator::StorageIterator(const ReplicaImp *r) :
-   rep(r), logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb"))
+   logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb")),
+   rep(r)
 {
    m_iter = r->getBcDbAdapter()->getIterator();
    m_currentBlock = r->getLastBlock();
