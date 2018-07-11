@@ -13,7 +13,7 @@ import { DashboardComponent } from './dashboard.component';
 import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
 import { TransactionListComponent } from '../../transactions/transaction-list/transaction-list.component';
 import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
-import { BlockchainSetupWizardComponent } from '../../shared/components/blockchain-setup-wizard/blockchain-setup-wizard.component';
+import { BlockchainWizardComponent } from '../../shared/components/blockchain-wizard/blockchain-wizard.component';
 import { VmwComboboxComponent } from '../../shared/components/combobox/combobox.component';
 import { VmwAccordionGroupComponent } from '../../shared/components/accordion/accordion-group.component';
 import { VmwAccordionComponent } from '../../shared/components/accordion/accordion.component';
@@ -39,7 +39,7 @@ describe('DashboardComponent', () => {
         TransactionsStatusFilterComponent,
         TransactionListComponent,
         TransactionDetailsComponent,
-        BlockchainSetupWizardComponent,
+        BlockchainWizardComponent,
         VmwComboboxComponent,
         VmwComboboxItemsComponent,
         VmwAccordionComponent,

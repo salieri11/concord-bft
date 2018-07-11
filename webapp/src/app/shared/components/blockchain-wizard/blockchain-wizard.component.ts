@@ -11,11 +11,11 @@ import { TranslateService } from '@ngx-translate/core';
 import { Personas } from '../../persona.service';
 
 @Component({
-  selector: 'athena-blockchain-setup-wizard',
-  templateUrl: './blockchain-setup-wizard.component.html',
-  styleUrls: ['./blockchain-setup-wizard.component.scss']
+  selector: 'athena-blockchain-wizard',
+  templateUrl: './blockchain-wizard.component.html',
+  styleUrls: ['./blockchain-wizard.component.scss']
 })
-export class BlockchainSetupWizardComponent implements OnInit {
+export class BlockchainWizardComponent implements OnInit {
   @ViewChild('wizard') wizard: ClrWizard;
   @ViewChild('blockConsortiumPage') blockConsortiumPage: ClrWizardPage;
   @ViewChild('orgsPage') orgsPage: ClrWizardPage;
@@ -31,26 +31,26 @@ export class BlockchainSetupWizardComponent implements OnInit {
   orgForm: FormGroup;
   userForm: FormGroup;
   locationOptions = [
-    {value: 'beijing', name: 'blockchainSetupWizard.locations.beijing'},
-    {value: 'brussels', name: 'blockchainSetupWizard.locations.brussels'},
-    {value: 'cairo', name: 'blockchainSetupWizard.locations.cairo'},
-    {value: 'delhi', name: 'blockchainSetupWizard.locations.delhi'},
-    {value: 'johannesburg', name: 'blockchainSetupWizard.locations.johannesburg'},
-    {value: 'lasVegas', name: 'blockchainSetupWizard.locations.lasVegas'},
-    {value: 'london', name: 'blockchainSetupWizard.locations.london'},
-    {value: 'mexicoCity', name: 'blockchainSetupWizard.locations.mexicoCity'},
-    {value: 'milan', name: 'blockchainSetupWizard.locations.milan'},
-    {value: 'moscow', name: 'blockchainSetupWizard.locations.moscow'},
-    {value: 'newYork', name: 'blockchainSetupWizard.locations.newYork'},
-    {value: 'paloAlto', name: 'blockchainSetupWizard.locations.paloAlto'},
-    {value: 'paris', name: 'blockchainSetupWizard.locations.paris'},
-    {value: 'rioDeJaneiro', name: 'blockchainSetupWizard.locations.rioDeJaneiro'},
-    {value: 'santiago', name: 'blockchainSetupWizard.locations.santiago'},
-    {value: 'seoul', name: 'blockchainSetupWizard.locations.seoul'},
-    {value: 'sydney', name: 'blockchainSetupWizard.locations.sydney'},
-    {value: 'tokyo', name: 'blockchainSetupWizard.locations.tokyo'},
-    {value: 'toronto', name: 'blockchainSetupWizard.locations.toronto'},
-    {value: 'vienna', name: 'blockchainSetupWizard.locations.vienna'},
+    {value: 'beijing', name: 'blockchainWizard.locations.beijing'},
+    {value: 'brussels', name: 'blockchainWizard.locations.brussels'},
+    {value: 'cairo', name: 'blockchainWizard.locations.cairo'},
+    {value: 'delhi', name: 'blockchainWizard.locations.delhi'},
+    {value: 'johannesburg', name: 'blockchainWizard.locations.johannesburg'},
+    {value: 'lasVegas', name: 'blockchainWizard.locations.lasVegas'},
+    {value: 'london', name: 'blockchainWizard.locations.london'},
+    {value: 'mexicoCity', name: 'blockchainWizard.locations.mexicoCity'},
+    {value: 'milan', name: 'blockchainWizard.locations.milan'},
+    {value: 'moscow', name: 'blockchainWizard.locations.moscow'},
+    {value: 'newYork', name: 'blockchainWizard.locations.newYork'},
+    {value: 'paloAlto', name: 'blockchainWizard.locations.paloAlto'},
+    {value: 'paris', name: 'blockchainWizard.locations.paris'},
+    {value: 'rioDeJaneiro', name: 'blockchainWizard.locations.rioDeJaneiro'},
+    {value: 'santiago', name: 'blockchainWizard.locations.santiago'},
+    {value: 'seoul', name: 'blockchainWizard.locations.seoul'},
+    {value: 'sydney', name: 'blockchainWizard.locations.sydney'},
+    {value: 'tokyo', name: 'blockchainWizard.locations.tokyo'},
+    {value: 'toronto', name: 'blockchainWizard.locations.toronto'},
+    {value: 'vienna', name: 'blockchainWizard.locations.vienna'},
   ];
   personaOptions: Array<{ name ?: string; value: Personas; }> = [
     { value: Personas.SystemsAdmin, name: 'personas.systemsAdmin' },
@@ -62,45 +62,45 @@ export class BlockchainSetupWizardComponent implements OnInit {
   privateNodeItems = [
     {
       value: 'london-datacenter',
-      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.privateNodeValues.londonDatacenter')
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.privateNodeValues.londonDatacenter')
     },
     {
       value: 'us-datacenter',
-      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.privateNodeValues.usDatacenter')
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.privateNodeValues.usDatacenter')
     },
   ];
   publicNodeItems = [
     {
       value: 'aws-south-asia',
-      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.publicNodeValues.awsSouthAsia')
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.awsSouthAsia')
     },
     {
       value: 'aws-east-asia',
-      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.publicNodeValues.awsEastAsia')
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.awsEastAsia')
     },
     {
       value: 'aws-north-america',
-      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.publicNodeValues.awsNorthAmerica')
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.awsNorthAmerica')
     },
     {
       value: 'aws-south-america',
-      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.publicNodeValues.awsSouthAmerica')
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.awsSouthAmerica')
     },
     {
       value: 'aws-western-europe',
-      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.publicNodeValues.awsWesternEurope')
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.awsWesternEurope')
     },
     {
       value: 'aws-eastern-europe',
-      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.publicNodeValues.awsEasternEurope')
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.awsEasternEurope')
     },
     {
       value: 'aws-africa',
-      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.publicNodeValues.awsAfrica')
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.awsAfrica')
     },
     {
       value: 'aws-australia',
-      displayValue: this.translateService.instant('blockchainSetupWizard.reviewDeployment.publicNodeValues.awsAustralia')
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.awsAustralia')
     }
   ];
 

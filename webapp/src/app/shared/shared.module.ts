@@ -20,7 +20,7 @@ import { CanViewDirective } from './directives/can-view.directive';
 import { VmwTaskComponent } from './components/task-panel/task.component';
 import { VmwTaskPanelComponent } from './components/task-panel/task-panel.component';
 import { VmwTasksService } from './components/task-panel/tasks.service';
-import { BlockchainSetupWizardComponent } from './components/blockchain-setup-wizard/blockchain-setup-wizard.component';
+import { BlockchainWizardComponent } from './components/blockchain-wizard/blockchain-wizard.component';
 import { VmwAccordionComponent } from './components/accordion/accordion.component';
 import { VmwAccordionGroupComponent } from './components/accordion/accordion-group.component';
 import { VmwComboboxComponent } from './components/combobox/combobox.component';
@@ -44,7 +44,7 @@ import { VmwComboboxItemsComponent } from './components/combobox/combobox-items/
     VmwAccordionGroupComponent,
     VmwComboboxComponent,
     VmwComboboxItemsComponent,
-    BlockchainSetupWizardComponent
+    BlockchainWizardComponent
   ],
   exports: [
     CommonModule,
@@ -59,7 +59,7 @@ import { VmwComboboxItemsComponent } from './components/combobox/combobox-items/
     VmwAccordionGroupComponent,
     VmwComboboxComponent,
     VmwComboboxItemsComponent,
-    BlockchainSetupWizardComponent
+    BlockchainWizardComponent
   ]
 })
 export class SharedModule {

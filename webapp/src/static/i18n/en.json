@@ -700,7 +700,7 @@
       }
     }
   },
-  "blockchainSetupWizard": {
+  "blockchainWizard": {
     "title": "Deploy",
     "blockchainAndConsortium": {
       "pageTitle": "Setup Blockchain and Consortium",

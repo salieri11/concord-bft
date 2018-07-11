@@ -7,7 +7,7 @@ import { ActivatedRoute } from '@angular/router';
 
 import { BlockListingBlock } from '../../blocks/shared/blocks.model';
 import { TransactionsService } from '../../transactions/shared/transactions.service';
-import { BlockchainSetupWizardComponent } from '../../shared/components/blockchain-setup-wizard/blockchain-setup-wizard.component';
+import { BlockchainWizardComponent } from '../../shared/components/blockchain-wizard/blockchain-wizard.component';
 import { TaskManagerService } from '../../shared/task-manager.service';
 
 import * as NodeGeoJson from '../features.json';
@@ -18,7 +18,7 @@ import * as NodeGeoJson from '../features.json';
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit {
-  @ViewChild('setupWizard') setupWizard: BlockchainSetupWizardComponent;
+  @ViewChild('setupWizard') setupWizard: BlockchainWizardComponent;
   blocks: BlockListingBlock[];
   recentTransactions: any[] = [];
   nodeGeoJson: any = NodeGeoJson;
