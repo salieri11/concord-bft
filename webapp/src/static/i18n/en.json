@@ -699,25 +699,28 @@
       "email": "Email",
       "role": "Role",
       "consortiums": "Consortiums",
-      "organizations": {
-        "title": "Organizations"
+      "organization": {
+        "title": "Organization"
       },
       "credentials": "Credentials",
       "downloadCertificate": {
         "title": "Download Certification",
         "enterPassword": {
-          "title": "Password",
+          "navTitle": "Enter Password",
+          "pageTitle": "Password",
           "enterUserPassword": "Enter User Password",
           "placeholder": "********"
         },
         "enterToken": {
-          "title": "Two Factor Authentication",
+          "navTitle": "Enter Token",
+          "pageTitle": "Two Factor Authentication",
           "message": "Action is required. Copy the token from VMware Verify to sign it.",
           "enterToken": "Enter Token",
           "placeholder": "Enter token"
         },
         "credentials": {
-          "title": "Download Certificate",
+          "navTitle": "Credentials",
+          "pageTitle": "Download Certificate",
           "message": "Your authentication was successful. Your download should start immediately. If download doesn't start within 1 min, click the download button directly."
         },
         "actions": {

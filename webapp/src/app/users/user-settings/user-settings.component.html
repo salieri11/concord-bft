@@ -38,7 +38,7 @@
 <div class="m-2 row">
   <div class="col-xs-4">
     <div>
-      <small class="text-muted">{{'users.settings.organizations.title' | translate}}</small>
+      <small class="text-muted">{{'users.settings.organization.title' | translate}}</small>
     </div>
     Bank of China
   </div>
@@ -70,7 +70,9 @@
                      clrWizardPagePreventDefault="true"
                      (clrWizardPageOnCommit)="onNext()"
                      (clrWizardPageOnCancel)="doCancel()">
-      <ng-template clrPageTitle>{{'users.settings.downloadCertificate.enterPassword.title' | translate}}</ng-template>
+      <ng-template clrPageNavTitle>{{'users.settings.downloadCertificate.enterPassword.navTitle' | translate}}</ng-template>
+      <ng-template clrPageTitle>{{'users.settings.downloadCertificate.enterPassword.pageTitle' | translate}}</ng-template>
+
       <div>
         <div>
           <small class="text-muted">{{'users.settings.downloadCertificate.enterPassword.enterUserPassword' |
@@ -91,7 +93,8 @@
                      (clrWizardPageOnCommit)="onNext()"
                      (clrWizardPagePrevious)="goBack()"
                      (clrWizardPageOnCancel)="doCancel()">
-      <ng-template clrPageTitle>{{'users.settings.downloadCertificate.enterToken.title' | translate}}</ng-template>
+      <ng-template clrPageNavTitle>{{'users.settings.downloadCertificate.enterToken.navTitle' | translate}}</ng-template>
+      <ng-template clrPageTitle>{{'users.settings.downloadCertificate.enterToken.pageTitle' | translate}}</ng-template>
       <div>
         <div>
           <small class="text-muted">{{'users.settings.downloadCertificate.enterToken.message' | translate}}</small>
@@ -106,7 +109,8 @@
     </clr-wizard-page>
 
     <clr-wizard-page (clrWizardPageOnLoad)="downloadCertificate()" (clrWizardPageCustomButton)="doCustomClick($event)">
-      <ng-template clrPageTitle>{{'users.settings.downloadCertificate.credentials.title' | translate}}</ng-template>
+      <ng-template clrPageNavTitle>{{'users.settings.downloadCertificate.credentials.navTitle' | translate}}</ng-template>
+      <ng-template clrPageTitle>{{'users.settings.downloadCertificate.credentials.pageTitle' | translate}}</ng-template>
       <ng-template clrPageButtons>
         <clr-wizard-button [type]="'download-btn'">{{'users.settings.downloadCertificate.actions.download' |
           translate}}
