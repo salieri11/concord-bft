@@ -25,7 +25,7 @@ static const int default_log_props_time_ms = 60000; // 60sec
 static const string default_blockchain_db_impl = "memory";
 
 // default size of API worker thread pool
-static const int default_api_worker_thread_pool_size = 4;
+static const int default_api_worker_thread_pool_size = 3;
 
 variables_map initialize_config(int argc, char **argv) {
    // A map to hold key-value pairs of all options
