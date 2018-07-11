@@ -139,17 +139,16 @@ export class UserFormComponent implements OnInit {
       case 'add':
         this.createAddUserForm();
         this.modalSize = 'md';
-        this.translate.get('users.addUserForm.title').subscribe(title => this.modalTitle = title);
+        this.modalTitle = this.translate.instant('users.addUserForm.title');
         break;
       case 'edit':
         this.createEditUserForm();
         this.modalSize = 'md';
-        this.translate.get('users.editUserForm.title').subscribe(title => this.modalTitle = title);
+        this.modalTitle = this.translate.instant('users.editUserForm.title');
         break;
       case 'delete':
         this.modalSize = 'sm';
-        this.translate.get('users.deleteUserForm.title')
-          .subscribe(title => this.modalTitle = title);
+        this.modalTitle = this.translate.instant('users.deleteUserForm.title');
         break;
     }
 

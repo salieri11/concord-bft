@@ -8,10 +8,10 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 
-import { NodeComponent } from './node.component';
 import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
 import { TransactionListComponent } from '../../transactions/transaction-list/transaction-list.component';
 import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
+import { NodeComponent } from './node.component';
 
 describe('NodeComponent', () => {
   let component: NodeComponent;

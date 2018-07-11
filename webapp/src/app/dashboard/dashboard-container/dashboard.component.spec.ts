@@ -12,6 +12,7 @@ import { TransactionsStatusFilterComponent } from '../../shared/components/trans
 import { TransactionListComponent } from '../../transactions/transaction-list/transaction-list.component';
 import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
 import { DashboardComponent } from './dashboard.component';
+import { WorldMapComponent } from '../world-map/world-map.component';
 
 describe('DashboardComponent', () => {
   let component: DashboardComponent;
@@ -26,6 +27,7 @@ describe('DashboardComponent', () => {
       ],
       declarations: [
         DashboardComponent,
+        WorldMapComponent,
         TransactionsStatusFilterComponent,
         TransactionListComponent,
         TransactionDetailsComponent

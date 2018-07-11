@@ -10,3 +10,9 @@ interface NodeModule {
 
 declare var Web3EthAbi: any;
 declare var Web3Utils: any;
+
+// Support for importing any JSON file in to TypeScript
+declare module "*.json" {
+  const value: any;
+  export default value;
+}
