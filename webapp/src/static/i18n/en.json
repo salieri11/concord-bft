@@ -704,7 +704,7 @@
       },
       "credentials": "Credentials",
       "downloadCertificate": {
-        "title": "Download Certification",
+        "title": "Download Certificate",
         "enterPassword": {
           "navTitle": "Enter Password",
           "pageTitle": "Password",
