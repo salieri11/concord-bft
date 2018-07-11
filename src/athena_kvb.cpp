@@ -129,13 +129,24 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_sendTransaction(
 
    evm_uint256be txhash;
    evm_result &&result = run_evm(request, kvbStorage, txhash);
-   EthResponse *response = athresp.add_eth_response();
-   response->set_id(request.id());
-   response->set_data(txhash.bytes, sizeof(evm_uint256be));
 
-   // Nothing would cause us to fail to try to run a transaction (yet), and even
-   // failed transactions get recorded, so commands here are always valid, so
-   // always return true (for now)
+   if (txhash != zero_hash) {
+      EthResponse *response = athresp.add_eth_response();
+      response->set_id(request.id());
+      response->set_data(txhash.bytes, sizeof(evm_uint256be));
+   } else {
+      std::ostringstream description;
+      description << "An error occurred running the transaction (status="
+                  << result.status_code << ")";
+      ErrorResponse *response = athresp.add_error_response();
+      response->set_description(description.str());
+   }
+
+   // We return "true" even if the transaction encountered an error, because the
+   // error response is the correct result for the evaluation. That is, we
+   // expect that all replicas will return that error. If in the future, there
+   // is a failure mode that we don't expect on all nodes (for example, the disk
+   // is full), then it will be appropriate to return false.
    return true;
 }
 
@@ -682,17 +693,96 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
       assert(20 == request.addr_to().length());
       memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
 
-      athevm_.run(message, kvbStorage, result, txhash);
+      athevm_.run(message, kvbStorage, result);
    } else {
       message.kind = EVM_CREATE;
 
       assert(!kvbStorage.is_read_only());
-      athevm_.create(message, kvbStorage, result, txhash);
+      athevm_.create(message, kvbStorage, result);
    }
 
    LOG4CPLUS_INFO(logger, "Execution result -" <<
                   " status_code: " << result.status_code <<
                   " gas_left: " << result.gas_left <<
                   " output_size: " << result.output_size);
+
+   if (result.status_code != EVM_SUCCESS) {
+      // If the transaction failed, don't record any of its side effects.
+      // TODO: except gas deduction?
+      kvbStorage.reset();
+   }
+
+   if (!kvbStorage.is_read_only()) {
+      // If this is a transaction, and not just a call, record it.
+      txhash = record_transaction(message, request, result, kvbStorage);
+   }
+
    return result;
+}
+
+/**
+ * Increment the sender's nonce, Add the transaction and write a block with
+ * it. Message call depth must be zero.
+ */
+evm_uint256be com::vmware::athena::KVBCommandsHandler::record_transaction(
+   const evm_message &message,
+   const EthRequest &request,
+   const evm_result &result,
+   KVBStorage &kvbStorage) const
+{
+   // TODO: check & set nonce before execution
+   uint64_t nonce = kvbStorage.get_nonce(message.sender)+1;
+   kvbStorage.set_nonce(message.sender, nonce);
+
+   // "to" is empty if this was a create
+   evm_address to = result.create_address == zero_address ?
+      message.destination : zero_address;
+
+   uint64_t gas_price = 0;
+   if (request.has_gas_price()) {
+      gas_price = request.gas_price();
+   }
+
+   // TODO: move this to a utility function so recover_from can use it to
+   evm_uint256be sig_r;
+   evm_uint256be sig_s;
+   uint64_t sig_v;
+   if (request.has_sig_r() && request.has_sig_s() && request.has_sig_v()) {
+      std::copy(request.sig_r().begin(), request.sig_r().end(), sig_r.bytes);
+      std::copy(request.sig_s().begin(), request.sig_s().end(), sig_s.bytes);
+      sig_v = request.sig_v();
+   } else {
+      sig_r = zero_hash;
+      sig_s = zero_hash;
+      sig_v = 0;
+   }
+
+   uint64_t transfer_val = from_evm_uint256be(&message.value);
+   uint64_t gas_limit = static_cast<uint64_t>(request.gas());
+   EthTransaction tx = {
+      nonce,
+      zero_hash,      // block_hash: will be set during write_block
+      0,              // block_number: will be set during write_block
+      message.sender, // from
+      to,
+      result.create_address,
+      std::vector<uint8_t>(message.input_data,
+                           message.input_data+message.input_size),
+      result.status_code,
+      transfer_val,   // value
+      gas_price,
+      gas_limit,      // TODO: also record gas used?
+      sig_r,
+      sig_s,
+      sig_v
+   };
+   kvbStorage.add_transaction(tx);
+
+   evm_uint256be txhash = tx.hash();
+   LOG4CPLUS_DEBUG(logger, "Recording transaction " << txhash);
+
+   assert(message.depth == 0);
+   kvbStorage.write_block();
+
+   return txhash;
 }

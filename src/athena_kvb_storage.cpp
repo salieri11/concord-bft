@@ -261,15 +261,22 @@ Status com::vmware::athena::KVBStorage::write_block() {
       LOG4CPLUS_ERROR(logger, "Failed to append block");
    }
 
+   // Prepare to stage another block
+   reset();
+   return status;
+}
+
+/**
+ * Drop all pending updates.
+ */
+void com::vmware::athena::KVBStorage::reset() {
    // Release all the storage our staging was using
    for (auto kvp: updates) {
       delete[] kvp.first.data();
       delete[] kvp.second.data();
    }
 
-   // Prepare to stage another block
    updates.clear();
-   return status;
 }
 
 /**

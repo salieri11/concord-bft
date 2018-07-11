@@ -33,7 +33,7 @@ typedef struct EthTransaction {
    uint64_t gas_limit;
    evm_uint256be sig_r;
    evm_uint256be sig_s;
-   uint8_t sig_v;
+   uint64_t sig_v;
 
    std::vector<uint8_t> rlp() const;
    evm_uint256be hash() const;
