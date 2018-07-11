@@ -730,9 +730,13 @@ evm_uint256be com::vmware::athena::KVBCommandsHandler::record_transaction(
    const evm_result &result,
    KVBStorage &kvbStorage) const
 {
-   // TODO: check & set nonce before execution
-   uint64_t nonce = kvbStorage.get_nonce(message.sender)+1;
-   kvbStorage.set_nonce(message.sender, nonce);
+   uint64_t nonce;
+   if (request.has_nonce()) {
+      nonce = static_cast<uint64_t>(request.nonce());
+   } else {
+      nonce = kvbStorage.get_nonce(message.sender)+1;
+      kvbStorage.set_nonce(message.sender, nonce);
+   }
 
    // "to" is empty if this was a create
    evm_address to = result.create_address == zero_address ?
