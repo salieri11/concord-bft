@@ -20,6 +20,9 @@ using namespace com::vmware::athena;
 #define OPT_TO "to"
 #define OPT_VALUE "value"
 #define OPT_DATA "data"
+#define OPT_SIG_V "sigv"
+#define OPT_SIG_R "sigr"
+#define OPT_SIG_S "sigs"
 
 void add_options(options_description &desc) {
    desc.add_options()
@@ -34,7 +37,16 @@ void add_options(options_description &desc) {
        "Amount to pass as value")
       (OPT_DATA",d",
        value<std::string>(),
-       "Hex-encoded string to pass as data");
+       "Hex-encoded string to pass as data")
+      (OPT_SIG_V,
+       value<std::string>(),
+       "Signature V")
+      (OPT_SIG_R,
+       value<std::string>(),
+       "Signature R")
+      (OPT_SIG_S,
+       value<std::string>(),
+       "Signature S");
 }
 
 int main(int argc, char** argv)
@@ -53,6 +65,9 @@ int main(int argc, char** argv)
       std::string to;
       std::string data;
       std::string value;
+      int sig_v;
+      std::string sig_r;
+      std::string sig_s;
 
       if (opts.count(OPT_FROM) > 0) {
          dehex0x(opts[OPT_FROM].as<std::string>(), from);
@@ -69,6 +84,23 @@ int main(int argc, char** argv)
       if (opts.count(OPT_DATA) > 0) {
          dehex0x(opts[OPT_DATA].as<std::string>(), data);
 	 ethReq->set_data(data);
+      }
+      if (opts.count(OPT_SIG_V) > 0) {
+         std::string sig_v_s;
+         dehex0x(opts[OPT_SIG_V].as<std::string>(), sig_v_s);
+         sig_v = 0;
+         for (int i = 0; i < sig_v_s.size(); i++) {
+            sig_v = (sig_v << 8) + sig_v_s[i];
+         }
+	 ethReq->set_sig_v(sig_v);
+      }
+      if (opts.count(OPT_SIG_R) > 0) {
+         dehex0x(opts[OPT_SIG_R].as<std::string>(), sig_r);
+	 ethReq->set_sig_r(sig_r);
+      }
+      if (opts.count(OPT_SIG_S) > 0) {
+         dehex0x(opts[OPT_SIG_S].as<std::string>(), sig_s);
+	 ethReq->set_sig_s(sig_s);
       }
 
       std::string pbtext;
