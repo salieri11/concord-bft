@@ -150,6 +150,7 @@ private:
 
    connection_manager &connManager_;
 
+   // TODO (Amit) : FilterManagement is not made thread-safe. Move it to helen
    FilterManager &filterManager_;
    KVBClient &client_;
 

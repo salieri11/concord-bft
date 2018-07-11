@@ -21,6 +21,8 @@ api_acceptor::api_acceptor(io_service &io_service,
      client_(client),
      logger_(log4cplus::Logger::getInstance("com.vmware.athena.api_acceptor"))
 {
+   // Need this when we have a thread pool for handling connections
+   acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
    start_accept();
 }
 
