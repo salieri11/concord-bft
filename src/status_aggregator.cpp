@@ -21,9 +21,19 @@ struct EnumHash {
    }
 };
 
+/*
+internal strucnture -Maps PeerInfoType to actual status.currently only last status is saved
+can be easily expanded to keep vector<BasePeerStatus>
+*/
 typedef unordered_map<PeerInfoType, BasePeerStatus*, EnumHash> STAT_MAP;
 typedef STAT_MAP * STAT_MAP_PTR;
 
+/*
+main data struct, map of maps
+maps NodeId (from SBFT) to the map of it's statuses (see above)
+the idea is that UI asks for nodes info or specific node info and it can be
+easily accessed using this map and internal maps
+*/
 typedef unordered_map<int64_t, STAT_MAP_PTR> PEER_STAT_MAP;
 typedef PEER_STAT_MAP * PEER_STAT_MAP_PTR;
 
