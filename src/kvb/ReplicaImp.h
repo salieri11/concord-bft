@@ -245,14 +245,12 @@ namespace Blockchain {
 
    private:
       log4cplus::Logger logger;
-
       //TODO(BWF): this was protected (not private) before adding logger
       bool m_running;
       Thread  m_thread;
       static TlsIndex m_sThreadLocalDataIdx;
       RepStatus m_currentRepStatus;
       StorageWrapperForIdleMode m_InternalStorageWrapperForIdleMode;
-
 
       // storage - TODO(GG): add support for leveldb/rocksdb
       BlockchainDBAdapter* m_bcDbAdapter;

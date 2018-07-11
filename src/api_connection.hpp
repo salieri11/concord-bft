@@ -36,7 +36,7 @@ public:
           connection_manager &connManager,
           FilterManager &filterManager,
           KVBClient &client,
-         StatusAggregator &sag);
+          StatusAggregator &sag);
 
    boost::asio::ip::tcp::socket&
    socket();

@@ -10,7 +10,7 @@ set(CMAKE_CXX_EXTENSIONS Off)
 # Storage options
 set(USE_ROCKSDB True)
 
-find_package(Protobuf 2.6.0 REQUIRED)
+find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIRS})
 
 find_package(Boost 1.64 COMPONENTS system program_options thread REQUIRED)
