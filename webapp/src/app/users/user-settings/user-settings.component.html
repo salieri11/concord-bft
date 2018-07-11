@@ -1,0 +1,125 @@
+<div class="p-2 bg-header">
+  <div class="flex-items-xs-middle">
+    <h2 class="page-title">
+      {{'users.settings.title' | translate}}
+    </h2>
+    <button class="btn btn-sm float-sm-right" (click)="editSettings()">{{ 'users.settings.editSettings.title' |
+      translate}}
+    </button>
+  </div>
+  <div class="row mb-1 mt-1">
+    <div class="col-xs-3">
+      <div>
+        <small class="text-muted">{{ 'users.settings.firstName' | translate}}</small>
+      </div>
+      Jon
+    </div>
+    <div class="col-xs-3">
+      <div>
+        <small class="text-muted">{{ 'users.settings.lastName' | translate}}</small>
+      </div>
+      Doe
+    </div>
+    <div class="col-xs-3">
+      <div>
+        <small class="text-muted">{{ 'users.settings.email' | translate}}</small>
+      </div>
+      jdoe@chinabank.com
+    </div>
+    <div class="col-xs-3">
+      <div>
+        <small class="text-muted">{{ 'users.settings.role' | translate}}</small>
+      </div>
+      System Admin
+    </div>
+  </div>
+</div>
+
+<div class="m-2 row">
+  <div class="col-xs-4">
+    <div>
+      <small class="text-muted">{{'users.settings.organizations.title' | translate}}</small>
+    </div>
+    Bank of China
+  </div>
+  <div class="col-xs-4">
+    <div>
+      <small class="text-muted">{{'users.settings.credentials' | translate}}</small>
+    </div>
+    <button class="btn btn-sm" (click)="openDownloadCertificationWizard()">
+      <span><clr-icon shape="download"></clr-icon></span>
+      {{'users.settings.downloadCertificate.title' | translate}}
+    </button>
+  </div>
+</div>
+
+<form [formGroup]="downloadCertificateForm" #myForm="ngForm">
+  <clr-wizard #wizard [(clrWizardOpen)]="isOpen"
+              clrWizardSize="md"
+              (clrWizardOnCancel)="doCancel()">
+    <clr-wizard-title>Bank of China</clr-wizard-title>
+
+    <clr-wizard-button [type]="'cancel'">{{'users.settings.downloadCertificate.actions.close' | translate}}
+    </clr-wizard-button>
+    <clr-wizard-button [type]="'previous'">{{'users.settings.downloadCertificate.actions.previous' | translate}}
+    </clr-wizard-button>
+    <clr-wizard-button [type]="'next'">{{'users.settings.downloadCertificate.actions.next' | translate}}
+    </clr-wizard-button>
+
+    <clr-wizard-page [clrWizardPageNextDisabled]="passwordSelectNextDisabled"
+                     clrWizardPagePreventDefault="true"
+                     (clrWizardPageOnCommit)="onNext()"
+                     (clrWizardPageOnCancel)="doCancel()">
+      <ng-template clrPageTitle>{{'users.settings.downloadCertificate.enterPassword.title' | translate}}</ng-template>
+      <div>
+        <div>
+          <small class="text-muted">{{'users.settings.downloadCertificate.enterPassword.enterUserPassword' |
+            translate}}
+          </small>
+        </div>
+        <input class="form-control"
+               type="password"
+               id="password"
+               name="password"
+               formControlName="password"
+               [attr.placeholder]="'users.settings.downloadCertificate.enterPassword.placeholder' | translate">
+      </div>
+    </clr-wizard-page>
+
+    <clr-wizard-page [clrWizardPageNextDisabled]="tokenSelectNextDisabled"
+                     clrWizardPagePreventDefault="true"
+                     (clrWizardPageOnCommit)="onNext()"
+                     (clrWizardPagePrevious)="goBack()"
+                     (clrWizardPageOnCancel)="doCancel()">
+      <ng-template clrPageTitle>{{'users.settings.downloadCertificate.enterToken.title' | translate}}</ng-template>
+      <div>
+        <div>
+          <small class="text-muted">{{'users.settings.downloadCertificate.enterToken.message' | translate}}</small>
+        </div>
+        <input class="form-control"
+               type="password"
+               id="token"
+               name="token"
+               formControlName="token"
+               [attr.placeholder]="'users.settings.downloadCertificate.enterToken.placeholder' | translate">
+      </div>
+    </clr-wizard-page>
+
+    <clr-wizard-page (clrWizardPageOnLoad)="downloadCertificate()" (clrWizardPageCustomButton)="doCustomClick($event)">
+      <ng-template clrPageTitle>{{'users.settings.downloadCertificate.credentials.title' | translate}}</ng-template>
+      <ng-template clrPageButtons>
+        <clr-wizard-button [type]="'download-btn'">{{'users.settings.downloadCertificate.actions.download' |
+          translate}}
+        </clr-wizard-button>
+        <clr-wizard-button [type]="'cancel'">{{'users.settings.downloadCertificate.actions.close' | translate}}
+        </clr-wizard-button>
+      </ng-template>
+      <div>
+        <div>
+          <p class="text-muted">{{'users.settings.downloadCertificate.credentials.message' | translate}}</p>
+        </div>
+      </div>
+    </clr-wizard-page>
+  </clr-wizard>
+</form>
+

@@ -12,7 +12,7 @@ import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { GridModule } from '../../grid/grid.module';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { HttpLoaderFactory } from '../user/user.component.spec';
+import { HttpLoaderFactory } from '../users/users.component.spec';
 
 describe('UserListComponent', () => {
   let component: UserListComponent;
