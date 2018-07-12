@@ -4,26 +4,25 @@
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { UserSettingsComponent } from './user-settings.component';
+import { AuthenticationFormComponent } from './authentication-form.component';
 import { MockSharedModule } from '../../shared/shared.module';
-import { AuthenticationFormComponent } from '../authentication-form/authentication-form.component';
 
-describe('UserSettingsComponent', () => {
-  let component: UserSettingsComponent;
-  let fixture: ComponentFixture<UserSettingsComponent>;
+describe('AuthenticationFormComponent', () => {
+  let component: AuthenticationFormComponent;
+  let fixture: ComponentFixture<AuthenticationFormComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
         MockSharedModule
       ],
-      declarations: [ UserSettingsComponent, AuthenticationFormComponent ]
+      declarations: [ AuthenticationFormComponent ]
     })
     .compileComponents();
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(UserSettingsComponent);
+    fixture = TestBed.createComponent(AuthenticationFormComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
