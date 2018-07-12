@@ -23,10 +23,6 @@ export class BlockchainWizardComponent implements OnInit {
   @Output('setupComplete') setupComplete: EventEmitter<any> = new EventEmitter<any>();
 
   isOpen = false;
-  isEditingOrg = false;
-  orgIndex: number = null;
-  isEditingUser = false;
-  userIndex: number = null;
   form: FormGroup;
   orgForm: FormGroup;
   userForm: FormGroup;
@@ -144,14 +140,7 @@ export class BlockchainWizardComponent implements OnInit {
   addOrg() {
     const selectedOrgs = this.form.get('organizations');
 
-    if (this.isEditingOrg) {
-      selectedOrgs.value[this.orgIndex] = this.orgForm.value;
-      selectedOrgs.setValue(selectedOrgs.value);
-      this.isEditingOrg = false;
-      this.orgIndex = null;
-    } else {
-      selectedOrgs.setValue(selectedOrgs.value.concat([this.orgForm.value]));
-    }
+    selectedOrgs.setValue(selectedOrgs.value.concat([this.orgForm.value]));
 
     this.orgForm.reset();
   }
@@ -159,14 +148,7 @@ export class BlockchainWizardComponent implements OnInit {
   addUser() {
     const selectedUsers = this.form.get('users');
 
-    if (this.isEditingUser) {
-      selectedUsers.value[this.userIndex] = this.userForm.value;
-      selectedUsers.setValue(selectedUsers.value);
-      this.isEditingUser = false;
-      this.userIndex = null;
-    } else {
-      selectedUsers.setValue(selectedUsers.value.concat([this.userForm.value]));
-    }
+    selectedUsers.setValue(selectedUsers.value.concat([this.userForm.value]));
 
     this.userForm.reset();
   }
@@ -207,8 +189,6 @@ export class BlockchainWizardComponent implements OnInit {
     });
     this.userForm.reset();
     this.orgForm.reset();
-    this.isEditingOrg = false;
-    this.isEditingUser = false;
   }
 
   onSubmit() {
