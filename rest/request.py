@@ -160,6 +160,26 @@ class Request():
 
       return self._send()
 
+   def getTransactionList(self, latest=None, count=None):
+      '''
+      Get a list of transactions
+      '''
+
+      self._subPath = '/api/athena/transactions/'
+      if latest:
+         self._subPath += "?latest=" + latest
+
+      if count:
+         if latest:
+            self._subPath += "&count={}".format(count)
+         else:
+            self._subPath += "?count={}".format(count)
+
+      self._params = ""
+      self._endpointName = "transactionList"
+
+      return self._send()
+
    def uploadContract(self, data):
       '''
       Does an upload new contract POST request
