@@ -6,7 +6,7 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { UserSettingsComponent } from './user-settings.component';
 import { MockSharedModule } from '../../shared/shared.module';
-import { AuthenticationFormComponent } from '../authentication-form/authentication-form.component';
+import { CredentialFormComponent } from '../credential-form/credential-form.component';
 
 describe('UserSettingsComponent', () => {
   let component: UserSettingsComponent;
@@ -17,7 +17,7 @@ describe('UserSettingsComponent', () => {
       imports: [
         MockSharedModule
       ],
-      declarations: [ UserSettingsComponent, AuthenticationFormComponent ]
+      declarations: [ UserSettingsComponent, CredentialFormComponent ]
     })
     .compileComponents();
   }));

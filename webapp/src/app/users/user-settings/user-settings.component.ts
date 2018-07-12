@@ -4,7 +4,7 @@
 
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { AuthenticationFormComponent } from '../authentication-form/authentication-form.component';
+import { CredentialFormComponent } from '../credential-form/credential-form.component';
 
 @Component({
   selector: 'athena-user-settings',
@@ -12,7 +12,7 @@ import { AuthenticationFormComponent } from '../authentication-form/authenticati
   styleUrls: ['./user-settings.component.scss']
 })
 export class UserSettingsComponent implements OnInit {
-  @ViewChild('authenticationForm') authenticationForm: AuthenticationFormComponent;
+  @ViewChild('authenticationForm') authenticationForm: CredentialFormComponent;
 
   isOpen = false;
   organizations: any[] = [

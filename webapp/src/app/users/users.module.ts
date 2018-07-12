@@ -15,7 +15,7 @@ import { UsersService } from './shared/users.service';
 import { UserListComponent } from './user-list/user-list.component';
 import { UserFormComponent } from './user-form/user-form.component';
 import { UserSettingsComponent } from './user-settings/user-settings.component';
-import { AuthenticationFormComponent } from './authentication-form/authentication-form.component';
+import { CredentialFormComponent } from './credential-form/credential-form.component';
 
 @NgModule({
   imports: [
@@ -25,7 +25,7 @@ import { AuthenticationFormComponent } from './authentication-form/authenticatio
     TranslateModule,
     ReactiveFormsModule
   ],
-  declarations: [UsersComponent, UserListComponent, UserFormComponent, UserSettingsComponent, AuthenticationFormComponent],
+  declarations: [UsersComponent, UserListComponent, UserFormComponent, UserSettingsComponent, CredentialFormComponent],
   providers: [UsersService]
 })
 export class UsersModule { }

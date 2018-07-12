@@ -7,11 +7,11 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { ClrWizard } from '@clr/angular';
 
 @Component({
-  selector: 'athena-authentication-form',
-  templateUrl: './authentication-form.component.html',
-  styleUrls: ['./authentication-form.component.scss']
+  selector: 'athena-credential-form',
+  templateUrl: './credential-form.component.html',
+  styleUrls: ['./credential-form.component.scss']
 })
-export class AuthenticationFormComponent implements OnInit {
+export class CredentialFormComponent implements OnInit {
   @Input('isOpen') isOpen: boolean;
   @Output('closed') closed: EventEmitter<any> = new EventEmitter<any>();
   @ViewChild('wizard') wizard: ClrWizard;

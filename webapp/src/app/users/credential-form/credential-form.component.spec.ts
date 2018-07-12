@@ -4,25 +4,25 @@
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { AuthenticationFormComponent } from './authentication-form.component';
+import { CredentialFormComponent } from './credential-form.component';
 import { MockSharedModule } from '../../shared/shared.module';
 
-describe('AuthenticationFormComponent', () => {
-  let component: AuthenticationFormComponent;
-  let fixture: ComponentFixture<AuthenticationFormComponent>;
+describe('CredentialFormComponent', () => {
+  let component: CredentialFormComponent;
+  let fixture: ComponentFixture<CredentialFormComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
         MockSharedModule
       ],
-      declarations: [ AuthenticationFormComponent ]
+      declarations: [ CredentialFormComponent ]
     })
     .compileComponents();
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(AuthenticationFormComponent);
+    fixture = TestBed.createComponent(CredentialFormComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
