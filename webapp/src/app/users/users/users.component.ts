@@ -15,7 +15,7 @@ import { User } from '../shared/user.model';
   styleUrls: ['./users.component.scss']
 })
 export class UsersComponent implements OnInit {
-  static personasAllowed: Personas[] = [Personas.SystemsAdmin];
+  static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin, Personas.OrgAdmin];
   @ViewChild('usersList') usersList: UserListComponent;
   @ViewChild('usrForm') userForm: UserFormComponent;
 
