@@ -76,15 +76,15 @@ namespace Blockchain {
 
       // CTOR & DTOR
 
-      ReplicaImp(string byzConfig,
-                 string byzPrivateConfig,
-                 ICommandsHandler *cmdHandler,
-                 BlockchainDBAdapter *dbAdapter,
-                 std::function<void(
-                         int64_t,
-                         std::string,
-                         int16_t,
-                         std::string)> fPeerConnectivityCallback);
+      ReplicaImp( string byzConfig,
+                  string byzPrivateConfig,
+                  ICommandsHandler *cmdHandler,
+                  BlockchainDBAdapter *dbAdapter,
+                  std::function<void(
+                     int64_t,
+                     std::string,
+                     int16_t,
+                     std::string)> fPeerConnectivityCallback);
       virtual ~ReplicaImp();
 
       // METHODS
@@ -283,11 +283,10 @@ namespace Blockchain {
          const ReplicaConsensusConfig &consensusConfig,
          ICommandsHandler *cmdHandler,
          IDBClient *db,
-         std::function<void(
-                 int64_t,
-                 std::string,
-                 int16_t,
-                 std::string)> fPeerConnectivityCallback);
+         std::function<void( int64_t,
+                             std::string,
+                             int16_t,
+                             std::string)> fPeerConnectivityCallback);
       friend void release(IReplica *r);
    };
 }

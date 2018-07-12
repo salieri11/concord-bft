@@ -8,16 +8,17 @@
 #include <vector>
 #include <functional>
 #include <string>
+#include <memory>
 
 namespace com {
 namespace vmware {
 namespace athena {
 
-   typedef void(*UPDATE_CONNECTIVITY_FN)
-           (int64_t peerId,
-            std::string peerAdress,
-            int16_t peerPort,
-            std::string state);
+   typedef std::function<void(
+              int64_t peerId,
+              std::string peerAdress,
+              int16_t peerPort,
+              std::string state)> UPDATE_CONNECTIVITY_FN;
 
    enum class PeerInfoType
    {
@@ -43,14 +44,18 @@ namespace athena {
 
    public:
       StatusAggregator();
-      ~StatusAggregator();
 
       std::vector<PeerConnectivityStatus>
       get_peers_info();
 
-      // this function returns actual method that will be called by low level
+      /**
+       * this function returns actual method that will be called by low level
+      */
       UPDATE_CONNECTIVITY_FN
       get_update_connectivity_fn();
+   private:
+      class Impl;
+      std::shared_ptr<Impl> _pImpl;
    };
 }
 }

@@ -35,7 +35,7 @@ api_acceptor::start_accept()
                              connManager_,
                              filterManager_,
                              client_,
-                              sag_);
+                             sag_);
 
    acceptor_.async_accept(new_connection->socket(),
                           boost::bind(&api_acceptor::handle_accept,

@@ -207,15 +207,15 @@ Status ReplicaImp::addBlock(const SetOfKeyValuePairs &updates,
 }
 
 
-ReplicaImp::ReplicaImp(string byzConfig,
-                       string byzPrivateConfig,
-                       ICommandsHandler *cmdHandler,
-                       BlockchainDBAdapter *dbAdapter,
-                       std::function<void(
-                               int64_t,
-                               std::string,
-                               int16_t,
-                               std::string)> fPeerConnectivityCallback) :
+ReplicaImp::ReplicaImp( string byzConfig,
+                        string byzPrivateConfig,
+                        ICommandsHandler *cmdHandler,
+                        BlockchainDBAdapter *dbAdapter,
+                        std::function<void(
+                           int64_t,
+                           std::string,
+                           int16_t,
+                           std::string)> fPeerConnectivityCallback) :
    m_byzConfig(byzConfig),
    m_byzPrivateConfig(byzPrivateConfig),
    m_cmdHandler(cmdHandler),
