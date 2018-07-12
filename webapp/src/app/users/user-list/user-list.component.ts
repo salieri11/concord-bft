@@ -17,7 +17,7 @@ import { User } from '../shared/user.model';
   styleUrls: ['./user-list.component.scss']
 })
 export class UserListComponent implements OnInit {
-  static personasAllowed: Personas[] = [Personas.SystemsAdmin];
+  static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin, Personas.OrgAdmin];
   @ViewChild('grid') grid: GridComponent;
   @Output('selected') selected: EventEmitter<any> = new EventEmitter<any>();
 

@@ -17,7 +17,7 @@ import { matchPasswordValidator } from '../shared/custom-validators';
   styleUrls: ['./user-form.component.scss']
 })
 export class UserFormComponent implements OnInit {
-  static personasAllowed: Personas[] = [Personas.SystemsAdmin];
+  static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin, Personas.OrgAdmin];
   @Input('selected') selected: Array<User>;
   @Output('createUser') createUser: EventEmitter<any> = new EventEmitter<any>();
   @Output('deleteUsers') deleteUsers: EventEmitter<any> = new EventEmitter<any>();
