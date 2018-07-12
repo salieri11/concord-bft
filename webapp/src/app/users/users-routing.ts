@@ -4,8 +4,10 @@
 
 import { Routes } from '@angular/router';
 
-import { UserComponent } from './user/user.component';
+import { UsersComponent } from './users/users.component';
+import { UserSettingsComponent } from './user-settings/user-settings.component';
 
 export const usersRoutes: Routes = [
-  { path: '', component: UserComponent }
+  { path: '', component: UsersComponent },
+  { path: 'settings', component: UserSettingsComponent }
 ];

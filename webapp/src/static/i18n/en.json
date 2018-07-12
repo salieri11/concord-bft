@@ -69,7 +69,8 @@
     "users": {
       "title": "Users"
     },
-    "logOut": "Log Out"
+    "logOut": "Log Out",
+    "settings": "Settings"
   },
   "time": {
     "lastXDays": "Last {{number}} Days",
@@ -689,6 +690,49 @@
       "title": "Delete User(s)",
       "submit": {
         "title": "Yes"
+      }
+    },
+    "settings": {
+      "title": "User Settings",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "role": "Role",
+      "consortiums": "Consortiums",
+      "organization": {
+        "title": "Organization"
+      },
+      "credentials": "Credentials",
+      "downloadCertificate": {
+        "title": "Download Certificate",
+        "enterPassword": {
+          "navTitle": "Enter Password",
+          "pageTitle": "Password",
+          "enterUserPassword": "Enter User Password",
+          "placeholder": "********"
+        },
+        "enterToken": {
+          "navTitle": "Enter Token",
+          "pageTitle": "Two Factor Authentication",
+          "message": "Action is required. Copy the token from VMware Verify to sign it.",
+          "enterToken": "Enter Token",
+          "placeholder": "Enter token"
+        },
+        "credentials": {
+          "navTitle": "Credentials",
+          "pageTitle": "Download Certificate",
+          "message": "Your authentication was successful. Your download should start immediately. If download doesn't start within 1 min, click the download button directly."
+        },
+        "actions": {
+          "download": "Download",
+          "close": "Close",
+          "next": "Next",
+          "previous": "Previous"
+        }
+      },
+      "editSettings": {
+        "title": "Edit Settings",
+        "alertMessage": "Redirect to CSP for editing the settings."
       }
     }
   }
