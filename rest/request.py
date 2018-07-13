@@ -160,6 +160,16 @@ class Request():
 
       return self._send()
 
+   def getNextTransactionList(self, nextUrl):
+      '''
+      Calls the given nextUrl to get list of next transactions
+      '''
+      self._subPath = nextUrl
+      self._params = ""
+      self._endpointName = "transactionList"
+      return self._send()
+
+
    def getTransactionList(self, latest=None, count=None):
       '''
       Get a list of transactions

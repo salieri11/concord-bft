@@ -108,7 +108,8 @@ class HelenAPITests(test_suite.TestSuite):
               ("get_transaction_list", self._test_getTransactionList), \
               ("get_transaction_list_max_size", self._test_getTransactionListMaxSize), \
               ("get_transaction_list_fields", self._test_transactionListFields), \
-              ("get_transaction_list_invalid_latest", self._test_getTransactionListInvalidLatest)]
+              ("get_transaction_list_invalid_latest", self._test_getTransactionListInvalidLatest), \
+              ("get_transaction_list_next_url", self._test_getTransactionListNextUrl)]
 
    # Tests: expect one argument, a Request, and produce a 2-tuple
    # (bool success, string info)
@@ -379,7 +380,6 @@ class HelenAPITests(test_suite.TestSuite):
 
 
    def _test_invalidBlockHash(self, request):
-      # query same block with hash and number and compare results
       try:
          block = request.getBlock("/api/athena/blocks/0xbadbeef")
       except Exception as e:
@@ -401,7 +401,6 @@ class HelenAPITests(test_suite.TestSuite):
       first_tr = self._mock_transaction()
       for i in range(1, tr_count):
          tr = self._mock_transaction()
-
 
       txList = request.getTransactionList(count=tr_count - 1)
       for i in range(tr_count - 1):
@@ -430,6 +429,29 @@ class HelenAPITests(test_suite.TestSuite):
       except Exception as e:
          return (True, None)
       return (False, "Error should be returned on invalid latest value")
+
+   def _test_getTransactionListNextUrl(self, request):
+      sentTrList = []
+      tr_count = 10
+      for i in range(tr_count):
+         tr = self._mock_transaction()
+         sentTrList.append(tr)
+      sentTrList = list(map(lambda x : x['transactionHash'], sentTrList))
+      sentTrList.reverse()
+
+      receivedTrList1 = request.getTransactionList(count=int((tr_count / 2)))
+      nextUrl = receivedTrList1['next']
+      receivedTrList1 = list(map(lambda x : x['hash'], receivedTrList1['transactions']))
+
+      if sentTrList[:5] != receivedTrList1:
+         return (False, "transaction list query did not return correct transactions")
+
+      receivedTrList2 = request.getNextTransactionList(nextUrl)
+      receivedTrList2 = list(map(lambda x : x['hash'], receivedTrList2['transactions']))
+
+      if sentTrList[5:] != receivedTrList2[:5]:
+         return (False, "transaction list query did not return correct transactions")
+      return (True, None)
 
    def requireFields(self, ob, fieldList):
       for f in fieldList:
