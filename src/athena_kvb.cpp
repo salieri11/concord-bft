@@ -294,21 +294,17 @@ bool com::vmware::athena::KVBCommandsHandler::handle_transaction_list_request(
          it = curr_block.transactions.begin();
       }
 
-
       while (remaining >= 0) {
-         while (it != curr_block.transactions.end()) {
-            if (remaining == 0) {
-               break;
-            } else {
-               TransactionResponse *tr = response->add_transaction();
-               EthTransaction tx = kvbStorage.get_transaction(*it);
-               build_transaction_response(*it, tx, tr);
-               it++;
-               remaining--;
-            }
+         while (it != curr_block.transactions.end() && remaining > 0) {
+            TransactionResponse *tr = response->add_transaction();
+            EthTransaction tx = kvbStorage.get_transaction(*it);
+            build_transaction_response(*it, tx, tr);
+            it++;
+            remaining--;
          }
 
-         if (curr_block.number == 0) {
+         if ((remaining == 0 && it != curr_block.transactions.end()) ||
+            curr_block.number == 0) {
             break;
          } else {
             curr_block = kvbStorage.get_block(curr_block.number - 1);
