@@ -216,15 +216,14 @@ export class BlockchainWizardComponent implements OnInit {
   }
 
   populateAdvancedSettingsForm() {
-    let selectedPublicRegionNodes = [];
-    this.publicNodeItems.map((item) => selectedPublicRegionNodes.push(item));
-    const patchAdvancedSettings: any = {
-      numberOfNodes: 36,
-      networkName: this.form.get('consortium').value.name + ' Net',
-      publicNodesRegions: selectedPublicRegionNodes
-    };
-
-    this.form.get('advancedSettings').patchValue(patchAdvancedSettings);
+    this.form.patchValue({
+      advancedSettings: {
+        numberOfNodes: 36,
+        networkName: this.form.get('consortium').value.name + ' Net',
+        publicNodesRegions: [...this.publicNodeItems],
+        privateNode: []
+      }
+    });
   }
 
   open() {

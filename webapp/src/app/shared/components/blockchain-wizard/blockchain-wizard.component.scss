@@ -6,6 +6,14 @@ $formTopMargin: 1.5rem;
   }
 }
 
+.accordion-table-header {
+  .title {
+    font-weight: 600;
+    font-size: 0.458333rem;
+    margin-left: 0.5rem;
+  }
+}
+
 .blockchain-wizard {
   .blockchain-form {
     margin-top: $formTopMargin;
