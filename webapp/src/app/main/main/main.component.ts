@@ -9,6 +9,7 @@ import { Subscription } from 'rxjs';
 import { AuthenticationService } from '../../shared/authentication.service';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { Personas, PersonaService } from '../../shared/persona.service';
+import { TaskManagerService } from '../../shared/task-manager.service';
 
 @Component({
   selector: 'athena-main',
@@ -29,7 +30,8 @@ export class MainComponent implements OnDestroy {
     private router: Router,
     private alertService: ErrorAlertService,
     public zone: NgZone,
-    private personaService: PersonaService
+    private personaService: PersonaService,
+    private taskManagerService: TaskManagerService
   ) {
     this.authenticationChange = authenticationService.user.subscribe(user => {
       this.authenticated = user.email !== undefined && user.persona !== undefined;
@@ -54,6 +56,10 @@ export class MainComponent implements OnDestroy {
   onLogOut() {
     this.authenticationService.logOut();
     this.router.navigate(['auth', 'log-in']);
+  }
+
+  onResetTasks() {
+    this.taskManagerService.resetTasks();
   }
 
   private addAlert(alert: any): void {

@@ -6,6 +6,7 @@
 // Global colors
 $white: #fff;
 $offWhite: #eee;
+$lightGrey: #fafafa;
 $lightBlue: #49AFD9;
 
 // Clarity variables to allow importing in to Angular components
@@ -21,3 +22,15 @@ $clr-vertical-nav-item-color: $white;
 $clr-vertical-nav-item-active-color: $white;
 $clr-vertical-nav-header-color: $white;
 $clr-vertical-nav-hover-bg-color: $clr-action-blue-light-midtone;
+
+// Accordian - light theme
+$accordion-background-color: #EEEEEE;
+$accordion-border-color: #DDDDDD;
+$accordion-title-container-color: #CCC;
+$accordion-border-bottom-color: #CCCCCC;
+$accordion-overlay-background-color: #9b9b9b;
+
+// Accordian - dark theme
+$accordion-black-color: #000;
+$accordion-title-container-color-dark: #324E60;
+$accordion-header-bg-color-dark: #22343C;

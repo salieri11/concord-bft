@@ -1,0 +1,49 @@
+<div *ngIf="!!items && items.length > 0"
+     class="tooltip-top-left combobox-container"
+     [ngClass]="{
+            'tooltip': showTooltip,
+            'tooltip-validation invalid': !isValid
+        }">
+
+  <input type="text" #inputControl
+         tabindex="0" role="combobox" aria-owns="combobox-items" aria-autocomplete="list"
+         [placeholder]="placeholder"
+         (focus)="onFocus()"
+         (blur)="onBlur()"
+         [(ngModel)]="displayValue"
+         (keypress)="onKeyPress($event)"
+         (keyup)="onKeyUp($event)"
+         [ngClass]="{'multi-select': multiSelect, 'active': showSuggestions}"/>
+
+  <span class="tooltip-content" *ngIf="showTooltip">
+        {{ isValid ? placeholder : errorMessage || 'Validation failed.'}}
+    </span>
+
+  <athena-combobox-items
+    [hidden]="!showSuggestions"
+    [items]="items"
+    (selectionChange)="setDisplayValue($event)"
+    [noItemsFoundString]="noItemsFoundString"
+    [multiSelect]="multiSelect"
+    [position]="position"
+    [filterIncludes]="filterIncludes">
+  </athena-combobox-items>
+
+  <clr-icon
+    [ngClass]="{'carret': !multiSelect}"
+    shape="caret down"
+    (click)="toggleComboboxItems()"
+    *ngIf="!!items && items.length > 0"
+    aria-controls="combobox-items"
+    tabindex="-1">
+  </clr-icon>
+
+  <clr-icon
+    *ngIf="!multiSelect"
+    class="clear-icon"
+    shape="times-circle"
+    (click)="setDisplayValue({value: '', displayValue: ''})"
+    aria-controls="combobox-items"
+    tabindex="-1">
+  </clr-icon>
+</div>

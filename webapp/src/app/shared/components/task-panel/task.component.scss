@@ -1,0 +1,177 @@
+:host {
+  display: block;
+  cursor: pointer;
+
+  clr-icon[shape="check-circle"],
+  clr-icon[shape="exclamation-circle"] {
+    margin-left: -5px;
+    display: none;
+  }
+
+  clr-icon[shape="times"] {
+    float: right;
+    margin-top: 3px;
+    margin-right: -6px;
+    opacity: 0.6;
+    cursor: pointer;
+    &:hover {
+      opacity: 1.0;
+    }
+  }
+
+  &.failed,
+  &.cancelled,
+  &.completed {
+    .progress,
+    .cancel {
+      display: none;
+    }
+
+    cursor: unset;
+  }
+
+  &.failed,
+  &.cancelled {
+    clr-icon[shape="exclamation-circle"] {
+      display: inline-block;
+    }
+  }
+
+  &.completed {
+    clr-icon[shape="check-circle"] {
+      display: inline-block;
+    }
+  }
+
+  &.clickable {
+    cursor: pointer;
+  }
+
+  &:not(.completed):not(.failed):hover {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+}
+
+.task-container {
+  margin-top: 3px;
+  padding: 0 12px;
+  padding-bottom: 7px;
+
+  &.hidden {
+    display: none;
+  }
+
+  clr-icon[shape="arrow"] {
+    cursor: pointer;
+    opacity: 0.8;
+    display: inline-block;
+    margin-left: -4px;
+    margin-top: 2px;
+
+    &:hover {
+      opacity: 1.0;
+    }
+  }
+
+  &.focused {
+    padding-bottom: 10px;
+    background-color: rgba(0, 0, 0, 0.1);
+    cursor: default;
+  }
+}
+
+.title {
+  display: flex;
+
+  clr-icon {
+    flex: 0 0 auto;
+  }
+}
+
+::ng-deep .task-container {
+  h4  {
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 24px;
+    margin-top: 0;
+    color: #FFF;
+    flex: 1;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+
+    span {
+      color: #CCC;
+      font-size: 12px;
+      line-height: 24px;
+      padding-left: 4px;
+    }
+  }
+
+  &.focused h4 {
+    overflow-wrap: break-word;
+    white-space: unset;
+  }
+}
+
+::ng-deep .description {
+  color: #FFF;
+  font-size: 12px;
+  line-height: 24px;
+  margin: 0;
+}
+
+.button-container {
+  text-align: right;
+  line-height: 12px;
+  margin-top: 7px;
+}
+
+::ng-deep button.cancel {
+  padding: 0;
+  color: #89CBDF;
+  font-size: 11px;
+  text-transform: uppercase;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  letter-spacing: 0;
+  margin-left: 10px;
+  opacity: 0.8;
+  &:hover {
+    opacity: 1.0;
+  }
+}
+
+button.dismiss{
+  padding: 0;
+  color: #FFFFFF;
+  font-size: 11px;
+  text-transform: uppercase;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  letter-spacing: 0.03rem;
+  opacity: 0.8;
+  &:hover {
+    opacity: 1.0;
+  }
+}
+
+.progress {
+  > progress::-webkit-progress-bar {
+    background-color: #424F5B;
+  }
+
+  > span {
+    color: #FFF;
+    font-size: 13.5px;
+    font-weight: 100;
+  }
+
+  &::after {
+    background-color: #0095D3;
+    // TODO: remove this once https://github.com/vmware/clarity/issues/1785 is resolved
+    top: 0.142rem;
+  }
+}

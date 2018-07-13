@@ -23,7 +23,7 @@
         </button>
         <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
           <h4 class="dropdown-header">System Admin</h4>
-          <a clrDropdownItem>
+          <a [routerLink]="['/dashboard']" fragment="deploy" clrDropdownItem>
             <clr-icon shape="wand"></clr-icon> {{ 'nav.menu.options.deploy.title' | translate }}</a>
           <a [routerLink]="['/organization']" fragment="add" clrDropdownItem *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
             <clr-icon shape="organization"></clr-icon> {{ 'nav.menu.options.addOrg.title' | translate }}</a>
@@ -54,6 +54,10 @@
                   [ngClass]="{'active': persona.value === personaService.currentPersona}"
                   clrDropdownItem>
             {{ persona.name | translate }}
+          </button>
+          <h4 class="dropdown-header">{{'nav.actions.title' | translate}}</h4>
+          <button clrDropdownItem (click)="onResetTasks()">
+            {{'nav.actions.resetTasks' | translate}}
           </button>
         </clr-dropdown-menu>
       </clr-dropdown>
@@ -132,5 +136,8 @@
         </a>
       </ng-container>
     </clr-vertical-nav>
+    <athena-task-panel class="panel-6"
+                       [hideOthersOnFocus]="true">
+    </athena-task-panel>
   </div>
 </clr-main-container>

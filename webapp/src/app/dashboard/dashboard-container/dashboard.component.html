@@ -43,3 +43,5 @@
 <div class="p-2">
   <athena-transaction-list [transactions]="recentTransactions"></athena-transaction-list>
 </div>
+
+<athena-blockchain-wizard #setupWizard (setupComplete)="onSetupComplete($event)"></athena-blockchain-wizard>

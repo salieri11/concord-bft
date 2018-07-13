@@ -1,0 +1,26 @@
+<div class="combobox-items-container dropdown" [ngClass]="position">
+  <div *ngIf="!filteredItems || !filteredItems.length" class="dropdown-menu">
+        <span class="dropdown-item">
+            {{noItemsFoundString || 'No items found.'}}
+        </span>
+  </div>
+  <ul *ngIf="!!filteredItems && filteredItems.length > 0"
+      class="dropdown-menu"
+      tabindex="-1"
+      role="listbox"
+      id="combobox-items">
+    <li *ngFor="let item of filteredItems; let idx = index;"
+        class="dropdown-item" role="option"
+        [ngClass]="{'active': multiSelect ? selectedItems.has(item) : idx === selectedIndex}"
+        (click)="onItemClick(item)">
+      <div class="checkbox" *ngIf="multiSelect">
+        <input type="checkbox" [checked]="selectedItems.has(item)">
+        <label>{{item.displayValue}}</label>
+      </div>
+      <span *ngIf="!multiSelect">
+                <clr-icon *ngIf="item.iconShape" [attr.shape]="item.iconShape"></clr-icon>
+                {{item.displayValue}}
+            </span>
+    </li>
+  </ul>
+</div>
