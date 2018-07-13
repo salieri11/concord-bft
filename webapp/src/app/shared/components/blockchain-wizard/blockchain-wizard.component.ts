@@ -67,36 +67,72 @@ export class BlockchainWizardComponent implements OnInit {
   ];
   publicNodeItems = [
     {
-      value: 'aws-south-asia',
-      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.awsSouthAsia')
+      value: 'us-east-1',
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.usEast1')
     },
     {
-      value: 'aws-east-asia',
-      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.awsEastAsia')
+      value: 'us-east-2',
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.usEast2')
     },
     {
-      value: 'aws-north-america',
-      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.awsNorthAmerica')
+      value: 'us-west-1',
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.usWest1')
     },
     {
-      value: 'aws-south-america',
-      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.awsSouthAmerica')
+      value: 'us-west-2',
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.usWest2')
     },
     {
-      value: 'aws-western-europe',
-      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.awsWesternEurope')
+      value: 'ap-northeast-1',
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.apNortheast1')
     },
     {
-      value: 'aws-eastern-europe',
-      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.awsEasternEurope')
+      value: 'ap-northeast-3',
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.apNortheast3')
     },
     {
-      value: 'aws-africa',
-      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.awsAfrica')
+      value: 'ap-south-1',
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.apSouth1')
     },
     {
-      value: 'aws-australia',
-      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.awsAustralia')
+      value: 'ap-southeast-1',
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.apSoutheast1')
+    },
+    {
+      value: 'ap-southeast-2',
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.apSoutheast2')
+    },
+    {
+      value: 'ca-central-1',
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.caCentral1')
+    },
+    {
+      value: 'cn-north-1',
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.cnNorth1')
+    },
+    {
+      value: 'cn-northwest-1',
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.cnNorthWest1')
+    },
+    {
+      value: 'eu-central-1',
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.euCentral1')
+    },
+    {
+      value: 'eu-west-1',
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.euWest1')
+    },
+    {
+      value: 'eu-west-2',
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.euWest2')
+    },
+    {
+      value: 'eu-west-3',
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.euWest3')
+    },
+    {
+      value: 'sa-east-1',
+      displayValue: this.translateService.instant('blockchainWizard.reviewDeployment.publicNodeValues.saEast1')
     }
   ];
 

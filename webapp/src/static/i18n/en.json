@@ -755,14 +755,23 @@
         "usDatacenter": "us-datacenter"
       },
       "publicNodeValues": {
-        "awsSouthAsia": "AWS South Asia",
-        "awsEastAsia": "AWS East Asia",
-        "awsNorthAmerica": "AWS North America",
-        "awsSouthAmerica": "AWS South America",
-        "awsWesternEurope": "AWS Western Europe",
-        "awsEasternEurope": "AWS Eastern Europe",
-        "awsAfrica": "AWS Africa",
-        "awsAustralia": "AWS Australia"
+        "usEast1": "AWS US East (N. Virginia)",
+        "usEast2": "AWS US East (Ohio)",
+        "usWest1": "AWS US West (N. California)",
+        "usWest2": "AWS US West (Oregon)",
+        "apNortheast1": "AWS Asia Pacific (Tokyo)",
+        "apNortheast3": "AWS Asia Pacific (Osaka-Local)",
+        "apSouth1": "AWS Asia Pacific (Mumbai)",
+        "apSoutheast1": "AWS Asia Pacific (Singapore)",
+        "apSoutheast2": "AWS Asia Pacific (Sydney)",
+        "caCentral1": "AWS Canada (Central)",
+        "cnNorth1": "AWS China (Beijing)",
+        "cnNorthWest1": "AWS China (Ningxia)",
+        "euWest1": "AWS EU (Ireland)",
+        "euWest2": "AWS EU (London)",
+        "euWest3": "AWS EU (Paris)",
+        "euCentral1": "AWS EU (Frankfurt)",
+        "saEast1": "AWS South America (São Paulo)"
       }
     },
     "locations": {

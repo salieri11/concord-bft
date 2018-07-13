@@ -93,6 +93,7 @@ export class TaskManagerService {
     setCompletedSetups([]);
     setPendingSetups([]);
     setLocalTasks({});
+    this.taskChangeSubject.next(null);
   }
 
   private addTasks(tasks, taskId) {
@@ -170,7 +171,7 @@ function setLocalTasks(localTasks) {
   localStorage.setItem('helen.setups.tasks', JSON.stringify(localTasks));
 }
 
-function getPendingSetups() {
+export function getPendingSetups() {
   return JSON.parse(localStorage.getItem('helen.setups.pending'));
 }
 
@@ -178,7 +179,7 @@ function setPendingSetups(pendingSetups) {
   localStorage.setItem('helen.setups.pending', JSON.stringify(pendingSetups));
 }
 
-function getCompletedSetups() {
+export function getCompletedSetups() {
   return JSON.parse(localStorage.getItem('helen.setups.completed'));
 }
 
