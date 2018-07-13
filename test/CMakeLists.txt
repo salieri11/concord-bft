@@ -18,9 +18,6 @@ target_link_libraries(Tests
   gtest_main
   pthread)
 
-include_directories("~/deps/secp256k1/include")
-find_library(SECP256K1_LIBRARY secp256k1 PATHS /home/bfink/deps/secp256k1/.libs)
-
 add_executable(SignTests
   signature_test.cpp)
 
@@ -31,5 +28,5 @@ target_link_libraries(SignTests
   gtest_main
   pthread
   log4cplus
-  ${Cryptopp_LIBRARIES}
-  ${SECP256K1_LIBRARY})
+  secp256k1
+  ${Cryptopp_LIBRARIES})

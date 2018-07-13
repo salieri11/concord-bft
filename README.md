@@ -138,6 +138,24 @@ make
 sudo make install
 ```
 
+#### Secp256k1
+
+Athena uses [secp256k1](https://github.com/bitcoin-core/secp256k1) to
+recover sender addresses from transaction signatures. You will need to
+download and build it:
+
+```
+git clone git@github.com:bitcoin-core/secp256k1
+cd secp256k1
+# just in case interfaces change, documenting tested commit:
+git checkout 1e6f1f5ad5e7f1e3ef79313ec02023902bf8175c
+./autogen.sh
+./configure --enable-module-recovery
+make
+./tests
+sudo make install
+```
+
 #### Google Test
 Athena uses GoogleTest framework for unit testsing. We also need that during the build process of athena. please clone google test to the same directory you cloned athena (i.e. one directory up from this README file), and build it
 ```

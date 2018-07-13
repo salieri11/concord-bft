@@ -1,4 +1,3 @@
-include_directories("~/deps/secp256k1/include")
 add_library(athena_utils STATIC
   "utils.cpp" "utils.hpp"
   "rlp.cpp" "rlp.hpp"
