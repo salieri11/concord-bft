@@ -5,6 +5,7 @@ $formTopMargin: 1.5rem;
     margin-left: 0.5rem;
   }
 }
+
 .blockchain-wizard {
   .blockchain-form {
     margin-top: $formTopMargin;
@@ -39,4 +40,16 @@ $formTopMargin: 1.5rem;
   .user-form {
     margin-top: $formTopMargin;
   }
+}
+
+.cell-full {
+  width: 20%;
+  max-width: 1px;
+}
+
+
+.overflow-ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }

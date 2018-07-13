@@ -1,5 +1,6 @@
 <form [formGroup]="form">
-  <clr-wizard #wizard [(clrWizardOpen)]="isOpen" (clrWizardOnFinish)="onSubmit()" (clrWizardOnCancel)="resetFragment()" class="blockchain-wizard">
+  <clr-wizard #wizard [(clrWizardOpen)]="isOpen" (clrWizardOnFinish)="onSubmit()" (clrWizardOnCancel)="resetFragment()"
+              class="blockchain-wizard">
     <clr-wizard-title>{{'blockchainWizard.title' | translate}}</clr-wizard-title>
 
     <clr-wizard-button [type]="'cancel'">{{'common.cancel' | translate}}</clr-wizard-button>
@@ -7,7 +8,8 @@
     <clr-wizard-button [type]="'next'">{{'common.next' | translate}}</clr-wizard-button>
     <clr-wizard-button [type]="'finish'">{{'common.finish' | translate}}</clr-wizard-button>
 
-    <clr-wizard-page #blockConsortiumPage [clrWizardPageNextDisabled]="!form.controls.blockchain.valid || !form.controls.consortium.valid || !form.controls.faultTolerance.valid">
+    <clr-wizard-page #blockConsortiumPage
+                     [clrWizardPageNextDisabled]="!form.controls.blockchain.valid || !form.controls.consortium.valid || !form.controls.faultTolerance.valid">
       <ng-template clrPageTitle>{{'blockchainWizard.blockchainAndConsortium.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'blockchainWizard.blockchainAndConsortium.navTitle' | translate}}</ng-template>
       <div class="alert alert-info">
@@ -26,7 +28,8 @@
           <div class="select">
             <select formControlName="type">
               <option value="athena">{{'blockchainWizard.blockchainAndConsortium.athena' | translate}}</option>
-              <option value="hyperledger">{{'blockchainWizard.blockchainAndConsortium.hyperledger' | translate}}</option>
+              <option value="hyperledger">{{'blockchainWizard.blockchainAndConsortium.hyperledger' | translate}}
+              </option>
             </select>
           </div>
         </div>
@@ -41,8 +44,9 @@
         </div>
         <div class="form-group" formGroupName="consortium">
           <label>{{'blockchainWizard.blockchainAndConsortium.consortiumName' | translate}}</label>
-          <input type="text" formControlName="name" [placeholder]="'blockchainWizard.blockchainAndConsortium.consortiumPlaceholder' | translate"
-            (keyup.enter)="jumpTo(orgsPage)" />
+          <input type="text" formControlName="name"
+                 [placeholder]="'blockchainWizard.blockchainAndConsortium.consortiumPlaceholder' | translate"
+                 (keyup.enter)="jumpTo(orgsPage)"/>
         </div>
       </div>
     </clr-wizard-page>
@@ -65,43 +69,48 @@
           <div class="form-item">
             <label>{{'blockchainWizard.addOrgs.name' | translate}}</label>
             <div class="form-input">
-              <input type="text" formControlName="name" class="form-control" [placeholder]="'blockchainWizard.addOrgs.namePlaceholder' | translate">
+              <input type="text" formControlName="name" class="form-control"
+                     [placeholder]="'blockchainWizard.addOrgs.namePlaceholder' | translate">
             </div>
           </div>
           <div class="form-item">
             <label>{{'blockchainWizard.addOrgs.location' | translate}}</label>
             <div class="select form-input">
               <select formControlName="location">
-                <option *ngFor="let location of locationOptions" value="{{location.value}}">{{location.name | translate}}</option>
+                <option *ngFor="let location of locationOptions" value="{{location.value}}">{{location.name |
+                  translate}}
+                </option>
               </select>
             </div>
           </div>
           <div class="submit">
-            <button type="button" class="btn btn-primary-outline btn-sm" (click)="addOrg()" [disabled]="!orgForm.valid">{{'blockchainWizard.addOrgs.addOrganization' | translate}}</button>
+            <button type="button" class="btn btn-primary-outline btn-sm" (click)="addOrg()" [disabled]="!orgForm.valid">
+              {{'blockchainWizard.addOrgs.addOrganization' | translate}}
+            </button>
           </div>
         </div>
         <table class="table">
           <thead>
-            <tr>
-              <th class="left">{{'blockchainWizard.addOrgs.name' | translate}}</th>
-              <th class="left">{{'blockchainWizard.addOrgs.location' | translate}}</th>
-            </tr>
+          <tr>
+            <th class="left">{{'blockchainWizard.addOrgs.name' | translate}}</th>
+            <th class="left">{{'blockchainWizard.addOrgs.location' | translate}}</th>
+          </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let org of form?.value.organizations; let i = index">
-              <td class="left">
-                {{org.name}}
-              </td>
-              <td class="left">
-                {{'blockchainWizard.locations.' + org.location | translate}}
-                <div class="float-xs-right table-actions">
-                  <clr-icon shape="trash" (click)="deleteOrg(i)"></clr-icon>
-                </div>
-              </td>
-            </tr>
-            <tr *ngIf="form.value.organizations.length === 0">
-              <td colspan="2">{{'blockchainWizard.addOrgs.noOrgs' | translate}}</td>
-            </tr>
+          <tr *ngFor="let org of form?.value.organizations; let i = index">
+            <td class="left">
+              {{org.name}}
+            </td>
+            <td class="left">
+              {{'blockchainWizard.locations.' + org.location | translate}}
+              <div class="float-xs-right table-actions">
+                <clr-icon shape="trash" (click)="deleteOrg(i)"></clr-icon>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="form.value.organizations.length === 0">
+            <td colspan="2">{{'blockchainWizard.addOrgs.noOrgs' | translate}}</td>
+          </tr>
           </tbody>
         </table>
       </div>
@@ -127,13 +136,15 @@
             <label>{{'blockchainWizard.usersAndAccess.firstName' | translate}}</label>
           </div>
           <div class="col-xs-8 col-sm-4">
-            <input type="text" formControlName="firstName" class="form-control" [placeholder]="'blockchainWizard.usersAndAccess.firstNamePlaceholder' | translate">
+            <input type="text" formControlName="firstName" class="form-control"
+                   [placeholder]="'blockchainWizard.usersAndAccess.firstNamePlaceholder' | translate">
           </div>
           <div class="col-xs-4 col-sm-2">
             <label>{{'blockchainWizard.usersAndAccess.lastName' | translate}}</label>
           </div>
           <div class="col-xs-8 col-sm-4">
-            <input type="text" formControlName="lastName" class="form-control" [placeholder]="'blockchainWizard.usersAndAccess.lastNamePlaceholder' | translate">
+            <input type="text" formControlName="lastName" class="form-control"
+                   [placeholder]="'blockchainWizard.usersAndAccess.lastNamePlaceholder' | translate">
           </div>
         </div>
         <div class="form-group row">
@@ -141,7 +152,8 @@
             <label>{{'blockchainWizard.usersAndAccess.email' | translate}}</label>
           </div>
           <div class="col-xs-8 col-sm-4">
-            <input type="text" formControlName="email" class="form-control" [placeholder]="'blockchainWizard.usersAndAccess.emailPlaceholder' | translate">
+            <input type="text" formControlName="email" class="form-control"
+                   [placeholder]="'blockchainWizard.usersAndAccess.emailPlaceholder' | translate">
           </div>
           <div class="col-xs-4 col-sm-2">
             <label>{{'blockchainWizard.usersAndAccess.organization' | translate}}</label>
@@ -161,118 +173,141 @@
           <div class="col-xs-8 col-sm-4">
             <div class="select">
               <select formControlName="role">
-                <option *ngFor="let persona of personaOptions" value="{{persona.value}}">{{persona.name | translate}}</option>
+                <option *ngFor="let persona of personaOptions" value="{{persona.value}}">{{persona.name | translate}}
+                </option>
               </select>
             </div>
           </div>
         </div>
         <div class="text-right">
-          <button class="btn btn-sm btn-primary-outline" type="button" (click)="addUser()" [disabled]="!userForm.valid">{{'blockchainWizard.usersAndAccess.addUser' | translate}}</button>
+          <button class="btn btn-sm btn-primary-outline" type="button" (click)="addUser()" [disabled]="!userForm.valid">
+            {{'blockchainWizard.usersAndAccess.addUser' | translate}}
+          </button>
         </div>
       </div>
-      <clr-datagrid>
-        <clr-dg-column>{{'blockchainWizard.usersAndAccess.firstName' | translate}}</clr-dg-column>
-        <clr-dg-column>{{'blockchainWizard.usersAndAccess.lastName' | translate}}</clr-dg-column>
-        <clr-dg-column>{{'blockchainWizard.usersAndAccess.role' | translate}}</clr-dg-column>
-        <clr-dg-row *ngFor="let user of form?.value.users; let i = index">
-          <clr-dg-cell>{{user.firstName}}</clr-dg-cell>
-          <clr-dg-cell>{{user.lastName}}</clr-dg-cell>
-          <clr-dg-cell>
-            {{user.role}}
-            <div class="float-xs-right table-actions">
-              <clr-icon shape="trash" (click)="deleteUser(i)"></clr-icon>
-            </div>
-          </clr-dg-cell>
-          <clr-dg-row-detail *clrIfExpanded>
-            <table class="table table-noborder mt-0">
-              <thead>
-                <tr>
-                  <th class="left border-bottom-0">{{'blockchainWizard.usersAndAccess.email' | translate}}</th>
-                  <th class="left border-bottom-0">{{'blockchainWizard.usersAndAccess.organization' | translate}}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td class="left">{{user.email}}</td>
-                  <td class="left">{{user.organization}}</td>
-                </tr>
-              </tbody>
-            </table>
-          </clr-dg-row-detail>
-        </clr-dg-row>
-      </clr-datagrid>
 
+      <table class="table">
+        <thead>
+        <tr>
+          <th class="left">{{'blockchainWizard.usersAndAccess.firstName' | translate}}</th>
+          <th class="left">{{'blockchainWizard.usersAndAccess.lastName' | translate}}</th>
+          <th class="left">{{'blockchainWizard.usersAndAccess.role' | translate}}</th>
+          <th class="left">{{'blockchainWizard.usersAndAccess.email' | translate}}</th>
+          <th class="left">{{'blockchainWizard.usersAndAccess.organization' | translate}}</th>
+          <th class="left"></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr *ngFor="let user of form?.value.users; let i = index">
+          <td class="left cell-full overflow-ellipsis">
+            {{user.firstName}}
+          </td>
+          <td class="left cell-full overflow-ellipsis">
+            {{user.lastName}}
+          </td>
+          <td class="left cell-full overflow-ellipsis">
+            {{user.role}}
+          </td>
+          <td class="left cell-full overflow-ellipsis">
+            {{user.email}}
+          </td>
+          <td class="left cell-full overflow-ellipsis">
+            {{user.organization}}
+          </td>
+          <td class="left">
+            <span class="float-xs-right table-actions">
+              <clr-icon shape="trash" (click)="deleteUser(i)"></clr-icon>
+            </span>
+          </td>
+        </tr>
+        <tr *ngIf="form?.value.users.length === 0">
+          <td colspan="5">{{'blockchainWizard.usersAndAccess.noUsers' | translate}}</td>
+        </tr>
+        </tbody>
+      </table>
     </clr-wizard-page>
 
-    <clr-wizard-page>
+    <clr-wizard-page (clrWizardPageOnLoad)="populateAdvancedSettingsForm()">
       <ng-template clrPageTitle>{{'blockchainWizard.reviewDeployment.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'blockchainWizard.reviewDeployment.navTitle' | translate}}</ng-template>
       <h4>
         {{'blockchainWizard.reviewDeployment.chosenBlockchain' | translate}}
-        <small class="text-muted ml-1">{{'blockchainWizard.blockchainAndConsortium.' + form.value.blockchain.type | translate}}</small>
-        <button type="button" class="btn btn-sm btn-link float-xs-right m-0" (click)="jumpTo(blockConsortiumPage)">{{'common.edit' | translate}}</button>
+        <small class="text-muted ml-1">{{'blockchainWizard.blockchainAndConsortium.' + form.value.blockchain.type |
+          translate}}
+        </small>
+        <button type="button" class="btn btn-sm btn-link float-xs-right m-0" (click)="jumpTo(blockConsortiumPage)">
+          {{'common.edit' | translate}}
+        </button>
       </h4>
 
       <h4>
         {{'blockchainWizard.reviewDeployment.consortiumSetup' | translate}}
         <small class="text-muted ml-1">{{form.value.consortium.name}}</small>
-        <button type="button" class="btn btn-sm btn-link float-xs-right m-0" (click)="jumpTo(blockConsortiumPage)">{{'common.edit' | translate}}</button>
+        <button type="button" class="btn btn-sm btn-link float-xs-right m-0" (click)="jumpTo(blockConsortiumPage)">
+          {{'common.edit' | translate}}
+        </button>
       </h4>
       <h4>
         {{'blockchainWizard.reviewDeployment.organizations' | translate}}
-        <button type="button" class="btn btn-sm btn-link float-xs-right m-0" (click)="jumpTo(orgsPage)">{{'common.edit' | translate}}</button>
+        <button type="button" class="btn btn-sm btn-link float-xs-right m-0" (click)="jumpTo(orgsPage)">{{'common.edit'
+          | translate}}
+        </button>
       </h4>
       <table class="table">
         <thead>
-          <tr>
-            <th class="left">{{'blockchainWizard.addOrgs.name' | translate}}</th>
-            <th class="left">{{'blockchainWizard.addOrgs.location' | translate}}</th>
-          </tr>
+        <tr>
+          <th class="left">{{'blockchainWizard.addOrgs.name' | translate}}</th>
+          <th class="left">{{'blockchainWizard.addOrgs.location' | translate}}</th>
+        </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let org of form?.value.organizations">
-            <td class="left">
-              {{org.name}}
-            </td>
-            <td class="left">
-              {{'blockchainWizard.locations.' + org.location | translate}}
-            </td>
-          </tr>
+        <tr *ngFor="let org of form?.value.organizations">
+          <td class="left">
+            {{org.name}}
+          </td>
+          <td class="left">
+            {{'blockchainWizard.locations.' + org.location | translate}}
+          </td>
+        </tr>
         </tbody>
       </table>
       <h4>
         {{'blockchainWizard.usersAndAccess.pageTitle' | translate}}
         <button type="button" class="btn btn-sm btn-link float-xs-right m-0" (click)="jumpTo(usersPage)">{{'common.edit' | translate}}</button>
-        <clr-datagrid>
-          <clr-dg-column>{{'blockchainWizard.usersAndAccess.firstName' | translate}}</clr-dg-column>
-          <clr-dg-column>{{'blockchainWizard.usersAndAccess.lastName' | translate}}</clr-dg-column>
-          <clr-dg-column>{{'blockchainWizard.usersAndAccess.role' | translate}}</clr-dg-column>
-          <clr-dg-row *ngFor="let user of form?.value.users">
-            <clr-dg-cell>{{user.firstName}}</clr-dg-cell>
-            <clr-dg-cell>{{user.lastName}}</clr-dg-cell>
-            <clr-dg-cell>{{user.role}}</clr-dg-cell>
-            <clr-dg-row-detail *clrIfExpanded>
-              <table class="table table-noborder mt-0">
-                <thead>
-                  <tr>
-                    <th class="left border-bottom-0">{{'blockchainWizard.usersAndAccess.email' | translate}}</th>
-                    <th class="left border-bottom-0">{{'blockchainWizard.usersAndAccess.organization' | translate}}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td class="left">{{user.email}}</td>
-                    <td class="left">{{user.organization}}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </clr-dg-row-detail>
-          </clr-dg-row>
-        </clr-datagrid>
+        <table class="table">
+          <thead>
+          <tr>
+            <th class="left">{{'blockchainWizard.usersAndAccess.firstName' | translate}}</th>
+            <th class="left">{{'blockchainWizard.usersAndAccess.lastName' | translate}}</th>
+            <th class="left">{{'blockchainWizard.usersAndAccess.role' | translate}}</th>
+            <th class="left">{{'blockchainWizard.usersAndAccess.email' | translate}}</th>
+            <th class="left">{{'blockchainWizard.usersAndAccess.organization' | translate}}</th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr *ngFor="let user of form?.value.users; let i = index">
+            <td class="left cell-full overflow-ellipsis">
+              {{user.firstName}}
+            </td>
+            <td class="left cell-full overflow-ellipsis">
+              {{user.lastName}}
+            </td>
+            <td class="left cell-full overflow-ellipsis">
+              {{user.role}}
+            </td>
+            <td class="left cell-full overflow-ellipsis">
+              {{user.email}}
+            </td>
+            <td class="left cell-full overflow-ellipsis">
+              {{user.organization}}
+            </td>
+          </tr>
+          </tbody>
+        </table>
       </h4>
 
       <div formGroupName="advancedSettings" class="mt-1">
-        <athena-accordion-group>
+        <athena-accordion-group class="accordion-table-header">
           <athena-accordion>
             <span class="title">{{'blockchainWizard.reviewDeployment.advanced' | translate}}</span>
             <div class="accordion-body">
@@ -287,13 +322,15 @@
                 </div>
                 <div class="form-group">
                   <label>{{'blockchainWizard.reviewDeployment.publicNodesRegions' | translate}}</label>
-                  <athena-combobox formControlName="publicNodesRegions" [items]="publicNodeItems" [position]="'top-left'" [multiSelect]="true"
-                    [showTooltip]="false" [isAddNewAllowed]="false"></athena-combobox>
+                  <athena-combobox formControlName="publicNodesRegions" [items]="publicNodeItems"
+                                   [position]="'top-left'" [multiSelect]="true"
+                                   [showTooltip]="false" [isAddNewAllowed]="false"></athena-combobox>
                 </div>
                 <div class="form-group">
                   <label>{{'blockchainWizard.reviewDeployment.privateNode' | translate}}</label>
-                  <athena-combobox formControlName="privateNode" [items]="privateNodeItems" [position]="'top-left'" [multiSelect]="true" [showTooltip]="false"
-                    [isAddNewAllowed]="false"></athena-combobox>
+                  <athena-combobox formControlName="privateNode" [items]="privateNodeItems" [position]="'top-left'"
+                                   [multiSelect]="true" [showTooltip]="false"
+                                   [isAddNewAllowed]="false"></athena-combobox>
                 </div>
               </div>
             </div>

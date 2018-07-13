@@ -737,7 +737,8 @@
       "emailPlaceholder": "jdoe@email.com",
       "organization": "Organization",
       "role": "Role",
-      "addUser": "Add User"
+      "addUser": "Add User",
+      "noUsers": "No Users Added"
     },
     "reviewDeployment": {
       "pageTitle": "Review Deployment Setup",
