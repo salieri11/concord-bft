@@ -16,6 +16,8 @@ from time import sleep
 from . import test_suite
 from util.product import Product
 from rest.request import Request
+from rpc.rpc_call import RPC
+
 import util.json_helper
 
 log = logging.getLogger(__name__)
@@ -100,7 +102,14 @@ class HelenAPITests(test_suite.TestSuite):
               ("version_upload", self._test_versionUpload), \
               ("get_versions", self._test_getAllVersions), \
               ("get_version", self._test_getVersion), \
-              ("duplicate_contract", self._test_duplicateContractUpload)]
+              ("duplicate_contract", self._test_duplicateContractUpload), \
+              ("block_hash", self._test_blockHash), \
+              ("invalid_block_hash", self._test_invalidBlockHash), \
+              ("get_transaction_list", self._test_getTransactionList), \
+              ("get_transaction_list_max_size", self._test_getTransactionListMaxSize), \
+              ("get_transaction_list_fields", self._test_transactionListFields), \
+              ("get_transaction_list_invalid_latest", self._test_getTransactionListInvalidLatest), \
+              ("get_transaction_list_next_url", self._test_getTransactionListNextUrl)]
 
    # Tests: expect one argument, a Request, and produce a 2-tuple
    # (bool success, string info)
@@ -345,6 +354,104 @@ class HelenAPITests(test_suite.TestSuite):
          return (False,
                  "GET /api/athena/contracts/{}/versions/{} did not return" \
                  " correct response".format(contractId, contractVersion))
+
+   def _mock_transaction(self, request):
+      rpc = RPC(request._logDir,
+                self.getName(),
+                self._apiServerUrl)
+      # do a transaction so that we have some block
+      caller = "0x1111111111111111111111111111111111111111"
+      to = "0x2222222222222222222222222222222222222222"
+      response = rpc.sendTransaction(caller, "0x00", "0xffff", to, "0x01")
+      response = rpc._getTransactionReceipt(response)
+      return response;
+
+
+   def _test_blockHash(self, request):
+      txReceipt = self._mock_transaction(request)
+      blockNumber = txReceipt['blockNumber']
+      blockHash = txReceipt['blockHash']
+      # query same block with hash and number and compare results
+      block1 = request.getBlock("/api/athena/blocks/{}".format(blockNumber))
+      block2 = request.getBlock("/api/athena/blocks/{}".format(blockHash))
+      if (block1 == block2):
+         return (True, None)
+      return (False, "Block returned with block hash API doesn't match with block returned by block Number")
+
+
+   def _test_invalidBlockHash(self, request):
+      try:
+         block = request.getBlock("/api/athena/blocks/0xbadbeef")
+      except Exception as e:
+         return(True, None)
+      return (False, "invalid block hash exception should be thrown")
+
+
+   def _test_getTransactionList(self, request):
+      txReceipt = self._mock_transaction(request)
+      txList = request.getTransactionList(count=1)
+      txList = txList['transactions']
+      if (len(txList) == 1 and
+          txList[0]['hash'] == txReceipt['transactionHash']):
+         return (True, None)
+      return (False, "Trasaction list response did not follow count & latest parameters")
+
+   def _test_transactionListFields(self, request):
+      tr_count = 10
+      first_tr = self._mock_transaction(request)
+      for i in range(1, tr_count):
+         tr = self._mock_transaction(request)
+
+      txList = request.getTransactionList(count=tr_count - 1)
+      for i in range(tr_count - 1):
+         (present, missing) = self.requireFields(txList['transactions'][i],
+                                                 ["from", "to", "value", "nonce", "hash", "url"]);
+         if not present:
+            return (False, "{} field is missing from response".format(missing))
+      if first_tr['transactionHash'] not in txList['next']:
+         return (False, "next field does not refer to correct next transaction")
+      return (True, None)
+
+
+   def _test_getTransactionListMaxSize(self, request):
+      txReceipt = self._mock_transaction(request)
+      txList = request.getTransactionList(count=1000)
+      txList = txList['transactions']
+      if (len(txList) < 1000 and
+          txList[0]['hash'] == txReceipt['transactionHash']):
+         return (True, None)
+      return (False, "Trasaction list response should limit maximum number of transactions returned")
+
+   def _test_getTransactionListInvalidLatest(self, request):
+      txReceipt = self._mock_transaction(request)
+      try:
+         txList = request.getTransactionList(latest="0xabq")
+      except Exception as e:
+         return (True, None)
+      return (False, "Error should be returned on invalid latest value")
+
+   def _test_getTransactionListNextUrl(self, request):
+      sentTrList = []
+      tr_count = 10
+      for i in range(tr_count):
+         tr = self._mock_transaction(request)
+         sentTrList.append(tr)
+      sentTrList = list(map(lambda x : x['transactionHash'], sentTrList))
+      sentTrList.reverse()
+
+      receivedTrList1 = request.getTransactionList(count=int((tr_count / 2)))
+      nextUrl = receivedTrList1['next']
+      receivedTrList1 = list(map(lambda x : x['hash'], receivedTrList1['transactions']))
+
+      if sentTrList[:5] != receivedTrList1:
+         return (False, "transaction list query did not return correct transactions")
+
+      receivedTrList2 = request.getNextTransactionList(nextUrl)
+      receivedTrList2 = list(map(lambda x : x['hash'], receivedTrList2['transactions']))
+
+      if sentTrList[5:] != receivedTrList2[:5]:
+         return (False, "transaction list query did not return correct transactions")
+      return (True, None)
 
    def requireFields(self, ob, fieldList):
       for f in fieldList:
