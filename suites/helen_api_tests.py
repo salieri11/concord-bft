@@ -355,8 +355,8 @@ class HelenAPITests(test_suite.TestSuite):
                  "GET /api/athena/contracts/{}/versions/{} did not return" \
                  " correct response".format(contractId, contractVersion))
 
-   def _mock_transaction(self):
-      rpc = RPC(self._testLogDir,
+   def _mock_transaction(self, request):
+      rpc = RPC(request._logDir,
                 self.getName(),
                 self._apiServerUrl)
       # do a transaction so that we have some block
@@ -368,7 +368,7 @@ class HelenAPITests(test_suite.TestSuite):
 
 
    def _test_blockHash(self, request):
-      txReceipt = self._mock_transaction()
+      txReceipt = self._mock_transaction(request)
       blockNumber = txReceipt['blockNumber']
       blockHash = txReceipt['blockHash']
       # query same block with hash and number and compare results
@@ -388,7 +388,7 @@ class HelenAPITests(test_suite.TestSuite):
 
 
    def _test_getTransactionList(self, request):
-      txReceipt = self._mock_transaction()
+      txReceipt = self._mock_transaction(request)
       txList = request.getTransactionList(count=1)
       txList = txList['transactions']
       if (len(txList) == 1 and
@@ -398,9 +398,9 @@ class HelenAPITests(test_suite.TestSuite):
 
    def _test_transactionListFields(self, request):
       tr_count = 10
-      first_tr = self._mock_transaction()
+      first_tr = self._mock_transaction(request)
       for i in range(1, tr_count):
-         tr = self._mock_transaction()
+         tr = self._mock_transaction(request)
 
       txList = request.getTransactionList(count=tr_count - 1)
       for i in range(tr_count - 1):
@@ -414,7 +414,7 @@ class HelenAPITests(test_suite.TestSuite):
 
 
    def _test_getTransactionListMaxSize(self, request):
-      txReceipt = self._mock_transaction()
+      txReceipt = self._mock_transaction(request)
       txList = request.getTransactionList(count=1000)
       txList = txList['transactions']
       if (len(txList) < 1000 and
@@ -423,7 +423,7 @@ class HelenAPITests(test_suite.TestSuite):
       return (False, "Trasaction list response should limit maximum number of transactions returned")
 
    def _test_getTransactionListInvalidLatest(self, request):
-      txReceipt = self._mock_transaction()
+      txReceipt = self._mock_transaction(request)
       try:
          txList = request.getTransactionList(latest="0xabq")
       except Exception as e:
@@ -434,7 +434,7 @@ class HelenAPITests(test_suite.TestSuite):
       sentTrList = []
       tr_count = 10
       for i in range(tr_count):
-         tr = self._mock_transaction()
+         tr = self._mock_transaction(request)
          sentTrList.append(tr)
       sentTrList = list(map(lambda x : x['transactionHash'], sentTrList))
       sentTrList.reverse()
