@@ -11,11 +11,11 @@ import { User } from '../shared/user.model';
 
 @Component({
   selector: 'athena-users',
-  templateUrl: './user.component.html',
-  styleUrls: ['./user.component.scss']
+  templateUrl: './users.component.html',
+  styleUrls: ['./users.component.scss']
 })
-export class UserComponent implements OnInit {
-  static personasAllowed: Personas[] = [Personas.SystemsAdmin];
+export class UsersComponent implements OnInit {
+  static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin, Personas.OrgAdmin];
   @ViewChild('usersList') usersList: UserListComponent;
   @ViewChild('usrForm') userForm: UserFormComponent;
 

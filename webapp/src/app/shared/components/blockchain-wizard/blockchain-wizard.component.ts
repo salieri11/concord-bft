@@ -48,7 +48,7 @@ export class BlockchainWizardComponent implements OnInit {
     { value: 'newYork', name: 'blockchainWizard.locations.newYork' },
     { value: 'paloAlto', name: 'blockchainWizard.locations.paloAlto' },
   ];
-  personaOptions: Array<{ name ?: string; value: Personas; }> = [
+  personaOptions: Array<{ name?: string; value: Personas; }> = [
     { value: Personas.SystemsAdmin, name: 'personas.systemsAdmin' },
     { value: Personas.ConsortiumAdmin, name: 'personas.consortiumAdmin' },
     { value: Personas.OrgAdmin, name: 'personas.orgAdmin' },
@@ -213,6 +213,18 @@ export class BlockchainWizardComponent implements OnInit {
     selectedUsers.setValue(selectedUsers.value.filter((item, i) => {
       return index !== i;
     }));
+  }
+
+  populateAdvancedSettingsForm() {
+    let selectedPublicRegionNodes = [];
+    this.publicNodeItems.map((item) => selectedPublicRegionNodes.push(item));
+    const patchAdvancedSettings: any = {
+      numberOfNodes: 36,
+      networkName: this.form.get('consortium').value.name + ' Net',
+      publicNodesRegions: selectedPublicRegionNodes
+    };
+
+    this.form.get('advancedSettings').patchValue(patchAdvancedSettings);
   }
 
   open() {

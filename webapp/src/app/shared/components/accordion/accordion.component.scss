@@ -20,7 +20,7 @@ $xl-min-width: 1600px;
 $xxl-min-width: 1919px;
 
 :host.no-subheader {
-  > div > .accordion-header  {
+  > div > .accordion-header {
     > .title-container {
       width: 100% !important;
     }
@@ -39,8 +39,8 @@ $xxl-min-width: 1919px;
   -webkit-transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
   -moz-transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
   transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
-  border-bottom: 1px solid #DDDDDD;
-  border-color: #DDDDDD;
+  border-bottom: 1px solid $accordion-border-color;
+  border-color: $accordion-border-color;
   vertical-align: middle;
   padding: 8px 12px;
   cursor: default;
@@ -56,7 +56,6 @@ $xxl-min-width: 1919px;
     height: 16px;
   }
 
-
   &.expandable {
     cursor: pointer;
   }
@@ -64,10 +63,9 @@ $xxl-min-width: 1919px;
   &:not(.expandable) .title-container {
     clr-icon[shape="caret down"],
     clr-icon[shape="caret right"] {
-      color: #CCC;
+      color: $accordion-title-container-color;
     }
   }
-
 
   .title-container {
     display: inline-block;
@@ -152,12 +150,12 @@ $xxl-min-width: 1919px;
 
 .accordion-body.wrapper {
   position: relative;
-  border-bottom: 1px solid #DDDDDD;
+  border-bottom: 1px solid $accordion-border-color;
 
   .accordion-overlay {
     height: 100%;
     width: 100%;
-    background: #9b9b9b;
+    background: $accordion-overlay-background-color;
     text-align: center;
     position: absolute;
     top: 0;
@@ -177,7 +175,7 @@ $xxl-min-width: 1919px;
 
 .expanded {
   > .accordion-header {
-    border-bottom: 1px solid #CCCCCC;
+    border-bottom: 1px solid $accordion-border-bottom-color;
     background-color: $lightGrey;
 
     &:hover {
@@ -232,24 +230,24 @@ $xxl-min-width: 1919px;
 
 ::ng-deep .dark {
   .accordion-body.wrapper .accordion-overlay {
-    background-color: #000 !important;
+    background-color: $accordion-black-color !important;
   }
 
   .accordion-header,
   .accordion-body.wrapper {
-    border-color: #000 !important;
+    border-color: $accordion-black-color !important;
 
     &:not(.expandable) .title-container {
       clr-icon[shape="caret down"],
       clr-icon[shape="caret right"] {
-        color: #324E60 !important;
+        color: $accordion-title-container-color-dark !important;
       }
     }
   }
 
   .expanded .accordion-header {
-    background-color: #22343C !important;
-    border-bottom: 1px solid #000 !important;
+    background-color: $accordion-header-bg-color-dark !important;
+    border-bottom: 1px solid $accordion-black-color !important;
   }
 
   .accordion-header:hover {
