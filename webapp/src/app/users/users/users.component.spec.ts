@@ -4,7 +4,7 @@
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { UserComponent } from './user.component';
+import { UsersComponent } from './users.component';
 import { UserListComponent } from '../user-list/user-list.component';
 import { UserFormComponent } from '../user-form/user-form.component';
 import { MockSharedModule } from '../../shared/shared.module';
@@ -20,9 +20,9 @@ export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './static/i18n/', '.json');
 }
 
-describe('UserComponent', () => {
-  let component: UserComponent;
-  let fixture: ComponentFixture<UserComponent>;
+describe('UsersComponent', () => {
+  let component: UsersComponent;
+  let fixture: ComponentFixture<UsersComponent>;
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
@@ -38,7 +38,7 @@ describe('UserComponent', () => {
           }
         })
       ],
-      declarations: [ UserComponent, UserListComponent, UserFormComponent ],
+      declarations: [ UsersComponent, UserListComponent, UserFormComponent ],
       providers: [
         UsersService,
         TranslateService,
@@ -58,7 +58,7 @@ describe('UserComponent', () => {
   }));
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(UserComponent);
+    fixture = TestBed.createComponent(UsersComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

@@ -68,6 +68,7 @@
           <clr-icon shape="caret down"></clr-icon>
         </button>
         <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
+          <a clrDropdownItem [routerLink]="['/users/settings']">{{'nav.settings' | translate}}</a>
           <a clrDropdownItem (click)="onLogOut()">{{'nav.logOut' | translate}}</a>
         </clr-dropdown-menu>
       </clr-dropdown>
@@ -98,7 +99,7 @@
         <clr-icon clrVerticalNavIcon shape="file-settings"></clr-icon>
         {{'nav.testing.title' | translate}}
       </a>
-      <ng-container *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
+      <ng-container *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
         <div class="nav-divider"></div>
         <label class="nav-header">
           {{ 'nav.sysadmin.title' | translate }}
@@ -130,7 +131,7 @@
         <a clrVerticalNavLink
            [routerLink]="['/users']"
            routerLinkActive="active"
-           *athenaCanView="[personas.SystemsAdmin]">
+           *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
           <clr-icon clrVerticalNavIcon shape="administrator"></clr-icon> {{ 'nav.users.title' | translate }}
         </a>
       </ng-container>

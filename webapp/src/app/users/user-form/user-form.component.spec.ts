@@ -12,7 +12,7 @@ import { UserFormComponent } from './user-form.component';
 import { UsersService } from '../shared/users.service';
 import { MockSharedModule } from '../../shared/shared.module';
 import { GridModule } from '../../grid/grid.module';
-import { HttpLoaderFactory } from '../user/user.component.spec';
+import { HttpLoaderFactory } from '../users/users.component.spec';
 
 describe('UserFormComponent', () => {
   let component: UserFormComponent;
