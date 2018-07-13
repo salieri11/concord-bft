@@ -733,6 +733,7 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
          evm_address sig_from;
          recover_from(request, &sig_from);
 
+         // TODO: also assert that both aren't zero_addr
          if (message.sender != sig_from) {
             // TODO: return error, but let's get this check working first
             LOG4CPLUS_FATAL(logger, "Message sender does not match signature");
@@ -741,6 +742,7 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
       }
    } else {
       recover_from(request, &message.sender);
+      // TODO: ensure we don't get zero_addr back
    }
 
    if (request.has_data()) {
