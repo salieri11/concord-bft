@@ -106,11 +106,6 @@ namespace Blockchain {
       const std::string m_byzPrivateConfig;
       const ICommandsHandler *m_cmdHandler;
 
-      // data
-      std::function<void(
-              int64_t, std::string, int16_t, std::string)>
-              m_fPeerConnectivityCallback;
-
       // INTERNAL TYPES
 
       // represents <key,blockId>
@@ -255,6 +250,10 @@ namespace Blockchain {
       // storage - TODO(GG): add support for leveldb/rocksdb
       BlockchainDBAdapter* m_bcDbAdapter;
       BlockId lastBlock = 0;
+
+      std::function<void(
+         int64_t, std::string, int16_t, std::string)>
+            m_fPeerConnectivityCallback;
 
       // static methods
       static Slice createBlockFromUpdates(

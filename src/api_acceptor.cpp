@@ -19,8 +19,8 @@ api_acceptor::api_acceptor(io_service &io_service,
    : acceptor_(io_service, endpoint),
      filterManager_(filterManager),
      client_(client),
-     sag_(sag),
-     logger_(log4cplus::Logger::getInstance("com.vmware.athena.api_acceptor"))
+     logger_(log4cplus::Logger::getInstance("com.vmware.athena.api_acceptor")),
+     sag_(sag)
 {
    start_accept();
 }
