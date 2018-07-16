@@ -3,6 +3,7 @@
 // KVBlockchain replica command handler interface for EVM.
 
 #include <log4cplus/loggingmacros.h>
+#include <boost/program_options.hpp>
 
 #include "kvb/BlockchainInterfaces.h"
 #include "kvb/slice.h"
@@ -17,9 +18,10 @@ class KVBCommandsHandler : public Blockchain::ICommandsHandler {
 private:
    log4cplus::Logger logger;
    EVM &athevm_;
+   boost::program_options::variables_map &config;
 
 public:
-   KVBCommandsHandler(EVM &athevm);
+   KVBCommandsHandler(EVM &athevm, boost::program_options::variables_map &config_map);
    ~KVBCommandsHandler();
 
    // ICommandsHandler
@@ -40,6 +42,10 @@ public:
 
    // Handlers
    bool handle_transaction_request(
+      AthenaRequest &athreq,
+      KVBStorage &kvbStorage,
+      AthenaResponse &athresp) const;
+   bool handle_transaction_list_request(
       AthenaRequest &athreq,
       KVBStorage &kvbStorage,
       AthenaResponse &athresp) const;

@@ -25,6 +25,7 @@ private:
    const Blockchain::ILocalKeyValueStorageReadOnly &roStorage_;
    Blockchain::IBlocksAppender *blockAppender_;
    Blockchain::SetOfKeyValuePairs updates;
+   std::vector<EthTransaction> pending_transactions;
    log4cplus::Logger logger;
 
    /* Value of "type" byte, at the start of each key. */

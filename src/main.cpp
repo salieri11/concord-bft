@@ -193,7 +193,7 @@ run_service(variables_map &opts, Logger logger)
 
       // throws an exception if it fails
       EVM athevm(params);
-      KVBCommandsHandler athkvb(athevm);
+      KVBCommandsHandler athkvb(athevm, opts);
 
       // For Thread local storage. Should be called exactly once per process.
       Blockchain::initEnv();

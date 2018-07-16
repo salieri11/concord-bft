@@ -237,16 +237,26 @@ Status com::vmware::athena::KVBStorage::write_block() {
       blk.parent_hash = parent.hash;
    }
 
-   for (auto u: updates) {
-      if (u.first.data()[0] == TYPE_TRANSACTION) {
-         evm_uint256be txhash;
-         std::copy(u.first.data()+1,
-                   u.first.data()+u.first.size(),
-                   txhash.bytes);
-         blk.transactions.push_back(txhash);
-      }
+   // We need hash of all transactions for calculating hash of a block
+   // but we also need block hash inside transaction strcture (not required
+   // to calculate hash of that transaction). So first use transaction hash to
+   // get block hash and then populate that block hash & block number inside
+   // all transactions in that block
+   for (auto tx: pending_transactions) {
+      blk.transactions.push_back(tx.hash());
    }
    blk.hash = blk.get_hash();
+
+   for (auto tx: pending_transactions) {
+      tx.block_hash = blk.hash;
+      tx.block_number = blk.number;
+      Slice txaddr = transaction_key(tx);
+      char *txser;
+      size_t txser_length = tx.serialize(&txser);
+
+      put(txaddr, Slice(txser, txser_length));
+   }
+   pending_transactions.clear();
 
    // Add the block metadata to the key-value pair set
    add_block(blk);
@@ -286,11 +296,13 @@ void com::vmware::athena::KVBStorage::add_block(EthBlock &blk)
 
 void com::vmware::athena::KVBStorage::add_transaction(EthTransaction &tx)
 {
-   Slice txaddr = transaction_key(tx);
-   char *txser;
-   size_t txser_length = tx.serialize(&txser);
-
-   put(txaddr, Slice(txser, txser_length));
+   // Like other add_* methods we don't serialized the transaction here. The
+   // reason is that block hash and block number is not known at this point
+   // hence we can not serialize the transaction properly. Instead we put the
+   // transaction in `pending_tansactions` vector for now and then in
+   // write_block properly fill block_number & block_hash inside each
+   // transaction
+   pending_transactions.push_back(tx);
 }
 
 void com::vmware::athena::KVBStorage::set_balance(const evm_address &addr,
@@ -375,6 +387,13 @@ uint64_t com::vmware::athena::KVBStorage::current_block_number() {
  */
 Status com::vmware::athena::KVBStorage::get(const Slice &key, Slice &value)
 {
+   // TODO(Amit): All updates other than transactions are stored in 'updates'
+   // structure while transactions are stored in a separate
+   // `pending_transactions` vector (read more about that in `add_transaction`
+   // function). Hence, this search will not work if someone calls `get` for a
+   // transaction that is not yet commited (i.e is still in
+   // `pending_transactions` vector).
+
    //TODO(BWF): this search will be very inefficient for a large set of changes
    for (auto u: updates) {
       if (u.first == key) {
