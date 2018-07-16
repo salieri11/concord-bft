@@ -13,7 +13,7 @@ set(USE_ROCKSDB True)
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIRS})
 
-find_package(Boost 1.64 COMPONENTS system program_options REQUIRED)
+find_package(Boost 1.64 COMPONENTS system program_options thread REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 #find_package(Log4Cplus REQUIRED)

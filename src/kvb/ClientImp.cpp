@@ -204,10 +204,14 @@ Status ClientImp::invokeCommandSynch(const Slice command,
                                                 command,
                                                 (uint64_t)&t,
                                                 handlerForSynchOperations);
-   m_threadPool.add(j);
 
+   // Below section needs to be guarded with mutex (read comment in ClientImp.h
+   // file about usage of this mutex)
+   boost::unique_lock<boost::mutex> lock(job_mutex);
+   m_threadPool.add(j);
    // TODO(GG): patch (work only becuase we use a single thread)
    m_threadPool.waitForCompletion();
+   lock.unlock();
 
    outReply = Slice(t.p, t.s);
 

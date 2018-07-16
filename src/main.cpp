@@ -5,6 +5,7 @@
 #include <iostream>
 #include <csignal>
 #include <boost/program_options.hpp>
+#include <boost/thread.hpp>
 #include <log4cplus/loggingmacros.h>
 #include <log4cplus/configurator.h>
 #include "common/utils.hpp"
@@ -37,6 +38,7 @@ using namespace Blockchain;
 
 // the Boost service hosting our Helen connections
 static io_service *api_service;
+static boost::thread_group worker_pool;
 
 void signalHandler(int signum) {
    try {
@@ -148,6 +150,24 @@ Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
    return kvbStorage.write_block();
 }
 
+
+/*
+ * Starts a set of worker threads which will call api_service.run() method.
+ * This will allow us to have multiple threads accepting tcp connections
+ * and passing the requests to KVBClient.
+ */
+void
+start_worker_threads(int number) {
+   Logger logger = Logger::getInstance("com.vmware.athena.main");
+   LOG4CPLUS_INFO(logger, "Starting " << number << " new API worker threads");
+   for (int i = 0; i < number; i++) {
+      boost::thread *t = new boost::thread(
+         boost::bind(&boost::asio::io_service::run, api_service));
+      worker_pool.add_thread(t);
+   }
+}
+
+
 /*
  * Start the service that listens for connections from Helen.
  */
@@ -220,7 +240,13 @@ run_service(variables_map &opts, Logger logger)
       signal(SIGINT, signalHandler);
 
       LOG4CPLUS_INFO(logger, "Listening on " << endpoint);
+      // start worker thread pool first before calling api_service->run()
+      // consider 1 main thread
+      start_worker_threads(opts["api_worker_pool_size"].as<int>() - 1);
+      // Wait for api_service->run() to return
       api_service->run();
+      // wait for all threads to join
+      worker_pool.join_all();
 
       // If we return from `run`, the service was stopped and we are shutting
       // down.

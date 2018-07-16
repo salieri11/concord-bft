@@ -9,6 +9,7 @@
 #include "ThreadLocalStorage.h"
 #include "SimpleThreadPool.h"
 #include <map>
+#include <boost/thread.hpp>
 
 using namespace Blockchain::Utils;
 
@@ -57,6 +58,15 @@ namespace Blockchain {
 
       friend IClient* createClient(const ClientConsensusConfig &conf);
       friend void release(IClient *r);
+
+   private:
+      // TODO(Amit): This mutex is only needed because SimpleThreadPool is
+      // currently not able to handle multiple jobs in the queue. The
+      // `waitForCompletion` function will go in infinite loop if two threads
+      // submit a job at the same time before any of the thread actually call
+      // `waitForCompletion` function. Once SimpleThreadPool is updated to handle
+      // multiple pending jobs this mutex can be removed.
+      boost::mutex job_mutex;
    };
 }
 
