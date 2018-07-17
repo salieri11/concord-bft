@@ -2,7 +2,7 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
@@ -13,6 +13,7 @@ import { BlockchainWizardComponent } from '../../shared/components/blockchain-wi
 import { TaskManagerService, getCompletedSetups, getPendingSetups } from '../../shared/task-manager.service';
 
 import * as NodeGeoJson from '../features.json';
+import { TourService } from "../../shared/tour.service";
 
 @Component({
   selector: 'athena-dashboard',
@@ -21,6 +22,7 @@ import * as NodeGeoJson from '../features.json';
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   @ViewChild('setupWizard') setupWizard: BlockchainWizardComponent;
+//  @ViewChild('transactionListDiv') transactionListDiv: TemplateRef<any>;
   blocks: BlockListingBlock[];
   recentTransactions: any[] = [];
   nodeGeoJson: any = NodeGeoJson;
@@ -37,8 +39,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private transactionsService: TransactionsService,
     private taskManager: TaskManagerService,
     private route: ActivatedRoute,
-    private translate: TranslateService
-  ) { }
+    private translate: TranslateService,
+    private tourService: TourService
+  ) {  }
 
   ngOnInit() {
     this.transactionsService.getRecentTransactions().subscribe((resp) => {
@@ -59,6 +62,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.taskChange = this.taskManager.taskChange.subscribe(() => {
       this.handleTaskChange();
+    });
+
+    this.tourService.scrollSubjectChanges$.subscribe((scroll)=>{
+      const element=document.getElementById('transactionListDiv');
+      element.scrollIntoView();
     });
   }
 

@@ -2,7 +2,7 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Component, NgZone, OnDestroy } from '@angular/core';
+import { Component, NgZone, OnDestroy, TemplateRef, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 
@@ -10,6 +10,9 @@ import { AuthenticationService } from '../../shared/authentication.service';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { Personas, PersonaService } from '../../shared/persona.service';
 import { TaskManagerService } from '../../shared/task-manager.service';
+import { JoyrideService } from "ngx-joyride";
+import { ClrDropdown } from "@clr/angular";
+import { TourService } from "../../shared/tour.service";
 
 @Component({
   selector: 'athena-main',
@@ -17,6 +20,8 @@ import { TaskManagerService } from '../../shared/task-manager.service';
   styleUrls: ['./main.component.scss']
 })
 export class MainComponent implements OnDestroy {
+  @ViewChild('userProfileMenu') userProfileMenu: ClrDropdown;
+  @ViewChild('transactionListDiv') transactionListDiv: TemplateRef<any>;
   alerts: any = [];
   authenticationChange: Subscription;
 
@@ -31,7 +36,9 @@ export class MainComponent implements OnDestroy {
     private alertService: ErrorAlertService,
     public zone: NgZone,
     private personaService: PersonaService,
-    private taskManagerService: TaskManagerService
+    private taskManagerService: TaskManagerService,
+    private readonly joyrideService: JoyrideService,
+    private tourService: TourService
   ) {
     this.authenticationChange = authenticationService.user.subscribe(user => {
       this.authenticated = user.email !== undefined && user.persona !== undefined;
@@ -41,6 +48,13 @@ export class MainComponent implements OnDestroy {
 
     this.alertService.notify
       .subscribe(error => this.addAlert(error));
+
+    this.tourService.userProfileDropdownChanges$.subscribe((openMenu) => {
+      setTimeout(() => {
+        this.userProfileMenu.ifOpenService.open = openMenu;
+      })
+    });
+
   }
 
   ngOnDestroy(): void {
@@ -60,6 +74,50 @@ export class MainComponent implements OnDestroy {
 
   onResetTasks() {
     this.taskManagerService.resetTasks();
+  }
+
+  startTour() {
+    let steps: any[] = [
+      'nodeStatus@dashboard',
+      'transactionList@dashboard',
+      'manageSmartContracts@smart-contracts',
+      'createSmartContract@smart-contracts',
+      'userManagement@dashboard',
+      'userActions@users',
+      'userSettings@dashboard',
+      'downloadCertificate@users/settings'
+    ];
+    if ((this.personaService.currentPersona === Personas.OrgDeveloper || this.personaService.currentPersona === Personas.OrgUser)) {
+      steps.splice(4, 2);
+    }
+
+    this.joyrideService.startTour(
+      {
+        steps: steps,
+        stepDefaultPosition: 'top'
+      }
+    ).subscribe((step) => {
+      console.log(step.name);
+    });
+
+  }
+
+  closeUserProfileMenu() {
+    this.tourService.toggleUserProfileMenu();
+  }
+
+  onNext() {
+    this.closeUserProfileMenu();
+  }
+
+  onPrev() {
+    this.closeUserProfileMenu();
+    this.openUserActionsMenu();
+  }
+
+  openUserActionsMenu() {
+    console.log('calling open user actins menu from service');
+    this.tourService.toggleUserActionsMenu();
   }
 
   private addAlert(alert: any): void {

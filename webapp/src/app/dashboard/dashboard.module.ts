@@ -14,7 +14,7 @@ import { WorldMapComponent } from './world-map/world-map.component';
   imports: [
     SharedModule,
     RouterModule,
-    TransactionsModule,
+    TransactionsModule
   ],
   declarations: [DashboardComponent, WorldMapComponent]
 })

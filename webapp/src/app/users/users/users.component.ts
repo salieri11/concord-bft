@@ -8,6 +8,8 @@ import { Personas } from '../../shared/persona.service';
 import { UserListComponent } from '../user-list/user-list.component';
 import { UserFormComponent } from '../user-form/user-form.component';
 import { User } from '../shared/user.model';
+import { TourService } from "../../shared/tour.service";
+import { ClrDropdown } from "@clr/angular";
 
 @Component({
   selector: 'athena-users',
@@ -17,13 +19,22 @@ import { User } from '../shared/user.model';
 export class UsersComponent implements OnInit {
   static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin, Personas.OrgAdmin];
   @ViewChild('usersList') usersList: UserListComponent;
-  @ViewChild('usrForm') userForm: UserFormComponent;
+  @ViewChild('userForm') userForm: UserFormComponent;
+  @ViewChild('userActionsMenu') userActionsMenu: ClrDropdown;
 
   selected: Array<User>;
 
-  constructor() { }
+  constructor(private tourService: TourService) {
+    this.tourService.userActionsDropdownChanges$.subscribe((openMenu) => {
+      setTimeout(() => {
+        this.userActionsMenu.ifOpenService.open = openMenu;
+        console.log('user actions menu open', this.userActionsMenu.ifOpenService.open);
+      })
+    });
+  }
 
-  ngOnInit() { }
+  ngOnInit() {
+  }
 
   onSelectedUsersChange(rows: Array<User>) {
     this.selected = rows;
@@ -39,5 +50,14 @@ export class UsersComponent implements OnInit {
 
   deleteUsers() {
     this.usersList.grid.reload();
+  }
+
+  onNext() {
+    this.tourService.toggleUserProfileMenu();
+    this.tourService.toggleUserActionsMenu();
+  }
+
+  onPrev() {
+    this.tourService.toggleUserActionsMenu();
   }
 }

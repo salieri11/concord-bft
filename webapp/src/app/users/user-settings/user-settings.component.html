@@ -46,7 +46,11 @@
     <div>
       <small class="text-muted">{{'users.settings.credentials' | translate}}</small>
     </div>
-    <button class="btn btn-sm" (click)="openDownloadCertificationWizard()">
+    <button class="btn btn-sm"
+            (click)="openDownloadCertificationWizard()"
+            joyrideStep="downloadCertificate"
+            title="{{'tourSteps.users.downloadCertificate.title' | translate}}"
+            text="{{'tourSteps.users.downloadCertificate.text' | translate}}" (prev)="onPrev()">
       <span><clr-icon shape="download"></clr-icon></span>
       {{'users.settings.downloadCertificate.title' | translate}}
     </button>

@@ -2,21 +2,31 @@
   <div class="row">
     <div class="col-xs-6">
       <h2 class="page-title">
-        <clr-icon shape="scroll" size="36"></clr-icon> {{'smartContracts.smartContracts' | translate}}
+        <clr-icon shape="scroll" size="36"></clr-icon>
+        {{'smartContracts.smartContracts' | translate}}
       </h2>
     </div>
 
-    <div class="col-xs-6" *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin, personas.OrgDeveloper]">
+    <div class="col-xs-6"
+         *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin, personas.OrgDeveloper]">
       <div class="text-right">
-        <button type="button" class="btn btn-primary" (click)="contractFormModal.open()">{{'common.create' | translate}}</button>
+        <button type="button" class="btn btn-primary" (click)="contractFormModal.open()"
+                joyrideStep="createSmartContract"
+                title="{{'tourSteps.smartContracts.createSmartContract.title' | translate}}"
+                text="{{'tourSteps.smartContracts.createSmartContract.text' | translate}}" stepPosition="bottom">{{'common.create' |
+          translate}}
+        </button>
       </div>
     </div>
   </div>
 
-  <clr-datagrid>
+  <clr-datagrid joyrideStep="manageSmartContracts"
+                title="{{'tourSteps.smartContracts.manageSmartContracts.title' | translate}}"
+                text="{{'tourSteps.smartContracts.manageSmartContracts.text' | translate}}" stepPosition="right">
     <clr-dg-column>{{'smartContracts.contractId' | translate}} : {{'smartContracts.owner' | translate}}</clr-dg-column>
     <clr-dg-row *clrDgItems="let smartContract of smartContracts">
-      <clr-dg-cell> <a [routerLink]="['/smart-contracts', smartContract.contract_id]">{{ smartContract.contract_id }} : {{ smartContract.owner }}</a></clr-dg-cell>
+      <clr-dg-cell><a [routerLink]="['/smart-contracts', smartContract.contract_id]">{{ smartContract.contract_id }} :
+        {{ smartContract.owner }}</a></clr-dg-cell>
     </clr-dg-row>
   </clr-datagrid>
 </div>

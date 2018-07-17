@@ -1,10 +1,14 @@
-<div #mapContainer id="map-container"></div>
-<div #tooltipContainer id="tooltip-container" (mouseleave)="onLeaveTooltip()">
+<div #mapContainer id="map-container" joyrideStep="nodeStatus"
+     title="{{'tourSteps.dashboard.nodeStatus.title' | translate}}"
+     text="{{'tourSteps.dashboard.nodeStatus.text' | translate}}" stepPosition="bottom" (next)="onNext()"></div>
+<div #tooltipContainer id="tooltip-container"
+     (mouseleave)="onLeaveTooltip()">
   <div *ngIf="nodeProperties">
     <strong>{{nodeProperties.location}}</strong>
     <div *ngFor="let node of nodeProperties.nodes">
       <a [routerLink]="['/nodes', node.id]">
-        <small><strong>{{node.consortiumName}}</strong> - {{ node.blockchainType }} - {{ node.status }}</small></a>
+        <small><strong>{{node.consortiumName}}</strong> - {{ node.blockchainType }} - {{ node.status }}</small>
+      </a>
     </div>
   </div>
 </div>

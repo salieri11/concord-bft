@@ -3,11 +3,6 @@
  */
 
 import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule } from '@angular/forms';
-import { TranslateModule } from '@ngx-translate/core';
-
-import { ClarityModule } from '@clr/angular';
 
 import { UsersComponent } from './users/users.component';
 import { GridModule } from '../grid/grid.module';
@@ -16,14 +11,12 @@ import { UserListComponent } from './user-list/user-list.component';
 import { UserFormComponent } from './user-form/user-form.component';
 import { UserSettingsComponent } from './user-settings/user-settings.component';
 import { CredentialFormComponent } from './credential-form/credential-form.component';
+import { SharedModule } from "../shared/shared.module";
 
 @NgModule({
   imports: [
-    CommonModule,
-    ClarityModule,
     GridModule,
-    TranslateModule,
-    ReactiveFormsModule
+    SharedModule
   ],
   declarations: [UsersComponent, UserListComponent, UserFormComponent, UserSettingsComponent, CredentialFormComponent],
   providers: [UsersService]

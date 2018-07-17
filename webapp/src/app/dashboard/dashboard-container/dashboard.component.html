@@ -41,7 +41,11 @@
 </div>
 
 <div class="p-2">
+  <div id="transactionListDiv" joyrideStep="transactionList"
+    title="{{'tourSteps.dashboard.transactionList.title' | translate}}"
+    text="{{'tourSteps.dashboard.transactionList.text' | translate}}">
   <athena-transaction-list [transactions]="recentTransactions"></athena-transaction-list>
+  </div>
 </div>
 
 <athena-blockchain-wizard #setupWizard (setupComplete)="onSetupComplete($event)"></athena-blockchain-wizard>

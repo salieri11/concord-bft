@@ -5,6 +5,7 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { CredentialFormComponent } from '../credential-form/credential-form.component';
+import { TourService } from "../../shared/tour.service";
 
 @Component({
   selector: 'athena-user-settings',
@@ -21,7 +22,7 @@ export class UserSettingsComponent implements OnInit {
     'Bank of London'
   ];
 
-  constructor(private translate: TranslateService) {
+  constructor(private translate: TranslateService, private tourService: TourService) {
   }
 
   ngOnInit() {
@@ -38,5 +39,10 @@ export class UserSettingsComponent implements OnInit {
   downloadWizardClosed(isOpen: boolean) {
     this.isOpen = isOpen;
   }
+
+  onPrev() {
+    this.tourService.toggleUserProfileMenu();
+  }
+
 
 }

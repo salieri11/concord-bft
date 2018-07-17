@@ -25,6 +25,7 @@ import { VmwAccordionComponent } from './components/accordion/accordion.componen
 import { VmwAccordionGroupComponent } from './components/accordion/accordion-group.component';
 import { VmwComboboxComponent } from './components/combobox/combobox.component';
 import { VmwComboboxItemsComponent } from './components/combobox/combobox-items/combobox-items.component';
+import { JoyrideModule } from "ngx-joyride";
 
 @NgModule({
   imports: [
@@ -33,7 +34,8 @@ import { VmwComboboxItemsComponent } from './components/combobox/combobox-items/
     ClarityModule,
     FormsModule,
     ReactiveFormsModule,
-    RouterModule
+    RouterModule,
+    JoyrideModule
   ],
   declarations: [
     TransactionsStatusFilterComponent,
@@ -52,6 +54,7 @@ import { VmwComboboxItemsComponent } from './components/combobox/combobox-items/
     ClarityModule,
     TransactionsStatusFilterComponent,
     ReactiveFormsModule,
+    JoyrideModule,
     CanViewDirective,
     VmwTaskComponent,
     VmwTaskPanelComponent,

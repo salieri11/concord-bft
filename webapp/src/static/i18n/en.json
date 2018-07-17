@@ -848,5 +848,46 @@
     "creatingConsortium": "Creating Consortium",
     "vmInstance": "VM Instance",
     "blockchainInstance": "Blockchain Instance"
+  },
+  "tourSteps": {
+    "title": "Take a tour",
+    "dashboard": {
+      "nodeStatus": {
+        "title": "Node Status",
+        "text": "Hover over a node to see the health and status."
+      },
+      "transactionList": {
+        "title": "Transaction List",
+        "text": "Can see recent transactions happening on the blockchain."
+      }
+    },
+    "smartContracts": {
+      "manageSmartContracts": {
+        "title": "Manage Smart contracts",
+        "text":  "This is where you can manage your and view other people's smart contracts."
+      },
+      "createSmartContract": {
+        "title": "Create",
+        "text": "Create Smart Contracts here."
+      }
+    },
+    "users": {
+      "manageUsers": {
+        "title": "Manage users",
+        "text": "Go to user management from here."
+      },
+      "userActions": {
+        "title": "User Actions",
+        "text": "Can add, edit or delete users."
+      },
+      "userSettings": {
+        "title": "User settings",
+        "text": "Go to user settings from here."
+      },
+      "downloadCertificate": {
+        "title": "Download certificate",
+        "text": "Click here to download your certificate to connect this blockchain with third-party apps."
+      }
+    }
   }
 }
