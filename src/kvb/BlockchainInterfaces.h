@@ -13,6 +13,7 @@
 #include "slice.h"
 #include "status.h"
 #include "DatabaseInterface.h"
+#include <functional>
 
 using std::string;
 using std::pair;
@@ -97,7 +98,12 @@ namespace Blockchain {
    // creates a new Replica object
    IReplica* createReplica(const ReplicaConsensusConfig& consensusConfig,
                            ICommandsHandler* cmdHandler,
-                           IDBClient* db);
+                           IDBClient* db,
+                           std::function<void(
+                              int64_t,
+                              std::string,
+                              int16_t,
+                              std::string)> fPeerConnectivityCallback);
 
    // deletes a Replica object
    void release(IReplica* r);

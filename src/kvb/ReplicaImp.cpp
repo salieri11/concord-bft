@@ -207,19 +207,24 @@ Status ReplicaImp::addBlock(const SetOfKeyValuePairs &updates,
 }
 
 
-ReplicaImp::ReplicaImp(string byzConfig,
-                       string byzPrivateConfig,
-                       ICommandsHandler *cmdHandler,
-                       BlockchainDBAdapter *dbAdapter) :
+ReplicaImp::ReplicaImp( string byzConfig,
+                        string byzPrivateConfig,
+                        ICommandsHandler *cmdHandler,
+                        BlockchainDBAdapter *dbAdapter,
+                        std::function<void(
+                           int64_t,
+                           std::string,
+                           int16_t,
+                           std::string)> fPeerConnectivityCallback) :
    m_byzConfig(byzConfig),
    m_byzPrivateConfig(byzPrivateConfig),
    m_cmdHandler(cmdHandler),
    logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb")),
    m_running(false),
    m_InternalStorageWrapperForIdleMode(this),
-   m_bcDbAdapter(dbAdapter)
+   m_bcDbAdapter(dbAdapter),
+   m_fPeerConnectivityCallback(fPeerConnectivityCallback)
 {
-
    // TODO(GG): add synchronization (to handle concurrent executions)
    if (m_sThreadLocalDataIdx == 0) {
       int res = Utils::allocTlsIndex(&m_sThreadLocalDataIdx);
@@ -765,7 +770,8 @@ DWORD WINAPI ReplicaImp::replicaInternalThread(LPVOID param)
                                    put_blocks,
                                    0,
                                    0,
-                                   0);
+                                   0,
+                                   r->m_fPeerConnectivityCallback);
 
    if (used_mem < 0) {
       LOG4CPLUS_ERROR(logger, "Byz_init_replica failed");
@@ -782,7 +788,12 @@ DWORD WINAPI ReplicaImp::replicaInternalThread(LPVOID param)
 
 IReplica* createReplica(const ReplicaConsensusConfig& consensusConfig,
                         ICommandsHandler* cmdHandler,
-                        IDBClient* db)
+                        IDBClient* db,
+                        std::function<void(
+                                int64_t,
+                                std::string,
+                                int16_t,
+                                std::string)> fPeerConnectivityCallback)
 {
    LOG4CPLUS_DEBUG(Logger::getInstance("com.vmware.athena.kvb"),
                    "Creating replica");
@@ -791,7 +802,8 @@ IReplica* createReplica(const ReplicaConsensusConfig& consensusConfig,
    ReplicaImp *r = new ReplicaImp(consensusConfig.byzConfig,
                                   consensusConfig.byzPrivateConfig,
                                   cmdHandler,
-                                  dbAdapter);
+                                  dbAdapter,
+                                  fPeerConnectivityCallback);
 
    //Initialization of the database object is done here so that we can
    //read the latest block number and take a decision regarding

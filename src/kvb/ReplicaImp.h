@@ -9,11 +9,13 @@
 #include "BlockchainInterfaces.h"
 #include "HashDefs.h"
 #include <map>
+#include <functional>
 #include "BlockchainDBAdapter.h"
 #include "InMemoryDBClient.h"
 #include "Threading.h"
 #include "ThreadLocalStorage.h"
 #include "libbyz.h"
+#include <string>
 
 using namespace Blockchain::Utils;
 
@@ -74,10 +76,15 @@ namespace Blockchain {
 
       // CTOR & DTOR
 
-      ReplicaImp(string byzConfig,
-                 string byzPrivateConfig,
-                 ICommandsHandler *cmdHandler,
-                 BlockchainDBAdapter *dbAdapter);
+      ReplicaImp( string byzConfig,
+                  string byzPrivateConfig,
+                  ICommandsHandler *cmdHandler,
+                  BlockchainDBAdapter *dbAdapter,
+                  std::function<void(
+                     int64_t,
+                     std::string,
+                     int16_t,
+                     std::string)> fPeerConnectivityCallback);
       virtual ~ReplicaImp();
 
       // METHODS
@@ -233,7 +240,6 @@ namespace Blockchain {
 
    private:
       log4cplus::Logger logger;
-
       //TODO(BWF): this was protected (not private) before adding logger
       bool m_running;
       Thread  m_thread;
@@ -244,6 +250,10 @@ namespace Blockchain {
       // storage - TODO(GG): add support for leveldb/rocksdb
       BlockchainDBAdapter* m_bcDbAdapter;
       BlockId lastBlock = 0;
+
+      std::function<void(
+         int64_t, std::string, int16_t, std::string)>
+            m_fPeerConnectivityCallback;
 
       // static methods
       static Slice createBlockFromUpdates(
@@ -271,7 +281,11 @@ namespace Blockchain {
       friend IReplica* createReplica(
          const ReplicaConsensusConfig &consensusConfig,
          ICommandsHandler *cmdHandler,
-         IDBClient *db);
+         IDBClient *db,
+         std::function<void( int64_t,
+                             std::string,
+                             int16_t,
+                             std::string)> fPeerConnectivityCallback);
       friend void release(IReplica *r);
    };
 }

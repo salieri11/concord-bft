@@ -51,10 +51,11 @@ api_connection::pointer
 api_connection::create(io_service &io_service,
                        connection_manager &connManager,
                        FilterManager &filterManager,
-                       KVBClient &client)
+                       KVBClient &client,
+                       StatusAggregator &sag)
 {
    return pointer(new api_connection(
-                     io_service, connManager, filterManager, client));
+                     io_service, connManager, filterManager, client, sag));
 }
 
 tcp::socket&
@@ -357,16 +358,13 @@ api_connection::handle_peer_request()
    const PeerRequest request = athenaRequest_.peer_request();
    PeerResponse *response = athenaResponse_.mutable_peer_response();
    if (request.return_peers()) {
-      // Dummy Data to prove the roundtrip to Helen (TODO)
-      Peer *p1 = response->add_peer();
-      p1->mutable_address()->assign("realathena1");
-      p1->set_port(8001);
-      p1->mutable_status()->assign("connected");
-
-      Peer *p2 = response->add_peer();
-      p2->mutable_address()->assign("realathena2");
-      p2->set_port(8002);
-      p2->mutable_status()->assign("offline");
+      auto peers = sag_.get_peers_info();
+      for(auto peer : peers) {
+         auto p = response->add_peer();
+         p->mutable_address()->assign(peer.peerIp);
+         p->set_port(peer.peerPort);
+         p->mutable_status()->assign(peer.peerState);
+      }
    }
 }
 
@@ -750,13 +748,15 @@ api_connection::api_connection(
    io_service &io_service,
    connection_manager &manager,
    FilterManager &filterManager,
-   KVBClient &client)
+   KVBClient &client,
+   StatusAggregator &sag)
    : socket_(io_service),
      logger_(
         log4cplus::Logger::getInstance("com.vmware.athena.api_connection")),
      connManager_(manager),
      filterManager_(filterManager),
-     client_(client)
+     client_(client),
+     sag_(sag)
 {
    // nothing to do here yet other than initialize the socket and logger
 }
