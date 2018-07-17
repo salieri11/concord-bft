@@ -7,8 +7,16 @@
 # containers.
 
 ## Run image
-FROM openjdk:8
+FROM ubuntu:16.04
 LABEL Description="Helen"
+
+RUN apt-get update && apt-get -y install \
+    openjdk-8-jre-headless \
+    software-properties-common
+RUN add-apt-repository -y ppa:ethereum/ethereum
+RUN apt-get update && apt-get -y install \
+    solc \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /
 COPY priv priv
@@ -18,6 +26,8 @@ COPY helen*.jar .
 # prepare for docker-compose, where athena is available from a virtual
 # host named "athena1"
 RUN sed -i -e "s/AthenaAuthorities=.*/AthenaAuthorities=athena1:5458,athena2:5459,athena3:5460/g" config.properties
+# and CockroachDB is available from a virtual host named db-server
+RUN sed -i -e "s/DB_IP=.*/DB_IP=db-server/g" config.properties
 
 CMD java -jar helen*.jar
 
