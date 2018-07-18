@@ -130,6 +130,13 @@ public final class AthenaTCPConnection implements IAthenaConnection {
                msgSize = ByteBuffer.wrap(msgSizeBuf)
                                    .order(ByteOrder.LITTLE_ENDIAN)
                                    .getShort();
+
+               // msgSize is sent as an unsigned 16-bit integer, but we have
+               // decoded it as a signed 16-bit integer. This was sign-extended
+               // into our signed 32-bit integer. We just don't want any of the
+               // high bits.
+               msgSize = msgSize & 0xffff;
+
                result = new byte[msgSize];
             }
 
