@@ -26,6 +26,7 @@ import Select from 'ol/interaction/Select';
 import GeoJSON from 'ol/format/GeoJSON';
 import { pointerMove } from 'ol/events/condition';
 import { getCenter } from 'ol/extent';
+import { defaults as interactionDefaults } from 'ol/interaction';
 import { unByKey } from 'ol/Observable';
 import { easeOut } from 'ol/easing';
 
@@ -149,7 +150,8 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         center: fromLonLat([0, 30]),
         zoom: 2,
         zoomFactor: 1.75
-      })
+      }),
+      interactions: interactionDefaults({mouseWheelZoom: false})
     });
     this.map.addInteraction(nodeFeatureHoverInteraction);
 
