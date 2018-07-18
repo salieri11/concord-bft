@@ -3,7 +3,7 @@
  */
 
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
 
@@ -40,8 +40,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private taskManager: TaskManagerService,
     private route: ActivatedRoute,
     private translate: TranslateService,
-    private tourService: TourService,
-    private router: Router
+    private tourService: TourService
   ) {
   }
 
@@ -49,7 +48,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.transactionsService.getRecentTransactions().subscribe((resp) => {
       this.recentTransactions = resp;
     });
-    this.initialUrl = this.router.url.substr(1);
 
     this.route.fragment.subscribe(fragment => {
       switch (fragment) {
@@ -57,7 +55,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.setupBlockchain();
           break;
         case 'orgTour':
-          this.tourService.startTour(this.initialUrl);
+          setTimeout(() => {
+            this.tourService.startTour();
+          });
           break;
         default:
           // code...

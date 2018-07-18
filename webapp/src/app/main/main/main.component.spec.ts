@@ -10,10 +10,12 @@ import { MockSharedModule } from '../../shared/shared.module';
 import { AuthenticationService } from '../../shared/authentication.service';
 import { MainComponent } from './main.component';
 import { CanViewDirective } from '../../shared/directives/can-view.directive';
-import { Personas } from '../../shared/persona.service';
+import { Personas, PersonaService } from '../../shared/persona.service';
 import { VmwTaskPanelComponent } from '../../shared/components/task-panel/task-panel.component';
 import { VmwTaskComponent } from '../../shared/components/task-panel/task.component';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
+import { TourService } from "../../shared/tour.service";
+import { JoyrideModule, JoyrideService } from "ngx-joyride";
 
 describe('MainComponent', () => {
   let component: MainComponent;
@@ -23,7 +25,8 @@ describe('MainComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         RouterTestingModule,
-        MockSharedModule
+        MockSharedModule,
+        JoyrideModule
       ],
       declarations: [
         MainComponent,
@@ -33,7 +36,10 @@ describe('MainComponent', () => {
       ],
       providers: [
         ErrorAlertService,
-        VmwTasksService
+        VmwTasksService,
+        TourService,
+        JoyrideService,
+        PersonaService
       ]
     }).compileComponents();
   }));

@@ -5,11 +5,14 @@
 import { TestBed, inject } from '@angular/core/testing';
 
 import { TourService } from './tour.service';
+import { JoyrideModule, JoyrideService } from "ngx-joyride";
+import { PersonaService } from "./persona.service";
 
 describe('TourService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [TourService]
+      imports: [JoyrideModule],
+      providers: [TourService, PersonaService, JoyrideService]
     });
   });
 

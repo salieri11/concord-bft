@@ -20,6 +20,9 @@ import { VmwAccordionComponent } from '../../shared/components/accordion/accordi
 import { VmwComboboxItemsComponent } from '../../shared/components/combobox/combobox-items/combobox-items.component';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { WorldMapComponent } from '../world-map/world-map.component';
+import { TourService } from "../../shared/tour.service";
+import { JoyrideModule, JoyrideService } from "ngx-joyride";
+import { PersonaService } from "../../shared/persona.service";
 
 describe('DashboardComponent', () => {
   let component: DashboardComponent;
@@ -31,7 +34,8 @@ describe('DashboardComponent', () => {
         RouterTestingModule,
         HttpClientTestingModule,
         MockSharedModule,
-        FormsModule
+        FormsModule,
+        JoyrideModule
       ],
       declarations: [
         DashboardComponent,
@@ -46,7 +50,10 @@ describe('DashboardComponent', () => {
         VmwAccordionGroupComponent
       ],
       providers: [
-        VmwTasksService
+        VmwTasksService,
+        TourService,
+        PersonaService,
+        JoyrideService
       ]
     })
       .compileComponents();

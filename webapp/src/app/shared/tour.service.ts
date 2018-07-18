@@ -8,12 +8,13 @@ import { Observable } from 'rxjs/internal/Observable';
 import { JoyrideService } from 'ngx-joyride';
 
 import { Personas, PersonaService } from './persona.service';
-import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TourService {
+  private _initialUrl: string;
+
   private userProfileDropdownChangeSubject: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
   userProfileDropdownChanges$: Observable<boolean> = this.userProfileDropdownChangeSubject.asObservable();
 
@@ -26,8 +27,15 @@ export class TourService {
   isUserProfileMenuOpen = false;
 
   constructor(private personaService: PersonaService,
-              private joyrideService: JoyrideService,
-              private router: Router) {
+              private joyrideService: JoyrideService) {
+  }
+
+  get initialUrl() {
+    return this._initialUrl;
+  }
+
+  set initialUrl(initialUrl: string) {
+    this._initialUrl = initialUrl;
   }
 
   toggleUserProfileMenu() {
@@ -43,13 +51,13 @@ export class TourService {
     this.scrollMapSubject.next(true);
   }
 
-  startTour(initialUrl: string) {
+  startTour() {
     const steps: any[] = [
       'nodeStatus@dashboard',
       'transactionList@dashboard',
       'manageSmartContracts@smart-contracts',
       'createSmartContract@smart-contracts',
-      `userManagement@${initialUrl}`,
+      `userManagement@${this.initialUrl}`,
       'userActions@users',
       'userSettings@dashboard',
       'downloadCertificate@users/settings'
@@ -57,7 +65,6 @@ export class TourService {
     if ((this.personaService.currentPersona === Personas.OrgDeveloper || this.personaService.currentPersona === Personas.OrgUser)) {
       steps.splice(4, 2);
     }
-    this.router.navigate(['/dashboard']);
     this.scrollToMap();
     this.joyrideService.startTour(
       {
