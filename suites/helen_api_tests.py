@@ -109,7 +109,8 @@ class HelenAPITests(test_suite.TestSuite):
               ("get_transaction_list_max_size", self._test_getTransactionListMaxSize), \
               ("get_transaction_list_fields", self._test_transactionListFields), \
               ("get_transaction_list_invalid_latest", self._test_getTransactionListInvalidLatest), \
-              ("get_transaction_list_next_url", self._test_getTransactionListNextUrl)]
+              ("get_transaction_list_next_url", self._test_getTransactionListNextUrl), \
+              ("large_reply", self._test_largeReply)]
 
    # Tests: expect one argument, a Request, and produce a 2-tuple
    # (bool success, string info)
@@ -355,14 +356,14 @@ class HelenAPITests(test_suite.TestSuite):
                  "GET /api/athena/contracts/{}/versions/{} did not return" \
                  " correct response".format(contractId, contractVersion))
 
-   def _mock_transaction(self, request):
+   def _mock_transaction(self, request, data = "0x00"):
       rpc = RPC(request._logDir,
                 self.getName(),
                 self._apiServerUrl)
       # do a transaction so that we have some block
       caller = "0x1111111111111111111111111111111111111111"
       to = "0x2222222222222222222222222222222222222222"
-      response = rpc.sendTransaction(caller, "0x00", "0xffff", to, "0x01")
+      response = rpc.sendTransaction(caller, data, "0xffff", to, "0x01")
       response = rpc._getTransactionReceipt(response)
       return response;
 
@@ -451,6 +452,39 @@ class HelenAPITests(test_suite.TestSuite):
 
       if sentTrList[5:] != receivedTrList2[:5]:
          return (False, "transaction list query did not return correct transactions")
+      return (True, None)
+
+   def _test_largeReply(self, request):
+      ### 1. Create three contracts, each 16kb in size
+      ### 2. Request latest transaction list
+      ### 3. Reply will be 48k+ in size
+      ###
+      ### This will require the highest bit in the size prefix of the
+      ### Athena->Helen response to be set, which makes the length look
+      ### negative to Java's signed short type. If we get a response, then
+      ### HEL-34 remains fixed.
+
+      # Contract bytecode that is 16kb
+      largeContract = "0x"+("aa" * 16384)
+
+      sentTrList = []
+      tr_count = 3
+      for i in range(tr_count):
+         tr = self._mock_transaction(request, data=largeContract)
+         sentTrList.append(tr)
+      sentTrList = list(map(lambda x : x['transactionHash'], sentTrList))
+      sentTrList.reverse()
+
+      receivedTrList = request.getTransactionList(count=tr_count)
+      receivedTrHashes = list(map(lambda x : x['hash'], receivedTrList['transactions']))
+      receivedDataSum = sum(len(x['input']) for x in receivedTrList['transactions'])
+
+      if sentTrList != receivedTrHashes:
+         return (False, "transaction list query did not return correct transactions")
+
+      expectedDataSum = len(largeContract)*tr_count
+      if receivedDataSum != expectedDataSum:
+         return (False, "received only %d bytes, but expected %d" % (receviedDataSum, expectedDataSum))
       return (True, None)
 
    def requireFields(self, ob, fieldList):
