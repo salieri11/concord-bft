@@ -44,13 +44,13 @@ export class TourService {
     this.scrollSubject.next(true);
   }
 
-  startTour() {
+  startTour(initialUrl: string) {
     const steps: any[] = [
       'nodeStatus@dashboard',
       'transactionList@dashboard',
       'manageSmartContracts@smart-contracts',
       'createSmartContract@smart-contracts',
-      'userManagement@dashboard',
+      `userManagement@${initialUrl}`,
       'userActions@users',
       'userSettings@dashboard',
       'downloadCertificate@users/settings'

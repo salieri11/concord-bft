@@ -2,7 +2,7 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Component, NgZone, OnDestroy, TemplateRef, ViewChild } from '@angular/core';
+import { Component, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 
@@ -12,20 +12,21 @@ import { AuthenticationService } from '../../shared/authentication.service';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { Personas, PersonaService } from '../../shared/persona.service';
 import { TaskManagerService } from '../../shared/task-manager.service';
-import { TourService } from '../../shared/tour.service';
+import { ClrDropdown } from "@clr/angular";
+import { TourService } from "../../shared/tour.service";
 
 @Component({
   selector: 'athena-main',
   templateUrl: './main.component.html',
   styleUrls: ['./main.component.scss']
 })
-export class MainComponent implements OnDestroy {
+export class MainComponent implements OnInit, OnDestroy {
   @ViewChild('userProfileMenu') userProfileMenu: ClrDropdown;
-  @ViewChild('transactionListDiv') transactionListDiv: TemplateRef<any>;
   alerts: any = [];
   authenticationChange: Subscription;
 
   authenticated = false;
+  initialUrl: string;
   username: string;
   personas = Personas;
   personaOptions = PersonaService.getOptions();
@@ -56,6 +57,10 @@ export class MainComponent implements OnDestroy {
 
   }
 
+  ngOnInit() {
+    this.initialUrl = this.router.url.substr(1);
+  }
+
   ngOnDestroy(): void {
     this.authenticationChange.unsubscribe();
   }
@@ -76,16 +81,14 @@ export class MainComponent implements OnDestroy {
   }
 
   startTour() {
-    this.tourService.startTour();
+    this.tourService.startTour(this.initialUrl);
   }
 
   onNext() {
-   // this.closeUserProfileMenu();
     this.tourService.toggleUserProfileMenu();
   }
 
   onPrev() {
-    // this.closeUserProfileMenu();
     this.tourService.toggleUserProfileMenu();
     this.openUserActionsMenu();
   }
