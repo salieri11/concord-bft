@@ -13,7 +13,7 @@
         <button type="button" class="btn btn-primary" (click)="contractFormModal.open()"
                 joyrideStep="createSmartContract"
                 title="{{'tourSteps.smartContracts.createSmartContract.title' | translate}}"
-                text="{{'tourSteps.smartContracts.createSmartContract.text' | translate}}" stepPosition="bottom">{{'common.create' |
+                text="{{'tourSteps.smartContracts.createSmartContract.text' | translate}}" stepPosition="bottom" (next)="onCreateSmartContractStepNext()">{{'common.create' |
           translate}}
         </button>
       </div>
@@ -22,7 +22,7 @@
 
   <clr-datagrid joyrideStep="manageSmartContracts"
                 title="{{'tourSteps.smartContracts.manageSmartContracts.title' | translate}}"
-                text="{{'tourSteps.smartContracts.manageSmartContracts.text' | translate}}" stepPosition="bottom" (prev)="onPrev()">
+                text="{{'tourSteps.smartContracts.manageSmartContracts.text' | translate}}" stepPosition="bottom" (prev)="onPrev()" (next)="onManageSmartContractsStepNext()">
     <clr-dg-column>{{'smartContracts.contractId' | translate}} : {{'smartContracts.owner' | translate}}</clr-dg-column>
     <clr-dg-row *clrDgItems="let smartContract of smartContracts">
       <clr-dg-cell><a [routerLink]="['/smart-contracts', smartContract.contract_id]">{{ smartContract.contract_id }} :

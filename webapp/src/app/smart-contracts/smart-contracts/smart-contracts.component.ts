@@ -6,7 +6,7 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 
 import { ContractFormComponent } from '../contract-form/contract-form.component';
 import { SmartContractsService } from '../shared/smart-contracts.service';
-import { Personas } from '../../shared/persona.service';
+import { Personas, PersonaService } from '../../shared/persona.service';
 import { TourService } from '../../shared/tour.service';
 
 @Component({
@@ -20,7 +20,7 @@ export class SmartContractsComponent implements OnInit {
   smartContracts = [];
   personas = Personas;
 
-  constructor( private smartContractsService: SmartContractsService, private tourService: TourService) { }
+  constructor( private smartContractsService: SmartContractsService, private tourService: TourService, private personaService: PersonaService) { }
 
   ngOnInit() {
     this.loadSmartContracts();
@@ -33,4 +33,17 @@ export class SmartContractsComponent implements OnInit {
   onPrev() {
     this.tourService.scrollToTransactionList();
   }
+
+  onManageSmartContractsStepNext() {
+    if (this.personaService.currentPersona === Personas.OrgUser) {
+      this.tourService.toggleUserProfileMenu();
+    }
+  }
+
+  onCreateSmartContractStepNext() {
+    if (this.personaService.currentPersona === Personas.OrgDeveloper) {
+      this.tourService.toggleUserProfileMenu();
+    }
+  }
+
 }

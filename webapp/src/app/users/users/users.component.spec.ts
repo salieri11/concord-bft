@@ -3,6 +3,8 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { JoyrideModule } from 'ngx-joyride';
 
 import { UsersComponent } from './users.component';
 import { UserListComponent } from '../user-list/user-list.component';
@@ -15,8 +17,7 @@ import { TranslateLoader, TranslateModule, TranslateService } from '@ngx-transla
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
-import { TourService } from "../../shared/tour.service";
-import { JoyrideModule } from "ngx-joyride";
+import { TourService } from '../../shared/tour.service';
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, './static/i18n/', '.json');
@@ -32,7 +33,8 @@ describe('UsersComponent', () => {
         MockSharedModule,
         GridModule,
         HttpClientTestingModule,
-        JoyrideModule,
+        RouterTestingModule,
+        JoyrideModule.forRoot(),
         TranslateModule.forRoot({
           loader: {
             provide: TranslateLoader,
@@ -41,7 +43,7 @@ describe('UsersComponent', () => {
           }
         })
       ],
-      declarations: [ UsersComponent, UserListComponent, UserFormComponent ],
+      declarations: [UsersComponent, UserListComponent, UserFormComponent],
       providers: [
         UsersService,
         TourService,
@@ -58,7 +60,7 @@ describe('UsersComponent', () => {
         }
       ]
     })
-    .compileComponents();
+      .compileComponents();
   }));
 
   beforeEach(() => {

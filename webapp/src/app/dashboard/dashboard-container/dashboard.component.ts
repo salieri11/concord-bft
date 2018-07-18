@@ -26,6 +26,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   recentTransactions: any[] = [];
   nodeGeoJson: any = NodeGeoJson;
   taskChange: Subscription;
+  transactionListScrollChange: Subscription;
+  mapScrollChange: Subscription;
+  routerFragmentChange: Subscription;
   mockStats = {
     totalActiveNodes: 28458,
     inactiveNodes: 583,
@@ -33,7 +36,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     transactionsPerSecond: 4289,
     averageValidationTime: 1.98
   };
-  initialUrl: string;
 
   constructor(
     private transactionsService: TransactionsService,
@@ -49,7 +51,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.recentTransactions = resp;
     });
 
-    this.route.fragment.subscribe(fragment => {
+    this.routerFragmentChange = this.route.fragment.subscribe(fragment => {
       switch (fragment) {
         case 'deploy':
           this.setupBlockchain();
@@ -69,7 +71,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.handleTaskChange();
     });
 
-    this.tourService.scrollTransactionListSubjectChanges$.subscribe((scroll) => {
+    this.transactionListScrollChange = this.tourService.scrollTransactionListSubjectChanges$.subscribe((scroll) => {
       if (scroll === true) {
         setTimeout(() => {
           const element = document.getElementById('transactionList');
@@ -78,7 +80,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.tourService.scrollMapSubjectChanges$.subscribe((scroll) => {
+    this.mapScrollChange = this.tourService.scrollMapSubjectChanges$.subscribe((scroll) => {
       if (scroll === true) {
         setTimeout(() => {
           const element = document.getElementById('map');
@@ -98,8 +100,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.taskChange.unsubscribe();
+    this.transactionListScrollChange.unsubscribe();
+    this.mapScrollChange.unsubscribe();
+    this.routerFragmentChange.unsubscribe();
   }
-
 
   setupBlockchain() {
     this.taskManager.resetTasks();

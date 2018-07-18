@@ -14,6 +14,7 @@ import { Personas, PersonaService } from './persona.service';
 })
 export class TourService {
   private _initialUrl: string;
+  steps: string[];
 
   private userProfileDropdownChangeSubject: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
   userProfileDropdownChanges$: Observable<boolean> = this.userProfileDropdownChangeSubject.asObservable();
@@ -52,7 +53,7 @@ export class TourService {
   }
 
   startTour() {
-    const steps: any[] = [
+    this.steps = [
       'nodeStatus@dashboard',
       'transactionList@dashboard',
       'manageSmartContracts@smart-contracts',
@@ -62,13 +63,19 @@ export class TourService {
       'userSettings@dashboard',
       'downloadCertificate@users/settings'
     ];
-    if ((this.personaService.currentPersona === Personas.OrgDeveloper || this.personaService.currentPersona === Personas.OrgUser)) {
-      steps.splice(4, 2);
+
+    if ((this.personaService.currentPersona === Personas.OrgDeveloper )) {
+      this.steps.splice(4, 2);
     }
+
+    if ((this.personaService.currentPersona === Personas.OrgUser )) {
+      this.steps.splice(3, 3);
+    }
+
     this.scrollToMap();
     this.joyrideService.startTour(
       {
-        steps: steps
+        steps: this.steps
       }
     );
   }

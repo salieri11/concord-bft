@@ -23,7 +23,7 @@ export class MainComponent implements OnInit, OnDestroy {
   @ViewChild('userProfileMenu') userProfileMenu: ClrDropdown;
   alerts: any = [];
   authenticationChange: Subscription;
-
+  userProfileMenuToggleChanges: Subscription;
   authenticated = false;
   username: string;
   personas = Personas;
@@ -47,7 +47,7 @@ export class MainComponent implements OnInit, OnDestroy {
     this.alertService.notify
       .subscribe(error => this.addAlert(error));
 
-    this.tourService.userProfileDropdownChanges$.subscribe((openMenu) => {
+    this.userProfileMenuToggleChanges = this.tourService.userProfileDropdownChanges$.subscribe((openMenu) => {
       setTimeout(() => {
         this.userProfileMenu.ifOpenService.open = openMenu;
       });
@@ -61,6 +61,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.authenticationChange.unsubscribe();
+    this.userProfileMenuToggleChanges.unsubscribe();
   }
 
   onPersonaChange(persona: Personas) {
