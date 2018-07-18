@@ -5,14 +5,12 @@
 import { Component, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-
 import { ClrDropdown } from '@clr/angular';
 
 import { AuthenticationService } from '../../shared/authentication.service';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { Personas, PersonaService } from '../../shared/persona.service';
 import { TaskManagerService } from '../../shared/task-manager.service';
-import { ClrDropdown } from "@clr/angular";
 import { TourService } from "../../shared/tour.service";
 
 @Component({
@@ -26,7 +24,6 @@ export class MainComponent implements OnInit, OnDestroy {
   authenticationChange: Subscription;
 
   authenticated = false;
-  initialUrl: string;
   username: string;
   personas = Personas;
   personaOptions = PersonaService.getOptions();
@@ -58,7 +55,7 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.initialUrl = this.router.url.substr(1);
+    this.tourService.initialUrl = this.router.url.substr(1);
   }
 
   ngOnDestroy(): void {
@@ -81,7 +78,7 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   startTour() {
-    this.tourService.startTour(this.initialUrl);
+    this.tourService.startTour();
   }
 
   onNext() {
