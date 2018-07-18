@@ -43,7 +43,7 @@ RUN wget https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.
     && tar -xzf boost_1_64_0.tar.gz \
     && rm boost_1_64_0.tar.gz
 WORKDIR /boost_1_64_0
-RUN ./bootstrap.sh --with-libraries=system,program_options --prefix=/usr && ./b2 && ./b2 install
+RUN ./bootstrap.sh --with-libraries=system,program_options,thread --prefix=/usr && ./b2 && ./b2 install
 
 WORKDIR /
 RUN git clone https://github.com/log4cplus/log4cplus.git
