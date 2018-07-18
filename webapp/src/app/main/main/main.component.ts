@@ -6,13 +6,13 @@ import { Component, NgZone, OnDestroy, TemplateRef, ViewChild } from '@angular/c
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 
+import { ClrDropdown } from '@clr/angular';
+
 import { AuthenticationService } from '../../shared/authentication.service';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { Personas, PersonaService } from '../../shared/persona.service';
 import { TaskManagerService } from '../../shared/task-manager.service';
-import { JoyrideService } from "ngx-joyride";
-import { ClrDropdown } from "@clr/angular";
-import { TourService } from "../../shared/tour.service";
+import { TourService } from '../../shared/tour.service';
 
 @Component({
   selector: 'athena-main',
@@ -37,7 +37,6 @@ export class MainComponent implements OnDestroy {
     public zone: NgZone,
     private personaService: PersonaService,
     private taskManagerService: TaskManagerService,
-    private readonly joyrideService: JoyrideService,
     private tourService: TourService
   ) {
     this.authenticationChange = authenticationService.user.subscribe(user => {
@@ -52,7 +51,7 @@ export class MainComponent implements OnDestroy {
     this.tourService.userProfileDropdownChanges$.subscribe((openMenu) => {
       setTimeout(() => {
         this.userProfileMenu.ifOpenService.open = openMenu;
-      })
+      });
     });
 
   }
@@ -77,46 +76,21 @@ export class MainComponent implements OnDestroy {
   }
 
   startTour() {
-    let steps: any[] = [
-      'nodeStatus@dashboard',
-      'transactionList@dashboard',
-      'manageSmartContracts@smart-contracts',
-      'createSmartContract@smart-contracts',
-      'userManagement@dashboard',
-      'userActions@users',
-      'userSettings@dashboard',
-      'downloadCertificate@users/settings'
-    ];
-    if ((this.personaService.currentPersona === Personas.OrgDeveloper || this.personaService.currentPersona === Personas.OrgUser)) {
-      steps.splice(4, 2);
-    }
-
-    this.joyrideService.startTour(
-      {
-        steps: steps,
-        stepDefaultPosition: 'top'
-      }
-    ).subscribe((step) => {
-      console.log(step.name);
-    });
-
-  }
-
-  closeUserProfileMenu() {
-    this.tourService.toggleUserProfileMenu();
+    this.tourService.startTour();
   }
 
   onNext() {
-    this.closeUserProfileMenu();
+   // this.closeUserProfileMenu();
+    this.tourService.toggleUserProfileMenu();
   }
 
   onPrev() {
-    this.closeUserProfileMenu();
+    // this.closeUserProfileMenu();
+    this.tourService.toggleUserProfileMenu();
     this.openUserActionsMenu();
   }
 
   openUserActionsMenu() {
-    console.log('calling open user actins menu from service');
     this.tourService.toggleUserActionsMenu();
   }
 

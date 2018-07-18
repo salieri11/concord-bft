@@ -2,7 +2,7 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Component, OnDestroy, OnInit, TemplateRef, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
@@ -11,9 +11,9 @@ import { BlockListingBlock } from '../../blocks/shared/blocks.model';
 import { TransactionsService } from '../../transactions/shared/transactions.service';
 import { BlockchainWizardComponent } from '../../shared/components/blockchain-wizard/blockchain-wizard.component';
 import { TaskManagerService, getCompletedSetups, getPendingSetups } from '../../shared/task-manager.service';
+import { TourService } from '../../shared/tour.service';
 
 import * as NodeGeoJson from '../features.json';
-import { TourService } from "../../shared/tour.service";
 
 @Component({
   selector: 'athena-dashboard',
@@ -22,7 +22,6 @@ import { TourService } from "../../shared/tour.service";
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   @ViewChild('setupWizard') setupWizard: BlockchainWizardComponent;
-//  @ViewChild('transactionListDiv') transactionListDiv: TemplateRef<any>;
   blocks: BlockListingBlock[];
   recentTransactions: any[] = [];
   nodeGeoJson: any = NodeGeoJson;
@@ -53,7 +52,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
         case 'deploy':
           this.setupBlockchain();
           break;
-
+        case 'orgTour':
+          this.tourService.startTour();
+          break;
         default:
           // code...
           break;
@@ -64,8 +65,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.handleTaskChange();
     });
 
-    this.tourService.scrollSubjectChanges$.subscribe((scroll)=>{
-      const element=document.getElementById('transactionListDiv');
+    this.tourService.scrollSubjectChanges$.subscribe(() => {
+      const element = document.getElementById('transactionListDiv');
       element.scrollIntoView();
     });
   }

@@ -3,6 +3,7 @@
  */
 
 import { NgModule } from '@angular/core';
+import { JoyrideModule } from 'ngx-joyride';
 
 import { UsersComponent } from './users/users.component';
 import { GridModule } from '../grid/grid.module';
@@ -11,12 +12,13 @@ import { UserListComponent } from './user-list/user-list.component';
 import { UserFormComponent } from './user-form/user-form.component';
 import { UserSettingsComponent } from './user-settings/user-settings.component';
 import { CredentialFormComponent } from './credential-form/credential-form.component';
-import { SharedModule } from "../shared/shared.module";
+import { SharedModule } from '../shared/shared.module';
 
 @NgModule({
   imports: [
     GridModule,
-    SharedModule
+    SharedModule,
+    JoyrideModule.forChild()
   ],
   declarations: [UsersComponent, UserListComponent, UserFormComponent, UserSettingsComponent, CredentialFormComponent],
   providers: [UsersService]

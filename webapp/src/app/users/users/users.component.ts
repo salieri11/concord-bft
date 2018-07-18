@@ -4,12 +4,13 @@
 
 import { Component, OnInit, ViewChild } from '@angular/core';
 
+import { ClrDropdown } from '@clr/angular';
+
 import { Personas } from '../../shared/persona.service';
 import { UserListComponent } from '../user-list/user-list.component';
 import { UserFormComponent } from '../user-form/user-form.component';
 import { User } from '../shared/user.model';
-import { TourService } from "../../shared/tour.service";
-import { ClrDropdown } from "@clr/angular";
+import { TourService } from '../../shared/tour.service';
 
 @Component({
   selector: 'athena-users',
@@ -28,8 +29,7 @@ export class UsersComponent implements OnInit {
     this.tourService.userActionsDropdownChanges$.subscribe((openMenu) => {
       setTimeout(() => {
         this.userActionsMenu.ifOpenService.open = openMenu;
-        console.log('user actions menu open', this.userActionsMenu.ifOpenService.open);
-      })
+      });
     });
   }
 
@@ -53,8 +53,8 @@ export class UsersComponent implements OnInit {
   }
 
   onNext() {
-    this.tourService.toggleUserProfileMenu();
     this.tourService.toggleUserActionsMenu();
+    this.tourService.toggleUserProfileMenu();
   }
 
   onPrev() {

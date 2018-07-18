@@ -5,6 +5,7 @@
 import { NgModule } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { JoyrideModule } from 'ngx-joyride';
 
 import { SharedModule } from '../shared/shared.module';
 
@@ -21,7 +22,8 @@ import { ContractPayloadPreviewFormComponent } from './contract-payload-preview-
   imports: [
     SharedModule,
     RouterModule,
-    FormsModule
+    FormsModule,
+    JoyrideModule.forChild()
   ],
   declarations: [
     SmartContractsComponent,

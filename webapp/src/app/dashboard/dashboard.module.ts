@@ -4,6 +4,7 @@
 
 import { NgModule } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { JoyrideModule } from 'ngx-joyride';
 
 import { SharedModule } from '../shared/shared.module';
 import { TransactionsModule } from '../transactions/transactions.module';
@@ -14,7 +15,8 @@ import { WorldMapComponent } from './world-map/world-map.component';
   imports: [
     SharedModule,
     RouterModule,
-    TransactionsModule
+    TransactionsModule,
+    JoyrideModule.forChild()
   ],
   declarations: [DashboardComponent, WorldMapComponent]
 })

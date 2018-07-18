@@ -53,7 +53,9 @@
           <clr-icon shape="help"></clr-icon>
         </button>
         <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
-          <a clrDropdownItem (click)="startTour()" name="orgTour">{{'tourSteps.title' | translate}}</a>
+          <a [routerLink]="['/dashboard']" fragment="orgTour" clrDropdownItem (click)="startTour()">
+            {{'tourSteps.title' | translate}}
+          </a>
         </clr-dropdown-menu>
       </clr-dropdown>
       <clr-dropdown class="persona-selector">
@@ -157,7 +159,8 @@
            *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]"
            joyrideStep="userManagement"
            title="{{'tourSteps.users.manageUsers.title' | translate}}"
-           text="{{'tourSteps.users.manageUsers.text' | translate}}" stepPosition="right" (next)="openUserActionsMenu()">
+           text="{{'tourSteps.users.manageUsers.text' | translate}}" stepPosition="right"
+           (next)="openUserActionsMenu()">
           <clr-icon clrVerticalNavIcon shape="administrator"></clr-icon>
           {{ 'nav.users.title' | translate }}
         </a>

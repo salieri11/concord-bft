@@ -5,7 +5,7 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { CredentialFormComponent } from '../credential-form/credential-form.component';
-import { TourService } from "../../shared/tour.service";
+import { TourService } from '../../shared/tour.service';
 
 @Component({
   selector: 'athena-user-settings',

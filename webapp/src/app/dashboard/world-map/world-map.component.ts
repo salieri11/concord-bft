@@ -30,7 +30,7 @@ import { unByKey } from 'ol/Observable';
 import { easeOut } from 'ol/easing';
 
 import { NodeProperties } from './world-map.model';
-import { TourService } from "../../shared/tour.service";
+import { TourService } from '../../shared/tour.service';
 
 @Component({
   selector: 'athena-world-map',
@@ -81,7 +81,7 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     }
   }
 
-  onNext(){
+  onNext() {
     this.tourService.scrollToElement();
   }
 

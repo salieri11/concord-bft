@@ -9,6 +9,7 @@ import { HttpClient } from '@angular/common/http';
 import { LOCATION_INITIALIZED } from '@angular/common';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { TranslateLoader, TranslateModule, TranslateService } from '@ngx-translate/core';
+import { JoyrideModule } from 'ngx-joyride';
 
 import { ClarityModule } from '@clr/angular';
 
@@ -47,6 +48,7 @@ export function langInitializerFactory(translate: TranslateService, injector: In
     MainModule,
     ClarityModule,
     AppRoutingModule,
+    JoyrideModule.forRoot(),
     TranslateModule.forRoot({
       loader: {
         provide: TranslateLoader,
