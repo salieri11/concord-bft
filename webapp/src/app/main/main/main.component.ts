@@ -12,8 +12,7 @@ import { AuthenticationService } from '../../shared/authentication.service';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { Personas, PersonaService } from '../../shared/persona.service';
 import { TaskManagerService } from '../../shared/task-manager.service';
-import { ClrDropdown } from "@clr/angular";
-import { TourService } from "../../shared/tour.service";
+import { TourService } from '../../shared/tour.service';
 
 @Component({
   selector: 'athena-main',
@@ -90,12 +89,8 @@ export class MainComponent implements OnInit, OnDestroy {
 
   onPrev() {
     this.tourService.toggleUserProfileMenu();
-    this.openUserActionsMenu();
   }
 
-  openUserActionsMenu() {
-    this.tourService.toggleUserActionsMenu();
-  }
 
   private addAlert(alert: any): void {
     if (alert && alert.message) {

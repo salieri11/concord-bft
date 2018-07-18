@@ -3,7 +3,7 @@
  */
 
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
 
@@ -33,19 +33,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
     transactionsPerSecond: 4289,
     averageValidationTime: 1.98
   };
+  initialUrl: string;
 
   constructor(
     private transactionsService: TransactionsService,
     private taskManager: TaskManagerService,
     private route: ActivatedRoute,
     private translate: TranslateService,
-    private tourService: TourService
-  ) {  }
+    private tourService: TourService,
+    private router: Router
+  ) {
+  }
 
   ngOnInit() {
     this.transactionsService.getRecentTransactions().subscribe((resp) => {
       this.recentTransactions = resp;
     });
+    this.initialUrl = this.router.url.substr(1);
 
     this.route.fragment.subscribe(fragment => {
       switch (fragment) {
@@ -53,7 +57,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.setupBlockchain();
           break;
         case 'orgTour':
-          this.tourService.startTour();
+          this.tourService.startTour(this.initialUrl);
           break;
         default:
           // code...
@@ -65,15 +69,37 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.handleTaskChange();
     });
 
-    this.tourService.scrollSubjectChanges$.subscribe(() => {
-      const element = document.getElementById('transactionListDiv');
-      element.scrollIntoView();
+    this.tourService.scrollTransactionListSubjectChanges$.subscribe((scroll) => {
+      if (scroll === true) {
+        setTimeout(() => {
+          const element = document.getElementById('transactionList');
+          element.scrollIntoView();
+        });
+      }
     });
+
+    this.tourService.scrollMapSubjectChanges$.subscribe((scroll) => {
+      if (scroll === true) {
+        setTimeout(() => {
+          const element = document.getElementById('map');
+          element.scrollIntoView();
+        });
+      }
+    });
+  }
+
+  onNodeStatusStepNext() {
+    this.tourService.scrollToTransactionList();
+  }
+
+  onTransactionListStepPrev() {
+    this.tourService.scrollToMap();
   }
 
   ngOnDestroy() {
     this.taskChange.unsubscribe();
   }
+
 
   setupBlockchain() {
     this.taskManager.resetTasks();
@@ -99,7 +125,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.clearTasks();
       }
 
-      this.nodeGeoJson = {...this.nodeGeoJson};
+      this.nodeGeoJson = { ...this.nodeGeoJson };
     }
   }
 

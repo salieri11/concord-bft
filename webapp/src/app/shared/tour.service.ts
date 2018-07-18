@@ -8,6 +8,7 @@ import { Observable } from 'rxjs/internal/Observable';
 import { JoyrideService } from 'ngx-joyride';
 
 import { Personas, PersonaService } from './persona.service';
+import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root'
@@ -16,17 +17,17 @@ export class TourService {
   private userProfileDropdownChangeSubject: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
   userProfileDropdownChanges$: Observable<boolean> = this.userProfileDropdownChangeSubject.asObservable();
 
-  private userActionsDropdownChangeSubject: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
-  userActionsDropdownChanges$: Observable<boolean> = this.userActionsDropdownChangeSubject.asObservable();
+  private scrollTransactionListSubject: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(null);
+  scrollTransactionListSubjectChanges$: Observable<boolean> = this.scrollTransactionListSubject.asObservable();
 
-  private scrollSubject: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(null);
-  scrollSubjectChanges$: Observable<boolean> = this.scrollSubject.asObservable();
+  private scrollMapSubject: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(null);
+  scrollMapSubjectChanges$: Observable<boolean> = this.scrollMapSubject.asObservable();
 
   isUserProfileMenuOpen = false;
-  isUserActionsMenuOpen = false;
 
   constructor(private personaService: PersonaService,
-              private joyrideService: JoyrideService) {
+              private joyrideService: JoyrideService,
+              private router: Router) {
   }
 
   toggleUserProfileMenu() {
@@ -34,14 +35,12 @@ export class TourService {
     this.userProfileDropdownChangeSubject.next(this.isUserProfileMenuOpen);
   }
 
-
-  toggleUserActionsMenu() {
-    this.isUserActionsMenuOpen = !this.isUserActionsMenuOpen;
-    this.userActionsDropdownChangeSubject.next(this.isUserActionsMenuOpen);
+  scrollToTransactionList() {
+    this.scrollTransactionListSubject.next(true);
   }
 
-  scrollToElement() {
-    this.scrollSubject.next(true);
+  scrollToMap() {
+    this.scrollMapSubject.next(true);
   }
 
   startTour(initialUrl: string) {
@@ -58,11 +57,11 @@ export class TourService {
     if ((this.personaService.currentPersona === Personas.OrgDeveloper || this.personaService.currentPersona === Personas.OrgUser)) {
       steps.splice(4, 2);
     }
-
+    this.router.navigate(['/dashboard']);
+    this.scrollToMap();
     this.joyrideService.startTour(
       {
-        steps: steps,
-        stepDefaultPosition: 'top'
+        steps: steps
       }
     );
   }

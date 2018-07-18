@@ -3,16 +3,15 @@
     <clr-icon shape="administrator" size="30"></clr-icon>
     {{ 'users.title' | translate }} |
     <clr-dropdown #userActionsMenu>
-      <button class="nav-link" clrDropdownTrigger>
+      <button class="nav-link" clrDropdownTrigger joyrideStep="userActions" title="{{'tourSteps.users.userActions.title' | translate}}"
+              text="{{'tourSteps.users.userActions.text' | translate}}" (next)="onNext()" stepPosition="right">
         {{ 'users.actions.title' | translate }}
         <clr-icon shape="caret down"></clr-icon>
       </button>
       <clr-dropdown-menu clrPosition="bottom-left">
-        <a clrDropdownItem joyrideStep="userActions" title="{{'tourSteps.users.userActions.title' | translate}}"
-           text="{{'tourSteps.users.userActions.text' | translate}}" (next)="onNext()" (prev)="onPrev()" stepPosition="right"
-           (click)="userForm.openAddUserForm()">
+        <button clrDropdownItem (click)="userForm.openAddUserForm()">
           {{ 'users.actions.options.add.title' | translate }}
-        </a>
+        </button>
         <button [disabled]="selected?.length !== 1" (click)="userForm.openEditUserForm()" clrDropdownItem>
           {{ 'users.actions.options.edit.title' | translate }}
         </button>

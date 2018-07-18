@@ -26,11 +26,6 @@ export class UsersComponent implements OnInit {
   selected: Array<User>;
 
   constructor(private tourService: TourService) {
-    this.tourService.userActionsDropdownChanges$.subscribe((openMenu) => {
-      setTimeout(() => {
-        this.userActionsMenu.ifOpenService.open = openMenu;
-      });
-    });
   }
 
   ngOnInit() {
@@ -53,11 +48,7 @@ export class UsersComponent implements OnInit {
   }
 
   onNext() {
-    this.tourService.toggleUserActionsMenu();
     this.tourService.toggleUserProfileMenu();
   }
 
-  onPrev() {
-    this.tourService.toggleUserActionsMenu();
-  }
 }

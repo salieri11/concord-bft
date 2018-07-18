@@ -30,7 +30,6 @@ import { unByKey } from 'ol/Observable';
 import { easeOut } from 'ol/easing';
 
 import { NodeProperties } from './world-map.model';
-import { TourService } from '../../shared/tour.service';
 
 @Component({
   selector: 'athena-world-map',
@@ -59,7 +58,8 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   // An observable collection of features for the map
   private featureCollection = new Collection();
 
-  constructor(private http: HttpClient, private ref: ChangeDetectorRef, private tourService: TourService) {}
+  constructor(private http: HttpClient, private ref: ChangeDetectorRef) {
+  }
 
   ngAfterViewInit() {
     this.initMap();
@@ -79,10 +79,6 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     if (this.animationInterval) {
       clearInterval(this.animationInterval);
     }
-  }
-
-  onNext() {
-    this.tourService.scrollToElement();
   }
 
   private initMap() {

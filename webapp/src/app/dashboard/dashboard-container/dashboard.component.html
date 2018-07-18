@@ -1,4 +1,9 @@
-<athena-world-map [features]="nodeGeoJson"></athena-world-map>
+<div id="map" joyrideStep="nodeStatus"
+     title="{{'tourSteps.dashboard.nodeStatus.title' | translate}}"
+     text="{{'tourSteps.dashboard.nodeStatus.text' | translate}}" stepPosition="bottom" (next)="onNodeStatusStepNext()">
+  <athena-world-map [features]="nodeGeoJson"></athena-world-map>
+</div>
+
 
 <div class="p-2 bg-header">
   <div class="row">
@@ -41,10 +46,11 @@
 </div>
 
 <div class="p-2">
-  <div id="transactionListDiv" joyrideStep="transactionList"
-    title="{{'tourSteps.dashboard.transactionList.title' | translate}}"
-    text="{{'tourSteps.dashboard.transactionList.text' | translate}}">
-  <athena-transaction-list [transactions]="recentTransactions"></athena-transaction-list>
+  <div id="transactionList" joyrideStep="transactionList"
+       title="{{'tourSteps.dashboard.transactionList.title' | translate}}"
+       text="{{'tourSteps.dashboard.transactionList.text' | translate}}" stepPosition="top"
+       (prev)="onTransactionListStepPrev()">
+    <athena-transaction-list [transactions]="recentTransactions"></athena-transaction-list>
   </div>
 </div>
 
