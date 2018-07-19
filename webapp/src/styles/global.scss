@@ -88,3 +88,55 @@
     }
   }
 }
+
+// Joyride styles
+.joyride-step__container {
+  font-family: $clr-font;
+  border-radius: $clr-global-borderradius;
+
+  .joyride-step__title {
+    color: $clr-near-black !important;
+    font-size: 0.916667rem;
+    font-weight: 200;
+  }
+
+  .joyride-step__body {
+    font-size: .583333rem;
+  }
+
+  .joyride-step__next-button, .joyride-step__done-button {
+    padding-left: 0.25rem;
+  }
+
+  button.joyride-button {
+    // Unfortunately we need to copy the Clarity button styles directly and use !important
+    // to override some of them as Joyride uses ng-style for many of its applied theme styles.
+    // These are Clarity .btn .btn-primary and .btn-small styles
+    display: inline-block;
+    -webkit-appearance: none !important;
+    border-radius: $clr-global-borderradius;
+    border: 1px solid !important;
+    min-width: 2rem;
+    max-width: 15rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    text-align: center;
+    text-decoration: none;
+    text-transform: uppercase;
+    vertical-align: middle;
+    font-weight: 500;
+    padding: 0 0.5rem;
+    border-color: $clr-action-blue !important;
+    background-color: $clr-action-blue !important;;
+    color: $white;
+    line-height: calc(1rem - 1px);
+    letter-spacing: 0.073em;
+    font-size: $clr-typography-xxsmalltext;
+    height: 1rem !important;
+    &:hover {
+      background-color: $clr-action-blue-dark !important;
+      color: $clr-action-blue-lightest !important;
+    }
+  }
+}

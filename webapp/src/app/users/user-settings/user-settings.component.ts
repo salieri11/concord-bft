@@ -4,6 +4,7 @@
 
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
+
 import { CredentialFormComponent } from '../credential-form/credential-form.component';
 import { TourService } from '../../shared/tour.service';
 
@@ -43,6 +44,5 @@ export class UserSettingsComponent implements OnInit {
   onPrev() {
     this.tourService.toggleUserProfileMenu();
   }
-
 
 }
