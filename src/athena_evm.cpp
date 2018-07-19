@@ -189,6 +189,30 @@ void com::vmware::athena::EVM::create(evm_message &message,
          kvbStorage.set_code(contract_address,
                              result.output_data,
                              result.output_size);
+
+
+         // There is a bug (either in evmjit or in our usage of evm) which
+         // causes nested contract creation calls to give segmentation
+         // fault. This bug also causes segmentation fault if we try to call
+         // release method on result object in a normal contract creation call.
+         // The reason is that `evmjit` stores a pointer to its internal data
+         // inside evm_result's optional data storage and when the evm_result
+         // objects scope ends we (or evm in case of nested call) call release
+         // method to free memory from that pointer. However, this optional data
+         // storage actually uses evm_result structure's create_address field to
+         // store that pointer, in case of nested contract creation we store the
+         // address of created contract into this field and it over-writes the
+         // already stored pointer. This leads to seg-fault when freeing that
+         // memory.  To fix this temporarily we just call release on result
+         // object ourselves. Ideally only the owner of result object should
+         // call release method on it and the result object itself should not be
+         // used once we call release on it but this works until we find a
+         // proper way.
+         if (result.release) {
+            result.release(&result);
+            result.release = nullptr;
+         }
+
          result.create_address = contract_address;
       }
    } else {
@@ -201,10 +225,12 @@ void com::vmware::athena::EVM::create(evm_message &message,
    // don't expose the address if it wasn't used
    evm_address recorded_contract_address =
       result.status_code == EVM_SUCCESS ? contract_address : zero_address;
-   txhash = record_transaction(message, result,
-                               zero_address, /* creates are not addressed */
-                               recorded_contract_address,
-                               kvbStorage);
+   if (message.depth == 0) {
+      txhash = record_transaction(message, result,
+                                  zero_address, /* creates are not addressed */
+                                  recorded_contract_address,
+                                  kvbStorage);
+   }
 }
 
 /**
@@ -479,10 +505,17 @@ extern "C" {
 
       // txhash is a throw-away - we don't get a transaction from a call
       evm_uint256be txhash;
-      ath_object(evmctx)->run(call_msg,
-                              *(ath_context(evmctx)->kvbStorage),
-                              *result,
-                              txhash);
+      if (msg->kind == EVM_CREATE) {
+         ath_object(evmctx)->create(call_msg,
+                                 *(ath_context(evmctx)->kvbStorage),
+                                 *result,
+                                 txhash);
+      } else {
+         ath_object(evmctx)->run(call_msg,
+                                 *(ath_context(evmctx)->kvbStorage),
+                                 *result,
+                                 txhash);
+      }
    }
 
    void ath_get_block_hash(struct evm_uint256be* result,
