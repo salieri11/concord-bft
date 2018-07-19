@@ -127,15 +127,10 @@ public final class AthenaTCPConnection implements IAthenaConnection {
 
             // we have the header - find out how big the body is
             if (msgSizeOffset == _receiveLengthSize && msgSize < 0) {
-               msgSize = ByteBuffer.wrap(msgSizeBuf)
-                                   .order(ByteOrder.LITTLE_ENDIAN)
-                                   .getShort();
-
-               // msgSize is sent as an unsigned 16-bit integer, but we have
-               // decoded it as a signed 16-bit integer. This was sign-extended
-               // into our signed 32-bit integer. We just don't want any of the
-               // high bits.
-               msgSize = msgSize & 0xffff;
+               // msgSize is sent as an unsigned 16-bit integer
+               msgSize = Short.toUnsignedInt(ByteBuffer.wrap(msgSizeBuf)
+                                             .order(ByteOrder.LITTLE_ENDIAN)
+                                             .getShort());
 
                result = new byte[msgSize];
             }
