@@ -4,13 +4,13 @@ FROM athenabase
 COPY resources/athena3.config /athena/resources/
 RUN sed -i -e "s/tmp/athena\/resources/g" /athena/resources/athena3.config
 
-COPY submodules/P2_Blockchain/SBFTExampleConfigs/f1-c0-cl3/*3.priv \
-     /athena/resources/f1-c0-cl3/
+COPY resources/sbft/*3.priv \
+     /athena/resources/sbft/
 
 WORKDIR /athena
 CMD export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
     /athena/resources/find-docker-instances.sh \
-       /athena/resources/f1-c0-cl3/*.pub athena1 athena2 athena3 && \
+       /athena/resources/sbft/*.pub athena1 athena2 athena3 athena4 && \
     /athena/athena -c /athena/resources/athena3.config
 # athena<->helen
 EXPOSE 5460

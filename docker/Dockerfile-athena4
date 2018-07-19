@@ -1,19 +1,19 @@
-## Node2 image
+## Node4 image
 FROM athenabase
 
-COPY resources/athena2.config /athena/resources/
-RUN sed -i -e "s/tmp/athena\/resources/g" /athena/resources/athena2.config
+COPY resources/athena4.config /athena/resources/
+RUN sed -i -e "s/tmp/athena\/resources/g" /athena/resources/athena4.config
 
-COPY resources/sbft/*2.priv \
+COPY resources/sbft/*4.priv \
      /athena/resources/sbft/
 
 WORKDIR /athena
 CMD export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
     /athena/resources/find-docker-instances.sh \
        /athena/resources/sbft/*.pub athena1 athena2 athena3 athena4 && \
-    /athena/athena -c /athena/resources/athena2.config
+    /athena/athena -c /athena/resources/athena4.config
 # athena<->helen
-EXPOSE 5459
+EXPOSE 5461
 # SBFT
-EXPOSE 3702/udp
-EXPOSE 3706/udp
+EXPOSE 3704/udp
+EXPOSE 3708/udp
