@@ -14,6 +14,7 @@ import { Personas, PersonaService } from './persona.service';
 })
 export class TourService {
   private _initialUrl: string;
+  private _initialDashboardUrl: string;
   steps: string[];
 
   private userProfileDropdownChangeSubject: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
@@ -39,6 +40,14 @@ export class TourService {
     this._initialUrl = initialUrl;
   }
 
+  get initialDashboardUrl() {
+    return this._initialDashboardUrl;
+  }
+
+  set initialDashboardUrl(initialDashboardUrl: string) {
+    this._initialDashboardUrl = initialDashboardUrl;
+  }
+
   toggleUserProfileMenu() {
     this.isUserProfileMenuOpen = !this.isUserProfileMenuOpen;
     this.userProfileDropdownChangeSubject.next(this.isUserProfileMenuOpen);
@@ -54,8 +63,8 @@ export class TourService {
 
   startTour() {
     this.steps = [
-      'nodeStatus@dashboard',
-      'transactionList@dashboard',
+      `nodeStatus@${this.initialDashboardUrl}`,
+      `transactionList@${this.initialDashboardUrl}`,
       'manageSmartContracts@smart-contracts',
       'createSmartContract@smart-contracts',
       `userManagement@${this.initialUrl}`,

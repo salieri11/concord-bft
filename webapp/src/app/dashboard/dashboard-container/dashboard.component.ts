@@ -3,7 +3,7 @@
  */
 
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
 
@@ -41,6 +41,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private transactionsService: TransactionsService,
     private taskManager: TaskManagerService,
     private route: ActivatedRoute,
+    private router: Router,
     private translate: TranslateService,
     private tourService: TourService
   ) {
@@ -50,6 +51,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.transactionsService.getRecentTransactions().subscribe((resp) => {
       this.recentTransactions = resp;
     });
+
+    this.tourService.initialDashboardUrl = this.router.url.substr(1);
 
     this.routerFragmentChange = this.route.fragment.subscribe(fragment => {
       switch (fragment) {
