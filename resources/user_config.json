@@ -64,6 +64,20 @@
             ]
           }
         }
+      },
+      {
+        "athena4": {
+          "buildRoot": "~/source/athena/build",
+          "athena4": {
+            "launchCommand": "src/athena",
+            "parameters": [
+              "--logger_config",
+              "./resources/log4cplus.properties",
+              "-c",
+              "resources/athena4.config"
+            ]
+          }
+        }
       }
     ],
     "users": [
