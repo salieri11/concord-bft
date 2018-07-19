@@ -850,7 +850,7 @@
     "blockchainInstance": "Blockchain Instance"
   },
   "tourSteps": {
-    "title": "Take a tour",
+    "title": "Take Tour",
     "dashboard": {
       "nodeStatus": {
         "title": "Node Status",
@@ -868,21 +868,21 @@
       },
       "createSmartContract": {
         "title": "Create",
-        "text": "Create Smart Contracts here."
+        "text": "Create contracts here."
       }
     },
     "users": {
       "manageUsers": {
         "title": "Manage users",
-        "text": "Go to user management from here."
+        "text": "Goes to user management."
       },
       "userActions": {
         "title": "User Actions",
-        "text": "Can add, edit or delete users."
+        "text": "Add and manage users here."
       },
       "userSettings": {
         "title": "User settings",
-        "text": "Go to user settings from here."
+        "text": "Go to user settings."
       },
       "downloadCertificate": {
         "title": "Download certificate",
