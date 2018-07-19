@@ -53,6 +53,12 @@ public class AthenaHelper {
 
       // Find size of request and pack size into two bytes.
       int requestSize = request.getSerializedSize();
+
+      // If the request size doesn't fit in two bytes, abort.
+      if (requestSize > 65535) {
+         throw new IOException("Request too large: "+requestSize);
+      }
+
       byte[] size
          = intToSizeBytes(requestSize,
                           conf.getIntegerValue("ReceiveHeaderSizeBytes"));

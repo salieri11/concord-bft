@@ -127,9 +127,11 @@ public final class AthenaTCPConnection implements IAthenaConnection {
 
             // we have the header - find out how big the body is
             if (msgSizeOffset == _receiveLengthSize && msgSize < 0) {
-               msgSize = ByteBuffer.wrap(msgSizeBuf)
-                                   .order(ByteOrder.LITTLE_ENDIAN)
-                                   .getShort();
+               // msgSize is sent as an unsigned 16-bit integer
+               msgSize = Short.toUnsignedInt(ByteBuffer.wrap(msgSizeBuf)
+                                             .order(ByteOrder.LITTLE_ENDIAN)
+                                             .getShort());
+
                result = new byte[msgSize];
             }
 
