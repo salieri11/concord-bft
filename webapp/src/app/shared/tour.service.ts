@@ -3,6 +3,7 @@
  */
 
 import { Injectable } from '@angular/core';
+import { Router } from '@angular/router';
 import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
 import { Observable } from 'rxjs/internal/Observable';
 import { TranslateService } from '@ngx-translate/core';
@@ -24,8 +25,12 @@ export class TourService {
   private userActionsDropdownChangeSubject: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
   userActionsDropdownChanges$: Observable<boolean> = this.userActionsDropdownChangeSubject.asObservable();
 
-  constructor(private personaService: PersonaService, private translate: TranslateService, private ngxTourService: NgxTourService) {
-  }
+  constructor(
+    private personaService: PersonaService,
+    private router: Router,
+    private translate: TranslateService,
+    private ngxTourService: NgxTourService
+  ) {}
 
   get initialUrl() {
     return this._initialUrl;
@@ -145,6 +150,10 @@ export class TourService {
           this.closeUserProfileMenu();
           break;
       }
+    });
+
+    this.ngxTourService.end$.subscribe(() => {
+      this.router.navigate(['dashboard']);
     });
 
     this.ngxTourService.initialize(this.steps, {

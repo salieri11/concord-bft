@@ -90,7 +90,7 @@
 }
 
 // ngx-tour styles
-.ngxp__container {
+div.ngxp__container {
   font-family: $clr-font;
   border-radius: $clr-global-borderradius;
   background-color: white;
@@ -142,5 +142,57 @@
       background-color: $clr-action-blue-dark;
       color: $clr-action-blue-lightest;
     }
+  }
+  &[x-placement^="top"] {
+    margin-bottom: 10px;
+    > .ngxp__arrow {
+      border-width: 15px 15px 0 15px;
+      border-right-color: transparent;
+      border-bottom-color: transparent;
+      border-left-color: transparent;
+      bottom: -15px;
+      left: calc(50% - 5px);
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+  }
+  &[x-placement^="bottom"] {
+    margin-top: 10px;
+    > .ngxp__arrow {
+      border-width: 0 15px 15px 15px;
+      border-top-color: transparent;
+      border-right-color: transparent;
+      border-left-color: transparent;
+      top: -15px;
+      left: calc(50% - 5px);
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+  }
+  &[x-placement^="left"] {
+    margin-right: 10px;
+    > .ngxp__arrow {
+      border-width: 15px 0 15px 15px;
+      border-top-color: transparent;
+      border-bottom-color: transparent;
+      border-right-color: transparent;
+      right: -15px;
+      top: calc(50% - 5px);
+      margin-left: 0;
+      margin-right: 0;
+    }
+  }
+  &[x-placement^="right"] {
+    margin-left: 10px;
+    > .ngxp__arrow {
+      border-width: 15px 15px 15px 0;
+      border-top-color: transparent;
+      border-bottom-color: transparent;
+      border-left-color: transparent;
+      left: -15px;
+      top: calc(50% - 5px);
+      margin-left: 0;
+      margin-right: 0;
+  }
   }
 }
