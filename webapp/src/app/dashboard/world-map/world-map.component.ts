@@ -59,7 +59,8 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
   // An observable collection of features for the map
   private featureCollection = new Collection();
 
-  constructor(private http: HttpClient, private ref: ChangeDetectorRef) {}
+  constructor(private http: HttpClient, private ref: ChangeDetectorRef) {
+  }
 
   ngAfterViewInit() {
     this.initMap();

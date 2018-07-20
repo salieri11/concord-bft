@@ -19,7 +19,9 @@ export class SmartContractsComponent implements OnInit {
   smartContracts = [];
   personas = Personas;
 
-  constructor( private smartContractsService: SmartContractsService ) { }
+  constructor (
+    private smartContractsService: SmartContractsService
+  ) { }
 
   ngOnInit() {
     this.loadSmartContracts();

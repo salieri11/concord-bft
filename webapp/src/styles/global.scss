@@ -88,3 +88,111 @@
     }
   }
 }
+
+// ngx-tour styles
+div.ngxp__container {
+  font-family: $clr-font;
+  border-radius: $clr-global-borderradius;
+  background-color: white;
+  max-width: 300px;
+
+
+  .ngxp-title {
+    color: $clr-near-black !important;
+    font-size: 0.916667rem;
+    font-weight: 200;
+    margin-top: 0;
+  }
+
+  .ngxp-content {
+    font-size: .583333rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .btn-next, .btn-end {
+    margin-left: 0.25rem;
+  }
+
+  button.ngxp-btn {
+    // These are Clarity .btn .btn-primary and .btn-small styles
+    display: inline-block;
+    -webkit-appearance: none !important;
+    border-radius: $clr-global-borderradius;
+    border: 1px solid;
+    min-width: 2rem;
+    max-width: 15rem;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    text-align: center;
+    text-decoration: none;
+    text-transform: uppercase;
+    vertical-align: middle;
+    font-weight: 500;
+    padding: 0 0.5rem;
+    border-color: $clr-action-blue;
+    background-color: $clr-action-blue;
+    color: $white;
+    line-height: calc(1rem - 1px);
+    letter-spacing: 0.073em;
+    font-size: $clr-typography-xxsmalltext;
+    height: 1rem;
+    &:hover {
+      background-color: $clr-action-blue-dark;
+      color: $clr-action-blue-lightest;
+    }
+  }
+  &[x-placement^="top"] {
+    margin-bottom: 10px;
+    > .ngxp__arrow {
+      border-width: 15px 15px 0 15px;
+      border-right-color: transparent;
+      border-bottom-color: transparent;
+      border-left-color: transparent;
+      bottom: -15px;
+      left: calc(50% - 5px);
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+  }
+  &[x-placement^="bottom"] {
+    margin-top: 10px;
+    > .ngxp__arrow {
+      border-width: 0 15px 15px 15px;
+      border-top-color: transparent;
+      border-right-color: transparent;
+      border-left-color: transparent;
+      top: -15px;
+      left: calc(50% - 5px);
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+  }
+  &[x-placement^="left"] {
+    margin-right: 10px;
+    > .ngxp__arrow {
+      border-width: 15px 0 15px 15px;
+      border-top-color: transparent;
+      border-bottom-color: transparent;
+      border-right-color: transparent;
+      right: -15px;
+      top: calc(50% - 5px);
+      margin-left: 0;
+      margin-right: 0;
+    }
+  }
+  &[x-placement^="right"] {
+    margin-left: 10px;
+    > .ngxp__arrow {
+      border-width: 15px 15px 15px 0;
+      border-top-color: transparent;
+      border-bottom-color: transparent;
+      border-left-color: transparent;
+      left: -15px;
+      top: calc(50% - 5px);
+      margin-left: 0;
+      margin-right: 0;
+  }
+  }
+}

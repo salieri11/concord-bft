@@ -5,6 +5,7 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
+import { TourNgxPopperModule } from 'ngx-tour-ngx-popper';
 
 import { MainComponent } from './main/main.component';
 import { BlocksModule } from '../blocks/blocks.module';
@@ -44,7 +45,8 @@ import { UsersModule } from '../users/users.module';
     KubernetesModule,
     SmartContractsModule,
     ChannelsModule,
-    UsersModule
+    UsersModule,
+    TourNgxPopperModule
   ],
   declarations: [MainComponent],
   providers: [
