@@ -11,10 +11,12 @@ from tempfile import mkdtemp
 from time import strftime, localtime
 
 from suites import core_vm_tests, helen_api_tests, ext_rpc_tests, kv_blockchain_tests, performance_tests
+from suites import regression_tests
 from util import html, json_helper
 
 log = None
-suites = ["CoreVMTests", "ExtendedRPCTests", "HelenAPITests"]
+suites = ["CoreVMTests", "ExtendedRPCTests", "HelenAPITests",
+          "PerformanceTests", "KVBTests", "RegressionTests"]
 
 def main():
    startTime = datetime.datetime.now()
@@ -86,6 +88,8 @@ def createTestSuite(args):
       return kv_blockchain_tests.KVBTests(args)
    elif (args.suite == "PerformanceTests"):
       return performance_tests.PerformanceTests(args)
+   elif (args.suite == "RegressionTests"):
+      return regression_tests.RegressionTests(args)
 
 def createResultsDir(suiteName):
    prefix = suiteName + "_" + strftime("%Y%m%d_%H%M_", localtime())
