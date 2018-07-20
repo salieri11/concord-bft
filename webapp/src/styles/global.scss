@@ -89,33 +89,37 @@
   }
 }
 
-// Joyride styles
-.joyride-step__container {
+// ngx-tour styles
+.ngxp__container {
   font-family: $clr-font;
   border-radius: $clr-global-borderradius;
+  background-color: white;
+  max-width: 300px;
 
-  .joyride-step__title {
+
+  .ngxp-title {
     color: $clr-near-black !important;
     font-size: 0.916667rem;
     font-weight: 200;
+    margin-top: 0;
   }
 
-  .joyride-step__body {
+  .ngxp-content {
     font-size: .583333rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
   }
 
-  .joyride-step__next-button, .joyride-step__done-button {
-    padding-left: 0.25rem;
+  .btn-next, .btn-end {
+    margin-left: 0.25rem;
   }
 
-  button.joyride-button {
-    // Unfortunately we need to copy the Clarity button styles directly and use !important
-    // to override some of them as Joyride uses ng-style for many of its applied theme styles.
+  button.ngxp-btn {
     // These are Clarity .btn .btn-primary and .btn-small styles
     display: inline-block;
     -webkit-appearance: none !important;
     border-radius: $clr-global-borderradius;
-    border: 1px solid !important;
+    border: 1px solid;
     min-width: 2rem;
     max-width: 15rem;
     white-space: nowrap;
@@ -127,16 +131,16 @@
     vertical-align: middle;
     font-weight: 500;
     padding: 0 0.5rem;
-    border-color: $clr-action-blue !important;
-    background-color: $clr-action-blue !important;;
+    border-color: $clr-action-blue;
+    background-color: $clr-action-blue;
     color: $white;
     line-height: calc(1rem - 1px);
     letter-spacing: 0.073em;
     font-size: $clr-typography-xxsmalltext;
-    height: 1rem !important;
+    height: 1rem;
     &:hover {
-      background-color: $clr-action-blue-dark !important;
-      color: $clr-action-blue-lightest !important;
+      background-color: $clr-action-blue-dark;
+      color: $clr-action-blue-lightest;
     }
   }
 }

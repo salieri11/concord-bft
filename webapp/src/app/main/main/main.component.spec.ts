@@ -4,7 +4,7 @@
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
-import { JoyrideModule } from 'ngx-joyride';
+import { TourService as NgxTourService } from 'ngx-tour-ngx-popper';
 
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { MockSharedModule } from '../../shared/shared.module';
@@ -25,8 +25,7 @@ describe('MainComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         RouterTestingModule,
-        MockSharedModule,
-        JoyrideModule.forRoot()
+        MockSharedModule
       ],
       declarations: [
         MainComponent,
@@ -37,7 +36,8 @@ describe('MainComponent', () => {
       providers: [
         ErrorAlertService,
         VmwTasksService,
-        TourService
+        TourService,
+        NgxTourService
       ]
     }).compileComponents();
   }));

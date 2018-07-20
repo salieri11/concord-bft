@@ -10,19 +10,17 @@
     <div class="col-xs-6"
          *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin, personas.OrgDeveloper]">
       <div class="text-right">
-        <button type="button" class="btn btn-primary" (click)="contractFormModal.open()"
-                joyrideStep="createSmartContract"
-                title="{{'tourSteps.smartContracts.createSmartContract.title' | translate}}"
-                text="{{'tourSteps.smartContracts.createSmartContract.text' | translate}}" stepPosition="bottom" (next)="onCreateSmartContractStepNext()">{{'common.create' |
-          translate}}
+        <button type="button"
+                class="btn btn-primary"
+                (click)="contractFormModal.open()"
+                tourAnchor="onboardingTour.createSmartContract">
+          {{'common.create' | translate}}
         </button>
       </div>
     </div>
   </div>
 
-  <clr-datagrid joyrideStep="manageSmartContracts"
-                title="{{'tourSteps.smartContracts.manageSmartContracts.title' | translate}}"
-                text="{{'tourSteps.smartContracts.manageSmartContracts.text' | translate}}" stepPosition="bottom" (prev)="onPrev()" (next)="onManageSmartContractsStepNext()">
+  <clr-datagrid tourAnchor="onboardingTour.manageSmartContracts">
     <clr-dg-column>{{'smartContracts.contractId' | translate}} : {{'smartContracts.owner' | translate}}</clr-dg-column>
     <clr-dg-row *clrDgItems="let smartContract of smartContracts">
       <clr-dg-cell><a [routerLink]="['/smart-contracts', smartContract.contract_id]">{{ smartContract.contract_id }} :

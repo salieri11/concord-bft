@@ -79,19 +79,6 @@ export class MainComponent implements OnInit, OnDestroy {
     this.taskManagerService.resetTasks();
   }
 
-  startTour() {
-    this.tourService.startTour();
-  }
-
-  onNext() {
-    this.tourService.toggleUserProfileMenu();
-  }
-
-  onPrev() {
-    this.tourService.toggleUserProfileMenu();
-  }
-
-
   private addAlert(alert: any): void {
     if (alert && alert.message) {
       const alertItem = {

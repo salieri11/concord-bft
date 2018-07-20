@@ -8,6 +8,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { MockSharedModule } from '../../shared/shared.module';
+import { TourService as NgxTourService } from 'ngx-tour-ngx-popper';
 
 import { DashboardComponent } from './dashboard.component';
 import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
@@ -21,7 +22,6 @@ import { VmwComboboxItemsComponent } from '../../shared/components/combobox/comb
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { WorldMapComponent } from '../world-map/world-map.component';
 import { TourService } from '../../shared/tour.service';
-import { JoyrideModule } from 'ngx-joyride';
 
 describe('DashboardComponent', () => {
   let component: DashboardComponent;
@@ -33,8 +33,7 @@ describe('DashboardComponent', () => {
         RouterTestingModule,
         HttpClientTestingModule,
         MockSharedModule,
-        FormsModule,
-        JoyrideModule.forRoot()
+        FormsModule
       ],
       declarations: [
         DashboardComponent,
@@ -50,7 +49,8 @@ describe('DashboardComponent', () => {
       ],
       providers: [
         VmwTasksService,
-        TourService
+        TourService,
+        NgxTourService
       ]
     })
       .compileComponents();

@@ -2,7 +2,8 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Subscription } from 'rxjs';
 
 import { ClrDropdown } from '@clr/angular';
 
@@ -17,18 +18,28 @@ import { TourService } from '../../shared/tour.service';
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss']
 })
-export class UsersComponent implements OnInit {
+export class UsersComponent implements OnInit, OnDestroy {
   static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin, Personas.OrgAdmin];
   @ViewChild('usersList') usersList: UserListComponent;
   @ViewChild('userForm') userForm: UserFormComponent;
   @ViewChild('userActionsMenu') userActionsMenu: ClrDropdown;
 
+  userActionMenuToggleChanges: Subscription;
   selected: Array<User>;
 
   constructor(private tourService: TourService) {
   }
 
   ngOnInit() {
+    this.userActionMenuToggleChanges = this.tourService.userActionsDropdownChanges$.subscribe((openMenu) => {
+      setTimeout(() => {
+        this.userActionsMenu.ifOpenService.open = openMenu;
+      });
+    });
+  }
+
+  ngOnDestroy() {
+    this.userActionMenuToggleChanges.unsubscribe();
   }
 
   onSelectedUsersChange(rows: Array<User>) {
@@ -45,10 +56,6 @@ export class UsersComponent implements OnInit {
 
   deleteUsers() {
     this.usersList.grid.reload();
-  }
-
-  onNext() {
-    this.tourService.toggleUserProfileMenu();
   }
 
 }

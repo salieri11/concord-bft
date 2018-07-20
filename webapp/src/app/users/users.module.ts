@@ -3,7 +3,7 @@
  */
 
 import { NgModule } from '@angular/core';
-import { JoyrideModule } from 'ngx-joyride';
+import { TourNgxPopperModule } from 'ngx-tour-ngx-popper';
 
 import { UsersComponent } from './users/users.component';
 import { GridModule } from '../grid/grid.module';
@@ -18,7 +18,7 @@ import { SharedModule } from '../shared/shared.module';
   imports: [
     GridModule,
     SharedModule,
-    JoyrideModule.forChild()
+    TourNgxPopperModule
   ],
   declarations: [UsersComponent, UserListComponent, UserFormComponent, UserSettingsComponent, CredentialFormComponent],
   providers: [UsersService]

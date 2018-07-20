@@ -6,8 +6,7 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 
 import { ContractFormComponent } from '../contract-form/contract-form.component';
 import { SmartContractsService } from '../shared/smart-contracts.service';
-import { Personas, PersonaService } from '../../shared/persona.service';
-import { TourService } from '../../shared/tour.service';
+import { Personas } from '../../shared/persona.service';
 
 @Component({
   selector: 'athena-smart-contracts',
@@ -21,9 +20,7 @@ export class SmartContractsComponent implements OnInit {
   personas = Personas;
 
   constructor (
-    private smartContractsService: SmartContractsService,
-    private tourService: TourService,
-    private personaService: PersonaService
+    private smartContractsService: SmartContractsService
   ) { }
 
   ngOnInit() {
@@ -33,21 +30,4 @@ export class SmartContractsComponent implements OnInit {
   loadSmartContracts() {
     this.smartContractsService.getSmartContracts().subscribe(smartContracts => this.smartContracts = smartContracts);
   }
-
-  onPrev() {
-    this.tourService.scrollToTransactionList();
-  }
-
-  onManageSmartContractsStepNext() {
-    if (this.personaService.currentPersona === Personas.OrgUser) {
-      this.tourService.toggleUserProfileMenu();
-    }
-  }
-
-  onCreateSmartContractStepNext() {
-    if (this.personaService.currentPersona === Personas.OrgDeveloper) {
-      this.tourService.toggleUserProfileMenu();
-    }
-  }
-
 }

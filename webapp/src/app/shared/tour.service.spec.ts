@@ -3,17 +3,24 @@
  */
 
 import { TestBed, inject } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { TranslateService } from '@ngx-translate/core';
+import { TourService as NgxTourService } from 'ngx-tour-ngx-popper';
 
 import { TourService } from './tour.service';
-import { JoyrideModule, JoyrideService } from 'ngx-joyride';
 import { PersonaService } from './persona.service';
-import { RouterTestingModule } from '@angular/router/testing';
+import { MockTranslateService } from '../mocks/mock-translate.module';
 
 describe('TourService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [JoyrideModule.forRoot(), RouterTestingModule],
-      providers: [TourService, PersonaService, JoyrideService]
+      imports: [RouterTestingModule],
+      providers: [
+        TourService,
+        NgxTourService,
+        PersonaService,
+        {provide: TranslateService, useClass: MockTranslateService}
+      ]
     });
   });
 

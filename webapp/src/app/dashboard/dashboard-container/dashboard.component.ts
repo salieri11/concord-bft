@@ -26,8 +26,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   recentTransactions: any[] = [];
   nodeGeoJson: any = NodeGeoJson;
   taskChange: Subscription;
-  transactionListScrollChange: Subscription;
-  mapScrollChange: Subscription;
   routerFragmentChange: Subscription;
   mockStats = {
     totalActiveNodes: 28458,
@@ -73,38 +71,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.taskChange = this.taskManager.taskChange.subscribe(() => {
       this.handleTaskChange();
     });
-
-    this.transactionListScrollChange = this.tourService.scrollTransactionListSubjectChanges$.subscribe((scroll) => {
-      if (scroll === true) {
-        setTimeout(() => {
-          const element = document.getElementById('transactionList');
-          element.scrollIntoView();
-        });
-      }
-    });
-
-    this.mapScrollChange = this.tourService.scrollMapSubjectChanges$.subscribe((scroll) => {
-      if (scroll === true) {
-        setTimeout(() => {
-          const element = document.getElementById('map');
-          element.scrollIntoView();
-        });
-      }
-    });
-  }
-
-  onNodeStatusStepNext() {
-    this.tourService.scrollToTransactionList();
-  }
-
-  onTransactionListStepPrev() {
-    this.tourService.scrollToMap();
   }
 
   ngOnDestroy() {
     this.taskChange.unsubscribe();
-    this.transactionListScrollChange.unsubscribe();
-    this.mapScrollChange.unsubscribe();
     this.routerFragmentChange.unsubscribe();
   }
 

@@ -851,30 +851,32 @@
   },
   "tourSteps": {
     "title": "Take Tour",
+    "nextBtnText": "Next",
+    "prevBtnText": "Prev",
     "dashboard": {
       "nodeStatus": {
         "title": "Node Status",
-        "text": "Hover over a node to see the health and status."
+        "text": "Hover over a node on the map to see its health and status."
       },
       "transactionList": {
         "title": "Transaction List",
-        "text": "Can see recent transactions happening on the blockchain."
+        "text": "Here are recent blockchain transactions. You can expand each row to see more details."
       }
     },
     "smartContracts": {
       "manageSmartContracts": {
         "title": "Manage Smart contracts",
-        "text":  "This is where you can manage your and view other people's smart contracts."
+        "text":  "This is where you can manage and view your smart contracts as well as other smart contracts submitted by members of your consortium."
       },
       "createSmartContract": {
         "title": "Create",
-        "text": "Create contracts here."
+        "text": "Click here to create a contract"
       }
     },
     "users": {
-      "manageUsers": {
+      "userManagement": {
         "title": "Manage users",
-        "text": "Goes to user management."
+        "text": "Click here to manage users in your organization or consortium."
       },
       "userActions": {
         "title": "User Actions",

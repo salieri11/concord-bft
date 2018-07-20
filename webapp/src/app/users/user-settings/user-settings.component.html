@@ -35,7 +35,7 @@
   </div>
 </div>
 
-<div class="m-2 row" *ngFor="let org of organizations">
+<div class="m-2 row" *ngFor="let org of organizations; let i = index">
   <div class="col-xs-6">
     <div>
       <small class="text-muted">{{'users.settings.organization.title' | translate}}</small>
@@ -46,11 +46,14 @@
     <div>
       <small class="text-muted">{{'users.settings.credentials' | translate}}</small>
     </div>
-    <button class="btn btn-sm"
+    <button *ngIf="i === 0" class="btn btn-sm"
             (click)="openDownloadCertificationWizard()"
-            joyrideStep="downloadCertificate"
-            title="{{'tourSteps.users.downloadCertificate.title' | translate}}"
-            text="{{'tourSteps.users.downloadCertificate.text' | translate}}" (prev)="onPrev()" stepPosition="top">
+            tourAnchor="onboardingTour.downloadCertificate">
+      <span><clr-icon shape="download"></clr-icon></span>
+      {{'users.settings.downloadCertificate.title' | translate}}
+    </button>
+    <button *ngIf="i > 0" class="btn btn-sm"
+            (click)="openDownloadCertificationWizard()">
       <span><clr-icon shape="download"></clr-icon></span>
       {{'users.settings.downloadCertificate.title' | translate}}
     </button>

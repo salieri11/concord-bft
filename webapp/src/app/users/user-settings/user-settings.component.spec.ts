@@ -3,13 +3,11 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { JoyrideModule } from 'ngx-joyride';
 
 import { UserSettingsComponent } from './user-settings.component';
 import { MockSharedModule } from '../../shared/shared.module';
 import { CredentialFormComponent } from '../credential-form/credential-form.component';
 import { TourService } from '../../shared/tour.service';
-import { RouterTestingModule } from '@angular/router/testing';
 
 describe('UserSettingsComponent', () => {
   let component: UserSettingsComponent;
@@ -18,9 +16,7 @@ describe('UserSettingsComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
-        MockSharedModule,
-        RouterTestingModule,
-        JoyrideModule.forRoot()
+        MockSharedModule
       ],
       declarations: [ UserSettingsComponent, CredentialFormComponent ],
       providers: [TourService]

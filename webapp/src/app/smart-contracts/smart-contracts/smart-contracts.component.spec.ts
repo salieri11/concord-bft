@@ -7,7 +7,6 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { JoyrideModule } from 'ngx-joyride';
 
 import { ContractFormComponent } from '../contract-form/contract-form.component';
 import { SmartContractsComponent } from './smart-contracts.component';
@@ -23,8 +22,7 @@ describe('SmartContractsComponent', () => {
       imports: [
         RouterTestingModule,
         HttpClientTestingModule,
-        MockSharedModule,
-        JoyrideModule.forRoot()
+        MockSharedModule
       ],
       declarations: [ SmartContractsComponent, ContractFormComponent, CanViewDirective ],
       providers: [ TourService ]

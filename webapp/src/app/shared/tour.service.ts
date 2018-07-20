@@ -5,7 +5,8 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
 import { Observable } from 'rxjs/internal/Observable';
-import { JoyrideService } from 'ngx-joyride';
+import { TranslateService } from '@ngx-translate/core';
+import { TourService as NgxTourService, IStepOption } from 'ngx-tour-ngx-popper';
 
 import { Personas, PersonaService } from './persona.service';
 
@@ -15,21 +16,15 @@ import { Personas, PersonaService } from './persona.service';
 export class TourService {
   private _initialUrl: string;
   private _initialDashboardUrl: string;
-  steps: string[];
+  steps: IStepOption[];
 
   private userProfileDropdownChangeSubject: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
   userProfileDropdownChanges$: Observable<boolean> = this.userProfileDropdownChangeSubject.asObservable();
 
-  private scrollTransactionListSubject: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(null);
-  scrollTransactionListSubjectChanges$: Observable<boolean> = this.scrollTransactionListSubject.asObservable();
+  private userActionsDropdownChangeSubject: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+  userActionsDropdownChanges$: Observable<boolean> = this.userActionsDropdownChangeSubject.asObservable();
 
-  private scrollMapSubject: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(null);
-  scrollMapSubjectChanges$: Observable<boolean> = this.scrollMapSubject.asObservable();
-
-  isUserProfileMenuOpen = false;
-
-  constructor(private personaService: PersonaService,
-              private joyrideService: JoyrideService) {
+  constructor(private personaService: PersonaService, private translate: TranslateService, private ngxTourService: NgxTourService) {
   }
 
   get initialUrl() {
@@ -48,29 +43,78 @@ export class TourService {
     this._initialDashboardUrl = initialDashboardUrl;
   }
 
-  toggleUserProfileMenu() {
-    this.isUserProfileMenuOpen = !this.isUserProfileMenuOpen;
-    this.userProfileDropdownChangeSubject.next(this.isUserProfileMenuOpen);
+  openUserProfileMenu() {
+    this.userProfileDropdownChangeSubject.next(true);
   }
 
-  scrollToTransactionList() {
-    this.scrollTransactionListSubject.next(true);
+  closeUserProfileMenu() {
+    this.userProfileDropdownChangeSubject.next(false);
   }
 
-  scrollToMap() {
-    this.scrollMapSubject.next(true);
+  openUserActionsMenu() {
+    this.userActionsDropdownChangeSubject.next(true);
+  }
+
+  closeUserActionsMenu() {
+    this.userActionsDropdownChangeSubject.next(false);
   }
 
   startTour() {
     this.steps = [
-      `nodeStatus@${this.initialDashboardUrl}`,
-      `transactionList@${this.initialDashboardUrl}`,
-      'manageSmartContracts@smart-contracts',
-      'createSmartContract@smart-contracts',
-      `userManagement@${this.initialUrl}`,
-      'userActions@users',
-      'userSettings@dashboard',
-      'downloadCertificate@users/settings'
+      {
+        anchorId: 'onboardingTour.nodeStatus',
+        content: this.translate.instant('tourSteps.dashboard.nodeStatus.text'),
+        title: this.translate.instant('tourSteps.dashboard.nodeStatus.title'),
+        route: 'dashboard'
+      },
+      {
+        anchorId: 'onboardingTour.transactionList',
+        content: this.translate.instant('tourSteps.dashboard.transactionList.text'),
+        title: this.translate.instant('tourSteps.dashboard.transactionList.title'),
+        route: 'dashboard'
+      },
+      {
+        anchorId: 'onboardingTour.manageSmartContracts',
+        content: this.translate.instant('tourSteps.smartContracts.manageSmartContracts.text'),
+        title: this.translate.instant('tourSteps.smartContracts.manageSmartContracts.title'),
+        route: 'smart-contracts'
+      },
+      {
+        anchorId: 'onboardingTour.createSmartContract',
+        content: this.translate.instant('tourSteps.smartContracts.createSmartContract.text'),
+        title: this.translate.instant('tourSteps.smartContracts.createSmartContract.title'),
+        route: 'smart-contracts'
+      },
+      {
+        anchorId: 'onboardingTour.userManagement',
+        content: this.translate.instant('tourSteps.users.userManagement.text'),
+        title: this.translate.instant('tourSteps.users.userManagement.title'),
+        route: 'smart-contracts',
+        placement: 'right',
+        popperSettings: {
+          boundariesElement: 'body'
+        }
+      },
+      {
+        anchorId: 'onboardingTour.userActions',
+        content: this.translate.instant('tourSteps.users.userActions.text'),
+        title: this.translate.instant('tourSteps.users.userActions.title'),
+        route: 'users',
+        placement: 'left'
+      },
+      {
+        anchorId: 'onboardingTour.userSettings',
+        content: this.translate.instant('tourSteps.users.userSettings.text'),
+        title: this.translate.instant('tourSteps.users.userSettings.title'),
+        placement: 'left',
+        route: 'users'
+      },
+      {
+        anchorId: 'onboardingTour.downloadCertificate',
+        content: this.translate.instant('tourSteps.users.downloadCertificate.text'),
+        title: this.translate.instant('tourSteps.users.downloadCertificate.title'),
+        route: 'users/settings'
+      },
     ];
 
     if ((this.personaService.currentPersona === Personas.OrgDeveloper )) {
@@ -81,11 +125,36 @@ export class TourService {
       this.steps.splice(3, 3);
     }
 
-    this.scrollToMap();
-    this.joyrideService.startTour(
-      {
-        steps: this.steps
+    this.ngxTourService.stepShow$.subscribe((event) => {
+      switch (event.anchorId) {
+        case 'onboardingTour.userActions':
+          this.openUserActionsMenu();
+          break;
+        case 'onboardingTour.userSettings':
+          this.openUserProfileMenu();
+          break;
       }
-    );
+    });
+
+    this.ngxTourService.stepHide$.subscribe((event) => {
+      switch (event.anchorId) {
+        case 'onboardingTour.userActions':
+          this.closeUserActionsMenu();
+          break;
+        case 'onboardingTour.userSettings':
+          this.closeUserProfileMenu();
+          break;
+      }
+    });
+
+    this.ngxTourService.initialize(this.steps, {
+      prevBtnTitle: this.translate.instant('tourSteps.prevBtnText'),
+      nextBtnTitle: this.translate.instant('tourSteps.nextBtnText'),
+      popperSettings: {
+        hideOnClickOutside: false
+      }
+    });
+
+    this.ngxTourService.start();
   }
 }

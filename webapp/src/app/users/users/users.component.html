@@ -3,8 +3,7 @@
     <clr-icon shape="administrator" size="30"></clr-icon>
     {{ 'users.title' | translate }} |
     <clr-dropdown #userActionsMenu>
-      <button class="nav-link" clrDropdownTrigger joyrideStep="userActions" title="{{'tourSteps.users.userActions.title' | translate}}"
-              text="{{'tourSteps.users.userActions.text' | translate}}" (next)="onNext()" stepPosition="right">
+      <button class="nav-link" clrDropdownTrigger tourAnchor="onboardingTour.userActions">
         {{ 'users.actions.title' | translate }}
         <clr-icon shape="caret down"></clr-icon>
       </button>

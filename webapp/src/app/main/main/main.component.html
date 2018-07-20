@@ -78,16 +78,13 @@
         </clr-dropdown-menu>
       </clr-dropdown>
       <clr-dropdown #userProfileMenu>
-        <button class="nav-text" clrDropdownTrigger>
+        <button class="nav-text" clrDropdownTrigger tourAnchor="onboardingTour.userSettings">
           <clr-icon shape="user" class="is-solid"></clr-icon>
           {{ username }}
           <clr-icon shape="caret down"></clr-icon>
         </button>
         <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
-          <a clrDropdownItem [routerLink]="['/users/settings']" joyrideStep="userSettings"
-             title="{{'tourSteps.users.userSettings.title' | translate}}"
-             text="{{'tourSteps.users.userSettings.text' | translate}}"
-             (next)="onNext()" (prev)="onPrev()" stepPosition="left">
+          <a clrDropdownItem [routerLink]="['/users/settings']">
             {{'nav.settings' | translate}}
           </a>
           <a clrDropdownItem (click)="onLogOut()">{{'nav.logOut' | translate}}</a>
@@ -157,9 +154,7 @@
            [routerLink]="['/users']"
            routerLinkActive="active"
            *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]"
-           joyrideStep="userManagement"
-           title="{{'tourSteps.users.manageUsers.title' | translate}}"
-           text="{{'tourSteps.users.manageUsers.text' | translate}}" stepPosition="right">
+           tourAnchor="onboardingTour.userManagement">
           <clr-icon clrVerticalNavIcon shape="administrator"></clr-icon>
           {{ 'nav.users.title' | translate }}
         </a>
