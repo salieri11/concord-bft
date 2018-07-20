@@ -504,6 +504,7 @@ extern "C" {
       assert(msg->depth > 0);
 
       // evm_result object sent by evm is un-initialized, not initializing it
+      // can cause segmentation errors
       memset(result, 0, sizeof(evm_result));
 
       // txhash is a throw-away - we don't get a transaction from a call
