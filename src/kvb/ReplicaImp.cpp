@@ -211,11 +211,7 @@ ReplicaImp::ReplicaImp( string byzConfig,
                         string byzPrivateConfig,
                         ICommandsHandler *cmdHandler,
                         BlockchainDBAdapter *dbAdapter,
-                        std::function<void(
-                           int64_t,
-                           std::string,
-                           int16_t,
-                           std::string)> fPeerConnectivityCallback) :
+                        UPDATE_CONNECTIVITY_FN fPeerConnectivityCallback) :
    m_byzConfig(byzConfig),
    m_byzPrivateConfig(byzPrivateConfig),
    m_cmdHandler(cmdHandler),
@@ -789,11 +785,7 @@ DWORD WINAPI ReplicaImp::replicaInternalThread(LPVOID param)
 IReplica* createReplica(const ReplicaConsensusConfig& consensusConfig,
                         ICommandsHandler* cmdHandler,
                         IDBClient* db,
-                        std::function<void(
-                                int64_t,
-                                std::string,
-                                int16_t,
-                                std::string)> fPeerConnectivityCallback)
+                        UPDATE_CONNECTIVITY_FN fPeerConnectivityCallback)
 {
    LOG4CPLUS_DEBUG(Logger::getInstance("com.vmware.athena.kvb"),
                    "Creating replica");

@@ -58,37 +58,24 @@ private:
    thread_group _threadPool;
 
    void
-   update_connectivity_internal(int64_t peerId,
-                                string adress,
-                                int16_t port,
-                                string state)
+   update_connectivity_internal(PeerConnectivityStatus pcs)
    {
       std::lock_guard<std::mutex> lock(_inQueueMutex);
-      auto it = _pPeerStatusMap->find(peerId);
+      auto it = _pPeerStatusMap->find(pcs.peerId);
       if (_pPeerStatusMap->end() != it) {
          auto status = it->second->find(PeerInfoType::Connectivity);
          if (status != it->second->end()) {
             auto st = static_cast<PeerConnectivityStatus *>(status->second);
-            st->peerIp = adress;
-            st->peerPort = port;
-            st->peerState = state;
+            *st = pcs;
          } else {
-            auto st = new PeerConnectivityStatus();
-            st->peerId = peerId;
-            st->peerState = state;
-            st->peerPort = port;
-            st->peerIp = adress;
+            auto st = new PeerConnectivityStatus(pcs);
             it->second->insert({PeerInfoType::Connectivity, st});
          }
       } else {
          auto pStatMap = new STAT_MAP();
-         auto st = new PeerConnectivityStatus();
-         st->peerId = peerId;
-         st->peerState = state;
-         st->peerPort = port;
-         st->peerIp = adress;
+         auto st = new PeerConnectivityStatus(pcs);
          pStatMap->insert({PeerInfoType::Connectivity, st});
-         _pPeerStatusMap->insert({peerId, pStatMap});
+         _pPeerStatusMap->insert({pcs.peerId, pStatMap});
       }
    }
 public:
@@ -135,19 +122,13 @@ public:
     * this will post the task to thread pool asynchronously
     */
    void
-   update_connectivity_async(int64_t peerId,
-                             string adress,
-                             int16_t port,
-                             string state)
+   update_connectivity_async(PeerConnectivityStatus pcs)
    {
       _pIoService->post(
               boost::bind(
                  &Impl::update_connectivity_internal,
                  this,
-                 peerId,
-                 adress,
-                 port,
-                 state));
+                 pcs));
    }
 
    vector<PeerConnectivityStatus>
@@ -181,10 +162,7 @@ StatusAggregator::get_update_connectivity_fn()
    return std::bind(
              &StatusAggregator::Impl::update_connectivity_async,
              _pImpl,
-             pl::_1,
-             pl::_2,
-             pl::_3,
-             pl::_4);
+             pl::_1);
 }
 
 vector<PeerConnectivityStatus>

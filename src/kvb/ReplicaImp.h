@@ -9,13 +9,13 @@
 #include "BlockchainInterfaces.h"
 #include "HashDefs.h"
 #include <map>
-#include <functional>
 #include "BlockchainDBAdapter.h"
 #include "InMemoryDBClient.h"
 #include "Threading.h"
 #include "ThreadLocalStorage.h"
 #include "libbyz.h"
 #include <string>
+#include "StatusInfo.h"
 
 using namespace Blockchain::Utils;
 
@@ -80,11 +80,7 @@ namespace Blockchain {
                   string byzPrivateConfig,
                   ICommandsHandler *cmdHandler,
                   BlockchainDBAdapter *dbAdapter,
-                  std::function<void(
-                     int64_t,
-                     std::string,
-                     int16_t,
-                     std::string)> fPeerConnectivityCallback);
+                  UPDATE_CONNECTIVITY_FN fPeerConnectivityCallback);
       virtual ~ReplicaImp();
 
       // METHODS
@@ -251,9 +247,7 @@ namespace Blockchain {
       BlockchainDBAdapter* m_bcDbAdapter;
       BlockId lastBlock = 0;
 
-      std::function<void(
-         int64_t, std::string, int16_t, std::string)>
-            m_fPeerConnectivityCallback;
+      UPDATE_CONNECTIVITY_FN m_fPeerConnectivityCallback;
 
       // static methods
       static Slice createBlockFromUpdates(
@@ -282,10 +276,7 @@ namespace Blockchain {
          const ReplicaConsensusConfig &consensusConfig,
          ICommandsHandler *cmdHandler,
          IDBClient *db,
-         std::function<void( int64_t,
-                             std::string,
-                             int16_t,
-                             std::string)> fPeerConnectivityCallback);
+         UPDATE_CONNECTIVITY_FN fPeerConnectivityCallback);
       friend void release(IReplica *r);
    };
 }

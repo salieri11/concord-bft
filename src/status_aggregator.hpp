@@ -9,35 +9,11 @@
 #include <functional>
 #include <string>
 #include <memory>
+#include "StatusInfo.h"
 
 namespace com {
 namespace vmware {
 namespace athena {
-
-   typedef std::function<void(
-              int64_t peerId,
-              std::string peerAdress,
-              int16_t peerPort,
-              std::string state)> UPDATE_CONNECTIVITY_FN;
-
-   enum class PeerInfoType
-   {
-      Connectivity
-   };
-
-   struct BasePeerStatus
-   {
-   public:
-      int64_t peerId;
-      std::string peerIp;
-      int16_t peerPort;
-   };
-
-   struct PeerConnectivityStatus : public BasePeerStatus
-   {
-   public:
-      std::string peerState;
-   };
 
    class StatusAggregator
    {
