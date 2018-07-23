@@ -105,7 +105,7 @@
   },
   "marketing": {
     "subTitle": "Deploy The Industries Most Advanced Permissioned Blockchains",
-    "description": "The Athena blockchain delivers the fastest TPS in the industry. Deploy and Manage Athena, Hyperledger, Corda or Quorom for your consortium and organizations today.",
+    "description": "The Athena blockchain delivers the fastest TPS in the industry. Deploy and Manage Athena and Hyperledger for your consortium and organizations today.",
     "callToAction": "Get Started",
     "midHeading": "Get the most advanced enterprise blockchain",
     "itemOne": {
@@ -114,7 +114,7 @@
     },
     "itemTwo": {
       "title": "Enhanced Sercurity",
-      "description": "Deploy across multiple provider, permissioned blockchain nodes and networks using advanced cryptographic techniques."
+      "description": "Deploy across multiple cloud providers, permissioned blockchain nodes and networks using advanced cryptographic techniques."
     },
     "itemThree": {
       "title": "Cost Effective and Greener Solutions",

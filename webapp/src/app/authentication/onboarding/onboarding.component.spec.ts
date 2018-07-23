@@ -3,7 +3,9 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
 
+import { MockTranslateModule } from '../../mocks/mock-translate.module';
 import { OnboardingComponent } from './onboarding.component';
 
 describe('OnboardingComponent', () => {
@@ -12,6 +14,10 @@ describe('OnboardingComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
+      imports: [
+        RouterTestingModule,
+        MockTranslateModule
+      ],
       declarations: [ OnboardingComponent ]
     })
     .compileComponents();

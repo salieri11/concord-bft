@@ -3,8 +3,11 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { ClarityModule } from '@clr/angular';
 
 import { MarketingComponent } from './marketing.component';
+import { MockTranslateModule } from '../mocks/mock-translate.module';
 
 describe('MarketingComponent', () => {
   let component: MarketingComponent;
@@ -12,6 +15,11 @@ describe('MarketingComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
+      imports: [
+        RouterTestingModule,
+        ClarityModule,
+        MockTranslateModule,
+      ],
       declarations: [ MarketingComponent ]
     })
     .compileComponents();

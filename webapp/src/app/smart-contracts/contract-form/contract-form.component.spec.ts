@@ -6,10 +6,14 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { ClarityModule } from '@clr/angular';
 import { ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
-import { MockSharedModule } from '../../shared/shared.module';
+
 import { ContractFormComponent } from './contract-form.component';
+import { MockSharedModule } from '../../shared/shared.module';
+import { MockTranslateModule } from '../../mocks/mock-translate.module';
 
 describe('ContractFormComponent', () => {
   let component: ContractFormComponent;
@@ -21,7 +25,21 @@ describe('ContractFormComponent', () => {
         ClarityModule,
         ReactiveFormsModule,
         HttpClientTestingModule,
-        MockSharedModule
+        MockSharedModule,
+        BrowserAnimationsModule,
+        MockTranslateModule
+      ],
+      providers: [
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            fragment: {
+              subscribe: (fn: (value) => void) => fn(
+                'add'
+              ),
+            },
+          },
+        }
       ],
       declarations: [ ContractFormComponent ]
     })

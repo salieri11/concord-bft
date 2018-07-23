@@ -28,7 +28,7 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
 
     this.authenticationChange = this.authenticationService.user.subscribe(user => {
       if (user.email) {
-        this.router.navigate(['auth', 'onboarding']);
+        this.router.navigate(['dashboard']);
       }
     });
 
