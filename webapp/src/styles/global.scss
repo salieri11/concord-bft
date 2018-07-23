@@ -88,3 +88,21 @@
     }
   }
 }
+
+[ngx-charts-x-axis-ticks] {
+  .gridline-path-vertical {
+    display: none;
+  }
+}
+
+[ngx-charts-y-axis-ticks] {
+  .gridline-path-horizontal {
+    color: #09b4ff;
+  }
+}
+
+.ngx-charts {
+  text{
+    fill: #fff;
+  }
+}

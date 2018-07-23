@@ -6,27 +6,32 @@
     <div class="col-xs-8 media flex-items-xs-middle flex-items-xs-right">
       <clr-tabs>
         <clr-tab>
-          <button clrTabLink>{{'time.today' | translate}}</button>
+          <button clrTabLink (click)="getTodaysData()">{{'time.today' | translate}}</button>
           <clr-tab-content id="content1" *clrIfActive="true"></clr-tab-content>
         </clr-tab>
         <clr-tab>
-          <button clrTabLink>{{ 'time.lastXDays' | translate:{number: 7} }}</button>
+          <button clrTabLink (click)="getLastSevenDaysData()">{{ 'time.lastXDays' | translate:{number: 7} }}</button>
           <clr-tab-content *clrIfActive></clr-tab-content>
         </clr-tab>
         <clr-tab>
-          <button clrTabLink>{{ 'time.lastXDays' | translate:{number: 30} }}</button>
+          <button clrTabLink (click)="getLastThirtyDaysData()">{{ 'time.lastXDays' | translate:{number: 30} }}</button>
           <clr-tab-content *clrIfActive></clr-tab-content>
         </clr-tab>
         <clr-tab>
-          <button clrTabLink>{{ 'time.lastXDays' | translate:{number: 90} }}</button>
+          <button clrTabLink (click)="getLastNinetyDaysData()">{{ 'time.lastXDays' | translate:{number: 90} }}</button>
           <clr-tab-content *clrIfActive></clr-tab-content>
         </clr-tab>
       </clr-tabs>
     </div>
   </div>
+  <div class="row">
+    <div class="col-xs-12 chart-container">
+      <athena-block-graph [graphData]="graphData"></athena-block-graph>
+    </div>
+  </div>
+
 </div>
 
-<img class="graph-placeholder" src="assets/static/images/node-activity-large.png">
 
 <div class="p-2">
   <h3 class="page-title">{{'blocks.blocks' | translate}}</h3>
@@ -35,7 +40,8 @@
     <clr-dg-row *clrDgItems="let block of blocks">
       <clr-dg-cell><a [routerLink]="[block.number]">{{block.number}} : {{block.hash}}</a></clr-dg-cell>
       <clr-dg-row-detail>
-        <athena-block-details *clrIfExpanded ngProjectAs="clr-dg-row-detail" [blockNumber]="block?.number"></athena-block-details>
+        <athena-block-details *clrIfExpanded ngProjectAs="clr-dg-row-detail"
+                              [blockNumber]="block?.number"></athena-block-details>
       </clr-dg-row-detail>
     </clr-dg-row>
     <clr-dg-footer>
