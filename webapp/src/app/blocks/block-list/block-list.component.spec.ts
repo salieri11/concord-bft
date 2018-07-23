@@ -3,13 +3,17 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
-import { MockSharedModule } from '../../shared/shared.module';
+import { APP_BASE_HREF } from '@angular/common';
 
+import { NgxChartsModule } from '@swimlane/ngx-charts';
+
+import { MockSharedModule } from '../../shared/shared.module';
 import { BlockDetailsComponent } from '../block-details/block-details.component';
 import { BlockListComponent } from './block-list.component';
+import { BlockGraphComponent } from '../../block-graph/block-graph/block-graph.component';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('BlockListComponent', () => {
   let component: BlockListComponent;
@@ -20,12 +24,16 @@ describe('BlockListComponent', () => {
       imports: [
         RouterTestingModule,
         HttpClientTestingModule,
-        MockSharedModule
+        MockSharedModule,
+        NgxChartsModule,
+        BrowserAnimationsModule
       ],
       declarations: [
         BlockListComponent,
-        BlockDetailsComponent
-      ]
+        BlockDetailsComponent,
+        BlockGraphComponent
+      ],
+      providers: [{provide: APP_BASE_HREF, useValue: '/'}]
     })
     .compileComponents();
   }));

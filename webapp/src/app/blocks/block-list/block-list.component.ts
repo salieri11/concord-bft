@@ -24,27 +24,27 @@ export class BlockListComponent implements OnInit {
 
   dailyData = [
     {
-      "name": "Transactions",
-      "series": [
+      'name': 'Transactions',
+      'series': [
         {
-          "name": new Date("2018-12-07 10:30 AM"),
-          "value": 3,
+          'name': new Date('2018-12-07 10:30 AM'),
+          'value': 3,
         },
         {
-          "name": new Date("2018-12-07 11:30 AM"),
-          "value": 4,
+          'name': new Date('2018-12-07 11:30 AM'),
+          'value': 4,
         },
         {
-          "name": new Date("2018-12-07 01:30 PM"),
-          "value": 5,
+          'name': new Date('2018-12-07 01:30 PM'),
+          'value': 5,
         },
         {
-          "name": new Date("2018-12-07 02:30 PM"),
-          "value": 9,
+          'name': new Date('2018-12-07 02:30 PM'),
+          'value': 9,
         },
         {
-          "name": new Date("2018-12-07 07:30 PM"),
-          "value": 2,
+          'name': new Date('2018-12-07 07:30 PM'),
+          'value': 2,
         }
       ]
     }
@@ -52,31 +52,31 @@ export class BlockListComponent implements OnInit {
 
   weeklyData = [
     {
-      "name": "Transactions",
-      "series": [
+      'name': 'Transactions',
+      'series': [
         {
-          "name": this.days[new Date("2018-12-07 10:30 AM").getDay()],
-          "value": 12,
+          'name': this.days[new Date('2018-12-07 10:30 AM').getDay()],
+          'value': 12,
         },
         {
-          "name": this.days[new Date("2018-12-08 11:30 AM").getDay()],
-          "value": 15,
+          'name': this.days[new Date('2018-12-08 11:30 AM').getDay()],
+          'value': 15,
         },
         {
-          "name": this.days[new Date("2018-12-09 01:30 PM").getDay()],
-          "value": 17,
+          'name': this.days[new Date('2018-12-09 01:30 PM').getDay()],
+          'value': 17,
         },
         {
-          "name": this.days[new Date("2018-12-10 02:30 PM").getDay()],
-          "value": 14,
+          'name': this.days[new Date('2018-12-10 02:30 PM').getDay()],
+          'value': 14,
         },
         {
-          "name": this.days[new Date("2018-12-11 07:30 PM").getDay()],
-          "value": 18,
+          'name': this.days[new Date('2018-12-11 07:30 PM').getDay()],
+          'value': 18,
         },
         {
-          "name": this.days[new Date("2018-12-12 07:30 PM").getDay()],
-          "value": 18,
+          'name': this.days[new Date('2018-12-12 07:30 PM').getDay()],
+          'value': 18,
         }
       ]
     }
@@ -84,27 +84,27 @@ export class BlockListComponent implements OnInit {
 
   monthlyData = [
     {
-      "name": "Transactions",
-      "series": [
+      'name': 'Transactions',
+      'series': [
         {
-          "name": new Date("2018-12-07"),
-          "value": 25,
+          'name': new Date('2018-12-07'),
+          'value': 25,
         },
         {
-          "name": new Date("2018-12-08"),
-          "value": 36,
+          'name': new Date('2018-12-08'),
+          'value': 36,
         },
         {
-          "name": new Date("2018-12-09"),
-          "value": 29,
+          'name': new Date('2018-12-09'),
+          'value': 29,
         },
         {
-          "name": new Date("2018-12-10"),
-          "value": 50,
+          'name': new Date('2018-12-10'),
+          'value': 50,
         },
         {
-          "name": new Date("2018-12-11"),
-          "value": 28,
+          'name': new Date('2018-12-11'),
+          'value': 28,
         }
       ]
     }
@@ -112,34 +112,33 @@ export class BlockListComponent implements OnInit {
 
   quarterlyData = [
     {
-      "name": "Transactions",
-      "series": [
+      'name': 'Transactions',
+      'series': [
         {
-          "name": new Date("2018-01-07"),
-          "value": 46,
+          'name': new Date('2018-01-07'),
+          'value': 46,
         },
         {
-          "name": new Date("2018-01-17"),
-          "value": 76,
+          'name': new Date('2018-01-17'),
+          'value': 76,
         },
         {
-          "name": new Date("2018-02-12"),
-          "value": 36,
+          'name': new Date('2018-02-12'),
+          'value': 36,
         },
         {
-          "name": new Date("2018-03-07"),
-          "value": 66,
+          'name': new Date('2018-03-07'),
+          'value': 66,
         },
         {
-          "name": new Date("2018-04-27"),
-          "value": 48,
+          'name': new Date('2018-04-27'),
+          'value': 48,
         }
       ]
     }
   ];
 
   constructor(private blocksService: BlocksService) {
-    //Object.assign(this, this.multi);
     this.graphData = this.dailyData;
   }
 

@@ -10,7 +10,7 @@ import { BlockListComponent } from './block-list/block-list.component';
 import { BlockDetailsComponent } from './block-details/block-details.component';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { BlockComponent } from './block/block.component';
-import { BlockGraphModule } from "../block-graph/block-graph.module";
+import { BlockGraphModule } from '../block-graph/block-graph.module';
 
 @NgModule({
   imports: [

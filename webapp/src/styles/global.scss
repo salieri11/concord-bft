@@ -205,12 +205,12 @@ div.ngxp__container {
 
 [ngx-charts-y-axis-ticks] {
   .gridline-path-horizontal {
-    color: #09b4ff;
+    color: $clr-action-blue-dark;
   }
 }
 
 .ngx-charts {
   text{
-    fill: #fff;
+    fill: $clr-white;
   }
 }
