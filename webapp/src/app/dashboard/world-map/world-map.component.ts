@@ -73,7 +73,6 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
         dataProjection: null,
         featureProjection: getProjection('EPSG:3857')
       }));
-      this.checkAndSchedulePulseAnimation();
     }
   }
 

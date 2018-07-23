@@ -3,7 +3,6 @@
  */
 
 import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
 
 @Component({
   selector: 'athena-onboarding',
@@ -12,17 +11,8 @@ import { Router } from '@angular/router';
 })
 export class OnboardingComponent implements OnInit {
 
-  constructor(private router: Router) { }
+  constructor() { }
 
-  ngOnInit() {
-  }
-
-  setupOrg(): void {
-    this.router.navigate(['dashboard'], {fragment: 'orgTour'});
-  }
-
-  deployBlockchain(): void {
-    this.router.navigate(['dashboard'], { fragment: 'deploy' });
-  }
+  ngOnInit() {}
 
 }

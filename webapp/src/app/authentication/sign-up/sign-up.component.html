@@ -104,7 +104,7 @@
           </div>
           <div class="row flex-items-xs-center">
             <div class="col-xl-8 col-lg-12">
-              <button type="submit" class="btn btn-primary" [disabled]="signupForm.status !== 'VALID'">{{ 'signUp.form.submit' | translate }}</button>
+              <button type="submit" class="btn btn-primary" [disabled]="signupForm.invalid">{{ 'signUp.form.submit' | translate }}</button>
             </div>
           </div>
         </section>

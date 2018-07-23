@@ -25,7 +25,7 @@
         </div>
         <div class="row flex-items-xs-center">
           <div class="col-sm-3 col-xs-12">
-            <div class="card clickable" (click)="setupOrg()">
+            <div class="card clickable" [routerLink]="['/dashboard']" [fragment]="'orgTour'">
               <div class="card-header">
                  {{ 'onboarding.setupOrg.title' | translate }}
               </div>
@@ -36,7 +36,7 @@
               </div>
             </div>
           </div>
-          <div class="col-sm-3 col-xs-12" (click)="deployBlockchain()">
+          <div class="col-sm-3 col-xs-12" [routerLink]="['/dashboard']" [fragment]="'deploy'">
             <div class="card clickable">
               <div class="card-header">
                  {{ 'onboarding.deployBlockchain.title' | translate }}
