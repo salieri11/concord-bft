@@ -17,6 +17,7 @@ import { consortiumRoutes } from '../../consortium/consortium-routing';
 import { kubernetesRoutes } from '../../kubernetes/kubernetes-routing';
 import { orgRoutes } from '../../orgs/orgs-routing';
 import { usersRoutes } from '../../users/users-routing';
+import { transactionsRoutes } from '../../transactions/transactions-routing';
 
 const routes: Routes = [
   {
@@ -34,7 +35,8 @@ const routes: Routes = [
       { path: 'consortium', children: consortiumRoutes },
       { path: 'organization', children: orgRoutes },
       { path: 'kubernetes', children: kubernetesRoutes },
-      { path: 'users', children: usersRoutes }
+      { path: 'users', children: usersRoutes },
+      { path: 'transactions', children: transactionsRoutes }
     ]
   }
 ];
