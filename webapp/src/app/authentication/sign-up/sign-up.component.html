@@ -39,8 +39,15 @@
           <div class="row flex-items-xs-center call-outs">
             <div class="col-xl-4 col-lg-6 col-md-12">
               <div class="form-group">
-                <label for="email">{{ 'signUp.form.email' | translate }}</label>
-                <input type="text" id="email" formControlName="email">
+                <label>{{ 'signUp.form.email' | translate }}</label>
+                <label [ngClass]="{'invalid': signupForm.controls.email.errors && !signupForm.controls.email.pristine && signupForm.controls.email.touched}"
+                  for="email" aria-haspopup="true" role="tooltip" class="tooltip tooltip-validation tooltip-md">
+                  <input type="text" id="email" formControlName="email">
+                  <span class="tooltip-content">
+                     {{ 'signUp.form.emailValMsg' | translate }}
+
+                  </span>
+                </label>
               </div>
             </div>
             <div class="col-xl-4 col-lg-6 col-md-12">
