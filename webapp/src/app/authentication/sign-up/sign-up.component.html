@@ -25,43 +25,43 @@
           <div class="row flex-items-xs-center call-outs">
             <div class="col-xl-4 col-lg-6 col-md-12">
               <div class="form-group">
-                <label for="aForm_1">{{ 'signUp.form.firstName' | translate }}</label>
-                <input type="text" formControlName="firstName">
+                <label for="firsName">{{ 'signUp.form.firstName' | translate }}</label>
+                <input type="text" id="firstName" formControlName="firstName">
               </div>
             </div>
             <div class="col-xl-4 col-lg-6 col-md-12">
               <div class="form-group">
-                <label for="aForm_1">{{ 'signUp.form.lastName' | translate }}</label>
-                <input type="text" formControlName="lastName">
-              </div>
-            </div>
-          </div>
-          <div class="row flex-items-xs-center call-outs">
-            <div class="col-xl-4 col-lg-6 col-md-12">
-              <div class="form-group">
-                <label for="aForm_1">{{ 'signUp.form.email' | translate }}</label>
-                <input type="text" formControlName="email">
-              </div>
-            </div>
-            <div class="col-xl-4 col-lg-6 col-md-12">
-              <div class="form-group">
-                <label for="aForm_1">{{ 'signUp.form.company' | translate }}</label>
-                <input type="text" formControlName="company">
+                <label for="lastName">{{ 'signUp.form.lastName' | translate }}</label>
+                <input type="text" id="lastName" formControlName="lastName">
               </div>
             </div>
           </div>
           <div class="row flex-items-xs-center call-outs">
             <div class="col-xl-4 col-lg-6 col-md-12">
               <div class="form-group">
-                <label for="aForm_1">{{ 'signUp.form.jobTitle' | translate }}</label>
-                <input type="text" formControlName="jobTitle">
+                <label for="email">{{ 'signUp.form.email' | translate }}</label>
+                <input type="text" id="email" formControlName="email">
               </div>
             </div>
             <div class="col-xl-4 col-lg-6 col-md-12">
               <div class="form-group">
-                <label for="aForm_1">{{ 'signUp.form.country' | translate }}</label>
+                <label for="company">{{ 'signUp.form.company' | translate }}</label>
+                <input type="text" id="company" formControlName="company">
+              </div>
+            </div>
+          </div>
+          <div class="row flex-items-xs-center call-outs">
+            <div class="col-xl-4 col-lg-6 col-md-12">
+              <div class="form-group">
+                <label for="jobTitle">{{ 'signUp.form.jobTitle' | translate }}</label>
+                <input type="text" id="jobTitle" formControlName="jobTitle">
+              </div>
+            </div>
+            <div class="col-xl-4 col-lg-6 col-md-12">
+              <div class="form-group">
+                <label for="country">{{ 'signUp.form.country' | translate }}</label>
                 <div class="select">
-                  <select formControlName="country">
+                  <select id="country" formControlName="country">
                     <option *ngFor="let country of countryList" [value]="country">
                       {{ country }}
                     </option>
@@ -73,9 +73,9 @@
           <div class="row flex-items-xs-center call-outs">
             <div class="col-xl-4 col-lg-6 col-md-12">
               <div class="form-group">
-                <label for="aForm_1">{{ 'signUp.form.relationship' | translate }}</label>
+                <label for="relationship">{{ 'signUp.form.relationship' | translate }}</label>
                 <div class="select">
-                  <select formControlName="relationship">
+                  <select id="relationship" formControlName="relationship">
                     <option value="Customer">{{ 'signUp.form.relationshipOptions.customer' | translate }}</option>
                     <option value="Employee">{{ 'signUp.form.relationshipOptions.employee' | translate }}</option>
                     <option value="Ecosystems Partner">{{ 'signUp.form.relationshipOptions.ecosystem' | translate }}</option>
@@ -89,9 +89,9 @@
             </div>
             <div class="col-xl-4 col-lg-6 col-md-12">
               <div class="form-group">
-                <label for="aForm_1">{{ 'signUp.form.numberOfEmployees' | translate }}</label>
+                <label for="numberOfEmployees">{{ 'signUp.form.numberOfEmployees' | translate }}</label>
                 <div class="select">
-                  <select formControlName="numberOfEmployees">
+                  <select id="numberOfEmployees" formControlName="numberOfEmployees">
                     <option value="0-99">0-99</option>
                     <option value="100-499">100-499</option>
                     <option value="500-999">500-999</option>
