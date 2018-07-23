@@ -3,7 +3,7 @@
  */
 
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
 
@@ -11,6 +11,7 @@ import { BlockListingBlock } from '../../blocks/shared/blocks.model';
 import { TransactionsService } from '../../transactions/shared/transactions.service';
 import { BlockchainWizardComponent } from '../../shared/components/blockchain-wizard/blockchain-wizard.component';
 import { TaskManagerService, getCompletedSetups, getPendingSetups } from '../../shared/task-manager.service';
+import { TourService } from '../../shared/tour.service';
 
 import * as NodeGeoJson from '../features.json';
 
@@ -25,6 +26,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   recentTransactions: any[] = [];
   nodeGeoJson: any = NodeGeoJson;
   taskChange: Subscription;
+  routerFragmentChange: Subscription;
   mockStats = {
     totalActiveNodes: 28458,
     inactiveNodes: 583,
@@ -37,20 +39,29 @@ export class DashboardComponent implements OnInit, OnDestroy {
     private transactionsService: TransactionsService,
     private taskManager: TaskManagerService,
     private route: ActivatedRoute,
-    private translate: TranslateService
-  ) { }
+    private router: Router,
+    private translate: TranslateService,
+    private tourService: TourService
+  ) {
+  }
 
   ngOnInit() {
     this.transactionsService.getRecentTransactions().subscribe((resp) => {
       this.recentTransactions = resp;
     });
 
-    this.route.fragment.subscribe(fragment => {
+    this.tourService.initialDashboardUrl = this.router.url.substr(1);
+
+    this.routerFragmentChange = this.route.fragment.subscribe(fragment => {
       switch (fragment) {
         case 'deploy':
           this.setupBlockchain();
           break;
-
+        case 'orgTour':
+          setTimeout(() => {
+            this.tourService.startTour();
+          });
+          break;
         default:
           // code...
           break;
@@ -64,6 +75,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     this.taskChange.unsubscribe();
+    this.routerFragmentChange.unsubscribe();
   }
 
   setupBlockchain() {
@@ -90,7 +102,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.clearTasks();
       }
 
-      this.nodeGeoJson = {...this.nodeGeoJson};
+      this.nodeGeoJson = { ...this.nodeGeoJson };
     }
   }
 

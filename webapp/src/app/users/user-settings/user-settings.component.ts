@@ -4,6 +4,7 @@
 
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
+
 import { CredentialFormComponent } from '../credential-form/credential-form.component';
 
 @Component({

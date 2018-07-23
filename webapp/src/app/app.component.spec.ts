@@ -4,6 +4,7 @@
 
 import { TestBed, async } from '@angular/core/testing';
 
+import { TourNgxPopperModule } from 'ngx-tour-ngx-popper';
 import { RouterTestingModule } from '@angular/router/testing';
 import { MockSharedModule } from './shared/shared.module';
 
@@ -13,6 +14,7 @@ describe('AppComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
+        TourNgxPopperModule.forRoot(),
         RouterTestingModule,
         MockSharedModule
       ],

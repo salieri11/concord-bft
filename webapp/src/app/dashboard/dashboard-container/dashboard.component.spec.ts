@@ -8,6 +8,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { MockSharedModule } from '../../shared/shared.module';
+import { TourService as NgxTourService } from 'ngx-tour-ngx-popper';
 
 import { DashboardComponent } from './dashboard.component';
 import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
@@ -20,6 +21,7 @@ import { VmwAccordionComponent } from '../../shared/components/accordion/accordi
 import { VmwComboboxItemsComponent } from '../../shared/components/combobox/combobox-items/combobox-items.component';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { WorldMapComponent } from '../world-map/world-map.component';
+import { TourService } from '../../shared/tour.service';
 
 describe('DashboardComponent', () => {
   let component: DashboardComponent;
@@ -46,7 +48,9 @@ describe('DashboardComponent', () => {
         VmwAccordionGroupComponent
       ],
       providers: [
-        VmwTasksService
+        VmwTasksService,
+        TourService,
+        NgxTourService
       ]
     })
       .compileComponents();

@@ -4,6 +4,7 @@
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { TourService as NgxTourService } from 'ngx-tour-ngx-popper';
 
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { MockSharedModule } from '../../shared/shared.module';
@@ -14,6 +15,7 @@ import { Personas } from '../../shared/persona.service';
 import { VmwTaskPanelComponent } from '../../shared/components/task-panel/task-panel.component';
 import { VmwTaskComponent } from '../../shared/components/task-panel/task.component';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
+import { TourService } from '../../shared/tour.service';
 
 describe('MainComponent', () => {
   let component: MainComponent;
@@ -33,7 +35,9 @@ describe('MainComponent', () => {
       ],
       providers: [
         ErrorAlertService,
-        VmwTasksService
+        VmwTasksService,
+        TourService,
+        NgxTourService
       ]
     }).compileComponents();
   }));

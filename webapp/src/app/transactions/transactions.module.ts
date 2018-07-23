@@ -5,9 +5,9 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
-import { TranslateModule } from '@ngx-translate/core';
-
 import { ClarityModule } from '@clr/angular';
+import { TranslateModule } from '@ngx-translate/core';
+import { TourNgxPopperModule } from 'ngx-tour-ngx-popper';
 
 import { SharedModule } from '../shared/shared.module';
 import { TransactionComponent } from './transaction/transaction.component';
@@ -21,7 +21,8 @@ import { TransactionDetailsComponent } from './transaction-details/transaction-d
     RouterModule,
     ClarityModule,
     TranslateModule,
-    SharedModule
+    SharedModule,
+    TourNgxPopperModule
   ],
   declarations: [TransactionComponent, TransactionListComponent, TransactionDetailsComponent],
   exports: [
