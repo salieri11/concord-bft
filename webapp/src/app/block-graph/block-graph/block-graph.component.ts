@@ -25,7 +25,6 @@ export class BlockGraphComponent implements OnInit {
 
 
   constructor() {
-    Object.assign(this, this.graphData);
   }
 
   ngOnInit() {

@@ -6,6 +6,7 @@ import { Component, OnInit } from '@angular/core';
 
 import { BlockListing, BlockListingBlock } from '../shared/blocks.model';
 import { BlocksService } from '../shared/blocks.service';
+import { TranslateService } from '@ngx-translate/core';
 
 /**
  * Displays a paginated listing of blocks
@@ -20,11 +21,9 @@ export class BlockListComponent implements OnInit {
   nextBlockUrl: string;
   graphData: any[];
 
-  days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
   dailyData = [
     {
-      'name': 'Transactions',
+      'name': 'Blocks',
       'series': [
         {
           'name': new Date('2018-12-07 10:30 AM'),
@@ -52,30 +51,30 @@ export class BlockListComponent implements OnInit {
 
   weeklyData = [
     {
-      'name': 'Transactions',
+      'name': 'Blocks',
       'series': [
         {
-          'name': this.days[new Date('2018-12-07 10:30 AM').getDay()],
+          'name': this.translateService.instant(`graph.days.${new Date('2018-12-07 10:30 AM').getDay()}`),
           'value': 12,
         },
         {
-          'name': this.days[new Date('2018-12-08 11:30 AM').getDay()],
+          'name': this.translateService.instant(`graph.days.${new Date('2018-12-08 11:30 AM').getDay()}`),
           'value': 15,
         },
         {
-          'name': this.days[new Date('2018-12-09 01:30 PM').getDay()],
+          'name': this.translateService.instant(`graph.days.${new Date('2018-12-09 01:30 PM').getDay()}`),
           'value': 17,
         },
         {
-          'name': this.days[new Date('2018-12-10 02:30 PM').getDay()],
+          'name': this.translateService.instant(`graph.days.${new Date('2018-12-10 02:30 PM').getDay()}`),
           'value': 14,
         },
         {
-          'name': this.days[new Date('2018-12-11 07:30 PM').getDay()],
+          'name': this.translateService.instant(`graph.days.${new Date('2018-12-11 07:30 PM').getDay()}`),
           'value': 18,
         },
         {
-          'name': this.days[new Date('2018-12-12 07:30 PM').getDay()],
+          'name': this.translateService.instant(`graph.days.${new Date('2018-12-12 07:30 PM').getDay()}`),
           'value': 18,
         }
       ]
@@ -84,7 +83,7 @@ export class BlockListComponent implements OnInit {
 
   monthlyData = [
     {
-      'name': 'Transactions',
+      'name': 'Blocks',
       'series': [
         {
           'name': new Date('2018-12-07'),
@@ -112,7 +111,7 @@ export class BlockListComponent implements OnInit {
 
   quarterlyData = [
     {
-      'name': 'Transactions',
+      'name': 'Blocks',
       'series': [
         {
           'name': new Date('2018-01-07'),
@@ -138,7 +137,7 @@ export class BlockListComponent implements OnInit {
     }
   ];
 
-  constructor(private blocksService: BlocksService) {
+  constructor(private blocksService: BlocksService, private translateService: TranslateService) {
     this.graphData = this.dailyData;
   }
 

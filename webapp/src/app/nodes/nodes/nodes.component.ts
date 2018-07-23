@@ -6,6 +6,7 @@ import { Component, OnInit } from '@angular/core';
 
 import { Member } from '../shared/nodes.model';
 import { NodesService } from '../shared/nodes.service';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'athena-nodes',
@@ -26,11 +27,9 @@ export class NodesComponent implements OnInit {
 
   graphData: any[];
 
-  days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
   dailyData = [
     {
-      'name': 'Transactions',
+      'name': 'Blocks',
       'series': [
         {
           'name': new Date('2018-12-07 10:30 AM'),
@@ -58,30 +57,30 @@ export class NodesComponent implements OnInit {
 
   weeklyData = [
     {
-      'name': 'Transactions',
+      'name': 'Blocks',
       'series': [
         {
-          'name': this.days[new Date('2018-12-07 10:30 AM').getDay()],
+          'name': this.translateService.instant(`graph.days.${new Date('2018-12-07 10:30 AM').getDay()}`),
           'value': 12,
         },
         {
-          'name': this.days[new Date('2018-12-08 11:30 AM').getDay()],
+          'name': this.translateService.instant(`graph.days.${new Date('2018-12-08 11:30 AM').getDay()}`),
           'value': 15,
         },
         {
-          'name': this.days[new Date('2018-12-09 01:30 PM').getDay()],
+          'name': this.translateService.instant(`graph.days.${new Date('2018-12-09 01:30 PM').getDay()}`),
           'value': 17,
         },
         {
-          'name': this.days[new Date('2018-12-10 02:30 PM').getDay()],
+          'name': this.translateService.instant(`graph.days.${new Date('2018-12-10 02:30 PM').getDay()}`),
           'value': 14,
         },
         {
-          'name': this.days[new Date('2018-12-11 07:30 PM').getDay()],
+          'name': this.translateService.instant(`graph.days.${new Date('2018-12-11 07:30 PM').getDay()}`),
           'value': 18,
         },
         {
-          'name': this.days[new Date('2018-12-12 07:30 PM').getDay()],
+          'name': this.translateService.instant(`graph.days.${new Date('2018-12-12 07:30 PM').getDay()}`),
           'value': 18,
         }
       ]
@@ -90,7 +89,7 @@ export class NodesComponent implements OnInit {
 
   monthlyData = [
     {
-      'name': 'Transactions',
+      'name': 'Blocks',
       'series': [
         {
           'name': new Date('2018-12-07'),
@@ -118,7 +117,7 @@ export class NodesComponent implements OnInit {
 
   quarterlyData = [
     {
-      'name': 'Transactions',
+      'name': 'Blocks',
       'series': [
         {
           'name': new Date('2018-01-07'),
@@ -144,7 +143,7 @@ export class NodesComponent implements OnInit {
     }
   ];
 
-  constructor(private nodesService: NodesService) {
+  constructor(private nodesService: NodesService, private translateService: TranslateService) {
     this.graphData = this.dailyData;
   }
 
