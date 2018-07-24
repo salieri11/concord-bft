@@ -34,14 +34,14 @@ TlsIndex ReplicaImp::m_sThreadLocalDataIdx = 0;
 
 struct blockEntry
 {
-   uint16_t keyOffset;
-   uint16_t keySize;
-   uint16_t valOffset;
-   uint16_t valSize;
+   uint32_t keyOffset;
+   uint32_t keySize;
+   uint32_t valOffset;
+   uint32_t valSize;
 };
 struct blockHeader
 {
-   uint16_t numberOfElements;
+   uint32_t numberOfElements;
    blockEntry entries[1]; // n>0 entries
 };
 
@@ -400,9 +400,9 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Slice block)
          for (size_t i = 0; i < header->numberOfElements; i++)
          {
             const char* key = begin + header->entries[i].keyOffset;
-            const int16_t keyLen = header->entries[i].keySize;
+            const uint32_t keyLen = header->entries[i].keySize;
             const char* val = begin + header->entries[i].valOffset;
-            const int16_t valLen = header->entries[i].valSize;
+            const uint32_t valLen = header->entries[i].valSize;
 
             const Slice keySlice(key, keyLen);
             const Slice valSlice(val, valLen);
@@ -553,17 +553,17 @@ Slice ReplicaImp::createBlockFromUpdates(
 
    assert(outUpdatesInNewBlock.size() == 0);
 
-   int16_t blockBodySize = 0;
-   int16_t numOfElemens = 0;
+   uint32_t blockBodySize = 0;
+   uint16_t numOfElemens = 0;
    for (auto it = updates.begin(); it != updates.end(); ++it) {
       const KeyValuePair &kvPair = KeyValuePair(it->first, it->second);
       numOfElemens++;
       blockBodySize += (kvPair.first.size() + kvPair.second.size());
    }
 
-   const int16_t headerSize =
+   const uint32_t headerSize =
       sizeof(blockHeader::numberOfElements) + sizeof(blockEntry)*(numOfElemens);
-   const int16_t blockSize = headerSize + blockBodySize;
+   const uint32_t blockSize = headerSize + blockBodySize;
 
    try {
       char *blockBuffer = new char[blockSize];
@@ -573,7 +573,7 @@ Slice ReplicaImp::createBlockFromUpdates(
 
       int16_t idx = 0;
       header->numberOfElements = numOfElemens;
-      int16_t currentOffset = headerSize;
+      int32_t currentOffset = headerSize;
       for (auto it = updates.begin(); it != updates.end(); ++it) {
          const KeyValuePair &kvPair = *it;
 
@@ -604,7 +604,7 @@ Slice ReplicaImp::createBlockFromUpdates(
          idx++;
       }
       assert(idx == numOfElemens);
-      assert(currentOffset == blockSize);
+      assert((uint32_t) currentOffset == blockSize);
 
       return Slice(blockBuffer, blockSize);
    } catch (std::bad_alloc& ba) {
@@ -627,9 +627,9 @@ SetOfKeyValuePairs ReplicaImp::fetchBlockData(Slice block)
 
       for (size_t i = 0; i < header->numberOfElements; i++) {
          const char *key = begin + header->entries[i].keyOffset;
-         const int16_t keyLen = header->entries[i].keySize;
+         const uint32_t keyLen = header->entries[i].keySize;
          const char *val = begin + header->entries[i].valOffset;
-         const int16_t valLen = header->entries[i].valSize;
+         const uint32_t valLen = header->entries[i].valSize;
 
          Slice keySlice(key, keyLen);
          Slice valSlice(val, valLen);
