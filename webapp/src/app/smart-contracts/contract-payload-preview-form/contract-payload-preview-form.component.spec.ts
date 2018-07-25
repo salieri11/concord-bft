@@ -36,14 +36,14 @@ describe('ContractPayloadPreviewFormComponent', () => {
 
   describe('On payload preview', () => {
     it('should set isOpen to true', () => {
-      const payloadPreview = "payload string";
+      const payloadPreview = 'payload string';
       expect(component.isOpen).toBeFalsy();
       component.open(payloadPreview);
       expect(component.isOpen).toBeTruthy();
     });
 
     it('should set payloadPreview with the passed payload', () => {
-      const payloadPreview = "payload string";
+      const payloadPreview = 'payload string';
       component.open(payloadPreview);
       expect(component.payloadPreview).toEqual(payloadPreview);
     });
@@ -51,11 +51,11 @@ describe('ContractPayloadPreviewFormComponent', () => {
 
   describe('On closing the preview', () => {
     it('should set isOpen to false', () => {
-      const payloadPreview = "payload string";
+      const payloadPreview = 'payload string';
       component.open(payloadPreview);
       component.onClose();
       expect(component.isOpen).toBeFalsy();
-    })
+    });
   });
 
 });

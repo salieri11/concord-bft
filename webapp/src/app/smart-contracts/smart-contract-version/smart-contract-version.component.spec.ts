@@ -4,7 +4,7 @@
 
 import { Component, ViewChild } from '@angular/core';
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { of as observableOf, throwError } from "rxjs";
+import { of as observableOf, throwError } from 'rxjs';
 
 import { RouterTestingModule } from '@angular/router/testing';
 import { MockSharedModule } from '../../shared/shared.module';
@@ -16,7 +16,7 @@ import {
   SmartContractsSolidityFunctionInputsComponent
 } from '../smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
 import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview-form/contract-payload-preview-form.component';
-import {SmartContractVersion} from "../shared/smart-contracts.model";
+import { SmartContractVersion } from '../shared/smart-contracts.model';
 
 const initialVersion = {
   contract_id: 'id',
@@ -55,7 +55,7 @@ class TestWrapperClassComponent {
 describe('SmartContractVersionComponent', () => {
   let component: TestWrapperClassComponent;
   let fixture: ComponentFixture<TestWrapperClassComponent>;
-  let nextVersion: SmartContractVersion = {
+  const nextVersion: SmartContractVersion = {
     contract_id: 'id2',
     version: 'version2',
     owner: 'owner2',
@@ -72,7 +72,7 @@ describe('SmartContractVersionComponent', () => {
           payable: true,
           stateMutability: 'stateMutability',
           inputs: [{type: 'uint', name: 'input'}],
-          outputs: [{type:'uint', name: 'output'}],
+          outputs: [{type: 'uint', name: 'output'}],
         }],
         devdoc: {},
         userdoc: {},

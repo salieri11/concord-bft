@@ -24,8 +24,8 @@ describe('SmartContractsService', () => {
     service = TestBed.get(SmartContractsService);
   });
 
-  it('should be created', inject([SmartContractsService], (service: SmartContractsService) => {
-    expect(service).toBeTruthy();
+  it('should be created', inject([SmartContractsService], (contractService: SmartContractsService) => {
+    expect(contractService).toBeTruthy();
   }));
 
   it('should fetch all smart contracts', () => {
@@ -35,26 +35,26 @@ describe('SmartContractsService', () => {
     }
   );
 
-  it('should fetch smart contract with given id', ()=>{
+  it('should fetch smart contract with given id', () => {
       const httpSpy = spyOn((service as any).httpClient, 'get');
       service.getSmartContract('contractId');
       expect(httpSpy).toHaveBeenCalledWith('/api/athena/contracts/contractId');
   });
 
-  it('should fetch version details for given versionId and contractId', ()=>{
+  it('should fetch version details for given versionId and contractId', () => {
     const httpSpy = spyOn((service as any).httpClient, 'get');
     service.getVersionDetails('contractId', 'version');
     expect(httpSpy).toHaveBeenCalledWith('/api/athena/contracts/contractId/versions/version');
   });
 
-  it('should post a smart contract with given payload', ()=>{
+  it('should post a smart contract with given payload', () => {
     const httpSpy = spyOn((service as any).httpClient, 'post');
     const contract = {
       id: 1,
-      from: "0x262C0D7AB5FFD4EDE2199F6EA793F819E1ABB019",
-      contract_id: "1",
-      version: "1",
-      sourcecode: "sourceCode"
+      from: '0x262C0D7AB5FFD4EDE2199F6EA793F819E1ABB019',
+      contract_id: '1',
+      version: '1',
+      sourcecode: 'sourceCode'
     };
 
     service.postContract(contract);

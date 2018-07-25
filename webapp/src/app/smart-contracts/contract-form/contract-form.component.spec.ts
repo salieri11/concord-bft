@@ -3,21 +3,19 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-
 import { ClarityModule } from '@clr/angular';
 import { ReactiveFormsModule } from '@angular/forms';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { of as observableOf, throwError } from 'rxjs';
 
 import { MockSharedModule } from '../../shared/shared.module';
 import { ContractFormComponent } from './contract-form.component';
-import { SmartContractsService } from "../shared/smart-contracts.service";
-import { of as observableOf, throwError } from "rxjs";
+import { SmartContractsService } from '../shared/smart-contracts.service';
 
 
 describe('ContractFormComponent', () => {
   let component: ContractFormComponent;
   let fixture: ComponentFixture<ContractFormComponent>;
-  let service: SmartContractsService;
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
@@ -30,7 +28,6 @@ describe('ContractFormComponent', () => {
       providers: [SmartContractsService]
     })
       .compileComponents();
-    service = TestBed.get(SmartContractsService);
   }));
 
   beforeEach(() => {
@@ -68,7 +65,7 @@ describe('ContractFormComponent', () => {
 
   describe('On smart contract submission', () => {
     it('should emit contract created event on submit success', () => {
-      const spy = spyOn(service, 'postContract').and.returnValue(observableOf(true));
+      const spy = spyOn((component as any).smartContractsService, 'postContract').and.returnValue(observableOf(true));
       const contract = {
         id: 1,
         from: component.smartContractForm.value.from,
@@ -84,7 +81,7 @@ describe('ContractFormComponent', () => {
     });
 
     it('should generate error when creation of smart contract fails', () => {
-      const spy = spyOn(service, 'postContract').and.returnValue(throwError({ error: 'error' }));
+      const spy = spyOn((component as any).smartContractsService, 'postContract').and.returnValue(throwError({ error: 'error' }));
       const contract = {
         id: 1,
         from: component.smartContractForm.value.from,
@@ -99,7 +96,7 @@ describe('ContractFormComponent', () => {
     });
 
     it('when smart contract creation fails, errorMessage should contain the error returned from response', () => {
-      const spy = spyOn(service, 'postContract').and.returnValue(observableOf({ error: 'error' }));
+      const spy = spyOn((component as any).smartContractsService, 'postContract').and.returnValue(observableOf({ error: 'error' }));
       const contract = {
         id: 1,
         from: component.smartContractForm.value.from,

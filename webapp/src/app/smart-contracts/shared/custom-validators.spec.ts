@@ -1,5 +1,9 @@
-import { FormControl } from "@angular/forms";
-import { isHexAddress, isHexadecimal, isInt, isUint } from "./custom-validators";
+/*
+ * Copyright 2018 VMware, all rights reserved.
+ */
+
+import { FormControl } from '@angular/forms';
+import { isHexAddress, isHexadecimal, isInt, isUint } from './custom-validators';
 
 describe('CustomValidators', () => {
 
