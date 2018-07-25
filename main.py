@@ -10,13 +10,13 @@ import os
 from tempfile import mkdtemp
 from time import strftime, localtime
 
-from suites import core_vm_tests, helen_api_tests, ext_rpc_tests, kv_blockchain_tests, performance_tests
-from suites import regression_tests
+from suites import core_vm_tests, helen_api_tests, ext_rpc_tests, \
+   kv_blockchain_tests, performance_tests, regression_tests
 from util import html, json_helper
 
 log = None
 suites = ["CoreVMTests", "ExtendedRPCTests", "HelenAPITests",
-          "PerformanceTests", "KVBTests", "RegressionTests"]
+          "PerformanceTests", "KVBlockchainTests", "RegressionTests"]
 
 def main():
    startTime = datetime.datetime.now()
