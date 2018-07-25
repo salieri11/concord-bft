@@ -204,13 +204,14 @@ div.ngxp__container {
 }
 
 [ngx-charts-y-axis-ticks] {
-  .gridline-path-horizontal {
-    color: $clr-action-blue-dark;
+  .gridline-path.gridline-path-horizontal {
+    stroke: $white;
+    opacity: 0.25;
   }
 }
 
 .ngx-charts {
   text{
-    fill: $clr-white;
+    fill: $clr-dark-midtone-gray;
   }
 }
