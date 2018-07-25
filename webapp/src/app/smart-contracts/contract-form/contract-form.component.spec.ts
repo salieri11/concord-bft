@@ -14,7 +14,7 @@ import { SmartContractsService } from "../shared/smart-contracts.service";
 import { of as observableOf, throwError } from "rxjs";
 
 
-fdescribe('ContractFormComponent', () => {
+describe('ContractFormComponent', () => {
   let component: ContractFormComponent;
   let fixture: ComponentFixture<ContractFormComponent>;
   let service: SmartContractsService;

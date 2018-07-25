@@ -90,7 +90,6 @@ export class SmartContractVersionComponent implements OnChanges {
 
   onSend() {
     this.ethApiService.sendTransaction(this.encodeFunction()).subscribe((resp) => {
-      console.log(resp);
       if (resp.error) {
         this.handleError(resp);
       } else {
