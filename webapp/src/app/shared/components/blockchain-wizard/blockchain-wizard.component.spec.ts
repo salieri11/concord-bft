@@ -179,8 +179,7 @@ describe('BlockchainWizardComponent', () => {
       const expectedValue = {
         numberOfNodes: 36,
         networkName: 'Test Consortium Net',
-        publicNodesRegions: [...component.publicNodeItems],
-        privateNode: []
+        publicNodesRegions: [...component.publicNodeItems]
       };
 
       expect(component.form.get('advancedSettings').value.numberOfNodes).toBeFalsy();
