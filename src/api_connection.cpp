@@ -355,15 +355,19 @@ api_connection::handle_protocol_request()
 void
 api_connection::handle_peer_request()
 {
+   LOG4CPLUS_INFO(logger_, "************* handle_peer_request");
+
    const PeerRequest request = athenaRequest_.peer_request();
    PeerResponse *response = athenaResponse_.mutable_peer_response();
    if (request.return_peers()) {
       auto peers = sag_.get_peers_info();
       for(auto peer : peers) {
          auto p = response->add_peer();
-         p->mutable_address()->assign(peer.peerIp);
-         p->set_port(peer.peerPort);
-         p->mutable_status()->assign(peer.peerState);
+         p->set_address(peer.adress);
+         p->set_status(peer.state);
+         p->set_timefromlastmessage(peer.timeFromLastMessageMilli);
+         p->set_failthresholdmilli(peer.failThresholdMilli);
+         p->set_hostname(peer.hostName);
       }
    }
 }

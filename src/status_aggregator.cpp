@@ -52,10 +52,16 @@ private:
     * the pool will handle all requests from the low level modules
     * to update stats in internal structs
    */
-   const int16_t POOL_SIZE = 1;
    std::shared_ptr<io_service> _pIoService = nullptr;
    std::shared_ptr<io_service::work> _pWork = nullptr;
    thread_group _threadPool;
+
+   const int16_t POOL_SIZE = 1;
+   const int32_t _peerFailThesholdMilli = 60000;
+   const std::string HOSTNAME_PREFIX = "replica";
+   const std::string PEER_STATE_READY = "ready";
+   const std::string PEER_STATE_LIVE = "live";
+   const int64_t TIME_NO_VALUE = -1;
 
    void
    update_connectivity_internal(PeerConnectivityStatus pcs)
@@ -66,7 +72,12 @@ private:
          auto status = it->second->find(PeerInfoType::Connectivity);
          if (status != it->second->end()) {
             auto st = static_cast<PeerConnectivityStatus *>(status->second);
-            *st = pcs;
+
+            if(StatusType::Started != pcs.statusType) {
+               (*st).statusTime = pcs.statusTime;
+            }
+
+            (*st).statusType = pcs.statusType;
          } else {
             auto st = new PeerConnectivityStatus(pcs);
             it->second->insert({PeerInfoType::Connectivity, st});
@@ -124,6 +135,14 @@ public:
    void
    update_connectivity_async(PeerConnectivityStatus pcs)
    {
+      ///  TODO (IG): patch to fix time. Currently SBFT uses internal time
+      ///  SBFT today uses internal time that may not reflect epoch millis
+      if (StatusType::Started != pcs.statusType) {
+         pcs.statusTime = get_epoch_millis();
+      } else {
+         pcs.statusTime = TIME_NO_VALUE;
+      }
+
       _pIoService->post(
               boost::bind(
                  &Impl::update_connectivity_internal,
@@ -131,11 +150,11 @@ public:
                  pcs));
    }
 
-   vector<PeerConnectivityStatus>
+   vector<UiPeerInfo>
    get_peers_info()
    {
       std::lock_guard<std::mutex> lock(_inQueueMutex);
-      vector<PeerConnectivityStatus> res;
+      vector<UiPeerInfo> res;
       for (auto it = _pPeerStatusMap->begin();
            it != _pPeerStatusMap->end();
            it++) {
@@ -143,7 +162,21 @@ public:
          if (infoMapIt != it->second->end()) {
             auto stPtr = static_cast<PeerConnectivityStatus *>(infoMapIt
                     ->second);
-            res.push_back(*stPtr);
+            UiPeerInfo pi;
+            pi.failThresholdMilli = _peerFailThesholdMilli;
+            pi.adress = stPtr->peerIp + ":" + to_string(stPtr->peerPort);
+            pi.hostName = HOSTNAME_PREFIX + to_string(stPtr->peerId);
+
+            if(StatusType::Started != stPtr->statusType) {
+               pi.timeFromLastMessageMilli =
+                       get_epoch_millis() - stPtr->statusTime;
+               pi.state = PEER_STATE_LIVE;
+            } else {
+               pi.timeFromLastMessageMilli = TIME_NO_VALUE;
+               pi.state = PEER_STATE_READY;
+            }
+
+            res.push_back(pi);
          }
       }
 
@@ -165,7 +198,7 @@ StatusAggregator::get_update_connectivity_fn()
              pl::_1);
 }
 
-vector<PeerConnectivityStatus>
+vector<UiPeerInfo>
 StatusAggregator::get_peers_info()
 {
    auto res = _pImpl->get_peers_info();

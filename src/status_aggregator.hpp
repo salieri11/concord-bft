@@ -10,6 +10,7 @@
 #include <string>
 #include <memory>
 #include "StatusInfo.h"
+#include "common/utils.hpp"
 
 namespace com {
 namespace vmware {
@@ -21,7 +22,7 @@ namespace athena {
    public:
       StatusAggregator();
 
-      std::vector<PeerConnectivityStatus>
+      std::vector<UiPeerInfo>
       get_peers_info();
 
       /**
