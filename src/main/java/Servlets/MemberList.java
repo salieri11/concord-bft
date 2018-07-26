@@ -83,9 +83,11 @@ public final class MemberList extends BaseServlet {
       // a corresponding JSON object
       for (Athena.Peer peer : peerList) {
          JSONObject peerJson = new JSONObject();
-         peerJson.put("host", peer.getAddress());
-         peerJson.put("port", peer.getPort());
+         peerJson.put("hostname", peer.getHostname());
+         peerJson.put("adress", peer.getAddress());
          peerJson.put("status", peer.getStatus());
+         peerJson.put("timeFromLastMsg", peer.getTimeFromLastMessage());
+         peerJson.put("failThreshMilli", peer.getFailThresholdMilli());
 
          // Store into a JSON array of all peers.
          peerArr.add(peerJson);
