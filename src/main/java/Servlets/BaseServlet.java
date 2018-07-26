@@ -3,35 +3,39 @@
  */
 package Servlets;
 
-import com.vmware.athena.*;
-import connections.AthenaConnectionPool;
-import connections.IAthenaConnection;
-import configurations.ConfigurationFactory;
-import configurations.ConfigurationFactory.ConfigurationType;
-import configurations.IConfiguration;
 import java.io.IOException;
+
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.log4j.Logger;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 
+import com.vmware.athena.Athena;
+
+import configurations.ConfigurationFactory;
+import configurations.ConfigurationFactory.ConfigurationType;
+import configurations.IConfiguration;
+import connections.AthenaConnectionPool;
+import connections.IAthenaConnection;
+
 public abstract class BaseServlet extends HttpServlet {
+
    protected static final long serialVersionUID = 1L;
+   protected IConfiguration _conf;
+
+   protected BaseServlet() {
+      _conf = ConfigurationFactory.getConfiguration(ConfigurationType.File);
+   }
 
    protected abstract void
              doGet(final HttpServletRequest request,
                    final HttpServletResponse response) throws IOException;
 
-   protected IConfiguration _conf;
-
    protected abstract JSONAware
              parseToJSON(Athena.AthenaResponse athenaResponse);
-
-   protected BaseServlet() {
-      _conf = ConfigurationFactory.getConfiguration(ConfigurationType.File);
-   }
 
    /**
     * Process get request
@@ -90,9 +94,9 @@ public abstract class BaseServlet extends HttpServlet {
       if (athenaResponse.getErrorResponseCount() == 0) {
          JSONAware respObject = parseToJSON(athenaResponse);
          json = respObject == null ? null : respObject.toJSONString();
-         status = respObject == null
-            ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR
-            : HttpServletResponse.SC_OK;
+         status
+            = respObject == null ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR
+               : HttpServletResponse.SC_OK;
       } else {
          Athena.ErrorResponse errorResp = athenaResponse.getErrorResponse(0);
 
@@ -107,8 +111,8 @@ public abstract class BaseServlet extends HttpServlet {
          if (message.contains("not found")) {
             // block/transaction not found
             status = HttpServletResponse.SC_NOT_FOUND;
-         } else if (message.contains("Missing") ||
-                    message.contains("request")) {
+         } else if (message.contains("Missing")
+            || message.contains("request")) {
             // Missing required parameter
             // Invalid ... request
             status = HttpServletResponse.SC_BAD_REQUEST;

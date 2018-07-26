@@ -64,6 +64,8 @@ public class Server {
    private static String apiListEndpoint;
    private static String contractServletName;
    private static String contractEndpoint;
+   private static String userManagementServletName;
+   private static String userManagementEndpoint;
 
    // Set current datetime for logging purposes
    static {
@@ -119,6 +121,9 @@ public class Server {
       apiListEndpoint = conf.getStringValue("ApiList_Endpoint");
       contractServletName = conf.getStringValue("Contracts_ServletName");
       contractEndpoint = conf.getStringValue("Contracts_Endpoint");
+      userManagementServletName
+         = conf.getStringValue("UserManagement_ServletName");
+      userManagementEndpoint = conf.getStringValue("UserManagement_Endpoint");
 
       DeploymentInfo servletBuilder
          = deployment().setClassLoader(Server.class.getClassLoader())
@@ -173,7 +178,11 @@ public class Server {
                        .addServlet(Servlets.servlet(contractServletName,
                                                     ContractsServlet.class)
                                            .addMapping(contractEndpoint)
-                                           .addMapping(contractEndpoint
+                                           .addMapping(contractEndpoint + "/*"))
+                       .addServlet(Servlets.servlet(userManagementServletName,
+                                                    ProfileManager.class)
+                                           .addMapping(userManagementEndpoint)
+                                           .addMapping(userManagementEndpoint
                                               + "/*"));
 
       DeploymentManager manager
