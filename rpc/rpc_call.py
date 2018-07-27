@@ -177,6 +177,19 @@ class RPC():
          log.debug("Unable to find 'result' in response '{}'".format(response))
          return None
 
+   def getTransactionCount(self, address):
+      '''
+      Get the number of transactions that the account named by `address`
+      has sent.
+      '''
+      self._rpcData["method"] = "eth_getTransactionCount"
+      self._rpcData["params"] = [
+         address,
+         "latest"
+      ]
+      response = self._call()
+      return self.getResultFromResponse(response)
+
    def getStorageAt(self, blockAddress, storageLocation):
       '''
       Given a block's address and storage location, returns the value from that
