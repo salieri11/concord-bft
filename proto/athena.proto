@@ -70,6 +70,7 @@ message EthRequest {
       FILTER_REQUEST = 7;
       GET_CODE = 8;
       BLOCK_NUMBER = 9;
+      GET_TX_COUNT = 10;
    }
 
    optional EthMethod method = 1;

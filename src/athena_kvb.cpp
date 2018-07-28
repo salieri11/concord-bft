@@ -21,6 +21,7 @@
 #include <google/protobuf/text_format.h>
 #include <iterator>
 #include <vector>
+#include <boost/predef/detail/endian_compat.h>
 
 using Blockchain::Slice;
 using Blockchain::ILocalKeyValueStorageReadOnly;
@@ -498,6 +499,9 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_request_read_only(
    case EthRequest_EthMethod_GET_STORAGE_AT:
       return handle_eth_getStorageAt(athreq, kvbStorage, athresp);
       break;
+   case EthRequest_EthMethod_GET_TX_COUNT:
+      return handle_eth_getTransactionCount(athreq, kvbStorage, athresp);
+      break;
    default:
       ErrorResponse *e = athresp.add_error_response();
       e->mutable_description()->assign("ETH Method Not Implemented");
@@ -607,6 +611,40 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_getStorageAt(
    EthResponse *response = athresp.add_eth_response();
    response->set_id(request.id());
    response->set_data(data.bytes, sizeof(data));
+
+   return true;
+}
+
+/**
+ * Get the nonce for the given account
+ */
+bool com::vmware::athena::KVBCommandsHandler::handle_eth_getTransactionCount(
+   AthenaRequest &athreq,
+   KVBStorage &kvbStorage,
+   AthenaResponse &athresp) const
+{
+   const EthRequest request = athreq.eth_request(0);
+
+   evm_address account;
+   std::copy(request.addr_to().begin(), request.addr_to().end(),
+             account.bytes);
+
+   uint64_t nonce = kvbStorage.get_nonce(account);
+   evm_uint256be bignonce;
+   memset(bignonce.bytes, 0, sizeof(bignonce));
+#ifdef BOOST_LITTLE_ENDIAN
+   std::reverse_copy(reinterpret_cast<uint8_t*>(&nonce),
+                     reinterpret_cast<uint8_t*>(&nonce)+sizeof(nonce),
+                     bignonce.bytes+(sizeof(bignonce)-sizeof(nonce)));
+#else
+   std::copy(reinterpret_cast<uint8_t*>(&nonce),
+             reinterpret_cast<uint8_t*>(&nonce)+sizeof(nonce),
+             bignonce.bytes+(sizeof(bignonce)-sizeof(nonce)));
+#endif
+
+   EthResponse *response = athresp.add_eth_response();
+   response->set_id(request.id());
+   response->set_data(bignonce.bytes, sizeof(bignonce));
 
    return true;
 }
