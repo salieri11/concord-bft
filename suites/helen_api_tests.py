@@ -124,14 +124,20 @@ class HelenAPITests(test_suite.TestSuite):
          return (False, "No members returned")
 
       for m in result:
-         (present, missing) = self.requireFields(m, ["host", "status"])
+         (present, missing) = self.requireFields(m, ["hostname", "status"])
          if not present:
             return (False, "No '{}' field in member entry.".format(missing))
 
-         if not isinstance(m["host"], str):
-            return (False, "'host' field in member entry is not a string")
+         if not isinstance(m["hostname"], str):
+            return (False, "'hostname' field in member entry is not a string")
          if not isinstance(m["status"], str):
             return (False, "'status' field in member entry is not a string")
+         if not isinstance(m["address"], str):
+            return (False, "'address' field in member entry is not a string")
+         if not isinstance(m["millisSinceLastMessage"], int):
+            return (False, "'millisSinceLastMessage' field in member entry is not a string")
+         if not isinstance(m["millisSinceLastMessageThreshold"], int):
+            return (False, "'millisSinceLastMessageThreshold' field in member entry is not a string")
 
       return (True, None)
 
