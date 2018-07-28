@@ -111,11 +111,13 @@ COPY --from=0 /athena/docker/find-docker-instances.sh /athena/resources/
 COPY --from=0 /athena/test/resources/genesis.json /athena/resources/
 
 # replace localhost with docker-compose container name in public config
-COPY --from=0 /athena/build/resources/f1-c0-cl3/*.pub /athena/resources/f1-c0-cl3/
-RUN sed -i -e "s/replica1/athena1/g" \
-           -e "s/replica2/athena2/g" \
-           -e "s/replica3/athena3/g" \
-           -e "s/client1/athena1/g" \
-           -e "s/client2/athena2/g" \
-           -e "s/client3/athena3/g" \
-    /athena/resources/f1-c0-cl3/*.pub
+COPY --from=0 /athena/build/resources/sbft/*.pub /athena/resources/sbft/
+RUN sed -i -e "s/rep01/athena1/g" \
+           -e "s/rep02/athena2/g" \
+           -e "s/rep03/athena3/g" \
+           -e "s/rep04/athena4/g" \
+           -e "s/client05/athena1/g" \
+           -e "s/client06/athena2/g" \
+           -e "s/client07/athena3/g" \
+           -e "s/client08/athena4/g" \
+    /athena/resources/sbft/*.pub
