@@ -13,8 +13,10 @@ import { GridModule } from '../grid/grid.module';
 import { BlockchainsComponent } from './blockchains.component';
 import { MockSharedModule } from '../shared/shared.module';
 import { BlockchainsService } from './shared/blockchains.service';
-import { KubernetesService } from '../kubernetes-management/shared/kubernetes.service';
-import { OrgManagementService } from '../org-management/shared/org-management.service';
+import { KubernetesService } from '../kubernetes/shared/kubernetes.service';
+import { OrgService } from '../orgs/shared/org.service';
+import { BlockchainListComponent } from './blockchain-list/blockchain-list.component';
+import { BlockchainFormComponent } from './blockchain-form/blockchain-form.component';
 
 describe('BlockchainsComponent', () => {
   let component: BlockchainsComponent;
@@ -29,10 +31,10 @@ describe('BlockchainsComponent', () => {
         MockSharedModule,
         NoopAnimationsModule
       ],
-      declarations: [ BlockchainsComponent ],
+      declarations: [ BlockchainsComponent, BlockchainListComponent, BlockchainFormComponent ],
       providers: [
         BlockchainsService,
-        OrgManagementService,
+        OrgService,
         KubernetesService,
         {
           provide: ActivatedRoute,

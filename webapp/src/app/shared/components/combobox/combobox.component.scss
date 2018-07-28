@@ -1,0 +1,58 @@
+clr-icon:hover {
+  cursor: pointer;
+}
+
+input {
+  background-color: #fff;
+  padding-right: 40px;
+  width: 100%;
+
+  &.multi-select:hover {
+    cursor: pointer;
+  }
+
+  &.active {
+    border-bottom: 1px solid #0094d2;
+    background-size: 100% 100%;
+
+    & ~ .carret {
+      display: none;
+    }
+
+    & ~ .clear-icon {
+      display: initial;
+    }
+  }
+}
+
+clr-icon {
+  position: absolute;
+  right: 5px;
+  top: 5px;
+}
+
+::ng-deep form .form-group clr-icon {
+  top: 10px;
+}
+
+.clear-icon {
+  display: none;
+}
+
+.tooltip.tooltip-validation.invalid::before {
+  right: 22px;
+}
+
+.tooltip.tooltip-validation>input {
+  padding-right: 40px;
+}
+
+.combobox-container {
+  position: relative;
+  max-width: 800px;
+  min-width: 100%;
+}
+
+.tooltip.tooltip-validation.invalid.tooltip-top-left>input:focus+.tooltip-content {
+  margin-right: 30px;
+}

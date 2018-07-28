@@ -3,17 +3,22 @@
  */
 
 import { NgModule } from '@angular/core';
+import { RouterModule } from '@angular/router';
+import { TourNgxPopperModule } from 'ngx-tour-ngx-popper';
 
 import { SharedModule } from '../shared/shared.module';
-import { DashboardContainerComponent } from './dashboard-container/dashboard-container.component';
 import { TransactionsModule } from '../transactions/transactions.module';
+import { DashboardComponent } from './dashboard-container/dashboard.component';
+import { WorldMapComponent } from './world-map/world-map.component';
 
 @NgModule({
   imports: [
     SharedModule,
+    RouterModule,
     TransactionsModule,
+    TourNgxPopperModule
   ],
-  declarations: [DashboardContainerComponent]
+  declarations: [DashboardComponent, WorldMapComponent]
 })
 export class DashboardModule { }
 

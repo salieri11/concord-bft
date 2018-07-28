@@ -4,9 +4,10 @@
 
 import { Routes } from '@angular/router';
 
-import { DashboardContainerComponent } from './dashboard-container/dashboard-container.component';
+import { DashboardComponent } from './dashboard-container/dashboard.component';
+
 
 export const dashboardRoutes: Routes = [
-  { path: '', component: DashboardContainerComponent }
+  { path: '', component: DashboardComponent }
 ];
 

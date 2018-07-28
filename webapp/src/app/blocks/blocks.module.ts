@@ -6,10 +6,10 @@ import { NgModule } from '@angular/core';
 import { RouterModule } from '@angular/router';
 
 import { SharedModule } from '../shared/shared.module';
-import { BlocksContainerComponent } from './blocks-container/blocks-container.component';
-import { BlockDetailContainerComponent } from './block-detail-container/block-detail-container.component';
+import { BlockListComponent } from './block-list/block-list.component';
 import { BlockDetailsComponent } from './block-details/block-details.component';
 import { TransactionsModule } from '../transactions/transactions.module';
+import { BlockComponent } from './block/block.component';
 
 @NgModule({
   imports: [
@@ -18,10 +18,9 @@ import { TransactionsModule } from '../transactions/transactions.module';
     TransactionsModule
   ],
   declarations: [
-    BlocksContainerComponent,
-    BlockDetailContainerComponent,
+    BlockListComponent,
+    BlockComponent,
     BlockDetailsComponent
   ]
 })
-export class BlocksModule {
-}
+export class BlocksModule { }

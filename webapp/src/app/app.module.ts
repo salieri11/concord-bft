@@ -6,9 +6,11 @@ import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { NgModule, Injector, APP_INITIALIZER } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { RouterModule } from '@angular/router';
 import { LOCATION_INITIALIZED } from '@angular/common';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
 import { TranslateLoader, TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TourNgxPopperModule } from 'ngx-tour-ngx-popper';
 
 import { ClarityModule } from '@clr/angular';
 
@@ -47,6 +49,8 @@ export function langInitializerFactory(translate: TranslateService, injector: In
     MainModule,
     ClarityModule,
     AppRoutingModule,
+    RouterModule,
+    TourNgxPopperModule.forRoot(),
     TranslateModule.forRoot({
       loader: {
         provide: TranslateLoader,

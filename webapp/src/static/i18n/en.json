@@ -4,21 +4,42 @@
     "all": "All",
     "close": "Close",
     "cancel": "Cancel",
-    "create": "Create"
+    "create": "Create",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish",
+    "edit": "Edit"
   },
   "nav": {
     "menu": {
       "title": "Menu",
       "options": {
-          "deploy": {"title": "Deploy"},
-          "addOrg": {"title": "Add Organization"},
-          "addBlockchains": {"title": "Add Blockchain"},
-          "addConsortium": {"title": "Add Consortium"},
-          "addKubernetes": {"title": "Add Kubernetes"}
+        "deploy": {
+          "title": "Deploy"
+        },
+        "addOrg": {
+          "title": "Add Organization"
+        },
+        "addBlockchains": {
+          "title": "Add Blockchain"
+        },
+        "addConsortium": {
+          "title": "Add Consortium"
+        },
+        "addKubernetes": {
+          "title": "Add Kubernetes"
+        },
+        "addUsers": {
+          "title": "Add Users"
+        }
       }
     },
     "personaSelector": {
       "title": "Role"
+    },
+    "actions": {
+      "title": "Actions",
+      "resetTasks": "Reset Tasks"
     },
     "metrics": {
       "activeNodes": "Active Nodes {{value}}"
@@ -39,7 +60,7 @@
       "title": "Smart Contracts"
     },
     "sysadmin": {
-        "title": "SYSTEM ADMIN"
+      "title": "SYSTEM ADMIN"
     },
     "organization": {
       "title": "Organizations"
@@ -53,7 +74,11 @@
     "kubernetes": {
       "title": "Kubernetes"
     },
-    "logOut": "Log Out"
+    "users": {
+      "title": "Users"
+    },
+    "logOut": "Log Out",
+    "settings": "Settings"
   },
   "time": {
     "lastXDays": "Last {{number}} Days",
@@ -67,10 +92,10 @@
   },
   "grid": {
     "search": {
-        "placeholder": "Search"
+      "placeholder": "Search"
     },
     "pagination": {
-        "of": "of"
+      "of": "of"
     }
   },
   "dashboard": {
@@ -233,18 +258,18 @@
         "title": "Orgs"
       },
       "columns": {
-          "name": {
-              "title": "Name"
-          },
-          "domain": {
-              "title": "Domain"
-          },
-          "type": {
-              "title": "Type"
-          },
-          "created": {
-              "title": "Created On"
-          }
+        "name": {
+          "title": "Name"
+        },
+        "domain": {
+          "title": "Domain"
+        },
+        "type": {
+          "title": "Type"
+        },
+        "created": {
+          "title": "Created On"
+        }
       }
     },
     "addOrgForm": {
@@ -314,36 +339,36 @@
         "title": "Instances"
       },
       "columns": {
-          "id": {
-              "title": "ID"
-          },
-          "name": {
-              "title": "Name"
-          },
-          "apiServerUrl": {
-              "title": "API Server"
-          },
-          "ca": {
-              "title": "CA"
-          },
-          "kubectlCliUrl": {
-              "title": "Kube CLI URL"
-          },
-          "helmCliUrl": {
-              "title": "Helm URL"
-          },
-          "credentialType": {
-              "title": "Credential Type"
-          },
-          "insecure": {
-              "title": "Insecure"
-          },
-          "created": {
-              "title": "Created On"
-          },
-          "updated": {
-              "title": "Updated On"
-          }
+        "id": {
+          "title": "ID"
+        },
+        "name": {
+          "title": "Name"
+        },
+        "apiServerUrl": {
+          "title": "API Server"
+        },
+        "ca": {
+          "title": "CA"
+        },
+        "kubectlCliUrl": {
+          "title": "Kube CLI URL"
+        },
+        "helmCliUrl": {
+          "title": "Helm URL"
+        },
+        "credentialType": {
+          "title": "Credential Type"
+        },
+        "insecure": {
+          "title": "Insecure"
+        },
+        "created": {
+          "title": "Created On"
+        },
+        "updated": {
+          "title": "Updated On"
+        }
       }
     },
     "addKubeForm": {
@@ -419,15 +444,15 @@
         "title": "Consortium"
       },
       "columns": {
-          "name": {
-              "title": "Name"
-          },
-          "members": {
-              "title": "Members"
-          },
-          "created": {
-              "title": "Created On"
-          }
+        "name": {
+          "title": "Name"
+        },
+        "members": {
+          "title": "Members"
+        },
+        "created": {
+          "title": "Created On"
+        }
       }
     },
     "addConsortiumForm": {
@@ -470,33 +495,33 @@
         "title": "Blockchains"
       },
       "columns": {
-          "name": {
-              "title": "Name"
-          },
-          "membersCount": {
-              "title": "Members"
-          },
-          "channelsCount": {
-              "title": "Channels Count"
-          },
-          "consensusType": {
-              "title": "Consensus Type"
-          },
-          "fabricExplorerUrl": {
-              "title": "Fabric Dashboard"
-          },
-          "k8sDashboardUrl": {
-              "title": "Kubernetes Dashboard"
-          },
-          "status": {
-              "title": "Status"
-          },
-          "action": {
-              "title": "Last Action"
-          },
-          "created": {
-              "title": "Created On"
-          }
+        "name": {
+          "title": "Name"
+        },
+        "membersCount": {
+          "title": "Members"
+        },
+        "channelsCount": {
+          "title": "Channels Count"
+        },
+        "consensusType": {
+          "title": "Consensus Type"
+        },
+        "fabricExplorerUrl": {
+          "title": "Fabric Dashboard"
+        },
+        "k8sDashboardUrl": {
+          "title": "Kubernetes Dashboard"
+        },
+        "status": {
+          "title": "Status"
+        },
+        "action": {
+          "title": "Last Action"
+        },
+        "created": {
+          "title": "Created On"
+        }
       }
     },
     "detail": {
@@ -543,7 +568,7 @@
       }
     }
   },
-  "personas" : {
+  "personas": {
     "systemsAdmin": "Systems Admin",
     "consortiumAdmin": "Consortium Admin",
     "orgAdmin": "Org Admin",
@@ -555,5 +580,316 @@
   },
   "globalError": {
     "routingError": "You do not have permission to visit this section of Athena, please contact your sysadmin for more info."
+  },
+  "users": {
+    "title": "User Management",
+    "actions": {
+      "title": "Actions",
+      "options": {
+        "add": {
+          "title": "Add User"
+        },
+        "edit": {
+          "title": "Edit User"
+        },
+        "delete": {
+          "title": "Delete User"
+        }
+      }
+    },
+    "grid": {
+      "pagination": {
+        "title": "Users"
+      },
+      "columns": {
+        "name": {
+          "title": "Name"
+        },
+        "firstName": {
+          "title": "FirstName"
+        },
+        "lastName": {
+          "title": "LastName"
+        },
+        "email": {
+          "title": "Email"
+        },
+        "organization": {
+          "title": "Organization"
+        },
+        "persona": {
+          "title": "Role"
+        },
+        "createdOn": {
+          "title": "Created On"
+        },
+        "updatedOn": {
+          "title": "Updated On"
+        }
+      }
+    },
+    "editUserForm": {
+      "title": "Edit User",
+      "inputs": {
+        "firstName": {
+          "title": "First Name",
+          "placeholder": "First Name"
+        },
+        "lastName": {
+          "title": "Last Name",
+          "placeholder": "Last Name"
+        },
+        "email": {
+          "title": "Email",
+          "placeholder": "emailid@doamin.com"
+        },
+        "role": {
+          "title": "Role",
+          "placeholder": "persona"
+        }
+      },
+      "submit": {
+        "title": "Submit"
+      }
+    },
+    "addUserForm": {
+      "title": "Add User",
+      "inputs": {
+        "firstName": {
+          "title": "First Name",
+          "placeholder": "First Name"
+        },
+        "lastName": {
+          "title": "Last Name",
+          "placeholder": "Last Name"
+        },
+        "email": {
+          "title": "Email",
+          "placeholder": "emailid@doamin.com"
+        },
+        "password": {
+          "title": "Password",
+          "placeholder": "********"
+        },
+        "confirmPassword": {
+          "title": "Confirm Password",
+          "placeholder": "********"
+        },
+        "organization": {
+          "title": "Organization",
+          "placeholder": "Organization"
+        },
+        "role": {
+          "title": "Role",
+          "placeholder": "persona"
+        }
+      },
+      "errors": {
+        "password": {
+          "minLength": "Password must be at least 8 characters long.",
+          "mismatch": "Passwords do not match."
+        }
+      },
+      "submit": {
+        "title": "Submit"
+      }
+    },
+    "deleteUserForm": {
+      "title": "Delete User(s)",
+      "submit": {
+        "title": "Yes"
+      }
+    },
+    "settings": {
+      "title": "User Settings",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "role": "Role",
+      "consortiums": "Consortiums",
+      "organization": {
+        "title": "Organization"
+      },
+      "credentials": "Credentials",
+      "downloadCertificate": {
+        "title": "Download Certificate",
+        "enterPassword": {
+          "navTitle": "Enter Password",
+          "pageTitle": "Password",
+          "enterUserPassword": "Enter User Password",
+          "placeholder": "********"
+        },
+        "enterToken": {
+          "navTitle": "Enter Token",
+          "pageTitle": "Two Factor Authentication",
+          "message": "Action is required. Copy the token from VMware Verify to sign it.",
+          "enterToken": "Enter Token",
+          "placeholder": "Enter token"
+        },
+        "credentials": {
+          "navTitle": "Credentials",
+          "pageTitle": "Download Certificate",
+          "message": "Your authentication was successful. Your download should start immediately. If download doesn't start within 1 min, click the download button directly."
+        },
+        "actions": {
+          "download": "Download",
+          "close": "Close",
+          "next": "Next",
+          "previous": "Previous"
+        }
+      },
+      "editSettings": {
+        "title": "Edit Settings",
+        "alertMessage": "Redirect to CSP for editing the settings."
+      }
+    }
+  },
+  "blockchainWizard": {
+    "title": "Deploy",
+    "blockchainAndConsortium": {
+      "pageTitle": "Setup Blockchain and Consortium",
+      "navTitle": "Blockchain & Consortium",
+      "info": "Selecting local fault tolerance will deploy nodes near your location, whereas global will distribute many nodes across all available regions.  Your consortium will be associated with this blockchain.",
+      "blockchainType": "Blockchain Type",
+      "athena": "Athena",
+      "hyperledger": "Hyperledger",
+      "faultTolerance": "Fault Tolerance",
+      "global": "Global",
+      "local": "Local",
+      "consortiumName": "Consortium Name",
+      "consortiumPlaceholder": "My Consortium"
+    },
+    "addOrgs": {
+      "pageTitle": "Add Organizations",
+      "navTitle": "Add Organizations",
+      "info": "Please add organizations that will be a part of this consortium. Each organization will be given credentials for performing transactions on the blockchain.  We request an organizations location to ensure that we setup a node near each organization for minimized latency.",
+      "addOrganization": "Add Organization",
+      "name": "Name",
+      "namePlaceholder": "My Organization",
+      "location": "Location",
+      "noOrgs": "No Organizations Added"
+    },
+    "usersAndAccess": {
+      "pageTitle": "Users & Access",
+      "navTitle": "Add Users & Access",
+      "info": "Please add at least one org admin for each org, so they can manage their own orgs and add users as they deem necessary.",
+      "firstName": "First Name",
+      "firstNamePlaceholder": "John",
+      "lastName": "Last Name",
+      "lastNamePlaceholder": "Doe",
+      "email": "Email",
+      "emailPlaceholder": "jdoe@email.com",
+      "organization": "Organization",
+      "role": "Role",
+      "addUser": "Add User",
+      "noUsers": "No Users Added"
+    },
+    "reviewDeployment": {
+      "pageTitle": "Review Deployment Setup",
+      "navTitle": "Review",
+      "chosenBlockchain": "Chosen Blockchain",
+      "consortiumSetup": "Consortium Setup",
+      "advanced": "Advanced",
+      "networkName": "Network Name",
+      "numberOfNodes": "Number of Nodes",
+      "publicNodesRegions": "Public Nodes Regions",
+      "privateNode": "Private Node (vCenter/ESX)",
+      "organizations": "Organizations",
+      "privateNodeValues": {
+        "londonDatacenter": "london-datacenter",
+        "usDatacenter": "us-datacenter"
+      },
+      "publicNodeValues": {
+        "usEast1": "AWS US East (N. Virginia)",
+        "usEast2": "AWS US East (Ohio)",
+        "usWest1": "AWS US West (N. California)",
+        "usWest2": "AWS US West (Oregon)",
+        "apNortheast1": "AWS Asia Pacific (Tokyo)",
+        "apNortheast3": "AWS Asia Pacific (Osaka-Local)",
+        "apSouth1": "AWS Asia Pacific (Mumbai)",
+        "apSoutheast1": "AWS Asia Pacific (Singapore)",
+        "apSoutheast2": "AWS Asia Pacific (Sydney)",
+        "caCentral1": "AWS Canada (Central)",
+        "cnNorth1": "AWS China (Beijing)",
+        "cnNorthWest1": "AWS China (Ningxia)",
+        "euWest1": "AWS EU (Ireland)",
+        "euWest2": "AWS EU (London)",
+        "euWest3": "AWS EU (Paris)",
+        "euCentral1": "AWS EU (Frankfurt)",
+        "saEast1": "AWS South America (São Paulo)"
+      }
+    },
+    "locations": {
+      "sydney": "Australia, Sydney",
+      "vienna": "Austria, Vienna",
+      "brussels": "Belgium, Brussels",
+      "rioDeJaneiro": "Brazil, Rio de Janeiro",
+      "toronto": "Canada, Toronto",
+      "santiago": "Chile, Santiago",
+      "beijing": "China, Beijing",
+      "cairo": "Egypt, Cairo",
+      "paris": "France, Paris",
+      "delhi": "India, Delhi",
+      "milan": "Italy, Milan",
+      "tokyo": "Japan, Tokyo",
+      "mexicoCity": "Mexico, Mexico City",
+      "moscow": "Russia, Moscow",
+      "seoul": "South Korea, Seoul",
+      "johannesburg": "South Africa, Johannesburg ",
+      "london": "United Kingdom, London",
+      "lasVegas": "United States, Las Vegas",
+      "newYork": "United States, New York",
+      "paloAlto": "United States, Palo Alto"
+    }
+  },
+  "mockTasks": {
+    "creatingOrg": "Creating Organizations",
+    "addingUsers": "Adding Users",
+    "creatingConsortium": "Creating Consortium",
+    "vmInstance": "VM Instance",
+    "blockchainInstance": "Blockchain Instance"
+  },
+  "tourSteps": {
+    "title": "Take Tour",
+    "nextBtnText": "Next",
+    "prevBtnText": "Prev",
+    "dashboard": {
+      "nodeStatus": {
+        "title": "Node Status",
+        "text": "Hover over a node on the map to see its health and status."
+      },
+      "transactionList": {
+        "title": "Transaction List",
+        "text": "Here are recent blockchain transactions. You can expand each row to see more details."
+      }
+    },
+    "smartContracts": {
+      "manageSmartContracts": {
+        "title": "Manage Smart contracts",
+        "text":  "This is where you can manage and view your smart contracts as well as other smart contracts submitted by members of your consortium."
+      },
+      "createSmartContract": {
+        "title": "Create",
+        "text": "Click here to create a contract"
+      }
+    },
+    "users": {
+      "userManagement": {
+        "title": "Manage users",
+        "text": "Click here to manage users in your organization or consortium."
+      },
+      "userActions": {
+        "title": "User Actions",
+        "text": "Add and manage users here."
+      },
+      "userSettings": {
+        "title": "User settings",
+        "text": "Click here to go to your user settings and download organization certificates."
+      },
+      "downloadCertificate": {
+        "title": "Download certificate",
+        "text": "Click here to download your certificate to connect this blockchain with third-party apps."
+      }
+    }
   }
 }

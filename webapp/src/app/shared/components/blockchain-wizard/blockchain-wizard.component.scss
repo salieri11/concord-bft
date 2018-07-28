@@ -1,0 +1,63 @@
+$formTopMargin: 1.5rem;
+
+.table-actions {
+  clr-icon {
+    margin-left: 0.5rem;
+  }
+}
+
+.accordion-table-header {
+  .title {
+    font-weight: 600;
+    font-size: 0.458333rem;
+    margin-left: 0.5rem;
+  }
+}
+
+.blockchain-wizard {
+  .blockchain-form {
+    margin-top: $formTopMargin;
+    .select, input {
+      width: 8rem;
+    }
+  }
+  .org-form {
+    margin-top: $formTopMargin;
+
+    .form-item {
+      width: 35%;
+      label {
+        margin-left: .5rem;
+        text-align: right;
+      }
+      .form-input {
+        width: 60%;
+        min-width: 3rem;
+        float: right;
+        margin-right: .5rem;
+      }
+    }
+    .submit {
+      width: 30%;
+      button {
+        margin-top: 0;
+        margin-left: 1rem;
+      }
+    }
+  }
+  .user-form {
+    margin-top: $formTopMargin;
+  }
+}
+
+.cell-full {
+  width: 20%;
+  max-width: 1px;
+}
+
+
+.overflow-ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

@@ -1,0 +1,22 @@
+<div [ngClass]="{expanded: isExpanded}">
+  <div class="accordion-header" [ngClass]="expandable ? 'expandable' : ''" (click)="toggleExpand()">
+    <div class="title-container">
+      <clr-icon shape="caret down" *ngIf="isExpanded"></clr-icon>
+      <clr-icon shape="caret right" *ngIf="!isExpanded"></clr-icon>
+      <span class="title" *ngIf="title !== null">{{title}}</span>
+      <ng-content select=".title" *ngIf="title === null"></ng-content>
+    </div>
+    <span class="accordion-subheader wrapper">
+            <ng-content select=".accordion-subheader"></ng-content>
+        </span>
+  </div>
+
+  <div class="accordion-body wrapper" *ngIf="isExpanded" [@collapse]="isExpanded">
+    <ng-content select=".accordion-body"></ng-content>
+    <div class="accordion-overlay" *ngIf="isOverlayed">
+      <div class="spinner-container">
+        <div class="spinner spinner-md spinner-inverse"></div>
+      </div>
+    </div>
+  </div>
+</div>
