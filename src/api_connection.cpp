@@ -355,7 +355,7 @@ api_connection::handle_protocol_request()
 void
 api_connection::handle_peer_request()
 {
-   LOG4CPLUS_INFO(logger_, "************* handle_peer_request");
+   LOG4CPLUS_TRACE(logger_, "handle_peer_request");
 
    const PeerRequest request = athenaRequest_.peer_request();
    PeerResponse *response = athenaResponse_.mutable_peer_response();
@@ -363,11 +363,12 @@ api_connection::handle_peer_request()
       auto peers = sag_.get_peers_info();
       for(auto peer : peers) {
          auto p = response->add_peer();
-         p->set_address(peer.adress);
+         p->set_address(peer.address);
          p->set_status(peer.state);
-         p->set_timefromlastmessage(peer.timeFromLastMessageMilli);
-         p->set_failthresholdmilli(peer.failThresholdMilli);
-         p->set_hostname(peer.hostName);
+         p->set_millis_since_last_message(peer.millisSinceLastMessage);
+         p->set_millis_since_last_message_threshold(
+            peer.millisSinceLastMessageThreshold);
+         p->set_hostname(peer.hostname);
       }
    }
 }

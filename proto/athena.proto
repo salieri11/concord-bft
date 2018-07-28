@@ -204,12 +204,8 @@ message ErrorResponse {
 message Peer {
    optional string address = 1;
    optional string hostname = 2;
-
-// time in millis
-   optional int64 timeFromLastMessage = 3;
-
-// time in millis
-   optional int64 failThresholdMilli = 4;
+   optional int64 millis_since_last_message = 3;
+   optional int64 millis_since_last_message_threshold = 4;
 
 // putting this one late so it doesn't consume a useful address
 // while we're figuring out what format it should actually have

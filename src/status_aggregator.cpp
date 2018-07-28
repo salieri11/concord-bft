@@ -160,19 +160,19 @@ public:
            it++) {
          auto infoMapIt = it->second->find(PeerInfoType::Connectivity);
          if (infoMapIt != it->second->end()) {
-            auto stPtr = static_cast<PeerConnectivityStatus *>(infoMapIt
-                    ->second);
+            auto stPtr =
+               static_cast<PeerConnectivityStatus *>(infoMapIt->second);
             UiPeerInfo pi;
-            pi.failThresholdMilli = _peerFailThesholdMilli;
-            pi.adress = stPtr->peerIp + ":" + to_string(stPtr->peerPort);
-            pi.hostName = HOSTNAME_PREFIX + to_string(stPtr->peerId);
+            pi.millisSinceLastMessageThreshold = _peerFailThesholdMilli;
+            pi.address = stPtr->peerIp;
+            pi.hostname = HOSTNAME_PREFIX + to_string(stPtr->peerId);
 
             if(StatusType::Started != stPtr->statusType) {
-               pi.timeFromLastMessageMilli =
+               pi.millisSinceLastMessage =
                        get_epoch_millis() - stPtr->statusTime;
                pi.state = PEER_STATE_LIVE;
             } else {
-               pi.timeFromLastMessageMilli = TIME_NO_VALUE;
+               pi.millisSinceLastMessage = TIME_NO_VALUE;
                pi.state = PEER_STATE_READY;
             }
 
