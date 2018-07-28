@@ -93,7 +93,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
       return [("web3_sha3", self._test_web3_sha3), \
               ("web3_clientVersion", self._test_web3_clientVersion), \
               ("eth_mining", self._test_eth_mining), \
-              ("rpc_modules", self._test_rpc_modules)]
+              ("rpc_modules", self._test_rpc_modules), \
+              ("eth_getTransactionCount", self._test_eth_getTransactionCount)]
 
    def _runRpcTest(self, testName, testFun, testLogDir):
       ''' Runs one test. '''
@@ -178,5 +179,43 @@ class ExtendedRPCTests(test_suite.TestSuite):
             return (False,
                     "Module version should be version like, " \
                     "but was '{}'".format(v))
+
+      return (True, None)
+
+   def _test_eth_getTransactionCount(self, rpc):
+      '''
+      Check that transaction count is updated.
+      '''
+      newAccount = None
+      for i in range(0,10):
+         try:
+            newAccount = rpc.newAccount("gettxcount{}".format(i))
+            if newAccount:
+               break
+         except:
+            pass
+
+      if not newAccount:
+         return (False, "Unable to create new account")
+
+      startNonce = rpc.getTransactionCount(newAccount)
+      if not startNonce:
+         return (False, "Unable to get starting nonce")
+
+      if not startNonce == "0x0000000000000000000000000000000000000000000000000000000000000000":
+         return (False, "Start nonce was not zero (was {})".format(startNonce))
+
+      txResult = rpc.sendTransaction(newAccount,
+                                     data = "0x00",
+                                     gas = "0x01")
+      if not txResult:
+         return (False, "Transaction was not accepted")
+
+      endNonce = rpc.getTransactionCount(newAccount)
+      if not endNonce:
+         return (False, "Unable to get ending nonce")
+
+      if not endNonce == "0x0000000000000000000000000000000000000000000000000000000000000001":
+         return (False, "End nonce was not 1 (was {})".format(endNonce))
 
       return (True, None)
