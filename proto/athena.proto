@@ -203,7 +203,9 @@ message ErrorResponse {
 
 message Peer {
    optional string address = 1;
-   optional int32 port = 2;
+   optional string hostname = 2;
+   optional int64 millis_since_last_message = 3;
+   optional int64 millis_since_last_message_threshold = 4;
 
 // putting this one late so it doesn't consume a useful address
 // while we're figuring out what format it should actually have
