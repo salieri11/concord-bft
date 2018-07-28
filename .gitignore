@@ -16,6 +16,7 @@ local.properties
 *.jar
 priv/www/index.html
 priv/www/assets/*
+*~
 
 # External tool builders
 .externalToolBuilders/
