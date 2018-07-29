@@ -1,7 +1,11 @@
 package profiles;
 
 public class Consortium {
-
+   
+   public static final String CONSORTIUM_LABEL = "consortium";
+   public static final String CONSORTIUM_ID_LABEL = "consortium_id";
+   public static final String CONSORTIUM_NAME_LABEL = "consortium_name";
+   
    private String consortiumID;
    private String consortiumName;
    private String consortiumType;

@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import database.DatabaseService;
 import org.apache.log4j.Logger;
 
 import database.ServiceUnavailableException;
@@ -26,12 +27,12 @@ public class ConsortiumDAO {
       + " UUID PRIMARY KEY DEFAULT " + "gen_random_uuid())";
    private static Logger logger = Logger.getLogger(ConsortiumDAO.class);
    // select * from consortiums where cnosortium_id = ?
-   private String getConsortiumByIDQuery
+   private String getConsortiumByNameQuery
       = "SELECT * FROM " + CONSORTIUMS_TABLE_NAME + " WHERE "
          + CONSORTIUM_NAME_COLUMN_LABEL + " = ?";
 
    // select * from consortiums where consortium_name = ?
-   private String getConsortiumByNameQuery
+   private String getConsortiumByIDQuery
       = "SELECT * FROM " + CONSORTIUMS_TABLE_NAME + " WHERE "
          + CONSORTIUM_ID_COLUMN_LABEL + " = ?";
 
@@ -50,17 +51,18 @@ public class ConsortiumDAO {
       logger.debug(getConsortiumByNameQuery);
       logger.debug(addConsortiumQuery);
 
-      // con = DatabaseService.getDatabaseConnection();
-      // con.createStatement().executeUpdate(createConsortiumTableQuery);
-      // getConsortiumByID = con.prepareStatement(getConsortiumByIDQuery);
-      // getConsortiumByName = con.prepareStatement(getConsortiumByNameQuery);
-      // insertConsortium = con.prepareStatement(addConsortiumQuery);
+       con = DatabaseService.getDatabaseConnection();
+       con.createStatement().executeUpdate(createConsortiumTableQuery);
+       getConsortiumByID = con.prepareStatement(getConsortiumByIDQuery);
+       getConsortiumByName = con.prepareStatement(getConsortiumByNameQuery);
+       insertConsortium = con.prepareStatement(addConsortiumQuery);
    }
 
    public List<Consortium> getConsortiumByID(String consortiumID) {
       ResultSet rs;
       List<Consortium> cList = new ArrayList<>();
       try {
+         getConsortiumByID.setString(1, consortiumID);
          rs = getConsortiumByID.executeQuery();
          while (rs.next()) {
             cList.add(new Consortium(rs.getString(CONSORTIUM_ID_COLUMN_LABEL),
@@ -78,6 +80,7 @@ public class ConsortiumDAO {
       ResultSet rs;
       List<Consortium> cList = new ArrayList<>();
       try {
+         getConsortiumByName.setString(1, consortiumName);
          rs = getConsortiumByName.executeQuery();
          while (rs.next()) {
             cList.add(new Consortium(rs.getString(CONSORTIUM_ID_COLUMN_LABEL),
@@ -91,10 +94,11 @@ public class ConsortiumDAO {
       return cList;
    }
 
-   public boolean addConsortium(String consortiumName,
+   public String addConsortium(String consortiumName,
                                 String consortiumType) throws SQLException {
       insertConsortium.setString(1, consortiumName);
       insertConsortium.setString(2, consortiumType);
-      return insertConsortium.execute();
+      insertConsortium.execute();
+      return getConsortiumByName(consortiumName).get(0).getConsortiumID();
    }
 }

@@ -1,7 +1,11 @@
 package profiles;
 
 public class Organization {
-
+   
+   public static final String ORGANIZATION_LABEL = "organization";
+   public static final String ORGANIZATION_ID_LABEL = "organization_id";
+   public static final String ORGANIZATION_NAME_LABEL = "organization_name";
+   
    private String organizationID;
    private String organizationName;
 

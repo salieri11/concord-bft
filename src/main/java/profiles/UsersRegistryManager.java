@@ -1,8 +1,11 @@
 package profiles;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 
@@ -56,6 +59,13 @@ public class UsersRegistryManager {
       return userRoles.getUserRoles(Optional.ofNullable(consortiumID),
                                     Optional.ofNullable(organizationID));
    }
+   
+   public List<User> getUsersWithID(List<String> userIdList) {
+      return userIdList.stream()
+              .map(this::getUserWithID)
+              .flatMap(List::stream)
+              .collect(Collectors.toList());
+   }
 
    public List<User> getUserWithID(String userID) {
       return users.getUserWithID(userID);
@@ -66,93 +76,141 @@ public class UsersRegistryManager {
    }
 
    private boolean
-           preCreationCheck(String email, String role, String consortiumName,
-                            String organizationName) throws UserModificationException {
+           preCreationCheck(String email, String role, String consortiumID,
+                            String organizationID) throws UserModificationException {
       // check if user is not already present
       // check if consortium and organization IDs are valid
       // check if role is valid
       boolean validRole = Roles.contains(role);
       if (!validRole)
-         throw new UserModificationException("Provide role value is invalid.");
+         throw new UserModificationException("Provided role value:" + role +
+                 " is invalid.");
+     
       List<User> existingUser = users.getUserWithEmail(email);
       if (existingUser.size() != 0)
          throw new UserModificationException("User with given email already "
             + "exists.");
-      // TODO: Ideally the organization and consortium should already exist
-      // before adding a USER to that. But for now we just add a new
-      // organization & consortium
+      
       List<Organization> existingOrg
-         = organizations.getOrganizationByName(organizationName);
-      try {
-         if (existingOrg.size() != 1) {
-            // throw new UserModificationException("No such organization
-            // exists.");
-            // for now don't throw - just create new
-            organizations.addOrganization(organizationName);
-         }
-         List<Consortium> existingCon
-            = consortiums.getConsortiumByName(consortiumName);
-         if (existingCon.size() != 1) {
-            // throw new UserModificationException("No such consortium
-            // exists.");
-            // for now don't throw - just create new
-            // TODO: organization type is not specified in user creation POST
-            // API
-            // for now use "DEFAULT" as type, when we have separate POST API
-            // for organization creation we will have proper types.
-            consortiums.addConsortium(consortiumName, "DEFAULT");
-         }
-      } catch (SQLException e) {
-         logger.warn("Unable to create organization or consortium", e);
-         return false;
+         = organizations.getOrganizationByID(organizationID);
+      
+      List<Consortium> existingCon
+              = consortiums.getConsortiumByID(consortiumID);
+
+      if (existingOrg.size() != 1) {
+         throw new UserModificationException("No such organization exists.");
+      }
+      
+      if (existingCon.size() != 1) {
+         throw new UserModificationException("No such consortium exists.");
       }
       return true;
    }
 
-   public void createUser(String name, String email, String role,
-                          String consortiumID, String organizationID,
-                          String password) throws UserModificationException {
+   
+   private String createUser(String name, String email, String role,
+                             Optional<String> fName, Optional<String> lName,
+                             String consortiumID, String organizationID,
+                             String password) throws UserModificationException {
       try {
          if (preCreationCheck(email, role, consortiumID, organizationID)) {
-            User u = users.createUser(name,
-                                      email,
-                                      Optional.empty(),
-                                      Optional.empty(),
-                                      password);
+            User newUser = users.createUser(name,
+                    email,
+                    fName, lName,
+                    password);
+            
             // Now add this user into roles table
-            userRoles.insertRole(u.getUserID(),
-                                 organizationID,
-                                 consortiumID,
-                                 Roles.valueOf(role));
+            userRoles.insertRole(newUser.getUserID(),
+                    organizationID,
+                    consortiumID,
+                    Roles.fromString(role));
+            return newUser.getUserID();
+         } else {
+            throw new UserModificationException("User creation checks failed");
          }
       } catch (SQLException e) {
          throw new UserModificationException(e.getMessage());
       }
    }
+   
+   
+   public String createUser(String name, String email, String role,
+                          String consortiumID, String organizationID,
+                          String password) throws UserModificationException {
+      return createUser(name, email, role,
+              Optional.empty(), Optional.empty(),
+              consortiumID, organizationID, password);
+   }
 
-   public void createUser(String name, String email, String role,
+   public String createUser(String name, String email, String role,
                           String firstName, String lastName,
                           String consortiumID, String organizationID,
                           String password) throws UserModificationException {
+      return createUser(name, email, role,
+              Optional.of(firstName), Optional.of(lastName),
+              consortiumID, organizationID, password);
+   }
+   
+   
+   public boolean updateUser(UserPatchRequest upr) throws SQLException {
+      boolean result = true;
+      if (upr.getFirstName().isPresent()) {
+         result &=
+                 users.updateFirstName(upr.getUserID(), upr.getFirstName().get());
+      }
+      if (upr.getLastName().isPresent()) {
+         result &=
+                 users.updateLastName(upr.getUserID(), upr.getLastName().get());
+      }
+      if (upr.getEmail().isPresent()) {
+         result &=
+                 users.updateEmail(upr.getUserID(), upr.getEmail().get());
+      }
+      if (upr.getRole().isPresent() &&
+              upr.getConsortiumID().isPresent() &&
+              upr.getOrganizationID().isPresent()) {
+         result &=
+                 userRoles.updateRole(upr.getUserID(),
+                         upr.getConsortiumID().get(),
+                         upr.getOrganizationID().get(), upr.getRole().get());
+      }
+      return result;
+    }
+   
+   
+   // TODO: This is just testing convenience methods and should be removed
+   // when actual POST API for organization and consortium creation is
+   // available
+   public String createOrgIfNotExist(String orgName) {
       try {
-         if (preCreationCheck(email, role, consortiumID, organizationID)) {
-            User u = users.createUser(name,
-                                      email,
-                                      Optional.of(firstName),
-                                      Optional.of(lastName),
-                                      password);
-            // Now add this user into roles table
-            userRoles.insertRole(u.getUserID(),
-                                 organizationID,
-                                 consortiumID,
-                                 Roles.valueOf(role));
+         List<Organization> oList = organizations.getOrganizationByName(orgName);
+         if (oList.isEmpty()) {
+            return organizations.addOrganization(orgName);
+         } else {
+            return oList.get(0).getOrganizationID();
          }
       } catch (SQLException e) {
-         throw new UserModificationException(e.getMessage());
+         logger.warn("Exception in org creation", e);
       }
+      return null;
    }
-
-   // public User updateUser(UserPatchRequest upr) {
-   //
-   // }
+   
+   // TODO: This is just testing convenience methods and should be removed
+   // when actual POST API for organization and consortium creation is
+   // available
+   public String createConsortiumIfNotExist(String consName, String
+           consType) {
+      try {
+         List<Consortium> cList = consortiums.getConsortiumByName(consName);
+         if (cList.isEmpty()) {
+            return consortiums.addConsortium(consName, consType);
+         } else {
+            return cList.get(0).getConsortiumID();
+         }
+      } catch (SQLException e) {
+         logger.warn("Exception in consortium creation", e);
+      }
+      return null;
+   }
+   
 }

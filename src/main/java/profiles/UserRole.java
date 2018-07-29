@@ -1,7 +1,9 @@
 package profiles;
 
 public class UserRole {
-
+   
+   public static final String ROLE_LABEL = "role";
+   
    private String userID;
    private String organizationID;
    private String consortiumID;

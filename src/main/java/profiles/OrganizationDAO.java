@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import database.DatabaseService;
 import org.apache.log4j.Logger;
 
 import database.ServiceUnavailableException;
@@ -50,18 +51,19 @@ public class OrganizationDAO {
       logger.debug(getOrganizationByNameQuery);
       logger.debug(insertOrganizationQuery);
 
-      // con = DatabaseService.getDatabaseConnection();
-      // con.createStatement().executeUpdate(createOrgTableQuery);
-      // getOrganizationByID = con.prepareStatement(getOrganizationByIDQuery);
-      // getOrganizationByName =
-      // con.prepareStatement(getOrganizationByNameQuery);
-      // insertOrganization = con.prepareStatement(insertOrganizationQuery);
+       con = DatabaseService.getDatabaseConnection();
+       con.createStatement().executeUpdate(createOrgTableQuery);
+       getOrganizationByID = con.prepareStatement(getOrganizationByIDQuery);
+       getOrganizationByName =
+       con.prepareStatement(getOrganizationByNameQuery);
+       insertOrganization = con.prepareStatement(insertOrganizationQuery);
    }
 
    public List<Organization> getOrganizationByID(String organizationID) {
       ResultSet rs;
       List<Organization> oList = new ArrayList<>();
       try {
+         getOrganizationByID.setString(1, organizationID);
          rs = getOrganizationByID.executeQuery();
          while (rs.next()) {
             oList.add(new Organization(rs.getString(ORGANIZATION_ID_COLUMN_LABEL),
@@ -69,7 +71,7 @@ public class OrganizationDAO {
          }
       } catch (SQLException e) {
          logger.warn("Exception fetching organization with ID: "
-            + organizationID);
+            + organizationID, e);
       }
       return oList;
    }
@@ -78,6 +80,7 @@ public class OrganizationDAO {
       ResultSet rs;
       List<Organization> oList = new ArrayList<>();
       try {
+         getOrganizationByName.setString(1, organizationName);
          rs = getOrganizationByName.executeQuery();
          while (rs.next()) {
             oList.add(new Organization(rs.getString(ORGANIZATION_ID_COLUMN_LABEL),
@@ -85,13 +88,14 @@ public class OrganizationDAO {
          }
       } catch (SQLException e) {
          logger.warn("Exception fetching organization with Name: "
-            + organizationName);
+            + organizationName, e);
       }
       return oList;
    }
 
-   public boolean addOrganization(String organizationName) throws SQLException {
+   public String addOrganization(String organizationName) throws SQLException {
       insertOrganization.setString(1, organizationName);
-      return insertOrganization.execute();
+      insertOrganization.execute();
+      return getOrganizationByName(organizationName).get(0).getOrganizationID();
    }
 }

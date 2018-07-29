@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import database.DatabaseService;
 import org.apache.log4j.Logger;
 
 import database.ServiceUnavailableException;
@@ -37,7 +38,11 @@ public class UserRolesDAO {
       + "FOREIGN KEY(" + ORGANIZATION_ID_COLUMN_LABEL + ") " + "REFERENCES "
       + ORGANIZATIONS_TABLE_NAME + "(" + ORGANIZATION_ID_COLUMN_LABEL + "), "
       + "FOREIGN KEY(" + CONSORTIUM_ID_COLUMN_LABEL + ") REFERENCES "
-      + CONSORTIUMS_TABLE_NAME + "(" + CONSORTIUM_ID_COLUMN_LABEL + "))";
+      + CONSORTIUMS_TABLE_NAME + "(" + CONSORTIUM_ID_COLUMN_LABEL + ")," +
+           " PRIMARY KEY(" + USER_ID_COLUMN_LABEL + ", "+
+           ORGANIZATION_ID_COLUMN_LABEL + ", " + CONSORTIUM_ID_COLUMN_LABEL +
+           "))";
+   
    // select * from user_roles where user_id = "?"
    private static final String getUserRoleQuery = "SELECT * FROM "
       + USER_ROLES_TABLE_NAME + " WHERE " + USER_ID_COLUMN_LABEL + " = ?";
@@ -57,6 +62,14 @@ public class UserRolesDAO {
    // insert into roles values(?, ?, ?, ?)
    private static final String insertRoleQuery
       = "INSERT INTO " + USER_ROLES_TABLE_NAME + " values(?, ?, ?, ?)";
+   
+   // update user_roles set role = ? where user_id = ? AND consoritum_id = ? AND
+   // organization_id = ?
+   private static final String updateRoleQuery = "UPDATE " +
+           USER_ROLES_TABLE_NAME + " SET " + ROLE_COLUMN_LABEL + " = ? WHERE " +
+           USER_ID_COLUMN_LABEL + "= ? AND " + CONSORTIUM_ID_COLUMN_LABEL +
+           "= ? AND " + ORGANIZATION_ID_COLUMN_LABEL + " = ?";
+   
    private static Logger logger = Logger.getLogger(UserRolesDAO.class);
    private Connection con;
    private PreparedStatement getUserRole;
@@ -64,6 +77,7 @@ public class UserRolesDAO {
    private PreparedStatement getConsortiumRoles;
    private PreparedStatement getOrganizationConsortiumRoles;
    private PreparedStatement insertRole;
+   private PreparedStatement updateRole;
 
    protected UserRolesDAO() throws ServiceUnavailableException, SQLException {
       logger.debug(createUserRolesTableQuery);
@@ -72,15 +86,17 @@ public class UserRolesDAO {
       logger.debug(getConsortiumRolesQuery);
       logger.debug(getOrganizationConsortiumRolesQuery);
       logger.debug(insertRoleQuery);
+      logger.debug(updateRoleQuery);
 
-      // con = DatabaseService.getDatabaseConnection();
-      // con.createStatement().executeUpdate(createUserRolesTableQuery);
-      // getUserRole = con.prepareStatement(getUserRoleQuery);
-      // getOrganizationRoles = con.prepareStatement(getOrganizationRolesQuery);
-      // getConsortiumRoles = con.prepareStatement(getConsortiumRolesQuery);
-      // getOrganizationConsortiumRoles =
-      // con.prepareStatement(getOrganizationConsortiumRolesQuery);
-      // insertRole = con.prepareStatement(insertRoleQuery);
+       con = DatabaseService.getDatabaseConnection();
+       con.createStatement().executeUpdate(createUserRolesTableQuery);
+       getUserRole = con.prepareStatement(getUserRoleQuery);
+       getOrganizationRoles = con.prepareStatement(getOrganizationRolesQuery);
+       getConsortiumRoles = con.prepareStatement(getConsortiumRolesQuery);
+       getOrganizationConsortiumRoles =
+       con.prepareStatement(getOrganizationConsortiumRolesQuery);
+       insertRole = con.prepareStatement(insertRoleQuery);
+       updateRole = con.prepareStatement(updateRoleQuery);
    }
 
    public List<UserRole> getUserRole(String userID) throws SQLException {
@@ -90,7 +106,7 @@ public class UserRolesDAO {
          roleList.add(new UserRole(rs.getString(USER_ID_COLUMN_LABEL),
                                    rs.getString(ORGANIZATION_ID_COLUMN_LABEL),
                                    rs.getString(CONSORTIUM_ID_COLUMN_LABEL),
-                                   Roles.valueOf(rs.getString(ROLE_COLUMN_LABEL))));
+                                   Roles.fromString(rs.getString(ROLE_COLUMN_LABEL))));
       }
       return roleList;
    }
@@ -101,18 +117,23 @@ public class UserRolesDAO {
       ResultSet rs = null;
       try {
          if (consortiumID.isPresent() && organizationID.isPresent()) {
+            getOrganizationConsortiumRoles.setString(1, organizationID.get());
+            getOrganizationConsortiumRoles.setString(2, consortiumID.get());
             rs = getOrganizationConsortiumRoles.executeQuery();
          } else if (consortiumID.isPresent()) {
+            getConsortiumRoles.setString(1, consortiumID.get());
             rs = getConsortiumRoles.executeQuery();
          } else if (organizationID.isPresent()) {
+            getOrganizationRoles.setString(1, organizationID.get());
             rs = getOrganizationRoles.executeQuery();
          }
 
          while (rs != null && rs.next()) {
-            roleList.add(new UserRole(rs.getString(USER_ID_COLUMN_LABEL),
-                                      rs.getString(ORGANIZATION_ID_COLUMN_LABEL),
-                                      rs.getString(CONSORTIUM_ID_COLUMN_LABEL),
-                                      Roles.valueOf(rs.getString(ROLE_COLUMN_LABEL))));
+            roleList.add(
+                    new UserRole(rs.getString(USER_ID_COLUMN_LABEL),
+                            rs.getString(ORGANIZATION_ID_COLUMN_LABEL),
+                            rs.getString(CONSORTIUM_ID_COLUMN_LABEL),
+                            Roles.fromString(rs.getString(ROLE_COLUMN_LABEL))));
          }
 
       } catch (SQLException e) {
@@ -126,13 +147,21 @@ public class UserRolesDAO {
                              String consortiumID, Roles role) {
       try {
          insertRole.setString(1, userID);
-         insertRole.setString(2, consortiumID);
-         insertRole.setString(3, organizationID);
+         insertRole.setString(2, organizationID);
+         insertRole.setString(3, consortiumID);
          insertRole.setString(4, role.name());
          return insertRole.execute();
       } catch (SQLException e) {
          logger.warn("Exception when inserting new role: ", e);
          return false;
       }
+   }
+   
+   public boolean updateRole(String userID, String consortiumID,
+                             String oragnizationID, Roles newRole) throws SQLException {
+      updateRole.setString(1, userID);
+      updateRole.setString(2, consortiumID);
+      updateRole.setString(3, oragnizationID);
+      return updateRole.execute();
    }
 }

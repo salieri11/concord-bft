@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import database.DatabaseService;
 import org.apache.log4j.Logger;
 
 import database.ServiceUnavailableException;
@@ -43,24 +44,56 @@ public class UsersDAO {
    // insert into users values(?, ?, ?, ?, ?)
    private String insertUserQuery
       = "INSERT INTO " + USERS_TABLE_NAME + " values(?, ?, ?, ?, ?)";
+   
+   
+   // update users set email = ? where user_id = ?
+   private String updateEmailQuery = "UPDATE " + USERS_TABLE_NAME + " set " +
+           EMAIL_COLUMN_LABEL + " = ? WHERE " + USER_ID_COLUMN_LABEL + " = ?";
+   
+   private String updateFirstNameQuery = "UPDATE " + USERS_TABLE_NAME + " set" +
+           " " +
+           FIRST_NAME_COLUMN_LABEL + " = ? WHERE " + USER_ID_COLUMN_LABEL + "" +
+           " = ?";
+   
+   private String updateLastNameQuery = "UPDATE " + USERS_TABLE_NAME + " set" +
+           " " +
+           LAST_NAME_COLUMN_LABEL + " = ? WHERE " + USER_ID_COLUMN_LABEL + "" +
+           " = ?";
+   
+   private String updateNameQuery = "UPDATE " + USERS_TABLE_NAME + " set" +
+           " " +
+           NAME_COLUMN_LABEL + " = ? WHERE " + USER_ID_COLUMN_LABEL + "" +
+           " = ?";
 
    private PreparedStatement getUserWithIDPstmt;
    private PreparedStatement getUserWithEmailPstmt;
    private PreparedStatement insertUserPstmt;
-
+   private PreparedStatement updateEmail;
+   private PreparedStatement updateFirstName;
+   private PreparedStatement updateLastName;
+   private PreparedStatement updateName;
+   
    protected UsersDAO() throws ServiceUnavailableException, SQLException {
 
       logger.debug(createUsersTableQuery);
       logger.debug(getUserWithEmailQuery);
       logger.debug(getUserWithIDQuery);
       logger.debug(insertUserQuery);
+      logger.debug(updateEmailQuery);
+      logger.debug(updateFirstNameQuery);
+      logger.debug(updateLastNameQuery);
+      logger.debug(updateNameQuery);
 
-      // con = DatabaseService.getDatabaseConnection();
-      // con.createStatement().executeUpdate(createUsersTableQuery);
-      //
-      // getUserWithIDPstmt = con.prepareStatement(getUserWithIDQuery);
-      // getUserWithEmailPstmt = con.prepareStatement(getUserWithEmailQuery);
-      // insertUserPstmt = con.prepareStatement(insertUserQuery);
+       con = DatabaseService.getDatabaseConnection();
+       con.createStatement().executeUpdate(createUsersTableQuery);
+
+       getUserWithIDPstmt = con.prepareStatement(getUserWithIDQuery);
+       getUserWithEmailPstmt = con.prepareStatement(getUserWithEmailQuery);
+       insertUserPstmt = con.prepareStatement(insertUserQuery);
+       updateEmail = con.prepareStatement(updateEmailQuery);
+       updateFirstName = con.prepareStatement(updateFirstNameQuery);
+       updateLastName = con.prepareStatement(updateLastNameQuery);
+       updateName = con.prepareStatement(updateNameQuery);
    }
 
    public List<User> getUserWithID(String userID) {
@@ -69,10 +102,12 @@ public class UsersDAO {
          getUserWithIDPstmt.setString(1, userID);
          ResultSet rs = getUserWithIDPstmt.executeQuery();
          while (rs.next()) {
-            userList.add(new User(rs.getString(NAME_COLUMN_LABEL),
-                                  rs.getString(FIRST_NAME_COLUMN_LABEL),
-                                  rs.getString(LAST_NAME_COLUMN_LABEL),
-                                  rs.getString(EMAIL_COLUMN_LABEL)));
+            userList.add(new User(
+                    rs.getString(USER_ID_COLUMN_LABEL),
+                    rs.getString(NAME_COLUMN_LABEL),
+                    rs.getString(EMAIL_COLUMN_LABEL),
+                    rs.getString(FIRST_NAME_COLUMN_LABEL),
+                    rs.getString(LAST_NAME_COLUMN_LABEL)));
          }
       } catch (SQLException e) {
          logger.warn("Exception with get user from ID query", e);
@@ -86,10 +121,12 @@ public class UsersDAO {
          getUserWithEmailPstmt.setString(1, email);
          ResultSet rs = getUserWithEmailPstmt.executeQuery();
          while (rs.next()) {
-            userList.add(new User(rs.getString(NAME_COLUMN_LABEL),
-                                  rs.getString(FIRST_NAME_COLUMN_LABEL),
-                                  rs.getString(LAST_NAME_COLUMN_LABEL),
-                                  rs.getString(EMAIL_COLUMN_LABEL)));
+            userList.add(new User(
+                    rs.getString(USER_ID_COLUMN_LABEL),
+                    rs.getString(NAME_COLUMN_LABEL),
+                    rs.getString(EMAIL_COLUMN_LABEL),
+                    rs.getString(FIRST_NAME_COLUMN_LABEL),
+                    rs.getString(LAST_NAME_COLUMN_LABEL)));
          }
       } catch (SQLException e) {
          logger.warn("Exception with get user from email query", e);
@@ -113,4 +150,29 @@ public class UsersDAO {
       return userList.get(0);
    }
 
+   public boolean updateEmail(String userID, String newEmail) throws SQLException {
+      updateEmail.setString(1, newEmail);
+      updateEmail.setString(2, userID);
+      return updateEmail.execute();
+   }
+   
+   public boolean updateFirstName(String userID, String firstName) throws SQLException {
+      updateFirstName.setString(1, firstName);
+      updateFirstName.setString(2, userID);
+      return updateFirstName.execute();
+   }
+   
+   public boolean updateLastName(String userID, String lastName) throws
+           SQLException  {
+      updateLastName.setString(1, lastName);
+      updateLastName.setString(2, userID);
+      return updateLastName.execute();
+   }
+   
+   public boolean updateName(String userID, String name) throws SQLException {
+      updateName.setString(1, name);
+      updateName.setString(2, userID);
+      return updateName.execute();
+   }
+   
 }
