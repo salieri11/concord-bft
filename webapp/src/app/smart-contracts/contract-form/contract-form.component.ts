@@ -7,6 +7,7 @@ import { Validators, FormGroup, FormBuilder } from '@angular/forms';
 
 import { ADDRESS_LENGTH, ADDRESS_PATTERN } from '../../shared/shared.config';
 import { SmartContractsService } from '../shared/smart-contracts.service';
+import { ActivatedRoute } from '@angular/router';
 
 const addressValidators = [
   Validators.maxLength(ADDRESS_LENGTH),
@@ -34,9 +35,12 @@ export class ContractFormComponent implements OnInit {
   readonly smartContractForm: FormGroup;
   readonly modalState: ModalState;
 
-  constructor(private formBuilder: FormBuilder,
-              private changeDetectorRef: ChangeDetectorRef,
-              private smartContractsService: SmartContractsService) {
+  constructor(
+    private formBuilder: FormBuilder,
+    private changeDetectorRef: ChangeDetectorRef,
+    private smartContractsService: SmartContractsService,
+    private route: ActivatedRoute,
+  ) {
     this.smartContractForm = this.formBuilder.group({
       from: ['', [Validators.required, ...addressValidators]],
       contractId: ['', [Validators.required]],
@@ -49,6 +53,20 @@ export class ContractFormComponent implements OnInit {
       error: false,
       loading: false
     };
+
+    this.route.fragment.subscribe(fragment => {
+      switch (fragment) {
+        case 'add':
+            this.open();
+          break;
+
+        default:
+          // code...
+          break;
+      }
+    });
+
+
   }
 
   ngOnInit() {

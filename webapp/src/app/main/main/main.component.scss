@@ -1,6 +1,6 @@
 @import "../../../styles/theme";
 
-.header-nav:after, form.search:after {
+.header-nav:after, .header-nav:before, form.search:after {
   position: absolute;
   content: "";
   display: inline-block;
@@ -11,7 +11,8 @@
   top: .41667rem;
 }
 
-.header-nav clr-dropdown {
+.header-nav clr-dropdown button{
+  height: 2.5rem;
   padding: 0 1rem;
 }
 
