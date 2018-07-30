@@ -23,3 +23,4 @@ fi
 docker build . -f docker/Dockerfile-athena1 -t athena1
 docker build . -f docker/Dockerfile-athena2 -t athena2
 docker build . -f docker/Dockerfile-athena3 -t athena3
+docker build . -f docker/Dockerfile-athena4 -t athena4

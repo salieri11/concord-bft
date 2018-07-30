@@ -14,7 +14,7 @@ set(kvblockchain_sources
   slice.cpp slice.h
   Threading.h
   ThreadLocalStorage.h
-)
+        )
 
 add_library(kvblockchain ${kvblockchain_sources})
 

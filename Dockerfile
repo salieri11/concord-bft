@@ -44,7 +44,7 @@ RUN wget https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.
     && tar -xzf boost_1_64_0.tar.gz \
     && rm boost_1_64_0.tar.gz
 WORKDIR /boost_1_64_0
-RUN ./bootstrap.sh --with-libraries=system,program_options --prefix=/usr && ./b2 && ./b2 install
+RUN ./bootstrap.sh --with-libraries=system,program_options,thread --prefix=/usr && ./b2 && ./b2 install
 
 WORKDIR /
 RUN git clone https://github.com/log4cplus/log4cplus.git
@@ -121,11 +121,13 @@ COPY --from=0 /athena/docker/find-docker-instances.sh /athena/resources/
 COPY --from=0 /athena/test/resources/genesis.json /athena/resources/
 
 # replace localhost with docker-compose container name in public config
-COPY --from=0 /athena/build/resources/f1-c0-cl3/*.pub /athena/resources/f1-c0-cl3/
-RUN sed -i -e "s/replica1/athena1/g" \
-           -e "s/replica2/athena2/g" \
-           -e "s/replica3/athena3/g" \
-           -e "s/client1/athena1/g" \
-           -e "s/client2/athena2/g" \
-           -e "s/client3/athena3/g" \
-    /athena/resources/f1-c0-cl3/*.pub
+COPY --from=0 /athena/build/resources/sbft/*.pub /athena/resources/sbft/
+RUN sed -i -e "s/rep01/athena1/g" \
+           -e "s/rep02/athena2/g" \
+           -e "s/rep03/athena3/g" \
+           -e "s/rep04/athena4/g" \
+           -e "s/client05/athena1/g" \
+           -e "s/client06/athena2/g" \
+           -e "s/client07/athena3/g" \
+           -e "s/client08/athena4/g" \
+    /athena/resources/sbft/*.pub

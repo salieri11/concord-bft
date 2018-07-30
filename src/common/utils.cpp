@@ -68,3 +68,11 @@ uint64_t com::vmware::athena::from_evm_uint256be(const evm_uint256be *val)
    }
     return ret;
 }
+
+int64_t com::vmware::athena::get_epoch_millis()
+{
+   using namespace std::chrono;
+   int64_t res = duration_cast<milliseconds>(
+           system_clock::now().time_since_epoch()).count();
+   return res;
+}

@@ -5,6 +5,7 @@
 #define CONNECTION_MANAGER_HPP
 
 #include <set>
+#include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
 #include "api_connection.hpp"
 
@@ -22,6 +23,8 @@ public:
 private:
    /* Socket being handled. */
    std::set<com::vmware::athena::api_connection::pointer> connections_;
+   /* Mutex used to protect updates to connections_ set */
+   boost::mutex mutex_;
 };
 
 }

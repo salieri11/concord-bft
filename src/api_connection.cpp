@@ -51,10 +51,11 @@ api_connection::pointer
 api_connection::create(io_service &io_service,
                        connection_manager &connManager,
                        FilterManager &filterManager,
-                       KVBClient &client)
+                       KVBClient &client,
+                       StatusAggregator &sag)
 {
    return pointer(new api_connection(
-                     io_service, connManager, filterManager, client));
+                     io_service, connManager, filterManager, client, sag));
 }
 
 tcp::socket&
@@ -354,19 +355,21 @@ api_connection::handle_protocol_request()
 void
 api_connection::handle_peer_request()
 {
+   LOG4CPLUS_TRACE(logger_, "handle_peer_request");
+
    const PeerRequest request = athenaRequest_.peer_request();
    PeerResponse *response = athenaResponse_.mutable_peer_response();
    if (request.return_peers()) {
-      // Dummy Data to prove the roundtrip to Helen (TODO)
-      Peer *p1 = response->add_peer();
-      p1->mutable_address()->assign("realathena1");
-      p1->set_port(8001);
-      p1->mutable_status()->assign("connected");
-
-      Peer *p2 = response->add_peer();
-      p2->mutable_address()->assign("realathena2");
-      p2->set_port(8002);
-      p2->mutable_status()->assign("offline");
+      auto peers = sag_.get_peers_info();
+      for(auto peer : peers) {
+         auto p = response->add_peer();
+         p->set_address(peer.address);
+         p->set_status(peer.state);
+         p->set_millis_since_last_message(peer.millisSinceLastMessage);
+         p->set_millis_since_last_message_threshold(
+            peer.millisSinceLastMessageThreshold);
+         p->set_hostname(peer.hostname);
+      }
    }
 }
 
@@ -405,6 +408,9 @@ api_connection::handle_eth_request(int i)
       case EthRequest_EthMethod_BLOCK_NUMBER:
          // no parameters to validate
          validRequest = true;
+         break;
+      case EthRequest_EthMethod_GET_TX_COUNT:
+         validRequest = is_valid_eth_getTransactionCount(request);
          break;
       default:
          validRequest = false;
@@ -626,6 +632,22 @@ api_connection::is_valid_eth_getCode(const EthRequest &request)
    }
 }
 
+/**
+ * Check that an eth_getTransactionCount request is valid.
+ */
+bool
+api_connection::is_valid_eth_getTransactionCount(const EthRequest &request)
+{
+   if (request.has_addr_to() && request.addr_to().size() == sizeof(evm_address))
+   {
+      return true;
+   } else {
+      ErrorResponse *error = athenaResponse_.add_error_response();
+      error->set_description("Missing account address");
+      return false;
+   }
+}
+
 /*
  * Handle test request, where the client requests an echo. This is
  * likely something we won't include in the final release, but has
@@ -784,13 +806,15 @@ api_connection::api_connection(
    io_service &io_service,
    connection_manager &manager,
    FilterManager &filterManager,
-   KVBClient &client)
+   KVBClient &client,
+   StatusAggregator &sag)
    : socket_(io_service),
      logger_(
         log4cplus::Logger::getInstance("com.vmware.athena.api_connection")),
      connManager_(manager),
      filterManager_(filterManager),
-     client_(client)
+     client_(client),
+     sag_(sag)
 {
    // nothing to do here yet other than initialize the socket and logger
 }

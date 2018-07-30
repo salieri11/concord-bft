@@ -176,6 +176,30 @@ void com::vmware::athena::EVM::create(evm_message &message,
          kvbStorage.set_code(contract_address,
                              result.output_data,
                              result.output_size);
+
+
+         // There is a bug (either in evmjit or in our usage of evm) which
+         // causes nested contract creation calls to give segmentation
+         // fault. This bug also causes segmentation fault if we try to call
+         // release method on result object in a normal contract creation call.
+         // The reason is that `evmjit` stores a pointer to its internal data
+         // inside evm_result's optional data storage and when the evm_result
+         // objects scope ends we (or evm in case of nested call) call release
+         // method to free memory from that pointer. However, this optional data
+         // storage actually uses evm_result structure's create_address field to
+         // store that pointer, in case of nested contract creation we store the
+         // address of created contract into this field and it over-writes the
+         // already stored pointer. This leads to seg-fault when freeing that
+         // memory.  To fix this temporarily we just call release on result
+         // object ourselves. Ideally only the owner of result object should
+         // call release method on it and the result object itself should not be
+         // used once we call release on it but this works until we find a
+         // proper way.
+         if (result.release) {
+            result.release(&result);
+            result.release = nullptr;
+         }
+
          result.create_address = contract_address;
       }
    } else {
@@ -409,9 +433,19 @@ extern "C" {
       // incrementing the depth for us
       assert(msg->depth > 0);
 
-      ath_object(evmctx)->run(call_msg,
-                              *(ath_context(evmctx)->kvbStorage),
-                              *result);
+      // evm_result object sent by evm is un-initialized, not initializing it
+      // can cause segmentation errors
+      memset(result, 0, sizeof(evm_result));
+
+      if (msg->kind == EVM_CREATE) {
+         ath_object(evmctx)->create(call_msg,
+                                 *(ath_context(evmctx)->kvbStorage),
+                                 *result);
+      } else {
+         ath_object(evmctx)->run(call_msg,
+                                 *(ath_context(evmctx)->kvbStorage),
+                                 *result);
+      }
    }
 
    void ath_get_block_hash(struct evm_uint256be* result,

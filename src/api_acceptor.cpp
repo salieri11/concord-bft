@@ -3,6 +3,7 @@
 // Acceptor for connections from the API/UI servers.
 
 #include <boost/bind.hpp>
+#include <boost/thread.hpp>
 #include "api_acceptor.hpp"
 
 using boost::asio::ip::tcp;
@@ -14,12 +15,17 @@ using namespace com::vmware::athena;
 api_acceptor::api_acceptor(io_service &io_service,
                            tcp::endpoint endpoint,
                            FilterManager &filterManager,
-                           KVBClient &client)
+                           KVBClient &client,
+                           StatusAggregator &sag)
    : acceptor_(io_service, endpoint),
      filterManager_(filterManager),
      client_(client),
-     logger_(log4cplus::Logger::getInstance("com.vmware.athena.api_acceptor"))
+     logger_(log4cplus::Logger::getInstance("com.vmware.athena.api_acceptor")),
+     sag_(sag)
 {
+   // set SO_REUSEADDR option on this socket so that if listener thread fails
+   // we can still bind again to this socket
+   acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
    start_accept();
 }
 
@@ -32,7 +38,8 @@ api_acceptor::start_accept()
       api_connection::create(acceptor_.get_io_service(),
                              connManager_,
                              filterManager_,
-                             client_);
+                             client_,
+                             sag_);
 
    acceptor_.async_accept(new_connection->socket(),
                           boost::bind(&api_acceptor::handle_accept,
@@ -46,7 +53,8 @@ void
 api_acceptor::handle_accept(api_connection::pointer new_connection,
                             const error_code &error)
 {
-   LOG4CPLUS_TRACE(logger_, "handle_accept enter");
+   LOG4CPLUS_TRACE(logger_, "handle_accept enter, thread id: " <<
+                   boost::this_thread::get_id());
    if (!error) {
       connManager_.start_connection(new_connection);
    } else {

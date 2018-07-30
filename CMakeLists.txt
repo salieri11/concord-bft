@@ -13,7 +13,7 @@ set(USE_ROCKSDB True)
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIRS})
 
-find_package(Boost 1.64 COMPONENTS system program_options REQUIRED)
+find_package(Boost 1.64 COMPONENTS system program_options thread REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 #find_package(Log4Cplus REQUIRED)
@@ -21,7 +21,8 @@ configure_file(resources/log4cplus.properties resources/log4cplus.properties COP
 configure_file(resources/athena1.config resources/athena1.config COPYONLY)
 configure_file(resources/athena2.config resources/athena2.config COPYONLY)
 configure_file(resources/athena3.config resources/athena3.config COPYONLY)
-file(COPY submodules/P2_Blockchain/SBFTExampleConfigs/f1-c0-cl3
+configure_file(resources/athena4.config resources/athena4.config COPYONLY)
+file(COPY resources/sbft
      DESTINATION resources/)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)

@@ -14,6 +14,8 @@
 #include "Threading.h"
 #include "ThreadLocalStorage.h"
 #include "libbyz.h"
+#include <string>
+#include "StatusInfo.h"
 
 using namespace Blockchain::Utils;
 
@@ -74,10 +76,11 @@ namespace Blockchain {
 
       // CTOR & DTOR
 
-      ReplicaImp(string byzConfig,
-                 string byzPrivateConfig,
-                 ICommandsHandler *cmdHandler,
-                 BlockchainDBAdapter *dbAdapter);
+      ReplicaImp( string byzConfig,
+                  string byzPrivateConfig,
+                  ICommandsHandler *cmdHandler,
+                  BlockchainDBAdapter *dbAdapter,
+                  UPDATE_CONNECTIVITY_FN fPeerConnectivityCallback);
       virtual ~ReplicaImp();
 
       // METHODS
@@ -233,7 +236,6 @@ namespace Blockchain {
 
    private:
       log4cplus::Logger logger;
-
       //TODO(BWF): this was protected (not private) before adding logger
       bool m_running;
       Thread  m_thread;
@@ -244,6 +246,8 @@ namespace Blockchain {
       // storage - TODO(GG): add support for leveldb/rocksdb
       BlockchainDBAdapter* m_bcDbAdapter;
       BlockId lastBlock = 0;
+
+      UPDATE_CONNECTIVITY_FN m_fPeerConnectivityCallback;
 
       // static methods
       static Slice createBlockFromUpdates(
@@ -271,7 +275,8 @@ namespace Blockchain {
       friend IReplica* createReplica(
          const ReplicaConsensusConfig &consensusConfig,
          ICommandsHandler *cmdHandler,
-         IDBClient *db);
+         IDBClient *db,
+         UPDATE_CONNECTIVITY_FN fPeerConnectivityCallback);
       friend void release(IReplica *r);
    };
 }

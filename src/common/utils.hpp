@@ -10,6 +10,7 @@
 #include <iostream>
 #include <evmjit.h>
 #include "json.hpp"
+#include <chrono>
 
 namespace com {
 namespace vmware {
@@ -20,6 +21,8 @@ std::vector<uint8_t> dehex(const std::string &str);
 void to_evm_uint256be(uint64_t val, evm_uint256be *ret);
 
 uint64_t from_evm_uint256be(const evm_uint256be *val);
+
+int64_t get_epoch_millis();
 
 }
 }
