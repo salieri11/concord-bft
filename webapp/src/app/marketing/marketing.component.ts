@@ -4,6 +4,8 @@
 
 
 import { Component, OnInit } from '@angular/core';
+import { AuthenticationService } from '../shared/authentication.service';
+import { Router } from '../../../node_modules/@angular/router';
 
 import * as Vivus from 'vivus';
 
@@ -16,10 +18,18 @@ export class MarketingComponent implements OnInit {
   logo: Vivus;
   onGoing: Vivus;
 
-  constructor() {}
+  constructor(
+    private authenticationService: AuthenticationService,
+    private router: Router
+  ) {
+
+  }
 
   ngOnInit() {
     this.initLogo();
+    if (this.authenticationService.isAuthenticated()) {
+      this.router.navigate(['dashboard']);
+    }
   }
 
   initLogo(): void {
