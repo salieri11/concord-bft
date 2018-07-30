@@ -3,10 +3,11 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+
+import { NgxChartsModule } from '@swimlane/ngx-charts';
 
 import { BlockGraphComponent } from './block-graph.component';
-import { NgxChartsModule } from '@swimlane/ngx-charts';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('BlockGraphComponent', () => {
   let component: BlockGraphComponent;

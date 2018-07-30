@@ -6,6 +6,7 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { APP_BASE_HREF } from '@angular/common';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 import { NgxChartsModule } from '@swimlane/ngx-charts';
 
@@ -13,7 +14,6 @@ import { MockSharedModule } from '../../shared/shared.module';
 import { NodesStatusFilterComponent } from '../nodes-status-filter/nodes-status-filter.component';
 import { NodesComponent } from './nodes.component';
 import { BlockGraphComponent } from '../../block-graph/block-graph/block-graph.component';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('NodesComponent', () => {
   let component: NodesComponent;

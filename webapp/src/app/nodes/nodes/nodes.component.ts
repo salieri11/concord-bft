@@ -4,9 +4,10 @@
 
 import { Component, OnInit } from '@angular/core';
 
+import { TranslateService } from '@ngx-translate/core';
+
 import { Member } from '../shared/nodes.model';
 import { NodesService } from '../shared/nodes.service';
-import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'athena-nodes',

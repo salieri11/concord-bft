@@ -4,9 +4,10 @@
 
 import { Component, OnInit } from '@angular/core';
 
+import { TranslateService } from '@ngx-translate/core';
+
 import { BlockListing, BlockListingBlock } from '../shared/blocks.model';
 import { BlocksService } from '../shared/blocks.service';
-import { TranslateService } from '@ngx-translate/core';
 
 /**
  * Displays a paginated listing of blocks
