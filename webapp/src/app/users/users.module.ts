@@ -20,7 +20,13 @@ import { SharedModule } from '../shared/shared.module';
     SharedModule,
     TourNgxPopperModule
   ],
-  declarations: [UsersComponent, UserListComponent, UserFormComponent, UserSettingsComponent, CredentialFormComponent],
+  declarations: [
+    UsersComponent,
+    UserListComponent,
+    UserFormComponent,
+    UserSettingsComponent,
+    CredentialFormComponent
+  ],
   providers: [UsersService]
 })
 export class UsersModule { }

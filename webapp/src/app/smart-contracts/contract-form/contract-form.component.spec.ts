@@ -5,6 +5,7 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { ClarityModule } from '@clr/angular';
 import { ReactiveFormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { of as observableOf, throwError } from 'rxjs';
 
@@ -25,7 +26,18 @@ describe('ContractFormComponent', () => {
         MockSharedModule
       ],
       declarations: [ContractFormComponent],
-      providers: [SmartContractsService]
+      providers: [
+        SmartContractsService,
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            fragment: {
+              subscribe: (fn: (value) => void) => fn(
+                'add'
+              ),
+            },
+          },
+        }]
     })
       .compileComponents();
   }));

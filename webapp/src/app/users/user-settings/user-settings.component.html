@@ -35,8 +35,15 @@
   </div>
 </div>
 
-<div class="m-2 row" *ngFor="let org of organizations; let i = index">
-  <div class="col-xs-6">
+<div class="m-2 row">
+  <div class="col-xs-12">
+    <h4 class="page-title">
+      {{'users.settings.orgTitle' | translate}}
+    </h4>
+  </div>
+</div>
+<div class="m-2 row" *ngFor="let org of organizations let i = index">
+  <div class="col-xs-4">
     <div>
       <small class="text-muted">{{'users.settings.organization.title' | translate}}</small>
     </div>

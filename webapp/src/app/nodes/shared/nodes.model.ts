@@ -6,6 +6,7 @@
  * GET response of fetching a list of members
  */
 export interface Member {
-  host: string;
+  hostname: string;
   status: string;
+  address: string;
 }

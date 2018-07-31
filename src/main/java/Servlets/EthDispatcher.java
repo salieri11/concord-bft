@@ -247,6 +247,8 @@ public final class EthDispatcher extends BaseServlet {
             handler = new EthGetStorageAtHandler();
          } else if (ethMethodName.equals(_conf.getStringValue("GetCode_Name"))) {
             handler = new EthGetCodeHandler();
+         } else if (ethMethodName.equals(_conf.getStringValue("GetTransactionCount_Name"))) {
+            handler = new EthGetTransactionCountHandler();
          } else if (ethMethodName.equals(_conf.getStringValue
                  ("GetBlockByHash_Name")) ||
                  ethMethodName.equals(_conf.getStringValue

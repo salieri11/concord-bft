@@ -154,6 +154,91 @@ export class TaskManagerService {
 
     this.intervals.push(interval);
   }
+
+  getMockInitData(): Array<any> {
+    return [
+      {
+        'blockchain': {
+          'type': 'hyperledger'
+        },
+        'faultTolerance': {
+          'type': 'local'
+        },
+        'consortium': {
+          'name': 'Consortium 1'
+        },
+        'organizations': [{
+          'name': 'Bank Of China',
+          'location': 'beijing'
+        }],
+        'users': [{
+          'firstName': 'John',
+          'lastName': 'Doe',
+          'email': 'jdoe@bankofchina.com',
+          'organization': 'Bank Of China',
+          'role': 'systems_admin'
+        }],
+        'advancedSettings': {
+          'networkName': 'Consortium 1 Net',
+          'numberOfNodes': 36,
+          'publicNodesRegions': [{
+            'value': 'us-east-1',
+            'displayValue': 'AWS US East (N. Virginia)'
+          }, {
+            'value': 'us-east-2',
+            'displayValue': 'AWS US East (Ohio)'
+          }, {
+            'value': 'us-west-1',
+            'displayValue': 'AWS US West (N. California)'
+          }, {
+            'value': 'us-west-2',
+            'displayValue': 'AWS US West (Oregon)'
+          }, {
+            'value': 'ap-northeast-1',
+            'displayValue': 'AWS Asia Pacific (Tokyo)'
+          }, {
+            'value': 'ap-northeast-3',
+            'displayValue': 'AWS Asia Pacific (Osaka-Local)'
+          }, {
+            'value': 'ap-south-1',
+            'displayValue': 'AWS Asia Pacific (Mumbai)'
+          }, {
+            'value': 'ap-southeast-1',
+            'displayValue': 'AWS Asia Pacific (Singapore)'
+          }, {
+            'value': 'ap-southeast-2',
+            'displayValue': 'AWS Asia Pacific (Sydney)'
+          }, {
+            'value': 'ca-central-1',
+            'displayValue': 'AWS Canada (Central)'
+          }, {
+            'value': 'cn-north-1',
+            'displayValue': 'AWS China (Beijing)'
+          }, {
+            'value': 'cn-northwest-1',
+            'displayValue': 'AWS China (Ningxia)'
+          }, {
+            'value': 'eu-central-1',
+            'displayValue': 'AWS EU (Frankfurt)'
+          }, {
+            'value': 'eu-west-1',
+            'displayValue': 'AWS EU (Ireland)'
+          }, {
+            'value': 'eu-west-2',
+            'displayValue': 'AWS EU (London)'
+          }, {
+            'value': 'eu-west-3',
+            'displayValue': 'AWS EU (Paris)'
+          }, {
+            'value': 'sa-east-1',
+            'displayValue': 'AWS South America (São Paulo)'
+          }],
+          'privateNode': []
+        },
+        'taskId': '9d0c3c20-3be5-4dc8-a4f5-2880acd73f84'
+      }
+    ];
+  }
 }
 
 function randId() {
@@ -183,6 +268,6 @@ export function getCompletedSetups() {
   return JSON.parse(localStorage.getItem('helen.setups.completed'));
 }
 
-function setCompletedSetups(completedSetups) {
+export function setCompletedSetups(completedSetups) {
   localStorage.setItem('helen.setups.completed', JSON.stringify(completedSetups));
 }

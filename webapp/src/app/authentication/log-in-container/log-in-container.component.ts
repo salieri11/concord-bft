@@ -2,7 +2,7 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Component, OnDestroy } from '@angular/core';
+import { Component, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
@@ -14,18 +14,21 @@ import { PersonaService } from '../../shared/persona.service';
   templateUrl: './log-in-container.component.html',
   styleUrls: ['./log-in-container.component.scss']
 })
-export class LogInContainerComponent implements OnDestroy {
-
+export class LogInContainerComponent implements OnDestroy, AfterViewInit {
+  @ViewChild('username') username: ElementRef;
   readonly loginForm: FormGroup;
   private authenticationChange;
   personaOptions = PersonaService.getOptions();
 
-  constructor(private authenticationService: AuthenticationService,
-              private formBuilder: FormBuilder,
-              private router: Router) {
+  constructor(
+    private authenticationService: AuthenticationService,
+    private formBuilder: FormBuilder,
+    private router: Router
+  ) {
+
     this.authenticationChange = this.authenticationService.user.subscribe(user => {
       if (user.email) {
-        this.router.navigate(['/dashboard']);
+        this.router.navigate(['dashboard']);
       }
     });
 
@@ -34,6 +37,10 @@ export class LogInContainerComponent implements OnDestroy {
       password: ['', [Validators.required]],
       persona: [this.personaOptions[0].value]
     });
+  }
+
+  ngAfterViewInit() {
+    this.username.nativeElement.focus();
   }
 
   ngOnDestroy () {
