@@ -7,6 +7,7 @@ import { ClarityModule } from '@clr/angular';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { of as observableOf, throwError } from 'rxjs';
 
 import { MockSharedModule } from '../../shared/shared.module';
@@ -23,7 +24,8 @@ describe('ContractFormComponent', () => {
         ClarityModule,
         ReactiveFormsModule,
         HttpClientTestingModule,
-        MockSharedModule
+        MockSharedModule,
+        BrowserAnimationsModule
       ],
       declarations: [ContractFormComponent],
       providers: [
@@ -33,7 +35,7 @@ describe('ContractFormComponent', () => {
           useValue: {
             fragment: {
               subscribe: (fn: (value) => void) => fn(
-                'add'
+                ''
               ),
             },
           },
