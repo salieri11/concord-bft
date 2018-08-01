@@ -1,7 +1,17 @@
 package profiles;
 
 import org.json.simple.JSONObject;
+import org.springframework.lang.NonNull;
 
+import javax.persistence.*;
+
+import java.time.Instant;
+
+import static profiles.Consortium.CONSORTIUM_LABEL;
+import static profiles.Organization.ORGANIZATION_LABEL;
+
+@Table(name = "USERS")
+@Entity
 public class User {
    
    public static final String USER_ID_LABEL = "user_id";
@@ -10,76 +20,132 @@ public class User {
    public static final String LAST_NAME_LABEL = "last_name";
    public static final String EMAIL_LABEL = "email";
    public static final String PASSWORD_LABEL = "password";
+   public static final String ROLE_LABEL = "role";
+   public static final String LAST_LOGIN_LABEL = "last_login";
    
+   @Id
+   @GeneratedValue(strategy = GenerationType.AUTO)
+   private Long userID = 0L;
    
-   private String userID;
+   @NonNull
    private String name;
+   
    // firstName and lastName are primarily used for
    // internationalization purposes
    private String firstName;
+   
    private String lastName;
+   
+   @NonNull
    private String email;
-
-   protected User(String userID, String name, String email) {
-      this.userID = userID;
-      this.name = name;
-      this.email = email;
-   }
    
-   public User(String userID, String name, String email, String firstName,
-               String lastName) {
-      this.userID = userID;
+   @NonNull
+   private String role;
+   
+   @ManyToOne(optional = false,
+           fetch = FetchType.LAZY)
+   @JoinColumn(nullable = false)
+   private Organization organization;
+   
+   
+   @ManyToOne(optional = false,
+           fetch = FetchType.LAZY)
+   @JoinColumn(nullable = false)
+   private Consortium consortium;
+   
+   @NonNull
+   
+   private String password;
+   
+   private Instant lastLogin = Instant.MIN;
+   
+   public User() {}
+   
+   protected User(String name, String email, String firstName,
+               String lastName, Roles role, Organization organization,
+               Consortium consortium, String password) {
       this.name = name;
       this.email = email;
       this.firstName = firstName;
       this.lastName = lastName;
+      this.role = role.toString();
+      this.consortium = consortium;
+      this.organization = organization;
+      this.password = password;
    }
    
-   public User(String name, String email, String firstName, String lastName) {
-      this.name = name;
-      this.email = email;
-      this.firstName = firstName;
-      this.lastName = lastName;
+   protected User(String name, String email, Roles role,
+               Organization organization, Consortium consortium, String password) {
+      this(name, email, null, null,
+              role, organization, consortium, password);
    }
-
-   public String getUserID() {
+   
+   public Long getUserID() {
       return userID;
-   }
-
-   public void setUserID(String userID) {
-      this.userID = userID;
    }
 
    public String getName() {
       return name;
    }
 
-   public void setName(String name) {
+   protected void setName(String name) {
       this.name = name;
    }
 
    public String getFirstName() {
       return firstName;
    }
-
-   public void setFirstName(String firstName) {
+   
+   protected void setFirstName(String firstName) {
       this.firstName = firstName;
    }
 
    public String getLastName() {
       return lastName;
    }
-
-   public void setLastName(String lastName) {
+   
+   protected void setLastName(String lastName) {
       this.lastName = lastName;
    }
 
    public String getEmail() {
       return email;
    }
-
-   public void setEmail(String email) {
+   
+   protected void setEmail(String email) {
       this.email = email;
+   }
+   
+   public String getRole() {
+      return role;
+   }
+   
+   protected void setRole(String role) {
+      this.role = role;
+   }
+   
+   public Organization getOrganization() {
+      return organization;
+   }
+   
+   public Consortium getConsortium() {
+      return consortium;
+   }
+   
+   public String getPassword() {
+      return password;
+   }
+   
+   protected void setPassword(String password) {
+      this.password = password;
+   }
+   
+   public Instant getLastLogin() {
+      return lastLogin;
+   }
+   
+   protected void setLastLogin(Instant lastLogin) {
+      this.lastLogin = lastLogin;
    }
    
    public JSONObject toJSON() {
@@ -89,6 +155,23 @@ public class User {
       json.put(LAST_NAME_LABEL, lastName);
       json.put(EMAIL_LABEL, email);
       json.put(USER_ID_LABEL, userID);
+      json.put(ROLE_LABEL, role);
+      json.put(ORGANIZATION_LABEL, organization.toJSON());
+      json.put(CONSORTIUM_LABEL, consortium.toJSON());
+      json.put(LAST_NAME_LABEL, lastLogin);
       return json;
+   }
+   
+   @Override
+   public int hashCode() {
+      return (int) ((userID * 53) % 17);
+   }
+   
+   @Override
+   public boolean equals(Object o) {
+      if (o == null || !(o instanceof User))
+         return false;
+      User u = (User) o;
+      return u.getUserID().equals(userID);
    }
 }
