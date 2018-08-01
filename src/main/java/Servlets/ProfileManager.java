@@ -25,7 +25,6 @@ import org.json.simple.parser.ParseException;
 
 import com.vmware.athena.Athena;
 
-import profiles.User;
 import profiles.UserModificationException;
 import profiles.UserPatchRequest;
 import profiles.UsersRegistryManager;
@@ -37,7 +36,8 @@ public class ProfileManager extends BaseServlet {
 
    private UsersRegistryManager urm = null;
 
-   public ProfileManager() {}
+   public ProfileManager() {
+   }
 
    @Override
    public void init() {
@@ -55,37 +55,7 @@ public class ProfileManager extends BaseServlet {
          super.service(request, response);
       }
    }
-   
-   
-   private static class RESTResult {
-      private int responseStatus; // Http status code of response
-      // The response can either be a jsonObject or jsonArray.
-      private JSONAware json;
-      
-      public RESTResult(int responseStatus, JSONAware json) {
-         this.responseStatus = responseStatus;
-         this.json = json;
-      }
-      
-      /**
-       * Returns the string object of jsonObject or jsonArray (whichever is
-       * present).
-       *
-       * @return json string of result
-       */
-      public String getResultString() {
-         return json.toJSONString();
-      }
-      
-      public String toString() {
-         return "Status: " + responseStatus +
-                 " Result: " + json.toJSONString();
-      }
-   }
-   
-   
-   
-   
+
    @Override
    protected void doGet(HttpServletRequest request,
                         HttpServletResponse response) throws IOException {
@@ -124,24 +94,22 @@ public class ProfileManager extends BaseServlet {
 
       Map<String, String> jsonData = new HashMap<>();
 
-      String labels[] = new String[] {
-              NAME_LABEL, EMAIL_LABEL, ROLE_LABEL, PASSWORD_LABEL,
-              FIRST_NAME_LABEL, LAST_NAME_LABEL,
-              ORGANIZATION_LABEL, CONSORTIUM_LABEL
-      };
-      
+      String labels[] = new String[] { NAME_LABEL, EMAIL_LABEL, ROLE_LABEL,
+         PASSWORD_LABEL, FIRST_NAME_LABEL, LAST_NAME_LABEL, ORGANIZATION_LABEL,
+         CONSORTIUM_LABEL };
+
       for (String label : labels) {
          if (requestObject.containsKey(label)) {
             if (label.equals(ORGANIZATION_LABEL)) {
                JSONObject organization
-                       = (JSONObject) requestObject.get(ORGANIZATION_LABEL);
+                  = (JSONObject) requestObject.get(ORGANIZATION_LABEL);
                jsonData.put(ORGANIZATION_ID_LABEL,
-                       (String) organization.get(ORGANIZATION_ID_LABEL));
+                            (String) organization.get(ORGANIZATION_ID_LABEL));
             } else if (label.equals(CONSORTIUM_LABEL)) {
                JSONObject consortium
-                       = (JSONObject) requestObject.get(CONSORTIUM_LABEL);
+                  = (JSONObject) requestObject.get(CONSORTIUM_LABEL);
                jsonData.put(CONSORTIUM_ID_LABEL,
-                       (String) consortium.get(CONSORTIUM_ID_LABEL));
+                            (String) consortium.get(CONSORTIUM_ID_LABEL));
             } else {
                jsonData.put(label, (String) requestObject.get(label));
             }
@@ -164,24 +132,23 @@ public class ProfileManager extends BaseServlet {
       }
    }
 
-   
-   private String getRequestBody(final HttpServletRequest request)
-           throws IOException {
+   private String
+           getRequestBody(final HttpServletRequest request) throws IOException {
       String paramString
-              = request.getReader()
-              .lines()
-              .collect(Collectors.joining(System.lineSeparator()));
+         = request.getReader()
+                  .lines()
+                  .collect(Collectors.joining(System.lineSeparator()));
       return paramString;
    }
-   
-   
-   protected RESTResult login(final HttpServletRequest request,
-                        final HttpServletResponse response) throws IOException {
+
+   protected RESTResult
+             login(final HttpServletRequest request,
+                   final HttpServletResponse response) throws IOException {
       JSONParser parser = new JSONParser();
       RESTResult result;
       try {
-         JSONObject requestJSON =
-                 (JSONObject) parser.parse(getRequestBody(request));
+         JSONObject requestJSON
+            = (JSONObject) parser.parse(getRequestBody(request));
          String uri = request.getRequestURI();
          if (uri.endsWith("/")) {
             uri = uri.substring(0, uri.length() - 1);
@@ -189,60 +156,60 @@ public class ProfileManager extends BaseServlet {
          String tokens[] = uri.split("/");
          // URI is /api/user/login/<userID>
          if (tokens[3].equals("login")) {
-            boolean successful =
-                    urm.loginUser(tokens[4],
-                            (String) requestJSON.get(PASSWORD_LABEL));
+            boolean successful
+               = urm.loginUser(tokens[4],
+                               (String) requestJSON.get(PASSWORD_LABEL));
             if (successful) {
-               result = new RESTResult(HttpServletResponse.SC_OK,
-                       new JSONObject());
+               result
+                  = new RESTResult(HttpServletResponse.SC_OK, new JSONObject());
             } else {
                result = new RESTResult(HttpServletResponse.SC_FORBIDDEN,
-                       new JSONObject());
+                                       new JSONObject());
             }
          } else {
             result = new RESTResult(HttpServletResponse.SC_NOT_FOUND,
-                    new JSONObject());
+                                    new JSONObject());
          }
       } catch (ParseException e) {
          result = new RESTResult(HttpServletResponse.SC_BAD_REQUEST,
-                 APIHelper.errorJSON("Invalid JSON"));
+                                 APIHelper.errorJSON("Invalid JSON"));
       } catch (UserModificationException e) {
          result = new RESTResult(HttpServletResponse.SC_EXPECTATION_FAILED,
-                 APIHelper.errorJSON(e.getMessage()));
+                                 APIHelper.errorJSON(e.getMessage()));
       }
       return result;
    }
-   
-   
-   protected RESTResult handlePost(final HttpServletRequest request,
-                             final HttpServletResponse response) throws IOException {
+
+   protected RESTResult
+             handlePost(final HttpServletRequest request,
+                        final HttpServletResponse response) throws IOException {
       JSONObject responseJSON;
       int responseStatus;
       try {
-         
-         Map<String, String> jsonData = parseRequestJSON(getRequestBody(request));
-      
+
+         Map<String, String> jsonData
+            = parseRequestJSON(getRequestBody(request));
+
          // TODO: Ideally the organization and consortium should already exist
          // before adding a USER to that. But for now we just add a new
          // organization & consortium to allow easy testing. Delete this
          // method once testing phase is done
          createTestProfilesAndFillMap(jsonData);
-      
-         String userID = urm.createUser(jsonData.get(NAME_LABEL),
-                 jsonData.get(EMAIL_LABEL),
-                 jsonData.get(ROLE_LABEL),
-                 Optional.ofNullable(
-                         jsonData.get(FIRST_NAME_LABEL)),
-                 Optional.ofNullable(
-                         jsonData.get(LAST_NAME_LABEL)),
-                 jsonData.get(CONSORTIUM_ID_LABEL),
-                 jsonData.get(ORGANIZATION_ID_LABEL),
-                 jsonData.get(PASSWORD_LABEL));
-      
+
+         String userID
+            = urm.createUser(jsonData.get(NAME_LABEL),
+                             jsonData.get(EMAIL_LABEL),
+                             jsonData.get(ROLE_LABEL),
+                             Optional.ofNullable(jsonData.get(FIRST_NAME_LABEL)),
+                             Optional.ofNullable(jsonData.get(LAST_NAME_LABEL)),
+                             jsonData.get(CONSORTIUM_ID_LABEL),
+                             jsonData.get(ORGANIZATION_ID_LABEL),
+                             jsonData.get(PASSWORD_LABEL));
+
          responseJSON = new JSONObject();
          responseJSON.put(USER_ID_LABEL, userID);
          responseStatus = HttpServletResponse.SC_OK;
-      
+
       } catch (ParseException pe) {
          logger.warn("Error while parsing request JSON", pe);
          responseJSON = APIHelper.errorJSON("Invalid JSON");
@@ -254,11 +221,10 @@ public class ProfileManager extends BaseServlet {
          // different types of error and set status code accordingly
          responseStatus = HttpServletResponse.SC_EXPECTATION_FAILED;
       }
-      
+
       return new RESTResult(responseStatus, responseJSON);
    }
-   
-   
+
    @Override
    protected void
              doPost(final HttpServletRequest request,
@@ -270,10 +236,12 @@ public class ProfileManager extends BaseServlet {
       } else {
          restResult = handlePost(request, response);
       }
-      processResponse(response, restResult.json.toJSONString(),
-              restResult.responseStatus, logger);
+      processResponse(response,
+                      restResult.json.toJSONString(),
+                      restResult.responseStatus,
+                      logger);
    }
-   
+
    protected void doPatch(HttpServletRequest request,
                           HttpServletResponse response) {
       int responseStatus;
@@ -289,7 +257,7 @@ public class ProfileManager extends BaseServlet {
             uri = uri.substring(0, uri.length() - 1);
          }
          String uriTokens[] = uri.split("/");
-    
+
          if (uriTokens.length == 4) {
             String userID = uriTokens[3];
             Map<String, String> jsonData = parseRequestJSON(paramString);
@@ -319,5 +287,30 @@ public class ProfileManager extends BaseServlet {
    protected JSONAware parseToJSON(Athena.AthenaResponse athenaResponse) {
       throw new UnsupportedOperationException("parseToJSON method is not "
          + "supported in ProfileManager class");
+   }
+
+   private static class RESTResult {
+      private int responseStatus; // Http status code of response
+      // The response can either be a jsonObject or jsonArray.
+      private JSONAware json;
+
+      public RESTResult(int responseStatus, JSONAware json) {
+         this.responseStatus = responseStatus;
+         this.json = json;
+      }
+
+      /**
+       * Returns the string object of jsonObject or jsonArray (whichever is
+       * present).
+       *
+       * @return json string of result
+       */
+      public String getResultString() {
+         return json.toJSONString();
+      }
+
+      public String toString() {
+         return "Status: " + responseStatus + " Result: " + json.toJSONString();
+      }
    }
 }

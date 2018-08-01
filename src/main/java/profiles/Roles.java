@@ -21,7 +21,7 @@ public enum Roles {
       }
       return false;
    }
-   
+
    public static Roles fromString(String s) {
       for (Roles r : Roles.values()) {
          if (r.toString().equals(s))
@@ -29,8 +29,8 @@ public enum Roles {
       }
       return null;
    }
-   
-   public String toString(){
+
+   public String toString() {
       return this.name;
    }
 }
