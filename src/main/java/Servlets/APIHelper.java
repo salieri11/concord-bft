@@ -14,6 +14,12 @@ import com.google.protobuf.ByteString;
 
 public class APIHelper {
 
+   public static class HexParseException extends Exception {
+      public HexParseException(String message) {
+         super(message);
+      }
+   }
+
    /**
     * Converts a hex string into a binary string.
     *
@@ -22,7 +28,8 @@ public class APIHelper {
     * @return A ByteString object
     * @throws Exception
     */
-   public static ByteString hexStringToBinary(String param) throws Exception {
+   public static ByteString hexStringToBinary(String param)
+      throws HexParseException {
       // Param should strictly be a hex string
       if (param == null || param.trim().length() < 1) {
          return null;
@@ -30,7 +37,7 @@ public class APIHelper {
       String curr = param.trim();
 
       if (curr.length() % 2 != 0) {
-         throw new Exception("Hex string invalid.");
+         throw new HexParseException("Hex string has odd nibble count.");
       }
 
       if (curr.equals("0x")) {
@@ -52,13 +59,31 @@ public class APIHelper {
    }
 
    /**
+    * Convert a big-endian byte string to its 64-bit integer value. Throws
+    * exception if there are more than eight bytes.
+    */
+   public static long bytesToLong(ByteString bytes)
+      throws HexParseException {
+      if (bytes.size() > 8) {
+         throw new HexParseException("Value to large for long");
+      }
+
+      long result = 0;
+      ByteString.ByteIterator i = bytes.iterator();
+      while (i.hasNext()) {
+         result = (result << 8) | (0xff & i.nextByte());
+      }
+      return result;
+   }
+
+   /**
     * Converts a hex character into its corresponding numerical value
     *
     * @param c
     * @return
     * @throws Exception
     */
-   private static char hexVal(char c) throws Exception {
+   private static char hexVal(char c) throws HexParseException {
       if (c >= '0' && c <= '9') {
          return (char) (c - '0');
       } else if (c >= 'a' && c <= 'f') {
@@ -66,7 +91,7 @@ public class APIHelper {
       } else if (c >= 'A' && c <= 'F') {
          return (char) (10 + c - 'A');
       } else {
-         throw new Exception();
+         throw new HexParseException("Invalid hex character");
       }
    }
 
@@ -133,7 +158,7 @@ public class APIHelper {
 
    /**
     * An utility function to convert java exceptions stack trace into Strings.
-    * 
+    *
     * @param e
     * @return string of exception stack trace
     */
