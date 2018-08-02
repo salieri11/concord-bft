@@ -54,7 +54,7 @@ public class User {
    @NonNull
    private String password;
 
-   private Instant lastLogin = null;
+   private Instant lastLogin = Instant.EPOCH;
 
    public User() {
    }
@@ -148,9 +148,11 @@ public class User {
 
    public JSONObject toJSON() {
       JSONObject json = new JSONObject();
+      JSONObject details = new JSONObject();
+      details.put(FIRST_NAME_LABEL, firstName);
+      details.put(LAST_NAME_LABEL, lastName);
       json.put(NAME_LABEL, name);
-      json.put(FIRST_NAME_LABEL, firstName);
-      json.put(LAST_NAME_LABEL, lastName);
+      json.put(DETAILS_LABEL, details);
       json.put(EMAIL_LABEL, email);
       json.put(USER_ID_LABEL, userID);
       json.put(ROLE_LABEL, role);
