@@ -52,10 +52,9 @@ public class User {
    private Consortium consortium;
 
    @NonNull
-
    private String password;
 
-   private Instant lastLogin = Instant.MIN;
+   private Instant lastLogin = null;
 
    public User() {
    }
@@ -157,7 +156,7 @@ public class User {
       json.put(ROLE_LABEL, role);
       json.put(ORGANIZATION_LABEL, organization.toJSON());
       json.put(CONSORTIUM_LABEL, consortium.toJSON());
-      json.put(LAST_LOGIN_LABEL, lastLogin);
+      json.put(LAST_LOGIN_LABEL, lastLogin.toString());
       return json;
    }
 

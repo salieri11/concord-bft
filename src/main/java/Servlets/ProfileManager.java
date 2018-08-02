@@ -85,7 +85,7 @@ public class ProfileManager extends BaseServlet {
             responseStatus = HttpServletResponse.SC_OK;
          }
       } else {
-         responseString = "";
+         responseString = new JSONObject().toJSONString();
          responseStatus = HttpServletResponse.SC_NOT_FOUND;
       }
       processResponse(response, responseString, responseStatus, logger);
@@ -277,10 +277,10 @@ public class ProfileManager extends BaseServlet {
             String userID = uriTokens[3];
             Map<String, String> jsonData = parseRequestJSON(paramString);
             urm.updateUser(new UserPatchRequest(userID, jsonData));
-            responseString = "";
+            responseString = new JSONObject().toJSONString();
             responseStatus = HttpServletResponse.SC_OK;
          } else {
-            responseString = "";
+            responseString = new JSONObject().toJSONString();
             responseStatus = HttpServletResponse.SC_NOT_FOUND;
          }
 
