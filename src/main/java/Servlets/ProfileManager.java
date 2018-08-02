@@ -79,7 +79,11 @@ public class ProfileManager extends BaseServlet {
          // /api/user/<userid>
          JSONObject result = urm.getUserWithID(uriTokens[3]);
          responseString = result.toJSONString();
-         responseStatus = HttpServletResponse.SC_OK;
+         if (result.isEmpty()) {
+            responseStatus = HttpServletResponse.SC_NOT_FOUND;
+         } else {
+            responseStatus = HttpServletResponse.SC_OK;
+         }
       } else {
          responseString = "";
          responseStatus = HttpServletResponse.SC_NOT_FOUND;
@@ -96,7 +100,7 @@ public class ProfileManager extends BaseServlet {
 
       String labels[] = new String[] { NAME_LABEL, EMAIL_LABEL, ROLE_LABEL,
          PASSWORD_LABEL, FIRST_NAME_LABEL, LAST_NAME_LABEL, ORGANIZATION_LABEL,
-         CONSORTIUM_LABEL };
+         CONSORTIUM_LABEL, DETAILS_LABEL};
 
       for (String label : labels) {
          if (requestObject.containsKey(label)) {
@@ -110,6 +114,17 @@ public class ProfileManager extends BaseServlet {
                   = (JSONObject) requestObject.get(CONSORTIUM_LABEL);
                jsonData.put(CONSORTIUM_ID_LABEL,
                             (String) consortium.get(CONSORTIUM_ID_LABEL));
+            } else if (label.equals(DETAILS_LABEL)) {
+               JSONObject details =
+                       (JSONObject) requestObject.get(DETAILS_LABEL);
+               if (details.containsKey(FIRST_NAME_LABEL)) {
+                  jsonData.put(FIRST_NAME_LABEL,
+                          (String) details.get(FIRST_NAME_LABEL));
+               }
+               if (details.containsKey(LAST_NAME_LABEL)) {
+                  jsonData.put(LAST_NAME_LABEL,
+                          (String) details.get(LAST_NAME_LABEL));
+               }
             } else {
                jsonData.put(label, (String) requestObject.get(label));
             }

@@ -22,6 +22,7 @@ public class User {
    public static final String PASSWORD_LABEL = "password";
    public static final String ROLE_LABEL = "role";
    public static final String LAST_LOGIN_LABEL = "last_login";
+   public static final String DETAILS_LABEL = "details";
 
    @Id
    @GeneratedValue(strategy = GenerationType.AUTO)
@@ -156,7 +157,7 @@ public class User {
       json.put(ROLE_LABEL, role);
       json.put(ORGANIZATION_LABEL, organization.toJSON());
       json.put(CONSORTIUM_LABEL, consortium.toJSON());
-      json.put(LAST_NAME_LABEL, lastLogin);
+      json.put(LAST_LOGIN_LABEL, lastLogin);
       return json;
    }
 
