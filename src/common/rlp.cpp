@@ -147,7 +147,7 @@ std::vector<uint8_t> com::vmware::athena::RLPParser::next()
       size_t length_length = rlp_[offset]-0xb7;
       offset++;
       return long_run(length_length);
-   } else if (rlp_[offset] < 0x0f8) {
+   } else if (rlp_[offset] < 0xf8) {
       size_t length = rlp_[offset] - 0xc0;
       offset++;
       return short_run(length);
