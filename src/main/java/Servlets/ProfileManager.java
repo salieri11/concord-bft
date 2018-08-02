@@ -99,8 +99,7 @@ public class ProfileManager extends BaseServlet {
       Map<String, String> jsonData = new HashMap<>();
 
       String labels[] = new String[] { NAME_LABEL, EMAIL_LABEL, ROLE_LABEL,
-         PASSWORD_LABEL, FIRST_NAME_LABEL, LAST_NAME_LABEL, ORGANIZATION_LABEL,
-         CONSORTIUM_LABEL, DETAILS_LABEL};
+         PASSWORD_LABEL, ORGANIZATION_LABEL, CONSORTIUM_LABEL, DETAILS_LABEL};
 
       for (String label : labels) {
          if (requestObject.containsKey(label)) {
