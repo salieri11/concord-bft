@@ -17,15 +17,13 @@ while [[ $# -gt 0 ]]; do
     HOSTNAME=$1
 
     # wait for IP address to be available
-    host $HOSTNAME > /dev/null
-    while [[ $? -ne 0 ]]; do
-          echo "Waiting on ${HOSTNAME}"
-          host $HOSTNAME > /dev/null
-          sleep 1
+    while ! getent ahostsv4 $HOSTNAME > /dev/null; do
+        echo "Waiting for ${HOSTNAME}"
+        sleep 1
     done
 
     # extract IP address
-    IPADDRESS=`host ${HOSTNAME} | awk '{print $NF}' | head -1`
+    IPADDRESS=`getent ahostsv4 ${HOSTNAME} | head -1 | awk '{print $1}'`
     echo "Found ${HOSTNAME} at $IPADDRESS"
 
     # put IP address in
