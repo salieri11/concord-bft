@@ -110,7 +110,12 @@ class HelenAPITests(test_suite.TestSuite):
               ("get_transaction_list_fields", self._test_transactionListFields), \
               ("get_transaction_list_invalid_latest", self._test_getTransactionListInvalidLatest), \
               ("get_transaction_list_next_url", self._test_getTransactionListNextUrl), \
-              ("large_reply", self._test_largeReply)]
+              ("large_reply", self._test_largeReply), \
+              ("create_user", self._test_createUser), \
+              ("get_non_existing_user", self._test_get_non_existing_user), \
+              ("user_login", self._test_user_login), \
+              ("user_patch", self._test_patch_user)
+      ]
 
    # Tests: expect one argument, a Request, and produce a 2-tuple
    # (bool success, string info)
@@ -458,6 +463,122 @@ class HelenAPITests(test_suite.TestSuite):
 
       if sentTrList[5:] != receivedTrList2[:5]:
          return (False, "transaction list query did not return correct transactions")
+      return (True, None)
+
+
+   def _get_mock_user_data(self):
+      data = {}
+      details = {}
+      details['first_name'] = 'FirstName'
+      details['last_name'] = 'LastName'
+      data['name'] = 'mockUser'
+      data['email'] = 'mock@email.com'
+      data['details'] = details
+      data['password'] = 'root'
+      data['role'] = 'system_admin'
+      return data
+
+
+   def _create_mock_user(self, request, values=None):
+      data = {}
+
+      if values is None:
+         values = {}
+      mock_data = self._get_mock_user_data()
+
+      data['name'] = values.get('name', mock_data['name'])
+      data['email'] = values.get('email', mock_data['email'])
+      data['details'] = values.get('details', mock_data['details'])
+      data['password'] = values.get('password', mock_data['password'])
+      data['role'] = values.get('role', mock_data['role'])
+
+      # TODO: We must also include organization ID and consortium ID
+      # but until organization/consortium creation API is available helen will
+      # create a default organization/consortium for us.
+      return request.callUserAPI('', None, None, data)
+
+
+   def _get_user(self, request, user_id):
+      return request.callUserAPI("/{}".format(user_id), None, None, None)
+
+
+   def _test_createUser(self, request):
+      response = self._create_mock_user(request)
+      user_id = response['user_id']
+      user = self._get_user(request, user_id)
+      mock = self._get_mock_user_data()
+      epoch_time = '1970-01-01T08:00:00Z'
+      if (mock['name'] == user['name'] and mock['email'] == user['email']
+          and mock['details']['first_name'] == user['details']['first_name']
+          and mock['details']['last_name'] == user['details']['last_name']
+          and mock['role'] == user['role'] and user['last_login'] == epoch_time):
+         return (True, None)
+      else:
+         return (False, "Returned valeus don't match with mock values")
+
+   def _test_get_non_existing_user(self, request):
+      response = self._create_mock_user(request)
+      user_id = response['user_id']
+      response = self._get_user(request, str(int(user_id) + 1000))
+      if not response:
+         return (True, None)
+      return (False, "Incorrect response for invalid user")
+
+   def _test_user_login(self, request):
+      response = self._create_mock_user(request)
+      user_id = response['user_id']
+      password = self._get_mock_user_data()['password']
+      loginData = {}
+      loginData['password'] = password
+      response = request.callUserAPI("/login/{}".format(user_id), None, None, loginData)
+      user = self._get_user(request, user_id)
+      if user['last_login']:
+         return (True, None)
+      return (False, "last login timestamp not updated correctly")
+
+   def _test_patch_user(self, request):
+      response = self._create_mock_user(request);
+      user_id = response['user_id']
+      patchData = {}
+      patchData['email'] = 'patched@email.com'
+      request.callUserAPI("/{}".format(user_id), "PATCH", None, patchData)
+      user = self._get_user(request, user_id)
+      if user['email'] != 'patched@email.com':
+         return (False, "Patch didn't update email")
+
+      patchData = {}
+      patchData['name'] = 'patchedName'
+      request.callUserAPI("/{}".format(user_id), "PATCH", None, patchData)
+      user = self._get_user(request, user_id)
+      if user['name'] != 'patchedName':
+         return (False, "Patch didn't update name")
+
+      patchData = {}
+      patchData['role'] = 'org_user'
+      request.callUserAPI("/{}".format(user_id), "PATCH", None, patchData)
+      user = self._get_user(request, user_id)
+      if user['role'] != 'org_user':
+         return (False, "Patch didn't update role")
+
+      patchData = {}
+      patchData['role'] = 'org_user'
+      request.callUserAPI("/{}".format(user_id), "PATCH", None, patchData)
+      user = self._get_user(request, user_id)
+      if user['role'] != 'org_user':
+         return (False, "Patch didn't update role")
+
+
+      patchData = {}
+      details = {}
+      details['first_name'] = 'patchedFirstName'
+      details['last_name'] = 'patchedLastName'
+      patchData['details'] = details
+      request.callUserAPI("/{}".format(user_id), "PATCH", None, patchData)
+      user = self._get_user(request, user_id)
+      if (user['details']['first_name'] != 'patchedFirstName' and
+         user['details']['last_name'] != 'patchedLastName'):
+         return (False, "Patch didn't update details")
+
       return (True, None)
 
    def _test_largeReply(self, request):

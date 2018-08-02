@@ -17,7 +17,7 @@
             "launchCommand": "/usr/bin/java",
             "parameters": [
               "-jar",
-              "~/source/helen/helen-1.0-SNAPSHOT-jar-with-dependencies.jar",
+              "~/source/helen/target/helen-1.0-SNAPSHOT.jar",
               "config_test.properties"
             ]
           }
