@@ -18,6 +18,7 @@ import re
 
 from . import test_suite
 from rpc.rpc_call import RPC
+from rest.request import Request
 from util.debug import pp as pp
 from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
 from util.product import Product
@@ -27,6 +28,7 @@ log = logging.getLogger(__name__)
 
 class ExtendedRPCTests(test_suite.TestSuite):
    _args = None
+   _apiBaseServerUrl = None
    _apiServerUrl = None
    _userConfig = None
    _ethereumMode = False
@@ -42,7 +44,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
          log.debug("Running in ethereum mode")
          self._apiServerUrl = "http://localhost:8545"
       else:
-         self._apiServerUrl = "http://localhost:8080/api/athena/eth/"
+         self._apiBaseServerUrl = "http://localhost:8080"
+         self._apiServerUrl = self._apiBaseServerUrl+"/api/athena/eth/"
 
    def getName(self):
       return "ExtendedRPCTests"
@@ -94,7 +97,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
               ("web3_clientVersion", self._test_web3_clientVersion), \
               ("eth_mining", self._test_eth_mining), \
               ("rpc_modules", self._test_rpc_modules), \
-              ("eth_getTransactionCount", self._test_eth_getTransactionCount)]
+              ("eth_getTransactionCount", self._test_eth_getTransactionCount), \
+              ("eth_sendRawTransaction", self._test_eth_sendRawTransaction)]
 
    def _runRpcTest(self, testName, testFun, testLogDir):
       ''' Runs one test. '''
@@ -102,9 +106,10 @@ class ExtendedRPCTests(test_suite.TestSuite):
       rpc = RPC(testLogDir,
                 testName,
                 self._apiServerUrl)
-      return testFun(rpc)
+      request = Request(testLogDir, testName, self._apiBaseServerUrl)
+      return testFun(rpc, request)
 
-   def _test_web3_sha3(self, rpc):
+   def _test_web3_sha3(self, rpc, request):
       '''
       Check that hashing works as expected.
       '''
@@ -121,7 +126,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
       return (True, None)
 
-   def _test_web3_clientVersion(self, rpc):
+   def _test_web3_clientVersion(self, rpc, request):
       '''
       Check that we return a valid version
       '''
@@ -141,7 +146,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
       return (True, None)
 
-   def _test_eth_mining(self, rpc):
+   def _test_eth_mining(self, rpc, request):
       '''
       Check that mining status is reported correctly
       '''
@@ -155,7 +160,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
       return (True, None)
 
-   def _test_rpc_modules(self, rpc):
+   def _test_rpc_modules(self, rpc, request):
       '''
       Check that available RPC modules are listed correctly
       '''
@@ -182,7 +187,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
       return (True, None)
 
-   def _test_eth_getTransactionCount(self, rpc):
+   def _test_eth_getTransactionCount(self, rpc, request):
       '''
       Check that transaction count is updated.
       '''
@@ -217,5 +222,48 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
       if not endNonce == "0x0000000000000000000000000000000000000000000000000000000000000001":
          return (False, "End nonce was not 1 (was {})".format(endNonce))
+
+      return (True, None)
+
+   def _test_eth_sendRawTransaction(self, rpc, request):
+      '''
+      Check that a raw transaction gets decoded correctly.
+      '''
+
+      # known transaction from public ethereum
+      # https://etherscan.io/tx/0x6ab11d26df13bc3b2cb1c09c4d274bfce325906c617d2bc744b45fa39b7f8c68
+      rawTransaction = "0xf86b19847735940082520894f6c3fff0b77efe806fcc10176b8cbf71c6dfe3be880429d069189e00008025a0141c8487e4db65457266978a7f8d856b777a51dd9863d31637ccdec8dea74397a07fd0e14d0e3e891882f13acbe68740f1c5bd82a1a254f898cdbec5e9cfa8cf38"
+      expectedHash = "0x6ab11d26df13bc3b2cb1c09c4d274bfce325906c617d2bc744b45fa39b7f8c68"
+      expectedFrom = "0x42c4f19a097955ff2a013ef8f014977f4e8516c3"
+      expectedTo = "0xf6c3fff0b77efe806fcc10176b8cbf71c6dfe3be"
+      expectedValue = "300000000000000000"
+
+      txResult = rpc.sendRawTransaction(rawTransaction)
+      if not txResult:
+         return (False, "Transaction was not accepted")
+
+      # if this test is re-run on a cluster, we'll see a different
+      # hash (or an error once nonce tracking works); don't consider
+      # it an error for now
+      if not txResult == expectedHash:
+         log.warn("Receipt hash != expected hash. Was this run on an empty cluster?")
+
+      if not self._productMode:
+         logger.warn("No verification done in ethereum mode")
+      else:
+         tx = request.getTransaction(txResult)
+         if not tx:
+            return (False, "No transaction receipt found")
+
+         # This is the important one: it tells whether signature address
+         # recovery works.
+         if not tx["from"] == expectedFrom:
+            return (False, "Found from does not match expected from")
+
+         # The rest of these are just checking parsing.
+         if not tx["to"] == expectedTo:
+            return (False, "Found to does not match expectd to")
+         if not tx["value"] == expectedValue:
+            return (False, "Found value does not match expected value")
 
       return (True, None)
