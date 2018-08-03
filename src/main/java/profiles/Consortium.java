@@ -27,7 +27,7 @@ public class Consortium {
    protected Consortium() {
    }
 
-   public Consortium(String consortiumName, String consortiumType) {
+   protected Consortium(String consortiumName, String consortiumType) {
       this.consortiumName = consortiumName;
       this.consortiumType = consortiumType;
    }
@@ -40,7 +40,7 @@ public class Consortium {
       return consortiumName;
    }
 
-   public void setConsortiumName(String consortiumName) {
+   protected void setConsortiumName(String consortiumName) {
       this.consortiumName = consortiumName;
    }
 
@@ -48,7 +48,7 @@ public class Consortium {
       return consortiumType;
    }
 
-   public void setConsortiumType(String consortiumType) {
+   protected void setConsortiumType(String consortiumType) {
       this.consortiumType = consortiumType;
    }
 
@@ -56,7 +56,7 @@ public class Consortium {
       return Collections.unmodifiableSet(users);
    }
 
-   public void addUser(User u) {
+   protected void addUser(User u) {
       users.add(u);
    }
 

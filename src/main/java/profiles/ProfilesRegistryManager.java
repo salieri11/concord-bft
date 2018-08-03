@@ -16,9 +16,10 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Transactional
-public class UsersRegistryManager {
+public class ProfilesRegistryManager {
 
-   private static Logger logger = Logger.getLogger(UsersRegistryManager.class);
+   private static Logger logger
+      = Logger.getLogger(ProfilesRegistryManager.class);
 
    @Autowired
    private UserRepository userRepository;
@@ -28,6 +29,10 @@ public class UsersRegistryManager {
 
    @Autowired
    private ConsortiumRepository consortiumRepository;
+
+   /** Needed for spring */
+   protected ProfilesRegistryManager() {
+   }
 
    private List<User> getUsersInternal(String consortiumID,
                                        String organizationID) {

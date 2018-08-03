@@ -25,23 +25,23 @@ import org.json.simple.parser.ParseException;
 
 import com.vmware.athena.Athena;
 
+import profiles.ProfilesRegistryManager;
 import profiles.UserModificationException;
 import profiles.UserPatchRequest;
-import profiles.UsersRegistryManager;
 
 public class ProfileManager extends BaseServlet {
 
    private static final long serialVersionUID = 1L;
    private static final Logger logger = Logger.getLogger(ProfileManager.class);
 
-   private UsersRegistryManager urm = null;
+   private ProfilesRegistryManager prm = null;
 
    public ProfileManager() {
    }
 
    @Override
    public void init() {
-      urm = BeanUtil.getBean(UsersRegistryManager.class);
+      prm = BeanUtil.getBean(ProfilesRegistryManager.class);
    }
 
    @Override
@@ -71,13 +71,13 @@ public class ProfileManager extends BaseServlet {
 
       if (consortium != null && organization != null && uriTokens.length == 3) {
          // /api/user?consortium=<c>&organization=<o>
-         JSONArray result = urm.getUsers(consortium, organization);
+         JSONArray result = prm.getUsers(consortium, organization);
          responseString = result.toJSONString();
          responseStatus = HttpServletResponse.SC_OK;
 
       } else if (uriTokens.length == 4) {
          // /api/user/<userid>
-         JSONObject result = urm.getUserWithID(uriTokens[3]);
+         JSONObject result = prm.getUserWithID(uriTokens[3]);
          responseString = result.toJSONString();
          if (result.isEmpty()) {
             responseStatus = HttpServletResponse.SC_NOT_FOUND;
@@ -134,13 +134,13 @@ public class ProfileManager extends BaseServlet {
 
    private void createTestProfilesAndFillMap(Map<String, String> jsonData) {
       if (!jsonData.containsKey(ORGANIZATION_ID_LABEL)) {
-         String organizationId = Long.toString(urm.createOrgIfNotExist());
+         String organizationId = Long.toString(prm.createOrgIfNotExist());
          jsonData.put(ORGANIZATION_ID_LABEL, organizationId);
          logger.debug("New test org created with ID:" + organizationId);
       }
 
       if (!jsonData.containsKey(CONSORTIUM_ID_LABEL)) {
-         String consortiumId = Long.toString(urm.createConsortiumIfNotExist());
+         String consortiumId = Long.toString(prm.createConsortiumIfNotExist());
          jsonData.put(CONSORTIUM_ID_LABEL, consortiumId);
          logger.debug("New test consortium created with ID:" + consortiumId);
       }
@@ -171,7 +171,7 @@ public class ProfileManager extends BaseServlet {
          // URI is /api/user/login/<userID>
          if (tokens[3].equals("login")) {
             boolean successful
-               = urm.loginUser(tokens[4],
+               = prm.loginUser(tokens[4],
                                (String) requestJSON.get(PASSWORD_LABEL));
             if (successful) {
                result
@@ -211,7 +211,7 @@ public class ProfileManager extends BaseServlet {
          createTestProfilesAndFillMap(jsonData);
 
          String userID
-            = urm.createUser(jsonData.get(NAME_LABEL),
+            = prm.createUser(jsonData.get(NAME_LABEL),
                              jsonData.get(EMAIL_LABEL),
                              jsonData.get(ROLE_LABEL),
                              Optional.ofNullable(jsonData.get(FIRST_NAME_LABEL)),
@@ -275,7 +275,7 @@ public class ProfileManager extends BaseServlet {
          if (uriTokens.length == 4) {
             String userID = uriTokens[3];
             Map<String, String> jsonData = parseRequestJSON(paramString);
-            urm.updateUser(new UserPatchRequest(userID, jsonData));
+            prm.updateUser(new UserPatchRequest(userID, jsonData));
             responseString = new JSONObject().toJSONString();
             responseStatus = HttpServletResponse.SC_OK;
          } else {

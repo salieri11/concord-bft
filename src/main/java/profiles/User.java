@@ -56,7 +56,7 @@ public class User {
 
    private Instant lastLogin = Instant.EPOCH;
 
-   public User() {
+   protected User() {
    }
 
    protected User(String name, String email, String firstName, String lastName,

@@ -26,7 +26,7 @@ public class Organization {
    protected Organization() {
    }
 
-   public Organization(String organizationName) {
+   protected Organization(String organizationName) {
       this.organizationName = organizationName;
    }
 
@@ -38,7 +38,7 @@ public class Organization {
       return organizationName;
    }
 
-   public void setOrganizationName(String organizationName) {
+   protected void setOrganizationName(String organizationName) {
       this.organizationName = organizationName;
    }
 
@@ -46,7 +46,7 @@ public class Organization {
       return Collections.unmodifiableSet(users);
    }
 
-   public void addUser(User u) {
+   protected void addUser(User u) {
       users.add(u);
    }
 
