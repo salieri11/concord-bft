@@ -1,7 +1,7 @@
 /**
  * This singleton class contains methods to implement connection pooling for
- * Helen. The timeout and pool size can be adjusted from the config.properties
- * file.
+ * Helen. The timeout and pool size can be adjusted from the
+ * application.properties file.
  */
 package connections;
 
@@ -12,33 +12,26 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
+
 import configurations.IConfiguration;
 
 public class AthenaConnectionPool {
+   // Instantiate the instance of this class
+   private static AthenaConnectionPool _instance = new AthenaConnectionPool();
+   private static Logger _log = Logger.getLogger(AthenaConnectionPool.class);
    private AtomicInteger _connectionCount;
-
    // initialized with fairness = true, longest waiting threads
    // are served first
    private ArrayBlockingQueue<IAthenaConnection> _pool;
-
    private IConfiguration _conf;
    private AtomicBoolean _initialized;
-
    // max wait time for pool to return connection
    private int _waitTimeout;
-
    // pool starts at this size
    private int _minPoolSize;
-
    // pool can grow up to this size. currently no cleaning routine is
    // implemented, TODO
    private int _maxPoolSize;
-
-   // Instantiate the instance of this class
-   private static AthenaConnectionPool _instance = new AthenaConnectionPool();
-
-   private static Logger _log = Logger.getLogger(AthenaConnectionPool.class);
-
    private AthenaConnectionFactory _factory;
 
    /**
@@ -47,6 +40,15 @@ public class AthenaConnectionPool {
    private AthenaConnectionPool() {
       _initialized = new AtomicBoolean(false);
       _connectionCount = new AtomicInteger(0);
+   }
+
+   /**
+    * Returns the single instance of this class.
+    *
+    * @return
+    */
+   public static AthenaConnectionPool getInstance() {
+      return _instance;
    }
 
    /**
@@ -102,15 +104,6 @@ public class AthenaConnectionPool {
       } finally {
          _log.trace("closeConnection exit");
       }
-   }
-
-   /**
-    * Returns the single instance of this class.
-    *
-    * @return
-    */
-   public static AthenaConnectionPool getInstance() {
-      return _instance;
    }
 
    /**
