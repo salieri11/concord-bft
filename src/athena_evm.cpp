@@ -263,8 +263,15 @@ bool com::vmware::athena::EVM::new_account(
       return false;
    } else {
       kvbStorage.set_balance(address, 0);
+      // TODO: "zero-address?" notes below: personal_newAccount should be
+      // handled entirely in Helen. The creation of the account does not need to
+      // be recorded on the blockchain, except to appease athena_evm's existence
+      // check before allowing a balance transfer. Checking that the destination
+      // of a balance transfer exists should also be removed (see Ethereum
+      // address 0's current balance for compatibility arguments).
+      uint64_t nonce = kvbStorage.get_nonce(zero_address)+1;
       EthTransaction tx = {
-         0,                      // nonce: TODO: get zero-address nonce?
+         nonce,                  // nonce: zero-address nonce?
          zero_hash,              // block_hash: will be set in write_block
          0,                      // block_number: will be set in write_block
          zero_address,           // from
@@ -275,11 +282,12 @@ bool com::vmware::athena::EVM::new_account(
          0,                      // value
          0,                      // gas_price
          0,                      // gas_limit
-         zero_hash,              // sig_r: TODO: sign for zero-address
-         zero_hash,              // sig_s: TODO: sign for zero-address
-         0                       // sig_v: TODO: sign for zero-address
+         zero_hash,              // sig_r: zero-address signature?
+         zero_hash,              // sig_s: zero-address signature?
+         0                       // sig_v: zero-address signature? chainID?
       };
       kvbStorage.add_transaction(tx);
+      kvbStorage.set_nonce(zero_address, nonce);
       kvbStorage.write_block();
       return true;
    }

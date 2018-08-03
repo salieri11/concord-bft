@@ -1,4 +1,4 @@
-// TODO: Copyright
+// Copyright 2018 VMware, all rights reserved
 /**
  * Tests of the transaction signing and address recovery functions.
  */

@@ -759,24 +759,39 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
    memset(&result, 0, sizeof(result));
 
    if (request.has_addr_from()) {
-      // TODO: test & return error if needed
-      assert(20 == request.addr_from().length());
+      if (request.addr_from().length() != sizeof(message.sender)) {
+         result.status_code = EVM_REJECTED;
+         txhash = zero_hash;
+         return result;
+      }
       memcpy(message.sender.bytes, request.addr_from().c_str(), 20);
 
       if (request.has_sig_v() && request.has_sig_r() && request.has_sig_s()) {
          evm_address sig_from;
          recover_from(request, &sig_from);
 
-         // TODO: also assert that both aren't zero_addr
+         if (sig_from == zero_address) {
+            LOG4CPLUS_DEBUG(logger, "Signature was invalid");
+            result.status_code = EVM_REJECTED;
+            txhash = zero_hash;
+            return result;
+         }
+
          if (message.sender != sig_from) {
-            // TODO: return error, but let's get this check working first
-            LOG4CPLUS_FATAL(logger, "Message sender does not match signature");
-            assert(false);
+            LOG4CPLUS_DEBUG(logger, "Message sender does not match signature");
+            result.status_code = EVM_REJECTED;
+            txhash = zero_hash;
+            return result;
          }
       }
    } else {
       recover_from(request, &message.sender);
-      // TODO: ensure we don't get zero_addr back
+      if (message.sender == zero_address) {
+         LOG4CPLUS_DEBUG(logger, "Signature was invalid");
+         result.status_code = EVM_REJECTED;
+         txhash = zero_hash;
+         return result;
+      }
    }
 
    if (request.has_data()) {
@@ -863,7 +878,6 @@ evm_uint256be com::vmware::athena::KVBCommandsHandler::record_transaction(
       gas_price = request.gas_price();
    }
 
-   // TODO: move this to a utility function so recover_from can use it to
    evm_uint256be sig_r;
    evm_uint256be sig_s;
    uint64_t sig_v;

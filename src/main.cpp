@@ -124,28 +124,29 @@ Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
    }
 
    std::map<evm_address, uint64_t> genesis_acts = params.get_initial_accounts();
+   uint64_t nonce = 0;
    for (std::map<evm_address,uint64_t>::iterator it = genesis_acts.begin();
 	it != genesis_acts.end();
 	++it) {
 
       // store a transaction for each initial balance in the genesis block
       // defintition
-      EthTransaction tx{
-      nonce : 0,
-            block_hash : zero_hash, // set to zero for now
-            block_number : 0,
-            from : zero_address,
-            to : it->first,
-            contract_address : zero_address,
-            input : std::vector<uint8_t>(),
-            status : EVM_SUCCESS,
-            value : it->second,
-            gas_price : 0, // TODO: get from message?
-            gas_limit : 0, // TODO: get from message?
-            sig_r : zero_hash, // TODO: get from message?
-            sig_s : zero_hash, // TODO: get from message?
-            sig_v : 0 // TODO: get from message?
-            };
+      EthTransaction tx = {
+         nonce,                  // nonce
+         zero_hash,              // block_hash: will be set in write_block
+         0,                      // block_number
+         zero_address,           // from
+         it->first,              // to
+         zero_address,           // contract_address
+         std::vector<uint8_t>(), // input
+         EVM_SUCCESS,            // status
+         it->second,             // value
+         0,                      // gas_price
+         0,                      // gas_limit
+         zero_hash,              // sig_r (no signature for genesis)
+         zero_hash,              // sig_s (no signature for genesis)
+         0                       // sig_v TODO: chain ID?
+      };
       evm_uint256be txhash = tx.hash();
       LOG4CPLUS_INFO(logger, "Created genesis transaction " << txhash <<
                      " to address " << it->first <<
@@ -154,7 +155,9 @@ Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
 
       // also set the balance record
       kvbStorage.set_balance(it->first, it->second);
+      nonce++;
    }
+   kvbStorage.set_nonce(zero_address, nonce-1);
 
    return kvbStorage.write_block();
 }
