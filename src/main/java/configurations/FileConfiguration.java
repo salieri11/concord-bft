@@ -39,10 +39,8 @@ public class FileConfiguration implements IConfiguration {
    protected FileConfiguration(String propertiesFile) throws
            IOException {
       _configurations = new Properties();
-      try (InputStream ins = getClass()
-              .getResourceAsStream("/" + propertiesFile);
-           BufferedReader br = new BufferedReader(new InputStreamReader(ins))) {
-         _configurations.load(br);
+      try (FileInputStream fi = new FileInputStream(propertiesFile)) {
+         _configurations.load(fi);
       }
    }
 
