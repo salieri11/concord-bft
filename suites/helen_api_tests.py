@@ -111,11 +111,12 @@ class HelenAPITests(test_suite.TestSuite):
               ("get_transaction_list_invalid_latest", self._test_getTransactionListInvalidLatest), \
               ("get_transaction_list_next_url", self._test_getTransactionListNextUrl), \
               ("large_reply", self._test_largeReply), \
+              ("get_multiple_users", self._test_get_multiple_users), \
               ("create_user", self._test_createUser), \
               ("get_non_existing_user", self._test_get_non_existing_user), \
               ("user_login", self._test_user_login), \
-              ("user_patch", self._test_patch_user)
-      ]
+              ("user_patch", self._test_patch_user)]
+
 
    # Tests: expect one argument, a Request, and produce a 2-tuple
    # (bool success, string info)
@@ -580,6 +581,23 @@ class HelenAPITests(test_suite.TestSuite):
          return (False, "Patch didn't update details")
 
       return (True, None)
+
+   def _test_get_multiple_users(self, request):
+      created_user_id = []
+      user_count = 5
+      for i in range(1, user_count):
+         response = self._create_mock_user(request);
+         created_user_id.append(int(response['user_id']))
+      user = self._get_user(request, created_user_id[0])
+      params = "?consortium={}&organization={}".format(user['consortium']['consortium_id'],
+                                                      user['organization']['organization_id'])
+      user_list = request.callUserAPI("", None, params, None)
+      user_list = list(map(lambda u : u['user_id'], user_list))
+      print (user_list)
+      print (created_user_id)
+      if all(u in user_list for u in created_user_id):
+         return (True, None)
+      return (False, "All created users not returned")
 
    def _test_largeReply(self, request):
       ### 1. Create three contracts, each 16kb in size

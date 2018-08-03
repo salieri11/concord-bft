@@ -16,9 +16,10 @@
           "helen1": {
             "launchCommand": "/usr/bin/java",
             "parameters": [
-              "-jar",
-              "~/source/helen/target/helen-1.0-SNAPSHOT.jar",
-              "config_test.properties"
+                "-jar",
+                "-Dspring.profiles.active=test",
+                "~/source/helen/target/helen-1.0-SNAPSHOT.jar",
+              "application-test.properties"
             ]
           }
         }
