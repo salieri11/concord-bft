@@ -8,6 +8,8 @@ import { ClarityModule } from '@clr/angular';
 
 import { MarketingComponent } from './marketing.component';
 import { MockTranslateModule } from '../mocks/mock-translate.module';
+import { AuthenticationService } from '../shared/authentication.service';
+import { PersonaService } from '../shared/persona.service';
 
 describe('MarketingComponent', () => {
   let component: MarketingComponent;
@@ -20,7 +22,8 @@ describe('MarketingComponent', () => {
         ClarityModule,
         MockTranslateModule,
       ],
-      declarations: [ MarketingComponent ]
+      declarations: [ MarketingComponent ],
+      providers: [ AuthenticationService, PersonaService ]
     })
     .compileComponents();
   }));
