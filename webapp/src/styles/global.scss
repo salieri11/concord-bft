@@ -206,3 +206,22 @@ div.ngxp__container {
   }
   }
 }
+
+[ngx-charts-x-axis-ticks] {
+  .gridline-path-vertical {
+    display: none;
+  }
+}
+
+[ngx-charts-y-axis-ticks] {
+  .gridline-path.gridline-path-horizontal {
+    stroke: $white;
+    opacity: 0.25;
+  }
+}
+
+.ngx-charts {
+  text{
+    fill: $clr-dark-midtone-gray;
+  }
+}
