@@ -1,4 +1,4 @@
-<form [formGroup]="smartContractForm" (ngSubmit)="onSubmitSmartContract()">
+<form [formGroup]="smartContractForm" (ngSubmit)="onSubmitSmartContract()" class="contract-form">
   <clr-modal [(clrModalOpen)]="isOpen">
     <h3 class="modal-title">{{'smartContracts.createContract' | translate}}</h3>
     <div class="modal-body">

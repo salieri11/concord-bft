@@ -57,13 +57,13 @@
       </clr-alert>
     </div>
     <div class="col-xs-12">
-      <button type="button" class="btn btn-primary" (click)="onCall()" [disabled]="versionForm.invalid">
+      <button id="call-submit" type="button" class="btn btn-primary" (click)="onCall()" [disabled]="versionForm.invalid">
         {{'smartContracts.version.call' | translate}}
       </button>
-      <button type="button" class="btn btn-primary" (click)="onSend()" [disabled]="versionForm.invalid">
+      <button id="transaction-submit" type="button" class="btn btn-primary" (click)="onSend()" [disabled]="versionForm.invalid">
         {{'smartContracts.version.send' | translate}}
       </button>
-      <button type="button" class="btn btn-outline" (click)="onPreview()" [disabled]="versionForm.invalid">
+      <button id="preview-submit" type="button" class="btn btn-outline" (click)="onPreview()" [disabled]="versionForm.invalid">
         {{'smartContracts.version.preview' | translate}}
       </button>
     </div>

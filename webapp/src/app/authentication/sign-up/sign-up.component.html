@@ -20,12 +20,12 @@
           <h4>{{ 'signUp.callToAction' | translate }}</h4>
         </div>
       </div>
-      <form [formGroup]="signupForm" (ngSubmit)="signUp()">
+      <form id="signup-form" [formGroup]="signupForm" (ngSubmit)="signUp()">
         <section class="form-block">
           <div class="row flex-items-xs-center call-outs">
             <div class="col-xl-4 col-lg-6 col-md-12">
               <div class="form-group">
-                <label for="firsName">{{ 'signUp.form.firstName' | translate }}</label>
+                <label for="firstName">{{ 'signUp.form.firstName' | translate }}</label>
                 <input type="text" id="firstName" formControlName="firstName">
               </div>
             </div>
