@@ -7,10 +7,8 @@
  */
 package configurations;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
+import java.nio.Buffer;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
@@ -29,7 +27,7 @@ public class FileConfiguration implements IConfiguration {
     */
    protected FileConfiguration() throws
            IOException {
-      this("config.properties");
+      this("application.properties");
    }
 
    /**
@@ -41,8 +39,10 @@ public class FileConfiguration implements IConfiguration {
    protected FileConfiguration(String propertiesFile) throws
            IOException {
       _configurations = new Properties();
-      try (InputStream input = new FileInputStream(propertiesFile)) {
-         _configurations.load(input);
+      try (InputStream ins = getClass()
+              .getResourceAsStream("/" + propertiesFile);
+           BufferedReader br = new BufferedReader(new InputStreamReader(ins))) {
+         _configurations.load(br);
       }
    }
 

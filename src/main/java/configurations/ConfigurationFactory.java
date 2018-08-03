@@ -5,7 +5,7 @@ import java.io.IOException;
 
 public class ConfigurationFactory {
 
-   private static String configFile = "config.properties";
+   private static String configFile = "application.properties";
    private static FileConfiguration fileConfiguration = null;
    private static TestConfiguration testConfiguration = null;
 
