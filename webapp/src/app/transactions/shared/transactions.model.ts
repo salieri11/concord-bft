@@ -9,11 +9,11 @@ export interface Transaction {
   hash: string;
   from: string;
   to?: string;
-  contractAddress?: string;
+  contract_address?: string;
   value: string;
   input: string;
   nonce: number;
   status: number;
-  blockHash: string;
-  blockNumber: number;
+  block_hash: string;
+  block_number: number;
 }

@@ -17,9 +17,9 @@
       <th>{{'transactions.to' | translate}}</th>
       <td>{{transaction?.to}}</td>
     </tr>
-    <tr *ngIf="transaction?.contractAddress">
+    <tr *ngIf="transaction?.contract_address">
       <th>{{'transactions.contractAddress' | translate}}</th>
-      <td>{{transaction?.contractAddress}}</td>
+      <td>{{transaction?.contract_address}}</td>
     </tr>
     <tr *ngIf="transaction?.value">
       <th>{{'transactions.value' | translate}}</th>
