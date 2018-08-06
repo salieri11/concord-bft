@@ -11,10 +11,7 @@ import org.json.simple.JSONObject;
 @Table(name = "CONSORTIUMS")
 @Entity
 public class Consortium {
-
-   public static final String CONSORTIUM_LABEL = "consortium";
-   public static final String CONSORTIUM_ID_LABEL = "consortium_id";
-   public static final String CONSORTIUM_NAME_LABEL = "consortium_name";
+   
    @OneToMany(mappedBy = "consortium",
               cascade = { CascadeType.PERSIST, CascadeType.REMOVE })
    protected Set<User> users = new HashSet<>();
@@ -26,12 +23,11 @@ public class Consortium {
 
    protected Consortium() {
    }
-
-   protected Consortium(String consortiumName, String consortiumType) {
-      this.consortiumName = consortiumName;
-      this.consortiumType = consortiumType;
+   
+   protected void setConsortiumID(Long consortiumID) {
+      this.consortiumID = consortiumID;
    }
-
+   
    public Long getConsortiumID() {
       return consortiumID;
    }
@@ -71,12 +67,5 @@ public class Consortium {
          return false;
       Consortium c = (Consortium) o;
       return c.getConsortiumID().equals(consortiumID);
-   }
-
-   public JSONObject toJSON() {
-      JSONObject json = new JSONObject();
-      json.put(CONSORTIUM_ID_LABEL, consortiumID);
-      json.put(CONSORTIUM_NAME_LABEL, consortiumName);
-      return json;
    }
 }

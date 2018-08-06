@@ -51,15 +51,14 @@ public class ProfilesRegistryManager {
 
    public JSONArray getUsers(String consortiumID, String organizationID) {
       List<User> userList = getUsersInternal(consortiumID, organizationID);
-      return userList.stream().map(User::toJSON).reduce(new JSONArray(),
-                                                        (arr, obj) -> {
-                                                           arr.add(obj);
-                                                           return arr;
-                                                        },
-                                                        (arr1, arr2) -> {
-                                                           arr1.addAll(arr2);
-                                                           return arr1;
-                                                        });
+      // @formatter:off
+      return userList.stream()
+              .map(UsersAPIMessage::new)
+              .map(UsersGetResponse::toJSON)
+              .reduce(new JSONArray(),
+                      (arr, obj) -> { arr.add(obj); return arr; },
+                      (arr1, arr2) -> { arr1.addAll(arr2); return arr1; });
+      // @formatter:on
    }
 
    private List<User> getUsersWithID(List<String> userIdList) {
@@ -76,37 +75,29 @@ public class ProfilesRegistryManager {
 
    public JSONObject getUserWithID(String userID) {
       Optional<User> oUser = getUserWithIDInternal(userID);
-      return oUser.map(User::toJSON).orElse(new JSONObject());
+      return oUser.map(UsersAPIMessage::new)
+              .map(UsersAPIMessage::toJSON)
+              .orElse(new JSONObject());
    }
 
-   public String createUser(String name, String email, String role,
-                            Optional<String> fName, Optional<String> lName,
-                            String consortiumID, String organizationID,
-                            String password) throws UserModificationException {
+   public String createUser(UserCreateRequest request)
+           throws UserModificationException {
+      
       Optional<Organization> o
-         = organizationRepository.findById(Long.parseLong(organizationID));
+         = organizationRepository.findById(request.getOrganizationID());
       Optional<Consortium> c
-         = consortiumRepository.findById(Long.parseLong(consortiumID));
+         = consortiumRepository.findById(request.getConsortiumID());
 
-      if (o.isPresent() && c.isPresent() && Roles.contains(role)) {
-         User u;
-         if (fName.isPresent() && lName.isPresent()) {
-            u = new User(name,
-                         email,
-                         fName.get(),
-                         lName.get(),
-                         Roles.fromString(role),
-                         o.get(),
-                         c.get(),
-                         password);
-         } else {
-            u = new User(name,
-                         email,
-                         Roles.fromString(role),
-                         o.get(),
-                         c.get(),
-                         password);
-         }
+      if (o.isPresent() && c.isPresent() && Roles.contains(request.getRole())) {
+         User u = new User();
+         u.setName(request.getUserName());
+         u.setEmail(request.getEmail());
+         u.setPassword(request.getPassword());
+         u.setRole(request.getRole());
+         u.setOrganization(o.get());
+         u.setConsortium(c.get());
+         request.getOptionalFirstName().ifPresent(u::setFirstName);
+         request.getOptionalLastName().ifPresent(u::setLastName);
          // Note: The order of next 5 statements is very important, The user
          // object must be saved before it can be added and saved into
          // consortium & organization objects.
@@ -118,44 +109,36 @@ public class ProfilesRegistryManager {
          return Long.toString(u.getUserID());
       } else {
          o.orElseThrow(() -> new UserModificationException("Organization with"
-            + " ID " + organizationID + " not found."));
+            + " ID " + request.getOrganizationID() + " not found."));
          c.orElseThrow(() -> new UserModificationException("Consortium with"
-            + " ID " + consortiumID + " not found."));
-         throw new UserModificationException(role + " is invalid Role value.");
+            + " ID " + request.getConsortiumID() + " not found."));
+         throw new UserModificationException(request.getRole() +
+                 " is invalid Role value.");
       }
    }
 
    public void
-          updateUser(UserPatchRequest upr) throws UserModificationException {
+          updateUser(UserPatchRequest request) throws UserModificationException {
       Optional<User> oUser
-         = userRepository.findById(Long.parseLong(upr.getUserID()));
+         = userRepository.findById(request.getUserID());
 
       if (!oUser.isPresent())
          throw new UserModificationException("No user found with ID: "
-            + upr.getUserID());
+            + request.getUserID());
 
       User user = oUser.get();
-      if (upr.getFirstName().isPresent()) {
-         user.setFirstName(upr.getFirstName().get());
-      }
-      if (upr.getLastName().isPresent()) {
-         user.setLastName(upr.getLastName().get());
-      }
-      if (upr.getEmail().isPresent()) {
-         user.setEmail(upr.getEmail().get());
-      }
-      if (upr.getRole().isPresent()) {
-         if (Roles.contains(upr.getRole().get())) {
-            user.setRole(upr.getRole().get());
+      request.getOptionalName().ifPresent(user::setName);
+      request.getOptionalEmail().ifPresent(user::setEmail);
+      request.getOptionalFirstName().ifPresent(user::setFirstName);
+      request.getOptionalLastName().ifPresent(user::setLastName);
+      if (request.getOptionalRole().isPresent()) {
+         if (Roles.contains(request.getOptionalRole().get())) {
+            user.setRole(request.getOptionalRole().get());
          } else {
             throw new UserModificationException("Invalid role value: "
-               + upr.getRole().get());
+                    + request.getOptionalRole().get());
          }
       }
-      if (upr.getName().isPresent()) {
-         user.setName(upr.getName().get());
-      }
-
       userRepository.save(user);
    }
 
@@ -183,7 +166,8 @@ public class ProfilesRegistryManager {
    public Long createOrgIfNotExist() {
       List<Organization> oList = organizationRepository.findAll();
       if (oList.isEmpty()) {
-         Organization o = new Organization("TEST_ORG");
+         Organization o = new Organization();
+         o.setOrganizationName("TEST_ORG");
          o = organizationRepository.save(o);
          return o.getOrganizationID();
       } else {
@@ -197,7 +181,9 @@ public class ProfilesRegistryManager {
    public Long createConsortiumIfNotExist() {
       List<Consortium> cList = consortiumRepository.findAll();
       if (cList.isEmpty()) {
-         Consortium c = new Consortium("TEST_CON", "ATHENA");
+         Consortium c = new Consortium();
+         c.setConsortiumName("TEST_CON");
+         c.setConsortiumType("ATHENA");
          c = consortiumRepository.save(c);
          return c.getConsortiumID();
       } else {

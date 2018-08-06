@@ -1,29 +1,13 @@
 package profiles;
 
-import static profiles.Consortium.CONSORTIUM_LABEL;
-import static profiles.Organization.ORGANIZATION_LABEL;
-
 import java.time.Instant;
-
 import javax.persistence.*;
-
-import org.json.simple.JSONObject;
 import org.springframework.lang.NonNull;
 
 @Table(name = "USERS")
 @Entity
 public class User {
-
-   public static final String USER_ID_LABEL = "user_id";
-   public static final String NAME_LABEL = "name";
-   public static final String FIRST_NAME_LABEL = "first_name";
-   public static final String LAST_NAME_LABEL = "last_name";
-   public static final String EMAIL_LABEL = "email";
-   public static final String PASSWORD_LABEL = "password";
-   public static final String ROLE_LABEL = "role";
-   public static final String LAST_LOGIN_LABEL = "last_login";
-   public static final String DETAILS_LABEL = "details";
-
+   
    @Id
    @GeneratedValue(strategy = GenerationType.AUTO)
    private Long userID = 0L;
@@ -39,8 +23,9 @@ public class User {
 
    @NonNull
    private String email;
-
+   
    @NonNull
+   
    private String role;
 
    @ManyToOne(optional = false, fetch = FetchType.LAZY)
@@ -59,26 +44,7 @@ public class User {
    protected User() {
    }
 
-   protected User(String name, String email, String firstName, String lastName,
-                  Roles role, Organization organization, Consortium consortium,
-                  String password) {
-      this.name = name;
-      this.email = email;
-      this.firstName = firstName;
-      this.lastName = lastName;
-      this.role = role.toString();
-      this.consortium = consortium;
-      this.organization = organization;
-      this.password = password;
-   }
-
-   protected User(String name, String email, Roles role,
-                  Organization organization, Consortium consortium,
-                  String password) {
-      this(name, email, null, null, role, organization, consortium, password);
-   }
-
-   public Long getUserID() {
+   protected Long getUserID() {
       return userID;
    }
 
@@ -145,21 +111,17 @@ public class User {
    protected void setLastLogin(Instant lastLogin) {
       this.lastLogin = lastLogin;
    }
-
-   public JSONObject toJSON() {
-      JSONObject json = new JSONObject();
-      JSONObject details = new JSONObject();
-      details.put(FIRST_NAME_LABEL, firstName);
-      details.put(LAST_NAME_LABEL, lastName);
-      json.put(NAME_LABEL, name);
-      json.put(DETAILS_LABEL, details);
-      json.put(EMAIL_LABEL, email);
-      json.put(USER_ID_LABEL, userID);
-      json.put(ROLE_LABEL, role);
-      json.put(ORGANIZATION_LABEL, organization.toJSON());
-      json.put(CONSORTIUM_LABEL, consortium.toJSON());
-      json.put(LAST_LOGIN_LABEL, lastLogin.toString());
-      return json;
+   
+   protected void setUserID(Long userID) {
+      this.userID = userID;
+   }
+   
+   protected void setOrganization(Organization organization) {
+      this.organization = organization;
+   }
+   
+   protected void setConsortium(Consortium consortium) {
+      this.consortium = consortium;
    }
 
    @Override

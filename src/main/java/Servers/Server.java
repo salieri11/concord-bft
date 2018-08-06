@@ -42,15 +42,12 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import profiles.*;
+
 
 @SpringBootApplication
 @EntityScan("profiles")
 @EnableJpaRepositories("profiles")
 @ComponentScan(basePackages = {"profiles", "Servlets"})
-//@EnableJpaRepositories(basePackageClasses = {User.class, Consortium
-//        .class, Organization.class, OrganizationRepository.class,
-//        UserRepository.class, ConsortiumRepository.class})
 public class Server {
    private static String serverPath;
    private static String deploymentName;

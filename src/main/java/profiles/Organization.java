@@ -11,10 +11,6 @@ import org.json.simple.JSONObject;
 @Table(name = "ORGANIZATIONS")
 @Entity
 public class Organization {
-
-   public static final String ORGANIZATION_LABEL = "organization";
-   public static final String ORGANIZATION_ID_LABEL = "organization_id";
-   public static final String ORGANIZATION_NAME_LABEL = "organization_name";
    @OneToMany(mappedBy = "organization",
               cascade = { CascadeType.PERSIST, CascadeType.REMOVE })
    protected Set<User> users = new HashSet<>();
@@ -25,11 +21,11 @@ public class Organization {
 
    protected Organization() {
    }
-
-   protected Organization(String organizationName) {
-      this.organizationName = organizationName;
+   
+   protected void setOrganizationID(Long organizationID) {
+      this.organizationID = organizationID;
    }
-
+   
    public Long getOrganizationID() {
       return organizationID;
    }
@@ -62,11 +58,5 @@ public class Organization {
       Organization org = (Organization) o;
       return org.getOrganizationID().equals(organizationID);
    }
-
-   public JSONObject toJSON() {
-      JSONObject json = new JSONObject();
-      json.put(ORGANIZATION_ID_LABEL, organizationID);
-      json.put(ORGANIZATION_NAME_LABEL, organizationName);
-      return json;
-   }
+   
 }

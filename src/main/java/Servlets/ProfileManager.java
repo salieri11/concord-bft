@@ -1,15 +1,7 @@
 package Servlets;
 
-import static profiles.Consortium.CONSORTIUM_ID_LABEL;
-import static profiles.Consortium.CONSORTIUM_LABEL;
-import static profiles.Organization.ORGANIZATION_ID_LABEL;
-import static profiles.Organization.ORGANIZATION_LABEL;
-import static profiles.User.*;
-
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.servlet.ServletException;
@@ -28,6 +20,9 @@ import com.vmware.athena.Athena;
 import profiles.ProfilesRegistryManager;
 import profiles.UserModificationException;
 import profiles.UserPatchRequest;
+import profiles.UsersAPIMessage;
+
+import static profiles.UsersAPIMessage.*;
 
 public class ProfileManager extends BaseServlet {
 
@@ -91,61 +86,6 @@ public class ProfileManager extends BaseServlet {
       processResponse(response, responseString, responseStatus, logger);
    }
 
-   private Map<String, String>
-           parseRequestJSON(String jsonString) throws ParseException {
-      JSONParser parser = new JSONParser();
-      JSONObject requestObject = (JSONObject) parser.parse(jsonString);
-
-      Map<String, String> jsonData = new HashMap<>();
-
-      String labels[] = new String[] { NAME_LABEL, EMAIL_LABEL, ROLE_LABEL,
-         PASSWORD_LABEL, ORGANIZATION_LABEL, CONSORTIUM_LABEL, DETAILS_LABEL};
-
-      for (String label : labels) {
-         if (requestObject.containsKey(label)) {
-            if (label.equals(ORGANIZATION_LABEL)) {
-               JSONObject organization
-                  = (JSONObject) requestObject.get(ORGANIZATION_LABEL);
-               jsonData.put(ORGANIZATION_ID_LABEL,
-                            (String) organization.get(ORGANIZATION_ID_LABEL));
-            } else if (label.equals(CONSORTIUM_LABEL)) {
-               JSONObject consortium
-                  = (JSONObject) requestObject.get(CONSORTIUM_LABEL);
-               jsonData.put(CONSORTIUM_ID_LABEL,
-                            (String) consortium.get(CONSORTIUM_ID_LABEL));
-            } else if (label.equals(DETAILS_LABEL)) {
-               JSONObject details =
-                       (JSONObject) requestObject.get(DETAILS_LABEL);
-               if (details.containsKey(FIRST_NAME_LABEL)) {
-                  jsonData.put(FIRST_NAME_LABEL,
-                          (String) details.get(FIRST_NAME_LABEL));
-               }
-               if (details.containsKey(LAST_NAME_LABEL)) {
-                  jsonData.put(LAST_NAME_LABEL,
-                          (String) details.get(LAST_NAME_LABEL));
-               }
-            } else {
-               jsonData.put(label, (String) requestObject.get(label));
-            }
-         }
-      }
-      return jsonData;
-   }
-
-   private void createTestProfilesAndFillMap(Map<String, String> jsonData) {
-      if (!jsonData.containsKey(ORGANIZATION_ID_LABEL)) {
-         String organizationId = Long.toString(prm.createOrgIfNotExist());
-         jsonData.put(ORGANIZATION_ID_LABEL, organizationId);
-         logger.debug("New test org created with ID:" + organizationId);
-      }
-
-      if (!jsonData.containsKey(CONSORTIUM_ID_LABEL)) {
-         String consortiumId = Long.toString(prm.createConsortiumIfNotExist());
-         jsonData.put(CONSORTIUM_ID_LABEL, consortiumId);
-         logger.debug("New test consortium created with ID:" + consortiumId);
-      }
-   }
-
    private String
            getRequestBody(final HttpServletRequest request) throws IOException {
       String paramString
@@ -155,6 +95,11 @@ public class ProfileManager extends BaseServlet {
       return paramString;
    }
 
+   // TODO: This is not a proper way to authenticate the user. We have plans to
+   // authenticate every user via CSP, however that integration will take time
+   // and till then some way of authentication is needed. Hence, we have added
+   // this temporary (and not very secure) login feature. Remove this and
+   // authenticate every user with CSP
    protected RESTResult
              login(final HttpServletRequest request,
                    final HttpServletResponse response) throws IOException {
@@ -186,54 +131,65 @@ public class ProfileManager extends BaseServlet {
          }
       } catch (ParseException e) {
          result = new RESTResult(HttpServletResponse.SC_BAD_REQUEST,
-                                 APIHelper.errorJSON("Invalid JSON"));
+                                 APIHelper.errorJSON(e.getMessage()));
       } catch (UserModificationException e) {
          result = new RESTResult(HttpServletResponse.SC_EXPECTATION_FAILED,
                                  APIHelper.errorJSON(e.getMessage()));
       }
       return result;
    }
-
+   
+   
+   private void createTestProfiles(JSONObject requestJson) {
+      if (!requestJson.containsKey(ORGANIZATION_LABEL)) {
+         String organizationId = Long.toString(prm.createOrgIfNotExist());
+         JSONObject orgJson = new JSONObject();
+         orgJson.put(ORGANIZATION_ID_LABEL, organizationId);
+         requestJson.put(ORGANIZATION_LABEL, orgJson);
+         logger.debug("New test org created with ID:" + organizationId);
+      }
+      
+      if (!requestJson.containsKey(CONSORTIUM_LABEL)) {
+         String consortiumId = Long.toString(prm.createConsortiumIfNotExist());
+         JSONObject consJson = new JSONObject();
+         consJson.put(CONSORTIUM_ID_LABEL, consortiumId);
+         requestJson.put(CONSORTIUM_LABEL, consJson);
+         logger.debug("New test consortium created with ID:" + consortiumId);
+      }
+   }
+   
    protected RESTResult
              handlePost(final HttpServletRequest request,
                         final HttpServletResponse response) throws IOException {
       JSONObject responseJSON;
       int responseStatus;
       try {
-
-         Map<String, String> jsonData
-            = parseRequestJSON(getRequestBody(request));
-
+   
+         JSONParser parser = new JSONParser();
+         JSONObject requestJson =
+                 (JSONObject) parser.parse(getRequestBody(request));
+   
          // TODO: Ideally the organization and consortium should already exist
          // before adding a USER to that. But for now we just add a new
          // organization & consortium to allow easy testing. Delete this
          // method once testing phase is done
-         createTestProfilesAndFillMap(jsonData);
+         createTestProfiles(requestJson);
+         
+         UsersAPIMessage postRequest =
+                 new UsersAPIMessage(requestJson);
+
 
          String userID
-            = prm.createUser(jsonData.get(NAME_LABEL),
-                             jsonData.get(EMAIL_LABEL),
-                             jsonData.get(ROLE_LABEL),
-                             Optional.ofNullable(jsonData.get(FIRST_NAME_LABEL)),
-                             Optional.ofNullable(jsonData.get(LAST_NAME_LABEL)),
-                             jsonData.get(CONSORTIUM_ID_LABEL),
-                             jsonData.get(ORGANIZATION_ID_LABEL),
-                             jsonData.get(PASSWORD_LABEL));
+            = prm.createUser(postRequest);
 
          responseJSON = new JSONObject();
          responseJSON.put(USER_ID_LABEL, userID);
          responseStatus = HttpServletResponse.SC_OK;
 
-      } catch (ParseException pe) {
-         logger.warn("Error while parsing request JSON", pe);
-         responseJSON = APIHelper.errorJSON("Invalid JSON");
+      } catch (ParseException | UserModificationException e) {
+         logger.warn("Error while adding new user", e);
+         responseJSON = APIHelper.errorJSON(e.getMessage());
          responseStatus = HttpServletResponse.SC_BAD_REQUEST;
-      } catch (UserModificationException ue) {
-         logger.warn("Error while adding new user", ue);
-         responseJSON = APIHelper.errorJSON(ue.getMessage());
-         // TODO: maybe we should throw different types of exceptions for
-         // different types of error and set status code accordingly
-         responseStatus = HttpServletResponse.SC_EXPECTATION_FAILED;
       }
 
       return new RESTResult(responseStatus, responseJSON);
@@ -274,8 +230,12 @@ public class ProfileManager extends BaseServlet {
 
          if (uriTokens.length == 4) {
             String userID = uriTokens[3];
-            Map<String, String> jsonData = parseRequestJSON(paramString);
-            prm.updateUser(new UserPatchRequest(userID, jsonData));
+            JSONParser parser = new JSONParser();
+            JSONObject requestJson = (JSONObject) parser.parse(paramString);
+            UserPatchRequest upr = new UsersAPIMessage(requestJson);
+            upr.setUserID(Long.parseLong(userID));
+            prm.updateUser(upr);
+            
             responseString = new JSONObject().toJSONString();
             responseStatus = HttpServletResponse.SC_OK;
          } else {
@@ -283,15 +243,9 @@ public class ProfileManager extends BaseServlet {
             responseStatus = HttpServletResponse.SC_NOT_FOUND;
          }
 
-      } catch (IOException e) {
+      } catch (IOException | ParseException | UserModificationException e) {
          responseString = APIHelper.errorJSON(e.getMessage()).toJSONString();
          responseStatus = HttpServletResponse.SC_BAD_REQUEST;
-      } catch (ParseException e) {
-         responseString = APIHelper.errorJSON(e.getMessage()).toJSONString();
-         responseStatus = HttpServletResponse.SC_EXPECTATION_FAILED;
-      } catch (UserModificationException e) {
-         responseString = APIHelper.errorJSON(e.getMessage()).toJSONString();
-         responseStatus = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
       }
 
       processResponse(response, responseString, responseStatus, logger);
