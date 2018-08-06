@@ -32,7 +32,7 @@ the addition of `program_options` if you had built Boost for the
 wget https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.gz
 tar -xzf boost_1_64_0.tar.gz
 cd boost_1_64_0
-./bootstrap.sh --with-libraries=system,filesystem,program_options --prefix=/usr
+./bootstrap.sh --with-libraries=system,filesystem,program_options,thread --prefix=/usr
 ./b2
 sudo ./b2 install
 ```
