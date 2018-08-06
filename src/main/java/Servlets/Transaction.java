@@ -38,6 +38,9 @@ public final class Transaction extends BaseServlet {
 
       responseJSON.put("hash", APIHelper.binaryStringToHex(tr.getHash()));
       responseJSON.put("from", APIHelper.binaryStringToHex(tr.getFrom()));
+      responseJSON.put("blockHash",
+                       APIHelper.binaryStringToHex(tr.getBlockHash()));
+      responseJSON.put("blockNumber", tr.getBlockNumber());
 
       if (tr.hasTo()) {
          responseJSON.put("to", APIHelper.binaryStringToHex(tr.getTo()));

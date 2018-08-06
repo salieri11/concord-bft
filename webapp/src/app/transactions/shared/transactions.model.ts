@@ -14,4 +14,6 @@ export interface Transaction {
   input: string;
   nonce: number;
   status: number;
+  blockHash: string;
+  blockNumber: number;
 }
