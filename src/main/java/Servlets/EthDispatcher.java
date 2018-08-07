@@ -94,12 +94,16 @@ public final class EthDispatcher extends BaseServlet {
     * @return Method name
     * @throws Exception
     */
-   public static String
-          getEthMethodName(JSONObject ethRequestJson) throws Exception {
-      try {
-         return (String) ethRequestJson.get("method");
-      } catch (Exception e) {
-         throw new Exception("invalid method parameter in request.", e);
+   public static String getEthMethodName(JSONObject ethRequestJson)
+      throws EthRPCHandlerException {
+      if (ethRequestJson.containsKey("method")) {
+         if (ethRequestJson.get("method") instanceof String) {
+            return (String) ethRequestJson.get("method");
+         } else {
+            throw new EthRPCHandlerException("method must be a string");
+         }
+      } else {
+         throw new EthRPCHandlerException("request must contain a method");
       }
    }
 
@@ -111,12 +115,16 @@ public final class EthDispatcher extends BaseServlet {
     * @return Request id
     * @throws Exception
     */
-   public static long
-          getEthRequestId(JSONObject ethRequestJson) throws Exception {
-      try {
-         return (long) ethRequestJson.get("id");
-      } catch (Exception e) {
-         throw new Exception("invalid id parameter in request.", e);
+   public static long getEthRequestId(JSONObject ethRequestJson)
+      throws EthRPCHandlerException {
+      if (ethRequestJson.containsKey("id")) {
+         if (ethRequestJson.get("id") instanceof Number) {
+            return ((Number)ethRequestJson.get("id")).longValue();
+         } else {
+            throw new EthRPCHandlerException("id must be a number");
+         }
+      } else {
+         throw new EthRPCHandlerException("request must contain an id");
       }
    }
 
@@ -237,7 +245,8 @@ public final class EthDispatcher extends BaseServlet {
          ethMethodName = getEthMethodName(requestJson);
          id = getEthRequestId(requestJson);
          if (ethMethodName.equals(_conf.getStringValue("SendTransaction_Name"))
-            || ethMethodName.equals(_conf.getStringValue("Call_Name"))) {
+             || ethMethodName.equals(_conf.getStringValue("SendRawTransaction_Name"))
+             || ethMethodName.equals(_conf.getStringValue("Call_Name"))) {
             handler = new EthSendTxHandler();
          } else if (ethMethodName.equals(_conf.getStringValue("NewAccount_Name"))) {
             handler = new EthNewAccountHandler();
