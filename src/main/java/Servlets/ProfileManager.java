@@ -167,7 +167,7 @@ public class ProfileManager extends BaseServlet {
    private void
    validatePatchRequest(UserPatchRequest upr) throws UserModificationException {
       if (upr.getOptionalRole().isPresent() &&
-              Roles.contains(upr.getOptionalRole().get())) {
+              !Roles.contains(upr.getOptionalRole().get())) {
          throw new UserModificationException("invalid role provided");
       }
       if (upr.getOptionalLastName().isPresent() &&
