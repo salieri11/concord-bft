@@ -1,13 +1,26 @@
+/**
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
+ *
+ */
+
 package profiles;
 
 import java.time.Instant;
+
 import javax.persistence.*;
+
 import org.springframework.lang.NonNull;
 
+/**
+ * A Spring Data JPA (or Hibernate) Entity class representing a user in the
+ * system.
+ */
 @Table(name = "USERS")
 @Entity
 public class User {
-   
+
    @Id
    @GeneratedValue(strategy = GenerationType.AUTO)
    private Long userID = 0L;
@@ -23,9 +36,9 @@ public class User {
 
    @NonNull
    private String email;
-   
+
    @NonNull
-   
+
    private String role;
 
    @ManyToOne(optional = false, fetch = FetchType.LAZY)
@@ -46,6 +59,10 @@ public class User {
 
    protected Long getUserID() {
       return userID;
+   }
+
+   protected void setUserID(Long userID) {
+      this.userID = userID;
    }
 
    public String getName() {
@@ -92,8 +109,16 @@ public class User {
       return organization;
    }
 
+   protected void setOrganization(Organization organization) {
+      this.organization = organization;
+   }
+
    public Consortium getConsortium() {
       return consortium;
+   }
+
+   protected void setConsortium(Consortium consortium) {
+      this.consortium = consortium;
    }
 
    public String getPassword() {
@@ -110,18 +135,6 @@ public class User {
 
    protected void setLastLogin(Instant lastLogin) {
       this.lastLogin = lastLogin;
-   }
-   
-   protected void setUserID(Long userID) {
-      this.userID = userID;
-   }
-   
-   protected void setOrganization(Organization organization) {
-      this.organization = organization;
-   }
-   
-   protected void setConsortium(Consortium consortium) {
-      this.consortium = consortium;
    }
 
    @Override

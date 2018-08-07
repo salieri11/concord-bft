@@ -1,7 +1,18 @@
+/**
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
+ *
+ */
+
 package profiles;
 
 import java.util.Optional;
 
+/**
+ * An interface which defines the API for interacting with a user update
+ * (PATCH) request sent to the system
+ */
 public interface UserPatchRequest {
    Long getUserID();
 

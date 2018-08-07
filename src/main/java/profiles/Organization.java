@@ -1,3 +1,10 @@
+/**
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
+ *
+ */
+
 package profiles;
 
 import java.util.Collections;
@@ -6,8 +13,10 @@ import java.util.Set;
 
 import javax.persistence.*;
 
-import org.json.simple.JSONObject;
-
+/**
+ * A Spring Data JPA (or Hibernate) Entity class representing an organization in
+ * the system.
+ */
 @Table(name = "ORGANIZATIONS")
 @Entity
 public class Organization {
@@ -21,13 +30,13 @@ public class Organization {
 
    protected Organization() {
    }
-   
-   protected void setOrganizationID(Long organizationID) {
-      this.organizationID = organizationID;
-   }
-   
+
    public Long getOrganizationID() {
       return organizationID;
+   }
+
+   protected void setOrganizationID(Long organizationID) {
+      this.organizationID = organizationID;
    }
 
    public String getOrganizationName() {
@@ -58,5 +67,5 @@ public class Organization {
       Organization org = (Organization) o;
       return org.getOrganizationID().equals(organizationID);
    }
-   
+
 }

@@ -1,3 +1,10 @@
+/**
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
+ *
+ */
+
 package profiles;
 
 public class UserModificationException extends Exception {

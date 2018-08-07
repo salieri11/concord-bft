@@ -1,3 +1,10 @@
+/**
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
+ *
+ */
+
 package profiles;
 
 import java.util.Collections;
@@ -6,12 +13,14 @@ import java.util.Set;
 
 import javax.persistence.*;
 
-import org.json.simple.JSONObject;
-
+/**
+ * A Spring Data JPA (or Hibernate) Entity class representing a consortium in
+ * the system.
+ */
 @Table(name = "CONSORTIUMS")
 @Entity
 public class Consortium {
-   
+
    @OneToMany(mappedBy = "consortium",
               cascade = { CascadeType.PERSIST, CascadeType.REMOVE })
    protected Set<User> users = new HashSet<>();
@@ -23,13 +32,13 @@ public class Consortium {
 
    protected Consortium() {
    }
-   
-   protected void setConsortiumID(Long consortiumID) {
-      this.consortiumID = consortiumID;
-   }
-   
+
    public Long getConsortiumID() {
       return consortiumID;
+   }
+
+   protected void setConsortiumID(Long consortiumID) {
+      this.consortiumID = consortiumID;
    }
 
    public String getConsortiumName() {

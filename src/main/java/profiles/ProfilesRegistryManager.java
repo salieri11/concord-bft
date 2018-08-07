@@ -1,3 +1,10 @@
+/**
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
+ *
+ */
+
 package profiles;
 
 import java.time.Instant;
@@ -14,6 +21,10 @@ import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+/**
+ * This class manages all persistence related operations related to User
+ * management API.
+ */
 @Component
 @Transactional
 public class ProfilesRegistryManager {
@@ -56,7 +67,7 @@ public class ProfilesRegistryManager {
               .map(UsersGetResponse::toJSON)
               .reduce(new JSONArray(),
                       (arr, obj) -> { arr.add(obj); return arr; },
-                      (arr1, arr2) -> { arr1.addAll(arr2); return arr1; });
+                      (arr1, arr2) -> { arr1.addAll(arr2); return arr1;});
    }
 
    private List<User> getUsersWithID(List<String> userIdList) {
@@ -74,13 +85,13 @@ public class ProfilesRegistryManager {
    public JSONObject getUserWithID(String userID) {
       Optional<User> oUser = getUserWithIDInternal(userID);
       return oUser.map(UsersAPIMessage::new)
-              .map(UsersAPIMessage::toJSON)
-              .orElse(new JSONObject());
+                  .map(UsersAPIMessage::toJSON)
+                  .orElse(new JSONObject());
    }
 
-   public String createUser(UserCreateRequest request)
-           throws UserModificationException {
-      
+   public String
+          createUser(UserCreateRequest request) throws UserModificationException {
+
       Optional<Organization> o
          = organizationRepository.findById(request.getOrganizationID());
       Optional<Consortium> c
@@ -110,15 +121,14 @@ public class ProfilesRegistryManager {
             + " ID " + request.getOrganizationID() + " not found."));
          c.orElseThrow(() -> new UserModificationException("Consortium with"
             + " ID " + request.getConsortiumID() + " not found."));
-         throw new UserModificationException(request.getRole() +
-                 " is invalid Role value.");
+         throw new UserModificationException(request.getRole()
+            + " is invalid Role value.");
       }
    }
 
    public void
           updateUser(UserPatchRequest request) throws UserModificationException {
-      Optional<User> oUser
-         = userRepository.findById(request.getUserID());
+      Optional<User> oUser = userRepository.findById(request.getUserID());
 
       if (!oUser.isPresent())
          throw new UserModificationException("No user found with ID: "
@@ -134,7 +144,7 @@ public class ProfilesRegistryManager {
             user.setRole(request.getOptionalRole().get());
          } else {
             throw new UserModificationException("Invalid role value: "
-                    + request.getOptionalRole().get());
+               + request.getOptionalRole().get());
          }
       }
       userRepository.save(user);

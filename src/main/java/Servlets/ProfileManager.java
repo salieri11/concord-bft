@@ -1,7 +1,15 @@
+/**
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
+ *
+ */
+
 package Servlets;
 
+import static profiles.UsersAPIMessage.*;
+
 import java.io.IOException;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.servlet.ServletException;
@@ -22,8 +30,10 @@ import profiles.UserModificationException;
 import profiles.UserPatchRequest;
 import profiles.UsersAPIMessage;
 
-import static profiles.UsersAPIMessage.*;
-
+/**
+ * A servlet which manages all GET/POST/PATCH requests related to user
+ * management API of helen
+ */
 public class ProfileManager extends BaseServlet {
 
    private static final long serialVersionUID = 1L;
@@ -85,7 +95,7 @@ public class ProfileManager extends BaseServlet {
       }
       processResponse(response, responseString, responseStatus, logger);
    }
-   
+
    private void createTestProfiles(JSONObject requestJson) {
       if (!requestJson.containsKey(ORGANIZATION_LABEL)) {
          Long organizationId = prm.createOrgIfNotExist();
@@ -94,7 +104,7 @@ public class ProfileManager extends BaseServlet {
          requestJson.put(ORGANIZATION_LABEL, orgJson);
          logger.debug("New test org created with ID:" + organizationId);
       }
-      
+
       if (!requestJson.containsKey(CONSORTIUM_LABEL)) {
          Long consortiumId = prm.createConsortiumIfNotExist();
          JSONObject consJson = new JSONObject();
@@ -103,7 +113,7 @@ public class ProfileManager extends BaseServlet {
          logger.debug("New test consortium created with ID:" + consortiumId);
       }
    }
-   
+
    @Override
    protected void
              doPost(final HttpServletRequest request,
@@ -111,34 +121,35 @@ public class ProfileManager extends BaseServlet {
       JSONObject responseJSON;
       int responseStatus;
       try {
-      
+
          JSONParser parser = new JSONParser();
-         JSONObject requestJson =
-                 (JSONObject) parser.parse(APIHelper.getRequestBody(request));
-      
+         JSONObject requestJson
+            = (JSONObject) parser.parse(APIHelper.getRequestBody(request));
+
          // TODO: Ideally the organization and consortium should already exist
          // before adding a USER to that. But for now we just add a new
          // organization & consortium to allow easy testing. Delete this
          // method once testing phase is done
          createTestProfiles(requestJson);
-      
-         UsersAPIMessage postRequest =
-                 new UsersAPIMessage(requestJson);
-      
+
+         UsersAPIMessage postRequest = new UsersAPIMessage(requestJson);
+
          String userID = prm.createUser(postRequest);
-      
+
          responseJSON = new JSONObject();
          responseJSON.put(USER_ID_LABEL, userID);
          responseStatus = HttpServletResponse.SC_OK;
-      
+
       } catch (ParseException | UserModificationException e) {
          logger.warn("Error while adding new user", e);
          responseJSON = APIHelper.errorJSON(e.getMessage());
          responseStatus = HttpServletResponse.SC_BAD_REQUEST;
       }
-   
-      processResponse(response, responseJSON.toJSONString(),
-              responseStatus, logger);
+
+      processResponse(response,
+                      responseJSON.toJSONString(),
+                      responseStatus,
+                      logger);
    }
 
    protected void doPatch(HttpServletRequest request,
@@ -164,7 +175,7 @@ public class ProfileManager extends BaseServlet {
             UserPatchRequest upr = new UsersAPIMessage(requestJson);
             upr.setUserID(Long.parseLong(userID));
             prm.updateUser(upr);
-            
+
             responseString = new JSONObject().toJSONString();
             responseStatus = HttpServletResponse.SC_OK;
          } else {

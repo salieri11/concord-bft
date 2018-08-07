@@ -1,5 +1,14 @@
+/**
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
+ *
+ */
 package profiles;
 
+/**
+ * Enum to define all user roles
+ */
 public enum Roles {
 
    ORG_USER("org_user"),
