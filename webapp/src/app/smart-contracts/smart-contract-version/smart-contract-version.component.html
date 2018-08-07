@@ -20,7 +20,7 @@
         <div class="form-group">
           <label>{{'smartContracts.version.functions' | translate}}</label>
           <div class="select">
-            <select id="selected-function" name="function" *ngIf="functions?.length" formControlName="functionName"
+            <select id="selectedFunction" name="function" *ngIf="functions?.length" formControlName="functionName"
                     (change)="getFunctionDetails()">
               <option *ngFor="let func of functions" [value]="func.name">{{ func.name }}</option>
             </select>
@@ -57,13 +57,13 @@
       </clr-alert>
     </div>
     <div class="col-xs-12">
-      <button id="call-submit" type="button" class="btn btn-primary" (click)="onCall()" [disabled]="versionForm.invalid">
+      <button id="callSubmit" type="button" class="btn btn-primary" (click)="onCall()" [disabled]="versionForm.invalid">
         {{'smartContracts.version.call' | translate}}
       </button>
-      <button id="transaction-submit" type="button" class="btn btn-primary" (click)="onSend()" [disabled]="versionForm.invalid">
+      <button id="transactionSubmit" type="button" class="btn btn-primary" (click)="onSend()" [disabled]="versionForm.invalid">
         {{'smartContracts.version.send' | translate}}
       </button>
-      <button id="preview-submit" type="button" class="btn btn-outline" (click)="onPreview()" [disabled]="versionForm.invalid">
+      <button id="previewSubmit" type="button" class="btn btn-outline" (click)="onPreview()" [disabled]="versionForm.invalid">
         {{'smartContracts.version.preview' | translate}}
       </button>
     </div>

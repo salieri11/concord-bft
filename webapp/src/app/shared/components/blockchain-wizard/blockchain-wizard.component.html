@@ -24,9 +24,9 @@
       </div>
       <div class="form-block blockchain-form">
         <div class="form-group" formGroupName="blockchain">
-          <label for="blockchain-type">{{'blockchainWizard.blockchainAndConsortium.blockchainType' | translate}}</label>
+          <label for="blockchainType">{{'blockchainWizard.blockchainAndConsortium.blockchainType' | translate}}</label>
           <div class="select">
-            <select id="blockchain-type" formControlName="type">
+            <select id="blockchainType" formControlName="type">
               <option value="athena">{{'blockchainWizard.blockchainAndConsortium.athena' | translate}}</option>
               <option value="hyperledger">{{'blockchainWizard.blockchainAndConsortium.hyperledger' | translate}}
               </option>
@@ -34,17 +34,17 @@
           </div>
         </div>
         <div class="form-group" formGroupName="faultTolerance">
-          <label for="fault-tolerance">{{'blockchainWizard.blockchainAndConsortium.faultTolerance' | translate}}</label>
+          <label for="faultTolerance">{{'blockchainWizard.blockchainAndConsortium.faultTolerance' | translate}}</label>
           <div class="select">
-            <select id="fault-tolerance" formControlName="type">
+            <select id="faultTolerance" formControlName="type">
               <option value="global">{{'blockchainWizard.blockchainAndConsortium.global' | translate}}</option>
               <option value="local">{{'blockchainWizard.blockchainAndConsortium.local' | translate}}</option>
             </select>
           </div>
         </div>
         <div class="form-group" formGroupName="consortium">
-          <label for="consortium-name">{{'blockchainWizard.blockchainAndConsortium.consortiumName' | translate}}</label>
-          <input id="consortium-name" type="text" formControlName="name"
+          <label for="consortiumName">{{'blockchainWizard.blockchainAndConsortium.consortiumName' | translate}}</label>
+          <input id="consortiumName" type="text" formControlName="name"
                  [placeholder]="'blockchainWizard.blockchainAndConsortium.consortiumPlaceholder' | translate"
                  (keyup.enter)="jumpTo(orgsPage)"/>
         </div>
@@ -67,16 +67,16 @@
       <div [formGroup]="orgForm" class="org-form">
         <div class="form-group row">
           <div class="form-item">
-            <label for="org-name">{{'blockchainWizard.addOrgs.name' | translate}}</label>
+            <label for="orgName">{{'blockchainWizard.addOrgs.name' | translate}}</label>
             <div class="form-input">
-              <input id="org-name" type="text" formControlName="name" class="form-control"
+              <input id="orgName" type="text" formControlName="name" class="form-control"
                      [placeholder]="'blockchainWizard.addOrgs.namePlaceholder' | translate">
             </div>
           </div>
           <div class="form-item">
-            <label for="org-location">{{'blockchainWizard.addOrgs.location' | translate}}</label>
+            <label for="orgLocation">{{'blockchainWizard.addOrgs.location' | translate}}</label>
             <div class="select form-input">
-              <select id="org-location" formControlName="location">
+              <select id="orgLocation" formControlName="location">
                 <option *ngFor="let location of locationOptions" value="{{location.value}}">{{location.name |
                   translate}}
                 </option>
@@ -84,7 +84,7 @@
             </div>
           </div>
           <div class="submit">
-            <button id="add-org-button" type="button" class="btn btn-primary-outline btn-sm" (click)="addOrg()" [disabled]="!orgForm.valid">
+            <button id="addOrgButton" type="button" class="btn btn-primary-outline btn-sm" (click)="addOrg()" [disabled]="!orgForm.valid">
               {{'blockchainWizard.addOrgs.addOrganization' | translate}}
             </button>
           </div>
@@ -133,34 +133,34 @@
       <div [formGroup]="userForm" class="user-form">
         <div class="form-group row">
           <div class="col-xs-4 col-sm-2">
-            <label for="user-first-name">{{'blockchainWizard.usersAndAccess.firstName' | translate}}</label>
+            <label for="userFirstName">{{'blockchainWizard.usersAndAccess.firstName' | translate}}</label>
           </div>
           <div class="col-xs-8 col-sm-4">
-            <input id="user-first-name" type="text" formControlName="firstName" class="form-control"
+            <input id="userFirstName" type="text" formControlName="firstName" class="form-control"
                    [placeholder]="'blockchainWizard.usersAndAccess.firstNamePlaceholder' | translate">
           </div>
           <div class="col-xs-4 col-sm-2">
-            <label for="user-last-name">{{'blockchainWizard.usersAndAccess.lastName' | translate}}</label>
+            <label for="userLastName">{{'blockchainWizard.usersAndAccess.lastName' | translate}}</label>
           </div>
           <div class="col-xs-8 col-sm-4">
-            <input id="user-last-name" type="text" formControlName="lastName" class="form-control"
+            <input id="userLastName" type="text" formControlName="lastName" class="form-control"
                    [placeholder]="'blockchainWizard.usersAndAccess.lastNamePlaceholder' | translate">
           </div>
         </div>
         <div class="form-group row">
           <div class="col-xs-4 col-sm-2">
-            <label for="user-email">{{'blockchainWizard.usersAndAccess.email' | translate}}</label>
+            <label for="userEmail">{{'blockchainWizard.usersAndAccess.email' | translate}}</label>
           </div>
           <div class="col-xs-8 col-sm-4">
-            <input id="user-email" type="text" formControlName="email" class="form-control"
+            <input id="userEmail" type="text" formControlName="email" class="form-control"
                    [placeholder]="'blockchainWizard.usersAndAccess.emailPlaceholder' | translate">
           </div>
           <div class="col-xs-4 col-sm-2">
-            <label for="user-org">{{'blockchainWizard.usersAndAccess.organization' | translate}}</label>
+            <label for="userOrg">{{'blockchainWizard.usersAndAccess.organization' | translate}}</label>
           </div>
           <div class="col-xs-8 col-sm-4">
             <div class="select">
-              <select id="user-org" name="" formControlName="organization">
+              <select id="userOrg" name="" formControlName="organization">
                 <option *ngFor="let org of form?.value.organizations" value="{{org.name}}">{{org.name}}</option>
               </select>
             </div>
@@ -168,11 +168,11 @@
         </div>
         <div class="form-group row">
           <div class="col-xs-4 col-sm-2">
-            <label for="user-role">{{'blockchainWizard.usersAndAccess.role' | translate}}</label>
+            <label for="userRole">{{'blockchainWizard.usersAndAccess.role' | translate}}</label>
           </div>
           <div class="col-xs-8 col-sm-4">
             <div class="select">
-              <select id="user-role" formControlName="role">
+              <select id="userRole" formControlName="role">
                 <option *ngFor="let persona of personaOptions" value="{{persona.value}}">{{persona.name | translate}}
                 </option>
               </select>
@@ -180,7 +180,7 @@
           </div>
         </div>
         <div class="text-right">
-          <button id="add-user-button" class="btn btn-sm btn-primary-outline" type="button" (click)="addUser()" [disabled]="!userForm.valid">
+          <button id="addUserButton" class="btn btn-sm btn-primary-outline" type="button" (click)="addUser()" [disabled]="!userForm.valid">
             {{'blockchainWizard.usersAndAccess.addUser' | translate}}
           </button>
         </div>
@@ -313,22 +313,22 @@
             <div class="accordion-body">
               <div class="form-block">
                 <div class="form-group">
-                  <label for="network-name">{{'blockchainWizard.reviewDeployment.networkName' | translate}}</label>
-                  <input id="network-name" type="text" formControlName="networkName">
+                  <label for="networkName">{{'blockchainWizard.reviewDeployment.networkName' | translate}}</label>
+                  <input id="networkName" type="text" formControlName="networkName">
                 </div>
                 <div class="form-group">
-                  <label for="number-of-nodes">{{'blockchainWizard.reviewDeployment.numberOfNodes' | translate}}</label>
-                  <input id="number-of-nodes" type="number" formControlName="numberOfNodes">
+                  <label for="numberOfNodes">{{'blockchainWizard.reviewDeployment.numberOfNodes' | translate}}</label>
+                  <input id="numberOfNodes" type="number" formControlName="numberOfNodes">
                 </div>
                 <div class="form-group">
                   <label>{{'blockchainWizard.reviewDeployment.publicNodesRegions' | translate}}</label>
-                  <athena-combobox id="public-nodes-regions" formControlName="publicNodesRegions" [items]="publicNodeItems"
+                  <athena-combobox id="publicNodesRegions" formControlName="publicNodesRegions" [items]="publicNodeItems"
                                    [position]="'top-left'" [multiSelect]="true"
                                    [showTooltip]="false"></athena-combobox>
                 </div>
                 <div class="form-group">
                   <label>{{'blockchainWizard.reviewDeployment.privateNode' | translate}}</label>
-                  <athena-combobox id="private-node" formControlName="privateNode" [items]="privateNodeItems" [position]="'top-left'"
+                  <athena-combobox id="privateNode" formControlName="privateNode" [items]="privateNodeItems" [position]="'top-left'"
                                    [multiSelect]="true" [showTooltip]="false"></athena-combobox>
                 </div>
               </div>

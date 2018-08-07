@@ -10,8 +10,8 @@ export class LoginPage {
   }
 
   fillLogInForm(email, password) {
-    element(by.css('#login_username')).sendKeys(email);
-    element(by.css('#login_password')).sendKeys(password);
+    element(by.css('#loginUsername')).sendKeys(email);
+    element(by.css('#loginPassword')).sendKeys(password);
     element(by.css('.login-group button[type="submit"]')).click();
   }
 }

@@ -10,7 +10,7 @@ export class SignUpPage {
   }
 
   getSignUpForm() {
-    return element(by.css('#signup-form'));
+    return element(by.css('#signupForm'));
   }
 
   fillSignUpForm(firstName, lastName, email, company, jobTitle, country, relationship, numEmployees) {
@@ -22,6 +22,6 @@ export class SignUpPage {
     element(by.css('#country')).sendKeys(country);
     element(by.css('#relationship')).sendKeys(relationship);
     element(by.css('#numberOfEmployees')).sendKeys(numEmployees);
-    element(by.css('#signup-form button[type="submit"]')).click();
+    element(by.css('#signupForm button[type="submit"]')).click();
   }
 }

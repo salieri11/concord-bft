@@ -46,21 +46,21 @@ export class DashboardPage {
   }
 
   getAdvancedNetworkNameValue() {
-    return element(by.css('#network-name')).getAttribute('value');
+    return element(by.css('#networkName')).getAttribute('value');
   }
 
   getAdvancedNumberOfNodesValue() {
-    return element(by.css('#number-of-nodes')).getAttribute('value');
+    return element(by.css('#numberOfNodes')).getAttribute('value');
   }
 
   getAdvancedPublicNodesRegionsValueLength() {
-    return element(by.css('#public-nodes-regions input')).getAttribute('value').then((value) => {
+    return element(by.css('#publicNodesRegions input')).getAttribute('value').then((value) => {
       return value.split(',').length;
     });
   }
 
   getAdvancedPrivateNodeValue() {
-    return element(by.css('#private-node input')).getAttribute('value');
+    return element(by.css('#privateNode input')).getAttribute('value');
   }
 
   getTasks() {
@@ -68,23 +68,23 @@ export class DashboardPage {
   }
 
   fillPage1Form(type, faultTolerance, consortiumName) {
-    element(by.css('#blockchain-type')).sendKeys(type);
-    element(by.css('#fault-tolerance')).sendKeys(faultTolerance);
-    element(by.css('#consortium-name')).sendKeys(consortiumName);
+    element(by.css('#blockchainType')).sendKeys(type);
+    element(by.css('#faultTolerance')).sendKeys(faultTolerance);
+    element(by.css('#consortiumName')).sendKeys(consortiumName);
   }
 
   fillPage2Form(orgName, orgLocation) {
-    element(by.css('#org-name')).sendKeys(orgName);
-    element(by.css('#org-location')).sendKeys(orgLocation);
-    element(by.css('#add-org-button')).click();
+    element(by.css('#orgName')).sendKeys(orgName);
+    element(by.css('#orgLocation')).sendKeys(orgLocation);
+    element(by.css('#addOrgButton')).click();
   }
 
   fillPage3Form(firstName, lastName, email, org, role) {
-    element(by.css('#user-first-name')).sendKeys(firstName);
-    element(by.css('#user-last-name')).sendKeys(lastName);
-    element(by.css('#user-email')).sendKeys(email);
-    element(by.css('#user-org')).sendKeys(org);
-    element(by.css('#user-role')).sendKeys(role);
-    element(by.css('#add-user-button')).click();
+    element(by.css('#userFirstName')).sendKeys(firstName);
+    element(by.css('#userLastName')).sendKeys(lastName);
+    element(by.css('#userEmail')).sendKeys(email);
+    element(by.css('#userOrg')).sendKeys(org);
+    element(by.css('#userRole')).sendKeys(role);
+    element(by.css('#addUserButton')).click();
   }
 }

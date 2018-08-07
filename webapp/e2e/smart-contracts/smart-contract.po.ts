@@ -36,7 +36,7 @@ export class SmartContractPage {
   }
 
   chooseVersion(version) {
-    element(by.css('#selected-version')).sendKeys(version);
+    element(by.css('#selectedVersion')).sendKeys(version);
   }
 
   fillParameterForm(gas, value, from, type) {
@@ -45,13 +45,13 @@ export class SmartContractPage {
     element(by.css('input[formcontrolname="from"]')).sendKeys(from);
     switch (type) {
       case 'call':
-        element(by.css('#call-submit')).click();
+        element(by.css('#callSubmit')).click();
         break;
       case 'transaction':
-        element(by.css('#transaction-submit')).click();
+        element(by.css('#transactionSubmit')).click();
         break;
       case 'preview':
-        element(by.css('#preview-submit')).click();
+        element(by.css('#previewSubmit')).click();
         break;
     }
   }

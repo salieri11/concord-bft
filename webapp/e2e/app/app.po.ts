@@ -7,10 +7,10 @@ import { browser, by, element } from 'protractor';
 export class AppPage {
   logOut() {
     browser.waitForAngularEnabled(false);
-    element(by.css('#profile-menu')).click();
+    element(by.css('#profileMenu')).click();
     browser.waitForAngularEnabled(true);
     browser.waitForAngularEnabled(false);
-    element(by.css('#log-out-button')).click();
+    element(by.css('#logOutButton')).click();
     browser.waitForAngularEnabled(true);
   }
 

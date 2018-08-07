@@ -14,10 +14,10 @@ export class SmartContractsPage {
   }
 
   fillContractForm(from, contractId, version, filePath) {
-    element(by.css('#smart-contract-from')).sendKeys(from);
-    element(by.css('#smart-contract-contract-id')).sendKeys(contractId);
-    element(by.css('#smart-contract-version')).sendKeys(version);
-    element(by.css('#smart-contract-file')).sendKeys(filePath);
+    element(by.css('#smartContractFrom')).sendKeys(from);
+    element(by.css('#smartContractContractId')).sendKeys(contractId);
+    element(by.css('#smartContractVersion')).sendKeys(version);
+    element(by.css('#smartContractFile')).sendKeys(filePath);
     element(by.css('.contract-form button[type="submit"]')).click();
   }
 

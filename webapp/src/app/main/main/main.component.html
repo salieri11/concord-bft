@@ -75,7 +75,7 @@
         </clr-dropdown-menu>
       </clr-dropdown>
       <clr-dropdown #userProfileMenu>
-        <button id="profile-menu" class="nav-text" clrDropdownTrigger tourAnchor="onboardingTour.userSettings">
+        <button id="profileMenu" class="nav-text" clrDropdownTrigger tourAnchor="onboardingTour.userSettings">
           <clr-icon shape="user" class="is-solid"></clr-icon>
           {{ username }}
           <clr-icon shape="caret down"></clr-icon>
@@ -84,7 +84,7 @@
           <a clrDropdownItem [routerLink]="['/users/settings']">
             {{'nav.settings' | translate}}
           </a>
-          <a id="log-out-button" clrDropdownItem (click)="onLogOut()">{{'nav.logOut' | translate}}</a>
+          <a id="logOutButton" clrDropdownItem (click)="onLogOut()">{{'nav.logOut' | translate}}</a>
         </clr-dropdown-menu>
       </clr-dropdown>
     </div>

@@ -10,7 +10,7 @@ export class MarketingPage {
   }
 
   clickLoginButton() {
-    element(by.css('#login-button')).click();
+    element(by.css('#loginButton')).click();
   }
 
   clickSignUpButton() {
@@ -18,6 +18,6 @@ export class MarketingPage {
   }
 
   getSignUpForm() {
-    return element(by.css('#signup-form'));
+    return element(by.css('#signupForm'));
   }
 }
