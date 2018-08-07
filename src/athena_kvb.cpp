@@ -13,6 +13,9 @@
 
 #include "kvb/BlockchainInterfaces.h"
 #include "kvb/slice.h"
+#include "common/rlp.hpp"
+#include "common/athena_eth_sign.hpp"
+#include "common/athena_eth_hash.hpp"
 #include "athena_evm.hpp"
 #include "athena_kvb.hpp"
 #include "athena_exception.hpp"
@@ -29,9 +32,11 @@ using Blockchain::IBlocksAppender;
 using namespace boost::program_options;
 
 com::vmware::athena::KVBCommandsHandler::KVBCommandsHandler(EVM &athevm,
+                                                            EthSign &verifier,
                                                             variables_map &config_map) :
    logger(log4cplus::Logger::getInstance("com.vmware.athena")),
    athevm_(athevm),
+   verifier_(verifier),
    config(config_map)
 {
    // no other initialization necessary
@@ -129,20 +134,25 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_sendTransaction(
    const EthRequest request = athreq.eth_request(0);
 
    evm_uint256be txhash;
-   run_evm(request, kvbStorage, txhash);
+   evm_result &&result = run_evm(request, kvbStorage, txhash);
 
-   // The result of run_evm is ignored here. As noted below, nothing currently
-   // causes transactions to fail in a way that they do not get recorded. We
-   // always return the transaction hash to the application here, and it must
-   // fetch the receipt to find out the result.
+   if (txhash != zero_hash) {
+      EthResponse *response = athresp.add_eth_response();
+      response->set_id(request.id());
+      response->set_data(txhash.bytes, sizeof(evm_uint256be));
+   } else {
+      std::ostringstream description;
+      description << "An error occurred running the transaction (status="
+                  << result.status_code << ")";
+      ErrorResponse *response = athresp.add_error_response();
+      response->set_description(description.str());
+   }
 
-   EthResponse *response = athresp.add_eth_response();
-   response->set_id(request.id());
-   response->set_data(txhash.bytes, sizeof(evm_uint256be));
-
-   // Nothing would cause us to fail to try to run a transaction (yet), and even
-   // failed transactions get recorded, so commands here are always valid, so
-   // always return true (for now)
+   // We return "true" even if the transaction encountered an error, because the
+   // error response is the correct result for the evaluation. That is, we
+   // expect that all replicas will return that error. If in the future, there
+   // is a failure mode that we don't expect on all nodes (for example, the disk
+   // is full), then it will be appropriate to return false.
    return true;
 }
 
@@ -650,6 +660,91 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_getTransactionCount(
 }
 
 /**
+ * Extract "from" address from request+signature.
+ */
+void com::vmware::athena::KVBCommandsHandler::recover_from(
+   const EthRequest &request, evm_address *sender) const
+{
+   static const std::vector<uint8_t> empty;
+
+   if (request.has_sig_v() &&
+       request.has_sig_r() && request.sig_r().size() == sizeof(evm_uint256be) &&
+       request.has_sig_s() && request.sig_s().size() == sizeof(evm_uint256be)) {
+      // First we have to reconstruct the original message
+      RLPBuilder rlpb;
+      rlpb.start_list();
+
+      int8_t actualV;
+      uint64_t chainID = request.sig_v();
+      if (chainID > 28) {
+         // EIP155
+         rlpb.add(empty); // Signature S
+         rlpb.add(empty); // Signature R
+
+         if (chainID % 2) {
+            actualV = 0;
+            chainID = (chainID - 35) / 2;
+         } else {
+            actualV = 1;
+            chainID = (chainID - 26) / 2;
+         }
+         rlpb.add(chainID); // Signature V
+      } else if (chainID >= 27) {
+         actualV = chainID - 27;
+         chainID = 0;
+      }
+
+      if (request.has_data()) {
+         rlpb.add(request.data());
+      } else {
+         rlpb.add(empty);
+      }
+
+      if (request.has_value()) {
+         rlpb.add(request.value());
+      } else {
+         rlpb.add(empty);
+      }
+
+      if (request.has_addr_to()) {
+         rlpb.add(request.addr_to());
+      } else {
+         rlpb.add(empty);
+      }
+
+      if (request.has_gas()) {
+         rlpb.add(request.gas());
+      } else {
+         rlpb.add(empty);
+      }
+
+      if (request.has_gas_price()) {
+         rlpb.add(request.gas_price());
+      } else {
+         rlpb.add(empty);
+      }
+
+      if (request.has_nonce()) {
+         rlpb.add(request.nonce());
+      } else {
+         rlpb.add(empty);
+      }
+
+      std::vector<uint8_t> rlp = rlpb.build();
+      evm_uint256be rlp_hash = com::vmware::athena::EthHash::keccak_hash(rlp);
+
+      // Then we can check it against the signature.
+
+      evm_uint256be sigR;
+      std::copy(request.sig_r().begin(), request.sig_r().end(), sigR.bytes);
+      evm_uint256be sigS;
+      std::copy(request.sig_s().begin(), request.sig_s().end(), sigS.bytes);
+
+      *sender = verifier_.ecrecover(rlp_hash, actualV, sigR, sigS);
+   }
+}
+
+/**
  * Pass a transaction or call to the EVM for execution.
  */
 evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
@@ -664,9 +759,39 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
    memset(&result, 0, sizeof(result));
 
    if (request.has_addr_from()) {
-      // TODO: test & return error if needed
-      assert(20 == request.addr_from().length());
+      if (request.addr_from().length() != sizeof(message.sender)) {
+         result.status_code = EVM_REJECTED;
+         txhash = zero_hash;
+         return result;
+      }
       memcpy(message.sender.bytes, request.addr_from().c_str(), 20);
+
+      if (request.has_sig_v() && request.has_sig_r() && request.has_sig_s()) {
+         evm_address sig_from;
+         recover_from(request, &sig_from);
+
+         if (sig_from == zero_address) {
+            LOG4CPLUS_DEBUG(logger, "Signature was invalid");
+            result.status_code = EVM_REJECTED;
+            txhash = zero_hash;
+            return result;
+         }
+
+         if (message.sender != sig_from) {
+            LOG4CPLUS_DEBUG(logger, "Message sender does not match signature");
+            result.status_code = EVM_REJECTED;
+            txhash = zero_hash;
+            return result;
+         }
+      }
+   } else {
+      recover_from(request, &message.sender);
+      if (message.sender == zero_address) {
+         LOG4CPLUS_DEBUG(logger, "Signature was invalid");
+         result.status_code = EVM_REJECTED;
+         txhash = zero_hash;
+         return result;
+      }
    }
 
    if (request.has_data()) {
@@ -699,17 +824,99 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
       assert(20 == request.addr_to().length());
       memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
 
-      athevm_.run(message, kvbStorage, result, txhash);
+      result = athevm_.run(message, kvbStorage);
    } else {
       message.kind = EVM_CREATE;
 
       assert(!kvbStorage.is_read_only());
-      athevm_.create(message, kvbStorage, result, txhash);
+      result = athevm_.create(message, kvbStorage);
    }
 
    LOG4CPLUS_INFO(logger, "Execution result -" <<
                   " status_code: " << result.status_code <<
                   " gas_left: " << result.gas_left <<
                   " output_size: " << result.output_size);
+
+   if (result.status_code != EVM_SUCCESS) {
+      // If the transaction failed, don't record any of its side effects.
+      // TODO: except gas deduction?
+      kvbStorage.reset();
+   }
+
+   if (!kvbStorage.is_read_only()) {
+      // If this is a transaction, and not just a call, record it.
+      txhash = record_transaction(message, request, result, kvbStorage);
+   }
+
    return result;
+}
+
+/**
+ * Increment the sender's nonce, Add the transaction and write a block with
+ * it. Message call depth must be zero.
+ */
+evm_uint256be com::vmware::athena::KVBCommandsHandler::record_transaction(
+   const evm_message &message,
+   const EthRequest &request,
+   const evm_result &result,
+   KVBStorage &kvbStorage) const
+{
+   uint64_t nonce;
+   if (request.has_nonce()) {
+      nonce = static_cast<uint64_t>(request.nonce());
+   } else {
+      nonce = kvbStorage.get_nonce(message.sender)+1;
+      kvbStorage.set_nonce(message.sender, nonce);
+   }
+
+   // "to" is empty if this was a create
+   evm_address to = result.create_address == zero_address ?
+      message.destination : zero_address;
+
+   uint64_t gas_price = 0;
+   if (request.has_gas_price()) {
+      gas_price = request.gas_price();
+   }
+
+   evm_uint256be sig_r;
+   evm_uint256be sig_s;
+   uint64_t sig_v;
+   if (request.has_sig_r() && request.has_sig_s() && request.has_sig_v()) {
+      std::copy(request.sig_r().begin(), request.sig_r().end(), sig_r.bytes);
+      std::copy(request.sig_s().begin(), request.sig_s().end(), sig_s.bytes);
+      sig_v = request.sig_v();
+   } else {
+      sig_r = zero_hash;
+      sig_s = zero_hash;
+      sig_v = 0;
+   }
+
+   uint64_t transfer_val = from_evm_uint256be(&message.value);
+   uint64_t gas_limit = static_cast<uint64_t>(request.gas());
+   EthTransaction tx = {
+      nonce,
+      zero_hash,      // block_hash: will be set during write_block
+      0,              // block_number: will be set during write_block
+      message.sender, // from
+      to,
+      result.create_address,
+      std::vector<uint8_t>(message.input_data,
+                           message.input_data+message.input_size),
+      result.status_code,
+      transfer_val,   // value
+      gas_price,
+      gas_limit,      // TODO: also record gas used?
+      sig_r,
+      sig_s,
+      sig_v
+   };
+   kvbStorage.add_transaction(tx);
+
+   evm_uint256be txhash = tx.hash();
+   LOG4CPLUS_DEBUG(logger, "Recording transaction " << txhash);
+
+   assert(message.depth == 0);
+   kvbStorage.write_block();
+
+   return txhash;
 }

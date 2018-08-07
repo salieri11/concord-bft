@@ -16,6 +16,7 @@ RUN apt-get update && apt-get -y install \
     liblz4-dev \
     libprotobuf-dev \
     libsnappy-dev \
+    libtool \
     libzstd-dev \
     llvm-5.0 \
     llvm-5.0-dev \
@@ -74,6 +75,13 @@ RUN wget https://github.com/facebook/rocksdb/archive/v5.7.3.tar.gz \
 WORKDIR /rocksdb-5.7.3
 RUN make shared_lib && make install-shared
 
+WORKDIR /
+RUN git clone https://github.com/bitcoin-core/secp256k1
+WORKDIR /secp256k1
+RUN git checkout 1e6f1f5ad5e7f1e3ef79313ec02023902bf8175c
+RUN ./autogen.sh && ./configure --enable-module-recovery
+RUN make && make install
+
 WORKDIR /athena
 COPY . /athena
 WORKDIR /athena/build
@@ -101,12 +109,14 @@ COPY --from=0 /usr/local/lib/liblog4cplus* /usr/local/lib/
 # evmjit is statically compiled, so we don't need to copy
 COPY --from=0 /usr/local/lib/librelic* /usr/local/lib/
 COPY --from=0 /usr/local/lib/librocksdb.* /usr/local/lib/
+COPY --from=0 /usr/local/lib/libsecp256k1* /usr/local/lib/
 
 WORKDIR /athena/resources
 COPY --from=0 /athena/build/resources/log4cplus.properties /athena/resources/
 COPY --from=0 /athena/build/src/athena /athena/athena
 COPY --from=0 /athena/build/submodules/P2_Blockchain/AgreementModules/SbftForIntegMay18/libbyz/libbyz.so /usr/local/lib
 COPY --from=0 /athena/build/tools/ath_* /athena/
+COPY --from=0 /athena/build/tools/ec* /athena/
 COPY --from=0 /athena/docker/find-docker-instances.sh /athena/resources/
 COPY --from=0 /athena/test/resources/genesis.json /athena/resources/
 

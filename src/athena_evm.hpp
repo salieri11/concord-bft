@@ -103,14 +103,10 @@ public:
    ~EVM();
 
    /* Athena API */
-   void run(evm_message &message,
-            KVBStorage &kvbStorage,
-            evm_result &result, /* out */
-            evm_uint256be &txhash /* out */);
-   void create(evm_message &message,
-               KVBStorage &kvbStorage,
-               evm_result &result, /* out */
-               evm_uint256be &txhash /* out */);
+   evm_result run(evm_message &message,
+                  KVBStorage &kvbStorage);
+   evm_result create(evm_message &message,
+                     KVBStorage &kvbStorage);
    bool new_account(const std::string &passphrase,
                     KVBStorage &kvbStorage,
                     evm_address &address /* OUT */);
@@ -124,22 +120,9 @@ private:
 
    evm_address contract_destination(const evm_message &message,
                                     KVBStorage &kvbStorage);
-   void execute(evm_message &message,
-                KVBStorage &kvbStorage,
-                const std::vector<uint8_t> &code,
-                evm_result &result /* out */);
-
-   evm_uint256be record_transaction(const evm_message &message,
-                                    const evm_result &result,
-                                    const evm_address &to_override,
-                                    const evm_address &contract_address,
-                                    KVBStorage &kvbStorage);
-
-public:
-   // TODO(BWF): move to common?
-   static evm_uint256be keccak_hash(const std::vector<uint8_t> &data);
-   static evm_uint256be keccak_hash(const uint8_t *data, size_t size);
-
+   evm_result execute(evm_message &message,
+                      KVBStorage &kvbStorage,
+                      const std::vector<uint8_t> &code);
 };
 
 }

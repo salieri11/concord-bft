@@ -40,3 +40,24 @@ target_link_libraries(ath_getblk
                       athcmdutil
                       proto ${PROTOBUF_LIBRARIES}
                       ${Boost_LIBRARIES})
+
+# ecrecover and ecsign need to find src/common/athena_eth_sign.h
+include_directories("../src")
+
+add_executable(ecrecover
+  "ecrecover.cpp")
+target_link_libraries(ecrecover
+                      athcmdutil
+                      athena_utils
+                      log4cplus
+                      secp256k1
+                      ${Cryptopp_LIBRARIES})
+
+add_executable(ecsign
+  "ecsign.cpp")
+target_link_libraries(ecsign
+                      athcmdutil
+                      athena_utils
+                      log4cplus
+                      secp256k1
+                      ${Cryptopp_LIBRARIES})

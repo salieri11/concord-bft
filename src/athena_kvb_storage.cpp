@@ -65,6 +65,7 @@
 #include "athena_exception.hpp"
 #include "athena_storage.pb.h"
 #include "athena_evm.hpp"
+#include "common/athena_eth_hash.hpp"
 #include "kvb/slice.h"
 #include "kvb/BlockchainInterfaces.h"
 #include "kvb/HashDefs.h"
@@ -270,15 +271,22 @@ Status com::vmware::athena::KVBStorage::write_block() {
       LOG4CPLUS_ERROR(logger, "Failed to append block");
    }
 
+   // Prepare to stage another block
+   reset();
+   return status;
+}
+
+/**
+ * Drop all pending updates.
+ */
+void com::vmware::athena::KVBStorage::reset() {
    // Release all the storage our staging was using
    for (auto kvp: updates) {
       delete[] kvp.first.data();
       delete[] kvp.second.data();
    }
 
-   // Prepare to stage another block
    updates.clear();
-   return status;
 }
 
 /**
@@ -338,7 +346,7 @@ void com::vmware::athena::KVBStorage::set_code(const evm_address &addr,
    kvb::Code proto;
    proto.set_version(code_storage_version);
    proto.set_code(code, code_size);
-   evm_uint256be hash = EVM::keccak_hash(code, code_size);
+   evm_uint256be hash = EthHash::keccak_hash(code, code_size);
    proto.set_hash(hash.bytes, sizeof(hash));
 
    size_t sersize = proto.ByteSize();

@@ -16,6 +16,7 @@ class RLPBuilder {
 public:
    void add(const std::vector<uint8_t> &vec);
    void add(const uint8_t *data, size_t size);
+   void add(const std::string &str);
    void add(const evm_address &address);
    void add(const evm_uint256be &uibe);
    void add(uint64_t number);
@@ -34,6 +35,22 @@ private:
    void add_size(size_t size, uint8_t type_byte_short, uint8_t type_byte_long);
    void add_string_size(size_t size);
    void add_list_size(size_t size);
+};
+
+class RLPParser {
+public:
+   RLPParser(std::vector<uint8_t> &rlp) :
+      rlp_(rlp), offset(0) { };
+
+   std::vector<uint8_t> next();
+   bool at_end();
+
+private:
+   std::vector<uint8_t> &rlp_;
+   size_t offset;
+
+   std::vector<uint8_t> short_run(size_t length);
+   std::vector<uint8_t> long_run(size_t length_length);
 };
 
 }

@@ -17,3 +17,16 @@ target_link_libraries(Tests
   gtest
   gtest_main
   pthread)
+
+add_executable(SignTests
+  signature_test.cpp)
+
+target_link_libraries(SignTests
+  ${GTEST_LIBRARIES}
+  athena_utils
+  gtest
+  gtest_main
+  pthread
+  log4cplus
+  secp256k1
+  ${Cryptopp_LIBRARIES})

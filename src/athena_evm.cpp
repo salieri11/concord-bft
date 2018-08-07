@@ -7,7 +7,6 @@
 #include <stdexcept>
 #include <memory>
 #include <log4cplus/loggingmacros.h>
-#include <keccak.h>
 
 #include "athena_evm.hpp"
 #include "athena_exception.hpp"
@@ -15,6 +14,7 @@
 #include "athena_log.hpp"
 #include "athena_types.hpp"
 #include "common/rlp.hpp"
+#include "common/athena_eth_hash.hpp"
 #include "kvb/BlockchainInterfaces.h"
 #include "kvb/HashDefs.h"
 #include "kvb/slice.h"
@@ -67,22 +67,22 @@ com::vmware::athena::EVM::~EVM()
  * transaction is recorded. However for 'call' way there is no transaction to
  * record, it is a simple read storage operation.
  */
-void com::vmware::athena::EVM::run(evm_message &message,
-                                   KVBStorage &kvbStorage,
-                                   evm_result &result /* out */,
-                                   evm_uint256be &txhash /* out */)
+evm_result com::vmware::athena::EVM::run(evm_message &message,
+                                         KVBStorage &kvbStorage)
 {
    assert(message.kind != EVM_CREATE);
 
    std::vector<uint8_t> code;
    evm_uint256be hash;
+   evm_result result;
    if (kvbStorage.get_code(message.destination, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Loaded code from " << message.destination);
       message.code_hash = hash;
 
-      execute(message, kvbStorage, code, result);
+      result = execute(message, kvbStorage, code);
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " << message.destination);
+      memset(&result, 0, sizeof(result));
 
       if (!kvbStorage.is_read_only()) {
          uint64_t transfer_val = from_evm_uint256be(&message.value);
@@ -137,28 +137,18 @@ void com::vmware::athena::EVM::run(evm_message &message,
       LOG4CPLUS_DEBUG(logger, "Input data, but no code at " <<
                       message.destination << ", returning error code.");
       // attempted to run a contract that doesn't exist
+      memset(&result, 0, sizeof(result));
       result.status_code = EVM_FAILURE;
    }
 
-   // blockAppender will be null if this is a call instead of a transaction,
-   // because calls are not allowed to modify state. Only one transaction will
-   // be recorded per execution, so wait for stack to pop to depth zero.
-   if (!kvbStorage.is_read_only() && message.depth == 0) {
-      txhash = record_transaction(message,
-                                  result,
-                                  message.destination,
-                                  zero_address, /* no contract created */
-                                  kvbStorage);
-   }
+   return result;
 }
 
 /**
  * Create a contract.
  */
-void com::vmware::athena::EVM::create(evm_message &message,
-                                      KVBStorage &kvbStorage,
-                                      evm_result &result /* out */,
-                                      evm_uint256be &txhash /* out */)
+evm_result com::vmware::athena::EVM::create(evm_message &message,
+                                            KVBStorage &kvbStorage)
 {
    assert(message.kind == EVM_CREATE);
    assert(message.input_size > 0);
@@ -167,6 +157,7 @@ void com::vmware::athena::EVM::create(evm_message &message,
 
    std::vector<uint8_t> code;
    evm_uint256be hash;
+   evm_result result;
    if (!kvbStorage.get_code(contract_address, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Creating contract at " << contract_address);
 
@@ -177,9 +168,9 @@ void com::vmware::athena::EVM::create(evm_message &message,
 
       // we need a hash for this, or evmjit will cache its compilation under
       // something random
-      message.code_hash = keccak_hash(create_code);
+      message.code_hash = EthHash::keccak_hash(create_code);
 
-      execute(message, kvbStorage, create_code, result);
+      result = execute(message, kvbStorage, create_code);
 
       // TODO: check if the new contract is zero bytes in length;
       //       return error, not success in that case
@@ -219,57 +210,16 @@ void com::vmware::athena::EVM::create(evm_message &message,
       LOG4CPLUS_DEBUG(logger, "Existing code found at " <<
                       message.destination << ", returning error code.");
       // attempted to call a contract that doesn't exist
+      memset(&result, 0, sizeof(result));
       result.status_code = EVM_FAILURE;
    }
 
    // don't expose the address if it wasn't used
-   evm_address recorded_contract_address =
-      result.status_code == EVM_SUCCESS ? contract_address : zero_address;
-   if (message.depth == 0) {
-      txhash = record_transaction(message, result,
-                                  zero_address, /* creates are not addressed */
-                                  recorded_contract_address,
-                                  kvbStorage);
+   if (result.status_code != EVM_SUCCESS) {
+      result.create_address = zero_address;
    }
-}
 
-/**
- * Increment the sender's nonce, Add the transaction and write a block with
- * it. Message call depth must be zero.
- */
-evm_uint256be com::vmware::athena::EVM::record_transaction(
-   const evm_message &message,
-   const evm_result &result,
-   const evm_address &to_override,
-   const evm_address &contract_address,
-   KVBStorage &kvbStorage)
-{
-   uint64_t nonce = kvbStorage.get_nonce(message.sender)+1;
-   kvbStorage.set_nonce(message.sender, nonce);
-
-   uint64_t transfer_val = from_evm_uint256be(&message.value);
-   EthTransaction tx = {
-   nonce : nonce,
-   block_hash : zero_hash, // set to zero for now
-   // set to zero for now - will be set correctly when block is recorded
-   block_number : 0,
-   from : message.sender,
-   to : to_override,
-   contract_address : contract_address,
-   input : std::vector<uint8_t>(message.input_data,
-                                message.input_data+message.input_size),
-   status : result.status_code,
-   value : transfer_val
-   };
-   kvbStorage.add_transaction(tx);
-
-   evm_uint256be txhash = tx.hash();
-   LOG4CPLUS_DEBUG(logger, "Recording transaction " << txhash);
-
-   assert(message.depth == 0);
-   kvbStorage.write_block();
-
-   return txhash;
+   return result;
 }
 
 /**
@@ -289,7 +239,7 @@ evm_address com::vmware::athena::EVM::contract_destination(
    std::vector<uint8_t> rlp = rlpb.build();
 
    // hash it
-   evm_uint256be hash = keccak_hash(rlp);
+   evm_uint256be hash = EthHash::keccak_hash(rlp);
 
    // the lower 20 bytes are the address
    evm_address address;
@@ -310,7 +260,7 @@ bool com::vmware::athena::EVM::new_account(
    evm_address& address /* OUT */)
 {
    std::vector<uint8_t> vec(passphrase.begin(), passphrase.end());
-   evm_uint256be hash = keccak_hash(vec);
+   evm_uint256be hash = EthHash::keccak_hash(vec);
 
    std::copy(hash.bytes+(sizeof(evm_uint256be)-sizeof(evm_address)),
              hash.bytes+sizeof(evm_uint256be),
@@ -320,45 +270,39 @@ bool com::vmware::athena::EVM::new_account(
       return false;
    } else {
       kvbStorage.set_balance(address, 0);
-      EthTransaction tx{
-         nonce : 0,
-         block_hash : zero_hash, // set to zero for now
-         block_number : 0,
-         from : zero_address,
-         to : address,
-         contract_address : zero_address,
-         input : std::vector<uint8_t>(),
-         status : EVM_SUCCESS,
-         value : 0
+      // TODO: "zero-address?" notes below: personal_newAccount should be
+      // handled entirely in Helen. The creation of the account does not need to
+      // be recorded on the blockchain, except to appease athena_evm's existence
+      // check before allowing a balance transfer. Checking that the destination
+      // of a balance transfer exists should also be removed (see Ethereum
+      // address 0's current balance for compatibility arguments).
+      uint64_t nonce = kvbStorage.get_nonce(zero_address)+1;
+      EthTransaction tx = {
+         nonce,                  // nonce: zero-address nonce?
+         zero_hash,              // block_hash: will be set in write_block
+         0,                      // block_number: will be set in write_block
+         zero_address,           // from
+         address,                // to
+         zero_address,           // contract_address
+         std::vector<uint8_t>(), // input
+         EVM_SUCCESS,            // status
+         0,                      // value
+         0,                      // gas_price
+         0,                      // gas_limit
+         zero_hash,              // sig_r: zero-address signature?
+         zero_hash,              // sig_s: zero-address signature?
+         0                       // sig_v: zero-address signature? chainID?
       };
       kvbStorage.add_transaction(tx);
+      kvbStorage.set_nonce(zero_address, nonce);
       kvbStorage.write_block();
       return true;
    }
 }
 
-evm_uint256be com::vmware::athena::EVM::keccak_hash(
-   const std::vector<uint8_t> &data)
-{
-   return keccak_hash(&data[0], data.size());
-}
-
-evm_uint256be com::vmware::athena::EVM::keccak_hash(
-   const uint8_t *data, size_t size)
-{
-   static_assert(sizeof(evm_uint256be) == CryptoPP::Keccak_256::DIGESTSIZE,
-                 "hash is not the same size as uint256");
-
-   CryptoPP::Keccak_256 keccak;
-   evm_uint256be hash;
-   keccak.CalculateDigest(hash.bytes, data, size);
-   return hash;
-}
-
-void com::vmware::athena::EVM::execute(evm_message &message,
-                                       KVBStorage &kvbStorage,
-                                       const std::vector<uint8_t> &code,
-                                       evm_result &result)
+evm_result com::vmware::athena::EVM::execute(evm_message &message,
+                                             KVBStorage &kvbStorage,
+                                             const std::vector<uint8_t> &code)
 {
    // wrap an evm context in an athena context
    athena_context athctx = {{&athena_fn_table},
@@ -366,8 +310,8 @@ void com::vmware::athena::EVM::execute(evm_message &message,
                             &kvbStorage,
                             &logger};
 
-   result = evminst->execute(evminst, &athctx.evmctx, EVM_BYZANTIUM,
-                             &message, &code[0], code.size());
+   return evminst->execute(evminst, &athctx.evmctx, EVM_BYZANTIUM,
+                           &message, &code[0], code.size());
 }
 
 extern "C" {
@@ -507,18 +451,12 @@ extern "C" {
       // can cause segmentation errors
       memset(result, 0, sizeof(evm_result));
 
-      // txhash is a throw-away - we don't get a transaction from a call
-      evm_uint256be txhash;
       if (msg->kind == EVM_CREATE) {
-         ath_object(evmctx)->create(call_msg,
-                                 *(ath_context(evmctx)->kvbStorage),
-                                 *result,
-                                 txhash);
+         *result = ath_object(evmctx)->create(
+            call_msg, *(ath_context(evmctx)->kvbStorage));
       } else {
-         ath_object(evmctx)->run(call_msg,
-                                 *(ath_context(evmctx)->kvbStorage),
-                                 *result,
-                                 txhash);
+         *result = ath_object(evmctx)->run(
+            call_msg, *(ath_context(evmctx)->kvbStorage));
       }
    }
 

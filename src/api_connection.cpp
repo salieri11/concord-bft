@@ -388,8 +388,7 @@ api_connection::handle_eth_request(int i)
       bool isReadOnly = true;
       switch(request.method()) {
       case EthRequest_EthMethod_SEND_TX:
-         // TODO: complicated validation; let it through for now
-         validRequest = true;
+         validRequest = is_valid_eth_sendTransaction(request);
          isReadOnly = false;
          break;
       case EthRequest_EthMethod_NEW_ACCOUNT:
@@ -438,6 +437,41 @@ api_connection::handle_eth_request(int i)
          }
       }
    }
+}
+
+/**
+ * Verify an eth.sendTransaction or eth.sendRawTransaction request is valid.
+ * According to the RPC docs, the only thing we absolutely have to know about a
+ * transaction is the address of the originating account ("from"). Technically
+ * it says data is also not optional, but it's not needed for a simple value
+ * transfer, so it's really only needed if there is no destination account
+ * ("to").
+ */
+bool
+api_connection::is_valid_eth_sendTransaction(const EthRequest &request)
+{
+   if (!request.has_addr_from() &&
+       !(request.has_sig_v() && request.has_sig_r() && request.has_sig_s())) {
+      // We need either "from" or a signature to learn the source of this
+      // transaction. In this early validation, just make sure there is
+      // something in the fields. We'll check the fields are valid in
+      // athena_kvb. TODO: We may want to validate here as well, to avoid
+      // consensus work on an obviously invalid transaction.
+      ErrorResponse *error = athenaResponse_.add_error_response();
+      error->set_description("No \"from\" or signature provided");
+      return false;
+   }
+
+   if (!request.has_addr_to() && !request.has_data()) {
+      // If "to" is absent, this must be a contract creation, which requires
+      // "data".
+      ErrorResponse *error = athenaResponse_.add_error_response();
+      error->set_description("Missing both \"to\" and \"data\"");
+      return false;
+   }
+
+   //everything checked out
+   return true;
 }
 
 /**

@@ -30,4 +30,5 @@ target_link_libraries(athena
   LLVMSupport
   athena_utils
   kvblockchain
+  secp256k1
 )

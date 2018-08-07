@@ -11,8 +11,9 @@
 #include "kvb/slice.h"
 #include "athena_storage.pb.h"
 #include "common/rlp.hpp"
-#include "athena_evm.hpp"
+#include "common/athena_eth_hash.hpp"
 #include "kvb/HexTools.h"
+#include "athena_log.hpp"
 
 using namespace com::vmware::athena::kvb;
 
@@ -66,35 +67,34 @@ bool operator==(const evm_address &a, const evm_address &b)
    return memcmp(a.bytes, b.bytes, sizeof(evm_address)) == 0;
 }
 
-/**
- * Compute the hash which will be used to reference the transaction.
- */
-evm_uint256be com::vmware::athena::EthTransaction::hash() const
+std::vector<uint8_t> com::vmware::athena::EthTransaction::rlp() const
 {
-   /*
-    * WARNING: This is not the same as Ethereum's transaction hash right now,
-    * but is instead an approximation, in order to provide something to fill API
-    * holes. For now, the plan is:
-    *
-    * RLP([nonce, from, to/contract_address, input])
-    */
-
    RLPBuilder rlpb;
    rlpb.start_list();
 
    // RLP building is done in reverse order - build flips it for us
+   rlpb.add(this->sig_s);
+   rlpb.add(this->sig_r);
+   rlpb.add(this->sig_v);
    rlpb.add(this->input);
+   rlpb.add(this->value);
    if (this->contract_address == zero_address) {
       rlpb.add(this->to);
    } else {
       rlpb.add(this->contract_address);
    }
-   rlpb.add(this->from);
+   rlpb.add(this->gas_limit);
+   rlpb.add(this->gas_price);
    rlpb.add(this->nonce);
-   std::vector<uint8_t> rlp = rlpb.build();
+   return rlpb.build();
+}
 
-   // hash it
-   return com::vmware::athena::EVM::keccak_hash(rlp);
+/**
+ * Compute the hash which will be used to reference the transaction.
+ */
+evm_uint256be com::vmware::athena::EthTransaction::hash() const
+{
+   return com::vmware::athena::EthHash::keccak_hash(this->rlp());
 }
 
 size_t com::vmware::athena::EthTransaction::serialize(char** serialized)
@@ -122,6 +122,11 @@ size_t com::vmware::athena::EthTransaction::serialize(char** serialized)
 
    out.set_status(this->status);
    out.set_value(this->value);
+   out.set_gas_price(this->gas_price);
+   out.set_gas_limit(this->gas_limit);
+   out.set_sig_v(this->sig_v);
+   out.set_sig_r(this->sig_r.bytes, sizeof(this->sig_r));
+   out.set_sig_s(this->sig_s.bytes, sizeof(this->sig_s));
 
    size_t size = out.ByteSize();
 
@@ -181,6 +186,36 @@ com::vmware::athena::EthTransaction::deserialize(Blockchain::Slice &input)
       outtx.status = static_cast<evm_status_code>(intx.status());
       outtx.value = intx.value();
 
+      if (intx.has_gas_price()) {
+         outtx.gas_price = intx.gas_price();
+      } else {
+         outtx.gas_price = 0;
+      }
+
+      if (intx.has_gas_limit()) {
+         outtx.gas_limit = intx.gas_limit();
+      } else {
+         outtx.gas_limit = 0;
+      }
+
+      if (intx.has_sig_r()) {
+         std::copy(intx.sig_r().begin(), intx.sig_r().end(), outtx.sig_r.bytes);
+      } else {
+         outtx.sig_r = zero_hash;
+      }
+
+      if (intx.has_sig_s()) {
+         std::copy(intx.sig_s().begin(), intx.sig_s().end(), outtx.sig_s.bytes);
+      } else {
+         outtx.sig_s = zero_hash;
+      }
+
+      if (intx.has_sig_v()) {
+         outtx.sig_v = intx.sig_v();
+      } else {
+         outtx.sig_v = 0;
+      }
+
       return outtx;
    } else {
       LOG4CPLUS_ERROR(log4cplus::Logger::getInstance("com.vmware.athena"),
@@ -218,7 +253,7 @@ evm_uint256be com::vmware::athena::EthBlock::get_hash() const
    std::vector<uint8_t> rlp = rlpb.build();
 
    // hash it
-   return com::vmware::athena::EVM::keccak_hash(rlp);
+   return com::vmware::athena::EthHash::keccak_hash(rlp);
 }
 
 size_t com::vmware::athena::EthBlock::serialize(char** serialized)

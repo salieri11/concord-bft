@@ -22,7 +22,12 @@ message Transaction {
    optional bytes contract_address = 7; // 20 bytes
    optional bytes input = 8;
    optional int64 status = 9;
-   optional int64 value = 10;           // 32 bytes
+   optional int64 value = 10;
+   optional int64 gas_price = 11;
+   optional int64 gas_limit = 12;
+   optional bytes sig_r = 13;           // 32 bytes
+   optional bytes sig_s = 14;           // 32 bytes
+   optional uint32 sig_v = 15;
 }
 
 message Balance {

@@ -79,16 +79,13 @@ private:
    bool
    send_request(AthenaRequest &req, bool isReadOnly, AthenaResponse &resp);
 
-   evm_result
-   run_evm(const EthRequest &request,
-           bool isTransaction,
-           evm_uint256be &txhash);
-
    /* Specific Ethereum Method handlers. */
    bool
    is_valid_eth_getStorageAt(const EthRequest &request);
    bool
    is_valid_eth_getCode(const EthRequest &request);
+   bool
+   is_valid_eth_sendTransaction(const EthRequest &request);
    bool
    is_valid_eth_getTransactionCount(const EthRequest &request);
    bool

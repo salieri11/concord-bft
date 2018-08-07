@@ -68,6 +68,13 @@ void com::vmware::athena::RLPBuilder::add(const uint8_t *data, size_t size)
    add_string_size(size);
 }
 
+void com::vmware::athena::RLPBuilder::add(const std::string &str)
+{
+   assert(!finished);
+   std::reverse_copy(str.begin(), str.end(), std::back_inserter(buffer));
+   add_string_size(str.size());
+}
+
 void com::vmware::athena::RLPBuilder::add(const evm_address &address)
 {
    assert(!finished);
@@ -118,4 +125,62 @@ std::vector<uint8_t>&& com::vmware::athena::RLPBuilder::build() {
    std::reverse(buffer.begin(), buffer.end());
    finished = true;
    return std::move(buffer);
+}
+
+bool com::vmware::athena::RLPParser::at_end()
+{
+   return offset == rlp_.size();
+}
+
+std::vector<uint8_t> com::vmware::athena::RLPParser::next()
+{
+   if (rlp_[offset] < 0x80) {
+      std::vector<uint8_t> simple;
+      simple.push_back(rlp_[offset]);
+      offset++;
+      return simple;
+   } else if (rlp_[offset] < 0xb8) {
+      size_t length = rlp_[offset] - 0x80;
+      offset++;
+      return short_run(length);
+   } else if (rlp_[offset] < 0xc0) {
+      size_t length_length = rlp_[offset]-0xb7;
+      offset++;
+      return long_run(length_length);
+   } else if (rlp_[offset] < 0xf8) {
+      size_t length = rlp_[offset] - 0xc0;
+      offset++;
+      return short_run(length);
+   } else {
+      size_t length_length = rlp_[offset]-0xf7;
+      offset++;
+      return long_run(length_length);
+   }
+}
+
+std::vector<uint8_t> com::vmware::athena::RLPParser::short_run(size_t length)
+{
+   std::vector<uint8_t> short_string;
+   if (length > 0) {
+      std::copy(rlp_.begin()+offset, rlp_.begin()+offset+length,
+                std::back_inserter(short_string));
+      offset += length;
+   }
+   return short_string;
+}
+
+std::vector<uint8_t> com::vmware::athena::RLPParser::long_run(
+   size_t length_length)
+{
+   size_t length = 0;
+   for (size_t i = 0; i < length_length; i++) {
+      length = length << 8;
+      length += rlp_[offset];
+      offset++;
+   }
+   std::vector<uint8_t> long_string;
+   std::copy(rlp_.begin()+offset, rlp_.begin()+offset+length,
+             std::back_inserter(long_string));
+   offset += length;
+   return long_string;
 }

@@ -83,6 +83,7 @@ public:
                              const evm_uint256be &location);
 
    Blockchain::Status write_block();
+   void reset();
    void add_transaction(EthTransaction &tx);
    void set_balance(const evm_address &addr, uint64_t balance);
    void set_nonce(const evm_address &addr, uint64_t nonce);
