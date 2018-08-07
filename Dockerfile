@@ -21,7 +21,7 @@ RUN apt-get update && apt-get -y install \
 WORKDIR /
 COPY priv priv
 COPY application.properties .
-COPY helen*.jar .
+COPY target/helen*.jar .
 
 # prepare for docker-compose, where athena is available from a virtual
 # host named "athena1"
