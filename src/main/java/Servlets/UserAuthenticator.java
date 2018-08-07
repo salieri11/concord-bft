@@ -69,9 +69,9 @@ public class UserAuthenticator extends BaseServlet {
          }
          String tokens[] = uri.split("/");
          // URI is /api/login/<userID>
-         if (tokens[3].equals("login")) {
+         if (tokens[2].equals("login")) {
             boolean successful
-               = prm.loginUser(tokens[4],
+               = prm.loginUser(tokens[3],
                                (String) requestJSON.get(PASSWORD_LABEL));
             if (successful) {
                responseStatus = HttpServletResponse.SC_OK;
