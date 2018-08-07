@@ -824,12 +824,12 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
       assert(20 == request.addr_to().length());
       memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
 
-      athevm_.run(message, kvbStorage, result);
+      result = athevm_.run(message, kvbStorage);
    } else {
       message.kind = EVM_CREATE;
 
       assert(!kvbStorage.is_read_only());
-      athevm_.create(message, kvbStorage, result);
+      result = athevm_.create(message, kvbStorage);
    }
 
    LOG4CPLUS_INFO(logger, "Execution result -" <<

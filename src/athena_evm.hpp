@@ -103,12 +103,10 @@ public:
    ~EVM();
 
    /* Athena API */
-   void run(evm_message &message,
-            KVBStorage &kvbStorage,
-            evm_result &result /* out */);
-   void create(evm_message &message,
-               KVBStorage &kvbStorage,
-               evm_result &result /* out */);
+   evm_result run(evm_message &message,
+                  KVBStorage &kvbStorage);
+   evm_result create(evm_message &message,
+                     KVBStorage &kvbStorage);
    bool new_account(const std::string &passphrase,
                     KVBStorage &kvbStorage,
                     evm_address &address /* OUT */);
@@ -122,10 +120,9 @@ private:
 
    evm_address contract_destination(const evm_message &message,
                                     KVBStorage &kvbStorage);
-   void execute(evm_message &message,
-                KVBStorage &kvbStorage,
-                const std::vector<uint8_t> &code,
-                evm_result &result /* out */);
+   evm_result execute(evm_message &message,
+                      KVBStorage &kvbStorage,
+                      const std::vector<uint8_t> &code);
 };
 
 }

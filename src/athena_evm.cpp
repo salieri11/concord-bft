@@ -67,21 +67,22 @@ com::vmware::athena::EVM::~EVM()
  * transaction is recorded. However for 'call' way there is no transaction to
  * record, it is a simple read storage operation.
  */
-void com::vmware::athena::EVM::run(evm_message &message,
-                                   KVBStorage &kvbStorage,
-                                   evm_result &result /* out */)
+evm_result com::vmware::athena::EVM::run(evm_message &message,
+                                         KVBStorage &kvbStorage)
 {
    assert(message.kind != EVM_CREATE);
 
    std::vector<uint8_t> code;
    evm_uint256be hash;
+   evm_result result;
    if (kvbStorage.get_code(message.destination, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Loaded code from " << message.destination);
       message.code_hash = hash;
 
-      execute(message, kvbStorage, code, result);
+      result = execute(message, kvbStorage, code);
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " << message.destination);
+      memset(&result, 0, sizeof(result));
 
       if (!kvbStorage.is_read_only()) {
          uint64_t transfer_val = from_evm_uint256be(&message.value);
@@ -136,16 +137,18 @@ void com::vmware::athena::EVM::run(evm_message &message,
       LOG4CPLUS_DEBUG(logger, "Input data, but no code at " <<
                       message.destination << ", returning error code.");
       // attempted to run a contract that doesn't exist
+      memset(&result, 0, sizeof(result));
       result.status_code = EVM_FAILURE;
    }
+
+   return result;
 }
 
 /**
  * Create a contract.
  */
-void com::vmware::athena::EVM::create(evm_message &message,
-                                      KVBStorage &kvbStorage,
-                                      evm_result &result /* out */)
+evm_result com::vmware::athena::EVM::create(evm_message &message,
+                                            KVBStorage &kvbStorage)
 {
    assert(message.kind == EVM_CREATE);
    assert(message.input_size > 0);
@@ -154,6 +157,7 @@ void com::vmware::athena::EVM::create(evm_message &message,
 
    std::vector<uint8_t> code;
    evm_uint256be hash;
+   evm_result result;
    if (!kvbStorage.get_code(contract_address, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Creating contract at " << contract_address);
 
@@ -166,7 +170,7 @@ void com::vmware::athena::EVM::create(evm_message &message,
       // something random
       message.code_hash = EthHash::keccak_hash(create_code);
 
-      execute(message, kvbStorage, create_code, result);
+      result = execute(message, kvbStorage, create_code);
 
       // TODO: check if the new contract is zero bytes in length;
       //       return error, not success in that case
@@ -206,6 +210,7 @@ void com::vmware::athena::EVM::create(evm_message &message,
       LOG4CPLUS_DEBUG(logger, "Existing code found at " <<
                       message.destination << ", returning error code.");
       // attempted to call a contract that doesn't exist
+      memset(&result, 0, sizeof(result));
       result.status_code = EVM_FAILURE;
    }
 
@@ -213,6 +218,8 @@ void com::vmware::athena::EVM::create(evm_message &message,
    if (result.status_code != EVM_SUCCESS) {
       result.create_address = zero_address;
    }
+
+   return result;
 }
 
 /**
@@ -293,10 +300,9 @@ bool com::vmware::athena::EVM::new_account(
    }
 }
 
-void com::vmware::athena::EVM::execute(evm_message &message,
-                                       KVBStorage &kvbStorage,
-                                       const std::vector<uint8_t> &code,
-                                       evm_result &result)
+evm_result com::vmware::athena::EVM::execute(evm_message &message,
+                                             KVBStorage &kvbStorage,
+                                             const std::vector<uint8_t> &code)
 {
    // wrap an evm context in an athena context
    athena_context athctx = {{&athena_fn_table},
@@ -304,8 +310,8 @@ void com::vmware::athena::EVM::execute(evm_message &message,
                             &kvbStorage,
                             &logger};
 
-   result = evminst->execute(evminst, &athctx.evmctx, EVM_BYZANTIUM,
-                             &message, &code[0], code.size());
+   return evminst->execute(evminst, &athctx.evmctx, EVM_BYZANTIUM,
+                           &message, &code[0], code.size());
 }
 
 extern "C" {
@@ -446,13 +452,11 @@ extern "C" {
       memset(result, 0, sizeof(evm_result));
 
       if (msg->kind == EVM_CREATE) {
-         ath_object(evmctx)->create(call_msg,
-                                 *(ath_context(evmctx)->kvbStorage),
-                                 *result);
+         *result = ath_object(evmctx)->create(
+            call_msg, *(ath_context(evmctx)->kvbStorage));
       } else {
-         ath_object(evmctx)->run(call_msg,
-                                 *(ath_context(evmctx)->kvbStorage),
-                                 *result);
+         *result = ath_object(evmctx)->run(
+            call_msg, *(ath_context(evmctx)->kvbStorage));
       }
    }
 
