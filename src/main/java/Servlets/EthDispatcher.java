@@ -103,7 +103,7 @@ public final class EthDispatcher extends BaseServlet {
             throw new EthRPCHandlerException("method must be a string");
          }
       } else {
-         throw new EthRPCHandlerException("request must container a method");
+         throw new EthRPCHandlerException("request must contain a method");
       }
    }
 
