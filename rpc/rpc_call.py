@@ -228,6 +228,18 @@ class RPC():
       response = self._call()
       return self.getResultFromResponse(response)
 
+   def sendRawTransaction(self, rawTx):
+      '''
+      Given an RLP-encoded transaction, submits it to the blockchain and
+      returns the result field of the response, which is typically the
+      transaction hash.
+      '''
+      self._rpcData["method"] = "eth_sendRawTransaction"
+      self._rpcData["params"] = [rawTx]
+
+      response = self._call()
+      return self.getResultFromResponse(response)
+
    def getBlockNumber(self):
       '''
       Gets the latest block number in the blockchain.
