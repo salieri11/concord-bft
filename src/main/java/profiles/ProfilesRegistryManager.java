@@ -51,14 +51,12 @@ public class ProfilesRegistryManager {
 
    public JSONArray getUsers(String consortiumID, String organizationID) {
       List<User> userList = getUsersInternal(consortiumID, organizationID);
-      // @formatter:off
       return userList.stream()
               .map(UsersAPIMessage::new)
               .map(UsersGetResponse::toJSON)
               .reduce(new JSONArray(),
                       (arr, obj) -> { arr.add(obj); return arr; },
                       (arr1, arr2) -> { arr1.addAll(arr2); return arr1; });
-      // @formatter:on
    }
 
    private List<User> getUsersWithID(List<String> userIdList) {
@@ -147,6 +145,8 @@ public class ProfilesRegistryManager {
       Optional<User> oUser = userRepository.findById(Long.parseLong(userID));
       if (oUser.isPresent()) {
          User u = oUser.get();
+         // TODO: We know this is not a long-term solution and this will be
+         // replaced by CSP authentication very soon.
          if (u.getPassword().equals(password)) {
             u.setLastLogin(Instant.now());
             userRepository.save(u);

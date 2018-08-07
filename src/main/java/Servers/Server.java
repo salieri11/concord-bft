@@ -16,10 +16,14 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import javax.persistence.Entity;
 import javax.servlet.ServletException;
 
 import org.apache.log4j.Logger;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 import Servlets.*;
 import configurations.ConfigurationFactory;
@@ -35,19 +39,11 @@ import io.undertow.server.handlers.resource.FileResourceManager;
 import io.undertow.servlet.Servlets;
 import io.undertow.servlet.api.DeploymentInfo;
 import io.undertow.servlet.api.DeploymentManager;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-
 
 @SpringBootApplication
 @EntityScan("profiles")
 @EnableJpaRepositories("profiles")
-@ComponentScan(basePackages = {"profiles", "Servlets"})
+@ComponentScan(basePackages = { "profiles", "Servlets" })
 public class Server {
    private static String serverPath;
    private static String deploymentName;
@@ -79,6 +75,8 @@ public class Server {
    private static String contractEndpoint;
    private static String userManagementServletName;
    private static String userManagementEndpoint;
+   private static String userLoginEndpoint;
+   private static String userLoginServletName;
 
    // Set current datetime for logging purposes
    static {
@@ -137,6 +135,8 @@ public class Server {
       userManagementServletName
          = conf.getStringValue("UserManagement_ServletName");
       userManagementEndpoint = conf.getStringValue("UserManagement_Endpoint");
+      userLoginServletName = conf.getStringValue("UserLogin_ServletName");
+      userLoginEndpoint = conf.getStringValue("UserLogin_Endpoint");
 
       DeploymentInfo servletBuilder
          = deployment().setClassLoader(Server.class.getClassLoader())
@@ -196,6 +196,11 @@ public class Server {
                                                     ProfileManager.class)
                                            .addMapping(userManagementEndpoint)
                                            .addMapping(userManagementEndpoint
+                                              + "/*"))
+                       .addServlet(Servlets.servlet(userLoginServletName,
+                                                    UserAuthenticator.class)
+                                           .addMapping(userLoginEndpoint)
+                                           .addMapping(userLoginEndpoint
                                               + "/*"));
 
       DeploymentManager manager
@@ -227,7 +232,7 @@ public class Server {
                                 .build();
       server.start();
       logger.info("Server Booted");
-   
+
       SpringApplication.run(Server.class, args);
    }
 
