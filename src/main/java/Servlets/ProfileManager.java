@@ -25,10 +25,7 @@ import org.json.simple.parser.ParseException;
 
 import com.vmware.athena.Athena;
 
-import profiles.ProfilesRegistryManager;
-import profiles.UserModificationException;
-import profiles.UserPatchRequest;
-import profiles.UsersAPIMessage;
+import profiles.*;
 
 /**
  * A servlet which manages all GET/POST/PATCH requests related to user
@@ -114,6 +111,19 @@ public class ProfileManager extends BaseServlet {
       }
    }
 
+   private void
+           validateCreateRequest(UserCreateRequest ucr) throws UserModificationException {
+      if (ucr.getEmail() == null || ucr.getEmail().isEmpty()) {
+         throw new UserModificationException("invalid email specified");
+      }
+      if (ucr.getUserName() == null || ucr.getEmail().isEmpty()) {
+         throw new UserModificationException("invalid name specified");
+      }
+      if (ucr.getPassword() == null || ucr.getPassword().isEmpty()) {
+         throw new UserModificationException("invalid password specified");
+      }
+   }
+   
    @Override
    protected void
              doPost(final HttpServletRequest request,
@@ -131,8 +141,9 @@ public class ProfileManager extends BaseServlet {
          // organization & consortium to allow easy testing. Delete this
          // method once testing phase is done
          createTestProfiles(requestJson);
-
          UsersAPIMessage postRequest = new UsersAPIMessage(requestJson);
+
+         validateCreateRequest(postRequest);
 
          String userID = prm.createUser(postRequest);
 
@@ -151,7 +162,32 @@ public class ProfileManager extends BaseServlet {
                       responseStatus,
                       logger);
    }
-
+   
+   
+   private void
+   validatePatchRequest(UserPatchRequest upr) throws UserModificationException {
+      if (upr.getOptionalRole().isPresent() &&
+              Roles.contains(upr.getOptionalRole().get())) {
+         throw new UserModificationException("invalid role provided");
+      }
+      if (upr.getOptionalLastName().isPresent() &&
+              upr.getOptionalLastName().get().isEmpty()) {
+         throw new UserModificationException("invalid last name provided");
+      }
+      if (upr.getOptionalFirstName().isPresent() &&
+              upr.getOptionalFirstName().get().isEmpty()) {
+         throw new UserModificationException("invalid first name provided");
+      }
+      if (upr.getOptionalEmail().isPresent() &&
+              upr.getOptionalEmail().get().isEmpty()) {
+         throw new UserModificationException("invalid email provided");
+      }
+      if (upr.getOptionalName().isPresent() &&
+              upr.getOptionalName().get().isEmpty()){
+         throw new UserModificationException("invalid name provided");
+      }
+   }
+   
    protected void doPatch(HttpServletRequest request,
                           HttpServletResponse response) {
       int responseStatus;
@@ -174,6 +210,7 @@ public class ProfileManager extends BaseServlet {
             JSONObject requestJson = (JSONObject) parser.parse(paramString);
             UserPatchRequest upr = new UsersAPIMessage(requestJson);
             upr.setUserID(Long.parseLong(userID));
+            validatePatchRequest(upr);
             prm.updateUser(upr);
 
             responseString = new JSONObject().toJSONString();

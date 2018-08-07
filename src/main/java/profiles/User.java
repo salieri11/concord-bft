@@ -25,7 +25,7 @@ public class User {
    @GeneratedValue(strategy = GenerationType.AUTO)
    private Long userID = 0L;
 
-   @NonNull
+   @Column(nullable = false)
    private String name;
 
    // firstName and lastName are primarily used for
@@ -34,11 +34,10 @@ public class User {
 
    private String lastName;
 
-   @NonNull
+   
    private String email;
-
-   @NonNull
-
+   
+   @Column(nullable = false)
    private String role;
 
    @ManyToOne(optional = false, fetch = FetchType.LAZY)
@@ -48,8 +47,8 @@ public class User {
    @ManyToOne(optional = false, fetch = FetchType.LAZY)
    @JoinColumn(nullable = false)
    private Consortium consortium;
-
-   @NonNull
+   
+   @Column(nullable = false)
    private String password;
 
    private Instant lastLogin = Instant.EPOCH;
