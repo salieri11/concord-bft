@@ -8,7 +8,8 @@
 
 #tooltip-container {
   box-sizing: border-box;
-  background: $white;
+  background: $clr-black;
   border-radius: $clr-global-borderradius;
   padding: 10px;
+  color: $white;
 }

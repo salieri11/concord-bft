@@ -31,6 +31,7 @@
     "@clr/ui": "^0.12.1",
     "@ngx-translate/core": "~10.0.2",
     "@ngx-translate/http-loader": "^3.0.1",
+    "@swimlane/ngx-charts": "^9.0.0",
     "@webcomponents/custom-elements": "^1.0.0",
     "bootstrap": "4.0.0-alpha.5",
     "core-js": "^2.4.1",
