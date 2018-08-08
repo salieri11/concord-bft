@@ -10,6 +10,7 @@ import { NodesStatusFilterComponent } from './nodes-status-filter/nodes-status-f
 import { TransactionsModule } from '../transactions/transactions.module';
 import { NodeComponent } from './node/node.component';
 import { NodesComponent } from './nodes/nodes.component';
+import { BlockGraphModule } from '../block-graph/block-graph.module';
 
 
 
@@ -17,7 +18,8 @@ import { NodesComponent } from './nodes/nodes.component';
   imports: [
     TransactionsModule,
     RouterModule,
-    SharedModule
+    SharedModule,
+    BlockGraphModule
   ],
   declarations: [NodesComponent, NodeComponent, NodesStatusFilterComponent]
 })

@@ -148,7 +148,7 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
       target: this.mapContainer.nativeElement,
       view: new View({
         center: fromLonLat([0, 30]),
-        zoom: 2,
+        zoom: 2.75,
         zoomFactor: 1.75
       }),
       interactions: interactionDefaults({mouseWheelZoom: false})

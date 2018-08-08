@@ -25,7 +25,6 @@ const routes: Routes = [
     component: MainComponent,
     canActivateChild: [AuthenticatedGuard],
     children: [
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard', children: dashboardRoutes },
       { path: 'blocks', children: blockRoutes },
       { path: 'nodes', children: nodeRoutes },

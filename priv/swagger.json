@@ -31,14 +31,20 @@
                   "items": {
                     "type": "object",
                     "properties": {
-                      "host": {
+                      "hostname": {
                         "type": "string"
                       },
-                      "port": {
-                        "type": "integer"
+                      "address": {
+                        "type": "string"
                       },
                       "status": {
                         "type": "string"
+                      },
+                      "millisSinceLastMessage": {
+                        "type": "integer"
+                      },
+                      "millisSinceLastMessageThreshold": {
+                        "type": "integer"
                       }
                     }
                   }
