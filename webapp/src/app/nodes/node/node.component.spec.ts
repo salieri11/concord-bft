@@ -10,11 +10,11 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 
+import { GraphsModule } from '../../graphs/graphs.module';
 import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
 import { TransactionListComponent } from '../../transactions/transaction-list/transaction-list.component';
 import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
 import { NodeComponent } from './node.component';
-import { BlockGraphModule } from '../../block-graph/block-graph.module';
 
 describe('NodeComponent', () => {
   let component: NodeComponent;
@@ -26,7 +26,7 @@ describe('NodeComponent', () => {
         RouterTestingModule,
         HttpClientTestingModule,
         MockSharedModule,
-        BlockGraphModule,
+        GraphsModule,
         NoopAnimationsModule
       ],
       declarations: [

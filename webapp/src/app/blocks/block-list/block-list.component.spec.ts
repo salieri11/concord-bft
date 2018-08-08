@@ -13,7 +13,7 @@ import { NgxChartsModule } from '@swimlane/ngx-charts';
 import { MockSharedModule } from '../../shared/shared.module';
 import { BlockDetailsComponent } from '../block-details/block-details.component';
 import { BlockListComponent } from './block-list.component';
-import { BlockGraphComponent } from '../../block-graph/block-graph/block-graph.component';
+import { BlockGraphComponent } from '../../graphs/block-graph/block-graph.component';
 
 describe('BlockListComponent', () => {
   let component: BlockListComponent;

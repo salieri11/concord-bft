@@ -9,14 +9,14 @@ import { TourNgxPopperModule } from 'ngx-tour-ngx-popper';
 import { SharedModule } from '../shared/shared.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { DashboardComponent } from './dashboard-container/dashboard.component';
-import { BlockGraphModule } from '../block-graph/block-graph.module';
+import { GraphsModule } from '../graphs/graphs.module';
 
 @NgModule({
   imports: [
     SharedModule,
     RouterModule,
     TransactionsModule,
-    BlockGraphModule,
+    GraphsModule,
     TourNgxPopperModule
   ],
   declarations: [DashboardComponent]

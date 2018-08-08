@@ -18,4 +18,4 @@ import { WorldMapComponent } from './world-map/world-map.component';
   declarations: [BlockGraphComponent, WorldMapComponent],
   exports: [BlockGraphComponent, WorldMapComponent]
 })
-export class BlockGraphModule { }
+export class GraphsModule { }
