@@ -12,8 +12,6 @@ import { NodeComponent } from './node/node.component';
 import { NodesComponent } from './nodes/nodes.component';
 import { BlockGraphModule } from '../block-graph/block-graph.module';
 
-
-
 @NgModule({
   imports: [
     TransactionsModule,

@@ -4,7 +4,7 @@
       <a routerLink="/nodes">
         <clr-icon shape="circle-arrow" class="is-highlight" size="28" dir="left"></clr-icon>
       </a>
-      <h2 class="mt-0 pl-1">GAV-324V AAC Application Node</h2>
+      <h2 class="mt-0 pl-1">{{nodeName}}</h2>
     </div>
   </div>
   <div class="row">
@@ -16,7 +16,7 @@
     </div>
     <div class="col-md">
       <p class="p7 mt-0">
-        {{'nodes.nodeOwners' | translate}}
+        {{'nodes.orgOwners' | translate}}
       </p>
       <p class="mt-0">Allen, J</p>
       <p class="mt-0">Dickerson, B</p>
@@ -63,17 +63,13 @@
     </div>
   </div>
   <div class="row">
-    <div class="col-md-12">
-      <h3 class="mb-1">{{'nodes.network' | translate}}</h3>
-      <img class="graph-placeholder" src="assets/static/images/network-timeline.png">
-    </div>
-    <div class="col-md-6">
+    <div class="col-lg-6">
       <h3 class="mb-1">{{'nodes.nodeActivity' | translate}}</h3>
-      <img class="graph-placeholder" src="assets/static/images/node-activity-small.png">
+      <athena-block-graph [graphData]="mockGraphData"></athena-block-graph>
     </div>
-    <div class="col-md-6">
+    <div class="col-lg-6">
       <h3 class="mb-1">{{'nodes.nodeLocation' | translate}}</h3>
-      <img class="graph-placeholder" src="assets/static/images/node-location-small.png">
+      <athena-world-map [features]="mockMapData"></athena-world-map>
     </div>
   </div>
 </div>

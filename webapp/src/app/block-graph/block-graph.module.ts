@@ -3,18 +3,19 @@
  */
 
 import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 
 import { NgxChartsModule } from '@swimlane/ngx-charts';
 
 import { BlockGraphComponent } from './block-graph/block-graph.component';
+import { WorldMapComponent } from './world-map/world-map.component';
 
 @NgModule({
   imports: [
-    CommonModule,
+    RouterModule,
     NgxChartsModule
   ],
-  declarations: [BlockGraphComponent],
-  exports: [BlockGraphComponent]
+  declarations: [BlockGraphComponent, WorldMapComponent],
+  exports: [BlockGraphComponent, WorldMapComponent]
 })
 export class BlockGraphModule { }
