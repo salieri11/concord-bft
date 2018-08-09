@@ -158,7 +158,7 @@ public class ProfilesRegistryManager {
          // TODO: We know this is not a long-term solution and this will be
          // replaced by CSP authentication very soon.
          if (password != null && u.getPassword().equals(password)) {
-            u.setLastLogin(Instant.now());
+            u.setLastLogin(Instant.now().toEpochMilli());
             userRepository.save(u);
             return true;
          } else {

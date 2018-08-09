@@ -50,7 +50,7 @@ public class UsersAPIMessage implements UserCreateRequest, UserPatchRequest,
    private String email;
    private String role;
    private String password;
-   private Instant lastLogin;
+   private Long lastLogin;
    private String organizationName;
    private String consortiumName;
    private Long organizationID;
@@ -202,7 +202,7 @@ public class UsersAPIMessage implements UserCreateRequest, UserPatchRequest,
       return password;
    }
 
-   public Instant getLastLogin() {
+   public Long getLastLogin() {
       return lastLogin;
    }
 

@@ -50,8 +50,8 @@ public class User {
    
    @Column(nullable = false)
    private String password;
-
-   private Instant lastLogin = Instant.EPOCH;
+   
+   private Long lastLogin = Instant.EPOCH.toEpochMilli();
 
    protected User() {
    }
@@ -128,11 +128,11 @@ public class User {
       this.password = password;
    }
 
-   public Instant getLastLogin() {
+   public Long getLastLogin() {
       return lastLogin;
    }
 
-   protected void setLastLogin(Instant lastLogin) {
+   protected void setLastLogin(Long lastLogin) {
       this.lastLogin = lastLogin;
    }
 
