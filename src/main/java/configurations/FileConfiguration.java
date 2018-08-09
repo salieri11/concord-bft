@@ -2,15 +2,13 @@
  * This singleton class is used to maintain common system configuration
  * resources.
  * 
- * A config.properties file contains the configrations in key value pair format.
- * This class provides a handle to the file.
+ * A application.properties file contains the configrations in key value pair
+ * format. This class provides a handle to the file.
  */
 package configurations;
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Properties;
 
 import org.apache.log4j.Logger;
@@ -22,14 +20,13 @@ public class FileConfiguration implements IConfiguration {
    private Logger logger = Logger.getLogger(FileConfiguration.class);
 
    /**
-    * Loads default config.properties file
+    * Loads default application.properties file
     * 
     * @throws IOException
     * @throws ParseException
     */
-   protected FileConfiguration() throws
-           IOException {
-      this("config.properties");
+   protected FileConfiguration() throws IOException {
+      this("application.properties");
    }
 
    /**
@@ -38,11 +35,10 @@ public class FileConfiguration implements IConfiguration {
     * @throws IOException
     * @throws ParseException
     **/
-   protected FileConfiguration(String propertiesFile) throws
-           IOException {
+   protected FileConfiguration(String propertiesFile) throws IOException {
       _configurations = new Properties();
-      try (InputStream input = new FileInputStream(propertiesFile)) {
-         _configurations.load(input);
+      try (FileInputStream fi = new FileInputStream(propertiesFile)) {
+         _configurations.load(fi);
       }
    }
 

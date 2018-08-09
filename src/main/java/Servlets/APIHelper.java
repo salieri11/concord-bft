@@ -3,14 +3,18 @@
  */
 package Servlets;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.stream.Collectors;
 
 import org.bouncycastle.jcajce.provider.digest.Keccak;
 import org.bouncycastle.util.encoders.Hex;
 import org.json.simple.JSONObject;
 
 import com.google.protobuf.ByteString;
+
+import javax.servlet.http.HttpServletRequest;
 
 public class APIHelper {
 
@@ -198,4 +202,15 @@ public class APIHelper {
       error.put("error", message);
       return error;
    }
+   
+   
+   public static String
+   getRequestBody(final HttpServletRequest request) throws IOException {
+      String paramString
+              = request.getReader()
+              .lines()
+              .collect(Collectors.joining(System.lineSeparator()));
+      return paramString;
+   }
+   
 }
