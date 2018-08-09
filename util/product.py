@@ -112,9 +112,11 @@ class Product():
       be better, as it will also confirm that the user(s) we were given are valid
       and unlock them.
       '''
-      retries = 10
+      # Waiting for 10 seconds for 5 times is enough
+      retries = 5
       attempts = 0
-      sleepTime = 1
+      # Helen now takes ~7-8 seconds to boot so we should wait for around 10 seconds
+      sleepTime = 10
       startupLogDir = os.path.join(self._resultsDir, PRODUCT_LOGS_DIR,
                                    "waitForStartup")
       rpc = RPC(startupLogDir, "waitForStartup", self._apiServerUrl)

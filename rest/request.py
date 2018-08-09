@@ -43,7 +43,7 @@ class Request():
       self._params = ""
 
 
-   def _send(self):
+   def _send(self, verb=None):
       '''
       Makes the actual ReST request by invoking curl.  Returns the raw json
       of the response.
@@ -58,14 +58,23 @@ class Request():
       Request._idCounter += 1
       lock.release()
 
-      if self._data is None:
-         curlCmd = ["curl",
-                    "-H", "Accept: application/json",
-                    self._baseUrl+self._subPath+self._params,
-                    "--output", self._responseFile,
-                    "--verbose"]
+      if verb is None:
+         if self._data is None:
+            curlCmd = ["curl",
+                       "-H", "Accept: application/json",
+                       self._baseUrl+self._subPath+self._params,
+                       "--output", self._responseFile,
+                       "--verbose"]
+         else:
+            curlCmd = ["curl",
+                       "-H", "Accept: application/json",
+                       "--data", json.dumps(self._data),
+                       self._baseUrl+self._subPath+self._params,
+                       "--output", self._responseFile,
+                       "--verbose"]
       else:
          curlCmd = ["curl",
+                    "--request", verb,
                     "-H", "Accept: application/json",
                     "--data", json.dumps(self._data),
                     self._baseUrl+self._subPath+self._params,
@@ -196,7 +205,7 @@ class Request():
       '''
       self._subPath = '/api/athena/contracts'
       self._params = ""
-      self._endpointName = "contracts management"
+      self._endpointName = "contractsManagement"
       self._data = data
 
       return self._send()
@@ -207,7 +216,21 @@ class Request():
       '''
       self._subPath = apiPath
       self._params = params
-      self._endpointName = "contracts management"
+      self._endpointName = "contractsManagement"
       self._data = None
 
       return self._send()
+
+   def callUserAPI(self, apiPath, verb=None, params=None, data=None):
+      '''
+      Calls a user management API. Send the request based on verb value
+      '''
+      self._subPath = '/api' + apiPath
+      self._endpointName = "userManagement"
+      self._data = None
+      self._params = ""
+      if data:
+         self._data = data
+      if params:
+         self._params = params
+      return self._send(verb)
