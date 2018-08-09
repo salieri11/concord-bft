@@ -592,8 +592,6 @@ class HelenAPITests(test_suite.TestSuite):
                                                       user['organization']['organization_id'])
       user_list = request.callUserAPI("/users/", params=params)
       user_list = list(map(lambda u : u['user_id'], user_list))
-      print (user_list)
-      print (created_user_id)
       if all(u in user_list for u in created_user_id):
          return (True, None)
       return (False, "All created users not returned")
