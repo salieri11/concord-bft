@@ -9,10 +9,11 @@
     "build:local:prod": "ng build --prod --deploy-url assets/ && npm run build:move",
     "build:local:dev": "ng build --deploy-url assets/ && npm run build:move",
     "build:move": "cp -a dist/. ../priv/www/assets && mv ../priv/www/assets/index.html ../priv/www",
+    "clear-contracts-e2e": "cockroach sql --insecure -e \"SET DATABASE = helen; DELETE FROM contracts WHERE contract_id = 'contractId';\"",
     "test": "ng test --source-map=false",
     "lint": "ng lint athena-ui",
     "lint-fix": "ng lint athena-ui --fix",
-    "e2e": "ng e2e --port 49152 --proxy-config e2e-proxy.conf.json"
+    "e2e": "npm run clear-contracts-e2e && ng e2e --port 49152"
   },
   "private": true,
   "dependencies": {
