@@ -130,4 +130,16 @@ RUN sed -i -e "s/rep01/athena1/g" \
            -e "s/client06/athena2/g" \
            -e "s/client07/athena3/g" \
            -e "s/client08/athena4/g" \
+           -e "s/client09/athena1/g" \
+           -e "s/client10/athena2/g" \
+           -e "s/client11/athena3/g" \
+           -e "s/client12/athena4/g" \
+           -e "s/client13/athena1/g" \
+           -e "s/client14/athena2/g" \
+           -e "s/client15/athena3/g" \
+           -e "s/client16/athena4/g" \
+           -e "s/client17/athena1/g" \
+           -e "s/client18/athena2/g" \
+           -e "s/client19/athena3/g" \
+           -e "s/client20/athena4/g" \
     /athena/resources/sbft/*.pub

@@ -4,7 +4,10 @@ FROM athenabase
 COPY resources/athena1.config /athena/resources/
 RUN sed -i -e "s/tmp/athena\/resources/g" /athena/resources/athena1.config
 
-COPY resources/sbft/*1.priv \
+COPY resources/sbft/*01.priv \
+     resources/sbft/*05.priv \
+     resources/sbft/*09.priv \
+     resources/sbft/*13.priv \
      /athena/resources/sbft/
 
 WORKDIR /athena
@@ -15,5 +18,8 @@ CMD export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
 # athena<->helen
 EXPOSE 5458
 # SBFT
-EXPOSE 3701/udp
-EXPOSE 3705/udp
+EXPOSE 3501/udp
+EXPOSE 3505/udp
+EXPOSE 3509/udp
+EXPOSE 3513/udp
+EXPOSE 3517/udp
