@@ -206,7 +206,7 @@
     "amount": "Amount",
     "trans": "Trans",
     "length": "Length",
-    "nodeOwners": "Node Owners",
+    "orgOwners": "Org Owners",
     "averageXPerSecond": "Avg {{value}}/sec",
     "averageXSeconds": "Avg {{value}} sec"
   },

@@ -9,16 +9,17 @@ import { TourNgxPopperModule } from 'ngx-tour-ngx-popper';
 import { SharedModule } from '../shared/shared.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { DashboardComponent } from './dashboard-container/dashboard.component';
-import { WorldMapComponent } from './world-map/world-map.component';
+import { GraphsModule } from '../graphs/graphs.module';
 
 @NgModule({
   imports: [
     SharedModule,
     RouterModule,
     TransactionsModule,
+    GraphsModule,
     TourNgxPopperModule
   ],
-  declarations: [DashboardComponent, WorldMapComponent]
+  declarations: [DashboardComponent]
 })
 export class DashboardModule { }
 

@@ -6,20 +6,18 @@ import { NgModule } from '@angular/core';
 import { RouterModule } from '@angular/router';
 
 import { SharedModule } from '../shared/shared.module';
-import { NodesStatusFilterComponent } from './nodes-status-filter/nodes-status-filter.component';
+import { GraphsModule } from '../graphs/graphs.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { NodeComponent } from './node/node.component';
 import { NodesComponent } from './nodes/nodes.component';
-import { BlockGraphModule } from '../block-graph/block-graph.module';
-
-
+import { NodesStatusFilterComponent } from './nodes-status-filter/nodes-status-filter.component';
 
 @NgModule({
   imports: [
     TransactionsModule,
     RouterModule,
     SharedModule,
-    BlockGraphModule
+    GraphsModule
   ],
   declarations: [NodesComponent, NodeComponent, NodesStatusFilterComponent]
 })
