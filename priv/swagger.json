@@ -583,6 +583,403 @@
           }
         }
       }
+    },
+    "/users": {
+      "summary": "Helen User management",
+      "get": {
+        "summary": "Get a list of user which belong to specific organization and specific consortium",
+        "operationId": "usersGet",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "consortium",
+            "description": "ID of the consortium",
+            "required": true,
+            "type":"string"
+          },
+          {
+            "in": "query",
+            "name": "organization",
+            "description": "ID of the organization",
+            "required": true,
+            "type":"string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a list of all users who are part of given consortium and given organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "user_id": {
+                        "type": "integer",
+                        "description": "integer value representing ID of this user"
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "string representing name of this user"
+                      },
+                      "email": {
+                        "type": "string",
+                        "description": "string representing email of this user"
+                      },
+                      "role": {
+                        "type": "string",
+                        "description": "string representing role of this user"
+                      },
+                      "last_login": {
+                        "type": "integer",
+                        "description": "integer value representing the time (in milliseconds since epoch) when this user last logged in"
+                      },
+                      "details": {
+                        "type": "object",
+                        "properties": {
+                          "first_name": {
+                            "type": "string",
+                            "description": "first name of this user"
+                          },
+                          "last_name": {
+                            "type": "string",
+                            "description": "last name of this user"
+                          }
+                        }
+                      },
+                      "consortium": {
+                        "type": "object",
+                        "properties": {
+                          "consortium_id": {
+                            "type": "integer",
+                            "description": "ID of consortium to which this user belongs"
+                          },
+                          "consortium_name": {
+                            "type": "string",
+                            "description": "name of consortium to which this user belongs"
+                          }
+                        }
+                      },
+                      "organization": {
+                        "type": "object",
+                        "properties": {
+                          "organization_id": {
+                            "type": "integer",
+                            "description": "ID of organization to which this user belongs"
+                          },
+                          "organization_name": {
+                            "type": "string",
+                            "description": "name of organization to which this user belongs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new user in Helen",
+        "operationId": "usersPost",
+        "requestBody": {
+          "description": "User creation POST request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "string representing name of this user",
+                    "required": true
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "string representing email of this user",
+                    "required": true
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "string representing role of this user",
+                    "required": true
+                  },
+                  "details": {
+                    "type": "object",
+                    "properties": {
+                      "first_name": {
+                        "type": "string",
+                        "description": "first name of this user"
+                      },
+                      "last_name": {
+                        "type": "string",
+                        "description": "last name of this user"
+                      }
+                    }
+                  },
+                  "consortium": {
+                    "type": "object",
+                    "properties": {
+                      "consortium_id": {
+                        "type": "integer",
+                        "description": "ID of consortium to which this user belongs",
+                        "required": true
+                      }
+                    }
+                  },
+                  "organization": {
+                    "type": "object",
+                    "properties": {
+                      "organization_id": {
+                        "type": "integer",
+                        "required": true,
+                        "description": "ID of organization to which this user belongs"
+                      }
+                    }
+                  },
+                  "password": {
+                    "type": "string",
+                    "required": true,
+                    "description": "password of this user"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "User ID of newly created user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user_id": {
+                      "type": "string",
+                      "description": "User ID of newly created user"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{user_id}": {
+      "summary": "Helen User management",
+      "get": {
+        "summary": "Get the user identified by given user_id",
+        "operationId": "GetUserById",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "the id of the user to get",
+            "required": "true",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a json object describing specified user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user_id": {
+                      "type": "integer",
+                      "description": "integer value representing ID of this user"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "string representing name of this user"
+                    },
+                    "email": {
+                      "type": "string",
+                      "description": "string representing email of this user"
+                    },
+                    "role": {
+                      "type": "string",
+                      "description": "string representing role of this user"
+                    },
+                    "last_login": {
+                      "type": "integer",
+                      "description": "integer value representing the time (in milliseconds since epoch) when this user last logged in"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "first_name": {
+                          "type": "string",
+                          "description": "first name of this user"
+                        },
+                        "last_name": {
+                          "type": "string",
+                          "description": "last name of this user"
+                        }
+                      }
+                    },
+                    "consortium": {
+                      "type": "object",
+                      "properties": {
+                        "consortium_id": {
+                          "type": "integer",
+                          "description": "ID of consortium to which this user belongs"
+                        },
+                        "consortium_name": {
+                          "type": "string",
+                          "description": "name of consortium to which this user belongs"
+                        }
+                      }
+                    },
+                    "organization": {
+                      "type": "object",
+                      "properties": {
+                        "organization_id": {
+                          "type": "integer",
+                          "description": "ID of organization to which this user belongs"
+                        },
+                        "organization_name": {
+                          "type": "string",
+                          "description": "name of organization to which this user belongs"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update user information",
+        "operationId": "UpdateUser",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "the id of the user to update",
+            "required": "true",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "description": "User PATCH request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "new name of the user"
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "new email of the user"
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "new role of the user"
+                  },
+                  "details": {
+                    "type": "object",
+                    "properties": {
+                      "first_name": {
+                        "type": "string",
+                        "description": "new first name of the user"
+                      },
+                      "last_name": {
+                        "type": "string",
+                        "description": "new last name of the user"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/login/{user_id}": {
+      "summary": "Helen User management",
+      "post": {
+        "summary": "Authenticate a user",
+        "operationId": "AuthenticateUser",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "the id of the user to authenticate",
+            "required": "true",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "description": "Authenticate user POST request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "description": "password of the user",
+                    "required": true
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }
