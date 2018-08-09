@@ -25,7 +25,7 @@ static const int default_log_props_time_ms = 60000; // 60sec
 static const string default_blockchain_db_impl = "memory";
 
 // default size of API worker thread pool
-static const int default_api_worker_thread_pool_size = 3;
+static const int default_api_worker_thread_pool_size = 4;
 
 // default count of maximum transactions returned by transaction list query
 static const int default_transaction_list_max_count = 10;
@@ -53,7 +53,6 @@ variables_map initialize_config(int argc, char **argv) {
        "Path for configuration file")
       ("debug",
       "Sleep for 20 seconds to attach debug");
-      ;
 
    // The configuration parameters specific to this program
    // These can be provided in config file as well as on command line
@@ -96,7 +95,7 @@ variables_map initialize_config(int argc, char **argv) {
        value<string>(),
        "Path to SBFT private replica config file")
       ("SBFT.client",
-       value<string>(),
+       value<std::vector<string> >()->multitoken(),
        "Path to SBFT private client config file")
       ("api_worker_pool_size",
        value<int>()->default_value(default_api_worker_thread_pool_size),

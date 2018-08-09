@@ -235,14 +235,22 @@ run_service(variables_map &opts, Logger logger)
 
       replica->start();
 
-      Blockchain::ClientConsensusConfig clientConsensusConfig;
-      clientConsensusConfig.byzConfig = opts["SBFT.public"].as<std::string>();
-      clientConsensusConfig.byzPrivateConfig =
-         opts["SBFT.client"].as<std::string>();
-      Blockchain::IClient *client =
-         Blockchain::createClient(clientConsensusConfig);
-      client->start();
-      KVBClient kvbClient(client);
+      std::vector<KVBClient*> clients;
+      std::vector<std::string> clientConfigs =
+         opts["SBFT.client"].as<std::vector<std::string>>();
+
+      for (auto it = clientConfigs.begin(); it != clientConfigs.end(); it++) {
+         Blockchain::ClientConsensusConfig clientConsensusConfig;
+         clientConsensusConfig.byzConfig = opts["SBFT.public"].as<std::string>();
+         clientConsensusConfig.byzPrivateConfig = *it;
+         Blockchain::IClient *client =
+            Blockchain::createClient(clientConsensusConfig);
+         client->start();
+         KVBClient *kvbClient = new KVBClient(client);
+         clients.push_back(kvbClient);
+      }
+
+      KVBClientPool pool(clients);
 
       FilterManager filterManager;
 
@@ -254,7 +262,7 @@ run_service(variables_map &opts, Logger logger)
       api_acceptor acceptor(*api_service,
                             endpoint,
                             filterManager,
-                            kvbClient,
+                            pool,
                             sag);
 
       signal(SIGINT, signalHandler);
@@ -270,9 +278,6 @@ run_service(variables_map &opts, Logger logger)
 
       // If we return from `run`, the service was stopped and we are shutting
       // down.
-
-      client->stop();
-      Blockchain::release(client);
 
       replica->stop();
       replica->wait();

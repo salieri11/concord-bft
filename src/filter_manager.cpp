@@ -56,7 +56,7 @@ vector<evm_uint256be>
 com::vmware::athena::FilterManager::get_new_block_filter_changes(
    evm_uint256be filterId,
    uint64_t current_block,
-   KVBClient &client)
+   KVBClientPool &clientPool)
 {
    vector<evm_uint256be> block_changes;
    if (filters_by_id.count(filterId)) {
@@ -71,7 +71,7 @@ com::vmware::athena::FilterManager::get_new_block_filter_changes(
       blockRequest->set_count(new_block_count);
 
       AthenaResponse response;
-      if (client.send_request_sync(request, true /* read only */, response)) {
+      if (clientPool.send_request_sync(request, true /* read only */, response)) {
          if (response.has_block_list_response()) {
             BlockListResponse blockResponse = response.block_list_response();
 

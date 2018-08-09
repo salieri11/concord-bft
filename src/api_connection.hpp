@@ -35,7 +35,7 @@ public:
    create(boost::asio::io_service &io_service,
           connection_manager &connManager,
           FilterManager &filterManager,
-          KVBClient &client,
+          KVBClientPool &clientPool,
           StatusAggregator &sag);
 
    boost::asio::ip::tcp::socket&
@@ -106,7 +106,7 @@ private:
    api_connection(boost::asio::io_service &io_service,
                   connection_manager &connManager,
                   FilterManager &filterManager,
-                  KVBClient &client,
+                  KVBClientPool &clientPool,
                   StatusAggregator &sag);
 
    uint16_t
@@ -157,7 +157,7 @@ private:
 
    // TODO (Amit) : FilterManagement is not made thread-safe. Move it to helen
    FilterManager &filterManager_;
-   KVBClient &client_;
+   KVBClientPool &clientPool_;
 
    boost::asio::ip::tcp::endpoint remotePeer_;
 

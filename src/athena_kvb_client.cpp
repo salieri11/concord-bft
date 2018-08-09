@@ -6,6 +6,7 @@
 // end up at KVBCommandsHandler.
 
 #include <log4cplus/loggingmacros.h>
+#include <boost/thread.hpp>
 
 #include "kvb/BlockchainInterfaces.h"
 #include "athena_kvb_client.hpp"
@@ -38,5 +39,31 @@ bool com::vmware::athena::KVBClient::send_request_sync(AthenaRequest &req,
       ErrorResponse *err = resp.add_error_response();
       err->set_description("Internal Athena Error");
       return true;
+   }
+}
+
+com::vmware::athena::KVBClientPool::KVBClientPool(std::vector<KVBClient*> &clients)
+   : logger_(log4cplus::Logger::getInstance("com.vmware.athena.KVBClientPool")),
+     clients_(clients.size())
+{
+   for (auto it = clients.begin(); it < clients.end(); it++) {
+      clients_.push(*it);
+   }
+}
+
+bool com::vmware::athena::KVBClientPool::send_request_sync(AthenaRequest &req,
+                                                           bool isReadOnly,
+                                                           AthenaResponse &resp)
+{
+   while (true) {
+      KVBClient *client;
+      if (!clients_.pop(client)) {
+         boost::this_thread::yield();
+         continue;
+      }
+
+      bool result = client->send_request_sync(req, isReadOnly, resp);
+      clients_.push(client);
+      return result;
    }
 }
