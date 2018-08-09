@@ -25,7 +25,7 @@ COPY target/helen*.jar .
 
 # prepare for docker-compose, where athena is available from a virtual
 # host named "athena1"
-RUN sed -i -e "s/AthenaAuthorities=.*/AthenaAuthorities=athena1:5458, athena2:5459,athena3:5460/g" application.properties
+RUN sed -i -e "s/AthenaAuthorities=.*/AthenaAuthorities=athena1:5458,athena2:5459,athena3:5460/g" application.properties
 # and CockroachDB is available from a virtual host named db-server
 RUN sed -i -e "s/DB_IP=.*/DB_IP=db-server/g" application.properties
 

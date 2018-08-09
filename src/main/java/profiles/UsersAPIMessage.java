@@ -50,7 +50,7 @@ public class UsersAPIMessage implements UserCreateRequest, UserPatchRequest,
    private String email;
    private String role;
    private String password;
-   private Instant lastLogin;
+   private Long lastLogin;
    private String organizationName;
    private String consortiumName;
    private Long organizationID;
@@ -146,7 +146,7 @@ public class UsersAPIMessage implements UserCreateRequest, UserPatchRequest,
     * set method is only added for userID because it is part of URI and not the
     * JSON object. All other attributes are part of JSON and will be set by
     * reading the request JSON
-    * 
+    *
     * @param userID
     */
    public void setUserID(Long userID) {
@@ -202,7 +202,7 @@ public class UsersAPIMessage implements UserCreateRequest, UserPatchRequest,
       return password;
    }
 
-   public Instant getLastLogin() {
+   public Long getLastLogin() {
       return lastLogin;
    }
 
@@ -245,7 +245,7 @@ public class UsersAPIMessage implements UserCreateRequest, UserPatchRequest,
       json.put(DETAILS_LABEL, details);
       json.put(EMAIL_LABEL, email);
       json.put(ROLE_LABEL, role);
-      json.put(LAST_LOGIN_LABEL, lastLogin.toString());
+      json.put(LAST_LOGIN_LABEL, lastLogin);
       json.put(ORGANIZATION_LABEL, orgJson);
       json.put(CONSORTIUM_LABEL, conJson);
 
