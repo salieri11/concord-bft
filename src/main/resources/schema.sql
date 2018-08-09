@@ -15,10 +15,10 @@ organization_name varchar(255),
 primary key (organizationid));
 
 -- Users entity
-create table if not exists users (userid int8 not null, email varchar(255),
-first_name varchar(255), last_login timestamp, last_name varchar(255),
-name varchar(255), password varchar(255), role varchar(255),
-consortium_consortiumid int8 not null,
-organization_organizationid int8 not null, primary key (userid),
-foreign key (consortium_consortiumid) references consortiums,
-foreign key (organization_organizationid) references organizations);
+create table if not exists users (userid int8 not null, email
+varchar(255), first_name varchar(255), last_login int8 not null, last_name
+varchar(255), name varchar(255) not null, password varchar(255) not
+null, role varchar(255) not null, consortium_consortiumid int8 not
+null, organization_organizationid int8 not null, primary key (userid),
+foreign key (consortium_consortiumid) references consortiums, foreign
+key (organization_organizationid) references organizations);
