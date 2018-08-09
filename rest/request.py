@@ -205,7 +205,7 @@ class Request():
       '''
       self._subPath = '/api/athena/contracts'
       self._params = ""
-      self._endpointName = "contracts management"
+      self._endpointName = "contractsManagement"
       self._data = data
 
       return self._send()
@@ -216,17 +216,17 @@ class Request():
       '''
       self._subPath = apiPath
       self._params = params
-      self._endpointName = "contracts management"
+      self._endpointName = "contractsManagement"
       self._data = None
 
       return self._send()
 
-   def callUserAPI(self, apiPath, verb, params, data):
+   def callUserAPI(self, apiPath, verb=None, params=None, data=None):
       '''
       Calls a user management API. Send the request based on verb value
       '''
-      self._subPath = '/api/user' + apiPath
-      self._endpointName = "user management"
+      self._subPath = '/api' + apiPath
+      self._endpointName = "userManagement"
       self._data = None
       self._params = ""
       if data:
