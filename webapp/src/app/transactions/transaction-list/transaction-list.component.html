@@ -17,7 +17,7 @@
         </clr-dg-column>
         <clr-dg-row *clrDgItems="let transaction of transactions">
           <clr-dg-cell>
-            <a [routerLink]="['/blocks', transaction.blockNumber ? transaction.blockNumber : blockNumber, 'transactions', transaction.hash]">{{transaction?.hash}}</a>
+            <a [routerLink]="['/blocks', transaction.block_number !== undefined ? transaction.block_number : blockNumber, 'transactions', transaction.hash]">{{transaction?.hash}}</a>
           </clr-dg-cell>
           <clr-dg-cell>{{(transaction.nonce !== undefined ? transaction.nonce : 'transactions.none' | translate)  }}</clr-dg-cell>
           <clr-dg-cell>

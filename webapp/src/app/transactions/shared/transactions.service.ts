@@ -4,11 +4,10 @@
 
 import { Inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { of as observableOf, forkJoin as observableForkJoin } from 'rxjs';
+import { forkJoin as observableForkJoin } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
 
 import { ATHENA_API_PREFIX } from '../../shared/shared.config';
-import { Block } from '../../blocks/shared/blocks.model';
 import { Transaction } from './transactions.model';
 import { BlocksService } from '../../blocks/shared/blocks.service';
 import { AthenaApiService } from '../../shared/athena-api';
@@ -35,30 +34,13 @@ export class TransactionsService extends AthenaApiService {
   }
 
   getRecentTransactions() {
-    // Get blocks, then get individual block, then build list of recent transactions from the data returned
+    // Get blocks, then get individual block, then get individual transactions for all blocks.
     // This is temporary until there is an endpoint to fetch recent transactions
-
     return this.blocksService.getBlocks(1000).pipe(mergeMap(resp => {
       const blockObservables = resp.blocks.map((block) => this.blocksService.getBlock(block.number));
-
       return observableForkJoin(blockObservables).pipe(mergeMap(blocksResp => {
-        let blockTransactions: any[] = [];
-
-        blocksResp.forEach((block) => {
-          const tempTransactions: any = (block as Block).transactions;
-          tempTransactions.map(x => x.blockNumber = (block as Block).number);
-          blockTransactions = blockTransactions.concat(tempTransactions);
-        });
-
-        const transactionObservables = blockTransactions.map((blockTransaction) => this.getTransaction(blockTransaction.hash));
-
-        return observableForkJoin(transactionObservables).pipe(mergeMap(transationsResp => {
-          const transactions = transationsResp.map((transaction, index) => {
-            return { blockNumber: blockTransactions[index].blockNumber, ...transaction };
-          });
-
-          return observableOf(transactions);
-        }));
+        const transactionsOverAllBlocks: any[] = blocksResp.map(block => block.transactions).reduce((acc, val) => acc.concat(val), []);
+        return observableForkJoin(transactionsOverAllBlocks.map(transaction => this.getTransaction(transaction.hash)));
       }));
     }));
   }

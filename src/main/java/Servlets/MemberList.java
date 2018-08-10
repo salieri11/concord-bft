@@ -86,9 +86,9 @@ public final class MemberList extends BaseServlet {
          peerJson.put("hostname", peer.getHostname());
          peerJson.put("address", peer.getAddress());
          peerJson.put("status", peer.getStatus());
-         peerJson.put("millisSinceLastMessage",
+         peerJson.put("millis_since_last_message",
                       peer.getMillisSinceLastMessage());
-         peerJson.put("millisSinceLastMessageThreshold",
+         peerJson.put("millis_since_last_message_threshold",
                       peer.getMillisSinceLastMessageThreshold());
 
          // Store into a JSON array of all peers.

@@ -40,10 +40,10 @@
                       "status": {
                         "type": "string"
                       },
-                      "millisSinceLastMessage": {
+                      "millis_since_last_message": {
                         "type": "integer"
                       },
-                      "millisSinceLastMessageThreshold": {
+                      "millis_since_last_message_threshold": {
                         "type": "integer"
                       }
                     }
@@ -207,7 +207,7 @@
                     "to": {
                       "type": "string"
                     },
-                    "contractAddress": {
+                    "contract_address": {
                       "type": "string"
                     },
                     "value": {
@@ -216,13 +216,13 @@
                     "input": {
                       "type": "string"
                     },
-                    "blockHash": {
+                    "block_hash": {
                       "type": "string"
                     },
-                    "blockNumber": {
+                    "block_number": {
                       "type": "integer"
                     },
-                    "transactionIndex": {
+                    "transaction_index": {
                       "type": "integer"
                     },
                     "nonce": {

@@ -3,6 +3,7 @@
  */
 
 import { Component, Input, OnInit } from '@angular/core';
+import { Transaction } from '../shared/transactions.model';
 
 @Component({
   selector: 'athena-transaction-list',
@@ -10,7 +11,7 @@ import { Component, Input, OnInit } from '@angular/core';
   styleUrls: ['./transaction-list.component.scss']
 })
 export class TransactionListComponent implements OnInit {
-  @Input() transactions: any[];
+  @Input() transactions: Transaction[];
   @Input() blockNumber?: number;
 
   constructor() { }
