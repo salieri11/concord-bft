@@ -142,10 +142,10 @@ class HelenAPITests(test_suite.TestSuite):
             return (False, "'status' field in member entry is not a string")
          if not isinstance(m["address"], str):
             return (False, "'address' field in member entry is not a string")
-         if not isinstance(m["millisSinceLastMessage"], int):
-            return (False, "'millisSinceLastMessage' field in member entry is not a string")
-         if not isinstance(m["millisSinceLastMessageThreshold"], int):
-            return (False, "'millisSinceLastMessageThreshold' field in member entry is not a string")
+         if not isinstance(m["millis_since_last_message"], int):
+            return (False, "'millis_since_last_message' field in member entry is not a string")
+         if not isinstance(m["millis_since_last_message_threshold"], int):
+            return (False, "'millis_since_last_message_threshold' field in member entry is not a string")
 
       return (True, None)
 
