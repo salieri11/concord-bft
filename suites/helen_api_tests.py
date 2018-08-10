@@ -310,6 +310,17 @@ class HelenAPITests(test_suite.TestSuite):
          return (False, "Unable to retrieve uploaded contract")
 
    def _test_contractTx(self, request):
+      '''Sends a transaction to a contract that has been uploaded.
+
+      This may look a little weird, because the function in the test
+      contract is pure, can could therefor be called instead of sent
+      to. This was created as a regression check
+      (vmwathena/athena#122). The important thing the transaction does
+      is cause evmjit to allocate some data that needs to be
+      released. The pointer to this release function was being stored
+      in a way that confused transaction hashing, and thus confused
+      SBFT (responses from nodes didn't match).
+      '''
       contractId, contractVersion = self.upload_mock_contract(request)
       result = request.callContractAPI('/api/athena/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
