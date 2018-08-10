@@ -80,6 +80,20 @@ evm_result com::vmware::athena::EVM::run(evm_message &message,
       message.code_hash = hash;
 
       result = execute(message, kvbStorage, code);
+
+      // See comment in EVM::create about calling this, but continuing to use
+      // the value anyway.
+      if (result.release) {
+         result.release(&result);
+         result.release = nullptr;
+      }
+
+      // "run" never creates a contract, but the space for create_address might
+      // be used for other things (like what may have just been released
+      // above). Clear it out before returning, so that
+      // KVBCommandsHandler::record_transaction can tell that no contract was
+      // created
+      result.create_address = zero_address;
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " << message.destination);
       memset(&result, 0, sizeof(result));
