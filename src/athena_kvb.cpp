@@ -148,6 +148,10 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_sendTransaction(
       response->set_description(description.str());
    }
 
+   if (result.release) {
+      result.release(&result);
+   }
+
    // We return "true" even if the transaction encountered an error, because the
    // error response is the correct result for the evaluation. That is, we
    // expect that all replicas will return that error. If in the future, there
@@ -551,6 +555,10 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_callContract(
       err->mutable_description()->assign("Error while calling contract");
    }
 
+   if (result.release) {
+      result.release(&result);
+   }
+
    // the request was valid, even if it failed
    return true;
 }
@@ -870,8 +878,10 @@ evm_uint256be com::vmware::athena::KVBCommandsHandler::record_transaction(
    }
 
    // "to" is empty if this was a create
-   evm_address to = result.create_address == zero_address ?
+   evm_address to = message.kind == EVM_CALL ?
       message.destination : zero_address;
+   evm_address create_address = message.kind == EVM_CREATE ?
+      result.create_address : zero_address;
 
    uint64_t gas_price = 0;
    if (request.has_gas_price()) {
@@ -899,7 +909,7 @@ evm_uint256be com::vmware::athena::KVBCommandsHandler::record_transaction(
       0,              // block_number: will be set during write_block
       message.sender, // from
       to,
-      result.create_address,
+      create_address,
       std::vector<uint8_t>(message.input_data,
                            message.input_data+message.input_size),
       result.status_code,
