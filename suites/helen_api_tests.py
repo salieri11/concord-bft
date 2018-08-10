@@ -99,6 +99,7 @@ class HelenAPITests(test_suite.TestSuite):
               ("block", self._test_getBlocks), \
               ("transaction", self._test_getTransactions), \
               ("contract_upload", self._test_contractUpload), \
+              ("contract_tx", self._test_contractTx), \
               ("get_contracts", self._test_getAllContracts), \
               ("version_upload", self._test_versionUpload), \
               ("get_versions", self._test_getAllVersions), \
@@ -307,6 +308,33 @@ class HelenAPITests(test_suite.TestSuite):
          return (True, None)
       else:
          return (False, "Unable to retrieve uploaded contract")
+
+   def _test_contractTx(self, request):
+      '''Sends a transaction to a contract that has been uploaded.
+
+      This may look a little weird, because the function in the test
+      contract is pure, can could therefor be called instead of sent
+      to. This was created as a regression check
+      (vmwathena/athena#122). The important thing the transaction does
+      is cause evmjit to allocate some data that needs to be
+      released. The pointer to this release function was being stored
+      in a way that confused transaction hashing, and thus confused
+      SBFT (responses from nodes didn't match).
+      '''
+      contractId, contractVersion = self.upload_mock_contract(request)
+      result = request.callContractAPI('/api/athena/contracts/' + contractId
+                                       + '/versions/' + contractVersion, "")
+      rpc = RPC(request._logDir,
+                self.getName(),
+                self._apiServerUrl)
+      txres = rpc.sendTransaction("0x1111111111111111111111111111111111111111",
+                                  "0x19ff1d21", # HelloWorld.sol's hello function
+                                  to=result["address"])
+      # do we have a better check for "got a transaction receipt"?
+      if len(txres) == 66:
+         return (True, None)
+      else:
+         return (False, "Transaction send to uploaded contract failed")
 
    def _test_getAllContracts(self, request):
       result = request.callContractAPI('/api/athena/contracts', "")
