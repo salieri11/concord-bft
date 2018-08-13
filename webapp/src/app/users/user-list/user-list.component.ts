@@ -25,7 +25,7 @@ export class UserListComponent implements OnInit {
 
   constructor(private translate: TranslateService, private usersService: UsersService) {
     this.gridOptions.getData = () => {
-      return this.usersService.getFakeData();
+      return this.usersService.getList();
     };
 
     this.handleGrid();

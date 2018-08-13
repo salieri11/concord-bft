@@ -2,7 +2,7 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Inject, Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs/index';
 
 import { Personas } from '../../shared/persona.service';
@@ -10,37 +10,26 @@ import { User, UserResponse } from './user.model';
 import { HttpClient } from '@angular/common/http';
 import { GridListResponse } from '../../grid/shared/grid.model';
 import { map } from 'rxjs/operators';
-import { ANDES_API_PREFIX } from '../../shared/shared.config';
-import { AndesApi } from '../../shared/andes-api';
 
 @Injectable({
   providedIn: 'root'
 })
-export class UsersService extends AndesApi {
+export class UsersService {
 
-  constructor(private http: HttpClient, @Inject(ANDES_API_PREFIX) andesApiPrefix: string) {
-    super(andesApiPrefix);
+  constructor(private http: HttpClient) {
+
   }
 
+  path = '/api/users/';
   users: User[] = [];
 
-  get apiSubPath() {
-    return 'user';
-  }
-
-  getList(params?: any): Observable<GridListResponse> {
-    const options = { headers: this.headers };
-
-    if (params) {
-      options['params'] = this.buildHttpParams(params);
-    }
-
-    return this.http.get<UserResponse>(this.resourcePath(), options).pipe(
+  getList(): Observable<GridListResponse> {
+    return this.http.get<UserResponse>(this.path).pipe(
       map(response => this.handleResponse(response)));
   }
 
   private handleResponse(response: UserResponse): GridListResponse {
-
+    console.log(response);
     return {
       objects: response._embedded.users,
       meta: {
@@ -100,15 +89,15 @@ export class UsersService extends AndesApi {
   }
 
   createUser(user: User): Observable<any> {
-    return this.http.post<User>(this.resourcePath(), user, {headers: this.headers });
+    return this.http.post<User>(this.path, user);
   }
 
   deleteUser(userId: number): Observable<any> {
-    const url = this.resourcePath(userId);
-    return this.http.delete(url, { headers: this.headers });
+    const url = `${this.path}/${userId}`;
+    return this.http.delete(url);
   }
 
   editUser(user: User) {
-    return this.http.put<User>(this.resourcePath(), user, {headers: this.headers });
+    return this.http.put<User>(this.path, user);
   }
 }
