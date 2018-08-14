@@ -792,7 +792,7 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
             return result;
          }
       }
-   } else {
+   } else if (request.method() != EthRequest_EthMethod_CALL_CONTRACT) {
       recover_from(request, &message.sender);
       if (message.sender == zero_address) {
          LOG4CPLUS_DEBUG(logger, "Signature was invalid");
