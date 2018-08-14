@@ -100,6 +100,7 @@ class HelenAPITests(test_suite.TestSuite):
               ("transaction", self._test_getTransactions), \
               ("contract_upload", self._test_contractUpload), \
               ("contract_tx", self._test_contractTx), \
+              ("contract_call", self._test_contractCall), \
               ("get_contracts", self._test_getAllContracts), \
               ("version_upload", self._test_versionUpload), \
               ("get_versions", self._test_getAllVersions), \
@@ -335,6 +336,30 @@ class HelenAPITests(test_suite.TestSuite):
          return (True, None)
       else:
          return (False, "Transaction send to uploaded contract failed")
+
+   def _test_contractCall(self, request):
+      '''Calls a contract that has been uploaded.
+
+      This test makes a *call* instead of sending a transaction.
+      '''
+      contractId, contractVersion = self.upload_mock_contract(request)
+      result = request.callContractAPI('/api/athena/contracts/' + contractId
+                                       + '/versions/' + contractVersion, "")
+      rpc = RPC(request._logDir,
+                self.getName(),
+                self._apiServerUrl)
+      txres = rpc.callContract(result["address"],
+                               "0x19ff1d21") # HelloWorld.sol's hello function
+
+      # "Hello, World!" hex-encoded ASCII
+      expected = "48656c6c6f2c20576f726c6421"
+
+      # The actual result contains some prefix details, but just
+      # assert that the expected content is in there somewhere.
+      if txres.find(expected) >= 0:
+         return (True, None)
+      else:
+         return (False, "Contract call failed")
 
    def _test_getAllContracts(self, request):
       result = request.callContractAPI('/api/athena/contracts', "")
