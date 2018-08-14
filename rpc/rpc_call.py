@@ -240,6 +240,26 @@ class RPC():
       response = self._call()
       return self.getResultFromResponse(response)
 
+   def callContract(self, to, data, gas = None, value = None):
+      '''
+      Calls the contract at address `to` with argument `data`,
+      and returns the result.
+      '''
+      self._rpcData["method"] = "eth_call"
+      self._rpcData["params"] = [{
+         "to": to,
+         "data": data
+      }]
+
+      if gas:
+         self._rpcData["params"][0]["gas"] = gas
+
+      if value:
+         self._rpcData["params"][0]["value"] = value
+
+      response = self._call()
+      return self.getResultFromResponse(response)
+
    def getBlockNumber(self):
       '''
       Gets the latest block number in the blockchain.
