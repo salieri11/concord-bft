@@ -66,7 +66,7 @@ public:
    std::vector<evm_uint256be>
    get_new_block_filter_changes(evm_uint256be filterId,
                                 uint64_t current_block,
-                                KVBClient &client);
+                                KVBClientPool &clientPool);
 
    //TODO: figure out proper storage/return types for log filter
    //and implement below methods.

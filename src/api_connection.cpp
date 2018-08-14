@@ -51,11 +51,11 @@ api_connection::pointer
 api_connection::create(io_service &io_service,
                        connection_manager &connManager,
                        FilterManager &filterManager,
-                       KVBClient &client,
+                       KVBClientPool &clientPool,
                        StatusAggregator &sag)
 {
    return pointer(new api_connection(
-                     io_service, connManager, filterManager, client, sag));
+                     io_service, connManager, filterManager, clientPool, sag));
 }
 
 tcp::socket&
@@ -427,7 +427,7 @@ api_connection::handle_eth_request(int i)
          internalEthRequest->CopyFrom(request);
          AthenaResponse internalResponse;
 
-         if (client_.send_request_sync(
+         if (clientPool_.send_request_sync(
                 internalRequest, isReadOnly, internalResponse)) {
             athenaResponse_.MergeFrom(internalResponse);
          } else {
@@ -505,9 +505,9 @@ api_connection::handle_block_list_request()
    internalBlockRequest->CopyFrom(request);
    AthenaResponse internalAthResponse;
 
-   if (client_.send_request_sync(internalAthRequest,
-                                 true /* read only */,
-                                 internalAthResponse)) {
+   if (clientPool_.send_request_sync(internalAthRequest,
+                                     true /* read only */,
+                                     internalAthResponse)) {
       athenaResponse_.MergeFrom(internalAthResponse);
    } else {
       ErrorResponse *error = athenaResponse_.add_error_response();
@@ -534,9 +534,9 @@ api_connection::handle_block_request()
    blkReq->CopyFrom(request);
 
    AthenaResponse internalResponse;
-   if (client_.send_request_sync(internalRequest,
-                                 true /* read only */,
-                                 internalResponse)) {
+   if (clientPool_.send_request_sync(internalRequest,
+                                     true /* read only */,
+                                     internalResponse)) {
       athenaResponse_.MergeFrom(internalResponse);
    } else {
       LOG4CPLUS_ERROR(logger_, "Error parsing read-only response");
@@ -564,9 +564,9 @@ api_connection::handle_transaction_request()
    txReq->CopyFrom(request);
 
    AthenaResponse internalResponse;
-   if (client_.send_request_sync(internalRequest,
-                                 true /* read only */,
-                                 internalResponse)) {
+   if (clientPool_.send_request_sync(internalRequest,
+                                     true /* read only */,
+                                     internalResponse)) {
       athenaResponse_.MergeFrom(internalResponse);
    } else {
       LOG4CPLUS_ERROR(logger_, "Error parsing read-only response");
@@ -585,9 +585,9 @@ api_connection::handle_transaction_list_request() {
    txListReq->CopyFrom(request);
 
    AthenaResponse internalResponse;
-   if (client_.send_request_sync(internalRequest,
-                                 true,
-                                 internalResponse)) {
+   if (clientPool_.send_request_sync(internalRequest,
+                                     true,
+                                     internalResponse)) {
       athenaResponse_.MergeFrom(internalResponse);
    } else {
       LOG4CPLUS_ERROR(logger_, "Error parsing read-only response");
@@ -733,7 +733,7 @@ api_connection::handle_get_filter_changes(const EthRequest &request)
          uint64_t current_block = current_block_number();
          vector<evm_uint256be>  block_changes =
             filterManager_.get_new_block_filter_changes(
-               filterId, current_block, client_);
+               filterId, current_block, clientPool_);
          if (block_changes.size() > 0) {
             FilterResponse *filterResponse = response->mutable_filter_response();
             for (auto block_hash : block_changes) {
@@ -788,9 +788,9 @@ uint64_t api_connection::current_block_number() {
    ethReq->set_method(EthRequest_EthMethod_BLOCK_NUMBER);
    AthenaResponse internalResp;
 
-   if (client_.send_request_sync(internalReq,
-                                 true /* read only */,
-                                 internalResp)) {
+   if (clientPool_.send_request_sync(internalReq,
+                                     true /* read only */,
+                                     internalResp)) {
       if (internalResp.eth_response_size() > 0) {
          std::string strblk = internalResp.eth_response(0).data();
          evm_uint256be rawNumber;
@@ -806,14 +806,14 @@ api_connection::api_connection(
    io_service &io_service,
    connection_manager &manager,
    FilterManager &filterManager,
-   KVBClient &client,
+   KVBClientPool &clientPool,
    StatusAggregator &sag)
    : socket_(io_service),
      logger_(
         log4cplus::Logger::getInstance("com.vmware.athena.api_connection")),
      connManager_(manager),
      filterManager_(filterManager),
-     client_(client),
+     clientPool_(clientPool),
      sag_(sag)
 {
    // nothing to do here yet other than initialize the socket and logger
