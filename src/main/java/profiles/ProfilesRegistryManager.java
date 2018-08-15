@@ -8,6 +8,7 @@
 package profiles;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -60,8 +61,39 @@ public class ProfilesRegistryManager {
       }
    }
 
-   public JSONArray getUsers(String consortiumID, String organizationID) {
-      List<User> userList = getUsersInternal(consortiumID, organizationID);
+   private List<User> getUsersInternalByConsortiumID(String consortiumID) {
+      Optional<Consortium> con
+         = consortiumRepository.findById(Long.parseLong(consortiumID));
+      if (con.isPresent()) {
+         return new ArrayList<>(con.get().getUsers());
+      } else {
+         return Collections.emptyList();
+      }
+   }
+
+   private List<User> getUsersInternalByOrganizationID(String organizationID) {
+      Optional<Organization> org
+         = organizationRepository.findById(Long.parseLong(organizationID));
+      if (org.isPresent()) {
+         return new ArrayList<>(org.get().getUsers());
+      } else {
+         return Collections.emptyList();
+      }
+   }
+
+   public JSONArray getUsers(Optional<String> consortiumID,
+                             Optional<String> organizationID) {
+      List<User> userList;
+      if (consortiumID.isPresent() && organizationID.isPresent()) {
+         userList = getUsersInternal(consortiumID.get(), organizationID.get());
+      } else if (consortiumID.isPresent()) {
+         userList = getUsersInternalByConsortiumID(consortiumID.get());
+      } else if (organizationID.isPresent()) {
+         userList = getUsersInternalByOrganizationID(organizationID.get());
+      } else {
+         userList = userRepository.findAll();
+      }
+
       return userList.stream()
               .map(UsersAPIMessage::new)
               .map(UsersGetResponse::toJSON)
@@ -89,6 +121,12 @@ public class ProfilesRegistryManager {
                   .orElse(new JSONObject());
    }
 
+   private boolean isDuplicateEmail(String email) {
+      Optional<User> existingUserWithSameEmail
+         = userRepository.findUserByEmail(email);
+      return existingUserWithSameEmail.isPresent();
+   }
+
    public String
           createUser(UserCreateRequest request) throws UserModificationException {
 
@@ -96,6 +134,11 @@ public class ProfilesRegistryManager {
          = organizationRepository.findById(request.getOrganizationID());
       Optional<Consortium> c
          = consortiumRepository.findById(request.getConsortiumID());
+
+      // First check if user with same email already exists
+      if (isDuplicateEmail(request.getEmail())) {
+         throw new UserModificationException("Duplicate email address");
+      }
 
       if (o.isPresent() && c.isPresent() && Roles.contains(request.getRole())) {
          User u = new User();
@@ -134,6 +177,12 @@ public class ProfilesRegistryManager {
          throw new UserModificationException("No user found with ID: "
             + request.getUserID());
 
+      // First check if user with same email already exists
+      if (request.getOptionalEmail().isPresent()
+         && isDuplicateEmail(request.getOptionalEmail().get())) {
+         throw new UserModificationException("Duplicate email address");
+      }
+
       User user = oUser.get();
       request.getOptionalName().ifPresent(user::setName);
       request.getOptionalEmail().ifPresent(user::setEmail);
@@ -150,9 +199,9 @@ public class ProfilesRegistryManager {
       userRepository.save(user);
    }
 
-   public boolean loginUser(String userID,
+   public boolean loginUser(String email,
                             String password) throws UserModificationException {
-      Optional<User> oUser = userRepository.findById(Long.parseLong(userID));
+      Optional<User> oUser = userRepository.findUserByEmail(email);
       if (oUser.isPresent()) {
          User u = oUser.get();
          // TODO: We know this is not a long-term solution and this will be
@@ -165,8 +214,8 @@ public class ProfilesRegistryManager {
             return false;
          }
       } else {
-         throw new UserModificationException("No user found with ID: "
-            + userID);
+         throw new UserModificationException("No user found with email: "
+            + email);
       }
    }
 

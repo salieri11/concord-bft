@@ -7,6 +7,7 @@
 
 package Servlets;
 
+import static profiles.UsersAPIMessage.EMAIL_LABEL;
 import static profiles.UsersAPIMessage.PASSWORD_LABEL;
 
 import java.io.IOException;
@@ -63,15 +64,11 @@ public class UserAuthenticator extends BaseServlet {
       try {
          JSONObject requestJSON
             = (JSONObject) parser.parse(APIHelper.getRequestBody(request));
-         String uri = request.getRequestURI();
-         if (uri.endsWith("/")) {
-            uri = uri.substring(0, uri.length() - 1);
-         }
-         String tokens[] = uri.split("/");
-         // URI is /api/login/<userID>
-         if (tokens[2].equals("login")) {
+         // URI is /api/login
+         if (requestJSON.containsKey(EMAIL_LABEL)
+            && requestJSON.containsKey(PASSWORD_LABEL)) {
             boolean successful
-               = prm.loginUser(tokens[3],
+               = prm.loginUser((String) requestJSON.get(EMAIL_LABEL),
                                (String) requestJSON.get(PASSWORD_LABEL));
             if (successful) {
                responseStatus = HttpServletResponse.SC_OK;
@@ -81,8 +78,10 @@ public class UserAuthenticator extends BaseServlet {
                responseString = new JSONObject().toJSONString();
             }
          } else {
-            responseStatus = HttpServletResponse.SC_NOT_FOUND;
-            responseString = new JSONObject().toJSONString();
+            responseString
+               = APIHelper.errorJSON("email or password " + "field missing")
+                          .toJSONString();
+            responseStatus = HttpServletResponse.SC_BAD_REQUEST;
          }
       } catch (ParseException | IOException | UserModificationException e) {
          responseStatus = HttpServletResponse.SC_BAD_REQUEST;

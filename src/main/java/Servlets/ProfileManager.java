@@ -10,6 +10,7 @@ package Servlets;
 import static profiles.UsersAPIMessage.*;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.servlet.ServletException;
@@ -71,12 +72,12 @@ public class ProfileManager extends BaseServlet {
       String consortium = request.getParameter("consortium");
       String organization = request.getParameter("organization");
 
-      if (consortium != null && organization != null && uriTokens.length == 3) {
+      if (uriTokens.length == 3) {
          // /api/users?consortium=<c>&organization=<o>
-         JSONArray result = prm.getUsers(consortium, organization);
+         JSONArray result = prm.getUsers(Optional.ofNullable(consortium),
+                 Optional.ofNullable(organization));
          responseString = result.toJSONString();
          responseStatus = HttpServletResponse.SC_OK;
-
       } else if (uriTokens.length == 4) {
          // /api/users/<userid>
          JSONObject result = prm.getUserWithID(uriTokens[3]);

@@ -199,9 +199,7 @@ public class Server {
                                               + "/*"))
                        .addServlet(Servlets.servlet(userLoginServletName,
                                                     UserAuthenticator.class)
-                                           .addMapping(userLoginEndpoint)
-                                           .addMapping(userLoginEndpoint
-                                              + "/*"));
+                                           .addMapping(userLoginEndpoint));
 
       DeploymentManager manager
          = Servlets.defaultContainer().addDeployment(servletBuilder);
