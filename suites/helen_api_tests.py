@@ -496,13 +496,17 @@ class HelenAPITests(test_suite.TestSuite):
       return (True, None)
 
 
+   def email_generator(self, size=6, chars=string.ascii_uppercase + string.digits):
+      return ''.join(random.choice(chars) for _ in range(size))
+
+
    def _get_mock_user_data(self):
       data = {}
       details = {}
       details['first_name'] = 'FirstName'
       details['last_name'] = 'LastName'
       data['name'] = 'Mock Name'
-      data['email'] = 'mock@email.com'
+      data['email'] = self.email_generator() + '@email.com'
       data['details'] = details
       data['password'] = 'root'
       data['role'] = 'system_admin'
@@ -535,11 +539,11 @@ class HelenAPITests(test_suite.TestSuite):
 
 
    def _test_createUser(self, request):
-      response = self._create_mock_user(request)
+      mock = self._get_mock_user_data()
+      response = self._create_mock_user(request, mock)
       print(response)
       user_id = response['user_id']
       user = self._get_user(request, user_id)
-      mock = self._get_mock_user_data()
       milliseconds_since_epoch = 0
       if (mock['name'] == user['name'] and mock['email'] == user['email']
           and mock['details']['first_name'] == user['details']['first_name']
@@ -558,13 +562,16 @@ class HelenAPITests(test_suite.TestSuite):
       return (False, "Incorrect response for invalid user")
 
    def _test_user_login(self, request):
-      response = self._create_mock_user(request)
+      mock = self._get_mock_user_data()
+      response = self._create_mock_user(request, mock)
       user_id = response['user_id']
-      password = self._get_mock_user_data()['password']
+      user_email = mock['email']
+      password = mock['password']
       loginData = {}
+      loginData['email'] = user_email
       loginData['password'] = password
       before = int(round(time.time() * 1000))
-      response = request.callUserAPI("/login/{}/".format(user_id), data=loginData)
+      response = request.callUserAPI("/login", data=loginData)
       after = int(round(time.time() * 1000))
       user = self._get_user(request, user_id)
       if before < user['last_login'] and user['last_login'] < after:
@@ -623,6 +630,7 @@ class HelenAPITests(test_suite.TestSuite):
       if all(u in user_list for u in created_user_id):
          return (True, None)
       return (False, "All created users not returned")
+
 
    def _test_largeReply(self, request):
       ### 1. Create three contracts, each 16kb in size
