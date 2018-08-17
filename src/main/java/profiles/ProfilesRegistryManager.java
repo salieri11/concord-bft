@@ -178,8 +178,9 @@ public class ProfilesRegistryManager {
             + request.getUserID());
 
       // First check if user with same email already exists
-      if (request.getOptionalEmail().isPresent()
-         && isDuplicateEmail(request.getOptionalEmail().get())) {
+      if (request.getOptionalEmail().isPresent() &&
+          !request.getOptionalEmail().get().equals(oUser.get().getEmail()) &&
+          isDuplicateEmail(request.getOptionalEmail().get())) {
          throw new UserModificationException("Duplicate email address");
       }
 
