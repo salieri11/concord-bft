@@ -275,7 +275,8 @@ public final class EthDispatcher extends BaseServlet {
             || ethMethodName.equals(_conf.getStringValue("ClientVersion_Name"))
             || ethMethodName.equals(_conf.getStringValue("Mining_Name"))
             || ethMethodName.equals(_conf.getStringValue("NetVersion_Name"))
-            || ethMethodName.equals(_conf.getStringValue("Accounts_Name"))) {
+            || ethMethodName.equals(_conf.getStringValue("Accounts_Name"))
+            || ethMethodName.equals(_conf.getStringValue("GasPrice_Name"))) {
             handler = new EthLocalResponseHandler();
             isLocal = true;
          } else if (ethMethodName.equals(_conf.getStringValue
