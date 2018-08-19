@@ -1,0 +1,985 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "VMware Project Athena",
+    "description": "A Universal BFT Ledger",
+    "contact": {
+      "name": "VMware",
+      "url": "https://github.com/vmwathena/"
+    },
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "Local API endpoint"
+    }
+  ],
+  "paths": {
+    "/athena/members": {
+      "summary": "Athena Concensus Membership List",
+      "get": {
+        "summary": "List nodes that are members",
+        "operationId": "memberListGet",
+        "responses": {
+          "200": {
+            "description": "Members",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "hostname": {
+                        "type": "string"
+                      },
+                      "address": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string"
+                      },
+                      "millis_since_last_message": {
+                        "type": "integer"
+                      },
+                      "millis_since_last_message_threshold": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/athena/blocks": {
+      "summary": "Athena Blocks",
+      "get": {
+        "summary": "List blocks in the chain, most recent first",
+        "operationId": "blockListGet",
+        "parameters": [
+          {
+            "name": "latest",
+            "in": "query",
+            "description": "most recent block to start with",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "string"
+            }
+          },
+          {
+            "name": "count",
+            "in": "query",
+            "description": "number of blocks to return",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Blocks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "blocks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "number": {
+                            "type": "integer"
+                          },
+                          "hash": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "next": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/athena/blocks/{index}": {
+      "summary": "Specific Athena Block",
+      "get": {
+        "summary": "Get a specific block, by its number in the chain",
+        "operationId": "blockGet",
+        "parameters": [
+          {
+            "name": "index",
+            "in": "path",
+            "description": "the index of the block to get",
+            "required": "false",
+            "schema": {
+              "type": "integer",
+              "format": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Block",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "number": {
+                      "type": "integer"
+                    },
+                    "hash": {
+                      "type": "string"
+                    },
+                    "parentHash": {
+                      "type": "string"
+                    },
+                    "nonce": {
+                      "type": "string"
+                    },
+                    "size": {
+                      "type": "integer"
+                    },
+                    "transactions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/athena/transactions/{hash}": {
+      "summary": "Specific Athena Block",
+      "get": {
+        "summary": "Get a specific transaction, by its hash",
+        "operationId": "txGet",
+        "parameters": [
+          {
+            "name": "hash",
+            "in": "path",
+            "description": "the hash of the index to get",
+            "required": "false",
+            "schema": {
+              "type": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "hash": {
+                      "type": "string"
+                    },
+                    "from": {
+                      "type": "string"
+                    },
+                    "to": {
+                      "type": "string"
+                    },
+                    "contract_address": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "integer"
+                    },
+                    "input": {
+                      "type": "string"
+                    },
+                    "block_hash": {
+                      "type": "string"
+                    },
+                    "block_number": {
+                      "type": "integer"
+                    },
+                    "transaction_index": {
+                      "type": "integer"
+                    },
+                    "nonce": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/athena/eth": {
+      "summary": "Ethereum JSON RPC API",
+      "get": {
+        "summary": "List available RPC methods",
+        "operationId": "ethJsonRpcGet",
+        "responses": {
+          "200": {
+            "description": "RPC Method List",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "params": {
+                        "type": "array",
+                        "items": null
+                      },
+                      "returns": null
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Call the named procedure",
+        "externalDocs": {
+          "description": "Ethereum JSON RPC Docs",
+          "url": "https://ethereum.gitbooks.io/frontier-guide/content/rpc.html"
+        },
+        "operationId": "ethJsonRpcPost",
+        "requestBody": {
+          "description": "RPC Request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "jsonrpc",
+                  "method",
+                  "params"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "jsonrpc": {
+                    "type": "string"
+                  },
+                  "method": {
+                    "type": "string"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": null
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "RPC Result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "jsonrpc"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "integer"
+                    },
+                    "jsonrpc": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "type": null
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/athena/contracts": {
+      "summary": "Athena contracts",
+      "get": {
+        "summary": "List all deployed contracts",
+        "operationId": "contractsGet",
+        "responses": {
+          "200": {
+            "description": "Returns a list of all contracts deployed to athena",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "contract_id": {
+                        "type": "string",
+                        "description": "string representing id of this contract"
+                      },
+                      "owner": {
+                        "type": "string",
+                        "description": "string representing address of the owner of this contract"
+                      },
+                      "url": {
+                        "type": "string",
+                        "description": "The URI representing this specific contract"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Deploy and new contract to athena",
+        "operationId": "contractsPost",
+        "requestBody": {
+          "description": "New contract POST request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "contract_id",
+                  "version",
+                  "from",
+                  "sourcecode"
+                ],
+                "properties": {
+                  "contract_id": {
+                    "type": "string",
+                    "description": "string representing contract id"
+                  },
+                  "version": {
+                    "type": "string",
+                    "description": "string representing version number of this contract"
+                  },
+                  "from": {
+                    "type": "string",
+                    "description": "string representing owners address"
+                  },
+                  "sourcecode": {
+                    "type": "string",
+                    "description": "string representing solidity source code of this version"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "description of deployed contract",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "properties": {
+                      "contract_id": {
+                        "type": "string",
+                        "description": "string representing id of this contract"
+                      },
+                      "version": {
+                        "type": "string",
+                        "description": "string representing name of this version"
+                      },
+                      "url": {
+                        "type": "string",
+                        "description": "The URI representing this specific version"
+                      },
+                      "error": {
+                        "type": "string",
+                        "description": "Error message if any error occured during deployment, null otherwise"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/athena/contracts/{contract_id}": {
+      "get": {
+        "summary": "Get a contract with id `contract_id`",
+        "operationId": "GetContractById",
+        "parameters": [
+          {
+            "name": "contract_id",
+            "in": "path",
+            "description": "the id of the contract to get",
+            "required": "true",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Details of the particular contract",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "contract_id": {
+                      "type": "string",
+                      "description": "string representing id of this contract"
+                    },
+                    "owner": {
+                      "type": "string",
+                      "description": "string representing address of the owner of this contract"
+                    },
+                    "versions": {
+                      "type": "array",
+                      "items": {
+                        "properties": {
+                          "address": {
+                            "type": "string",
+                            "description": "string representing address at which this version is deployed"
+                          },
+                          "metadata": {
+                            "type": "object",
+                            "description": "A metadata JSON object about source code of this version generated by solidity compiler"
+                          },
+                          "version": {
+                            "type": "string",
+                            "description": "string representing name of this version"
+                          },
+                          "url": {
+                            "type": "string",
+                            "description": "The URI representing this specific version"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/athena/contracts/{contract_id}/versions/{version_name}": {
+      "get": {
+        "summary": "Get a contract identified by given `contract_id` and `version_name`",
+        "operationId": "GetContractByIdAndVersion",
+        "parameters": [
+          {
+            "name": "contract_id",
+            "in": "path",
+            "description": "the id of the contract to get",
+            "required": "true",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            },
+            "style": "simple"
+          },
+          {
+            "name": "version_name",
+            "in": "path",
+            "description": "name of the version of contract to get",
+            "required": "true",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All details of a particular version of this particular contract ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "contract_id": {
+                      "type": "string",
+                      "description": "string representing id of this contract"
+                    },
+                    "owner": {
+                      "type": "string",
+                      "description": "string representing address of the owner of this contract"
+                    },
+                    "version": {
+                      "type": "string",
+                      "description": "string representing name of this version"
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "description": "A metadata JSON object about source code of this version generated by solidity compiler"
+                    },
+                    "address": {
+                      "type": "string",
+                      "description": "string representing address at which this version is deployed"
+                    },
+                    "bytecode": {
+                      "type": "string",
+                      "description": "string representing compiled bytecode of this version"
+                    },
+                    "sourcecode": {
+                      "type": "string",
+                      "description": "string representing the actual source code of this version"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "summary": "Helen User management",
+      "get": {
+        "summary": "Get a list of user which belong to specific organization and specific consortium",
+        "operationId": "usersGet",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "consortium",
+            "description": "ID of the consortium",
+            "required": true,
+            "type":"string"
+          },
+          {
+            "in": "query",
+            "name": "organization",
+            "description": "ID of the organization",
+            "required": true,
+            "type":"string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a list of all users who are part of given consortium and given organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "user_id": {
+                        "type": "integer",
+                        "description": "integer value representing ID of this user"
+                      },
+                      "name": {
+                        "type": "string",
+                        "description": "string representing name of this user"
+                      },
+                      "email": {
+                        "type": "string",
+                        "description": "string representing email of this user"
+                      },
+                      "role": {
+                        "type": "string",
+                        "description": "string representing role of this user"
+                      },
+                      "last_login": {
+                        "type": "integer",
+                        "description": "integer value representing the time (in milliseconds since epoch) when this user last logged in"
+                      },
+                      "details": {
+                        "type": "object",
+                        "properties": {
+                          "first_name": {
+                            "type": "string",
+                            "description": "first name of this user"
+                          },
+                          "last_name": {
+                            "type": "string",
+                            "description": "last name of this user"
+                          }
+                        }
+                      },
+                      "consortium": {
+                        "type": "object",
+                        "properties": {
+                          "consortium_id": {
+                            "type": "integer",
+                            "description": "ID of consortium to which this user belongs"
+                          },
+                          "consortium_name": {
+                            "type": "string",
+                            "description": "name of consortium to which this user belongs"
+                          }
+                        }
+                      },
+                      "organization": {
+                        "type": "object",
+                        "properties": {
+                          "organization_id": {
+                            "type": "integer",
+                            "description": "ID of organization to which this user belongs"
+                          },
+                          "organization_name": {
+                            "type": "string",
+                            "description": "name of organization to which this user belongs"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new user in Helen",
+        "operationId": "usersPost",
+        "requestBody": {
+          "description": "User creation POST request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "string representing name of this user",
+                    "required": true
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "string representing email of this user",
+                    "required": true
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "string representing role of this user",
+                    "required": true
+                  },
+                  "details": {
+                    "type": "object",
+                    "properties": {
+                      "first_name": {
+                        "type": "string",
+                        "description": "first name of this user"
+                      },
+                      "last_name": {
+                        "type": "string",
+                        "description": "last name of this user"
+                      }
+                    }
+                  },
+                  "consortium": {
+                    "type": "object",
+                    "properties": {
+                      "consortium_id": {
+                        "type": "integer",
+                        "description": "ID of consortium to which this user belongs",
+                        "required": true
+                      }
+                    }
+                  },
+                  "organization": {
+                    "type": "object",
+                    "properties": {
+                      "organization_id": {
+                        "type": "integer",
+                        "required": true,
+                        "description": "ID of organization to which this user belongs"
+                      }
+                    }
+                  },
+                  "password": {
+                    "type": "string",
+                    "required": true,
+                    "description": "password of this user"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "User ID of newly created user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user_id": {
+                      "type": "string",
+                      "description": "User ID of newly created user"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{user_id}": {
+      "summary": "Helen User management",
+      "get": {
+        "summary": "Get the user identified by given user_id",
+        "operationId": "GetUserById",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "the id of the user to get",
+            "required": "true",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a json object describing specified user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user_id": {
+                      "type": "integer",
+                      "description": "integer value representing ID of this user"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "string representing name of this user"
+                    },
+                    "email": {
+                      "type": "string",
+                      "description": "string representing email of this user"
+                    },
+                    "role": {
+                      "type": "string",
+                      "description": "string representing role of this user"
+                    },
+                    "last_login": {
+                      "type": "integer",
+                      "description": "integer value representing the time (in milliseconds since epoch) when this user last logged in"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "first_name": {
+                          "type": "string",
+                          "description": "first name of this user"
+                        },
+                        "last_name": {
+                          "type": "string",
+                          "description": "last name of this user"
+                        }
+                      }
+                    },
+                    "consortium": {
+                      "type": "object",
+                      "properties": {
+                        "consortium_id": {
+                          "type": "integer",
+                          "description": "ID of consortium to which this user belongs"
+                        },
+                        "consortium_name": {
+                          "type": "string",
+                          "description": "name of consortium to which this user belongs"
+                        }
+                      }
+                    },
+                    "organization": {
+                      "type": "object",
+                      "properties": {
+                        "organization_id": {
+                          "type": "integer",
+                          "description": "ID of organization to which this user belongs"
+                        },
+                        "organization_name": {
+                          "type": "string",
+                          "description": "name of organization to which this user belongs"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update user information",
+        "operationId": "UpdateUser",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "the id of the user to update",
+            "required": "true",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "description": "User PATCH request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "new name of the user"
+                  },
+                  "email": {
+                    "type": "string",
+                    "description": "new email of the user"
+                  },
+                  "role": {
+                    "type": "string",
+                    "description": "new role of the user"
+                  },
+                  "details": {
+                    "type": "object",
+                    "properties": {
+                      "first_name": {
+                        "type": "string",
+                        "description": "new first name of the user"
+                      },
+                      "last_name": {
+                        "type": "string",
+                        "description": "new last name of the user"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/login/{user_id}": {
+      "summary": "Helen User management",
+      "post": {
+        "summary": "Authenticate a user",
+        "operationId": "AuthenticateUser",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "the id of the user to authenticate",
+            "required": "true",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "requestBody": {
+          "description": "Authenticate user POST request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "description": "password of the user",
+                    "required": true
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -4,9 +4,9 @@ import java.io.IOException;
 
 import base.BaseTest;
 import connections.AthenaConnectionFactory;
+import connections.AthenaConnectionFactory.ConnectionType;
 import connections.AthenaConnectionPool;
 import connections.IAthenaConnection;
-import connections.AthenaConnectionFactory.ConnectionType;
 
 public class ConnectionTestIT extends BaseTest {
    private AthenaConnectionPool _pool;

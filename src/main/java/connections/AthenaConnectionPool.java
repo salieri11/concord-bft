@@ -11,14 +11,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.log4j.Logger;
-
 import configurations.IConfiguration;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class AthenaConnectionPool {
    // Instantiate the instance of this class
    private static AthenaConnectionPool _instance = new AthenaConnectionPool();
-   private static Logger _log = Logger.getLogger(AthenaConnectionPool.class);
+   private static Logger _log = LogManager.getRootLogger();
    private AtomicInteger _connectionCount;
    // initialized with fairness = true, longest waiting threads
    // are served first

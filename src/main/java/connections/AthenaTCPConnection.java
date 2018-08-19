@@ -12,13 +12,13 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.log4j.Logger;
 
 import com.vmware.athena.Athena;
-
-import Servlets.AthenaHelper;
-import Servlets.EthDispatcher;
-import configurations.*;
+import configurations.IConfiguration;
+import controllers.EthDispatcher;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import utils.AthenaHelper;
 
 public final class AthenaTCPConnection implements IAthenaConnection {
    private Socket _socket;
@@ -26,7 +26,7 @@ public final class AthenaTCPConnection implements IAthenaConnection {
    private final int _receiveTimeout; // ms
    private final int _receiveLengthSize; // bytes
    private IConfiguration _conf;
-   private static Logger _logger = Logger.getLogger(AthenaTCPConnection.class);
+   private static Logger _logger = LogManager.getRootLogger();
    private static Athena.ProtocolRequest _protocolRequestMsg
       = Athena.ProtocolRequest.newBuilder().setClientVersion(1).build();
    private static Athena.AthenaRequest _athenaRequest
@@ -51,7 +51,7 @@ public final class AthenaTCPConnection implements IAthenaConnection {
          _socket.setTcpNoDelay(true);
          _socket.setSoTimeout(_receiveTimeout);
       } catch (UnknownHostException e) {
-         _logger.error("Error creating TCP connection with Athena. Host= " 
+         _logger.error("Error creating TCP connection with Athena. Host= "
                        + host + ", port= " + port);
          throw new UnknownHostException();
       } catch (IOException e) {

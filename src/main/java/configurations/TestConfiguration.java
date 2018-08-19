@@ -7,7 +7,6 @@
 package configurations;
 
 import java.io.IOException;
-import org.json.simple.parser.ParseException;
 
 public class TestConfiguration extends FileConfiguration {
    

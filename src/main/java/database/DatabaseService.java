@@ -3,10 +3,10 @@ package database;
 import java.sql.Connection;
 import java.sql.DriverManager;
 
-import org.apache.log4j.Logger;
-
 import configurations.ConfigurationFactory;
 import configurations.IConfiguration;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * <p>
@@ -21,7 +21,7 @@ public class DatabaseService {
    // object
    private static Connection db = null;
    private static boolean initDone = false;
-   private static Logger logger = Logger.getLogger(DatabaseService.class);
+   private static Logger logger = LogManager.getRootLogger();
    private static IConfiguration _conf;
 
    private static void init() throws Exception {

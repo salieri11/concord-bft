@@ -10,14 +10,15 @@ package configurations;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
+import org.apache.logging.log4j.LogManager;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.parser.ParseException;
 
 public class FileConfiguration implements IConfiguration {
 
    protected Properties _configurations;
-   private Logger logger = Logger.getLogger(FileConfiguration.class);
+   protected Logger logger = LogManager.getRootLogger();
 
    /**
     * Loads default application.properties file
