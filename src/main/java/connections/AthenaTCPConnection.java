@@ -26,7 +26,7 @@ public final class AthenaTCPConnection implements IAthenaConnection {
    private final int _receiveTimeout; // ms
    private final int _receiveLengthSize; // bytes
    private IConfiguration _conf;
-   private static Logger _logger = LogManager.getRootLogger();
+   private static Logger _logger = LogManager.getLogger(AthenaTCPConnection.class);
    private static Athena.ProtocolRequest _protocolRequestMsg
       = Athena.ProtocolRequest.newBuilder().setClientVersion(1).build();
    private static Athena.AthenaRequest _athenaRequest

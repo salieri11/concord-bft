@@ -36,7 +36,8 @@ import utils.APIHelper;
  */
 public class EthLocalResponseHandler extends AbstractEthRPCHandler {
 
-   private static Logger logger = LogManager.getRootLogger();
+   private static Logger logger =
+           LogManager.getLogger(EthLocalResponseHandler.class);
    private String jsonRpc;
    private IConfiguration _conf;
 

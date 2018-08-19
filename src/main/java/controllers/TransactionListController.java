@@ -65,7 +65,7 @@ public class TransactionListController extends BaseController {
                                   .setTransactionListRequest(txListReqBuilder.build())
                                   .build();
 
-         return sendToAthenaAndBuildHelenResposne(athenaRequest);
+         return sendToAthenaAndBuildHelenResponse(athenaRequest);
          
       } catch (Exception e) {
          logger.warn("Exception in transaction list", e);

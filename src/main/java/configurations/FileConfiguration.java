@@ -18,7 +18,7 @@ import org.json.simple.parser.ParseException;
 public class FileConfiguration implements IConfiguration {
 
    protected Properties _configurations;
-   protected Logger logger = LogManager.getRootLogger();
+   protected Logger logger = LogManager.getLogger(FileConfiguration.class);
 
    /**
     * Loads default application.properties file

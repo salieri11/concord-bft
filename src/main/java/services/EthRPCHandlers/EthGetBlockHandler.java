@@ -24,7 +24,7 @@ import utils.APIHelper;
  */
 public class EthGetBlockHandler extends AbstractEthRPCHandler {
 
-   Logger logger = LogManager.getRootLogger();
+   Logger logger = LogManager.getLogger(EthGetBlockHandler.class);
 
    /**
     * Builds the Athena request builder. Extracts the block hash from the

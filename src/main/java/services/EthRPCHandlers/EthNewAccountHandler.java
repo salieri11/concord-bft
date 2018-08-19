@@ -24,7 +24,7 @@ import utils.APIHelper;
  */
 public class EthNewAccountHandler extends AbstractEthRPCHandler {
 
-   private static Logger logger = LogManager.getRootLogger();
+   private static Logger logger = LogManager.getLogger(EthNewAccountHandler.class);
 
    /**
     * Builds the Athena request builder. Extracts the passphrase from the

@@ -29,7 +29,7 @@ import utils.APIHelper;
  */
 public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
 
-   Logger logger = LogManager.getRootLogger();
+   Logger logger = LogManager.getLogger(EthGetTxReceiptHandler.class);
    
    /**
     * Builds a TransactionRequest object from given requestJson and inserts it

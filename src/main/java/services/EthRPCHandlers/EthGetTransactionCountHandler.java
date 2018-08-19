@@ -20,7 +20,7 @@ import utils.APIHelper;
  */
 public class EthGetTransactionCountHandler extends AbstractEthRPCHandler {
 
-   Logger logger = LogManager.getRootLogger();
+   Logger logger = LogManager.getLogger(EthGetTransactionCountHandler.class);
 
    /**
     * Builds the Athena request builder. Extracts the 'to' address from the

@@ -30,7 +30,7 @@ import utils.APIHelper;
  */
 public class EthFilterHandler extends AbstractEthRPCHandler {
 
-   private static Logger logger = LogManager.getRootLogger();
+   private static Logger logger = LogManager.getLogger(EthFilterHandler.class);
 
    /**
     * Builds the EthRequest Object from the type of eth request specified in

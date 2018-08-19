@@ -8,7 +8,7 @@ import utils.APIHelper;
 
 class RLPParser {
    
-   Logger logger = LogManager.getRootLogger();
+   Logger logger = LogManager.getLogger(RLPParser.class);
 
    private ByteString input;
    private int offset = 0;

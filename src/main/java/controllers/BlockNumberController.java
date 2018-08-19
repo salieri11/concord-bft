@@ -12,7 +12,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import utils.APIHelper;
 
 import java.util.List;
@@ -55,7 +54,7 @@ public class BlockNumberController extends BaseController {
                     = Athena.AthenaRequest.newBuilder()
                     .setBlockRequest(blockRequestObj)
                     .build();
-            return sendToAthenaAndBuildHelenResposne(athenaRequestObj);
+            return sendToAthenaAndBuildHelenResponse(athenaRequestObj);
         
         } catch (Exception e) {
             logger.error("Invalid block number or hash");

@@ -13,7 +13,7 @@ import utils.APIHelper;
  */
 public class EthBlockNumberHandler extends AbstractEthRPCHandler {
 
-    Logger logger = LogManager.getRootLogger();
+    Logger logger = LogManager.getLogger(EthBlockNumberHandler.class);
     
     /**
      * Builds the EthRequest object which can be sent to Athena from given

@@ -56,7 +56,7 @@ public class BlockListController extends BaseController {
                                .setBlockListRequest(blocksListRequestObj)
                                .build();
 
-      return sendToAthenaAndBuildHelenResposne(athenarequestObj);
+      return sendToAthenaAndBuildHelenResponse(athenarequestObj);
    }
 
    /**

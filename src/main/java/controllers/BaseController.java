@@ -109,12 +109,13 @@ public abstract class BaseController {
    }
 
    protected ResponseEntity<JSONAware>
-             sendToAthenaAndBuildHelenResposne(Athena.AthenaRequest athenaRequest) {
+   sendToAthenaAndBuildHelenResponse(Athena.AthenaRequest athenaRequest) {
       try {
          Athena.AthenaResponse athenaResponse = forwardToAthena(athenaRequest);
          return buildHelenResponse(athenaResponse);
       } catch (AthenaConnectionException ace) {
-         LogManager.getRootLogger().warn("Athena Exception: ", ace);
+         LogManager.getLogger(BaseController.class)
+                 .warn("Athena Exception: ", ace);
          return new ResponseEntity<>(APIHelper.errorJSON(ace.getMessage()),
                                      standardHeaders,
                                      HttpStatus.INTERNAL_SERVER_ERROR);

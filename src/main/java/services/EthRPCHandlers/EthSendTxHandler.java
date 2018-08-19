@@ -24,7 +24,7 @@ import utils.APIHelper;
  */
 public class EthSendTxHandler extends AbstractEthRPCHandler {
 
-   private static Logger logger = LogManager.getRootLogger();
+   private static Logger logger = LogManager.getLogger(EthSendTxHandler.class);
 
    /**
     * Builds the Athena request builder. Extracts the method name, from, to,

@@ -18,7 +18,7 @@ import org.apache.logging.log4j.Logger;
 public class AthenaConnectionPool {
    // Instantiate the instance of this class
    private static AthenaConnectionPool _instance = new AthenaConnectionPool();
-   private static Logger _log = LogManager.getRootLogger();
+   private static Logger _log = LogManager.getLogger(AthenaConnectionPool.class);
    private AtomicInteger _connectionCount;
    // initialized with fairness = true, longest waiting threads
    // are served first

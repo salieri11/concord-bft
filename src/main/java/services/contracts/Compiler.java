@@ -23,7 +23,7 @@ import org.apache.logging.log4j.Logger;
  */
 public class Compiler {
 
-   private final static Logger logger = LogManager.getRootLogger() ;
+   private final static Logger logger = LogManager.getLogger(Compiler.class);
 
    /**
     * Creates a temporary directory and creates a solidity contract source code

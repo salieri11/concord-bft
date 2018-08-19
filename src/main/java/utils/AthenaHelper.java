@@ -17,7 +17,7 @@ import org.apache.logging.log4j.Logger;
 
 public class AthenaHelper {
    
-   private static Logger _log = LogManager.getRootLogger();
+   private static Logger _log = LogManager.getLogger(AthenaHelper.class);
    /**
     * Converts an int into two bytes.
     * 

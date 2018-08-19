@@ -21,7 +21,7 @@ public class DatabaseService {
    // object
    private static Connection db = null;
    private static boolean initDone = false;
-   private static Logger logger = LogManager.getRootLogger();
+   private static Logger logger = LogManager.getLogger(DatabaseService.class);
    private static IConfiguration _conf;
 
    private static void init() throws Exception {

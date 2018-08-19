@@ -59,7 +59,7 @@ public final class MemberListController extends BaseController {
                                .setPeerRequest(peerRequestObj)
                                .build();
       
-      return sendToAthenaAndBuildHelenResposne(athenarequestObj);
+      return sendToAthenaAndBuildHelenResponse(athenarequestObj);
    }
 
    /**

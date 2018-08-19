@@ -25,7 +25,8 @@ import java.util.List;
 public class ContractRegistryManager {
    private static ContractRegistryManager self = null;
    private static Object instanceLock = new Object();
-   private static Logger logger = LogManager.getRootLogger();
+   private static Logger logger =
+           LogManager.getLogger(ContractRegistryManager.class);
 
    private String CONTRACTS_TABLE_NAME = "contracts";
    private String CONTRACT_ID_COLUMN_LABEL = "contract_id";

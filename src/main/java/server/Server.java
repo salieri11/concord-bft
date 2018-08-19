@@ -46,7 +46,7 @@ public class Server {
     }
     
     public static void main(String[] args) throws IOException {
-        final Logger logger = LogManager.getRootLogger();
+        final Logger logger = LogManager.getLogger(Server.class);
         
         if (args.length == 1) {
             // This accepts only 1 argument and it is name of configuration file

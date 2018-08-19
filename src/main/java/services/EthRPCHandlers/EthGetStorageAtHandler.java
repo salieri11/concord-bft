@@ -19,7 +19,7 @@ import utils.APIHelper;
  */
 public class EthGetStorageAtHandler extends AbstractEthRPCHandler {
    
-   Logger logger = LogManager.getRootLogger();
+   Logger logger = LogManager.getLogger(EthBlockNumberHandler.class);
 
    /**
     * Builds the Athena request builder. Extracts the 'to' address and data from

@@ -13,9 +13,6 @@ package controllers;
 
 import java.io.IOException;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONAware;
@@ -115,7 +112,7 @@ public final class TransactionsController extends BaseController {
                                .setTransactionRequest(txRequestObj)
                                .build();
 
-      return sendToAthenaAndBuildHelenResposne(athenarequestObj);
+      return sendToAthenaAndBuildHelenResponse(athenarequestObj);
    }
 
    /**
