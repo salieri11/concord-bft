@@ -1,4 +1,4 @@
-package controllers;
+package Servlets;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -7,13 +7,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
-public class StaticContentController implements ErrorController {
+public class StaticContent implements ErrorController {
 
     private static final String errorPath = "/error";
 
     private static final long serialVersionUID = 1L;
     private static final Logger logger =
-            LogManager.getLogger(StaticContentController.class);
+            LogManager.getLogger(StaticContent.class);
 
     
     @RequestMapping(path = "/api")

@@ -4,7 +4,7 @@ package services.EthRPCHandlers;
 import com.google.protobuf.ByteString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import utils.APIHelper;
+import Servlets.APIHelper;
 
 class RLPParser {
    

@@ -1,4 +1,4 @@
-package controllers;
+package Servlets;
 
 import com.vmware.athena.Athena;
 import org.apache.logging.log4j.LogManager;
@@ -12,14 +12,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import utils.APIHelper;
 
 import java.util.List;
 
 @Controller
-public class BlockNumberController extends BaseController {
+public class BlockNumber extends BaseServlet {
     private static final long serialVersionUID = 1L;
-    private Logger logger = LogManager.getLogger(BlockNumberController.class);
+    private Logger logger = LogManager.getLogger(BlockNumber.class);
     
     /**
      * Services a get request. Constructs a protobuf request of type blocknumber

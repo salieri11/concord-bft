@@ -9,7 +9,7 @@
  *
  * TODO : Handle the case of no/incorrect response from Athena
  */
-package controllers;
+package Servlets;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,10 +29,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 /**
  * Servlet class.
  */
-public final class MemberListController extends BaseController {
+public final class MemberList extends BaseServlet {
    private static final long serialVersionUID = 1L;
    private static final Logger logger =
-           LogManager.getLogger(MemberListController.class);
+           LogManager.getLogger(MemberList.class);
 
    /**
     * Services a get request. Constructs a protobuf request of type peer request

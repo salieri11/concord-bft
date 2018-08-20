@@ -5,7 +5,7 @@ import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONObject;
 import com.google.protobuf.ByteString;
 import com.vmware.athena.Athena;
-import utils.APIHelper;
+import Servlets.APIHelper;
 
 
 /**

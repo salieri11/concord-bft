@@ -1,7 +1,7 @@
 /**
  * This class contains helper functions for communicating with Athena
  */
-package utils;
+package Servlets;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

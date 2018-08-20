@@ -9,7 +9,7 @@
  *
  * TODO : Handle the case of no/incorrect response from Athena
  */
-package controllers;
+package Servlets;
 
 import java.io.IOException;
 
@@ -26,17 +26,16 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import utils.APIHelper;
 
 /**
  * Servlet class.
  */
 @Controller
-public final class TransactionsController extends BaseController {
+public final class Transaction extends BaseServlet {
 
    private static final long serialVersionUID = 1L;
    private static final Logger logger =
-           LogManager.getLogger(TransactionsController.class);
+           LogManager.getLogger(Transaction.class);
    
    protected static JSONObject
              buildTransactionResponseJSON(Athena.TransactionResponse tr) {

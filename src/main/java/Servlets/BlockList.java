@@ -1,4 +1,4 @@
-package controllers;
+package Servlets;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,14 +16,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.vmware.athena.Athena;
 
-import utils.APIHelper;
-
 @Controller
-public class BlockListController extends BaseController {
+public class BlockList extends BaseServlet {
 
    private static final long serialVersionUID = 1L;
 
-   private Logger logger = LogManager.getLogger(BlockListController.class);
+   private Logger logger = LogManager.getLogger(BlockList.class);
 
    // ** - tells spring to match anything in path
    @RequestMapping(method = RequestMethod.GET,

@@ -1,6 +1,6 @@
 package services.EthRPCHandlers;
 
-import controllers.EthDispatcher;
+import Servlets.EthDispatcher;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 

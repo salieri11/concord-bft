@@ -1,7 +1,7 @@
 /**
  * This is the base class for all API based servlets.
  */
-package controllers;
+package Servlets;
 
 import org.apache.logging.log4j.LogManager;
 import org.json.simple.JSONAware;
@@ -19,17 +19,15 @@ import configurations.IConfiguration;
 import connections.AthenaConnectionException;
 import connections.AthenaConnectionPool;
 import connections.IAthenaConnection;
-import utils.APIHelper;
-import utils.AthenaHelper;
 
-public abstract class BaseController {
+public abstract class BaseServlet {
 
    protected static final long serialVersionUID = 1L;
 
    protected IConfiguration _conf;
    protected HttpHeaders standardHeaders;
 
-   protected BaseController() {
+   protected BaseServlet() {
       _conf = ConfigurationFactory.getConfiguration(ConfigurationType.File);
       standardHeaders = new HttpHeaders();
       standardHeaders.setContentType(MediaType.APPLICATION_JSON);
@@ -114,7 +112,7 @@ public abstract class BaseController {
          Athena.AthenaResponse athenaResponse = forwardToAthena(athenaRequest);
          return buildHelenResponse(athenaResponse);
       } catch (AthenaConnectionException ace) {
-         LogManager.getLogger(BaseController.class)
+         LogManager.getLogger(BaseServlet.class)
                  .warn("Athena Exception: ", ace);
          return new ResponseEntity<>(APIHelper.errorJSON(ace.getMessage()),
                                      standardHeaders,

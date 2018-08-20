@@ -1,4 +1,4 @@
-package server;
+package Servers;
 /**
  * Main class for helen, does some basic initializations and then calls
  * SpringApplication.run() method.
@@ -20,7 +20,7 @@ import configurations.ConfigurationFactory.ConfigurationType;
 import configurations.IConfiguration;
 import connections.AthenaConnectionFactory;
 import connections.AthenaConnectionPool;
-import controllers.BlockListController;
+import Servlets.BlockList;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.boot.SpringApplication;
@@ -35,7 +35,7 @@ import services.profiles.User;
 @SpringBootApplication
 @EntityScan(basePackageClasses = {User.class})
 @EnableJpaRepositories(basePackageClasses = {ProfilesRegistryManager.class})
-@ComponentScan(basePackageClasses = {BlockListController.class,
+@ComponentScan(basePackageClasses = {BlockList.class,
         ProfilesRegistryManager.class})
 public class Server {
     

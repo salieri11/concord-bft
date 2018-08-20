@@ -1,4 +1,4 @@
-package controllers;
+package Servlets;
 
 import java.io.IOException;
 
@@ -15,14 +15,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import utils.APIHelper;
 
 @Controller
-public class TransactionListController extends BaseController {
+public class TransactionList extends BaseServlet {
 
    private static final long serialVersionUID = 1L;
    private final static Logger logger =
-           LogManager.getLogger(TransactionListController.class);
+           LogManager.getLogger(TransactionList.class);
    private final String transactionListEndpoint
       = _conf.getStringValue("TransactionList_Endpoint");
 
@@ -93,7 +92,7 @@ public class TransactionListController extends BaseController {
       JSONObject responseJSON = new JSONObject();
       JSONArray trArray = new JSONArray();
       for (Athena.TransactionResponse tr : txListResponse.getTransactionList()) {
-         JSONObject trJson = TransactionsController.buildTransactionResponseJSON(tr);
+         JSONObject trJson = Transaction.buildTransactionResponseJSON(tr);
          trJson.put("url",
                     transactionListEndpoint + "/"
                        + APIHelper.binaryStringToHex(tr.getHash()));

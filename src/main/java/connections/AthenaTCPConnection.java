@@ -15,10 +15,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.vmware.athena.Athena;
 import configurations.IConfiguration;
-import controllers.EthDispatcher;
+import Servlets.EthDispatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import utils.AthenaHelper;
+import Servlets.AthenaHelper;
 
 public final class AthenaTCPConnection implements IAthenaConnection {
    private Socket _socket;

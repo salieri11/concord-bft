@@ -1,6 +1,6 @@
 package services.EthRPCHandlers;
 
-import controllers.EthDispatcher;
+import Servlets.EthDispatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
@@ -14,7 +14,7 @@ import configurations.ConfigurationFactory.ConfigurationType;
 import configurations.IConfiguration;
 import connections.AthenaConnectionPool;
 import connections.IAthenaConnection;
-import utils.APIHelper;
+import Servlets.APIHelper;
 
 /**
  * <p>Copyright 2018 VMware, all rights reserved.</p>

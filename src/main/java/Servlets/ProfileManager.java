@@ -5,11 +5,10 @@
  *
  */
 
-package controllers;
+package Servlets;
 
 import java.io.IOException;
 import java.util.Optional;
-import javax.annotation.PostConstruct;
 
 
 import org.apache.logging.log4j.LogManager;
@@ -27,7 +26,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import services.profiles.*;
-import utils.APIHelper;
 
 import static services.profiles.UsersAPIMessage.*;
 
@@ -37,16 +35,16 @@ import static services.profiles.UsersAPIMessage.*;
  * management API of helen
  */
 @Controller
-public class ProfilesController extends BaseController {
+public class ProfileManager extends BaseServlet {
 
    private static final long serialVersionUID = 1L;
    private static final Logger logger =
-           LogManager.getLogger(ProfilesController.class);
+           LogManager.getLogger(ProfileManager.class);
 
    @Autowired
    private ProfilesRegistryManager prm;
 
-   public ProfilesController() {}
+   public ProfileManager() {}
    
    // /api/users?consortium=<c>&organization=<o>
    @RequestMapping(path = "/api/users", method = RequestMethod.GET)
@@ -197,6 +195,6 @@ public class ProfilesController extends BaseController {
    @Override
    protected JSONAware parseToJSON(Athena.AthenaResponse athenaResponse) {
       throw new UnsupportedOperationException("parseToJSON method is not "
-         + "supported in ProfilesController class");
+         + "supported in ProfileManager class");
    }
 }

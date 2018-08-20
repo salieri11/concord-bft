@@ -2,7 +2,7 @@ package services.EthRPCHandlers;
 
 import java.util.List;
 
-import controllers.EthDispatcher;
+import Servlets.EthDispatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
@@ -14,7 +14,7 @@ import com.vmware.athena.Athena.AthenaRequest.Builder;
 import com.vmware.athena.Athena.AthenaResponse;
 import com.vmware.athena.Athena.BlockResponse;
 import com.vmware.athena.Athena.TransactionResponse;
-import utils.APIHelper;
+import Servlets.APIHelper;
 
 
 /**

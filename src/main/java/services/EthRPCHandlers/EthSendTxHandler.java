@@ -1,6 +1,6 @@
 package services.EthRPCHandlers;
 
-import controllers.EthDispatcher;
+import Servlets.EthDispatcher;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -13,7 +13,7 @@ import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 import com.vmware.athena.Athena.EthResponse;
 
-import utils.APIHelper;
+import Servlets.APIHelper;
 
 /**
  * <p>Copyright 2018 VMware, all rights reserved.</p>

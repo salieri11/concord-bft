@@ -1,10 +1,6 @@
-package controllers;
+package Servlets;
 
 import java.io.IOException;
-import java.util.stream.Collectors;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 
 import org.apache.logging.log4j.LogManager;
@@ -28,8 +24,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import services.EthRPCHandlers.*;
-import utils.APIHelper;
-import utils.AthenaHelper;
 
 
 /**
@@ -54,7 +48,7 @@ import utils.AthenaHelper;
  * </p>
  */
 @Controller
-public final class EthDispatcher extends BaseController {
+public final class EthDispatcher extends BaseServlet {
    private static final long serialVersionUID = 1L;
    public static long netVersion;
    public static boolean netVersionSet = false;

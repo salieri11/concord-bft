@@ -10,7 +10,7 @@ import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 import com.vmware.athena.Athena.EthResponse;
-import utils.APIHelper;
+import Servlets.APIHelper;
 
 
 /**

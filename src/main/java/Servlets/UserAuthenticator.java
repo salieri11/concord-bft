@@ -5,13 +5,8 @@
  *
  */
 
-package controllers;
+package Servlets;
 
-
-import java.io.IOException;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,7 +26,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import services.profiles.ProfilesRegistryManager;
 import services.profiles.UserModificationException;
-import utils.APIHelper;
 
 import static services.profiles.UsersAPIMessage.EMAIL_LABEL;
 import static services.profiles.UsersAPIMessage.PASSWORD_LABEL;
@@ -42,10 +36,10 @@ import static services.profiles.UsersAPIMessage.PASSWORD_LABEL;
  * Do NOT rely on this servlet for primary authentication method.
  */
 @Controller
-public class UserAuthenticationController extends BaseController {
+public class UserAuthenticator extends BaseServlet {
 
    private static final Logger logger
-      = LogManager.getLogger(UserAuthenticationController.class);
+      = LogManager.getLogger(UserAuthenticator.class);
 
    @Autowired
    private ProfilesRegistryManager prm;

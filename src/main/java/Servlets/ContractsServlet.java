@@ -7,7 +7,7 @@
  * `api/athena/contracts/*` URI.
  */
 
-package controllers;
+package Servlets;
 
 import com.vmware.athena.Athena;
 import org.apache.logging.log4j.LogManager;
@@ -35,14 +35,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Random;
 
-import static utils.APIHelper.errorJSON;
+import static Servlets.APIHelper.errorJSON;
 
 @Controller
-public class ContractsController extends BaseController {
+public class ContractsServlet extends BaseServlet {
     
     private static final long serialVersionUID = 1L;
     private final static Logger logger
-            = LogManager.getLogger(ContractsController.class);
+            = LogManager.getLogger(ContractsServlet.class);
     
     private final String jsonRpc = _conf.getStringValue("JSONRPC");
     
