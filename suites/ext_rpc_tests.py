@@ -98,6 +98,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
               ("eth_mining", self._test_eth_mining), \
               ("rpc_modules", self._test_rpc_modules), \
               ("eth_gasPrice", self._test_eth_gasPrice), \
+              ("eth_syncing", self._test_eth_syncing), \
               ("eth_getTransactionCount", self._test_eth_getTransactionCount), \
               ("eth_sendRawTransaction", self._test_eth_sendRawTransaction), \
               ("eth_sendRawContract", self._test_eth_sendRawContract)]
@@ -201,6 +202,21 @@ class ExtendedRPCTests(test_suite.TestSuite):
          # "0x0" is the default GasPrice in Helen's application.properties
          return (False, "Expected product to have zero gas price, " \
                  "but found '{}'".format(result))
+
+      return (True, None)
+
+   def _test_eth_syncing(self, rpc, request):
+      '''
+      Check that syncing state is reported correctly
+      '''
+      result = rpc.syncing()
+      if result:
+         return (False, "Expected node to not be syncing, " \
+                 "but found '{}'".format(result))
+
+      # TODO: non-false result is also allowed, and indicates that the
+      # node knows that it is behind. We don't expect nodes to be
+      # running behind in this test right now.
 
       return (True, None)
 
