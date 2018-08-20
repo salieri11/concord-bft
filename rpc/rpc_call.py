@@ -387,3 +387,13 @@ class RPC():
 
       response = self._call()
       return self.getResultFromResponse(response)
+
+   def gasPrice(self):
+      '''
+      Ask what the gasPrice is.
+      '''
+      self._rpcData["method"] = "eth_gasPrice"
+      self._rpcData["params"] = []
+
+      response = self._call()
+      return self.getResultFromResponse(response)
