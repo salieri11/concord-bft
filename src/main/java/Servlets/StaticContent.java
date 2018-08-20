@@ -20,6 +20,7 @@ public class StaticContent implements ErrorController {
       return "swagger.json";
    }
 
+   @RequestMapping(path = errorPath)
    public String handleErroneousRequest() {
       // Redirect all 404 requests to homepage
       return "index.html";
