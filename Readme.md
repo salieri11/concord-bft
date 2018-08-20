@@ -69,14 +69,15 @@ Install all dependencies through NPM.
 npm install
 ```
 
-Build and copy the UI in development mode to the priv/www/ directory
+Build and copy the UI in development mode to the src/main/resources/static
+directory
 for use on a locally running server:
 
 ```
 npm run build:local:dev
 ```
 
-Build and copy the UI in production mode to the priv/www/ directory
+Build and copy the UI in production mode to the src/main/resources/static directory
 for use on a locally running server:
 
 ```
@@ -124,16 +125,16 @@ java -jar helen-1.0-SNAPSHOT-jar-with-dependencies.jar
 
 ### API
 
- * `/swagger/*` - Used to serve the static content from priv/www/swagger
+ * `/swagger/*` - Used to serve the static content from src/main/resources/static/swagger
 
- * `/assets/*` - Used to serve static content from priv/www/assets
+ * `/assets/*` - Used to serve static content from src/main/resources/static/assets
 
  * `/api/` - Used to return a list of all other APIs serviced
 
  * `/api/athena/*` - API endpoints (see
-   [swagger](https://github.com/vmwathena/helen/blob/master/priv/swagger.json))
+   [swagger](https://github.com/vmwathena/helen/blob/amit_spring_helen_refactor/src/main/resources/static/swagger.json))
 
- * `/*` - Used to serve content from priv/www/index.html
+ * `/*` - Used to serve content from src/main/resources/static/index.html
 
 ### Using the UI
 
@@ -185,7 +186,7 @@ tool called
 
 ### Components
 
-Files in priv/www/swagger are from the
+Files in src/main/resources/static/swagger are from the
 [swagger-ui](https://github.com/swagger-api/swagger-ui) project,
 Copyright 2018 SmartBear Software, Licensed under the Apache License,
 Version 2.0.
