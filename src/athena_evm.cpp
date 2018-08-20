@@ -234,7 +234,16 @@ evm_address com::vmware::athena::EVM::contract_destination(
    rlpb.start_list();
 
    // RLP building is done in reverse order - build flips it for us
-   rlpb.add(kvbStorage.get_nonce(message.sender));
+
+   uint64_t nonce = kvbStorage.get_nonce(message.sender);
+   if (nonce == 0) {
+      // "0" is encoded as "empty string" here, not "integer zero"
+      std::vector<uint8_t> empty_nonce;
+      rlpb.add(empty_nonce);
+   } else {
+      rlpb.add(nonce);
+   }
+
    rlpb.add(message.sender);
    std::vector<uint8_t> rlp = rlpb.build();
 
