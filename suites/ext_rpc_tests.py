@@ -250,7 +250,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
          log.warn("Receipt hash != expected hash. Was this run on an empty cluster?")
 
       if not self._productMode:
-         logger.warn("No verification done in ethereum mode")
+         log.warn("No verification done in ethereum mode")
       else:
          tx = request.getTransaction(txResult)
          if not tx:
@@ -298,7 +298,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
          log.warn("Receipt hash != expected hash. Was this run on an empty cluster?")
 
       if not self._productMode:
-         logger.warn("No verification done in ethereum mode")
+         log.warn("No verification done in ethereum mode")
       else:
          tx = request.getTransaction(txResult)
          if not tx:
