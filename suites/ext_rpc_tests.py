@@ -197,8 +197,9 @@ class ExtendedRPCTests(test_suite.TestSuite):
          return (False, "Expected ethereumMode to have 0x... gas price, " \
                  "but found '{}'".format(result))
       elif self._productMode and (not result == "0x0"):
+         # "0x0" is the default GasPrice in Helen's application.properties
          return (False, "Expected product to have zero gas price, " \
-                 "buf found '{}'".format(result))
+                 "but found '{}'".format(result))
 
       return (True, None)
 
