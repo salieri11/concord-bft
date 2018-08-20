@@ -240,16 +240,18 @@ class RPC():
       response = self._call()
       return self.getResultFromResponse(response)
 
-   def callContract(self, to, data, gas = None, value = None):
+   def callContract(self, to, data = None, gas = None, value = None):
       '''
       Calls the contract at address `to` with argument `data`,
       and returns the result.
       '''
       self._rpcData["method"] = "eth_call"
       self._rpcData["params"] = [{
-         "to": to,
-         "data": data
+         "to": to
       }]
+
+      if data:
+         self._rpcData["params"][0]["data"] = data
 
       if gas:
          self._rpcData["params"][0]["gas"] = gas

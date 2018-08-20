@@ -98,7 +98,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
               ("eth_mining", self._test_eth_mining), \
               ("rpc_modules", self._test_rpc_modules), \
               ("eth_getTransactionCount", self._test_eth_getTransactionCount), \
-              ("eth_sendRawTransaction", self._test_eth_sendRawTransaction)]
+              ("eth_sendRawTransaction", self._test_eth_sendRawTransaction), \
+              ("eth_sendRawContract", self._test_eth_sendRawContract)]
 
    def _runRpcTest(self, testName, testFun, testLogDir):
       ''' Runs one test. '''
@@ -249,7 +250,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
          log.warn("Receipt hash != expected hash. Was this run on an empty cluster?")
 
       if not self._productMode:
-         logger.warn("No verification done in ethereum mode")
+         log.warn("No verification done in ethereum mode")
       else:
          tx = request.getTransaction(txResult)
          if not tx:
@@ -265,5 +266,58 @@ class ExtendedRPCTests(test_suite.TestSuite):
             return (False, "Found to does not match expectd to")
          if not tx["value"] == expectedValue:
             return (False, "Found value does not match expected value")
+
+      return (True, None)
+
+   def _test_eth_sendRawContract(self, rpc, request):
+      '''
+      Check that a raw transaction can create a contract
+      '''
+
+      # TODO: lookup current account nonce, and sign transaction with
+      # correct nonce. This currently uses a static nonce, and that
+      # means the test has to be run against an empty blockchain (or
+      # at least once that hasn't seen nonce 1 for this account
+      # before).
+
+      # Simple contract that returns 0x42 when called
+      rawTransaction = "0xf860010101800197600b80600c6000396000f300604260005260206000f30025a03002710095786aebc788fd00d13aa416e5d9533da8a3d31239d7cd19034c9c8fa04ff6b9c507243f749ed75ea326323f937d9ed52225082d0b4b1c821a016f0c37"
+      expectedHash = "0x3e6f541d02217ae7d3cb901c0288c6a5cdeb1ed712428c465d1da934622c995e"
+      expectedFrom = "0xf7c93b40e9b8d20af457f49db3bba37a629700d8"
+      expectedTo = "0xe832a6e1f1c2442de8073f7df0dda56233c8eccd"
+      expectedValue = "1"
+
+      txResult = rpc.sendRawTransaction(rawTransaction)
+      if not txResult:
+         return (False, "Transaction was not accepted")
+
+      # if this test is re-run on a cluster, we'll see a different
+      # hash (or an error once nonce tracking works); don't consider
+      # it an error for now
+      if not txResult == expectedHash:
+         log.warn("Receipt hash != expected hash. Was this run on an empty cluster?")
+
+      if not self._productMode:
+         log.warn("No verification done in ethereum mode")
+      else:
+         tx = request.getTransaction(txResult)
+         if not tx:
+            return (False, "No transaction receipt found")
+
+         # This is the important one: it tells whether signature address
+         # recovery works.
+         if not tx["from"] == expectedFrom:
+            return (False, "Found from does not match expected from")
+
+         # The rest of these are just checking parsing.
+         if not tx["contract_address"] == expectedTo:
+            return (False, "Found contract_address does not match expected contract_address")
+         if not tx["value"] == expectedValue:
+            return (False, "Found value does not match expected value")
+
+         callResult = rpc.callContract(tx["contract_address"])
+
+         if not callResult == "0x0000000000000000000000000000000000000000000000000000000000000042":
+            return (False, "Contract did not return expected value")
 
       return (True, None)
