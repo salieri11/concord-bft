@@ -85,7 +85,14 @@ std::vector<uint8_t> com::vmware::athena::EthTransaction::rlp() const
    }
    rlpb.add(this->gas_limit);
    rlpb.add(this->gas_price);
-   rlpb.add(this->nonce);
+   if (this->nonce == 0) {
+      // "0" is encoded as "empty string" here, not "integer zero"
+      std::vector<uint8_t> empty_nonce;
+      rlpb.add(empty_nonce);
+   } else {
+      rlpb.add(this->nonce);
+   }
+
    return rlpb.build();
 }
 
