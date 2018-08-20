@@ -172,6 +172,12 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
          localData = usersJsonArr;
       } else if (ethMethodName.equals(_conf.getStringValue("GasPrice_Name"))) {
          localData = _conf.getStringValue("GasPrice");
+      } else if (ethMethodName.equals(_conf.getStringValue("Syncing_Name"))) {
+         // "false" in this context means that the node believes it is up to
+         // date. In the future, we may use this to share when a node knows that
+         // it is processing a state transfer, but for now, all nodes believe
+         // they are always up to date.
+         localData = false;
       }
 
       result.put("result", localData);
