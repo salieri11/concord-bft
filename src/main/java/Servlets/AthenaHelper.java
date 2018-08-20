@@ -7,22 +7,24 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.vmware.athena.Athena;
 
 import configurations.IConfiguration;
 import connections.IAthenaConnection;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class AthenaHelper {
-   
+
    private static Logger _log = LogManager.getLogger(AthenaHelper.class);
+
    /**
     * Converts an int into two bytes.
     * 
-    * @param
-    *           Integer that needs to be converted
+    * @param Integer
+    *           that needs to be converted
     * @return A byte array containing two bytes.
     */
    private static byte[] intToSizeBytes(int value, int size) {
@@ -58,7 +60,7 @@ public class AthenaHelper {
 
       // If the request size doesn't fit in two bytes, abort.
       if (requestSize > 65535) {
-         throw new IOException("Request too large: "+requestSize);
+         throw new IOException("Request too large: " + requestSize);
       }
 
       byte[] size

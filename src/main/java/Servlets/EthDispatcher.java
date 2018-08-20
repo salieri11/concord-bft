@@ -2,7 +2,6 @@ package Servlets;
 
 import java.io.IOException;
 
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
@@ -10,6 +9,12 @@ import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.AthenaResponse;
@@ -17,14 +22,7 @@ import com.vmware.athena.Athena.ErrorResponse;
 
 import connections.AthenaConnectionPool;
 import connections.IAthenaConnection;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import services.EthRPCHandlers.*;
-
 
 /**
  * <p>
@@ -79,7 +77,8 @@ public final class EthDispatcher extends BaseServlet {
     * @return Error message string
     */
    @SuppressWarnings("unchecked")
-   public static JSONObject errorMessage(String message, long id, String jsonRpc) {
+   public static JSONObject errorMessage(String message, long id,
+                                         String jsonRpc) {
       JSONObject responseJson = new JSONObject();
       responseJson.put("id", id);
       responseJson.put("jsonprc", jsonRpc);
@@ -99,8 +98,8 @@ public final class EthDispatcher extends BaseServlet {
     * @return Method name
     * @throws Exception
     */
-   public static String getEthMethodName(JSONObject ethRequestJson)
-      throws EthRPCHandlerException {
+   public static String
+          getEthMethodName(JSONObject ethRequestJson) throws EthRPCHandlerException {
       if (ethRequestJson.containsKey("method")) {
          if (ethRequestJson.get("method") instanceof String) {
             return (String) ethRequestJson.get("method");
@@ -120,11 +119,11 @@ public final class EthDispatcher extends BaseServlet {
     * @return Request id
     * @throws Exception
     */
-   public static long getEthRequestId(JSONObject ethRequestJson)
-      throws EthRPCHandlerException {
+   public static long
+          getEthRequestId(JSONObject ethRequestJson) throws EthRPCHandlerException {
       if (ethRequestJson.containsKey("id")) {
          if (ethRequestJson.get("id") instanceof Number) {
-            return ((Number)ethRequestJson.get("id")).longValue();
+            return ((Number) ethRequestJson.get("id")).longValue();
          } else {
             throw new EthRPCHandlerException("id must be a number");
          }
@@ -143,11 +142,11 @@ public final class EthDispatcher extends BaseServlet {
    public ResponseEntity<JSONAware> doGet() {
       if (rpcList == null) {
          logger.error("Configurations not read.");
-         return new ResponseEntity<>(new JSONArray(), standardHeaders,
-                 HttpStatus.SERVICE_UNAVAILABLE);
+         return new ResponseEntity<>(new JSONArray(),
+                                     standardHeaders,
+                                     HttpStatus.SERVICE_UNAVAILABLE);
       }
-      return new ResponseEntity<>(rpcList, standardHeaders,
-              HttpStatus.OK);
+      return new ResponseEntity<>(rpcList, standardHeaders, HttpStatus.OK);
    }
 
    /**
@@ -232,8 +231,8 @@ public final class EthDispatcher extends BaseServlet {
          ethMethodName = getEthMethodName(requestJson);
          id = getEthRequestId(requestJson);
          if (ethMethodName.equals(_conf.getStringValue("SendTransaction_Name"))
-             || ethMethodName.equals(_conf.getStringValue("SendRawTransaction_Name"))
-             || ethMethodName.equals(_conf.getStringValue("Call_Name"))) {
+            || ethMethodName.equals(_conf.getStringValue("SendRawTransaction_Name"))
+            || ethMethodName.equals(_conf.getStringValue("Call_Name"))) {
             handler = new EthSendTxHandler();
          } else if (ethMethodName.equals(_conf.getStringValue("NewAccount_Name"))) {
             handler = new EthNewAccountHandler();
@@ -245,10 +244,8 @@ public final class EthDispatcher extends BaseServlet {
             handler = new EthGetCodeHandler();
          } else if (ethMethodName.equals(_conf.getStringValue("GetTransactionCount_Name"))) {
             handler = new EthGetTransactionCountHandler();
-         } else if (ethMethodName.equals(_conf.getStringValue
-                 ("GetBlockByHash_Name")) ||
-                 ethMethodName.equals(_conf.getStringValue
-                         ("GetBlockByNumber_Name"))) {
+         } else if (ethMethodName.equals(_conf.getStringValue("GetBlockByHash_Name"))
+            || ethMethodName.equals(_conf.getStringValue("GetBlockByNumber_Name"))) {
             handler = new EthGetBlockHandler();
          } else if (ethMethodName.equals(_conf.getStringValue("NewFilter_Name"))
             || ethMethodName.equals(_conf.getStringValue("NewBlockFilter_Name"))
@@ -265,11 +262,9 @@ public final class EthDispatcher extends BaseServlet {
             || ethMethodName.equals(_conf.getStringValue("Accounts_Name"))) {
             handler = new EthLocalResponseHandler();
             isLocal = true;
-         } else if (ethMethodName.equals(_conf.getStringValue
-                 ("BlockNumber_Name"))) {
+         } else if (ethMethodName.equals(_conf.getStringValue("BlockNumber_Name"))) {
             handler = new EthBlockNumberHandler();
-         }
-         else {
+         } else {
             throw new Exception("Invalid method name.");
          }
 
@@ -283,11 +278,11 @@ public final class EthDispatcher extends BaseServlet {
             if (athenaResponse.getErrorResponseCount() > 0) {
                ErrorResponse errResponse = athenaResponse.getErrorResponse(0);
                if (errResponse.hasDescription()) {
-                  responseObject = errorMessage(
-                     errResponse.getDescription(), id, jsonRpc);
+                  responseObject
+                     = errorMessage(errResponse.getDescription(), id, jsonRpc);
                } else {
-                  responseObject = errorMessage(
-                     "Error received from athena", id, jsonRpc);
+                  responseObject
+                     = errorMessage("Error received from athena", id, jsonRpc);
                }
             } else {
                responseObject
@@ -299,8 +294,7 @@ public final class EthDispatcher extends BaseServlet {
          else {
             // In local request we don't have valid eth resposne from
             // athena. Just pass null.
-            responseObject
-               = handler.buildResponse(null, requestJson);
+            responseObject = handler.buildResponse(null, requestJson);
          }
       } catch (Exception e) {
          logger.error(APIHelper.exceptionToString(e));

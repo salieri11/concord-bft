@@ -20,19 +20,18 @@ import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
-
-import com.vmware.athena.Athena;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+
+import com.vmware.athena.Athena;
 
 /**
  * Servlet class.
  */
 public final class MemberList extends BaseServlet {
    private static final long serialVersionUID = 1L;
-   private static final Logger logger =
-           LogManager.getLogger(MemberList.class);
+   private static final Logger logger = LogManager.getLogger(MemberList.class);
 
    /**
     * Services a get request. Constructs a protobuf request of type peer request
@@ -46,8 +45,7 @@ public final class MemberList extends BaseServlet {
     *           The response object used to respond to the client
     * @throws IOException
     */
-   @RequestMapping(method = RequestMethod.GET,
-           path = "/api/athena/members")
+   @RequestMapping(method = RequestMethod.GET, path = "/api/athena/members")
    public ResponseEntity<JSONAware> doGet() {
       // Construct a peer request object. Set its return_peers field.
       final Athena.PeerRequest peerRequestObj
@@ -58,7 +56,7 @@ public final class MemberList extends BaseServlet {
          = Athena.AthenaRequest.newBuilder()
                                .setPeerRequest(peerRequestObj)
                                .build();
-      
+
       return sendToAthenaAndBuildHelenResponse(athenarequestObj);
    }
 

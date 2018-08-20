@@ -18,12 +18,6 @@ import com.google.protobuf.ByteString;
 
 public class APIHelper {
 
-   public static class HexParseException extends Exception {
-      public HexParseException(String message) {
-         super(message);
-      }
-   }
-
    /**
     * Converts a hex string into a binary string.
     *
@@ -32,8 +26,8 @@ public class APIHelper {
     * @return A ByteString object
     * @throws Exception
     */
-   public static ByteString hexStringToBinary(String param)
-      throws HexParseException {
+   public static ByteString
+          hexStringToBinary(String param) throws HexParseException {
       // Param should strictly be a hex string
       if (param == null || param.trim().length() < 1) {
          return null;
@@ -66,8 +60,7 @@ public class APIHelper {
     * Convert a big-endian byte string to its 64-bit integer value. Throws
     * exception if there are more than eight bytes.
     */
-   public static long bytesToLong(ByteString bytes)
-      throws HexParseException {
+   public static long bytesToLong(ByteString bytes) throws HexParseException {
       if (bytes.size() > 8) {
          throw new HexParseException("Value to large for long");
       }
@@ -202,15 +195,20 @@ public class APIHelper {
       error.put("error", message);
       return error;
    }
-   
-   
+
    public static String
-   getRequestBody(final HttpServletRequest request) throws IOException {
+          getRequestBody(final HttpServletRequest request) throws IOException {
       String paramString
-              = request.getReader()
-              .lines()
-              .collect(Collectors.joining(System.lineSeparator()));
+         = request.getReader()
+                  .lines()
+                  .collect(Collectors.joining(System.lineSeparator()));
       return paramString;
    }
-   
+
+   public static class HexParseException extends Exception {
+      public HexParseException(String message) {
+         super(message);
+      }
+   }
+
 }

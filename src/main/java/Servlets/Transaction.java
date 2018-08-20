@@ -17,15 +17,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
-
-import com.google.protobuf.ByteString;
-import com.vmware.athena.Athena;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+
+import com.google.protobuf.ByteString;
+import com.vmware.athena.Athena;
 
 /**
  * Servlet class.
@@ -34,9 +34,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 public final class Transaction extends BaseServlet {
 
    private static final long serialVersionUID = 1L;
-   private static final Logger logger =
-           LogManager.getLogger(Transaction.class);
-   
+   private static final Logger logger = LogManager.getLogger(Transaction.class);
+
    protected static JSONObject
              buildTransactionResponseJSON(Athena.TransactionResponse tr) {
       // Construct the reponse JSON object.
@@ -82,9 +81,9 @@ public final class Transaction extends BaseServlet {
     * @throws IOException
     */
    @RequestMapping(path = "/api/athena/transactions/{hash}",
-           method = RequestMethod.GET)
-   protected ResponseEntity<JSONAware> doGet(
-           @PathVariable(value = "hash", required = true) String hash) {
+                   method = RequestMethod.GET)
+   protected ResponseEntity<JSONAware>
+             doGet(@PathVariable(value = "hash", required = true) String hash) {
       ResponseEntity<JSONAware> responseEntity;
       ByteString hashBytes = null;
       try {
@@ -92,13 +91,15 @@ public final class Transaction extends BaseServlet {
       } catch (Exception e) {
          logger.error("Invalid Hash");
          return new ResponseEntity<>(new JSONObject(),
-                 standardHeaders, HttpStatus.BAD_REQUEST);
+                                     standardHeaders,
+                                     HttpStatus.BAD_REQUEST);
       }
 
       if (hashBytes == null) {
          logger.error("Invalid hash in request");
          return new ResponseEntity<>(new JSONObject(),
-                 standardHeaders, HttpStatus.BAD_REQUEST);
+                                     standardHeaders,
+                                     HttpStatus.BAD_REQUEST);
       }
 
       // Construct a transaction request object.

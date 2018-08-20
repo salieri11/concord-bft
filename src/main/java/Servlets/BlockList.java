@@ -24,13 +24,12 @@ public class BlockList extends BaseServlet {
    private Logger logger = LogManager.getLogger(BlockList.class);
 
    // ** - tells spring to match anything in path
-   @RequestMapping(method = RequestMethod.GET,
-           path = "/api/athena/blocks")
+   @RequestMapping(method = RequestMethod.GET, path = "/api/athena/blocks")
    public ResponseEntity<JSONAware>
-             getBlockList(@RequestParam(name = "latest", defaultValue = "-1",
-                                        required = false) long latest,
-                          @RequestParam(name = "count", required = false,
-                                        defaultValue = "-1") long count) {
+          getBlockList(@RequestParam(name = "latest", defaultValue = "-1",
+                                     required = false) long latest,
+                       @RequestParam(name = "count", required = false,
+                                     defaultValue = "-1") long count) {
       // return ResponseEntity.ok(new JSONObject());
 
       // Construct a blocksListRequest object.
