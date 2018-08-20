@@ -1,4 +1,3 @@
-package Servers;
 /**
  * Main class for helen, does some basic initializations and then calls
  * SpringApplication.run() method.
@@ -10,6 +9,7 @@ package Servers;
  * Buffer format. Responses from Helen to the client are in Json format.
  *
  */
+package Servers;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;

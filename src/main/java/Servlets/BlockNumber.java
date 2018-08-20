@@ -1,3 +1,13 @@
+/**
+ * url endpoint : /api/athena/blocks/{N}
+ *
+ * Used to fetch a specific block from the chain.
+ *
+ * This servlet is used to send BlockNumber Requests to Athena and to parse the
+ * responses into JSON. A TCP socket connection is made to Athena and requests
+ * and responses are encoded in the Google Protocol Buffer format.
+ *
+ */
 package Servlets;
 
 import java.util.List;
@@ -16,6 +26,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.vmware.athena.Athena;
 
+/**
+ * Servlet class.
+ */
 @Controller
 public class BlockNumber extends BaseServlet {
    private static final long serialVersionUID = 1L;
@@ -27,6 +40,8 @@ public class BlockNumber extends BaseServlet {
     * this request to Athena. Parses the response and converts it into json for
     * sendiong to client
     *
+    * @param block
+    *          The block number or block hash
     */
    @RequestMapping(method = RequestMethod.GET,
                    path = "/api/athena/blocks/{block}")

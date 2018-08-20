@@ -1,12 +1,3 @@
-/**
- * <p>
- * Copyright 2018 VMware, all rights reserved.
- * </p>
- *
- * A servlet which handles all contract management queries sent to
- * `api/athena/contracts/*` URI.
- */
-
 package Servlets;
 
 import static Servlets.APIHelper.errorJSON;
@@ -39,20 +30,24 @@ import com.vmware.athena.Athena;
 import services.contracts.*;
 import services.contracts.Compiler;
 
+/**
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
+ *
+ * A servlet which handles all contract management queries sent to
+ * `api/athena/contracts/*` URI.
+ */
 @Controller
 public class ContractsServlet extends BaseServlet {
 
    private static final long serialVersionUID = 1L;
    private final static Logger logger
       = LogManager.getLogger(ContractsServlet.class);
-
    private final String jsonRpc = _conf.getStringValue("JSONRPC");
-
    private final String contractEndpoint
       = _conf.getStringValue("Contracts_Endpoint");
-
    private ContractRegistryManager registryManager;
-
    private Random random = new Random();
 
    // TODO: Since, Database related things for contracts is still handled by

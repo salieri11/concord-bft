@@ -32,7 +32,6 @@ import com.vmware.athena.Athena;
  */
 @Controller
 public final class Transaction extends BaseServlet {
-
    private static final long serialVersionUID = 1L;
    private static final Logger logger = LogManager.getLogger(Transaction.class);
 

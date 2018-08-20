@@ -1,3 +1,13 @@
+/**
+ * url endpoint : /api/athena/blocks
+ *
+ * Used to list blocks in the chain, most recent first.
+ *
+ * This servlet is used to send BlockList Requests to Athena and to parse the
+ * responses into JSON. A TCP socket connection is made to Athena and requests
+ * and responses are encoded in the Google Protocol Buffer format.
+ *
+ */
 package Servlets;
 
 import java.util.ArrayList;
@@ -16,13 +26,25 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.vmware.athena.Athena;
 
+/**
+ * Servlet class.
+ */
 @Controller
 public class BlockList extends BaseServlet {
-
    private static final long serialVersionUID = 1L;
-
    private Logger logger = LogManager.getLogger(BlockList.class);
-
+   
+   /**
+    * Services a get request. Constructs a protobuf request of type blocklist
+    * request (enveloped in an athena request) as defined in athena.proto. Sends
+    * this request to Athena. Parses the response and converts it into json for
+    * responding to the client.
+    *
+    * @param latest
+    *           The block from which to start the list
+    * @param count
+    *           Number of blocks expected
+    */
    // ** - tells spring to match anything in path
    @RequestMapping(method = RequestMethod.GET, path = "/api/athena/blocks")
    public ResponseEntity<JSONAware>

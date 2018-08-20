@@ -21,7 +21,6 @@ import connections.AthenaConnectionPool;
 import connections.IAthenaConnection;
 
 public abstract class BaseServlet {
-
    protected static final long serialVersionUID = 1L;
 
    protected IConfiguration _conf;
