@@ -397,3 +397,13 @@ class RPC():
 
       response = self._call()
       return self.getResultFromResponse(response)
+
+   def syncing(self):
+      '''
+      Ask what the syncing state of the node is.
+      '''
+      self._rpcData["method"] = "eth_syncing"
+      self._rpcData["params"] = []
+
+      response = self._call()
+      return self.getResultFromResponse(response)
