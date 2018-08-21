@@ -298,9 +298,9 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
       # Simple contract that returns 0x42 when called
       rawTransaction = "0xf860800101800197600b80600c6000396000f300604260005260206000f30025a0b9f688baaf66a51d4965a526803499fb1688d6b6720086270e64fcd67cde2921a02cecc55e0200c831f01b00d46865fe7a89e8891ae5906821eb86609b022f44b2"
-      expectedHash = "0xfb524c6435a63704cf814a9a2c4e83e62a3b4c543431a2dc9b0f8fc9f10a8d24"
-      expectedFrom = "0x5136ae28537496fe168a01a05aeb1e7e92d1628d"
-      expectedTo = "0xc0f26ec01174debb84154c853e886bf00bd7e66e"
+      expectedHash = "0x7749049815519a2fc50d4f76decdb904e966b447704b687892aafa98d4b8a1a9"
+      expectedFrom = "0xaf4be85b32868c5b7c121115ad8cd93e0ad4f14e"
+      expectedTo = "0xc2ddc84b30c43c090db2bd3a55a0fb0d8f0af208"
       expectedValue = "1"
 
       txResult = rpc.sendRawTransaction(rawTransaction)
