@@ -20,7 +20,7 @@ import connections.IAthenaConnection;
  * <p>
  * Copyright 2018 VMware, all rights reserved.
  * </p>
- * 
+ *
  * <p>
  * Handles the RPC requests which can be processes directly in helen without
  * forwarding them to Athena. However, this is an exception. When handling
@@ -34,6 +34,8 @@ import connections.IAthenaConnection;
  * <li>net_version</li>
  * <li>eth_accounts</li>
  * <li>rpc_modules</li>
+ * <li>eth_gasPrice</li>
+ * <li>eth_syncing</li>
  * </ul>
  * </p>
  */
@@ -54,7 +56,7 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
     * request to Athena for requests handled by this handler. However, having an
     * empty method like this is probably not a very good idea. TODO: Figure out
     * how to remove this empty method.
-    * 
+    *
     * @param athenaRequestBuilder
     * @param requestJson
     * @throws Exception
@@ -70,7 +72,7 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
     * which can be handled locally we do not even call athena and hence do not
     * have a valid athena response. Hence we can not use the method provided by
     * parent class.
-    * 
+    *
     * @param requestJson
     * @return
     */
@@ -88,7 +90,7 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
     * will actually generate the hash of given data and produce a response
     * object containing that hash. We do not do kind of processing in
     * `buildRequest` method.
-    * 
+    *
     * @param athenaResponse
     *           The response receive from athena Note: Since, we do not build
     *           anything in buildAthenaRequest and we also do not call athena
@@ -177,6 +179,14 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
             }
          }
          localData = usersJsonArr;
+      } else if (ethMethodName.equals(_conf.getStringValue("GasPrice_Name"))) {
+         localData = _conf.getStringValue("GasPrice");
+      } else if (ethMethodName.equals(_conf.getStringValue("Syncing_Name"))) {
+         // "false" in this context means that the node believes it is up to
+         // date. In the future, we may use this to share when a node knows that
+         // it is processing a state transfer, but for now, all nodes believe
+         // they are always up to date.
+         localData = false;
       }
 
       result.put("result", localData);
