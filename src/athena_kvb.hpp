@@ -114,6 +114,7 @@ private:
    evm_uint256be record_transaction(
       const evm_message &message,
       const EthRequest &request,
+      const uint64_t nonce,
       const evm_result &result,
       KVBStorage &kvbStorage) const;
 };

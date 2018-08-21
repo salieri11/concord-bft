@@ -825,6 +825,17 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
    // TODO: get this from the request
    message.gas = 1000000;
 
+   // If this is not a transaction, nonce doesn't matter. If it is, get it from
+   // either the request or storage.
+   uint64_t nonce = 0;
+   if (!kvbStorage.is_read_only()) {
+      if (request.has_nonce()) {
+         nonce = request.nonce();
+      } else {
+         nonce = kvbStorage.get_nonce(message.sender);
+      }
+   }
+
    if (request.has_addr_to()) {
       message.kind = EVM_CALL;
 
@@ -837,7 +848,11 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
       message.kind = EVM_CREATE;
 
       assert(!kvbStorage.is_read_only());
-      result = athevm_.create(message, kvbStorage);
+
+      evm_address contract_address =
+         athevm_.contract_destination(message.sender, nonce);
+
+      result = athevm_.create(contract_address, message, kvbStorage);
    }
 
    LOG4CPLUS_INFO(logger, "Execution result -" <<
@@ -853,7 +868,7 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
 
    if (!kvbStorage.is_read_only()) {
       // If this is a transaction, and not just a call, record it.
-      txhash = record_transaction(message, request, result, kvbStorage);
+      txhash = record_transaction(message, request, nonce, result, kvbStorage);
    }
 
    return result;
@@ -866,17 +881,10 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
 evm_uint256be com::vmware::athena::KVBCommandsHandler::record_transaction(
    const evm_message &message,
    const EthRequest &request,
+   const uint64_t nonce,
    const evm_result &result,
    KVBStorage &kvbStorage) const
 {
-   uint64_t nonce;
-   if (request.has_nonce()) {
-      nonce = static_cast<uint64_t>(request.nonce());
-   } else {
-      nonce = kvbStorage.get_nonce(message.sender)+1;
-      kvbStorage.set_nonce(message.sender, nonce);
-   }
-
    // "to" is empty if this was a create
    evm_address to = message.kind == EVM_CALL ?
       message.destination : zero_address;
@@ -921,6 +929,7 @@ evm_uint256be com::vmware::athena::KVBCommandsHandler::record_transaction(
       sig_v
    };
    kvbStorage.add_transaction(tx);
+   kvbStorage.set_nonce(message.sender, nonce+1);
 
    evm_uint256be txhash = tx.hash();
    LOG4CPLUS_DEBUG(logger, "Recording transaction " << txhash);
