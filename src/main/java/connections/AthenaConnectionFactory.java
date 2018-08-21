@@ -22,7 +22,7 @@ public final class AthenaConnectionFactory {
       _conf = conf;
       nextAuthority = new AtomicLong();
 
-      //Read list of athenas from config
+      // Read list of athenas from config
       athenaList = new ArrayList<>();
       String authorities = _conf.getStringValue("AthenaAuthorities");
       String[] authorityList = authorities.split(",");
@@ -37,9 +37,9 @@ public final class AthenaConnectionFactory {
                                      UnsupportedOperationException {
       switch (_type) {
       case TCP:
-         //Select an Athena instance to connect with in a round robin fashion
-         int chosenAuthority 
-            = (int)nextAuthority.getAndIncrement() % athenaList.size();
+         // Select an Athena instance to connect with in a round robin fashion
+         int chosenAuthority
+            = (int) nextAuthority.getAndIncrement() % athenaList.size();
          Authority athenaInstance = athenaList.get(chosenAuthority);
          AthenaTCPConnection connection
             = new AthenaTCPConnection(_conf,

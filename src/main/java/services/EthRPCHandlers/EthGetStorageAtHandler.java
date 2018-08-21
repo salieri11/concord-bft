@@ -9,16 +9,18 @@ import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 import com.vmware.athena.Athena.EthResponse;
+
 import Servlets.APIHelper;
 
-
 /**
- * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
  * 
  * This handler is used to service eth_getStorageAt POST requests.
  */
 public class EthGetStorageAtHandler extends AbstractEthRPCHandler {
-   
+
    Logger logger = LogManager.getLogger(EthBlockNumberHandler.class);
 
    /**

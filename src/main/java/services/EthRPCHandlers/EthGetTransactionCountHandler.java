@@ -1,6 +1,5 @@
 package services.EthRPCHandlers;
 
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
@@ -10,11 +9,13 @@ import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 import com.vmware.athena.Athena.EthResponse;
+
 import Servlets.APIHelper;
 
-
 /**
- * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
  *
  * This handler is used to service eth_getTransactionCount POST requests.
  */

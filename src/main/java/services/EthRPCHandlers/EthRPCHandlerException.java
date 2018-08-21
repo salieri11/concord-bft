@@ -1,7 +1,9 @@
 package services.EthRPCHandlers;
 
 /**
- * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
  * 
  * This class serves as a common exception type thrown by all EthRPC handlers.
  */

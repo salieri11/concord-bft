@@ -1,6 +1,5 @@
 package services.EthRPCHandlers;
 
-import Servlets.EthDispatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
@@ -9,15 +8,18 @@ import org.json.simple.parser.JSONParser;
 
 import com.vmware.athena.Athena;
 
+import Servlets.APIHelper;
+import Servlets.EthDispatcher;
 import configurations.ConfigurationFactory;
 import configurations.ConfigurationFactory.ConfigurationType;
 import configurations.IConfiguration;
 import connections.AthenaConnectionPool;
 import connections.IAthenaConnection;
-import Servlets.APIHelper;
 
 /**
- * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
  * 
  * <p>
  * Handles the RPC requests which can be processes directly in helen without
@@ -32,12 +34,13 @@ import Servlets.APIHelper;
  * <li>net_version</li>
  * <li>eth_accounts</li>
  * <li>rpc_modules</li>
- * </ul></p>
+ * </ul>
+ * </p>
  */
 public class EthLocalResponseHandler extends AbstractEthRPCHandler {
 
-   private static Logger logger =
-           LogManager.getLogger(EthLocalResponseHandler.class);
+   private static Logger logger
+      = LogManager.getLogger(EthLocalResponseHandler.class);
    private String jsonRpc;
    private IConfiguration _conf;
 
@@ -118,10 +121,10 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
          // Request should contain just one param value
          if (params.size() != 1) {
             logger.error("Invalid request parameter : params");
-            throw new EthRPCHandlerException(
-                    EthDispatcher.errorMessage(
-                            "'params' must contain only one element",
-                            id, jsonRpc).toJSONString());
+            throw new EthRPCHandlerException(EthDispatcher.errorMessage("'params' must contain only one element",
+                                                                        id,
+                                                                        jsonRpc)
+                                                          .toJSONString());
          }
 
          try {
@@ -129,9 +132,10 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
             logger.info("Generated keccak hash is: " + localData);
          } catch (Exception e) {
             logger.error("Error in calculating Keccak hash", e);
-            throw new EthRPCHandlerException(
-                    EthDispatcher.errorMessage("'invalid param",
-                            id, jsonRpc).toJSONString());
+            throw new EthRPCHandlerException(EthDispatcher.errorMessage("'invalid param",
+                                                                        id,
+                                                                        jsonRpc)
+                                                          .toJSONString());
          }
       } else if (ethMethodName.equals(_conf.getStringValue("RPCModules_Name"))) {
          JSONParser p = new JSONParser();
@@ -154,9 +158,10 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
                e.printStackTrace();
             } catch (Exception e) {
                logger.error("Unable to connect to athena.");
-               throw new EthRPCHandlerException(
-                       EthDispatcher.errorMessage("Unable to connect to athena.",
-                               id, jsonRpc).toJSONString());
+               throw new EthRPCHandlerException(EthDispatcher.errorMessage("Unable to connect to athena.",
+                                                                           id,
+                                                                           jsonRpc)
+                                                             .toJSONString());
             }
          } else {
             EthDispatcher.netVersionSet = true;

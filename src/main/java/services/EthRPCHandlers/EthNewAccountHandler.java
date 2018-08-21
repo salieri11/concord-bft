@@ -3,7 +3,6 @@ package services.EthRPCHandlers;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 
-import Servlets.EthDispatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
@@ -14,17 +13,21 @@ import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 import com.vmware.athena.Athena.EthResponse;
-import Servlets.APIHelper;
 
+import Servlets.APIHelper;
+import Servlets.EthDispatcher;
 
 /**
- * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
  * 
  * This handler is used to service personal_newAccount POST requests.
  */
 public class EthNewAccountHandler extends AbstractEthRPCHandler {
 
-   private static Logger logger = LogManager.getLogger(EthNewAccountHandler.class);
+   private static Logger logger
+      = LogManager.getLogger(EthNewAccountHandler.class);
 
    /**
     * Builds the Athena request builder. Extracts the passphrase from the
@@ -51,9 +54,10 @@ public class EthNewAccountHandler extends AbstractEthRPCHandler {
                                           StandardCharsets.UTF_8.name()));
          } catch (UnsupportedEncodingException e) {
             logger.error("Invalid passphrase");
-            throw new EthRPCHandlerException(
-                    EthDispatcher.errorMessage("Invalid passphrase",
-                            b.getId(), jsonRpc).toJSONString());
+            throw new EthRPCHandlerException(EthDispatcher.errorMessage("Invalid passphrase",
+                                                                        b.getId(),
+                                                                        jsonRpc)
+                                                          .toJSONString());
          }
          ethRequest = b.build();
       } catch (Exception e) {

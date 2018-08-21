@@ -1,10 +1,5 @@
 package services.contracts;
 
-import database.DatabaseService;
-import database.ServiceUnavailableException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -12,6 +7,11 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import database.DatabaseService;
+import database.ServiceUnavailableException;
 
 /**
  * <p>
@@ -25,8 +25,8 @@ import java.util.List;
 public class ContractRegistryManager {
    private static ContractRegistryManager self = null;
    private static Object instanceLock = new Object();
-   private static Logger logger =
-           LogManager.getLogger(ContractRegistryManager.class);
+   private static Logger logger
+      = LogManager.getLogger(ContractRegistryManager.class);
 
    private String CONTRACTS_TABLE_NAME = "contracts";
    private String CONTRACT_ID_COLUMN_LABEL = "contract_id";
@@ -102,7 +102,7 @@ public class ContractRegistryManager {
    private PreparedStatement getContractInfoPstmt;
 
    private ContractRegistryManager() throws SQLException,
-           ServiceUnavailableException {
+                                     ServiceUnavailableException {
 
       Connection con = DatabaseService.getDatabaseConnection();
       con.createStatement().executeUpdate(createNewTableQuery);

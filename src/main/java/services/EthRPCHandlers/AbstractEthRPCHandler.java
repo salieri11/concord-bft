@@ -1,6 +1,5 @@
 package services.EthRPCHandlers;
 
-import Servlets.EthDispatcher;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -8,20 +7,27 @@ import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthResponse;
 
+import Servlets.EthDispatcher;
 import configurations.ConfigurationFactory;
 import configurations.ConfigurationFactory.ConfigurationType;
 import configurations.IConfiguration;
 
 /**
- * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
  *
- * <p>This abstract class serves as a template for all EthRPC Handler classes.
- * These handlers are used to construct AthenaRequest objects from user
- * requests and to construct responses for the user from AthenaResponses based
- * on the method specified by the user.</p>
+ * <p>
+ * This abstract class serves as a template for all EthRPC Handler classes.
+ * These handlers are used to construct AthenaRequest objects from user requests
+ * and to construct responses for the user from AthenaResponses based on the
+ * method specified by the user.
+ * </p>
  *
- * <p>Concrete helper methods have been implemented for performing some common
- * actions on request/response objects.</p>
+ * <p>
+ * Concrete helper methods have been implemented for performing some common
+ * actions on request/response objects.
+ * </p>
  */
 public abstract class AbstractEthRPCHandler {
 
@@ -70,8 +76,7 @@ public abstract class AbstractEthRPCHandler {
     * @throws Exception
     */
    EthRequest.Builder
-             initializeRequestObject(JSONObject requestJson)
-      throws EthRPCHandlerException {
+             initializeRequestObject(JSONObject requestJson) throws EthRPCHandlerException {
       EthRequest.Builder b = Athena.EthRequest.newBuilder();
       long id = EthDispatcher.getEthRequestId(requestJson);
       b.setId(id);
@@ -86,8 +91,7 @@ public abstract class AbstractEthRPCHandler {
     * @return the "params" array
     * @throws Exception
     */
-   JSONArray extractRequestParams(JSONObject requestJson)
-      throws EthRPCHandlerException {
+   JSONArray extractRequestParams(JSONObject requestJson) throws EthRPCHandlerException {
       JSONArray params = null;
       try {
          params = (JSONArray) requestJson.get("params");

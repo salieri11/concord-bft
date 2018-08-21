@@ -1,7 +1,5 @@
 package services.EthRPCHandlers;
 
-import Servlets.EthDispatcher;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
@@ -14,13 +12,18 @@ import com.vmware.athena.Athena.EthRequest.EthMethod;
 import com.vmware.athena.Athena.EthResponse;
 
 import Servlets.APIHelper;
+import Servlets.EthDispatcher;
 
 /**
- * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
  *
- * <p>This handler is used to service eth_sendTransaction and eth_call POST
+ * <p>
+ * This handler is used to service eth_sendTransaction and eth_call POST
  * requests. These are bundled together here because functionally, the
- * processing for both these request types is similar.</p>
+ * processing for both these request types is similar.
+ * </p>
  */
 public class EthSendTxHandler extends AbstractEthRPCHandler {
 
@@ -39,11 +42,11 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
     *           Request parameters passed by the user
     */
    @Override
-   public void buildRequest(Athena.AthenaRequest.Builder athenaRequestBuilder,
-                            JSONObject requestJson)
-      throws EthRPCHandlerException,
-      APIHelper.HexParseException,
-      RLPParser.RLPEmptyException {
+   public void
+          buildRequest(Athena.AthenaRequest.Builder athenaRequestBuilder,
+                       JSONObject requestJson) throws EthRPCHandlerException,
+                                               APIHelper.HexParseException,
+                                               RLPParser.RLPEmptyException {
 
       String from = null, to = null, data = null, value = null;
       Athena.EthRequest ethRequest = null;
@@ -53,23 +56,27 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
       JSONArray params = extractRequestParams(requestJson);
       if (method.equals(_conf.getStringValue("SendTransaction_Name"))) {
          b.setMethod(EthMethod.SEND_TX);
-         buildRequestFromObject(b, (JSONObject)params.get(0), true /* isSendTx */);
-      } else if(method.equals(_conf.getStringValue("SendRawTransaction_Name"))) {
+         buildRequestFromObject(b,
+                                (JSONObject) params.get(0),
+                                true /* isSendTx */);
+      } else if (method.equals(_conf.getStringValue("SendRawTransaction_Name"))) {
          b.setMethod(EthMethod.SEND_TX);
-         buildRequestFromString(b, (String)params.get(0));
+         buildRequestFromString(b, (String) params.get(0));
       } else {
          b.setMethod(EthMethod.CALL_CONTRACT);
-         buildRequestFromObject(b, (JSONObject)params.get(0), false /* isSendTx */);
+         buildRequestFromObject(b,
+                                (JSONObject) params.get(0),
+                                false /* isSendTx */);
       }
 
       ethRequest = b.build();
       athenaRequestBuilder.addEthRequest(ethRequest);
    }
 
-   private void buildRequestFromObject(EthRequest.Builder b,
-                                       JSONObject obj,
-                                       boolean isSendTx)
-      throws EthRPCHandlerException, APIHelper.HexParseException {
+   private void
+           buildRequestFromObject(EthRequest.Builder b, JSONObject obj,
+                                  boolean isSendTx) throws EthRPCHandlerException,
+                                                    APIHelper.HexParseException {
 
       if (obj.containsKey("from")) {
          String from = (String) obj.get("from");
@@ -112,17 +119,17 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
       // (no, rsv are not specified in the doc, but why not?)
    }
 
-   private void buildRequestFromString(EthRequest.Builder b, String rlp)
-      throws EthRPCHandlerException,
-      APIHelper.HexParseException,
-      RLPParser.RLPEmptyException {
+   private void
+           buildRequestFromString(EthRequest.Builder b,
+                                  String rlp) throws EthRPCHandlerException,
+                                              APIHelper.HexParseException,
+                                              RLPParser.RLPEmptyException {
 
       RLPParser envelope_parser = new RLPParser(rlp);
       ByteString envelope = envelope_parser.next();
 
       if (!envelope_parser.atEnd()) {
-         throw new EthRPCHandlerException(
-            "Unable to parse raw transaction (extra data after envelope)");
+         throw new EthRPCHandlerException("Unable to parse raw transaction (extra data after envelope)");
       }
 
       RLPParser parser = new RLPParser(envelope);
@@ -138,8 +145,7 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
       ByteString s = nextPart(parser, "signature S");
 
       if (!parser.atEnd()) {
-         throw new EthRPCHandlerException(
-            "Unable to parse raw transaction (extra data in envelope)");
+         throw new EthRPCHandlerException("Unable to parse raw transaction (extra data in envelope)");
       }
 
       long nonce = APIHelper.bytesToLong(nonce_v);
@@ -148,18 +154,15 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
       long v = APIHelper.bytesToLong(v_v);
 
       if (to.size() != 20) {
-         throw new EthRPCHandlerException(
-            "Invalid raw transaction (to address too short)");
+         throw new EthRPCHandlerException("Invalid raw transaction (to address too short)");
       }
 
       if (r.size() != 32) {
-         throw new EthRPCHandlerException(
-            "Invalid raw transaction (signature R too short)");
+         throw new EthRPCHandlerException("Invalid raw transaction (signature R too short)");
       }
 
       if (s.size() != 32) {
-         throw new EthRPCHandlerException(
-            "Invalid raw transaction (signature S too short)");
+         throw new EthRPCHandlerException("Invalid raw transaction (signature S too short)");
       }
 
       b.setNonce(nonce);
@@ -173,15 +176,15 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
       b.setSigS(s);
    }
 
-   private ByteString nextPart(RLPParser parser, String label)
-      throws EthRPCHandlerException{
+   private ByteString nextPart(RLPParser parser,
+                               String label) throws EthRPCHandlerException {
       try {
          ByteString b = parser.next();
-         logger.trace("Extracted "+label+": "+b.size()+" bytes");
+         logger.trace("Extracted " + label + ": " + b.size() + " bytes");
          return b;
       } catch (RLPParser.RLPEmptyException e) {
-         throw new EthRPCHandlerException(
-            "Unable to decode "+label+" from raw transaction");
+         throw new EthRPCHandlerException("Unable to decode " + label
+            + " from raw transaction");
       }
    }
 

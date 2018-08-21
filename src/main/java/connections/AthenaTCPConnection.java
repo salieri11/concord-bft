@@ -13,12 +13,14 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.vmware.athena.Athena;
-import configurations.IConfiguration;
-import Servlets.EthDispatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.vmware.athena.Athena;
+
 import Servlets.AthenaHelper;
+import Servlets.EthDispatcher;
+import configurations.IConfiguration;
 
 public final class AthenaTCPConnection implements IAthenaConnection {
    private Socket _socket;
@@ -26,7 +28,8 @@ public final class AthenaTCPConnection implements IAthenaConnection {
    private final int _receiveTimeout; // ms
    private final int _receiveLengthSize; // bytes
    private IConfiguration _conf;
-   private static Logger _logger = LogManager.getLogger(AthenaTCPConnection.class);
+   private static Logger _logger
+      = LogManager.getLogger(AthenaTCPConnection.class);
    private static Athena.ProtocolRequest _protocolRequestMsg
       = Athena.ProtocolRequest.newBuilder().setClientVersion(1).build();
    private static Athena.AthenaRequest _athenaRequest
@@ -39,7 +42,8 @@ public final class AthenaTCPConnection implements IAthenaConnection {
     *
     * @throws IOException
     */
-   public AthenaTCPConnection(IConfiguration conf, String host, int port) throws IOException {
+   public AthenaTCPConnection(IConfiguration conf, String host,
+                              int port) throws IOException {
       _conf = conf;
       _receiveLengthSize = _conf.getIntegerValue("ReceiveHeaderSizeBytes");
       _receiveTimeout = _conf.getIntegerValue("ReceiveTimeoutMs");
@@ -52,11 +56,11 @@ public final class AthenaTCPConnection implements IAthenaConnection {
          _socket.setSoTimeout(_receiveTimeout);
       } catch (UnknownHostException e) {
          _logger.error("Error creating TCP connection with Athena. Host= "
-                       + host + ", port= " + port);
+            + host + ", port= " + port);
          throw new UnknownHostException();
       } catch (IOException e) {
          _logger.error("Error creating input/output stream with Athena. Host= "
-                       + host + ", port= " + port);
+            + host + ", port= " + port);
          throw new IOException();
       }
 
@@ -128,9 +132,10 @@ public final class AthenaTCPConnection implements IAthenaConnection {
             // we have the header - find out how big the body is
             if (msgSizeOffset == _receiveLengthSize && msgSize < 0) {
                // msgSize is sent as an unsigned 16-bit integer
-               msgSize = Short.toUnsignedInt(ByteBuffer.wrap(msgSizeBuf)
-                                             .order(ByteOrder.LITTLE_ENDIAN)
-                                             .getShort());
+               msgSize
+                  = Short.toUnsignedInt(ByteBuffer.wrap(msgSizeBuf)
+                                                  .order(ByteOrder.LITTLE_ENDIAN)
+                                                  .getShort());
 
                result = new byte[msgSize];
             }

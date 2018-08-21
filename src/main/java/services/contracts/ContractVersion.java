@@ -1,7 +1,9 @@
 package services.contracts;
 
 /**
- * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
  *
  * Represents one specific version of a specific contract. This class also
  * represents a single row in the `Contracts` table of the database.
@@ -21,52 +23,49 @@ public class ContractVersion implements FullVersionInfo {
    private String byteCode;
    // source code of this version
    private String sourceCode;
-   
-   
+
    protected ContractVersion() {
    }
-   
+
    protected ContractVersion(String id, String ownerAddress) {
       this.contractId = id;
       this.ownerAddress = ownerAddress;
    }
-   
-   
+
    protected void setContractId(String contractId) {
       this.contractId = contractId;
    }
-   
+
    protected void setVersionName(String versionName) {
       this.versionName = versionName;
    }
-   
+
    protected void setAddress(String address) {
       this.address = address;
    }
-   
+
    protected void setMetaData(String metaData) {
       this.metaData = metaData;
    }
-   
+
    protected void setByteCode(String byteCode) {
       this.byteCode = byteCode;
    }
-   
+
    protected void setSourceCode(String sourceCode) {
       this.sourceCode = sourceCode;
    }
-   
+
    protected void setOwnerAddress(String ownerAddress) {
-   
+
       this.ownerAddress = ownerAddress;
    }
-   
-   protected ContractVersion(String id, String ownerAddress,
-                             String versionName, String versionAddress,
-                             String versionMetadata, String versionBytecode,
-                             String versionSourcecode) {
+
+   protected ContractVersion(String id, String ownerAddress, String versionName,
+                             String versionAddress, String versionMetadata,
+                             String versionBytecode, String versionSourcecode) {
       this.contractId = id;
-      
+
       this.ownerAddress = ownerAddress;
       this.versionName = versionName;
       this.address = versionAddress;
@@ -74,8 +73,7 @@ public class ContractVersion implements FullVersionInfo {
       this.byteCode = versionBytecode;
       this.sourceCode = versionSourcecode;
    }
-   
-   
+
    /**
     * Checks if address is a syntactically valid contract address or not. This
     * method does NOT actually check if contract is deployed at that address or
@@ -95,7 +93,7 @@ public class ContractVersion implements FullVersionInfo {
       }
       return hash.length() == 40 && hash.matches("[0-9a-zA-Z]+");
    }
-   
+
    public String getContractId() {
       return contractId;
    }
@@ -103,32 +101,32 @@ public class ContractVersion implements FullVersionInfo {
    public String getOwnerAddress() {
       return ownerAddress;
    }
-   
+
    public String getVersionName() {
       return versionName;
    }
-   
+
    public boolean isOwner(String address) {
       if (!address.startsWith("0x")) {
          address = "0x" + address;
       }
       return ownerAddress.equals(address);
    }
-   
+
    public String getByteCode() {
       return byteCode;
    }
-   
+
    public String getMetaData() {
       return metaData;
    }
-   
+
    public String getSourceCode() {
       return sourceCode;
    }
-   
+
    public String getAddress() {
       return address;
    }
-   
+
 }

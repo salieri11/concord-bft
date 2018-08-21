@@ -3,10 +3,11 @@ package database;
 import java.sql.Connection;
 import java.sql.DriverManager;
 
-import configurations.ConfigurationFactory;
-import configurations.IConfiguration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import configurations.ConfigurationFactory;
+import configurations.IConfiguration;
 
 /**
  * <p>

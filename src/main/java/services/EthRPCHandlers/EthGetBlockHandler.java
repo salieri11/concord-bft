@@ -2,7 +2,6 @@ package services.EthRPCHandlers;
 
 import java.util.List;
 
-import Servlets.EthDispatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
@@ -14,11 +13,14 @@ import com.vmware.athena.Athena.AthenaRequest.Builder;
 import com.vmware.athena.Athena.AthenaResponse;
 import com.vmware.athena.Athena.BlockResponse;
 import com.vmware.athena.Athena.TransactionResponse;
-import Servlets.APIHelper;
 
+import Servlets.APIHelper;
+import Servlets.EthDispatcher;
 
 /**
- * <p>Copyright 2018 VMware, all rights reserved.</p>
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
  *
  * This handler is used to service eth_getBlockByHash POST requests.
  */

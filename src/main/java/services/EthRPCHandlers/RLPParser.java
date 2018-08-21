@@ -1,13 +1,14 @@
 package services.EthRPCHandlers;
 
-
-import com.google.protobuf.ByteString;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.google.protobuf.ByteString;
+
 import Servlets.APIHelper;
 
 class RLPParser {
-   
+
    Logger logger = LogManager.getLogger(RLPParser.class);
 
    private ByteString input;
@@ -33,45 +34,45 @@ class RLPParser {
       int tag = 0xff & input.byteAt(offset);
       offset++;
       if (tag < 0x80) {
-         logger.debug("Tag: "+String.format("0x%02X", tag)+
-                      " == self byte value");
-         return input.substring(offset-1, offset);
+         logger.debug("Tag: " + String.format("0x%02X", tag)
+            + " == self byte value");
+         return input.substring(offset - 1, offset);
       } else if (tag < 0xb8) {
          int length = tag - 0x80;
-         logger.debug("Tag: "+String.format("0x%02X", tag)+
-                      " == short string, length="+length);
+         logger.debug("Tag: " + String.format("0x%02X", tag)
+            + " == short string, length=" + length);
          return shortRun(length);
       } else if (tag < 0xc0) {
          int lengthLength = tag - 0xb7;
-         logger.debug("Tag: "+String.format("0x%02X", tag)+
-                      " == long string lengthLength="+lengthLength);
+         logger.debug("Tag: " + String.format("0x%02X", tag)
+            + " == long string lengthLength=" + lengthLength);
          return longRun(lengthLength);
       } else if (tag < 0xf8) {
          int length = tag - 0xc0;
-         logger.debug("Tag: "+String.format("0x%02X", tag)+
-                      " == short list, length="+length);
+         logger.debug("Tag: " + String.format("0x%02X", tag)
+            + " == short list, length=" + length);
          return shortRun(length);
       } else {
          int lengthLength = tag - 0xf7;
-         logger.debug("Tag: "+String.format("0x%02X", tag)+
-                      " == long list lengthLength="+lengthLength);
+         logger.debug("Tag: " + String.format("0x%02X", tag)
+            + " == long list lengthLength=" + lengthLength);
          return longRun(lengthLength);
       }
    }
 
    private ByteString shortRun(int length) throws RLPEmptyException {
-      if (offset+length > input.size()) {
+      if (offset + length > input.size()) {
          offset = input.size();
          throw new RLPEmptyException();
       }
 
-      ByteString value = input.substring(offset, offset+length);
+      ByteString value = input.substring(offset, offset + length);
       offset += length;
       return value;
    }
 
    private ByteString longRun(int lengthLength) throws RLPEmptyException {
-      if (offset+lengthLength > input.size()) {
+      if (offset + lengthLength > input.size()) {
          offset = input.size();
          throw new RLPEmptyException();
       }
@@ -85,7 +86,7 @@ class RLPParser {
        * notices we didn't consume the whole RLP message.
        */
       if (lengthLength > 4) {
-         offset += lengthLength-4;
+         offset += lengthLength - 4;
          lengthLength = 4;
       }
 
@@ -95,12 +96,12 @@ class RLPParser {
          offset++;
       }
 
-      if (offset+length > input.size()) {
+      if (offset + length > input.size()) {
          offset = input.size();
          throw new RLPEmptyException();
       }
 
-      ByteString value = input.substring(offset, offset+length);
+      ByteString value = input.substring(offset, offset + length);
       offset += length;
       return value;
    }

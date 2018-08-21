@@ -1,7 +1,5 @@
 package services.EthRPCHandlers;
 
-
-import Servlets.EthDispatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
@@ -9,8 +7,9 @@ import org.json.simple.JSONObject;
 
 import com.google.protobuf.ByteString;
 import com.vmware.athena.Athena;
-import Servlets.APIHelper;
 
+import Servlets.APIHelper;
+import Servlets.EthDispatcher;
 
 /**
  * <p>
@@ -30,7 +29,7 @@ import Servlets.APIHelper;
 public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
 
    Logger logger = LogManager.getLogger(EthGetTxReceiptHandler.class);
-   
+
    /**
     * Builds a TransactionRequest object from given requestJson and inserts it
     * into AthenaRequest Object.

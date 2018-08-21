@@ -1,6 +1,5 @@
 package services.EthRPCHandlers;
 
-import Servlets.EthDispatcher;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
@@ -13,10 +12,14 @@ import com.vmware.athena.Athena.EthResponse;
 import com.vmware.athena.Athena.FilterRequest;
 import com.vmware.athena.Athena.FilterRequest.FilterRequestType;
 import com.vmware.athena.Athena.FilterResponse;
+
 import Servlets.APIHelper;
+import Servlets.EthDispatcher;
 
 /**
- * <p>Copyright 2018 VMware, all rights reserved</p>
+ * <p>
+ * Copyright 2018 VMware, all rights reserved
+ * </p>
  * 
  * <p>
  * This handler is used to service following types of filter requests:
@@ -26,7 +29,8 @@ import Servlets.APIHelper;
  * <li>eth_newPendingTransactionFilter(TODO)</li>
  * <li>eth_getFilterChanges</li>
  * <li>eth_uninstallFilter</li>
- * </ul></p>
+ * </ul>
+ * </p>
  */
 public class EthFilterHandler extends AbstractEthRPCHandler {
 
