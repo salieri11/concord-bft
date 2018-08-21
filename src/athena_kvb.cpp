@@ -694,7 +694,7 @@ void com::vmware::athena::KVBCommandsHandler::recover_from(
             chainID = (chainID - 35) / 2;
          } else {
             actualV = 1;
-            chainID = (chainID - 26) / 2;
+            chainID = (chainID - 36) / 2;
          }
          rlpb.add(chainID); // Signature V
       } else if (chainID >= 27) {
@@ -709,7 +709,15 @@ void com::vmware::athena::KVBCommandsHandler::recover_from(
       }
 
       if (request.has_value()) {
-         rlpb.add(request.value());
+         // trying not to decode the value, just to recode it, but if it's small
+         // enough, we have to have special handling
+         const std::string& value = request.value();
+         if (value.size() == 1 && value[0] <= 0x7f) {
+            // small value is represented by itself
+            rlpb.add(value[0]);
+         } else {
+            rlpb.add(value);
+         }
       } else {
          rlpb.add(empty);
       }
@@ -720,19 +728,19 @@ void com::vmware::athena::KVBCommandsHandler::recover_from(
          rlpb.add(empty);
       }
 
-      if (request.has_gas()) {
+      if (request.has_gas() && request.gas() > 0) {
          rlpb.add(request.gas());
       } else {
          rlpb.add(empty);
       }
 
-      if (request.has_gas_price()) {
+      if (request.has_gas_price() && request.gas_price() > 0) {
          rlpb.add(request.gas_price());
       } else {
          rlpb.add(empty);
       }
 
-      if (request.has_nonce()) {
+      if (request.has_nonce() && request.nonce() > 0) {
          rlpb.add(request.nonce());
       } else {
          rlpb.add(empty);
