@@ -3,6 +3,7 @@
  */
 
 import { TestBed, inject } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { AuthenticationService } from './authentication.service';
 import { Personas, PersonaService } from './persona.service';
@@ -10,6 +11,7 @@ import { Personas, PersonaService } from './persona.service';
 describe('AuthenticationService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
+      imports: [HttpClientTestingModule],
       providers: [AuthenticationService, PersonaService]
     });
   });
@@ -23,7 +25,7 @@ describe('AuthenticationService', () => {
   }));
 
   it('should broadcast an email after log in', inject([AuthenticationService], function(service: AuthenticationService) {
-    service.logIn('test@vmware.com', 'asdfasdf', Personas.SystemsAdmin);
+    service.onLogIn('test@vmware.com', 'asdfasdf', Personas.SystemsAdmin);
     const subscription = service.user.subscribe(user => {
       expect(user.email).toEqual('test@vmware.com');
     });

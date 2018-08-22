@@ -3,6 +3,7 @@
  */
 
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 import { Personas, PersonaService } from './persona.service';
@@ -13,7 +14,7 @@ export class AuthenticationService {
   private userSubject: BehaviorSubject<User>;
   readonly user: Observable<User>;
 
-  constructor(private personaService: PersonaService) {
+  constructor(private personaService: PersonaService, private http: HttpClient) {
     this.userSubject = new BehaviorSubject<User>({
       email: localStorage['helen.email'],
       persona: localStorage['helen.persona']
@@ -26,7 +27,7 @@ export class AuthenticationService {
     return localStorage['helen.email'] !== undefined;
   }
 
-  logIn(email: string, password: string, persona: Personas) {
+  onLogIn(email: string, password: string, persona: Personas) {
     password = '';
     localStorage.setItem('helen.email', email);
     localStorage.setItem('helen.password', password);
@@ -35,6 +36,11 @@ export class AuthenticationService {
       email: email,
       persona: persona
     });
+  }
+
+  logIn(email: string, password: string) {
+    const url = 'api/login';
+    return this.http.post<{email: string, password: string}>(url, {email: email, password: password});
   }
 
   logOut() {

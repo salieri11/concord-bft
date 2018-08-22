@@ -664,12 +664,6 @@
         "name": {
           "title": "Name"
         },
-        "firstName": {
-          "title": "FirstName"
-        },
-        "lastName": {
-          "title": "LastName"
-        },
         "email": {
           "title": "Email"
         },
@@ -678,12 +672,6 @@
         },
         "persona": {
           "title": "Role"
-        },
-        "createdOn": {
-          "title": "Created On"
-        },
-        "updatedOn": {
-          "title": "Updated On"
         }
       }
     },

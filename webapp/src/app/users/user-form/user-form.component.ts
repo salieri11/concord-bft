@@ -17,7 +17,7 @@ import { matchPasswordValidator } from '../shared/custom-validators';
   styleUrls: ['./user-form.component.scss']
 })
 export class UserFormComponent implements OnInit {
-  static personasAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin, Personas.OrgAdmin];
+  static rolesAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin, Personas.OrgAdmin];
   @Input('selected') selected: Array<User>;
   @Output('createUser') createUser: EventEmitter<any> = new EventEmitter<any>();
   @Output('deleteUsers') deleteUsers: EventEmitter<any> = new EventEmitter<any>();
@@ -40,31 +40,36 @@ export class UserFormComponent implements OnInit {
 
   deleteUser(): void {
     this.selected.forEach(user => {
-      this.usersService.deleteUser(user.id)
+      this.usersService.deleteUser(user.user_id)
         .subscribe(response => this.handleDeletion(response));
     });
   }
 
   private createEditUserForm(): void {
     this.editUserForm = this.fb.group(({
-      firstName: ['', Validators.required],
-      lastName: ['', Validators.required],
+      first_name: ['', Validators.required],
+      last_name: ['', Validators.required],
       email: ['', Validators.required],
-      persona: ['', Validators.required]
+      role: ['', Validators.required]
     }));
     this.user = this.selected[0];
-    this.editUserForm.patchValue(this.user);
+    this.editUserForm.patchValue({
+      first_name: this.user.details.first_name,
+      last_name: this.user.details.last_name,
+      email: this.user.email,
+      role: this.user.role
+    });
   }
 
   private createAddUserForm(): void {
     this.addUserForm = this.fb.group(({
-      firstName: ['', Validators.required],
-      lastName: ['', Validators.required],
+      first_name: ['', Validators.required],
+      last_name: ['', Validators.required],
       email: ['', Validators.required],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required, Validators.minLength(8), matchPasswordValidator('password')]],
       organization: ['', Validators.required],
-      persona: ['', Validators.required]
+      role: ['', Validators.required]
     }));
   }
 
@@ -82,15 +87,15 @@ export class UserFormComponent implements OnInit {
 
   addUser() {
     const addUserFormModel = this.addUserForm.value;
-    const date = new Date();
     const addUser: User = {
-      firstName: addUserFormModel.firstName,
-      lastName: addUserFormModel.lastName,
+      details: {
+        first_name: addUserFormModel.first_name,
+        last_name: addUserFormModel.last_name,
+      },
+      name: `${addUserFormModel.first_name} ${addUserFormModel.last_name}`,
       email: addUserFormModel.email,
       password: addUserFormModel.password,
-      persona: addUserFormModel.persona,
-      createdOn: date.getDate(),
-      updatedOn: date.getDate()
+      role: addUserFormModel.role
     };
 
     this.openModalForm = false;
@@ -99,15 +104,15 @@ export class UserFormComponent implements OnInit {
   }
 
   editUser() {
-    const date = new Date();
     const editUser: User = {
-      id: this.user.id,
-      firstName: this.editUserForm.value.firstName,
-      lastName: this.editUserForm.value.lastName,
+      user_id: this.user.user_id,
+      details: {
+        first_name: this.editUserForm.value.first_name,
+        last_name: this.editUserForm.value.last_name,
+      },
+      name: `${this.editUserForm.value.first_name} ${this.editUserForm.value.last_name}`,
       email: this.editUserForm.value.email,
-      persona: this.editUserForm.value.persona,
-      createdOn: this.user.createdOn,
-      updatedOn: date.getTime()
+      role: this.editUserForm.value.role
     };
     this.openModalForm = false;
     this.usersService.editUser(editUser)

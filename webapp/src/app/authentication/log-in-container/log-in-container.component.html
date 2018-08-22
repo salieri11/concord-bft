@@ -1,3 +1,12 @@
+<clr-alerts>
+  <clr-alert *ngFor="let alert of alerts" [clrAlertType]="'alert-danger'" [clrAlertAppLevel]="true">
+    <clr-alert-item>
+        <span class="alert-text">
+          {{ alert.message }}
+        </span>
+    </clr-alert-item>
+  </clr-alert>
+</clr-alerts>
 <div class="login-wrapper">
   <form class="login" (ngSubmit)="onLogIn()" [formGroup]="loginForm">
     <label class="title">

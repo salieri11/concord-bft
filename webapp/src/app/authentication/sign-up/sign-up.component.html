@@ -52,8 +52,28 @@
             </div>
             <div class="col-xl-4 col-lg-6 col-md-12">
               <div class="form-group">
+                <label for="password">Password</label>
+                <div class="clr-control-container" [ngClass]="{'clr-error': signupForm.get('password').hasError('minlength')}">
+                  <div class="clr-input-wrapper">
+                    <input type="password" id="password" formControlName="password">
+                    <clr-icon class="clr-validate-icon" shape="exclamation-circle"></clr-icon>
+                  </div>
+                  <span *ngIf="signupForm.get('password').hasError('minlength')" class="clr-subtext">{{ 'users.addUserForm.errors.password.minLength' | translate }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row flex-items-xs-center call-outs">
+            <div class="col-xl-4 col-lg-6 col-md-12">
+              <div class="form-group">
                 <label for="company">{{ 'signUp.form.company' | translate }}</label>
                 <input type="text" id="company" formControlName="company">
+              </div>
+            </div>
+            <div class="col-xl-4 col-lg-6 col-md-12">
+              <div class="form-group">
+                <label for="phoneNumber">Phone Number</label>
+                <input type="text" id="phoneNumber" formControlName="phoneNumber">
               </div>
             </div>
           </div>

@@ -4,7 +4,6 @@
 
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { Subscription } from 'rxjs';
-
 import { ClrDropdown } from '@clr/angular';
 
 import { Personas } from '../../shared/persona.service';
@@ -12,6 +11,7 @@ import { UserListComponent } from '../user-list/user-list.component';
 import { UserFormComponent } from '../user-form/user-form.component';
 import { User } from '../shared/user.model';
 import { TourService } from '../../shared/tour.service';
+import { UsersService } from '../shared/users.service';
 
 @Component({
   selector: 'athena-users',
@@ -25,9 +25,10 @@ export class UsersComponent implements OnInit, OnDestroy {
   @ViewChild('userActionsMenu') userActionsMenu: ClrDropdown;
 
   userActionMenuToggleChanges: Subscription;
-  selected: Array<User>;
+  users: User[];
+  selected: User[];
 
-  constructor(private tourService: TourService) {
+  constructor(private usersService: UsersService, private tourService: TourService) {
   }
 
   ngOnInit() {
@@ -36,6 +37,7 @@ export class UsersComponent implements OnInit, OnDestroy {
         this.userActionsMenu.ifOpenService.open = openMenu;
       });
     });
+    this.getUsers();
   }
 
   ngOnDestroy() {
@@ -46,16 +48,22 @@ export class UsersComponent implements OnInit, OnDestroy {
     this.selected = rows;
   }
 
-  addUser(user: User) {
-    this.usersList.grid.addRow(user);
+  addUser() {
+    this.getUsers();
   }
 
   editUser() {
-    this.usersList.grid.reload();
+    this.getUsers();
   }
 
   deleteUsers() {
-    this.usersList.grid.reload();
+    this.getUsers();
+  }
+
+  private getUsers() {
+    this.usersService.getList().subscribe((response) => {
+      this.users = response;
+    });
   }
 
 }
