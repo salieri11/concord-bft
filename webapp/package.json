@@ -15,7 +15,8 @@
     "test": "ng test --source-map=false",
     "lint": "ng lint athena-ui",
     "lint-fix": "ng lint athena-ui --fix",
-    "e2e": "npm run clear-contracts-e2e && npm run clear-users-e2e && npm run create-user-e2e && ng e2e --port 49152"
+    "e2e": "npm run clear-data-e2e && npm run create-user-e2e && ng e2e --port 49152",
+    "clear-data-e2e": "npm run clear-contracts-e2e && npm run clear-users-e2e"
   },
   "private": true,
   "dependencies": {

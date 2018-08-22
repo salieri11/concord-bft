@@ -14,6 +14,7 @@ export interface User {
   persona?: Personas;
   createdOn?: number;
   updatedOn?: number;
+  last_login?: number;
   role?: Personas;
   details?: {
     first_name: string,
