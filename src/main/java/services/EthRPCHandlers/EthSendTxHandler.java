@@ -153,7 +153,7 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
       long gas = APIHelper.bytesToLong(gas_v);
       long v = APIHelper.bytesToLong(v_v);
 
-      if (to.size() != 20) {
+      if (to.size() != 0 && to.size() != 20) {
          throw new EthRPCHandlerException("Invalid raw transaction (to address too short)");
       }
 
@@ -168,7 +168,9 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
       b.setNonce(nonce);
       b.setGasPrice(gasPrice);
       b.setGas(gas);
-      b.setAddrTo(to);
+      if (to.size() > 0) {
+         b.setAddrTo(to);
+      }
       b.setValue(value);
       b.setData(data);
       b.setSigV(v);
