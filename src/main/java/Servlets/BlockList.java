@@ -52,8 +52,6 @@ public class BlockList extends BaseServlet {
                                      required = false) long latest,
                        @RequestParam(name = "count", required = false,
                                      defaultValue = "-1") long count) {
-      // return ResponseEntity.ok(new JSONObject());
-
       // Construct a blocksListRequest object.
       Athena.BlockListRequest.Builder b = Athena.BlockListRequest.newBuilder();
       // If end is null, Athena assumes end is the latest block

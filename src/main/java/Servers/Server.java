@@ -35,7 +35,7 @@ import services.profiles.User;
 @EntityScan(basePackageClasses = { User.class })
 @EnableJpaRepositories(basePackageClasses = { ProfilesRegistryManager.class })
 @ComponentScan(basePackageClasses = { BlockList.class,
-   ProfilesRegistryManager.class })
+   ProfilesRegistryManager.class, HelenSpringWebConfig.class })
 public class Server {
 
    // Set current datetime for logging purposes
