@@ -132,7 +132,7 @@ java -jar helen-1.0-SNAPSHOT-jar-with-dependencies.jar
  * `/api/` - Used to return a list of all other APIs serviced
 
  * `/api/athena/*` - API endpoints (see
-   [swagger](https://github.com/vmwathena/helen/blob/amit_spring_helen_refactor/src/main/resources/static/swagger.json))
+   [swagger](https://github.com/vmwathena/helen/blob/master/src/main/resources/static/swagger.json))
 
  * `/*` - Used to serve content from src/main/resources/static/index.html
 
