@@ -29,8 +29,8 @@ public abstract class BaseServlet {
    protected BaseServlet() {
       _conf = ConfigurationFactory.getConfiguration(ConfigurationType.File);
       standardHeaders = new HttpHeaders();
-      standardHeaders.setContentType(MediaType.APPLICATION_JSON);
-      standardHeaders.set("Content-Transfer-Encoding", "UTF-8");
+      standardHeaders.setContentType(MediaType.APPLICATION_JSON_UTF8);
+      standardHeaders.set("Content-Transfer-Encoding", "8BIT");
    }
 
    protected abstract JSONAware

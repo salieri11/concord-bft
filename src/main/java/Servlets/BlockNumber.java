@@ -38,7 +38,7 @@ public class BlockNumber extends BaseServlet {
     * Services a get request. Constructs a protobuf request of type blocknumber
     * request (enveloped in an athena request) as defined in athena.proto. Sends
     * this request to Athena. Parses the response and converts it into json for
-    * sendiong to client
+    * sending to client
     *
     * @param block
     *          The block number or block hash
@@ -49,11 +49,11 @@ public class BlockNumber extends BaseServlet {
           getBlock(@PathVariable("block") String block) {
       // Block can either be a block number or block hash
       // Read the requested block number from the uri
-      Long number;
       try {
          final Athena.BlockRequest blockRequestObj;
          // check if param is a number or hash
          if (block.chars().allMatch(Character::isDigit)) {
+            Long number;
             number = Long.parseLong(block);
             blockRequestObj
                = Athena.BlockRequest.newBuilder().setNumber(number).build();

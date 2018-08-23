@@ -22,9 +22,9 @@ public class AthenaHelper {
 
    /**
     * Converts an int into two bytes.
-    * 
-    * @param Integer
-    *           that needs to be converted
+    *
+    * @param value that needs to be converted
+    * @param size size of returned byte array
     * @return A byte array containing two bytes.
     */
    private static byte[] intToSizeBytes(int value, int size) {

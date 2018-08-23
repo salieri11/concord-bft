@@ -384,10 +384,12 @@ public class ContractsServlet extends BaseServlet {
          // requests we just build a JSON object representing an ethereum
          // request (as if it was received like a normal ethereum JSON RPC)
          // and forward it to EthDispatcher.
+
+         int requestID = random.nextInt(); // some request ID for JSON RPC
+
          JSONObject sendTxrequest
             = buildEthSendTxRequest(from,
-                                    random.nextInt(), // some request ID for
-                                    // JSON RPC
+                                    requestID,
                                     result.getByteCodeMap().get(contractName));
          String responseString
             = new EthDispatcher().dispatch(sendTxrequest).toJSONString();
@@ -478,7 +480,7 @@ public class ContractsServlet extends BaseServlet {
       ResponseEntity<JSONAware> responseEntity;
 
       try {
-         logger.info(paramString);
+         logger.debug(paramString);
          JSONParser parser = new JSONParser();
          JSONObject requestObject = (JSONObject) parser.parse(paramString);
 
@@ -508,7 +510,7 @@ public class ContractsServlet extends BaseServlet {
          } else {
             // Compile the given solidity code
             Compiler.Result result = Compiler.compile(solidityCode);
-            logger.info(result);
+            logger.debug(result);
             if (result.isSuccess() && result.getByteCodeMap().size() == 1) {
                JSONArray resultArray = deployContracts(contractId,
                                                        contractVersion,

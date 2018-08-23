@@ -317,24 +317,18 @@ public final class EthDispatcher extends BaseServlet {
       try {
          conn = AthenaConnectionPool.getInstance().getConnection();
          if (conn == null) {
-            throw new Exception(errorMessage("Error communicating with athena",
-                                             req.getEthRequest(0).getId(),
-                                             jsonRpc).toJSONString());
+            throw new Exception("Error communicating with athena");
          }
 
          boolean res = AthenaHelper.sendToAthena(req, conn, _conf);
          if (!res) {
-            throw new Exception(errorMessage("Error communicating with athena",
-                                             req.getEthRequest(0).getId(),
-                                             jsonRpc).toJSONString());
+            throw new Exception("Error communicating with athena");
          }
 
          // receive response from Athena
          athenaResponse = AthenaHelper.receiveFromAthena(conn);
          if (athenaResponse == null) {
-            throw new Exception(errorMessage("Error communicating with athena",
-                                             req.getEthRequest(0).getId(),
-                                             jsonRpc).toJSONString());
+            throw new Exception("Error communicating with athena");
          }
       } catch (Exception e) {
          logger.error("General exception communicating with athena: ", e);

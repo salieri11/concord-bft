@@ -55,7 +55,6 @@ public class UserAuthenticator extends BaseServlet {
       JSONObject responseJSON;
       try {
          JSONObject requestJSON = (JSONObject) parser.parse(requestBody);
-         // URI is /api/login
          if (requestJSON.containsKey(EMAIL_LABEL)
             && requestJSON.containsKey(PASSWORD_LABEL)) {
             boolean successful
