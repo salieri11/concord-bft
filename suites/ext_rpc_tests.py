@@ -313,10 +313,10 @@ class ExtendedRPCTests(test_suite.TestSuite):
       # before).
 
       # Simple contract that returns 0x42 when called
-      rawTransaction = "0xf860010101800197600b80600c6000396000f300604260005260206000f30025a03002710095786aebc788fd00d13aa416e5d9533da8a3d31239d7cd19034c9c8fa04ff6b9c507243f749ed75ea326323f937d9ed52225082d0b4b1c821a016f0c37"
-      expectedHash = "0x3e6f541d02217ae7d3cb901c0288c6a5cdeb1ed712428c465d1da934622c995e"
-      expectedFrom = "0xf7c93b40e9b8d20af457f49db3bba37a629700d8"
-      expectedTo = "0xe832a6e1f1c2442de8073f7df0dda56233c8eccd"
+      rawTransaction = "0xf860800101800197600b80600c6000396000f300604260005260206000f30025a0b9f688baaf66a51d4965a526803499fb1688d6b6720086270e64fcd67cde2921a02cecc55e0200c831f01b00d46865fe7a89e8891ae5906821eb86609b022f44b2"
+      expectedHash = "0x7749049815519a2fc50d4f76decdb904e966b447704b687892aafa98d4b8a1a9"
+      expectedFrom = "0xaf4be85b32868c5b7c121115ad8cd93e0ad4f14e"
+      expectedTo = "0xc2ddc84b30c43c090db2bd3a55a0fb0d8f0af208"
       expectedValue = "1"
 
       txResult = rpc.sendRawTransaction(rawTransaction)
