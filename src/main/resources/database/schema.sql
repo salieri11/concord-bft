@@ -1,4 +1,26 @@
--- These queries are taken from hibernate logs and will have to be modified
+-- This script creates a new cockroach database named 'helen' and also
+-- creates a new admin user named 'helen_admin' for that database. As of
+-- now contracts management services and profile(user) management services
+-- need this database.
+-- The table creation part for profile(user) managment services is done
+-- in this script (because those services are developed using hibernate and
+-- so we don't have to directly deal with SQL quries). However, the
+-- contract management services were developed earlier and hence they
+-- directly deal with SQL queries using JDBC. Hence, contract management
+-- table creation is not done here
+
+-- Create a helen database
+CREATE DATABASE IF NOT EXISTS helen;
+
+-- Allow helen_admin all access to helen database
+GRANT ALL ON DATABASE helen TO helen_admin;
+
+-- switch to helen database
+use helen;
+
+
+-- Profile schema creation
+-- Below queries are taken from hibernate logs and will have to be modified
 -- if we add a new persistent entity or update existing entity.
 
 -- Sequence used by hibernate for assigning auto generated ID
