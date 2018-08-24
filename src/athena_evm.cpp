@@ -79,7 +79,20 @@ evm_result com::vmware::athena::EVM::run(evm_message &message,
       LOG4CPLUS_DEBUG(logger, "Loaded code from " << message.destination);
       message.code_hash = hash;
 
-      result = execute(message, kvbStorage, code);
+      try {
+         result = execute(message, kvbStorage, code);
+      } catch (ReadOnlyModeException rome) {
+         LOG4CPLUS_DEBUG(logger,
+                         "None-pure contract function called "
+                         "with read-only storage. Contract: "
+                         << message.destination);
+         result.status_code = EVM_FAILURE;
+      } catch (EVMException e) {
+         LOG4CPLUS_ERROR(logger,
+                         "EVM execution exception: '" << e.what() << "'. "
+                         << "Contract: " << message.destination);
+         result.status_code = EVM_FAILURE;
+      }
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " << message.destination);
       memset(&result, 0, sizeof(result));
