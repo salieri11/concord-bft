@@ -94,7 +94,8 @@ class RegressionTests(test_suite.TestSuite):
       return self._resultFile
 
    def _getTests(self):
-      return [("nested_contract_creation", self._test_nested_contract_creation)]
+      return [("nested_contract_creation", self._test_nested_contract_creation), \
+              ("invalid_addresses", self._test_invalid_addresses)]
 
    def _runRpcTest(self, testName, testFun, testLogDir):
       ''' Runs one test. '''
@@ -155,6 +156,51 @@ class RegressionTests(test_suite.TestSuite):
                return (False, "Transaction was not successful")
          return (False, "Transaction hash not received")
 
+
+      else:
+         #Skip the test if running in Ethereum mode
+         return (None, None)
+
+   def _test_invalid_addresses(self, rpc):
+      '''
+      Submit transactions using bad addresses: too long, too short.
+      '''
+      if self._productMode:
+         valid_from = "0x1111111111111111111111111111111111111111"
+         valid_to = "0x2222222222222222222222222222222222222222"
+
+         long_from = valid_from + "33"
+         long_to = valid_to + "44"
+
+         short_from = valid_from[:len(valid_from)-2]
+         short_to = valid_to[:len(valid_to)-2]
+
+         bad_tests = [(valid_from, long_to),
+                      (valid_from, short_to),
+                      (long_from, valid_to),
+                      (short_from, valid_to)]
+
+         for (f, t) in bad_tests:
+            try:
+               rpc.sendTransaction(f, data="0x00", to=t, value="0x01")
+
+               # This call should fail. If it gets here, we probably
+               # silently discarded address bytes.
+               return (False, "Invalid address allowed from=%s, to=%s" % (f, s))
+            except:
+               # Receiving an error message will arrive here. An error is
+               # fine - we just need to make sure that Athena is still up
+               # afterward.
+               pass
+
+         # After all of that invalid stuff, a valid transaction should work
+         txHash = rpc.sendTransaction(valid_from, data="0x00", to=valid_to, value="0x01")
+         if txHash:
+            # we don't actually care if that transaction worked - just
+            # that Athena was alive to give us the hash for it
+            return (True, None)
+
+         return (False, "No transaction hash was returned")
 
       else:
          #Skip the test if running in Ethereum mode
