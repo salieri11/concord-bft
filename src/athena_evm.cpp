@@ -108,12 +108,6 @@ evm_result com::vmware::athena::EVM::run(evm_message &message,
                               sender_balance << ").");
             }
 
-            // Don't allow if destination account does not exist.
-            else if (!kvbStorage.account_exists(message.destination)) {
-               result.status_code = EVM_FAILURE;
-               LOG4CPLUS_INFO(logger, "Destination account with address "
-                              << message.destination << " does not exist.");
-            }
             else {
                kvbStorage.set_balance(message.destination,
                                       destination_balance += transfer_val);
