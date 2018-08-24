@@ -147,13 +147,12 @@ evm_result com::vmware::athena::EVM::run(evm_message &message,
 /**
  * Create a contract.
  */
-evm_result com::vmware::athena::EVM::create(evm_message &message,
+evm_result com::vmware::athena::EVM::create(evm_address &contract_address,
+                                            evm_message &message,
                                             KVBStorage &kvbStorage)
 {
    assert(message.kind == EVM_CREATE);
    assert(message.input_size > 0);
-
-   evm_address contract_address = contract_destination(message, kvbStorage);
 
    std::vector<uint8_t> code;
    evm_uint256be hash;
@@ -227,15 +226,22 @@ evm_result com::vmware::athena::EVM::create(evm_message &message,
  * of [sender_address, sender_nonce].
  */
 evm_address com::vmware::athena::EVM::contract_destination(
-   const evm_message &message,
-   KVBStorage &kvbStorage)
+   evm_address &sender, uint64_t nonce) const
 {
    RLPBuilder rlpb;
    rlpb.start_list();
 
    // RLP building is done in reverse order - build flips it for us
-   rlpb.add(kvbStorage.get_nonce(message.sender));
-   rlpb.add(message.sender);
+
+   if (nonce == 0) {
+      // "0" is encoded as "empty string" here, not "integer zero"
+      std::vector<uint8_t> empty_nonce;
+      rlpb.add(empty_nonce);
+   } else {
+      rlpb.add(nonce);
+   }
+
+   rlpb.add(sender);
    std::vector<uint8_t> rlp = rlpb.build();
 
    // hash it
@@ -276,7 +282,7 @@ bool com::vmware::athena::EVM::new_account(
       // check before allowing a balance transfer. Checking that the destination
       // of a balance transfer exists should also be removed (see Ethereum
       // address 0's current balance for compatibility arguments).
-      uint64_t nonce = kvbStorage.get_nonce(zero_address)+1;
+      uint64_t nonce = kvbStorage.get_nonce(zero_address);
       EthTransaction tx = {
          nonce,                  // nonce: zero-address nonce?
          zero_hash,              // block_hash: will be set in write_block
@@ -294,7 +300,7 @@ bool com::vmware::athena::EVM::new_account(
          0                       // sig_v: zero-address signature? chainID?
       };
       kvbStorage.add_transaction(tx);
-      kvbStorage.set_nonce(zero_address, nonce);
+      kvbStorage.set_nonce(zero_address, nonce+1);
       kvbStorage.write_block();
       return true;
    }
@@ -452,8 +458,16 @@ extern "C" {
       memset(result, 0, sizeof(evm_result));
 
       if (msg->kind == EVM_CREATE) {
+         KVBStorage *kvbStorage = ath_context(evmctx)->kvbStorage;
+
+         uint64_t nonce = kvbStorage->get_nonce(call_msg.sender);
+         kvbStorage->set_nonce(call_msg.sender, nonce+1);
+
+         evm_address contract_address =
+            ath_object(evmctx)->contract_destination(call_msg.sender, nonce);
+
          *result = ath_object(evmctx)->create(
-            call_msg, *(ath_context(evmctx)->kvbStorage));
+            contract_address, call_msg, *kvbStorage);
       } else {
          *result = ath_object(evmctx)->run(
             call_msg, *(ath_context(evmctx)->kvbStorage));

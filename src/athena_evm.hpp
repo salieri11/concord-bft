@@ -105,11 +105,13 @@ public:
    /* Athena API */
    evm_result run(evm_message &message,
                   KVBStorage &kvbStorage);
-   evm_result create(evm_message &message,
+   evm_result create(evm_address &contract_address,
+                     evm_message &message,
                      KVBStorage &kvbStorage);
    bool new_account(const std::string &passphrase,
                     KVBStorage &kvbStorage,
                     evm_address &address /* OUT */);
+   evm_address contract_destination(evm_address &sender, uint64_t nonce) const;
 
 private:
    evm_instance *evminst;
@@ -118,8 +120,6 @@ private:
    // chain to which we are connected
    uint64_t chainId;
 
-   evm_address contract_destination(const evm_message &message,
-                                    KVBStorage &kvbStorage);
    evm_result execute(evm_message &message,
                       KVBStorage &kvbStorage,
                       const std::vector<uint8_t> &code);

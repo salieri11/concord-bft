@@ -157,7 +157,7 @@ Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
       kvbStorage.set_balance(it->first, it->second);
       nonce++;
    }
-   kvbStorage.set_nonce(zero_address, nonce-1);
+   kvbStorage.set_nonce(zero_address, nonce);
 
    return kvbStorage.write_block();
 }
