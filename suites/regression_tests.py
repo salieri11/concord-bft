@@ -95,7 +95,8 @@ class RegressionTests(test_suite.TestSuite):
 
    def _getTests(self):
       return [("nested_contract_creation", self._test_nested_contract_creation), \
-              ("invalid_addresses", self._test_invalid_addresses)]
+              ("invalid_addresses", self._test_invalid_addresses), \
+              ("call_writer", self._test_call_writer)]
 
    def _runRpcTest(self, testName, testFun, testLogDir):
       ''' Runs one test. '''
@@ -201,6 +202,62 @@ class RegressionTests(test_suite.TestSuite):
             return (True, None)
 
          return (False, "No transaction hash was returned")
+
+      else:
+         #Skip the test if running in Ethereum mode
+         return (None, None)
+
+   def _test_call_writer(self, rpc):
+      '''
+      Submit an eth_call to a contract that modifies storage. Athena
+      should properly catch the exception, and stay up to handle
+      requests afterward. In ATH-53, it was found that Athena would
+      exit in this case.
+      '''
+      if self._productMode:
+         from_addr = "0x61c5e2a298f40dbb2adee3b27c584adad6833bac"
+
+         # This creates a contract that just writes the length of the
+         # input data to storage when called.
+         data = "600480600c6000396000f30036600055"
+         gas = 0x47e7c4
+         txHash = rpc.sendTransaction(from_addr, data, gas)
+         if txHash:
+            txReceipt = rpc.getTransactionReceipt(txHash)
+            if (txReceipt['status'] == '0x1' and txReceipt['contractAddress']):
+               try:
+                  callData = "0x01"
+                  callResult = rpc.callContract(txReceipt['contractAddress'],
+                                                callData)
+                  # this call should actually fail, because the
+                  # contract tried to write data
+                  return (False, "Contract call was allowed to write data")
+               except:
+                  pass
+
+               # Before ATH-53, the above call would crash Athena, so
+               # we now send a transaction to see if Athena is still up
+
+               sendData = "0x0102"
+               sendHash = rpc.sendTransaction(from_addr,
+                                              sendData,
+                                              to=txReceipt['contractAddress'])
+               if sendHash:
+                  sendReceipt = rpc.getTransactionReceipt(sendHash)
+                  if sendReceipt['status'] == '0x1':
+                     value = rpc.getStorageAt(txReceipt['contractAddress'], "0x00")
+                     # "2" == length of sendData
+                     if (value == "0x0000000000000000000000000000000000000000000000000000000000000002"):
+                        return (True, None)
+                     else:
+                        return (False, "Contract did not store correct data")
+                  else:
+                     return (False, "Contract send transaction failed")
+               else:
+                  return (False, "Contract send transaction failed")
+            else:
+               return (False, "Contract creation failed")
+         return (False, "Contract transaction hash not received")
 
       else:
          #Skip the test if running in Ethereum mode
