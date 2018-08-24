@@ -157,12 +157,22 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
          throw new EthRPCHandlerException("Invalid raw transaction (to address too short)");
       }
 
-      if (r.size() != 32) {
-         throw new EthRPCHandlerException("Invalid raw transaction (signature R too short)");
+      if (r.size() > 32) {
+         throw new EthRPCHandlerException(
+            "Invalid raw transaction (signature R too large)");
+      } else if (r.size() < 32) {
+         // pad out to 32 bytes to make things easy for Athena
+         byte[] leadingZeros = new byte[32-r.size()];
+         r = ByteString.copyFrom(leadingZeros).concat(r);
       }
 
-      if (s.size() != 32) {
-         throw new EthRPCHandlerException("Invalid raw transaction (signature S too short)");
+      if (s.size() > 32) {
+         throw new EthRPCHandlerException(
+            "Invalid raw transaction (signature S too large)");
+      } else if (s.size() < 32) {
+         // pad out to 32 bytes to make things easy for Athena
+         byte[] leadingZeros = new byte[32-s.size()];
+         s = ByteString.copyFrom(leadingZeros).concat(s);
       }
 
       b.setNonce(nonce);
