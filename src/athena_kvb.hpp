@@ -105,6 +105,7 @@ private:
                                    TransactionResponse* response) const;
 
    void recover_from(const EthRequest &request, evm_address *sender) const;
+   uint64_t choose_timestamp(uint64_t timestamp, KVBStorage &kvbStorage) const;
 
    evm_result run_evm(
       const EthRequest &request,
@@ -116,6 +117,7 @@ private:
       const EthRequest &request,
       const uint64_t nonce,
       const evm_result &result,
+      const uint64_t timestamp,
       KVBStorage &kvbStorage) const;
 };
 

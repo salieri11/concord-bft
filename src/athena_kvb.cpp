@@ -455,6 +455,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_request(
       response->set_number(block.number);
       response->set_hash(block.hash.bytes, sizeof(evm_uint256be));
       response->set_parent_hash(block.parent_hash.bytes, sizeof(evm_uint256be));
+      response->set_timestamp(block.timestamp);
 
       // TODO: We're not mining, so nonce is mostly irrelevant. Maybe there will
       // be something relevant from KVBlockchain to put in here?
@@ -761,6 +762,24 @@ void com::vmware::athena::KVBCommandsHandler::recover_from(
 }
 
 /**
+ * Enforce the rule that each block timestamp must be greater than or equal to
+ * its parent block's timestamp.
+ */
+uint64_t com::vmware::athena::KVBCommandsHandler::choose_timestamp(
+   uint64_t proposal,
+   KVBStorage &kvbStorage) const
+{
+   uint64_t parentBlockNumber = kvbStorage.current_block_number();
+   EthBlock parent = kvbStorage.get_block(parentBlockNumber);
+
+   if (parent.timestamp > proposal) {
+      return parent.timestamp;
+   } else {
+      return proposal;
+   }
+}
+
+/**
  * Pass a transaction or call to the EVM for execution.
  */
 evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
@@ -844,6 +863,10 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
       }
    }
 
+   uint64_t timestamp =
+      choose_timestamp(request.has_timestamp() ? request.timestamp() : 0,
+                       kvbStorage);
+
    if (request.has_addr_to()) {
       message.kind = EVM_CALL;
 
@@ -851,7 +874,7 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
       assert(20 == request.addr_to().length());
       memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
 
-      result = athevm_.run(message, kvbStorage);
+      result = athevm_.run(message, timestamp, kvbStorage);
    } else {
       message.kind = EVM_CREATE;
 
@@ -860,7 +883,7 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
       evm_address contract_address =
          athevm_.contract_destination(message.sender, nonce);
 
-      result = athevm_.create(contract_address, message, kvbStorage);
+      result = athevm_.create(contract_address, message, timestamp, kvbStorage);
    }
 
    LOG4CPLUS_INFO(logger, "Execution result -" <<
@@ -876,7 +899,8 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
 
    if (!kvbStorage.is_read_only()) {
       // If this is a transaction, and not just a call, record it.
-      txhash = record_transaction(message, request, nonce, result, kvbStorage);
+      txhash = record_transaction(
+         message, request, nonce, result, timestamp, kvbStorage);
    }
 
    return result;
@@ -891,6 +915,7 @@ evm_uint256be com::vmware::athena::KVBCommandsHandler::record_transaction(
    const EthRequest &request,
    const uint64_t nonce,
    const evm_result &result,
+   const uint64_t timestamp,
    KVBStorage &kvbStorage) const
 {
    // "to" is empty if this was a create
@@ -943,7 +968,7 @@ evm_uint256be com::vmware::athena::KVBCommandsHandler::record_transaction(
    LOG4CPLUS_DEBUG(logger, "Recording transaction " << txhash);
 
    assert(message.depth == 0);
-   kvbStorage.write_block();
+   kvbStorage.write_block(timestamp);
 
    return txhash;
 }

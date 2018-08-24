@@ -13,7 +13,7 @@ const evm_address zero_address{{0}};
 const evm_uint256be zero_hash{{0}};
 
 const int64_t tx_storage_version = 1;
-const int64_t blk_storage_version = 1;
+const int64_t blk_storage_version = 2;
 
 namespace com {
 namespace vmware {
@@ -43,6 +43,7 @@ typedef struct EthTransaction {
 
 typedef struct EthBlock {
    uint64_t number;
+   uint64_t timestamp;
    evm_uint256be hash;
    evm_uint256be parent_hash;
    std::vector<evm_uint256be> transactions;

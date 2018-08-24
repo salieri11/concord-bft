@@ -69,6 +69,11 @@ com::vmware::athena::EVMInitParams::EVMInitParams(
    }
    LOG4CPLUS_INFO(logger, initial_accounts.size() <<
                   " initial accounts added.");
+
+   if (genesis_block.find("timestamp") != genesis_block.end()) {
+      std::string time_str = genesis_block["timestamp"];
+      timestamp = parse_timestamp(time_str);
+   }
 }
 
 /**
@@ -91,7 +96,33 @@ json com::vmware::athena::EVMInitParams::parse_genesis_block(
    return genesis_block;
 }
 
+uint64_t com::vmware::athena::EVMInitParams::parse_timestamp(
+   std::string time_str)
+{
+   // Time values can have odd nibble counts - pad & retry
+   if (time_str.size() % 2 != 0) {
+      std::string even_time_str = "0";
+      if (time_str.size() >= 2 && time_str[0] == '0' && time_str[1] == 'x') {
+         even_time_str += time_str.substr(2);
+      } else {
+         even_time_str += time_str;
+      }
+      return parse_timestamp(even_time_str);
+   }
 
+   std::vector<uint8_t> time_v = dehex(time_str);
+
+   if (time_v.size() > sizeof(uint64_t)) {
+      throw EVMInitParamException("Timestamp value is too large");
+   }
+
+   uint64_t time = 0;
+   for (auto b = time_v.begin(); b != time_v.end(); b++) {
+      time <<= 8;
+      time |= *b;
+   }
+   return time;
+}
 
 const std::map<evm_address, uint64_t>&
 com::vmware::athena::EVMInitParams::get_initial_accounts() const {
@@ -100,4 +131,8 @@ com::vmware::athena::EVMInitParams::get_initial_accounts() const {
 
 uint64_t com::vmware::athena::EVMInitParams::get_chainID() const {
       return chainID;
+}
+
+uint64_t com::vmware::athena::EVMInitParams::get_timestamp() const {
+   return timestamp;
 }
