@@ -870,8 +870,11 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
    if (request.has_addr_to()) {
       message.kind = EVM_CALL;
 
-      // TODO: test & return error if needed
-      assert(20 == request.addr_to().length());
+      if (request.addr_to().length() != sizeof(message.destination)) {
+         result.status_code = EVM_REJECTED;
+         txhash = zero_hash;
+         return result;
+      }
       memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
 
       result = athevm_.run(message, timestamp, kvbStorage);

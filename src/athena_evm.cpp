@@ -80,7 +80,20 @@ evm_result com::vmware::athena::EVM::run(evm_message &message,
       LOG4CPLUS_DEBUG(logger, "Loaded code from " << message.destination);
       message.code_hash = hash;
 
-      result = execute(message, timestamp, kvbStorage, code);
+      try {
+         result = execute(message, timestamp, kvbStorage, code);
+      } catch (ReadOnlyModeException rome) {
+         LOG4CPLUS_DEBUG(logger,
+                         "Non-pure contract function called "
+                         "with read-only storage. Contract: "
+                         << message.destination);
+         result.status_code = EVM_FAILURE;
+      } catch (EVMException e) {
+         LOG4CPLUS_ERROR(logger,
+                         "EVM execution exception: '" << e.what() << "'. "
+                         << "Contract: " << message.destination);
+         result.status_code = EVM_FAILURE;
+      }
    } else if (message.input_size == 0) {
       LOG4CPLUS_DEBUG(logger, "No code found at " << message.destination);
       memset(&result, 0, sizeof(result));
@@ -109,12 +122,6 @@ evm_result com::vmware::athena::EVM::run(evm_message &message,
                               sender_balance << ").");
             }
 
-            // Don't allow if destination account does not exist.
-            else if (!kvbStorage.account_exists(message.destination)) {
-               result.status_code = EVM_FAILURE;
-               LOG4CPLUS_INFO(logger, "Destination account with address "
-                              << message.destination << " does not exist.");
-            }
             else {
                kvbStorage.set_balance(message.destination,
                                       destination_balance += transfer_val);
