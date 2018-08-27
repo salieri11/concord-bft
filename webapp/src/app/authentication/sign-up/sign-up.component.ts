@@ -5,6 +5,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { TranslateService } from '@ngx-translate/core';
 
 import { AuthenticationService } from '../../shared/authentication.service';
 import { Personas } from '../../shared/persona.service';
@@ -16,6 +17,7 @@ import { UsersService } from '../../users/shared/users.service';
   styleUrls: ['./sign-up.component.scss']
 })
 export class SignUpComponent implements OnInit {
+  errorMessage: string;
   signupForm: FormGroup;
   countryList: Array<string>;
 
@@ -24,6 +26,7 @@ export class SignUpComponent implements OnInit {
     private router: Router,
     private authenticationService: AuthenticationService,
     private usersService: UsersService,
+    private translateService: TranslateService
   ) {
 
     this.signupForm = this.formBuilder.group({
@@ -45,6 +48,7 @@ export class SignUpComponent implements OnInit {
   ngOnInit() { }
 
   signUp() {
+    this.errorMessage = null;
     this.usersService.createUser({
       name: `${this.signupForm.value.firstName} ${this.signupForm.value.lastName}`,
       email: this.signupForm.value.email,
@@ -55,10 +59,13 @@ export class SignUpComponent implements OnInit {
         last_name: this.signupForm.value.lastName,
       }
     }).subscribe(() => {
-      this.authenticationService.logIn(this.signupForm.value.email, this.signupForm.value.password).subscribe(() => {
-        this.authenticationService.onLogIn(this.signupForm.value.email, this.signupForm.value.password, Personas.SystemsAdmin);
+      this.authenticationService.logIn(this.signupForm.value.email, this.signupForm.value.password, Personas.SystemsAdmin).subscribe(() => {
         this.router.navigate(['auth', 'onboarding']);
       });
+    }, (error) => {
+      if (error.error.error === 'Duplicate email address') {
+        this.errorMessage = this.translateService.instant('signUp.duplicateEmailError');
+      }
     });
   }
 

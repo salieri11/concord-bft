@@ -20,6 +20,20 @@
           <h4>{{ 'signUp.callToAction' | translate }}</h4>
         </div>
       </div>
+      <div class="row flex-items-xs-center mt-1" *ngIf="errorMessage">
+        <div class="col-xl-8 col-lg-12">
+          <clr-alert [clrAlertClosable]="false" [clrAlertType]="'danger'">
+            <div clr-alert-item class="alert-item">
+                  <span class="alert-text">
+                      {{errorMessage}}
+                  </span>
+              <div class="alert-actions">
+                <a [routerLink]="['/auth', 'login']">{{ 'nav.login' | translate }}</a>
+              </div>
+            </div>
+          </clr-alert>
+        </div>
+      </div>
       <form id="signupForm" [formGroup]="signupForm" (ngSubmit)="signUp()">
         <section class="form-block">
           <div class="row flex-items-xs-center call-outs">
@@ -45,14 +59,13 @@
                   <input type="text" id="email" formControlName="email">
                   <span class="tooltip-content">
                      {{ 'signUp.form.emailValMsg' | translate }}
-
                   </span>
                 </label>
               </div>
             </div>
             <div class="col-xl-4 col-lg-6 col-md-12">
               <div class="form-group">
-                <label for="password">Password</label>
+                <label for="password">{{ 'signUp.form.password' | translate }}</label>
                 <div class="clr-control-container" [ngClass]="{'clr-error': signupForm.get('password').hasError('minlength')}">
                   <div class="clr-input-wrapper">
                     <input type="password" id="password" formControlName="password">

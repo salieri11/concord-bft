@@ -12,7 +12,6 @@ import { MockSharedModule } from '../../shared/shared.module';
 import { MockTranslateModule } from '../../mocks/mock-translate.module';
 import { LogInContainerComponent } from './log-in-container.component';
 import { PersonaService } from '../../shared/persona.service';
-import { ErrorAlertService } from '../../shared/global-error-handler.service';
 
 describe('LogInContainerComponent', () => {
   let component: LogInContainerComponent;
@@ -27,7 +26,7 @@ describe('LogInContainerComponent', () => {
         MockSharedModule,
         HttpClientTestingModule
       ],
-      providers: [ErrorAlertService, AuthenticationService, PersonaService],
+      providers: [AuthenticationService, PersonaService],
       declarations: [ LogInContainerComponent ]
     })
     .compileComponents();

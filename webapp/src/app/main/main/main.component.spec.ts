@@ -16,6 +16,7 @@ import { VmwTaskPanelComponent } from '../../shared/components/task-panel/task-p
 import { VmwTaskComponent } from '../../shared/components/task-panel/task.component';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { TourService } from '../../shared/tour.service';
+import { Personas } from '../../shared/persona.service';
 
 describe('MainComponent', () => {
   let component: MainComponent;
@@ -56,7 +57,7 @@ describe('MainComponent', () => {
 
   describe('when authenticated', () => {
     beforeEach(() => {
-      (TestBed.get(AuthenticationService) as AuthenticationService).logIn('test@vmware.com', 'asdfasdf');
+      (TestBed.get(AuthenticationService) as AuthenticationService).logIn('test@vmware.com', 'asdfasdf', Personas.SystemsAdmin);
     });
     afterEach(() => {
       (TestBed.get(AuthenticationService) as AuthenticationService).logOut();

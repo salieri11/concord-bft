@@ -5,6 +5,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 import { Personas, PersonaService } from './persona.service';
 import { User } from '../users/shared/user.model';
@@ -27,7 +28,7 @@ export class AuthenticationService {
     return localStorage['helen.email'] !== undefined;
   }
 
-  onLogIn(email: string, password: string, persona: Personas) {
+  handleLogIn(email: string, password: string, persona: Personas) {
     password = '';
     localStorage.setItem('helen.email', email);
     localStorage.setItem('helen.password', password);
@@ -38,9 +39,14 @@ export class AuthenticationService {
     });
   }
 
-  logIn(email: string, password: string) {
+  logIn(email: string, password: string, persona: Personas) {
     const url = 'api/login';
-    return this.http.post<{email: string, password: string}>(url, {email: email, password: password});
+    return this.http.post<{email: string, password: string}>(url, {email: email, password: password}).pipe(
+      map(() => {
+        console.log('mapping function happening');
+        this.handleLogIn(email, password, persona);
+      })
+    );
   }
 
   logOut() {

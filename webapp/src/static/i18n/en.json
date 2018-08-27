@@ -93,7 +93,8 @@
     "welcome": "Welcome to",
     "username": "Username",
     "password": "Password",
-    "next": "Next"
+    "next": "Next",
+    "errorMessage": "Invalid user name or password"
   },
   "grid": {
     "search": {
@@ -124,10 +125,12 @@
   "signUp": {
     "description": "VMware Athena delivers the industries most advanced blockchain with the SBFT protocol.",
     "callToAction": "Complete your information to get started.",
+    "duplicateEmailError": "This email has already been used, please login.",
     "form": {
       "firstName": "First Name",
       "lastName": "Last Name",
       "email": "Email",
+      "password": "Password",
       "emailValMsg": "Please enter a valid email address",
       "company": "Company",
       "jobTitle": "Job Title (Optional)",
