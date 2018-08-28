@@ -13,23 +13,27 @@ package Servlets;
 
 import java.io.IOException;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.google.protobuf.ByteString;
 import com.vmware.athena.Athena;
 
-import io.undertow.util.StatusCodes;
-
 /**
  * Servlet class.
  */
+@Controller
 public final class Transaction extends BaseServlet {
    private static final long serialVersionUID = 1L;
-   private static final Logger logger = Logger.getLogger(Transaction.class);
+   private static final Logger logger = LogManager.getLogger(Transaction.class);
 
    protected static JSONObject
              buildTransactionResponseJSON(Athena.TransactionResponse tr) {
@@ -75,33 +79,26 @@ public final class Transaction extends BaseServlet {
     *           The response object used to respond to the client
     * @throws IOException
     */
-   @Override
-   protected void doGet(final HttpServletRequest request,
-                        final HttpServletResponse response) throws IOException {
-
-      // Read the requested transaction hash from the uri
-      String uri = request.getRequestURI();
-
-      // Allow trailing /
-      if (uri.charAt(uri.length() - 1) == '/') {
-         uri = uri.substring(0, uri.length() - 1);
-      }
-
-      String hash = uri.substring(uri.lastIndexOf('/') + 1);
-
-      ByteString hashBytes;
+   @RequestMapping(path = "/api/athena/transactions/{hash}",
+                   method = RequestMethod.GET)
+   protected ResponseEntity<JSONAware>
+             doGet(@PathVariable(value = "hash", required = true) String hash) {
+      ResponseEntity<JSONAware> responseEntity;
+      ByteString hashBytes = null;
       try {
          hashBytes = APIHelper.hexStringToBinary(hash);
       } catch (Exception e) {
          logger.error("Invalid Hash");
-         processResponse(response, "error", StatusCodes.BAD_REQUEST, logger);
-         return;
+         return new ResponseEntity<>(new JSONObject(),
+                                     standardHeaders,
+                                     HttpStatus.BAD_REQUEST);
       }
 
       if (hashBytes == null) {
          logger.error("Invalid hash in request");
-         processResponse(response, "error", StatusCodes.BAD_REQUEST, logger);
-         return;
+         return new ResponseEntity<>(new JSONObject(),
+                                     standardHeaders,
+                                     HttpStatus.BAD_REQUEST);
       }
 
       // Construct a transaction request object.
@@ -114,7 +111,7 @@ public final class Transaction extends BaseServlet {
                                .setTransactionRequest(txRequestObj)
                                .build();
 
-      processGet(athenarequestObj, response, logger);
+      return sendToAthenaAndBuildHelenResponse(athenarequestObj);
    }
 
    /**

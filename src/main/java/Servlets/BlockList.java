@@ -10,67 +10,57 @@
  */
 package Servlets;
 
-import com.vmware.athena.*;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import org.json.simple.JSONAware;
+import org.json.simple.JSONObject;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import com.vmware.athena.Athena;
 
 /**
  * Servlet class.
  */
-public final class BlockList extends BaseServlet {
+@Controller
+public class BlockList extends BaseServlet {
    private static final long serialVersionUID = 1L;
-   private final static Logger logger = Logger.getLogger(BlockList.class);
-
+   private Logger logger = LogManager.getLogger(BlockList.class);
+   
    /**
     * Services a get request. Constructs a protobuf request of type blocklist
     * request (enveloped in an athena request) as defined in athena.proto. Sends
     * this request to Athena. Parses the response and converts it into json for
     * responding to the client.
     *
-    * @param request
-    *           The request received by the servlet
-    * @param response
-    *           The response object used to respond to the client
-    * @throws IOException
+    * @param latest
+    *           The block from which to start the list
+    * @param count
+    *           Number of blocks expected
     */
-   @Override
-   protected void doGet(final HttpServletRequest request,
-                        final HttpServletResponse response) throws IOException {
-
-      // Read the request params
-      Long latest = null;
-      Long count = null;
-
-      try {
-         latest = Long.parseLong(request.getParameter("latest"));
-      } catch (Exception e) {
-         // Do nothing as this parameter is optional
-      }
-
-      try {
-         count = Long.parseLong(request.getParameter("count"));
-      } catch (Exception e) {
-         // Do nothing as this parameter is optional
-      }
-
+   // ** - tells spring to match anything in path
+   @RequestMapping(method = RequestMethod.GET, path = "/api/athena/blocks")
+   public ResponseEntity<JSONAware>
+          getBlockList(@RequestParam(name = "latest", defaultValue = "-1",
+                                     required = false) long latest,
+                       @RequestParam(name = "count", required = false,
+                                     defaultValue = "-1") long count) {
       // Construct a blocksListRequest object.
       Athena.BlockListRequest.Builder b = Athena.BlockListRequest.newBuilder();
       // If end is null, Athena assumes end is the latest block
-      if (latest != null) {
+      if (latest != -1) {
          b.setLatest(latest);
       }
 
       // If listLength is null, request for default no. of blocks
-      if (count == null) {
+      if (count == -1) {
          count = _conf.getLongValue("BlockList_DefaultCount");
       }
       b.setCount(count);
@@ -83,7 +73,7 @@ public final class BlockList extends BaseServlet {
                                .setBlockListRequest(blocksListRequestObj)
                                .build();
 
-      processGet(athenarequestObj, response, logger);
+      return sendToAthenaAndBuildHelenResponse(athenarequestObj);
    }
 
    /**

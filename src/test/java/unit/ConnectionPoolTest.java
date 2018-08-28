@@ -2,17 +2,17 @@ package unit;
 
 import java.io.IOException;
 
-import org.apache.log4j.Logger;
-
 import base.BaseTest;
 import connections.AthenaConnectionFactory;
 import connections.AthenaConnectionFactory.ConnectionType;
 import connections.AthenaConnectionPool;
 import connections.IAthenaConnection;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class ConnectionPoolTest extends BaseTest {
    private AthenaConnectionPool _pool;
-   private static Logger _log = Logger.getLogger(ConnectionPoolTest.class);
+   private static Logger _log = LogManager.getLogger(ConnectionPoolTest.class);
 
    public ConnectionPoolTest() throws IOException {
       super(ConnectionPoolTest.class);

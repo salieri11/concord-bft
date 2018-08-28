@@ -19,7 +19,6 @@ RUN apt-get update && apt-get -y install \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /
-COPY priv priv
 COPY application.properties .
 COPY target/helen*.jar .
 

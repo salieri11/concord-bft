@@ -41,17 +41,12 @@ Following command creates a new cockroach db  user named `helen_admin`
 cockroach user set helen_admin --insecure
 ```
 
-# Create a helen database
 
+## Run database setup script
 ```
-cockroach sql --insecure -e 'CREATE DATABASE helen'
+cockroach sql --insecure < src/main/resources/database/schema.sql
 ```
 
-# Allow helen_admin all access to helen database
-
-```
-cockroach sql --insecure -e 'GRANT ALL ON DATABASE helen TO helen_admin'
-```
 
 # Verify if setup is properly done
 Connect to that cluster with following command and run normal SQL queries to
