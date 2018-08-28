@@ -429,7 +429,7 @@ api_connection::handle_eth_request(int i)
          // Transactions create blocks, which need timestamps
          if (request.method() == EthRequest_EthMethod_SEND_TX) {
             time_t currentTime = std::time(nullptr);
-            internalEthRequest->set_timestamp(currentTime);
+            internalEthRequest->set_proposed_timestamp(currentTime);
          }
 
          AthenaResponse internalResponse;

@@ -10,7 +10,8 @@ message Block {
    optional bytes hash = 3;             // 32 bytes
    optional bytes parent_hash = 4;      // 32 bytes
    repeated bytes transaction = 5;      // 32 bytes
-   optional int64 timestamp = 6;
+   optional int64 proposed_timestamp = 6;
+   optional int64 accepted_timestamp = 7;
 }
 
 message Transaction {

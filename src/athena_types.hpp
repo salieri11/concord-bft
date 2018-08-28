@@ -43,7 +43,8 @@ typedef struct EthTransaction {
 
 typedef struct EthBlock {
    uint64_t number;
-   uint64_t timestamp;
+   uint64_t proposed_timestamp;
+   uint64_t accepted_timestamp;
    evm_uint256be hash;
    evm_uint256be parent_hash;
    std::vector<evm_uint256be> transactions;

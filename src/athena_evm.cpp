@@ -312,7 +312,7 @@ bool com::vmware::athena::EVM::new_account(
       kvbStorage.set_nonce(zero_address, nonce+1);
       //TODO: use parent block timestamp, not zero here
       //      (but really this whole thing should move to helen HEL-80)
-      kvbStorage.write_block(0);
+      kvbStorage.write_block(0, 0);
       return true;
    }
 }
@@ -517,9 +517,9 @@ extern "C" {
       LOG4CPLUS_INFO(*(ath_context(evmctx)->logger),
                      "EVM::get_tx_context called");
 
-      // TODO: Actually get the transaction context. For now, set to known
-      // value. What is the "transaction context" anyway?
       memset(result, 0, sizeof(*result));
+
+      // TODO: fill in the rest of the context for the currently-executing block
 
       result->block_timestamp = ath_context(evmctx)->timestamp;
    }
