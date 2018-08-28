@@ -133,6 +133,21 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_sendTransaction(
 {
    const EthRequest request = athreq.eth_request(0);
 
+   if (request.has_proposed_timestamp()) {
+      time_t cutoff =
+         std::time(nullptr) + config["timestamp_leeway_sec"].as<int>();
+
+      if (request.proposed_timestamp() > cutoff) {
+         LOG4CPLUS_INFO(logger, "Rejecting far-future timestamp: "
+                        << request.proposed_timestamp() << " > " << cutoff);
+         // We actually return false here, because we consider the choice of
+         // time invalid. There's no error we could return to a client - the
+         // choice of time was made by another Athena node. A large difference
+         // in time may indicate malicious activity.
+         return false;
+      }
+   }
+
    evm_uint256be txhash;
    evm_result &&result = run_evm(request, kvbStorage, txhash);
 
