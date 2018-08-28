@@ -87,7 +87,7 @@ message EthRequest {
    optional int64 sig_v = 12;
    optional bytes sig_r = 13;
    optional bytes sig_s = 14;
-   optional int64 timestamp = 15; // Internal only!
+   optional int64 proposed_timestamp = 15; // Internal only!
 }
 
 
@@ -185,7 +185,8 @@ message BlockResponse {
    optional bytes nonce = 4;
    optional int64 size = 5;
    repeated TransactionResponse transaction = 6;
-   optional int64 timestamp = 7;
+   optional int64 proposed_timestamp = 7;
+   optional int64 accepted_timestamp = 8;
 }
 
 message TransactionResponse {

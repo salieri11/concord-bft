@@ -123,8 +123,14 @@ public class BlockNumber extends BaseServlet {
                    APIHelper.binaryStringToHex(blockResponse.getNonce()));
       blockObj.put("size", blockResponse.getSize());
 
-      if (blockResponse.hasTimestamp()) {
-          blockObj.put("timestamp", blockResponse.getTimestamp());
+      if (blockResponse.hasAcceptedTimestamp()) {
+          blockObj.put("accepted_timestamp",
+                       blockResponse.getAcceptedTimestamp());
+      }
+
+      if (blockResponse.hasProposedTimestamp()) {
+          blockObj.put("proposed_timestamp",
+                       blockResponse.getProposedTimestamp());
       }
 
       return blockObj;
