@@ -159,6 +159,14 @@
                     "size": {
                       "type": "integer"
                     },
+                    "proposed_timestamp": {
+                      "type": "integer",
+                      "description": "The proposing node's local system time."
+                    },
+                    "accepted_timestamp": {
+                      "type": "integer",
+                      "description": "The agreed time of the block's commit. (Greater than or equal to proposed_timestamp.)"
+                    },
                     "transactions": {
                       "type": "array",
                       "items": {
