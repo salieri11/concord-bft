@@ -1,23 +1,27 @@
 package Servlets;
 
 import java.io.IOException;
-import java.util.Map;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 
-import com.google.protobuf.ByteString;
 import com.vmware.athena.Athena;
 
+@Controller
 public class TransactionList extends BaseServlet {
 
    private static final long serialVersionUID = 1L;
-   private final static Logger logger = Logger.getLogger(TransactionList.class);
+   private final static Logger logger
+      = LogManager.getLogger(TransactionList.class);
    private final String transactionListEndpoint
       = _conf.getStringValue("TransactionList_Endpoint");
 
@@ -33,27 +37,24 @@ public class TransactionList extends BaseServlet {
     *           The response object used to respond to the client
     * @throws IOException
     */
-   @Override
-   protected void doGet(final HttpServletRequest request,
-                        final HttpServletResponse response) throws IOException {
-      Map<String, String[]> paramMap = request.getParameterMap();
-      ByteString latest = null;
-      long count = _conf.getLongValue("TransactionList_DefaultCount");
+   @RequestMapping(path = "/api/athena/transactions",
+                   method = RequestMethod.GET)
+   public ResponseEntity<JSONAware>
+          doGet(@RequestParam(name = "latest", defaultValue = "",
+                              required = false) String latestHash,
+                @RequestParam(name = "count", required = false,
+                              defaultValue = "-1") long count) {
+      if (count == -1) {
+         count = _conf.getLongValue("TransactionList_DefaultCount");
+      }
       Athena.AthenaRequest athenaRequest;
 
       try {
          Athena.TransactionListRequest.Builder txListReqBuilder
             = Athena.TransactionListRequest.newBuilder();
 
-         if (paramMap.containsKey("latest")) {
-            latest = APIHelper.hexStringToBinary(paramMap.get("latest")[0]);
-            txListReqBuilder.setLatest(latest);
-         }
-
-         if (paramMap.containsKey("count")) {
-            if (paramMap.get("count")[0].chars().allMatch(Character::isDigit)) {
-               count = Long.parseLong(paramMap.get("count")[0]);
-            }
+         if (!latestHash.isEmpty()) {
+            txListReqBuilder.setLatest(APIHelper.hexStringToBinary(latestHash));
          }
          txListReqBuilder.setCount(count);
          logger.info("requested count: " + count);
@@ -63,13 +64,13 @@ public class TransactionList extends BaseServlet {
                                   .setTransactionListRequest(txListReqBuilder.build())
                                   .build();
 
-         processGet(athenaRequest, response, logger);
+         return sendToAthenaAndBuildHelenResponse(athenaRequest);
+
       } catch (Exception e) {
          logger.warn("Exception in transaction list", e);
-         processResponse(response,
-                         APIHelper.errorJSON(e.getMessage()).toJSONString(),
-                         HttpServletResponse.SC_BAD_REQUEST,
-                         logger);
+         return new ResponseEntity<>(APIHelper.errorJSON(e.getMessage()),
+                                     standardHeaders,
+                                     HttpStatus.BAD_REQUEST);
       }
    }
 

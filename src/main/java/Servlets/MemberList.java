@@ -11,24 +11,29 @@
  */
 package Servlets;
 
-import com.vmware.athena.*;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.apache.log4j.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import org.json.simple.JSONAware;
+import org.json.simple.JSONObject;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+
+import com.vmware.athena.Athena;
 
 /**
  * Servlet class.
  */
+@Controller
 public final class MemberList extends BaseServlet {
    private static final long serialVersionUID = 1L;
-   private static final Logger logger = Logger.getLogger(MemberList.class);
+   private static final Logger logger = LogManager.getLogger(MemberList.class);
 
    /**
     * Services a get request. Constructs a protobuf request of type peer request
@@ -42,9 +47,8 @@ public final class MemberList extends BaseServlet {
     *           The response object used to respond to the client
     * @throws IOException
     */
-   @Override
-   protected void doGet(final HttpServletRequest request,
-                        final HttpServletResponse response) throws IOException {
+   @RequestMapping(method = RequestMethod.GET, path = "/api/athena/members")
+   public ResponseEntity<JSONAware> doGet() {
       // Construct a peer request object. Set its return_peers field.
       final Athena.PeerRequest peerRequestObj
          = Athena.PeerRequest.newBuilder().setReturnPeers(true).build();
@@ -55,7 +59,7 @@ public final class MemberList extends BaseServlet {
                                .setPeerRequest(peerRequestObj)
                                .build();
 
-      processGet(athenarequestObj, response, logger);
+      return sendToAthenaAndBuildHelenResponse(athenarequestObj);
    }
 
    /**

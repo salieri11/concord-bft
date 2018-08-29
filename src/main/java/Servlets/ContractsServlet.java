@@ -2,29 +2,33 @@ package Servlets;
 
 import static Servlets.APIHelper.errorJSON;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Random;
-import java.util.stream.Collectors;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import javax.annotation.PostConstruct;
 
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.vmware.athena.Athena;
 
-import contracts.*;
-import contracts.Compiler;
+import services.contracts.*;
+import services.contracts.Compiler;
 
 /**
  * <p>
@@ -34,18 +38,25 @@ import contracts.Compiler;
  * A servlet which handles all contract management queries sent to
  * `api/athena/contracts/*` URI.
  */
+@Controller
 public class ContractsServlet extends BaseServlet {
 
    private static final long serialVersionUID = 1L;
    private final static Logger logger
-      = Logger.getLogger(ContractsServlet.class);
+      = LogManager.getLogger(ContractsServlet.class);
    private final String jsonRpc = _conf.getStringValue("JSONRPC");
    private final String contractEndpoint
       = _conf.getStringValue("Contracts_Endpoint");
    private ContractRegistryManager registryManager;
    private Random random = new Random();
 
-   public ContractsServlet() {
+   // TODO: Since, Database related things for contracts is still handled by
+   // old code it can't be autowired during setup of this Bean. Hence, we
+   // call this method once bean construction is complete (@PostConstruct)
+   // and do initialization. Once we start using JPA repositories for contracts
+   // we can remove this and let spring AutoWire ContractRegistryManager
+   @PostConstruct
+   public void init() {
       try {
          registryManager = ContractRegistryManager.getInstance();
       } catch (Exception e) {
@@ -100,10 +111,19 @@ public class ContractsServlet extends BaseServlet {
     *
     * @return the RESTResult object which contains response of this request.
     */
-   private RESTResult handleGetContracts() {
-      RESTResult result
-         = new RESTResult(HttpServletResponse.SC_OK, buildContractsJSON());
-      return result;
+   @RequestMapping(method = RequestMethod.GET, path = "/api/athena/contracts")
+   public ResponseEntity<JSONAware> handleGetContracts() {
+
+      // TODO: This check is not a proper way, find a better approach
+      if (registryManager == null) {
+         return new ResponseEntity<>(errorJSON("Service unavailable."),
+                                     standardHeaders,
+                                     HttpStatus.SERVICE_UNAVAILABLE);
+      }
+
+      return new ResponseEntity<>(buildContractsJSON(),
+                                  standardHeaders,
+                                  HttpStatus.OK);
    }
 
    /**
@@ -159,18 +179,26 @@ public class ContractsServlet extends BaseServlet {
     *
     * @return The RESTResult object containing result of this request
     */
-   private RESTResult handleGetContract(String contractId) {
-      RESTResult result;
-      if (registryManager.hasContract(contractId)) {
-         result
-            = new RESTResult(HttpServletResponse.SC_OK,
-                             buildContractJSON(registryManager.getAllBriefVersionInfo(contractId)));
-      } else {
-         result = new RESTResult(HttpServletResponse.SC_NOT_FOUND,
-                                 errorJSON("No contract found with id: "
-                                    + contractId));
+   @RequestMapping(method = RequestMethod.GET,
+                   path = "/api/athena/contracts/{contract_id}")
+   public ResponseEntity<JSONAware>
+          handleGetContract(@PathVariable("contract_id") String contractId) {
+
+      // TODO: This check is not a proper way, find a better approach
+      if (registryManager == null) {
+         return new ResponseEntity<>(errorJSON("Service unavailable."),
+                                     standardHeaders,
+                                     HttpStatus.SERVICE_UNAVAILABLE);
       }
-      return result;
+
+      if (registryManager.hasContract(contractId)) {
+         return new ResponseEntity<>(buildContractJSON(registryManager.getAllBriefVersionInfo(contractId)),
+                                     standardHeaders,
+                                     HttpStatus.OK);
+      } else {
+         return new ResponseEntity<>(errorJSON("No contract found with id: "
+            + contractId), standardHeaders, HttpStatus.NOT_FOUND);
+      }
    }
 
    /**
@@ -210,103 +238,31 @@ public class ContractsServlet extends BaseServlet {
     *           The value of `{version}` from URI
     * @return The RESTResult object containing result of this request
     */
-   private RESTResult handleGetVersion(String contractId,
-                                       String contractVersion) {
-      RESTResult result;
+   @RequestMapping(method = RequestMethod.GET,
+                   path = "/api/athena/contracts/{contract_id}/versions/{version_id}")
+   public ResponseEntity<JSONAware>
+          handleGetVersion(@PathVariable("contract_id") String contractId,
+                           @PathVariable("version_id") String contractVersion) {
+
+      // TODO: This check is not a proper way, find a better approach
+      if (registryManager == null) {
+         return new ResponseEntity<>(errorJSON("Service unavailable."),
+                                     standardHeaders,
+                                     HttpStatus.SERVICE_UNAVAILABLE);
+      }
+
       try {
          FullVersionInfo fvInfo
             = registryManager.getContractVersion(contractId, contractVersion);
-         result = new RESTResult(HttpServletResponse.SC_OK,
-                                 buildVersionJSON(fvInfo));
+         return new ResponseEntity<>(buildVersionJSON(fvInfo),
+                                     standardHeaders,
+                                     HttpStatus.OK);
       } catch (ContractRetrievalException e) {
-         result = new RESTResult(HttpServletResponse.SC_NOT_FOUND,
-                                 errorJSON("No contract found with id: "
-                                    + contractId + " and version: "
-                                    + contractVersion));
+         return new ResponseEntity<>(errorJSON("No contract found with id: "
+            + contractId + " and version: " + contractVersion),
+                                     standardHeaders,
+                                     HttpStatus.NOT_FOUND);
       }
-      return result;
-   }
-
-   /**
-    * ContractsServlet handles 4 types of URIs as of now, these are:
-    *
-    * GET `api/athena/contracts`
-    *
-    * GET `api/athena/contracts/{contract-id}`
-    *
-    * GET `api/athena/contracts/{contract-id}/versions/{version-id}`
-    *
-    * POST `api/athena/contracts`
-    *
-    * However, due to current architecture of helen we can not use undertow's
-    * RoutingHandler class to cleanly handle these REST requests to proper
-    * handlers, hence we have a single ContractsServlet for any request of URI
-    * type `api/athena/contracts/*` and then this dispatch method properly
-    * forwards it to correct method.
-    *
-    * @param request
-    * @param response
-    */
-   protected void dispatch(final HttpServletRequest request,
-                           final HttpServletResponse response) {
-      String uri = request.getRequestURI();
-      try {
-         uri = URLDecoder.decode(uri, StandardCharsets.UTF_8.name());
-      } catch (UnsupportedEncodingException e) {
-         logger.warn("URI decoding failed: ", e);
-      }
-      logger.debug("Decoded URI: " + uri);
-      RESTResult result;
-      // TODO: this nullcheck is fragile. We need to redesign this database
-      // service classes so that other servlets work even if database is
-      // unavailable
-      if (registryManager == null) {
-         result = new RESTResult(HttpServletResponse.SC_SERVICE_UNAVAILABLE,
-                                 errorJSON("Service unavailable."));
-      } else if (request.getMethod().equalsIgnoreCase("GET")) {
-         // If uri has trailing backslash remove it
-         if (uri.charAt(uri.length() - 1) == '/') {
-            uri = uri.substring(0, uri.length() - 1);
-         }
-         // remove contract endpoint common prefix
-         uri = uri.replace(contractEndpoint, "");
-         String tokens[] = uri.split("/");
-         if (tokens.length == 1) {
-            // GET `api/athena/contracts`
-            result = handleGetContracts();
-         } else if (tokens.length == 2) {
-            // GET `api/athena/contracts/{contract_id}`
-            result = handleGetContract(tokens[1]);
-         } else if (tokens.length == 4) {
-            // GET `api/athena/contracts/{contract-id}/versions/{version-id}`
-            result = handleGetVersion(tokens[1], tokens[3]);
-         } else {
-            result = new RESTResult(HttpServletResponse.SC_BAD_REQUEST,
-                                    errorJSON("Resource not found"));
-         }
-      } else {
-         result = new RESTResult(HttpServletResponse.SC_METHOD_NOT_ALLOWED,
-                                 errorJSON("Requested Method not allowed!"));
-      }
-      processResponse(response,
-                      result.getResultString(),
-                      result.responseStatus,
-                      logger);
-   }
-
-   /**
-    * Handles the GET request for `/api/athena/contracts/<name>` API. GET
-    * request returns the solidity code, bytecode and metadata information of
-    * that contract
-    *
-    * @param request
-    * @param response
-    * @throws IOException
-    */
-   @Override
-   protected void doGet(final HttpServletRequest request,
-                        final HttpServletResponse response) throws IOException {
-      dispatch(request, response);
    }
 
    /**
@@ -428,12 +384,15 @@ public class ContractsServlet extends BaseServlet {
          // requests we just build a JSON object representing an ethereum
          // request (as if it was received like a normal ethereum JSON RPC)
          // and forward it to EthDispatcher.
+
+         int requestID = random.nextInt(); // some request ID for JSON RPC
+
          JSONObject sendTxrequest
             = buildEthSendTxRequest(from,
-                                    random.nextInt(), // some request ID for
-                                                      // JSON RPC
+                                    requestID,
                                     result.getByteCodeMap().get(contractName));
-         String responseString = new EthDispatcher().dispatch(sendTxrequest);
+         String responseString
+            = new EthDispatcher().dispatch(sendTxrequest).toJSONString();
          logger.trace("Dispatcher response: " + responseString);
          JSONObject ethResponse
             = (JSONObject) new JSONParser().parse(responseString);
@@ -441,14 +400,14 @@ public class ContractsServlet extends BaseServlet {
          // Build response object for this particular deployment
          JSONObject deploymentResult = new JSONObject();
 
-
          if (ethResponse.containsKey("result")) {
             String transactionHash = (String) ethResponse.get("result");
             // Now call eth_getTransactionReceipt API to get the address
             // of deployed contract
             JSONObject txReceiptRequest
                = buildEthTxReceiptRequest(random.nextInt(), transactionHash);
-            String txReceipt = new EthDispatcher().dispatch(txReceiptRequest);
+            String txReceipt
+               = new EthDispatcher().dispatch(txReceiptRequest).toJSONString();
             logger.info("New contract deployed at: "
                + extractContractAddress(txReceipt));
 
@@ -507,14 +466,20 @@ public class ContractsServlet extends BaseServlet {
     *
     * @return The RESTResult object containing result of this request
     */
-   private RESTResult handlePost(final HttpServletRequest request,
-                                 final HttpServletResponse response) {
-      RESTResult restResult;
+   @RequestMapping(path = "/api/athena/contracts", method = RequestMethod.POST)
+   public ResponseEntity<JSONAware>
+          handlePost(@RequestBody String paramString) {
+
+      // TODO: This check is fragile, find a better approach
+      if (registryManager == null) {
+         return new ResponseEntity<>(errorJSON("Service unavailable."),
+                                     standardHeaders,
+                                     HttpStatus.SERVICE_UNAVAILABLE);
+      }
+
+      ResponseEntity<JSONAware> responseEntity;
+
       try {
-         String paramString
-            = request.getReader()
-                     .lines()
-                     .collect(Collectors.joining(System.lineSeparator()));
          logger.debug(paramString);
          JSONParser parser = new JSONParser();
          JSONObject requestObject = (JSONObject) parser.parse(paramString);
@@ -528,20 +493,20 @@ public class ContractsServlet extends BaseServlet {
          // Check if contract with same id already exists, if yes
          // then version number must be different
          if (registryManager.hasContractVersion(contractId, contractVersion)) {
-            restResult
-               = new RESTResult(HttpServletResponse.SC_CONFLICT,
-                                errorJSON("contract with same name and version "
-                                   + "already exists"));
+            responseEntity
+               = new ResponseEntity<>(errorJSON("contract with same name and version "
+                  + "already exists"), standardHeaders, HttpStatus.CONFLICT);
          } else if (registryManager.hasContract(contractId)
             && !isSameAddress(registryManager.getBriefContractInfo(contractId)
                                              .getOwnerAddress(),
                               (from))) {
             // It is a new version of
             // existing contract but from address doesn't match
-            restResult
-               = new RESTResult(HttpServletResponse.SC_FORBIDDEN,
-                                errorJSON("Only original owner can deploy the" +
-                                        " new version of a contract"));
+            responseEntity
+               = new ResponseEntity<>(errorJSON("Only original owner can deploy the"
+                  + " new version of a contract"),
+                                      standardHeaders,
+                                      HttpStatus.FORBIDDEN);
          } else {
             // Compile the given solidity code
             Compiler.Result result = Compiler.compile(solidityCode);
@@ -552,55 +517,36 @@ public class ContractsServlet extends BaseServlet {
                                                        from,
                                                        result,
                                                        solidityCode);
-               restResult
-                  = new RESTResult(HttpServletResponse.SC_OK, resultArray);
+               responseEntity = new ResponseEntity<>(resultArray,
+                                                     standardHeaders,
+                                                     HttpStatus.OK);
             } else if (result.isSuccess()
                && result.getByteCodeMap().size() != 1) {
-               restResult
-                  = new RESTResult(HttpServletResponse.SC_BAD_REQUEST,
-                                   errorJSON("Uploaded file must have exactly one"
-                                      + " contract"));
+               responseEntity
+                  = new ResponseEntity<>(errorJSON("Uploaded file must have exactly one"
+                     + " contract"), standardHeaders, HttpStatus.BAD_REQUEST);
             } else {
-               restResult = new RESTResult(HttpServletResponse.SC_BAD_REQUEST,
-                                           errorJSON("Compilation failure:\n"
-                                              + result.getStderr()));
+               responseEntity
+                  = new ResponseEntity<>(errorJSON("Compilation failure:\n"
+                     + result.getStderr()),
+                                         standardHeaders,
+                                         HttpStatus.BAD_REQUEST);
             }
          }
       } catch (ParseException pe) {
          logger.warn("Exception while parsing request JSON", pe);
-         restResult = new RESTResult(HttpServletResponse.SC_BAD_REQUEST,
-                                     errorJSON("unable to parse request."));
+         responseEntity
+            = new ResponseEntity<>(errorJSON("unable to parse request."),
+                                   standardHeaders,
+                                   HttpStatus.BAD_REQUEST);
       } catch (Exception e) {
          logger.warn("Exception in request processing", e);
-         restResult
-            = new RESTResult(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                             errorJSON(e.getMessage()));
+         responseEntity
+            = new ResponseEntity<>(errorJSON("unable to parse request."),
+                                   standardHeaders,
+                                   HttpStatus.INTERNAL_SERVER_ERROR);
       }
-      logger.debug("Response: " + restResult);
-      return restResult;
-   }
-
-   /**
-    * Accepts a POST requests and forwards it to the dispatcher.
-    *
-    * @param request
-    * @param response
-    * @throws IOException
-    */
-   protected void
-             doPost(final HttpServletRequest request,
-                    final HttpServletResponse response) throws IOException {
-      RESTResult result;
-      if (registryManager == null) {
-         result = new RESTResult(HttpServletResponse.SC_SERVICE_UNAVAILABLE,
-                                 errorJSON("Service unavailable."));
-      } else {
-         result = handlePost(request, response);
-      }
-      processResponse(response,
-                      result.getResultString(),
-                      result.responseStatus,
-                      logger);
+      return responseEntity;
    }
 
    /**
@@ -618,31 +564,5 @@ public class ContractsServlet extends BaseServlet {
              parseToJSON(Athena.AthenaResponse athenaResponse) throws UnsupportedOperationException {
       throw new UnsupportedOperationException("parseToJSON is not supported "
          + "in " + "ContractsServlet");
-   }
-
-   private static class RESTResult {
-      private int responseStatus; // Http status code of response
-      // The response can either be a jsonObject or jsonArray.
-      private JSONAware json;
-
-      public RESTResult(int responseStatus, JSONAware json) {
-         this.responseStatus = responseStatus;
-         this.json = json;
-      }
-
-      /**
-       * Returns the string object of jsonObject or jsonArray (whichever is
-       * present).
-       *
-       * @return json string of result
-       */
-      public String getResultString() {
-         return json.toJSONString();
-      }
-      
-      public String toString() {
-         return "Status: " + responseStatus +
-                 " Result: " + json.toJSONString();
-      }
    }
 }

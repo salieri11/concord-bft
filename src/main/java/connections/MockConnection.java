@@ -3,7 +3,8 @@ package connections;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import com.vmware.athena.*;
+import com.vmware.athena.Athena;
+
 import configurations.IConfiguration;
 
 public class MockConnection implements IAthenaConnection {

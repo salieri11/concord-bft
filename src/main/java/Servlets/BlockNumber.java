@@ -10,64 +10,57 @@
  */
 package Servlets;
 
-import java.io.IOException;
 import java.util.List;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
+import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.vmware.athena.Athena;
-import com.vmware.athena.Athena.TransactionResponse;
-
-import io.undertow.util.StatusCodes;
 
 /**
  * Servlet class.
  */
-public final class BlockNumber extends BaseServlet {
+@Controller
+public class BlockNumber extends BaseServlet {
    private static final long serialVersionUID = 1L;
-   private final static Logger _logger = Logger.getLogger(BlockNumber.class);
+   private Logger logger = LogManager.getLogger(BlockNumber.class);
 
    /**
     * Services a get request. Constructs a protobuf request of type blocknumber
     * request (enveloped in an athena request) as defined in athena.proto. Sends
     * this request to Athena. Parses the response and converts it into json for
-    * sendiong to clientß
+    * sending to client
     *
-    * @param request
-    *           The request received by the servlet
-    * @param response
-    *           The response object used to respond to the client
-    * @throws IOException
+    * @param block
+    *          The block number or block hash
     */
-   @Override
-   protected void doGet(final HttpServletRequest request,
-                        final HttpServletResponse response) throws IOException {
+   @RequestMapping(method = RequestMethod.GET,
+                   path = "/api/athena/blocks/{block}")
+   public ResponseEntity<JSONAware>
+          getBlock(@PathVariable("block") String block) {
+      // Block can either be a block number or block hash
       // Read the requested block number from the uri
-      Long number = null;
       try {
-         String uri = request.getRequestURI();
-
-         // Allow trailing /
-         if (uri.charAt(uri.length() - 1) == '/') {
-            uri = uri.substring(0, uri.length() - 1);
-         }
-
-         String urlParam = uri.substring(uri.lastIndexOf('/') + 1);
          final Athena.BlockRequest blockRequestObj;
          // check if param is a number or hash
-         if (urlParam.chars().allMatch(Character::isDigit)) {
-            number = Long.parseLong(urlParam);
+         if (block.chars().allMatch(Character::isDigit)) {
+            Long number;
+            number = Long.parseLong(block);
             blockRequestObj
                = Athena.BlockRequest.newBuilder().setNumber(number).build();
          } else {
             blockRequestObj
                = Athena.BlockRequest.newBuilder()
-                                    .setHash(APIHelper.hexStringToBinary(urlParam))
+                                    .setHash(APIHelper.hexStringToBinary(block))
                                     .build();
          }
 
@@ -76,16 +69,13 @@ public final class BlockNumber extends BaseServlet {
             = Athena.AthenaRequest.newBuilder()
                                   .setBlockRequest(blockRequestObj)
                                   .build();
-
-         processGet(athenaRequestObj, response, _logger);
+         return sendToAthenaAndBuildHelenResponse(athenaRequestObj);
 
       } catch (Exception e) {
-         _logger.error("Invalid block number or hash");
-         processResponse(response,
-                         APIHelper.errorJSON("Invalid block number or hash")
-                                  .toJSONString(),
-                         StatusCodes.BAD_REQUEST,
-                         _logger);
+         logger.error("Invalid block number or hash");
+         return new ResponseEntity<>(APIHelper.errorJSON("Invalid block number or hash"),
+                                     standardHeaders,
+                                     HttpStatus.BAD_REQUEST);
       }
    }
 
@@ -106,10 +96,10 @@ public final class BlockNumber extends BaseServlet {
 
       JSONArray transactionArr = new JSONArray();
 
-      List<TransactionResponse> list
-         = (List<TransactionResponse>) blockResponse.getTransactionList();
+      List<Athena.TransactionResponse> list
+         = (List<Athena.TransactionResponse>) blockResponse.getTransactionList();
 
-      for (TransactionResponse t : list) {
+      for (Athena.TransactionResponse t : list) {
          String hash = APIHelper.binaryStringToHex(t.getHash());
          JSONObject txJSON = new JSONObject();
          txJSON.put("hash", hash);

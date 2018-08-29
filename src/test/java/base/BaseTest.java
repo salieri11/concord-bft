@@ -2,12 +2,12 @@ package base;
 
 import java.io.IOException;
 
-import org.apache.log4j.Logger;
-
 import configurations.ConfigurationFactory;
-import configurations.IConfiguration;
 import configurations.ConfigurationFactory.ConfigurationType;
-import junit.framework.*;
+import configurations.IConfiguration;
+import junit.framework.TestCase;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public abstract class BaseTest extends TestCase {
    protected IConfiguration _conf;
@@ -21,6 +21,6 @@ public abstract class BaseTest extends TestCase {
    protected BaseTest(Class clazz) throws IOException {
       ConfigurationFactory.init();
       _conf = ConfigurationFactory.getConfiguration(ConfigurationType.Test);
-      _log = Logger.getLogger(clazz);
+      _log = LogManager.getLogger(clazz);
    }
 }

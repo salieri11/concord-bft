@@ -7,90 +7,68 @@
 
 package Servlets;
 
-import static profiles.UsersAPIMessage.*;
+import static services.profiles.UsersAPIMessage.*;
 
 import java.io.IOException;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
 
 import com.vmware.athena.Athena;
 
-import profiles.*;
+import services.profiles.*;
 
 /**
  * A servlet which manages all GET/POST/PATCH requests related to user
  * management API of helen
  */
+@Controller
 public class ProfileManager extends BaseServlet {
 
    private static final long serialVersionUID = 1L;
-   private static final Logger logger = Logger.getLogger(ProfileManager.class);
+   private static final Logger logger
+      = LogManager.getLogger(ProfileManager.class);
 
-   private ProfilesRegistryManager prm = null;
+   @Autowired
+   private ProfilesRegistryManager prm;
 
    public ProfileManager() {
    }
 
-   @Override
-   public void init() {
-      prm = BeanUtil.getBean(ProfilesRegistryManager.class);
+   // /api/users?consortium=<c>&organization=<o>
+   @RequestMapping(path = "/api/users", method = RequestMethod.GET)
+   public ResponseEntity<JSONAware>
+          getUsers(@RequestParam(name = "consortium", defaultValue = "",
+                                 required = false) String consortium,
+                   @RequestParam(name = "organization", defaultValue = "",
+                                 required = false) String organization) {
+      JSONArray result = prm.getUsers(Optional.ofNullable(consortium),
+                                      Optional.ofNullable(organization));
+      return new ResponseEntity<>(result, standardHeaders, HttpStatus.OK);
    }
 
-   @Override
-   protected void service(HttpServletRequest request,
-                          HttpServletResponse response) throws ServletException,
-                                                        IOException {
-
-      if (request.getMethod().equalsIgnoreCase("PATCH")) {
-         doPatch(request, response);
+   @RequestMapping(path = "/api/users/{user_id}", method = RequestMethod.GET)
+   public ResponseEntity<JSONAware>
+          getUserFromID(@PathVariable("user_id") String userID) {
+      JSONObject result = prm.getUserWithID(userID);
+      if (result.isEmpty()) {
+         return new ResponseEntity<>(new JSONObject(),
+                                     standardHeaders,
+                                     HttpStatus.NOT_FOUND);
       } else {
-         super.service(request, response);
+         return new ResponseEntity<>(result, standardHeaders, HttpStatus.OK);
       }
-   }
-
-   @Override
-   protected void doGet(HttpServletRequest request,
-                        HttpServletResponse response) throws IOException {
-      String uri = request.getRequestURI();
-      if (uri.endsWith("/"))
-         uri = uri.substring(0, uri.length() - 1);
-
-      String uriTokens[] = uri.split("/");
-      String responseString;
-      int responseStatus;
-      String consortium = request.getParameter("consortium");
-      String organization = request.getParameter("organization");
-
-      if (consortium != null && organization != null && uriTokens.length == 3) {
-         // /api/users?consortium=<c>&organization=<o>
-         JSONArray result = prm.getUsers(consortium, organization);
-         responseString = result.toJSONString();
-         responseStatus = HttpServletResponse.SC_OK;
-
-      } else if (uriTokens.length == 4) {
-         // /api/users/<userid>
-         JSONObject result = prm.getUserWithID(uriTokens[3]);
-         responseString = result.toJSONString();
-         if (result.isEmpty()) {
-            responseStatus = HttpServletResponse.SC_NOT_FOUND;
-         } else {
-            responseStatus = HttpServletResponse.SC_OK;
-         }
-      } else {
-         responseString = new JSONObject().toJSONString();
-         responseStatus = HttpServletResponse.SC_NOT_FOUND;
-      }
-      processResponse(response, responseString, responseStatus, logger);
    }
 
    private void createTestProfiles(JSONObject requestJson) {
@@ -123,18 +101,15 @@ public class ProfileManager extends BaseServlet {
          throw new UserModificationException("invalid password specified");
       }
    }
-   
-   @Override
-   protected void
-             doPost(final HttpServletRequest request,
-                    final HttpServletResponse response) throws IOException {
-      JSONObject responseJSON;
-      int responseStatus;
-      try {
 
+   @RequestMapping(path = "/api/users", method = RequestMethod.POST)
+   public ResponseEntity<JSONAware>
+          doPost(@RequestBody String requestBody) throws IOException {
+      JSONObject responseJSON;
+      HttpStatus responseStatus;
+      try {
          JSONParser parser = new JSONParser();
-         JSONObject requestJson
-            = (JSONObject) parser.parse(APIHelper.getRequestBody(request));
+         JSONObject requestJson = (JSONObject) parser.parse(requestBody);
 
          // TODO: Ideally the organization and consortium should already exist
          // before adding a USER to that. But for now we just add a new
@@ -149,83 +124,69 @@ public class ProfileManager extends BaseServlet {
 
          responseJSON = new JSONObject();
          responseJSON.put(USER_ID_LABEL, userID);
-         responseStatus = HttpServletResponse.SC_OK;
+         responseStatus = HttpStatus.OK;
 
       } catch (ParseException | UserModificationException e) {
          logger.warn("Error while adding new user", e);
          responseJSON = APIHelper.errorJSON(e.getMessage());
-         responseStatus = HttpServletResponse.SC_BAD_REQUEST;
+         responseStatus = HttpStatus.BAD_REQUEST;
       }
 
-      processResponse(response,
-                      responseJSON.toJSONString(),
-                      responseStatus,
-                      logger);
+      return new ResponseEntity<>(responseJSON,
+                                  standardHeaders,
+                                  responseStatus);
    }
-   
-   
+
    private void
-   validatePatchRequest(UserPatchRequest upr) throws UserModificationException {
-      if (upr.getOptionalRole().isPresent() &&
-              !Roles.contains(upr.getOptionalRole().get())) {
+           validatePatchRequest(UserPatchRequest upr) throws UserModificationException {
+      if (upr.getOptionalRole().isPresent()
+         && !Roles.contains(upr.getOptionalRole().get())) {
          throw new UserModificationException("invalid role provided");
       }
-      if (upr.getOptionalLastName().isPresent() &&
-              upr.getOptionalLastName().get().isEmpty()) {
+      if (upr.getOptionalLastName().isPresent()
+         && upr.getOptionalLastName().get().isEmpty()) {
          throw new UserModificationException("invalid last name provided");
       }
-      if (upr.getOptionalFirstName().isPresent() &&
-              upr.getOptionalFirstName().get().isEmpty()) {
+      if (upr.getOptionalFirstName().isPresent()
+         && upr.getOptionalFirstName().get().isEmpty()) {
          throw new UserModificationException("invalid first name provided");
       }
-      if (upr.getOptionalEmail().isPresent() &&
-              upr.getOptionalEmail().get().isEmpty()) {
+      if (upr.getOptionalEmail().isPresent()
+         && upr.getOptionalEmail().get().isEmpty()) {
          throw new UserModificationException("invalid email provided");
       }
-      if (upr.getOptionalName().isPresent() &&
-              upr.getOptionalName().get().isEmpty()){
+      if (upr.getOptionalName().isPresent()
+         && upr.getOptionalName().get().isEmpty()) {
          throw new UserModificationException("invalid name provided");
       }
    }
-   
-   protected void doPatch(HttpServletRequest request,
-                          HttpServletResponse response) {
-      int responseStatus;
-      String responseString;
+
+   @RequestMapping(path = "/api/users/{user_id}", method = RequestMethod.PATCH)
+   public ResponseEntity<JSONAware>
+          doPatch(@PathVariable(name = "user_id") String userID,
+                  @RequestBody String requestBody) {
+      HttpStatus responseStatus;
+      JSONObject responseJson;
       try {
-         String paramString
-            = request.getReader()
-                     .lines()
-                     .collect(Collectors.joining(System.lineSeparator()));
-         // get userID from path parameter
-         String uri = request.getRequestURI();
-         if (uri.endsWith("/")) {
-            uri = uri.substring(0, uri.length() - 1);
-         }
-         String uriTokens[] = uri.split("/");
 
-         if (uriTokens.length == 4) {
-            String userID = uriTokens[3];
-            JSONParser parser = new JSONParser();
-            JSONObject requestJson = (JSONObject) parser.parse(paramString);
-            UserPatchRequest upr = new UsersAPIMessage(requestJson);
-            upr.setUserID(Long.parseLong(userID));
-            validatePatchRequest(upr);
-            prm.updateUser(upr);
+         JSONParser parser = new JSONParser();
+         JSONObject requestJson = (JSONObject) parser.parse(requestBody);
+         UserPatchRequest upr = new UsersAPIMessage(requestJson);
+         upr.setUserID(Long.parseLong(userID));
+         validatePatchRequest(upr);
+         prm.updateUser(upr);
 
-            responseString = new JSONObject().toJSONString();
-            responseStatus = HttpServletResponse.SC_OK;
-         } else {
-            responseString = new JSONObject().toJSONString();
-            responseStatus = HttpServletResponse.SC_NOT_FOUND;
-         }
+         responseJson = new JSONObject();
+         responseStatus = HttpStatus.OK;
 
-      } catch (IOException | ParseException | UserModificationException e) {
-         responseString = APIHelper.errorJSON(e.getMessage()).toJSONString();
-         responseStatus = HttpServletResponse.SC_BAD_REQUEST;
+      } catch (ParseException | UserModificationException e) {
+         responseJson = APIHelper.errorJSON(e.getMessage());
+         responseStatus = HttpStatus.BAD_REQUEST;
       }
 
-      processResponse(response, responseString, responseStatus, logger);
+      return new ResponseEntity<>(responseJson,
+                                  standardHeaders,
+                                  responseStatus);
    }
 
    @Override
