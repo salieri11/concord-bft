@@ -230,7 +230,8 @@ class HelenAPITests(test_suite.TestSuite):
 
          (present, missing) = self.requireFields(
             blockResult,
-            ["number", "hash", "parentHash", "nonce", "size", "transactions"])
+            ["number", "hash", "parentHash", "nonce", "size", "transactions",
+             "proposed_timestamp", "accepted_timestamp"])
          if not present:
             return (False, "No '{}' field in block response.".format(missing))
 
@@ -699,10 +700,4 @@ class HelenAPITests(test_suite.TestSuite):
       expectedDataSum = len(largeContract)*tr_count
       if receivedDataSum != expectedDataSum:
          return (False, "received only %d bytes, but expected %d" % (receviedDataSum, expectedDataSum))
-      return (True, None)
-
-   def requireFields(self, ob, fieldList):
-      for f in fieldList:
-         if not f in ob:
-            return (False, f)
       return (True, None)

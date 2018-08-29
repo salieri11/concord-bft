@@ -364,6 +364,12 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
       latestBlock = rpc.getBlockByNumber("latest")
 
+      (present, missing) = self.requireFields(
+         latestBlock,
+         ["number","hash","parentHash","timestamp"])
+      if not present:
+         return (False, "No '{}' field in block response.".format(missing))
+
       if not latestBlock["number"] == currentBlockNumber:
          return (False, "Latest block does not have current block number")
 
