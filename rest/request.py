@@ -68,6 +68,7 @@ class Request():
          else:
             curlCmd = ["curl",
                        "-H", "Accept: application/json",
+                       "-H", "Content-Type: application/json",
                        "--data", json.dumps(self._data),
                        self._baseUrl+self._subPath+self._params,
                        "--output", self._responseFile,
@@ -76,6 +77,7 @@ class Request():
          curlCmd = ["curl",
                     "--request", verb,
                     "-H", "Accept: application/json",
+                    "-H", "Content-Type: application/json",
                     "--data", json.dumps(self._data),
                     self._baseUrl+self._subPath+self._params,
                     "--output", self._responseFile,

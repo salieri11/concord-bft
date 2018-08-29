@@ -36,12 +36,8 @@ cockroach start \
 # Create a cockroach db user
 cockroach user set --host ${HOST} --port ${PORT} helen_admin --insecure
 
-# Create a helen database
-cockroach sql --host ${HOST} --port ${PORT} --insecure -e 'CREATE DATABASE helen'
-
-# Allow helen_admin all access to helen database
-cockroach sql --host ${HOST} --port ${PORT} --insecure -e 'GRANT ALL ON DATABASE helen TO helen_admin'
-
+# setup cockroach DB tables
+cockroach sql --port ${PORT} --insecure < schema.sql
 
 # read pid file
 COCKROACH_PID=`head -n 1 ${PID_FILE}`
