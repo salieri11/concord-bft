@@ -161,6 +161,16 @@ class Request():
 
       return self._send()
 
+   def getBlockByNumber(self, number):
+      '''
+      Get a specific block, by its number
+      '''
+      self._subPath = "/api/athena/blocks/{}".format(number)
+      self._params = ""
+      self._endpointName = "block"
+
+      return self._send()
+
    def getTransaction(self, txhash):
       '''
       Get a specific transaction

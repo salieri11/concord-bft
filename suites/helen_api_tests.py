@@ -239,6 +239,17 @@ class HelenAPITests(test_suite.TestSuite):
          if not type(blockResult["transactions"]) is list:
             return (False, "'transactions' field is not a list.")
 
+      # try to get an uncommitted block, and make sure an error comes back
+      uncommitted = 1 + result["blocks"][0]["number"]
+      try:
+         uncomresult = request.getBlockByNumber(uncommitted)
+         if ("number" in uncomresult) and \
+            (not uncommitted == uncomresult["number"]):
+            return (False, "Request for uncommitted block returned another block")
+      except:
+         # It is expected that requesting an uncommitted block will fail
+         pass
+
       return (True, None)
 
    def _test_getTransactions(self, request):

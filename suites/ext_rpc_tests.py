@@ -101,7 +101,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
               ("eth_syncing", self._test_eth_syncing), \
               ("eth_getTransactionCount", self._test_eth_getTransactionCount), \
               ("eth_sendRawTransaction", self._test_eth_sendRawTransaction), \
-              ("eth_sendRawContract", self._test_eth_sendRawContract)]
+              ("eth_sendRawContract", self._test_eth_sendRawContract), \
+              ("eth_getBlockByNumber", self._test_eth_getBlockByNumber)]
 
    def _runRpcTest(self, testName, testFun, testLogDir):
       ''' Runs one test. '''
@@ -351,5 +352,35 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
          if not callResult == "0x0000000000000000000000000000000000000000000000000000000000000042":
             return (False, "Contract did not return expected value")
+
+      return (True, None)
+
+   def _test_eth_getBlockByNumber(self, rpc, request):
+      '''
+      Check that blocks can be fetched by number.
+      '''
+
+      currentBlockNumber = rpc.getBlockNumber()
+
+      latestBlock = rpc.getBlockByNumber("latest")
+
+      if not latestBlock["number"] == currentBlockNumber:
+         return (False, "Latest block does not have current block number")
+
+      currentBlock = rpc.getBlockByNumber(currentBlockNumber)
+
+      if not currentBlock["number"] == currentBlockNumber:
+         return (False, "Current block does not have current block number")
+
+      futureBlockNumber = 1 + int(currentBlockNumber, 16)
+
+      try:
+         futureBlock = rpc.getBlockByNumber(futureBlockNumber)
+         if ("number" in futureBlock) and \
+            (not futureBlockNumber == int(futureBlock["number"], 16)):
+            return (False, "Request for future block returned a different block")
+      except:
+         # requesting an uncommitted block should return an error
+         pass
 
       return (True, None)
