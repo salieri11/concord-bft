@@ -440,9 +440,12 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_request(
       EthBlock block;
       if (request.has_number()) {
          uint64_t requested_block_number = kvbStorage.current_block_number();
-         if (request.number() >= 0 &&
-             (uint64_t)request.number() < requested_block_number) {
-            requested_block_number = request.number();
+         if (request.number() >= 0) {
+            if ((uint64_t)request.number() <= requested_block_number) {
+               requested_block_number = request.number();
+            } else {
+               throw BlockNotFoundException();
+            }
          }
          block = kvbStorage.get_block(requested_block_number);
       } else if (request.has_hash()) {
