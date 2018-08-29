@@ -176,7 +176,7 @@ export class TaskManagerService {
           'lastName': 'Doe',
           'email': 'jdoe@bankofchina.com',
           'organization': 'Bank Of China',
-          'role': 'systems_admin'
+          'role': 'system_admin'
         }],
         'advancedSettings': {
           'networkName': 'Consortium 1 Net',

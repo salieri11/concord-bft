@@ -11,6 +11,9 @@
       </div>
       <input #username class="username" type="text" id="loginUsername" [attr.placeholder]="'authentication.username' | translate" formControlName="email">
       <input class="password" type="password" id="loginPassword" [attr.placeholder]="'authentication.password' | translate" formControlName="password">
+      <div class="error active" *ngIf="errorMessage">
+        {{errorMessage}}
+      </div>
       <button type="submit" class="btn btn-primary" [disabled]="loginForm.invalid">{{'authentication.next' | translate}}</button>
     </div>
   </form>

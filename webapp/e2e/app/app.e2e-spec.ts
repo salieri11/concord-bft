@@ -2,8 +2,6 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { browser } from 'protractor';
-
 import { AuthHelper } from '../helpers/auth';
 import { LoginPage } from '../login/login.po';
 import { MarketingPage } from '../marketing/marketing.po';
@@ -27,11 +25,9 @@ describe('athena-ui App', () => {
   });
 
   it('should display the page title', () => {
-    browser.waitForAngularEnabled(false);
     marketingPage.navigateTo();
     marketingPage.clickLoginButton();
-    loginPage.fillLogInForm('test@vmware.com', 'password');
+    loginPage.fillLogInForm('testlogin@example.com', 'password');
     expect(dashboardPage.getPageTitle()).toEqual('VMware Athena');
-    browser.waitForAngularEnabled(true);
   });
 });

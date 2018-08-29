@@ -101,7 +101,7 @@ describe('BlockchainWizardComponent', () => {
         lastName: 'User',
         email: 'test@example.com',
         organization: 'org',
-        role: 'systems_admin'
+        role: 'system_admin'
       });
 
       component.addUser();
@@ -114,7 +114,7 @@ describe('BlockchainWizardComponent', () => {
         lastName: 'User',
         email: 'test@example.com',
         organization: 'org',
-        role: 'systems_admin'
+        role: 'system_admin'
       };
       spyOn(component.userForm, 'reset').and.callThrough();
 
@@ -134,13 +134,13 @@ describe('BlockchainWizardComponent', () => {
         lastName: 'User2',
         email: 'test1@example.com',
         organization: 'org',
-        role: 'systems_admin'
+        role: 'system_admin'
       }, {
         firstName: 'Test2',
         lastName: 'User2',
         email: 'test2@example.com',
         organization: 'org',
-        role: 'systems_admin'
+        role: 'system_admin'
       }];
 
       expect(component.form.get('users').value.length).toBe(0);
