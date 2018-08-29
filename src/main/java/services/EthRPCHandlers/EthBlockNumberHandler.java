@@ -19,7 +19,7 @@ public class EthBlockNumberHandler extends AbstractEthRPCHandler {
    /**
     * Builds the EthRequest object which can be sent to Athena from given
     * requestJson object.
-    * 
+    *
     * @param builder
     *           Builder object in which parameters are set.
     * @param requestJson
@@ -39,7 +39,7 @@ public class EthBlockNumberHandler extends AbstractEthRPCHandler {
     * Builds the RPC JSON response object from given AthenaResponse. Extracts
     * the EthResponse object from athenaRequest. This EthResponse object must
     * contain the data filed with hex string representing latex block number.
-    * 
+    *
     * @param athenaResponse
     *           Response received from Athena.
     * @param requestJson
@@ -53,7 +53,10 @@ public class EthBlockNumberHandler extends AbstractEthRPCHandler {
       Athena.EthResponse ethResponse = athenaResponse.getEthResponse(0);
       JSONObject responseObject = initializeResponseObject(ethResponse);
       ByteString latestBlock = ethResponse.getData();
-      responseObject.put("result", APIHelper.binaryStringToHex(latestBlock));
+      responseObject.put("result",
+                         APIHelper.binaryStringToHex(
+                            latestBlock,
+                            true /* drop leading zeros */));
       return responseObject;
    }
 }

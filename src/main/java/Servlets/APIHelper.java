@@ -99,15 +99,37 @@ public class APIHelper {
     *           Binary string
     * @return
     */
-   public static String binaryStringToHex(ByteString binary) {
+   public static String binaryStringToHex(ByteString binary,
+                                          boolean dropLeadingZeros) {
       byte[] resultBytes = binary.toByteArray();
       StringBuilder sb = new StringBuilder("0x");
 
+      boolean first = true;
+
       for (byte b : resultBytes) {
-         sb.append((String.format("%02x", b)));
+         if (first && dropLeadingZeros) {
+            if (b == 0) {
+               continue;
+            }
+
+            first = false;
+            if (b < 0x10) {
+               // drop the first nibble zero, if we can, as well
+               sb.append(String.format("%01x", b));
+               continue;
+            }
+         }
+         sb.append(String.format("%02x", b));
       }
       String result = sb.toString();
       return result;
+   }
+
+   /**
+    * Wrapper around binaryStringToHex that never drops leading zeros.
+    */
+   public static String binaryStringToHex(ByteString binary) {
+      return binaryStringToHex(binary, false);
    }
 
    /**
