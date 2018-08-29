@@ -41,13 +41,16 @@ describe('athena-ui Onboarding Flow', () => {
     signUpPage.fillSignUpForm(
       'Test',
       'User',
-      'test@vmware.com',
+      'testorgtour@example.com',
+      'password',
       'Test Company',
       'Test Engineer',
       'UNITED STATES',
       'Customer',
       '0-99'
     );
+
+    browser.sleep(200);
 
     onboardingPage.clickSetupOrg();
 
@@ -90,13 +93,16 @@ describe('athena-ui Onboarding Flow', () => {
     signUpPage.fillSignUpForm(
       'Test',
       'User',
-      'test@vmware.com',
+      'testdeployblockchain@example.com',
+      'password',
       'Test Company',
       'Test Engineer',
       'UNITED STATES',
       'Customer',
       '0-99'
     );
+
+    browser.sleep(200);
 
     onboardingPage.clickDeployBlockchain();
 
@@ -113,7 +119,7 @@ describe('athena-ui Onboarding Flow', () => {
     dashboardPage.clickWizardNextButton();
     // Third page
     expect(dashboardPage.getHeaderWithText('Users & Access').isPresent()).toBe(true);
-    dashboardPage.fillPage3Form('Test', 'User', 'test@vmware.com', 'Test Org', 'systems_admin');
+    dashboardPage.fillPage3Form('Test', 'User', 'test@vmware.com', 'Test Org', 'system_admin');
     expect(dashboardPage.getUsersTableCellWithText('test@vmware.com').isPresent()).toBe(true);
     dashboardPage.clickWizardNextButton();
     // Fourth Page

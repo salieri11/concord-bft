@@ -20,6 +20,20 @@
           <h4>{{ 'signUp.callToAction' | translate }}</h4>
         </div>
       </div>
+      <div class="row flex-items-xs-center mt-1" *ngIf="errorMessage">
+        <div class="col-xl-8 col-lg-12">
+          <clr-alert [clrAlertClosable]="false" [clrAlertType]="'danger'">
+            <div clr-alert-item class="alert-item">
+                  <span class="alert-text">
+                      {{errorMessage}}
+                  </span>
+              <div class="alert-actions">
+                <a [routerLink]="['/auth', 'login']">{{ 'nav.login' | translate }}</a>
+              </div>
+            </div>
+          </clr-alert>
+        </div>
+      </div>
       <form id="signupForm" [formGroup]="signupForm" (ngSubmit)="signUp()">
         <section class="form-block">
           <div class="row flex-items-xs-center call-outs">
@@ -39,21 +53,44 @@
           <div class="row flex-items-xs-center call-outs">
             <div class="col-xl-4 col-lg-6 col-md-12">
               <div class="form-group">
-                <label>{{ 'signUp.form.email' | translate }}</label>
-                <label [ngClass]="{'invalid': signupForm.controls.email.errors && !signupForm.controls.email.pristine && signupForm.controls.email.touched}"
-                  for="email" aria-haspopup="true" role="tooltip" class="tooltip tooltip-validation tooltip-md">
-                  <input type="text" id="email" formControlName="email">
-                  <span class="tooltip-content">
+                <label for="email">{{ 'signUp.form.email' | translate }}</label>
+                <div class="clr-control-container" [ngClass]="{'clr-error': signupForm.controls.email.errors && !signupForm.controls.email.pristine && signupForm.controls.email.touched}">
+                  <div class="clr-input-wrapper">
+                    <input type="text" id="email" formControlName="email">
+                    <clr-icon class="clr-validate-icon" shape="exclamation-circle"></clr-icon>
+                  </div>
+                  <span *ngIf="signupForm.controls.email.errors && !signupForm.controls.email.pristine && signupForm.controls.email.touched" class="clr-subtext">
                      {{ 'signUp.form.emailValMsg' | translate }}
-
                   </span>
-                </label>
+                </div>
               </div>
             </div>
             <div class="col-xl-4 col-lg-6 col-md-12">
               <div class="form-group">
+                <label for="password">{{ 'signUp.form.password' | translate }}</label>
+                <div class="clr-control-container" [ngClass]="{'clr-error': signupForm.controls.password.errors && !signupForm.controls.password.pristine && signupForm.controls.password.touched}">
+                  <div class="clr-input-wrapper">
+                    <input type="password" id="password" formControlName="password">
+                    <clr-icon class="clr-validate-icon" shape="exclamation-circle"></clr-icon>
+                  </div>
+                  <span *ngIf="signupForm.controls.password.errors && !signupForm.controls.password.pristine && signupForm.controls.password.touched" class="clr-subtext">
+                    {{ 'users.addUserForm.errors.password.minLength' | translate }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row flex-items-xs-center call-outs">
+            <div class="col-xl-4 col-lg-6 col-md-12">
+              <div class="form-group">
                 <label for="company">{{ 'signUp.form.company' | translate }}</label>
                 <input type="text" id="company" formControlName="company">
+              </div>
+            </div>
+            <div class="col-xl-4 col-lg-6 col-md-12">
+              <div class="form-group">
+                <label for="phoneNumber">Phone Number</label>
+                <input type="text" id="phoneNumber" formControlName="phoneNumber">
               </div>
             </div>
           </div>

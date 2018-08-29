@@ -7,6 +7,7 @@ import { browser } from 'protractor';
 import { SmartContractsPage } from './smart-contracts.po';
 import { SmartContractPage } from './smart-contract.po';
 import { AuthHelper } from '../helpers/auth';
+import { LoginPage } from '../login/login.po';
 
 declare var require: any;
 
@@ -14,6 +15,7 @@ const path = require('path');
 
 describe('athena-ui Smart Contracts', () => {
   let authHelper: AuthHelper;
+  let loginPage: LoginPage;
   let smartContractsPage: SmartContractsPage;
   let smartContractPage: SmartContractPage;
   let from: string;
@@ -23,8 +25,11 @@ describe('athena-ui Smart Contracts', () => {
   let file: string;
 
   beforeAll(() => {
+    loginPage = new LoginPage();
     authHelper = new AuthHelper();
-    authHelper.logIn('test@vmware.com', 'password');
+    loginPage.navigateTo();
+    loginPage.fillLogInForm('testlogin@example.com', 'password');
+    browser.sleep(1000);
   });
 
   afterAll(() => {
@@ -39,12 +44,10 @@ describe('athena-ui Smart Contracts', () => {
     version = 'version1';
     valueString = '0x10';
     file = '../files/somefile.sol';
-
     smartContractsPage.navigateTo();
   });
 
   it('should create a smart contract', () => {
-    browser.waitForAngularEnabled(true);
     const absolutePath = path.resolve(__dirname, file);
     const expectedLinkText = `${contractId} : ${from}`;
     smartContractsPage.openCreateModal();

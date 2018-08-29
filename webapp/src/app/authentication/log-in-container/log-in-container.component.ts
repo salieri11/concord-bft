@@ -5,6 +5,7 @@
 import { Component, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { TranslateService } from '@ngx-translate/core';
 
 import { AuthenticationService } from '../../shared/authentication.service';
 import { PersonaService } from '../../shared/persona.service';
@@ -18,12 +19,14 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
   @ViewChild('username') username: ElementRef;
   readonly loginForm: FormGroup;
   private authenticationChange;
+  errorMessage: string;
   personaOptions = PersonaService.getOptions();
 
   constructor(
     private authenticationService: AuthenticationService,
     private formBuilder: FormBuilder,
-    private router: Router
+    private router: Router,
+    private translateService: TranslateService
   ) {
 
     this.authenticationChange = this.authenticationService.user.subscribe(user => {
@@ -48,6 +51,15 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
   }
 
   onLogIn() {
-    this.authenticationService.logIn(this.loginForm.value.email, 'password', this.loginForm.value.persona);
+    this.errorMessage = null;
+    this.authenticationService.logIn(
+      this.loginForm.value.email,
+      this.loginForm.value.password,
+      this.loginForm.value.persona
+    ).subscribe(() => {
+
+    }, (error) => {
+      this.errorMessage = error.error.error || this.translateService.instant('authentication.errorMessage');
+    });
   }
 }

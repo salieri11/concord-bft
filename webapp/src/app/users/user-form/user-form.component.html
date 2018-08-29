@@ -9,14 +9,14 @@
               <label for="firstNameAddUser">
                 {{ 'users.addUserForm.inputs.firstName.title' | translate }}
               </label>
-              <input formControlName="firstName" type="text" id="firstNameAddUser" [placeholder]="'users.addUserForm.inputs.firstName.placeholder' | translate"
+              <input formControlName="first_name" type="text" id="firstNameAddUser" [placeholder]="'users.addUserForm.inputs.firstName.placeholder' | translate"
                      size=35>
             </div>
             <div class="form-group">
               <label for="lastNameAddUser">
                 {{ 'users.addUserForm.inputs.lastName.title' | translate }}
               </label>
-              <input formControlName="lastName" type="text" id="lastNameAddUser" [placeholder]="'users.addUserForm.inputs.lastName.placeholder' | translate"
+              <input formControlName="last_name" type="text" id="lastNameAddUser" [placeholder]="'users.addUserForm.inputs.lastName.placeholder' | translate"
                      size=35>
             </div>
             <div class="form-group">
@@ -58,7 +58,7 @@
                 {{ 'users.addUserForm.inputs.role.title' | translate }}
               </label>
               <div class="select">
-                <select formControlName="persona" id="roleAddUser">
+                <select formControlName="role" id="roleAddUser">
                   <option *ngFor="let personaOption of personaOptions" [value]="personaOption.value">{{personaOption.name | translate}}</option>
                 </select>
               </div>
@@ -79,14 +79,14 @@
               <label for="firstNameEditUser">
                 {{ 'users.editUserForm.inputs.firstName.title' | translate }}
               </label>
-              <input formControlName="firstName" type="text" id="firstNameEditUser" [placeholder]="'users.editUserForm.inputs.firstName.placeholder' | translate"
+              <input formControlName="first_name" type="text" id="firstNameEditUser" [placeholder]="'users.editUserForm.inputs.firstName.placeholder' | translate"
                      size=35>
             </div>
             <div class="form-group">
               <label for="lastNameEditUser">
                 {{ 'users.editUserForm.inputs.lastName.title' | translate }}
               </label>
-              <input formControlName="lastName" type="text" id="lastNameEditUser" [placeholder]="'users.editUserForm.inputs.lastName.placeholder' | translate"
+              <input formControlName="last_name" type="text" id="lastNameEditUser" [placeholder]="'users.editUserForm.inputs.lastName.placeholder' | translate"
                      size=35>
             </div>
             <div class="form-group">
@@ -101,7 +101,7 @@
                 {{ 'users.editUserForm.inputs.role.title' | translate }}
               </label>
               <div class="select">
-                <select formControlName="persona" id="roleEditUser">
+                <select formControlName="role" id="roleEditUser">
                   <option *ngFor="let personaOption of personaOptions" [value]="personaOption.value">{{personaOption.name | translate}}</option>
                 </select>
               </div>

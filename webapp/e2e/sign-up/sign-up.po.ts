@@ -13,10 +13,11 @@ export class SignUpPage {
     return element(by.css('#signupForm'));
   }
 
-  fillSignUpForm(firstName, lastName, email, company, jobTitle, country, relationship, numEmployees) {
+  fillSignUpForm(firstName, lastName, email, password, company, jobTitle, country, relationship, numEmployees) {
     element(by.css('#firstName')).sendKeys(firstName);
     element(by.css('#lastName')).sendKeys(lastName);
     element(by.css('#email')).sendKeys(email);
+    element(by.css('#password')).sendKeys(password);
     element(by.css('#company')).sendKeys(company);
     element(by.css('#jobTitle')).sendKeys(jobTitle);
     element(by.css('#country')).sendKeys(country);

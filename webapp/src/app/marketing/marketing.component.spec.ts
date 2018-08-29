@@ -4,6 +4,7 @@
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { ClarityModule } from '@clr/angular';
 
 import { MarketingComponent } from './marketing.component';
@@ -21,6 +22,7 @@ describe('MarketingComponent', () => {
         RouterTestingModule,
         ClarityModule,
         MockTranslateModule,
+        HttpClientTestingModule
       ],
       declarations: [ MarketingComponent ],
       providers: [ AuthenticationService, PersonaService ]

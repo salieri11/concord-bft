@@ -5,7 +5,7 @@
 import { Injectable } from '@angular/core';
 
 export enum Personas {
-  SystemsAdmin = 'systems_admin',
+  SystemsAdmin = 'system_admin',
   ConsortiumAdmin = 'consortium_admin',
   OrgAdmin = 'org_admin',
   OrgDeveloper = 'org_developer',
