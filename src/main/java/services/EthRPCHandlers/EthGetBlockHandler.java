@@ -122,7 +122,8 @@ public class EthGetBlockHandler extends AbstractEthRPCHandler {
       response.put("jsonrpc", jsonRpc);
 
       JSONObject result = new JSONObject();
-      result.put("number", blockResponseObj.getNumber());
+      result.put("number",
+                 "0x" + Long.toHexString(blockResponseObj.getNumber()));
       result.put("hash",
                  APIHelper.binaryStringToHex(blockResponseObj.getHash()));
       result.put("parentHash",
