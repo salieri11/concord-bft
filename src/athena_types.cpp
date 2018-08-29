@@ -319,18 +319,12 @@ com::vmware::athena::EthBlock::deserialize(Blockchain::Slice &input)
 
       if (inblk.has_proposed_timestamp()) {
          outblk.proposed_timestamp = inblk.proposed_timestamp();
-      } else if (inblk.version() > 1) {
-         // timestamp was introduced in version 2
-         throw EVMException("Block is missing proposed timestamp.");
       } else {
          outblk.proposed_timestamp = 0;
       }
 
       if (inblk.has_accepted_timestamp()) {
          outblk.accepted_timestamp = inblk.accepted_timestamp();
-      } else if (inblk.version() > 1) {
-         // timestamp was introduced in version 2
-         throw EVMException("Block is missing accepted timestamp.");
       } else {
          outblk.accepted_timestamp = 0;
       }
