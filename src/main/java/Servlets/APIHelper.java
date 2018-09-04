@@ -97,7 +97,12 @@ public class APIHelper {
     *
     * @param binary
     *           Binary string
-    * @return
+    * @param dropLeadingZeros
+    *           If true, do not include "0" characters in the output for zero
+    *           bytes at the start of the input. (e.g. if binary is [0, 0, 1, 2,
+    *           3], output "0x10203" instead of "0x0000010203").
+    * @return A string starting with "0x", followed by the hex representation of
+    *         the 'binary' parameter.
     */
    public static String binaryStringToHex(ByteString binary,
                                           boolean dropLeadingZeros) {
@@ -108,18 +113,15 @@ public class APIHelper {
 
       for (byte b : resultBytes) {
          if (first && dropLeadingZeros) {
-            if (b == 0) {
-               continue;
-            }
+            if (b != 0) {
+               first = false;
 
-            first = false;
-            if (b < 0x10) {
-               // drop the first nibble zero, if we can, as well
-               sb.append(String.format("%01x", b));
-               continue;
+               // Don't force two characters, if the first byte only needs one.
+               sb.append(String.format("%x", b));
             }
+         } else {
+            sb.append(String.format("%02x", b));
          }
-         sb.append(String.format("%02x", b));
       }
       String result = sb.toString();
       return result;
