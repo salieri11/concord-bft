@@ -123,6 +123,13 @@ public class APIHelper {
             sb.append(String.format("%02x", b));
          }
       }
+
+      if (dropLeadingZeros && first) {
+         // We only drop leading zeros for QUANTITY fields, and "0x" is not
+         // allowed there. It must be "0x0" at least.
+         sb.append("0");
+      }
+
       String result = sb.toString();
       return result;
    }
