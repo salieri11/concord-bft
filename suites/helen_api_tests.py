@@ -243,9 +243,10 @@ class HelenAPITests(test_suite.TestSuite):
       uncommitted = 1 + result["blocks"][0]["number"]
       try:
          uncomresult = request.getBlockByNumber(uncommitted)
-         if ("number" in uncomresult) and \
-            (not uncommitted == uncomresult["number"]):
-            return (False, "Request for uncommitted block returned another block")
+         return (False,
+                 "Expected an error for future block {}, " \
+                 "but received block {}".format(uncommitted,
+                                                uncomresult["number"]))
       except:
          # It is expected that requesting an uncommitted block will fail
          pass

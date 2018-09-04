@@ -376,9 +376,10 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
       try:
          futureBlock = rpc.getBlockByNumber(futureBlockNumber)
-         if ("number" in futureBlock) and \
-            (not futureBlockNumber == int(futureBlock["number"], 16)):
-            return (False, "Request for future block returned a different block")
+         return (False,
+                 "Expected an error for future block {}, " \
+                 "but received block {}".format(futureBlockNumber,
+                                                futureBlock["number"]))
       except:
          # requesting an uncommitted block should return an error
          pass
