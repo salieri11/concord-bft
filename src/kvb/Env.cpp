@@ -2,10 +2,11 @@
 //
 // Wrappers of SBFT's environment initialization functions.
 
-#include "libbyz.h"
+//#include "libbyz.h"
 
 namespace Blockchain {
 
+   /*
 void initEnv()
 {
 #if defined(_WIN32)
@@ -18,5 +19,10 @@ void freeEnv()
 {
    freeEnvironment();
 }
+*/
 
+   void initEnv()
+   {
+
+   }
 }

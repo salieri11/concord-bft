@@ -5,6 +5,7 @@
 #ifndef HASHDEFS_H
 #define HASHDEFS_H
 
+#include <stdlib.h>
 
 // TODO(GG): do we want this hash function ? See also
 // http://www.cse.yorku.ca/~oz/hash.html

@@ -28,7 +28,8 @@ add_library(kvblockchain ${kvblockchain_sources})
 target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils/Crypto)
 target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/AgreementModules/SbftForIntegMay18/libbyz)
 
-target_link_libraries(kvblockchain PUBLIC byz)
+#target_link_libraries(kvblockchain PUBLIC byz)
+target_link_libraries(kvblockchain PUBLIC corebft)
 
 if(USE_ROCKSDB)
 find_library(ROCKSDB rocksdb)

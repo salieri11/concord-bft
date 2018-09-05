@@ -15,12 +15,13 @@
 
 #include "Comparators.h"
 
-#include "libbyz.h"
+//#include "libbyz.h"
+
 #include "Threading.h"
 #include "ThreadLocalStorage.h"
 
 #include "ReplicaImp.h"
-#include "HashDefs.h"
+
 #include <inttypes.h>
 #include <cstdlib>
 #include "HexTools.h"
@@ -207,33 +208,32 @@ Status ReplicaImp::addBlock(const SetOfKeyValuePairs &updates,
 }
 
 
-ReplicaImp::ReplicaImp( string byzConfig,
-                        string byzPrivateConfig,
+ReplicaImp::ReplicaImp( bftEngine::ICommunication *comm,
+                        ReplicaConsensusConfig config,
                         ICommandsHandler *cmdHandler,
-                        BlockchainDBAdapter *dbAdapter,
-                        UPDATE_CONNECTIVITY_FN fPeerConnectivityCallback) :
-   m_byzConfig(byzConfig),
-   m_byzPrivateConfig(byzPrivateConfig),
+                        BlockchainDBAdapter *dbAdapter) :
    m_cmdHandler(cmdHandler),
+   m_commModule(comm),
+   m_ReplicaConfig(config),
    logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb")),
    m_running(false),
    m_InternalStorageWrapperForIdleMode(this),
-   m_bcDbAdapter(dbAdapter),
-   m_fPeerConnectivityCallback(fPeerConnectivityCallback)
+   m_bcDbAdapter(dbAdapter)
 {
    // TODO(GG): add synchronization (to handle concurrent executions)
-   if (m_sThreadLocalDataIdx == 0) {
+   /*if (m_sThreadLocalDataIdx == 0) {
       int res = Utils::allocTlsIndex(&m_sThreadLocalDataIdx);
       // TODO(GG): add error handling
       assert(res == 0);
    }
-
+*/
    m_currentRepStatus = RepStatus::Idle;
    lastBlock = 0;
 }
 
 ReplicaImp::~ReplicaImp()
 {
+
 }
 
 Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs& updates,
@@ -746,7 +746,7 @@ DWORD WINAPI ReplicaImp::replicaInternalThread(LPVOID param)
    // Suspecting this assert is not correct in linux, and key may be 0
    assert(m_sThreadLocalDataIdx != 0);
 #endif
-   setTlsVal(m_sThreadLocalDataIdx, r);
+   // setTlsVal(m_sThreadLocalDataIdx, r);
 
    // TODO(GG): Explain. In the future, we will probably need to map several
    // blocks to the same object/page
@@ -754,48 +754,35 @@ DWORD WINAPI ReplicaImp::replicaInternalThread(LPVOID param)
 
    Logger logger(Logger::getInstance("com.vmware.athena.kvb"));
    LOG4CPLUS_DEBUG(logger, "initializing byz");
-   // TODO(GG): clean & understand ....
-   int used_mem = Byz_init_replica(r->m_byzConfig.c_str(),
-                                   r->m_byzPrivateConfig.c_str(),
-                                   10 * 1e6,
-                                   exec_command,
-                                   0,
-                                   0,
-                                   check_nond,
-                                   get_block,
-                                   put_blocks,
-                                   0,
-                                   0,
-                                   0,
-                                   r->m_fPeerConnectivityCallback);
 
+/*
    if (used_mem < 0) {
       LOG4CPLUS_ERROR(logger, "Byz_init_replica failed");
       return 0;
    }
+   */
 
    r->m_currentRepStatus = RepStatus::Running;
 
    // TODO(GG): add support for "stop" in the BFT engine
-   Byz_replica_run();
+
 
    return 0;
 }
 
-IReplica* createReplica(const ReplicaConsensusConfig& consensusConfig,
+IReplica* createReplica(bftEngine::ICommunication *comm,
+                        ReplicaConsensusConfig config,
                         ICommandsHandler* cmdHandler,
-                        IDBClient* db,
-                        UPDATE_CONNECTIVITY_FN fPeerConnectivityCallback)
+                        IDBClient* db)
 {
    LOG4CPLUS_DEBUG(Logger::getInstance("com.vmware.athena.kvb"),
                    "Creating replica");
    BlockchainDBAdapter *dbAdapter = new BlockchainDBAdapter(db);
 
-   ReplicaImp *r = new ReplicaImp(consensusConfig.byzConfig,
-                                  consensusConfig.byzPrivateConfig,
+   ReplicaImp *r = new ReplicaImp(comm,
+                                  config,
                                   cmdHandler,
-                                  dbAdapter,
-                                  fPeerConnectivityCallback);
+                                  dbAdapter);
 
    //Initialization of the database object is done here so that we can
    //read the latest block number and take a decision regarding

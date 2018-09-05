@@ -16,6 +16,15 @@ namespace com {
 namespace vmware {
 namespace athena {
 
+   struct UiPeerInfo
+   {
+      std::string hostname;
+      std::string address;
+      std::int64_t millisSinceLastMessage;
+      std::int32_t millisSinceLastMessageThreshold;
+      std::string state;
+   };
+
    class StatusAggregator
    {
 

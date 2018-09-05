@@ -26,6 +26,7 @@
 #include <assert.h>
 #include <memory>
 #include <vector>
+#include <string>
 #include "rlp.hpp"
 
 void com::vmware::athena::RLPBuilder::add_size(size_t size,

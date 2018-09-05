@@ -25,6 +25,7 @@
 #include <thread>
 #include <string>
 #include "status_aggregator.hpp"
+#include "kvb/bft_configuration.hpp"
 
 #ifdef USE_ROCKSDB
 #include "kvb/RocksDBClient.h"
@@ -208,43 +209,54 @@ run_service(variables_map &opts, Logger logger)
       EthSign verifier;
       KVBCommandsHandler athkvb(athevm, verifier, opts);
 
-      // For Thread local storage. Should be called exactly once per process.
-      Blockchain::initEnv();
-
-      // init status aggregation object
-      StatusAggregator sag;
-
+      /// replica and comm config init
+      bftEngine::PlainUdpConfig commConfig;
       Blockchain::ReplicaConsensusConfig replicaConsensusConfig;
-      replicaConsensusConfig.byzConfig = opts["SBFT.public"].as<std::string>();
-      replicaConsensusConfig.byzPrivateConfig =
-         opts["SBFT.replica"].as<std::string>();
+      ///TODO(IG): check return value and shutdown athena if false
+      parse_plain_config_file(opts["SBFT.replica"].as<std::string>(),
+                              opts["SBFT.public"].as<std::string>(),
+                              &commConfig,
+                              nullptr,
+                              &replicaConsensusConfig);
+
+
+      // init replica
+      StatusAggregator sag;
       Blockchain::IReplica *replica =
-         Blockchain::createReplica(replicaConsensusConfig,
-                                   &athkvb,
-                                   dbclient,
-                                   sag.get_update_connectivity_fn());
+              Blockchain::createReplica(replicaConsensusConfig,
+                                        &athkvb,
+                                        dbclient,
+                                        sag.get_update_connectivity_fn());
 
       // Genesis must be added before the replica is started.
       Blockchain::Status genesis_status =
-         create_genesis_block(replica, params, logger);
+              create_genesis_block(replica, params, logger);
       if (!genesis_status.ok()) {
          LOG4CPLUS_FATAL(logger, "Unable to load genesis block: " <<
-                         genesis_status.ToString());
+                                 genesis_status.ToString());
          throw EVMException("Unable to load genesis block");
       }
 
+      /// start replica
       replica->start();
 
+      /// init and start clients pool
       std::vector<KVBClient*> clients;
       std::vector<std::string> clientConfigs =
          opts["SBFT.client"].as<std::vector<std::string>>();
 
       for (auto it = clientConfigs.begin(); it != clientConfigs.end(); it++) {
          Blockchain::ClientConsensusConfig clientConsensusConfig;
-         clientConsensusConfig.byzConfig = opts["SBFT.public"].as<std::string>();
-         clientConsensusConfig.byzPrivateConfig = *it;
+         ///TODO(IG): check return value and shutdown athena if false
+         parse_plain_config_file(*it,
+                                 opts["SBFT.public"].as<std::string>(),
+                                 nullptr,
+                                 &clientConsensusConfig,
+                                 nullptr);
+         bftEngine::ICommunication *comm =
+                 bftEngine::CommFactory::create(commConfig);
          Blockchain::IClient *client =
-            Blockchain::createClient(clientConsensusConfig);
+            Blockchain::createClient(comm, clientConsensusConfig);
          client->start();
          KVBClient *kvbClient = new KVBClient(client);
          clients.push_back(kvbClient);
@@ -279,9 +291,11 @@ run_service(variables_map &opts, Logger logger)
       // If we return from `run`, the service was stopped and we are shutting
       // down.
 
+      /// replica
       replica->stop();
       replica->wait();
       Blockchain::release(replica);
+      ////////////////////
 
       // For Thread local storage. Should be called exactly once per process.
       Blockchain::freeEnv();

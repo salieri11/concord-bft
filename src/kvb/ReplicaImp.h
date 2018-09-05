@@ -13,7 +13,10 @@
 #include "InMemoryDBClient.h"
 #include "Threading.h"
 #include "ThreadLocalStorage.h"
-#include "libbyz.h"
+//#include "libbyz.h"
+#include "../../submodules/concord-bft/bftengine/include/bftengine/Replica.hpp"
+#include "../../submodules/concord-bft/bftengine/include/bftengine/ReplicaConfig.hpp"
+#include "../../submodules/concord-bft/bftengine/include/bftengine/ICommunication.hpp"
 #include <string>
 #include "StatusInfo.h"
 
@@ -76,11 +79,10 @@ namespace Blockchain {
 
       // CTOR & DTOR
 
-      ReplicaImp( string byzConfig,
-                  string byzPrivateConfig,
+      ReplicaImp( bftEngine::ICommunication *comm,
+                  ReplicaConsensusConfig config,
                   ICommandsHandler *cmdHandler,
-                  BlockchainDBAdapter *dbAdapter,
-                  UPDATE_CONNECTIVITY_FN fPeerConnectivityCallback);
+                  BlockchainDBAdapter *dbAdapter);
       virtual ~ReplicaImp();
 
       // METHODS
@@ -97,10 +99,11 @@ namespace Blockchain {
       void revertBlock(BlockId blockId);
 
       // CONSTANTS
-
-      const std::string m_byzConfig;
-      const std::string m_byzPrivateConfig;
       const ICommandsHandler *m_cmdHandler;
+
+      // config
+      bftEngine::ICommunication *m_commModule = nullptr;
+      ReplicaConsensusConfig m_ReplicaConfig;
 
       // INTERNAL TYPES
 
@@ -247,8 +250,6 @@ namespace Blockchain {
       BlockchainDBAdapter* m_bcDbAdapter;
       BlockId lastBlock = 0;
 
-      UPDATE_CONNECTIVITY_FN m_fPeerConnectivityCallback;
-
       // static methods
       static Slice createBlockFromUpdates(
          const SetOfKeyValuePairs& updates,
@@ -272,11 +273,11 @@ namespace Blockchain {
 
       // FRIENDS
 
-      friend IReplica* createReplica(
-         const ReplicaConsensusConfig &consensusConfig,
-         ICommandsHandler *cmdHandler,
-         IDBClient *db,
-         UPDATE_CONNECTIVITY_FN fPeerConnectivityCallback);
+      friend IReplica*
+      createReplica(bftEngine::ICommunication *comm,
+                    ReplicaConsensusConfig config,
+                    ICommandsHandler *cmdHandler,
+                    IDBClient *db);
       friend void release(IReplica *r);
    };
 }

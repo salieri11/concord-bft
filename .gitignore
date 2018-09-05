@@ -4,3 +4,5 @@ bin/
 tmp/
 logs/
 build/
+.idea/
+cmake-build-debug/

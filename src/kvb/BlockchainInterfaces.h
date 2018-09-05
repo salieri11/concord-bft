@@ -10,10 +10,13 @@
 #include <string>
 #include <iterator>
 #include <unordered_set>
+#include <set>
 #include "slice.h"
 #include "status.h"
 #include "DatabaseInterface.h"
-#include "StatusInfo.h"
+#include "../../submodules/concord-bft/bftengine/include/communication/StatusInfo.h"
+#include "../../submodules/concord-bft/bftengine/include/bftengine/ICommunication.hpp"
+#include "../../submodules/concord-bft/threshsign/include/threshsign/ThresholdSignaturesSchemes.h"
 
 using std::string;
 using std::pair;
@@ -43,13 +46,61 @@ namespace Blockchain {
    // REPLICA
 
    // configuration
-   // TODO(GG): should be changed !!!!!!
-   // TODO(BWF): as GG said, convert this from strings representing filenames to
-   // structs representing the actual configuration
    struct ReplicaConsensusConfig
    {
-      std::string byzConfig;
-      std::string byzPrivateConfig;
+      // F value - max number of faulty/malicious replicas. fVal >= 1
+      uint16_t fVal;
+
+      // C value. cVal >=0
+      uint16_t cVal;
+
+      // unique identifier of the replica.
+      // The number of replicas in the system should be N = 3*fVal + 2*cVal + 1
+      // In the current version, replicaId should be a number between 0 and  N-1
+      // replicaId should also represent this replica in ICommunication.
+      uint16_t replicaId;
+
+      // number of objects that represent clients.
+      // numOfClientProxies >= 1
+      uint16_t numOfClientProxies;
+
+      // a time interval in milliseconds. represents how often the replica sends a status report to the other replicas.
+      // statusReportTimerMillisec > 0
+      uint16_t statusReportTimerMillisec;
+
+      // number of consensus operations that can be executed in parallel
+      // 1 <= concurrencyLevel <= 30
+      uint16_t concurrencyLevel;
+
+      // autoViewChangeEnabled=true , if the automatic view change protocol is enabled
+      bool autoViewChangeEnabled;
+
+      // a time interval in milliseconds. represents the timeout used by the  view change protocol (TODO: add more details)
+      uint16_t viewChangeTimerMillisec;
+
+      // public keys of all replicas. map from replica identifier to a public key
+      std::set<std::pair<uint16_t, std::string>> publicKeysOfReplicas;
+
+      // private key of the current replica
+      std::string replicaPrivateKey;
+
+      // signer and verifier of a threshold signature (for threshold fVal+1 out of N)
+      // In the current version, both should be nullptr
+      IThresholdSigner* thresholdSignerForExecution;
+      IThresholdVerifier* thresholdVerifierForExecution;
+
+      // signer and verifier of a threshold signature (for threshold N-fVal-cVal out of N)
+      IThresholdSigner* thresholdSignerForSlowPathCommit;
+      IThresholdVerifier* thresholdVerifierForSlowPathCommit;
+
+      // signer and verifier of a threshold signature (for threshold N-cVal out of N)
+      // If cVal==0, then both should be nullptr
+      IThresholdSigner* thresholdSignerForCommit;
+      IThresholdVerifier* thresholdVerifierForCommit;
+
+      // signer and verifier of a threshold signature (for threshold N out of N)
+      IThresholdSigner* thresholdSignerForOptimisticCommit;
+      IThresholdVerifier* thresholdVerifierForOptimisticCommit;
    };
 
    // Represents a replica of the blockchain database
@@ -108,13 +159,12 @@ namespace Blockchain {
    // CLIENT
 
    // configuration
-   // TODO(GG): should be changed !!!!!!
-   // TODO(BWF): as GG said, convert this from strings representing filenames to
    // structs representing the actual configuration
    struct ClientConsensusConfig
    {
-      std::string byzConfig;
-      std::string byzPrivateConfig;
+      uint16_t clientId;
+      uint16_t maxFaulty;
+      uint16_t maxSlow;
    };
 
    // Represents a client of the blockchain database
@@ -155,7 +205,8 @@ namespace Blockchain {
    //make use of RAII?
 
    // creates a new Client object
-   IClient* createClient(const ClientConsensusConfig& consensusConfig);
+   IClient* createClient(bftEngine::ICommunication *comm,
+                         const ClientConsensusConfig &consensusConfig);
 
    // deletes a Client object
    void release(IClient* r);

@@ -8,65 +8,54 @@
 #include "BlockchainInterfaces.h"
 #include "ThreadLocalStorage.h"
 #include "SimpleThreadPool.h"
+#include "../../submodules/concord-bft/bftengine/include/bftengine/SimpleClient.hpp"
+#include "../../submodules/concord-bft/bftengine/include/bftengine/ICommunication.hpp"
 #include <map>
 #include <boost/thread.hpp>
 
 using namespace Blockchain::Utils;
+using namespace bftEngine;
 
 namespace Blockchain {
-
    class ClientImp : public IClient
    {
    public:
       // IClient methods
-      virtual Status start();
-      virtual Status stop();
+      virtual Status start() override;
+      virtual Status stop() override;
 
-      virtual bool isRunning();
+      virtual bool isRunning() override;
 
       virtual void invokeCommandAsynch(const Slice command,
                                        bool isReadOnly,
                                        uint64_t completionToken,
-                                       CommandCompletion h);
+                                       CommandCompletion h) override;
 
       virtual Status invokeCommandSynch(const Slice command,
                                         bool isReadOnly,
-                                        Slice &outReply);
+                                        Slice &outReply) override;
 
       // release memory allocated by invokeCommandSynch
-      virtual Status release(Slice& slice);
+      virtual Status release(Slice& slice) override;
 
    protected:
 
       // ctor & dtor
-      ClientImp(string byzConfig, string byzPrivateConfig);
+      ClientImp(ICommunication *comm,
+                const ClientConsensusConfig &conf);
       virtual ~ClientImp();
-
-      const string m_byzConfig;
-      const string m_byzPrivateConfig;
-
-      const TlsIndex m_TlsData;
-
-      SimpleThreadPool::Controller *m_pController;
-
-      SimpleThreadPool m_threadPool;
 
       int m_status;
 
-      friend class InternalClientJob;
-      friend class InternalClientThreadPoolController;
-
-      friend IClient* createClient(const ClientConsensusConfig &conf);
+      friend IClient* createClient( ICommunication *comm,
+                                    const ClientConsensusConfig &conf);
       friend void release(IClient *r);
 
    private:
-      // TODO(Amit): This mutex is only needed because SimpleThreadPool is
-      // currently not able to handle multiple jobs in the queue. The
-      // `waitForCompletion` function will go in infinite loop if two threads
-      // submit a job at the same time before any of the thread actually call
-      // `waitForCompletion` function. Once SimpleThreadPool is updated to handle
-      // multiple pending jobs this mutex can be removed.
-      boost::mutex job_mutex;
+      SimpleClient *m_bftClient = nullptr;
+      SeqNumberGeneratorForClientRequests *m_SeqNumGenerator = nullptr;
+      static constexpr size_t OUT_BUFFER_SIZE = 512000;
+      char m_outBuffer[OUT_BUFFER_SIZE];
    };
 }
 

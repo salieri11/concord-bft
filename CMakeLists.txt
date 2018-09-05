@@ -35,6 +35,9 @@ else(DEFINED USE_HERA)
   include_directories(${Evmjit_INCLUDE_DIRS})
   set(EVM_LIBRARIES ${Evmjit_LIBRARIES})
 
+  if(APPLE)
+    set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "/usr/local/Cellar/llvm@5/5.0.2/lib/cmake/llvm")
+  endif(APPLE)
   find_package(LLVM REQUIRED CONFIG)
 endif(DEFINED USE_HERA)
 

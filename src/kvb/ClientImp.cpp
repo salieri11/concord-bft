@@ -3,149 +3,17 @@
 // KV Blockchain client implementation.
 
 #include "ClientImp.h"
-#include "libbyz.h"
-
-#include "HexTools.h"
-#include <chrono>
 
 using namespace Blockchain::Utils;
 
 namespace Blockchain {
 
-class InternalClientThreadPoolController : public SimpleThreadPool::Controller
-{
-public:
-
-   InternalClientThreadPoolController(ClientImp& c) : client(c)
-   {}
-
-   virtual void onThreadBegin()
-   {
-      Byz_init_client(client.m_byzConfig.c_str(),
-                      client.m_byzPrivateConfig.c_str(),
-                      0);
-   }
-
-   virtual void onThreadEnd()
-   {
-      // TODO(GG): free byz_client resources ...
-   }
-private:
-   ClientImp& client;
-};
-
-
-class InternalClientJob : public SimpleThreadPool::Job
-{
-public:
-
-   InternalClientJob(bool isReadOnly,
-                     Slice command,
-                     int64_t completionToken,
-                     IClient::CommandCompletion completionCallback)
-   {
-      // TODO(GG): what is the max value ???? + add error handling
-      assert(command.size() > 0);
-      m_isReadOnly = isReadOnly;
-      size_t s = command.size();
-      m_commandBufferLength = s;
-      m_pCommandBuffer = new char[s];
-
-       // TODO(GG): try not to copy the data more than once ...
-      memcpy(m_pCommandBuffer, command.data(), s);
-
-      m_completionToken = completionToken;
-      m_completionCallback = completionCallback;
-   }
-
-   virtual ~InternalClientJob() {
-      delete m_pCommandBuffer;
-   }
-
-   virtual void execute()
-   {
-      Byz_rep reply;
-      Byz_req request;
-      Byz_alloc_request(&request, m_commandBufferLength);
-      memcpy(request.contents, m_pCommandBuffer, m_commandBufferLength);
-      request.size = m_commandBufferLength;
-
-      Byz_invoke(&request, &reply, m_isReadOnly);
-
-      Status retVal = Status::OK(); // ??
-      Slice  replySlice(reply.contents, reply.size);
-
-      if (m_completionCallback) {
-         m_completionCallback(m_completionToken, retVal, replySlice);
-      }
-
-      Byz_free_request(&request);
-      Byz_free_reply(&reply);
-   }
-
-   virtual void release()
-   {
-      delete this;
-   }
-
-private:
-
-   bool m_isReadOnly;
-   size_t m_commandBufferLength;
-   char *m_pCommandBuffer;
-
-   int64_t m_completionToken;
-   IClient::CommandCompletion m_completionCallback;
-};
-
-
-struct ClientImpDataForSynchOperation
-{
-   char *p;
-   size_t s;
-};
-
 /**
- * Shim for getting SimpleThreadPool data back to requester.
- */
-static void handlerForSynchOperations(uint64_t completionToken,
-                                      Status returnedStatus,
-                                      Slice outreply)
-{
-   ClientImpDataForSynchOperation* x =
-      (ClientImpDataForSynchOperation*)completionToken;
-
-   if (outreply.size() > 0) {
-      x->p = new char[outreply.size()];
-      memcpy(x->p, outreply.data(), outreply.size());
-      x->s = outreply.size();
-   } else {
-      x->p = NULL;
-      x->s = 0;
-   }
-}
-
-
-static TlsIndex _allocTlsforClientImp()
-{
-   TlsIndex i;
-   allocTlsIndex(&i);
-   // TODO(GG): error handling
-   return i;
-}
-
-/**
- * Starts the thread pool for the client.
+ * in current impl, no start semantics needed
  */
 Status ClientImp::start()
 {
-   if (m_status != Idle) {
-      return Status::IllegalOperation("todo");
-   }
-
-   m_threadPool.start(m_pController);
    m_status = Running;
-
    return Status::OK();
 }
 
@@ -155,18 +23,7 @@ Status ClientImp::start()
  */
 Status ClientImp::stop()
 {
-   if (m_status != Running) {
-      return Status::IllegalOperation("todo");
-   }
-
-   m_status = Stopping;
-
-   // TODO(GG): notice that "stop" is not fully supported - (consider to add
-   // ability to stop byz_client objects)
-   m_threadPool.waitForCompletion();
-
    m_status = Idle;
-
    return Status::OK();
 }
 
@@ -175,48 +32,29 @@ bool ClientImp::isRunning()
    return (m_status == Running);
 }
 
-
 /**
- * Submits a new job to the threadpool, to handle command.
- */
-void ClientImp::invokeCommandAsynch(const Slice command,
-                                    bool isReadOnly,
-                                    uint64_t completionToken,
-                                    CommandCompletion h)
-{
-   InternalClientJob* j =
-      new InternalClientJob(isReadOnly, command, completionToken, h);
-   m_threadPool.add(j);
-}
-
-/**
- * Submits a new job to the thread pool, to handle command, then waits for it to
- * complete, and assigns the result to outReply.
+ * execute the command synchronously
  */
 Status ClientImp::invokeCommandSynch(const Slice command,
                                      bool isReadOnly,
                                      Slice& outReply)
 {
-   ClientImpDataForSynchOperation t;
-   t.p = 0; t.s = 0;
+   auto seqNum = m_SeqNumGenerator->generateUniqueSequenceNumberForRequest();
+   auto res = m_bftClient->sendRequest(isReadOnly,
+                                       command.data(),
+                                       command.size(),
+                                       seqNum,
+                                       SimpleClient::INFINITE_TIMEOUT,
+                                       );
 
-   InternalClientJob* j = new InternalClientJob(isReadOnly,
-                                                command,
-                                                (uint64_t)&t,
-                                                handlerForSynchOperations);
+   assert(res >= -2 && res < 1);
 
-   // Below section needs to be guarded with mutex (read comment in ClientImp.h
-   // file about usage of this mutex)
-   boost::unique_lock<boost::mutex> lock(job_mutex);
-   m_threadPool.add(j);
-   // TODO(GG): patch (work only becuase we use a single thread)
-   m_threadPool.waitForCompletion();
-   lock.unlock();
-
-   outReply = Slice(t.p, t.s);
-
-   // TODO(GG): return the real result ...
-   return Status::OK();
+   if(res == 0)
+      return Status::OK();
+   else if (res == -1)
+      return Status::GeneralError(Slice("error"), Slice("timeout"));
+   else
+      return  Status::InvalidArgument(Slice("error"), Slice("small buffer"));
 }
 
 
@@ -225,20 +63,16 @@ Status ClientImp::invokeCommandSynch(const Slice command,
  */
 Status ClientImp::release(Slice& slice)
 {
-   if (slice.size() > 0)
-   {
-      char* p = (char*)slice.data();
-      delete[] p;
-      slice = Slice();
-   }
+   memset(m_outBuffer, 0, OUT_BUFFER_SIZE);
 
    return Status::OK();
 }
 
 
-IClient* createClient(const ClientConsensusConfig& conf)
+IClient* createClient(ICommunication *comm,
+                      const ClientConsensusConfig &conf)
 {
-   return new ClientImp(conf.byzConfig, conf.byzPrivateConfig);
+   return new ClientImp(comm, conf);
 }
 
 void release(IClient* r)
@@ -247,23 +81,26 @@ void release(IClient* r)
    delete p;
 }
 
-ClientImp::ClientImp(string byzConfig, string byzPrivateConfig) :
-   m_byzConfig(byzConfig),
-   m_byzPrivateConfig(byzPrivateConfig),
-   m_TlsData(_allocTlsforClientImp()),
-   m_pController(new InternalClientThreadPoolController(*this)),
-   // TODO(GG): consider to support several threads (by using the TLS option in
-   // the byz engine)
-   m_threadPool(1),
+ClientImp::ClientImp(ICommunication *comm,
+                     const ClientConsensusConfig &conf) :
    m_status(Idle)
 {
-
+   m_bftClient = SimpleClient::createSimpleClient(comm,
+                                                   conf.clientId,
+                                                   conf.fVal,
+                                                   conf.cVal);
+   m_SeqNumGenerator =
+           SeqNumberGeneratorForClientRequests::
+               createSeqNumberGeneratorForClientRequests();
 }
 
 
 ClientImp::~ClientImp()
 {
-   delete m_pController;
+   if (m_bftClient)
+      delete m_bftClient;
+   if (m_SeqNumGenerator)
+      delete m_SeqNumGenerator;
 }
 
 }
