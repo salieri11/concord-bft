@@ -97,17 +97,48 @@ public class APIHelper {
     *
     * @param binary
     *           Binary string
-    * @return
+    * @param dropLeadingZeros
+    *           If true, do not include "0" characters in the output for zero
+    *           bytes at the start of the input. (e.g. if binary is [0, 0, 1, 2,
+    *           3], output "0x10203" instead of "0x0000010203").
+    * @return A string starting with "0x", followed by the hex representation of
+    *         the 'binary' parameter.
     */
-   public static String binaryStringToHex(ByteString binary) {
+   public static String binaryStringToHex(ByteString binary,
+                                          boolean dropLeadingZeros) {
       byte[] resultBytes = binary.toByteArray();
       StringBuilder sb = new StringBuilder("0x");
 
+      boolean first = true;
+
       for (byte b : resultBytes) {
-         sb.append((String.format("%02x", b)));
+         if (first && dropLeadingZeros) {
+            if (b != 0) {
+               first = false;
+
+               // Don't force two characters, if the first byte only needs one.
+               sb.append(String.format("%x", b));
+            }
+         } else {
+            sb.append(String.format("%02x", b));
+         }
       }
+
+      if (dropLeadingZeros && first) {
+         // We only drop leading zeros for QUANTITY fields, and "0x" is not
+         // allowed there. It must be "0x0" at least.
+         sb.append("0");
+      }
+
       String result = sb.toString();
       return result;
+   }
+
+   /**
+    * Wrapper around binaryStringToHex that never drops leading zeros.
+    */
+   public static String binaryStringToHex(ByteString binary) {
+      return binaryStringToHex(binary, false);
    }
 
    /**
