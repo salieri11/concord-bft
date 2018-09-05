@@ -30,9 +30,6 @@ static const int default_api_worker_thread_pool_size = 4;
 // default count of maximum transactions returned by transaction list query
 static const int default_transaction_list_max_count = 10;
 
-// default amount in the future to consider a proposed timestamp acceptable
-// (seconds)
-static const int default_timestamp_leeway_sec = 10;
 
 variables_map initialize_config(int argc, char **argv) {
    // A map to hold key-value pairs of all options
@@ -105,11 +102,7 @@ variables_map initialize_config(int argc, char **argv) {
        "Number of threads to create for handling TCP connections")
       ("transaction_list_max_count",
        value<int>()->default_value(default_transaction_list_max_count),
-       "Maximum transactions returned for a transaction list query")
-      ("timestamp_leeway_sec",
-       value<int>()->default_value(default_timestamp_leeway_sec),
-       "A transaction will be rejected if its proposed timestamp is more than "
-       "this number of seconds ahead of the replica's local system clock.");
+       "Maximum transactions returned for a transaction list query");
 
 
    options_description all_options; // description of all options

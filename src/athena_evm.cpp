@@ -312,7 +312,7 @@ bool com::vmware::athena::EVM::new_account(
       kvbStorage.set_nonce(zero_address, nonce+1);
       //TODO: use parent block timestamp, not zero here
       //      (but really this whole thing should move to helen HEL-80)
-      kvbStorage.write_block(0, 0);
+      kvbStorage.write_block(0);
       return true;
    }
 }
