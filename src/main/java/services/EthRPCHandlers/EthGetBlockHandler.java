@@ -132,15 +132,9 @@ public class EthGetBlockHandler extends AbstractEthRPCHandler {
                  APIHelper.binaryStringToHex(blockResponseObj.getNonce()));
       result.put("size", blockResponseObj.getSize());
 
-      if (blockResponseObj.hasAcceptedTimestamp()) {
-         /**
-          * We use "accepted" rather than "proposed" here, because that time is
-          * guaranteed not to go backward. Ethereum clients expect that time
-          * will not reverse.
-          */
+      if (blockResponseObj.hasTimestamp()) {
          result.put("timestamp",
-                    "0x" + Long.toHexString(
-                       blockResponseObj.getAcceptedTimestamp()));
+                    "0x" + Long.toHexString(blockResponseObj.getTimestamp()));
       }
 
       JSONArray transactions = new JSONArray();
