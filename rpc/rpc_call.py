@@ -7,6 +7,7 @@ import os
 import subprocess
 import threading
 import time
+from numbers import Number
 
 import util.json_helper
 
@@ -268,6 +269,20 @@ class RPC():
       '''
       self._rpcData["method"] = "eth_blockNumber"
       #self._rpcData["params"] = []
+
+      response = self._call()
+      return self.getResultFromResponse(response)
+
+   def getBlockByNumber(self, number="latest", includeTransactions=False):
+      '''
+      Gets the given block.
+      '''
+      self._rpcData["method"] = "eth_getBlockByNumber"
+
+      if isinstance(number, Number):
+         number = hex(number)
+
+      self._rpcData["params"] = [number, includeTransactions]
 
       response = self._call()
       return self.getResultFromResponse(response)
