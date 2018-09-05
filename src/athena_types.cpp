@@ -295,7 +295,7 @@ com::vmware::athena::EthBlock::deserialize(Blockchain::Slice &input)
    kvb::Block inblk;
    inblk.ParseFromArray(input.data(), input.size());
 
-   if (inblk.version() <= blk_storage_version) {
+   if (inblk.version() == blk_storage_version) {
       EthBlock outblk;
 
       outblk.number = inblk.number();
