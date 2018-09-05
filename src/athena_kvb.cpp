@@ -439,12 +439,20 @@ bool com::vmware::athena::KVBCommandsHandler::handle_block_request(
    try {
       EthBlock block;
       if (request.has_number()) {
-         uint64_t requested_block_number = kvbStorage.current_block_number();
-         if (request.number() >= 0 &&
-             (uint64_t)request.number() < requested_block_number) {
-            requested_block_number = request.number();
+         if (request.number() >= 0) {
+            // A request for a specific block.
+            uint64_t requested_block_number = (uint64_t)request.number();
+            if (requested_block_number <= kvbStorage.current_block_number()) {
+               block = kvbStorage.get_block(requested_block_number);
+            } else {
+               // We haven't created a block with this number yet.
+               throw BlockNotFoundException();
+            }
+         } else {
+            // Anything less than zero is a special request
+            // (latest/pending). Treat them all as "latest" right now.
+            block = kvbStorage.get_block(kvbStorage.current_block_number());
          }
-         block = kvbStorage.get_block(requested_block_number);
       } else if (request.has_hash()) {
          evm_uint256be blkhash;
          std::copy(request.hash().begin(), request.hash().end(), blkhash.bytes);
