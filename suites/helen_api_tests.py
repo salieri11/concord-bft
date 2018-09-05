@@ -231,7 +231,7 @@ class HelenAPITests(test_suite.TestSuite):
          (present, missing) = self.requireFields(
             blockResult,
             ["number", "hash", "parentHash", "nonce", "size", "transactions",
-             "proposed_timestamp", "accepted_timestamp"])
+             "timestamp"])
          if not present:
             return (False, "No '{}' field in block response.".format(missing))
 
