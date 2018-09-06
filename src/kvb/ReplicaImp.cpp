@@ -21,18 +21,13 @@
 #include "ThreadLocalStorage.h"
 
 #include "ReplicaImp.h"
-
 #include <inttypes.h>
 #include <cstdlib>
 #include "HexTools.h"
 #include <chrono>
+#include <CommDefs.hpp>
 
 using log4cplus::Logger;
-
-namespace Blockchain {
-
-TlsIndex ReplicaImp::m_sThreadLocalDataIdx = 0;
-
 struct blockEntry
 {
    uint32_t keyOffset;
@@ -59,12 +54,18 @@ Status ReplicaImp::start()
 
    m_currentRepStatus = RepStatus::Starting;
 
-   bool res = createThread(&m_thread, replicaInternalThread, this);
+   m_replicaPtr = bftEngine::Replica::createNewReplica(
+           &m_replicaConfig,
+           m_cmdHandler,
+           nullptr,
+           m_ptrComm,
+           nullptr);
 
-   if (!res) {
-      // TODO(GG)
-      return Status::GeneralError("Failed to create replica internal thread");
-   }
+   m_replicaPtr->start();
+   m_currentRepStatus = RepStatus::Running;
+
+   /// TODO(IG, GG)
+   /// add return value to start/stop
 
    return Status::OK();
 }
@@ -74,8 +75,10 @@ Status ReplicaImp::start()
  */
 Status ReplicaImp::stop()
 {
+   m_currentRepStatus = RepStatus::Stopping;
    m_bcDbAdapter->getDb()->close();
-
+   m_replicaPtr->stop();
+   m_currentRepStatus = RepStatus::Idle;
    return Status::OK();
 }
 
@@ -207,28 +210,62 @@ Status ReplicaImp::addBlock(const SetOfKeyValuePairs &updates,
    return addBlockInternal(updates, outBlockId);
 }
 
+void ReplicaImp::set_command_handler(Blockchain::ICommandsHandler *handler) {
+   m_cmdHandler = handler;
+}
 
-ReplicaImp::ReplicaImp( bftEngine::ICommunication *comm,
-                        ReplicaConsensusConfig config,
-                        ICommandsHandler *cmdHandler,
+ReplicaImp::ReplicaImp( Blockchain::CommConfig &commConfig,
+                        ReplicaConsensusConfig &replicaConfig,
                         BlockchainDBAdapter *dbAdapter) :
-   m_cmdHandler(cmdHandler),
-   m_commModule(comm),
-   m_ReplicaConfig(config),
    logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb")),
-   m_running(false),
+   m_currentRepStatus(RepStatus::Idle),
    m_InternalStorageWrapperForIdleMode(this),
-   m_bcDbAdapter(dbAdapter)
+   m_bcDbAdapter(dbAdapter),
+   lastBlock(0)
 {
-   // TODO(GG): add synchronization (to handle concurrent executions)
-   /*if (m_sThreadLocalDataIdx == 0) {
-      int res = Utils::allocTlsIndex(&m_sThreadLocalDataIdx);
-      // TODO(GG): add error handling
-      assert(res == 0);
-   }
-*/
-   m_currentRepStatus = RepStatus::Idle;
-   lastBlock = 0;
+   m_replicaConfig.cVal = replicaConfig.cVal;
+   m_replicaConfig.fVal = replicaConfig.fVal;
+   m_replicaConfig.replicaId = replicaConfig.replicaId;
+   m_replicaConfig.autoViewChangeEnabled =
+           replicaConfig.autoViewChangeEnabled;
+   m_replicaConfig.concurrencyLevel = replicaConfig.concurrencyLevel;
+   m_replicaConfig.numOfClientProxies = replicaConfig.numOfClientProxies;
+   m_replicaConfig.publicKeysOfReplicas = replicaConfig.publicKeysOfReplicas;
+   m_replicaConfig.replicaPrivateKey = replicaConfig.replicaPrivateKey;
+   m_replicaConfig.statusReportTimerMillisec =
+           replicaConfig.statusReportTimerMillisec;
+   m_replicaConfig.viewChangeTimerMillisec =
+           replicaConfig.viewChangeTimerMillisec;
+   /// TODO(IG): the below part of the config should be initialized within the
+   /// BFT engine
+   m_replicaConfig.thresholdSignerForCommit =
+           replicaConfig.thresholdSignerForCommit;
+   m_replicaConfig.thresholdSignerForExecution =
+           replicaConfig.thresholdSignerForExecution;
+   m_replicaConfig.thresholdSignerForOptimisticCommit =
+           replicaConfig.thresholdSignerForOptimisticCommit;
+   m_replicaConfig.thresholdSignerForSlowPathCommit =
+           replicaConfig.thresholdSignerForSlowPathCommit;
+   m_replicaConfig.thresholdVerifierForCommit =
+           replicaConfig.thresholdVerifierForCommit;
+   m_replicaConfig.thresholdVerifierForExecution =
+           replicaConfig.thresholdVerifierForExecution;
+   m_replicaConfig.thresholdVerifierForOptimisticCommit =
+           replicaConfig.thresholdVerifierForOptimisticCommit;
+   m_replicaConfig.thresholdVerifierForSlowPathCommit =
+           replicaConfig.thresholdVerifierForSlowPathCommit;
+
+   /// TODO(IG): since we want to discouple athena and bft by KVB layer,
+   /// athena should not know about inner bft comm types. Instead, it should
+   // have its own setting which comm to use. Currently using UDP hardcoded
+   bftEngine::PlainUdpConfig config (  commConfig.listenIp,
+                                       commConfig.listenPort,
+                                       commConfig.bufferLength,
+                                       commConfig.nodes);
+
+   m_ptrComm = bftEngine::CommFactory::create(config);
+
+
 }
 
 ReplicaImp::~ReplicaImp()
@@ -245,9 +282,9 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs& updates,
    SetOfKeyValuePairs updatesInNewBlock;
 
    if (getReplicaStatus() == RepStatus::Running) {
-      // TODO(GG): sizeof(int) is not enough - byz engine should support "BlockId"
-      int page = block;
-      Byz_modify(1, &page);
+      // TODO(GG): sizeof(int) is not enough, byz engine should support BlockId
+      // int page = block;
+      // Byz_modify(1, &page);
    }
 
    LOG4CPLUS_DEBUG(logger,
@@ -642,16 +679,12 @@ SetOfKeyValuePairs ReplicaImp::fetchBlockData(Slice block)
 
 int ReplicaImp::get_block(int n, char **page)
 {
-   void* t = NULL;
-   getTlsVal(m_sThreadLocalDataIdx, &t);
-   ReplicaImp* r = (ReplicaImp*)t;
-
    BlockId bId = n;
    size_t size;
 
    bool found = false;
    Slice blockRaw;
-   Status s = r->getBcDbAdapter()->getBlockById(bId, blockRaw, found);
+   Status s = getBcDbAdapter()->getBlockById(bId, blockRaw, found);
    if (!s.ok()) {
       LOG4CPLUS_ERROR(Logger::getInstance("com.vmware.athena.kvb"),
                       "error getting block by id " << bId);
@@ -670,7 +703,7 @@ int ReplicaImp::get_block(int n, char **page)
    // Free blockRaw
    if (blockRaw.size() > 0) {
       // Will free underlying data only if it is fetched from RocksDB database
-      r->getBcDbAdapter()->freeFetchedBlock(blockRaw);
+      getBcDbAdapter()->freeFetchedBlock(blockRaw);
       blockRaw.clear();
    }
 
@@ -682,10 +715,6 @@ int ReplicaImp::get_block(int n, char **page)
 
 void ReplicaImp::put_blocks(int count, int *sizes, int *indices, char **pages)
 {
-   void *t = NULL;
-   getTlsVal(m_sThreadLocalDataIdx, &t);
-   ReplicaImp *r = (ReplicaImp*)t;
-
    for (int i = 0; i < count; i++) {
       BlockId blockId = indices[i];
       size_t blockSize = sizes[i];
@@ -693,95 +722,26 @@ void ReplicaImp::put_blocks(int count, int *sizes, int *indices, char **pages)
 
       Slice b(blockPtr, blockSize);
 
-      r->insertBlockInternal(blockId, b);
+      insertBlockInternal(blockId, b);
    }
 }
 
-bool ReplicaImp::check_nond(Byz_buffer *b)
+bool ReplicaImp::check_nond(char *buffer)
 {
    return true;
 }
 
-int ReplicaImp::exec_command(Byz_req *inb,
-                             Byz_rep *outb,
-                             Byz_buffer *non_det,
-                             int client,
-                             bool ro)
-{
-   void *t = NULL;
-   getTlsVal(m_sThreadLocalDataIdx, &t);
-   ReplicaImp *r = (ReplicaImp*)t;
-
-   // TODO(GG): verify command .....
-
-   Slice cmdContent(inb->contents, inb->size);
-
-   if (ro) {
-      size_t replySize = 0;
-      // TODO(GG): ret vals
-      r->m_cmdHandler->executeReadOnlyCommand(
-         cmdContent, *r, outb->size, outb->contents, replySize);
-      outb->size = replySize;
-   } else {
-      size_t replySize = 0;
-      // TODO(GG): ret vals
-      r->m_cmdHandler->executeCommand(
-         cmdContent, *r, *r, outb->size, outb->contents, replySize);
-      outb->size = replySize;
-   }
-
-   return 0;
-}
-
-
-#if defined(_WIN32)
-DWORD WINAPI ReplicaImp::replicaInternalThread(LPVOID param)
-#else
-   void* ReplicaImp::replicaInternalThread(void *param)
-#endif
-{
-   ReplicaImp *r = (ReplicaImp*)param;
-
-#if defined(_WIN32)
-   // Suspecting this assert is not correct in linux, and key may be 0
-   assert(m_sThreadLocalDataIdx != 0);
-#endif
-   // setTlsVal(m_sThreadLocalDataIdx, r);
-
-   // TODO(GG): Explain. In the future, we will probably need to map several
-   // blocks to the same object/page
-   assert(10 * 1e6 < INT_MAX);
-
-   Logger logger(Logger::getInstance("com.vmware.athena.kvb"));
-   LOG4CPLUS_DEBUG(logger, "initializing byz");
-
-/*
-   if (used_mem < 0) {
-      LOG4CPLUS_ERROR(logger, "Byz_init_replica failed");
-      return 0;
-   }
-   */
-
-   r->m_currentRepStatus = RepStatus::Running;
-
-   // TODO(GG): add support for "stop" in the BFT engine
-
-
-   return 0;
-}
-
-IReplica* createReplica(bftEngine::ICommunication *comm,
-                        ReplicaConsensusConfig config,
-                        ICommandsHandler* cmdHandler,
-                        IDBClient* db)
+IReplica*
+Blockchain::createReplica(Blockchain::CommConfig &commConfig,
+                          ReplicaConsensusConfig &config,
+                          IDBClient* db)
 {
    LOG4CPLUS_DEBUG(Logger::getInstance("com.vmware.athena.kvb"),
                    "Creating replica");
    BlockchainDBAdapter *dbAdapter = new BlockchainDBAdapter(db);
 
-   ReplicaImp *r = new ReplicaImp(comm,
+   auto r = new Blockchain::ReplicaImp(commConfig,
                                   config,
-                                  cmdHandler,
                                   dbAdapter);
 
    //Initialization of the database object is done here so that we can
@@ -802,10 +762,9 @@ IReplica* createReplica(bftEngine::ICommunication *comm,
    return r;
 }
 
-void release(IReplica *r)
+void Blockchain::release(IReplica *r)
 {
-   ReplicaImp *rep = (ReplicaImp*)r;
-   delete rep;
+   delete r;
 }
 
 
@@ -935,6 +894,4 @@ bool ReplicaImp::StorageIterator::isEnd()
 Status ReplicaImp::StorageIterator::freeInternalIterator()
 {
    return rep->getBcDbAdapter()->freeIterator(m_iter);
-}
-
 }

@@ -6,6 +6,8 @@
 #define HASHDEFS_H
 
 #include <stdlib.h>
+#include "slice.h"
+#include "BlockchainInterfaces.h"
 
 // TODO(GG): do we want this hash function ? See also
 // http://www.cse.yorku.ca/~oz/hash.html

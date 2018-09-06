@@ -3,6 +3,7 @@
 // KV Blockchain client implementation.
 
 #include "ClientImp.h"
+#include "CommFactory.hpp"
 
 using namespace Blockchain::Utils;
 
@@ -37,7 +38,8 @@ bool ClientImp::isRunning()
  */
 Status ClientImp::invokeCommandSynch(const Slice command,
                                      bool isReadOnly,
-                                     Slice& outReply)
+                                     Slice& outReply,
+                                     uint32_t &outActualReplySize)
 {
    auto seqNum = m_SeqNumGenerator->generateUniqueSequenceNumberForRequest();
    auto res = m_bftClient->sendRequest(isReadOnly,
@@ -45,7 +47,9 @@ Status ClientImp::invokeCommandSynch(const Slice command,
                                        command.size(),
                                        seqNum,
                                        SimpleClient::INFINITE_TIMEOUT,
-                                       );
+                                       outReply.size(),
+                                       (char*)outReply.data(),
+                                       outActualReplySize);
 
    assert(res >= -2 && res < 1);
 
@@ -57,22 +61,21 @@ Status ClientImp::invokeCommandSynch(const Slice command,
       return  Status::InvalidArgument(Slice("error"), Slice("small buffer"));
 }
 
-
 /**
- * Release memory used by slice.
+ * TODO(IG):
+ * not needed since the slice is owned by the caller
+ * should be removed
  */
 Status ClientImp::release(Slice& slice)
 {
-   memset(m_outBuffer, 0, OUT_BUFFER_SIZE);
-
    return Status::OK();
 }
 
 
-IClient* createClient(ICommunication *comm,
+IClient* createClient(Blockchain::CommConfig &commConfig,
                       const ClientConsensusConfig &conf)
 {
-   return new ClientImp(comm, conf);
+   return new ClientImp(commConfig, conf);
 }
 
 void release(IClient* r)
@@ -81,14 +84,21 @@ void release(IClient* r)
    delete p;
 }
 
-ClientImp::ClientImp(ICommunication *comm,
+ClientImp::ClientImp(Blockchain::CommConfig &commConfig,
                      const ClientConsensusConfig &conf) :
    m_status(Idle)
 {
+   /// TODO(IG): same as in ReplicaImp, actual comm type should be from config
+   bftEngine::PlainUdpConfig config (  commConfig.listenIp,
+                                       commConfig.listenPort,
+                                       commConfig.bufferLength,
+                                       commConfig.nodes);
+
+   auto comm = bftEngine::CommFactory::create(config);
    m_bftClient = SimpleClient::createSimpleClient(comm,
-                                                   conf.clientId,
-                                                   conf.fVal,
-                                                   conf.cVal);
+                                                  conf.clientId,
+                                                  conf.maxFaulty,
+                                                  conf.maxSlow);
    m_SeqNumGenerator =
            SeqNumberGeneratorForClientRequests::
                createSeqNumberGeneratorForClientRequests();

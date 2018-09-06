@@ -3,21 +3,21 @@
 // KV Blockchain replica definition.
 
 #ifndef REPLICAIMP_H
+#include <map>
+#include <functional>
+#include <string>
 
 #include <log4cplus/loggingmacros.h>
-
 #include "BlockchainInterfaces.h"
 #include "HashDefs.h"
-#include <map>
 #include "BlockchainDBAdapter.h"
 #include "InMemoryDBClient.h"
 #include "Threading.h"
 #include "ThreadLocalStorage.h"
-//#include "libbyz.h"
-#include "../../submodules/concord-bft/bftengine/include/bftengine/Replica.hpp"
-#include "../../submodules/concord-bft/bftengine/include/bftengine/ReplicaConfig.hpp"
-#include "../../submodules/concord-bft/bftengine/include/bftengine/ICommunication.hpp"
-#include <string>
+#include "Replica.hpp"
+#include "ReplicaConfig.hpp"
+#include "ICommunication.hpp"
+#include "CommFactory.hpp"
 #include "StatusInfo.h"
 
 using namespace Blockchain::Utils;
@@ -44,44 +44,68 @@ namespace Blockchain {
    {
    public:
       // IReplica methods
-      virtual Status start();
-      virtual Status stop();
-      virtual Status wait();
+      virtual Status start() override;
+      virtual Status stop() override;
+      virtual Status wait() override;
 
-      virtual RepStatus getReplicaStatus() const;
+      virtual RepStatus getReplicaStatus() const override;
 
-      virtual const ILocalKeyValueStorageReadOnly &getReadOnlyStorage();
-      virtual Status addBlockToIdleReplica(const SetOfKeyValuePairs &updates);
+      virtual const ILocalKeyValueStorageReadOnly &
+      getReadOnlyStorage() override;
+
+      virtual Status
+      addBlockToIdleReplica(const SetOfKeyValuePairs &updates) override;
+
+      virtual void
+      set_command_handler(Blockchain::ICommandsHandler *handler) override;
 
       // ILocalKeyValueStorageReadOnly methods
-      virtual Status get(Slice key, Slice &outValue) const;
+      virtual Status get(Slice key, Slice &outValue) const override;
+
       virtual Status get(BlockId readVersion,
                          Slice key,
                          Slice &outValue,
-                         BlockId &outBlock) const;
-      virtual BlockId getLastBlock() const;
-      virtual Status getBlockData(BlockId blockId,
-                                  SetOfKeyValuePairs &outBlockData) const;
-      Status mayHaveConflictBetween(Slice key,
-                                    BlockId fromBlock,
-                                    BlockId toBlock,
-                                    bool &outRes) const;
-      virtual ILocalKeyValueStorageReadOnlyIterator* getSnapIterator() const;
-      virtual Status freeSnapIterator(
-         ILocalKeyValueStorageReadOnlyIterator *iter) const;
-      virtual void monitor() const;
+                         BlockId &outBlock) const override;
+
+      virtual BlockId getLastBlock() const override;
+
+      virtual Status
+      getBlockData(BlockId blockId,
+                   SetOfKeyValuePairs &outBlockData) const override;
+
+      virtual Status
+      mayHaveConflictBetween(Slice key,
+                             BlockId fromBlock,
+                             BlockId toBlock,
+                             bool &outRes) const  override;
+
+      virtual ILocalKeyValueStorageReadOnlyIterator*
+      getSnapIterator() const  override;
+
+      virtual Status
+      freeSnapIterator(
+              ILocalKeyValueStorageReadOnlyIterator *iter) const override;
+
+      virtual void monitor() const override;
 
       //IBlocksAppender
       virtual Status addBlock(const SetOfKeyValuePairs &updates,
-                              BlockId &outBlockId);
+                              BlockId &outBlockId) override;
+
+      /// TODO(IG): these methods are made public since they are needed for
+      /// the old state transfer and once the new one will be ready we should
+      /// refactor this code
+      /// this is to replace the existing static functions
+      int get_block(int n, char **page);
+      void put_blocks(int count, int *sizes, int *indices, char **pages);
+      bool check_nond(char *buffer);
 
    protected:
 
       // CTOR & DTOR
 
-      ReplicaImp( bftEngine::ICommunication *comm,
-                  ReplicaConsensusConfig config,
-                  ICommandsHandler *cmdHandler,
+      ReplicaImp( Blockchain::CommConfig &commConfig,
+                  ReplicaConsensusConfig &config,
                   BlockchainDBAdapter *dbAdapter);
       virtual ~ReplicaImp();
 
@@ -98,12 +122,7 @@ namespace Blockchain {
       BlockchainDBAdapter* getBcDbAdapter() const { return m_bcDbAdapter; }
       void revertBlock(BlockId blockId);
 
-      // CONSTANTS
-      const ICommandsHandler *m_cmdHandler;
-
-      // config
-      bftEngine::ICommunication *m_commModule = nullptr;
-      ReplicaConsensusConfig m_ReplicaConfig;
+      ICommandsHandler *m_cmdHandler = nullptr;
 
       // INTERNAL TYPES
 
@@ -143,22 +162,30 @@ namespace Blockchain {
 
       public:
          StorageWrapperForIdleMode(const ReplicaImp *r);
-         virtual Status get(Slice key, Slice &outValue) const;
+
+         virtual Status get(Slice key, Slice &outValue) const override;
+
          virtual Status get(BlockId readVersion,
                             Slice key,
                             Slice &outValue,
-                            BlockId &outBlock) const;
-         virtual BlockId getLastBlock() const;
-         virtual Status getBlockData(BlockId blockId,
-                                     SetOfKeyValuePairs &outBlockData) const;
-         Status mayHaveConflictBetween(Slice key,
+                            BlockId &outBlock) const override;
+         virtual BlockId getLastBlock() const override;
+
+         virtual Status
+         getBlockData(BlockId blockId,
+                     SetOfKeyValuePairs &outBlockData) const override;
+
+         virtual Status mayHaveConflictBetween(Slice key,
                                        BlockId fromBlock,
                                        BlockId toBlock,
-                                       bool &outRes) const;
-         virtual ILocalKeyValueStorageReadOnlyIterator* getSnapIterator() const;
+                                       bool &outRes) const override;
+
+         virtual ILocalKeyValueStorageReadOnlyIterator*
+         getSnapIterator() const override;
+
          virtual Status freeSnapIterator(
-            ILocalKeyValueStorageReadOnlyIterator *iter) const;
-         virtual void monitor() const;
+            ILocalKeyValueStorageReadOnlyIterator *iter) const override;
+         virtual void monitor() const override;
       };
 
       class StorageIterator : public ILocalKeyValueStorageReadOnlyIterator
@@ -186,7 +213,7 @@ namespace Blockchain {
 
          virtual KeyValuePair first(BlockId readVersion,
                                     BlockId& actualVersion,
-                                    bool& isEnd);
+                                    bool& isEnd) override;
 
          // TODO(SG): Not implemented originally!
          virtual KeyValuePair first() override
@@ -202,7 +229,7 @@ namespace Blockchain {
          virtual KeyValuePair seekAtLeast(BlockId readVersion,
                                           Key key,
                                           BlockId &actualVersion,
-                                          bool &isEnd);
+                                          bool &isEnd) override;
 
          // TODO(SG): Not implemented originally!
          virtual KeyValuePair seekAtLeast(Key key) override
@@ -217,7 +244,7 @@ namespace Blockchain {
          virtual KeyValuePair next(BlockId readVersion,
                                    Key key,
                                    BlockId &actualVersion,
-                                   bool &isEnd);
+                                   bool &isEnd) override;
 
          // TODO(SG): Not implemented originally!
          virtual KeyValuePair next() override {
@@ -228,10 +255,10 @@ namespace Blockchain {
          }
 
          // Return current element without moving
-         virtual KeyValuePair getCurrent();
+         virtual KeyValuePair getCurrent() override;
 
-         virtual bool		 isEnd();
-         virtual Status		 freeInternalIterator();
+         virtual bool isEnd() override;
+         virtual Status freeInternalIterator();
       };
 
 
@@ -240,15 +267,17 @@ namespace Blockchain {
    private:
       log4cplus::Logger logger;
       //TODO(BWF): this was protected (not private) before adding logger
-      bool m_running;
+      //bool m_running;
       Thread  m_thread;
-      static TlsIndex m_sThreadLocalDataIdx;
       RepStatus m_currentRepStatus;
       StorageWrapperForIdleMode m_InternalStorageWrapperForIdleMode;
 
       // storage - TODO(GG): add support for leveldb/rocksdb
-      BlockchainDBAdapter* m_bcDbAdapter;
+      BlockchainDBAdapter* m_bcDbAdapter = nullptr;
       BlockId lastBlock = 0;
+      bftEngine::ICommunication *m_ptrComm = nullptr;
+      bftEngine::ReplicaConfig m_replicaConfig;
+      bftEngine::Replica *m_replicaPtr = nullptr;
 
       // static methods
       static Slice createBlockFromUpdates(
@@ -256,29 +285,14 @@ namespace Blockchain {
          SetOfKeyValuePairs& outUpdatesInNewBlock);
       static SetOfKeyValuePairs fetchBlockData(Slice block);
 
-      static int get_block(int n, char **page);
-      static void put_blocks(int count, int *sizes, int *indices, char **pages);
-      static bool check_nond(Byz_buffer *b);
-      static int exec_command(Byz_req *inb,
-                              Byz_rep *outb,
-                              Byz_buffer *non_det,
-                              int client,
-                              bool ro);
-
-#if defined(_WIN32)
-      static DWORD WINAPI replicaInternalThread(LPVOID param);
-#else
-      static void* replicaInternalThread(void *param);
-#endif
 
       // FRIENDS
-
       friend IReplica*
-      createReplica(bftEngine::ICommunication *comm,
-                    ReplicaConsensusConfig config,
-                    ICommandsHandler *cmdHandler,
-                    IDBClient *db);
+      createReplica(Blockchain::CommConfig &commConfig,
+                    ReplicaConsensusConfig &config,
+                    IDBClient* db);
       friend void release(IReplica *r);
+
    };
 }
 

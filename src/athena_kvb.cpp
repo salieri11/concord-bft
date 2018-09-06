@@ -31,15 +31,21 @@ using Blockchain::ILocalKeyValueStorageReadOnly;
 using Blockchain::IBlocksAppender;
 using namespace boost::program_options;
 
-com::vmware::athena::KVBCommandsHandler::KVBCommandsHandler(EVM &athevm,
-                                                            EthSign &verifier,
-                                                            variables_map &config_map) :
+com::vmware::athena::KVBCommandsHandler::
+KVBCommandsHandler(EVM &athevm,
+                   EthSign &verifier,
+                   boost::program_options::variables_map &config_map,
+                   Blockchain::ILocalKeyValueStorageReadOnly *roStorage,
+                   Blockchain::IBlocksAppender *appendder) :
    logger(log4cplus::Logger::getInstance("com.vmware.athena")),
    athevm_(athevm),
    verifier_(verifier),
-   config(config_map)
+   config(config_map),
+   m_ptrRoStorage(roStorage),
+   m_ptrBlockAppender(appendder)
 {
-   // no other initialization necessary
+   assert(m_ptrBlockAppender);
+   assert(m_ptrRoStorage);
 }
 
 com::vmware::athena::KVBCommandsHandler::~KVBCommandsHandler()
@@ -47,6 +53,89 @@ com::vmware::athena::KVBCommandsHandler::~KVBCommandsHandler()
    // no other deinitialization necessary
 }
 
+int
+com::vmware::athena::KVBCommandsHandler::execute( uint16_t clientId,
+                                                  bool readOnly,
+                                                  uint32_t requestSize,
+                                                  const char* request,
+                                                  uint32_t maxReplySize,
+                                                  char* outReply,
+                                                  uint32_t &outActualReplySize)
+{
+   Slice command(request, requestSize);
+   bool res;
+   if(readOnly) {
+      res = executeReadOnlyCommand(
+              command,
+              *m_ptrRoStorage,
+              maxReplySize,
+              outReply,
+              outActualReplySize);
+   } else {
+      res = executeCommand(
+              command,
+              *m_ptrRoStorage,
+              *m_ptrBlockAppender,
+              maxReplySize,
+              outReply,
+              outActualReplySize);
+   }
+
+   return res ? 0 : 1;
+}
+
+/**
+ * Callback from SBFT/KVB. Process the request (mostly by talking to
+ * EVM). Returns false if the command is illegal or invalid; true otherwise.
+ */
+bool com::vmware::athena::KVBCommandsHandler::executeReadOnlyCommand(
+        const Slice cmdSlice,
+        const ILocalKeyValueStorageReadOnly &roStorage,
+        const size_t maxReplySize,
+        char *outReply,
+        uint32_t &outReplySize) const
+{
+   KVBStorage kvbStorage(roStorage);
+
+   AthenaRequest command;
+   bool result;
+   AthenaResponse athresp;
+   if (command.ParseFromArray(cmdSlice.data(), cmdSlice.size())) {
+      if (command.has_transaction_request()) {
+         result = handle_transaction_request(command, kvbStorage, athresp);
+      } else if (command.has_transaction_list_request()) {
+         result = handle_transaction_list_request(command, kvbStorage, athresp);
+      } else if (command.has_block_list_request()) {
+         result = handle_block_list_request(command, kvbStorage, athresp);
+      } else if (command.has_block_request()) {
+         result = handle_block_request(command, kvbStorage, athresp);
+      } else if (command.eth_request_size() > 0) {
+         result = handle_eth_request_read_only(command, kvbStorage, athresp);
+      } else {
+         std::string pbtext;
+         google::protobuf::TextFormat::PrintToString(command, &pbtext);
+         LOG4CPLUS_ERROR(logger, "Unknown read-only command: " << pbtext);
+         ErrorResponse *resp = athresp.add_error_response();
+         resp->set_description("Internal Athena Error");
+         result = false;
+      }
+   } else {
+      LOG4CPLUS_ERROR(logger, "Unable to parse read-only command: " <<
+                       sliceToString(cmdSlice));
+      ErrorResponse *resp = athresp.add_error_response();
+      resp->set_description("Internal Athena Error");
+      result = false;
+   }
+
+   if (athresp.SerializeToArray(outReply, maxReplySize)) {
+      outReplySize = athresp.ByteSize();
+   } else {
+      LOG4CPLUS_ERROR(logger, "Reply is too large");
+      outReplySize = 0;
+   }
+
+   return result;
+}
 
 /**
  * Callback from SBFT/KVB. Process the request (mostly by talking to
@@ -58,7 +147,7 @@ bool com::vmware::athena::KVBCommandsHandler::executeCommand(
       IBlocksAppender &blockAppender,
       const size_t maxReplySize,
       char *outReply,
-      size_t &outReplySize) const
+      uint32_t &outReplySize) const
 {
    KVBStorage kvbStorage(roStorage, &blockAppender);
 
@@ -194,59 +283,6 @@ bool com::vmware::athena::KVBCommandsHandler::handle_personal_newAccount(
 
    // requests are valid, even if they fail
    return true;
-}
-
-/**
- * Callback from SBFT/KVB. Process the request (mostly by talking to
- * EVM). Returns false if the command is illegal or invalid; true otherwise.
- */
-bool com::vmware::athena::KVBCommandsHandler::executeReadOnlyCommand(
-   const Slice cmdSlice,
-   const ILocalKeyValueStorageReadOnly &roStorage,
-   const size_t maxReplySize,
-   char *outReply,
-   size_t &outReplySize) const
-{
-   KVBStorage kvbStorage(roStorage);
-
-   AthenaRequest command;
-   bool result;
-   AthenaResponse athresp;
-   if (command.ParseFromArray(cmdSlice.data(), cmdSlice.size())) {
-      if (command.has_transaction_request()) {
-         result = handle_transaction_request(command, kvbStorage, athresp);
-      } else if (command.has_transaction_list_request()) {
-         result = handle_transaction_list_request(command, kvbStorage, athresp);
-      } else if (command.has_block_list_request()) {
-         result = handle_block_list_request(command, kvbStorage, athresp);
-      } else if (command.has_block_request()) {
-         result = handle_block_request(command, kvbStorage, athresp);
-      } else if (command.eth_request_size() > 0) {
-         result = handle_eth_request_read_only(command, kvbStorage, athresp);
-      } else {
-         std::string pbtext;
-         google::protobuf::TextFormat::PrintToString(command, &pbtext);
-         LOG4CPLUS_ERROR(logger, "Unknown read-only command: " << pbtext);
-         ErrorResponse *resp = athresp.add_error_response();
-         resp->set_description("Internal Athena Error");
-         result = false;
-      }
-   } else {
-      LOG4CPLUS_ERROR(logger, "Unable to parse read-only command: " <<
-                      sliceToString(cmdSlice));
-      ErrorResponse *resp = athresp.add_error_response();
-      resp->set_description("Internal Athena Error");
-      result = false;
-   }
-
-   if (athresp.SerializeToArray(outReply, maxReplySize)) {
-      outReplySize = athresp.ByteSize();
-   } else {
-      LOG4CPLUS_ERROR(logger, "Reply is too large");
-      outReplySize = 0;
-   }
-
-   return result;
 }
 
 /**

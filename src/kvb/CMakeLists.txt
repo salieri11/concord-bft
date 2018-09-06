@@ -12,9 +12,7 @@ set(kvblockchain_sources
   RocksDBClient.cpp RocksDBClient.h
   SimpleThreadPool.h
   slice.cpp slice.h
-  Threading.h
-  ThreadLocalStorage.h
-        )
+  bft_configuration.hpp)
 
 add_library(kvblockchain ${kvblockchain_sources})
 
@@ -25,8 +23,10 @@ add_library(kvblockchain ${kvblockchain_sources})
 #target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils/Thread)
 #target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils/Database)
 
-target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils/Crypto)
-target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/AgreementModules/SbftForIntegMay18/libbyz)
+#target_include_directories(kvblockchain PUBLIC ../.
+#./submodules/P2_Blockchain/Utils/Crypto)
+#target_include_directories(kvblockchain PUBLIC ../.
+#./submodules/P2_Blockchain/AgreementModules/SbftForIntegMay18/libbyz)
 
 #target_link_libraries(kvblockchain PUBLIC byz)
 target_link_libraries(kvblockchain PUBLIC corebft)

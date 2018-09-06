@@ -11,11 +11,13 @@
 #include <iterator>
 #include <unordered_set>
 #include <set>
+#include <Replica.hpp>
 #include "slice.h"
 #include "status.h"
 #include "DatabaseInterface.h"
-#include "../../submodules/concord-bft/bftengine/include/communication/StatusInfo.h"
-#include "../../submodules/concord-bft/bftengine/include/bftengine/ICommunication.hpp"
+#include "StatusInfo.h"
+#include "ICommunication.hpp"
+#include "CommDefs.hpp"
 #include "../../submodules/concord-bft/threshsign/include/threshsign/ThresholdSignaturesSchemes.h"
 
 using std::string;
@@ -42,6 +44,23 @@ namespace Blockchain {
    class ILocalKeyValueStorageReadOnly;
    class IBlocksAppender;
    class ICommandsHandler;
+
+   // Communication
+   struct CommConfig
+   {
+      // common fields
+      std::string listenIp;
+      uint16_t listenPort;
+      uint32_t bufferLength;
+      std::unordered_map <NodeNum, std::tuple<std::string,uint16_t>> nodes;
+
+      // tcp
+      uint32_t maxServerId;
+      uint32_t selfId;
+
+      // tls (tcp fields should be set as well
+      std::string certificatesRootPath;
+   };
 
    // REPLICA
 
@@ -83,6 +102,9 @@ namespace Blockchain {
 
       // private key of the current replica
       std::string replicaPrivateKey;
+
+      /// TODO(IG): the fields below not be here,
+      /// their init should happen within BFT library
 
       // signer and verifier of a threshold signature (for threshold fVal+1 out of N)
       // In the current version, both should be nullptr
@@ -141,16 +163,22 @@ namespace Blockchain {
       // for initialization and maintenance.
       virtual Status addBlockToIdleReplica(
          const SetOfKeyValuePairs& updates) = 0;
+
+      /// TODO(IG) the following methods are probably temp solution,
+      /// need to split interfaces implementations to differrent modules
+      /// instead of being all implemented bt ReplicaImpl
+      virtual void set_command_handler(ICommandsHandler *handler) = 0;
+
+
    };
 
    // TODO(BWF): It would be nice to migrate createReplica/release to
    // constructor/destructor, to make use of RAII.
 
    // creates a new Replica object
-   IReplica* createReplica(const ReplicaConsensusConfig& consensusConfig,
-                           ICommandsHandler* cmdHandler,
-                           IDBClient* db,
-                           UPDATE_CONNECTIVITY_FN fPeerConnectivityCallback);
+   IReplica* createReplica(Blockchain::CommConfig &commConfig,
+                           ReplicaConsensusConfig &config,
+                           IDBClient* db);
 
    // deletes a Replica object
    void release(IReplica* r);
@@ -160,6 +188,8 @@ namespace Blockchain {
 
    // configuration
    // structs representing the actual configuration
+   // should be here since Client impl is not in the BFT responsibility,
+   // opposite to the replica
    struct ClientConsensusConfig
    {
       uint16_t clientId;
@@ -188,14 +218,17 @@ namespace Blockchain {
       typedef void(*CommandCompletion)(uint64_t completionToken,
                                        Status returnedStatus,
                                        Slice outreply);
+      /*
       virtual void invokeCommandAsynch(const Slice command,
                                        bool isReadOnly,
                                        uint64_t completionToken,
                                        CommandCompletion h) = 0;
+      */
 
       virtual Status invokeCommandSynch(const Slice command,
                                         bool isReadOnly,
-                                        Slice& outReply) = 0;
+                                        Slice& outReply,
+                                        uint32_t &outActualReplySize) = 0;
 
       // release memory allocated by invokeCommandSynch
       virtual Status release(Slice& slice) = 0;
@@ -205,7 +238,7 @@ namespace Blockchain {
    //make use of RAII?
 
    // creates a new Client object
-   IClient* createClient(bftEngine::ICommunication *comm,
+   IClient* createClient(Blockchain::CommConfig &commConfig,
                          const ClientConsensusConfig &consensusConfig);
 
    // deletes a Client object
@@ -214,27 +247,16 @@ namespace Blockchain {
    // COMMANDS HANDLER
 
    // Upcall interface from KVBlockchain to application using it as storage.
-   class ICommandsHandler
+   class ICommandsHandler : public bftEngine::RequestsHandler
    {
    public:
-
-      virtual bool executeCommand(
-         const Slice command,
-         const ILocalKeyValueStorageReadOnly& roStorage,
-         IBlocksAppender& blockAppender,
-         const size_t maxReplySize,
-         char* outReply,
-         size_t& outReplySize) const = 0;
-
-      virtual bool executeReadOnlyCommand(
-         const Slice command,
-         const ILocalKeyValueStorageReadOnly& roStorage,
-         const size_t maxReplySize,
-         char* outReply,
-         size_t& outReplySize) const = 0;
-
-      // TODO(GG): should be supported by the BA engine
-      // virtual bool isValidCommand(const Slice command) = 0;
+   virtual int execute(uint16_t clientId,
+                        bool readOnly,
+                        uint32_t requestSize,
+                        const char* request,
+                        uint32_t maxReplySize,
+                        char* outReply,
+                        uint32_t &outActualReplySize) = 0;
    };
 
    // STORAGE MODELS

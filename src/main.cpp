@@ -18,10 +18,9 @@
 #include "evm_init_params.hpp"
 #include "kvb/DatabaseInterface.h"
 #include "kvb/BlockchainDBAdapter.h"
+#include "kvb/ReplicaImp.h"
 #include "kvb/Comparators.h"
 #include "kvb/InMemoryDBClient.h"
-#include "kvb/ReplicaImp.h"
-#include "kvb/ClientImp.h"
 #include <thread>
 #include <string>
 #include "status_aggregator.hpp"
@@ -204,13 +203,8 @@ run_service(variables_map &opts, Logger logger)
       Blockchain::IDBClient *dbclient = open_database(opts, logger);
       Blockchain::BlockchainDBAdapter db(dbclient);
 
-      // throws an exception if it fails
-      EVM athevm(params);
-      EthSign verifier;
-      KVBCommandsHandler athkvb(athevm, verifier, opts);
-
       /// replica and comm config init
-      bftEngine::PlainUdpConfig commConfig;
+      Blockchain::CommConfig commConfig;
       Blockchain::ReplicaConsensusConfig replicaConsensusConfig;
       ///TODO(IG): check return value and shutdown athena if false
       parse_plain_config_file(opts["SBFT.replica"].as<std::string>(),
@@ -219,14 +213,29 @@ run_service(variables_map &opts, Logger logger)
                               nullptr,
                               &replicaConsensusConfig);
 
-
-      // init replica
+      /* init replica
+       * TODO(IG): since ReplicaImpl is used as an implementation of few
+       * intefaces, this object will be used for constructing KVBCommandsHandler
+       * and thus we cant use IReplica here. Need to restructure the code, to
+       * split interfaces implementation and to construct objects in more
+       * clear way
+       */
       StatusAggregator sag;
-      Blockchain::IReplica *replica =
-              Blockchain::createReplica(replicaConsensusConfig,
-                                        &athkvb,
-                                        dbclient,
-                                        sag.get_update_connectivity_fn());
+      Blockchain::ReplicaImp *replica = dynamic_cast<Blockchain::ReplicaImp*>(
+              Blockchain::createReplica(commConfig,
+                                                    replicaConsensusConfig,
+                                                    dbclient));
+
+      // throws an exception if it fails
+      EVM athevm(params);
+      EthSign verifier;
+      KVBCommandsHandler athkvb(
+              athevm,
+              verifier,
+              opts,
+              replica,
+              replica);
+      replica->set_command_handler(&athkvb);
 
       // Genesis must be added before the replica is started.
       Blockchain::Status genesis_status =
@@ -245,18 +254,18 @@ run_service(variables_map &opts, Logger logger)
       std::vector<std::string> clientConfigs =
          opts["SBFT.client"].as<std::vector<std::string>>();
 
+
       for (auto it = clientConfigs.begin(); it != clientConfigs.end(); it++) {
          Blockchain::ClientConsensusConfig clientConsensusConfig;
          ///TODO(IG): check return value and shutdown athena if false
+         CommConfig clientCommConfig;
          parse_plain_config_file(*it,
                                  opts["SBFT.public"].as<std::string>(),
-                                 nullptr,
+                                 &clientCommConfig,
                                  &clientConsensusConfig,
                                  nullptr);
-         bftEngine::ICommunication *comm =
-                 bftEngine::CommFactory::create(commConfig);
          Blockchain::IClient *client =
-            Blockchain::createClient(comm, clientConsensusConfig);
+            Blockchain::createClient(clientCommConfig, clientConsensusConfig);
          client->start();
          KVBClient *kvbClient = new KVBClient(client);
          clients.push_back(kvbClient);
@@ -294,11 +303,9 @@ run_service(variables_map &opts, Logger logger)
       /// replica
       replica->stop();
       replica->wait();
+
       Blockchain::release(replica);
       ////////////////////
-
-      // For Thread local storage. Should be called exactly once per process.
-      Blockchain::freeEnv();
    } catch (std::exception &ex) {
       LOG4CPLUS_FATAL(logger, ex.what());
       return -1;

@@ -26,10 +26,12 @@ bool com::vmware::athena::KVBClient::send_request_sync(AthenaRequest &req,
    std::string command;
    req.SerializeToString(&command);
    Blockchain::Slice cmdslice(command);
-   Blockchain::Slice replyslice;
+   memset(m_outBuffer, 0, OUT_BUFFER_SIZE);
+   Blockchain::Slice replyslice(m_outBuffer, OUT_BUFFER_SIZE);
 
+   uint32_t actualReplySize = 0;
    Blockchain::Status status = client_->invokeCommandSynch(
-      cmdslice, isReadOnly, replyslice);
+      cmdslice, isReadOnly, replyslice, actualReplySize);
 
    if (status.ok()) {
       return resp.ParseFromArray(replyslice.data(), replyslice.size());

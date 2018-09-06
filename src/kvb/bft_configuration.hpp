@@ -10,8 +10,6 @@
 #include "../../submodules/concord-bft/threshsign/include/threshsign/IThresholdSigner.h"
 #include "../../submodules/concord-bft/threshsign/include/threshsign/IThresholdVerifier.h"
 #include "../../submodules/concord-bft/threshsign/include/threshsign/IThresholdFactory.h"
-#include "../../submodules/concord-bft/bftengine/include/communication/CommFactory.hpp"
-#include "../../submodules/concord-bft/bftengine/include/communication/CommImpl.hpp"
 #include <string>
 #include <set>
 
@@ -63,7 +61,7 @@ create_threshold_factory(FILE* config_file)
 }
 
 inline IThresholdSigner *
-createThresholdSigner(FILE *config_priv, int id, IThresholdFactory * factory) {
+create_threshold_signer(FILE *config_priv, int id, IThresholdFactory *factory) {
    if(id < 1) {
       return nullptr;
    }
@@ -79,10 +77,10 @@ createThresholdSigner(FILE *config_priv, int id, IThresholdFactory * factory) {
 }
 
 inline IThresholdVerifier *
-createThresholdVerifier(FILE *config_file,
-                        int requestedSigners,
-                        int totalSigners,
-                        IThresholdFactory* factory) {
+create_threshold_verifier(FILE *config_file,
+                          int requestedSigners,
+                          int totalSigners,
+                          IThresholdFactory *factory) {
    char publicKey[4096];
    char verifKey[4096];
    //cout << "Reading verifier..." << endl;
@@ -112,92 +110,199 @@ createThresholdVerifier(FILE *config_file,
                                 verifKeys);
 }
 
+static void
+ignore_threshold_signer(FILE * config_priv) {
+   //cout << "Ignoring signer..." << endl;
+   // Ignore next line (has comment about threshold type)
+   ignore_one_line(config_priv);
+
+   // Ignore SK
+   ignore_one_line(config_priv);
+}
+
+static void
+ignore_threshold_factory_and_verifier(FILE * config_file, int n) {
+   //cout << "Ignoring threshold scheme..." << endl;
+   // Ignore next line (has comment about threshold type)
+   ignore_one_line(config_file);
+   // Ignore cryptosystem type
+   ignore_one_line(config_file);
+   // Ignore the RSA modulus or elliptic curve type
+   ignore_one_line(config_file);
+   // Ignore PK
+   ignore_one_line(config_file);
+   // Ignore comment
+   ignore_one_line(config_file);
+   // Ignore VKs
+   for(int i = 0; i < n; i++)
+   {
+      ignore_one_line(config_file);
+   }
+   // Ignore last comment/empty line
+   ignore_one_line(config_file);
+}
+
+void read_threshold_public_keys(FILE* config_file,
+                             bool isClient,
+                             int f,
+                             int c,
+                             bool supportDirectProofs,
+                             IThresholdFactory*& execFactory,
+                             IThresholdFactory*& slowCommitFactory,
+                             IThresholdFactory*& commitFactory,
+                             IThresholdFactory*& multisigFactory,
+                             IThresholdVerifier*& thresholdVerifierForExecution,
+                             IThresholdVerifier*& thresholdVerifierForSlowPathCommit,
+                             IThresholdVerifier*& thresholdVerifierForCommit,
+                             IThresholdVerifier*& thresholdVerifierForOptimisticCommit) {
+
+   int n = 3*f + 2*c + 1;
+
+   if (supportDirectProofs) {
+      execFactory = create_threshold_factory(config_file);
+      thresholdVerifierForExecution = create_threshold_verifier(config_file,
+                                                                f + 1, n,
+                                                                execFactory);
+   } else {
+      ignore_threshold_factory_and_verifier(config_file, n);
+   }
+
+   // The Client class only needs the f+1 parameters
+   if(isClient) {
+      return;
+   }
+
+   slowCommitFactory = create_threshold_factory(config_file);
+   thresholdVerifierForSlowPathCommit = create_threshold_verifier(config_file,
+                                                                  2 * f + c + 1,
+                                                                  n,
+                                                                  slowCommitFactory);
+
+   if (c > 0) {
+      commitFactory = create_threshold_factory(config_file);
+      thresholdVerifierForCommit = create_threshold_verifier(config_file,
+                                                             3 * f + c + 1, n,
+                                                             commitFactory);
+   } else {
+      ignore_threshold_factory_and_verifier(config_file, n);
+   }
+
+   multisigFactory = create_threshold_factory(config_file);
+   thresholdVerifierForOptimisticCommit = create_threshold_verifier(config_file,
+                                                                    n, n,
+                                                                    multisigFactory);
+}
+
+/**
+* Reads the secret keys for the multisig and threshold schemes!
+*/
+void
+read_threshold_private_keys(  FILE* config_priv,
+                              int myReplicaId,
+                              int f,
+                              int c,
+                              IThresholdFactory* execFactory,
+                              IThresholdFactory* slowCommitFactory,
+                              IThresholdFactory* commitFactory,
+                              IThresholdFactory* multisigFactory,
+                              IThresholdSigner*& thresholdSignerForExecution,
+                              IThresholdSigner*& thresholdSignerForSlowPathCommit,
+                              IThresholdSigner*& thresholdSignerForCommit,
+                              IThresholdSigner*& thresholdSignerForOptimisticCommit,
+                              bool supportDirectProofs) {
+   // f + 1
+   if (supportDirectProofs) {
+      thresholdSignerForExecution = create_threshold_signer(config_priv,
+                                                            myReplicaId,
+                                                            execFactory);
+   } else {
+      printf("\n does not support direct proofs!");
+      ignore_threshold_signer(config_priv);
+   }
+
+   // 2f + c + 1
+   thresholdSignerForSlowPathCommit = create_threshold_signer(config_priv,
+                                                              myReplicaId,
+                                                              slowCommitFactory);
+
+   // 3f + c + 1
+   if (c > 0) {
+      thresholdSignerForCommit = create_threshold_signer(config_priv,
+                                                         myReplicaId,
+                                                         commitFactory);
+   } else {
+      printf("\n c <= 0");
+      ignore_threshold_signer(config_priv);
+   }
+
+   // Reading multisig secret keys for the case where everybody sign case where everybody signs
+   thresholdSignerForOptimisticCommit = create_threshold_signer(config_priv,
+                                                                myReplicaId,
+                                                                multisigFactory);
+}
+
+
 inline bool
-parse_crypto (uint16_t replicaId,
+parse_crypto (uint16_t nodeId,
               uint16_t numOfReplicas,
               uint16_t maxFaulty,
               uint16_t maxSlow,
               FILE *publicKeysFile,
               FILE *privateKeysFile,
+              std::set <pair<uint16_t, string>> publicKeysOfReplicas,
               Blockchain::ReplicaConsensusConfig *outConfig)
 {
-   int tempInt = 0;
-   char tempString[MAX_ITEM_LENGTH];
-
-   std::set <pair<uint16_t, string>> publicKeysOfReplicas;
-
-   // read from publicKeysFile
-
-   for (int i = 0; i < numOfReplicas; i++)
-   {
-      fscanf( publicKeysFile,
-              string("%" + MAX_ITEM_LENGTH_STR + "s\n").c_str(),
-              tempString);
-
-      string name(tempString);
-
-      string expectedName = string("replica") + std::to_string(i);
-
-      if (expectedName != name) return false;
-
-      fscanf( publicKeysFile,
-              string("%" + MAX_ITEM_LENGTH_STR + "s\n").c_str(),
-              tempString);
-
-      string publicKeyString(tempString);
-
-      publicKeysOfReplicas.insert({i, publicKeyString});
-   }
-
    // Read threshold signatures
-   IThresholdFactory* slowCommitFactory = nullptr;
-   IThresholdSigner* thresholdSignerForSlowPathCommit = nullptr;
-   IThresholdVerifier* thresholdVerifierForSlowPathCommit = nullptr;
+   // Threshold signatures
+   IThresholdFactory *execFactory;
+   IThresholdSigner *thresholdSignerForExecution;
+   IThresholdVerifier *thresholdVerifierForExecution;
 
-   IThresholdFactory* optimisticCommitFactory = nullptr;
-   IThresholdSigner* thresholdSignerForOptimisticCommit = nullptr;
-   IThresholdVerifier* thresholdVerifierForOptimisticCommit = nullptr;
+   IThresholdFactory *slowCommitFactory;
+   IThresholdSigner *thresholdSignerForSlowPathCommit;
+   IThresholdVerifier *thresholdVerifierForSlowPathCommit;
 
-   slowCommitFactory = create_threshold_factory(publicKeysFile);
-   thresholdVerifierForSlowPathCommit =
-           createThresholdVerifier(publicKeysFile,
-                                   numOfReplicas - maxFaulty,
-                                   numOfReplicas,
-                                   slowCommitFactory);
+   IThresholdFactory *commitFactory;
+   IThresholdSigner *thresholdSignerForCommit;
+   IThresholdVerifier *thresholdVerifierForCommit;
 
-   optimisticCommitFactory = create_threshold_factory(publicKeysFile);
-   thresholdVerifierForOptimisticCommit =
-           createThresholdVerifier(publicKeysFile,
-                                   numOfReplicas,
-                                   numOfReplicas,
-                                   optimisticCommitFactory);
+   IThresholdFactory *multisigFactory;
+   IThresholdSigner *thresholdSignerForOptimisticCommit;
+   IThresholdVerifier *thresholdVerifierForOptimisticCommit;
 
-   // read from privateKeysFile
+   /// TODO(IG): move to config
+    const bool supportDirectProofs = false;
 
-   fscanf(privateKeysFile, "%d\n", &tempInt);
-   if (tempInt != replicaId) return false;
+   read_threshold_public_keys(publicKeysFile,
+                              false,
+                              maxFaulty,
+                              maxSlow,
+                              supportDirectProofs,
+                              execFactory,
+                              slowCommitFactory,
+                              commitFactory,
+                              multisigFactory,
+                              thresholdVerifierForExecution,
+                              thresholdVerifierForSlowPathCommit,
+                              thresholdVerifierForCommit,
+                              thresholdVerifierForOptimisticCommit);
 
-   fscanf(privateKeysFile,
-          string("%" + MAX_ITEM_LENGTH_STR + "s\n").c_str(),
-          tempString);
-
-   string sigPrivateKey(tempString);
-
-   thresholdSignerForSlowPathCommit =
-           createThresholdSigner( privateKeysFile,
-                                  replicaId+1,
-                                  slowCommitFactory);
-
-   thresholdSignerForOptimisticCommit =
-           createThresholdSigner( privateKeysFile,
-                                  replicaId+1,
-                                  optimisticCommitFactory);
-
-   delete slowCommitFactory;
-   delete optimisticCommitFactory;
+   // Read threshold secret keys from private config
+   read_threshold_private_keys(privateKeysFile,
+                               nodeId + 1,
+                               maxFaulty,
+                               maxSlow,
+                               execFactory,
+                               slowCommitFactory,
+                               commitFactory,
+                               multisigFactory,
+                               thresholdSignerForExecution,
+                               thresholdSignerForSlowPathCommit,
+                               thresholdSignerForCommit,
+                               thresholdSignerForOptimisticCommit,
+                               supportDirectProofs);
 
    outConfig->publicKeysOfReplicas = publicKeysOfReplicas;
-   outConfig->replicaPrivateKey = sigPrivateKey;
 
    outConfig->thresholdSignerForExecution = nullptr;
    outConfig->thresholdVerifierForExecution = nullptr;
@@ -219,11 +324,15 @@ parse_crypto (uint16_t replicaId,
 }
 
 inline bool
-parse_comm_params(FILE *config_file,
+parse_principals( FILE *config_file,
                   uint16_t selfNumber,
                   uint16_t numOfPrincipals,
-                  bftEngine::BaseCommConfig *outCommConfig) {
-
+                  uint16_t numOfReplicas,
+                  Blockchain::CommConfig *outCommConfig,
+                  std::set<std::pair<uint16_t, std::string>>
+                          &outReplicasPublicKeys) {
+   //skip group ip and port
+   fscanf(config_file, "%*[^\n]\n", NULL);
 
    // read in all the principals
    char addr_buff[100];
@@ -237,6 +346,9 @@ parse_comm_params(FILE *config_file,
               addr_buff,
               &port,
               pk);
+      if(i < numOfReplicas) {
+         outReplicasPublicKeys.insert({selfNumber, std::string(pk)});
+      }
       if(outCommConfig) {
          outCommConfig->nodes.insert({i,
                                       std::make_tuple(string(addr_buff),
@@ -249,17 +361,22 @@ parse_comm_params(FILE *config_file,
 
    if(outCommConfig) {
       /// TODO(IG): add to config file
-      outCommConfig.bufferLength = 64000;
-      outCommConfig.listenIp = "0.0.0.0";
+      outCommConfig->bufferLength = 64000;
+      outCommConfig->listenIp = "0.0.0.0";
+      outCommConfig->maxServerId = numOfReplicas - 1;
+      outCommConfig->selfId = selfNumber;
+      outCommConfig->certificatesRootPath = "\\certs";
    }
+
+   return true;
 }
 
 inline bool
 parse_plain_config_file(std::string privPath,
                         std::string pubPath,
-                        bftEngine::BaseCommConfig *commConfig = nullptr,
-                        Blockchain::ClientConsensusConfig *clConf = nullptr,
-                        Blockchain::ReplicaConsensusConfig *repConf = nullptr) {
+                        Blockchain::CommConfig *commConfig,
+                        Blockchain::ClientConsensusConfig *clConf,
+                        Blockchain::ReplicaConsensusConfig *repConf) {
    assert(!clConf != !repConf);
    FILE *config_file = fopen(pubPath.c_str(), "r");
    if (!config_file) {
@@ -300,17 +417,25 @@ parse_plain_config_file(std::string privPath,
    uint16_t numOfPrincipals = 0;
    fscanf(config_file, "%hu\n", &numOfPrincipals);
 
+   uint16_t numOfReplicas = 3 * max_faulty + 2 * max_slow + 1;
+
+   std::set <pair<uint16_t, string>> publicKeysOfReplicas;
    if(commConfig) {
-      auto res = parse_comm_params(config_file,
+      auto res = parse_principals (config_file,
                                    selfNumber,
                                    numOfPrincipals,
-                                   commConfig);
+                                   numOfReplicas,
+                                   commConfig,
+                                   publicKeysOfReplicas);
       if (!res)
          return false;
    }
 
    if(repConf) {
-      uint16_t numOfReplicas = 3 * max_faulty + 2 * max_slow + 1;
+      repConf->replicaPrivateKey = std::string(sk1);
+
+      //skip empty line
+      // fscanf(config_file, "%*[^\n]\n", NULL);
       auto res = parse_crypto(
               selfNumber,
               numOfReplicas,
@@ -318,6 +443,7 @@ parse_plain_config_file(std::string privPath,
               max_slow,
               config_file,
               config_priv_file,
+              publicKeysOfReplicas,
               repConf);
       if(!res)
          return false;
@@ -329,6 +455,7 @@ parse_plain_config_file(std::string privPath,
       fscanf(config_file, "%*[^\n]\n", NULL);
       fscanf(config_file, "%hu\n", &concurrencyLevel);
 
+      repConf->publicKeysOfReplicas = publicKeysOfReplicas;
       repConf->viewChangeTimerMillisec = viewChangeTimeoutMilli;
       repConf->statusReportTimerMillisec = statusTimeMilli;
       repConf->concurrencyLevel = concurrencyLevel;

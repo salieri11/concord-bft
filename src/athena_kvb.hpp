@@ -21,29 +21,40 @@ private:
    EthSign &verifier_;
    boost::program_options::variables_map &config;
 
+   Blockchain::ILocalKeyValueStorageReadOnly *m_ptrRoStorage = nullptr;
+   Blockchain::IBlocksAppender *m_ptrBlockAppender = nullptr;
+
 public:
    KVBCommandsHandler(EVM &athevm,
                       EthSign &verifier,
-                      boost::program_options::variables_map &config_map);
+                      boost::program_options::variables_map &config_map,
+                      Blockchain::ILocalKeyValueStorageReadOnly *roStorage,
+                      Blockchain::IBlocksAppender *appendder);
    ~KVBCommandsHandler();
 
-   // ICommandsHandler
-   virtual bool executeCommand(
-      const Blockchain::Slice command,
-      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-      Blockchain::IBlocksAppender &blockAppender,
-      const size_t maxReplySize,
-      char *outReply,
-      size_t &outReplySize) const override;
-
-   virtual bool executeReadOnlyCommand(
-      const Blockchain::Slice command,
-      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-      const size_t maxReplySize,
-      char *outReply,
-      size_t &outReplySize) const override;
+   int execute(uint16_t clientId,
+              bool readOnly,
+              uint32_t requestSize,
+              const char* request,
+              uint32_t maxReplySize,
+              char* outReply,
+              uint32_t &outActualReplySize) override;
 
 private:
+   bool executeCommand(
+           const Blockchain::Slice command,
+           const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+           Blockchain::IBlocksAppender &blockAppender,
+           const size_t maxReplySize,
+           char *outReply,
+           uint32_t &outReplySize) const;
+
+   bool executeReadOnlyCommand(
+           const Blockchain::Slice command,
+           const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+           const size_t maxReplySize,
+           char *outReply,
+           uint32_t &outReplySize) const;
 
    // Handlers
    bool handle_transaction_request(

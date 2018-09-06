@@ -8,8 +8,8 @@
 #include "BlockchainInterfaces.h"
 #include "ThreadLocalStorage.h"
 #include "SimpleThreadPool.h"
-#include "../../submodules/concord-bft/bftengine/include/bftengine/SimpleClient.hpp"
-#include "../../submodules/concord-bft/bftengine/include/bftengine/ICommunication.hpp"
+#include "SimpleClient.hpp"
+#include "ICommunication.hpp"
 #include <map>
 #include <boost/thread.hpp>
 
@@ -26,14 +26,17 @@ namespace Blockchain {
 
       virtual bool isRunning() override;
 
+      /*
       virtual void invokeCommandAsynch(const Slice command,
                                        bool isReadOnly,
                                        uint64_t completionToken,
                                        CommandCompletion h) override;
+      */
 
       virtual Status invokeCommandSynch(const Slice command,
                                         bool isReadOnly,
-                                        Slice &outReply) override;
+                                        Slice &outReply,
+                                        uint32_t &outActualReplySize) override;
 
       // release memory allocated by invokeCommandSynch
       virtual Status release(Slice& slice) override;
@@ -41,21 +44,19 @@ namespace Blockchain {
    protected:
 
       // ctor & dtor
-      ClientImp(ICommunication *comm,
+      ClientImp(Blockchain::CommConfig &commConfig,
                 const ClientConsensusConfig &conf);
       virtual ~ClientImp();
 
       int m_status;
 
-      friend IClient* createClient( ICommunication *comm,
+      friend IClient* createClient( Blockchain::CommConfig &commConfig,
                                     const ClientConsensusConfig &conf);
       friend void release(IClient *r);
 
    private:
       SimpleClient *m_bftClient = nullptr;
       SeqNumberGeneratorForClientRequests *m_SeqNumGenerator = nullptr;
-      static constexpr size_t OUT_BUFFER_SIZE = 512000;
-      char m_outBuffer[OUT_BUFFER_SIZE];
    };
 }
 
