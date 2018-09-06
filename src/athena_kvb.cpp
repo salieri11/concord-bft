@@ -852,6 +852,12 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
       }
    }
 
+   // If this is not a transaction, set flags to static so that execution is
+   // prohibited from modifying state.
+   if (kvbStorage.is_read_only()) {
+      message.flags |= EVM_STATIC;
+   }
+
    if (request.has_addr_to()) {
       message.kind = EVM_CALL;
 
