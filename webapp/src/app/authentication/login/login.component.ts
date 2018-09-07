@@ -11,9 +11,9 @@ import { AuthenticationService } from '../../shared/authentication.service';
 import { PersonaService } from '../../shared/persona.service';
 
 @Component({
-  selector: 'athena-log-in-container',
-  templateUrl: './log-in-container.component.html',
-  styleUrls: ['./log-in-container.component.scss']
+  selector: 'athena-login',
+  templateUrl: './login.component.html',
+  styleUrls: ['./login.component.scss']
 })
 export class LogInContainerComponent implements OnDestroy, AfterViewInit {
   @ViewChild('username') username: ElementRef;
