@@ -28,7 +28,7 @@ RUN apt-get update && apt-get -y install \
 WORKDIR /
 RUN git clone https://github.com/google/googletest.git
 WORKDIR /googletest/_build
-RUN cmake .. && make
+RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make
 
 WORKDIR /
 RUN git clone https://github.com/weidai11/cryptopp.git
@@ -37,21 +37,21 @@ RUN git checkout CRYPTOPP_5_6_5
 COPY ./cross-platform-cryptopp.patch .
 RUN git apply --whitespace=nowarn cross-platform-cryptopp.patch
 WORKDIR /cryptopp/build
-RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64" .. && make && make install
+RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make && make install
 
 WORKDIR /
 RUN wget https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.gz \
     && tar -xzf boost_1_64_0.tar.gz \
     && rm boost_1_64_0.tar.gz
 WORKDIR /boost_1_64_0
-RUN ./bootstrap.sh --with-libraries=system,program_options,thread --prefix=/usr && ./b2 && ./b2 install
+RUN ./bootstrap.sh --with-libraries=system,program_options,thread --prefix=/usr && ./b2 cxxflags="-march=x86-64 -mtune=generic" && ./b2 install
 
 WORKDIR /
 RUN git clone https://github.com/log4cplus/log4cplus.git
 WORKDIR /log4cplus
 RUN git checkout REL_1_2_1
 RUN sed -i -e "s/am__api_version='1.14'/am__api_version='1.15'/g" configure
-RUN ./configure CXXFLAGS="--std=c++11" && make && make install
+RUN ./configure CXXFLAGS="--std=c++11 -march=x86-64 -mtune=generic" && make && make install
 
 WORKDIR /
 RUN git clone https://github.com/ethereum/evmjit.git
@@ -60,7 +60,7 @@ WORKDIR /evmjit
 RUN git checkout 4e9f3d76292c7de0c6613427761f843b1719f614
 RUN mkdir build
 WORKDIR /evmjit/build
-RUN cmake -DLLVM_DIR=/usr/lib/llvm-5.0/lib/cmake/llvm ..
+RUN cmake -DLLVM_DIR=/usr/lib/llvm-5.0/lib/cmake/llvm -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" ..
 RUN cmake --build . --config RelWithDebInfo
 
 WORKDIR /
@@ -73,19 +73,19 @@ RUN wget https://github.com/facebook/rocksdb/archive/v5.7.3.tar.gz \
     && tar -xzf v5.7.3.tar.gz \
     && rm v5.7.3.tar.gz
 WORKDIR /rocksdb-5.7.3
-RUN make shared_lib && make install-shared
+RUN PORTABLE=1 make shared_lib && PORTABLE=1 make install-shared
 
 WORKDIR /
 RUN git clone https://github.com/bitcoin-core/secp256k1
 WORKDIR /secp256k1
 RUN git checkout 1e6f1f5ad5e7f1e3ef79313ec02023902bf8175c
-RUN ./autogen.sh && ./configure --enable-module-recovery
+RUN ./autogen.sh && ./configure --enable-module-recovery CFLAGS="-march=x86-64 -mtune=generic" CPPFLAGS="-march=x86-64 -mtune=generic"
 RUN make && make install
 
 WORKDIR /athena
 COPY . /athena
 WORKDIR /athena/build
-RUN cmake .. && make
+RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make
 
 
 ## Base Run image
