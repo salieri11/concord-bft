@@ -8,7 +8,7 @@ import { TourNgxPopperModule } from 'ngx-tour-ngx-popper';
 
 import { SharedModule } from '../shared/shared.module';
 import { TransactionsModule } from '../transactions/transactions.module';
-import { DashboardComponent } from './dashboard-container/dashboard.component';
+import { DashboardComponent } from './dashboard/dashboard.component';
 import { GraphsModule } from '../graphs/graphs.module';
 
 @NgModule({

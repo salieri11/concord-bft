@@ -11,7 +11,7 @@ import { ClarityModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
 
 import { SharedModule } from '../shared/shared.module';
-import { LogInContainerComponent } from './log-in-container/log-in-container.component';
+import { LogInContainerComponent } from './login/login.component';
 import { OnboardingComponent } from './onboarding/onboarding.component';
 import { SignUpComponent } from './sign-up/sign-up.component';
 import { AgreementGuard } from '../shared/agreement-guard.service';

@@ -10,7 +10,7 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { AuthenticationService } from '../../shared/authentication.service';
 import { MockSharedModule } from '../../shared/shared.module';
 import { MockTranslateModule } from '../../mocks/mock-translate.module';
-import { LogInContainerComponent } from './log-in-container.component';
+import { LogInContainerComponent } from './login.component';
 import { PersonaService } from '../../shared/persona.service';
 
 describe('LogInContainerComponent', () => {
