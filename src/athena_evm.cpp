@@ -82,12 +82,6 @@ evm_result com::vmware::athena::EVM::run(evm_message &message,
 
       try {
          result = execute(message, timestamp, kvbStorage, code);
-      } catch (ReadOnlyModeException rome) {
-         LOG4CPLUS_DEBUG(logger,
-                         "Non-pure contract function called "
-                         "with read-only storage. Contract: "
-                         << message.destination);
-         result.status_code = EVM_FAILURE;
       } catch (EVMException e) {
          LOG4CPLUS_ERROR(logger,
                          "EVM execution exception: '" << e.what() << "'. "
