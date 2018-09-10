@@ -159,6 +159,10 @@
                     "size": {
                       "type": "integer"
                     },
+                    "timestamp": {
+                      "type": "integer",
+                      "description": "The proposing node's local system time. (In seconds since the UNIX epoch.)"
+                    },
                     "transactions": {
                       "type": "array",
                       "items": {

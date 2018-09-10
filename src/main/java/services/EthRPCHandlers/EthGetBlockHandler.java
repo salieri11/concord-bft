@@ -132,6 +132,11 @@ public class EthGetBlockHandler extends AbstractEthRPCHandler {
                  APIHelper.binaryStringToHex(blockResponseObj.getNonce()));
       result.put("size", blockResponseObj.getSize());
 
+      if (blockResponseObj.hasTimestamp()) {
+         result.put("timestamp",
+                    "0x" + Long.toHexString(blockResponseObj.getTimestamp()));
+      }
+
       JSONArray transactions = new JSONArray();
       JSONArray params = extractRequestParams(requestJson);
       boolean flag = (boolean) params.get(1);
