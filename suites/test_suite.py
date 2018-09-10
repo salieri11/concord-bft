@@ -352,3 +352,9 @@ class TestSuite(ABC):
          txReceipt = rpc.getTransactionReceipt(txHash, self._ethereumMode)
 
       return txReceipt
+
+   def requireFields(self, ob, fieldList):
+      for f in fieldList:
+         if not f in ob:
+            return (False, f)
+      return (True, None)
