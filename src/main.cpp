@@ -159,7 +159,10 @@ Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
    }
    kvbStorage.set_nonce(zero_address, nonce);
 
-   return kvbStorage.write_block();
+   uint64_t timestamp = params.get_timestamp();
+
+   // Genesis is always proposed and accepted at the same time.
+   return kvbStorage.write_block(timestamp);
 }
 
 

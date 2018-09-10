@@ -276,6 +276,8 @@ size_t com::vmware::athena::EthBlock::serialize(char** serialized)
       out.add_transaction(t.bytes, sizeof(evm_uint256be));
    }
 
+   out.set_timestamp(this->timestamp);
+
    size_t size = out.ByteSize();
 
    *serialized = (char*)malloc(size);
@@ -312,6 +314,12 @@ com::vmware::athena::EthBlock::deserialize(Blockchain::Slice &input)
          evm_uint256be txhash;
          std::copy(txhashstr.begin(), txhashstr.end(), txhash.bytes);
          outblk.transactions.push_back(txhash);
+      }
+
+      if (inblk.has_timestamp()) {
+         outblk.timestamp = inblk.timestamp();
+      } else {
+         outblk.timestamp = 0;
       }
 
       return outblk;
