@@ -79,17 +79,26 @@ std::vector<uint8_t> com::vmware::athena::EthTransaction::rlp() const
    rlpb.add(this->input);
 
    if(this->value == 0){
+      // "0" is encoded as "empty string" here, not "integer zero"
       std::vector<uint8_t> empty_value;
       rlpb.add(empty_value);
    }else {
       rlpb.add(this->value);
    }
 
-   if (this->contract_address == zero_address) {
+   /*if (this->contract_address == zero_address) {
       rlpb.add(this->to);
    } else {
       std::vector<uint8_t> empty_address;
       rlpb.add(empty_address);
+   }*/
+
+   if (this->to == zero_address){
+      // when deploying a contract, the 'to' addresss is empty, hence to insert an empty vector.
+      std::vector<uint8_t> empty_address;
+      rlpb.add(empty_address);
+   }else{
+      rlpb.add(this->to);
    }
 
    rlpb.add(this->gas_limit);
