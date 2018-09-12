@@ -56,10 +56,12 @@ def main():
    log.info("Results directory: {}".format(args.resultsDir))
    suite = createTestSuite(args)
    log.info("Running suite {}".format(suite.getName()))
-   processResults(suite.run())
+   success = processResults(suite.run())
    endTime = datetime.datetime.now()
    log.info("End time: {}".format(endTime))
    log.info("Elapsed time: {}".format(str(endTime - startTime)))
+   if not success:
+     exit(2)
 
 def setUpLogging(args):
    '''
@@ -121,6 +123,8 @@ def processResults(resultsFile):
       f.write(fileContents)
 
    log.info("Results written to '{}'".format(fileLocation))
+
+   return failCount == 0 and skippedCount == 0
 
 def tallyResults(results):
    '''
