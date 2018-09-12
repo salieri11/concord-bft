@@ -326,6 +326,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
             return (False, "Found from does not match expected from")
 
          # The rest of these are just checking parsing.
+         if not "contract_address" in tx:
+            return (False, "No contract_address found. Was this run on an empty cluster?")
          if not tx["contract_address"] == expectedTo:
             return (False, "Found contract_address does not match expected contract_address")
          if not tx["value"] == expectedValue:
