@@ -222,7 +222,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_sendTransaction(
 {
    const EthRequest request = athreq.eth_request(0);
 
-   evm_uint256be txhash;
+   evm_uint256be txhash{{0}};
    evm_result &&result = run_evm(request, kvbStorage, txhash);
 
    if (txhash != zero_hash) {
@@ -271,7 +271,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_personal_newAccount(
     * TODO : Implement the ethereum way of setting account addresses.
     * (Note : See https://github.com/vmwathena/athena/issues/55)
     */
-   evm_address address;
+   evm_address address{{0}};
    if (athevm_.new_account(passphrase, kvbStorage, address)) {
       EthResponse *response = athresp.add_eth_response();
       response->set_data(address.bytes, sizeof(evm_address));
@@ -295,7 +295,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_transaction_request(
 {
    try {
       const TransactionRequest request = athreq.transaction_request();
-      evm_uint256be hash;
+      evm_uint256be hash{{0}};
       std::copy(request.hash().begin(), request.hash().end(), hash.bytes);
       EthTransaction tx = kvbStorage.get_transaction(hash);
 
@@ -333,7 +333,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_transaction_list_request(
       EthBlock curr_block;
 
       if (request.has_latest()) {
-         evm_uint256be latest_tr;
+         evm_uint256be latest_tr = {{0}};
          std::copy(request.latest().begin(), request.latest().end(),
                    latest_tr.bytes);
          EthTransaction tr = kvbStorage.get_transaction(latest_tr);
@@ -573,7 +573,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_callContract(
 {
    const EthRequest request = athreq.eth_request(0);
 
-   evm_uint256be txhash;
+   evm_uint256be txhash{{0}};
    evm_result &&result = run_evm(request,
                                  kvbStorage,
                                  txhash);
@@ -608,7 +608,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_blockNumber(
    AthenaResponse &athresp) const
 {
    EthResponse *response = athresp.add_eth_response();
-   evm_uint256be current_block;
+   evm_uint256be current_block{{0}};
    to_evm_uint256be(kvbStorage.current_block_number(), &current_block);
    response->set_data(current_block.bytes, sizeof(evm_uint256be));
 
@@ -624,14 +624,14 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_getCode(
    AthenaResponse &athresp) const
 {
    const EthRequest request = athreq.eth_request(0);
-   evm_address account;
+   evm_address account{{0}};
    std::copy(request.addr_to().begin(), request.addr_to().end(),
              account.bytes);
    //TODO(BWF): now that we're using KVB for storage, we can handle the block
    //number parameter
 
    std::vector<uint8_t> code;
-   evm_uint256be hash;
+   evm_uint256be hash{{0}};
    if (kvbStorage.get_code(account, code, hash)) {
       EthResponse *response = athresp.add_eth_response();
       response->set_data(std::string(code.begin(), code.end()));
@@ -653,10 +653,10 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_getStorageAt(
 {
    const EthRequest request = athreq.eth_request(0);
 
-   evm_address account;
+   evm_address account{{0}};
    std::copy(request.addr_to().begin(), request.addr_to().end(),
              account.bytes);
-   evm_uint256be key;
+   evm_uint256be key{{0}};
    std::copy(request.data().begin(), request.data().end(), key.bytes);
    //TODO(BWF): now that we're using KVB for storage, we can support the block
    //argument
@@ -679,7 +679,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_getTransactionCount(
 {
    const EthRequest request = athreq.eth_request(0);
 
-   evm_address account;
+   evm_address account{{0}};
    std::copy(request.addr_to().begin(), request.addr_to().end(),
              account.bytes);
 
@@ -787,9 +787,9 @@ void com::vmware::athena::KVBCommandsHandler::recover_from(
 
       // Then we can check it against the signature.
 
-      evm_uint256be sigR;
+      evm_uint256be sigR{{0}};
       std::copy(request.sig_r().begin(), request.sig_r().end(), sigR.bytes);
-      evm_uint256be sigS;
+      evm_uint256be sigS{{0}};
       std::copy(request.sig_s().begin(), request.sig_s().end(), sigS.bytes);
 
       *sender = verifier_.ecrecover(rlp_hash, actualV, sigR, sigS);
@@ -943,8 +943,8 @@ evm_uint256be com::vmware::athena::KVBCommandsHandler::record_transaction(
       gas_price = request.gas_price();
    }
 
-   evm_uint256be sig_r;
-   evm_uint256be sig_s;
+   evm_uint256be sig_r{{0}};
+   evm_uint256be sig_s{{0}};
    uint64_t sig_v;
    if (request.has_sig_r() && request.has_sig_s() && request.has_sig_v()) {
       std::copy(request.sig_r().begin(), request.sig_r().end(), sig_r.bytes);

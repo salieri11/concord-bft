@@ -116,7 +116,8 @@ com::vmware::athena::KVBStorage::~KVBStorage()
 bool com::vmware::athena::KVBStorage::is_read_only()
 {
    // if we don't have a blockAppender, we are read-only
-   return blockAppender_;
+   auto res = blockAppender_ == nullptr;
+   return res;
 }
 
 /**

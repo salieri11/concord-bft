@@ -34,7 +34,7 @@ bool com::vmware::athena::KVBClient::send_request_sync(AthenaRequest &req,
       cmdslice, isReadOnly, replyslice, actualReplySize);
 
    if (status.ok()) {
-      return resp.ParseFromArray(replyslice.data(), replyslice.size());
+      return resp.ParseFromArray(replyslice.data(), actualReplySize);
    } else {
       LOG4CPLUS_ERROR(logger_, "Error invoking read-only command: " <<
                       status.ToString());
