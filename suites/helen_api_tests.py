@@ -612,7 +612,7 @@ class HelenAPITests(test_suite.TestSuite):
       response = request.callUserAPI("/login", data=loginData)
       after = int(round(time.time() * 1000))
       user = self._get_user(request, user_id)
-      if before < user['last_login'] and user['last_login'] < after:
+      if response['last_login'] < user['last_login']:
          return (True, None)
       return (False, "last login timestamp not updated correctly")
 
