@@ -613,7 +613,7 @@ class HelenAPITests(test_suite.TestSuite):
       user = self._get_user(request, user_id)
       # Newly created users last_login value will return 0
       # to signify they are a new user
-      if response['last_login'] == 0 && user['last_login'] < after:
+      if response['last_login'] == 0 and user['last_login'] < after:
          return (True, None)
       return (False, "last login timestamp not updated correctly")
 
