@@ -201,7 +201,7 @@ public class ProfilesRegistryManager {
    }
 
    public JSONObject loginUser(String email,
-                            String password) throws UserModificationException {
+                               String password) throws UserModificationException {
       Optional<User> oUser = userRepository.findUserByEmail(email);
       if (oUser.isPresent()) {
          User u = oUser.get();
