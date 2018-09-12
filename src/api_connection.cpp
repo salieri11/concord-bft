@@ -425,6 +425,13 @@ api_connection::handle_eth_request(int i)
          AthenaRequest internalRequest;
          EthRequest *internalEthRequest = internalRequest.add_eth_request();
          internalEthRequest->CopyFrom(request);
+
+         // Transactions create blocks, which need timestamps
+         if (request.method() == EthRequest_EthMethod_SEND_TX) {
+            time_t currentTime = std::time(nullptr);
+            internalEthRequest->set_timestamp(currentTime);
+         }
+
          AthenaResponse internalResponse;
 
          if (clientPool_.send_request_sync(

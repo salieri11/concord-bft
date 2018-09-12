@@ -33,11 +33,13 @@ bool com::vmware::athena::KVBClient::send_request_sync(AthenaRequest &req,
    Blockchain::Status status = client_->invokeCommandSynch(
       cmdslice, isReadOnly, replyslice, actualReplySize);
 
-   if (status.ok()) {
-      return resp.ParseFromArray(replyslice.data(), actualReplySize);
+   if (status.ok() && replyslice.size() > 0) {
+      return resp.ParseFromArray(replyslice.data(), replyslice.size());
    } else {
-      LOG4CPLUS_ERROR(logger_, "Error invoking read-only command: " <<
-                      status.ToString());
+      LOG4CPLUS_ERROR(logger_, "Error invoking "
+                      << (isReadOnly ? "read-only" : "read-write")
+                      << " command. Status: " << status.ToString()
+                      << " Reply size: " << replyslice.size());
       ErrorResponse *err = resp.add_error_response();
       err->set_description("Internal Athena Error");
       return true;

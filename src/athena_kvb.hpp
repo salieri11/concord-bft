@@ -127,6 +127,7 @@ private:
       const EthRequest &request,
       const uint64_t nonce,
       const evm_result &result,
+      const uint64_t timestamp,
       KVBStorage &kvbStorage) const;
 };
 

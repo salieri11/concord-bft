@@ -68,6 +68,7 @@ com::vmware::athena::EVM::~EVM()
  * record, it is a simple read storage operation.
  */
 evm_result com::vmware::athena::EVM::run(evm_message &message,
+                                         uint64_t timestamp,
                                          KVBStorage &kvbStorage)
 {
    assert(message.kind != EVM_CREATE);
@@ -84,13 +85,7 @@ evm_result com::vmware::athena::EVM::run(evm_message &message,
       message.code_hash = hash;
 
       try {
-         result = execute(message, kvbStorage, code);
-      } catch (ReadOnlyModeException rome) {
-         LOG4CPLUS_DEBUG(logger,
-                         "Non-pure contract function called "
-                         "with read-only storage. Contract: "
-                         << message.destination);
-         result.status_code = EVM_FAILURE;
+         result = execute(message, timestamp, kvbStorage, code);
       } catch (EVMException e) {
          LOG4CPLUS_ERROR(logger,
                          "EVM execution exception: '" << e.what() << "'. "
@@ -160,6 +155,7 @@ evm_result com::vmware::athena::EVM::run(evm_message &message,
  */
 evm_result com::vmware::athena::EVM::create(evm_address &contract_address,
                                             evm_message &message,
+                                            uint64_t timestamp,
                                             KVBStorage &kvbStorage)
 {
    assert(message.kind == EVM_CREATE);
@@ -180,7 +176,7 @@ evm_result com::vmware::athena::EVM::create(evm_address &contract_address,
       // something random
       message.code_hash = EthHash::keccak_hash(create_code);
 
-      result = execute(message, kvbStorage, create_code);
+      result = execute(message, timestamp, kvbStorage, create_code);
 
       // TODO: check if the new contract is zero bytes in length;
       //       return error, not success in that case
@@ -312,12 +308,15 @@ bool com::vmware::athena::EVM::new_account(
       };
       kvbStorage.add_transaction(tx);
       kvbStorage.set_nonce(zero_address, nonce+1);
-      kvbStorage.write_block();
+      //TODO: use parent block timestamp, not zero here
+      //      (but really this whole thing should move to helen HEL-80)
+      kvbStorage.write_block(0);
       return true;
    }
 }
 
 evm_result com::vmware::athena::EVM::execute(evm_message &message,
+                                             uint64_t timestamp,
                                              KVBStorage &kvbStorage,
                                              const std::vector<uint8_t> &code)
 {
@@ -325,7 +324,8 @@ evm_result com::vmware::athena::EVM::execute(evm_message &message,
    athena_context athctx = {{&athena_fn_table},
                             this,
                             &kvbStorage,
-                            &logger};
+                            &logger,
+                            timestamp};
 
    return evminst->execute(evminst, &athctx.evmctx, EVM_BYZANTIUM,
                            &message, &code[0], code.size());
@@ -477,11 +477,14 @@ extern "C" {
          evm_address contract_address =
             ath_object(evmctx)->contract_destination(call_msg.sender, nonce);
 
-         *result = ath_object(evmctx)->create(
-            contract_address, call_msg, *kvbStorage);
+         *result = ath_object(evmctx)->create(contract_address,
+                                              call_msg,
+                                              ath_context(evmctx)->timestamp,
+                                              *kvbStorage);
       } else {
-         *result = ath_object(evmctx)->run(
-            call_msg, *(ath_context(evmctx)->kvbStorage));
+         *result = ath_object(evmctx)->run(call_msg,
+                                           ath_context(evmctx)->timestamp,
+                                           *(ath_context(evmctx)->kvbStorage));
       }
    }
 
@@ -512,8 +515,10 @@ extern "C" {
       LOG4CPLUS_INFO(*(ath_context(evmctx)->logger),
                      "EVM::get_tx_context called");
 
-      // TODO: Actually get the transaction context. For now, set to known
-      // value. What is the "transaction context" anyway?
       memset(result, 0, sizeof(*result));
+
+      // TODO: fill in the rest of the context for the currently-executing block
+
+      result->block_timestamp = ath_context(evmctx)->timestamp;
    }
 }

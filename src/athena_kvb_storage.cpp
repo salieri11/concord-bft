@@ -223,7 +223,8 @@ void com::vmware::athena::KVBStorage::put(const Slice &key,
  * been prepared. A ReadOnlyModeException will be thrown if this object is in
  * read-only mode.
  */
-Status com::vmware::athena::KVBStorage::write_block() {
+Status com::vmware::athena::KVBStorage::write_block(uint64_t timestamp)
+{
    if (!blockAppender_) {
       throw ReadOnlyModeException();
    }
@@ -238,6 +239,8 @@ Status com::vmware::athena::KVBStorage::write_block() {
       EthBlock parent = get_block(blk.number-1);
       blk.parent_hash = parent.hash;
    }
+
+   blk.timestamp = timestamp;
 
    // We need hash of all transactions for calculating hash of a block
    // but we also need block hash inside transaction strcture (not required
