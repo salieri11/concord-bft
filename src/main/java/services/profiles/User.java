@@ -34,7 +34,7 @@ public class User {
 
    @Column(unique = true)
    private String email;
-   
+
    @Column(nullable = false)
    private String role;
 
@@ -45,21 +45,21 @@ public class User {
    @ManyToOne(optional = false, fetch = FetchType.LAZY)
    @JoinColumn(nullable = false)
    private Consortium consortium;
-   
+
    @Column(nullable = false)
    private String password;
-   
+
    private Long lastLogin = Instant.EPOCH.toEpochMilli();
 
    protected User() {
    }
 
-   protected Long getUserID() {
-      return userID;
-   }
-
    protected void setUserID(Long userID) {
       this.userID = userID;
+   }
+
+   public Long getUserID() {
+      return userID;
    }
 
    public String getName() {

@@ -200,7 +200,7 @@ public class ProfilesRegistryManager {
       userRepository.save(user);
    }
 
-   public boolean loginUser(String email,
+   public JSONObject loginUser(String email,
                             String password) throws UserModificationException {
       Optional<User> oUser = userRepository.findUserByEmail(email);
       if (oUser.isPresent()) {
@@ -208,11 +208,15 @@ public class ProfilesRegistryManager {
          // TODO: We know this is not a long-term solution and this will be
          // replaced by CSP authentication very soon.
          if (password != null && u.getPassword().equals(password)) {
+            JSONObject userJSON = getUserWithID(String.valueOf(u.getUserID()));
             u.setLastLogin(Instant.now().toEpochMilli());
             userRepository.save(u);
-            return true;
+            userJSON.put("isAuthenticated", "true");
+            return userJSON;
          } else {
-            return false;
+            JSONObject responseJSON = new JSONObject();
+            responseJSON.put("isAuthenticated", "false");
+            return responseJSON;
          }
       } else {
          throw new UserModificationException("No user found with email: "

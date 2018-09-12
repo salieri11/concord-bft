@@ -28,6 +28,7 @@ import com.vmware.athena.Athena;
 
 import services.profiles.ProfilesRegistryManager;
 import services.profiles.UserModificationException;
+import services.profiles.User;
 
 /**
  * A servlet for handling the user authentication flow of helen. This servlet is
@@ -57,12 +58,13 @@ public class UserAuthenticator extends BaseServlet {
          JSONObject requestJSON = (JSONObject) parser.parse(requestBody);
          if (requestJSON.containsKey(EMAIL_LABEL)
             && requestJSON.containsKey(PASSWORD_LABEL)) {
-            boolean successful
+            JSONObject user
                = prm.loginUser((String) requestJSON.get(EMAIL_LABEL),
                                (String) requestJSON.get(PASSWORD_LABEL));
-            if (successful) {
+
+            if (user.get("isAuthenticated") == "true") {
                responseStatus = HttpStatus.OK;
-               responseJSON = new JSONObject();
+               responseJSON = user;
             } else {
                responseStatus = HttpStatus.FORBIDDEN;
                responseJSON = new JSONObject();

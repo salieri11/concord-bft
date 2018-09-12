@@ -42,9 +42,9 @@ export class AuthenticationService {
   logIn(email: string, password: string, persona: Personas) {
     const url = 'api/login';
     return this.http.post<{email: string, password: string}>(url, {email: email, password: password}).pipe(
-      map(() => {
-        console.log('mapping function happening');
+      map((response) => {
         this.handleLogIn(email, password, persona);
+        return response;
       })
     );
   }

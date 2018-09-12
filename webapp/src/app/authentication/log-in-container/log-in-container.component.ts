@@ -18,7 +18,6 @@ import { PersonaService } from '../../shared/persona.service';
 export class LogInContainerComponent implements OnDestroy, AfterViewInit {
   @ViewChild('username') username: ElementRef;
   readonly loginForm: FormGroup;
-  private authenticationChange;
   errorMessage: string;
   personaOptions = PersonaService.getOptions();
 
@@ -28,12 +27,6 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
     private router: Router,
     private translateService: TranslateService
   ) {
-
-    this.authenticationChange = this.authenticationService.user.subscribe(user => {
-      if (user.email) {
-        this.router.navigate(['dashboard']);
-      }
-    });
 
     this.loginForm = this.formBuilder.group({
       email: ['', [Validators.required]],
@@ -46,9 +39,7 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
     this.username.nativeElement.focus();
   }
 
-  ngOnDestroy () {
-    this.authenticationChange.unsubscribe();
-  }
+  ngOnDestroy() {}
 
   onLogIn() {
     this.errorMessage = null;
@@ -56,8 +47,12 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
       this.loginForm.value.email,
       this.loginForm.value.password,
       this.loginForm.value.persona
-    ).subscribe(() => {
-
+    ).subscribe((user) => {
+      if (user['last_login'] === 0) {
+        this.router.navigate(['auth', 'onboarding']);
+      } else {
+        this.router.navigate(['dashboard']);
+      }
     }, (error) => {
       this.errorMessage = error.error.error || this.translateService.instant('authentication.errorMessage');
     });
