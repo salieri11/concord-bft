@@ -211,11 +211,11 @@ public class ProfilesRegistryManager {
             JSONObject userJSON = getUserWithID(String.valueOf(u.getUserID()));
             u.setLastLogin(Instant.now().toEpochMilli());
             userRepository.save(u);
-            userJSON.put("isAuthenticated", "true");
+            userJSON.put("isAuthenticated", Boolean.TRUE);
             return userJSON;
          } else {
             JSONObject responseJSON = new JSONObject();
-            responseJSON.put("isAuthenticated", "false");
+            responseJSON.put("isAuthenticated", Boolean.FALSE);
             return responseJSON;
          }
       } else {

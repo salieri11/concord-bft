@@ -62,7 +62,7 @@ public class UserAuthenticator extends BaseServlet {
                = prm.loginUser((String) requestJSON.get(EMAIL_LABEL),
                                (String) requestJSON.get(PASSWORD_LABEL));
 
-            if (user.get("isAuthenticated") == "true") {
+            if (user.get("isAuthenticated") == Boolean.TRUE) {
                responseStatus = HttpStatus.OK;
                responseJSON = user;
             } else {
