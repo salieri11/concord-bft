@@ -19,8 +19,11 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
+if [ $# -gt 0 ]; then
+	tag=":$1"
+fi
 # Now build each of the specific images
-docker build . -f docker/Dockerfile-athena1 -t athena1
-docker build . -f docker/Dockerfile-athena2 -t athena2
-docker build . -f docker/Dockerfile-athena3 -t athena3
-docker build . -f docker/Dockerfile-athena4 -t athena4
+docker build . -f docker/Dockerfile-athena1 -t athena1$tag
+docker build . -f docker/Dockerfile-athena2 -t athena2$tag
+docker build . -f docker/Dockerfile-athena3 -t athena3$tag
+docker build . -f docker/Dockerfile-athena4 -t athena4$tag
