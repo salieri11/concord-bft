@@ -41,6 +41,10 @@ def main():
                        "'--tests vmArithmeticTest/add0.json'")
    parser.add_argument("--config",
                        help="User config file to be considered.")
+   parser.add_argument("--noLaunch",
+                        default=False,
+                        action='store_true',
+                       help="Will not launch the product, assuming its already running")
 
    args = parser.parse_args()
 

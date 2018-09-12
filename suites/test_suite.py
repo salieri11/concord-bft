@@ -36,6 +36,7 @@ class TestSuite(ABC):
       self.loadConfigFile()
       self._ethereumMode = self._args.ethereumMode
       self._productMode = not self._ethereumMode
+      self._noLaunch = self._args.noLaunch
 
       if self._ethereumMode:
          log.debug("Running in ethereum mode")

@@ -40,7 +40,7 @@ class HelenAPITests(test_suite.TestSuite):
 
    def run(self):
       ''' Runs all of the tests. '''
-      if self._productMode:
+      if self._productMode and not self._noLaunch:
          try:
             p = self.launchProduct(self._args.resultsDir,
                                    self._apiBaseServerUrl + "/api/athena/eth",
@@ -82,7 +82,7 @@ class HelenAPITests(test_suite.TestSuite):
 
       log.info("Tests are done.")
 
-      if self._productMode:
+      if self._productMode and not self._noLaunch:
          p.stopProduct()
 
       return self._resultFile
