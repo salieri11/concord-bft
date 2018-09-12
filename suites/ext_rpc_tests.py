@@ -298,7 +298,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
       # Simple contract that returns 0x42 when called
       rawTransaction = "0xf860800101800197600b80600c6000396000f300604260005260206000f30025a0b9f688baaf66a51d4965a526803499fb1688d6b6720086270e64fcd67cde2921a02cecc55e0200c831f01b00d46865fe7a89e8891ae5906821eb86609b022f44b2"
-      expectedHash = "0x7749049815519a2fc50d4f76decdb904e966b447704b687892aafa98d4b8a1a9"
+      expectedHash = "0x27307004ef0908c2dc40935e163f9d9c3d13251b3ddd3b7eeced5ff7274e6820"
       expectedFrom = "0xaf4be85b32868c5b7c121115ad8cd93e0ad4f14e"
       expectedTo = "0xc2ddc84b30c43c090db2bd3a55a0fb0d8f0af208"
       expectedValue = "1"
@@ -327,6 +327,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
          # The rest of these are just checking parsing.
          if not tx["contract_address"] == expectedTo:
+            log.warn("------" + tx["contract_address"])
             return (False, "Found contract_address does not match expected contract_address")
          if not tx["value"] == expectedValue:
             return (False, "Found value does not match expected value")
