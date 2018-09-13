@@ -4,13 +4,15 @@
 
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { Component, Input, OnChanges, SimpleChanges, SimpleChange, ViewChild } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 
 import { SmartContractVersion } from '../shared/smart-contracts.model';
 import * as Web3EthAbi from 'web3-eth-abi';
 
 import { EthApiService } from '../../shared/eth-api.service';
+import { HighlightService } from '../../shared/highlight.service';
 import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview-form/contract-payload-preview-form.component';
-import { isHexAddress, isHexadecimal } from '../shared/custom-validators';
+import { isHexAddress } from '../shared/custom-validators';
 
 @Component({
   selector: 'athena-smart-contract-version',
@@ -27,14 +29,14 @@ export class SmartContractVersionComponent implements OnChanges {
   alertMessage: string;
   alertType: string;
   resultType: string;
+  highlightedMetaData: string;
+  highlightedSourceCode: string;
   functionDefinition;
 
-  constructor(private ethApiService: EthApiService) {
+  constructor(private ethApiService: EthApiService, private highlighter: HighlightService, private translate: TranslateService) {
     this.versionForm = new FormGroup({
       functionName: new FormControl(''),
       contractForm: new FormGroup({
-        gas: new FormControl('', [Validators.required, isHexadecimal]),
-        value: new FormControl('', [isHexadecimal]),
         from: new FormControl('', [Validators.required, isHexAddress]),
         functionInputs: new FormGroup({})
       })
@@ -81,7 +83,7 @@ export class SmartContractVersionComponent implements OnChanges {
       if (resp.error) {
         this.handleError(resp);
       } else {
-        this.alertMessage = resp.result;
+        this.alertMessage = this.translate.instant('smartContracts.form.callSuccessMessage');
         this.alertType = 'alert-success';
         this.resultType = 'call';
       }
@@ -108,8 +110,7 @@ export class SmartContractVersionComponent implements OnChanges {
     return {
       from: this.versionForm.value.contractForm.from,
       to: this.version.address,
-      gas: this.versionForm.value.contractForm.gas,
-      value: this.versionForm.value.contractForm.value,
+      gas: '0xF4240',
       data: output
     };
   }
@@ -119,9 +120,14 @@ export class SmartContractVersionComponent implements OnChanges {
   }
 
   private handleError(error) {
-    this.alertMessage = error.error;
+    this.alertMessage = error.error.message ? error.error.message : error.error;
     this.alertType = 'alert-danger';
     this.resultType = 'error';
+  }
+
+  private highlightCode() {
+    this.highlightedSourceCode = this.highlighter.highlight(this.version.sourcecode, this.highlighter.languages.solidity);
+    this.highlightedMetaData = this.highlighter.highlight(JSON.stringify(this.version.metadata, null, 4), this.highlighter.languages.json);
   }
 
   private onDownload(source, file) {
@@ -150,5 +156,6 @@ export class SmartContractVersionComponent implements OnChanges {
       this.functionDefinition = undefined;
     }
     this.getFunctionDetails();
+    this.highlightCode();
   }
 }

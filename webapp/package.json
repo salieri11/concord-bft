@@ -44,6 +44,7 @@
     "ngx-tour-ngx-popper": "^3.0.1",
     "ol": "^5.0.0",
     "popper.js": "^1.14.3",
+    "prismjs": "^1.15.0",
     "rxjs": "^6.2.1",
     "vivus": "^0.4.4",
     "web3-eth-abi": "^1.0.0-beta.34",

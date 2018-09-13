@@ -1,7 +1,16 @@
 <div *ngIf="functionInputs?.length" [formGroup]="formGroup">
-  <label>{{'smartContracts.version.functionParameters' | translate}}</label>
+  <h5 class="font-weight-bold d-inline-block mb-1">{{'smartContracts.version.functionParameters' | translate}}</h5>
+  <clr-tooltip>
+    <clr-icon clrTooltipTrigger shape="info-circle" size="24" class="is-info"></clr-icon>
+    <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
+      <span>{{'smartContracts.version.tooltips.requiredParameters' | translate}}</span>
+    </clr-tooltip-content>
+  </clr-tooltip>
   <div *ngFor="let input of functionInputs" class="form-group">
     <label class="required">{{input.name}}</label>
-    <input type="text" [formControlName]="input.name" required>
+    <div>
+      <input type="text" [formControlName]="input.name" required>
+      <div class="clr-subtext">{{'smartContracts.version.parameterHelper' | translate}}</div>
+    </div>
   </div>
 </div>

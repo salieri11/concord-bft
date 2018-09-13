@@ -1,73 +1,150 @@
-<form class="pt-0" [formGroup]="versionForm">
-  <div class="row">
-    <div class="col-sm-6 col-xs-12">
-      <h2 class="mt-0">
-        {{version?.version}}
-        <button (click)="onSourceCodeDownload()" type="button" class="btn btn-primary-outline btn-icon ml-1">
-          <clr-icon size="16" shape="code"
-                    [attr.title]="'smartContracts.version.downloadSourceCode' | translate"></clr-icon>
-        </button>
-        <button (click)="onByteCodeDownload()" type="button" class="btn btn-primary-outline btn-icon">
-          <clr-icon size="16" shape="file-settings"
-                    [attr.title]="'smartContracts.version.downloadBytecode' | translate"></clr-icon>
-        </button>
-        <button (click)="onMetadataDownload()" type="button" class="btn btn-primary-outline btn-icon">
-          <clr-icon size="16" shape="view-list"
-                    [attr.title]="'smartContracts.version.downloadMetadata' | translate"></clr-icon>
-        </button>
-      </h2>
-      <div class="form">
-        <div class="form-group">
-          <label>{{'smartContracts.version.functions' | translate}}</label>
-          <div class="select">
-            <select id="selectedFunction" name="function" *ngIf="functions?.length" formControlName="functionName"
-                    (change)="getFunctionDetails()">
-              <option *ngFor="let func of functions" [value]="func.name">{{ func.name }}</option>
-            </select>
+<clr-tabs>
+  <clr-tab>
+    <button clrTabLink>{{'smartContracts.version.tabs.execute' | translate}}</button>
+    <clr-tab-content>
+      <form class="pt-0" [formGroup]="versionForm">
+        <div class="row">
+          <div class="col-xs-12 col-sm-7">
+            <div class="card">
+              <div class="card-block">
+                <clr-alert *ngIf="alertMessage" [clrAlertType]="alertType" [clrAlertClosable]="false">
+                  <div class="alert-item">
+                    <span class="alert-text">
+                        {{alertMessage}}
+                    </span>
+                    <div class="alert-actions" *ngIf="resultType === 'send'">
+                      <a [routerLink]="['/transactions', alertMessage]">{{'smartContracts.version.view' | translate}}</a>
+                    </div>
+                  </div>
+                </clr-alert>
+                <div class="form">
+                  <div class="form-group">
+                    <label> {{'smartContracts.version.address' | translate}}</label>
+                    <clr-tooltip>
+                      <span clrTooltipTrigger>{{version?.address}}</span>
+                      <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
+                        <span>{{'smartContracts.version.tooltips.contractAddress' | translate}}</span>
+                      </clr-tooltip-content>
+                    </clr-tooltip>
+                  </div>
+                  <div class="form-group">
+                    <label>{{'smartContracts.version.functions' | translate}}</label>
+                    <div class="select">
+                      <select id="selectedFunction" name="function" *ngIf="functions?.length" formControlName="functionName"
+                              (change)="getFunctionDetails()">
+                        <option *ngFor="let func of functions" [value]="func.name">{{ func.name }}</option>
+                      </select>
+                      <div class="clr-subtext">{{'smartContracts.version.tooltips.availableActions' | translate}}</div>
+                    </div>
+                  </div>
+                </div>
+                <div *ngIf="versionForm.value.functionName" formGroupName="contractForm">
+                  <div class="form-group">
+                    <label class="required">{{'smartContracts.version.from' | translate}}</label>
+                    <div>
+                      <input type="text" formControlName="from" required>
+                      <div class="clr-subtext">{{'smartContracts.version.addressHelper' | translate}}</div>
+                    </div>
+                  </div>
+                  <athena-smart-contracts-solidity-function-inputs [formGroup]="versionForm.get('contractForm.functionInputs')"
+                                                                   [functionInputs]="inputs"></athena-smart-contracts-solidity-function-inputs>
+                </div>
+              </div>
+              <div class="card-footer">
+                <button id="callSubmit" type="button" class="btn btn-primary" (click)="onCall()" [disabled]="versionForm.invalid">
+                  {{'smartContracts.version.call' | translate}}
+                </button>
+                <button id="transactionSubmit" type="button" class="btn btn-primary" (click)="onSend()" [disabled]="versionForm.invalid">
+                  {{'smartContracts.version.send' | translate}}
+                </button>
+                <button id="previewSubmit" type="button" class="btn btn-outline" (click)="onPreview()" [disabled]="versionForm.invalid">
+                  {{'smartContracts.version.preview' | translate}}
+                </button>
+                <clr-tooltip>
+                  <clr-icon clrTooltipTrigger shape="info-circle" size="24" class="is-info"></clr-icon>
+                  <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
+                    <span>{{'smartContracts.version.tooltips.callHelper' | translate}}</span>
+                  </clr-tooltip-content>
+                </clr-tooltip>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </clr-tab-content>
+  </clr-tab>
+  <clr-tab>
+    <button clrTabLink>{{'smartContracts.version.tabs.source' | translate}}</button>
+    <clr-tab-content>
+      <div class="row">
+        <div class="col-xs-12 col-sm-7">
+          <div class="card">
+            <div class="card-header text-xs-right">
+              <clr-tooltip>
+                <button clrTooltipTrigger (click)="onSourceCodeDownload()" type="button" class="btn btn-primary-outline btn-icon">
+                  <clr-icon shape="download"></clr-icon>
+                </button>
+                <clr-tooltip-content clrPosition="top-right" clrSize="sm" *clrIfOpen>
+                  <span>{{'smartContracts.version.download' | translate}}</span>
+                </clr-tooltip-content>
+              </clr-tooltip>
+            </div>
+            <div class="card-block">
+              <pre class="language-clike" [innerHtml]="highlightedSourceCode"></pre>
+            </div>
           </div>
         </div>
       </div>
-      <div *ngIf="versionForm.value.functionName" formGroupName="contractForm">
-        <div class="form-group">
-          <label class="required">{{'smartContracts.version.gas' | translate}}</label>
-          <input type="text" formControlName="gas" required>
-        </div>
-        <div class="form-group">
-          <label>{{'smartContracts.version.value' | translate}}</label>
-          <input type="text" formControlName="value">
-        </div>
-        <div class="form-group">
-          <label class="required">{{'smartContracts.version.from' | translate}}</label>
-          <input type="text" formControlName="from" required>
-        </div>
-        <athena-smart-contracts-solidity-function-inputs [formGroup]="versionForm.get('contractForm.functionInputs')"
-                                                      [functionInputs]="inputs"></athena-smart-contracts-solidity-function-inputs>
-      </div>
-    </div>
-    <div class="col-sm-6 col-xs-12">
-      <clr-alert *ngIf="alertMessage" [clrAlertType]="alertType" [clrAlertClosable]="false">
-        <div class="alert-item">
-          <span class="alert-text break-all">
-              {{alertMessage}}
-          </span>
-          <div class="alert-actions" *ngIf="resultType === 'send'">
-            <a [routerLink]="['/transactions', alertMessage]">View</a>
+    </clr-tab-content>
+  </clr-tab>
+  <clr-tab>
+    <button clrTabLink>{{'smartContracts.version.tabs.bytecode' | translate}}</button>
+    <clr-tab-content>
+      <div class="row">
+        <div class="col-xs-12 col-sm-7">
+          <div class="card">
+            <div class="card-header text-xs-right">
+              <clr-tooltip>
+                <button clrTooltipTrigger (click)="onByteCodeDownload()" type="button" class="btn btn-primary-outline btn-icon">
+                  <clr-icon shape="download"></clr-icon>
+                </button>
+                <clr-tooltip-content clrPosition="top-right" clrSize="sm" *clrIfOpen>
+                  <span>{{'smartContracts.version.download' | translate}}</span>
+                </clr-tooltip-content>
+              </clr-tooltip>
+            </div>
+            <div class="card-block">
+              <pre class="language-markup bytecode-container" [innerHtml]="version?.bytecode"></pre>
+            </div>
           </div>
         </div>
-      </clr-alert>
-    </div>
-    <div class="col-xs-12">
-      <button id="callSubmit" type="button" class="btn btn-primary" (click)="onCall()" [disabled]="versionForm.invalid">
-        {{'smartContracts.version.call' | translate}}
-      </button>
-      <button id="transactionSubmit" type="button" class="btn btn-primary" (click)="onSend()" [disabled]="versionForm.invalid">
-        {{'smartContracts.version.send' | translate}}
-      </button>
-      <button id="previewSubmit" type="button" class="btn btn-outline" (click)="onPreview()" [disabled]="versionForm.invalid">
-        {{'smartContracts.version.preview' | translate}}
-      </button>
-    </div>
-  </div>
-</form>
+      </div>
+    </clr-tab-content>
+  </clr-tab>
+  <clr-tab>
+    <button clrTabLink>{{'smartContracts.version.tabs.metadata' | translate}}</button>
+    <clr-tab-content>
+      <div class="row">
+        <div class="col-xs-12 col-sm-7">
+          <div class="card">
+            <div class="card-header text-xs-right">
+              <clr-tooltip>
+                <button clrTooltipTrigger (click)="onMetadataDownload()" type="button" class="btn btn-primary-outline btn-icon">
+                  <clr-icon shape="download"></clr-icon>
+                </button>
+                <clr-tooltip-content clrPosition="top-right" clrSize="sm" *clrIfOpen>
+                  <span>{{'smartContracts.version.download' | translate}}</span>
+                </clr-tooltip-content>
+              </clr-tooltip>
+            </div>
+            <div class="card-block">
+              <pre class="language-json" [innerHtml]="highlightedMetaData"></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </clr-tab-content>
+  </clr-tab>
+</clr-tabs>
 
 <athena-contract-payload-preview-form #payloadPreviewModal></athena-contract-payload-preview-form>

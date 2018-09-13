@@ -24,7 +24,7 @@ export class RequestInterceptor implements HttpInterceptor {
     return next.handle(request).pipe(tap((event: HttpEvent<any>) => {
       // Make sure this is a response from the Ethereum endpoint and that there is an error present
       if (event instanceof HttpResponse && event.url.indexOf('/api/athena/eth') !== -1 && event.body.error) {
-        throw throwError(event.body.error.message);
+        return throwError(event.body.error.message);
       }
     }));
   }

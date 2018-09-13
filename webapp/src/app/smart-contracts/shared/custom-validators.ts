@@ -158,6 +158,12 @@ export function isInt(controlType: string): ValidatorFn {
   };
 }
 
+export function newVersionValue(existingVersions: string[]): ValidatorFn {
+  return (control: AbstractControl): any => {
+    return (existingVersions.indexOf(control.value) !== -1) ? { versionExists: true } : null;
+  };
+}
+
 function getBigNumberRange(controlType: string): any {
   let numberOfBits;
   let hexMinString;

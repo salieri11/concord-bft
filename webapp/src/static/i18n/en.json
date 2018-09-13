@@ -8,7 +8,8 @@
     "back": "Back",
     "next": "Next",
     "finish": "Finish",
-    "edit": "Edit"
+    "edit": "Edit",
+    "update": "Update"
   },
   "nav": {
     "menu": {
@@ -274,7 +275,9 @@
     "smartContracts": "Smart Contracts",
     "smartContractUpload": "Upload Smart Contracts",
     "contractId": "Contract ID",
+    "contractOwnerAddress": "Contract Owner Address",
     "createContract": "Create Contract",
+    "updateContract": "Update Contract",
     "createContractError": "There was an error uploading your contract. Please correct any errors and try again:",
     "viewDetail": "View Details",
     "name": "Name",
@@ -291,12 +294,31 @@
       "from": "From",
       "call": "Call",
       "send": "Send",
+      "view": "View",
       "preview": "Preview",
       "selectVersion": "Select Version",
+      "addressHelper": "This is your address",
       "functionParameters": "Function Parameters",
-      "downloadBytecode": "Download Bytecode",
-      "downloadSourceCode": "Download Source Code",
-      "downloadMetadata": "Download Metadata"
+      "parameterHelper": "Parameter Required By Function",
+      "download": "Download",
+      "tabs": {
+        "execute": "Execute",
+        "source": "Source",
+        "metadata": "Metadata",
+        "bytecode": "Bytecode"
+      },
+      "tooltips": {
+        "contractAddress": "Contract Address",
+        "availableActions": "Available Contract Actions",
+        "requiredParameters": "Required Function Parameters",
+        "callHelper": "Call is used for a local invocation, which is a good first step for testing, before clicking send and invoking on the blockchain."
+      }
+    },
+    "form": {
+      "addressHelper": "Your address",
+      "versionHelper": "Please update the version before proceeding",
+      "versionValidationMessage": "You must choose a new value for version",
+      "callSuccessMessage": "Contract was locally invoked successfully, click send to execute the contract on the blockchain"
     }
   },
   "organization": {

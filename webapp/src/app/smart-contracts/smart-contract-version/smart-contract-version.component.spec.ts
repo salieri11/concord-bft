@@ -245,12 +245,11 @@ describe('SmartContractVersionComponent', () => {
 
   describe('API interaction', () => {
     it('on call passes the encoded function and handles success', () => {
-      const successResult = 'success result';
+      const successResult = 'smartContracts.form.callSuccessMessage';
       const expectedPayload = {
         from: null,
         to: 'address2',
-        gas: null,
-        value: null,
+        gas: '0xF4240',
         data: '0x4ad12c050000000000000000000000000000000000000000000000000000000000000000'
       };
       const callSpy = spyOn((component.versionComponent as any).ethApiService, 'sendCall')
@@ -297,8 +296,7 @@ describe('SmartContractVersionComponent', () => {
       const expectedPayload = {
         from: null,
         to: 'address2',
-        gas: null,
-        value: null,
+        gas: '0xF4240',
         data: '0x4ad12c050000000000000000000000000000000000000000000000000000000000000000'
       };
       const callSpy = spyOn((component.versionComponent as any).ethApiService, 'sendTransaction')

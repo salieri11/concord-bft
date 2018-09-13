@@ -18,6 +18,7 @@ import {
 } from '../smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
 import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview-form/contract-payload-preview-form.component';
 import { SmartContractsService } from '../shared/smart-contracts.service';
+import { ContractFormComponent } from '../contract-form/contract-form.component';
 
 class MockActivatedRoute extends ActivatedRoute {
   constructor() {
@@ -41,6 +42,7 @@ describe('SmartContractComponent', () => {
       declarations: [
         SmartContractComponent,
         SmartContractVersionComponent,
+        ContractFormComponent,
         ContractPayloadPreviewFormComponent,
         SmartContractsSolidityFunctionInputsComponent
       ],
@@ -65,7 +67,7 @@ describe('SmartContractComponent', () => {
 
   it('should load smart contract with given contractId', () => {
     const spy = spyOn((component as any).smartContractsService, 'getSmartContract')
-      .and.returnValue(observableOf({ smartContract: 'smart contract' }));
+      .and.returnValue(observableOf({contract_id: 'smart contract', versions: []}));
     component.loadSmartContract('contractId');
     expect(spy).toHaveBeenCalled();
   });
@@ -74,6 +76,26 @@ describe('SmartContractComponent', () => {
     const spy = spyOn((component as any).smartContractsService, 'getVersionDetails')
       .and.returnValue(observableOf({ versionDetails: 'version details' }));
     component.loadVersionDetails('contractId', 'version');
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('should load the first version for a contract if the version param is not supplied and the contract has versions', () => {
+    const contract = {
+      contract_id: 'contractId',
+      versions: [{
+        address: 'address',
+        metadata: {},
+        version: 'version',
+        url: 'url'
+      }]
+    };
+
+    const spy = spyOn(component, 'getVersionInfo');
+    spyOn((component as any).smartContractsService, 'getSmartContract').and.returnValue(observableOf(contract));
+
+    component.loadSmartContract('contractId');
+
+    expect(component.versionSelected).toBe(contract.versions[0].version);
     expect(spy).toHaveBeenCalled();
   });
 
@@ -102,6 +124,25 @@ describe('SmartContractComponent', () => {
 
       component.loadSmartContract('2');
       expect(smartContractSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('on updating smart contract', () => {
+
+    it('should reload the smart contract with the new version', () => {
+      const response = {
+        contract_id: 'contractId',
+        version: 'newVersion',
+        url: 'url'
+      };
+      const getVersionSpy = spyOn(component, 'getVersionInfo');
+      const loadContractSpy = spyOn(component, 'loadSmartContract');
+
+      component.afterUpdateContract(response);
+
+      expect(getVersionSpy).toHaveBeenCalled();
+      expect(loadContractSpy).toHaveBeenCalledWith(response.contract_id, response.version);
+      expect(component.versionSelected).toBe(response.version);
     });
   });
 

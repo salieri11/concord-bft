@@ -2,7 +2,7 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { async, fakeAsync, tick, ComponentFixture, TestBed } from '@angular/core/testing';
 import { ClarityModule } from '@clr/angular';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -18,6 +18,39 @@ import { SmartContractsService } from '../shared/smart-contracts.service';
 describe('ContractFormComponent', () => {
   let component: ContractFormComponent;
   let fixture: ComponentFixture<ContractFormComponent>;
+  const contract: any = {
+    contract_id: 'contractId',
+    owner: 'owner',
+    versions: [{
+      address: 'address',
+      metadata: {},
+      version: 'version',
+      url: 'url'
+    }]
+  };
+  const version = {
+    contract_id: 'contractId',
+    version: 'version',
+    owner: 'owner',
+    metadata: {
+      compiler: {
+        version: 'version'
+      },
+      language: 'language',
+      output: {
+        abi: [],
+        devdoc: 'devdoc',
+        userdoc: 'userdoc',
+      },
+      settings: 'settings',
+      sources: 'sources',
+      version: 'version',
+    },
+    address: 'address',
+    bytecode: 'bytecode',
+    sourcecode: 'sourcecode'
+  };
+
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
@@ -55,17 +88,36 @@ describe('ContractFormComponent', () => {
   });
 
   describe('On open create contract form', () => {
-    it('resets the form', () => {
-      spyOn(component.smartContractForm, 'reset');
-      component.open();
-      expect(component.smartContractForm.reset).toHaveBeenCalled();
-    });
-
     it('should set isOpen to true', () => {
       expect(component.isOpen).toBeFalsy();
       component.open();
       expect(component.isOpen).toBeTruthy();
     });
+
+    it('opens the create form when no smart contract is provided', () => {
+      spyOn((component as any), 'createAddContractForm');
+      component.open();
+      expect((component as any).createAddContractForm).toHaveBeenCalled();
+    });
+
+    it('opens the update form when a smart contract is provided', () => {
+      spyOn((component as any), 'createUpdateContractForm');
+      component.open(contract);
+      expect((component as any).createUpdateContractForm).toHaveBeenCalled();
+    });
+
+    it('disables the contract id field and prepopulates the version field on edit', fakeAsync(() => {
+      (component as any).createUpdateContractForm(contract, version);
+
+      tick(20);
+      fixture.detectChanges();
+
+      fixture.whenStable().then(() => {
+        expect(component.smartContractForm.controls['contractId'].disabled).toBe(true);
+        expect(component.smartContractForm.getRawValue().contractId).toBe(contract.contract_id);
+        expect(component.smartContractForm.value.version).toBe(version.version);
+      });
+    }));
   });
 
   describe('On closing the create contract form', () => {
