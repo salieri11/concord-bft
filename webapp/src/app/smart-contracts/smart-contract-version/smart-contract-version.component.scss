@@ -6,6 +6,13 @@ form {
     padding-left: 6.5rem;
   }
 }
+.card {
+  min-width: 550px;
+  max-width: 1000px;
+  pre {
+    max-height: inherit;
+  }
+}
 
 .bytecode-container {
   word-break: break-all;
