@@ -1,6 +1,14 @@
-.form-group {
-  label {
-    text-align: left !important;
+@import "~@clr/ui/src/color/utils/_colors.clarity.scss";
+
+label {
+  text-align: left !important;
+  &.required {
+    &:after {
+      content: '*';
+      font-size: 0.58479532rem; // Approximately 14px.
+      line-height: 0.5rem;
+      color: $clr-red;
+      margin-left: 0.25rem;
+    }
   }
-  padding-left: 6.5rem !important;
 }

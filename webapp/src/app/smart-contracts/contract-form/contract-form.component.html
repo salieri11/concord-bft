@@ -1,4 +1,4 @@
-<form [formGroup]="smartContractForm" (ngSubmit)="onSubmitSmartContract()" class="contract-form">
+<form clrForm clrLayout="horizontal" [formGroup]="smartContractForm" (ngSubmit)="onSubmitSmartContract()" class="contract-form">
   <clr-modal [(clrModalOpen)]="isOpen">
     <h3 class="modal-title">{{modalTitle}}</h3>
     <div class="modal-body">
@@ -14,42 +14,43 @@
         </clr-alert>
       </div>
       <section class="form-block">
-        <div class="form-group">
+        <clr-input-container>
           <label for="smartContractContractId" class="required">{{'smartContracts.name' | translate}}</label>
-          <input id="smartContractContractId" type="text" placeholder="" required formControlName="contractId">
-        </div>
-        <div class="form-group">
+          <input clrInput id="smartContractContractId" type="text" placeholder="" required formControlName="contractId">
+          <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}</clr-control-error>
+        </clr-input-container>
+        <clr-input-container>
           <label for="smartContractFrom" class="required">{{'smartContracts.version.from' | translate}}</label>
+          <input clrInput id="smartContractFrom" type="text" placeholder="0x0123456789abcdefgh0123456789abcdefgh0123" required formControlName="from">
+          <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}</clr-control-error>
+          <clr-control-error *clrIfError="'minlength'">{{'smartContracts.version.addressLengthValidationMessage' | translate}}</clr-control-error>
+          <clr-control-error *clrIfError="'maxlength'">{{'smartContracts.version.addressLengthValidationMessage' | translate}}</clr-control-error>
+          <clr-control-error *clrIfError="'pattern'">{{'smartContracts.version.addressPatternValidationMessage' | translate}}</clr-control-error>
+          <clr-control-helper>
+            {{'smartContracts.form.addressHelper' | translate}}
+          </clr-control-helper>
+        </clr-input-container>
+        <clr-input-container>
+          <label for="smartContractVersion" class="required">{{'smartContracts.version.version' | translate}}</label>
+          <input clrInput id="smartContractVersion" type="text" placeholder="" required formControlName="version">
+          <clr-control-helper *ngIf="modalState.isUpdate">{{'smartContracts.form.versionHelper' | translate}}</clr-control-helper>
+          <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}</clr-control-error>
+          <clr-control-error *clrIfError="'versionExists'">{{'smartContracts.form.versionDuplicateValidationMessage' | translate}}</clr-control-error>
+          <clr-control-error *clrIfError="'maxlength'">{{'smartContracts.form.versionLengthValidationMessage' | translate}}</clr-control-error>
+        </clr-input-container>
+        <div class="clr-row clr-form-control">
+          <label for="smartContractFile" class="clr-control-label required">{{'smartContracts.file' | translate}}</label>
           <div class="clr-control-container">
             <div class="clr-input-wrapper">
-              <input id="smartContractFrom" type="text" placeholder="0x0123456789abcdefgh0123456789abcdefgh0123" required formControlName="from">
+              <input id="smartContractFile" type="file" name="userFile" required #fileInput (change)="onSmartContractFileChange($event)">
             </div>
           </div>
-          <div class="clr-subtext helper-text">{{'smartContracts.form.addressHelper' | translate}}</div>
-        </div>
-        <div class="form-group">
-          <label for="smartContractVersion" class="required">{{'smartContracts.version.version' | translate}}</label>
-          <div class="clr-control-container" [ngClass]="{'clr-error': smartContractForm.controls.version.errors && !smartContractForm.controls.version.pristine && smartContractForm.controls.version.touched}">
-            <div class="clr-input-wrapper">
-              <input id="smartContractVersion" type="text" placeholder="" required formControlName="version">
-              <clr-icon class="clr-validate-icon" shape="exclamation-circle"></clr-icon>
-            </div>
-            <div *ngIf="smartContractForm.get('version').hasError('versionExists') &&
-             !smartContractForm.controls.version.pristine && smartContractForm.controls.version.touched" class="clr-subtext">
-              {{'smartContracts.form.versionValidationMessage' | translate}}
-            </div>
-          </div>
-          <div *ngIf="modalState.isUpdate" class="clr-subtext helper-text">{{'smartContracts.form.versionHelper' | translate}}</div>
-        </div>
-        <div class="form-group">
-          <label for="smartContractFile" class="required">{{'smartContracts.file' | translate}}</label>
-          <input id="smartContractFile" type="file" name="userFile" required #fileInput (change)="onSmartContractFileChange($event)">
         </div>
       </section>
     </div>
     <div class="modal-footer">
       <button type="button" class="btn btn-primary" (click)="onClose()">{{'common.cancel' | translate}}</button>
-      <button type="submit" class="btn btn-primary" [disabled]="smartContractForm.invalid">{{'common.create' | translate}}</button>
+      <button id="contract_form_submit" type="submit" class="btn btn-primary" [disabled]="smartContractForm.invalid">{{'common.create' | translate}}</button>
     </div>
   </clr-modal>
 </form>

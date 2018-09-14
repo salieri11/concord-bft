@@ -4,6 +4,7 @@
 
 import { async, fakeAsync, tick, ComponentFixture, TestBed } from '@angular/core/testing';
 import { ClarityModule } from '@clr/angular';
+import { ClrFormsNextModule } from '@clr/angular';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
@@ -18,7 +19,7 @@ import { SmartContractsService } from '../shared/smart-contracts.service';
 describe('ContractFormComponent', () => {
   let component: ContractFormComponent;
   let fixture: ComponentFixture<ContractFormComponent>;
-  const contract: any = {
+  const testContract: any = {
     contract_id: 'contractId',
     owner: 'owner',
     versions: [{
@@ -28,7 +29,7 @@ describe('ContractFormComponent', () => {
       url: 'url'
     }]
   };
-  const version = {
+  const testVersion = {
     contract_id: 'contractId',
     version: 'version',
     owner: 'owner',
@@ -58,7 +59,8 @@ describe('ContractFormComponent', () => {
         ReactiveFormsModule,
         HttpClientTestingModule,
         MockSharedModule,
-        BrowserAnimationsModule
+        BrowserAnimationsModule,
+        ClrFormsNextModule
       ],
       declarations: [ContractFormComponent],
       providers: [
@@ -102,20 +104,20 @@ describe('ContractFormComponent', () => {
 
     it('opens the update form when a smart contract is provided', () => {
       spyOn((component as any), 'createUpdateContractForm');
-      component.open(contract);
+      component.open(testContract);
       expect((component as any).createUpdateContractForm).toHaveBeenCalled();
     });
 
     it('disables the contract id field and prepopulates the version field on edit', fakeAsync(() => {
-      (component as any).createUpdateContractForm(contract, version);
+      (component as any).createUpdateContractForm(testContract, testVersion);
 
       tick(20);
       fixture.detectChanges();
 
       fixture.whenStable().then(() => {
         expect(component.smartContractForm.controls['contractId'].disabled).toBe(true);
-        expect(component.smartContractForm.getRawValue().contractId).toBe(contract.contract_id);
-        expect(component.smartContractForm.value.version).toBe(version.version);
+        expect(component.smartContractForm.getRawValue().contractId).toBe(testContract.contract_id);
+        expect(component.smartContractForm.value.version).toBe(testVersion.version);
       });
     }));
   });

@@ -6,11 +6,13 @@
       <span>{{'smartContracts.version.tooltips.requiredParameters' | translate}}</span>
     </clr-tooltip-content>
   </clr-tooltip>
-  <div *ngFor="let input of functionInputs" class="form-group">
+  <clr-input-container *ngFor="let input of functionInputs">
     <label class="required">{{input.name}}</label>
-    <div>
-      <input type="text" [formControlName]="input.name" required>
-      <div class="clr-subtext">{{'smartContracts.version.parameterHelper' | translate}}</div>
-    </div>
-  </div>
+    <input clrInput type="text" [formControlName]="input.name" required>
+    <clr-control-helper>{{'smartContracts.version.parameterHelper' | translate}}</clr-control-helper>
+    <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}</clr-control-error>
+    <clr-control-error *clrIfError="'hexAddress'">{{'smartContracts.version.addressPatternValidationMessage' | translate}}</clr-control-error>
+    <clr-control-error *clrIfError="'unsignedInteger'">{{'smartContracts.version.inputUIntValidationMessage' | translate}}</clr-control-error>
+    <clr-control-error *clrIfError="'signedInteger'">{{'smartContracts.version.inputSignedIntValidationMessage' | translate}}</clr-control-error>
+  </clr-input-container>
 </div>

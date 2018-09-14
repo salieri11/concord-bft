@@ -4,6 +4,7 @@
 
 import { Component, ElementRef, OnInit, Input, Output, EventEmitter, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { Validators, FormGroup, FormBuilder } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 
 import { ADDRESS_LENGTH, ADDRESS_PATTERN } from '../../shared/shared.config';
@@ -44,6 +45,7 @@ export class ContractFormComponent implements OnInit {
     private formBuilder: FormBuilder,
     private changeDetectorRef: ChangeDetectorRef,
     private smartContractsService: SmartContractsService,
+    private route: ActivatedRoute,
     private translate: TranslateService
   ) {
     this.smartContractForm = this.formBuilder.group({
@@ -59,6 +61,17 @@ export class ContractFormComponent implements OnInit {
       error: false,
       loading: false
     };
+
+    this.route.fragment.subscribe(fragment => {
+      switch (fragment) {
+        case 'add':
+          this.open();
+          break;
+        default:
+          // code...
+          break;
+      }
+    });
   }
 
   ngOnInit() {
@@ -122,7 +135,7 @@ export class ContractFormComponent implements OnInit {
     this.smartContractForm = this.formBuilder.group({
       from: ['', [Validators.required, ...addressValidators]],
       contractId: ['', [Validators.required]],
-      version: ['', [Validators.required]],
+      version: ['', [Validators.required, Validators.maxLength(16)]],
       file: [null, Validators.required],
     });
   }
@@ -132,7 +145,7 @@ export class ContractFormComponent implements OnInit {
     this.smartContractForm = this.formBuilder.group({
       from: ['', [Validators.required, ...addressValidators]],
       contractId: [smartContract.contract_id, [Validators.required]],
-      version: [version.version, [Validators.required, newVersionValue(existingVersions)]],
+      version: [version.version, [Validators.required, newVersionValue(existingVersions), Validators.maxLength(16)]],
       file: [null, [Validators.required]]
     });
     setTimeout(() => {

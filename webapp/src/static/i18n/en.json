@@ -9,7 +9,8 @@
     "next": "Next",
     "finish": "Finish",
     "edit": "Edit",
-    "update": "Update"
+    "update": "Update",
+    "requiredValidationMessage": "This field is required"
   },
   "nav": {
     "menu": {
@@ -301,6 +302,10 @@
       "functionParameters": "Function Parameters",
       "parameterHelper": "Parameter Required By Function",
       "download": "Download",
+      "addressLengthValidationMessage": "Must be 42 characters long",
+      "addressPatternValidationMessage": "Must be a valid hexadecimal address",
+      "inputUIntValidationMessage": "Must be a valid unsigned integer value",
+      "inputSignedIntValidationMessage": "Must be a valid signed integer value",
       "tabs": {
         "execute": "Execute",
         "source": "Source",
@@ -317,7 +322,8 @@
     "form": {
       "addressHelper": "Your address",
       "versionHelper": "Please update the version before proceeding",
-      "versionValidationMessage": "You must choose a new value for version",
+      "versionDuplicateValidationMessage": "You must choose a new value for version",
+      "versionLengthValidationMessage": "Version must be 16 or fewer characters",
       "callSuccessMessage": "Contract was locally invoked successfully, click send to execute the contract on the blockchain"
     }
   },

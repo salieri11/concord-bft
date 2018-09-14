@@ -6,6 +6,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TourNgxPopperModule } from 'ngx-tour-ngx-popper';
+import { ClrFormsNextModule } from '@clr/angular';
 
 import { SharedModule } from '../shared/shared.module';
 
@@ -23,7 +24,8 @@ import { ContractPayloadPreviewFormComponent } from './contract-payload-preview-
     SharedModule,
     RouterModule,
     FormsModule,
-    TourNgxPopperModule
+    TourNgxPopperModule,
+    ClrFormsNextModule
   ],
   declarations: [
     SmartContractsComponent,

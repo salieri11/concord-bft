@@ -5,7 +5,7 @@
 import { Component, ViewChild } from '@angular/core';
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { of as observableOf, throwError } from 'rxjs';
-
+import { ClrFormsNextModule } from '@clr/angular';
 import { RouterTestingModule } from '@angular/router/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 import { FormsModule } from '@angular/forms';
@@ -92,7 +92,8 @@ describe('SmartContractVersionComponent', () => {
         RouterTestingModule,
         MockSharedModule,
         HttpClientTestingModule,
-        FormsModule
+        FormsModule,
+        ClrFormsNextModule
       ],
       declarations: [
         SmartContractVersionComponent,

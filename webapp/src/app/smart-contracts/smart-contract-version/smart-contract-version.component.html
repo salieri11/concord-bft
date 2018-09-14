@@ -2,7 +2,7 @@
   <clr-tab>
     <button clrTabLink>{{'smartContracts.version.tabs.execute' | translate}}</button>
     <clr-tab-content>
-      <form class="pt-0" [formGroup]="versionForm">
+      <form clrForm clrLayout="horizontal" class="pt-0 clr-form-horizontal" [formGroup]="versionForm">
         <div class="row">
           <div class="col-sm-12 col-md-7 contract-form">
             <div class="card">
@@ -18,34 +18,36 @@
                   </div>
                 </clr-alert>
                 <div class="form">
-                  <div class="form-group">
-                    <label> {{'smartContracts.version.address' | translate}}</label>
-                    <clr-tooltip>
-                      <span clrTooltipTrigger>{{version?.address}}</span>
-                      <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
-                        <span>{{'smartContracts.version.tooltips.contractAddress' | translate}}</span>
-                      </clr-tooltip-content>
-                    </clr-tooltip>
-                  </div>
-                  <div class="form-group">
-                    <label>{{'smartContracts.version.functions' | translate}}</label>
-                    <div class="select">
-                      <select id="selectedFunction" name="function" *ngIf="functions?.length" formControlName="functionName"
-                              (change)="getFunctionDetails()">
-                        <option *ngFor="let func of functions" [value]="func.name">{{ func.name }}</option>
-                      </select>
-                      <div class="clr-subtext">{{'smartContracts.version.tooltips.availableActions' | translate}}</div>
+                  <div class="clr-form-control clr-row">
+                    <label class="clr-control-label"> {{'smartContracts.version.address' | translate}}</label>
+                    <div class="clr-control-container">
+                      <div class="clr-input-wrapper">
+                        <clr-tooltip>
+                          <span clrTooltipTrigger>{{version?.address}}</span>
+                          <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
+                            <span>{{'smartContracts.version.tooltips.contractAddress' | translate}}</span>
+                          </clr-tooltip-content>
+                        </clr-tooltip>
+                      </div>
                     </div>
                   </div>
+                  <clr-select-container>
+                    <label>{{'smartContracts.version.functions' | translate}}</label>
+                    <select clrSelect id="selectedFunction" name="function" *ngIf="functions?.length" formControlName="functionName"
+                            (change)="getFunctionDetails()">
+                      <option *ngFor="let func of functions" [value]="func.name">{{ func.name }}</option>
+                    </select>
+                    <clr-control-helper>{{'smartContracts.version.tooltips.availableActions' | translate}}</clr-control-helper>
+                  </clr-select-container>
                 </div>
                 <div *ngIf="versionForm.value.functionName" formGroupName="contractForm">
-                  <div class="form-group">
+                  <clr-input-container>
                     <label class="required">{{'smartContracts.version.from' | translate}}</label>
-                    <div>
-                      <input type="text" formControlName="from" required>
-                      <div class="clr-subtext">{{'smartContracts.version.addressHelper' | translate}}</div>
-                    </div>
-                  </div>
+                    <input clrInput type="text" formControlName="from" required>
+                    <clr-control-helper>{{'smartContracts.version.addressHelper' | translate}}</clr-control-helper>
+                    <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}</clr-control-error>
+                    <clr-control-error *clrIfError="'hexAddress'">{{'smartContracts.version.addressPatternValidationMessage' | translate}}</clr-control-error>
+                  </clr-input-container>
                   <athena-smart-contracts-solidity-function-inputs [formGroup]="versionForm.get('contractForm.functionInputs')"
                                                                    [functionInputs]="inputs"></athena-smart-contracts-solidity-function-inputs>
                 </div>

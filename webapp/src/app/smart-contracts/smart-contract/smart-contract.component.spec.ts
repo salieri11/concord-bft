@@ -6,7 +6,7 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { of as observableOf } from 'rxjs';
 import { ActivatedRoute } from '@angular/router';
-
+import { ClrFormsNextModule } from '@clr/angular';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 import { RouterTestingModule } from '@angular/router/testing';
@@ -24,6 +24,7 @@ class MockActivatedRoute extends ActivatedRoute {
   constructor() {
     super();
     this.params = observableOf({ contractId: '2', version: '1' });
+    this.fragment = observableOf('');
   }
 }
 
@@ -37,7 +38,8 @@ describe('SmartContractComponent', () => {
         MockSharedModule,
         RouterTestingModule,
         FormsModule,
-        HttpClientTestingModule
+        HttpClientTestingModule,
+        ClrFormsNextModule
       ],
       declarations: [
         SmartContractComponent,

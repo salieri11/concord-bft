@@ -38,7 +38,7 @@ describe('VmwComboboxItems', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [ClarityModule.forRoot()],
+      imports: [ClarityModule],
       declarations: [TestHostComponent, VmwComboboxItemsComponent]
     });
     fixture = TestBed.createComponent(TestHostComponent);

@@ -1,9 +1,17 @@
+@import "~@clr/ui/src/color/utils/_colors.clarity.scss";
+
 form {
   label {
     text-align: left !important;
-  }
-  .form-group {
-    padding-left: 6.5rem;
+    &.required {
+      &:after {
+        content: '*';
+        font-size: 0.58479532rem; // Approximately 14px.
+        line-height: 0.5rem;
+        color: $clr-red;
+        margin-left: 0.25rem;
+      }
+    }
   }
 }
 .card {
