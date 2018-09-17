@@ -61,7 +61,9 @@ export class ContractFormComponent implements OnInit {
       error: false,
       loading: false
     };
+  }
 
+  ngOnInit() {
     this.route.fragment.subscribe(fragment => {
       switch (fragment) {
         case 'add':
@@ -72,9 +74,6 @@ export class ContractFormComponent implements OnInit {
           break;
       }
     });
-  }
-
-  ngOnInit() {
   }
 
   open(smartContract?: SmartContract, version?: SmartContractVersion) {
