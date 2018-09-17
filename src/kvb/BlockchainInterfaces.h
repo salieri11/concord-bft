@@ -52,11 +52,12 @@ namespace Blockchain {
       std::string listenIp;
       uint16_t listenPort;
       uint32_t bufferLength;
-      std::unordered_map <NodeNum, std::tuple<std::string,uint16_t>> nodes;
+      std::unordered_map <NodeNum, NodeInfo> nodes;
+      UPDATE_CONNECTIVITY_FN statusCallback;
+      uint32_t selfId;
 
       // tcp
       uint32_t maxServerId;
-      uint32_t selfId;
 
       // tls (tcp fields should be set as well
       std::string certificatesRootPath;

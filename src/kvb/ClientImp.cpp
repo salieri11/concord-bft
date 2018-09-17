@@ -92,7 +92,9 @@ ClientImp::ClientImp(Blockchain::CommConfig &commConfig,
    bftEngine::PlainUdpConfig config (  commConfig.listenIp,
                                        commConfig.listenPort,
                                        commConfig.bufferLength,
-                                       commConfig.nodes);
+                                       commConfig.nodes,
+                                       commConfig.selfId,
+                                       commConfig.statusCallback);
 
    auto comm = bftEngine::CommFactory::create(config);
    m_bftClient = SimpleClient::createSimpleClient(comm,

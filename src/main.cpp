@@ -208,6 +208,8 @@ run_service(variables_map &opts, Logger logger)
 
       /// replica and comm config init
       Blockchain::CommConfig commConfig;
+      StatusAggregator sag;
+      commConfig.statusCallback = sag.get_update_connectivity_fn();
       Blockchain::ReplicaConsensusConfig replicaConsensusConfig;
       ///TODO(IG): check return value and shutdown athena if false
       parse_plain_config_file(opts["SBFT.replica"].as<std::string>(),
@@ -223,11 +225,10 @@ run_service(variables_map &opts, Logger logger)
        * split interfaces implementation and to construct objects in more
        * clear way
        */
-      StatusAggregator sag;
       Blockchain::ReplicaImp *replica = dynamic_cast<Blockchain::ReplicaImp*>(
               Blockchain::createReplica(commConfig,
-                                                    replicaConsensusConfig,
-                                                    dbclient));
+                                        replicaConsensusConfig,
+                                        dbclient));
 
       // throws an exception if it fails
       EVM athevm(params);

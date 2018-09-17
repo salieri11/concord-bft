@@ -261,11 +261,11 @@ ReplicaImp::ReplicaImp( Blockchain::CommConfig &commConfig,
    bftEngine::PlainUdpConfig config (  commConfig.listenIp,
                                        commConfig.listenPort,
                                        commConfig.bufferLength,
-                                       commConfig.nodes);
+                                       commConfig.nodes,
+                                       commConfig.selfId,
+                                       commConfig.statusCallback);
 
    m_ptrComm = bftEngine::CommFactory::create(config);
-
-
 }
 
 ReplicaImp::~ReplicaImp()

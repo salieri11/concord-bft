@@ -10,6 +10,10 @@ set(CMAKE_CXX_EXTENSIONS Off)
 # Storage options
 set(USE_ROCKSDB True)
 
+if(APPLE)
+  set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "/usr/local/Cellar/protobuf@2.6/2.6.0")
+endif()
+
 find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIRS})
 

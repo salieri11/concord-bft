@@ -341,6 +341,7 @@ parse_principals(FILE *config_file,
   uint16_t port;
   char pk[4096];
   for (int i = 0; i < numOfPrincipals; i++) {
+    bool isReplica = false;
     fscanf(config_file,
            "%256s %32s %hd\n%4096s\n",
            host_name,
@@ -348,12 +349,13 @@ parse_principals(FILE *config_file,
            &port,
            pk);
     if (i < numOfReplicas) {
+      isReplica = true;
       outReplicasPublicKeys.insert({selfNumber, std::string(pk)});
     }
     if (outCommConfig) {
-      outCommConfig->nodes.insert({i,
-                                   std::make_tuple(string(addr_buff),
-                                                   port)});
+      outCommConfig->nodes.insert({i, NodeInfo{string(addr_buff),
+                                               port,
+                                               isReplica}});
       if (i == selfNumber) {
         outCommConfig->listenPort = port;
       }
