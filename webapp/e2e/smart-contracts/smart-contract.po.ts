@@ -28,20 +28,14 @@ export class SmartContractPage {
   }
 
   getVersionName() {
-    return element(by.css('athena-smart-contract-version h2')).getText();
+    return element(by.css('#selectedVersion option:checked')).getText();
   }
 
   getFunctionsForm() {
     return element(by.css('div[formgroupname="contractForm"]'));
   }
 
-  chooseVersion(version) {
-    element(by.css('#selectedVersion')).sendKeys(version);
-  }
-
-  fillParameterForm(gas, value, from, type) {
-    element(by.css('input[formcontrolname="gas"]')).sendKeys(gas);
-    element(by.css('input[formcontrolname="value"]')).sendKeys(value);
+  fillParameterForm(from, type) {
     element(by.css('input[formcontrolname="from"]')).sendKeys(from);
     switch (type) {
       case 'call':

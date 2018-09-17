@@ -1,7 +1,18 @@
 <div *ngIf="functionInputs?.length" [formGroup]="formGroup">
-  <label>{{'smartContracts.version.functionParameters' | translate}}</label>
-  <div *ngFor="let input of functionInputs" class="form-group">
+  <h5 class="font-weight-bold d-inline-block mb-1">{{'smartContracts.version.functionParameters' | translate}}</h5>
+  <clr-tooltip>
+    <clr-icon clrTooltipTrigger shape="info-circle" size="24" class="is-info"></clr-icon>
+    <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
+      <span>{{'smartContracts.version.tooltips.requiredParameters' | translate}}</span>
+    </clr-tooltip-content>
+  </clr-tooltip>
+  <clr-input-container *ngFor="let input of functionInputs">
     <label class="required">{{input.name}}</label>
-    <input type="text" [formControlName]="input.name" required>
-  </div>
+    <input clrInput type="text" [formControlName]="input.name" required>
+    <clr-control-helper>{{'smartContracts.version.parameterHelper' | translate}}</clr-control-helper>
+    <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}</clr-control-error>
+    <clr-control-error *clrIfError="'hexAddress'">{{'smartContracts.version.addressPatternValidationMessage' | translate}}</clr-control-error>
+    <clr-control-error *clrIfError="'unsignedInteger'">{{'smartContracts.version.inputUIntValidationMessage' | translate}}</clr-control-error>
+    <clr-control-error *clrIfError="'signedInteger'">{{'smartContracts.version.inputSignedIntValidationMessage' | translate}}</clr-control-error>
+  </clr-input-container>
 </div>

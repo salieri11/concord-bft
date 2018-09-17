@@ -31,7 +31,7 @@ describe('Accordion', () => {
     TestBed.configureTestingModule({
       imports: [
         BrowserAnimationsModule,
-        ClarityModule.forRoot()
+        ClarityModule
       ],
       declarations: [
         VmwAccordionComponent,

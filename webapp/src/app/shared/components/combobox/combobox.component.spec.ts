@@ -90,7 +90,7 @@ describe('ComboboxComponent', () => {
       imports: [
         FormsModule,
         BrowserModule,
-        ClarityModule.forRoot()
+        ClarityModule
       ],
       declarations: [
         VmwComboboxComponent,

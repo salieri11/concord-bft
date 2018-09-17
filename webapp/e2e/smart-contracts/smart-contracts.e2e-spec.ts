@@ -21,7 +21,6 @@ describe('athena-ui Smart Contracts', () => {
   let from: string;
   let contractId: string;
   let version: string;
-  let valueString: string;
   let file: string;
 
   beforeAll(() => {
@@ -42,7 +41,6 @@ describe('athena-ui Smart Contracts', () => {
     from = '0x5BB088F57365907B1840E45984CAE028A82AF934';
     contractId = 'contractId';
     version = 'version1';
-    valueString = '0x10';
     file = '../files/somefile.sol';
     smartContractsPage.navigateTo();
   });
@@ -56,17 +54,15 @@ describe('athena-ui Smart Contracts', () => {
     expect(smartContractsPage.getTableLinkElement(expectedLinkText).isPresent()).toBe(true);
   });
 
-  it('should navigate to the smart contract page and allow version selection', () => {
+  it('should navigate to the smart contract page with the latest version selected', () => {
     const expectedLinkText = `${contractId} : ${from}`;
 
     smartContractsPage.getTableLinkElement(expectedLinkText).click();
 
     expect(smartContractPage.getContractId()).toBe(contractId);
-    expect(smartContractPage.getFunctionsForm().isPresent()).toBe(false);
-
-    smartContractPage.chooseVersion(version);
 
     expect(smartContractPage.getVersionName()).toBe(version);
+
     expect(smartContractPage.getFunctionsForm().isPresent()).toBe(true);
   });
 
@@ -74,7 +70,7 @@ describe('athena-ui Smart Contracts', () => {
     smartContractPage.navigateTo(contractId, version);
     expect(smartContractPage.getCallSuccessAlert().isPresent()).toBe(false);
 
-    smartContractPage.fillParameterForm(valueString, '', from, 'call');
+    smartContractPage.fillParameterForm(from, 'call');
 
     expect(smartContractPage.getCallSuccessAlert().isPresent()).toBe(true);
   });
@@ -83,7 +79,7 @@ describe('athena-ui Smart Contracts', () => {
     smartContractPage.navigateTo(contractId, version);
     expect(smartContractPage.getTransactionSuccessAlert().isPresent()).toBe(false);
 
-    smartContractPage.fillParameterForm(valueString, valueString, from, 'transaction');
+    smartContractPage.fillParameterForm(from, 'transaction');
 
     expect(smartContractPage.getTransactionSuccessAlert().isPresent()).toBe(true);
   });

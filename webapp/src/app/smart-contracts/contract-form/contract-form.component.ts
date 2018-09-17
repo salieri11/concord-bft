@@ -2,12 +2,15 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Component, OnInit, Input, Output, EventEmitter, ChangeDetectorRef } from '@angular/core';
+import { Component, ElementRef, OnInit, Input, Output, EventEmitter, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { Validators, FormGroup, FormBuilder } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { TranslateService } from '@ngx-translate/core';
 
 import { ADDRESS_LENGTH, ADDRESS_PATTERN } from '../../shared/shared.config';
 import { SmartContractsService } from '../shared/smart-contracts.service';
-import { ActivatedRoute } from '@angular/router';
+import { SmartContract, SmartContractCreateResult, SmartContractVersion } from '../shared/smart-contracts.model';
+import { newVersionValue } from '../shared/custom-validators';
 
 const addressValidators = [
   Validators.maxLength(ADDRESS_LENGTH),
@@ -16,6 +19,7 @@ const addressValidators = [
 ];
 
 interface ModalState {
+  isUpdate: boolean;
   completed: boolean;
   error: boolean;
   loading: boolean;
@@ -28,11 +32,13 @@ interface ModalState {
   styleUrls: ['./contract-form.component.scss']
 })
 export class ContractFormComponent implements OnInit {
+  @ViewChild('fileInput') fileInput: ElementRef;
 
   @Input() isOpen = false;
-  @Output() contractCreated: EventEmitter<void> = new EventEmitter<void>();
+  @Output() contractCreated: EventEmitter<SmartContractCreateResult> = new EventEmitter<SmartContractCreateResult>();
 
-  readonly smartContractForm: FormGroup;
+  modalTitle = '';
+  smartContractForm: FormGroup;
   readonly modalState: ModalState;
 
   constructor(
@@ -40,6 +46,7 @@ export class ContractFormComponent implements OnInit {
     private changeDetectorRef: ChangeDetectorRef,
     private smartContractsService: SmartContractsService,
     private route: ActivatedRoute,
+    private translate: TranslateService
   ) {
     this.smartContractForm = this.formBuilder.group({
       from: ['', [Validators.required, ...addressValidators]],
@@ -49,31 +56,39 @@ export class ContractFormComponent implements OnInit {
     });
 
     this.modalState = {
+      isUpdate: false,
       completed: false,
       error: false,
       loading: false
     };
+  }
 
+  ngOnInit() {
     this.route.fragment.subscribe(fragment => {
       switch (fragment) {
         case 'add':
-            this.open();
+          this.open();
           break;
-
         default:
           // code...
           break;
       }
     });
-
-
   }
 
-  ngOnInit() {
-  }
-
-  open() {
-    this.smartContractForm.reset();
+  open(smartContract?: SmartContract, version?: SmartContractVersion) {
+    this.fileInput.nativeElement.value = '';
+    if (smartContract) {
+      // Update mode
+      this.modalTitle = this.translate.instant('smartContracts.updateContract');
+      this.modalState.isUpdate = true;
+      this.createUpdateContractForm(smartContract, version);
+    } else {
+      // create mode
+      this.modalTitle = this.translate.instant('smartContracts.createContract');
+      this.modalState.isUpdate = false;
+      this.createAddContractForm();
+    }
     this.isOpen = true;
   }
 
@@ -106,13 +121,35 @@ export class ContractFormComponent implements OnInit {
     this.smartContractsService.postContract({
       id: 1,
       from: this.smartContractForm.value.from,
-      contract_id: this.smartContractForm.value.contractId,
+      contract_id: this.smartContractForm.getRawValue().contractId,
       version: this.smartContractForm.value.version,
       sourcecode: this.smartContractForm.value.file
     }).subscribe(
       response => this.handleSmartContract(response),
       response => this.handleError(response.error)
     );
+  }
+
+  private createAddContractForm() {
+    this.smartContractForm = this.formBuilder.group({
+      from: ['', [Validators.required, ...addressValidators]],
+      contractId: ['', [Validators.required]],
+      version: ['', [Validators.required, Validators.maxLength(16)]],
+      file: [null, Validators.required],
+    });
+  }
+
+  private createUpdateContractForm(smartContract: SmartContract, version: SmartContractVersion) {
+    const existingVersions = smartContract.versions.map(x => x.version);
+    this.smartContractForm = this.formBuilder.group({
+      from: ['', [Validators.required, ...addressValidators]],
+      contractId: [smartContract.contract_id, [Validators.required]],
+      version: [version.version, [Validators.required, newVersionValue(existingVersions), Validators.maxLength(16)]],
+      file: [null, [Validators.required]]
+    });
+    setTimeout(() => {
+      this.smartContractForm.controls['contractId'].disable();
+    });
   }
 
   private handleError(response) {
@@ -131,7 +168,7 @@ export class ContractFormComponent implements OnInit {
       this.modalState.errorMessage = response.error;
     } else {
       this.isOpen = false;
-      this.contractCreated.emit();
+      this.contractCreated.emit(response[0]);
     }
   }
 }

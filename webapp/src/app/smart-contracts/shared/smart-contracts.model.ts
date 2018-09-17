@@ -73,7 +73,7 @@ export interface SmartContractCreateRequest {
 }
 
 export interface SmartContractCreateResult {
-  contractId: string;
+  contract_id: string;
   version: string;
   url: string;
 }

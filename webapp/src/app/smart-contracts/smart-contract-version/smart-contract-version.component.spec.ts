@@ -5,7 +5,7 @@
 import { Component, ViewChild } from '@angular/core';
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { of as observableOf, throwError } from 'rxjs';
-
+import { ClrFormsNextModule } from '@clr/angular';
 import { RouterTestingModule } from '@angular/router/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 import { FormsModule } from '@angular/forms';
@@ -92,7 +92,8 @@ describe('SmartContractVersionComponent', () => {
         RouterTestingModule,
         MockSharedModule,
         HttpClientTestingModule,
-        FormsModule
+        FormsModule,
+        ClrFormsNextModule
       ],
       declarations: [
         SmartContractVersionComponent,
@@ -245,12 +246,11 @@ describe('SmartContractVersionComponent', () => {
 
   describe('API interaction', () => {
     it('on call passes the encoded function and handles success', () => {
-      const successResult = 'success result';
+      const successResult = 'smartContracts.form.callSuccessMessage';
       const expectedPayload = {
         from: null,
         to: 'address2',
-        gas: null,
-        value: null,
+        gas: '0xF4240',
         data: '0x4ad12c050000000000000000000000000000000000000000000000000000000000000000'
       };
       const callSpy = spyOn((component.versionComponent as any).ethApiService, 'sendCall')
@@ -297,8 +297,7 @@ describe('SmartContractVersionComponent', () => {
       const expectedPayload = {
         from: null,
         to: 'address2',
-        gas: null,
-        value: null,
+        gas: '0xF4240',
         data: '0x4ad12c050000000000000000000000000000000000000000000000000000000000000000'
       };
       const callSpy = spyOn((component.versionComponent as any).ethApiService, 'sendTransaction')

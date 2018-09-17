@@ -135,9 +135,13 @@ export function isHexadecimal(control: AbstractControl): { [key: string]: boolea
 export function isUint(controlType: string): ValidatorFn {
   return (control: AbstractControl): { [key: string]: boolean } | null => {
     if (control.value !== undefined && control.value !== null) {
-      const controlValueAsBigNumber = Web3Utils.toBN(control.value);
-      const solidityRange = getBigNumberRange(controlType);
-      if (!(controlValueAsBigNumber.lte(solidityRange.max) && controlValueAsBigNumber.gte(solidityRange.min))) {
+      try {
+        const controlValueAsBigNumber = Web3Utils.toBN(control.value);
+        const solidityRange = getBigNumberRange(controlType);
+        if (!(controlValueAsBigNumber.lte(solidityRange.max) && controlValueAsBigNumber.gte(solidityRange.min))) {
+          return {'unsignedInteger': true};
+        }
+      } catch (err) {
         return {'unsignedInteger': true};
       }
     }
@@ -148,13 +152,23 @@ export function isUint(controlType: string): ValidatorFn {
 export function isInt(controlType: string): ValidatorFn {
   return (control: AbstractControl): { [key: string]: boolean } | null => {
     if (control.value !== undefined && control.value !== null) {
-      const controlValueAsBigNumber = Web3Utils.toBN(control.value);
-      const solidityRange = getBigNumberRange(controlType);
-      if (!(controlValueAsBigNumber.lte(solidityRange.max) && controlValueAsBigNumber.gte(solidityRange.min))) {
+      try {
+        const controlValueAsBigNumber = Web3Utils.toBN(control.value);
+        const solidityRange = getBigNumberRange(controlType);
+        if (!(controlValueAsBigNumber.lte(solidityRange.max) && controlValueAsBigNumber.gte(solidityRange.min))) {
+          return {'signedInteger': true};
+        }
+      } catch (err) {
         return {'signedInteger': true};
       }
     }
     return null;
+  };
+}
+
+export function newVersionValue(existingVersions: string[]): ValidatorFn {
+  return (control: AbstractControl): any => {
+    return (existingVersions.indexOf(control.value) !== -1) ? { versionExists: true } : null;
   };
 }
 

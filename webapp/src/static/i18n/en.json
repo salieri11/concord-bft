@@ -8,7 +8,9 @@
     "back": "Back",
     "next": "Next",
     "finish": "Finish",
-    "edit": "Edit"
+    "edit": "Edit",
+    "update": "Update",
+    "requiredValidationMessage": "This field is required"
   },
   "nav": {
     "menu": {
@@ -274,16 +276,20 @@
     "smartContracts": "Smart Contracts",
     "smartContractUpload": "Upload Smart Contracts",
     "contractId": "Contract ID",
+    "contractOwnerAddress": "Contract Owner Address",
     "createContract": "Create Contract",
+    "updateContract": "Update Contract",
     "createContractError": "There was an error uploading your contract. Please correct any errors and try again:",
     "viewDetail": "View Details",
     "name": "Name",
+    "namePlacholder": "MyContract",
     "owner": "Owner",
     "file": "File",
     "preview": "Preview",
     "version": {
       "title": "Version",
       "version": "Version",
+      "placeholder": "1.0",
       "address": "Address",
       "functions": "Functions",
       "gas": "Gas",
@@ -291,12 +297,36 @@
       "from": "From",
       "call": "Call",
       "send": "Send",
+      "view": "View",
       "preview": "Preview",
       "selectVersion": "Select Version",
+      "addressHelper": "This is your address",
       "functionParameters": "Function Parameters",
-      "downloadBytecode": "Download Bytecode",
-      "downloadSourceCode": "Download Source Code",
-      "downloadMetadata": "Download Metadata"
+      "parameterHelper": "Parameter Required By Function",
+      "download": "Download",
+      "addressLengthValidationMessage": "Must be 42 characters long",
+      "addressPatternValidationMessage": "Must be a valid hexadecimal address",
+      "inputUIntValidationMessage": "Must be a valid unsigned integer value",
+      "inputSignedIntValidationMessage": "Must be a valid signed integer value",
+      "tabs": {
+        "execute": "Execute",
+        "source": "Source",
+        "metadata": "Metadata",
+        "bytecode": "Bytecode"
+      },
+      "tooltips": {
+        "contractAddress": "Contract Address",
+        "availableActions": "Available Contract Actions",
+        "requiredParameters": "Required Function Parameters",
+        "callHelper": "Call is used for a local invocation, which is a good first step for testing, before clicking send and invoking on the blockchain."
+      }
+    },
+    "form": {
+      "addressHelper": "Your address",
+      "versionHelper": "Please update the version before updating",
+      "versionDuplicateValidationMessage": "You must choose a new value for version",
+      "versionLengthValidationMessage": "Version must be 16 or fewer characters",
+      "callSuccessMessage": "Contract was locally invoked successfully, click send to execute the contract on the blockchain"
     }
   },
   "organization": {

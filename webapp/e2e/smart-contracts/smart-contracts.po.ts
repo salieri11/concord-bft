@@ -18,7 +18,7 @@ export class SmartContractsPage {
     element(by.css('#smartContractContractId')).sendKeys(contractId);
     element(by.css('#smartContractVersion')).sendKeys(version);
     element(by.css('#smartContractFile')).sendKeys(filePath);
-    element(by.css('.contract-form button[type="submit"]')).click();
+    element(by.css('button#contract_form_submit')).click();
   }
 
   getTableLinkElement(text) {
