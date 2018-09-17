@@ -13,6 +13,10 @@ form {
       }
     }
   }
+  input  {
+    // Hash's get cut off
+    min-width: 350px;
+  }
 }
 .card {
   min-width: 550px;

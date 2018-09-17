@@ -321,7 +321,7 @@
     },
     "form": {
       "addressHelper": "Your address",
-      "versionHelper": "Please update the version before proceeding",
+      "versionHelper": "Please update the version before updating",
       "versionDuplicateValidationMessage": "You must choose a new value for version",
       "versionLengthValidationMessage": "Version must be 16 or fewer characters",
       "callSuccessMessage": "Contract was locally invoked successfully, click send to execute the contract on the blockchain"
