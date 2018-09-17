@@ -16,7 +16,7 @@
       <section class="form-block">
         <clr-input-container>
           <label for="smartContractContractId" class="required">{{'smartContracts.name' | translate}}</label>
-          <input clrInput id="smartContractContractId" type="text" placeholder="" required formControlName="contractId">
+          <input clrInput id="smartContractContractId" type="text" placeholder="{{'smartContracts.namePlaceholder' | translate}}" required formControlName="contractId">
           <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}</clr-control-error>
         </clr-input-container>
         <clr-input-container>
@@ -32,7 +32,7 @@
         </clr-input-container>
         <clr-input-container>
           <label for="smartContractVersion" class="required">{{'smartContracts.version.version' | translate}}</label>
-          <input clrInput id="smartContractVersion" type="text" placeholder="" required formControlName="version">
+          <input clrInput id="smartContractVersion" type="text" placeholder="{{'smartContracts.version.placeholder' | translate}}" required formControlName="version">
           <clr-control-helper *ngIf="modalState.isUpdate">{{'smartContracts.form.versionHelper' | translate}}</clr-control-helper>
           <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}</clr-control-error>
           <clr-control-error *clrIfError="'versionExists'">{{'smartContracts.form.versionDuplicateValidationMessage' | translate}}</clr-control-error>
