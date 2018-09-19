@@ -3,7 +3,7 @@
  */
 
 import { Component, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, NavigationExtras } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
 
@@ -49,7 +49,10 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
       this.loginForm.value.persona
     ).subscribe((user) => {
       if (user['last_login'] === 0) {
-        this.router.navigate(['auth', 'onboarding']);
+        const navExtras: NavigationExtras = {
+          fragment: 'orgTour'
+        };
+        this.router.navigate(['/dashboard'], navExtras);
       } else {
         this.router.navigate(['dashboard']);
       }

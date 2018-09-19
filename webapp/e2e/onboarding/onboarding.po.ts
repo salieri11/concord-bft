@@ -9,11 +9,9 @@ export class OnboardingPage {
     return browser.get('/auth/onboarding');
   }
 
-  clickSetupOrg() {
-    element(by.cssContainingText('.card-header', 'Setup Organization')).click();
-  }
-
-  clickDeployBlockchain() {
-    element(by.cssContainingText('.card-header', 'Deploy Blockchain')).click();
+  readAndClickAccept() {
+    browser.executeScript('document.getElementById("agreementEl").scrollTo(0, 5000);').then(function () {
+      element(by.id('accept')).click();
+    });
   }
 }
