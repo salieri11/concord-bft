@@ -666,9 +666,16 @@ class HelenAPITests(test_suite.TestSuite):
                                                       user['organization']['organization_id'])
       user_list = request.callUserAPI("/users/", params=params)
       user_list = list(map(lambda u : u['user_id'], user_list))
-      if all(u in user_list for u in created_user_id):
-         return (True, None)
-      return (False, "All created users not returned")
+      if not all(u in user_list for u in created_user_id):
+         return (False, "All created users in consortium+organization not returned")
+
+      # also try with no consortium and organization specified
+      all_user_list = request.callUserAPI("/users/")
+      all_user_list = list(map(lambda u : u['user_id'], all_user_list))
+      if not all(u in all_user_list for u in created_user_id):
+         return (False, "All created users not returned")
+
+      return (True, None)
 
 
    def _test_largeReply(self, request):
