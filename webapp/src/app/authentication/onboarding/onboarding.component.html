@@ -20,33 +20,13 @@
                 </g>
               </g>
             </svg>
-            <h1>{{ 'onboarding.title' | translate }}</h1>
+            <h1>{{ 'agreement.title' | translate }}</h1>
           </div>
         </div>
         <div class="row flex-items-xs-center">
-          <div class="col-sm-3 col-xs-12">
-            <div class="card clickable" [routerLink]="['/dashboard']" [fragment]="'orgTour'">
-              <div class="card-header">
-                 {{ 'onboarding.setupOrg.title' | translate }}
-              </div>
-              <div class="card-block">
-                <div class="card-text">
-                 {{ 'onboarding.setupOrg.description' | translate }}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="col-sm-3 col-xs-12" [routerLink]="['/dashboard']" [fragment]="'deploy'">
-            <div class="card clickable">
-              <div class="card-header">
-                 {{ 'onboarding.deployBlockchain.title' | translate }}
-              </div>
-              <div class="card-block">
-                <div class="card-text">
-                 {{ 'onboarding.deployBlockchain.description' | translate }}
-                </div>
-              </div>
-            </div>
+          <div class="col-sm-6 col-xs-12">
+            <textarea readonly [value]="agreement?.content" #agreementEl id="agreementEl" rows="20"></textarea>
+            <button class="btn btn-primary" id="accept" (click)="accept()" [disabled]="disabledAgreement">{{ 'agreement.accept' | translate }}</button>
           </div>
         </div>
       </div>

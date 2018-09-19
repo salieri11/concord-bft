@@ -12,6 +12,7 @@ import { MockTranslateModule } from '../mocks/mock-translate.module';
 
 import { AuthenticationService } from './authentication.service';
 import { AuthenticatedGuard } from './authenticated-guard.service';
+import { AgreementGuard } from './agreement-guard.service';
 import { ANDES_API_PREFIX, ATHENA_API_PREFIX, ETHEREUM_API_PREFIX } from './shared.config';
 import { TransactionsStatusFilterComponent } from './components/transactions-status-filter/transactions-status-filter.component';
 import { RouterModule } from '@angular/router';
@@ -69,6 +70,7 @@ export class SharedModule {
       providers: [
         AuthenticationService,
         AuthenticatedGuard,
+        AgreementGuard,
         {provide: ANDES_API_PREFIX, useValue: '/api'},
         {provide: ATHENA_API_PREFIX, useValue: '/api/athena'},
         {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'},
