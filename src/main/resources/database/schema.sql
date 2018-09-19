@@ -44,3 +44,8 @@ null, role varchar(255) not null, consortium_consortiumid int8 not
 null, organization_organizationid int8 not null, primary key (userid),
 foreign key (consortium_consortiumid) references consortiums, foreign
 key (organization_organizationid) references organizations);
+
+-- User Agreements
+create table if not exists agreements (id int8 not null,
+type varchar(255) not null, accepted boolean not null default false,
+content text not null);
