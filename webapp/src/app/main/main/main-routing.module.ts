@@ -8,6 +8,7 @@ import { RouterModule, Routes } from '@angular/router';
 import { MainComponent } from './main.component';
 import { dashboardRoutes } from '../../dashboard/dashboard-routing';
 import { AuthenticatedGuard } from '../../shared/authenticated-guard.service';
+import { AgreementGuard } from '../../shared/agreement-guard.service';
 import { blockRoutes } from '../../blocks/blocks-routing';
 import { nodeRoutes } from '../../nodes/nodes-routing';
 import { testingRoutes } from '../../testing/testing-routing';
@@ -23,6 +24,7 @@ const routes: Routes = [
   {
     path: '',
     component: MainComponent,
+    canActivate: [AgreementGuard],
     canActivateChild: [AuthenticatedGuard],
     children: [
       { path: 'dashboard', children: dashboardRoutes },
