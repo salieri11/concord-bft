@@ -18,10 +18,17 @@
 using namespace boost::program_options;
 using namespace com::vmware::athena;
 
+#define OPT_LIST "list"
+#define OPT_COUNT "count"
 #define OPT_RECEIPT "receipt"
 
 void add_options(options_description &desc) {
    desc.add_options()
+      (OPT_LIST",l",
+       "List transactions from receipt to receipt-count")
+      (OPT_COUNT",c",
+       value<std::uint64_t>(),
+       "Number of transactionss to list")
       (OPT_RECEIPT",r",
        value<std::string>(),
        "The transaction hash returned from eth_sendTransaction");
@@ -58,6 +65,75 @@ std::string status_to_string(int32_t status) {
    }
 }
 
+void prepare_transaction_list_request(variables_map &opts,
+                                      AthenaRequest &athReq) {
+   TransactionListRequest *tReq = athReq.mutable_transaction_list_request();
+
+   if (opts.count(OPT_RECEIPT)) {
+      std::string rcpthash;
+      dehex0x(opts[OPT_RECEIPT].as<std::string>(), rcpthash);
+      tReq->set_latest(rcpthash);
+   }
+
+   if (opts.count(OPT_COUNT)) {
+      tReq->set_count(opts[OPT_COUNT].as<std::uint64_t>());
+   }
+}
+
+void prepare_transaction_request(variables_map &opts, AthenaRequest &athReq) {
+   TransactionRequest *tReq = athReq.mutable_transaction_request();
+   std::string rcpthash;
+   dehex0x(opts[OPT_RECEIPT].as<std::string>(), rcpthash);
+   tReq->set_hash(rcpthash);
+}
+
+void print_transaction(TransactionResponse &tResp) {
+   if (tResp.has_status()) {
+      uint32_t status = tResp.status();
+      std::cout << "Transaction status: " << status
+                << " " << status_to_string(status) << std::endl;
+   } else {
+      std::cerr << "EthResponse has no status" << std::endl;
+   }
+
+   if (tResp.has_contract_address()) {
+      std::string result;
+      hex0x(tResp.contract_address(), result);
+      std::cout << "Contract address: " << result << std::endl;
+   }
+}
+
+void handle_transaction_list_response(AthenaResponse &athResp) {
+   if (athResp.has_transaction_list_response()) {
+      TransactionListResponse tlResp = athResp.transaction_list_response();
+
+      if (tlResp.has_next()) {
+         std::string next;
+         hex0x(tlResp.next(), next);
+         std::cout << "Next transaction: " << next << std::endl;
+      }
+
+      for (int i = 0; i < tlResp.transaction_size(); i++) {
+         TransactionResponse tResp = tlResp.transaction(i);
+         std::string hash;
+         hex0x(tResp.hash(), hash);
+         std::cout << "Transaction " << i << ": " << hash << std::endl;
+         print_transaction(tResp);
+      }
+   } else {
+      std::cerr << "transaction list response not found" << std::endl;
+   }
+}
+
+void handle_transaction_response(AthenaResponse &athResp) {
+   if (athResp.has_transaction_response()) {
+      TransactionResponse tResp = athResp.transaction_response();
+      print_transaction(tResp);
+   } else {
+      std::cerr << "transaction response not found" << std::endl;
+   }
+}
+
 int main(int argc, char** argv)
 {
    try {
@@ -69,16 +145,21 @@ int main(int argc, char** argv)
       /*** Create request ***/
 
       AthenaRequest athReq;
-      TransactionRequest *tReq = athReq.mutable_transaction_request();
-      std::string rcpthash;
-
-
-      if (opts.count(OPT_RECEIPT) > 0) {
-         dehex0x(opts[OPT_RECEIPT].as<std::string>(), rcpthash);
-	 tReq->set_hash(rcpthash);
+      if (opts.count(OPT_LIST) == 0) {
+         // list not requested
+         if (opts.count(OPT_COUNT)) {
+            std::cerr <<
+               "The count parameter is not valid if a list is not request."
+                      << std::endl;
+            return -1;
+         }
+         if (opts.count(OPT_RECEIPT) == 0) {
+            std::cerr << "Please provide a transaction receipt." << std::endl;
+            return -1;
+         }
+         prepare_transaction_request(opts, athReq);
       } else {
-         std::cerr << "Please provide a transaction receipt." << std::endl;
-         return -1;
+         prepare_transaction_list_request(opts, athReq);
       }
 
       std::string pbtext;
@@ -94,25 +175,10 @@ int main(int argc, char** argv)
 
          /*** Handle Response ***/
 
-         if (athResp.has_transaction_response()) {
-            TransactionResponse tResp = athResp.transaction_response();
-            if (tResp.has_status()) {
-               uint32_t status = tResp.status();
-               std::cout << "Transaction status: " << status
-                         << " " << status_to_string(status) << std::endl;
-            } else {
-               std::cerr << "EthResponse has no status" << std::endl;
-               return -1;
-            }
-
-            if (tResp.has_contract_address()) {
-               std::string result;
-               hex0x(tResp.contract_address(), result);
-               std::cout << "Contract address: " << result << std::endl;
-            }
+         if (opts.count(OPT_LIST)) {
+            handle_transaction_list_response(athResp);
          } else {
-            std::cerr << "transaction response not found" << std::endl;
-            return -1;
+            handle_transaction_response(athResp);
          }
       } else {
          return -1;
