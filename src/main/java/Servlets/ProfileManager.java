@@ -49,9 +49,9 @@ public class ProfileManager extends BaseServlet {
    // /api/users?consortium=<c>&organization=<o>
    @RequestMapping(path = "/api/users", method = RequestMethod.GET)
    public ResponseEntity<JSONAware>
-          getUsers(@RequestParam(name = "consortium", defaultValue = "",
+          getUsers(@RequestParam(name = "consortium",
                                  required = false) String consortium,
-                   @RequestParam(name = "organization", defaultValue = "",
+                   @RequestParam(name = "organization",
                                  required = false) String organization) {
       JSONArray result = prm.getUsers(Optional.ofNullable(consortium),
                                       Optional.ofNullable(organization));
