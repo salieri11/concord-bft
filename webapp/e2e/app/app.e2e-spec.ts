@@ -24,10 +24,12 @@ describe('athena-ui App', () => {
     authHelper.logOut();
   });
 
-  it('should display the page title', () => {
-    marketingPage.navigateTo();
-    marketingPage.clickLoginButton();
-    loginPage.fillLogInForm('testlogin@example.com', 'password');
-    expect(dashboardPage.getPageTitle()).toEqual('VMware Athena');
-  });
+  // TODO This will be revisited at a later date, when we add
+  // the marketing page back to the flow
+  // it('should display the page title', () => {
+  //   marketingPage.navigateTo();
+  //   marketingPage.clickLoginButton();
+  //   loginPage.fillLogInForm('testlogin@example.com', 'password');
+  //   expect(dashboardPage.getPageTitle()).toEqual('VMware Athena');
+  // });
 });

@@ -17,7 +17,7 @@
     </div>
     <div class="header-nav">
       <clr-dropdown>
-        <button clrDropdownTrigger>
+        <button id="menu" clrDropdownTrigger>
           {{ 'nav.menu.title' | translate }}
           <clr-icon shape="caret down"></clr-icon>
         </button>
@@ -28,7 +28,7 @@
           </a>
           <div class="dropdown-divider"></div>
           <h4 class="dropdown-header">{{ 'nav.menu.options.sysAdminTitle' | translate }}</h4>
-          <a [routerLink]="['/dashboard']" fragment="deploy" clrDropdownItem *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
+          <a [routerLink]="['/dashboard']" fragment="deploy" id="deploy" clrDropdownItem *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
             <clr-icon shape="wand"></clr-icon> {{ 'nav.menu.options.deploy.title' | translate }}</a>
           <a [routerLink]="['/organization']" fragment="add" clrDropdownItem *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin]">
             <clr-icon shape="organization"></clr-icon> {{ 'nav.menu.options.addOrg.title' | translate }}</a>

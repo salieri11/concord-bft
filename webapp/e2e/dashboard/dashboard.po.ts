@@ -10,7 +10,9 @@ export class DashboardPage {
   }
 
   navigateToDeploy() {
-    return browser.get('/dashboard#deploy');
+    element(by.id('menu')).click();
+    browser.sleep(200);
+    element(by.id('deploy')).click();
   }
 
   getPageTitle() {
