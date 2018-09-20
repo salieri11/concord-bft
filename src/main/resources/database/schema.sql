@@ -46,13 +46,14 @@ foreign key (consortium_consortiumid) references consortiums, foreign
 key (organization_organizationid) references organizations);
 
 -- User Agreements
-create table if not exists agreements (id int8 not null,
-type varchar(255) not null, accepted boolean not null default false,
+create table if not exists agreements (id int8 not null unique,
+type varchar(255) not null, first_name varchar(255),
+last_name varchar(255), company varchar(255), accepted_on int8,
+accepted boolean not null default false,
 content text not null);
 
--- Add our initial agreement for users to accept
 insert into agreements (id, type, accepted, content) values (
-	1, '"PRE-RELEASE SERVICE OFFERING', false, 'VMWARE PRE-RELEASE SERVICE OFFERING
+	1, 'PRE-RELEASE SERVICE OFFERING', false, 'VMWARE PRE-RELEASE SERVICE OFFERING
 TERMS OF SERVICE
 By accessing a Pre-Release Service Offering, you agree to these Terms of Service. If you do not agree to these Terms of Service, you must not access or use the Pre-Release Service Offering. If you are entering into these Terms of Service on behalf of an organization, you represent to us that you have the authority to bind that entity. Capitalized terms used in these Terms of Service are defined in Section 1 (Definitions), below.
 
@@ -128,6 +129,7 @@ These Terms of Service take effect when you click “I accept” or similar butt
 11.10	Third Party Rights. Other than as expressly set forth in these Terms of Service, these Terms of Service does not create any rights for any person who is not a party to it, and no person who is not a party to these Terms of Service may enforce any of its terms or rely on any exclusion or limitation contained in it.
 11.11	Order of Precedence. Other than as expressly set forth in these Terms of Service, the terms of these Terms of Service will supersede and control over any conflicting or additional terms and conditions of any other document for any Pre-Release Service Offering.
 11.12	Entire Agreement. These Terms of Service, as may be revised by us, are the entire agreement of the parties regarding its subject matter. These Terms of Service supersede all prior or contemporaneous communications, understandings and agreements, whether written or oral, between the parties regarding its subject matter.
-"')
+')
 on conflict (id)
 do nothing;
+
