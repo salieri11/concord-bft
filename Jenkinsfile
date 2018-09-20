@@ -1,4 +1,4 @@
-@Library('SharedJenkinsLib@add_build_infra_files')
+@Library('SharedJenkinsLib@master')
 import org.vmware.Builder
 
 node {
