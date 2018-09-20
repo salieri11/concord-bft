@@ -6,7 +6,7 @@ import { browser } from 'protractor';
 
 import { AuthHelper } from '../helpers/auth';
 import { AppPage } from '../app/app.po';
-import { SignUpPage } from '../sign-up/sign-up.po';
+import { LoginPage } from '../login/login.po';
 import { OnboardingPage } from './onboarding.po';
 import { DashboardPage } from '../dashboard/dashboard.po';
 
@@ -31,8 +31,9 @@ describe('athena-ui Onboarding Flow', () => {
   });
 
   it('should onboard to the org tour', () => {
+    browser.sleep(200);
     onboardingPage.readAndClickAccept('Test', 'Test', 'Company');
-    loginPage.fillLogInForm();
+    loginPage.fillLogInForm('testlogin@example.com', 'password');
     browser.sleep(200);
     browser.waitForAngularEnabled(false);
 
@@ -66,11 +67,14 @@ describe('athena-ui Onboarding Flow', () => {
   });
 
   it('should onboard to deploy blockchain', () => {
-    dashboardPage.navigateToDeploy()
-
     browser.sleep(200);
+    loginPage.fillLogInForm('testlogin@example.com', 'password');
 
     browser.waitForAngularEnabled(false);
+    browser.sleep(200);
+    dashboardPage.navigateToDeploy();
+    browser.sleep(200);
+
     expect(dashboardPage.getBlockchainWizardForm().isPresent()).toBe(true);
     // First page
     expect(dashboardPage.getHeaderWithText('Setup Blockchain and Consortium').isPresent()).toBe(true);
