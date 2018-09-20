@@ -10,7 +10,11 @@ export class OnboardingPage {
   }
 
   readAndClickAccept() {
-    browser.executeScript('document.getElementById("agreementEl").scrollTo(0, 5000);').then(function () {
+    element(by.css('#firstName')).sendKeys(firstName);
+    element(by.css('#lastName')).sendKeys(lastName);
+    element(by.css('#company')).sendKeys(company);
+
+    browser.executeScript('document.getElementById("agreementEl").scrollTo(0, 30000);').then(function () {
       element(by.id('accept')).click();
     });
   }

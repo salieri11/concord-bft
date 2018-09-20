@@ -41,6 +41,10 @@ public class AgreementsRegistryManager {
          json.put("id", a.getID());
          json.put("type", a.getType());
          json.put("accepted", accepted);
+         json.put("first_name", a.getFirstName());
+         json.put("last_name", a.getLastName());
+         json.put("company", a.getCompany());
+         json.put("accepted_on", a.getAcceptedOn());
 
          // Don't send legal agreement if already accepted
          // it's too heavy
