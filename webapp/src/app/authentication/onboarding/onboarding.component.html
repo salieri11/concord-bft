@@ -26,7 +26,33 @@
         <div class="row flex-items-xs-center">
           <div class="col-sm-6 col-xs-12">
             <textarea readonly [value]="agreement?.content" #agreementEl id="agreementEl" rows="20"></textarea>
-            <button class="btn btn-primary" id="accept" (click)="accept()" [disabled]="disabledAgreement">{{ 'agreement.accept' | translate }}</button>
+            <form class="clr-form clr-form-horizontal" [formGroup]="agreementForm">
+              <div class="clr-form-control">
+                  <label class="clr-control-label">{{ 'agreement.firstName' | translate }} *</label>
+                  <div class="clr-input-wrapper">
+                    <input type="text" formControlName="firstName" class="clr-input" />
+                  </div>
+              </div>
+              <div class="clr-form-control">
+                  <label class="clr-control-label">{{ 'agreement.lastName' | translate }} *</label>
+                  <div class="clr-input-wrapper">
+                    <input type="text" formControlName="lastName" class="clr-input" />
+                  </div>
+              </div>
+              <div class="clr-form-control">
+                  <label class="clr-control-label">{{ 'agreement.company' | translate }} *</label>
+                  <div class="clr-input-wrapper">
+                    <input type="text" formControlName="company" class="clr-input" />
+                  </div>
+              </div>
+              <div class="clr-form-control">
+                <span class="clr-subtext">Please read the whole document before proceeding</span>
+              </div>
+              <div class="clr-form-control">
+
+                <button class="btn btn-primary" id="accept" type="submit" [disabled]="(disabledAgreement) || (agreementForm.invalid)" (click)="accept()">{{ 'agreement.accept' | translate }}</button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

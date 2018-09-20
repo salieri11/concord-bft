@@ -5,6 +5,7 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { ReactiveFormsModule } from '@angular/forms';
 
 import { MockTranslateModule } from '../../mocks/mock-translate.module';
 import { OnboardingComponent } from './onboarding.component';
@@ -21,6 +22,7 @@ describe('OnboardingComponent', () => {
         RouterTestingModule,
         MockTranslateModule,
         HttpClientTestingModule,
+        ReactiveFormsModule
       ],
       declarations: [ OnboardingComponent ],
       providers: [ AuthenticationService, PersonaService ],

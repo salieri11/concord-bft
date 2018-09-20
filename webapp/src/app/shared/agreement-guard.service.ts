@@ -20,7 +20,6 @@ export class AgreementGuard implements CanActivate {
 
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): any {
     const url: string = state.url;
-
     if (this.authenticationService.agreement.accepted) {
       return true;
     }
@@ -29,7 +28,7 @@ export class AgreementGuard implements CanActivate {
       .subscribe(agreement => {
         if (!agreement['accepted']) {
           this.router.navigate(['auth', 'onboarding']);
-        } else {
+        } else if (route) {
           this.router.navigate([url]);
         }
         return agreement['accepted'];

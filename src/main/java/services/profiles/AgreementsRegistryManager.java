@@ -40,14 +40,13 @@ public class AgreementsRegistryManager {
          Boolean accepted = a.getAcceptance();
          json.put("id", a.getID());
          json.put("type", a.getType());
-         json.put("accepted", a.getAcceptance());
+         json.put("accepted", accepted);
 
          // Don't send legal agreement if already accepted
          // it's too heavy
          if (accepted == Boolean.FALSE) {
             json.put("content", a.getContent());
          }
-
       }
 
       return json;
@@ -62,6 +61,10 @@ public class AgreementsRegistryManager {
          Agreement agreement = oAgreement.get();
          if (request.get("accepted") == Boolean.TRUE) {
             agreement.accepted();
+            agreement.setFirstName(request.get("first_name").toString());
+            agreement.setLastName(request.get("last_name").toString());
+            agreement.setCompany(request.get("company").toString());
+            agreement.setAcceptedOn();
          }
          agreementRepository.save(agreement);
       }

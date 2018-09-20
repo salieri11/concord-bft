@@ -154,7 +154,10 @@
   },
   "agreement": {
     "title": "Legal Agreement",
-    "accept": "Accept"
+    "accept": "Accept",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "company": "Company"
   },
   "dashboard": {
     "totalActiveNodes": "Total Active Nodes",

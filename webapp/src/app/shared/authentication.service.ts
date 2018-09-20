@@ -67,8 +67,8 @@ export class AuthenticationService {
       );
   }
 
-  acceptLegalAgreement(): Observable<any> {
-    return this.http.patch<{accepted: boolean}>('api/agreements/1', {accepted: true});
+  acceptLegalAgreement(params: any): Observable<any> {
+    return this.http.patch<any>('api/agreements/1', params);
   }
 
   // TODO: Use country list from CSP VIP

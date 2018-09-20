@@ -6,7 +6,7 @@ import { NgModule, ModuleWithProviders } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { ClarityModule } from '@clr/angular';
+import { ClarityModule, ClrFormsNextModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
 import { MockTranslateModule } from '../mocks/mock-translate.module';
 
@@ -33,6 +33,7 @@ import { VmwCopyToClipboardButtonComponent } from './components/copy-to-clipboar
     CommonModule,
     TranslateModule,
     ClarityModule,
+    ClrFormsNextModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule
@@ -53,6 +54,7 @@ import { VmwCopyToClipboardButtonComponent } from './components/copy-to-clipboar
     CommonModule,
     TranslateModule,
     ClarityModule,
+    ClrFormsNextModule,
     TransactionsStatusFilterComponent,
     ReactiveFormsModule,
     CanViewDirective,
@@ -89,6 +91,7 @@ export class SharedModule {
     CommonModule,
     MockTranslateModule,
     ClarityModule,
+    ClrFormsNextModule,
     ReactiveFormsModule
   ],
   providers: [

@@ -7,6 +7,7 @@
 
 package services.profiles;
 
+import java.time.Instant;
 import javax.persistence.*;
 
 /**
@@ -19,6 +20,7 @@ public class Agreement {
 
    @Id
    @GeneratedValue(strategy = GenerationType.AUTO)
+   @Column(unique = true)
    private Long id;
 
    @Column(nullable = false)
@@ -30,6 +32,17 @@ public class Agreement {
    @Column(nullable = false)
    private String content;
 
+   @Column(nullable = true)
+   private String firstName;
+
+   @Column(nullable = true)
+   private String lastName;
+
+   @Column(nullable = true)
+   private String company;
+
+   @Column(nullable = true)
+   private Long acceptedOn;
 
    public Long getID() {
       return id;
@@ -49,6 +62,22 @@ public class Agreement {
 
    protected void accepted() {
       this.accepted = true;
+   }
+
+   protected void setFirstName(String firstName) {
+      this.firstName = firstName;
+   }
+
+   protected void setLastName(String lastName) {
+      this.lastName = lastName;
+   }
+
+   protected void setCompany(String company) {
+      this.company = company;
+   }
+
+   protected void setAcceptedOn() {
+      this.acceptedOn = Instant.now().toEpochMilli();
    }
 
 }

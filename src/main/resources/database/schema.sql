@@ -50,6 +50,7 @@ create table if not exists agreements (id int8 not null,
 type varchar(255) not null, accepted boolean not null default false,
 content text not null);
 
+-- Add our initial agreement for users to accept
 insert into agreements (id, type, accepted, content) values (
 	1, '"PRE-RELEASE SERVICE OFFERING', false, 'VMWARE PRE-RELEASE SERVICE OFFERING
 TERMS OF SERVICE
