@@ -67,8 +67,10 @@ export class OnboardingComponent implements OnInit {
   }
 
   private scrollHandler(event) {
-    const bottom = event.srcElement.scrollHeight - 492;
-    const reachedBottom = event.srcElement.scrollTop === bottom;
+    const el = event.target || event.srcElement;
+    const bottom = el.scrollHeight - el.offsetHeight - 10;
+    const reachedBottom = el.scrollTop >= bottom;
+
     if (reachedBottom && this.disabledAgreement) {
       this.disabledAgreement = false;
     }
