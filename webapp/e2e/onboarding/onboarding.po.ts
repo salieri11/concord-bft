@@ -9,11 +9,13 @@ export class OnboardingPage {
     return browser.get('/auth/onboarding');
   }
 
-  clickSetupOrg() {
-    element(by.cssContainingText('.card-header', 'Setup Organization')).click();
-  }
+  readAndClickAccept(firstName, lastName, company) {
+    element(by.css('#firstName')).sendKeys(firstName);
+    element(by.css('#lastName')).sendKeys(lastName);
+    element(by.css('#company')).sendKeys(company);
 
-  clickDeployBlockchain() {
-    element(by.cssContainingText('.card-header', 'Deploy Blockchain')).click();
+    browser.executeScript('document.getElementById("agreementEl").scrollTo(0, 30000);').then(function () {
+      element(by.id('accept')).click();
+    });
   }
 }

@@ -5,9 +5,8 @@
 import { browser } from 'protractor';
 
 import { AuthHelper } from '../helpers/auth';
-import { MarketingPage } from '../marketing/marketing.po';
 import { AppPage } from '../app/app.po';
-import { SignUpPage } from '../sign-up/sign-up.po';
+import { LoginPage } from '../login/login.po';
 import { OnboardingPage } from './onboarding.po';
 import { DashboardPage } from '../dashboard/dashboard.po';
 
@@ -15,9 +14,8 @@ describe('athena-ui Onboarding Flow', () => {
   let authHelper: AuthHelper;
   let appPage: AppPage;
   let dashboardPage: DashboardPage;
-  let marketingPage: MarketingPage;
   let onboardingPage: OnboardingPage;
-  let signUpPage: SignUpPage;
+  let loginPage: LoginPage;
 
   afterEach(() => {
     authHelper = new AuthHelper();
@@ -27,33 +25,16 @@ describe('athena-ui Onboarding Flow', () => {
   beforeEach(() => {
     appPage = new AppPage();
     dashboardPage = new DashboardPage();
-    marketingPage = new MarketingPage();
     onboardingPage = new OnboardingPage();
-    signUpPage = new SignUpPage();
-    marketingPage.navigateTo();
+    loginPage = new LoginPage();
+    onboardingPage.navigateTo();
   });
 
   it('should onboard to the org tour', () => {
-    marketingPage.clickSignUpButton();
-
-    expect(signUpPage.getSignUpForm().isPresent()).toBe(true);
-
-    signUpPage.fillSignUpForm(
-      'Test',
-      'User',
-      'testorgtour@example.com',
-      'password',
-      'Test Company',
-      'Test Engineer',
-      'UNITED STATES',
-      'Customer',
-      '0-99'
-    );
-
     browser.sleep(200);
-
-    onboardingPage.clickSetupOrg();
-
+    onboardingPage.readAndClickAccept('Test', 'Test', 'Company');
+    loginPage.fillLogInForm('testlogin@example.com', 'password');
+    browser.sleep(200);
     browser.waitForAngularEnabled(false);
 
     expect(appPage.getTourTitle().getText()).toEqual('Node Status');
@@ -86,27 +67,14 @@ describe('athena-ui Onboarding Flow', () => {
   });
 
   it('should onboard to deploy blockchain', () => {
-    marketingPage.clickSignUpButton();
-
-    expect(signUpPage.getSignUpForm().isPresent()).toBe(true);
-
-    signUpPage.fillSignUpForm(
-      'Test',
-      'User',
-      'testdeployblockchain@example.com',
-      'password',
-      'Test Company',
-      'Test Engineer',
-      'UNITED STATES',
-      'Customer',
-      '0-99'
-    );
-
     browser.sleep(200);
-
-    onboardingPage.clickDeployBlockchain();
+    loginPage.fillLogInForm('testlogin@example.com', 'password');
 
     browser.waitForAngularEnabled(false);
+    browser.sleep(200);
+    dashboardPage.navigateToDeploy();
+    browser.sleep(200);
+
     expect(dashboardPage.getBlockchainWizardForm().isPresent()).toBe(true);
     // First page
     expect(dashboardPage.getHeaderWithText('Setup Blockchain and Consortium').isPresent()).toBe(true);

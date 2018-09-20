@@ -9,6 +9,12 @@ export class DashboardPage {
     return browser.get('/dashboard');
   }
 
+  navigateToDeploy() {
+    element(by.id('menu')).click();
+    browser.sleep(200);
+    element(by.id('deploy')).click();
+  }
+
   getPageTitle() {
     return element(by.css('.branding .nav-link .title')).getText();
   }

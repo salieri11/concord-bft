@@ -20,33 +20,39 @@
                 </g>
               </g>
             </svg>
-            <h1>{{ 'onboarding.title' | translate }}</h1>
+            <h1>{{ 'agreement.title' | translate }}</h1>
           </div>
         </div>
         <div class="row flex-items-xs-center">
-          <div class="col-sm-3 col-xs-12">
-            <div class="card clickable" [routerLink]="['/dashboard']" [fragment]="'orgTour'">
-              <div class="card-header">
-                 {{ 'onboarding.setupOrg.title' | translate }}
+          <div class="col-sm-6 col-xs-12">
+            <textarea readonly [value]="agreement?.content" #agreementEl id="agreementEl" rows="20"></textarea>
+            <form class="clr-form clr-form-horizontal" [formGroup]="agreementForm">
+              <div class="clr-form-control">
+                  <label class="clr-control-label">{{ 'agreement.firstName' | translate }} *</label>
+                  <div class="clr-input-wrapper">
+                    <input type="text" id="firstName" formControlName="firstName" class="clr-input" />
+                  </div>
               </div>
-              <div class="card-block">
-                <div class="card-text">
-                 {{ 'onboarding.setupOrg.description' | translate }}
-                </div>
+              <div class="clr-form-control">
+                  <label class="clr-control-label">{{ 'agreement.lastName' | translate }} *</label>
+                  <div class="clr-input-wrapper">
+                    <input type="text" id="lastName" formControlName="lastName" class="clr-input" />
+                  </div>
               </div>
-            </div>
-          </div>
-          <div class="col-sm-3 col-xs-12" [routerLink]="['/dashboard']" [fragment]="'deploy'">
-            <div class="card clickable">
-              <div class="card-header">
-                 {{ 'onboarding.deployBlockchain.title' | translate }}
+              <div class="clr-form-control">
+                  <label class="clr-control-label">{{ 'agreement.company' | translate }} *</label>
+                  <div class="clr-input-wrapper">
+                    <input type="text" id="company" formControlName="company" class="clr-input" />
+                  </div>
               </div>
-              <div class="card-block">
-                <div class="card-text">
-                 {{ 'onboarding.deployBlockchain.description' | translate }}
-                </div>
+              <div class="clr-form-control">
+                <span class="clr-subtext">Please read the whole document before proceeding</span>
               </div>
-            </div>
+              <div class="clr-form-control">
+
+                <button class="btn btn-primary" id="accept" type="submit" [disabled]="(disabledAgreement) || (agreementForm.invalid)" (click)="accept()">{{ 'agreement.accept' | translate }}</button>
+              </div>
+            </form>
           </div>
         </div>
       </div>

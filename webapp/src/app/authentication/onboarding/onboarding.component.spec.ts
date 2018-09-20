@@ -4,9 +4,13 @@
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { ReactiveFormsModule } from '@angular/forms';
 
 import { MockTranslateModule } from '../../mocks/mock-translate.module';
 import { OnboardingComponent } from './onboarding.component';
+import { AuthenticationService } from '../../shared/authentication.service';
+import { PersonaService } from '../../shared/persona.service';
 
 describe('OnboardingComponent', () => {
   let component: OnboardingComponent;
@@ -16,9 +20,12 @@ describe('OnboardingComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         RouterTestingModule,
-        MockTranslateModule
+        MockTranslateModule,
+        HttpClientTestingModule,
+        ReactiveFormsModule
       ],
-      declarations: [ OnboardingComponent ]
+      declarations: [ OnboardingComponent ],
+      providers: [ AuthenticationService, PersonaService ],
     })
     .compileComponents();
   }));

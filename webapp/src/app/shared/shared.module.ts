@@ -6,12 +6,13 @@ import { NgModule, ModuleWithProviders } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { ClarityModule } from '@clr/angular';
+import { ClarityModule, ClrFormsNextModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
 import { MockTranslateModule } from '../mocks/mock-translate.module';
 
 import { AuthenticationService } from './authentication.service';
 import { AuthenticatedGuard } from './authenticated-guard.service';
+import { AgreementGuard } from './agreement-guard.service';
 import { ANDES_API_PREFIX, ATHENA_API_PREFIX, ETHEREUM_API_PREFIX } from './shared.config';
 import { TransactionsStatusFilterComponent } from './components/transactions-status-filter/transactions-status-filter.component';
 import { RouterModule } from '@angular/router';
@@ -31,6 +32,7 @@ import { VmwComboboxItemsComponent } from './components/combobox/combobox-items/
     CommonModule,
     TranslateModule,
     ClarityModule,
+    ClrFormsNextModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule
@@ -50,6 +52,7 @@ import { VmwComboboxItemsComponent } from './components/combobox/combobox-items/
     CommonModule,
     TranslateModule,
     ClarityModule,
+    ClrFormsNextModule,
     TransactionsStatusFilterComponent,
     ReactiveFormsModule,
     CanViewDirective,
@@ -69,6 +72,7 @@ export class SharedModule {
       providers: [
         AuthenticationService,
         AuthenticatedGuard,
+        AgreementGuard,
         {provide: ANDES_API_PREFIX, useValue: '/api'},
         {provide: ATHENA_API_PREFIX, useValue: '/api/athena'},
         {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'},
@@ -84,6 +88,7 @@ export class SharedModule {
     CommonModule,
     MockTranslateModule,
     ClarityModule,
+    ClrFormsNextModule,
     ReactiveFormsModule
   ],
   providers: [

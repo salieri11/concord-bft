@@ -14,6 +14,7 @@ import { User } from '../users/shared/user.model';
 export class AuthenticationService {
   private userSubject: BehaviorSubject<User>;
   readonly user: Observable<User>;
+  agreement: any = {accepted: false};
 
   constructor(private personaService: PersonaService, private http: HttpClient) {
     this.userSubject = new BehaviorSubject<User>({
@@ -54,6 +55,20 @@ export class AuthenticationService {
     localStorage.removeItem('helen.persona');
     this.personaService.currentPersona = undefined;
     this.userSubject.next({email: localStorage['helen.email'], persona: localStorage['helen.persona']});
+  }
+
+  checkForLegalAgreements(): Observable<any> {
+    return this.http.get('/api/agreements/1').pipe(
+        map((response) => {
+          this.agreement = response;
+
+          return response;
+        }),
+      );
+  }
+
+  acceptLegalAgreement(params: any): Observable<any> {
+    return this.http.patch<any>('api/agreements/1', params);
   }
 
   // TODO: Use country list from CSP VIP
