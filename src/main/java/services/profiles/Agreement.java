@@ -60,6 +60,22 @@ public class Agreement {
       return accepted;
    }
 
+   public String getFirstName() {
+      return firstName;
+   }
+
+   public String getLastName() {
+      return lastName;
+   }
+
+   public String getCompany() {
+      return company;
+   }
+
+   public Long getAcceptedOn() {
+      return acceptedOn;
+   }
+
    protected void accepted() {
       this.accepted = true;
    }
