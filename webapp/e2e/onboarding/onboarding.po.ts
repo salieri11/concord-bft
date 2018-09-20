@@ -9,7 +9,7 @@ export class OnboardingPage {
     return browser.get('/auth/onboarding');
   }
 
-  readAndClickAccept() {
+  readAndClickAccept(firstName, lastName, company) {
     element(by.css('#firstName')).sendKeys(firstName);
     element(by.css('#lastName')).sendKeys(lastName);
     element(by.css('#company')).sendKeys(company);
