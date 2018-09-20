@@ -128,4 +128,6 @@ These Terms of Service take effect when you click “I accept” or similar butt
 11.10	Third Party Rights. Other than as expressly set forth in these Terms of Service, these Terms of Service does not create any rights for any person who is not a party to it, and no person who is not a party to these Terms of Service may enforce any of its terms or rely on any exclusion or limitation contained in it.
 11.11	Order of Precedence. Other than as expressly set forth in these Terms of Service, the terms of these Terms of Service will supersede and control over any conflicting or additional terms and conditions of any other document for any Pre-Release Service Offering.
 11.12	Entire Agreement. These Terms of Service, as may be revised by us, are the entire agreement of the parties regarding its subject matter. These Terms of Service supersede all prior or contemporaneous communications, understandings and agreements, whether written or oral, between the parties regarding its subject matter.
-"');
+"')
+on conflict (id)
+do nothing;
