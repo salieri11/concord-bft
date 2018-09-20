@@ -31,7 +31,7 @@ describe('athena-ui Onboarding Flow', () => {
   });
 
   it('should onboard to the org tour', () => {
-    onboardingPage.readAndClickAccept()
+    onboardingPage.readAndClickAccept('Test', 'Test', 'Company');
     loginPage.fillLogInForm();
     browser.sleep(200);
     browser.waitForAngularEnabled(false);
