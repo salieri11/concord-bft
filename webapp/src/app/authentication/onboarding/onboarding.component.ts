@@ -4,6 +4,8 @@
 
 import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { Router } from '@angular/router';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+
 import { AuthenticationService } from '../../shared/authentication.service';
 
 @Component({
@@ -15,11 +17,18 @@ export class OnboardingComponent implements OnInit {
   @ViewChild('agreementEl') agreementEl: ElementRef;
   agreement: {type?: string, content?: string, accepted: boolean, id?: number};
   disabledAgreement = true;
+  agreementForm: FormGroup;
 
   constructor(
     private authService: AuthenticationService,
     private router: Router,
+    private fb: FormBuilder,
    ) {
+    this.agreementForm = this.fb.group({
+      firstName: ['', Validators.required],
+      lastName: ['', Validators.required],
+      company: ['', Validators.required],
+    });
   }
 
   ngOnInit() {
@@ -37,7 +46,12 @@ export class OnboardingComponent implements OnInit {
   }
 
   accept(): void {
-    this.authService.acceptLegalAgreement()
+    this.authService.acceptLegalAgreement({
+      first_name: this.agreementForm.value.firstName,
+      last_name: this.agreementForm.value.lastName,
+      company: this.agreementForm.value.company,
+      accepted: true,
+    })
       .subscribe(response => {
         this.authService.agreement.accepted = true;
         this.goToLogin();

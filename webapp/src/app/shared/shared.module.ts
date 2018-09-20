@@ -6,7 +6,7 @@ import { NgModule, ModuleWithProviders } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { ClarityModule } from '@clr/angular';
+import { ClarityModule, ClrFormsNextModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
 import { MockTranslateModule } from '../mocks/mock-translate.module';
 
@@ -32,6 +32,7 @@ import { VmwComboboxItemsComponent } from './components/combobox/combobox-items/
     CommonModule,
     TranslateModule,
     ClarityModule,
+    ClrFormsNextModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule
@@ -51,6 +52,7 @@ import { VmwComboboxItemsComponent } from './components/combobox/combobox-items/
     CommonModule,
     TranslateModule,
     ClarityModule,
+    ClrFormsNextModule,
     TransactionsStatusFilterComponent,
     ReactiveFormsModule,
     CanViewDirective,
@@ -86,6 +88,7 @@ export class SharedModule {
     CommonModule,
     MockTranslateModule,
     ClarityModule,
+    ClrFormsNextModule,
     ReactiveFormsModule
   ],
   providers: [
