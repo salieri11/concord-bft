@@ -6,7 +6,7 @@ import { browser } from 'protractor';
 
 import { AuthHelper } from '../helpers/auth';
 import { AppPage } from '../app/app.po';
-import { LoginPage } from '../sign-up/sign-up.po';
+import { SignUpPage } from '../sign-up/sign-up.po';
 import { OnboardingPage } from './onboarding.po';
 import { DashboardPage } from '../dashboard/dashboard.po';
 
