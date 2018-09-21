@@ -33,8 +33,7 @@ class Builder {
 
   // Main entry point for the entire process
   def startBuild(){
-    steps.echo "Starting build"
     steps.echo("Running.  Branch is ${steps.env.BRANCH_NAME}")
-    // steps.mainBuildSteps()
+    steps.mainBuildSteps()
   }
 }
