@@ -1,5 +1,5 @@
 # hermes
-Hermes is the repository for the vmwareathena project's testing framework.
+Hermes is the repository for the vmwareathena project's test framework.
 
 ## Goals:
 - Tests are run from the hermes project.
