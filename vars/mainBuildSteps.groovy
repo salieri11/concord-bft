@@ -179,13 +179,5 @@ def call(){
       //   }
       // }
     }// End stages
-
-    post {
-      always {
-        dir('docker') {
-          sh "docker-compose down"
-        }
-      }
-    }
   }
 }
