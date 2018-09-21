@@ -1,4 +1,4 @@
-@Library('SharedJenkinsLib@make_builds')
+@Library('SharedJenkinsLib@rv_start_building_testing')
 import org.vmware.Builder
 
 node {
