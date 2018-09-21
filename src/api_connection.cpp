@@ -664,14 +664,14 @@ api_connection::is_valid_eth_getTransactionCount(const EthRequest &request)
 bool
 api_connection::is_valid_eth_getBalance(const EthRequest &request)
 {
-    if (request.has_addr_to() && request.addr_to().size() == sizeof(evm_address))
-    {
+   if (request.has_addr_to() && request.addr_to().size() == sizeof(evm_address))
+   {
       return true;
-    } else {
-      ErrorResponse *error = athenaResponse_.add_error_response();
-      error->set_description("Missing account address");
-      return false;
-    }
+   } else {
+     ErrorResponse *error = athenaResponse_.add_error_response();
+     error->set_description("Missing account address");
+     return false;
+   }
 }
 
 /*
