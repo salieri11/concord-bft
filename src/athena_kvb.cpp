@@ -525,6 +525,9 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_request_read_only(
    case EthRequest_EthMethod_GET_TX_COUNT:
       return handle_eth_getTransactionCount(athreq, kvbStorage, athresp);
       break;
+   case EthRequest_EthMethod_GET_BALANCE:
+      return handle_eth_getBalance(athreq, kvbStorage, athresp);
+      break;
    default:
       ErrorResponse *e = athresp.add_error_response();
       e->mutable_description()->assign("ETH Method Not Implemented");
@@ -672,6 +675,39 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_getTransactionCount(
    EthResponse *response = athresp.add_eth_response();
    response->set_id(request.id());
    response->set_data(bignonce.bytes, sizeof(bignonce));
+
+   return true;
+}
+
+/**
+ * Get the balance for the given account
+ */
+bool com::vmware::athena::KVBCommandsHandler::handle_eth_getBalance(
+   AthenaRequest &athreq,
+   KVBStorage &kvbStorage,
+   AthenaResponse &athresp) const
+{
+   const EthRequest request = athreq.eth_request(0);
+   
+   evm_address account;
+   std::copy(request.addr_to().begin(), request.addr_to().end(),
+             account.bytes);
+   uint64_t balance = kvbStorage.get_balance(account);
+   evm_uint256be bigbalance;
+   memset(bigbalance.bytes, 0, sizeof(bigbalance));
+#ifdef BOOST_LITTLE_ENDIAN
+   std::reverse_copy(reinterpret_cast<uint8_t*>(&balance),
+                     reinterpret_cast<uint8_t*>(&balance)+sizeof(balance),
+                     bigbalance.bytes+(sizeof(bigbalance)-sizeof(balance)));
+#else
+   std::copy(reinterpret_cast<uint8_t*>(&balance),
+             reinterpret_cast<uint8_t*>(&balance)+sizeof(balance),
+             bigbalance.bytes+(sizeof(bigbalance)-sizeof(balance)));
+#endif
+
+   EthResponse *response = athresp.add_eth_response();
+   response->set_id(request.id());
+   response->set_data(bigbalance.bytes, sizeof(bigbalance));
 
    return true;
 }
