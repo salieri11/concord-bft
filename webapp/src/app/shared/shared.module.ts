@@ -25,6 +25,7 @@ import { VmwAccordionComponent } from './components/accordion/accordion.componen
 import { VmwAccordionGroupComponent } from './components/accordion/accordion-group.component';
 import { VmwComboboxComponent } from './components/combobox/combobox.component';
 import { VmwComboboxItemsComponent } from './components/combobox/combobox-items/combobox-items.component';
+import { VmwCopyToClipboardButtonComponent } from './components/copy-to-clipboard-button/copy-to-clipboard-button.component';
 
 @NgModule({
   imports: [
@@ -44,6 +45,7 @@ import { VmwComboboxItemsComponent } from './components/combobox/combobox-items/
     VmwAccordionGroupComponent,
     VmwComboboxComponent,
     VmwComboboxItemsComponent,
+    VmwCopyToClipboardButtonComponent,
     BlockchainWizardComponent
   ],
   exports: [
@@ -59,6 +61,7 @@ import { VmwComboboxItemsComponent } from './components/combobox/combobox-items/
     VmwAccordionGroupComponent,
     VmwComboboxComponent,
     VmwComboboxItemsComponent,
+    VmwCopyToClipboardButtonComponent,
     BlockchainWizardComponent
   ]
 })

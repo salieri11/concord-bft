@@ -22,7 +22,7 @@ import { GraphsModule } from '../graphs/graphs.module';
   declarations: [
     BlockListComponent,
     BlockComponent,
-    BlockDetailsComponent
+    BlockDetailsComponent,
   ]
 })
 export class BlocksModule { }

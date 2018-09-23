@@ -14,6 +14,7 @@ import { MockSharedModule } from '../../shared/shared.module';
 import { BlockDetailsComponent } from '../block-details/block-details.component';
 import { BlockListComponent } from './block-list.component';
 import { BlockGraphComponent } from '../../graphs/block-graph/block-graph.component';
+import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
 
 describe('BlockListComponent', () => {
   let component: BlockListComponent;
@@ -31,7 +32,8 @@ describe('BlockListComponent', () => {
       declarations: [
         BlockListComponent,
         BlockDetailsComponent,
-        BlockGraphComponent
+        BlockGraphComponent,
+        VmwCopyToClipboardButtonComponent
       ],
       providers: [{provide: APP_BASE_HREF, useValue: '/'}]
     })

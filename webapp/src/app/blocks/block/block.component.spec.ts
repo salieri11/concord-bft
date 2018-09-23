@@ -8,6 +8,7 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 
 import { MockSharedModule } from '../../shared/shared.module';
 import { TransactionListComponent } from '../../transactions/transaction-list/transaction-list.component';
+import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
 import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
 import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
 import { BlockComponent } from './block.component';
@@ -21,13 +22,14 @@ describe('BlockComponent', () => {
       imports: [
         RouterTestingModule,
         HttpClientTestingModule,
-        MockSharedModule
+        MockSharedModule,
       ],
       declarations: [
         BlockComponent,
         TransactionListComponent,
         TransactionsStatusFilterComponent,
-        TransactionDetailsComponent
+        TransactionDetailsComponent,
+        VmwCopyToClipboardButtonComponent,
       ]
     })
     .compileComponents();

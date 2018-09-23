@@ -5,6 +5,7 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 
+import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
 import { MockSharedModule } from '../../shared/shared.module';
 import { TransactionDetailsComponent } from './transaction-details.component';
 
@@ -19,7 +20,8 @@ describe('TransactionDetailsComponent', () => {
         MockSharedModule
       ],
       declarations: [
-        TransactionDetailsComponent
+        TransactionDetailsComponent,
+        VmwCopyToClipboardButtonComponent,
       ]
     })
       .compileComponents();
