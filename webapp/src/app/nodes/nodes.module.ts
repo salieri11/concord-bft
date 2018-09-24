@@ -11,6 +11,7 @@ import { TransactionsModule } from '../transactions/transactions.module';
 import { NodeComponent } from './node/node.component';
 import { NodesComponent } from './nodes/nodes.component';
 import { NodesStatusFilterComponent } from './nodes-status-filter/nodes-status-filter.component';
+import { NodeListComponent } from './node-list/node-list.component';
 
 @NgModule({
   imports: [
@@ -19,6 +20,6 @@ import { NodesStatusFilterComponent } from './nodes-status-filter/nodes-status-f
     SharedModule,
     GraphsModule
   ],
-  declarations: [NodesComponent, NodeComponent, NodesStatusFilterComponent]
+  declarations: [NodesComponent, NodeComponent, NodesStatusFilterComponent, NodeListComponent]
 })
 export class NodesModule { }

@@ -5,7 +5,8 @@
 import { Inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
-import { Member } from './nodes.model';
+import { Observable } from 'rxjs';
+import { Node } from './nodes.model';
 import { ATHENA_API_PREFIX } from '../../shared/shared.config';
 import { AthenaApiService } from '../../shared/athena-api';
 
@@ -22,7 +23,7 @@ export class NodesService extends AthenaApiService {
     return 'members';
   }
 
-  getMembers() {
-    return this.httpClient.get<Member[]>(this.resourcePath());
+  getNodes(): Observable<Node[]> {
+    return this.httpClient.get<Node[]>(this.resourcePath());
   }
 }
