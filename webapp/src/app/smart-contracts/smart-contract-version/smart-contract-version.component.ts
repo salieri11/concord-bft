@@ -3,8 +3,17 @@
  */
 
 import { FormControl, FormGroup, Validators } from '@angular/forms';
-import { Component, Input, OnChanges, SimpleChanges, SimpleChange, ViewChild } from '@angular/core';
+import {
+  Component,
+  Input,
+  OnChanges,
+  SimpleChanges,
+  SimpleChange,
+  ViewChild,
+  OnInit
+} from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
+import { ActivatedRoute } from '@angular/router';
 
 import { SmartContractVersion } from '../shared/smart-contracts.model';
 import * as Web3EthAbi from 'web3-eth-abi';
@@ -12,8 +21,9 @@ import * as Web3Utils from 'web3-utils';
 
 import { EthApiService } from '../../shared/eth-api.service';
 import { HighlightService } from '../../shared/highlight.service';
-import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview-form/contract-payload-preview-form.component';
 import { isHexAddress } from '../shared/custom-validators';
+import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview-form/contract-payload-preview-form.component';
+import { TourService } from '../../shared/tour.service';
 
 const FALSE_HEX_VALUE = '0x0000000000000000000000000000000000000000000000000000000000000000';
 const TRUE_HEX_VALUE = '0x0000000000000000000000000000000000000000000000000000000000000001';
@@ -24,7 +34,7 @@ const VOID_HEX_VALUE = '0x';
   templateUrl: './smart-contract-version.component.html',
   styleUrls: ['./smart-contract-version.component.scss']
 })
-export class SmartContractVersionComponent implements OnChanges {
+export class SmartContractVersionComponent implements OnChanges, OnInit {
 
   @Input() version: SmartContractVersion;
   @ViewChild('payloadPreviewModal') payloadPreviewModal: ContractPayloadPreviewFormComponent;
@@ -39,7 +49,13 @@ export class SmartContractVersionComponent implements OnChanges {
   callReturnValue: string;
   functionDefinition;
 
-  constructor(private ethApiService: EthApiService, private highlighter: HighlightService, private translate: TranslateService) {
+  constructor(
+    private ethApiService: EthApiService,
+    private highlighter: HighlightService,
+    private translate: TranslateService,
+    private route: ActivatedRoute,
+    private tourService: TourService,
+  ) {
     this.versionForm = new FormGroup({
       functionName: new FormControl(''),
       contractForm: new FormGroup({
@@ -47,6 +63,20 @@ export class SmartContractVersionComponent implements OnChanges {
         functionInputs: new FormGroup({})
       })
     });
+  }
+
+  ngOnInit() {
+    this.route.fragment.subscribe(fragment => {
+      switch (fragment) {
+        case 'new':
+          this.tourService.startContractTour();
+          break;
+        default:
+          // code...
+          break;
+      }
+    });
+
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -112,7 +142,8 @@ export class SmartContractVersionComponent implements OnChanges {
   }
 
   onSend() {
-    this.ethApiService.sendTransaction(this.encodeFunction()).subscribe((resp) => {
+    this.ethApiService.sendTransaction(this.encodeFunction())
+    .subscribe((resp) => {
       if (resp.error) {
         this.handleError(resp);
       } else {

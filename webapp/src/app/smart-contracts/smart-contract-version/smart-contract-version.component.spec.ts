@@ -10,6 +10,7 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 import { FormsModule } from '@angular/forms';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { TourService as NgxTourService } from 'ngx-tour-ngx-popper';
 
 import { SmartContractVersionComponent } from './smart-contract-version.component';
 import {
@@ -104,7 +105,9 @@ describe('SmartContractVersionComponent', () => {
         TransactionDetailsComponent,
         TestWrapperClassComponent,
         VmwCopyToClipboardButtonComponent,
-
+      ],
+      providers: [
+        NgxTourService
       ]
     })
     .compileComponents();

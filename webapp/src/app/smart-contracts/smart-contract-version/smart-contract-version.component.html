@@ -19,7 +19,7 @@
                     <div class="clr-form-control clr-row">
                       <label class="clr-control-label"> {{'smartContracts.version.address' | translate}}</label>
                       <div class="clr-control-container clr-col-md-10 clr-col-xs-12">
-                        <div class="clr-input-wrapper">
+                        <div class="clr-input-wrapper" tourAnchor="contract.deployed">
                           <clr-tooltip>
                             <span clrTooltipTrigger>
                               {{version?.address}}
@@ -40,7 +40,7 @@
                     </div>
                     <clr-select-container>
                       <label>{{'smartContracts.version.functions' | translate}}</label>
-                      <select clrSelect id="selectedFunction" name="function" *ngIf="functions?.length" formControlName="functionName"
+                      <select clrSelect id="selectedFunction" tourAnchor="contract.availableActions" name="function" *ngIf="functions?.length" formControlName="functionName"
                               (change)="getFunctionDetails()">
                         <option *ngFor="let func of functions" [value]="func.name">{{ func.name }}</option>
                       </select>
@@ -60,10 +60,10 @@
                   </div>
                 </div>
                 <div class="card-footer">
-                  <button id="callSubmit" type="button" class="btn btn-primary" (click)="onCall()" [disabled]="versionForm.invalid">
+                  <button id="callSubmit" type="button" class="btn btn-primary" (click)="onCall()" [disabled]="versionForm.invalid" tourAnchor="contract.call">
                     {{'smartContracts.version.call' | translate}}
                   </button>
-                  <button id="transactionSubmit" type="button" class="btn btn-primary" (click)="onSend()" [disabled]="versionForm.invalid">
+                  <button id="transactionSubmit" type="button" class="btn btn-primary" (click)="onSend()" [disabled]="versionForm.invalid" tourAnchor="contract.send">
                     {{'smartContracts.version.send' | translate}}
                   </button>
                   <button id="previewSubmit" type="button" class="btn btn-outline" (click)="onPreview()" [disabled]="versionForm.invalid">
@@ -104,7 +104,7 @@
     </clr-tab-content>
   </clr-tab>
   <clr-tab>
-    <button clrTabLink>{{'smartContracts.version.tabs.source' | translate}}</button>
+    <button tourAnchor="contract.tabs" clrTabLink>{{'smartContracts.version.tabs.source' | translate}}</button>
     <clr-tab-content>
       <ng-container *ngIf="version.sourcecode">
         <div class="row">

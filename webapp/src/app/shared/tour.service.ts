@@ -161,4 +161,46 @@ export class TourService {
 
     this.ngxTourService.start();
   }
+
+  startContractTour() {
+    this.steps = [
+      {
+        anchorId: 'contract.deployed',
+        title: this.translate.instant('smartContracts.tour.deployed.title'),
+        content: this.translate.instant('smartContracts.tour.deployed.content'),
+        placement: 'right',
+      },
+      {
+        anchorId: 'contract.availableActions',
+        title: this.translate.instant('smartContracts.tour.availableActions.title'),
+        content: this.translate.instant('smartContracts.tour.availableActions.content'),
+      },
+      {
+        anchorId: 'contract.call',
+        title: this.translate.instant('smartContracts.tour.call.title'),
+        content: this.translate.instant('smartContracts.tour.call.content'),
+      },
+      {
+        anchorId: 'contract.send',
+        title: this.translate.instant('smartContracts.tour.send.title'),
+        content: this.translate.instant('smartContracts.tour.send.content'),
+      },
+      {
+        anchorId: 'contract.tabs',
+        title: this.translate.instant('smartContracts.tour.tabs.title'),
+        content: this.translate.instant('smartContracts.tour.tabs.content'),
+        placement: 'bottom',
+      },
+    ];
+
+    this.ngxTourService.initialize(this.steps, {
+      prevBtnTitle: this.translate.instant('tourSteps.prevBtnText'),
+      nextBtnTitle: this.translate.instant('tourSteps.nextBtnText'),
+      popperSettings: {
+        hideOnClickOutside: false
+      }
+    });
+
+    this.ngxTourService.start();
+  }
 }

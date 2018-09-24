@@ -350,6 +350,28 @@
       "constructorParametersTitle": "Constructor Parameters",
       "constructorParametersRequiredHelper": "Please provide the parameters for the contract constructor below.",
       "constructorParametersNotRequiredHelper": "There are no constructor parameters needed to deploy this contract."
+    },
+    "tour": {
+      "deployed": {
+        "title": "Contract Address",
+        "content": "Your contract has been deployed to the blockchain, it is accessible via this contract address."
+      },
+      "availableActions": {
+        "title": "Available Functions",
+        "content": "Choose an available smart contract function to execute.  Some methods retrieve previous transaction information, others perform transactions, please refer to the source code to understand each function."
+      },
+      "call": {
+        "title": "Call",
+        "content": "This is a read only operation, that does not broadcast or publish on to the blockchain.  This is useful for retrieving previously executed information saved in a contract or for testing a transaction before executing."
+      },
+      "send": {
+        "title": "Send",
+        "content": "This will perform a transaction on the blockchain."
+      },
+      "tabs": {
+        "title": "Contract Info",
+        "content": "Contract information, such as source code bytecode and meta data can be found in these tabs"
+      }
     }
   },
   "organization": {
