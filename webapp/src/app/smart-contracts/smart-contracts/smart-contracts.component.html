@@ -11,20 +11,25 @@
          *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin, personas.OrgDeveloper]">
       <div class="text-right">
         <button type="button"
-                class="btn btn-primary create-contract"
+                class="btn btn-primary create-contract btn-outline"
                 (click)="contractFormModal.open()"
                 tourAnchor="onboardingTour.createSmartContract">
-          {{'common.create' | translate}}
+          {{'common.deploy' | translate}}
         </button>
       </div>
     </div>
   </div>
 
   <clr-datagrid tourAnchor="onboardingTour.manageSmartContracts">
-    <clr-dg-column>{{'smartContracts.contractId' | translate}} : {{'smartContracts.owner' | translate}}</clr-dg-column>
+    <clr-dg-column>
+      {{'smartContracts.name' | translate}}
+    </clr-dg-column>
+    <clr-dg-column>
+      {{'smartContracts.owner' | translate}}
+    </clr-dg-column>
     <clr-dg-row *clrDgItems="let smartContract of smartContracts">
-      <clr-dg-cell><a [routerLink]="['/smart-contracts', smartContract.contract_id]">{{ smartContract.contract_id }} :
-        {{ smartContract.owner }}</a></clr-dg-cell>
+      <clr-dg-cell><a [routerLink]="['/smart-contracts', smartContract.contract_id]">{{ smartContract.contract_id }}</a></clr-dg-cell>
+      <clr-dg-cell>{{ smartContract.owner }}</clr-dg-cell>
     </clr-dg-row>
   </clr-datagrid>
 </div>

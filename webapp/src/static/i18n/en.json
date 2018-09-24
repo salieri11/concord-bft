@@ -5,6 +5,7 @@
     "close": "Close",
     "cancel": "Cancel",
     "create": "Create",
+    "deploy": "Deploy",
     "back": "Back",
     "next": "Next",
     "finish": "Finish",
@@ -18,7 +19,7 @@
       "title": "Menu",
       "options": {
         "contract": {
-          "title": "Create Smart Contract"
+          "title": "Deploy Smart Contract"
         },
         "sysAdminTitle": "System Admin",
         "deploy": {
@@ -281,9 +282,9 @@
   "smartContracts": {
     "smartContracts": "Smart Contracts",
     "smartContractUpload": "Upload Smart Contracts",
-    "contractId": "Contract ID",
+    "name": "Name",
     "contractOwnerAddress": "Contract Owner Address",
-    "createContract": "Create Contract",
+    "createContract": "Deploy Contract",
     "updateContract": "Update Contract",
     "createContractError": "There was an error uploading your contract. Please correct any errors and try again:",
     "viewDetail": "View Details",
