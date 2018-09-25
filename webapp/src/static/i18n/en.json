@@ -10,7 +10,8 @@
     "finish": "Finish",
     "edit": "Edit",
     "update": "Update",
-    "requiredValidationMessage": "This field is required"
+    "requiredValidationMessage": "This field is required",
+    "copyToClip": "Copy to clipboard"
   },
   "nav": {
     "menu": {

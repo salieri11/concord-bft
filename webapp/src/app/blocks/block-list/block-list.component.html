@@ -38,7 +38,18 @@
   <clr-datagrid>
     <clr-dg-column [clrDgField]="'number'">{{'blocks.index' | translate}}:{{'blocks.hash' | translate}}</clr-dg-column>
     <clr-dg-row *clrDgItems="let block of blocks">
-      <clr-dg-cell><a [routerLink]="[block.number]">{{block.number}} : {{block.hash}}</a></clr-dg-cell>
+      <clr-dg-cell>
+        <a [routerLink]="[block.number]">
+          {{block.number}} : {{block.hash}}
+        </a>
+        <athena-copy-to-clipboard-button
+          classList="ctc-btn-inline"
+          [tooltip]="'common.copyToClip' | translate"
+          tooltipDirection="top-right"
+          [value]="block.number + ' : ' + block.hash"
+          [size]="12">
+        </athena-copy-to-clipboard-button>
+      </clr-dg-cell>
       <clr-dg-row-detail>
         <athena-block-details *clrIfExpanded ngProjectAs="clr-dg-row-detail"
                               [blockNumber]="block?.number"></athena-block-details>

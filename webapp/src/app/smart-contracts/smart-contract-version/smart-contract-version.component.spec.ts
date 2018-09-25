@@ -17,6 +17,7 @@ import {
 } from '../smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
 import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview-form/contract-payload-preview-form.component';
 import { SmartContractVersion } from '../shared/smart-contracts.model';
+import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
 
 const initialVersion = {
   contract_id: 'id',
@@ -99,7 +100,9 @@ describe('SmartContractVersionComponent', () => {
         SmartContractVersionComponent,
         ContractPayloadPreviewFormComponent,
         SmartContractsSolidityFunctionInputsComponent,
-        TestWrapperClassComponent
+        TestWrapperClassComponent,
+        VmwCopyToClipboardButtonComponent,
+
       ]
     })
     .compileComponents();

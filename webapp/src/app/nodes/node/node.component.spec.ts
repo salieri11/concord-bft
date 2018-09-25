@@ -15,6 +15,7 @@ import { TransactionsStatusFilterComponent } from '../../shared/components/trans
 import { TransactionListComponent } from '../../transactions/transaction-list/transaction-list.component';
 import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
 import { NodeComponent } from './node.component';
+import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
 
 describe('NodeComponent', () => {
   let component: NodeComponent;
@@ -33,7 +34,8 @@ describe('NodeComponent', () => {
         NodeComponent,
         TransactionsStatusFilterComponent,
         TransactionListComponent,
-        TransactionDetailsComponent
+        TransactionDetailsComponent,
+        VmwCopyToClipboardButtonComponent,
       ],
       providers: [{provide: APP_BASE_HREF, useValue: '/'}]
     })
