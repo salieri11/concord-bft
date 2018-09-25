@@ -261,7 +261,7 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs& updates,
       return s;
    }
 
-   for (unordered_set<KeyValuePair>::iterator it = updatesInNewBlock.begin();
+   for (SetOfKeyValuePairs::iterator it = updatesInNewBlock.begin();
         it != updatesInNewBlock.end();
         ++it) {
       const KeyValuePair& kvPair = *it;
@@ -615,7 +615,7 @@ Slice ReplicaImp::createBlockFromUpdates(
 
 SetOfKeyValuePairs ReplicaImp::fetchBlockData(Slice block)
 {
-   unordered_set<KeyValuePair> retVal;
+   SetOfKeyValuePairs retVal;
 
    if (block.size() > 0) {
       const char *begin = block.data();
