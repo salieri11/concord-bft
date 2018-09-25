@@ -16,6 +16,7 @@ import {
   SmartContractsSolidityFunctionInputsComponent
 } from '../smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
 import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview-form/contract-payload-preview-form.component';
+import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
 import { SmartContractVersion } from '../shared/smart-contracts.model';
 
 const initialVersion = {
@@ -99,6 +100,7 @@ describe('SmartContractVersionComponent', () => {
         SmartContractVersionComponent,
         ContractPayloadPreviewFormComponent,
         SmartContractsSolidityFunctionInputsComponent,
+        TransactionDetailsComponent,
         TestWrapperClassComponent
       ]
     })
@@ -254,7 +256,7 @@ describe('SmartContractVersionComponent', () => {
         data: '0x4ad12c050000000000000000000000000000000000000000000000000000000000000000'
       };
       const callSpy = spyOn((component.versionComponent as any).ethApiService, 'sendCall')
-        .and.returnValue(observableOf({result: successResult}));
+        .and.returnValue(observableOf({result: '0x0000000000000000000000000000000000000000000000000000000000000000'}));
 
       component.version = nextVersion;
       fixture.detectChanges();

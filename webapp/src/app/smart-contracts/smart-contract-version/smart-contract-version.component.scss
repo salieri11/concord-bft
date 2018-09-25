@@ -19,7 +19,6 @@ form {
   }
 }
 .card {
-  min-width: 550px;
   max-width: 1000px;
   pre {
     max-height: inherit;
@@ -29,4 +28,8 @@ form {
 .bytecode-container {
   word-break: break-all;
   white-space: normal;
+}
+
+.transaction-details {
+  overflow-x: auto;
 }

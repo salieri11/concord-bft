@@ -19,6 +19,7 @@ import {
 import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview-form/contract-payload-preview-form.component';
 import { SmartContractsService } from '../shared/smart-contracts.service';
 import { ContractFormComponent } from '../contract-form/contract-form.component';
+import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
 
 class MockActivatedRoute extends ActivatedRoute {
   constructor() {
@@ -46,7 +47,8 @@ describe('SmartContractComponent', () => {
         SmartContractVersionComponent,
         ContractFormComponent,
         ContractPayloadPreviewFormComponent,
-        SmartContractsSolidityFunctionInputsComponent
+        SmartContractsSolidityFunctionInputsComponent,
+        TransactionDetailsComponent
       ],
       providers: [
         SmartContractsService,
