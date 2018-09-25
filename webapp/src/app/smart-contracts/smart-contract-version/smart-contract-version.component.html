@@ -23,11 +23,20 @@
                     <div class="clr-control-container clr-col-md-10 clr-col-xs-12">
                       <div class="clr-input-wrapper">
                         <clr-tooltip>
-                          <span clrTooltipTrigger>{{version?.address}}</span>
+                          <span clrTooltipTrigger>
+                            {{version?.address}}
+                          </span>
                           <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
                             <span>{{'smartContracts.version.tooltips.contractAddress' | translate}}</span>
                           </clr-tooltip-content>
                         </clr-tooltip>
+                        <athena-copy-to-clipboard-button
+                          classList="ctc-btn-inline"
+                          [tooltip]="'common.copyToClip' | translate"
+                          tooltipDirection="top-right"
+                          [value]="version?.address"
+                          [size]="12">
+                        </athena-copy-to-clipboard-button>
                       </div>
                     </div>
                   </div>

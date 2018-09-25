@@ -19,6 +19,7 @@ import {
 import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview-form/contract-payload-preview-form.component';
 import { SmartContractsService } from '../shared/smart-contracts.service';
 import { ContractFormComponent } from '../contract-form/contract-form.component';
+import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
 import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
 
 class MockActivatedRoute extends ActivatedRoute {
@@ -48,7 +49,8 @@ describe('SmartContractComponent', () => {
         ContractFormComponent,
         ContractPayloadPreviewFormComponent,
         SmartContractsSolidityFunctionInputsComponent,
-        TransactionDetailsComponent
+        TransactionDetailsComponent,
+        VmwCopyToClipboardButtonComponent,
       ],
       providers: [
         SmartContractsService,

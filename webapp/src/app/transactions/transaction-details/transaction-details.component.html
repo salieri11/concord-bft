@@ -7,19 +7,55 @@
     </tr>
     <tr>
       <th>{{'transactions.hash' | translate}}</th>
-      <td>{{transaction?.hash}}</td>
+      <td>
+        {{transaction?.hash}}
+        <athena-copy-to-clipboard-button
+          classList="ctc-btn-inline"
+          [tooltip]="'common.copyToClip' | translate"
+          tooltipDirection="top-right"
+          [value]="transaction?.hash"
+          [size]="12">
+        </athena-copy-to-clipboard-button>
+      </td>
     </tr>
     <tr>
       <th>{{'transactions.from' | translate}}</th>
-      <td>{{transaction?.from}}</td>
+      <td>
+        {{transaction?.from}}
+        <athena-copy-to-clipboard-button
+          classList="ctc-btn-inline"
+          [tooltip]="'common.copyToClip' | translate"
+          tooltipDirection="top-right"
+          [value]="transaction?.from"
+          [size]="12">
+        </athena-copy-to-clipboard-button>
+      </td>
     </tr>
     <tr *ngIf="transaction?.to">
       <th>{{'transactions.to' | translate}}</th>
-      <td>{{transaction?.to}}</td>
+      <td>
+        {{transaction?.to}}
+        <athena-copy-to-clipboard-button
+          classList="ctc-btn-inline"
+          [tooltip]="'common.copyToClip' | translate"
+          tooltipDirection="top-right"
+          [value]="transaction?.to"
+          [size]="12">
+        </athena-copy-to-clipboard-button>
+      </td>
     </tr>
     <tr *ngIf="transaction?.contract_address">
       <th>{{'transactions.contractAddress' | translate}}</th>
-      <td>{{transaction?.contract_address}}</td>
+      <td>
+        {{transaction?.contract_address}}
+        <athena-copy-to-clipboard-button
+          classList="ctc-btn-inline"
+          [tooltip]="'common.copyToClip' | translate"
+          tooltipDirection="top-right"
+          [value]="transaction?.contract_address"
+          [size]="12">
+        </athena-copy-to-clipboard-button>
+      </td>
     </tr>
     <tr *ngIf="transaction?.value">
       <th>{{'transactions.value' | translate}}</th>
@@ -27,7 +63,16 @@
     </tr>
     <tr *ngIf="transaction?.input">
       <th>{{'transactions.input' | translate}}</th>
-      <td>{{transaction?.input}}</td>
+      <td>
+        {{transaction?.input}}
+        <athena-copy-to-clipboard-button
+          classList="ctc-btn-inline"
+          [tooltip]="'common.copyToClip' | translate"
+          tooltipDirection="top-right"
+          [value]="transaction?.input"
+          [size]="12">
+        </athena-copy-to-clipboard-button>
+      </td>
     </tr>
     <tr>
       <th>{{'transactions.nonce' | translate}}</th>

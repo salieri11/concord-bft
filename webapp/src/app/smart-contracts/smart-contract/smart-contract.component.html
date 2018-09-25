@@ -21,9 +21,18 @@
   <clr-tooltip>
     <span class="contract-owner" clrTooltipTrigger>{{smartContract?.owner}}</span>
     <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
-      <span>{{'smartContracts.contractOwnerAddress' | translate}}</span>
+      <span>
+        {{'smartContracts.contractOwnerAddress' | translate}}
+      </span>
     </clr-tooltip-content>
   </clr-tooltip>
+  <athena-copy-to-clipboard-button
+    classList="ctc-btn-inline"
+    [tooltip]="'common.copyToClip' | translate"
+    tooltipDirection="top-right"
+    [value]="smartContract?.owner"
+    [size]="12">
+  </athena-copy-to-clipboard-button>
   <athena-smart-contract-version *ngIf="version" [version]="version"></athena-smart-contract-version>
 </div>
 
