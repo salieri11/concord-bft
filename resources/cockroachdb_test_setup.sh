@@ -3,15 +3,10 @@
 PORT=42081
 HTTP_PORT=42082
 STORE_DIR=/tmp/helenTestDB
-PID_FILE=/tmp/cockroachDB.pid
 HOST=localhost
-
-# Print shell script pid
-echo $$
 
 # clean if old directory exists
 rm -rf ${STORE_DIR}
-rm ${PID_FILE}
 
 function cleanup_cockroach() {
     cockroach quit --insecure --host $HOST --port $PORT
