@@ -6,6 +6,7 @@ import json
 import logging
 import os
 from rpc.rpc_call import RPC
+import shutil
 import subprocess
 import time
 
@@ -48,6 +49,9 @@ class Product():
             buildRoot = projectSection["buildRoot"]
             buildRoot = os.path.expanduser(buildRoot)
 
+            if project.lower().startswith("athena"):
+               self.clearAthenaDB(launchElement[project])
+
             for executable in projectSection:
                if executable == "buildRoot":
                   os.chdir(buildRoot)
@@ -82,14 +86,56 @@ class Product():
       if not self._waitForProductStartup():
          raise Exception("The product did not start. Exiting.")
 
+   def clearAthenaDB(self, athenaSection):
+      '''
+      Deletes the Athena DB so we get a clean start.
+      Other test suites can leave it in a state that makes
+      it fail.
+      '''
+      params = None
+
+      for subSection in athenaSection:
+         if subSection.lower().startswith("athena"):
+            params = athenaSection[subSection]["parameters"]
+
+      isConfigParam = False
+
+      for param in params:
+         if isConfigParam:
+            configFile = os.path.join(athenaSection["buildRoot"],
+                                      param)
+            configFile = os.path.expanduser(configFile)
+            subPath = None
+
+            with open (configFile, "r") as props:
+               for prop in props:
+                  prop = prop.strip()
+                  if prop and not prop.startswith("#") and \
+                     prop.lower().startswith("blockchain_db_path"):
+                     subPath = prop.split("=")[1]
+
+            dbPath = os.path.join(athenaSection["buildRoot"], subPath)
+            dbPath = os.path.expanduser(dbPath)
+            if os.path.isdir(dbPath):
+               log.debug("Clearing Athena DB directory '{}'".format(dbPath))
+               shutil.rmtree(dbPath)
+
+         if param == "-c":
+            isConfigParam = True
 
    def stopProduct(self):
       '''
       Stops the product executables and closes the logs.
       '''
       for p in self._processes[:]:
-         p.terminate()
-         self._processes.remove(p)
+         if p.poll() is None:
+            p.terminate()
+            print("Terminating {}.".format(p.args))
+
+      for p in self._processes[:]:
+         while p.poll() is None:
+            print("Waiting for process {} to exit.".format(p.args))
+            time.sleep(1)
 
       for log in self._logs[:]:
          log.close()
