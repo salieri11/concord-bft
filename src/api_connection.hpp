@@ -89,6 +89,8 @@ private:
    bool
    is_valid_eth_getTransactionCount(const EthRequest &request);
    bool
+   is_valid_eth_getBalance(const EthRequest &request);
+   bool
    is_valid_personal_newAccount(const EthRequest &request);
    void
    handle_filter_requests(const EthRequest &request);
