@@ -13,6 +13,7 @@ import { NgxChartsModule } from '@swimlane/ngx-charts';
 import { MockSharedModule } from '../../shared/shared.module';
 import { NodesStatusFilterComponent } from '../nodes-status-filter/nodes-status-filter.component';
 import { NodesComponent } from './nodes.component';
+import { NodeListComponent } from '../node-list/node-list.component';
 import { BlockGraphComponent } from '../../graphs/block-graph/block-graph.component';
 
 describe('NodesComponent', () => {
@@ -31,7 +32,8 @@ describe('NodesComponent', () => {
       declarations: [
         NodesComponent,
         NodesStatusFilterComponent,
-        BlockGraphComponent
+        BlockGraphComponent,
+        NodeListComponent,
       ],
       providers: [{provide: APP_BASE_HREF, useValue: '/'}]
     })

@@ -2,19 +2,18 @@
  * Copyright 2018 VMware, all rights reserved.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component } from '@angular/core';
 
 import { TranslateService } from '@ngx-translate/core';
 
-import { Member } from '../shared/nodes.model';
-import { NodesService } from '../shared/nodes.service';
+import { Node } from '../shared/nodes.model';
 
 @Component({
   selector: 'athena-nodes',
   templateUrl: './nodes.component.html',
   styleUrls: ['./nodes.component.scss']
 })
-export class NodesComponent implements OnInit {
+export class NodesComponent {
 
   mockStats = {
     totalActiveNodes: 28458,
@@ -24,7 +23,7 @@ export class NodesComponent implements OnInit {
     averageValidationTime: 1.98
   };
 
-  members: Member[] = [];
+  members: Node[] = [];
 
   graphData: any[];
 
@@ -144,12 +143,8 @@ export class NodesComponent implements OnInit {
     }
   ];
 
-  constructor(private nodesService: NodesService, private translateService: TranslateService) {
+  constructor(private translateService: TranslateService) {
     this.graphData = this.dailyData;
-  }
-
-  ngOnInit() {
-    this.loadMembers();
   }
 
   getTodaysData() {
@@ -166,9 +161,5 @@ export class NodesComponent implements OnInit {
 
   getLastNinetyDaysData() {
     this.graphData = this.quarterlyData;
-  }
-
-  loadMembers() {
-    this.nodesService.getMembers().subscribe(members => this.members = members);
   }
 }

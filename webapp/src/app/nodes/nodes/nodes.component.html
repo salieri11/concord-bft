@@ -77,21 +77,5 @@
       <h3 class="mt-0">{{'nodes.nodes' | translate}}</h3>
     </div>
   </div>
-  <clr-datagrid>
-    <clr-dg-column>{{'nodes.location' | translate}}</clr-dg-column>
-    <clr-dg-column [clrDgField]="'host'">{{'nodes.hostname' | translate}}</clr-dg-column>
-    <clr-dg-column>{{'nodes.address' | translate}}</clr-dg-column>
-    <clr-dg-column>
-      {{'nodes.status' | translate}}
-      <clr-dg-filter [clrDgFilter]="statusFilter">
-        <athena-nodes-status-filter #statusFilter></athena-nodes-status-filter>
-      </clr-dg-filter>
-    </clr-dg-column>
-    <clr-dg-row *clrDgItems="let member of members">
-      <clr-dg-cell>Lindberg</clr-dg-cell>
-      <clr-dg-cell><a [routerLink]="[member.hostname]">{{member.hostname}}</a></clr-dg-cell>
-      <clr-dg-cell>{{member.address}}</clr-dg-cell>
-      <clr-dg-cell>{{member.status}}</clr-dg-cell>
-    </clr-dg-row>
-  </clr-datagrid>
+  <athena-node-list></athena-node-list>
 </div>
