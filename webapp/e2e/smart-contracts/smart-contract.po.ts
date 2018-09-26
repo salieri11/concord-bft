@@ -20,7 +20,7 @@ export class SmartContractPage {
   }
 
   getTransactionSuccessAlert() {
-    return element(by.css('.alert-success .alert-actions'));
+    return element(by.css('.alert-success'));
   }
 
   getContractId() {

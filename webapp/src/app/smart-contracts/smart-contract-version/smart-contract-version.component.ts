@@ -8,11 +8,16 @@ import { TranslateService } from '@ngx-translate/core';
 
 import { SmartContractVersion } from '../shared/smart-contracts.model';
 import * as Web3EthAbi from 'web3-eth-abi';
+import * as Web3Utils from 'web3-utils';
 
 import { EthApiService } from '../../shared/eth-api.service';
 import { HighlightService } from '../../shared/highlight.service';
 import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview-form/contract-payload-preview-form.component';
 import { isHexAddress } from '../shared/custom-validators';
+
+const FALSE_HEX_VALUE = '0x0000000000000000000000000000000000000000000000000000000000000000';
+const TRUE_HEX_VALUE = '0x0000000000000000000000000000000000000000000000000000000000000001';
+const VOID_HEX_VALUE = '0x';
 
 @Component({
   selector: 'athena-smart-contract-version',
@@ -31,6 +36,7 @@ export class SmartContractVersionComponent implements OnChanges {
   resultType: string;
   highlightedMetaData: string;
   highlightedSourceCode: string;
+  callReturnValue: string;
   functionDefinition;
 
   constructor(private ethApiService: EthApiService, private highlighter: HighlightService, private translate: TranslateService) {
@@ -86,6 +92,21 @@ export class SmartContractVersionComponent implements OnChanges {
         this.alertMessage = this.translate.instant('smartContracts.form.callSuccessMessage');
         this.alertType = 'alert-success';
         this.resultType = 'call';
+
+        switch (resp.result) {
+          case FALSE_HEX_VALUE:
+            this.callReturnValue = 'false';
+            break;
+          case TRUE_HEX_VALUE:
+            this.callReturnValue = 'true';
+            break;
+          case VOID_HEX_VALUE:
+            this.callReturnValue = this.translate.instant('smartContracts.version.emptyResponse');
+            break;
+          default:
+            this.callReturnValue = Web3Utils.hexToAscii(resp.result);
+            break;
+        }
       }
     }, errorResp => this.handleError(errorResp));
   }
@@ -103,8 +124,17 @@ export class SmartContractVersionComponent implements OnChanges {
   }
 
   private encodeFunction() {
+    const bytesRegex = /^byte[s]?\d{0,2}$/;
     const paramsForm = this.versionForm.get('contractForm').get('functionInputs');
-    const params = this.inputs.map(input => paramsForm.value[input.name]);
+    const params = this.inputs.map((input) => {
+      let value = paramsForm.value[input.name];
+
+      if (bytesRegex.test(input.type)) {
+        value = Web3Utils.asciiToHex(value);
+      }
+
+      return value;
+    });
     const output = Web3EthAbi.encodeFunctionCall(this.functionDefinition, params);
 
     return {

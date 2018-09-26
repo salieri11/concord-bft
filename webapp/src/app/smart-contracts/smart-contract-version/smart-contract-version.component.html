@@ -12,9 +12,6 @@
                     <span class="alert-text">
                         {{alertMessage}}
                     </span>
-                    <div class="alert-actions" *ngIf="resultType === 'send'">
-                      <a [routerLink]="['/transactions', alertMessage]">{{'smartContracts.version.view' | translate}}</a>
-                    </div>
                   </div>
                 </clr-alert>
                 <div class="form">
@@ -77,6 +74,26 @@
                     <span>{{'smartContracts.version.tooltips.callHelper' | translate}}</span>
                   </clr-tooltip-content>
                 </clr-tooltip>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="resultType === 'call' && alertType === 'alert-success'" class="col-sm-12 col-md-5">
+            <div class="card">
+              <div class="card-header">
+                {{'smartContracts.version.returnValues' | translate}}
+              </div>
+              <div class="card-block">
+                <pre class="language-markup call-result-container">{{callReturnValue}}</pre>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="resultType === 'send' && alertType === 'alert-success'" class="col-sm-12 col-md-5">
+            <div class="card">
+              <div class="card-header">
+                {{'smartContracts.version.transaction' | translate}}
+              </div>
+              <div class="card-block transaction-details">
+                <athena-transaction-details [transactionHash]="alertMessage"></athena-transaction-details>
               </div>
             </div>
           </div>

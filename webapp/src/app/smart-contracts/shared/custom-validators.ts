@@ -166,6 +166,24 @@ export function isInt(controlType: string): ValidatorFn {
   };
 }
 
+export function isBytes(controlType: string): ValidatorFn {
+  const hexLength = getByteLength(controlType) * 2;
+  return (control: AbstractControl): { [key: string]: boolean } | null => {
+    if (control.value === undefined || control.value === null) {
+      return null;
+    }
+    const controlValue = Web3Utils.isHexStrict(control.value) ? control.value : Web3Utils.asciiToHex(control.value);
+    const controlValueHexLength = controlValue.length - 2;
+
+    if (controlValueHexLength % 2 !== 0) {
+      return {invalidByteLength: true};
+    }
+    if (controlType !== 'bytes' && controlValueHexLength > hexLength) {
+      return {invalidByteLength: true};
+    }
+  };
+}
+
 export function newVersionValue(existingVersions: string[]): ValidatorFn {
   return (control: AbstractControl): any => {
     return (existingVersions.indexOf(control.value) !== -1) ? { versionExists: true } : null;
@@ -196,5 +214,15 @@ function getBigNumberRange(controlType: string): any {
     min: Web3Utils.toBN(hexMinString, 16),
     max: Web3Utils.toBN(hexMaxString, 16)
   };
+}
+
+function getByteLength(controlType) {
+  if (controlType === 'byte') {
+    return 1;
+  } else if (controlType === 'bytes') {
+    return -1;
+  } else {
+    return parseInt(controlType.split('bytes')[1], 10);
+  }
 }
 
