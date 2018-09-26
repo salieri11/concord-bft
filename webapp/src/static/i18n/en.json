@@ -188,7 +188,7 @@
     "xSeconds": "{{seconds}} <small>seconds</small>",
     "location": "Location",
     "status": "Status",
-    "connected": "Connected",
+    "live": "Live",
     "offline": "Offline",
     "totalActiveNodes": "Total Active Nodes",
     "inactiveNodes": "Inactive Nodes",
