@@ -9,6 +9,7 @@ import { LoadingListener, ClrLoadingState } from '@clr/angular';
 
 import { MockSharedModule } from '../../shared/shared.module';
 import { BlockDetailsComponent } from './block-details.component';
+import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
 
 @Injectable()
 class DummyListener implements LoadingListener {
@@ -30,7 +31,8 @@ describe('BlockDetailsComponent', () => {
         HttpClientTestingModule
       ],
       declarations: [
-        BlockDetailsComponent
+        BlockDetailsComponent,
+        VmwCopyToClipboardButtonComponent,
       ],
       providers: [
         { provide: LoadingListener, useClass: DummyListener }

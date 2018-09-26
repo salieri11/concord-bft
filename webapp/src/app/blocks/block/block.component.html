@@ -1,19 +1,50 @@
 <div class="p-2 break-word">
   <h2 class="page-title">
     <clr-icon shape="block" size="36"></clr-icon>
-    {{'blocks.title' | translate}}: {{block?.number}} {{block?.hash}}
+    {{'blocks.title' | translate}}: {{block?.number}}
   </h2>
 
   <div>
     <table class="table table-vertical">
       <tbody>
       <tr>
+        <th>{{'transactions.hash' | translate}}</th>
+        <td>
+          {{block?.hash}}
+          <athena-copy-to-clipboard-button
+            classList="ctc-btn-inline"
+            [tooltip]="'common.copyToClip' | translate"
+            tooltipDirection="top-right"
+            [value]="block?.hash"
+            [size]="12">
+          </athena-copy-to-clipboard-button>
+        </td>
+      </tr>
+      <tr>
         <th>{{'transactions.parentHash' | translate}}</th>
-        <td>{{block?.parentHash}}</td>
+        <td>
+          {{block?.parentHash}}
+          <athena-copy-to-clipboard-button
+            classList="ctc-btn-inline"
+            [tooltip]="'common.copyToClip' | translate"
+            tooltipDirection="top-right"
+            [value]="block?.parentHash"
+            [size]="12">
+          </athena-copy-to-clipboard-button>
+        </td>
       </tr>
       <tr>
         <th>{{'transactions.nonce' | translate}}</th>
-        <td>{{block?.nonce}}</td>
+        <td>
+          {{block?.nonce}}
+          <athena-copy-to-clipboard-button
+            classList="ctc-btn-inline"
+            [tooltip]="'common.copyToClip' | translate"
+            tooltipDirection="top-right"
+            [value]="block?.nonce"
+            [size]="12">
+          </athena-copy-to-clipboard-button>
+        </td>
       </tr>
       <tr>
         <th>{{'transactions.size' | translate}}</th>
@@ -22,7 +53,6 @@
       </tbody>
     </table>
   </div>
-
 </div>
 
 <athena-transaction-list [transactions]="block?.transactions" [blockNumber]="block?.number"></athena-transaction-list>

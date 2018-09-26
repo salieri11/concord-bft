@@ -10,6 +10,7 @@ import { MockSharedModule } from '../../shared/shared.module';
 import { TransactionListComponent } from './transaction-list.component';
 import { TransactionsStatusFilterComponent } from '../../shared/components/transactions-status-filter/transactions-status-filter.component';
 import { TransactionDetailsComponent } from '../transaction-details/transaction-details.component';
+import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
 
 describe('TransactionListComponent', () => {
   let component: TransactionListComponent;
@@ -25,7 +26,8 @@ describe('TransactionListComponent', () => {
       declarations: [
         TransactionListComponent,
         TransactionsStatusFilterComponent,
-        TransactionDetailsComponent
+        TransactionDetailsComponent,
+        VmwCopyToClipboardButtonComponent,
       ]
     })
       .compileComponents();
