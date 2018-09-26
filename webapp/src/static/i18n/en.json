@@ -294,7 +294,6 @@
       "from": "From",
       "call": "Call",
       "send": "Send",
-      "view": "View",
       "emptyResponse": "Empty Response",
       "returnValues": "Return Values",
       "transaction": "Transaction",
@@ -308,6 +307,7 @@
       "addressPatternValidationMessage": "Must be a valid hexadecimal address",
       "inputUIntValidationMessage": "Must be a valid unsigned integer value",
       "inputSignedIntValidationMessage": "Must be a valid signed integer value",
+      "inputByteLengthValidationMessage": "Invalid byte length for input",
       "tabs": {
         "execute": "Execute",
         "source": "Source",
