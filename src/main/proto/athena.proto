@@ -71,6 +71,7 @@ message EthRequest {
       GET_CODE = 8;
       BLOCK_NUMBER = 9;
       GET_TX_COUNT = 10;
+      GET_BALANCE = 11;
    }
 
    optional EthMethod method = 1;
