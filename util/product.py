@@ -23,10 +23,10 @@ class Product():
    _logs = []
    _processes = []
    _userProductConfig = None
-   _resultsDir = None
+   _cmdlineArgs = None
 
-   def __init__(self, resultsDir, apiServerUrl, userProductConfig):
-      self._resultsDir = resultsDir
+   def __init__(self, cmdlineArgs, apiServerUrl, userProductConfig):
+      self._cmdlineArgs = cmdlineArgs
       self._apiServerUrl = apiServerUrl
       self._userProductConfig = userProductConfig
 
@@ -36,7 +36,7 @@ class Product():
       Raises an exception if it cannot start.
       '''
       atexit.register(self.stopProduct)
-      productLogsDir = os.path.join(self._resultsDir, PRODUCT_LOGS_DIR)
+      productLogsDir = os.path.join(self._cmdlineArgs.resultsDir, PRODUCT_LOGS_DIR)
       os.makedirs(productLogsDir, exist_ok=True)
 
       # since we change directories while launching products, save cwd here
@@ -49,7 +49,8 @@ class Product():
             buildRoot = projectSection["buildRoot"]
             buildRoot = os.path.expanduser(buildRoot)
 
-            if project.lower().startswith("athena"):
+            if not self._cmdlineArgs.keepAthenaDB and \
+               project.lower().startswith("athena"):
                self.clearAthenaDB(launchElement[project])
 
             for executable in projectSection:
@@ -66,7 +67,7 @@ class Product():
                   previousParam = None
                   for param in executableSection["parameters"]:
                      if executable.startswith("replica") and previousParam == "-d":
-                        param = os.path.join(self._resultsDir, param)
+                        param = os.path.join(self._cmdlineArgs.resultsDir, param)
                         os.makedirs(param)
 
                      cmd.append(os.path.expanduser(param))
@@ -163,7 +164,7 @@ class Product():
       attempts = 0
       # Helen now takes ~7-8 seconds to boot so we should wait for around 10 seconds
       sleepTime = 10
-      startupLogDir = os.path.join(self._resultsDir, PRODUCT_LOGS_DIR,
+      startupLogDir = os.path.join(self._cmdlineArgs.resultsDir, PRODUCT_LOGS_DIR,
                                    "waitForStartup")
       rpc = RPC(startupLogDir, "waitForStartup", self._apiServerUrl)
       caller = self._userProductConfig["users"][0]["hash"]

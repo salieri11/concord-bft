@@ -56,7 +56,7 @@ class KVBTests(test_suite.TestSuite):
       if self._productMode:
          global p
          try:
-            p = self.launchProduct(self._args.resultsDir,
+            p = self.launchProduct(self._args,
                                    self._apiServerUrl,
                                    self._userConfig["product"])
          except Exception as e:
@@ -148,7 +148,8 @@ class KVBTests(test_suite.TestSuite):
          p.stopProduct()
          
          try:
-            p = self.launchProduct(self._args.resultsDir,
+            self._args.keepAthenaDB = True
+            p = self.launchProduct(self._args,
                                    self._apiServerUrl,
                                    self._userConfig["product"])
          except Exception as e:

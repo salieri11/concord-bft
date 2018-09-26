@@ -41,7 +41,10 @@ def main():
                        "'--tests vmArithmeticTest/add0.json'")
    parser.add_argument("--config",
                        help="User config file to be considered.")
-
+   parser.add_argument("--keepAthenaDB",
+                       help="Keep and re-use the existing Athena database files.",
+                       default=False,
+                       action='store_true')
    args = parser.parse_args()
 
    if (args.resultsDir == None):
