@@ -163,7 +163,7 @@ git clone git@github.com:google/googletest.git
 cd googletest
 mkdir _build
 cd _build
-cmake ..
+cmake -DCMAKE_CXX_FLAGS="-std=c++11" ..
 make
 
 ```
