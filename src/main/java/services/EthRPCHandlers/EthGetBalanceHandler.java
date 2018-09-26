@@ -66,7 +66,7 @@ public class EthGetBalanceHandler extends AbstractEthRPCHandler {
       EthResponse ethResponse = athenaResponse.getEthResponse(0);
       JSONObject respObject = initializeResponseObject(ethResponse);
       respObject.put("result",
-                     APIHelper.binaryStringToHex(ethResponse.getData()));
+                     APIHelper.binaryStringToHex(ethResponse.getData(), true));
       return respObject;
    }
 }
