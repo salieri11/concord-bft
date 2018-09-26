@@ -40,7 +40,7 @@ class PerformanceTests(test_suite.TestSuite):
       if self._productMode:
          global p
          try:
-            p = self.launchProduct(self._args.resultsDir,
+            p = self.launchProduct(self._args,
                                    self._apiBaseServerUrl + "/api/athena/eth",
                                    self._userConfig["product"])
          except Exception as e:

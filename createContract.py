@@ -120,7 +120,7 @@ class BytecodeContractCreator(test_suite.TestSuite):
       '''
       if self._productMode:
          try:
-            p = self.launchProduct(self._args.resultsDir,
+            p = self.launchProduct(self._args,
                                    self._apiServerUrl,
                                    self._userConfig["product"])
          except Exception as e:

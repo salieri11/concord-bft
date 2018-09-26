@@ -42,7 +42,7 @@ class HelenAPITests(test_suite.TestSuite):
       ''' Runs all of the tests. '''
       if self._productMode:
          try:
-            p = self.launchProduct(self._args.resultsDir,
+            p = self.launchProduct(self._args,
                                    self._apiBaseServerUrl + "/api/athena/eth",
                                    self._userConfig["product"])
          except Exception as e:

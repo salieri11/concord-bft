@@ -54,7 +54,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       ''' Runs all of the tests. '''
       if self._productMode:
          try:
-            p = self.launchProduct(self._args.resultsDir,
+            p = self.launchProduct(self._args,
                                    self._apiServerUrl,
                                    self._userConfig["product"])
          except Exception as e:
