@@ -29,7 +29,6 @@ add_library(kvblockchain ${kvblockchain_sources})
 
 #target_link_libraries(kvblockchain PUBLIC byz)
 get_property(thresh_include GLOBAL PROPERTY thresh_include_folder)
-message("thresh ${thresh_include}")
 target_include_directories(kvblockchain PUBLIC ${thresh_include})
 
 target_link_libraries(kvblockchain PUBLIC corebft)
