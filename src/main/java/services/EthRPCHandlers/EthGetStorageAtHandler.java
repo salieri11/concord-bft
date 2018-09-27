@@ -45,6 +45,13 @@ public class EthGetStorageAtHandler extends AbstractEthRPCHandler {
          String p = (String) params.get(1);
          String s = APIHelper.padZeroes(p);
          b.setData(APIHelper.hexStringToBinary(s));
+         // add "block" parameter
+         if (params.size() == 3) {
+            long blockNumber = APIHelper.parseBlockNumber(params);
+            if (blockNumber != -1){
+               b.setBlockNumber(blockNumber);
+            }
+         }
          ethRequest = b.build();
       } catch (Exception e) {
          logger.error("Exception in get storage at handler", e);

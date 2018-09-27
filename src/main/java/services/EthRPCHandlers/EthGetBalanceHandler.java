@@ -40,8 +40,13 @@ public class EthGetBalanceHandler extends AbstractEthRPCHandler {
          b.setMethod(EthMethod.GET_BALANCE);
          JSONArray params = extractRequestParams(requestJson);
          b.setAddrTo(APIHelper.hexStringToBinary((String) params.get(0)));
-         // ignoring "block" argument for now
-
+         // add "block" parameter
+         if (params.size() == 2) {
+            long blockNumber = APIHelper.parseBlockNumber(params);
+            if (blockNumber != -1){
+               b.setBlockNumber(blockNumber);
+            }
+         }
          athenaEthRequest = b.build();
       } catch (Exception e) {
          logger.error("Exception in get code handler", e);
