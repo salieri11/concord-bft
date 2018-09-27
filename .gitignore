@@ -4,3 +4,7 @@ bin/
 tmp/
 logs/
 build/
+docker/config-athena*/s_f1c0_config.pub
+docker/log*
+docker/rocksdbdata*
+docker/cockroachDB

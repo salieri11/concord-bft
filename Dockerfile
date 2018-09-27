@@ -112,34 +112,21 @@ COPY --from=0 /usr/local/lib/librocksdb.* /usr/local/lib/
 COPY --from=0 /usr/local/lib/libsecp256k1* /usr/local/lib/
 
 WORKDIR /athena/resources
-COPY --from=0 /athena/build/resources/log4cplus.properties /athena/resources/
 COPY --from=0 /athena/build/src/athena /athena/athena
 COPY --from=0 /athena/build/submodules/P2_Blockchain/AgreementModules/SbftForIntegMay18/libbyz/libbyz.so /usr/local/lib
 COPY --from=0 /athena/build/tools/ath_* /athena/
 COPY --from=0 /athena/build/tools/ec* /athena/
-COPY --from=0 /athena/docker/find-docker-instances.sh /athena/resources/
-COPY --from=0 /athena/test/resources/genesis.json /athena/resources/
 
-# replace localhost with docker-compose container name in public config
-COPY --from=0 /athena/build/resources/sbft/*.pub /athena/resources/sbft/
-RUN sed -i -e "s/rep01/athena1/g" \
-           -e "s/rep02/athena2/g" \
-           -e "s/rep03/athena3/g" \
-           -e "s/rep04/athena4/g" \
-           -e "s/client05/athena1/g" \
-           -e "s/client06/athena2/g" \
-           -e "s/client07/athena3/g" \
-           -e "s/client08/athena4/g" \
-           -e "s/client09/athena1/g" \
-           -e "s/client10/athena2/g" \
-           -e "s/client11/athena3/g" \
-           -e "s/client12/athena4/g" \
-           -e "s/client13/athena1/g" \
-           -e "s/client14/athena2/g" \
-           -e "s/client15/athena3/g" \
-           -e "s/client16/athena4/g" \
-           -e "s/client17/athena1/g" \
-           -e "s/client18/athena2/g" \
-           -e "s/client19/athena3/g" \
-           -e "s/client20/athena4/g" \
-    /athena/resources/sbft/*.pub
+WORKDIR /athena
+CMD export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
+    cp /athena/config-public/*.pub /athena/config-local && \
+    /athena/config-public/find-docker-instances.sh && \
+    /athena/athena -c /athena/config-local/athena.config
+# athena<->helen
+EXPOSE 5458
+# SBFT
+EXPOSE 3501/udp
+EXPOSE 3502/udp
+EXPOSE 3503/udp
+EXPOSE 3504/udp
+EXPOSE 3505/udp
