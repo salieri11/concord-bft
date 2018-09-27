@@ -6,3 +6,7 @@ logs/
 build/
 .idea/
 cmake-build-debug/
+.cproject
+.project
+.settings/
+.vscode/

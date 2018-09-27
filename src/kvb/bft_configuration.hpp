@@ -333,7 +333,7 @@ parse_principals(FILE *config_file,
                  std::set<std::pair<uint16_t, std::string>>
                  &outReplicasPublicKeys) {
   //skip group ip and port
-  fscanf(config_file, "%*[^\n]\n", NULL);
+  fscanf(config_file, "%*[^\n]\n");
 
   // read in all the principals
   char addr_buff[100];
@@ -403,7 +403,7 @@ parse_plain_config_file(std::string privPath,
   fscanf(config_priv_file, "%s\n", sk1);
 
   //skip first line
-  fscanf(config_file, "%*[^\n]\n", NULL);
+  fscanf(config_file, "%*[^\n]\n");
 
   // read max_faulty
   uint16_t max_faulty = 0;
@@ -414,7 +414,7 @@ parse_plain_config_file(std::string privPath,
   fscanf(config_file, "%hu\n", &max_slow);
 
   //skip timeout
-  fscanf(config_file, "%*[^\n]\n", NULL);
+  fscanf(config_file, "%*[^\n]\n");
 
   // read num of principals
   uint16_t numOfPrincipals = 0;
@@ -455,7 +455,7 @@ parse_plain_config_file(std::string privPath,
     fscanf(config_file, "%hu\n", &viewChangeTimeoutMilli);
     fscanf(config_file, "%hu\n", &statusTimeMilli);
     //skip one line
-    fscanf(config_file, "%*[^\n]\n", NULL);
+    fscanf(config_file, "%*[^\n]\n");
     fscanf(config_file, "%hu\n", &concurrencyLevel);
 
     repConf->publicKeysOfReplicas = publicKeysOfReplicas;

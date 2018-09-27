@@ -107,7 +107,7 @@ namespace Blockchain {
       ReplicaImp( Blockchain::CommConfig &commConfig,
                   ReplicaConsensusConfig &config,
                   BlockchainDBAdapter *dbAdapter);
-      virtual ~ReplicaImp();
+      virtual ~ReplicaImp() override;
 
       // METHODS
 
