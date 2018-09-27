@@ -1,7 +1,3 @@
-[submodule "submodules/P2_Blockchain"]
-	path = submodules/P2_Blockchain
-	url = https://github.com/vmwathena/P2_Blockchain.git
-	branch = master
 [submodule "submodules/concord-bft"]
 	path = submodules/concord-bft
 	url = https://github.com/vmwathena/concord-bft
