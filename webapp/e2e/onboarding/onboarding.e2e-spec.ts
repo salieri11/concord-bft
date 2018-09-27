@@ -34,6 +34,11 @@ describe('athena-ui Onboarding Flow', () => {
     browser.sleep(200);
     onboardingPage.readAndClickAccept('Test', 'Test', 'Company');
     loginPage.fillLogInForm('testlogin@example.com', 'password');
+    loginPage.changePassword('T3sting!', 'T3sting!!');
+    expect(loginPage.getChangeSubmit().getAttribute('disabled')).toBe('true');
+    loginPage.changePassword('T3sting!', 'T3sting!');
+    browser.sleep(200);
+    loginPage.changePasswordSubmit();
     browser.sleep(200);
     browser.waitForAngularEnabled(false);
 

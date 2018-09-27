@@ -4,11 +4,13 @@
 
 import { Component, OnDestroy, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
 import { Router, NavigationExtras } from '@angular/router';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, Validators, } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
 
 import { AuthenticationService } from '../../shared/authentication.service';
 import { PersonaService } from '../../shared/persona.service';
+import { CustomValidatorsService } from '../shared/custom-validators.service';
+
 
 @Component({
   selector: 'athena-login',
@@ -17,14 +19,21 @@ import { PersonaService } from '../../shared/persona.service';
 })
 export class LogInContainerComponent implements OnDestroy, AfterViewInit {
   @ViewChild('username') username: ElementRef;
+  @ViewChild('newPassword') newPassword: ElementRef;
   readonly loginForm: FormGroup;
+  readonly changePasswordForm: FormGroup;
   errorMessage: string;
   personaOptions = PersonaService.getOptions();
+  hideLoginForm: boolean = false;
+  hideChangePassword: boolean = true;
+  newUser: boolean = false;
+  passwordTest: RegExp = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^a-zA-Z0-9])(?!.*\s).{6,35}$/;
 
   constructor(
     private authenticationService: AuthenticationService,
     private formBuilder: FormBuilder,
     private router: Router,
+    private validator: CustomValidatorsService,
     private translateService: TranslateService
   ) {
 
@@ -33,6 +42,11 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
       password: ['', [Validators.required]],
       persona: [this.personaOptions[0].value]
     });
+
+    this.changePasswordForm = this.formBuilder.group({
+      newPassword: ['', [Validators.required, this.validator.pattern(this.passwordTest)]],
+      confirmPassword: ['', [Validators.required]],
+    }, {validator: this.validator.passwordMatchValidator});
   }
 
   ngAfterViewInit() {
@@ -49,6 +63,28 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
       this.loginForm.value.persona
     ).subscribe((user) => {
       if (user['last_login'] === 0) {
+        this.newUser = true;
+        this.hideLoginForm = true;
+        this.hideChangePassword = false;
+        setTimeout(() => {
+          this.newPassword.nativeElement.focus();
+        }, 10);
+      } else {
+        this.router.navigate(['dashboard']);
+      }
+    }, (error) => {
+      this.errorMessage = error.error.error || this.translateService.instant('authentication.errorMessage');
+    });
+  }
+
+  changePassword() {
+
+    this.errorMessage = null;
+    this.authenticationService.changePassword(
+      this.loginForm.value.email,
+      this.changePasswordForm.value.newPassword,
+    ).subscribe((response) => {
+      if (response && this.newUser) {
         const navExtras: NavigationExtras = {
           fragment: 'orgTour'
         };
@@ -60,4 +96,6 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
       this.errorMessage = error.error.error || this.translateService.instant('authentication.errorMessage');
     });
   }
+
+
 }

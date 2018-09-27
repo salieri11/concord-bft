@@ -224,6 +224,22 @@ public class ProfilesRegistryManager {
       }
    }
 
+   public JSONObject
+          changePassword(String email, String password) throws UserModificationException {
+         Optional<User> oUser = userRepository.findUserByEmail(email);
+      if (oUser.isPresent()) {
+         User u = oUser.get();
+         JSONObject userJSON = getUserWithID(String.valueOf(u.getUserID()));
+         u.setPassword(password);
+         u = userRepository.save(u);
+         return userJSON;
+      } else {
+         throw new UserModificationException("No user found with email: "
+            + email);
+      }
+   }
+
+
    // TODO: This is just testing convenience methods and should be removed
    // when actual POST API for organization and consortium creation is
    // available
