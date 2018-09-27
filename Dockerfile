@@ -28,7 +28,7 @@ RUN apt-get update && apt-get -y install \
 WORKDIR /
 RUN git clone https://github.com/google/googletest.git
 WORKDIR /googletest/_build
-RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make
+RUN cmake -DCMAKE_CXX_FLAGS="-std=c++11 -march=x86-64 -mtune=generic" .. && make
 
 WORKDIR /
 RUN git clone https://github.com/weidai11/cryptopp.git

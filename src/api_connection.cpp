@@ -412,6 +412,9 @@ api_connection::handle_eth_request(int i)
       case EthRequest_EthMethod_GET_TX_COUNT:
          validRequest = is_valid_eth_getTransactionCount(request);
          break;
+      case EthRequest_EthMethod_GET_BALANCE:
+         validRequest = is_valid_eth_getBalance(request);
+         break;
       default:
          validRequest = false;
          ErrorResponse *e = athenaResponse_.add_error_response();
@@ -652,6 +655,21 @@ api_connection::is_valid_eth_getTransactionCount(const EthRequest &request)
       ErrorResponse *error = athenaResponse_.add_error_response();
       error->set_description("Missing account address");
       return false;
+   }
+}
+
+/**
+ * Check that an eth_getBalance request is valid.
+ */
+bool
+api_connection::is_valid_eth_getBalance(const EthRequest &request) {
+   if (request.has_addr_to() && 
+       request.addr_to().size() == sizeof(evm_address)) {
+      return true;
+   } else {
+     ErrorResponse *error = athenaResponse_.add_error_response();
+     error->set_description("Missing account address");
+     return false;
    }
 }
 

@@ -214,8 +214,7 @@ void com::vmware::athena::KVBStorage::put(const Slice &key,
       throw ReadOnlyModeException();
    }
 
-   KeyValuePair kvp(key, value);
-   updates.insert(kvp);
+   updates[key] = value;
 }
 
 /**
@@ -285,7 +284,7 @@ Status com::vmware::athena::KVBStorage::write_block(uint64_t timestamp)
  */
 void com::vmware::athena::KVBStorage::reset() {
    // Release all the storage our staging was using
-   for (auto kvp: updates) {
+   for (auto &kvp: updates) {
       delete[] kvp.first.data();
       delete[] kvp.second.data();
    }
@@ -407,7 +406,7 @@ Status com::vmware::athena::KVBStorage::get(const Slice &key, Slice &value)
    // `pending_transactions` vector).
 
    //TODO(BWF): this search will be very inefficient for a large set of changes
-   for (auto u: updates) {
+   for (auto &u: updates) {
       if (u.first == key) {
          value = u.second;
          return Status::OK();

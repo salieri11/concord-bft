@@ -22,7 +22,7 @@
 
 using std::string;
 using std::pair;
-using std::unordered_set;
+using std::unordered_map;
 
 namespace Blockchain {
 
@@ -37,7 +37,7 @@ namespace Blockchain {
    typedef pair<Key, Value> KeyValuePair;
    // TODO(GG): unordered_map may be inefficient (as a small map), consider to
    // write a specialized map
-   typedef unordered_set<KeyValuePair> SetOfKeyValuePairs;
+   typedef unordered_map<Slice, Slice> SetOfKeyValuePairs;
 
    // forward declarations
    class ILocalKeyValueStorageReadOnlyIterator;
