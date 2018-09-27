@@ -55,7 +55,7 @@ class RegressionTests(test_suite.TestSuite):
       if self._productMode and not self._noLaunch:
          global p
          try:
-            p = self.launchProduct(self._args.resultsDir,
+            p = self.launchProduct(self._args,
                                    self._apiServerUrl,
                                    self._userConfig["product"])
          except Exception as e:

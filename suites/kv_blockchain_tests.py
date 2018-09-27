@@ -56,7 +56,7 @@ class KVBTests(test_suite.TestSuite):
       if self._productMode and not self._noLaunch:
          global p
          try:
-            p = self.launchProduct(self._args.resultsDir,
+            p = self.launchProduct(self._args,
                                    self._apiServerUrl,
                                    self._userConfig["product"])
          except Exception as e:
@@ -137,24 +137,24 @@ class KVBTests(test_suite.TestSuite):
       Check if blocks persist to disk.
       Note: This test is not valid when Athena uses an in memory database.
       '''
-      if self._productMode and not self._noLaunch:
+      if self._productMode:
          pre = int(rpc.getBlockNumber(), 16)
 
          if pre <= 0:
             return (None, "No blocks to restore.")
 
          #Kill and reboot Athena
-         if self._productMode and not self._noLaunch:
-             global p
-             p.stopProduct()
-
-             try:
-                 p = self.launchProduct(self._args.resultsDir,
+         global p
+         p.stopProduct()
+         
+         try:
+            self._args.keepAthenaDB = True
+            p = self.launchProduct(self._args,
                                    self._apiServerUrl,
                                    self._userConfig["product"])
-             except Exception as e:
-                 log.error(traceback.format_exc())
-                 return self._resultFile
+         except Exception as e:
+            log.error(traceback.format_exc())
+            return self._resultFile
 
          post = int(rpc.getBlockNumber(), 16)
 

@@ -44,8 +44,11 @@ def main():
    parser.add_argument("--noLaunch",
                         default=False,
                         action='store_true',
-                       help="Will not launch the product, assuming its already running")
-
+                       help="Will not launch the product, assuming it is already running")
+   parser.add_argument("--keepAthenaDB",
+                       help="Keep and re-use the existing Athena database files.",
+                       default=False,
+                       action='store_true')
    args = parser.parse_args()
 
    if (args.resultsDir == None):

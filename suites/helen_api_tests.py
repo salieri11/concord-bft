@@ -42,7 +42,7 @@ class HelenAPITests(test_suite.TestSuite):
       ''' Runs all of the tests. '''
       if self._productMode and not self._noLaunch:
          try:
-            p = self.launchProduct(self._args.resultsDir,
+            p = self.launchProduct(self._args,
                                    self._apiBaseServerUrl + "/api/athena/eth",
                                    self._userConfig["product"])
          except Exception as e:
@@ -608,11 +608,12 @@ class HelenAPITests(test_suite.TestSuite):
       loginData = {}
       loginData['email'] = user_email
       loginData['password'] = password
-      before = int(round(time.time() * 1000))
       response = request.callUserAPI("/login", data=loginData)
       after = int(round(time.time() * 1000))
       user = self._get_user(request, user_id)
-      if before < user['last_login'] and user['last_login'] < after:
+      # Newly created users last_login value will return 0
+      # to signify they are a new user
+      if response['last_login'] == 0 and user['last_login'] < after:
          return (True, None)
       return (False, "last login timestamp not updated correctly")
 
@@ -665,9 +666,16 @@ class HelenAPITests(test_suite.TestSuite):
                                                       user['organization']['organization_id'])
       user_list = request.callUserAPI("/users/", params=params)
       user_list = list(map(lambda u : u['user_id'], user_list))
-      if all(u in user_list for u in created_user_id):
-         return (True, None)
-      return (False, "All created users not returned")
+      if not all(u in user_list for u in created_user_id):
+         return (False, "All created users in consortium+organization not returned")
+
+      # also try with no consortium and organization specified
+      all_user_list = request.callUserAPI("/users/")
+      all_user_list = list(map(lambda u : u['user_id'], all_user_list))
+      if not all(u in all_user_list for u in created_user_id):
+         return (False, "All created users not returned")
+
+      return (True, None)
 
 
    def _test_largeReply(self, request):
