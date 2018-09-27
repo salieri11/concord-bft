@@ -7,9 +7,9 @@
 #define ATHENA_CONFIG_PARSER_HPP
 
 #include "BlockchainInterfaces.h"
-#include "../../submodules/concord-bft/threshsign/include/threshsign/IThresholdSigner.h"
-#include "../../submodules/concord-bft/threshsign/include/threshsign/IThresholdVerifier.h"
-#include "../../submodules/concord-bft/threshsign/include/threshsign/IThresholdFactory.h"
+#include "IThresholdSigner.h"
+#include "IThresholdVerifier.h"
+#include "IThresholdFactory.h"
 #include <string>
 #include <set>
 

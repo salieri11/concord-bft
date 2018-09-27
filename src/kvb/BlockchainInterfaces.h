@@ -18,7 +18,7 @@
 #include "StatusInfo.h"
 #include "ICommunication.hpp"
 #include "CommDefs.hpp"
-#include "../../submodules/concord-bft/threshsign/include/threshsign/ThresholdSignaturesSchemes.h"
+#include "ThresholdSignaturesSchemes.h"
 
 using std::string;
 using std::pair;

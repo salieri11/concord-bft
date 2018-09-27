@@ -12,14 +12,8 @@
 #endif
 
 #include <log4cplus/loggingmacros.h>
-
 #include "Comparators.h"
-
-//#include "libbyz.h"
-
 #include "Threading.h"
-#include "ThreadLocalStorage.h"
-
 #include "ReplicaImp.h"
 #include <inttypes.h>
 #include <cstdlib>

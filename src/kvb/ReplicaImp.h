@@ -13,7 +13,6 @@
 #include "BlockchainDBAdapter.h"
 #include "InMemoryDBClient.h"
 #include "Threading.h"
-#include "ThreadLocalStorage.h"
 #include "Replica.hpp"
 #include "ReplicaConfig.hpp"
 #include "ICommunication.hpp"

@@ -6,7 +6,6 @@
 #define CLIENTIMP_H
 
 #include "BlockchainInterfaces.h"
-#include "ThreadLocalStorage.h"
 #include "SimpleThreadPool.h"
 #include "SimpleClient.hpp"
 #include "ICommunication.hpp"

@@ -48,10 +48,10 @@ endif(DEFINED USE_HERA)
 find_package(Cryptopp REQUIRED)
 include_directories(${Cryptopp_INCLUDE_DIRS})
 
+add_subdirectory("submodules")
 add_subdirectory("proto")
 add_subdirectory("src")
 add_subdirectory("tools")
-add_subdirectory("submodules")
 
 ## Unit tests with googletest
 find_package(GTEST REQUIRED)
