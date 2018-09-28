@@ -110,48 +110,48 @@ def call(){
             configFileProvider([configFile(fileId: '092fb643-feda-4b41-b7b0-31ff7617b0c9', targetLocation: 'resources/user_config.json')]) {
             }
             sh './main.py CoreVMTests'
-            //sh './main.py HelenAPITests'
+            sh './main.py HelenAPITests'
             //sh './main.py ExtendedRPCTests'
             //sh './main.py RegressionTests'
           }
         }
       }
-      stage('Build docker images') {
-        parallel {
-          stage('Build helen docker image') {
-            steps {
-              script {
-                dir('helen') {
-                  docker.build("helen:${env.BRANCH_NAME}")
-                }
-              }
-            }
-          }
-          stage('Build athena docker image') {
-            steps {
-              script {
-                dir('athena') {
-                  sh '''sed -i\'\' "s?genesis_block.*?genesis_block=/athena/resources/genesis.json?g" resources/athena1.config
-                  sed -i\'\' "s?genesis_block.*?genesis_block=/athena/resources/genesis.json?g" resources/athena2.config
-                  sed -i\'\' "s?genesis_block.*?genesis_block=/athena/resources/genesis.json?g" resources/athena3.config
-                  sed -i\'\' "s?genesis_block.*?genesis_block=/athena/resources/genesis.json?g" resources/athena4.config'''
-                  sh "./docker-build.sh ${env.BRANCH_NAME}"
-                }
-              }
-            }
-          }
-        }
-      }
-      stage('Prepare docker compose') {
-        steps {
-          sh 'mkdir docker'
-          dir('docker') {
-            configFileProvider([configFile(fileId: '4bcb682e-fe63-4f12-944b-a8d1f93b81eb', targetLocation: 'docker-compose.yml')]) {
-            }
-            sh "sed -i'' 's/{{tag}}/${env.BRANCH_NAME}/g' docker-compose.yml"
-          }
-        }
-      }
+      // stage('Build docker images') {
+      //   parallel {
+      //     stage('Build helen docker image') {
+      //       steps {
+      //         script {
+      //           dir('helen') {
+      //             docker.build("helen:${env.BRANCH_NAME}")
+      //           }
+      //         }
+      //       }
+      //     }
+      //     stage('Build athena docker image') {
+      //       steps {
+      //         script {
+      //           dir('athena') {
+      //             sh '''sed -i\'\' "s?genesis_block.*?genesis_block=/athena/resources/genesis.json?g" resources/athena1.config
+      //             sed -i\'\' "s?genesis_block.*?genesis_block=/athena/resources/genesis.json?g" resources/athena2.config
+      //             sed -i\'\' "s?genesis_block.*?genesis_block=/athena/resources/genesis.json?g" resources/athena3.config
+      //             sed -i\'\' "s?genesis_block.*?genesis_block=/athena/resources/genesis.json?g" resources/athena4.config'''
+      //             sh "./docker-build.sh ${env.BRANCH_NAME}"
+      //           }
+      //         }
+      //       }
+      //     }
+      //   }
+      // }
+      // stage('Prepare docker compose') {
+      //   steps {
+      //     sh 'mkdir docker'
+      //     dir('docker') {
+      //       configFileProvider([configFile(fileId: '4bcb682e-fe63-4f12-944b-a8d1f93b81eb', targetLocation: 'docker-compose.yml')]) {
+      //       }
+      //       sh "sed -i'' 's/{{tag}}/${env.BRANCH_NAME}/g' docker-compose.yml"
+      //     }
+      //   }
+      // }
       // RV 2018/09/20: When this runs, the docker/cockroachdb directory has files which Jenkins cannot delete.
       //                Need to investigate.
       // stage('Run the product in containers along with the tests') {
