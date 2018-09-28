@@ -42,10 +42,11 @@ public class EthGetCodeHandler extends AbstractEthRPCHandler {
          b.setMethod(EthMethod.GET_CODE);
          JSONArray params = extractRequestParams(requestJson);
          b.setAddrTo(APIHelper.hexStringToBinary((String) params.get(0)));
-         // add "block" parameter
+         // add "block" parameter, the default block parameter is "latest".
+         // if no parameter or its value is negative, athena treat is as default
          if (params.size() == 2) {
             long blockNumber = APIHelper.parseBlockNumber(params);
-            if (blockNumber != -1){
+            if (blockNumber >= 0){
                b.setBlockNumber(blockNumber);
             }
          }
