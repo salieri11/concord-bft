@@ -133,9 +133,9 @@ class TestSuite(ABC):
 
       os.rename(tempFile, realFile)
 
-   def launchProduct(self, resultsDir, url, userConfig):
+   def launchProduct(self, cmdlineArgs, url, userConfig):
       try:
-         p = Product(resultsDir, url, userConfig)
+         p = Product(cmdlineArgs, url, userConfig)
          p.launchProduct()
          return p
       except Exception as e:
