@@ -111,8 +111,8 @@ def call(){
             }
             sh './main.py CoreVMTests'
             sh './main.py HelenAPITests'
-            //sh './main.py ExtendedRPCTests'
-            //sh './main.py RegressionTests'
+            sh './main.py ExtendedRPCTests'
+            sh './main.py RegressionTests'
           }
         }
       }
