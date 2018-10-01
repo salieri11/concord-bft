@@ -397,22 +397,9 @@ uint64_t com::vmware::athena::KVBStorage::current_block_number() {
  */
 Status com::vmware::athena::KVBStorage::get(const Slice &key, Slice &value)
 {
-   // TODO(Amit): All updates other than transactions are stored in 'updates'
-   // structure while transactions are stored in a separate
-   // `pending_transactions` vector (read more about that in `add_transaction`
-   // function). Hence, this search will not work if someone calls `get` for a
-   // transaction that is not yet commited (i.e is still in
-   // `pending_transactions` vector).
-
-   //TODO(BWF): this search will be very inefficient for a large set of changes
-   for (auto &u: updates) {
-      if (u.first == key) {
-         value = u.second;
-         return Status::OK();
-      }
-   }
-
-   return roStorage_.get(key, value);
+   uint64_t block_number = current_block_number();
+   BlockId out;
+   return get(block_number, key, value, out);
 }
 
 /**
@@ -437,8 +424,8 @@ Status com::vmware::athena::KVBStorage::get(const BlockId readVersion,
          return Status::OK();
       }
    }
-
-   return roStorage_.get(readVersion, key, value, outBlock);
+   // "1+" == KVBlockchain starts at block 1, but Ethereum starts at 0
+   return roStorage_.get(readVersion+1, key, value, outBlock);
 }
 
 /**
@@ -507,28 +494,8 @@ EthTransaction com::vmware::athena::KVBStorage::get_transaction(
 
 uint64_t com::vmware::athena::KVBStorage::get_balance(const evm_address &addr)
 {
-   Slice kvbkey = balance_key(addr);
-   Slice value;
-   Status status = get(kvbkey, value);
-
-   LOG4CPLUS_DEBUG(logger, "Getting balance " << addr <<
-                   " status: " << status.ToString() <<
-                   " key: " << sliceToString(kvbkey) <<
-                   " value.size: " << value.size());
-
-   if (status.ok() && value.size() > 0) {
-      kvb::Balance balance;
-      if (balance.ParseFromArray(value.data(), value.size())) {
-         if (balance.version() == balance_storage_version) {
-            return balance.balance();
-         } else {
-            throw EVMException("Unknown balance storage version");
-         }
-      }
-   }
-
-   // untouched accounts have a balance of 0
-   return 0;
+   uint64_t block_number = current_block_number();
+   return get_balance(addr, block_number);
 }
 
 uint64_t com::vmware::athena::KVBStorage::get_balance(const evm_address &addr, uint64_t &block_number)
@@ -537,12 +504,14 @@ uint64_t com::vmware::athena::KVBStorage::get_balance(const evm_address &addr, u
    Slice value;
    BlockId outBlock;
    // "1+" == KVBlockchain starts at block 1, but Ethereum starts at 0
-   Status status = get(block_number+1, kvbkey, value, outBlock);
+   Status status = get(block_number, kvbkey, value, outBlock);
 
-   LOG4CPLUS_DEBUG(logger, "Getting balance " << addr <<
-                                              " status: " << status.ToString() <<
-                                              " key: " << sliceToString(kvbkey) <<
-                                              " value.size: " << value.size());
+   LOG4CPLUS_DEBUG(logger, "Getting nonce " << addr <<
+                           " lookup block starting at: " << block_number <<
+                           " status: " << status.ToString() <<
+                           " key: " << sliceToString(kvbkey) <<
+                           " value.size: " << value.size() <<
+                           " out block at: " << outBlock);
 
    if (status.ok() && value.size() > 0) {
       kvb::Balance balance;
@@ -561,28 +530,8 @@ uint64_t com::vmware::athena::KVBStorage::get_balance(const evm_address &addr, u
 
 uint64_t com::vmware::athena::KVBStorage::get_nonce(const evm_address &addr)
 {
-   Slice kvbkey = nonce_key(addr);
-   Slice value;
-   Status status = get(kvbkey, value);
-
-   LOG4CPLUS_DEBUG(logger, "Getting nonce " << addr <<
-                   " status: " << status.ToString() <<
-                   " key: " << sliceToString(kvbkey) <<
-                   " value.size: " << value.size());
-
-   if (status.ok() && value.size() > 0) {
-      kvb::Nonce nonce;
-      if (nonce.ParseFromArray(value.data(), value.size())) {
-         if (nonce.version() == nonce_storage_version) {
-            return nonce.nonce();
-         } else {
-            throw EVMException("Unknown nonce storage version");
-         }
-      }
-   }
-
-   // untouched accounts have a nonce of 0
-   return 0;
+   uint64_t block_number = current_block_number();
+   return get_nonce(addr, block_number);
 }
 
 uint64_t com::vmware::athena::KVBStorage::get_nonce(const evm_address &addr,
@@ -592,7 +541,7 @@ uint64_t com::vmware::athena::KVBStorage::get_nonce(const evm_address &addr,
    Slice value;
    BlockId outBlock;
    // "1+" == KVBlockchain starts at block 1, but Ethereum starts at 0
-   Status status = get(block_number+1, kvbkey, value, outBlock);
+   Status status = get(block_number, kvbkey, value, outBlock);
 
    LOG4CPLUS_DEBUG(logger, "Getting nonce " << addr <<
                    " lookup block starting at: " << block_number <<
@@ -643,39 +592,8 @@ bool com::vmware::athena::KVBStorage::get_code(const evm_address &addr,
                                                std::vector<uint8_t> &out,
                                                evm_uint256be &hash)
 {
-   Slice kvbkey = code_key(addr);
-   Slice value;
-   Status status = get(kvbkey, value);
-
-   LOG4CPLUS_DEBUG(logger, "Getting code " << addr <<
-                   " status: " << status.ToString() <<
-                   " key: " << sliceToString(kvbkey) <<
-                   " value.size: " << value.size());
-
-   if (status.ok() && value.size() > 0) {
-      kvb::Code code;
-      if (code.ParseFromArray(value.data(), value.size())) {
-         if (code.version() == code_storage_version) {
-            std::copy(code.code().begin(),
-                      code.code().end(),
-                      std::back_inserter(out));
-            std::copy(code.hash().begin(),
-                      code.hash().end(),
-                      hash.bytes);
-            return true;
-         } else {
-            LOG4CPLUS_ERROR(logger, "Unknown code storage version" <<
-                            code.version());
-            throw EVMException("Unkown code storage version");
-         }
-      } else {
-         LOG4CPLUS_ERROR(logger,
-                         "Unable to decode storage for contract at " << addr);
-         throw EVMException("Corrupt code storage");
-      }
-   }
-
-   return false;
+   uint64_t block_number = current_block_number();
+   return get_code(addr, out, hash, block_number);
 }
 
 /**
@@ -696,7 +614,7 @@ bool com::vmware::athena::KVBStorage::get_code(const evm_address &addr,
    Slice kvbkey = code_key(addr);
    Slice value;
    BlockId outBlock;
-   Status status = get(block_number+1, kvbkey, value, outBlock);
+   Status status = get(block_number, kvbkey, value, outBlock);
 
    LOG4CPLUS_DEBUG(logger, "Getting code " << addr <<
                    " lookup block starting at: " << block_number <<
@@ -734,30 +652,8 @@ bool com::vmware::athena::KVBStorage::get_code(const evm_address &addr,
 evm_uint256be com::vmware::athena::KVBStorage::get_storage(
    const evm_address &addr, const evm_uint256be &location)
 {
-   Slice kvbkey = storage_key(addr, location);
-   Slice value;
-   Status status = get(kvbkey, value);
-
-   LOG4CPLUS_DEBUG(logger, "Getting storage " << addr <<
-                   " at " << location <<
-                   " status: " << status.ToString() <<
-                   " key: " << sliceToString(kvbkey) <<
-                   " value.size: " << value.size());
-
-   evm_uint256be out;
-   if (status.ok() && value.size() > 0) {
-      if (value.size() == sizeof(evm_uint256be)) {
-         std::copy(value.data(), value.data()+value.size(), out.bytes);
-      } else {
-         LOG4CPLUS_ERROR(logger, "Contract " << addr <<
-                         " storage " << location <<
-                         " only had " << value.size() << " bytes.");
-         throw EVMException("Corrupt contract storage");
-      }
-   } else {
-      std::memset(out.bytes, 0, sizeof(out));
-   }
-   return out;
+   uint64_t block_number = current_block_number();
+   return get_storage(addr, location, block_number);
 }
 
 evm_uint256be com::vmware::athena::KVBStorage::get_storage(
@@ -768,8 +664,7 @@ evm_uint256be com::vmware::athena::KVBStorage::get_storage(
    Slice kvbkey = storage_key(addr, location);
    Slice value;
    BlockId outBlock;
-   // "1+" == KVBlockchain starts at block 1, but Ethereum starts at 0
-   Status status = get(block_number+1, kvbkey, value, outBlock);
+   Status status = get(block_number, kvbkey, value, outBlock);
 
    LOG4CPLUS_INFO(logger, "Getting storage " << addr <<
                   " at " << location <<

@@ -603,20 +603,13 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_getCode(
    evm_address account;
    std::copy(request.addr_to().begin(), request.addr_to().end(),
              account.bytes);
-   //TODO(BWF): now that we're using KVB for storage, we can handle the block
-   //number parameter
 
-   uint64_t latest = std::numeric_limits<uint64_t>::max();
-   if (request.has_block_number()) {
-      latest = request.block_number();
-   }
-   if (latest > kvbStorage.current_block_number()) {
-      latest = kvbStorage.current_block_number();
-   }
+   // handle the block number parameter
+   uint64_t block_number = parse_block_parameter(request, kvbStorage);
 
    std::vector<uint8_t> code;
    evm_uint256be hash;
-   if (kvbStorage.get_code(account, code, hash, latest)) {
+   if (kvbStorage.get_code(account, code, hash, block_number)) {
       EthResponse *response = athresp.add_eth_response();
       response->set_data(std::string(code.begin(), code.end()));
    } else {
@@ -645,15 +638,9 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_getStorageAt(
    //TODO(BWF): now that we're using KVB for storage, we can support the block
    //argument
 
-   uint64_t latest = std::numeric_limits<uint64_t>::max();
-   if (request.has_block_number()) {
-      latest = request.block_number();
-   }
-   if (latest > kvbStorage.current_block_number()) {
-      latest = kvbStorage.current_block_number();
-   }
+   uint64_t block_number = parse_block_parameter(request, kvbStorage);
 
-   evm_uint256be data = kvbStorage.get_storage(account, key, latest);
+   evm_uint256be data = kvbStorage.get_storage(account, key, block_number);
    EthResponse *response = athresp.add_eth_response();
    response->set_id(request.id());
    response->set_data(data.bytes, sizeof(data));
@@ -675,15 +662,9 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_getTransactionCount(
    std::copy(request.addr_to().begin(), request.addr_to().end(),
              account.bytes);
 
-   uint64_t latest = std::numeric_limits<uint64_t>::max();
-   if (request.has_block_number()) {
-      latest = request.block_number();
-   }
-   if (latest > kvbStorage.current_block_number()) {
-      latest = kvbStorage.current_block_number();
-   }
+   uint64_t block_number = parse_block_parameter(request, kvbStorage);
 
-   uint64_t nonce = kvbStorage.get_nonce(account, latest);
+   uint64_t nonce = kvbStorage.get_nonce(account, block_number);
    evm_uint256be bignonce;
    memset(bignonce.bytes, 0, sizeof(bignonce));
 #ifdef BOOST_LITTLE_ENDIAN
@@ -717,14 +698,8 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_getBalance(
    std::copy(request.addr_to().begin(), request.addr_to().end(),
              account.bytes);
 
-   uint64_t latest = std::numeric_limits<uint64_t>::max();
-   if (request.has_block_number()) {
-      latest = request.block_number();
-   }
-   if (latest > kvbStorage.current_block_number()) {
-      latest = kvbStorage.current_block_number();
-   }
-   uint64_t balance = kvbStorage.get_balance(account, latest);
+   uint64_t block_number = parse_block_parameter(request, kvbStorage);
+   uint64_t balance = kvbStorage.get_balance(account, block_number);
    evm_uint256be bigbalance;
    memset(bigbalance.bytes, 0, sizeof(bigbalance));
 #ifdef BOOST_LITTLE_ENDIAN
@@ -835,6 +810,26 @@ void com::vmware::athena::KVBCommandsHandler::recover_from(
 
       *sender = verifier_.ecrecover(rlp_hash, actualV, sigR, sigS);
    }
+}
+
+/**
+ * parse the block number parameter
+ * @param request ethrequest
+ * @param kvbStorage
+ * @return block number
+ */
+uint64_t com::vmware::athena::KVBCommandsHandler::parse_block_parameter(
+        const EthRequest &request,
+        KVBStorage &kvbStorage) const
+{
+   uint64_t block_number = std::numeric_limits<uint64_t>::max();
+   if (request.has_block_number()) {
+      block_number = request.block_number();
+   }
+   if (block_number > kvbStorage.current_block_number()) {
+      block_number = kvbStorage.current_block_number();
+   }
+   return block_number;
 }
 
 /**
