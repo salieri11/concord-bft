@@ -62,7 +62,8 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
       this.loginForm.value.password,
       this.loginForm.value.persona
     ).subscribe((user) => {
-      if (user['last_login'] === 0) {
+      if (user['last_login'] === 0 || localStorage.getItem('changePassword')) {
+        localStorage.setItem('changePassword', true);
         this.newUser = true;
         this.hideLoginForm = true;
         this.hideChangePassword = false;
@@ -78,13 +79,14 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
   }
 
   changePassword() {
-
     this.errorMessage = null;
     this.authenticationService.changePassword(
       this.loginForm.value.email,
       this.changePasswordForm.value.newPassword,
     ).subscribe((response) => {
       if (response && this.newUser) {
+        localStorage.removeItem('changePassword');
+
         const navExtras: NavigationExtras = {
           fragment: 'orgTour'
         };
