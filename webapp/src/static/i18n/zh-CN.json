@@ -1,0 +1,987 @@
+{
+  "title": "VMware Athena",
+  "common": {
+    "all": "全部",
+    "close": "关闭",
+    "cancel": "取消",
+    "create": "创建",
+    "back": "上一步",
+    "next": "下一步",
+    "finish": "完成",
+    "edit": "编辑",
+    "update": "更新",
+    "requiredValidationMessage": "此字段为必填字段"
+  },
+  "nav": {
+    "menu": {
+      "title": "菜单",
+      "options": {
+        "contract": {
+          "title": "创建智能合约"
+        },
+        "sysAdminTitle": "系统管理员",
+        "deploy": {
+          "title": "部署"
+        },
+        "addOrg": {
+          "title": "添加组织"
+        },
+        "addBlockchains": {
+          "title": "添加区块链"
+        },
+        "addConsortium": {
+          "title": "添加联盟"
+        },
+        "addKubernetes": {
+          "title": "添加 Kubernetes"
+        },
+        "addUsers": {
+          "title": "添加用户"
+        }
+      }
+    },
+    "personaSelector": {
+      "title": "角色"
+    },
+    "actions": {
+      "title": "操作",
+      "resetTasks": "重置任务"
+    },
+    "metrics": {
+      "activeNodes": "活动节点数 {{value}}"
+    },
+    "dashboard": {
+      "title": "仪表板"
+    },
+    "nodeList": {
+      "title": "节点列表"
+    },
+    "blockList": {
+      "title": "区块列表"
+    },
+    "testing": {
+      "title": "测试"
+    },
+    "smartContracts": {
+      "title": "智能合约"
+    },
+    "sysadmin": {
+      "title": "系统管理员"
+    },
+    "organization": {
+      "title": "组织"
+    },
+    "blockchains": {
+      "title": "区块链"
+    },
+    "consortium": {
+      "title": "联盟"
+    },
+    "kubernetes": {
+      "title": "Kubernetes"
+    },
+    "users": {
+      "title": "用户"
+    },
+    "login": "登录",
+    "logOut": "注销",
+    "settings": "设置"
+  },
+  "time": {
+    "lastXDays": "过去 {{number}} 天",
+    "today": "今天"
+  },
+  "authentication": {
+    "welcome": "欢迎使用",
+    "username": "用户名",
+    "password": "密码",
+    "next": "下一步",
+    "errorMessage": "无效的用户名或密码"
+  },
+  "grid": {
+    "search": {
+      "placeholder": "搜索"
+    },
+    "pagination": {
+      "of": "/"
+    }
+  },
+  "marketing": {
+    "subTitle": "部署业界领先的许可区块链",
+    "description": "Athena 区块链提供了业界迅捷的 TPS。立即为贵联盟和组织部署和管理 Athena 和 Hyperledger。",
+    "callToAction": "开始使用",
+    "midHeading": "获取领先的企业级区块链",
+    "itemOne": {
+      "title": "领先的共识协议",
+      "description": "每秒海量交易瞬息达成。"
+    },
+    "itemTwo": {
+      "title": "更高的安全性",
+      "description": "采用先进的加密技术，可跨多个云提供商、许可区块链节点和网络进行部署。"
+    },
+    "itemThree": {
+      "title": "经济高效的绿色解决方案",
+      "description": "不再需要大量资本投资来实现业务成果，也不再需要用高二氧化碳排放量来追求权益。"
+    }
+  },
+  "signUp": {
+    "description": "VMware Athena 提供了业界领先的 SBFT 协议区块链。",
+    "callToAction": "请完成您的信息以便开始使用。",
+    "duplicateEmailError": "此电子邮件已被使用，请登录。",
+    "form": {
+      "firstName": "名字",
+      "lastName": "姓氏",
+      "email": "电子邮件",
+      "password": "密码",
+      "emailValMsg": "请输入有效的电子邮件地址",
+      "company": "公司",
+      "jobTitle": "职务 (可选)",
+      "country": "国家/地区",
+      "relationship": "与 VMware 的关系",
+      "relationshipOptions": {
+        "customer": "客户",
+        "employee": "员工",
+        "ecosystem": "生态系统合作伙伴",
+        "solutions": "解决方案提供商",
+        "service": "服务提供商",
+        "reseller": "经销商合作伙伴",
+        "other": "其他"
+      },
+      "numberOfEmployees": "员工数量",
+      "submit": "注册"
+    }
+  },
+  "onboarding": {
+    "title": "欢迎使用 Athena",
+    "setupOrg": {
+      "title": "设置组织",
+      "description": "开始向贵组织添加其他用户、创建智能合约、获取区块链凭据并开始代表贵组织开展交易。"
+    },
+    "deployBlockchain": {
+      "title": "部署区块链",
+      "description": "部署 Athena、 Hyperledger、Corda 或 Quorom 区块链，并邀请各组织开始在您的授权区块链上开展交易。"
+    }
+  },
+  "dashboard": {
+    "totalActiveNodes": "活动节点总数",
+    "inactiveNodes": "非活动节点数",
+    "overallNodeHealth": "节点整体运行状况",
+    "transactionsPerSecond": "每秒交易数",
+    "averageValidationTime": "平均验证时间",
+    "xSeconds": "{{seconds}} <small>秒</small>"
+  },
+  "filters": {
+    "filterTransactions": "筛选交易",
+    "byStatus": "按状态",
+    "pendingTransactions": "待处理交易",
+    "byTransactionType": "按交易类型",
+    "allTransactions": "所有交易",
+    "byDateRange": "按日期范围",
+    "byOwner": "按所有者",
+    "allOwners": "全部所有者",
+    "cancel": "取消",
+    "apply": "应用"
+  },
+  "nodes": {
+    "title": "节点",
+    "nodes": "节点",
+    "nodeActivity": "节点活动",
+    "overallNodeHealth": "节点整体运行状况",
+    "transactionsPerSecond": "交易数/秒",
+    "averageValidationTime": "平均验证时间",
+    "xSeconds": "{{seconds}} <small>秒</small>",
+    "location": "位置",
+    "status": "状态",
+    "connected": "已连接",
+    "offline": "脱机",
+    "totalActiveNodes": "活动节点总数",
+    "inactiveNodes": "非活动节点数",
+    "searchPlaceholder": "搜索...",
+    "filters": "筛选器",
+    "hostname": "主机名",
+    "address": "地址",
+    "viewDetail": "查看详细信息",
+    "network": "网络",
+    "nodeLocation": "节点位置",
+    "transactions": "交易",
+    "timestamp": "时间戳",
+    "origination": "来源",
+    "transaction": "交易",
+    "type": "类型",
+    "amount": "金额",
+    "trans": "交易",
+    "length": "长度",
+    "orgOwners": "组织所有者",
+    "averageXPerSecond": "平均 {{value}}/秒",
+    "averageXSeconds": "平均 {{value}}/秒"
+  },
+  "blocks": {
+    "title": "区块",
+    "blocks": "区块",
+    "blockActivity": "区块活动",
+    "number": "区块编号",
+    "index": "索引",
+    "hash": "哈希",
+    "next": "下一步",
+    "viewDetail": "查看详细信息",
+    "paginationSummary": "区块 {{start}} - {{finish}}/共 {{total}} 个"
+  },
+  "transactions": {
+    "title": "交易",
+    "transactions": "交易",
+    "recentTransactions": "近期交易",
+    "timestamp": "时间戳",
+    "origination": "来源",
+    "transactionType": "交易类型",
+    "amount": "金额",
+    "transactionLength": "交易长度",
+    "status": "状态",
+    "success": "成功",
+    "failure": "失败",
+    "none": "null",
+    "nodes": "节点",
+    "hash": "哈希",
+    "from": "自",
+    "to": "至",
+    "contractAddress": "合约地址",
+    "input": "输入",
+    "value": "值",
+    "nonce": "随机数",
+    "parentHash": "父哈希",
+    "size": "大小",
+    "paginationSummary": "交易 {{start}} - {{finish}}/共 {{total}} 项"
+  },
+  "testing": {
+    "testingGround": "测试环境",
+    "transactionCreation": "交易创建",
+    "smartContractUpload": "智能合约上载",
+    "transactionCreationHint": "在下方输入数据以生成唯一哈希",
+    "smartContractHint": "在下方上载文件以生成唯一哈希",
+    "action": "操作",
+    "submit": "提交",
+    "submitContract": "提交合约",
+    "from": "自",
+    "to": "至",
+    "value": "值",
+    "data": "数据",
+    "transaction": "交易",
+    "call": "调用",
+    "copy": "复制",
+    "file": "文件",
+    "contractAddress": "合约地址:",
+    "transactionHash": "交易哈希:",
+    "result": "结果:"
+  },
+  "smartContracts": {
+    "smartContracts": "智能合约",
+    "smartContractUpload": "上载智能合约",
+    "contractId": "合约 ID",
+    "contractOwnerAddress": "合约所有者地址",
+    "createContract": "创建合约",
+    "updateContract": "更新合约",
+    "createContractError": "上载合约时出错。请更正任何错误，然后重试:",
+    "viewDetail": "查看详细信息",
+    "name": "名称",
+    "namePlaceholder": "我的合约",
+    "owner": "所有者",
+    "file": "文件",
+    "preview": "预览",
+    "version": {
+      "title": "版本",
+      "version": "版本",
+      "placeholder": "1.0",
+      "address": "地址",
+      "functions": "功能",
+      "gas": "Gas",
+      "value": "值",
+      "from": "自",
+      "call": "调用",
+      "send": "发送",
+      "view": "查看",
+      "preview": "预览",
+      "selectVersion": "选择版本",
+      "addressHelper": "这是您的地址",
+      "functionParameters": "功能参数",
+      "parameterHelper": "功能必需参数",
+      "download": "下载",
+      "addressLengthValidationMessage": "长度必须为 42 个字符",
+      "addressPatternValidationMessage": "必须为有效的十六进制地址",
+      "inputUIntValidationMessage": "必须为有效的无符号整型值",
+      "inputSignedIntValidationMessage": "必须为有效的有符号整型值",
+      "tabs": {
+        "execute": "执行",
+        "source": "源",
+        "metadata": "元数据",
+        "bytecode": "字节代码"
+      },
+      "tooltips": {
+        "contractAddress": "合约地址",
+        "availableActions": "可用合约操作",
+        "requiredParameters": "必需功能参数",
+        "callHelper": "可以使用此操作执行本地调用，最好先执行这一步进行测试，之后再单击发送并在区块链上调用。"
+      }
+    },
+    "form": {
+      "addressHelper": "您的地址",
+      "versionHelper": "请在更新前先更新版本",
+      "versionDuplicateValidationMessage": "您必须选择一个新版本值",
+      "versionLengthValidationMessage": "版本字符数不得超过 16 个",
+      "callSuccessMessage": "此合约已在本地成功调用，单击“发送”可在区块链上执行此合约"
+    }
+  },
+  "organization": {
+    "title": "组织管理",
+    "actions": {
+      "title": "操作",
+      "options": {
+        "add": {
+          "title": "添加组织"
+        },
+        "import": {
+          "title": "导入组织"
+        },
+        "delete": {
+          "title": "删除组织"
+        }
+      }
+    },
+    "grid": {
+      "pagination": {
+        "title": "组织"
+      },
+      "columns": {
+        "name": {
+          "title": "名称"
+        },
+        "domain": {
+          "title": "域"
+        },
+        "type": {
+          "title": "类型"
+        },
+        "created": {
+          "title": "创建时间"
+        }
+      }
+    },
+    "addOrgForm": {
+      "title": "添加组织",
+      "inputs": {
+        "name": {
+          "title": "名称",
+          "placeholder": "我的组织"
+        },
+        "peerNumber": {
+          "title": "对等编号",
+          "placeholder": "1234"
+        },
+        "domain": {
+          "title": "域",
+          "placeholder": "我的域"
+        },
+        "type": {
+          "title": "类型",
+          "placeholder": "peer1"
+        }
+      },
+      "submit": {
+        "title": "添加"
+      }
+    },
+    "importOrgForm": {
+      "title": "导入组织",
+      "inputs": {
+        "name": {
+          "title": "名称",
+          "placeholder": "Org1"
+        },
+        "certificate": {
+          "title": "上载证书"
+        },
+        "privateKey": {
+          "title": "上载私钥"
+        }
+      },
+      "submit": {
+        "title": "导入"
+      }
+    },
+    "deleteOrgForm": {
+      "title": "删除组织",
+      "submit": {
+        "title": "是"
+      }
+    }
+  },
+  "kubernetes": {
+    "title": "Kubernetes 管理",
+    "actions": {
+      "title": "操作",
+      "options": {
+        "add": {
+          "title": "添加实例"
+        },
+        "delete": {
+          "title": "删除实例"
+        }
+      }
+    },
+    "grid": {
+      "pagination": {
+        "title": "实例"
+      },
+      "columns": {
+        "id": {
+          "title": "ID"
+        },
+        "name": {
+          "title": "名称"
+        },
+        "apiServerUrl": {
+          "title": "API 服务器"
+        },
+        "ca": {
+          "title": "CA"
+        },
+        "kubectlCliUrl": {
+          "title": "Kube CLI URL"
+        },
+        "helmCliUrl": {
+          "title": "Helm URL"
+        },
+        "credentialType": {
+          "title": "凭据类型"
+        },
+        "insecure": {
+          "title": "不安全"
+        },
+        "created": {
+          "title": "创建时间"
+        },
+        "updated": {
+          "title": "更新时间"
+        }
+      }
+    },
+    "addKubeForm": {
+      "title": "添加 Kubernetes",
+      "inputs": {
+        "name": {
+          "title": "名称",
+          "placeholder": "我的 Kubernetes"
+        },
+        "apiServerUrl": {
+          "title": "API 服务器 URL",
+          "placeholder": "https://1.1.1.1"
+        },
+        "credentialType": {
+          "title": "凭据类型",
+          "options": {
+            "basic_auth": {
+              "title": "用户身份验证"
+            },
+            "certificate": {
+              "title": "证书/密钥"
+            },
+            "configFile": {
+              "title": "配置文件"
+            }
+          }
+        },
+        "username": {
+          "title": "用户名",
+          "placeholder": "我的用户名"
+        },
+        "password": {
+          "title": "密码"
+        },
+        "certificate": {
+          "title": "证书",
+          "placeholder": "在此处粘贴证书"
+        },
+        "key": {
+          "title": "密钥",
+          "placeholder": "在此处粘贴密钥"
+        },
+        "configFile": {
+          "title": "配置文件"
+        }
+      },
+      "submit": {
+        "title": "添加"
+      }
+    },
+    "deleteKubeForm": {
+      "title": "删除实例",
+      "submit": {
+        "title": "是"
+      }
+    }
+  },
+  "consortium": {
+    "title": "联盟管理",
+    "actions": {
+      "title": "操作",
+      "options": {
+        "add": {
+          "title": "添加实例"
+        },
+        "delete": {
+          "title": "删除实例"
+        }
+      }
+    },
+    "grid": {
+      "pagination": {
+        "title": "联盟"
+      },
+      "columns": {
+        "name": {
+          "title": "名称"
+        },
+        "members": {
+          "title": "成员"
+        },
+        "created": {
+          "title": "创建时间"
+        }
+      }
+    },
+    "addConsortiumForm": {
+      "title": "添加联盟",
+      "inputs": {
+        "name": {
+          "title": "名称",
+          "placeholder": "我的联盟"
+        },
+        "members": {
+          "title": "成员"
+        }
+      },
+      "submit": {
+        "title": "添加"
+      }
+    },
+    "deleteConsortiumForm": {
+      "title": "删除实例",
+      "submit": {
+        "title": "是"
+      }
+    }
+  },
+  "blockchains": {
+    "title": "区块链管理",
+    "actions": {
+      "title": "操作",
+      "options": {
+        "add": {
+          "title": "创建区块链"
+        },
+        "delete": {
+          "title": "删除区块链"
+        }
+      }
+    },
+    "grid": {
+      "pagination": {
+        "title": "区块链"
+      },
+      "columns": {
+        "name": {
+          "title": "名称"
+        },
+        "membersCount": {
+          "title": "成员"
+        },
+        "channelsCount": {
+          "title": "通道计数"
+        },
+        "consensusType": {
+          "title": "共识类型"
+        },
+        "fabricExplorerUrl": {
+          "title": "架构仪表板"
+        },
+        "k8sDashboardUrl": {
+          "title": "Kubernetes 仪表板"
+        },
+        "status": {
+          "title": "状态"
+        },
+        "action": {
+          "title": "上次操作"
+        },
+        "created": {
+          "title": "创建时间"
+        }
+      }
+    },
+    "detail": {
+      "status": "状态",
+      "consensusType": "共识类型",
+      "openKube": "打开 Kubernetes 仪表板",
+      "openFabric": "打开架构仪表板",
+      "orgTab": "组织",
+      "channelTab": "通道"
+    },
+    "addBlockchainForm": {
+      "title": "创建区块链",
+      "inputs": {
+        "name": {
+          "title": "名称",
+          "placeholder": "区块链"
+        },
+        "peerOrg": {
+          "title": "对等组织"
+        },
+        "consensusType": {
+          "title": "共识类型",
+          "placeholder": "1234"
+        },
+        "ordererOrg": {
+          "title": "共识组织"
+        },
+        "kubernetes": {
+          "title": "Kubernetes 实例",
+          "placeholder": "1234"
+        },
+        "createCli": {
+          "title": "创建 CLI"
+        }
+      },
+      "submit": {
+        "title": "创建"
+      }
+    },
+    "deleteBlockchainForm": {
+      "title": "删除区块链",
+      "submit": {
+        "title": "是"
+      }
+    }
+  },
+  "personas": {
+    "systemsAdmin": "系统管理员",
+    "consortiumAdmin": "联盟管理员",
+    "orgAdmin": "组织管理员",
+    "orgDeveloper": "组织开发人员",
+    "orgUser": "组织用户"
+  },
+  "deleteModal": {
+    "bodyText": "是否确定要删除"
+  },
+  "globalError": {
+    "routingError": "您没有权限访问 Athena 的此部分内容，请与系统管理员联系以获取更多信息。"
+  },
+  "users": {
+    "title": "用户管理",
+    "actions": {
+      "title": "操作",
+      "options": {
+        "add": {
+          "title": "添加用户"
+        },
+        "edit": {
+          "title": "编辑用户"
+        },
+        "delete": {
+          "title": "删除用户"
+        }
+      }
+    },
+    "grid": {
+      "pagination": {
+        "title": "用户"
+      },
+      "columns": {
+        "name": {
+          "title": "名称"
+        },
+        "email": {
+          "title": "电子邮件"
+        },
+        "organization": {
+          "title": "组织"
+        },
+        "persona": {
+          "title": "角色"
+        }
+      }
+    },
+    "editUserForm": {
+      "title": "编辑用户",
+      "inputs": {
+        "firstName": {
+          "title": "名字",
+          "placeholder": "名字"
+        },
+        "lastName": {
+          "title": "姓氏",
+          "placeholder": "姓氏"
+        },
+        "email": {
+          "title": "电子邮件",
+          "placeholder": "emailid@doamin.com"
+        },
+        "role": {
+          "title": "角色",
+          "placeholder": "用户角色"
+        }
+      },
+      "submit": {
+        "title": "提交"
+      }
+    },
+    "addUserForm": {
+      "title": "添加用户",
+      "inputs": {
+        "firstName": {
+          "title": "名字",
+          "placeholder": "名字"
+        },
+        "lastName": {
+          "title": "姓氏",
+          "placeholder": "姓氏"
+        },
+        "email": {
+          "title": "电子邮件",
+          "placeholder": "emailid@doamin.com"
+        },
+        "password": {
+          "title": "密码",
+          "placeholder": "********"
+        },
+        "confirmPassword": {
+          "title": "确认密码",
+          "placeholder": "********"
+        },
+        "organization": {
+          "title": "组织",
+          "placeholder": "组织"
+        },
+        "role": {
+          "title": "角色",
+          "placeholder": "用户角色"
+        }
+      },
+      "errors": {
+        "password": {
+          "minLength": "密码长度必须至少为 8 个字符。",
+          "mismatch": "密码不匹配。"
+        }
+      },
+      "submit": {
+        "title": "提交"
+      }
+    },
+    "deleteUserForm": {
+      "title": "删除用户",
+      "submit": {
+        "title": "是"
+      }
+    },
+    "settings": {
+      "title": "用户设置",
+      "orgTitle": "我的组织和证书",
+      "firstName": "名字",
+      "lastName": "姓氏",
+      "email": "电子邮件",
+      "role": "角色",
+      "consortiums": "联盟",
+      "organization": {
+        "title": "组织"
+      },
+      "credentials": "凭据",
+      "downloadCertificate": {
+        "title": "下载证书",
+        "enterPassword": {
+          "navTitle": "输入密码",
+          "pageTitle": "密码",
+          "enterUserPassword": "输入用户密码",
+          "placeholder": "********"
+        },
+        "enterToken": {
+          "navTitle": "输入令牌",
+          "pageTitle": "双因素身份验证",
+          "message": "操作是必需的。请复制 VMware Verify 发送的令牌进行签名。",
+          "enterToken": "输入令牌",
+          "placeholder": "输入令牌"
+        },
+        "credentials": {
+          "navTitle": "凭据",
+          "pageTitle": "下载证书",
+          "message": "身份验证成功。下载将立即开始。如果 1 分钟内未开始下载，请直接单击下载按钮。"
+        },
+        "actions": {
+          "download": "下载",
+          "close": "关闭",
+          "next": "下一步",
+          "previous": "上一步"
+        }
+      },
+      "editSettings": {
+        "title": "编辑设置",
+        "alertMessage": "重定向到 CSP 以编辑设置。"
+      }
+    }
+  },
+  "blockchainWizard": {
+    "title": "部署",
+    "blockchainAndConsortium": {
+      "pageTitle": "设置区块链和联盟",
+      "navTitle": "区块链和联盟",
+      "info": "选择本地容错会将节点部署在您附近，而选择全局则会将多个节点分布在所有可用区域之间。您的联盟将与此区块链相关联。",
+      "blockchainType": "区块链类型",
+      "athena": "Athena",
+      "hyperledger": "Hyperledger",
+      "faultTolerance": "容错",
+      "global": "全局",
+      "local": "本地",
+      "consortiumName": "联盟名称",
+      "consortiumPlaceholder": "我的联盟"
+    },
+    "addOrgs": {
+      "pageTitle": "添加组织",
+      "navTitle": "添加组织",
+      "info": "请添加要加入此联盟的组织。系统会为每个组织提供相应的凭据，以便在区块链上开展交易。我们需要组织位置以确保将节点设置在每个组织附近，从而最大限度地减少延迟。",
+      "addOrganization": "添加组织",
+      "name": "名称",
+      "namePlaceholder": "我的组织",
+      "location": "位置",
+      "noOrgs": "未添加组织"
+    },
+    "usersAndAccess": {
+      "pageTitle": "用户与访问",
+      "navTitle": "添加用户与访问",
+      "info": "请为每个组织至少添加一名组织管理员，以便管理其各自的组织，并在认为必要时添加用户。",
+      "firstName": "名字",
+      "firstNamePlaceholder": "John",
+      "lastName": "姓氏",
+      "lastNamePlaceholder": "Doe",
+      "email": "电子邮件",
+      "emailPlaceholder": "jdoe@email.com",
+      "organization": "组织",
+      "role": "角色",
+      "addUser": "添加用户",
+      "noUsers": "未添加用户"
+    },
+    "reviewDeployment": {
+      "pageTitle": "查看部署设置",
+      "navTitle": "查看",
+      "chosenBlockchain": "所选区块链",
+      "consortiumSetup": "联盟设置",
+      "advanced": "高级",
+      "networkName": "网络名称",
+      "numberOfNodes": "节点数",
+      "publicNodesRegions": "公共节点区域",
+      "privateNode": "私有节点 (vCenter/ESX)",
+      "organizations": "组织",
+      "privateNodeValues": {
+        "londonDatacenter": "伦敦-数据中心",
+        "usDatacenter": "美国-数据中心"
+      },
+      "publicNodeValues": {
+        "usEast1": "AWS 美国东部 (北维吉尼亚州)",
+        "usEast2": "AWS 美国东部 (俄亥俄州)",
+        "usWest1": "AWS 美国西部 (北加利福尼亚州)",
+        "usWest2": "AWS 美国西部 (俄勒冈州)",
+        "apNortheast1": "AWS 亚太地区 (东京)",
+        "apNortheast3": "AWS 亚太地区 (大阪当地)",
+        "apSouth1": "AWS 亚太地区 (孟买)",
+        "apSoutheast1": "AWS 亚太地区 (新加坡)",
+        "apSoutheast2": "AWS 亚太地区 (悉尼)",
+        "caCentral1": "AWS 加拿大 (中部)",
+        "cnNorth1": "AWS 中国 (北京)",
+        "cnNorthWest1": "AWS 中国 (宁夏)",
+        "euWest1": "AWS 欧盟 (爱尔兰)",
+        "euWest2": "AWS 欧盟 (伦敦)",
+        "euWest3": "AWS 欧盟 (巴黎)",
+        "euCentral1": "AWS 欧盟 (法兰克福)",
+        "saEast1": "AWS 南美 (圣保罗)"
+      }
+    },
+    "locations": {
+      "sydney": "澳大利亚，悉尼",
+      "vienna": "奥地利，维也纳",
+      "brussels": "比利时，布鲁塞尔",
+      "rioDeJaneiro": "巴西，里约热内卢",
+      "toronto": "加拿大，多伦多",
+      "santiago": "智利，圣地亚哥",
+      "beijing": "中国，北京",
+      "cairo": "埃及，开罗",
+      "paris": "法国，巴黎",
+      "delhi": "印度，德里",
+      "milan": "意大利，米兰",
+      "tokyo": "日本，东京",
+      "mexicoCity": "墨西哥，墨西哥城",
+      "moscow": "俄罗斯，莫斯科",
+      "seoul": "韩国，首尔",
+      "johannesburg": "南非，约翰内斯堡",
+      "london": "英国，伦敦",
+      "lasVegas": "美国，拉斯维加斯",
+      "newYork": "美国，纽约",
+      "paloAlto": "美国，帕罗奥图"
+    }
+  },
+  "mockTasks": {
+    "creatingOrg": "创建组织",
+    "addingUsers": "添加用户",
+    "creatingConsortium": "创建联盟",
+    "vmInstance": "虚拟机实例",
+    "blockchainInstance": "区块链实例"
+  },
+  "tourSteps": {
+    "title": "简易教程",
+    "nextBtnText": "下一项",
+    "prevBtnText": "上一项",
+    "dashboard": {
+      "nodeStatus": {
+        "title": "节点状态",
+        "text": "悬停在地图中的节点上，可查看其运行状况和状态。"
+      },
+      "transactionList": {
+        "title": "交易列表",
+        "text": "下方为近期区块链交易。可展开每行来查看更多详细信息。"
+      }
+    },
+    "smartContracts": {
+      "manageSmartContracts": {
+        "title": "管理智能合约",
+        "text":  "您可以在此处管理和查看您的智能合约以及联盟成员提交的其他智能合约。"
+      },
+      "createSmartContract": {
+        "title": "创建",
+        "text": "单击此处创建合约"
+      }
+    },
+    "users": {
+      "userManagement": {
+        "title": "管理用户",
+        "text": "单击此处管理贵组织或联盟中的用户。"
+      },
+      "userActions": {
+        "title": "用户操作",
+        "text": "可在此处添加和管理用户。"
+      },
+      "userSettings": {
+        "title": "用户设置",
+        "text": "单击此处转到您的用户设置并下载组织证书。"
+      },
+      "downloadCertificate": {
+        "title": "下载证书",
+        "text": "单击此处下载您的证书，将此区块链与第三方应用程序相关联。"
+      }
+    }
+  },
+  "graph": {
+    "days": {
+      "0": "星期日",
+      "1": "星期一",
+      "2": "星期二",
+      "3": "星期三",
+      "4": "星期四",
+      "5": "星期五",
+      "6": "星期六"
+    }
+  }
+}

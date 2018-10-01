@@ -27,16 +27,31 @@ export function langInitializerFactory(translate: TranslateService, injector: In
   return () => new Promise<any>((resolve: any) => {
     const locationInitialized = injector.get(LOCATION_INITIALIZED, Promise.resolve(null));
     locationInitialized.then(() => {
-      const langToSet = 'en';
-      translate.setDefaultLang('en');
-      translate.use(langToSet).subscribe(() => {
-        console.info(`Successfully initialized '${langToSet}' language.'`);
-      }, err => {
-        console.error(`Problem with '${langToSet}' language initialization: ${err}`);
-      }, () => {
-        resolve(null);
-      });
+      const defaultLang = 'en';
+      const browserLang = translate.getBrowserLang() || defaultLang;
+      const browserCultureLang = translate.getBrowserCultureLang() || browserLang || defaultLang;
+      const languages = [browserCultureLang, browserLang, defaultLang];
+      translate.setDefaultLang(defaultLang);
+
+      // Check each language in order of specificity to handle missing i18n files and provide a fallback
+      initLanguage(translate, languages, resolve);
     });
+  });
+}
+
+function initLanguage(translate: TranslateService, languages: string[], resolve: any) {
+  if (languages.length === 0) {
+    return;
+  }
+
+  translate.use(languages[0]).subscribe(() => {
+    console.info(`Successfully initialized '${languages[0]}' language.'`);
+  }, err => {
+    console.error(`Problem with '${languages[0]}' language initialization: ${err}`);
+    languages.splice(0, 1);
+    initLanguage(translate, languages, resolve);
+  }, () => {
+    resolve(null);
   });
 }
 
