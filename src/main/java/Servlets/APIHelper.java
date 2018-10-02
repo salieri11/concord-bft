@@ -251,7 +251,11 @@ public class APIHelper {
             || blockNumber.equals("pending")) {
          return -1;
       } else {
-         return Long.valueOf(blockNumber);
+         if (blockNumber.startsWith("0x")) {
+            return Long.valueOf(blockNumber.substring(2), 16);
+         } else {
+            return Long.valueOf(blockNumber);
+         }
       }
    }
 
