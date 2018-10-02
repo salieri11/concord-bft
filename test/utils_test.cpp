@@ -54,7 +54,7 @@ TEST(rlp_test, example_empty_list) {
 TEST(rlp_test, example_integer_0) {
    athena::RLPBuilder rlpb;
    rlpb.add(0);
-   std::vector<uint8_t> expect{ 0x00 };
+   std::vector<uint8_t> expect{ 0x80 };
    EXPECT_EQ(expect, rlpb.build());
 }
 

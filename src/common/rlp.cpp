@@ -91,16 +91,22 @@ void com::vmware::athena::RLPBuilder::add(const evm_uint256be &uibe)
 void com::vmware::athena::RLPBuilder::add(uint64_t number)
 {
    assert(!finished);
-   if (number <= 0x7f) {
-      buffer.push_back((uint8_t)number);
+   if (number == 0) {
+      // "0" is encoded as "empty string" here, not "integer zero"
+      std::vector<uint8_t> empty_value;
+      add(empty_value);
    } else {
-      uint8_t length = 0;
-      do {
-         ++length;
-         buffer.push_back(number & 0xff);
-         number >>= 8;
-      } while (number > 0);
-      add_string_size(length);
+      if (number <= 0x7f) {
+         buffer.push_back((uint8_t)number);
+      } else {
+         uint8_t length = 0;
+         do {
+            ++length;
+            buffer.push_back(number & 0xff);
+            number >>= 8;
+         } while (number > 0);
+         add_string_size(length);
+      }
    }
 }
 
