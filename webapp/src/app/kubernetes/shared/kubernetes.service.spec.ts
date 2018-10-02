@@ -12,7 +12,7 @@ describe('KubernetesService', () => {
       imports: [HttpClientTestingModule],
       providers: [
         KubernetesService,
-        {provide: ANDES_API_PREFIX, useValue: '/api'},
+        {provide: ANDES_API_PREFIX, useValue: 'api'},
       ]
     });
   });

@@ -58,7 +58,7 @@ export class AuthenticationService {
   }
 
   checkForLegalAgreements(): Observable<any> {
-    return this.http.get('/api/agreements/1').pipe(
+    return this.http.get('api/agreements/1').pipe(
         map((response) => {
           this.agreement = response;
 

@@ -15,7 +15,7 @@ describe('SmartContractsService', () => {
     TestBed.configureTestingModule({
       providers: [
         SmartContractsService,
-        { provide: ATHENA_API_PREFIX, useValue: '/api/athena' },
+        { provide: ATHENA_API_PREFIX, useValue: 'api/athena' },
         HttpClient,
         HttpHandler
       ]
@@ -31,20 +31,20 @@ describe('SmartContractsService', () => {
   it('should fetch all smart contracts', () => {
       const httpSpy = spyOn((service as any).httpClient, 'get');
       service.getSmartContracts();
-      expect(httpSpy).toHaveBeenCalledWith('/api/athena/contracts');
+      expect(httpSpy).toHaveBeenCalledWith('api/athena/contracts');
     }
   );
 
   it('should fetch smart contract with given id', () => {
       const httpSpy = spyOn((service as any).httpClient, 'get');
       service.getSmartContract('contractId');
-      expect(httpSpy).toHaveBeenCalledWith('/api/athena/contracts/contractId');
+      expect(httpSpy).toHaveBeenCalledWith('api/athena/contracts/contractId');
   });
 
   it('should fetch version details for given versionId and contractId', () => {
     const httpSpy = spyOn((service as any).httpClient, 'get');
     service.getVersionDetails('contractId', 'version');
-    expect(httpSpy).toHaveBeenCalledWith('/api/athena/contracts/contractId/versions/version');
+    expect(httpSpy).toHaveBeenCalledWith('api/athena/contracts/contractId/versions/version');
   });
 
   it('should post a smart contract with given payload', () => {
@@ -58,7 +58,7 @@ describe('SmartContractsService', () => {
     };
 
     service.postContract(contract);
-    expect(httpSpy).toHaveBeenCalledWith('/api/athena/contracts', contract);
+    expect(httpSpy).toHaveBeenCalledWith('api/athena/contracts', contract);
   });
 
 });

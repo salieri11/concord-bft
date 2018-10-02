@@ -17,7 +17,7 @@ export class UsersService {
 
   }
 
-  path = '/api/users';
+  path = 'api/users';
   users: User[] = [];
 
   getList(): Observable<User[]> {
