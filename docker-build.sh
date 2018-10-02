@@ -4,8 +4,8 @@
 # keys, suitable for using in a docker-compose script.
 
 # Before even trying, make sure submodules are present
-if [ ! -e "submodules/P2_Blockchain/README.md" ]; then
-    echo "P2_Blockchain submodule not initialized."
+if [ ! -e "submodules/concord-bft/README.md" ]; then
+    echo "concord-bft submodule not initialized."
     echo "Please run the following before building docker images:"
     echo "   git submodule init && git submodule update --recursive"
     exit 1

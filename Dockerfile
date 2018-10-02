@@ -114,7 +114,6 @@ COPY --from=0 /usr/local/lib/libsecp256k1* /usr/local/lib/
 WORKDIR /athena/resources
 COPY --from=0 /athena/build/resources/log4cplus.properties /athena/resources/
 COPY --from=0 /athena/build/src/athena /athena/athena
-COPY --from=0 /athena/build/submodules/P2_Blockchain/AgreementModules/SbftForIntegMay18/libbyz/libbyz.so /usr/local/lib
 COPY --from=0 /athena/build/tools/ath_* /athena/
 COPY --from=0 /athena/build/tools/ec* /athena/
 COPY --from=0 /athena/docker/find-docker-instances.sh /athena/resources/
