@@ -102,7 +102,10 @@ class ExtendedRPCTests(test_suite.TestSuite):
               ("eth_getTransactionCount", self._test_eth_getTransactionCount), \
               ("eth_sendRawTransaction", self._test_eth_sendRawTransaction), \
               ("eth_sendRawContract", self._test_eth_sendRawContract), \
-              ("eth_getBlockByNumber", self._test_eth_getBlockByNumber)]
+              ("eth_getBlockByNumber", self._test_eth_getBlockByNumber),
+              ("eth_getBalance", self._test_eth_getBalance),
+              ("eth_getStorageAt", self._test_eth_getStorageAt),
+              ("eth_getCode", self._test_eth_getCode)]
 
    def _runRpcTest(self, testName, testFun, testLogDir):
       ''' Runs one test. '''
@@ -237,16 +240,19 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if not newAccount:
          return (False, "Unable to create new account")
 
-      startNonce = rpc.getTransactionCount(newAccount)
+      previousBlockNumber = rpc.getBlockNumber()
+
+      txResult = rpc.sendTransaction(newAccount,
+                                     data = "0x00",
+                                     gas = "0x01")
+
+      startNonce = rpc.getTransactionCount(newAccount, previousBlockNumber)
       if not startNonce:
          return (False, "Unable to get starting nonce")
 
       if not startNonce == "0x0000000000000000000000000000000000000000000000000000000000000000":
          return (False, "Start nonce was not zero (was {})".format(startNonce))
 
-      txResult = rpc.sendTransaction(newAccount,
-                                     data = "0x00",
-                                     gas = "0x01")
       if not txResult:
          return (False, "Transaction was not accepted")
 
@@ -391,5 +397,119 @@ class ExtendedRPCTests(test_suite.TestSuite):
       except:
          # requesting an uncommitted block should return an error
          pass
+
+      return (True, None)
+
+   def _test_eth_getStorageAt(self, rpc, request):
+      contractTransaction = "0xf901628085051f4d5c0083419ce08080b9010f608060405234801561001057600080fd5b506104d260005560ea806100256000396000f30060806040526004361060525763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416634f2be91f811460575780636deebae314606b5780638ada066e14607d575b600080fd5b348015606257600080fd5b50606960a1565b005b348015607657600080fd5b50606960ac565b348015608857600080fd5b50608f60b8565b60408051918252519081900360200190f35b600080546001019055565b60008054600019019055565b600054905600a165627a7a72305820b827241483c0f1a78e00de3ba4a4cb1e67a03bf6fb9f5ecc0491712f7e0aeb8000291ca04a8037443f6f4045acccda71496b9727311bac5ca8c6443c963137f1dadfc38ca056dc2e656776b082962e5452398090a0d0c3a671aca06b61253588334f44bb13"
+      decrementTx = "0xf8690185051f4d5c0083419ce094cf98dacbe219c04942a876fff3dc657e731ae9ba80846deebae31ba0de2f19ce91d7abad46a21cb8a017da98f2dd96d32a1b9eb199e0587f89a78dffa024a2b103cd2203b85e1a96b18a153d51d3fd5e1f68b45d3ad31dd22f3de0237d"
+      storageLocation = "0x0"
+      expectedStartStorage = "0x00000000000000000000000000000000000000000000000000000000000004d2"
+      expectedEndStorage = "0x00000000000000000000000000000000000000000000000000000000000004d1"
+
+      previousBlockNumber = rpc.getBlockNumber()
+      txResult = rpc.sendRawTransaction(contractTransaction)
+      startBlockNumber = rpc.getBlockNumber()
+      if not txResult:
+         return (False, "Transaction was not accepted")
+
+      if not self._productMode:
+         log.warn("No verification done in ethereum mode")
+      else:
+         tx = request.getTransaction(txResult)
+         if not tx:
+            return (False, "No transaction receipt found")
+
+         if not "contract_address" in tx:
+            return (False,
+                    "No contract_address found. Was this run on an empty " \
+                    "cluster?")
+
+      contractAddress = tx["contract_address"]
+      txResult = rpc.sendRawTransaction(decrementTx)
+      if not txResult:
+         return (False, "Transaction was not accepted")
+
+      endBlockNumber = rpc.getBlockNumber()
+      startStorage = rpc.getStorageAt(contractAddress, storageLocation,
+                                      startBlockNumber)
+      if not startStorage == expectedStartStorage:
+         return (False, "start storage does not match expected")
+
+      endStorage = rpc.getStorageAt(contractAddress, storageLocation,
+                                    endBlockNumber)
+      if not endStorage == expectedEndStorage:
+         return (False, "end storage does not match expected")
+
+      return (True, None)
+
+   def _test_eth_getCode(self, rpc, request):
+      expectedCode = "0x60806040526004361060525763ffffffff7c01000000000000000000000000000000000000000000000000000000006000350416634f2be91f811460575780636deebae314606b5780638ada066e14607d575b600080fd5b348015606257600080fd5b50606960a1565b005b348015607657600080fd5b50606960ac565b348015608857600080fd5b50608f60b8565b60408051918252519081900360200190f35b600080546001019055565b60008054600019019055565b600054905600a165627a7a72305820b827241483c0f1a78e00de3ba4a4cb1e67a03bf6fb9f5ecc0491712f7e0aeb800029"
+      address = "0xcf98dacbe219c04942a876fff3dc657e731ae9ba"
+      expectedError = "No code found at given address"
+      startBlockNumber = "0"
+      endingBlockNumber = rpc.getBlockNumber()
+
+      try:
+         txResult = rpc.getCode(address, startBlockNumber)
+         return (False, "getCode at the block before the contract deployed " \
+                        "should fail")
+      except:
+         pass
+
+      txResult = rpc.getCode(address, endingBlockNumber)
+      txResultLatest = rpc.getCode(address, "latest")
+
+      if not txResult == expectedCode:
+         return (False, "code does not match expected")
+      if not txResultLatest == expectedCode:
+         return (False, "code does not match expected")
+
+      return (True, None)
+
+   def _test_eth_getBalance(self, rpc, request):
+      addrFrom = "0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019"
+      addrTo = "0x5bb088f57365907b1840e45984cae028a82af934"
+      transferAmount = "1"
+
+      previousBlockNumber = rpc.getBlockNumber()
+      # data has to be set as None for transferring-fund kind of transaction
+      txResult = rpc.sendTransaction(addrFrom,
+                                     data=None,
+                                     to=addrTo,
+                                     value=transferAmount)
+
+      currentBlockNumber = rpc.getBlockNumber()
+      addrFromBalance = int(rpc.getBalance(addrFrom, previousBlockNumber), 16)
+      addrToBalance = int(rpc.getBalance(addrTo, previousBlockNumber), 16)
+      expectedAddrFromBalance = addrFromBalance - int(transferAmount)
+      expectedAddrToBalance = addrToBalance + int(transferAmount)
+
+      if not txResult:
+         return (False, "Transaction was not accepted")
+
+      if not self._productMode:
+         log.warn("No verification done in ethereum mode")
+      else:
+         tx = request.getTransaction(txResult)
+         if not tx:
+            return (False, "No transaction receipt found")
+
+         # This is the important one: it tells whether signature address
+         # recovery works.
+         if not tx["from"] == addrFrom:
+            return (False, "Found from does not match expected from")
+
+         # The rest of these are just checking parsing.
+         if not tx["to"] == addrTo:
+            return (False, "Found to does not match expectd to")
+         if not tx["value"] == transferAmount:
+            return (False, "Found value does not match expected value")
+         if not expectedAddrFromBalance == int(
+               rpc.getBalance(addrFrom, currentBlockNumber), 16):
+            return (False, "sender balance does not match expected value")
+         if not expectedAddrToBalance == int(
+               rpc.getBalance(addrTo, currentBlockNumber), 16):
+            return (False, "receiver balance does not match expected value")
 
       return (True, None)
