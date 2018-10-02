@@ -53,7 +53,7 @@ class KVBTests(test_suite.TestSuite):
 
    def run(self):
       ''' Runs all of the tests. '''
-      if self._productMode:
+      if self._productMode and not self._noLaunch:
          global p
          try:
             p = self.launchProduct(self._args,
@@ -89,7 +89,7 @@ class KVBTests(test_suite.TestSuite):
 
       log.info("Tests are done.")
 
-      if self._productMode:
+      if self._productMode and not self._noLaunch:
          p.stopProduct()
 
       return self._resultFile
@@ -118,7 +118,7 @@ class KVBTests(test_suite.TestSuite):
          random.seed(datetime.now())
          password = random.random()
          #print("using " + str(password) + " as password for creating new account")
-      
+
          hash = rpc.newAccount(str(password))
          post = int(rpc.getBlockNumber(), 16)
 
@@ -142,7 +142,7 @@ class KVBTests(test_suite.TestSuite):
 
          if pre <= 0:
             return (None, "No blocks to restore.")
-         
+
          #Kill and reboot Athena
          global p
          p.stopProduct()
@@ -159,7 +159,7 @@ class KVBTests(test_suite.TestSuite):
          post = int(rpc.getBlockNumber(), 16)
 
          if post < pre:
-            return (False, "Blocks not persisted to disk correctly." + 
+            return (False, "Blocks not persisted to disk correctly." +
               "Note: This test should fail if Athena uses an in memory database.")
 
       return (True, None)

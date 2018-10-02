@@ -1,2 +1,5 @@
 *~
 *.pyc
+igor.local.config
+cockroachdb_test_local.sh
+.vscode/*

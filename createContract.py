@@ -118,7 +118,7 @@ class BytecodeContractCreator(test_suite.TestSuite):
       Creates a contract containing some bytecode which can be invoked
       again later.
       '''
-      if self._productMode:
+      if self._productMode and not self._noLaunch:
          try:
             p = self.launchProduct(self._args,
                                    self._apiServerUrl,

@@ -52,7 +52,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
    def run(self):
       ''' Runs all of the tests. '''
-      if self._productMode:
+      if self._productMode and not self._noLaunch:
          try:
             p = self.launchProduct(self._args,
                                    self._apiServerUrl,
@@ -87,7 +87,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
       log.info("Tests are done.")
 
-      if self._productMode:
+      if self._productMode and not self._noLaunch:
          p.stopProduct()
 
       return self._resultFile

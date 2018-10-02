@@ -37,7 +37,7 @@ class PerformanceTests(test_suite.TestSuite):
       return "PerformanceTests"
 
    def run(self):
-      if self._productMode:
+      if self._productMode and not self._noLaunch:
          global p
          try:
             p = self.launchProduct(self._args,
@@ -76,14 +76,14 @@ class PerformanceTests(test_suite.TestSuite):
 
       log.info("Tests are done.")
 
-      if self._productMode:
+      if self._productMode and not self._noLaunch:
          p.stopProduct()
 
       return self._resultFile
 
 
    #Plot a graph and save it
-   def plotData(self, period_list, avg_latency_list, peak_latency_list, 
+   def plotData(self, period_list, avg_latency_list, peak_latency_list,
                 stdev_latency_list, var_latency_list, percentile_list_99):
       print("Plotting graph..")
 
@@ -173,7 +173,7 @@ class PerformanceTests(test_suite.TestSuite):
          log.error("Exception running performance test: '{}'".format(info))
          return False
 
-      
+
 
    def _test_performance(self):
       if self._productMode:
