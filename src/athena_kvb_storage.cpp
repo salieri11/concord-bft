@@ -418,7 +418,7 @@ Status com::vmware::athena::KVBStorage::get(const BlockId readVersion,
         const Slice &key, Slice &value, BlockId &outBlock)
 {
    //TODO(BWF): this search will be very inefficient for a large set of changes
-   for (auto u: updates) {
+   for (auto &u: updates) {
       if (u.first == key) {
          value = u.second;
          return Status::OK();
@@ -503,7 +503,6 @@ uint64_t com::vmware::athena::KVBStorage::get_balance(const evm_address &addr, u
    Slice kvbkey = balance_key(addr);
    Slice value;
    BlockId outBlock;
-   // "1+" == KVBlockchain starts at block 1, but Ethereum starts at 0
    Status status = get(block_number, kvbkey, value, outBlock);
 
    LOG4CPLUS_DEBUG(logger, "Getting nonce " << addr <<
@@ -540,7 +539,6 @@ uint64_t com::vmware::athena::KVBStorage::get_nonce(const evm_address &addr,
    Slice kvbkey = nonce_key(addr);
    Slice value;
    BlockId outBlock;
-   // "1+" == KVBlockchain starts at block 1, but Ethereum starts at 0
    Status status = get(block_number, kvbkey, value, outBlock);
 
    LOG4CPLUS_DEBUG(logger, "Getting nonce " << addr <<
@@ -681,8 +679,7 @@ evm_uint256be com::vmware::athena::KVBStorage::get_storage(
       } else {
          LOG4CPLUS_ERROR(logger, "Contract " << addr <<
                          " storage " << location <<
-                         " only had " << value.size() <<
-                         " bytes.");
+                         " only had " << value.size() << " bytes.");
          throw EVMException("Corrupt contract storage");
       }
    } else {
