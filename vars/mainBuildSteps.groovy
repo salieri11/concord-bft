@@ -16,7 +16,7 @@ def call(){
             steps() {
               sh 'mkdir googletest'
               dir('googletest') {
-                sh 'cp -ar ~/workspace/googletest/* .'
+                sh 'cp -ar /var/jenkins/workspace/googletest/* .'
               }
             }
           }
@@ -24,7 +24,7 @@ def call(){
             steps() {
               sh 'mkdir evmjit'
               dir('evmjit') {
-                sh 'cp -ar ~/workspace/evmjit/* .'
+                sh 'cp -ar /var/jenkins/workspace/evmjit/* .'
               }
             }
           }
@@ -32,35 +32,35 @@ def call(){
             steps() {
               sh 'mkdir ethereum_tests'
               dir('ethereum_tests') {
-                sh 'cp -ar ~/workspace/ethereum_tests/* .'
+                sh 'cp -ar /var/jenkins/workspace/ethereum_tests/* .'
               }
             }
           }
         }
       }
-      stage('test email') {
-        steps() {
-          script {
-            emailext (
-              subject: "STARTED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
-              body: """<p>STARTED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]':</p>
-                <p>Check console output at "<a href="${env.BUILD_URL}">${env.JOB_NAME} [${env.BUILD_NUMBER}]</a>"</p>""",
-              recipientProviders: [[$class: 'DevelopersRecipientProvider']],
-              to: "rvollmar@vmware.com"
-            )
-          }
-        }
-      }
+      // stage('test email') {
+      //   steps() {
+      //     script {
+      //       emailext (
+      //         subject: "STARTED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
+      //         body: """<p>STARTED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]':</p>
+      //           <p>Check console output at "<a href="${env.BUILD_URL}">${env.JOB_NAME} [${env.BUILD_NUMBER}]</a>"</p>""",
+      //         recipientProviders: [[$class: 'DevelopersRecipientProvider']],
+      //         to: "rvollmar@vmware.com"
+      //       )
+      //     }
+      //   }
+      // }
       stage('Build products') {
         parallel {
           stage('Build Athena') {
             steps {
               sh 'mkdir athena'
               dir('athena') {
-                checkout([$class: 'GitSCM', branches: [[name: "master"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '1a673da6-b7cf-46e9-9330-123797932588', url: 'https://github.com/vmwathena/athena']]])
+                checkout([$class: 'GitSCM', branches: [[name: "master"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '27bbd815-703c-4647-909b-836919db98ef', url: 'https://github.com/vmwathena/athena']]])
                 script {
                   try {
-                    checkout([$class: 'GitSCM', branches: [[name: "${env.BRANCH_NAME}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '1a673da6-b7cf-46e9-9330-123797932588', url: 'https://github.com/vmwathena/athena']]])
+                    checkout([$class: 'GitSCM', branches: [[name: "${env.BRANCH_NAME}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '27bbd815-703c-4647-909b-836919db98ef', url: 'https://github.com/vmwathena/athena']]])
                   } catch (Exception e) {
                     echo "Branch ${env.BRANCH_NAME} for Athena not found"
                   }
@@ -84,10 +84,10 @@ def call(){
             steps {
               sh 'mkdir helen'
               dir('helen') {
-                checkout([$class: 'GitSCM', branches: [[name: "master"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '1a673da6-b7cf-46e9-9330-123797932588', url: 'https://github.com/vmwathena/helen']]])
+                checkout([$class: 'GitSCM', branches: [[name: "master"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '27bbd815-703c-4647-909b-836919db98ef', url: 'https://github.com/vmwathena/helen']]])
                 script {
                   try {
-                    checkout([$class: 'GitSCM', branches: [[name: "${env.BRANCH_NAME}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '1a673da6-b7cf-46e9-9330-123797932588', url: 'https://github.com/vmwathena/helen']]])
+                    checkout([$class: 'GitSCM', branches: [[name: "${env.BRANCH_NAME}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '27bbd815-703c-4647-909b-836919db98ef', url: 'https://github.com/vmwathena/helen']]])
                   } catch (Exception e) {
                     echo "Branch ${env.BRANCH_NAME} for Helen not found"
                   }
@@ -106,7 +106,7 @@ def call(){
         steps {
           sh 'mkdir hermes'
           dir('hermes') {
-            checkout([$class: 'GitSCM', branches: [[name: "master"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '1a673da6-b7cf-46e9-9330-123797932588', url: 'https://github.com/vmwathena/hermes']]])
+            checkout([$class: 'GitSCM', branches: [[name: "master"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '27bbd815-703c-4647-909b-836919db98ef', url: 'https://github.com/vmwathena/hermes']]])
             configFileProvider([configFile(fileId: '092fb643-feda-4b41-b7b0-31ff7617b0c9', targetLocation: 'resources/user_config.json')]) {
             }
             sh './main.py CoreVMTests'
