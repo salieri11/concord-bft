@@ -1049,6 +1049,113 @@
           }
         }
       }
+    },
+    "/change-password": {
+      "summary": "Change user password",
+      "post": {
+        "summary": "Change a user password",
+        "operationId": "ChangePassword",
+        "requestBody": {
+          "description": "Authenticate user POST request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "password": {
+                    "type": "string",
+                    "description": "email of the user",
+                    "required": true
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "new password of the user",
+                    "required": true
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Returns an object with at least an `isAuthenticated` field. If login failed, the value of this field is `false`. If login succeeded, the value of this field is `true`, and the rest of the fields of a user-GET response are also included.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user_id": {
+                      "type": "integer",
+                      "description": "integer value representing ID of this user"
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "string representing name of this user"
+                    },
+                    "email": {
+                      "type": "string",
+                      "description": "string representing email of this user"
+                    },
+                    "role": {
+                      "type": "string",
+                      "description": "string representing role of this user"
+                    },
+                    "last_login": {
+                      "type": "integer",
+                      "description": "integer value representing the time (in milliseconds since epoch) when this user last logged in"
+                    },
+                    "details": {
+                      "type": "object",
+                      "properties": {
+                        "first_name": {
+                          "type": "string",
+                          "description": "first name of this user"
+                        },
+                        "last_name": {
+                          "type": "string",
+                          "description": "last name of this user"
+                        }
+                      }
+                    },
+                    "consortium": {
+                      "type": "object",
+                      "properties": {
+                        "consortium_id": {
+                          "type": "integer",
+                          "description": "ID of consortium to which this user belongs"
+                        },
+                        "consortium_name": {
+                          "type": "string",
+                          "description": "name of consortium to which this user belongs"
+                        }
+                      }
+                    },
+                    "organization": {
+                      "type": "object",
+                      "properties": {
+                        "organization_id": {
+                          "type": "integer",
+                          "description": "ID of organization to which this user belongs"
+                        },
+                        "organization_name": {
+                          "type": "string",
+                          "description": "name of organization to which this user belongs"
+                        }
+                      }
+                    },
+                    "isAuthenticated": {
+                      "type": "boolean",
+                      "description": "True if login succeeded. False otherwise."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 }

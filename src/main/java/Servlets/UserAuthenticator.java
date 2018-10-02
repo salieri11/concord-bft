@@ -84,6 +84,34 @@ public class UserAuthenticator extends BaseServlet {
                                   responseStatus);
    }
 
+   @RequestMapping(method = RequestMethod.POST, path = "/api/change-password")
+   protected ResponseEntity<JSONAware> doChangePassword(@RequestBody String requestBody) {
+      JSONParser parser = new JSONParser();
+      HttpStatus responseStatus;
+      JSONObject responseJSON;
+      try {
+         JSONObject requestJSON = (JSONObject) parser.parse(requestBody);
+         if (requestJSON.containsKey(EMAIL_LABEL)
+            && requestJSON.containsKey(PASSWORD_LABEL)) {
+            responseStatus = HttpStatus.OK;
+            responseJSON
+               = prm.changePassword((String) requestJSON.get(EMAIL_LABEL),
+                               (String) requestJSON.get(PASSWORD_LABEL));
+         } else {
+            responseJSON
+               = APIHelper.errorJSON("email or password " + "field missing");
+            responseStatus = HttpStatus.BAD_REQUEST;
+         }
+      } catch (ParseException | UserModificationException e) {
+         responseStatus = HttpStatus.BAD_REQUEST;
+         responseJSON = APIHelper.errorJSON(e.getMessage());
+      }
+
+      return new ResponseEntity<>(responseJSON,
+                                  standardHeaders,
+                                  responseStatus);
+   }
+
    @Override
    protected JSONAware parseToJSON(Athena.AthenaResponse athenaResponse) {
       return null;

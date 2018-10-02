@@ -22,7 +22,7 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
   canActivateChild(childRoute: ActivatedRouteSnapshot): boolean {
     const personasAllowed: Personas[] = childRoute.component ? (childRoute.component as any).personasAllowed : null;
 
-    if (!this.authenticationService.isAuthenticated()) {
+    if (localStorage.getItem('changePassword') || !this.authenticationService.isAuthenticated()) {
       this.router.navigate(['auth', 'login']);
       return false;
     } else if (personasAllowed && !this.personaService.hasAuthorization(personasAllowed)) {
@@ -37,7 +37,7 @@ export class AuthenticatedGuard implements CanActivateChild, CanActivate {
   canActivate(route: ActivatedRouteSnapshot): boolean {
     const personasAllowed: Personas[] = (route.component as any).personasAllowed;
 
-    if (!this.authenticationService.isAuthenticated()) {
+    if (localStorage.getItem('changePassword') || this.authenticationService.isAuthenticated()) {
       this.router.navigate(['auth', 'login']);
       return false;
     } else if (personasAllowed && !this.personaService.hasAuthorization(personasAllowed)) {
