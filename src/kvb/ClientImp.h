@@ -25,13 +25,6 @@ namespace Blockchain {
 
       virtual bool isRunning() override;
 
-      /*
-      virtual void invokeCommandAsynch(const Slice command,
-                                       bool isReadOnly,
-                                       uint64_t completionToken,
-                                       CommandCompletion h) override;
-      */
-
       virtual Status invokeCommandSynch(const Slice command,
                                         bool isReadOnly,
                                         Slice &outReply,

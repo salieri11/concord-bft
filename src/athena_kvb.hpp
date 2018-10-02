@@ -33,28 +33,28 @@ public:
    ~KVBCommandsHandler();
 
    int execute(uint16_t clientId,
-              bool readOnly,
-              uint32_t requestSize,
-              const char* request,
-              uint32_t maxReplySize,
-              char* outReply,
-              uint32_t &outActualReplySize) override;
+               bool readOnly,
+               uint32_t requestSize,
+               const char* request,
+               uint32_t maxReplySize,
+               char* outReply,
+               uint32_t &outActualReplySize) override;
 
 private:
    bool executeCommand(
-           const Blockchain::Slice command,
-           const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-           Blockchain::IBlocksAppender &blockAppender,
-           const size_t maxReplySize,
-           char *outReply,
-           uint32_t &outReplySize) const;
+      const Blockchain::Slice command,
+      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+      Blockchain::IBlocksAppender &blockAppender,
+      const size_t maxReplySize,
+      char *outReply,
+      uint32_t &outReplySize) const;
 
    bool executeReadOnlyCommand(
-           const Blockchain::Slice command,
-           const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-           const size_t maxReplySize,
-           char *outReply,
-           uint32_t &outReplySize) const;
+      const Blockchain::Slice command,
+      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+      const size_t maxReplySize,
+      char *outReply,
+      uint32_t &outReplySize) const;
 
    // Handlers
    bool handle_transaction_request(

@@ -333,7 +333,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_transaction_list_request(
       EthBlock curr_block;
 
       if (request.has_latest()) {
-         evm_uint256be latest_tr = {{0}};
+         evm_uint256be latest_tr {{0}};
          std::copy(request.latest().begin(), request.latest().end(),
                    latest_tr.bytes);
          EthTransaction tr = kvbStorage.get_transaction(latest_tr);

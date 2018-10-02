@@ -4,8 +4,7 @@ set(kvblockchain_sources
   ClientImp.cpp ClientImp.h
   Comparators.cpp Comparators.h
   DatabaseInterface.h
-  Env.cpp
-  HashDefs.h
+        HashDefs.h
   HexTools.cpp HexTools.h
   InMemoryDBClient.cpp InMemoryDBClient.h
   ReplicaImp.cpp ReplicaImp.h

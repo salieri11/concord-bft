@@ -252,12 +252,12 @@ ReplicaImp::ReplicaImp( Blockchain::CommConfig &commConfig,
    /// TODO(IG): since we want to discouple athena and bft by KVB layer,
    /// athena should not know about inner bft comm types. Instead, it should
    // have its own setting which comm to use. Currently using UDP hardcoded
-   bftEngine::PlainUdpConfig config (  commConfig.listenIp,
-                                       commConfig.listenPort,
-                                       commConfig.bufferLength,
-                                       commConfig.nodes,
-                                       commConfig.selfId,
-                                       commConfig.statusCallback);
+   bftEngine::PlainUdpConfig config(commConfig.listenIp,
+                                    commConfig.listenPort,
+                                    commConfig.bufferLength,
+                                    commConfig.nodes,
+                                    commConfig.selfId,
+                                    commConfig.statusCallback);
 
    m_ptrComm = bftEngine::CommFactory::create(config);
 }

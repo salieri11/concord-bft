@@ -226,24 +226,23 @@ run_service(variables_map &opts, Logger logger)
        * clear way
        */
       Blockchain::ReplicaImp *replica = dynamic_cast<Blockchain::ReplicaImp*>(
-              Blockchain::createReplica(commConfig,
-                                        replicaConsensusConfig,
-                                        dbclient));
+         Blockchain::createReplica(commConfig,
+                                   replicaConsensusConfig,
+                                   dbclient));
 
       // throws an exception if it fails
       EVM athevm(params);
       EthSign verifier;
-      KVBCommandsHandler athkvb(
-              athevm,
-              verifier,
-              opts,
-              replica,
-              replica);
+      KVBCommandsHandler athkvb(athevm,
+                                verifier,
+                                opts,
+                                replica,
+                                replica);
       replica->set_command_handler(&athkvb);
 
       // Genesis must be added before the replica is started.
       Blockchain::Status genesis_status =
-              create_genesis_block(replica, params, logger);
+         create_genesis_block(replica, params, logger);
       if (!genesis_status.ok()) {
          LOG4CPLUS_FATAL(logger, "Unable to load genesis block: " <<
                                  genesis_status.ToString());
@@ -309,7 +308,6 @@ run_service(variables_map &opts, Logger logger)
       replica->wait();
 
       Blockchain::release(replica);
-      ////////////////////
    } catch (std::exception &ex) {
       LOG4CPLUS_FATAL(logger, ex.what());
       return -1;

@@ -265,8 +265,6 @@ namespace Blockchain {
 
    private:
       log4cplus::Logger logger;
-      //TODO(BWF): this was protected (not private) before adding logger
-      //bool m_running;
       Thread  m_thread;
       RepStatus m_currentRepStatus;
       StorageWrapperForIdleMode m_InternalStorageWrapperForIdleMode;

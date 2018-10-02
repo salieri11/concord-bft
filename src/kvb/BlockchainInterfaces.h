@@ -9,7 +9,7 @@
 
 #include <string>
 #include <iterator>
-#include <unordered_set>
+#include <unordered_map>
 #include <set>
 #include <Replica.hpp>
 #include "slice.h"
@@ -220,12 +220,6 @@ namespace Blockchain {
       typedef void(*CommandCompletion)(uint64_t completionToken,
                                        Status returnedStatus,
                                        Slice outreply);
-      /*
-      virtual void invokeCommandAsynch(const Slice command,
-                                       bool isReadOnly,
-                                       uint64_t completionToken,
-                                       CommandCompletion h) = 0;
-      */
 
       virtual Status invokeCommandSynch(const Slice command,
                                         bool isReadOnly,
@@ -335,10 +329,6 @@ namespace Blockchain {
       virtual Status addBlock(const SetOfKeyValuePairs& updates,
                               BlockId& outBlockId) = 0;
    };
-
-   // init/free environment
-   void initEnv();
-   void freeEnv();
 
    // TBDs9gg0:
    // (1) Allow direct reading from the replicas

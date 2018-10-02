@@ -89,12 +89,12 @@ ClientImp::ClientImp(Blockchain::CommConfig &commConfig,
    m_status(Idle)
 {
    /// TODO(IG): same as in ReplicaImp, actual comm type should be from config
-   bftEngine::PlainUdpConfig config (  commConfig.listenIp,
-                                       commConfig.listenPort,
-                                       commConfig.bufferLength,
-                                       commConfig.nodes,
-                                       commConfig.selfId,
-                                       commConfig.statusCallback);
+   bftEngine::PlainUdpConfig config(commConfig.listenIp,
+                                    commConfig.listenPort,
+                                    commConfig.bufferLength,
+                                    commConfig.nodes,
+                                    commConfig.selfId,
+                                    commConfig.statusCallback);
 
    auto comm = bftEngine::CommFactory::create(config);
    m_bftClient = SimpleClient::createSimpleClient(comm,
@@ -102,8 +102,8 @@ ClientImp::ClientImp(Blockchain::CommConfig &commConfig,
                                                   conf.maxFaulty,
                                                   conf.maxSlow);
    m_SeqNumGenerator =
-           SeqNumberGeneratorForClientRequests::
-               createSeqNumberGeneratorForClientRequests();
+      SeqNumberGeneratorForClientRequests::
+         createSeqNumberGeneratorForClientRequests();
 }
 
 
