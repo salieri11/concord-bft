@@ -1,5 +1,5 @@
 <div class="login-wrapper">
-  <form [ngClass]="{'hide': hideLoginForm}" class="login" (ngSubmit)="onLogIn()" [formGroup]="loginForm">
+  <form [ngClass]="{'hidden-xs-up': hideLoginForm}" class="login" (ngSubmit)="onLogIn()" [formGroup]="loginForm">
     <section class="title">
       {{'title' | translate}}
       <h3>{{'nav.login' | translate}}</h3>
@@ -18,11 +18,11 @@
       <button type="submit" class="btn btn-primary" [disabled]="loginForm.invalid">{{'authentication.next' | translate}}</button>
     </div>
   </form>
-  <form [ngClass]="{'hide': hideChangePassword}" class="login" (ngSubmit)="changePassword()" [formGroup]="changePasswordForm">
+  <form [ngClass]="{'hidden-xs-up': hideChangePassword}" class="login" (ngSubmit)="changePassword()" [formGroup]="changePasswordForm">
     <section class="title">
       {{'title' | translate}}
-      <h3>{{'authentication.change_password' | translate}}</h3>
-      <h5 class="hint">{{'authentication.password_req' | translate}}</h5>
+      <h3>{{'authentication.changePassword' | translate}}</h3>
+      <h5 class="hint">{{'authentication.passwordReq' | translate}}</h5>
     </section>
     <div class="login-group">
       <input #newPassword class="password" type="password" id="newPassword" [attr.placeholder]="'authentication.newPassword' | translate" formControlName="newPassword">

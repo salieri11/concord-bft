@@ -73,7 +73,7 @@ describe('athena-ui Onboarding Flow', () => {
 
   it('should onboard to deploy blockchain', () => {
     browser.sleep(200);
-    loginPage.fillLogInForm('testlogin@example.com', 'password');
+    loginPage.fillLogInForm('testlogin@example.com', 'T3sting!');
 
     browser.waitForAngularEnabled(false);
     browser.sleep(200);

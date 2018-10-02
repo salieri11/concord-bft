@@ -100,8 +100,8 @@
     "confirmPassword": "Confirm Password",
     "next": "Next",
     "errorMessage": "Invalid user name or password",
-    "change_password": "Change Password",
-    "password_req": "Password must be 6 to 35 characters and contains at least one numeric digit, one uppercase letter, one lowercase letter and one special character."
+    "changePassword": "Change Password",
+    "passwordReq": "Password must be 6 to 35 characters and contains at least one numeric digit, one uppercase letter, one lowercase letter and one special character."
   },
   "grid": {
     "search": {

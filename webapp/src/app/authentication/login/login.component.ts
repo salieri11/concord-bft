@@ -9,7 +9,7 @@ import { TranslateService } from '@ngx-translate/core';
 
 import { AuthenticationService } from '../../shared/authentication.service';
 import { PersonaService } from '../../shared/persona.service';
-import { CustomValidatorsService } from '../shared/custom-validators.service';
+import { matchPasswordValidator } from '../../shared/custom-validators';
 
 
 @Component({
@@ -33,7 +33,6 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
     private authenticationService: AuthenticationService,
     private formBuilder: FormBuilder,
     private router: Router,
-    private validator: CustomValidatorsService,
     private translateService: TranslateService
   ) {
 
@@ -44,16 +43,22 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
     });
 
     this.changePasswordForm = this.formBuilder.group({
-      newPassword: ['', [Validators.required, this.validator.pattern(this.passwordTest)]],
-      confirmPassword: ['', [Validators.required]],
-    }, {validator: this.validator.passwordMatchValidator});
+      newPassword: ['', [
+        Validators.required,
+        Validators.pattern(this.passwordTest)
+      ]],
+      confirmPassword: ['', [
+        Validators.required,
+        matchPasswordValidator('newPassword')
+      ]],
+    });
   }
 
   ngAfterViewInit() {
     this.username.nativeElement.focus();
   }
 
-  ngOnDestroy() {}
+  ngOnDestroy() { }
 
   onLogIn() {
     this.errorMessage = null;
@@ -63,7 +68,7 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
       this.loginForm.value.persona
     ).subscribe((user) => {
       if (user['last_login'] === 0 || localStorage.getItem('changePassword')) {
-        localStorage.setItem('changePassword', true);
+        localStorage.setItem('changePassword', 'true');
         this.newUser = true;
         this.hideLoginForm = true;
         this.hideChangePassword = false;
