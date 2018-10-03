@@ -42,8 +42,14 @@ public class EthGetTransactionCountHandler extends AbstractEthRPCHandler {
          b.setMethod(EthMethod.GET_TX_COUNT);
          JSONArray params = extractRequestParams(requestJson);
          b.setAddrTo(APIHelper.hexStringToBinary((String) params.get(0)));
-         // ignoring "block" argument for now
-
+         // add "block" parameter, the default block parameter is "latest".
+         // if no parameter or its value is negative, athena treat is as default
+         if (params.size() == 2) {
+            long blockNumber = APIHelper.parseBlockNumber(params);
+            if (blockNumber >= 0){
+               b.setBlockNumber(blockNumber);
+            }
+         }
          athenaEthRequest = b.build();
       } catch (Exception e) {
          logger.error("Exception in get code handler", e);

@@ -27,7 +27,7 @@ describe('athena-ui Smart Contracts', () => {
     loginPage = new LoginPage();
     authHelper = new AuthHelper();
     loginPage.navigateTo();
-    loginPage.fillLogInForm('testlogin@example.com', 'password');
+    loginPage.fillLogInForm('testlogin@example.com', 'T3sting!');
     browser.sleep(1000);
   });
 

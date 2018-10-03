@@ -1,8 +1,9 @@
 <div class="login-wrapper">
-  <form class="login" (ngSubmit)="onLogIn()" [formGroup]="loginForm">
-    <label class="title">
+  <form [ngClass]="{'hidden-xs-up': hideLoginForm}" class="login" (ngSubmit)="onLogIn()" [formGroup]="loginForm">
+    <section class="title">
       {{'title' | translate}}
-    </label>
+      <h3>{{'nav.login' | translate}}</h3>
+    </section>
     <div class="login-group">
       <div class="auth-source select">
         <select name="persona" id="persona" formControlName="persona">
@@ -15,6 +16,21 @@
         {{errorMessage}}
       </div>
       <button type="submit" class="btn btn-primary" [disabled]="loginForm.invalid">{{'authentication.next' | translate}}</button>
+    </div>
+  </form>
+  <form [ngClass]="{'hidden-xs-up': hideChangePassword}" class="login" (ngSubmit)="changePassword()" [formGroup]="changePasswordForm">
+    <section class="title">
+      {{'title' | translate}}
+      <h3>{{'authentication.changePassword' | translate}}</h3>
+      <h5 class="hint">{{'authentication.passwordReq' | translate}}</h5>
+    </section>
+    <div class="login-group">
+      <input #newPassword class="password" type="password" id="newPassword" [attr.placeholder]="'authentication.newPassword' | translate" formControlName="newPassword">
+      <input class="password" type="password" id="confirmPassword" [attr.placeholder]="'authentication.confirmPassword' | translate" formControlName="confirmPassword">
+      <div class="error active" *ngIf="errorMessage">
+        {{errorMessage}}
+      </div>
+      <button type="submit" id="changePassword" class="btn btn-primary" [disabled]="changePasswordForm.invalid || (loginForm.value.password === changePasswordForm.value.confirmPassword)">{{'authentication.next' | translate}}</button>
     </div>
   </form>
 </div>

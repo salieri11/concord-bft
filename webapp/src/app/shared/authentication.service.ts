@@ -14,7 +14,7 @@ import { User } from '../users/shared/user.model';
 export class AuthenticationService {
   private userSubject: BehaviorSubject<User>;
   readonly user: Observable<User>;
-  agreement: any = {accepted: false};
+  agreement: any = { accepted: false };
 
   constructor(private personaService: PersonaService, private http: HttpClient) {
     this.userSubject = new BehaviorSubject<User>({
@@ -42,7 +42,7 @@ export class AuthenticationService {
 
   logIn(email: string, password: string, persona: Personas) {
     const url = 'api/login';
-    return this.http.post<{email: string, password: string}>(url, {email: email, password: password}).pipe(
+    return this.http.post<{ email: string, password: string }>(url, { email: email, password: password }).pipe(
       map((response) => {
         this.handleLogIn(email, password, persona);
         return response;
@@ -50,21 +50,30 @@ export class AuthenticationService {
     );
   }
 
+  changePassword(email: string, newPassword: string) {
+    const url = 'api/change-password';
+    return this.http.post<{ email: string, password: string }>(
+      url, {
+        email: email,
+        password: newPassword
+      }
+    );
+  }
+
   logOut() {
     localStorage.removeItem('helen.email');
     localStorage.removeItem('helen.persona');
     this.personaService.currentPersona = undefined;
-    this.userSubject.next({email: localStorage['helen.email'], persona: localStorage['helen.persona']});
+    this.userSubject.next({ email: localStorage['helen.email'], persona: localStorage['helen.persona'] });
   }
 
   checkForLegalAgreements(): Observable<any> {
     return this.http.get('api/agreements/1').pipe(
-        map((response) => {
-          this.agreement = response;
-
-          return response;
-        }),
-      );
+      map((response) => {
+        this.agreement = response;
+        return response;
+      }),
+    );
   }
 
   acceptLegalAgreement(params: any): Observable<any> {
