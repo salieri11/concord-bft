@@ -117,7 +117,7 @@
       </ng-container>
       <ng-container *ngSwitchCase="'delete'">
         <p>{{ 'deleteModal.bodyText' | translate}}
-          <span *ngFor="let r of selected">{{ r.firstName + " " + r.lastName}} </span> ?</p>
+          <span *ngFor="let r of selected">{{ r.details.first_name + " " + r.details.last_name}} </span> ?</p>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" (click)="openModalForm = false">Cancel</button>
           <button type="button" class="btn btn-primary" (click)="deleteUser()">

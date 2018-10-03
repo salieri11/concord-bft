@@ -286,7 +286,7 @@
     "createContractError": "There was an error uploading your contract. Please correct any errors and try again:",
     "viewDetail": "View Details",
     "name": "Name",
-    "namePlacholder": "MyContract",
+    "namePlaceholder": "MyContract",
     "owner": "Owner",
     "file": "File",
     "preview": "Preview",
@@ -941,6 +941,7 @@
     "title": "Take Tour",
     "nextBtnText": "Next",
     "prevBtnText": "Prev",
+    "endBtnText": "End",
     "dashboard": {
       "nodeStatus": {
         "title": "Node Status",
