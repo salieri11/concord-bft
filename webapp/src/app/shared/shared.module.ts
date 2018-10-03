@@ -76,9 +76,9 @@ export class SharedModule {
         AuthenticationService,
         AuthenticatedGuard,
         AgreementGuard,
-        {provide: ANDES_API_PREFIX, useValue: '/api'},
-        {provide: ATHENA_API_PREFIX, useValue: '/api/athena'},
-        {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'},
+        {provide: ANDES_API_PREFIX, useValue: 'api'},
+        {provide: ATHENA_API_PREFIX, useValue: 'api/athena'},
+        {provide: ETHEREUM_API_PREFIX, useValue: 'api/athena/eth'},
         PersonaService,
         VmwTasksService
       ]
@@ -97,9 +97,9 @@ export class SharedModule {
   providers: [
     AuthenticationService,
     AuthenticatedGuard,
-    {provide: ANDES_API_PREFIX, useValue: '/api'},
-    {provide: ATHENA_API_PREFIX, useValue: '/api/athena'},
-    {provide: ETHEREUM_API_PREFIX, useValue: '/api/athena/eth'},
+    {provide: ANDES_API_PREFIX, useValue: 'api'},
+    {provide: ATHENA_API_PREFIX, useValue: 'api/athena'},
+    {provide: ETHEREUM_API_PREFIX, useValue: 'api/athena/eth'},
     PersonaService
   ],
   exports: [

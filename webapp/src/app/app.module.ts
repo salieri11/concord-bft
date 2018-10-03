@@ -20,7 +20,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { MarketingModule } from './marketing/marketing.module';
 
 export function HttpLoaderFactory(http: HttpClient) {
-  return new TranslateHttpLoader(http, '/assets/static/i18n/', '.json');
+  return new TranslateHttpLoader(http, 'assets/static/i18n/', '.json');
 }
 
 export function langInitializerFactory(translate: TranslateService, injector: Injector) {

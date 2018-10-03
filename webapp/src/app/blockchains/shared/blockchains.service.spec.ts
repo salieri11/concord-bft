@@ -14,7 +14,7 @@ describe('BlockchainsService', () => {
     TestBed.configureTestingModule({
       providers: [
         BlockchainsService,
-        {provide: ANDES_API_PREFIX, useValue: '/api'},
+        {provide: ANDES_API_PREFIX, useValue: 'api'},
         HttpClient,
         HttpHandler
       ]
