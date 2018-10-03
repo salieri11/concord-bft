@@ -1,3 +1,4 @@
 [submodule "submodules/concord-bft"]
 	path = submodules/concord-bft
 	url = https://github.com/vmwathena/concord-bft
+	branch = igolikov/concordIntegration

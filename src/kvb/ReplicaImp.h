@@ -18,6 +18,7 @@
 #include "ICommunication.hpp"
 #include "CommFactory.hpp"
 #include "StatusInfo.h"
+#include "IStateTransfer.hpp"
 
 using namespace Blockchain::Utils;
 
@@ -98,7 +99,6 @@ namespace Blockchain {
       int get_block(int n, char **page);
       void put_blocks(int count, int *sizes, int *indices, char **pages);
       bool check_nond(char *buffer);
-
    protected:
 
       // CTOR & DTOR
@@ -120,8 +120,6 @@ namespace Blockchain {
       Slice getBlockInternal(BlockId blockId) const;
       BlockchainDBAdapter* getBcDbAdapter() const { return m_bcDbAdapter; }
       void revertBlock(BlockId blockId);
-
-      ICommandsHandler *m_cmdHandler = nullptr;
 
       // INTERNAL TYPES
 
@@ -275,6 +273,8 @@ namespace Blockchain {
       bftEngine::ICommunication *m_ptrComm = nullptr;
       bftEngine::ReplicaConfig m_replicaConfig;
       bftEngine::Replica *m_replicaPtr = nullptr;
+      ICommandsHandler *m_cmdHandler = nullptr;
+      IStateTransfer *m_stateTransfer = nullptr;
 
       // static methods
       static Slice createBlockFromUpdates(
@@ -289,7 +289,6 @@ namespace Blockchain {
                     ReplicaConsensusConfig &config,
                     IDBClient* db);
       friend void release(IReplica *r);
-
    };
 }
 

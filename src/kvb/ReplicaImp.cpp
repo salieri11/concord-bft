@@ -6,6 +6,7 @@
 #include <string.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <functional>
 #ifndef _WIN32
 #include <sys/param.h>
 #include <unistd.h>
@@ -35,6 +36,27 @@ struct blockHeader
    blockEntry entries[1]; // n>0 entries
 };
 
+static int get_block_wrapper(void *ctx, int n, char **page)
+{
+   ReplicaImp *r = reinterpret_cast<ReplicaImp*>(ctx);
+   assert(r);
+
+   auto res = r->get_block(n, page);
+   return res;
+}
+
+static void put_blocks_wrapper(void *ctx,
+                               int count,
+                               int *sizes,
+                               int *indices,
+                               char **pages)
+{
+   ReplicaImp *r = reinterpret_cast<ReplicaImp*>(ctx);
+   assert(r);
+
+   r->put_blocks(count, sizes, indices, pages);
+}
+
 
 /**
  * Opens the database and creates the replica thread. Replica state moves to
@@ -51,7 +73,7 @@ Status ReplicaImp::start()
    m_replicaPtr = bftEngine::Replica::createNewReplica(
            &m_replicaConfig,
            m_cmdHandler,
-           nullptr,
+           m_stateTransfer,
            m_ptrComm,
            nullptr);
 
@@ -208,9 +230,9 @@ void ReplicaImp::set_command_handler(Blockchain::ICommandsHandler *handler) {
    m_cmdHandler = handler;
 }
 
-ReplicaImp::ReplicaImp( Blockchain::CommConfig &commConfig,
-                        ReplicaConsensusConfig &replicaConfig,
-                        BlockchainDBAdapter *dbAdapter) :
+ReplicaImp::ReplicaImp(Blockchain::CommConfig &commConfig,
+                       ReplicaConsensusConfig &replicaConfig,
+                       BlockchainDBAdapter *dbAdapter) :
    logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb")),
    m_currentRepStatus(RepStatus::Idle),
    m_InternalStorageWrapperForIdleMode(this),
@@ -260,11 +282,30 @@ ReplicaImp::ReplicaImp( Blockchain::CommConfig &commConfig,
                                     commConfig.statusCallback);
 
    m_ptrComm = bftEngine::CommFactory::create(config);
+
+   using namespace std::placeholders;
+   auto t = std::bind(&ReplicaImp::get_block, this, _1, _2, _3);
+   m_stateTransfer = new GenericStateTransfer(
+       this,
+       (const uint16_t)(3 * replicaConfig.fVal + 2 * replicaConfig.cVal + 1),
+       (const uint16_t)replicaConfig.fVal,
+       (const uint16_t)replicaConfig.cVal,
+       (const uint16_t)replicaConfig.replicaId,
+       10 * 1e61,
+       get_block_wrapper,
+       put_blocks_wrapper,
+       0,
+       0);
 }
 
 ReplicaImp::~ReplicaImp()
 {
-
+   if(m_stateTransfer) {
+      if(m_stateTransfer->isRunning()) {
+         m_stateTransfer->stopRunning();
+      }
+      delete m_stateTransfer;
+   }
 }
 
 Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs& updates,
@@ -277,8 +318,14 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs& updates,
 
    if (getReplicaStatus() == RepStatus::Running) {
       // TODO(GG): sizeof(int) is not enough, byz engine should support BlockId
-      // int page = block;
-      // Byz_modify(1, &page);
+      int page = block;
+      if(m_stateTransfer) {
+        GenericStateTransfer *genericStateTransfer =
+            reinterpret_cast<GenericStateTransfer *>(m_stateTransfer);
+        if(genericStateTransfer) {
+          m_stateTransfer->markUpdatedAppPage(lastBlock);
+        }
+      }
    }
 
    LOG4CPLUS_DEBUG(logger,
@@ -670,8 +717,8 @@ SetOfKeyValuePairs ReplicaImp::fetchBlockData(Slice block)
    return retVal;
 }
 
-
-int ReplicaImp::get_block(int n, char **page)
+int ReplicaImp::get_block(int n,
+                          char **page)
 {
    BlockId bId = n;
    size_t size;
@@ -707,7 +754,11 @@ int ReplicaImp::get_block(int n, char **page)
    return size;
 }
 
-void ReplicaImp::put_blocks(int count, int *sizes, int *indices, char **pages)
+/// context ptr here is for compatibility with Generic state transfer
+void ReplicaImp::put_blocks(int count,
+                            int *sizes,
+                            int *indices,
+                            char **pages)
 {
    for (int i = 0; i < count; i++) {
       BlockId blockId = indices[i];
@@ -735,8 +786,8 @@ Blockchain::createReplica(Blockchain::CommConfig &commConfig,
    BlockchainDBAdapter *dbAdapter = new BlockchainDBAdapter(db);
 
    auto r = new Blockchain::ReplicaImp(commConfig,
-                                  config,
-                                  dbAdapter);
+                                       config,
+                                       dbAdapter);
 
    //Initialization of the database object is done here so that we can
    //read the latest block number and take a decision regarding
