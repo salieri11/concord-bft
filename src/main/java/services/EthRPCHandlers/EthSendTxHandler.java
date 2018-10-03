@@ -67,6 +67,13 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
          buildRequestFromObject(b,
                                 (JSONObject) params.get(0),
                                 false /* isSendTx */);
+         // add "block" parameter
+         if (params.size() == 2) {
+            long blockNumber = APIHelper.parseBlockNumber(params);
+            if (blockNumber != -1){
+               b.setBlockNumber(blockNumber);
+            }
+         }
       }
 
       ethRequest = b.build();
