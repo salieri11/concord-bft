@@ -331,7 +331,7 @@ parse_principals(FILE *config_file,
                  uint16_t numOfReplicas,
                  Blockchain::CommConfig *outCommConfig,
                  std::set<std::pair<uint16_t, std::string>>
-                 &outReplicasPublicKeys) {
+                    &outReplicasPublicKeys) {
   //skip group ip and port
   fscanf(config_file, "%*[^\n]\n");
 
@@ -350,7 +350,7 @@ parse_principals(FILE *config_file,
            pk);
     if (i < numOfReplicas) {
       isReplica = true;
-      outReplicasPublicKeys.insert({selfNumber, std::string(pk)});
+      outReplicasPublicKeys.insert({i, std::string(pk)});
     }
     if (outCommConfig) {
       outCommConfig->nodes.insert({i, NodeInfo{string(addr_buff),
