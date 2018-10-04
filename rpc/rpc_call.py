@@ -178,29 +178,78 @@ class RPC():
          log.debug("Unable to find 'result' in response '{}'".format(response))
          return None
 
-   def getTransactionCount(self, address):
+   def getTransactionCount(self, address, blockNumber = None):
       '''
       Get the number of transactions that the account named by `address`
       has sent.
+      :param address: 20 Bytes - address.
+      :param blockNumber: integer block number, or the string "latest",
+                          "earliest" or "pending"
+      :return: integer of the number of transactions send from this address
       '''
       self._rpcData["method"] = "eth_getTransactionCount"
+      if blockNumber is None:
+         blockNumber = "latest"
       self._rpcData["params"] = [
          address,
-         "latest"
+         blockNumber
       ]
       response = self._call()
       return self.getResultFromResponse(response)
 
-   def getStorageAt(self, blockAddress, storageLocation):
+   def getStorageAt(self, address, storageLocation, blockNumber = None):
       '''
-      Given a block's address and storage location, returns the value from that
-      location.
+      Given an address, storage location and block number, returns the
+      value from that
+      location at that specific block.
+      :param address: 20 Bytes - address of the storage.
+      :param storageLocation: integer of the position in the storage.
+      :param blockNumber: integer block number, or the string "latest",
+                          "earliest" or "pending"
+      :return: the value at this storage position
       '''
       self._rpcData["method"] = "eth_getStorageAt"
+      if blockNumber is None:
+         blockNumber = "latest"
       self._rpcData["params"] = [
-         blockAddress,
+         address,
          storageLocation,
-         "latest"
+         blockNumber
+      ]
+      response = self._call()
+      return self.getResultFromResponse(response)
+
+   def getCode(self, address, blockNumber = None):
+      '''
+      Given an address and the block number, return the code from that address
+      :param address: 20 Bytes - address
+      :param blockNumber: integer block number, or the string "latest", "earliest" or "pending"
+      :return: the code from the given address
+      '''
+      self._rpcData["method"] = "eth_getCode"
+      if blockNumber is None:
+         blockNumber = "latest"
+      self._rpcData["params"] = [
+         address,
+         blockNumber
+      ]
+      response = self._call()
+      return self.getResultFromResponse(response)
+
+   def getBalance(self, address, blockNumber = None):
+      '''
+      Returns the balance of the account of given address.
+      :param address: 20 Bytes - address to check for balance
+      :param blockNumber: integer block number, or the string "latest",
+                          "earliest" or "pending"
+      :return: integer of the current balance in wei.
+      '''
+      self._rpcData["method"] = "eth_getBalance"
+      if blockNumber is None:
+         blockNumber = "latest"
+      self._rpcData["params"] = [
+         address,
+         blockNumber
       ]
       response = self._call()
       return self.getResultFromResponse(response)
