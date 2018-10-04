@@ -11,6 +11,13 @@ if [ ! -e "submodules/concord-bft/README.md" ]; then
     exit 1
 fi
 
+if [ ! -e "state-transfer/README.md" ]; then
+    echo "state-transfer module not initialized"
+    echo "Please run the following before building docker images:"
+    echo "   git clone https://github.com/vmwathena/state-transfer.git"
+    exit 1
+fi
+
 # First build the base image, including athena and the public config.
 docker build . -t athenabase
 
