@@ -397,13 +397,26 @@ uint64_t com::vmware::athena::KVBStorage::current_block_number() {
  */
 Status com::vmware::athena::KVBStorage::get(const Slice &key, Slice &value)
 {
-   // TODO(Amit): All updates other than transactions are stored in 'updates'
-   // structure while transactions are stored in a separate
-   // `pending_transactions` vector (read more about that in `add_transaction`
-   // function). Hence, this search will not work if someone calls `get` for a
-   // transaction that is not yet commited (i.e is still in
-   // `pending_transactions` vector).
+   uint64_t block_number = current_block_number();
+   BlockId out;
+   return get(block_number, key, value, out);
+}
 
+/**
+ * Get a value from storage. The staging area is searched first, so that it can
+ * be used as a sort of current execution environment. If the key is not found
+ * in the staging area, its value in the most recent block in which it was
+ * written will be returned.
+ * @param readVersion BlockId object signifying the read version with which a
+ *                    lookup needs to be done.
+ * @param key Slice object of the key.
+ * @param value Slice object where the value of the lookup result is stored.
+ * @param outBlock BlockId object where the read version of the result is stored
+ * @return
+ */
+Status com::vmware::athena::KVBStorage::get(const BlockId readVersion,
+        const Slice &key, Slice &value, BlockId &outBlock)
+{
    //TODO(BWF): this search will be very inefficient for a large set of changes
    for (auto &u: updates) {
       if (u.first == key) {
@@ -411,8 +424,8 @@ Status com::vmware::athena::KVBStorage::get(const Slice &key, Slice &value)
          return Status::OK();
       }
    }
-
-   return roStorage_.get(key, value);
+   // "1+" == KVBlockchain starts at block 1, but Ethereum starts at 0
+   return roStorage_.get(readVersion+1, key, value, outBlock);
 }
 
 /**
@@ -481,14 +494,23 @@ EthTransaction com::vmware::athena::KVBStorage::get_transaction(
 
 uint64_t com::vmware::athena::KVBStorage::get_balance(const evm_address &addr)
 {
+   uint64_t block_number = current_block_number();
+   return get_balance(addr, block_number);
+}
+
+uint64_t com::vmware::athena::KVBStorage::get_balance(const evm_address &addr, uint64_t &block_number)
+{
    Slice kvbkey = balance_key(addr);
    Slice value;
-   Status status = get(kvbkey, value);
+   BlockId outBlock;
+   Status status = get(block_number, kvbkey, value, outBlock);
 
-   LOG4CPLUS_DEBUG(logger, "Getting balance " << addr <<
-                   " status: " << status.ToString() <<
-                   " key: " << sliceToString(kvbkey) <<
-                   " value.size: " << value.size());
+   LOG4CPLUS_DEBUG(logger, "Getting nonce " << addr <<
+                           " lookup block starting at: " << block_number <<
+                           " status: " << status.ToString() <<
+                           " key: " << sliceToString(kvbkey) <<
+                           " value.size: " << value.size() <<
+                           " out block at: " << outBlock);
 
    if (status.ok() && value.size() > 0) {
       kvb::Balance balance;
@@ -507,14 +529,24 @@ uint64_t com::vmware::athena::KVBStorage::get_balance(const evm_address &addr)
 
 uint64_t com::vmware::athena::KVBStorage::get_nonce(const evm_address &addr)
 {
+   uint64_t block_number = current_block_number();
+   return get_nonce(addr, block_number);
+}
+
+uint64_t com::vmware::athena::KVBStorage::get_nonce(const evm_address &addr,
+                                                    uint64_t &block_number)
+{
    Slice kvbkey = nonce_key(addr);
    Slice value;
-   Status status = get(kvbkey, value);
+   BlockId outBlock;
+   Status status = get(block_number, kvbkey, value, outBlock);
 
    LOG4CPLUS_DEBUG(logger, "Getting nonce " << addr <<
+                   " lookup block starting at: " << block_number <<
                    " status: " << status.ToString() <<
                    " key: " << sliceToString(kvbkey) <<
-                   " value.size: " << value.size());
+                   " value.size: " << value.size() <<
+                   " out block at: " << outBlock);
 
    if (status.ok() && value.size() > 0) {
       kvb::Nonce nonce;
@@ -558,14 +590,36 @@ bool com::vmware::athena::KVBStorage::get_code(const evm_address &addr,
                                                std::vector<uint8_t> &out,
                                                evm_uint256be &hash)
 {
+   uint64_t block_number = current_block_number();
+   return get_code(addr, out, hash, block_number);
+}
+
+/**
+ * Code and hash will be copied to `out`, if found, and `true` will be
+ * returned. If no code is found, `false` is returned.
+ * @param addr
+ * @param out
+ * @param hash
+ * @param block_number the starting block number for lookup,
+ *                     'default block parameters'
+ * @return
+ */
+bool com::vmware::athena::KVBStorage::get_code(const evm_address &addr,
+                                               std::vector<uint8_t> &out,
+                                               evm_uint256be &hash,
+                                               uint64_t &block_number)
+{
    Slice kvbkey = code_key(addr);
    Slice value;
-   Status status = get(kvbkey, value);
+   BlockId outBlock;
+   Status status = get(block_number, kvbkey, value, outBlock);
 
    LOG4CPLUS_DEBUG(logger, "Getting code " << addr <<
+                   " lookup block starting at: " << block_number <<
                    " status: " << status.ToString() <<
                    " key: " << sliceToString(kvbkey) <<
-                   " value.size: " << value.size());
+                   " value.size: " << value.size() <<
+                   " out block at: " << outBlock);
 
    if (status.ok() && value.size() > 0) {
       kvb::Code code;
@@ -596,15 +650,27 @@ bool com::vmware::athena::KVBStorage::get_code(const evm_address &addr,
 evm_uint256be com::vmware::athena::KVBStorage::get_storage(
    const evm_address &addr, const evm_uint256be &location)
 {
+   uint64_t block_number = current_block_number();
+   return get_storage(addr, location, block_number);
+}
+
+evm_uint256be com::vmware::athena::KVBStorage::get_storage(
+        const evm_address &addr,
+        const evm_uint256be &location,
+        uint64_t &block_number)
+{
    Slice kvbkey = storage_key(addr, location);
    Slice value;
-   Status status = get(kvbkey, value);
+   BlockId outBlock;
+   Status status = get(block_number, kvbkey, value, outBlock);
 
-   LOG4CPLUS_DEBUG(logger, "Getting storage " << addr <<
-                   " at " << location <<
-                   " status: " << status.ToString() <<
-                   " key: " << sliceToString(kvbkey) <<
-                   " value.size: " << value.size());
+   LOG4CPLUS_INFO(logger, "Getting storage " << addr <<
+                  " at " << location <<
+                  " lookup block starting at: " << block_number <<
+                  " status: " << status.ToString() <<
+                  " key: " << sliceToString(kvbkey) <<
+                  " value.size: " << value.size() <<
+                  " out block at: " << outBlock);
 
    evm_uint256be out;
    if (status.ok() && value.size() > 0) {
