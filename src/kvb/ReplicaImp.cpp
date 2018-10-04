@@ -6,7 +6,6 @@
 #include <string.h>
 #include <signal.h>
 #include <stdlib.h>
-#include <functional>
 #ifndef _WIN32
 #include <sys/param.h>
 #include <unistd.h>
@@ -284,10 +283,7 @@ ReplicaImp::ReplicaImp(Blockchain::CommConfig &commConfig,
                                     commConfig.statusCallback);
 
    m_ptrComm = bftEngine::CommFactory::create(config);
-
-   using namespace std::placeholders;
-   auto t = std::bind(&ReplicaImp::get_block, this, _1, _2, _3);
-
+   
    State::initStaticData();
    m_stateTransfer = new GenericStateTransfer(
        this,
@@ -324,7 +320,6 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs& updates,
 
    if (getReplicaStatus() == RepStatus::Running) {
       // TODO(GG): sizeof(int) is not enough, byz engine should support BlockId
-      int page = block;
       if(m_stateTransfer) {
         GenericStateTransfer *genericStateTransfer =
             reinterpret_cast<GenericStateTransfer *>(m_stateTransfer);
