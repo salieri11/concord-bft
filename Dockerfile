@@ -82,6 +82,12 @@ RUN git checkout 1e6f1f5ad5e7f1e3ef79313ec02023902bf8175c
 RUN ./autogen.sh && ./configure --enable-module-recovery CFLAGS="-march=x86-64 -mtune=generic" CPPFLAGS="-march=x86-64 -mtune=generic"
 RUN make && make install
 
+WORKDIR /
+## TODO: "username:passsword@" must be included between "//" and "github" for this clone to work
+RUN git clone https://github.com/vmwathena/state-transfer.git
+WORKDIR /state-transfer/build
+RUN cmake .. && make && make install
+
 WORKDIR /athena
 COPY . /athena
 WORKDIR /athena/build
@@ -110,6 +116,7 @@ COPY --from=0 /usr/local/lib/liblog4cplus* /usr/local/lib/
 COPY --from=0 /usr/local/lib/librelic* /usr/local/lib/
 COPY --from=0 /usr/local/lib/librocksdb.* /usr/local/lib/
 COPY --from=0 /usr/local/lib/libsecp256k1* /usr/local/lib/
+## TODO, once state-transfer produces a dynamically-linked library: COPY --from=0 /usr/local/lib/libbyzst.so /usr/local/lib/
 
 WORKDIR /athena/resources
 COPY --from=0 /athena/build/resources/log4cplus.properties /athena/resources/
