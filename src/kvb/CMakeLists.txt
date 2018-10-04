@@ -20,10 +20,6 @@ target_include_directories(kvblockchain PUBLIC ${thresh_include})
 
 target_link_libraries(kvblockchain PUBLIC corebft)
 
-find_package(BYZST REQUIRED)
-target_include_directories(kvblockchain PUBLIC ${BYZST_INCLUDE_DIRS})
-target_link_libraries(kvblockchain PUBLIC byzst)
-
 if(USE_ROCKSDB)
 find_library(ROCKSDB rocksdb)
 find_library(LIBBZ2 bz2)
@@ -36,3 +32,8 @@ target_link_libraries(kvblockchain PUBLIC ${ROCKSDB} ${LIBBZ2} ${LIBLZ4} ${LIBZS
 endif()
 
 target_compile_definitions(kvblockchain PUBLIC __BASE=1 SPARSE_STATE=1 USE_TLS=1)
+
+find_package(BYZST REQUIRED)
+target_include_directories(kvblockchain PUBLIC ${BYZST_INCLUDE_DIRS})
+target_link_libraries(kvblockchain PUBLIC byzst)
+

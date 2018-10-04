@@ -23,6 +23,8 @@
 #include <CommDefs.hpp>
 
 using log4cplus::Logger;
+using namespace bftEngine;
+
 struct blockEntry
 {
    uint32_t keyOffset;
@@ -271,7 +273,7 @@ ReplicaImp::ReplicaImp(Blockchain::CommConfig &commConfig,
    m_replicaConfig.thresholdVerifierForSlowPathCommit =
            replicaConfig.thresholdVerifierForSlowPathCommit;
 
-   /// TODO(IG): since we want to discouple athena and bft by KVB layer,
+   /// TODO(IG): since we want to decouple athena and bft by KVB layer,
    /// athena should not know about inner bft comm types. Instead, it should
    // have its own setting which comm to use. Currently using UDP hardcoded
    bftEngine::PlainUdpConfig config(commConfig.listenIp,
@@ -285,13 +287,15 @@ ReplicaImp::ReplicaImp(Blockchain::CommConfig &commConfig,
 
    using namespace std::placeholders;
    auto t = std::bind(&ReplicaImp::get_block, this, _1, _2, _3);
+
+   State::initStaticData();
    m_stateTransfer = new GenericStateTransfer(
        this,
        (const uint16_t)(3 * replicaConfig.fVal + 2 * replicaConfig.cVal + 1),
        (const uint16_t)replicaConfig.fVal,
        (const uint16_t)replicaConfig.cVal,
        (const uint16_t)replicaConfig.replicaId,
-       10 * 1e61,
+       10 * 1e6,
        get_block_wrapper,
        put_blocks_wrapper,
        0,
@@ -306,6 +310,8 @@ ReplicaImp::~ReplicaImp()
       }
       delete m_stateTransfer;
    }
+
+   State::freeStaticData();
 }
 
 Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs& updates,

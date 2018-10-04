@@ -18,7 +18,7 @@
 #include "ICommunication.hpp"
 #include "CommFactory.hpp"
 #include "StatusInfo.h"
-#include "IStateTransfer.hpp"
+#include "byzst.hpp"
 
 using namespace Blockchain::Utils;
 
@@ -274,7 +274,7 @@ namespace Blockchain {
       bftEngine::ReplicaConfig m_replicaConfig;
       bftEngine::Replica *m_replicaPtr = nullptr;
       ICommandsHandler *m_cmdHandler = nullptr;
-      IStateTransfer *m_stateTransfer = nullptr;
+      bftEngine::IStateTransfer *m_stateTransfer = nullptr;
 
       // static methods
       static Slice createBlockFromUpdates(
