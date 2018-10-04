@@ -51,6 +51,10 @@ private:
 
    Blockchain::Status get(const Blockchain::Slice &key,
                           Blockchain::Slice &out);
+   Blockchain::Status get(const Blockchain::BlockId readVersion,
+                          const Blockchain::Slice &key,
+                          Blockchain::Slice &value,
+                          Blockchain::BlockId &outBlock);
    void put(const Blockchain::Slice &key, const Blockchain::Slice &value);
 
    uint64_t next_block_number();
@@ -74,13 +78,22 @@ public:
    EthBlock get_block(uint64_t number);
    EthTransaction get_transaction(const evm_uint256be &hash);
    uint64_t get_balance(const evm_address &addr);
+   uint64_t get_balance(const evm_address &addr, uint64_t &block_number);
    uint64_t get_nonce(const evm_address &addr);
+   uint64_t get_nonce(const evm_address &addr, uint64_t &block_number);
    bool account_exists(const evm_address &addr);
    bool get_code(const evm_address &addr,
                  std::vector<uint8_t> &out,
                  evm_uint256be &hash);
+   bool get_code(const evm_address &addr,
+                 std::vector<uint8_t> &out,
+                 evm_uint256be &hash,
+                 uint64_t &block_number);
    evm_uint256be get_storage(const evm_address &addr,
                              const evm_uint256be &location);
+   evm_uint256be get_storage(const evm_address &addr,
+                             const evm_uint256be &location,
+                             uint64_t &block_number);
 
    Blockchain::Status write_block(uint64_t timestamp);
    void reset();

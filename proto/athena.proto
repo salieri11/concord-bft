@@ -89,6 +89,7 @@ message EthRequest {
    optional bytes sig_r = 13;
    optional bytes sig_s = 14;
    optional int64 timestamp = 15; // Internal only!
+   optional int64 block_number = 16; // for the default block parameter
 }
 
 
