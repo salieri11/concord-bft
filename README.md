@@ -169,6 +169,18 @@ make
 ```
 Note: the build directory starts with and underscore (_) it is required to use the exact same name
 
+#### State transfer module
+This is temporary solution until modern and effective state transfer module will be ready. We are using BASE State transfer (GPL) and thats why it should be installed as binary dependancy.
+```
+git clone https://github.com/vmwathena/state-transfer.git
+cd state-transfer/
+mkdir build
+cd build/
+cmake ..
+make
+sudo make install
+```
+
 ### Athena
 
 Once dependencies are installed, make sure you have initialized the
