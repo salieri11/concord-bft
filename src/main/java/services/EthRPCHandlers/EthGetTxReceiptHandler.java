@@ -119,6 +119,11 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
          result.put("status",
                     "0x" + Integer.toString(transactionResponse.getStatus() == 0
                        ? 1 : 0));
+
+         // TODO : Passing empty String array for logs as Truffle expects this
+         //        Fix this with actual logs
+         String[] logs = new String[0];
+         result.put("logs", logs);
          respObject.put("result", result);
       } catch (Exception e) {
          // This should never get triggered as params are already checked while
