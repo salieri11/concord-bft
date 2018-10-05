@@ -130,8 +130,6 @@ def call(){
       stage('Run tests') {
         steps {
           dir('hermes') {
-            // configFileProvider([configFile(fileId: '092fb643-feda-4b41-b7b0-31ff7617b0c9', targetLocation: 'resources/user_config.json')]) {
-            // }
             sh './main.py CoreVMTests'
             sh './main.py HelenAPITests'
             sh './main.py ExtendedRPCTests'
