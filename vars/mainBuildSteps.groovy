@@ -4,10 +4,53 @@ def call(){
     tools {
         nodejs 'Node 8.9.1'
     }
+    parameters {
+      booleanParam defaultValue: false, description: 'If tests pass, deploy the docker images for production', name: 'Deploy'
+      string defaultValue: '',
+             description: 'Athena commit or branch to use.  Providing a branch name will pull the branch\'s latest commit.',
+             name: 'athena_branch_or_commit'
+      string defaultValue: '',
+             description: 'Helen commit or branch to use.  Providing a branch name will pull the branch\'s latest commit.',
+             name: 'helen_branch_or_commit'
+      string defaultValue: '',
+             description: 'Hermes commit or branch to use.  Providing a branch name will pull the branch\'s latest commit.',
+             name: 'hermes_branch_or_commit'
+    }
     stages {
       stage('Clean') {
         steps {
           cleanWs()
+        }
+      }
+      stage('Fetch all source code') {
+        parallel {
+          stage('Fetch Athena source') {
+            steps {
+              echo "Athena branch/commit: ${params.athena_branch_or_commit}"
+              sh 'mkdir athena'
+              dir('athena') {
+                getRepoCode("https://github.com/vmwathena/athena", params.athena_branch_or_commit)
+              }
+            }
+          }
+          stage('Fetch Helen source') {
+            steps {
+              echo "Helen branch/commit: ${params.helen_branch_or_commit}"
+              sh 'mkdir helen'
+              dir('helen') {
+                getRepoCode("https://github.com/vmwathena/helen", params.helen_branch_or_commit)
+              }
+            }
+          }
+          stage('Fetch Hermes source') {
+            steps {
+              echo "Hermes branch/commit: ${params.hermes_branch_or_commit}"
+              sh 'mkdir hermes'
+              dir('hermes') {
+                getRepoCode("https://github.com/vmwathena/hermes", params.hermes_branch_or_commit)
+              }
+            }
+          }
         }
       }
       stage('Copy dependencies') {
@@ -55,16 +98,7 @@ def call(){
         parallel {
           stage('Build Athena') {
             steps {
-              sh 'mkdir athena'
               dir('athena') {
-                checkout([$class: 'GitSCM', branches: [[name: "master"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '27bbd815-703c-4647-909b-836919db98ef', url: 'https://github.com/vmwathena/athena']]])
-                script {
-                  try {
-                    checkout([$class: 'GitSCM', branches: [[name: "${env.BRANCH_NAME}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '27bbd815-703c-4647-909b-836919db98ef', url: 'https://github.com/vmwathena/athena']]])
-                  } catch (Exception e) {
-                    echo "Branch ${env.BRANCH_NAME} for Athena not found"
-                  }
-                }
                 sh '''currentDir=`pwd`
                 sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/athena1.config
                 sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/athena2.config
@@ -82,21 +116,12 @@ def call(){
           }
           stage('Build Helen') {
             steps {
-              sh 'mkdir helen'
               dir('helen') {
-                checkout([$class: 'GitSCM', branches: [[name: "master"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '27bbd815-703c-4647-909b-836919db98ef', url: 'https://github.com/vmwathena/helen']]])
-                script {
-                  try {
-                    checkout([$class: 'GitSCM', branches: [[name: "${env.BRANCH_NAME}"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '27bbd815-703c-4647-909b-836919db98ef', url: 'https://github.com/vmwathena/helen']]])
-                  } catch (Exception e) {
-                    echo "Branch ${env.BRANCH_NAME} for Helen not found"
-                  }
-                }
                 sh 'mvn clean install package'
-  //  Maybe add those tests here at some point. Need investigation and config.
-  //              dir('webapps') {
-  //                sh 'npm run e2e'
-  //              }
+                //  Maybe add those tests here at some point. Need investigation and config.
+                //              dir('webapps') {
+                //                sh 'npm run e2e'
+                //              }
               }
             }
           }
@@ -104,11 +129,9 @@ def call(){
       }
       stage('Run tests') {
         steps {
-          sh 'mkdir hermes'
           dir('hermes') {
-            checkout([$class: 'GitSCM', branches: [[name: "master"]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '27bbd815-703c-4647-909b-836919db98ef', url: 'https://github.com/vmwathena/hermes']]])
-            configFileProvider([configFile(fileId: '092fb643-feda-4b41-b7b0-31ff7617b0c9', targetLocation: 'resources/user_config.json')]) {
-            }
+            // configFileProvider([configFile(fileId: '092fb643-feda-4b41-b7b0-31ff7617b0c9', targetLocation: 'resources/user_config.json')]) {
+            // }
             sh './main.py CoreVMTests'
             sh './main.py HelenAPITests'
             sh './main.py ExtendedRPCTests'
@@ -180,4 +203,27 @@ def call(){
       // }
     }// End stages
   }
+}
+
+// The user's parameter is top priority, and if it fails, let an exception be thrown.
+// Next, get master.
+// Next, try to get BRANCH_NAME.  If getting BRANCH_NAME fails, we are probably testing
+// a branch that is in only in one or two of the repos.  That's fine.
+void getRepoCode(repo_url, branch_or_commit){
+  if (branch_or_commit.trim()){
+    checkoutRepo(repo_url, branch_or_commit)
+  }else{
+    checkoutRepo(repo_url, "master")
+
+    try {
+      checkoutRepo(repo_url, env.BRANCH_NAME)
+    } catch (Exception e) {
+      echo "Branch ${env.BRANCH_NAME} for ${repo_url} not found"
+    }
+  }
+}
+
+// All that varies for each repo is the branch, so wrap this very large call.
+void checkoutRepo(repo_url, branch_or_commit){
+  checkout([$class: 'GitSCM', branches: [[name: branch_or_commit]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '27bbd815-703c-4647-909b-836919db98ef', url: repo_url]]])
 }
