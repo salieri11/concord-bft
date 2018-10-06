@@ -15,6 +15,9 @@ def call(){
       string defaultValue: '',
              description: 'Hermes commit or branch to use.  Providing a branch name will pull the branch\'s latest commit.',
              name: 'hermes_branch_or_commit'
+      string defaultValue: '',
+             description: 'Shared Jenkins lib commit or branch to use.  Providing a branch name will pull the branch\'s latest commit.',
+             name: 'shared_lib_branch_or_commit'
     }
     stages {
       stage('Clean') {
@@ -214,10 +217,14 @@ void getRepoCode(repo_url, branch_or_commit){
   }else{
     checkoutRepo(repo_url, "master")
 
-    try {
-      checkoutRepo(repo_url, env.BRANCH_NAME)
-    } catch (Exception e) {
-      echo "Branch ${env.BRANCH_NAME} for ${repo_url} not found"
+    // When launched via the multibranch pipeline plugin, there is a BRANCH_NAME
+    // environment variable.
+    if (env.BRANCH_NAME && env.BRANCH_NAME.trim()){
+      try {
+        checkoutRepo(repo_url, env.BRANCH_NAME)
+      } catch (Exception e) {
+        echo "Branch ${env.BRANCH_NAME} for ${repo_url} not found"
+      }
     }
   }
 }
