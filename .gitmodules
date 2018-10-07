@@ -2,3 +2,6 @@
 	path = submodules/concord-bft
 	url = https://github.com/vmwathena/concord-bft
 	branch = igolikov/concordIntegration
+[submodule "submodules/state-transfer"]
+	path = submodules/state-transfer
+	url = https://github.com/vmwathena/state-transfer.git

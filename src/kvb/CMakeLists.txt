@@ -33,7 +33,7 @@ endif()
 
 target_compile_definitions(kvblockchain PUBLIC __BASE=1 SPARSE_STATE=1 USE_TLS=1)
 
-find_package(BYZST REQUIRED)
-target_include_directories(kvblockchain PUBLIC ${BYZST_INCLUDE_DIRS})
+get_property(byzst_include_dir GLOBAL PROPERTY byzst_include)
+target_include_directories(kvblockchain PUBLIC ${byzst_include_dir})
 target_link_libraries(kvblockchain PUBLIC byzst)
 
