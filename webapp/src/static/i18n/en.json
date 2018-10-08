@@ -96,8 +96,12 @@
     "welcome": "Welcome to",
     "username": "Username",
     "password": "Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
     "next": "Next",
-    "errorMessage": "Invalid user name or password"
+    "errorMessage": "Invalid user name or password",
+    "changePassword": "Change Password",
+    "passwordReq": "Password must be 6 to 35 characters and contains at least one numeric digit, one uppercase letter, one lowercase letter and one special character."
   },
   "grid": {
     "search": {
@@ -282,7 +286,7 @@
     "createContractError": "There was an error uploading your contract. Please correct any errors and try again:",
     "viewDetail": "View Details",
     "name": "Name",
-    "namePlacholder": "MyContract",
+    "namePlaceholder": "MyContract",
     "owner": "Owner",
     "file": "File",
     "preview": "Preview",
@@ -937,6 +941,7 @@
     "title": "Take Tour",
     "nextBtnText": "Next",
     "prevBtnText": "Prev",
+    "endBtnText": "End",
     "dashboard": {
       "nodeStatus": {
         "title": "Node Status",

@@ -159,6 +159,7 @@ export class TourService {
     this.ngxTourService.initialize(this.steps, {
       prevBtnTitle: this.translate.instant('tourSteps.prevBtnText'),
       nextBtnTitle: this.translate.instant('tourSteps.nextBtnText'),
+      endBtnTitle: this.translate.instant('tourSteps.endBtnText'),
       popperSettings: {
         hideOnClickOutside: false
       }

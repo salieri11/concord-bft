@@ -45,6 +45,14 @@ public class EthGetStorageAtHandler extends AbstractEthRPCHandler {
          String p = (String) params.get(1);
          String s = APIHelper.padZeroes(p);
          b.setData(APIHelper.hexStringToBinary(s));
+         // add "block" parameter, the default block parameter is "latest".
+         // if no parameter or its value is negative, athena treat is as default
+         if (params.size() == 3) {
+            long blockNumber = APIHelper.parseBlockNumber(params);
+            if (blockNumber >= 0){
+               b.setBlockNumber(blockNumber);
+            }
+         }
          ethRequest = b.build();
       } catch (Exception e) {
          logger.error("Exception in get storage at handler", e);

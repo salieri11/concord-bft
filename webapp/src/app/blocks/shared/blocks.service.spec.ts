@@ -13,7 +13,7 @@ describe('BlocksService', () => {
     TestBed.configureTestingModule({
       providers: [
         BlocksService,
-        {provide: ATHENA_API_PREFIX, useValue: '/api/athena'},
+        {provide: ATHENA_API_PREFIX, useValue: 'api/athena'},
         HttpClient,
         HttpHandler
       ]
