@@ -11,7 +11,7 @@ if [ ! -e "submodules/concord-bft/README.md" ]; then
     exit 1
 fi
 
-if [ ! -e "state-transfer/README.md" ]; then
+if [ ! -e "submodules/state-transfer/README.md" ]; then
     echo "state-transfer module not initialized"
     echo "Please run the following before building docker images:"
     echo "   git clone https://github.com/vmwathena/state-transfer.git"

@@ -84,8 +84,6 @@ RUN make && make install
 
 WORKDIR /athena
 COPY . /athena
-WORKDIR /athena/state-transfer/build
-RUN cmake .. && make && make install
 WORKDIR /athena/build
 RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make
 
@@ -112,7 +110,7 @@ COPY --from=0 /usr/local/lib/liblog4cplus* /usr/local/lib/
 COPY --from=0 /usr/local/lib/librelic* /usr/local/lib/
 COPY --from=0 /usr/local/lib/librocksdb.* /usr/local/lib/
 COPY --from=0 /usr/local/lib/libsecp256k1* /usr/local/lib/
-## TODO, once state-transfer produces a dynamically-linked library: COPY --from=0 /usr/local/lib/libbyzst.so /usr/local/lib/
+COPY --from=0 /athena/build/submodules/state-transfer/libbyzst.so* /usr/local/lib/
 
 WORKDIR /athena/resources
 COPY --from=0 /athena/build/resources/log4cplus.properties /athena/resources/
