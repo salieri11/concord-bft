@@ -110,6 +110,10 @@ private:
 
    void recover_from(const EthRequest &request, evm_address *sender) const;
 
+   uint64_t parse_block_parameter(
+      const EthRequest &request,
+      KVBStorage &kvbStorage) const;
+
    evm_result run_evm(
       const EthRequest &request,
       KVBStorage &kvbStorage,
