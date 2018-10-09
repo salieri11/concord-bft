@@ -4,6 +4,12 @@ bin/
 tmp/
 logs/
 build/
+.idea/
+cmake-build-debug/
+.cproject
+.project
+.settings/
+.vscode/
 docker/config-athena*/s_f1c0_config.pub
 docker/log*
 docker/rocksdbdata*

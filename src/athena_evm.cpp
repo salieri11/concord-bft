@@ -74,8 +74,12 @@ evm_result com::vmware::athena::EVM::run(evm_message &message,
    assert(message.kind != EVM_CREATE);
 
    std::vector<uint8_t> code;
-   evm_uint256be hash;
+   evm_uint256be hash{{0}};
    evm_result result;
+   result.output_data = nullptr;
+   result.output_size = 0;
+   result.create_address = {0};
+   result.release = nullptr;
    if (kvbStorage.get_code(message.destination, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Loaded code from " << message.destination);
       message.code_hash = hash;
@@ -158,7 +162,7 @@ evm_result com::vmware::athena::EVM::create(evm_address &contract_address,
    assert(message.input_size > 0);
 
    std::vector<uint8_t> code;
-   evm_uint256be hash;
+   evm_uint256be hash{{0}};
    evm_result result;
    if (!kvbStorage.get_code(contract_address, code, hash)) {
       LOG4CPLUS_DEBUG(logger, "Creating contract at " << contract_address);

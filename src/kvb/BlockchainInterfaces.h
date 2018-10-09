@@ -10,10 +10,15 @@
 #include <string>
 #include <iterator>
 #include <unordered_map>
+#include <set>
+#include <Replica.hpp>
 #include "slice.h"
 #include "status.h"
 #include "DatabaseInterface.h"
 #include "StatusInfo.h"
+#include "ICommunication.hpp"
+#include "CommDefs.hpp"
+#include "ThresholdSignaturesSchemes.h"
 
 using std::string;
 using std::pair;
@@ -40,16 +45,85 @@ namespace Blockchain {
    class IBlocksAppender;
    class ICommandsHandler;
 
+   // Communication
+   struct CommConfig
+   {
+      // common fields
+      std::string listenIp;
+      uint16_t listenPort;
+      uint32_t bufferLength;
+      std::unordered_map <NodeNum, NodeInfo> nodes;
+      UPDATE_CONNECTIVITY_FN statusCallback;
+      uint32_t selfId;
+
+      // tcp
+      uint32_t maxServerId;
+
+      // tls (tcp fields should be set as well
+      std::string certificatesRootPath;
+   };
+
    // REPLICA
 
    // configuration
-   // TODO(GG): should be changed !!!!!!
-   // TODO(BWF): as GG said, convert this from strings representing filenames to
-   // structs representing the actual configuration
    struct ReplicaConsensusConfig
    {
-      std::string byzConfig;
-      std::string byzPrivateConfig;
+      // F value - max number of faulty/malicious replicas. fVal >= 1
+      uint16_t fVal;
+
+      // C value. cVal >=0
+      uint16_t cVal;
+
+      // unique identifier of the replica.
+      // The number of replicas in the system should be N = 3*fVal + 2*cVal + 1
+      // In the current version, replicaId should be a number between 0 and  N-1
+      // replicaId should also represent this replica in ICommunication.
+      uint16_t replicaId;
+
+      // number of objects that represent clients.
+      // numOfClientProxies >= 1
+      uint16_t numOfClientProxies;
+
+      // a time interval in milliseconds. represents how often the replica sends a status report to the other replicas.
+      // statusReportTimerMillisec > 0
+      uint16_t statusReportTimerMillisec;
+
+      // number of consensus operations that can be executed in parallel
+      // 1 <= concurrencyLevel <= 30
+      uint16_t concurrencyLevel;
+
+      // autoViewChangeEnabled=true , if the automatic view change protocol is enabled
+      bool autoViewChangeEnabled;
+
+      // a time interval in milliseconds. represents the timeout used by the  view change protocol (TODO: add more details)
+      uint16_t viewChangeTimerMillisec;
+
+      // public keys of all replicas. map from replica identifier to a public key
+      std::set<std::pair<uint16_t, std::string>> publicKeysOfReplicas;
+
+      // private key of the current replica
+      std::string replicaPrivateKey;
+
+      /// TODO(IG): the fields below not be here,
+      /// their init should happen within BFT library
+
+      // signer and verifier of a threshold signature (for threshold fVal+1 out of N)
+      // In the current version, both should be nullptr
+      IThresholdSigner* thresholdSignerForExecution;
+      IThresholdVerifier* thresholdVerifierForExecution;
+
+      // signer and verifier of a threshold signature (for threshold N-fVal-cVal out of N)
+      IThresholdSigner* thresholdSignerForSlowPathCommit;
+      IThresholdVerifier* thresholdVerifierForSlowPathCommit;
+
+      // signer and verifier of a threshold signature (for threshold N-cVal out of N)
+      // If cVal==0, then both should be nullptr
+      IThresholdSigner* thresholdSignerForCommit;
+      IThresholdVerifier* thresholdVerifierForCommit;
+
+      // signer and verifier of a threshold signature (for threshold N out of N)
+      IThresholdSigner* thresholdSignerForOptimisticCommit;
+      IThresholdVerifier* thresholdVerifierForOptimisticCommit;
    };
 
    // Represents a replica of the blockchain database
@@ -60,6 +134,7 @@ namespace Blockchain {
       virtual Status stop()  = 0;
       // TODO(BWF): document what "wait" does
       virtual Status wait()  = 0;
+      virtual ~IReplica() {};
 
       // status of the replica
       enum class RepStatus
@@ -90,16 +165,22 @@ namespace Blockchain {
       // for initialization and maintenance.
       virtual Status addBlockToIdleReplica(
          const SetOfKeyValuePairs& updates) = 0;
+
+      /// TODO(IG) the following methods are probably temp solution,
+      /// need to split interfaces implementations to differrent modules
+      /// instead of being all implemented bt ReplicaImpl
+      virtual void set_command_handler(ICommandsHandler *handler) = 0;
+
+
    };
 
    // TODO(BWF): It would be nice to migrate createReplica/release to
    // constructor/destructor, to make use of RAII.
 
    // creates a new Replica object
-   IReplica* createReplica(const ReplicaConsensusConfig& consensusConfig,
-                           ICommandsHandler* cmdHandler,
-                           IDBClient* db,
-                           UPDATE_CONNECTIVITY_FN fPeerConnectivityCallback);
+   IReplica* createReplica(Blockchain::CommConfig &commConfig,
+                           ReplicaConsensusConfig &config,
+                           IDBClient* db);
 
    // deletes a Replica object
    void release(IReplica* r);
@@ -108,13 +189,14 @@ namespace Blockchain {
    // CLIENT
 
    // configuration
-   // TODO(GG): should be changed !!!!!!
-   // TODO(BWF): as GG said, convert this from strings representing filenames to
    // structs representing the actual configuration
+   // should be here since Client impl is not in the BFT responsibility,
+   // opposite to the replica
    struct ClientConsensusConfig
    {
-      std::string byzConfig;
-      std::string byzPrivateConfig;
+      uint16_t clientId;
+      uint16_t maxFaulty;
+      uint16_t maxSlow;
    };
 
    // Represents a client of the blockchain database
@@ -138,14 +220,11 @@ namespace Blockchain {
       typedef void(*CommandCompletion)(uint64_t completionToken,
                                        Status returnedStatus,
                                        Slice outreply);
-      virtual void invokeCommandAsynch(const Slice command,
-                                       bool isReadOnly,
-                                       uint64_t completionToken,
-                                       CommandCompletion h) = 0;
 
       virtual Status invokeCommandSynch(const Slice command,
                                         bool isReadOnly,
-                                        Slice& outReply) = 0;
+                                        Slice& outReply,
+                                        uint32_t &outActualReplySize) = 0;
 
       // release memory allocated by invokeCommandSynch
       virtual Status release(Slice& slice) = 0;
@@ -155,7 +234,8 @@ namespace Blockchain {
    //make use of RAII?
 
    // creates a new Client object
-   IClient* createClient(const ClientConsensusConfig& consensusConfig);
+   IClient* createClient(Blockchain::CommConfig &commConfig,
+                         const ClientConsensusConfig &consensusConfig);
 
    // deletes a Client object
    void release(IClient* r);
@@ -163,27 +243,16 @@ namespace Blockchain {
    // COMMANDS HANDLER
 
    // Upcall interface from KVBlockchain to application using it as storage.
-   class ICommandsHandler
+   class ICommandsHandler : public bftEngine::RequestsHandler
    {
    public:
-
-      virtual bool executeCommand(
-         const Slice command,
-         const ILocalKeyValueStorageReadOnly& roStorage,
-         IBlocksAppender& blockAppender,
-         const size_t maxReplySize,
-         char* outReply,
-         size_t& outReplySize) const = 0;
-
-      virtual bool executeReadOnlyCommand(
-         const Slice command,
-         const ILocalKeyValueStorageReadOnly& roStorage,
-         const size_t maxReplySize,
-         char* outReply,
-         size_t& outReplySize) const = 0;
-
-      // TODO(GG): should be supported by the BA engine
-      // virtual bool isValidCommand(const Slice command) = 0;
+   virtual int execute(uint16_t clientId,
+                        bool readOnly,
+                        uint32_t requestSize,
+                        const char* request,
+                        uint32_t maxReplySize,
+                        char* outReply,
+                        uint32_t &outActualReplySize) = 0;
    };
 
    // STORAGE MODELS
@@ -260,10 +329,6 @@ namespace Blockchain {
       virtual Status addBlock(const SetOfKeyValuePairs& updates,
                               BlockId& outBlockId) = 0;
    };
-
-   // init/free environment
-   void initEnv();
-   void freeEnv();
 
    // TBDs9gg0:
    // (1) Allow direct reading from the replicas

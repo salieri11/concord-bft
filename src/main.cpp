@@ -18,13 +18,13 @@
 #include "evm_init_params.hpp"
 #include "kvb/DatabaseInterface.h"
 #include "kvb/BlockchainDBAdapter.h"
+#include "kvb/ReplicaImp.h"
 #include "kvb/Comparators.h"
 #include "kvb/InMemoryDBClient.h"
-#include "kvb/ReplicaImp.h"
-#include "kvb/ClientImp.h"
 #include <thread>
 #include <string>
 #include "status_aggregator.hpp"
+#include "kvb/bft_configuration.hpp"
 
 #ifdef USE_ROCKSDB
 #include "kvb/RocksDBClient.h"
@@ -206,48 +206,69 @@ run_service(variables_map &opts, Logger logger)
       Blockchain::IDBClient *dbclient = open_database(opts, logger);
       Blockchain::BlockchainDBAdapter db(dbclient);
 
+      /// replica and comm config init
+      Blockchain::CommConfig commConfig;
+      StatusAggregator sag;
+      commConfig.statusCallback = sag.get_update_connectivity_fn();
+      Blockchain::ReplicaConsensusConfig replicaConsensusConfig;
+      ///TODO(IG): check return value and shutdown athena if false
+      parse_plain_config_file(opts["SBFT.replica"].as<std::string>(),
+                              opts["SBFT.public"].as<std::string>(),
+                              &commConfig,
+                              nullptr,
+                              &replicaConsensusConfig);
+
+      /* init replica
+       * TODO(IG): since ReplicaImpl is used as an implementation of few
+       * intefaces, this object will be used for constructing KVBCommandsHandler
+       * and thus we cant use IReplica here. Need to restructure the code, to
+       * split interfaces implementation and to construct objects in more
+       * clear way
+       */
+      Blockchain::ReplicaImp *replica = dynamic_cast<Blockchain::ReplicaImp*>(
+         Blockchain::createReplica(commConfig,
+                                   replicaConsensusConfig,
+                                   dbclient));
+
       // throws an exception if it fails
       EVM athevm(params);
       EthSign verifier;
-      KVBCommandsHandler athkvb(athevm, verifier, opts);
-
-      // For Thread local storage. Should be called exactly once per process.
-      Blockchain::initEnv();
-
-      // init status aggregation object
-      StatusAggregator sag;
-
-      Blockchain::ReplicaConsensusConfig replicaConsensusConfig;
-      replicaConsensusConfig.byzConfig = opts["SBFT.public"].as<std::string>();
-      replicaConsensusConfig.byzPrivateConfig =
-         opts["SBFT.replica"].as<std::string>();
-      Blockchain::IReplica *replica =
-         Blockchain::createReplica(replicaConsensusConfig,
-                                   &athkvb,
-                                   dbclient,
-                                   sag.get_update_connectivity_fn());
+      KVBCommandsHandler athkvb(athevm,
+                                verifier,
+                                opts,
+                                replica,
+                                replica);
+      replica->set_command_handler(&athkvb);
 
       // Genesis must be added before the replica is started.
       Blockchain::Status genesis_status =
          create_genesis_block(replica, params, logger);
       if (!genesis_status.ok()) {
          LOG4CPLUS_FATAL(logger, "Unable to load genesis block: " <<
-                         genesis_status.ToString());
+                                 genesis_status.ToString());
          throw EVMException("Unable to load genesis block");
       }
 
+      /// start replica
       replica->start();
 
+      /// init and start clients pool
       std::vector<KVBClient*> clients;
       std::vector<std::string> clientConfigs =
          opts["SBFT.client"].as<std::vector<std::string>>();
 
+
       for (auto it = clientConfigs.begin(); it != clientConfigs.end(); it++) {
          Blockchain::ClientConsensusConfig clientConsensusConfig;
-         clientConsensusConfig.byzConfig = opts["SBFT.public"].as<std::string>();
-         clientConsensusConfig.byzPrivateConfig = *it;
+         ///TODO(IG): check return value and shutdown athena if false
+         CommConfig clientCommConfig;
+         parse_plain_config_file(*it,
+                                 opts["SBFT.public"].as<std::string>(),
+                                 &clientCommConfig,
+                                 &clientConsensusConfig,
+                                 nullptr);
          Blockchain::IClient *client =
-            Blockchain::createClient(clientConsensusConfig);
+            Blockchain::createClient(clientCommConfig, clientConsensusConfig);
          client->start();
          KVBClient *kvbClient = new KVBClient(client);
          clients.push_back(kvbClient);
@@ -282,12 +303,11 @@ run_service(variables_map &opts, Logger logger)
       // If we return from `run`, the service was stopped and we are shutting
       // down.
 
+      /// replica
       replica->stop();
       replica->wait();
-      Blockchain::release(replica);
 
-      // For Thread local storage. Should be called exactly once per process.
-      Blockchain::freeEnv();
+      Blockchain::release(replica);
    } catch (std::exception &ex) {
       LOG4CPLUS_FATAL(logger, ex.what());
       return -1;
