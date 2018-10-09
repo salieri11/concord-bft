@@ -1,0 +1,51 @@
+$clarity-dark-text: #adbbc4;
+$clarity-dark-text-hover: #ffffff;
+
+.theme-select {
+    display: block;
+    text-align: right;
+    margin-right: 20px;
+    width: 100px !important;
+    font-weight: 500;
+    font-size: .45833rem;
+    letter-spacing: .073em;
+    text-decoration: none;
+    color: #0094d2;
+    text-transform: uppercase;
+    white-space: nowrap;
+
+    clr-icon {
+        position: unset;
+        transform: none;
+        margin-right: 6px;
+    }
+
+    &:hover {
+        color: #57c7ea;
+        clr-icon svg g g path {
+            fill: #57c7ea;
+        }
+    }
+}
+
+:host-context(.subnav) .theme-select {
+    margin-right: 12px;
+    margin-top: -2px;
+    font-weight: 500;
+}
+
+:host-context(.dark) .theme-select {
+    a {
+        color: $clarity-dark-text;
+        clr-icon {
+            fill: $clarity-dark-text;
+        }
+    }
+
+    &:hover {
+        color: $clarity-dark-text-hover;
+        clr-icon {
+            fill: $clarity-dark-text-hover;
+        }
+    }
+}

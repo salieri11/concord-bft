@@ -4,24 +4,11 @@
 @import "~@clr/ui/src/color/utils/_colors.clarity.scss";
 
 // Global colors
+$black: #000;
 $white: #fff;
 $offWhite: #eee;
 $lightGrey: #fafafa;
 $lightBlue: #49AFD9;
-
-// Clarity variables to allow importing in to Angular components
-$clr-global-borderradius: 0.125rem;
-
-// Clarity Vertical Nav - dark theme
-$clr-vertical-nav-bg-color: #383F43;
-$clr-vertical-nav-top-padding: 0;
-$clr-vertical-nav-item-height: 2.5rem;
-$clr-vertical-nav-icon-size: 1rem;
-$clr-vertical-nav-icon-right-margin: 0.75rem;
-$clr-vertical-nav-item-color: $white;
-$clr-vertical-nav-item-active-color: $white;
-$clr-vertical-nav-header-color: $white;
-$clr-vertical-nav-hover-bg-color: $clr-action-blue-light-midtone;
 
 // Accordian - light theme
 $accordion-background-color: #EEEEEE;

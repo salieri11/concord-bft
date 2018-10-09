@@ -17,7 +17,7 @@
     </div>
     <div class="header-nav">
       <clr-dropdown>
-        <button id="menu" clrDropdownTrigger>
+        <button id="menu" class="nav-text" clrDropdownTrigger>
           {{ 'nav.menu.title' | translate }}
           <clr-icon shape="caret down"></clr-icon>
         </button>
@@ -74,6 +74,7 @@
           </button>
         </clr-dropdown-menu>
       </clr-dropdown>
+      <athena-theme-switch-button></athena-theme-switch-button>
       <clr-dropdown #userProfileMenu>
         <button id="profileMenu" class="nav-text" clrDropdownTrigger tourAnchor="onboardingTour.userSettings">
           <clr-icon shape="user" class="is-solid"></clr-icon>

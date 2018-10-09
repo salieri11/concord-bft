@@ -27,6 +27,7 @@ import { VmwAccordionGroupComponent } from './components/accordion/accordion-gro
 import { VmwComboboxComponent } from './components/combobox/combobox.component';
 import { VmwComboboxItemsComponent } from './components/combobox/combobox-items/combobox-items.component';
 import { VmwCopyToClipboardButtonComponent } from './components/copy-to-clipboard-button/copy-to-clipboard-button.component';
+import { VmwThemeSwitchButtonComponent } from './components/theme-switch-button/theme-switch-button.component';
 
 @NgModule({
   imports: [
@@ -48,7 +49,8 @@ import { VmwCopyToClipboardButtonComponent } from './components/copy-to-clipboar
     VmwComboboxComponent,
     VmwComboboxItemsComponent,
     VmwCopyToClipboardButtonComponent,
-    BlockchainWizardComponent
+    BlockchainWizardComponent,
+    VmwThemeSwitchButtonComponent
   ],
   exports: [
     CommonModule,
@@ -65,7 +67,8 @@ import { VmwCopyToClipboardButtonComponent } from './components/copy-to-clipboar
     VmwComboboxComponent,
     VmwComboboxItemsComponent,
     VmwCopyToClipboardButtonComponent,
-    BlockchainWizardComponent
+    BlockchainWizardComponent,
+    VmwThemeSwitchButtonComponent
   ]
 })
 export class SharedModule {
