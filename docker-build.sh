@@ -18,19 +18,16 @@ if [ ! -e "submodules/state-transfer/README.md" ]; then
     exit 1
 fi
 
-# First build the base image, including athena and the public config.
-docker build . -t athenabase
-
-if [ $? -ne 0 ]; then
-    echo "Base image creation failed. Exiting before specialization."
-    exit 1
-fi
-
+# Default tag is "latest".
 if [ $# -gt 0 ]; then
 	tag=":$1"
 fi
-# Now build each of the specific images
-docker build . -f docker/Dockerfile-athena1 -t athena1$tag
-docker build . -f docker/Dockerfile-athena2 -t athena2$tag
-docker build . -f docker/Dockerfile-athena3 -t athena3$tag
-docker build . -f docker/Dockerfile-athena4 -t athena4$tag
+
+# Build the generic image. See docker/docker-compose.yml for how to
+# launch this image for each replica configuration.
+docker build . -t athena$tag
+
+if [ $? -ne 0 ]; then
+    echo "Image creation failed."
+    exit 1
+fi

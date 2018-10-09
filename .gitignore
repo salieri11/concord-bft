@@ -10,4 +10,7 @@ cmake-build-debug/
 .project
 .settings/
 .vscode/
-state-transfer/
+docker/config-athena*/s_f1c0_config.pub
+docker/log*
+docker/rocksdbdata*
+docker/cockroachDB
