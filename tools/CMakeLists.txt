@@ -1,5 +1,7 @@
 string(APPEND CMAKE_CXX_FLAGS " -Wall")
+if(NOT APPLE)
 string(APPEND CMAKE_CXX_FLAGS " -Werror")
+endif()
 
 add_library(athcmdutil STATIC
             "athcmdconn.cpp" "athcmdconn.hpp"

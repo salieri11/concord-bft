@@ -24,7 +24,7 @@ using namespace com::vmware::athena;
 void add_options(options_description &desc) {
    desc.add_options()
       (OPT_LIST",l",
-       "List transactions from index to index-count")
+       "List blocks from index to index-count")
       (OPT_NUMBER",n",
        value<std::uint64_t>(),
        "Number of block to get (latest if listing)")
@@ -61,7 +61,7 @@ void prepare_block_request(variables_map &opts, AthenaRequest &athReq)
    }
 }
 
-void handle_block_list_response(AthenaResponse athResp) {
+void handle_block_list_response(AthenaResponse &athResp) {
    if (!athResp.has_block_list_response()) {
       std::cerr << "No block list response found." << std::endl;
       if (athResp.error_response_size() == 1) {
@@ -83,7 +83,7 @@ void handle_block_list_response(AthenaResponse athResp) {
    }
 }
 
-void handle_block_response(AthenaResponse athResp) {
+void handle_block_response(AthenaResponse &athResp) {
    if (!athResp.has_block_response()) {
       std::cerr << "No block response found." << std::endl;
       if (athResp.error_response_size() == 1) {

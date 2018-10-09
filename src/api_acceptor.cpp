@@ -51,7 +51,7 @@ api_acceptor::start_accept()
 
 void
 api_acceptor::handle_accept(api_connection::pointer new_connection,
-                            const error_code &error)
+                            const boost::system::error_code &error)
 {
    LOG4CPLUS_TRACE(logger_, "handle_accept enter, thread id: " <<
                    boost::this_thread::get_id());

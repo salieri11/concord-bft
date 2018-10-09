@@ -19,7 +19,8 @@ class KVBClient {
 private:
    Blockchain::IClient *client_;
    log4cplus::Logger logger_;
-
+   static constexpr size_t OUT_BUFFER_SIZE = 512000;
+   char m_outBuffer[OUT_BUFFER_SIZE];
 public:
    KVBClient(Blockchain::IClient *client) :
       client_(client),

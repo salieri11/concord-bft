@@ -4,31 +4,21 @@ set(kvblockchain_sources
   ClientImp.cpp ClientImp.h
   Comparators.cpp Comparators.h
   DatabaseInterface.h
-  Env.cpp
-  HashDefs.h
+        HashDefs.h
   HexTools.cpp HexTools.h
   InMemoryDBClient.cpp InMemoryDBClient.h
   ReplicaImp.cpp ReplicaImp.h
   RocksDBClient.cpp RocksDBClient.h
   SimpleThreadPool.h
   slice.cpp slice.h
-  Threading.h
-  ThreadLocalStorage.h
-        )
+  bft_configuration.hpp)
 
 add_library(kvblockchain ${kvblockchain_sources})
 
-# TODO(BWF): Files from these three paths are included in kvb/; we
-# should migrate any fixes from kvb/ back to P2_Blockchain, and then
-# just use them from the submodule
-#target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils)
-#target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils/Thread)
-#target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils/Database)
+get_property(thresh_include GLOBAL PROPERTY thresh_include_folder)
+target_include_directories(kvblockchain PUBLIC ${thresh_include})
 
-target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/Utils/Crypto)
-target_include_directories(kvblockchain PUBLIC ../../submodules/P2_Blockchain/AgreementModules/SbftForIntegMay18/libbyz)
-
-target_link_libraries(kvblockchain PUBLIC byz)
+target_link_libraries(kvblockchain PUBLIC corebft)
 
 if(USE_ROCKSDB)
 find_library(ROCKSDB rocksdb)
@@ -42,3 +32,8 @@ target_link_libraries(kvblockchain PUBLIC ${ROCKSDB} ${LIBBZ2} ${LIBLZ4} ${LIBZS
 endif()
 
 target_compile_definitions(kvblockchain PUBLIC __BASE=1 SPARSE_STATE=1 USE_TLS=1)
+
+get_property(byzst_include_dir GLOBAL PROPERTY byzst_include)
+target_include_directories(kvblockchain PUBLIC ${byzst_include_dir})
+target_link_libraries(kvblockchain PUBLIC byzst)
+

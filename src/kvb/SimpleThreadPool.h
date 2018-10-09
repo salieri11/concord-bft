@@ -37,7 +37,7 @@ namespace Utils
       public:
          // TODO(GG): use release() (and make the destructor protected)
          virtual ~Controller() {}
-         virtual void onThreadBegin() = 0;
+         virtual void* onThreadBegin() = 0;
          virtual void onThreadEnd()   = 0;
       };
 

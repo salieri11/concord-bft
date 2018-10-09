@@ -1,9 +1,9 @@
 file(GLOB athena_src "*.cpp" "*.hpp")
 
 string(APPEND CMAKE_CXX_FLAGS " -Wall")
-
+if(NOT APPLE)
 string(APPEND CMAKE_CXX_FLAGS " -Werror")
-
+endif()
 
 add_subdirectory("common")
 add_subdirectory("kvb")
