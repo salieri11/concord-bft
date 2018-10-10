@@ -121,7 +121,7 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
                        ? 1 : 0));
 
          // TODO : Passing empty String array for logs as Truffle expects this
-         //        Fix this with actual logs
+         //        Fix this with actual logs - HEL 128
          String[] logs = new String[0];
          result.put("logs", logs);
          respObject.put("result", result);
