@@ -8,7 +8,7 @@ PBFT.
 
 The project is composed of three components:
 
- * ~(Concord-BFT)[vmware/concord-bft]~ is the consensus engine for
+ * (Concord-BFT)[vmware/concord-bft] is the consensus engine for
    Athena.
 
  * (athena)[vmwathena/athena] (this repo) provides a key-value
