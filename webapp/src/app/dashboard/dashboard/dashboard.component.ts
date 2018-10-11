@@ -119,7 +119,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       tableHeader: 'nodes.nodes',
       itemLink: (node) => {
         return ['/nodes', node.hostname];
-      }
+      },
+      paginationSummary: 'nodes.paginationSummary'
     };
   }
 
@@ -154,7 +155,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       tableHeader: 'smartContracts.smartContracts',
       itemLink: (contract) => {
         return ['/smart-contracts', contract.contract_id];
-      }
+      },
+      paginationSummary: 'smartContracts.paginationSummary'
     };
   }
 

@@ -166,7 +166,8 @@
   "dashboard": {
     "totalActiveNodes": "Total Active Nodes",
     "inactiveNodes": "Inactive Nodes",
-    "overallNodeHealth": "Overall Node Health",
+    "nodeHealth": "Node Health",
+    "deployedContracts": "Deployed Contracts",
     "transactionsPerSecond": "Transactions/second",
     "averageValidationTime": "Avg Validation Time",
     "xSeconds": "{{seconds}} <small>seconds</small>"
@@ -217,7 +218,8 @@
     "length": "Length",
     "orgOwners": "Org Owners",
     "averageXPerSecond": "Avg {{value}}/sec",
-    "averageXSeconds": "Avg {{value}} sec"
+    "averageXSeconds": "Avg {{value}} sec",
+    "paginationSummary": "{{start}} - {{finish}} of {{total}} nodes"
   },
   "blocks": {
     "title": "Block",
@@ -290,6 +292,7 @@
     "owner": "Owner",
     "file": "File",
     "preview": "Preview",
+    "paginationSummary": "{{start}} - {{finish}} of {{total}} contracts",
     "version": {
       "title": "Version",
       "version": "Version",

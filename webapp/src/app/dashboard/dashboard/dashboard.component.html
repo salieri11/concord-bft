@@ -2,19 +2,19 @@
   <div class="card p-1">
     <div class="media">
       <div class="dashboard-stat-container">
-        <div>Node Health</div>
+        <div>{{'dashboard.nodeHealth' | translate}}</div>
         <h2 class="mt-0">{{healthyNodesCount}}/{{nodes.length}}</h2>
       </div>
       <div class="dashboard-stat-container">
-        <div>Blocks</div>
+        <div>{{'blocks.blocks' | translate}}</div>
         <h2 class="mt-0">{{blocks[0] ? blocks[0].number : 0}}</h2>
       </div>
       <div class="dashboard-stat-container">
-        <div>Transactions</div>
+        <div>{{'transactions.transactions' | translate}}</div>
         <h2 class="mt-0">{{transactionCount}}</h2>
       </div>
       <div class="dashboard-stat-container">
-        <div>Deployed Contracts</div>
+        <div>{{'dashboard.deployedContracts' | translate}}</div>
         <h2 class="mt-0">{{smartContracts.length}}</h2>
       </div>
     </div>
