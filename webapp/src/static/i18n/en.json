@@ -949,7 +949,7 @@
       },
       "transactionList": {
         "title": "Transaction List",
-        "text": "Here are recent blockchain transactions. You can expand each row to see more details."
+        "text": "Here are recent blockchain transactions. You can click each row to see more details."
       }
     },
     "smartContracts": {

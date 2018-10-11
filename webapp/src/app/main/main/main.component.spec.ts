@@ -12,7 +12,6 @@ import { MockSharedModule } from '../../shared/shared.module';
 import { AuthenticationService } from '../../shared/authentication.service';
 import { MainComponent } from './main.component';
 import { CanViewDirective } from '../../shared/directives/can-view.directive';
-import { VmwTaskPanelComponent } from '../../shared/components/task-panel/task-panel.component';
 import { VmwTaskComponent } from '../../shared/components/task-panel/task.component';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { TourService } from '../../shared/tour.service';
@@ -32,7 +31,6 @@ describe('MainComponent', () => {
       declarations: [
         MainComponent,
         VmwTaskComponent,
-        VmwTaskPanelComponent,
         CanViewDirective
       ],
       providers: [

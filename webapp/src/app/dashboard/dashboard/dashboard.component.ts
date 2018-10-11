@@ -10,10 +10,16 @@ import { Subscription } from 'rxjs';
 import { BlockListingBlock } from '../../blocks/shared/blocks.model';
 import { TransactionsService } from '../../transactions/shared/transactions.service';
 import { BlockchainWizardComponent } from '../../shared/components/blockchain-wizard/blockchain-wizard.component';
-import { TaskManagerService, getCompletedSetups, getPendingSetups, setCompletedSetups } from '../../shared/task-manager.service';
 import { TourService } from '../../shared/tour.service';
+import { SmartContractsService } from '../../smart-contracts/shared/smart-contracts.service';
+import { BlocksService } from '../../blocks/shared/blocks.service';
+import { DashboardListConfig } from '../dashboard-list/dashboard-list.component';
+import { NodesService } from '../../nodes/shared/nodes.service';
 
 import * as NodeGeoJson from '../features.json';
+
+const LONG_POLL_INTERVAL = 30000; // Ten seconds
+const BLOCK_TRANSACTION_LIMIT = 20;
 
 @Component({
   selector: 'athena-dashboard',
@@ -22,22 +28,20 @@ import * as NodeGeoJson from '../features.json';
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   @ViewChild('setupWizard') setupWizard: BlockchainWizardComponent;
-  blocks: BlockListingBlock[];
-  recentTransactions: any[] = [];
+  blocks: BlockListingBlock[] = [];
+  transactions: any[] = [];
+  nodes: any[] = [];
+  smartContracts = [];
   nodeGeoJson: any = NodeGeoJson;
-  taskChange: Subscription;
   routerFragmentChange: Subscription;
-  mockStats = {
-    totalActiveNodes: 28458,
-    inactiveNodes: 583,
-    overallNodeHealth: .8742123,
-    transactionsPerSecond: 4289,
-    averageValidationTime: 1.98
-  };
+  firstBlockTransactionCount: number = 0;
+  pollIntervalId: any;
 
   constructor(
     private transactionsService: TransactionsService,
-    private taskManager: TaskManagerService,
+    private smartContractsService: SmartContractsService,
+    private blocksService: BlocksService,
+    private nodesService: NodesService,
     private route: ActivatedRoute,
     private router: Router,
     private translate: TranslateService,
@@ -46,9 +50,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.transactionsService.getRecentTransactions().subscribe((resp) => {
-      this.recentTransactions = resp;
-    });
+    this.loadTransactions();
+    this.loadSmartContracts();
+    this.loadNodes();
+    this.loadBlocks();
+
+    this.pollIntervalId = setInterval(() => {
+      this.loadTransactions();
+      this.loadNodes();
+      this.loadBlocks();
+    }, LONG_POLL_INTERVAL);
 
     this.tourService.initialDashboardUrl = this.router.url.substr(1);
 
@@ -58,7 +69,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
           this.setupBlockchain();
           break;
         case 'orgTour':
-          this.populateMap();
           setTimeout(() => {
             this.tourService.startTour();
           });
@@ -69,70 +79,111 @@ export class DashboardComponent implements OnInit, OnDestroy {
           break;
       }
     });
-
-    this.taskChange = this.taskManager.taskChange.subscribe(() => {
-      this.handleTaskChange();
-    });
   }
 
   ngOnDestroy() {
-    this.taskChange.unsubscribe();
     this.routerFragmentChange.unsubscribe();
+    clearInterval(this.pollIntervalId);
+  }
+
+  get transactionCount() {
+    const blockCount = this.blocks[0] ? this.blocks[0].number : 0;
+    const firstBlockTransactionCount = this.firstBlockTransactionCount;
+    const count = blockCount + firstBlockTransactionCount - 1;
+    return count < 0 ? 0 : count;
+  }
+
+  get healthyNodesCount() {
+    return this.nodes.filter((node) => {
+      return node.millis_since_last_message < node.millis_since_last_message_threshold;
+    }).length;
+  }
+
+  get nodesConfig(): DashboardListConfig {
+    return {
+      headers: ['nodes.hostname', 'nodes.address', 'nodes.health'],
+      displayProperties: ['hostname', 'address', (node) => {
+        let text = '';
+        let labelClass = '';
+
+        if (node.millis_since_last_message < node.millis_since_last_message_threshold) {
+          text = this.translate.instant('nodes.healthy');
+          labelClass = 'label-success';
+        } else {
+          text = this.translate.instant('nodes.unhealthy');
+          labelClass = 'label-danger';
+        }
+
+        return `<span class="label ${labelClass}">${text}</span>`;
+      }],
+      tableHeader: 'nodes.nodes',
+      itemLink: (node) => {
+        return ['/nodes', node.hostname];
+      }
+    };
+  }
+
+  get blocksConfig(): DashboardListConfig {
+    return {
+      headers: ['blocks.index', 'blocks.hash'],
+      displayProperties: ['number', 'hash'],
+      tableHeader: 'blocks.blocks',
+      itemLink: (block) => {
+        return ['/blocks', block.number];
+      },
+      paginationSummary: 'blocks.paginationSummary'
+    };
+  }
+
+  get transactionsConfig(): DashboardListConfig {
+    return {
+      headers: ['transactions.hash', 'transactions.nonce'],
+      displayProperties: ['hash', 'nonce'],
+      tableHeader: 'transactions.transactions',
+      itemLink: (transaction) => {
+        return ['/blocks', transaction.block_number, '/transactions', transaction.hash];
+      },
+      paginationSummary: 'transactions.paginationSummary'
+    };
+  }
+
+  get contractsConfig(): DashboardListConfig {
+    return {
+      headers: ['smartContracts.contractId', 'smartContracts.owner'],
+      displayProperties: ['contract_id', 'owner'],
+      tableHeader: 'smartContracts.smartContracts',
+      itemLink: (contract) => {
+        return ['/smart-contracts', contract.contract_id];
+      }
+    };
   }
 
   setupBlockchain() {
-    this.taskManager.resetTasks();
     this.setupWizard.open();
   }
 
-  populateMap(): void {
-    setCompletedSetups(this.taskManager.getMockInitData());
-    this.handleTaskChange();
+  private loadSmartContracts() {
+    this.smartContractsService.getSmartContracts().subscribe(smartContracts => this.smartContracts = smartContracts);
   }
 
-  onSetupComplete(blockchainInfo: any) {
-    this.taskManager.handleBlockchainSetup(blockchainInfo);
-  }
-
-  private clearTasks() {
-    this.nodeGeoJson.features.forEach((feature) => {
-      feature.properties.nodes = [];
+  private loadNodes() {
+    this.nodesService.getNodes().subscribe((resp) => {
+      this.nodes = resp;
     });
   }
 
-  private handleTaskChange() {
-    if (getCompletedSetups() !== null && getPendingSetups() !== null) {
-      getCompletedSetups().forEach(setup => this.parseBlockchainSetup(setup, 'Healthy'));
-      getPendingSetups().forEach(setup => this.parseBlockchainSetup(setup, 'Deploying'));
-
-      if (getPendingSetups().length === 0 && getCompletedSetups().length === 0) {
-        this.clearTasks();
-      }
-
-      this.nodeGeoJson = { ...this.nodeGeoJson };
-    }
+  private loadBlocks() {
+    this.blocksService.getBlocks(BLOCK_TRANSACTION_LIMIT).subscribe((resp) => {
+      this.blocks = resp.blocks;
+    });
+    this.blocksService.getBlock(0).subscribe((resp) => {
+      this.firstBlockTransactionCount = resp.transactions.length;
+    });
   }
 
-  private parseBlockchainSetup(blockchainSetup: any, status: string) {
-    blockchainSetup.advancedSettings.publicNodesRegions.forEach((region, index) => {
-      this.nodeGeoJson.features.forEach((feature) => {
-        if (feature.properties.codeName === region.value) {
-          const appliedStatus = (status === 'Healthy' && (index === 1 || index === 3)) ? 'Unhealthy' : status;
-          const nodeIndex = feature.properties.nodes.findIndex(n => n.id === blockchainSetup.taskId);
-          const node = {
-            id: blockchainSetup.taskId,
-            consortiumName: blockchainSetup.consortium.name,
-            blockchainType: this.translate.instant(`blockchainWizard.blockchainAndConsortium.${blockchainSetup.blockchain.type}`),
-            status: appliedStatus
-          };
-
-          if (nodeIndex === -1) {
-            feature.properties.nodes.push(node);
-          } else {
-            feature.properties.nodes[nodeIndex] = node;
-          }
-        }
-      });
+  private loadTransactions() {
+    this.transactionsService.getTransactions(BLOCK_TRANSACTION_LIMIT).subscribe((resp) => {
+      this.transactions = resp.transactions;
     });
   }
 }

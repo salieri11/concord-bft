@@ -20,6 +20,7 @@ import { NodeListComponent } from './node-list/node-list.component';
     SharedModule,
     GraphsModule
   ],
-  declarations: [NodesComponent, NodeComponent, NodesStatusFilterComponent, NodeListComponent]
+  declarations: [NodesComponent, NodeComponent, NodesStatusFilterComponent, NodeListComponent],
+  exports: [NodeListComponent]
 })
 export class NodesModule { }

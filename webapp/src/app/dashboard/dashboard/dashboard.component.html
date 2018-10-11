@@ -1,50 +1,43 @@
-<div tourAnchor="onboardingTour.nodeStatus">
-  <athena-world-map [features]="nodeGeoJson"></athena-world-map>
-</div>
-
-
-<div class="p-2 bg-header">
-  <div class="row">
-    <div class="col-md">
-      <p class="p7 mt-0">
-        {{'dashboard.totalActiveNodes' | translate}}
-      </p>
-      <h2 class="mt-0">{{mockStats.totalActiveNodes | number}}</h2>
-    </div>
-    <div class="col-md">
-      <p class="p7 mt-0">
-        {{'dashboard.inactiveNodes' | translate}}
-      </p>
-      <h2 class="mt-0">{{mockStats.inactiveNodes | number}}</h2>
-    </div>
-    <div class="col-md">
-      <p class="p7 mt-0">
-        {{'dashboard.overallNodeHealth' | translate}}
-      </p>
-      <h2 class="mt-0">{{mockStats.overallNodeHealth | percent:"1.0-2"}}</h2>
-      <div class="progress success">
-        <progress max="100" [value]="mockStats.overallNodeHealth * 100"></progress>
+<div class="p-1">
+  <div class="card p-1">
+    <div class="media">
+      <div class="dashboard-stat-container">
+        <div>Node Health</div>
+        <h2 class="mt-0">{{healthyNodesCount}}/{{nodes.length}}</h2>
       </div>
-    </div>
-    <div class="col-md">
-      <p class="p7 mt-0">
-        {{'dashboard.transactionsPerSecond' | translate}}
-      </p>
-      <h2 class="mt-0">{{mockStats.transactionsPerSecond | number}}</h2>
-    </div>
-    <div class="col-md">
-      <p class="p7 mt-0">
-        {{'dashboard.averageValidationTime' | translate}}
-      </p>
-      <h2 class="mt-0"
-          [innerHTML]="'dashboard.xSeconds' | translate:{seconds: (mockStats.averageValidationTime | number:'1.0-2')}">
-      </h2>
+      <div class="dashboard-stat-container">
+        <div>Blocks</div>
+        <h2 class="mt-0">{{blocks[0] ? blocks[0].number : 0}}</h2>
+      </div>
+      <div class="dashboard-stat-container">
+        <div>Transactions</div>
+        <h2 class="mt-0">{{transactionCount}}</h2>
+      </div>
+      <div class="dashboard-stat-container">
+        <div>Deployed Contracts</div>
+        <h2 class="mt-0">{{smartContracts.length}}</h2>
+      </div>
     </div>
   </div>
 </div>
 
-<div class="p-2">
-  <athena-transaction-list [transactions]="recentTransactions"></athena-transaction-list>
+<div class="p-1">
+  <div class="row">
+    <div class="col-xs-6 pb-1">
+      <athena-dashboard-list [listConfig]="nodesConfig" [items]="nodes"></athena-dashboard-list>
+    </div>
+    <div class="col-xs-6 pb-1">
+      <athena-dashboard-list [listConfig]="blocksConfig" [items]="blocks"></athena-dashboard-list>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-xs-6 pb-1" tourAnchor="onboardingTour.transactionList">
+      <athena-dashboard-list [listConfig]="transactionsConfig" [items]="transactions"></athena-dashboard-list>
+    </div>
+    <div class="col-xs-6 pb-1">
+      <athena-dashboard-list [listConfig]="contractsConfig" [items]="smartContracts"></athena-dashboard-list>
+    </div>
+  </div>
 </div>
 
-<athena-blockchain-wizard #setupWizard (setupComplete)="onSetupComplete($event)"></athena-blockchain-wizard>
+<athena-blockchain-wizard #setupWizard></athena-blockchain-wizard>
