@@ -89,7 +89,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   get transactionCount() {
     const blockCount = this.blocks[0] ? this.blocks[0].number : 0;
     const firstBlockTransactionCount = this.firstBlockTransactionCount;
-    const count = blockCount + firstBlockTransactionCount - 1;
+    const count = blockCount + firstBlockTransactionCount;
     return count < 0 ? 0 : count;
   }
 
