@@ -1,4 +1,4 @@
-<h3 class="page-title">{{listConfig?.tableHeader | translate}}</h3>
+<h4 class="list-title">{{listConfig?.tableHeader | translate}}</h4>
 <clr-datagrid>
   <clr-dg-column *ngFor="let header of listConfig?.headers">{{header | translate}}</clr-dg-column>
   <clr-dg-row *clrDgItems="let item of items">
