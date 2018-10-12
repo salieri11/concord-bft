@@ -1,0 +1,11 @@
+<a class="nav-link nav-icon theme-select" href="javascript://"
+        *ngIf="themeService.theme === VmwClarityTheme.Dark"
+        (click)="themeChanged(VmwClarityTheme.Light)">
+    <clr-icon shape="sun" class="is-solid"></clr-icon>Light
+</a>
+
+<a class="nav-link nav-icon theme-select" href="javascript://"
+        *ngIf="themeService.theme === VmwClarityTheme.Light"
+        (click)="themeChanged(VmwClarityTheme.Dark)">
+    <clr-icon shape="moon" class="is-solid"></clr-icon>Dark
+</a>

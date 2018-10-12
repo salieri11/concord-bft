@@ -5,6 +5,7 @@
 /dist-server
 /tmp
 /out-tsc
+/src/static/css/clr-ui*.css
 
 # dependencies
 /node_modules

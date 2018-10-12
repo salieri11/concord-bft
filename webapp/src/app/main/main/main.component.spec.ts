@@ -16,6 +16,8 @@ import { VmwTaskComponent } from '../../shared/components/task-panel/task.compon
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { TourService } from '../../shared/tour.service';
 import { Personas } from '../../shared/persona.service';
+import { VmwThemeSwitchButtonComponent } from '../../shared/components/theme-switch-button/theme-switch-button.component';
+import { VmwClarityThemeService } from '../../shared/theme.provider';
 
 describe('MainComponent', () => {
   let component: MainComponent;
@@ -31,13 +33,15 @@ describe('MainComponent', () => {
       declarations: [
         MainComponent,
         VmwTaskComponent,
-        CanViewDirective
+        CanViewDirective,
+        VmwThemeSwitchButtonComponent
       ],
       providers: [
         ErrorAlertService,
         VmwTasksService,
         TourService,
         NgxTourService,
+        VmwClarityThemeService
 
       ]
     }).compileComponents();

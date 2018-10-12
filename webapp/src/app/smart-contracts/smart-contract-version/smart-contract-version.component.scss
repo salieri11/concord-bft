@@ -26,8 +26,8 @@ form {
 }
 
 .bytecode-container {
-  word-break: break-all;
-  white-space: normal;
+  word-break: break-all !important;
+  white-space: normal !important;
 }
 
 .transaction-details {

@@ -1,3 +1,4 @@
+@import "~@clr/ui/src/color/utils/_colors.clarity.scss";
 @import "../../../styles/theme";
 
 #map-container {
@@ -9,7 +10,7 @@
 #tooltip-container {
   box-sizing: border-box;
   background: $clr-black;
-  border-radius: $clr-global-borderradius;
+  border-radius: 0.125rem;
   padding: 10px;
   color: $white;
 }
