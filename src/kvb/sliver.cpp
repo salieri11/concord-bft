@@ -26,7 +26,7 @@
  * `length` bytes in size.
  */
 Blockchain::Sliver::Sliver(uint8_t* data, const size_t length)
-  : m_data(data), m_offset(0), m_length(length) {
+  : m_data(data, free), m_offset(0), m_length(length) {
   // Data must be non-null.
   assert(data);
 }
