@@ -27,6 +27,8 @@ RUN apt-get update && apt-get -y install \
 
 WORKDIR /
 RUN git clone https://github.com/google/googletest.git
+WORKDIR /googletest
+RUN git checkout e93da23920e5b6887d6a6a291c3a59f83f5b579e
 WORKDIR /googletest/_build
 RUN cmake -DCMAKE_CXX_FLAGS="-std=c++11 -march=x86-64 -mtune=generic" .. && make
 

@@ -158,6 +158,7 @@ Athena uses GoogleTest framework for unit testsing. We also need that during the
 ```
 git clone git@github.com:google/googletest.git
 cd googletest
+git checkout e93da23920e5b6887d6a6a291c3a59f83f5b579e
 mkdir _build
 cd _build
 cmake -DCMAKE_CXX_FLAGS="-std=c++11" ..
