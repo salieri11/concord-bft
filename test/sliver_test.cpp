@@ -2,7 +2,9 @@
 /**
  * Test the Sliver class.
  *
- * TODO: instructions for running under valgrind.
+ * While these tests check that Sliver "works", the most interesting test is to
+ * run this under valgrind, and make sure that it doesn't find any
+ * leaks/double-frees/etc. `valgrind --leak-check=full test/SliverTests`
  */
 
 #include "gtest/gtest.h"
