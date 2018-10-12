@@ -11,6 +11,7 @@ set(kvblockchain_sources
   RocksDBClient.cpp RocksDBClient.h
   SimpleThreadPool.h
   slice.cpp slice.h
+  sliver.cpp sliver.hpp
   bft_configuration.hpp)
 
 add_library(kvblockchain ${kvblockchain_sources})
@@ -36,4 +37,3 @@ target_compile_definitions(kvblockchain PUBLIC __BASE=1 SPARSE_STATE=1 USE_TLS=1
 get_property(byzst_include_dir GLOBAL PROPERTY byzst_include)
 target_include_directories(kvblockchain PUBLIC ${byzst_include_dir})
 target_link_libraries(kvblockchain PUBLIC byzst)
-
