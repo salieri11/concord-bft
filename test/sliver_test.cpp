@@ -163,6 +163,10 @@ TEST(sliver_test, copying) {
 
   ASSERT_TRUE(is_match(expected+test_offset1, test_length1, actual1));
   ASSERT_TRUE(is_match(expected+test_offset2, test_length2, actual2));
+
+  // we didn't wrap the expected buffer this time, so we need to free it
+  // ourselves, instead of letting the Sliver do it
+  free(expected);
 }
 
 }  // end namespace
