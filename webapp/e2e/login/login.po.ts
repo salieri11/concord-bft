@@ -14,4 +14,19 @@ export class LoginPage {
     element(by.css('#loginPassword')).sendKeys(password);
     element(by.css('.login-group button[type="submit"]')).click();
   }
+
+  changePassword(newPassword, confirmPassword) {
+    element(by.css('#newPassword')).clear();
+    element(by.css('#newPassword')).sendKeys(newPassword);
+    element(by.css('#confirmPassword')).clear();
+    element(by.css('#confirmPassword')).sendKeys(confirmPassword);
+  }
+
+  getChangeSubmit() {
+    return element(by.css('#changePassword'));
+  }
+  changePasswordSubmit() {
+    element(by.css('#changePassword')).click();
+  }
+
 }

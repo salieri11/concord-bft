@@ -14,7 +14,7 @@ describe('OrgService', () => {
       imports: [HttpClientTestingModule],
       providers: [
         OrgService,
-        {provide: ANDES_API_PREFIX, useValue: '/api'},
+        {provide: ANDES_API_PREFIX, useValue: 'api'},
       ]
     });
   });

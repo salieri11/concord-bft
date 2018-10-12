@@ -29,7 +29,7 @@ export class AgreementGuard implements CanActivate {
         if (!agreement['accepted']) {
           this.router.navigate(['auth', 'onboarding']);
         } else if (route) {
-          this.router.navigate([url]);
+          this.router.navigateByUrl(url);
         }
         return agreement['accepted'];
       });

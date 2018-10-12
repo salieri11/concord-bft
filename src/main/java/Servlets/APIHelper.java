@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.bouncycastle.jcajce.provider.digest.Keccak;
 import org.bouncycastle.util.encoders.Hex;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import com.google.protobuf.ByteString;
@@ -239,6 +240,22 @@ public class APIHelper {
    public static class HexParseException extends Exception {
       public HexParseException(String message) {
          super(message);
+      }
+   }
+
+   public static long parseBlockNumber(JSONArray params) {
+      String blockNumber = (String) params.get(params.size()-1);
+      if (blockNumber.equals("earliest")) {
+         return 0;
+      } else if (blockNumber.equals("latest")
+            || blockNumber.equals("pending")) {
+         return -1;
+      } else {
+         if (blockNumber.startsWith("0x")) {
+            return Long.valueOf(blockNumber.substring(2), 16);
+         } else {
+            return Long.valueOf(blockNumber);
+         }
       }
    }
 

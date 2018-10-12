@@ -7,14 +7,14 @@ import { FormGroup, FormBuilder } from '@angular/forms';
 import { ClrDatagridFilterInterface } from '@clr/angular';
 import { Subject } from 'rxjs';
 
-import { Member } from '../shared/nodes.model';
+import { Node } from '../shared/nodes.model';
 
 @Component({
   selector: 'athena-nodes-status-filter',
   templateUrl: './nodes-status-filter.component.html',
   styleUrls: ['./nodes-status-filter.component.scss']
 })
-export class NodesStatusFilterComponent implements OnInit, ClrDatagridFilterInterface<Member> {
+export class NodesStatusFilterComponent implements OnInit, ClrDatagridFilterInterface<Node> {
   readonly form: FormGroup;
 
   changes = new Subject<any>();
@@ -34,7 +34,7 @@ export class NodesStatusFilterComponent implements OnInit, ClrDatagridFilterInte
   isActive(): boolean {
     return this.form.controls.filterOption.value !== '';
   }
-  accepts(member: Member): boolean {
+  accepts(member: Node): boolean {
     return this.form.controls.filterOption.value === '' || member.status === this.form.controls.filterOption.value;
   }
 

@@ -1,0 +1,987 @@
+{
+  "title": "VMware Athena",
+  "common": {
+    "all": "すべて",
+    "close": "閉じる",
+    "cancel": "キャンセル",
+    "create": "作成",
+    "back": "戻る",
+    "next": "次へ",
+    "finish": "完了",
+    "edit": "編集",
+    "update": "更新",
+    "requiredValidationMessage": "このフィールドは必須です"
+  },
+  "nav": {
+    "menu": {
+      "title": "メニュー",
+      "options": {
+        "contract": {
+          "title": "スマート コントラクトの作成"
+        },
+        "sysAdminTitle": "システム管理者",
+        "deploy": {
+          "title": "展開"
+        },
+        "addOrg": {
+          "title": "組織の追加"
+        },
+        "addBlockchains": {
+          "title": "ブロックチェーンの追加"
+        },
+        "addConsortium": {
+          "title": "コンソーシアムの追加"
+        },
+        "addKubernetes": {
+          "title": "Kubernetes の追加"
+        },
+        "addUsers": {
+          "title": "ユーザーの追加"
+        }
+      }
+    },
+    "personaSelector": {
+      "title": "ロール"
+    },
+    "actions": {
+      "title": "アクション",
+      "resetTasks": "タスクのリセット"
+    },
+    "metrics": {
+      "activeNodes": "アクティブ ノード {{value}}"
+    },
+    "dashboard": {
+      "title": "ダッシュボード"
+    },
+    "nodeList": {
+      "title": "ノードのリスト"
+    },
+    "blockList": {
+      "title": "ブロック リスト"
+    },
+    "testing": {
+      "title": "テスト"
+    },
+    "smartContracts": {
+      "title": "スマート コントラクト"
+    },
+    "sysadmin": {
+      "title": "システム管理者"
+    },
+    "organization": {
+      "title": "組織"
+    },
+    "blockchains": {
+      "title": "ブロックチェーン"
+    },
+    "consortium": {
+      "title": "コンソーシアム"
+    },
+    "kubernetes": {
+      "title": "Kubernetes"
+    },
+    "users": {
+      "title": "ユーザー"
+    },
+    "login": "ログイン",
+    "logOut": "ログアウト",
+    "settings": "設定"
+  },
+  "time": {
+    "lastXDays": "直近 {{number}} 日",
+    "today": "今日"
+  },
+  "authentication": {
+    "welcome": "Welcome to",
+    "username": "ユーザー名",
+    "password": "パスワード",
+    "next": "次へ",
+    "errorMessage": "ユーザー名またはパスワードが無効です"
+  },
+  "grid": {
+    "search": {
+      "placeholder": "検索"
+    },
+    "pagination": {
+      "of": "/"
+    }
+  },
+  "marketing": {
+    "subTitle": "業界最先端のパーミッションド ブロックチェーンの導入",
+    "description": "Athena ブロックチェーンは業界最速のトランザクション能力 (TPS） を提供します。Hyperledger と Athena をコンソーシアムや組織にただちに導入し、管理することができます。",
+    "callToAction": "導入を開始する",
+    "midHeading": "先進のエンタープライズ ブロックチェーンを入手",
+    "itemOne": {
+      "title": "高度なコンセンサス プロトコル",
+      "description": "1 秒あたりのトランザクション数の最大化および処理時間の短縮を実現します。"
+    },
+    "itemTwo": {
+      "title": "強化されたセキュリティ",
+      "description": "先進の暗号化テクノロジーを利用して、複数のクラウド プロバイダ、パーミッションド ブロックチェーン ノードおよびネットワークに展開できます。"
+    },
+    "itemThree": {
+      "title": "費用対効果が高く、環境に優しいソリューション",
+      "description": "プルーフ オブ ワーク (PoW) への多額な投資必要はありません。また、プルーフ オブ ステーク (PoS) に多くの電力を消費することもありません。"
+    }
+  },
+  "signUp": {
+    "description": "VMware Athena は SBFT （Simplified Byzantine Fault Tolerance） プロトコルにより、業界最先端のブロックチェーンを提供します。",
+    "callToAction": "導入を開始するには、ユーザー情報をすべて入力する必要があります。",
+    "duplicateEmailError": "このメール アドレスはすでに使用されています。ログインしてください。",
+    "form": {
+      "firstName": "名前（名）",
+      "lastName": "名前（姓）",
+      "email": "E メール",
+      "password": "パスワード",
+      "emailValMsg": "有効なメール アドレスを入力してください",
+      "company": "会社名",
+      "jobTitle": "役職 (オプション)",
+      "country": "国",
+      "relationship": "VMware とのご関係",
+      "relationshipOptions": {
+        "customer": "お客様",
+        "employee": "従業員",
+        "ecosystem": "エコシステム パートナー",
+        "solutions": "ソリューション プロバイダ",
+        "service": "サービス プロバイダ",
+        "reseller": "リセラー パートナー",
+        "other": "その他"
+      },
+      "numberOfEmployees": "従業員数",
+      "submit": "登録"
+    }
+  },
+  "onboarding": {
+    "title": "Athena のご利用ありがとうございます",
+    "setupOrg": {
+      "title": "組織の設定",
+      "description": "組織へのユーザーの追加、スマート コントラクトの作成、ブロックチェーンの認証情報の取得、組織のトランザクションの作成を開始します。"
+    },
+    "deployBlockchain": {
+      "title": "ブロックチェーンの展開",
+      "description": "Athena、Hyperledger、Corda または Quorom ブロックチェーンを展開し、パーミッションド ブロックチェーンのトランザクションの実行を開始する組織を招待します。"
+    }
+  },
+  "dashboard": {
+    "totalActiveNodes": "アクティブ ノードの合計数",
+    "inactiveNodes": "非アクティブ ノード",
+    "overallNodeHealth": "ノード全体の健全性",
+    "transactionsPerSecond": "トランザクション数（毎秒）",
+    "averageValidationTime": "平均検証時間",
+    "xSeconds": "{{seconds}} <small>秒</small>"
+  },
+  "filters": {
+    "filterTransactions": "トランザクションのフィルタリング",
+    "byStatus": "状態別",
+    "pendingTransactions": "保留中のトランザクション",
+    "byTransactionType": "トランザクション タイプ別",
+    "allTransactions": "すべてのトランザクション",
+    "byDateRange": "日付の範囲別",
+    "byOwner": "所有者別",
+    "allOwners": "すべての所有者",
+    "cancel": "キャンセル",
+    "apply": "適用"
+  },
+  "nodes": {
+    "title": "ノード",
+    "nodes": "ノード",
+    "nodeActivity": "ノードのアクティビティ",
+    "overallNodeHealth": "ノード全体の健全性",
+    "transactionsPerSecond": "トランザクション数（毎秒）",
+    "averageValidationTime": "平均検証時間",
+    "xSeconds": "{{seconds}} <small>秒</small>",
+    "location": "場所",
+    "status": "状態",
+    "connected": "接続済み",
+    "offline": "オフライン",
+    "totalActiveNodes": "アクティブ ノードの合計数",
+    "inactiveNodes": "非アクティブ ノード",
+    "searchPlaceholder": "検索...",
+    "filters": "フィルタ",
+    "hostname": "ホスト名",
+    "address": "アドレス",
+    "viewDetail": "詳細の表示",
+    "network": "ネットワーク",
+    "nodeLocation": "ノードの場所",
+    "transactions": "トランザクション",
+    "timestamp": "タイムスタンプ",
+    "origination": "送信元",
+    "transaction": "トランザクション",
+    "type": "タイプ",
+    "amount": "量",
+    "trans": "トランザクション",
+    "length": "長さ",
+    "orgOwners": "組織の所有者",
+    "averageXPerSecond": "平均 {{value}} (毎秒）",
+    "averageXSeconds": "平均 {{value}} 秒"
+  },
+  "blocks": {
+    "title": "ブロック",
+    "blocks": "ブロック",
+    "blockActivity": "ブロックのアクティビティ",
+    "number": "ブロック番号",
+    "index": "インデックス",
+    "hash": "ハッシュ",
+    "next": "次へ",
+    "viewDetail": "詳細の表示",
+    "paginationSummary": "{{total}} 件中 {{start}} ～ {{finish}} 件のブロック"
+  },
+  "transactions": {
+    "title": "トランザクション",
+    "transactions": "トランザクション",
+    "recentTransactions": "最近のトランザクション",
+    "timestamp": "タイムスタンプ",
+    "origination": "送信元",
+    "transactionType": "トランザクション タイプ",
+    "amount": "量",
+    "transactionLength": "トランザクション長",
+    "status": "状態",
+    "success": "成功",
+    "failure": "失敗",
+    "none": "null",
+    "nodes": "ノード",
+    "hash": "ハッシュ",
+    "from": "送信元",
+    "to": "宛先",
+    "contractAddress": "コントラクトのアドレス",
+    "input": "入力",
+    "value": "値",
+    "nonce": "ノンス",
+    "parentHash": "親ハッシュ",
+    "size": "サイズ",
+    "paginationSummary": "{{total}} 件中 {{start}} ～ {{finish}} 件のトランザクション"
+  },
+  "testing": {
+    "testingGround": "テスト環境",
+    "transactionCreation": "トランザクションの作成",
+    "smartContractUpload": "スマート コントラクトのアップロード",
+    "transactionCreationHint": "一意のハッシュを生成するには以下にデータを入力します",
+    "smartContractHint": "一意のハッシュを生成するには、以下にファイルをアップロードします",
+    "action": "アクション",
+    "submit": "送信",
+    "submitContract": "コントラクトの送信",
+    "from": "送信元",
+    "to": "宛先",
+    "value": "値",
+    "data": "データ",
+    "transaction": "トランザクション",
+    "call": "呼び出し",
+    "copy": "コピー",
+    "file": "ファイル",
+    "contractAddress": "コントラクトのアドレス:",
+    "transactionHash": "トランザクションのハッシュ:",
+    "result": "結果: "
+  },
+  "smartContracts": {
+    "smartContracts": "スマート コントラクト",
+    "smartContractUpload": "スマート コントラクトのアップロード",
+    "contractId": "コントラクト ID",
+    "contractOwnerAddress": "コントラクト所有者のアドレス",
+    "createContract": "コントラクトの作成",
+    "updateContract": "コントラクトの更新",
+    "createContractError": "コントラクトのアップロード中にエラーが発生しました。エラーを解決して再試行してください。",
+    "viewDetail": "詳細の表示",
+    "name": "名前",
+    "namePlaceholder": "自分のコントラクト",
+    "owner": "所有者",
+    "file": "ファイル",
+    "preview": "プレビュー",
+    "version": {
+      "title": "バージョン",
+      "version": "バージョン",
+      "placeholder": "1.0",
+      "address": "アドレス",
+      "functions": "機能",
+      "gas": "ガス",
+      "value": "値",
+      "from": "送信元",
+      "call": "呼び出し",
+      "send": "送信",
+      "view": "表示",
+      "preview": "プレビュー",
+      "selectVersion": "バージョンの選択",
+      "addressHelper": "ユーザーのアドレスです",
+      "functionParameters": "関数パラメータ",
+      "parameterHelper": "関数で必要なパラメータ",
+      "download": "ダウンロード",
+      "addressLengthValidationMessage": "42 文字で入力してください。",
+      "addressPatternValidationMessage": "有効な 16 進数のアドレスを入力してください。",
+      "inputUIntValidationMessage": "有効な符号なし整数値を入力してください。",
+      "inputSignedIntValidationMessage": "有効な符号付き整数値を入力してください。",
+      "tabs": {
+        "execute": "実行",
+        "source": "ソース",
+        "metadata": "メタデータ",
+        "bytecode": "バイトコード"
+      },
+      "tooltips": {
+        "contractAddress": "コントラクトのアドレス",
+        "availableActions": "使用可能なコントラクトのアクション",
+        "requiredParameters": "必須の関数パラメータ",
+        "callHelper": "[呼び出し] は、ローカルの呼び出しに使用します。これは、[送信] をクリックしてブロックチェーンで呼び出す前のテストに適しています。"
+      }
+    },
+    "form": {
+      "addressHelper": "ユーザーのアドレス",
+      "versionHelper": "更新する前に、バージョンをアップデートしてください。",
+      "versionDuplicateValidationMessage": "新しいバージョン用に値を選択する必要があります。",
+      "versionLengthValidationMessage": "バージョンは 16 文字以下である必要があります。",
+      "callSuccessMessage": "コントラクトがローカルで正常に呼び出されました。送信をクリックしてブロックチェーンでコントラクトを実行してください。"
+    }
+  },
+  "organization": {
+    "title": "組織の管理",
+    "actions": {
+      "title": "アクション",
+      "options": {
+        "add": {
+          "title": "組織の追加"
+        },
+        "import": {
+          "title": "組織のインポート"
+        },
+        "delete": {
+          "title": "組織の削除"
+        }
+      }
+    },
+    "grid": {
+      "pagination": {
+        "title": "組織"
+      },
+      "columns": {
+        "name": {
+          "title": "名前"
+        },
+        "domain": {
+          "title": "ドメイン"
+        },
+        "type": {
+          "title": "タイプ"
+        },
+        "created": {
+          "title": "作成日"
+        }
+      }
+    },
+    "addOrgForm": {
+      "title": "組織の追加",
+      "inputs": {
+        "name": {
+          "title": "名前",
+          "placeholder": "自分の組織"
+        },
+        "peerNumber": {
+          "title": "ピアの数",
+          "placeholder": "1234"
+        },
+        "domain": {
+          "title": "ドメイン",
+          "placeholder": "自分のドメイン"
+        },
+        "type": {
+          "title": "タイプ",
+          "placeholder": "ピア 1"
+        }
+      },
+      "submit": {
+        "title": "追加"
+      }
+    },
+    "importOrgForm": {
+      "title": "組織のインポート",
+      "inputs": {
+        "name": {
+          "title": "名前",
+          "placeholder": "組織 1"
+        },
+        "certificate": {
+          "title": "証明書のアップロード"
+        },
+        "privateKey": {
+          "title": "プライベート キーのアップロード"
+        }
+      },
+      "submit": {
+        "title": "インポート"
+      }
+    },
+    "deleteOrgForm": {
+      "title": "組織の削除",
+      "submit": {
+        "title": "はい"
+      }
+    }
+  },
+  "kubernetes": {
+    "title": "Kubernetes の管理",
+    "actions": {
+      "title": "アクション",
+      "options": {
+        "add": {
+          "title": "インスタンスの追加"
+        },
+        "delete": {
+          "title": "インスタンスの削除"
+        }
+      }
+    },
+    "grid": {
+      "pagination": {
+        "title": "インスタンス"
+      },
+      "columns": {
+        "id": {
+          "title": "ID"
+        },
+        "name": {
+          "title": "名前"
+        },
+        "apiServerUrl": {
+          "title": "API サーバ"
+        },
+        "ca": {
+          "title": "認証局 (CA)"
+        },
+        "kubectlCliUrl": {
+          "title": "Kube CLI URL"
+        },
+        "helmCliUrl": {
+          "title": "Helm URL"
+        },
+        "credentialType": {
+          "title": "認証情報のタイプ"
+        },
+        "insecure": {
+          "title": "安全ではありません"
+        },
+        "created": {
+          "title": "作成日"
+        },
+        "updated": {
+          "title": "更新日"
+        }
+      }
+    },
+    "addKubeForm": {
+      "title": "Kubernetes の追加",
+      "inputs": {
+        "name": {
+          "title": "名前",
+          "placeholder": "自分の Kubernetes"
+        },
+        "apiServerUrl": {
+          "title": "API サーバ URL",
+          "placeholder": "https://1.1.1.1"
+        },
+        "credentialType": {
+          "title": "認証情報のタイプ",
+          "options": {
+            "basic_auth": {
+              "title": "ユーザー認証"
+            },
+            "certificate": {
+              "title": "証明書とキー"
+            },
+            "configFile": {
+              "title": "構成ファイル"
+            }
+          }
+        },
+        "username": {
+          "title": "ユーザー名",
+          "placeholder": "自分のユーザー名"
+        },
+        "password": {
+          "title": "パスワード"
+        },
+        "certificate": {
+          "title": "証明書",
+          "placeholder": "ここに証明書を貼り付け"
+        },
+        "key": {
+          "title": "キー",
+          "placeholder": "ここにキーを貼り付け"
+        },
+        "configFile": {
+          "title": "構成ファイル"
+        }
+      },
+      "submit": {
+        "title": "追加"
+      }
+    },
+    "deleteKubeForm": {
+      "title": "インスタンスの削除",
+      "submit": {
+        "title": "はい"
+      }
+    }
+  },
+  "consortium": {
+    "title": "コンソーシアムの管理",
+    "actions": {
+      "title": "アクション",
+      "options": {
+        "add": {
+          "title": "インスタンスの追加"
+        },
+        "delete": {
+          "title": "インスタンスの削除"
+        }
+      }
+    },
+    "grid": {
+      "pagination": {
+        "title": "コンソーシアム"
+      },
+      "columns": {
+        "name": {
+          "title": "名前"
+        },
+        "members": {
+          "title": "メンバー"
+        },
+        "created": {
+          "title": "作成日"
+        }
+      }
+    },
+    "addConsortiumForm": {
+      "title": "コンソーシアムの追加",
+      "inputs": {
+        "name": {
+          "title": "名前",
+          "placeholder": "自分のコンソーシアム"
+        },
+        "members": {
+          "title": "メンバー"
+        }
+      },
+      "submit": {
+        "title": "追加"
+      }
+    },
+    "deleteConsortiumForm": {
+      "title": "インスタンスの削除",
+      "submit": {
+        "title": "はい"
+      }
+    }
+  },
+  "blockchains": {
+    "title": "ブロックチェーンの管理",
+    "actions": {
+      "title": "アクション",
+      "options": {
+        "add": {
+          "title": "ブロックチェーンの作成"
+        },
+        "delete": {
+          "title": "ブロックチェーンの削除"
+        }
+      }
+    },
+    "grid": {
+      "pagination": {
+        "title": "ブロックチェーン"
+      },
+      "columns": {
+        "name": {
+          "title": "名前"
+        },
+        "membersCount": {
+          "title": "メンバー"
+        },
+        "channelsCount": {
+          "title": "チャンネル数"
+        },
+        "consensusType": {
+          "title": "コンセンサス タイプ"
+        },
+        "fabricExplorerUrl": {
+          "title": "ファブリックのダッシュボード"
+        },
+        "k8sDashboardUrl": {
+          "title": "Kubernetes のダッシュボード"
+        },
+        "status": {
+          "title": "状態"
+        },
+        "action": {
+          "title": "前回のアクション"
+        },
+        "created": {
+          "title": "作成日"
+        }
+      }
+    },
+    "detail": {
+      "status": "状態",
+      "consensusType": "コンセンサス タイプ",
+      "openKube": "Kubernetes ダッシュ ボードを開く",
+      "openFabric": "ファブリック ダッシュ ボードを開く",
+      "orgTab": "組織",
+      "channelTab": "チャンネル"
+    },
+    "addBlockchainForm": {
+      "title": "ブロックチェーンの作成",
+      "inputs": {
+        "name": {
+          "title": "名前",
+          "placeholder": "ブロックチェーン"
+        },
+        "peerOrg": {
+          "title": "ピア組織"
+        },
+        "consensusType": {
+          "title": "コンセンサス タイプ",
+          "placeholder": "1234"
+        },
+        "ordererOrg": {
+          "title": "発注元の組織"
+        },
+        "kubernetes": {
+          "title": "Kubernetes インスタンス",
+          "placeholder": "1234"
+        },
+        "createCli": {
+          "title": "CLI の作成"
+        }
+      },
+      "submit": {
+        "title": "作成"
+      }
+    },
+    "deleteBlockchainForm": {
+      "title": "ブロックチェーンの削除",
+      "submit": {
+        "title": "はい"
+      }
+    }
+  },
+  "personas": {
+    "systemsAdmin": "システム管理者",
+    "consortiumAdmin": "コンソーシアム管理者",
+    "orgAdmin": "組織の管理者",
+    "orgDeveloper": "組織の開発者",
+    "orgUser": "組織ユーザー"
+  },
+  "deleteModal": {
+    "bodyText": "ファイアウォール ルールを削除しますか"
+  },
+  "globalError": {
+    "routingError": "Athena のこのセクションを参照する権限がありません。詳細についてはシステム管理者にお問い合わせください。"
+  },
+  "users": {
+    "title": "ユーザーの管理",
+    "actions": {
+      "title": "アクション",
+      "options": {
+        "add": {
+          "title": "ユーザーの追加"
+        },
+        "edit": {
+          "title": "ユーザーの編集"
+        },
+        "delete": {
+          "title": "ユーザーの削除"
+        }
+      }
+    },
+    "grid": {
+      "pagination": {
+        "title": "ユーザー"
+      },
+      "columns": {
+        "name": {
+          "title": "名前"
+        },
+        "email": {
+          "title": "E メール"
+        },
+        "organization": {
+          "title": "組織"
+        },
+        "persona": {
+          "title": "ロール"
+        }
+      }
+    },
+    "editUserForm": {
+      "title": "ユーザーの編集",
+      "inputs": {
+        "firstName": {
+          "title": "名前（名）",
+          "placeholder": "c"
+        },
+        "lastName": {
+          "title": "名前（姓）",
+          "placeholder": "名前（姓）"
+        },
+        "email": {
+          "title": "E メール",
+          "placeholder": "emailid@doamin.com"
+        },
+        "role": {
+          "title": "ロール",
+          "placeholder": "個人設定"
+        }
+      },
+      "submit": {
+        "title": "送信"
+      }
+    },
+    "addUserForm": {
+      "title": "ユーザーの追加",
+      "inputs": {
+        "firstName": {
+          "title": "名前（姓）",
+          "placeholder": "名前（姓）"
+        },
+        "lastName": {
+          "title": "名前（姓）",
+          "placeholder": "名前（姓）"
+        },
+        "email": {
+          "title": "E メール",
+          "placeholder": "emailid@doamin.com"
+        },
+        "password": {
+          "title": "パスワード",
+          "placeholder": "********"
+        },
+        "confirmPassword": {
+          "title": "パスワードの確認",
+          "placeholder": "********"
+        },
+        "organization": {
+          "title": "組織",
+          "placeholder": "組織"
+        },
+        "role": {
+          "title": "ロール",
+          "placeholder": "個人設定"
+        }
+      },
+      "errors": {
+        "password": {
+          "minLength": "パスワードは 8 文字以上にする必要があります。",
+          "mismatch": "パスワードが一致しません。"
+        }
+      },
+      "submit": {
+        "title": "送信"
+      }
+    },
+    "deleteUserForm": {
+      "title": "ユーザーを削除します。",
+      "submit": {
+        "title": "はい"
+      }
+    },
+    "settings": {
+      "title": "ユーザー設定",
+      "orgTitle": "自分の組織と証明書",
+      "firstName": "名前（名）",
+      "lastName": "名前（姓）",
+      "email": "E メール",
+      "role": "ロール",
+      "consortiums": "コンソーシアム",
+      "organization": {
+        "title": "組織"
+      },
+      "credentials": "認証情報",
+      "downloadCertificate": {
+        "title": "証明書のダウンロード",
+        "enterPassword": {
+          "navTitle": "パスワードを入力",
+          "pageTitle": "パスワード",
+          "enterUserPassword": "ユーザーのパスワードを入力",
+          "placeholder": "********"
+        },
+        "enterToken": {
+          "navTitle": "トークンの入力",
+          "pageTitle": "二要素認証",
+          "message": "VMware Verify からトークンをコピーして署名してください。",
+          "enterToken": "トークンの入力",
+          "placeholder": "トークンの入力"
+        },
+        "credentials": {
+          "navTitle": "認証情報",
+          "pageTitle": "証明書のダウンロード",
+          "message": "認証に成功しました。ダウンロードは間もなく開始します。ダウンロードが 1 分経っても開始しない場合は、ダウンロード ボタンをクリックしてください。"
+        },
+        "actions": {
+          "download": "ダウンロード",
+          "close": "閉じる",
+          "next": "次へ",
+          "previous": "前へ"
+        }
+      },
+      "editSettings": {
+        "title": "設定の編集",
+        "alertMessage": "CSP にリダイレクトし、設定を編集します。"
+      }
+    }
+  },
+  "blockchainWizard": {
+    "title": "展開",
+    "blockchainAndConsortium": {
+      "pageTitle": "ブロックチェーンおよびコンソーシアムのセットアップ",
+      "navTitle": "ブロックチェーンおよびコンソーシアム",
+      "info": "ローカル フォルト トレランスを選択すると、近くのリージョンでノードが展開されます。グローバルを選択すると、使用可能なすべてのリージョンに多くのノードが分散されます。ユーザーのコンソーシアムはこのブロックチェーンに関連付けられます。",
+      "blockchainType": "ブロックチェーン タイプ",
+      "athena": "Athena",
+      "hyperledger": "Hyperledger",
+      "faultTolerance": "フォルト トレランス",
+      "global": "グローバル",
+      "local": "ローカル",
+      "consortiumName": "コンソーシアム名",
+      "consortiumPlaceholder": "マイ コンソーシアム"
+    },
+    "addOrgs": {
+      "pageTitle": "組織の追加",
+      "navTitle": "組織の追加",
+      "info": "このコンソーシアムに組織を追加してください。ブロックチェーンのトランザクションを実行するための認証情報が、各組織に与えられます。遅延を最短にするには、組織の場所を指定して、各組織の近くにノードをセットアップしてください。",
+      "addOrganization": "組織の追加",
+      "name": "名前",
+      "namePlaceholder": "自分の組織",
+      "location": "場所",
+      "noOrgs": "追加された組織はありません"
+    },
+    "usersAndAccess": {
+      "pageTitle": "ユーザーおよびアクセス権",
+      "navTitle": "ユーザーおよびアクセス権の追加",
+      "info": "各組織には 1 名以上の組織管理者を追加してください。それぞれの管理者が自分の組織を管理し、必要に応じてユーザーを追加できるようにします。",
+      "firstName": "名前（名）",
+      "firstNamePlaceholder": "太郎",
+      "lastName": "名前（姓）",
+      "lastNamePlaceholder": "山田",
+      "email": "E メール",
+      "emailPlaceholder": "jdoe@email.com",
+      "organization": "組織",
+      "role": "ロール",
+      "addUser": "ユーザーの追加",
+      "noUsers": "追加ユーザーなし"
+    },
+    "reviewDeployment": {
+      "pageTitle": "展開セットアップの確認",
+      "navTitle": "確認",
+      "chosenBlockchain": "選択したブロックチェーン",
+      "consortiumSetup": "コンソーシアム セットアップ",
+      "advanced": "詳細",
+      "networkName": "ネットワーク名",
+      "numberOfNodes": "ノード数",
+      "publicNodesRegions": "パブリック ノードのリージョン",
+      "privateNode": "プライベート ノード (vCenter Server/ESX)",
+      "organizations": "組織",
+      "privateNodeValues": {
+        "londonDatacenter": "ロンドン データセンター",
+        "usDatacenter": "米国データセンター"
+      },
+      "publicNodeValues": {
+        "usEast1": "AWS 米国東部 (バージニア北部)",
+        "usEast2": "AWS 米国東部 (オハイオ)",
+        "usWest1": "AWS 米国西部 (北カリフォルニア)",
+        "usWest2": "AWS 米国西部 (オレゴン)",
+        "apNortheast1": "AWS アジア太平洋 (東京)",
+        "apNortheast3": "AWS アジア太平洋 (大阪ローカル)",
+        "apSouth1": "AWS アジア太平洋 (ムンバイ)",
+        "apSoutheast1": "AWS アジア太平洋 (シンガポール)",
+        "apSoutheast2": "AWS アジア太平洋 (シドニー)",
+        "caCentral1": "AWS カナダ (中部)",
+        "cnNorth1": "AWS 中国 (北京)",
+        "cnNorthWest1": "AWS 中国 (寧夏)",
+        "euWest1": "AWS 欧州 (アイルランド)",
+        "euWest2": "AWS 欧州 (ロンドン)",
+        "euWest3": "AWS 欧州 (パリ)",
+        "euCentral1": "AWS 欧州 (フランクフルト)",
+        "saEast1": "AWS 南米 (サンパウロ)"
+      }
+    },
+    "locations": {
+      "sydney": "オーストラリア、シドニー",
+      "vienna": "オーストリア、ウィーン",
+      "brussels": "ベルギー、ブリュッセル",
+      "rioDeJaneiro": "リオデジャネイロ、ブラジル",
+      "toronto": "カナダ、トロント",
+      "santiago": "チリ、サンティアゴ",
+      "beijing": "中国、北京",
+      "cairo": "エジプト、カイロ",
+      "paris": "フランス、パリ",
+      "delhi": "インド、デリー",
+      "milan": "イタリア、ミラノ",
+      "tokyo": "日本、東京",
+      "mexicoCity": "メキシコ、メキシコシティ",
+      "moscow": "ロシア、モスクワ",
+      "seoul": "韓国、ソウル",
+      "johannesburg": "南アフリカ、ヨハネスブルグ",
+      "london": "英国、ロンドン",
+      "lasVegas": "アメリカ合衆国、ラスベガス",
+      "newYork": "アメリカ合衆国、ニューヨーク",
+      "paloAlto": "アメリカ合衆国、パロ アルト"
+    }
+  },
+  "mockTasks": {
+    "creatingOrg": "組織の作成",
+    "addingUsers": "ユーザーの追加",
+    "creatingConsortium": "コンソーシアムの作成",
+    "vmInstance": "仮想マシン インスタンス",
+    "blockchainInstance": "ブロックチェーン インスタンス"
+  },
+  "tourSteps": {
+    "title": "使い方を見る",
+    "nextBtnText": "次へ",
+    "prevBtnText": "前へ",
+    "dashboard": {
+      "nodeStatus": {
+        "title": "ノードの状態",
+        "text": "マップ上のノードにマウスを動かし、健全性や状態を確認します。"
+      },
+      "transactionList": {
+        "title": "トランザクションの一覧",
+        "text": "最近のブロックチェーン トランザクションです。各行を展開して詳細を表示することができます。"
+      }
+    },
+    "smartContracts": {
+      "manageSmartContracts": {
+        "title": "スマート コントラクトの管理",
+        "text":  "ここでは、自分のスマート コントラクトや、コンソーシアムのメンバーが送信した他のスマート コントラクトを管理および表示することができます。"
+      },
+      "createSmartContract": {
+        "title": "作成",
+        "text": "コントラクトを作成するにはここをクリックしてください"
+      }
+    },
+    "users": {
+      "userManagement": {
+        "title": "ユーザーの管理",
+        "text": "組織またはコンソーシアムでユーザーを管理するにはここをクリックしてください。"
+      },
+      "userActions": {
+        "title": "ユーザー アクション",
+        "text": "ここでユーザーを追加と管理を行います。"
+      },
+      "userSettings": {
+        "title": "ユーザー設定",
+        "text": "ここをクリックすると、ユーザー設定に移動し、組織の証明書をダウンロードできます。"
+      },
+      "downloadCertificate": {
+        "title": "証明書のダウンロード",
+        "text": "ここをクリックすると、サードパーティ製アプリケーションにこのブロックチェーンを接続するための証明書をダウンロードできます。"
+      }
+    }
+  },
+  "graph": {
+    "days": {
+      "0": "日曜日",
+      "1": "月曜日",
+      "2": "火曜日",
+      "3": "水曜日",
+      "4": "木曜日",
+      "5": "金曜日",
+      "6": "土曜日"
+    }
+  }
+}

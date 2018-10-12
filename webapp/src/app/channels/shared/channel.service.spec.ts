@@ -12,7 +12,7 @@ describe('ChannelService', () => {
     TestBed.configureTestingModule({
       providers: [
         ChannelService,
-        {provide: ANDES_API_PREFIX, useValue: '/api'},
+        {provide: ANDES_API_PREFIX, useValue: 'api'},
       ]
     });
   });
