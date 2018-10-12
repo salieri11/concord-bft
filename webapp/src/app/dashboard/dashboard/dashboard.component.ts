@@ -18,7 +18,7 @@ import { NodesService } from '../../nodes/shared/nodes.service';
 
 import * as NodeGeoJson from '../features.json';
 
-const LONG_POLL_INTERVAL = 30000; // Ten seconds
+const LONG_POLL_INTERVAL = 30000; // Thirty seconds
 const BLOCK_TRANSACTION_LIMIT = 20;
 
 @Component({
@@ -142,7 +142,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       displayProperties: ['hash', 'nonce'],
       tableHeader: 'transactions.transactions',
       itemLink: (transaction) => {
-        return ['/blocks', transaction.block_number, '/transactions', transaction.hash];
+        return ['/blocks', transaction.block_number, 'transactions', transaction.hash];
       },
       paginationSummary: 'transactions.paginationSummary'
     };
@@ -150,7 +150,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   get contractsConfig(): DashboardListConfig {
     return {
-      headers: ['smartContracts.contractId', 'smartContracts.owner'],
+      headers: ['smartContracts.name', 'smartContracts.owner'],
       displayProperties: ['contract_id', 'owner'],
       tableHeader: 'smartContracts.smartContracts',
       itemLink: (contract) => {
