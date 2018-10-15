@@ -1,0 +1,13 @@
+@import "~@clr/ui/src/color/utils/_colors.clarity.scss";
+
+.dashboard-stat-container {
+  flex: 1 1 25%;
+  text-align: center;
+  border-right: 1px solid $clr-light-midtone-gray;
+  &:last-child {
+    border: none;
+  }
+}
+.ps-1 {
+  padding: 0 1rem;
+}

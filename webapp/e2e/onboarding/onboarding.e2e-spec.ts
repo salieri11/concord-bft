@@ -42,9 +42,6 @@ describe('athena-ui Onboarding Flow', () => {
     browser.sleep(200);
     browser.waitForAngularEnabled(false);
 
-    expect(appPage.getTourTitle().getText()).toEqual('Node Status');
-    appPage.getTourNextButton().click();
-    browser.sleep(200);
     expect(appPage.getTourTitle().getText()).toEqual('Transaction List');
     appPage.getTourNextButton().click();
     browser.sleep(200);
@@ -109,8 +106,6 @@ describe('athena-ui Onboarding Flow', () => {
     expect(dashboardPage.getAdvancedPrivateNodeValue()).toEqual('');
 
     dashboardPage.clickWizardFinishButton();
-
-    expect(dashboardPage.getTasks().count()).toBe(5);
 
     browser.waitForAngularEnabled(true);
   });

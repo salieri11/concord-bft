@@ -65,6 +65,6 @@ export class SmartContractComponent implements OnInit {
       'versions',
       this.versionSelected
     ];
-    this.router.navigate(path);
+    this.router.navigate(path, {replaceUrl: true});
   }
 }

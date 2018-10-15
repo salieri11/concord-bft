@@ -68,10 +68,6 @@
                   clrDropdownItem>
             {{ persona.name | translate }}
           </button>
-          <h4 class="dropdown-header">{{'nav.actions.title' | translate}}</h4>
-          <button clrDropdownItem (click)="onResetTasks()">
-            {{'nav.actions.resetTasks' | translate}}
-          </button>
         </clr-dropdown-menu>
       </clr-dropdown>
       <athena-theme-switch-button></athena-theme-switch-button>
@@ -158,8 +154,5 @@
         </a>
       </ng-container>
     </clr-vertical-nav>
-    <athena-task-panel class="panel-6"
-                       [hideOthersOnFocus]="true">
-    </athena-task-panel>
   </div>
 </clr-main-container>

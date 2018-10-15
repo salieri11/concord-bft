@@ -11,7 +11,6 @@ import { ClrDropdown } from '@clr/angular';
 import { AuthenticationService } from '../../shared/authentication.service';
 import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { Personas, PersonaService } from '../../shared/persona.service';
-import { TaskManagerService } from '../../shared/task-manager.service';
 import { TourService } from '../../shared/tour.service';
 
 @Component({
@@ -35,7 +34,6 @@ export class MainComponent implements OnInit, OnDestroy {
     private alertService: ErrorAlertService,
     public zone: NgZone,
     private personaService: PersonaService,
-    private taskManagerService: TaskManagerService,
     private tourService: TourService
   ) {
     this.authenticationChange = authenticationService.user.subscribe(user => {
@@ -73,10 +71,6 @@ export class MainComponent implements OnInit, OnDestroy {
   onLogOut() {
     this.authenticationService.logOut();
     this.router.navigate(['']);
-  }
-
-  onResetTasks() {
-    this.taskManagerService.resetTasks();
   }
 
   private addAlert(alert: any): void {
