@@ -158,17 +158,6 @@ inline int Slice::compare(const Slice& b) const {
 
 Slice append(const Slice& out, const Slice& s);
 
-bool copyToAndAdvance(char *_buf,
-                      size_t *_offset,
-                      size_t _maxOffset,
-                      char *_src,
-                      size_t _srcSize);
-bool copyFromAndAdvance(const char *_buf,
-                        size_t *_offset,
-                        size_t _maxOffset,
-                        char *_to,
-                        size_t _toSize);
-
 }  // namespace Blockchain
 
 #endif // STORAGE_LEVELDB_INCLUDE_SLICE_H_

@@ -36,6 +36,7 @@ add_executable(SliverTests
 
 target_link_libraries(SliverTests
   ${GTEST_LIBRARIES}
+  athena_utils
   kvblockchain
   gtest
   gtest_main)

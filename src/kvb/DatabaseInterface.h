@@ -12,7 +12,7 @@
 #define DATABASEINTERFACE_H
 
 #include "status.h"
-#include "slice.h"
+#include "sliver.hpp"
 
 #define OUT
 
@@ -20,19 +20,18 @@ using std::pair;
 
 namespace Blockchain
 {
-   typedef pair<Slice, Slice> KeyValuePair;
+   typedef pair<Sliver, Sliver> KeyValuePair;
 
    class IDBClient
    {
    public:
-      typedef bool (*KeyComparator)(const Slice&, const Slice&);
+      typedef bool (*KeyComparator)(const Sliver&, const Sliver&);
 
       virtual Status init() = 0;
       virtual Status close() = 0;
-      virtual Status get(Slice _key, OUT Slice &_outValue) const = 0;
-      virtual Status put(Slice _key, Slice _value) = 0;
-      virtual Status del(Slice _key) = 0;
-      virtual Status freeValue(Slice& _value) = 0;
+      virtual Status get(Sliver _key, OUT Sliver &_outValue) const = 0;
+      virtual Status put(Sliver _key, Sliver _value) = 0;
+      virtual Status del(Sliver _key) = 0;
       virtual void monitor() const = 0;
 
       // TODO(GG): add multi-get , multi-put, and multi-del
@@ -43,7 +42,7 @@ namespace Blockchain
          virtual KeyValuePair first() = 0;
 
          // Returns next keys if not found for this key
-         virtual KeyValuePair seekAtLeast(Slice _searchKey) = 0;
+         virtual KeyValuePair seekAtLeast(Sliver _searchKey) = 0;
          virtual KeyValuePair previous() = 0;
          virtual KeyValuePair next() = 0;
          virtual KeyValuePair getCurrent() = 0;

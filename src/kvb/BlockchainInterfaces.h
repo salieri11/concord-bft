@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <set>
 #include <Replica.hpp>
+#include "sliver.hpp"
 #include "slice.h"
 #include "status.h"
 #include "DatabaseInterface.h"
@@ -32,12 +33,12 @@ namespace Blockchain {
    typedef uint64_t BlockId;
 
    // Key and value
-   typedef Slice Key;
-   typedef Slice Value;
+   typedef Sliver Key;
+   typedef Sliver Value;
    typedef pair<Key, Value> KeyValuePair;
    // TODO(GG): unordered_map may be inefficient (as a small map), consider to
    // write a specialized map
-   typedef unordered_map<Slice, Slice> SetOfKeyValuePairs;
+   typedef unordered_map<Sliver, Sliver> SetOfKeyValuePairs;
 
    // forward declarations
    class ILocalKeyValueStorageReadOnlyIterator;
@@ -219,7 +220,7 @@ namespace Blockchain {
 
       typedef void(*CommandCompletion)(uint64_t completionToken,
                                        Status returnedStatus,
-                                       Slice outreply);
+                                       Sliver outreply);
 
       virtual Status invokeCommandSynch(const Slice command,
                                         bool isReadOnly,
@@ -227,7 +228,7 @@ namespace Blockchain {
                                         uint32_t &outActualReplySize) = 0;
 
       // release memory allocated by invokeCommandSynch
-      virtual Status release(Slice& slice) = 0;
+      virtual Status release(Slice& sliver) = 0;
    };
 
    //TODO(BWF): Can create/release be migrated to constructor/destructor, to
@@ -263,15 +264,15 @@ namespace Blockchain {
       // convenience where readVersion==latest, and block is not needed?
       virtual Status get(Key key, Value& outValue) const = 0;
       virtual Status get(BlockId readVersion,
-                         Slice key,
-                         Slice& outValue,
+                         Sliver key,
+                         Sliver& outValue,
                          BlockId& outBlock) const = 0;
 
       virtual BlockId getLastBlock() const = 0;
       virtual Status getBlockData(BlockId blockId,
                                   SetOfKeyValuePairs& outBlockData) const = 0;
        // TODO(GG): explain motivation
-      virtual Status mayHaveConflictBetween(Slice key,
+      virtual Status mayHaveConflictBetween(Sliver key,
                                             BlockId fromBlock,
                                             BlockId toBlock,
                                             bool& outRes) const = 0;

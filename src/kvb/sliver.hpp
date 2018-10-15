@@ -18,11 +18,13 @@
 #ifndef SLIVER_HPP
 #define SLIVER_HPP
 
+#include <ios>
 #include <memory>
 
 namespace Blockchain {
 class Sliver {
  public:
+  Sliver();
   Sliver(uint8_t* data, const size_t length);
   Sliver(const Sliver& base, const size_t offset, const size_t length);
 
@@ -33,6 +35,10 @@ class Sliver {
   size_t length() const;
   uint8_t* data() const;
 
+  std::ostream& operator<<(std::ostream& s) const;
+  bool operator==(const Sliver& other) const;
+  int compare(const Sliver& other) const;
+
  private:
   // these are never modified, but need to be non-const to support copy
   // assignment
@@ -40,6 +46,14 @@ class Sliver {
   size_t m_offset;
   size_t m_length;
 };
+
+std::ostream& operator<<(std::ostream& s, const Blockchain::Sliver& sliver);
+
+bool copyToAndAdvance(uint8_t *_buf,
+                      size_t *_offset,
+                      size_t _maxOffset,
+                      uint8_t *_src,
+                      size_t _srcSize);
 }
 
 #endif  // SLIVER_HPP

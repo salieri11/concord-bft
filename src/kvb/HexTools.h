@@ -8,8 +8,6 @@
 
 #include "slice.h"
 
-using namespace Blockchain;
-
 uint8_t hexToNumeral(char _c);
 
 char* numeralToHex(uint8_t _b);
@@ -18,6 +16,8 @@ char* hexStringToBinary(std::string _s);
 
 std::string binaryToHexString(uint8_t *_b, size_t _sz);
 
-std::string sliceToString(const Slice &_s);
+std::string sliceToString(const Blockchain::Slice &_s);
+
+std::ostream& hexPrint(std::ostream &s, const uint8_t *data, size_t size);
 
 #endif

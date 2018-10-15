@@ -9,14 +9,14 @@
 #include "rocksdb/comparator.h"
 #include "rocksdb/slice.h"
 #endif
-#include "slice.h"
+#include "sliver.hpp"
 
 namespace Blockchain {
    /*
     * Basic comparator. Decomposes storage key into parts (type, version,
     * application key).
     */
-   int composedKeyComparison(const Slice& _a, const Slice& _b);
+   int composedKeyComparison(const Sliver& _a, const Sliver& _b);
 
    /* RocksDB */
 #ifdef USE_ROCKSDB
@@ -33,7 +33,7 @@ namespace Blockchain {
 #endif
 
    /* In memory */
-   bool InMemKeyComp(const Slice& _a, const Slice& _b);
+   bool InMemKeyComp(const Sliver& _a, const Sliver& _b);
 
 }
 /* Comparators end */

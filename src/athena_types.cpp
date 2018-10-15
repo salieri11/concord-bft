@@ -8,7 +8,7 @@
 
 #include "athena_types.hpp"
 #include "athena_exception.hpp"
-#include "kvb/slice.h"
+#include "kvb/sliver.hpp"
 #include "athena_storage.pb.h"
 #include "common/rlp.hpp"
 #include "common/athena_eth_hash.hpp"
@@ -103,7 +103,7 @@ evm_uint256be com::vmware::athena::EthTransaction::hash() const
    return com::vmware::athena::EthHash::keccak_hash(this->rlp());
 }
 
-size_t com::vmware::athena::EthTransaction::serialize(char** serialized)
+size_t com::vmware::athena::EthTransaction::serialize(uint8_t** serialized)
 {
    kvb::Transaction out;
 
@@ -136,20 +136,16 @@ size_t com::vmware::athena::EthTransaction::serialize(char** serialized)
 
    size_t size = out.ByteSize();
 
-   *serialized = (char*)malloc(size);
-   if (*serialized == NULL) {
-      throw EVMException("Unable to allocate tx serialization");
-   }
-
+   *serialized = new uint8_t[size];
    out.SerializeToArray(*serialized, size);
    return size;
 }
 
 struct com::vmware::athena::EthTransaction
-com::vmware::athena::EthTransaction::deserialize(Blockchain::Slice &input)
+com::vmware::athena::EthTransaction::deserialize(Blockchain::Sliver &input)
 {
    kvb::Transaction intx;
-   intx.ParseFromArray(input.data(), input.size());
+   intx.ParseFromArray(input.data(), input.length());
 
    if (intx.version() == tx_storage_version) {
       EthTransaction outtx;
@@ -262,7 +258,7 @@ evm_uint256be com::vmware::athena::EthBlock::get_hash() const
    return com::vmware::athena::EthHash::keccak_hash(rlp);
 }
 
-size_t com::vmware::athena::EthBlock::serialize(char** serialized)
+size_t com::vmware::athena::EthBlock::serialize(uint8_t** serialized)
 {
    kvb::Block out;
 
@@ -279,20 +275,16 @@ size_t com::vmware::athena::EthBlock::serialize(char** serialized)
 
    size_t size = out.ByteSize();
 
-   *serialized = (char*)malloc(size);
-   if (*serialized == NULL) {
-      throw EVMException("Unable to allocate tx serialization");
-   }
-
+   *serialized = new uint8_t[size];
    out.SerializeToArray(*serialized, size);
    return size;
 }
 
 struct com::vmware::athena::EthBlock
-com::vmware::athena::EthBlock::deserialize(Blockchain::Slice &input)
+com::vmware::athena::EthBlock::deserialize(Blockchain::Sliver &input)
 {
    kvb::Block inblk;
-   inblk.ParseFromArray(input.data(), input.size());
+   inblk.ParseFromArray(input.data(), input.length());
 
    if (inblk.version() == blk_storage_version) {
       EthBlock outblk;
