@@ -271,10 +271,11 @@ void getRepoCode(repo_url, branch_or_commit){
         checkoutRepo(repo_url, env.BRANCH_NAME)
         return env.BRANCH_NAME
       } catch (Exception e) {
-        echo "Branch ${env.BRANCH_NAME} for ${repo_url} not found.  Using master."
-        return "master"
+        echo "Branch ${env.BRANCH_NAME} for ${repo_url} not found."
       }
     }
+
+    return "master"
   }
 }
 
