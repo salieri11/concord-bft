@@ -18,14 +18,17 @@ if [ ! -e "submodules/state-transfer/README.md" ]; then
     exit 1
 fi
 
-# Default tag is "latest".
+# The tag is passed in by docker-build.sh.  If run by other
+# means, the tag will be athena@latest.
 if [ $# -gt 0 ]; then
-	tag=":$1"
+    tag="${1}"
+else
+    tag="athena:latest"
 fi
 
 # Build the generic image. See docker/docker-compose.yml for how to
 # launch this image for each replica configuration.
-docker build . -t athena$tag
+docker build . -t "${tag}"
 
 if [ $? -ne 0 ]; then
     echo "Image creation failed."
