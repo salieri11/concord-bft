@@ -3,6 +3,9 @@
 # This script builds three athena images, each with different private
 # keys, suitable for using in a docker-compose script.
 
+default_name="athena"
+default_tag="latest"
+
 # Before even trying, make sure submodules are present
 if [ ! -e "submodules/concord-bft/README.md" ]; then
     echo "concord-bft submodule not initialized."
@@ -18,15 +21,23 @@ if [ ! -e "submodules/state-transfer/README.md" ]; then
     exit 1
 fi
 
-if [ $# -gt 0 ]; then
-    tag="${1}"
+if [ $# -eq 2 ]; then
+    name="${1}"
+    tag="${2}"
+elif [ $# -eq 0 ]; then
+    name="${default_name}"
+    tag="${default_tag}"
 else
-    tag="athena:latest"
+    echo Usage: docker-build.sh [name tag]
+    echo If the name and tag are not provided, the defaults are:
+    echo name: "${default_name}"
+    echo tag: "${default_tag}"
+    exit 1
 fi
 
 # Build the generic image. See docker/docker-compose.yml for how to
 # launch this image for each replica configuration.
-docker build . -t "${tag}"
+docker build . -t "${name}:${tag}"
 
 if [ $? -ne 0 ]; then
     echo "Image creation failed."
