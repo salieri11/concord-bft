@@ -18,8 +18,6 @@ if [ ! -e "submodules/state-transfer/README.md" ]; then
     exit 1
 fi
 
-# The tag is passed in by docker-build.sh.  If run by other
-# means, the tag will be athena@latest.
 if [ $# -gt 0 ]; then
     tag="${1}"
 else
