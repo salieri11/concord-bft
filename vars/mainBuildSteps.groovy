@@ -32,7 +32,9 @@ def call(){
               echo "Athena branch/commit: ${params.athena_branch_or_commit}"
               sh 'mkdir athena'
               dir('athena') {
-                getRepoCode("https://github.com/vmwathena/athena", params.athena_branch_or_commit)
+                script {
+                  env.actual_athena_fetched = getRepoCode("https://github.com/vmwathena/athena", params.athena_branch_or_commit)
+                }
               }
             }
           }
@@ -41,7 +43,9 @@ def call(){
               echo "Helen branch/commit: ${params.helen_branch_or_commit}"
               sh 'mkdir helen'
               dir('helen') {
-                getRepoCode("https://github.com/vmwathena/helen", params.helen_branch_or_commit)
+                script {
+                  env.actual_helen_fetched = getRepoCode("https://github.com/vmwathena/helen", params.helen_branch_or_commit)
+                }
               }
             }
           }
@@ -50,12 +54,15 @@ def call(){
               echo "Hermes branch/commit: ${params.hermes_branch_or_commit}"
               sh 'mkdir hermes'
               dir('hermes') {
-                getRepoCode("https://github.com/vmwathena/hermes", params.hermes_branch_or_commit)
+                script {
+                  env.actual_hermes_fetched = getRepoCode("https://github.com/vmwathena/hermes", params.hermes_branch_or_commit)
+                }
               }
             }
           }
         }
       }
+
       stage('Copy dependencies') {
         parallel {
           stage('Copy googletest') {
@@ -84,6 +91,7 @@ def call(){
           }
         }
       }
+
       // stage('test email') {
       //   steps() {
       //     script {
@@ -97,6 +105,7 @@ def call(){
       //     }
       //   }
       // }
+
       stage('Build products') {
         parallel {
           stage('Build Athena') {
@@ -141,32 +150,61 @@ def call(){
           }
         }
       }
-      // stage('Build docker images') {
-      //   parallel {
-      //     stage('Build helen docker image') {
-      //       steps {
-      //         script {
-      //           dir('helen') {
-      //             docker.build("helen:${env.BRANCH_NAME}")
-      //           }
-      //         }
-      //       }
-      //     }
-      //     stage('Build athena docker image') {
-      //       steps {
-      //         script {
-      //           dir('athena') {
-      //             sh '''sed -i\'\' "s?genesis_block.*?genesis_block=/athena/resources/genesis.json?g" resources/athena1.config
-      //             sed -i\'\' "s?genesis_block.*?genesis_block=/athena/resources/genesis.json?g" resources/athena2.config
-      //             sed -i\'\' "s?genesis_block.*?genesis_block=/athena/resources/genesis.json?g" resources/athena3.config
-      //             sed -i\'\' "s?genesis_block.*?genesis_block=/athena/resources/genesis.json?g" resources/athena4.config'''
-      //             sh "./docker-build.sh ${env.BRANCH_NAME}"
-      //           }
-      //         }
-      //       }
-      //     }
-      //   }
-      // }
+
+      stage('Configure docker DNS') {
+        steps {
+          // Docker will fail to launch unless we fix up this DNS stuff.  It will try to use Google's
+          // DNS servers by default, and here in VMware's network, we can't do that.
+          // Also, since this will run on a VM which may have been deployed anywhere in the world,
+          // do not hard code the DNS values.  Always probe the current environment and write
+          // this file.
+          // Reference: https://development.robinwinslow.uk/2016/06/23/fix-docker-networking-dns/
+          withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+            sh '''
+              DNS_JSON_STRING=$(echo {\\"dns\\": [\\"`nmcli dev show | grep 'IP4.DNS' | cut --delimiter=':' --fields=2 | xargs | sed 's/\\s/", "/g'`\\"]})
+              echo "${PASSWORD}" | sudo -S ls > /dev/null
+              echo $DNS_JSON_STRING | sudo tee -a /etc/docker/daemon.json
+              sudo service docker restart
+            '''
+          }
+        }
+      }
+
+      stage('Build docker images') {
+        parallel {
+          stage('Build helen docker image') {
+            steps {
+              script {
+                dir('helen') {
+                  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+                    sh '''
+                      # Can stop using sudo when template is updated.
+                      echo "${PASSWORD}" | sudo -S docker build . -t "helen:${actual_helen_fetched}"
+                      echo "${PASSWORD}" | sudo -S docker system prune -f
+                    '''
+                  }
+                }
+              }
+            }
+          }
+
+          stage('Build athena docker image') {
+            steps {
+              script {
+                dir('athena') {
+                  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+                    sh '''
+                      # Can stop using sudo when template is updated.
+                      echo "${PASSWORD}" | sudo -S ./docker-build.sh athena "${actual_athena_fetched}"
+                      echo "${PASSWORD}" | sudo -S docker system prune -f
+                    '''
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
       // stage('Prepare docker compose') {
       //   steps {
       //     sh 'mkdir docker'
@@ -204,16 +242,25 @@ def call(){
       //   }
       // }
     }// End stages
+
+    post {
+      always {
+        archiveArtifacts artifacts: '**/*.log', allowEmptyArchive: true
+      }
+    }
   }
 }
 
 // The user's parameter is top priority, and if it fails, let an exception be thrown.
+// First, tries to fetch at branch_or_commit.
 // Next, get master.
 // Next, try to get BRANCH_NAME.  If getting BRANCH_NAME fails, we are probably testing
 // a branch that is in only in one or two of the repos.  That's fine.
+// Returns the name of the branch or commit that was used.
 void getRepoCode(repo_url, branch_or_commit){
   if (branch_or_commit.trim()){
     checkoutRepo(repo_url, branch_or_commit)
+    return branch_or_commit
   }else{
     checkoutRepo(repo_url, "master")
 
@@ -222,10 +269,13 @@ void getRepoCode(repo_url, branch_or_commit){
     if (env.BRANCH_NAME && env.BRANCH_NAME.trim()){
       try {
         checkoutRepo(repo_url, env.BRANCH_NAME)
+        return env.BRANCH_NAME
       } catch (Exception e) {
-        echo "Branch ${env.BRANCH_NAME} for ${repo_url} not found"
+        echo "Branch ${env.BRANCH_NAME} for ${repo_url} not found."
       }
     }
+
+    return "master"
   }
 }
 
