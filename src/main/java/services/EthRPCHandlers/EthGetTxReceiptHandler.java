@@ -120,11 +120,8 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
                     "0x" + Integer.toString(transactionResponse.getStatus() == 0
                        ? 1 : 0));
 
-         // TODO : Passing empty String array for logs as Truffle expects this
+         // TODO : Passing empty JSON array for logs as Truffle expects this
          //        Fix this with actual logs - HEL 128
-         //JSONObject logs = new JSONObject();
-         //logs.put("blockHash", APIHelper.binaryStringToHex(transactionResponse.getBlockHash()));
-         //String[] logs = new String[0];
          JSONArray logs = new JSONArray();
          result.put("logs", logs);
          respObject.put("result", result);
