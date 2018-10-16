@@ -8,9 +8,8 @@ PBFT.
 
 The project is composed of three components:
 
- * ~(SBFT)[vmwathena/sbft]~ (temporarily
-   (P2_Blockchain)[vmwathena/P2_Blockchain]) is the consensus engine
-   for Athena.
+ * (Concord-BFT)[vmware/concord-bft] is the consensus engine for
+   Athena.
 
  * (athena)[vmwathena/athena] (this repo) provides a key-value
    abstraction atop SBFT, and an Etherium VM compatibility layer on
@@ -24,9 +23,7 @@ The project is composed of three components:
 
 #### Boost
 
-You will need Boost installed. Version 1.64.0 has been tested (note
-the addition of `program_options` if you had built Boost for the
-`P2_Blockchain` project already:
+You will need Boost installed. Version 1.64.0 has been tested:
 
 ```
 wget https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.gz
@@ -161,6 +158,7 @@ Athena uses GoogleTest framework for unit testsing. We also need that during the
 ```
 git clone git@github.com:google/googletest.git
 cd googletest
+git checkout e93da23920e5b6887d6a6a291c3a59f83f5b579e
 mkdir _build
 cd _build
 cmake -DCMAKE_CXX_FLAGS="-std=c++11" ..
@@ -172,7 +170,7 @@ Note: the build directory starts with and underscore (_) it is required to use t
 ### Athena
 
 Once dependencies are installed, make sure you have initialized the
-P2_blockchain submodule. The first time you build, this is done by:
+submodules. The first time you build, this is done by:
 
 ```shell
 athena$ git submodule init
@@ -181,10 +179,10 @@ athena$ git submodule update --recursive
 
 When subsequent updates are needed, omit the `init` command, and just
 run the `update` command. Tip: you can change your local URL for
-P2_Blockchain by issuing the following command:
+any submodule by issuing the following command:
 
 ```shell
-athena$ git config submodule.submodules/P2_Blockchain.url <alternate url>
+athena$ git config submodule.submodules/<submodule name>.url <alternate url>
 ```
 
 Once the submodule is updated, build athena:
@@ -196,7 +194,7 @@ athena/build$ cmake ..
 athena/build$ make
 ```
 
-This should produce an `athena` executable. 
+This should produce an `athena` executable.
 
 At this stage, you may provide the path to a genesis file if you have one.
 
@@ -231,7 +229,7 @@ With Athena running, you probably want to go set up
 
 ### Persistence
 
-Athena can also be run using persistent storage for the blockchain data. 
+Athena can also be run using persistent storage for the blockchain data.
 The persistent storage used currently is [RocksDB](https://rocksdb.org/).
 
 Build and install RocksDB dependencies:
