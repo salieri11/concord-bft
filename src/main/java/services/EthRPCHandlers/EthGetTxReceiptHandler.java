@@ -124,7 +124,8 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
          //        Fix this with actual logs - HEL 128
          //JSONObject logs = new JSONObject();
          //logs.put("blockHash", APIHelper.binaryStringToHex(transactionResponse.getBlockHash()));
-         String[] logs = new String[0];
+         //String[] logs = new String[0];
+         JSONArray logs = new JSONArray();
          result.put("logs", logs);
          respObject.put("result", result);
       } catch (Exception e) {
