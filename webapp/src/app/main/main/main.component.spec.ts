@@ -12,11 +12,12 @@ import { MockSharedModule } from '../../shared/shared.module';
 import { AuthenticationService } from '../../shared/authentication.service';
 import { MainComponent } from './main.component';
 import { CanViewDirective } from '../../shared/directives/can-view.directive';
-import { VmwTaskPanelComponent } from '../../shared/components/task-panel/task-panel.component';
 import { VmwTaskComponent } from '../../shared/components/task-panel/task.component';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { TourService } from '../../shared/tour.service';
 import { Personas } from '../../shared/persona.service';
+import { VmwThemeSwitchButtonComponent } from '../../shared/components/theme-switch-button/theme-switch-button.component';
+import { VmwClarityThemeService } from '../../shared/theme.provider';
 
 describe('MainComponent', () => {
   let component: MainComponent;
@@ -32,14 +33,15 @@ describe('MainComponent', () => {
       declarations: [
         MainComponent,
         VmwTaskComponent,
-        VmwTaskPanelComponent,
-        CanViewDirective
+        CanViewDirective,
+        VmwThemeSwitchButtonComponent
       ],
       providers: [
         ErrorAlertService,
         VmwTasksService,
         TourService,
         NgxTourService,
+        VmwClarityThemeService
 
       ]
     }).compileComponents();

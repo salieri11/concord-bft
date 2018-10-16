@@ -21,6 +21,7 @@ import { VmwAccordionComponent } from '../../shared/components/accordion/accordi
 import { VmwComboboxItemsComponent } from '../../shared/components/combobox/combobox-items/combobox-items.component';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
+import { DashboardListComponent } from '../dashboard-list/dashboard-list.component';
 
 import { WorldMapComponent } from '../../graphs/world-map/world-map.component';
 import { TourService } from '../../shared/tour.service';
@@ -49,6 +50,7 @@ describe('DashboardComponent', () => {
         VmwAccordionComponent,
         VmwAccordionGroupComponent,
         VmwCopyToClipboardButtonComponent,
+        DashboardListComponent
       ],
       providers: [
         VmwTasksService,

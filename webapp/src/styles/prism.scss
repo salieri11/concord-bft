@@ -1,0 +1,10 @@
+body:not(.dark) {
+  @import "~prismjs/themes/prism";
+}
+body.dark {
+  @import "~prismjs/themes/prism-solarizedlight";
+  :not(pre) > code[class*="language-"], pre[class*="language-"] {
+    background-color: transparent;
+    border: 1px solid #485764;
+  }
+}

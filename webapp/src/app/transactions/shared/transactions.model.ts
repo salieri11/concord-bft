@@ -17,3 +17,11 @@ export interface Transaction {
   block_hash: string;
   block_number: number;
 }
+
+/**
+ * GET response of fetching a list of transactions
+ */
+export interface TransactionListing {
+  transactions: Transaction[];
+  next: string;
+}

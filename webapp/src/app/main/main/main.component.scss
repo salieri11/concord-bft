@@ -24,8 +24,21 @@
   transform: translate(-50%, -50%);
 }
 
+.active-nodes {
+  display: flex;
+  align-items: center;
+
+  clr-icon[shape='circle'] {
+    margin-right: 10px;
+  }
+}
+
 .persona-selector {
   .dropdown-item.active {
     font-weight: bold;
   }
+}
+
+.header-nav #menu {
+  color: #fff;
 }

@@ -23,6 +23,7 @@ import { GraphsModule } from '../graphs/graphs.module';
     BlockListComponent,
     BlockComponent,
     BlockDetailsComponent,
-  ]
+  ],
+  exports: [BlockDetailsComponent]
 })
 export class BlocksModule { }

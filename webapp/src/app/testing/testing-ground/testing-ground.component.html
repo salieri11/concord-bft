@@ -48,21 +48,27 @@
             {{'testing.submit' | translate}}
           </button>
         </form>
-        <div class="inset-box mt-1">
-          <div class="row flex-items-xs-middle">
-            <div class="col-xs">
-              <small class="text-muted">
-                {{isTransaction ? ('testing.transactionHash' | translate) : ('testing.result' | translate)}}
-              </small>
-              <span #dataHashRef>{{dataHash}}</span>
+        <table class="table">
+          <tbody>
+          <tr>
+            <div class="inset-box">
+              <div class="row flex-items-xs-middle">
+                <div class="col-xs">
+                  <small class="text-muted">
+                    {{isTransaction ? ('testing.transactionHash' | translate) : ('testing.result' | translate)}}
+                  </small>
+                  <span #dataHashRef>{{dataHash}}</span>
+                </div>
+                <div class="col-xs-2 text-right" [class.invisible]="!dataHash">
+                  <button type="button" class="btn btn-sm btn-link" (click)="onCopyDataHash()" [disabled]="!dataHash">
+                    {{'testing.copy' | translate}}
+                  </button>
+                </div>
+              </div>
             </div>
-            <div class="col-xs-2 text-right" [class.invisible]="!dataHash">
-              <button type="button" class="btn btn-sm btn-link" (click)="onCopyDataHash()" [disabled]="!dataHash">
-                {{'testing.copy' | translate}}
-              </button>
-            </div>
-          </div>
-        </div>
+          </tr>
+          </tbody>
+        </table>
       </clr-tab-content>
     </clr-tab>
   </clr-tabs>

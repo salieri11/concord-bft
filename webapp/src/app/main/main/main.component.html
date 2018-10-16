@@ -17,7 +17,7 @@
     </div>
     <div class="header-nav">
       <clr-dropdown>
-        <button id="menu" clrDropdownTrigger>
+        <button id="menu" class="nav-text" clrDropdownTrigger>
           {{ 'nav.menu.title' | translate }}
           <clr-icon shape="caret down"></clr-icon>
         </button>
@@ -68,12 +68,9 @@
                   clrDropdownItem>
             {{ persona.name | translate }}
           </button>
-          <h4 class="dropdown-header">{{'nav.actions.title' | translate}}</h4>
-          <button clrDropdownItem (click)="onResetTasks()">
-            {{'nav.actions.resetTasks' | translate}}
-          </button>
         </clr-dropdown-menu>
       </clr-dropdown>
+      <athena-theme-switch-button></athena-theme-switch-button>
       <clr-dropdown #userProfileMenu>
         <button id="profileMenu" class="nav-text" clrDropdownTrigger tourAnchor="onboardingTour.userSettings">
           <clr-icon shape="user" class="is-solid"></clr-icon>
@@ -157,8 +154,5 @@
         </a>
       </ng-container>
     </clr-vertical-nav>
-    <athena-task-panel class="panel-6"
-                       [hideOthersOnFocus]="true">
-    </athena-task-panel>
   </div>
 </clr-main-container>

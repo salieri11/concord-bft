@@ -1,3 +1,4 @@
+@import "~@clr/ui/src/color/utils/_colors.clarity.scss";
 @import './theme';
 
 .vmware-logo {
@@ -15,36 +16,6 @@
   height: auto;
 }
 
-.bg-header {
-  background-color: $clr-action-blue-lightest;
-}
-
-.bg-dark {
-  background-color: #001622;
-
-  .nav {
-    box-shadow: none;
-
-    .nav-link {
-      text-transform: uppercase;
-      color: $clr-action-blue-lightest;
-
-      &.active,
-      &:hover {
-        color: $clr-action-blue-light-midtone;
-      }
-    }
-  }
-}
-.clr-vertical-nav {
-  label.nav-header {
-    color: $white;
-    line-height: 1.5rem;
-  }
-  .nav-divider {
-    border: 1px solid $offWhite;
-  }
-}
 .progress {
   &.warning {
     > progress {
@@ -101,8 +72,8 @@
 
 // ngx-tour styles
 div.ngxp__container {
-  font-family: $clr-font;
-  border-radius: $clr-global-borderradius;
+  font-family: Metropolis, 'Avenir Next', 'Helvetica Neue', Arial, sans-serif;
+  border-radius: 0.125rem;
   background-color: white;
   max-width: 300px;
 
@@ -128,7 +99,7 @@ div.ngxp__container {
     // These are Clarity .btn .btn-primary and .btn-small styles
     display: inline-block;
     -webkit-appearance: none !important;
-    border-radius: $clr-global-borderradius;
+    border-radius: 0.125rem;
     border: 1px solid;
     min-width: 2rem;
     max-width: 15rem;
@@ -146,7 +117,7 @@ div.ngxp__container {
     color: $white;
     line-height: calc(1rem - 1px);
     letter-spacing: 0.073em;
-    font-size: $clr-typography-xxsmalltext;
+    font-size: 0.458333rem;
     height: 1rem;
     &:hover {
       background-color: $clr-action-blue-dark;
@@ -215,8 +186,17 @@ div.ngxp__container {
 
 [ngx-charts-y-axis-ticks] {
   .gridline-path.gridline-path-horizontal {
-    stroke: $white;
+    stroke: $black;
     opacity: 0.25;
+  }
+}
+
+body.dark {
+  [ngx-charts-y-axis-ticks] {
+    .gridline-path.gridline-path-horizontal {
+      stroke: $white;
+      opacity: 0.25;
+    }
   }
 }
 

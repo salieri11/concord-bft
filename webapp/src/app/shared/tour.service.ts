@@ -67,12 +67,6 @@ export class TourService {
   startTour() {
     this.steps = [
       {
-        anchorId: 'onboardingTour.nodeStatus',
-        content: this.translate.instant('tourSteps.dashboard.nodeStatus.text'),
-        title: this.translate.instant('tourSteps.dashboard.nodeStatus.title'),
-        route: 'dashboard'
-      },
-      {
         anchorId: 'onboardingTour.transactionList',
         content: this.translate.instant('tourSteps.dashboard.transactionList.text'),
         title: this.translate.instant('tourSteps.dashboard.transactionList.title'),

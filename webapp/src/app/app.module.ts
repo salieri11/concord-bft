@@ -18,13 +18,15 @@ import { AppComponent } from './app.component';
 import { MainModule } from './main/main.module';
 import { AppRoutingModule } from './app-routing.module';
 import { MarketingModule } from './marketing/marketing.module';
+import { VmwClarityThemeService } from './shared/theme.provider';
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, 'assets/static/i18n/', '.json');
 }
 
-export function langInitializerFactory(translate: TranslateService, injector: Injector) {
+export function langInitializerFactory(translate: TranslateService, injector: Injector, themeService: VmwClarityThemeService) {
   return () => new Promise<any>((resolve: any) => {
+    themeService.initialize();
     const locationInitialized = injector.get(LOCATION_INITIALIZED, Promise.resolve(null));
     locationInitialized.then(() => {
       const defaultLang = 'en';
@@ -77,10 +79,11 @@ function initLanguage(translate: TranslateService, languages: string[], resolve:
     })
   ],
   providers: [
+    VmwClarityThemeService,
     {
       provide: APP_INITIALIZER,
       useFactory: langInitializerFactory,
-      deps: [TranslateService, Injector],
+      deps: [TranslateService, Injector, VmwClarityThemeService],
       multi: true
     },
   ],
