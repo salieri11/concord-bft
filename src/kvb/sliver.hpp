@@ -45,6 +45,13 @@ class Sliver {
   std::shared_ptr<uint8_t> m_data;
   size_t m_offset;
   size_t m_length;
+
+  // Delete new and delete, to force the Sliver to be allocated on the stack, so
+  // that it is cleaned up properly via RAII scoping.
+  static void *operator new(size_t) = delete;
+  static void *operator new[] (size_t) = delete;
+  static void operator delete (void*) = delete;
+  static void operator delete[](void*) = delete;
 };
 
 std::ostream& operator<<(std::ostream& s, const Blockchain::Sliver& sliver);
