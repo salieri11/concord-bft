@@ -13,6 +13,14 @@
  * the memory is kept around as long as the base sliver or any sub-sliver needs
  * it, and cleaned up once the base sliver and all sub-slivers have finished
  * using it.
+ *
+ * Intentionally copyable (via default copy constructor and assignment
+ * operator). Copying the shared_ptr increases its reference count by one, so
+ * that it is not released until both copies go out of scope.
+ *
+ * Intentionally movable (via default move constructor and assignment
+ * operator). Moving the shared_ptr avoids modifying its reference count, which
+ * requires an atomic operation that might be considered expensive.
  */
 
 #ifndef SLIVER_HPP
