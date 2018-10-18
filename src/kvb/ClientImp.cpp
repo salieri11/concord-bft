@@ -36,20 +36,22 @@ bool ClientImp::isRunning()
 /**
  * execute the command synchronously
  */
-Status ClientImp::invokeCommandSynch(const Slice command,
+Status ClientImp::invokeCommandSynch(const char *request,
+                                     uint32_t requestSize,
                                      bool isReadOnly,
-                                     Slice& outReply,
-                                     uint32_t &outActualReplySize)
+                                     uint32_t replySize,
+                                     char *outReply,
+                                     uint32_t *outActualReplySize)
 {
    auto seqNum = m_SeqNumGenerator->generateUniqueSequenceNumberForRequest();
    auto res = m_bftClient->sendRequest(isReadOnly,
-                                       command.data(),
-                                       command.size(),
+                                       request,
+                                       requestSize,
                                        seqNum,
                                        SimpleClient::INFINITE_TIMEOUT,
-                                       outReply.size(),
-                                       (char*)outReply.data(),
-                                       outActualReplySize);
+                                       replySize,
+                                       outReply,
+                                       *outActualReplySize);
 
    assert(res >= -2 && res < 1);
 
@@ -60,17 +62,6 @@ Status ClientImp::invokeCommandSynch(const Slice command,
    else
       return  Status::InvalidArgument(Slice("error"), Slice("small buffer"));
 }
-
-/**
- * TODO(IG):
- * not needed since the slice is owned by the caller
- * should be removed
- */
-Status ClientImp::release(Slice& slice)
-{
-   return Status::OK();
-}
-
 
 IClient* createClient(Blockchain::CommConfig &commConfig,
                       const ClientConsensusConfig &conf)
