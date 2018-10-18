@@ -57,6 +57,13 @@ public class ContractRegistryManager {
    private String insertNewVersionQuery
       = "INSERT into " + CONTRACTS_TABLE_NAME + " values (?, ?, ?, ?, ?, ?, ?)";
 
+   private String updateExistingVersionQuery
+      = "UPDATE " + CONTRACTS_TABLE_NAME + " SET (" + CONTRACT_ID_COLUMN_LABEL + ", " + CONTRACT_SOURCE_COLUMN_LABEL
+         + ", " + CONTRACT_BYTECODE_COLUMN_LABEL + ", " + CONTRACT_METADATA_COLUMN_LABEL
+         + ", " + CONTRACT_OWNER_COLUMN_LABEL + ", " + CONTRACT_VERSION_COLUMN_LABEL
+         + ") = (?, ?, ?, ?, ?, ?) WHERE " + CONTRACT_ID_COLUMN_LABEL + " = ? AND " + CONTRACT_VERSION_COLUMN_LABEL
+         + " = ?;";
+
    private String hasContractQuery
       = "SELECT " + CONTRACT_ID_COLUMN_LABEL + " from " + CONTRACTS_TABLE_NAME
          + " where " + CONTRACT_ID_COLUMN_LABEL + " = ?";
@@ -93,6 +100,7 @@ public class ContractRegistryManager {
    // objects. However, that will only have to be done when our servlet dies
    // which won't happen very frequently.
    private PreparedStatement insertNewVersionPstmt;
+   private PreparedStatement updateExistingVersionPstmt;
    private PreparedStatement hasContractPstmt;
    private PreparedStatement hasVersionPstmt;
    private PreparedStatement getVersionPstmt;
@@ -108,6 +116,7 @@ public class ContractRegistryManager {
       con.createStatement().executeUpdate(createNewTableQuery);
 
       insertNewVersionPstmt = con.prepareStatement(insertNewVersionQuery);
+      updateExistingVersionPstmt = con.prepareStatement(updateExistingVersionQuery);
       hasContractPstmt = con.prepareStatement(hasContractQuery);
       hasVersionPstmt = con.prepareStatement(hasVersionQuery);
       getVersionPstmt = con.prepareStatement(getVersionQuery);
@@ -260,6 +269,51 @@ public class ContractRegistryManager {
             throw new DuplicateContractException("ContractVersion with id "
                + contractId + " and version: " + versionName
                + " already exists.");
+         }
+      } catch (SQLException e) {
+         logger.warn("Exception when adding contract: ", e);
+      }
+      return false;
+   }
+
+   /**
+    * Updates an existing contractVersion with given details.
+    *
+    * @param existingContractId
+    * @param existingVersionName
+    * @param contractId
+    * @param ownerAddress
+    * @param versionName
+    * @param metaData
+    * @param byteCode
+    * @param sourceCode
+    * @return True if a contract with given version was updated successfully,
+    *         False otherwise.
+    * @throws DuplicateContractException
+    *            If there already exists another contract with same contractId
+    *            and versionName, then this method throws this exception.
+    */
+   public boolean
+          updateExistingContractVersion(String existingContractId, String existingVersionName,
+                                String contractId, String ownerAddress,
+                                String versionName, String metaData,
+                                String byteCode, String sourceCode) throws DuplicateContractException {
+      try {
+         if (!hasContractVersion(contractId, versionName)) {
+            updateExistingVersionPstmt.setString(1, contractId);
+            updateExistingVersionPstmt.setString(2, sourceCode);
+            updateExistingVersionPstmt.setString(3, byteCode);
+            updateExistingVersionPstmt.setString(4, metaData);
+            updateExistingVersionPstmt.setString(5, ownerAddress);
+            updateExistingVersionPstmt.setString(6, versionName);
+            updateExistingVersionPstmt.setString(7, existingContractId);
+            updateExistingVersionPstmt.setString(8, existingVersionName);
+            updateExistingVersionPstmt.execute();
+            return true;
+         } else {
+            throw new DuplicateContractException("ContractVersion with id "
+                    + contractId + " and version: " + versionName
+                    + " already exists.");
          }
       } catch (SQLException e) {
          logger.warn("Exception when adding contract: ", e);

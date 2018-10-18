@@ -4,6 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 import com.google.protobuf.ByteString;
 import com.vmware.athena.Athena;
@@ -13,6 +14,8 @@ import com.vmware.athena.Athena.EthResponse;
 
 import Servlets.APIHelper;
 import Servlets.EthDispatcher;
+
+import services.contracts.ContractRegistryManager;
 
 /**
  * <p>
@@ -28,6 +31,18 @@ import Servlets.EthDispatcher;
 public class EthSendTxHandler extends AbstractEthRPCHandler {
 
    private static Logger logger = LogManager.getLogger(EthSendTxHandler.class);
+   private static boolean isInternalContract;
+   private ContractRegistryManager registryManager;
+
+   public EthSendTxHandler(boolean _isInternalContract) {
+      isInternalContract = _isInternalContract;
+      try {
+         registryManager = ContractRegistryManager.getInstance();
+      } catch (Exception e) {
+         logger.fatal("Unable to instantiate ContractRegistryManager", e);
+         registryManager = null;
+      }
+   }
 
    /**
     * Builds the Athena request builder. Extracts the method name, from, to,
@@ -225,6 +240,48 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
       // Set method specific responses
       respObject.put("result",
                      APIHelper.binaryStringToHex(ethResponse.getData()));
+      if (!isInternalContract) { // TODO: Check if TO address is empty as well
+         try {
+            handleSmartContractCreation(APIHelper.binaryStringToHex(ethResponse.getData()));
+         } catch (Exception e) {
+            logger.error("Error in smart contract linking.", e);
+         }
+      }
       return respObject;
+   }
+
+   void handleSmartContractCreation(String transactionHash) throws Exception  {
+      JSONObject ethRequest = new JSONObject();
+      JSONArray paramsArray = new JSONArray();
+      ethRequest.put("id", 1);
+      ethRequest.put("jsonrpc", jsonRpc);
+      ethRequest.put("method", "eth_getTransactionReceipt");
+      paramsArray.add(transactionHash);
+      ethRequest.put("params", paramsArray);
+      String responseString
+              = new EthDispatcher().dispatch(ethRequest).toJSONString();
+      try {
+         JSONObject txReceipt
+                 = (JSONObject) new JSONParser().parse(responseString);
+         JSONObject result = (JSONObject) txReceipt.get("result");
+         if(result.get("contractAddress") != null) {
+            String from = "";
+            String contractVersion = "1";
+            String contractAddress = (String) result.get("contractAddress");
+            String metaData = "";
+            String byteCode = "";
+            String solidityCode = "";
+            boolean success = registryManager.addNewContractVersion(contractAddress,
+                    from,
+                    contractVersion,
+                    contractAddress,
+                    metaData,
+                    byteCode,
+                    solidityCode);
+         }
+      } catch (Exception e) {
+         logger.error("Error parsing transaction receipt response", e);
+      }
+
    }
 }

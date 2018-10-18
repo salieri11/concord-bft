@@ -336,7 +336,13 @@
       "versionHelper": "Please update the version before updating",
       "versionDuplicateValidationMessage": "You must choose a new value for version",
       "versionLengthValidationMessage": "Version must be 16 or fewer characters",
-      "callSuccessMessage": "Contract was locally invoked successfully, click send to execute the contract on the blockchain"
+      "callSuccessMessage": "Contract was locally invoked successfully, click send to execute the contract on the blockchain",
+      "generalInformationTitle": "General Information",
+      "contractSelectionTitle": "Contract Selection",
+      "contractSelectionHelper": "Select the contract you'd like to deploy from this file",
+      "constructorParametersTitle": "Constructor Parameters",
+      "constructorParametersRequiredHelper": "Please provide the parameters for the contract constructor below.",
+      "constructorParametersNotRequiredHelper": "There are no constructor parameters needed to deploy this contract."
     }
   },
   "organization": {

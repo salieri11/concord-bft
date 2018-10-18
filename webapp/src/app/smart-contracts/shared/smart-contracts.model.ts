@@ -77,3 +77,10 @@ export interface SmartContractCreateResult {
   version: string;
   url: string;
 }
+
+export interface SmartContractMultipleResult {
+  contract_id: string;
+  contract_name: string;
+  version: string;
+  metadata: SmartContractMetadata;
+}

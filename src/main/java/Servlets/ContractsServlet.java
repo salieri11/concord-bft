@@ -217,6 +217,7 @@ public class ContractsServlet extends BaseServlet {
          metadata = (JSONObject) parser.parse(versionInfo.getMetaData());
       } catch (ParseException e) {
          logger.warn("Metadata parsing failure: ", e);
+         metadata = new JSONObject();
       }
       versionJSON.put("contract_id", versionInfo.getContractId());
       versionJSON.put("owner", versionInfo.getOwnerAddress());
@@ -286,6 +287,7 @@ public class ContractsServlet extends BaseServlet {
       ethRequest.put("id", id);
       ethRequest.put("jsonrpc", jsonRpc);
       ethRequest.put("method", "eth_sendTransaction");
+      ethRequest.put("isInternalContract", true);
       transaction.put("from", from);
       transaction.put("data", byteCode);
       paramsArray.add(transaction);
@@ -335,6 +337,96 @@ public class ContractsServlet extends BaseServlet {
       return address;
    }
 
+   @RequestMapping(method = RequestMethod.PUT,
+           path = "/api/athena/contracts/{contract_id}/versions/{version_id}")
+   public ResponseEntity<JSONAware>
+   handleUpdateVersion(@RequestBody String paramString, @PathVariable("contract_id") String existingContractId,
+                    @PathVariable("version_id") String existingVersionName) {
+
+      // TODO: This check is not a proper way, find a better approach
+      if (registryManager == null) {
+         return new ResponseEntity<>(errorJSON("Service unavailable."),
+                 standardHeaders,
+                 HttpStatus.SERVICE_UNAVAILABLE);
+      }
+
+      ResponseEntity<JSONAware> responseEntity;
+
+      try {
+
+//         TODO: Compile the provided source code and update for the given contract with parameters
+         JSONParser parser = new JSONParser();
+         JSONObject requestObject = (JSONObject) parser.parse(paramString);
+
+         String from = (String) requestObject.get("from");
+         String contractId = (String) requestObject.get("contract_id");
+         String contractVersion = (String) requestObject.get("version");
+         String solidityCode = (String) requestObject.get("sourcecode");
+         String selectedContract = (String) requestObject.get("contractName");
+         String constructorParams = (String) requestObject.get("constructorParams");
+
+         Compiler.Result result = Compiler.compile(solidityCode);
+         if (result.isSuccess()) {
+            String byteCode = (String) result.getByteCodeMap().get(selectedContract) + constructorParams;
+
+
+            boolean success = registryManager.updateExistingContractVersion(
+                    existingContractId,
+                    existingVersionName,
+                    contractId,
+                    from,
+                    contractVersion,
+                    result.getMetadataMap().get(selectedContract),
+                    byteCode,
+                    solidityCode
+            );
+
+            if (success) {
+               FullVersionInfo fvInfo
+                       = registryManager.getContractVersion(contractId, contractVersion);
+               return new ResponseEntity<>(buildVersionJSON(fvInfo),
+                       standardHeaders,
+                       HttpStatus.OK);
+            } else {
+               responseEntity
+                       = new ResponseEntity<>(errorJSON("unable to update contract."),
+                       standardHeaders,
+                       HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+         } else {
+            responseEntity
+                    = new ResponseEntity<>(errorJSON("Compilation failure:\n"
+                    + result.getStderr()),
+                    standardHeaders,
+                    HttpStatus.BAD_REQUEST);
+         }
+
+         logger.error("IN UPDATE");
+         logger.error(requestObject);
+         logger.error("IN UPDATE");
+
+
+      } catch (ParseException pe) {
+         logger.warn("Exception while parsing request JSON", pe);
+         responseEntity
+                 = new ResponseEntity<>(errorJSON("unable to parse request."),
+                 standardHeaders,
+                 HttpStatus.BAD_REQUEST);
+      } catch (ContractRetrievalException e) {
+         return new ResponseEntity<>(errorJSON("No contract found with id: "
+                 + existingContractId + " and version: " + existingVersionName),
+                 standardHeaders,
+                 HttpStatus.NOT_FOUND);
+      } catch (Exception e) {
+         logger.warn("Exception in request processing", e);
+         responseEntity
+                 = new ResponseEntity<>(errorJSON("unable to parse request."),
+                 standardHeaders,
+                 HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      return responseEntity;
+   }
+
    /**
     * Deploys the given set of compiled contracts to athena. A common way of
     * deploying a new contract to athena is by sending a `eth_sendTransaction`
@@ -362,7 +454,7 @@ public class ContractsServlet extends BaseServlet {
     */
    private JSONArray deployContracts(String contractId, String contractVersion,
                                      String from, Compiler.Result result,
-                                     String solidityCode) throws Exception {
+                                     String solidityCode, String selectedContract, String constructorParams) throws Exception {
       JSONArray resultArray = new JSONArray();
       // If we have multiple contracts in the solidity file then things get
       // difficult. For example, using the unique `id` provided by the
@@ -384,60 +476,62 @@ public class ContractsServlet extends BaseServlet {
          // requests we just build a JSON object representing an ethereum
          // request (as if it was received like a normal ethereum JSON RPC)
          // and forward it to EthDispatcher.
+         if(contractName.equals(selectedContract)) {
+            int requestID = random.nextInt(); // some request ID for JSON RPC
+            String byteCode = (String) result.getByteCodeMap().get(contractName) + constructorParams;
+            JSONObject sendTxrequest
+                    = buildEthSendTxRequest(from,
+                    requestID,
+                    byteCode);
+            logger.error("==========SEND TX REQUEST==========");
+            logger.error(sendTxrequest);
+            logger.error("==========SEND TX REQUEST==========");
+            String responseString
+                    = new EthDispatcher().dispatch(sendTxrequest).toJSONString();
+            logger.trace("Dispatcher response: " + responseString);
+            JSONObject ethResponse
+                    = (JSONObject) new JSONParser().parse(responseString);
 
-         int requestID = random.nextInt(); // some request ID for JSON RPC
+            // Build response object for this particular deployment
+            JSONObject deploymentResult = new JSONObject();
 
-         JSONObject sendTxrequest
-            = buildEthSendTxRequest(from,
-                                    requestID,
-                                    result.getByteCodeMap().get(contractName));
-         String responseString
-            = new EthDispatcher().dispatch(sendTxrequest).toJSONString();
-         logger.trace("Dispatcher response: " + responseString);
-         JSONObject ethResponse
-            = (JSONObject) new JSONParser().parse(responseString);
+            if (ethResponse.containsKey("result")) {
+               String transactionHash = (String) ethResponse.get("result");
+               // Now call eth_getTransactionReceipt API to get the address
+               // of deployed contract
+               JSONObject txReceiptRequest
+                       = buildEthTxReceiptRequest(random.nextInt(), transactionHash);
+               String txReceipt
+                       = new EthDispatcher().dispatch(txReceiptRequest).toJSONString();
+               logger.info("New contract deployed at: "
+                       + extractContractAddress(txReceipt));
+               boolean success
+                       = registryManager.addNewContractVersion(contractId,
+                       from,
+                       contractVersion,
+                       extractContractAddress(txReceipt),
+                       result.getMetadataMap()
+                               .get(contractName),
+                       byteCode,
+                       solidityCode);
 
-         // Build response object for this particular deployment
-         JSONObject deploymentResult = new JSONObject();
-
-         if (ethResponse.containsKey("result")) {
-            String transactionHash = (String) ethResponse.get("result");
-            // Now call eth_getTransactionReceipt API to get the address
-            // of deployed contract
-            JSONObject txReceiptRequest
-               = buildEthTxReceiptRequest(random.nextInt(), transactionHash);
-            String txReceipt
-               = new EthDispatcher().dispatch(txReceiptRequest).toJSONString();
-            logger.info("New contract deployed at: "
-               + extractContractAddress(txReceipt));
-
-            boolean success
-               = registryManager.addNewContractVersion(contractId,
-                                                       from,
-                                                       contractVersion,
-                                                       extractContractAddress(txReceipt),
-                                                       result.getMetadataMap()
-                                                             .get(contractName),
-                                                       result.getByteCodeMap()
-                                                             .get(contractName),
-                                                       solidityCode);
-
-            if (success) {
-               deploymentResult.put("contract_id", contractId);
-               deploymentResult.put("version", contractVersion);
-               deploymentResult.put("url",
-                                    contractEndpoint + "/"
-                                       + urlEncode(contractId) + "/versions/"
-                                       + urlEncode(contractVersion));
+               if (success) {
+                  deploymentResult.put("contract_id", contractId);
+                  deploymentResult.put("version", contractVersion);
+                  deploymentResult.put("url",
+                          contractEndpoint + "/"
+                                  + urlEncode(contractId) + "/versions/"
+                                  + urlEncode(contractVersion));
+               } else {
+                  deploymentResult.put("error", "deployment failed.");
+               }
             } else {
+               // If transactionHash == null then there was error from
+               // athena, forward it to client as it is
                deploymentResult.put("error", "deployment failed.");
             }
-         } else {
-            // If transactionHash == null then there was error from
-            // athena, forward it to client as it is
-            deploymentResult.put("error", "deployment failed.");
+            resultArray.add(deploymentResult);
          }
-         resultArray.add(deploymentResult);
       }
       return resultArray;
    }
@@ -450,6 +544,84 @@ public class ContractsServlet extends BaseServlet {
          address2 = "0x" + address2;
       }
       return address1.equals(address2);
+   }
+
+   /**
+    * Handles the POST request for `/api/athena/contracts/compile` API.
+    *
+    * @param request
+    *           HttpRequest object
+    * @param response
+    *           HttpResponse object
+    *
+    * @return The RESTResult object containing result of this request
+    */
+   @RequestMapping(path = "/api/athena/contracts/compile", method = RequestMethod.POST)
+   public ResponseEntity<JSONAware>
+   handlePostSource(@RequestBody String paramString) {
+
+      // TODO: This check is fragile, find a better approach
+      if (registryManager == null) {
+         return new ResponseEntity<>(errorJSON("Service unavailable."),
+                 standardHeaders,
+                 HttpStatus.SERVICE_UNAVAILABLE);
+      }
+
+      ResponseEntity<JSONAware> responseEntity;
+
+
+      try {
+         JSONParser parser = new JSONParser();
+         JSONObject requestObject = (JSONObject) parser.parse(paramString);
+
+         String solidityCode = (String) requestObject.get("sourcecode");
+         Compiler.Result result = Compiler.compile(solidityCode);
+
+         if (result.isSuccess()) {
+            // respond with the name of each contract and allow the user to customize the contractId that will be uploaded
+            JSONArray resultArray = new JSONArray();
+            for (String contractName : result.getByteCodeMap().keySet()) {
+               JSONObject contractResult = new JSONObject();
+               JSONObject metadata = null;
+               try {
+                  metadata
+                          = (JSONObject) parser.parse(result.getMetadataMap().get(contractName));
+               } catch (ParseException e) {
+                  logger.warn("Metadata parsing failed", e);
+               }
+
+               contractResult.put("contract_name", contractName);
+               contractResult.put("metadata", metadata);
+
+               resultArray.add(contractResult);
+
+            }
+            JSONObject responseJson = new JSONObject();
+            responseJson.put("data", resultArray);
+            responseEntity = new ResponseEntity<>(responseJson,
+                    standardHeaders,
+                    HttpStatus.OK);
+         } else {
+            responseEntity
+                    = new ResponseEntity<>(errorJSON("Compilation failure:\n"
+                    + result.getStderr()),
+                    standardHeaders,
+                    HttpStatus.BAD_REQUEST);
+         }
+      } catch (ParseException pe) {
+         logger.warn("Exception while parsing request JSON", pe);
+         responseEntity
+                 = new ResponseEntity<>(errorJSON("unable to parse request."),
+                 standardHeaders,
+                 HttpStatus.BAD_REQUEST);
+      } catch (Exception e) {
+         logger.warn("Exception in request processing", e);
+         responseEntity
+                 = new ResponseEntity<>(errorJSON("unable to parse request."),
+                 standardHeaders,
+                 HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+      return responseEntity;
    }
 
    /**
@@ -489,6 +661,8 @@ public class ContractsServlet extends BaseServlet {
          String contractId = (String) requestObject.get("contract_id");
          String contractVersion = (String) requestObject.get("version");
          String solidityCode = (String) requestObject.get("sourcecode");
+         String selectedContract = (String) requestObject.get("contractName");
+         String constructorParams = (String) requestObject.get("constructorParams");
 
          // Check if contract with same id already exists, if yes
          // then version number must be different
@@ -510,21 +684,17 @@ public class ContractsServlet extends BaseServlet {
          } else {
             // Compile the given solidity code
             Compiler.Result result = Compiler.compile(solidityCode);
-            logger.debug(result);
-            if (result.isSuccess() && result.getByteCodeMap().size() == 1) {
+            if (result.isSuccess()) {
                JSONArray resultArray = deployContracts(contractId,
                                                        contractVersion,
                                                        from,
                                                        result,
-                                                       solidityCode);
+                                                       solidityCode,
+                                                       selectedContract,
+                                                       constructorParams);
                responseEntity = new ResponseEntity<>(resultArray,
                                                      standardHeaders,
                                                      HttpStatus.OK);
-            } else if (result.isSuccess()
-               && result.getByteCodeMap().size() != 1) {
-               responseEntity
-                  = new ResponseEntity<>(errorJSON("Uploaded file must have exactly one"
-                     + " contract"), standardHeaders, HttpStatus.BAD_REQUEST);
             } else {
                responseEntity
                   = new ResponseEntity<>(errorJSON("Compilation failure:\n"
