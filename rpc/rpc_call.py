@@ -12,6 +12,8 @@ from numbers import Number
 import util.json_helper
 
 log = logging.getLogger(__name__)
+CONFIG_JSON = "resources/user_config.json"
+
 
 class RPC():
    # Class
@@ -39,6 +41,7 @@ class RPC():
 
       self._testName = testName
       self._url = url
+      self._userConfig = util.json_helper.readJsonFile(CONFIG_JSON)
 
    @staticmethod
    def searchResponse(searchMe, findMe):
@@ -120,9 +123,13 @@ class RPC():
       self._setUpOutput(self._rpcData["method"])
       RPC._idCounter += 1
       lock.release()
-
+      user = self._userConfig.get('product').get('db_users')[0]
+      username = user['username']
+      password = user['password']
       curlCmd = ["curl",
                  "-H", "Content-Type: application/json",
+                 "--user", "{0}:{1}".format(
+                  username, password),
                  "--data", json.dumps(self._rpcData),
                  self._url,
                  "--output", self._responseFile,
