@@ -5,7 +5,7 @@ def call(){
         nodejs 'Node 8.9.1'
     }
     parameters {
-      booleanParam defaultValue: false, description: 'If tests pass, deploy the docker images for production', name: 'Deploy'
+      booleanParam defaultValue: false, description: 'If tests pass, deploy the docker images for production', name: 'deploy'
       string defaultValue: 'vmwblockchain/concord-core',
              description: 'The docker repo for the core/backend.',
              name: 'athena_docker_repo_param'
@@ -273,6 +273,9 @@ def call(){
       // }
 
       stage('Push to docker repository') {
+        when {
+          environment name: 'deploy', value: 'true'
+        }
         steps {
           withDockerRegistry([ credentialsId: "VMWATHENABOT_DOCKERHUB_CREDENTIALS", url: "" ]) {
             sh "docker push ${athena_docker_repo_param}:${athena_docker_tag}"
