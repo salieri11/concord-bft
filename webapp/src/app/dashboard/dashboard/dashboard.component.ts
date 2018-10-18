@@ -59,6 +59,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.loadTransactions();
       this.loadNodes();
       this.loadBlocks();
+      this.loadSmartContracts();
     }, LONG_POLL_INTERVAL);
 
     this.tourService.initialDashboardUrl = this.router.url.substr(1);

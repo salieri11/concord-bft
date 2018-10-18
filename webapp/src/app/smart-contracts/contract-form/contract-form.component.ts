@@ -14,7 +14,7 @@ import { ADDRESS_LENGTH, ADDRESS_PATTERN } from '../../shared/shared.config';
 import { SmartContractsService } from '../shared/smart-contracts.service';
 import {
   SmartContract, SmartContractCreateResult,
-  SmartContractVersion, SmartContractMultipleResult
+  SmartContractVersion, SmartContractCompileResult
 } from '../shared/smart-contracts.model';
 import { newVersionValue } from '../shared/custom-validators';
 
@@ -49,7 +49,7 @@ export class ContractFormComponent implements OnInit {
   smartContractForm: FormGroup;
   contractsForm: FormGroup;
   constructorParamsForm: FormGroup;
-  multiContractResponse: SmartContractMultipleResult[];
+  multiContractResponse: SmartContractCompileResult[];
   version: SmartContractVersion;
   constructorAbi: any;
 
@@ -121,8 +121,7 @@ export class ContractFormComponent implements OnInit {
 
   onClose() {
     this.isOpen = false;
-    this.wizard.reset();
-    // TODO: reset function for this wizard to update state and reset the wizard on close and completion
+    this.reset();
   }
 
   onSmartContractFileChange(event) {
@@ -184,7 +183,7 @@ export class ContractFormComponent implements OnInit {
       existingContractId: this.version.contract_id,
       existingVersionName: this.version.version
     }).subscribe(
-      response => this.handleSmartContract([response]),
+      response => this.handleSmartContract(response),
       response => this.handleError(response.error)
     );
   }
@@ -209,10 +208,6 @@ export class ContractFormComponent implements OnInit {
     );
   }
 
-  finishDisabled() {
-    return this.constructorParamsForm.invalid;
-  }
-
   private createAddContractForm() {
     this.smartContractForm = this.formBuilder.group({
       from: ['', [Validators.required, ...addressValidators]],
@@ -224,7 +219,7 @@ export class ContractFormComponent implements OnInit {
 
   private createUpdateExternalContractForm(smartContract: SmartContract, version: SmartContractVersion) {
     this.smartContractForm = this.formBuilder.group({
-      from: ['', [Validators.required, ...addressValidators]],
+      from: [smartContract.owner, [Validators.required, ...addressValidators]],
       contractId: [smartContract.contract_id, [Validators.required]],
       version: [version.version, [Validators.required]],
       file: [null, [Validators.required]]
@@ -280,10 +275,8 @@ export class ContractFormComponent implements OnInit {
       this.modalState.errorMessage = response.error;
     } else {
       this.isOpen = false;
-      this.wizard.reset();
-      this.contractCreated.emit(response[0]);
-      this.modalState.isUpdate = false;
-      this.modalState.isUpdateExternal = false;
+      this.contractCreated.emit(response);
+      this.reset();
 
     }
   }
@@ -292,5 +285,14 @@ export class ContractFormComponent implements OnInit {
     this.contractsForm.controls['selectedContract'].setValue(response.data[0].contract_name);
     this.multiContractResponse = response.data;
     this.wizard.next();
+  }
+
+  private reset() {
+    this.wizard.reset();
+    this.modalState.isUpdateExternal = false;
+    this.modalState.isUpdate = false;
+    this.modalState.completed = false;
+    this.modalState.error = false;
+    this.modalState.loading = false;
   }
 }

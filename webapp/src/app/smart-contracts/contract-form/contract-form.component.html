@@ -8,20 +8,20 @@
     <clr-wizard-button [type]="'previous'">{{'common.back' | translate}}</clr-wizard-button>
     <clr-wizard-button [type]="'next'">{{'common.next' | translate}}</clr-wizard-button>
     <clr-wizard-button [type]="'finish'">{{'common.finish' | translate}}</clr-wizard-button>
+    <div *ngIf="modalState.error">
+      <clr-alert [clrAlertClosable]="false" clrAlertType="danger">
+        <div class="alert-item">
+        <span class="alert-text">
+          {{'smartContracts.createContractError' | translate}}
+          <br><br>
+          {{modalState.errorMessage}}
+        </span>
+        </div>
+      </clr-alert>
+    </div>
     <clr-wizard-page [clrWizardPageNextDisabled]="smartContractForm.invalid" (clrWizardPageNext)="onSubmitSourceCode()">
       <ng-template clrPageTitle>{{'smartContracts.form.generalInformationTitle' | translate}}</ng-template>
       <form clrForm clrLayout="horizontal" [formGroup]="smartContractForm" class="contract-form">
-        <div *ngIf="modalState.error">
-          <clr-alert [clrAlertClosable]="false" clrAlertType="danger">
-            <div class="alert-item">
-            <span class="alert-text">
-              {{'smartContracts.createContractError' | translate}}
-              <br><br>
-              {{modalState.errorMessage}}
-            </span>
-            </div>
-          </clr-alert>
-        </div>
         <section class="form-block">
           <clr-input-container>
             <label for="smartContractContractId" class="required">{{'smartContracts.name' | translate}}</label>

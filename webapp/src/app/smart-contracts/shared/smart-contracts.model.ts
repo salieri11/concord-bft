@@ -78,9 +78,7 @@ export interface SmartContractCreateResult {
   url: string;
 }
 
-export interface SmartContractMultipleResult {
-  contract_id: string;
+export interface SmartContractCompileResult {
   contract_name: string;
-  version: string;
   metadata: SmartContractMetadata;
 }

@@ -35,6 +35,7 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
    private ContractRegistryManager registryManager;
 
    public EthSendTxHandler(boolean _isInternalContract) {
+      // If isInternalContract is true, the handler is processing a contract created from the Helen UI.
       isInternalContract = _isInternalContract;
       try {
          registryManager = ContractRegistryManager.getInstance();
@@ -238,11 +239,15 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
       EthResponse ethResponse = athenaResponse.getEthResponse(0);
       JSONObject respObject = initializeResponseObject(ethResponse);
       // Set method specific responses
+      JSONArray paramsArray = (JSONArray) requestJson.get("params");
+      JSONObject params = (JSONObject) paramsArray.get(0);
+      String fromParam = (String) params.get("from");
+      String toParam = (String) params.get("to");
       respObject.put("result",
                      APIHelper.binaryStringToHex(ethResponse.getData()));
-      if (!isInternalContract) { // TODO: Check if TO address is empty as well
+      if (!isInternalContract && toParam == null) {
          try {
-            handleSmartContractCreation(APIHelper.binaryStringToHex(ethResponse.getData()));
+            handleSmartContractCreation(APIHelper.binaryStringToHex(ethResponse.getData()), fromParam);
          } catch (Exception e) {
             logger.error("Error in smart contract linking.", e);
          }
@@ -250,7 +255,7 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
       return respObject;
    }
 
-   void handleSmartContractCreation(String transactionHash) throws Exception  {
+   private void handleSmartContractCreation(String transactionHash, String from) throws Exception  {
       JSONObject ethRequest = new JSONObject();
       JSONArray paramsArray = new JSONArray();
       ethRequest.put("id", 1);
@@ -265,7 +270,6 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
                  = (JSONObject) new JSONParser().parse(responseString);
          JSONObject result = (JSONObject) txReceipt.get("result");
          if(result.get("contractAddress") != null) {
-            String from = "";
             String contractVersion = "1";
             String contractAddress = (String) result.get("contractAddress");
             String metaData = "";

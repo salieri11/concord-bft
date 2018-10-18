@@ -36,10 +36,10 @@
   <clr-alert [clrAlertClosable]="false" [clrAlertType]="'alert-warning'" *ngIf="versionIsExternal">
     <div clr-alert-item class="alert-item">
         <span class="alert-text">
-            This contract version was deployed from an external source and therefore has no associated sourcecode or metadata.
+            {{'smartContracts.externalSourceWarning' | translate}}
         </span>
       <div class="alert-actions">
-        <a href="javascript:;" (click)="contractFormModal.open(smartContract, version)">Upload</a>
+        <a href="javascript:;" (click)="contractFormModal.open(smartContract, version)">{{'smartContracts.externalSourceUpload' | translate}}</a>
       </div>
     </div>
   </clr-alert>

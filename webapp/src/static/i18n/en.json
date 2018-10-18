@@ -292,6 +292,8 @@
     "owner": "Owner",
     "file": "File",
     "preview": "Preview",
+    "externalSourceWarning": "This contract version was deployed from an external source and therefore has no associated sourcecode or metadata.",
+    "externalSourceUpload": "Upload",
     "paginationSummary": "{{start}} - {{finish}} of {{total}} contracts",
     "version": {
       "title": "Version",
