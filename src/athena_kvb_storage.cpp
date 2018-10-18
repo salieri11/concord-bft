@@ -66,7 +66,7 @@
 #include "athena_storage.pb.h"
 #include "athena_evm.hpp"
 #include "common/athena_eth_hash.hpp"
-#include "kvb/slice.h"
+#include "kvb/sliver.hpp"
 #include "kvb/BlockchainInterfaces.h"
 #include "kvb/HashDefs.h"
 #include "kvb/HexTools.h"
@@ -74,6 +74,7 @@
 
 using namespace Blockchain;
 using namespace com::vmware::athena;
+using Blockchain::Sliver;
 
 ////////////////////////////////////////
 // GENERAL
@@ -104,13 +105,9 @@ com::vmware::athena::KVBStorage::KVBStorage(
 
 com::vmware::athena::KVBStorage::~KVBStorage()
 {
-   // Release the memory used for staging.
-   for (auto kvp: updates) {
-      delete[] kvp.first.data();
-      delete[] kvp.second.data();
-   }
+  // Any Slivers in updates will release their memory automatically.
 
-   // We don't own the blockAppender we're pointing to, so leave it alone.
+  // We don't own the blockAppender we're pointing to, so leave it alone.
 }
 
 bool com::vmware::athena::KVBStorage::is_read_only()
@@ -137,59 +134,59 @@ com::vmware::athena::KVBStorage::getReadOnlyStorage()
  * Constructs a key: one byte of `type`, concatenated with `length` bytes of
  * `bytes`.
  */
-Slice com::vmware::athena::KVBStorage::kvb_key(
-   char type, const uint8_t *bytes, size_t length) const
+Sliver com::vmware::athena::KVBStorage::kvb_key(
+   uint8_t type, const uint8_t *bytes, size_t length) const
 {
-   char *key = new char[1+length];
+   uint8_t *key = new uint8_t[1+length];
    key[0] = type;
    std::copy(bytes, bytes+length, key+1);
-   return Slice(key, length+1);
+   return Sliver(key, length+1);
 }
 
 /**
  * Convenience functions for constructing a key for each object type.
  */
-Slice com::vmware::athena::KVBStorage::block_key(const EthBlock &blk) const
+Sliver com::vmware::athena::KVBStorage::block_key(const EthBlock &blk) const
 {
    return kvb_key(TYPE_BLOCK, blk.get_hash().bytes, sizeof(evm_uint256be));
 }
 
-Slice com::vmware::athena::KVBStorage::block_key(
+Sliver com::vmware::athena::KVBStorage::block_key(
    const evm_uint256be &hash) const
 {
    return kvb_key(TYPE_BLOCK, hash.bytes, sizeof(hash));
 }
 
-Slice com::vmware::athena::KVBStorage::transaction_key(
+Sliver com::vmware::athena::KVBStorage::transaction_key(
    const EthTransaction &tx) const
 {
    return kvb_key(TYPE_TRANSACTION, tx.hash().bytes, sizeof(evm_uint256be));
 }
 
-Slice com::vmware::athena::KVBStorage::transaction_key(
+Sliver com::vmware::athena::KVBStorage::transaction_key(
    const evm_uint256be &hash) const
 {
    return kvb_key(TYPE_TRANSACTION, hash.bytes, sizeof(hash));
 }
 
-Slice com::vmware::athena::KVBStorage::balance_key(
+Sliver com::vmware::athena::KVBStorage::balance_key(
    const evm_address &addr) const
 {
    return kvb_key(TYPE_BALANCE, addr.bytes, sizeof(addr));
 }
 
-Slice com::vmware::athena::KVBStorage::nonce_key(
+Sliver com::vmware::athena::KVBStorage::nonce_key(
    const evm_address &addr) const
 {
    return kvb_key(TYPE_NONCE, addr.bytes, sizeof(addr));
 }
 
-Slice com::vmware::athena::KVBStorage::code_key(const evm_address &addr) const
+Sliver com::vmware::athena::KVBStorage::code_key(const evm_address &addr) const
 {
    return kvb_key(TYPE_CODE, addr.bytes, sizeof(addr));
 }
 
-Slice com::vmware::athena::KVBStorage::storage_key(
+Sliver com::vmware::athena::KVBStorage::storage_key(
    const evm_address &addr, const evm_uint256be &location) const
 {
    uint8_t combined[sizeof(addr)+sizeof(location)];
@@ -207,8 +204,8 @@ Slice com::vmware::athena::KVBStorage::storage_key(
  * Add a key-value pair to be stored in the block. Throws ReadOnlyModeException
  * if this object is in read-only mode.
  */
-void com::vmware::athena::KVBStorage::put(const Slice &key,
-                                          const Slice &value)
+void com::vmware::athena::KVBStorage::put(const Sliver &key,
+                                          const Sliver &value)
 {
    if (!blockAppender_) {
       throw ReadOnlyModeException();
@@ -254,11 +251,11 @@ Status com::vmware::athena::KVBStorage::write_block(uint64_t timestamp)
    for (auto tx: pending_transactions) {
       tx.block_hash = blk.hash;
       tx.block_number = blk.number;
-      Slice txaddr = transaction_key(tx);
-      char *txser;
+      Sliver txaddr = transaction_key(tx);
+      uint8_t *txser;
       size_t txser_length = tx.serialize(&txser);
 
-      put(txaddr, Slice(txser, txser_length));
+      put(txaddr, Sliver(txser, txser_length));
    }
    pending_transactions.clear();
 
@@ -283,12 +280,7 @@ Status com::vmware::athena::KVBStorage::write_block(uint64_t timestamp)
  * Drop all pending updates.
  */
 void com::vmware::athena::KVBStorage::reset() {
-   // Release all the storage our staging was using
-   for (auto &kvp: updates) {
-      delete[] kvp.first.data();
-      delete[] kvp.second.data();
-   }
-
+   // Slivers release their memory automatically.
    updates.clear();
 }
 
@@ -298,11 +290,11 @@ void com::vmware::athena::KVBStorage::reset() {
  */
 void com::vmware::athena::KVBStorage::add_block(EthBlock &blk)
 {
-   Slice blkaddr = block_key(blk);
-   char *blkser;
+   Sliver blkaddr = block_key(blk);
+   uint8_t *blkser;
    size_t blkser_length = blk.serialize(&blkser);
 
-   put(blkaddr, Slice(blkser, blkser_length));
+   put(blkaddr, Sliver(blkser, blkser_length));
 }
 
 void com::vmware::athena::KVBStorage::add_transaction(EthTransaction &tx)
@@ -323,10 +315,10 @@ void com::vmware::athena::KVBStorage::set_balance(const evm_address &addr,
    proto.set_version(balance_storage_version);
    proto.set_balance(balance);
    size_t sersize = proto.ByteSize();
-   char *ser = new char[sersize];
+   uint8_t *ser = new uint8_t[sersize];
    proto.SerializeToArray(ser, sersize);
 
-   put(balance_key(addr), Slice(ser, sersize));
+   put(balance_key(addr), Sliver(ser, sersize));
 }
 
 void com::vmware::athena::KVBStorage::set_nonce(const evm_address &addr,
@@ -336,10 +328,10 @@ void com::vmware::athena::KVBStorage::set_nonce(const evm_address &addr,
    proto.set_version(nonce_storage_version);
    proto.set_nonce(nonce);
    size_t sersize = proto.ByteSize();
-   char *ser = new char[sersize];
+   uint8_t *ser = new uint8_t[sersize];
    proto.SerializeToArray(ser, sersize);
 
-   put(nonce_key(addr), Slice(ser, sersize));
+   put(nonce_key(addr), Sliver(ser, sersize));
 }
 
 void com::vmware::athena::KVBStorage::set_code(const evm_address &addr,
@@ -353,10 +345,10 @@ void com::vmware::athena::KVBStorage::set_code(const evm_address &addr,
    proto.set_hash(hash.bytes, sizeof(hash));
 
    size_t sersize = proto.ByteSize();
-   char *ser = new char[sersize];
+   uint8_t *ser = new uint8_t[sersize];
    proto.SerializeToArray(ser, sersize);
 
-   put(code_key(addr), Slice(ser, sersize));
+   put(code_key(addr), Sliver(ser, sersize));
 }
 
 void com::vmware::athena::KVBStorage::set_storage(
@@ -364,9 +356,9 @@ void com::vmware::athena::KVBStorage::set_storage(
    const evm_uint256be &location,
    const evm_uint256be &data)
 {
-   char *str = new char[sizeof(data)];
+   uint8_t *str = new uint8_t[sizeof(data)];
    std::copy(data.bytes, data.bytes+sizeof(data), str);
-   put(storage_key(addr, location), Slice(str, sizeof(data)));
+   put(storage_key(addr, location), Sliver(str, sizeof(data)));
 }
 
 ////////////////////////////////////////
@@ -396,7 +388,7 @@ uint64_t com::vmware::athena::KVBStorage::current_block_number() {
  * in the staging area, its value in the most recent block in which it was
  * written will be returned.
  */
-Status com::vmware::athena::KVBStorage::get(const Slice &key, Slice &value)
+Status com::vmware::athena::KVBStorage::get(const Sliver &key, Sliver &value)
 {
    uint64_t block_number = current_block_number();
    BlockId out;
@@ -410,13 +402,13 @@ Status com::vmware::athena::KVBStorage::get(const Slice &key, Slice &value)
  * written will be returned.
  * @param readVersion BlockId object signifying the read version with which a
  *                    lookup needs to be done.
- * @param key Slice object of the key.
- * @param value Slice object where the value of the lookup result is stored.
+ * @param key Sliver object of the key.
+ * @param value Sliver object where the value of the lookup result is stored.
  * @param outBlock BlockId object where the read version of the result is stored
  * @return
  */
 Status com::vmware::athena::KVBStorage::get(const BlockId readVersion,
-        const Slice &key, Slice &value, BlockId &outBlock)
+        const Sliver &key, Sliver &value, BlockId &outBlock)
 {
    //TODO(BWF): this search will be very inefficient for a large set of changes
    for (auto &u: updates) {
@@ -455,16 +447,16 @@ EthBlock com::vmware::athena::KVBStorage::get_block(uint64_t number)
 
 EthBlock com::vmware::athena::KVBStorage::get_block(const evm_uint256be &hash)
 {
-   Slice kvbkey = block_key(hash);
-   Slice value;
+   Sliver kvbkey = block_key(hash);
+   Sliver value;
    Status status = get(kvbkey, value);
 
    LOG4CPLUS_DEBUG(logger, "Getting block " << hash <<
                    " status: " << status.ToString() <<
-                   " key: " << sliceToString(kvbkey) <<
-                   " value.size: " << value.size());
+                   " key: " << kvbkey <<
+                   " value.length: " << value.length());
 
-   if (status.ok() && value.size() > 0) {
+   if (status.ok() && value.length() > 0) {
       // TODO: we may store less for block, by using this part to get the number,
       // then get_block(number) to rebuild the transaction list from KV pairs
       return EthBlock::deserialize(value);
@@ -476,16 +468,16 @@ EthBlock com::vmware::athena::KVBStorage::get_block(const evm_uint256be &hash)
 EthTransaction com::vmware::athena::KVBStorage::get_transaction(
    const evm_uint256be &hash)
 {
-   Slice kvbkey = transaction_key(hash);
-   Slice value;
+   Sliver kvbkey = transaction_key(hash);
+   Sliver value;
    Status status = get(kvbkey, value);
 
    LOG4CPLUS_DEBUG(logger, "Getting transaction " << hash <<
                    " status: " << status.ToString() <<
-                   " key: " << sliceToString(kvbkey) <<
-                   " value.size: " << value.size());
+                   " key: " << kvbkey <<
+                   " value.length: " << value.length());
 
-   if (status.ok() && value.size() > 0) {
+   if (status.ok() && value.length() > 0) {
       // TODO: lookup block hash and number as well
       return EthTransaction::deserialize(value);
    }
@@ -501,21 +493,21 @@ uint64_t com::vmware::athena::KVBStorage::get_balance(const evm_address &addr)
 
 uint64_t com::vmware::athena::KVBStorage::get_balance(const evm_address &addr, uint64_t &block_number)
 {
-   Slice kvbkey = balance_key(addr);
-   Slice value;
+   Sliver kvbkey = balance_key(addr);
+   Sliver value;
    BlockId outBlock;
    Status status = get(block_number, kvbkey, value, outBlock);
 
    LOG4CPLUS_DEBUG(logger, "Getting nonce " << addr <<
                            " lookup block starting at: " << block_number <<
                            " status: " << status.ToString() <<
-                           " key: " << sliceToString(kvbkey) <<
-                           " value.size: " << value.size() <<
+                           " key: " << kvbkey <<
+                           " value.length: " << value.length() <<
                            " out block at: " << outBlock);
 
-   if (status.ok() && value.size() > 0) {
+   if (status.ok() && value.length() > 0) {
       kvb::Balance balance;
-      if (balance.ParseFromArray(value.data(), value.size())) {
+      if (balance.ParseFromArray(value.data(), value.length())) {
          if (balance.version() == balance_storage_version) {
             return balance.balance();
          } else {
@@ -537,21 +529,21 @@ uint64_t com::vmware::athena::KVBStorage::get_nonce(const evm_address &addr)
 uint64_t com::vmware::athena::KVBStorage::get_nonce(const evm_address &addr,
                                                     uint64_t &block_number)
 {
-   Slice kvbkey = nonce_key(addr);
-   Slice value;
+   Sliver kvbkey = nonce_key(addr);
+   Sliver value;
    BlockId outBlock;
    Status status = get(block_number, kvbkey, value, outBlock);
 
    LOG4CPLUS_DEBUG(logger, "Getting nonce " << addr <<
                    " lookup block starting at: " << block_number <<
                    " status: " << status.ToString() <<
-                   " key: " << sliceToString(kvbkey) <<
-                   " value.size: " << value.size() <<
+                   " key: " << kvbkey <<
+                   " value.length: " << value.length() <<
                    " out block at: " << outBlock);
 
-   if (status.ok() && value.size() > 0) {
+   if (status.ok() && value.length() > 0) {
       kvb::Nonce nonce;
-      if (nonce.ParseFromArray(value.data(), value.size())) {
+      if (nonce.ParseFromArray(value.data(), value.length())) {
          if (nonce.version() == nonce_storage_version) {
             return nonce.nonce();
          } else {
@@ -566,16 +558,16 @@ uint64_t com::vmware::athena::KVBStorage::get_nonce(const evm_address &addr,
 
 bool com::vmware::athena::KVBStorage::account_exists(const evm_address &addr)
 {
-   Slice kvbkey = balance_key(addr);
-   Slice value;
+   Sliver kvbkey = balance_key(addr);
+   Sliver value;
    Status status = get(kvbkey, value);
 
    LOG4CPLUS_DEBUG(logger, "Getting balance " << addr <<
                    " status: " << status.ToString() <<
-                   " key: " << sliceToString(kvbkey) <<
-                   " value.size: " << value.size());
+                   " key: " << kvbkey <<
+                   " value.length: " << value.length());
 
-   if (status.ok() && value.size() > 0) {
+   if (status.ok() && value.length() > 0) {
       // if there was a balance recorded, the account exists
       return true;
    }
@@ -610,21 +602,21 @@ bool com::vmware::athena::KVBStorage::get_code(const evm_address &addr,
                                                evm_uint256be &hash,
                                                uint64_t &block_number)
 {
-   Slice kvbkey = code_key(addr);
-   Slice value;
+   Sliver kvbkey = code_key(addr);
+   Sliver value;
    BlockId outBlock;
    Status status = get(block_number, kvbkey, value, outBlock);
 
    LOG4CPLUS_DEBUG(logger, "Getting code " << addr <<
                    " lookup block starting at: " << block_number <<
                    " status: " << status.ToString() <<
-                   " key: " << sliceToString(kvbkey) <<
-                   " value.size: " << value.size() <<
+                   " key: " << kvbkey <<
+                   " value.length: " << value.length() <<
                    " out block at: " << outBlock);
 
-   if (status.ok() && value.size() > 0) {
+   if (status.ok() && value.length() > 0) {
       kvb::Code code;
-      if (code.ParseFromArray(value.data(), value.size())) {
+      if (code.ParseFromArray(value.data(), value.length())) {
          if (code.version() == code_storage_version) {
             std::copy(code.code().begin(),
                       code.code().end(),
@@ -660,8 +652,8 @@ evm_uint256be com::vmware::athena::KVBStorage::get_storage(
         const evm_uint256be &location,
         uint64_t &block_number)
 {
-   Slice kvbkey = storage_key(addr, location);
-   Slice value;
+   Sliver kvbkey = storage_key(addr, location);
+   Sliver value;
    BlockId outBlock;
    Status status = get(block_number, kvbkey, value, outBlock);
 
@@ -669,18 +661,18 @@ evm_uint256be com::vmware::athena::KVBStorage::get_storage(
                   " at " << location <<
                   " lookup block starting at: " << block_number <<
                   " status: " << status.ToString() <<
-                  " key: " << sliceToString(kvbkey) <<
-                  " value.size: " << value.size() <<
+                  " key: " << kvbkey <<
+                  " value.length: " << value.length() <<
                   " out block at: " << outBlock);
 
    evm_uint256be out;
-   if (status.ok() && value.size() > 0) {
-      if (value.size() == sizeof(evm_uint256be)) {
-         std::copy(value.data(), value.data()+value.size(), out.bytes);
+   if (status.ok() && value.length() > 0) {
+      if (value.length() == sizeof(evm_uint256be)) {
+         std::copy(value.data(), value.data()+value.length(), out.bytes);
       } else {
          LOG4CPLUS_ERROR(logger, "Contract " << addr <<
                          " storage " << location <<
-                         " only had " << value.size() << " bytes.");
+                         " only had " << value.length() << " bytes.");
          throw EVMException("Corrupt contract storage");
       }
    } else {

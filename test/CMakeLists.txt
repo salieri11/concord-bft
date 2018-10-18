@@ -30,3 +30,13 @@ target_link_libraries(SignTests
   log4cplus
   secp256k1
   ${Cryptopp_LIBRARIES})
+
+add_executable(SliverTests
+  sliver_test.cpp)
+
+target_link_libraries(SliverTests
+  ${GTEST_LIBRARIES}
+  athena_utils
+  kvblockchain
+  gtest
+  gtest_main)

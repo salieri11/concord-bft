@@ -7,7 +7,7 @@
 
 #include "athena_log.hpp"
 #include "athena_types.hpp"
-#include "kvb/slice.h"
+#include "kvb/sliver.hpp"
 
 const evm_address zero_address{{0}};
 const evm_uint256be zero_hash{{0}};
@@ -37,8 +37,8 @@ typedef struct EthTransaction {
 
    std::vector<uint8_t> rlp() const;
    evm_uint256be hash() const;
-   size_t serialize(char** out);
-   static struct EthTransaction deserialize(Blockchain::Slice &input);
+   size_t serialize(uint8_t** out);
+   static struct EthTransaction deserialize(Blockchain::Sliver &input);
 } EthTransaction;
 
 typedef struct EthBlock {
@@ -49,8 +49,8 @@ typedef struct EthBlock {
    std::vector<evm_uint256be> transactions;
 
    evm_uint256be get_hash() const;
-   size_t serialize(char** out);
-   static struct EthBlock deserialize(Blockchain::Slice &input);
+   size_t serialize(uint8_t** out);
+   static struct EthBlock deserialize(Blockchain::Sliver &input);
 } EthBlock;
 
 }

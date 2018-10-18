@@ -60,11 +60,11 @@ namespace Blockchain {
       set_command_handler(Blockchain::ICommandsHandler *handler) override;
 
       // ILocalKeyValueStorageReadOnly methods
-      virtual Status get(Slice key, Slice &outValue) const override;
+      virtual Status get(Sliver key, Sliver &outValue) const override;
 
       virtual Status get(BlockId readVersion,
-                         Slice key,
-                         Slice &outValue,
+                         Sliver key,
+                         Sliver &outValue,
                          BlockId &outBlock) const override;
 
       virtual BlockId getLastBlock() const override;
@@ -74,7 +74,7 @@ namespace Blockchain {
                    SetOfKeyValuePairs &outBlockData) const override;
 
       virtual Status
-      mayHaveConflictBetween(Slice key,
+      mayHaveConflictBetween(Sliver key,
                              BlockId fromBlock,
                              BlockId toBlock,
                              bool &outRes) const  override;
@@ -113,11 +113,11 @@ namespace Blockchain {
       Status addBlockInternal(const SetOfKeyValuePairs &updates,
                               BlockId &outBlockId);
       Status getInternal(BlockId readVersion,
-                         Slice key,
-                         Slice &outValue,
+                         Sliver key,
+                         Sliver &outValue,
                          BlockId &outBlock) const;
-      void insertBlockInternal(BlockId blockId, Slice block);
-      Slice getBlockInternal(BlockId blockId) const;
+      void insertBlockInternal(BlockId blockId, Sliver block);
+      Sliver getBlockInternal(BlockId blockId) const;
       BlockchainDBAdapter* getBcDbAdapter() const { return m_bcDbAdapter; }
       void revertBlock(BlockId blockId);
 
@@ -127,10 +127,10 @@ namespace Blockchain {
       class KeyIDPair
       {
       public:
-         const Slice key;
+         const Sliver key;
          const BlockId blockId;
 
-         KeyIDPair(Slice s, BlockId i) : key(s), blockId(i) { }
+         KeyIDPair(Sliver s, BlockId i) : key(s), blockId(i) { }
 
          bool operator<(const KeyIDPair& k) const
          {
@@ -160,11 +160,11 @@ namespace Blockchain {
       public:
          StorageWrapperForIdleMode(const ReplicaImp *r);
 
-         virtual Status get(Slice key, Slice &outValue) const override;
+         virtual Status get(Sliver key, Sliver &outValue) const override;
 
          virtual Status get(BlockId readVersion,
-                            Slice key,
-                            Slice &outValue,
+                            Sliver key,
+                            Sliver &outValue,
                             BlockId &outBlock) const override;
          virtual BlockId getLastBlock() const override;
 
@@ -172,7 +172,7 @@ namespace Blockchain {
          getBlockData(BlockId blockId,
                      SetOfKeyValuePairs &outBlockData) const override;
 
-         virtual Status mayHaveConflictBetween(Slice key,
+         virtual Status mayHaveConflictBetween(Sliver key,
                                        BlockId fromBlock,
                                        BlockId toBlock,
                                        bool &outRes) const override;
@@ -277,10 +277,10 @@ namespace Blockchain {
       bftEngine::IStateTransfer *m_stateTransfer = nullptr;
 
       // static methods
-      static Slice createBlockFromUpdates(
+      static Sliver createBlockFromUpdates(
          const SetOfKeyValuePairs& updates,
          SetOfKeyValuePairs& outUpdatesInNewBlock);
-      static SetOfKeyValuePairs fetchBlockData(Slice block);
+      static SetOfKeyValuePairs fetchBlockData(Sliver block);
 
 
       // FRIENDS

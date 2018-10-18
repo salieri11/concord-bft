@@ -11,7 +11,7 @@
 #include <log4cplus/loggingmacros.h>
 
 #include "athena_types.hpp"
-#include "kvb/slice.h"
+#include "kvb/sliver.hpp"
 #include "kvb/BlockchainInterfaces.h"
 #include "kvb/HashDefs.h"
 #include "evm.h"
@@ -29,33 +29,33 @@ private:
    log4cplus::Logger logger;
 
    /* Value of "type" byte, at the start of each key. */
-   const char TYPE_BLOCK       = 0x01;
-   const char TYPE_TRANSACTION = 0x02;
-   const char TYPE_BALANCE     = 0x03;
-   const char TYPE_CODE        = 0x04;
-   const char TYPE_STORAGE     = 0x05;
-   const char TYPE_NONCE       = 0x06;
+   const uint8_t TYPE_BLOCK       = 0x01;
+   const uint8_t TYPE_TRANSACTION = 0x02;
+   const uint8_t TYPE_BALANCE     = 0x03;
+   const uint8_t TYPE_CODE        = 0x04;
+   const uint8_t TYPE_STORAGE     = 0x05;
+   const uint8_t TYPE_NONCE       = 0x06;
 
-   Blockchain::Slice kvb_key(
-      char type, const uint8_t *bytes, size_t length) const;
+   Blockchain::Sliver kvb_key(
+      uint8_t type, const uint8_t *bytes, size_t length) const;
 
-   Blockchain::Slice block_key(const EthBlock &blk) const;
-   Blockchain::Slice block_key(const evm_uint256be &hash) const;
-   Blockchain::Slice transaction_key(const EthTransaction &tx) const;
-   Blockchain::Slice transaction_key(const evm_uint256be &hash) const;
-   Blockchain::Slice balance_key(const evm_address &addr) const;
-   Blockchain::Slice nonce_key(const evm_address &addr) const;
-   Blockchain::Slice code_key(const evm_address &addr) const;
-   Blockchain::Slice storage_key(const evm_address &addr,
+   Blockchain::Sliver block_key(const EthBlock &blk) const;
+   Blockchain::Sliver block_key(const evm_uint256be &hash) const;
+   Blockchain::Sliver transaction_key(const EthTransaction &tx) const;
+   Blockchain::Sliver transaction_key(const evm_uint256be &hash) const;
+   Blockchain::Sliver balance_key(const evm_address &addr) const;
+   Blockchain::Sliver nonce_key(const evm_address &addr) const;
+   Blockchain::Sliver code_key(const evm_address &addr) const;
+   Blockchain::Sliver storage_key(const evm_address &addr,
                                  const evm_uint256be &location) const;
 
-   Blockchain::Status get(const Blockchain::Slice &key,
-                          Blockchain::Slice &out);
+   Blockchain::Status get(const Blockchain::Sliver &key,
+                          Blockchain::Sliver &out);
    Blockchain::Status get(const Blockchain::BlockId readVersion,
-                          const Blockchain::Slice &key,
-                          Blockchain::Slice &value,
+                          const Blockchain::Sliver &key,
+                          Blockchain::Sliver &value,
                           Blockchain::BlockId &outBlock);
-   void put(const Blockchain::Slice &key, const Blockchain::Slice &value);
+   void put(const Blockchain::Sliver &key, const Blockchain::Sliver &value);
 
    uint64_t next_block_number();
    void add_block(EthBlock &blk);

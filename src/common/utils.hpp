@@ -24,6 +24,8 @@ uint64_t from_evm_uint256be(const evm_uint256be *val);
 
 int64_t get_epoch_millis();
 
+std::ostream& hexPrint(std::ostream &s, const uint8_t *data, size_t size);
+
 }
 }
 }

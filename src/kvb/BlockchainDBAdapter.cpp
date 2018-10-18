@@ -31,7 +31,7 @@ namespace Blockchain
 {
 
 /**
- * @brief Generates a Composite Database Key from a Slice object.
+ * @brief Generates a Composite Database Key from a Sliver object.
  *
  * Merges the key type, data of the key and the block id to generate a composite
  * database key.
@@ -40,44 +40,44 @@ namespace Blockchain
 
  * @param _type Composite Database key type (Either of First, Key, Block or
  *              Last).
- * @param _key Slice object of the key.
+ * @param _key Sliver object of the key.
  * @param _blockId BlockId object.
- * @return Slice object of the generated composite database key.
+ * @return Sliver object of the generated composite database key.
  */
-Slice genDbKey(EDBKeyType _type, Slice _key, BlockId _blockId)
+Sliver genDbKey(EDBKeyType _type, Sliver _key, BlockId _blockId)
 {
-   size_t sz = sizeof(EDBKeyType) + sizeof(BlockId) + _key.size();
-   char *out = new char[sz];
+   size_t sz = sizeof(EDBKeyType) + sizeof(BlockId) + _key.length();
+   uint8_t *out = new uint8_t[sz];
    size_t offset = 0;
-   copyToAndAdvance(out, &offset, sz, (char*) &_type, sizeof(EDBKeyType));
-   copyToAndAdvance(out, &offset, sz, (char*) _key.data(), _key.size());
-   copyToAndAdvance(out, &offset, sz, (char*) &_blockId, sizeof(BlockId));
-   return Slice(out, sz);
+   copyToAndAdvance(out, &offset, sz, (uint8_t*) &_type, sizeof(EDBKeyType));
+   copyToAndAdvance(out, &offset, sz, (uint8_t*) _key.data(), _key.length());
+   copyToAndAdvance(out, &offset, sz, (uint8_t*) &_blockId, sizeof(BlockId));
+   return Sliver(out, sz);
 }
 
 /**
  * @brief Helper function that generates a composite database Key of type Block.
  *
- * For such Database keys, the "key" component is an empty slice.
+ * For such Database keys, the "key" component is an empty sliver.
  *
  * @param _blockid BlockId object of the block id that needs to be
  *                 incorporated into the composite database key.
- * @return Slice object of the generated composite database key.
+ * @return Sliver object of the generated composite database key.
  */
-Slice genBlockDbKey(BlockId _blockId)
+Sliver genBlockDbKey(BlockId _blockId)
 {
-   return genDbKey(EDBKeyType::E_DB_KEY_TYPE_BLOCK, Slice(""), _blockId);
+   return genDbKey(EDBKeyType::E_DB_KEY_TYPE_BLOCK, Sliver(), _blockId);
 }
 
 /**
  * @brief Helper function that generates a composite database Key of type Key.
  *
- * @param _key Slice object of the "key" component.
+ * @param _key Sliver object of the "key" component.
  * @param _blockid BlockId object of the block id that needs to be incorporated
  *                 into the composite database Key.
- * @return Slice object of the generated composite database key.
+ * @return Sliver object of the generated composite database key.
  */
-Slice genDataDbKey(Slice _key, BlockId _blockId)
+Sliver genDataDbKey(Sliver _key, BlockId _blockId)
 {
    return genDbKey(EDBKeyType::E_DB_KEY_TYPE_KEY, _key, _blockId);
 }
@@ -85,13 +85,13 @@ Slice genDataDbKey(Slice _key, BlockId _blockId)
 /**
  * @brief Extracts the type of a composite database key.
  *
- * Returns the data part of the Slice object passed as a parameter.
+ * Returns the data part of the Sliver object passed as a parameter.
  *
- * @param _key The Slice object of the composite database key whose type gets
+ * @param _key The Sliver object of the composite database key whose type gets
  *             returned.
  * @return The type of the composite database key.
  */
-char extractTypeFromKey(Slice _key)
+char extractTypeFromKey(Sliver _key)
 {
    // TODO(BWF): Agreed that we only need one byte to represent the type, but
    // sizeOf(EDBKeyType) is 4, not 1 on my machine. Extracting it this way only
@@ -103,37 +103,37 @@ char extractTypeFromKey(Slice _key)
 /**
  * @brief Extracts the Block Id of a composite database key.
  *
- * Returns the block id part of the Slice object passed as a parameter.
+ * Returns the block id part of the Sliver object passed as a parameter.
  *
- * @param _key The Slice object of the composite database key whose block id
+ * @param _key The Sliver object of the composite database key whose block id
  *             gets returned.
  * @return The block id of the composite database key.
  */
-BlockId extractBlockIdFromKey(Slice _key)
+BlockId extractBlockIdFromKey(Sliver _key)
 {
-   size_t offset = _key.size() - sizeof(BlockId);
+   size_t offset = _key.length() - sizeof(BlockId);
    BlockId id = *(BlockId*) (_key.data() + offset);
 
    Logger logger(Logger::getInstance("com.vmware.athena.kvb"));
    LOG4CPLUS_DEBUG(logger, "Got block ID " << id << " from key " <<
-                   sliceToString(_key) << ", offset " << offset);
+                   _key << ", offset " << offset);
    return id;
 }
 
 /**
  * @brief Extracts the key from a composite database key.
  *
- * @param _composedKey Slice object of the composite database key.
- * @return Slice object of the key extracted from the composite database key.
+ * @param _composedKey Sliver object of the composite database key.
+ * @return Sliver object of the key extracted from the composite database key.
  */
-Slice extractKeyFromKeyComposedWithBlockId(Slice _composedKey)
+Sliver extractKeyFromKeyComposedWithBlockId(Sliver _composedKey)
 {
-   size_t sz = _composedKey.size() - sizeof(BlockId) - sizeof(EDBKeyType);
-   Slice out = Slice(_composedKey.data() + sizeof(EDBKeyType), sz);
+   size_t sz = _composedKey.length() - sizeof(BlockId) - sizeof(EDBKeyType);
+   Sliver out = Sliver(_composedKey, sizeof(EDBKeyType), sz);
 
    Logger logger(Logger::getInstance("com.vmware.athena.kvb"));
-   LOG4CPLUS_DEBUG(logger,  "Got key " << sliceToString(out) <<
-                   " from composed key " << sliceToString(_composedKey));
+   LOG4CPLUS_DEBUG(logger,  "Got key " << out <<
+                   " from composed key " << _composedKey);
    return out;
 }
 
@@ -147,7 +147,7 @@ Slice extractKeyFromKeyComposedWithBlockId(Slice _composedKey)
  */
 KeyValuePair composedToSimple(KeyValuePair _p)
 {
-   if (_p.first.size() == 0) {
+   if (_p.first.length() == 0) {
       return _p;
    }
 
@@ -167,11 +167,10 @@ KeyValuePair composedToSimple(KeyValuePair _p)
  *                  the composite database key.
  * @return Status of the put operation.
  */
-Status BlockchainDBAdapter::addBlock(BlockId _blockId, Slice _blockRaw)
+Status BlockchainDBAdapter::addBlock(BlockId _blockId, Sliver _blockRaw)
 {
-   Slice dbKey = genBlockDbKey(_blockId);
+   Sliver dbKey = genBlockDbKey(_blockId);
    Status s = m_db->put(dbKey, _blockRaw);
-   delete[] dbKey.data();
    return s;
 }
 
@@ -189,14 +188,13 @@ Status BlockchainDBAdapter::addBlock(BlockId _blockId, Slice _blockRaw)
  */
 Status BlockchainDBAdapter::updateKey(Key _key, BlockId _block, Value _value)
 {
-   Slice composedKey = genDataDbKey(_key, _block);
+   Sliver composedKey = genDataDbKey(_key, _block);
 
-   LOG4CPLUS_DEBUG(logger, "Updating composed key " <<
-                   sliceToString(composedKey) << " with value "
-                   << sliceToString(_value) << " in block " << _block);
+   LOG4CPLUS_DEBUG(logger, "Updating composed key "
+                   << composedKey << " with value "
+                   << _value << " in block " << _block);
 
    Status s = m_db->put(composedKey, _value);
-   delete[] composedKey.data();
    return s;
 }
 
@@ -211,15 +209,14 @@ Status BlockchainDBAdapter::updateKey(Key _key, BlockId _block, Value _value)
  * @param _blockId The block id (version) of the key to delete.
  * @return Status of the operation.
  */
-Status BlockchainDBAdapter::delKey(Slice _key, BlockId _blockId)
+Status BlockchainDBAdapter::delKey(Sliver _key, BlockId _blockId)
 {
-   Slice composedKey = genDataDbKey(_key, _blockId);
+   Sliver composedKey = genDataDbKey(_key, _blockId);
 
-   LOG4CPLUS_DEBUG(logger, "Deleting key " << sliceToString(_key) <<
+   LOG4CPLUS_DEBUG(logger, "Deleting key " << _key <<
                    " block id " << _blockId);
 
    Status s = m_db->del(composedKey);
-   delete[] composedKey.data();
    return s;
 }
 
@@ -235,9 +232,8 @@ Status BlockchainDBAdapter::delKey(Slice _key, BlockId _blockId)
  */
 Status BlockchainDBAdapter::delBlock(BlockId _blockId)
 {
-   Slice dbKey = genBlockDbKey(_blockId);
+   Sliver dbKey = genBlockDbKey(_blockId);
    Status s = m_db->del(dbKey);
-   delete[] dbKey.data();
    return s;
 }
 
@@ -249,30 +245,29 @@ Status BlockchainDBAdapter::delBlock(BlockId _blockId)
  *
  * @param readVersion BlockId object signifying the read version with which a
  *                    lookup needs to be done.
- * @param key Slice object of the key.
- * @param outValue Slice object where the value of the lookup result is stored.
+ * @param key Sliver object of the key.
+ * @param outValue Sliver object where the value of the lookup result is stored.
  * @param outBlock BlockId object where the read version of the result is
  *                         stored.
  * @return Status OK
  */
 Status BlockchainDBAdapter::getKeyByReadVersion(BlockId readVersion,
-                                                Slice key,
-                                                Slice &outValue,
+                                                Sliver key,
+                                                Sliver &outValue,
                                                 BlockId &outBlock) const
 {
-   LOG4CPLUS_DEBUG(logger, "Getting value of key " << sliceToString(key) <<
+   LOG4CPLUS_DEBUG(logger, "Getting value of key " << key <<
                    " for read version " << readVersion);
 
    IDBClient::IDBClientIterator *iter = m_db->getIterator();
-   Slice foundKey, foundValue;
-   Slice searchKey = genDataDbKey(key, readVersion);
+   Sliver foundKey, foundValue;
+   Sliver searchKey = genDataDbKey(key, readVersion);
    KeyValuePair p = iter->seekAtLeast(searchKey);
-   delete[] searchKey.data();
    foundKey = composedToSimple(p).first;
    foundValue = p.second;
 
-   LOG4CPLUS_DEBUG(logger, "Found key " << sliceToString(foundKey) <<
-                   " and value " << sliceToString(foundValue));
+   LOG4CPLUS_DEBUG(logger, "Found key " << foundKey <<
+                   " and value " << foundValue);
 
    if (!iter->isEnd()) {
       BlockId currentReadVersion = extractBlockIdFromKey(p.first);
@@ -282,11 +277,11 @@ Status BlockchainDBAdapter::getKeyByReadVersion(BlockId readVersion,
          outValue = foundValue;
          outBlock = currentReadVersion;
       } else {
-         outValue = Slice();
+         outValue = Sliver();
          outBlock = 0;
       }
    } else {
-      outValue = Slice();
+      outValue = Sliver();
       outBlock = 0;
    }
 
@@ -302,17 +297,16 @@ Status BlockchainDBAdapter::getKeyByReadVersion(BlockId readVersion,
  * Constructs a composite database key using the block id to fire a get request.
  *
  * @param _blockId BlockId object used for looking up data.
- * @param _blockRaw Slice object where the result of the lookup is stored.
+ * @param _blockRaw Sliver object where the result of the lookup is stored.
  * @param _found true if lookup successful, else false.
  * @return Status of the operation.
  */
 Status BlockchainDBAdapter::getBlockById(BlockId _blockId,
-                                         Slice &_blockRaw,
+                                         Sliver &_blockRaw,
                                          bool &_found) const
 {
-   Slice key = genBlockDbKey(_blockId);
+   Sliver key = genBlockDbKey(_blockId);
    Status s = m_db->get(key, _blockRaw);
-   delete[] key.data();
    if (s.IsNotFound())
    {
       _found = false;
@@ -323,33 +317,18 @@ Status BlockchainDBAdapter::getBlockById(BlockId _blockId,
    return s;
 }
 
+//TODO(BWF): is this still needed?
 /**
- * @brief Frees up the value of a Slice object.
+ * @brief Makes a copy of a Sliver object.
  *
- * @param _block Slice object that needs its value freed.
- * @return Status OK.
+ * @param _src Sliver object that needs to be copied.
+ * @param _trg Sliver object that contains the result.
  */
-Status BlockchainDBAdapter::freeFetchedBlock(Slice &_block) const
+inline void CopyKey(Sliver _src, Sliver &_trg)
 {
-   m_db->freeValue(_block);
-
-   //TODO(GG): mayble return the status of the operation?
-   return Status::OK();
-}
-
-
-//TODO(GG): Used for handling iterator temporary values. Leaks all over!
-/**
- * @brief Makes a copy of a Slice object.
- *
- * @param _src Slice object that needs to be copied.
- * @param _trg Slice object that contains the result.
- */
-inline void CopyKey(Slice _src, Slice &_trg)
-{
-   char *c = new char[_src.size()];
-   memcpy(c, _src.data(), _src.size());
-   _trg = Slice(c, _src.size());
+   uint8_t *c = new uint8_t[_src.length()];
+   memcpy(c, _src.data(), _src.length());
+   _trg = Sliver(c, _src.length());
 }
 
 // TODO(SG): Add status checks with getStatus() on iterator.
@@ -374,8 +353,8 @@ Status BlockchainDBAdapter::first(IDBClient::IDBClientIterator *iter,
                                   BlockId readVersion,
                                   OUT BlockId &actualVersion,
                                   OUT bool &isEnd,
-                                  OUT Slice &_key,
-                                  OUT Slice &_value)
+                                  OUT Sliver &_key,
+                                  OUT Sliver &_value)
 {
    Key firstKey;
    KeyValuePair p = composedToSimple(iter->first());
@@ -388,7 +367,7 @@ Status BlockchainDBAdapter::first(IDBClient::IDBClientIterator *iter,
    }
 
    bool foundKey = false;
-   Slice value;
+   Sliver value;
    BlockId actualBlock;
    while (!iter->isEnd() && p.first == firstKey) {
       BlockId currentBlock = extractBlockIdFromKey(iter->getCurrent().first);
@@ -412,9 +391,6 @@ Status BlockchainDBAdapter::first(IDBClient::IDBClientIterator *iter,
                break;
             }
 
-            if (firstKey.size() > 0) {
-               delete[] firstKey.data();
-            }
             CopyKey(p.first, firstKey);
          } else {
             // If we already found a suitable first key, we break when we find
@@ -449,7 +425,7 @@ Status BlockchainDBAdapter::first(IDBClient::IDBClientIterator *iter,
  * the key with block version lesser than or equal to the readVersion.
  *
  * @param iter Iterator object.
- * @param _searchKey Slice object of the search key.
+ * @param _searchKey Sliver object of the search key.
  * @param _readVersion BlockId of the read version used for searching.
  * @param _actualVersion BlockId in which the version of the result is stored.
  * @param _key The result's key.
@@ -461,18 +437,18 @@ Status BlockchainDBAdapter::first(IDBClient::IDBClientIterator *iter,
 // Only for data fields, i.e. E_DB_KEY_TYPE_KEY. It makes more sense to put data
 // second, and blocks first. Stupid optimization nevertheless
 Status BlockchainDBAdapter::seekAtLeast(IDBClient::IDBClientIterator *iter,
-                                        Slice _searchKey,
+                                        Sliver _searchKey,
                                         BlockId _readVersion,
                                         OUT BlockId &_actualVersion,
-                                        OUT Slice &_key,
-                                        OUT Slice &_value,
+                                        OUT Sliver &_key,
+                                        OUT Sliver &_value,
                                         OUT bool &_isEnd)
 {
    Key searchKey = _searchKey;
    BlockId actualBlock;
    Value value;
    bool foundKey = false;
-   Slice rocksKey = genDataDbKey(searchKey, _readVersion);
+   Sliver rocksKey = genDataDbKey(searchKey, _readVersion);
    KeyValuePair p = composedToSimple(iter->seekAtLeast(rocksKey));
 
    if (!iter->isEnd()) {
@@ -480,20 +456,19 @@ Status BlockchainDBAdapter::seekAtLeast(IDBClient::IDBClientIterator *iter,
       CopyKey(p.first, searchKey);
    }
 
-   LOG4CPLUS_DEBUG(logger, "Searching " << sliceToString(_searchKey) <<
+   LOG4CPLUS_DEBUG(logger, "Searching " << _searchKey <<
                    " and currently iterator returned " <<
-                   sliceToString(searchKey) << " for rocks key " <<
-                   sliceToString(rocksKey));
+                   searchKey << " for rocks key " << rocksKey);
 
    while (!iter->isEnd() && p.first == searchKey) {
       BlockId currentBlockId = extractBlockIdFromKey(iter->getCurrent().first);
 
-      LOG4CPLUS_DEBUG(logger, "Considering key " << sliceToString(p.first) <<
+      LOG4CPLUS_DEBUG(logger, "Considering key " << p.first <<
                       " with block ID " << currentBlockId);
 
       if (currentBlockId <= _readVersion) {
          LOG4CPLUS_DEBUG(logger, "Found with Block Id " << currentBlockId <<
-                         " and value " << sliceToString(p.second));
+                         " and value " << p.second);
          value = p.second;
          actualBlock = currentBlockId;
          foundKey = true;
@@ -516,13 +491,10 @@ Status BlockchainDBAdapter::seekAtLeast(IDBClient::IDBClientIterator *iter,
                break;
             }
 
-            if (searchKey.size() > 0) {
-               delete[] searchKey.data();
-            }
             CopyKey(p.first, searchKey);
 
             LOG4CPLUS_DEBUG(logger, "Found new search key " <<
-                            sliceToString(searchKey));
+                            searchKey);
          } else {
             // If we already found a suitable key, we break when we find the
             // maximal
@@ -530,8 +502,6 @@ Status BlockchainDBAdapter::seekAtLeast(IDBClient::IDBClientIterator *iter,
          }
       }
    }
-
-   delete[] rocksKey.data();
 
    if (iter->isEnd() && !foundKey) {
       LOG4CPLUS_DEBUG(logger, "Reached end of map without finding lower bound "
@@ -546,8 +516,8 @@ Status BlockchainDBAdapter::seekAtLeast(IDBClient::IDBClientIterator *iter,
    _actualVersion = actualBlock;
    _key = searchKey;
    _value = value;
-   LOG4CPLUS_DEBUG(logger, "Returnign key " << sliceToString(_key) <<
-                   " value " << sliceToString(_value) << " in actual block " <<
+   LOG4CPLUS_DEBUG(logger, "Returnign key " << _key <<
+                   " value " << _value << " in actual block " <<
                    _actualVersion << ", read version " << _readVersion);
    m_current = KeyValuePair(_key, _value);
    return Status::OK();
@@ -561,8 +531,8 @@ Status BlockchainDBAdapter::seekAtLeast(IDBClient::IDBClientIterator *iter,
  *
  * @param iter Iterator.
  * @param _readVersion BlockId object of the read version used for searching.
- * @param _key Slice object of the result's key. Contains only the reference.
- * @param _value Slice object of the result's value.
+ * @param _key Sliver object of the result's key. Contains only the reference.
+ * @param _value Sliver object of the result's value.
  * @param _actualVersion BlockId object in which the version of the result is
  *                       stored.
  * @param _isEnd True if end of the database is reached while iterating, else
@@ -571,8 +541,8 @@ Status BlockchainDBAdapter::seekAtLeast(IDBClient::IDBClientIterator *iter,
  */
 Status BlockchainDBAdapter::next(IDBClient::IDBClientIterator *iter,
                                  BlockId _readVersion,
-                                 OUT Slice &_key,
-                                 OUT Slice &_value,
+                                 OUT Sliver &_key,
+                                 OUT Sliver &_value,
                                  OUT BlockId &_actualVersion,
                                  OUT bool &_isEnd)
 {
@@ -619,9 +589,6 @@ Status BlockchainDBAdapter::next(IDBClient::IDBClientIterator *iter,
                break;
             }
 
-            if (nextKey.size() > 0) {
-               delete[] nextKey.data();
-            }
             CopyKey(p.first, nextKey);
          } else {
             // If we already found a suitable key, we break when we find the
@@ -648,13 +615,13 @@ Status BlockchainDBAdapter::next(IDBClient::IDBClientIterator *iter,
  * Does not use the iterator for this.
  *
  * @param iter Iterator.
- * @param _key Slice object where the key of the result is stored.
- * @param _value Slice object where the value of the result is stored.
+ * @param _key Sliver object where the key of the result is stored.
+ * @param _value Sliver object where the value of the result is stored.
  * @return Status OK.
  */
 Status BlockchainDBAdapter::getCurrent(IDBClient::IDBClientIterator *iter,
-                                       OUT Slice &_key,
-                                       OUT Slice &_value)
+                                       OUT Sliver &_key,
+                                       OUT Sliver &_value)
 {
    // Not calling to underlying DB iterator, because it may have next()'d during
    // seekAtLeast
@@ -705,7 +672,7 @@ BlockId BlockchainDBAdapter::getLatestBlock()
    //are sorted in ascending order of block ids.
 
    //Generate maximal key for type 'block'
-   Slice maxKey = genDbKey(EDBKeyType::E_DB_KEY_TYPE_BLOCK, Slice(""),
+   Sliver maxKey = genDbKey(EDBKeyType::E_DB_KEY_TYPE_BLOCK, Sliver(),
                            std::numeric_limits<uint64_t>::max());
    IDBClient::IDBClientIterator *iter = m_db->getIterator();
 
@@ -716,7 +683,7 @@ BlockId BlockchainDBAdapter::getLatestBlock()
    //Read the previous key
    x = iter->previous();
 
-   if((x.first).size() == 0) { //no blocks
+   if((x.first).length() == 0) { //no blocks
       return 0;
    }
 

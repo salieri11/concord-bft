@@ -10,7 +10,7 @@
 
 #include "DatabaseInterface.h"
 #include "BlockchainInterfaces.h"
-#include "slice.h"
+#include "sliver.hpp"
 
 namespace Blockchain {
 
@@ -35,16 +35,15 @@ namespace Blockchain {
 
       IDBClient* getDb() { return m_db; }
 
-      Status addBlock(BlockId _blockId, Slice _blockRaw);
+      Status addBlock(BlockId _blockId, Sliver _blockRaw);
       Status updateKey(Key _key, BlockId _block, Value _value);
       Status getKeyByReadVersion(BlockId readVersion,
-                                 Slice key,
-                                 Slice &outValue,
+                                 Sliver key,
+                                 Sliver &outValue,
                                  BlockId &outBlock) const;
       Status getBlockById(BlockId _blockId,
-                          Slice &_blockRaw,
+                          Sliver &_blockRaw,
                           bool &_found) const;
-      Status freeFetchedBlock(Slice &_block) const;
 
       IDBClient::IDBClientIterator* getIterator()
       {
@@ -59,28 +58,28 @@ namespace Blockchain {
                    BlockId readVersion,
                    OUT BlockId &actualVersion,
                    OUT bool &isEnd,
-                   OUT Slice &_key,
-                   OUT Slice &_value);
+                   OUT Sliver &_key,
+                   OUT Sliver &_value);
       Status seekAtLeast(IDBClient::IDBClientIterator* iter,
-                         Slice _searchKey,
+                         Sliver _searchKey,
                          BlockId _readVersion,
                          OUT BlockId &_actualVersion,
-                         OUT Slice &_key,
-                         OUT Slice &_value,
+                         OUT Sliver &_key,
+                         OUT Sliver &_value,
                          OUT bool &_isEnd);
       Status next(IDBClient::IDBClientIterator* iter,
                   BlockId _readVersion,
-                  OUT Slice &_key,
-                  OUT Slice &_value,
+                  OUT Sliver &_key,
+                  OUT Sliver &_value,
                   OUT BlockId &_actualVersion,
                   OUT bool &_isEnd);
 
       Status getCurrent(IDBClient::IDBClientIterator* iter,
-                        OUT Slice &_key,
-                        OUT Slice &_value);
+                        OUT Sliver &_key,
+                        OUT Sliver &_value);
       Status isEnd(IDBClient::IDBClientIterator* iter, OUT bool &_isEnd);
 
-      Status delKey(Slice _key, BlockId _blockID);
+      Status delKey(Sliver _key, BlockId _blockID);
       Status delBlock(BlockId _blockId);
 
       void monitor() const;
@@ -95,12 +94,12 @@ namespace Blockchain {
    };
 
    // TODO(BWF): Why not define a key class?
-   Slice genDbKey(EDBKeyType _type, Slice _key, BlockId _blockId);
-   Slice genBlockDbKey(BlockId _blockId);
-   Slice genDataDbKey(Slice _key, BlockId _blockId);
-   char extractTypeFromKey(Slice _key);
-   BlockId extractBlockIdFromKey(Slice _key);
-   Slice extractKeyFromKeyComposedWithBlockId(Slice _composedKey);
+   Sliver genDbKey(EDBKeyType _type, Sliver _key, BlockId _blockId);
+   Sliver genBlockDbKey(BlockId _blockId);
+   Sliver genDataDbKey(Sliver _key, BlockId _blockId);
+   char extractTypeFromKey(Sliver _key);
+   BlockId extractBlockIdFromKey(Sliver _key);
+   Sliver extractKeyFromKeyComposedWithBlockId(Sliver _composedKey);
 }
 
 #endif

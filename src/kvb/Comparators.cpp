@@ -6,7 +6,7 @@
 
 #include "RocksDBClient.h"
 #include "Comparators.h"
-#include "slice.h"
+#include "sliver.hpp"
 #include "BlockchainDBAdapter.h"
 #include "HexTools.h"
 #include "BlockchainInterfaces.h"
@@ -26,7 +26,7 @@ namespace Blockchain {
  * the application key, and finally the block id. Types and keys are sorted in
  * ascending order, and block IDs are sorted in descending order.
  */
-int composedKeyComparison(const Slice& _a, const Slice& _b)
+int composedKeyComparison(const Sliver& _a, const Sliver& _b)
 {
    // TODO(BWF): see note about multiple bytes in
    // Blockchain::extractTypeFromKey
@@ -55,8 +55,8 @@ int composedKeyComparison(const Slice& _a, const Slice& _b)
       }
    }
 
-   Slice aKey = extractKeyFromKeyComposedWithBlockId(_a);
-   Slice bKey = extractKeyFromKeyComposedWithBlockId(_b);
+   Sliver aKey = extractKeyFromKeyComposedWithBlockId(_a);
+   Sliver bKey = extractKeyFromKeyComposedWithBlockId(_b);
 
    int keyComp = aKey.compare(bKey);
 
@@ -82,13 +82,13 @@ int composedKeyComparison(const Slice& _a, const Slice& _b)
 int RocksKeyComparator::Compare(const rocksdb::Slice& _a,
                                 const rocksdb::Slice& _b) const
 {
-   Slice a = fromRocksdbSlice(_a);
-   Slice b = fromRocksdbSlice(_b);
+   Sliver a = copyRocksdbSlice(_a);
+   Sliver b = copyRocksdbSlice(_b);
    int ret = composedKeyComparison(a, b);
 
    Logger logger(Logger::getInstance("com.vmware.athena.kvb"));
-   LOG4CPLUS_DEBUG(logger, "Compared " << sliceToString((Slice&)a) <<
-                   " with " << sliceToString((Slice&)b) <<
+   LOG4CPLUS_DEBUG(logger, "Compared " << a <<
+                   " with " << b <<
                    ", returning " << ret);
 
    return ret;
@@ -96,13 +96,13 @@ int RocksKeyComparator::Compare(const rocksdb::Slice& _a,
 #endif
 
 /* In memory */
-bool InMemKeyComp(const Slice& _a, const Slice& _b)
+bool InMemKeyComp(const Sliver& _a, const Sliver& _b)
 {
    int comp = composedKeyComparison(_a, _b);
 
    Logger logger(Logger::getInstance("com.vmware.athena.kvb"));
-   LOG4CPLUS_DEBUG(logger, "Compared " << sliceToString((Slice&)_a) <<
-                   " with " << sliceToString((Slice&)_b) <<
+   LOG4CPLUS_DEBUG(logger, "Compared " << _a <<
+                   " with " << _b <<
                    ", a<b == " << (comp<0));
 
    // Check: comp < 0 ==> _a < _b

@@ -2,24 +2,11 @@
 //
 // Logging utilities
 
-#include "athena_log.hpp"
-#include "evm.h"
 #include <ios>
 
-// Print <size> bytes from <data> to <s> as their 0x<hex> representation.
-std::ostream& com::vmware::athena::hexPrint(
-   std::ostream &s, const uint8_t *data, size_t size)
-{
-   // Store current state of ostream flags
-   std::ios::fmtflags f(s.flags());
-   s << "0x";
-   for (size_t i = 0; i < size; i++) {
-      s << std::hex << std::setw(2) << std::setfill('0') << (uint)data[i];
-   }
-   // restore current state
-   s.flags(f);
-   return s;
-};
+#include "athena_log.hpp"
+#include "evm.h"
+#include "kvb/HexTools.h"
 
 // Print a vector of bytes as its 0x<hex> representation.
 std::ostream& com::vmware::athena::operator<<(

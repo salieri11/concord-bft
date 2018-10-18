@@ -13,7 +13,7 @@
  * (implemented as a map).
  *
  * The map contains key value pairs of the type KeyValuePair. Keys and values
- * are of type Slice.
+ * are of type Sliver.
  *
  */
 
@@ -29,7 +29,7 @@ namespace Blockchain
 {
    class InMemoryDBClient;
 
-   typedef std::map<Slice, Slice, IDBClient::KeyComparator> TKVStore;
+   typedef std::map<Sliver, Sliver, IDBClient::KeyComparator> TKVStore;
 
    class InMemoryDBClientIterator: public IDBClient::IDBClientIterator
    {
@@ -43,7 +43,7 @@ namespace Blockchain
 
       // Inherited via IDBClientIterator
       virtual KeyValuePair first() override;
-      virtual KeyValuePair seekAtLeast(Slice _searchKey) override;
+      virtual KeyValuePair seekAtLeast(Sliver _searchKey) override;
       virtual KeyValuePair previous() override;
       virtual KeyValuePair next() override;
       virtual KeyValuePair getCurrent() override;
@@ -69,16 +69,15 @@ namespace Blockchain
       }
 
       virtual Status init() override;
-      virtual Status get(Slice _key, OUT Slice &_outValue) const override;
+      virtual Status get(Sliver _key, OUT Sliver &_outValue) const override;
       virtual IDBClientIterator *getIterator() const override;
       virtual Status freeIterator(IDBClientIterator *_iter) const override;
-      virtual Status put(Slice _key, Slice _value) override;
+      virtual Status put(Sliver _key, Sliver _value) override;
       virtual Status close() override
       {
          return Status::OK();
       };
-      virtual Status del(Slice _key) override;
-      virtual Status freeValue(Slice &_value) override;
+      virtual Status del(Sliver _key) override;
       virtual void monitor() const override {};
 
       TKVStore& getMap()

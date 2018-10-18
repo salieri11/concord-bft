@@ -44,7 +44,7 @@ namespace Blockchain
 
       // Inherited via IDBClientIterator
       virtual KeyValuePair first() override;
-      virtual KeyValuePair seekAtLeast(Slice _searchKey) override;
+      virtual KeyValuePair seekAtLeast(Sliver _searchKey) override;
       virtual KeyValuePair previous() override;
       virtual KeyValuePair next() override;
       virtual KeyValuePair getCurrent() override;
@@ -71,13 +71,12 @@ namespace Blockchain
          m_dbPath(_dbPath), m_comparator(_comparator) {}
 
       virtual Status init() override;
-      virtual Status get(Slice _key, OUT Slice & _outValue) const override;
+      virtual Status get(Sliver _key, OUT Sliver & _outValue) const override;
       virtual IDBClientIterator* getIterator() const override;
       virtual Status freeIterator(IDBClientIterator *_iter) const override;
-      virtual Status put(Slice _key, Slice _value) override;
+      virtual Status put(Sliver _key, Sliver _value) override;
       virtual Status close() override;
-      virtual Status del(Slice _key) override;
-      virtual Status freeValue(Slice &_value) override;
+      virtual Status del(Sliver _key) override;
       virtual rocksdb::Iterator* getNewRocksDbIterator() const;
       virtual void monitor() const override;
 
@@ -94,8 +93,9 @@ namespace Blockchain
       rocksdb::Comparator *m_comparator;
    };
 
-   rocksdb::Slice toRocksdbSlice(Slice _s);
-   Slice fromRocksdbSlice(rocksdb::Slice _s);
+   rocksdb::Slice toRocksdbSlice(Sliver _s);
+   Sliver fromRocksdbSlice(rocksdb::Slice _s);
+   Sliver copyRocksdbSlice(rocksdb::Slice _s);
 }
 #endif
 #endif

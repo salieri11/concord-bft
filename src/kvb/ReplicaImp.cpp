@@ -20,9 +20,11 @@
 #include "HexTools.h"
 #include <chrono>
 #include <CommDefs.hpp>
+#include "sliver.hpp"
 
 using log4cplus::Logger;
 using namespace bftEngine;
+using namespace Blockchain;
 
 struct blockEntry
 {
@@ -136,7 +138,7 @@ Status ReplicaImp::addBlockToIdleReplica(const SetOfKeyValuePairs& updates)
    return addBlockInternal(updates, d);
 }
 
-Status ReplicaImp::get(Slice key, Slice& outValue) const
+Status ReplicaImp::get(Sliver key, Sliver& outValue) const
 {
    // TODO(GG): check legality of operation (the method should be invocked from
    // the replica's internal thread)
@@ -146,8 +148,8 @@ Status ReplicaImp::get(Slice key, Slice& outValue) const
 }
 
 Status ReplicaImp::get(BlockId readVersion,
-                       Slice key,
-                       Slice &outValue,
+                       Sliver key,
+                       Sliver &outValue,
                        BlockId &outBlock) const
 {
    // TODO(GG): check legality of operation (the method should be invocked from
@@ -167,9 +169,9 @@ Status ReplicaImp::getBlockData(BlockId blockId,
    // TODO(GG): check legality of operation (the method should be invocked from
    // the replica's internal thread)
 
-   Slice block = getBlockInternal(blockId);
+   Sliver block = getBlockInternal(blockId);
 
-   if (block.size() == 0) {
+   if (block.length() == 0) {
       return Status::NotFound("todo");
    }
 
@@ -178,7 +180,7 @@ Status ReplicaImp::getBlockData(BlockId blockId,
    return Status::OK();
 }
 
-Status ReplicaImp::mayHaveConflictBetween(Slice key,
+Status ReplicaImp::mayHaveConflictBetween(Sliver key,
                                           BlockId fromBlock,
                                           BlockId toBlock,
                                           bool &outRes) const
@@ -189,7 +191,7 @@ Status ReplicaImp::mayHaveConflictBetween(Slice key,
    // we conservatively assume that we have a conflict
    outRes = true;
 
-   Slice dummy;
+   Sliver dummy;
    BlockId block = 0;
    Status s = getInternal(toBlock, key, dummy, block);
    if (s.ok() && block < fromBlock) {
@@ -283,7 +285,7 @@ ReplicaImp::ReplicaImp(Blockchain::CommConfig &commConfig,
                                     commConfig.statusCallback);
 
    m_ptrComm = bftEngine::CommFactory::create(config);
-   
+
    State::initStaticData();
    m_stateTransfer = new GenericStateTransfer(
        this,
@@ -332,7 +334,7 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs& updates,
    LOG4CPLUS_DEBUG(logger,
                    "addBlockInternal: Got " << updates.size() << " updates");
 
-   Slice blockRaw = createBlockFromUpdates(updates, updatesInNewBlock);
+   Sliver blockRaw = createBlockFromUpdates(updates, updatesInNewBlock);
    Status s = m_bcDbAdapter->addBlock(block, blockRaw);
    if (!s.ok())
    {
@@ -345,14 +347,12 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs& updates,
         ++it) {
       const KeyValuePair& kvPair = *it;
 
-      LOG4CPLUS_DEBUG(logger, "Adding for " <<
-                      sliceToString((Slice&)kvPair.first) << " the value " <<
-                      sliceToString((Slice&)kvPair.second));
+      LOG4CPLUS_DEBUG(logger, "Adding for " << kvPair.first <<
+                      " the value " << kvPair.second);
 
       Status s = m_bcDbAdapter->updateKey(kvPair.first, block, kvPair.second);
       if (!s.ok()) {
-         LOG4CPLUS_ERROR(logger, "Failed to update key " <<
-                         sliceToString((Slice&)kvPair.first) <<
+         LOG4CPLUS_ERROR(logger, "Failed to update key " << kvPair.first <<
                          ", block " << block);
          return s;
       }
@@ -365,14 +365,14 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs& updates,
 
 
 Status ReplicaImp::getInternal(BlockId readVersion,
-                               Slice key,
-                               Slice &outValue,
+                               Sliver key,
+                               Sliver &outValue,
                                BlockId &outBlock) const
 {
    Status s = m_bcDbAdapter->getKeyByReadVersion(
       readVersion, key, outValue, outBlock);
    if (!s.ok()) {
-      LOG4CPLUS_ERROR(logger, "Failed to get key " << sliceToString(key) <<
+      LOG4CPLUS_ERROR(logger, "Failed to get key " << key <<
                       " by read version " << readVersion);
       return s;
    }
@@ -383,7 +383,7 @@ Status ReplicaImp::getInternal(BlockId readVersion,
 
 void ReplicaImp::revertBlock(BlockId blockId)
 {
-   Slice blockRaw;
+   Sliver blockRaw;
    bool found;
    Status s = m_bcDbAdapter->getBlockById(blockId, blockRaw, found);
    if (!s.ok()) {
@@ -394,21 +394,15 @@ void ReplicaImp::revertBlock(BlockId blockId)
       exit(1);
    }
 
-   if (found && blockRaw.size() > 0) {
-      char* b = new char[blockRaw.size()];
-      memcpy(b, blockRaw.data(), blockRaw.size());
-
-
-      const char* begin = b;
-      blockHeader* header = (blockHeader*)begin;
+   if (found && blockRaw.length() > 0) {
+      blockHeader* header = (blockHeader*)blockRaw.data();
 
       for (size_t i = 0; i < header->numberOfElements; i++) {
-         const char* key = begin + header->entries[i].keyOffset;
-         const int16_t keyLen = header->entries[i].keySize;
+         const Sliver keySliver(blockRaw,
+                                header->entries[i].keyOffset,
+                                header->entries[i].keySize);
 
-         const Slice keySlice(key, keyLen);
-
-         Status s = m_bcDbAdapter->delKey(keySlice, blockId);
+         Status s = m_bcDbAdapter->delKey(keySliver, blockId);
          if (!s.ok()) {
             // TODO(SG): What to do?
             LOG4CPLUS_FATAL(logger, "Failed to delete key");
@@ -423,14 +417,14 @@ void ReplicaImp::revertBlock(BlockId blockId)
 
 }
 
-void ReplicaImp::insertBlockInternal(BlockId blockId, Slice block)
+void ReplicaImp::insertBlockInternal(BlockId blockId, Sliver block)
 {
    if (blockId > lastBlock) {
       lastBlock = blockId;
    }
 
    bool found = false;
-   Slice blockRaw;
+   Sliver blockRaw;
    Status s = 	m_bcDbAdapter->getBlockById(blockId, blockRaw, found);
    if (!s.ok()) {
       // the replica is corrupted!
@@ -441,20 +435,20 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Slice block)
    }
 
    // if we already have a block with the same ID
-   if (found && blockRaw.size() > 0) {
-      if (blockRaw.size() != block.size() ||
-          memcmp(blockRaw.data(), block.data(), block.size())) {
+   if (found && blockRaw.length() > 0) {
+      if (blockRaw.length() != block.length() ||
+          memcmp(blockRaw.data(), block.data(), block.length())) {
          // the replica is corrupted !
          // TODO(GG): what do we want to do now ?
          LOG4CPLUS_ERROR(logger, "found block " << blockId <<
-                         ", size in db is " << blockRaw.size() <<
-                         ", inserted is " << block.size() <<
-                         ", data in db " << sliceToString(blockRaw).c_str() <<
-                         ", data inserted " << sliceToString(block).c_str());
+                         ", size in db is " << blockRaw.length() <<
+                         ", inserted is " << block.length() <<
+                         ", data in db " << blockRaw <<
+                         ", data inserted " << block);
          LOG4CPLUS_ERROR(logger, "Block size test " <<
-                         (blockRaw.size()!=block.size()) <<
+                         (blockRaw.length()!=block.length()) <<
                          ", block data test " <<
-                         (memcmp(blockRaw.data(), block.data(), block.size())));
+                         (memcmp(blockRaw.data(), block.data(), block.length())));
 
          // TODO(GG): If new block is empty, just revert block
          revertBlock(blockId);
@@ -465,26 +459,21 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Slice block)
       }
    }
    else {
-      if (block.size() > 0) {
-         char* b = new char[block.size()];
-         memcpy(b, block.data(), block.size());
-
-         const char* begin = b;
-         blockHeader* header = (blockHeader*)begin;
+      if (block.length() > 0) {
+         blockHeader* header = (blockHeader*)block.data();
 
          for (size_t i = 0; i < header->numberOfElements; i++)
          {
-            const char* key = begin + header->entries[i].keyOffset;
-            const uint32_t keyLen = header->entries[i].keySize;
-            const char* val = begin + header->entries[i].valOffset;
-            const uint32_t valLen = header->entries[i].valSize;
+            const Sliver keySliver(block,
+                                   header->entries[i].keyOffset,
+                                   header->entries[i].keySize);
+            const Sliver valSliver(block,
+                                   header->entries[i].valOffset,
+                                   header->entries[i].valSize);
 
-            const Slice keySlice(key, keyLen);
-            const Slice valSlice(val, valLen);
+            const KeyIDPair pk(keySliver, blockId);
 
-            const KeyIDPair pk(keySlice, blockId);
-
-            Status s = m_bcDbAdapter->updateKey(pk.key, pk.blockId, valSlice);
+            Status s = m_bcDbAdapter->updateKey(pk.key, pk.blockId, valSliver);
             if (!s.ok()) {
                // TODO(SG): What to do?
                LOG4CPLUS_FATAL(logger, "Failed to update key");
@@ -492,8 +481,7 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Slice block)
             }
          }
 
-         Slice newBlock(b, block.size());
-         Status s = m_bcDbAdapter->addBlock(blockId, newBlock);
+         Status s = m_bcDbAdapter->addBlock(blockId, block);
          if (!s.ok()) {
             // TODO(SG): What to do?
             printf("Failed to add block");
@@ -512,21 +500,21 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Slice block)
 }
 
 
-Slice ReplicaImp::getBlockInternal(BlockId blockId) const
+Sliver ReplicaImp::getBlockInternal(BlockId blockId) const
 {
    assert(blockId <= lastBlock);
-   Slice retVal;
+   Sliver retVal;
 
    bool found;
    Status s = m_bcDbAdapter->getBlockById(blockId, retVal, found);
    if (!s.ok()) {
       // TODO(SG): To do something smarter
       LOG4CPLUS_ERROR(logger, "An error occurred in get block");
-      return Slice();
+      return Sliver();
    }
 
    if (!found) {
-      return Slice();
+      return Sliver();
    } else {
       return retVal;
    }
@@ -535,8 +523,8 @@ Slice ReplicaImp::getBlockInternal(BlockId blockId) const
 ReplicaImp::StorageWrapperForIdleMode::StorageWrapperForIdleMode(
    const ReplicaImp *r) : rep(r) {}
 
-Status ReplicaImp::StorageWrapperForIdleMode::get(Slice key,
-                                                  Slice &outValue) const
+Status ReplicaImp::StorageWrapperForIdleMode::get(Sliver key,
+                                                  Sliver &outValue) const
 {
    if (rep->getReplicaStatus() != IReplica::RepStatus::Idle) {
       return Status::IllegalOperation("");
@@ -546,8 +534,8 @@ Status ReplicaImp::StorageWrapperForIdleMode::get(Slice key,
 }
 
 Status ReplicaImp::StorageWrapperForIdleMode::get(BlockId readVersion,
-                                                  Slice key,
-                                                  Slice &outValue,
+                                                  Sliver key,
+                                                  Sliver &outValue,
                                                   BlockId &outBlock) const
 {
    if (rep->getReplicaStatus() != IReplica::RepStatus::Idle) {
@@ -569,9 +557,9 @@ Status ReplicaImp::StorageWrapperForIdleMode::getBlockData(
       return Status::IllegalOperation("");
    }
 
-   Slice block = rep->getBlockInternal(blockId);
+   Sliver block = rep->getBlockInternal(blockId);
 
-   if (block.size() == 0) {
+   if (block.length() == 0) {
       return Status::NotFound("todo");
    }
 
@@ -581,11 +569,11 @@ Status ReplicaImp::StorageWrapperForIdleMode::getBlockData(
 }
 
 Status ReplicaImp::StorageWrapperForIdleMode::mayHaveConflictBetween(
-   Slice key, BlockId fromBlock, BlockId toBlock, bool &outRes) const
+   Sliver key, BlockId fromBlock, BlockId toBlock, bool &outRes) const
 {
    outRes = true;
 
-   Slice dummy;
+   Sliver dummy;
    BlockId block = 0;
    Status s = rep->getInternal(toBlock, key, dummy, block);
 
@@ -620,7 +608,7 @@ void ReplicaImp::StorageWrapperForIdleMode::monitor() const
    this->rep->m_bcDbAdapter->monitor();
 }
 
-Slice ReplicaImp::createBlockFromUpdates(
+Sliver ReplicaImp::createBlockFromUpdates(
    const SetOfKeyValuePairs &updates, SetOfKeyValuePairs &outUpdatesInNewBlock)
 {
    // TODO(GG): overflow handling ....
@@ -631,9 +619,9 @@ Slice ReplicaImp::createBlockFromUpdates(
    uint32_t blockBodySize = 0;
    uint16_t numOfElemens = 0;
    for (auto it = updates.begin(); it != updates.end(); ++it) {
-      const KeyValuePair &kvPair = KeyValuePair(it->first, it->second);
       numOfElemens++;
-      blockBodySize += (kvPair.first.size() + kvPair.second.size());
+      // body is all of the keys and values strung together
+      blockBodySize += (it->first.length() + it->second.length());
    }
 
    const uint32_t headerSize =
@@ -641,8 +629,9 @@ Slice ReplicaImp::createBlockFromUpdates(
    const uint32_t blockSize = headerSize + blockBodySize;
 
    try {
-      char *blockBuffer = new char[blockSize];
+      uint8_t *blockBuffer = new uint8_t[blockSize];
       memset(blockBuffer, 0, blockSize);
+      Sliver blockSliver(blockBuffer, blockSize);
 
       blockHeader *header = (blockHeader*)blockBuffer;
 
@@ -654,23 +643,23 @@ Slice ReplicaImp::createBlockFromUpdates(
 
          // key
          header->entries[idx].keyOffset = currentOffset;
-         header->entries[idx].keySize = kvPair.first.size();
+         header->entries[idx].keySize = kvPair.first.length();
          memcpy(blockBuffer + currentOffset,
                 kvPair.first.data(),
-                kvPair.first.size());
-         Slice newKey(blockBuffer + currentOffset, kvPair.first.size());
+                kvPair.first.length());
+         Sliver newKey(blockSliver, currentOffset, kvPair.first.length());
 
-         currentOffset += kvPair.first.size();
+         currentOffset += kvPair.first.length();
 
          // value
          header->entries[idx].valOffset = currentOffset;
-         header->entries[idx].valSize = kvPair.second.size();
+         header->entries[idx].valSize = kvPair.second.length();
          memcpy(blockBuffer + currentOffset,
                 kvPair.second.data(),
-                kvPair.second.size());
-         Slice newVal(blockBuffer + currentOffset, kvPair.second.size());
+                kvPair.second.length());
+         Sliver newVal(blockSliver, currentOffset, kvPair.second.length());
 
-         currentOffset += kvPair.second.size();
+         currentOffset += kvPair.second.length();
 
          // add to outUpdatesInNewBlock
          KeyValuePair newKVPair(newKey, newVal);
@@ -681,35 +670,33 @@ Slice ReplicaImp::createBlockFromUpdates(
       assert(idx == numOfElemens);
       assert((uint32_t) currentOffset == blockSize);
 
-      return Slice(blockBuffer, blockSize);
+      return blockSliver;
    } catch (std::bad_alloc& ba) {
       LOG4CPLUS_ERROR(Logger::getInstance("com.vmware.athena.kvb"),
                       "Failed to alloc size " << blockSize <<
                       ", error: " << ba.what());
-      char *emptyBlockBuffer = new char[1];
+      uint8_t *emptyBlockBuffer = new uint8_t[1];
       memset(emptyBlockBuffer, 0, 1);
-      return Slice(emptyBlockBuffer, 1);
+      return Sliver(emptyBlockBuffer, 1);
    }
 }
 
-SetOfKeyValuePairs ReplicaImp::fetchBlockData(Slice block)
+SetOfKeyValuePairs ReplicaImp::fetchBlockData(Sliver block)
 {
    SetOfKeyValuePairs retVal;
 
-   if (block.size() > 0) {
-      const char *begin = block.data();
-      blockHeader *header = (blockHeader*)begin;
+   if (block.length() > 0) {
+      blockHeader *header = (blockHeader*)block.data();
 
       for (size_t i = 0; i < header->numberOfElements; i++) {
-         const char *key = begin + header->entries[i].keyOffset;
-         const uint32_t keyLen = header->entries[i].keySize;
-         const char *val = begin + header->entries[i].valOffset;
-         const uint32_t valLen = header->entries[i].valSize;
+         Sliver keySliver(block,
+                          header->entries[i].keyOffset,
+                          header->entries[i].keySize);
+         Sliver valSliver(block,
+                          header->entries[i].valOffset,
+                          header->entries[i].valSize);
 
-         Slice keySlice(key, keyLen);
-         Slice valSlice(val, valLen);
-
-         KeyValuePair kv(keySlice, valSlice);
+         KeyValuePair kv(keySliver, valSliver);
 
          retVal.insert(kv);
       }
@@ -725,7 +712,7 @@ int ReplicaImp::get_block(int n,
    size_t size;
 
    bool found = false;
-   Slice blockRaw;
+   Sliver blockRaw;
    Status s = getBcDbAdapter()->getBlockById(bId, blockRaw, found);
    if (!s.ok()) {
       LOG4CPLUS_ERROR(Logger::getInstance("com.vmware.athena.kvb"),
@@ -734,7 +721,7 @@ int ReplicaImp::get_block(int n,
    }
 
    if (found) {
-      size = blockRaw.size();
+      size = blockRaw.length();
       *page = new char[size];
       memcpy(*page, blockRaw.data(), size);
    } else {
@@ -742,16 +729,9 @@ int ReplicaImp::get_block(int n,
       size = 0;
    }
 
-   // Free blockRaw
-   if (blockRaw.size() > 0) {
-      // Will free underlying data only if it is fetched from RocksDB database
-      getBcDbAdapter()->freeFetchedBlock(blockRaw);
-      blockRaw.clear();
-   }
-
    LOG4CPLUS_DEBUG(Logger::getInstance("com.vmware.athena.kvb"),
                    "n " << n << " size " << size << " page " <<
-                   sliceToString(Slice(*page, size)));
+                   Sliver(reinterpret_cast<uint8_t*>(*page), size));
    return size;
 }
 
@@ -764,9 +744,9 @@ void ReplicaImp::put_blocks(int count,
    for (int i = 0; i < count; i++) {
       BlockId blockId = indices[i];
       size_t blockSize = sizes[i];
-      char *blockPtr = pages[i];
+      uint8_t *blockPtr = reinterpret_cast<uint8_t*>(pages[i]);
 
-      Slice b(blockPtr, blockSize);
+      Sliver b(blockPtr, blockSize);
 
       insertBlockInternal(blockId, b);
    }
