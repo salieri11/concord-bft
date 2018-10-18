@@ -12,7 +12,6 @@
 // will not accept it as a read-write command).
 
 #include "kvb/BlockchainInterfaces.h"
-#include "kvb/slice.h"
 #include "common/rlp.hpp"
 #include "common/athena_eth_sign.hpp"
 #include "common/athena_eth_hash.hpp"
@@ -26,7 +25,6 @@
 #include <vector>
 #include <boost/predef/detail/endian_compat.h>
 
-using Blockchain::Slice;
 using Blockchain::ILocalKeyValueStorageReadOnly;
 using Blockchain::IBlocksAppender;
 using namespace boost::program_options;
@@ -60,28 +58,28 @@ com::vmware::athena::KVBCommandsHandler::execute( uint16_t clientId,
                                                   const char* request,
                                                   uint32_t maxReplySize,
                                                   char* outReply,
-                                                  uint32_t &outActualReplySize)
-{
-   Slice command(request, requestSize);
-   bool res;
-   if(readOnly) {
-      res = executeReadOnlyCommand(
-              command,
-              *m_ptrRoStorage,
-              maxReplySize,
-              outReply,
-              outActualReplySize);
-   } else {
-      res = executeCommand(
-              command,
-              *m_ptrRoStorage,
-              *m_ptrBlockAppender,
-              maxReplySize,
-              outReply,
-              outActualReplySize);
-   }
+                                                  uint32_t &outActualReplySize) {
+  bool res;
+  if(readOnly) {
+    res = executeReadOnlyCommand(
+      requestSize,
+      request,
+      *m_ptrRoStorage,
+      maxReplySize,
+      outReply,
+      outActualReplySize);
+  } else {
+    res = executeCommand(
+      requestSize,
+      request,
+      *m_ptrRoStorage,
+      *m_ptrBlockAppender,
+      maxReplySize,
+      outReply,
+      outActualReplySize);
+  }
 
-   return res ? 0 : 1;
+  return res ? 0 : 1;
 }
 
 /**
@@ -89,18 +87,18 @@ com::vmware::athena::KVBCommandsHandler::execute( uint16_t clientId,
  * EVM). Returns false if the command is illegal or invalid; true otherwise.
  */
 bool com::vmware::athena::KVBCommandsHandler::executeReadOnlyCommand(
-        const Slice cmdSlice,
-        const ILocalKeyValueStorageReadOnly &roStorage,
-        const size_t maxReplySize,
-        char *outReply,
-        uint32_t &outReplySize) const
-{
+  uint32_t requestSize,
+  const char* request,
+  const ILocalKeyValueStorageReadOnly &roStorage,
+  const size_t maxReplySize,
+  char *outReply,
+  uint32_t &outReplySize) const {
    KVBStorage kvbStorage(roStorage);
 
    AthenaRequest command;
    bool result;
    AthenaResponse athresp;
-   if (command.ParseFromArray(cmdSlice.data(), cmdSlice.size())) {
+   if (command.ParseFromArray(request, requestSize)) {
       if (command.has_transaction_request()) {
          result = handle_transaction_request(command, kvbStorage, athresp);
       } else if (command.has_transaction_list_request()) {
@@ -121,7 +119,7 @@ bool com::vmware::athena::KVBCommandsHandler::executeReadOnlyCommand(
       }
    } else {
       LOG4CPLUS_ERROR(logger, "Unable to parse read-only command: " <<
-                       sliceToString(cmdSlice));
+                      (HexPrintBytes{request, requestSize}));
       ErrorResponse *resp = athresp.add_error_response();
       resp->set_description("Internal Athena Error");
       result = false;
@@ -142,19 +140,19 @@ bool com::vmware::athena::KVBCommandsHandler::executeReadOnlyCommand(
  * EVM). Returns false if the command is illegal or invalid; true otherwise.
  */
 bool com::vmware::athena::KVBCommandsHandler::executeCommand(
-      const Slice cmdSlice,
-      const ILocalKeyValueStorageReadOnly &roStorage,
-      IBlocksAppender &blockAppender,
-      const size_t maxReplySize,
-      char *outReply,
-      uint32_t &outReplySize) const
-{
+  uint32_t requestSize,
+  const char* request,
+  const ILocalKeyValueStorageReadOnly &roStorage,
+  IBlocksAppender &blockAppender,
+  const size_t maxReplySize,
+  char *outReply,
+  uint32_t &outReplySize) const {
    KVBStorage kvbStorage(roStorage, &blockAppender);
 
    AthenaRequest command;
    bool result;
    AthenaResponse athresp;
-   if (command.ParseFromArray(cmdSlice.data(), cmdSlice.size())) {
+   if (command.ParseFromArray(request, requestSize)) {
       if (command.eth_request_size() > 0) {
          result = handle_eth_request(command, kvbStorage, athresp);
       } else {
@@ -163,12 +161,16 @@ bool com::vmware::athena::KVBCommandsHandler::executeCommand(
          // read-only list if othing matched here.
          LOG4CPLUS_INFO(logger,
                         "Unknown read-write command. Trying read-only.");
-         return executeReadOnlyCommand(
-            cmdSlice, roStorage, maxReplySize, outReply, outReplySize);
+         return executeReadOnlyCommand(requestSize,
+                                       request,
+                                       roStorage,
+                                       maxReplySize,
+                                       outReply,
+                                       outReplySize);
       }
    } else {
       LOG4CPLUS_ERROR(logger, "Unable to parse command: " <<
-                      sliceToString(cmdSlice));
+                      (HexPrintBytes{request, requestSize}));
       ErrorResponse *resp = athresp.add_error_response();
       resp->set_description("Internal Athena Error");
       result = false;
@@ -729,7 +731,7 @@ bool com::vmware::athena::KVBCommandsHandler::handle_eth_getBalance(
    AthenaResponse &athresp) const
 {
    const EthRequest request = athreq.eth_request(0);
-   
+
    evm_address account;
    std::copy(request.addr_to().begin(), request.addr_to().end(),
              account.bytes);
