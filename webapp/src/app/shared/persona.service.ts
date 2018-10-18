@@ -5,11 +5,11 @@
 import { Injectable } from '@angular/core';
 
 export enum Personas {
-  SystemsAdmin = 'system_admin',
-  ConsortiumAdmin = 'consortium_admin',
-  OrgAdmin = 'org_admin',
-  OrgDeveloper = 'org_developer',
-  OrgUser = 'org_user'
+  SystemsAdmin = 'SYSTEM_ADMIN',
+  ConsortiumAdmin = 'CONSORTIUM_ADMIN',
+  OrgAdmin = 'ORG_ADMIN',
+  OrgDeveloper = 'ORG_DEVELOPR',
+  OrgUser = 'ORG_USER'
 }
 
 @Injectable()

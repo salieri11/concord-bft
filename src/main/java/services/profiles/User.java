@@ -8,6 +8,9 @@
 package services.profiles;
 
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
+
 
 import javax.persistence.*;
 
@@ -18,6 +21,7 @@ import javax.persistence.*;
 @Table(name = "USERS")
 @Entity
 public class User {
+
 
    @Id
    @GeneratedValue(strategy = GenerationType.AUTO)
@@ -35,8 +39,9 @@ public class User {
    @Column(unique = true)
    private String email;
 
+   @Enumerated(EnumType.STRING)
    @Column(nullable = false)
-   private String role;
+   private Roles role;
 
    @ManyToOne(optional = false, fetch = FetchType.LAZY)
    @JoinColumn(nullable = false)
@@ -94,11 +99,11 @@ public class User {
       this.email = email;
    }
 
-   public String getRole() {
-      return role;
-   }
+   public String getRole() { return role.toString(); }
 
-   protected void setRole(String role) {
+   public List<Roles> getRoles() { return Arrays.asList(role); }
+
+   protected void setRole(Roles role) {
       this.role = role;
    }
 

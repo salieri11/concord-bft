@@ -5,22 +5,30 @@
  *
  */
 package services.profiles;
+import org.springframework.security.core.GrantedAuthority;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Enum to define all user roles
  */
-public enum Roles {
+public enum Roles implements GrantedAuthority {
 
-   ORG_USER("org_user"),
-   ORG_DEVELOPER("org_developer"),
-   ORG_ADMIN("org_admin"),
-   CONSORTIUM_ADMIN("consortium_admin"),
-   SYSTEM_ADMIN("system_admin");
+   ORG_USER("ORG_USER"),
+   ORG_DEVELOPER("ORG_DEVELOPER"),
+   ORG_ADMIN("ORG_ADMIN"),
+   CONSORTIUM_ADMIN("CONSORTIUM_ADMIN"),
+   SYSTEM_ADMIN("SYSTEM_ADMIN");
 
    private final String name;
 
    Roles(String name) {
       this.name = name;
+   }
+
+   public String getName() {
+      return name;
    }
 
    public static boolean contains(String s) {
@@ -42,4 +50,28 @@ public enum Roles {
    public String toString() {
       return this.name;
    }
+
+
+   public String getAuthority() {
+      return name();
+   }
+
+   //Lookup table
+   private static final Map<String, Roles> lookup = new HashMap<>();
+
+   //Populate the lookup table on loading time
+   static
+   {
+      for(Roles role : Roles.values())
+      {
+         lookup.put(role.getName(), role);
+      }
+   }
+
+   //This method can be used for reverse lookup purpose
+   public static Roles get(String name)
+   {
+      return lookup.get(name);
+   }
+
 }

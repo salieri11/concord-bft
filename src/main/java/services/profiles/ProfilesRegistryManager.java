@@ -20,8 +20,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+
+import org.springframework.context.annotation.Bean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 
 /**
  * This class manages all persistence related operations related to User
@@ -37,11 +41,19 @@ public class ProfilesRegistryManager {
    @Autowired
    private UserRepository userRepository;
 
+
    @Autowired
    private OrganizationRepository organizationRepository;
 
    @Autowired
    private ConsortiumRepository consortiumRepository;
+
+   @Autowired
+   private ProfilesRegistryManager prm;
+
+   @Autowired
+   private PasswordEncoder passwordEncoder;
+
 
    /** Needed for spring */
    protected ProfilesRegistryManager() {
@@ -145,8 +157,8 @@ public class ProfilesRegistryManager {
          User u = new User();
          u.setName(request.getUserName());
          u.setEmail(request.getEmail());
-         u.setPassword(request.getPassword());
-         u.setRole(request.getRole());
+         u.setPassword(passwordEncoder.encode(request.getPassword()));
+         u.setRole(Roles.get(request.getRole()));
          u.setOrganization(o.get());
          u.setConsortium(c.get());
          request.getOptionalFirstName().ifPresent(u::setFirstName);
@@ -191,7 +203,7 @@ public class ProfilesRegistryManager {
       request.getOptionalLastName().ifPresent(user::setLastName);
       if (request.getOptionalRole().isPresent()) {
          if (Roles.contains(request.getOptionalRole().get())) {
-            user.setRole(request.getOptionalRole().get());
+            user.setRole(Roles.get(request.getOptionalRole().get()));
          } else {
             throw new UserModificationException("Invalid role value: "
                + request.getOptionalRole().get());
@@ -200,24 +212,20 @@ public class ProfilesRegistryManager {
       userRepository.save(user);
    }
 
-   public JSONObject loginUser(String email,
-                               String password) throws UserModificationException {
+   public JSONObject loginUser(String email) throws UserModificationException {
       Optional<User> oUser = userRepository.findUserByEmail(email);
       if (oUser.isPresent()) {
          User u = oUser.get();
+
          // TODO: We know this is not a long-term solution and this will be
          // replaced by CSP authentication very soon.
-         if (password != null && u.getPassword().equals(password)) {
-            JSONObject userJSON = getUserWithID(String.valueOf(u.getUserID()));
-            u.setLastLogin(Instant.now().toEpochMilli());
-            userRepository.save(u);
-            userJSON.put("isAuthenticated", Boolean.TRUE);
-            return userJSON;
-         } else {
-            JSONObject responseJSON = new JSONObject();
-            responseJSON.put("isAuthenticated", Boolean.FALSE);
-            return responseJSON;
-         }
+
+         JSONObject userJSON = getUserWithID(String.valueOf(u.getUserID()));
+         u.setLastLogin(Instant.now().toEpochMilli());
+         userRepository.save(u);
+         userJSON.put("isAuthenticated", Boolean.TRUE);
+
+         return userJSON;
       } else {
          throw new UserModificationException("No user found with email: "
             + email);
@@ -232,6 +240,7 @@ public class ProfilesRegistryManager {
          JSONObject userJSON = getUserWithID(String.valueOf(u.getUserID()));
          u.setPassword(password);
          u = userRepository.save(u);
+
          return userJSON;
       } else {
          throw new UserModificationException("No user found with email: "
@@ -240,34 +249,58 @@ public class ProfilesRegistryManager {
    }
 
 
-   // TODO: This is just testing convenience methods and should be removed
-   // when actual POST API for organization and consortium creation is
-   // available
-   public Long createOrgIfNotExist() {
+   public User createUserIfNotExist() {
+      String email = "admin@blockchain.local";
+      String password = "Admin!23";
+      List<User> oUser = userRepository.findAll();
+      if (oUser.isEmpty()) {
+         Organization org = createOrgIfNotExist();
+         Consortium consortium = createConsortiumIfNotExist();
+         User u = new User();
+         u.setName("ADMIN");
+         u.setEmail(email);
+         u.setPassword(passwordEncoder.encode(password));
+         u.setRole(Roles.get("SYSTEM_ADMIN"));
+         u.setOrganization(org);
+         u.setConsortium(consortium);
+         // Note: The order of next 5 statements is very important, The user
+         // object must be saved before it can be added and saved into
+         // consortium & organization objects.
+         u = userRepository.save(u);
+         org.addUser(u);
+         consortium.addUser(u);
+         logger.info("Admin user created. Username: " + email + " Password: " + password);
+         return u;
+      } else {
+         return oUser.get(0);
+      }
+   }
+
+   public Organization createOrgIfNotExist() {
       List<Organization> oList = organizationRepository.findAll();
       if (oList.isEmpty()) {
          Organization o = new Organization();
-         o.setOrganizationName("TEST_ORG");
+         o.setOrganizationName("ADMIN");
          o = organizationRepository.save(o);
-         return o.getOrganizationID();
+         return o;
       } else {
-         return oList.get(0).getOrganizationID();
+         return oList.get(0);
       }
    }
 
    // TODO: This is just testing convenience methods and should be removed
    // when actual POST API for organization and consortium creation is
    // available
-   public Long createConsortiumIfNotExist() {
+   public Consortium createConsortiumIfNotExist() {
       List<Consortium> cList = consortiumRepository.findAll();
       if (cList.isEmpty()) {
          Consortium c = new Consortium();
-         c.setConsortiumName("TEST_CON");
-         c.setConsortiumType("ATHENA");
+         c.setConsortiumName("ADMIN");
+         c.setConsortiumType("ADMIN");
          c = consortiumRepository.save(c);
-         return c.getConsortiumID();
+         return c;
       } else {
-         return cList.get(0).getConsortiumID();
+         return cList.get(0);
       }
    }
 

@@ -1,3 +1,8 @@
+/**
+ * Copyright 2018 VMware, all rights reserved.
+ *
+ */
+
 package Servers;
 
 import java.io.IOException;
@@ -11,7 +16,7 @@ import org.springframework.web.servlet.resource.PathResourceResolver;
 
 @Configuration
 public class HelenSpringWebConfig implements WebMvcConfigurer {
-    
+
     // Value annotation is a new spring feature which allows  you to inject
     // values from properties file directly
     @Value("${STATIC_RESOURCE_LOCATION}")
@@ -19,13 +24,13 @@ public class HelenSpringWebConfig implements WebMvcConfigurer {
 
     @Value("${API_URI_PREFIX}")
     private String apiUriPrefix;
-    
+
     @Value("${HOME_PAGE_LOCATION}")
     private String homePage;
-    
+
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-    
+
         // Add patterns for static resource requests
         // TODO: Maybe move this list into properties file
         registry.addResourceHandler("/**/*.css",
@@ -38,7 +43,7 @@ public class HelenSpringWebConfig implements WebMvcConfigurer {
                 "/**/*.woff2",
                 "/**/*.json")
                 .addResourceLocations(staticResourcePath);
-        
+
         // All requests which are not mapped to any controller (i.e which there
         // is not @RequestMapping for that URI) and do not follow above static
         // resource definition will be handled by below handler. The
@@ -56,11 +61,11 @@ public class HelenSpringWebConfig implements WebMvcConfigurer {
                                 || resourcePath.startsWith(apiUriPrefix.substring(1))) {
                             return null;
                         }
-                        
+
                         return location.exists() && location.isReadable() ? location
                                 : null;
                     }
                 });
     }
-    
+
 }

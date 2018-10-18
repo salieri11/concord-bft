@@ -1,22 +1,6 @@
 {
-  "/api/k8sclusters": {
-    "target": "http://localhost:8000",
-    "secure": false
-  },
-  "/api/organizations": {
-    "target": "http://localhost:8000",
-    "secure": false
-  },
-  "/api/clusters": {
-    "target": "http://localhost:8000",
-    "secure": false
-  },
-  "/api/consortiums": {
-    "target": "http://localhost:8000",
-    "secure": false
-  },
   "/api": {
-    "target": "http://localhost:8080",
+    "target": "http://0.0.0.0:8080",
     "secure": false
   },
   "/assets/static": {

@@ -16,6 +16,7 @@ export interface User {
   updatedOn?: number;
   last_login?: number;
   role?: Personas;
+  token?: string;
   details?: {
     first_name: string,
     last_name: string
