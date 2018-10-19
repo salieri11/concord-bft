@@ -19,7 +19,13 @@ struct HexPrintVector {
    std::vector<uint8_t> const& vec;
 };
 
+struct HexPrintBytes {
+  const char* bytes;
+  const uint32_t size;
+};
+
 std::ostream& operator<<(std::ostream& s, HexPrintVector v);
+std::ostream& operator<<(std::ostream& s, HexPrintBytes p);
 std::ostream& operator<<(std::ostream& s, const evm_uint256be &u);
 std::ostream& operator<<(std::ostream& s, const evm_address &u);
 std::ostream& operator<<(std::ostream& s, struct evm_message msg);

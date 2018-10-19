@@ -6,7 +6,6 @@
 #include <boost/program_options.hpp>
 
 #include "kvb/BlockchainInterfaces.h"
-#include "kvb/slice.h"
 #include "athena_evm.hpp"
 #include "athena.pb.h"
 
@@ -42,19 +41,21 @@ public:
 
 private:
    bool executeCommand(
-      const Blockchain::Slice command,
-      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-      Blockchain::IBlocksAppender &blockAppender,
-      const size_t maxReplySize,
-      char *outReply,
-      uint32_t &outReplySize) const;
+     uint32_t requestSize,
+     const char* request,
+     const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+     Blockchain::IBlocksAppender &blockAppender,
+     const size_t maxReplySize,
+     char *outReply,
+     uint32_t &outReplySize) const;
 
    bool executeReadOnlyCommand(
-      const Blockchain::Slice command,
-      const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-      const size_t maxReplySize,
-      char *outReply,
-      uint32_t &outReplySize) const;
+     uint32_t requestSize,
+     const char* request,
+     const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+     const size_t maxReplySize,
+     char *outReply,
+     uint32_t &outReplySize) const;
 
    // Handlers
    bool handle_transaction_request(

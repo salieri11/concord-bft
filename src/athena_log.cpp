@@ -15,6 +15,13 @@ std::ostream& com::vmware::athena::operator<<(
    return hexPrint(s, &v.vec[0], v.vec.size());
 };
 
+// Print a char* of bytes as its 0x<hex> representation.
+std::ostream& com::vmware::athena::operator<<(
+   std::ostream& s, const HexPrintBytes p)
+{
+  return hexPrint(s, reinterpret_cast<const uint8_t*>(p.bytes), p.size);
+};
+
 // Print an evm_address as its 0x<hex> representation.
 std::ostream& com::vmware::athena::operator<<(
    std::ostream& s, const evm_address &a)
