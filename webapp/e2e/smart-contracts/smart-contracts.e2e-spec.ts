@@ -54,7 +54,9 @@ describe('athena-ui Smart Contracts', () => {
     smartContractsPage.clickWizardNextButton();
     smartContractsPage.clickWizardFinishButton();
 
-    expect(smartContractsPage.getTableLinkElement(expectedLinkText).isPresent()).toBe(true);
+    // expect(smartContractsPage.getTableLinkElement(expectedLinkText).isPresent()).toBe(true);
+
+    expect(smartContractPage.getContractId()).toBe(contractId);
   });
 
   it('should navigate to the smart contract page with the latest version selected', () => {
