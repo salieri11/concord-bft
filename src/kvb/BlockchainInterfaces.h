@@ -13,7 +13,6 @@
 #include <set>
 #include <Replica.hpp>
 #include "sliver.hpp"
-#include "slice.h"
 #include "status.h"
 #include "DatabaseInterface.h"
 #include "StatusInfo.h"
@@ -222,13 +221,12 @@ namespace Blockchain {
                                        Status returnedStatus,
                                        Sliver outreply);
 
-      virtual Status invokeCommandSynch(const Slice command,
+      virtual Status invokeCommandSynch(const char *request,
+                                        uint32_t requestSize,
                                         bool isReadOnly,
-                                        Slice& outReply,
-                                        uint32_t &outActualReplySize) = 0;
-
-      // release memory allocated by invokeCommandSynch
-      virtual Status release(Slice& sliver) = 0;
+                                        uint32_t replySize,
+                                        char *outReply,
+                                        uint32_t *outActualReplySize) = 0;
    };
 
    //TODO(BWF): Can create/release be migrated to constructor/destructor, to

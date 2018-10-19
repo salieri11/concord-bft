@@ -25,13 +25,12 @@ namespace Blockchain {
 
       virtual bool isRunning() override;
 
-      virtual Status invokeCommandSynch(const Slice command,
+      virtual Status invokeCommandSynch(const char *request,
+                                        uint32_t requestSize,
                                         bool isReadOnly,
-                                        Slice &outReply,
-                                        uint32_t &outActualReplySize) override;
-
-      // release memory allocated by invokeCommandSynch
-      virtual Status release(Slice& slice) override;
+                                        uint32_t replySize,
+                                        char *outReply,
+                                        uint32_t *outActualReplySize) override;
 
    protected:
 

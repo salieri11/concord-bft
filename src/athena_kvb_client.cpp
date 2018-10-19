@@ -25,16 +25,16 @@ bool com::vmware::athena::KVBClient::send_request_sync(AthenaRequest &req,
 {
    std::string command;
    req.SerializeToString(&command);
-   Blockchain::Slice cmdslice(command);
    memset(m_outBuffer, 0, OUT_BUFFER_SIZE);
-   Blockchain::Slice replyslice(m_outBuffer, OUT_BUFFER_SIZE);
 
    uint32_t actualReplySize = 0;
    Blockchain::Status status = client_->invokeCommandSynch(
-      cmdslice, isReadOnly, replyslice, actualReplySize);
+     command.c_str(), command.size(),
+     isReadOnly,
+     OUT_BUFFER_SIZE, m_outBuffer, &actualReplySize);
 
-   if (status.ok() && replyslice.size() > 0) {
-      return resp.ParseFromArray(replyslice.data(), actualReplySize);
+   if (status.ok() && actualReplySize) {
+      return resp.ParseFromArray(m_outBuffer, actualReplySize);
    } else {
       LOG4CPLUS_ERROR(logger_, "Error invoking "
                       << (isReadOnly ? "read-only" : "read-write")
