@@ -337,6 +337,21 @@ public class ContractsServlet extends BaseServlet {
       return address;
    }
 
+   /**
+    * Handles the request for `PUT api/athena/contracts/{contract_id}/versions/{version }`
+    * request.
+    *
+    * @param existingContractId
+    *           The value of `{contract_id}` from URI
+    * @param existingVersionName
+    *           The value of `{version}` from URI
+    * @param paramString
+    *           HttpRequest object
+    * @return responseEntity
+    *           HttpResponse object
+    *
+    * @return The RESTResult object containing result of this request
+    */
    @RequestMapping(method = RequestMethod.PUT,
            path = "/api/athena/contracts/{contract_id}/versions/{version_id}")
    public ResponseEntity<JSONAware>
