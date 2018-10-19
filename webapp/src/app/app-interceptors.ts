@@ -33,12 +33,12 @@ export class RequestInterceptor implements HttpInterceptor {
           switch ((<HttpErrorResponse>error).status) {
             case 401:
               if (request.url === 'api/auth/login') {
-                return throwError(error)
+                return throwError(error);
               }
-              return this.handle401Error(request, next);
-            case 400:
               this.authService.redirectUrl = this.router.url;
               this.router.navigate([`auth/login`]);
+              return this.handle401Error(request, next);
+            default:
               return throwError(error);
           }
         } else {

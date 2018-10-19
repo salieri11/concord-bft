@@ -25,7 +25,7 @@ import security.JwtTokenFilterConfigurer;
 import security.JwtTokenProvider;
 import security.MyUserDetails;
 import security.RestAuthenticationEntryPoint;
-import services.profiles.ProfilesRegistryManager;
+
 
 @Configuration
 @ComponentScan(basePackages = {"security"})
@@ -37,9 +37,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Autowired
     private RestAuthenticationEntryPoint restAuthticationEntryPoint;
-
-    @Autowired
-    private ProfilesRegistryManager prm;
 
 
     @Override
@@ -62,10 +59,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/auth/login")
                 .antMatchers("/swagger/**")
                 .antMatchers("/assets/**");
-
-        // Need to create an init user if one doesn't exist
-        // so we can login.
-        prm.createUserIfNotExist();
     }
 
     @Override

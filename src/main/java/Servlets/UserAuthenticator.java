@@ -79,6 +79,9 @@ public class UserAuthenticator extends BaseServlet {
       JSONParser parser = new JSONParser();
       HttpStatus responseStatus;
       JSONObject responseJSON;
+      // Need to create an init user if one doesn't exist
+      // so we can login.
+      prm.createUserIfNotExist();
       try {
          JSONObject requestJSON = (JSONObject) parser.parse(requestBody);
          if (requestJSON.containsKey(EMAIL_LABEL)
