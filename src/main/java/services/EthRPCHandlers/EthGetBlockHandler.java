@@ -163,6 +163,11 @@ public class EthGetBlockHandler extends AbstractEthRPCHandler {
                             APIHelper.binaryStringToHex(tr.getInput()));
             transaction.put("contractAddress",
                             APIHelper.binaryStringToHex(tr.getContractAddress()));
+            // TODO : Passing empty JSON array for logs as Truffle expects this
+            //        Fix this with actual logs - HEL 128
+            JSONArray logs = new JSONArray();
+            transaction.put("logs", logs);
+
             transactions.add(transaction);
          }
       }

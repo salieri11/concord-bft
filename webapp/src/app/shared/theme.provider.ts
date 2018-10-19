@@ -16,8 +16,8 @@ export enum VmwClarityTheme {
 const THEME_COOKIE_NAME = 'clarity-theme';
 const THEME_COOKIE_DOMAIN = '/';
 const CLARITY_CSS_LINK_ID = 'clarity-css';
-const CLARITY_CSS_DARK_PATH = '/assets/static/css/clr-ui-dark.min.css';
-const CLARITY_CSS_LIGHT_PATH = '/assets/static/css/clr-ui.min.css';
+const CLARITY_CSS_DARK_PATH = 'assets/static/css/clr-ui-dark.min.css';
+const CLARITY_CSS_LIGHT_PATH = 'assets/static/css/clr-ui.min.css';
 
 export class VmwClarityThemeConfig {
   constructor(
