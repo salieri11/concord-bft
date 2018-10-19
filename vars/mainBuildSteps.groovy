@@ -278,17 +278,23 @@ def call(){
         }
         steps {
           withDockerRegistry([ credentialsId: "VMWATHENABOT_DOCKERHUB_CREDENTIALS", url: "" ]) {
-            sh "docker push ${athena_docker_repo_param}:${athena_docker_tag}"
-            sh "docker tag ${athena_docker_repo_param}:${athena_docker_tag} ${athena_docker_repo_param}:latest"
-            sh "docker push ${athena_docker_repo_param}:latest"
 
-            sh "docker push ${helen_docker_repo_param}:${helen_docker_tag}"
-            sh "docker tag ${helen_docker_repo_param}:${helen_docker_tag} ${helen_docker_repo_param}:latest"
-            sh "docker push ${helen_docker_repo_param}:latest"
+            // Can stop using sudo with template version 4.
+            withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+              sh '''
+                echo "${PASSWORD}" | sudo -S docker push ${athena_docker_repo_param}:${athena_docker_tag}
+                echo "${PASSWORD}" | sudo -S docker tag ${athena_docker_repo_param}:${athena_docker_tag} ${athena_docker_repo_param}:latest
+                echo "${PASSWORD}" | sudo -S docker push ${athena_docker_repo_param}:latest
 
-            // sh "docker push ${andes_docker_repo_param}:${andes_docker_tag}"
-            // sh "docker tag ${andes_docker_repo_param}:${andes_docker_tag} ${andes_docker_repo_param}:latest"
-            // sh "docker push ${andes_docker_repo_param}:latest"
+                echo "${PASSWORD}" | sudo -S docker push ${helen_docker_repo_param}:${helen_docker_tag}
+                echo "${PASSWORD}" | sudo -S docker tag ${helen_docker_repo_param}:${helen_docker_tag} ${helen_docker_repo_param}:latest
+                echo "${PASSWORD}" | sudo -S docker push ${helen_docker_repo_param}:latest
+
+                # echo "${PASSWORD}" | sudo -S docker push ${andes_docker_repo_param}:${andes_docker_tag}
+                # echo "${PASSWORD}" | sudo -S docker tag ${andes_docker_repo_param}:${andes_docker_tag} ${andes_docker_repo_param}:latest
+                # echo "${PASSWORD}" | sudo -S docker push ${andes_docker_repo_param}:latest
+              '''
+            }
           }
         }
       }
