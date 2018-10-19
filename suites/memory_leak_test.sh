@@ -12,7 +12,7 @@ while [ "$1" != "" ] ; do
          ;;
       "--tests")
          shift
-         SPECIFIC_TESTS=$1
+         TESTS=$1
          ;;
    esac
    shift
@@ -25,7 +25,9 @@ MEMORY_INFO_LOG_FILE=${RESULTS_DIR}/memory_info_${TIME_STAMP}.log
 MEMORY_INFO_CSV_FILE=${RESULTS_DIR}/memory_info_${TIME_STAMP}.csv
 SLEEP_TIME_IN_SEC=60
 MEMORY_LEAK_PASS_FILE="${RESULTS_DIR}/test_status.pass"
+ATHENA1_VALGRIND_LOG_FILE="/home/builder/source/athena/build/valgrind_athena1.log"
 HERMES_START_FILE="./main.py"
+SPECIFIC_TESTS=""
 RC=1
 
 check_usage() {
@@ -39,7 +41,11 @@ check_usage() {
 launch_memory_test() {
     CWD=$(pwd)
     cd ..
-    "${HERMES_START_FILE}" "${TEST_SUITES}" --config resources/user_config_valgrind.json --noOfRuns ${NO_OF_RUNS} --resultsDir ${RESULTS_DIR} --tests ${SPECIFIC_TESTS} &
+    if [ ! "x${TESTS}" = "x" ]
+    then
+        SPECIFIC_TESTS="--tests ${TESTS}"
+    fi
+    "${HERMES_START_FILE}" "${TEST_SUITES}" --config resources/user_config_valgrind.json --noOfRuns ${NO_OF_RUNS} --resultsDir ${RESULTS_DIR} ${SPECIFIC_TESTS} &
     PID=$!
 
     cd $CWD
@@ -57,6 +63,10 @@ launch_memory_test() {
             else
                 echo "Memory Leak Test Failed"
                 RC=1
+            fi
+            if [ -f "${ATHENA1_VALGRIND_LOG_FILE}" ]
+            then
+                mv ${ATHENA1_VALGRIND_LOG_FILE} ${RESULTS_DIR}
             fi
             echo "Results: ${RESULTS_DIR}"
             exit $RC

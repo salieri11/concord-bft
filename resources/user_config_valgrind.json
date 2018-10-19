@@ -12,28 +12,29 @@
       },
       {
         "apiServer": {
-          "buildRoot": "/home/rsg/blockchain/git/helen",
+          "buildRoot": "~/source/helen",
           "helen1": {
             "launchCommand": "/usr/bin/java",
             "parameters": [
                 "-jar",
                 "-Dspring.profiles.active=test",
-                "/home/rsg/blockchain/git/helen/target/helen-1.0-SNAPSHOT.jar",
-              "application-test.properties"
+                "~/source/helen/target/helen-1.0-SNAPSHOT.jar",
+              "application-valgrind.properties"
             ]
           }
         }
       },
       {
         "athena1": {
-          "buildRoot": "/home/rsg/blockchain/git/athena/build",
+          "buildRoot": "~/source/athena/build",
           "athena1": {
             "launchCommand": "valgrind",
             "parameters": [
+              "-v",
               "--leak-check=full",
               "--show-leak-kinds=all",
               "--track-origins=yes",
-              "--log-file=athena1.log",
+              "--log-file=valgrind_athena1.log",
               "src/athena",
               "--logger_config",
               "./resources/log4cplus.properties",
@@ -45,15 +46,10 @@
       },
       {
         "athena2": {
-          "buildRoot": "/home/rsg/blockchain/git/athena/build",
+          "buildRoot": "~/source/athena/build",
           "athena2": {
-            "launchCommand": "valgrind",
+            "launchCommand": "src/athena",
             "parameters": [
-              "--leak-check=full",
-              "--show-leak-kinds=all",
-              "--track-origins=yes",
-              "--log-file=athena1.log",
-              "src/athena",
               "--logger_config",
               "./resources/log4cplus.properties",
               "-c",
@@ -64,15 +60,10 @@
       },
       {
         "athena3": {
-          "buildRoot": "/home/rsg/blockchain/git/athena/build",
+          "buildRoot": "~/source/athena/build",
           "athena3": {
-            "launchCommand": "valgrind",
+            "launchCommand": "src/athena",
             "parameters": [
-              "--leak-check=full",
-              "--show-leak-kinds=all",
-              "--track-origins=yes",
-              "--log-file=athena1.log",
-              "src/athena",
               "--logger_config",
               "./resources/log4cplus.properties",
               "-c",
@@ -83,15 +74,10 @@
       },
       {
         "athena4": {
-          "buildRoot": "/home/rsg/blockchain/git/athena/build",
+          "buildRoot": "~/source/athena/build",
           "athena4": {
-            "launchCommand": "valgrind",
+            "launchCommand": "src/athena",
             "parameters": [
-              "--leak-check=full",
-              "--show-leak-kinds=all",
-              "--track-origins=yes",
-              "--log-file=athena1.log",
-              "src/athena",
               "--logger_config",
               "./resources/log4cplus.properties",
               "-c",
@@ -109,7 +95,7 @@
     ]
   },
   "ethereum": {
-    "testRoot": "/home/rsg/blockchain/git/ethereum_tests",
+    "testRoot": "~/source/ethereum_tests",
     "url": "http://localhost:8545",
     "users": [
       {

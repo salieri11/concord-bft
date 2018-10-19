@@ -66,6 +66,7 @@ class CoreVMTests(test_suite.TestSuite):
       tests = self._getTests()
 
       log.info("Launching tests...")
+      time.sleep(5)
       for test in tests:
          if not self._isSourceCodeTestFile(test):
             testCompiled = self._loadCompiledTest(test)
