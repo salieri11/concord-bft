@@ -41,8 +41,8 @@ export interface SmartContractMetadata {
 
 export interface AbiFunctionDefinition {
   type: string;
-  name: string;
-  constant: boolean;
+  name?: string;
+  constant?: boolean;
   payable: boolean;
   stateMutability: string;
   inputs: AbiFunctionParameter[];

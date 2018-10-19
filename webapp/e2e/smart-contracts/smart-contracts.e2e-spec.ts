@@ -49,7 +49,10 @@ describe('athena-ui Smart Contracts', () => {
     const absolutePath = path.resolve(__dirname, file);
     const expectedLinkText = `${contractId} : ${from}`;
     smartContractsPage.openCreateModal();
-    smartContractsPage.fillContractForm(from, contractId, version, absolutePath);
+    smartContractsPage.fillContractFormStep1(from, contractId, version, absolutePath);
+    smartContractsPage.clickWizardNextButton();
+    smartContractsPage.clickWizardNextButton();
+    smartContractsPage.clickWizardFinishButton();
 
     expect(smartContractsPage.getTableLinkElement(expectedLinkText).isPresent()).toBe(true);
   });

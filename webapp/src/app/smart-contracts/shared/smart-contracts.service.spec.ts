@@ -61,6 +61,31 @@ describe('SmartContractsService', () => {
     expect(httpSpy).toHaveBeenCalledWith('api/athena/contracts', contract);
   });
 
+  it('should put a smart contract with given payload', () => {
+    const httpSpy = spyOn((service as any).httpClient, 'put');
+    const contract = {
+      from: '0x262C0D7AB5FFD4EDE2199F6EA793F819E1ABB019',
+      contract_id: '1',
+      version: '1',
+      sourcecode: 'sourceCode',
+      contractName: 'contract',
+      constructorParams: ''
+    };
+
+    service.updateExistingVersion('contractId', 'version', contract);
+    expect(httpSpy).toHaveBeenCalledWith('api/athena/contracts/contractId/versions/version', contract);
+  });
+
+  it('should post smart contract source code', () => {
+    const httpSpy = spyOn((service as any).httpClient, 'post');
+    const payload = {
+      sourcecode: 'source'
+    };
+
+    service.postSourceCode(payload);
+    expect(httpSpy).toHaveBeenCalledWith('api/athena/contracts/compile', payload);
+  });
+
 });
 
 

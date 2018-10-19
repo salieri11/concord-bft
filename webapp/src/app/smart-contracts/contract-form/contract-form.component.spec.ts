@@ -5,7 +5,7 @@
 import { async, fakeAsync, tick, ComponentFixture, TestBed } from '@angular/core/testing';
 import { ClarityModule } from '@clr/angular';
 import { ClrFormsNextModule } from '@clr/angular';
-import { ReactiveFormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
@@ -14,6 +14,7 @@ import { of as observableOf, throwError } from 'rxjs';
 import { MockSharedModule } from '../../shared/shared.module';
 import { ContractFormComponent } from './contract-form.component';
 import { SmartContractsService } from '../shared/smart-contracts.service';
+import { SmartContractsSolidityFunctionInputsComponent } from '../smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
 
 
 describe('ContractFormComponent', () => {
@@ -39,17 +40,45 @@ describe('ContractFormComponent', () => {
       },
       language: 'language',
       output: {
+        abi: [{
+          payable: false,
+          inputs: [{name:"addr",type:"address"},{name:"title",type:"bytes1"}],
+          outputs: [],
+          stateMutability: "nonpayable",
+          type: "constructor"
+        }],
+        devdoc: 'devdoc',
+        userdoc: 'userdoc',
+      },
+      settings: 'settings',
+      sources: 'sources',
+      version: 1,
+    },
+    address: 'address',
+    bytecode: 'bytecode',
+    sourcecode: 'sourcecode'
+  };
+  const testExternalversion: any = {
+    contract_id: 'contractId',
+    version: 'version',
+    owner: 'owner',
+    metadata: {
+      compiler: {
+        version: 'version'
+      },
+      language: 'language',
+      output: {
         abi: [],
         devdoc: 'devdoc',
         userdoc: 'userdoc',
       },
       settings: 'settings',
       sources: 'sources',
-      version: 'version',
+      version: 1,
     },
     address: 'address',
-    bytecode: 'bytecode',
-    sourcecode: 'sourcecode'
+    bytecode: '',
+    sourcecode: ''
   };
 
   beforeEach(async(() => {
@@ -60,9 +89,10 @@ describe('ContractFormComponent', () => {
         HttpClientTestingModule,
         MockSharedModule,
         BrowserAnimationsModule,
+        FormsModule,
         ClrFormsNextModule
       ],
-      declarations: [ContractFormComponent],
+      declarations: [ContractFormComponent, SmartContractsSolidityFunctionInputsComponent],
       providers: [
         SmartContractsService,
         {
@@ -108,6 +138,12 @@ describe('ContractFormComponent', () => {
       expect((component as any).createUpdateContractForm).toHaveBeenCalled();
     });
 
+    it('opens the update existing form when a version is provided without bytecode and sourcecode', () => {
+      spyOn((component as any), 'createUpdateExternalContractForm').and.callThrough();
+      component.open(testContract, testExternalversion);
+      expect((component as any).createUpdateExternalContractForm).toHaveBeenCalled();
+    });
+
     it('disables the contract id field and prepopulates the version field on edit', fakeAsync(() => {
       (component as any).createUpdateContractForm(testContract, testVersion);
 
@@ -131,7 +167,108 @@ describe('ContractFormComponent', () => {
     });
   });
 
+  describe('On smart contract source code submission', () => {
+    it('should call postSourceCode on source code submission', () => {
+      const spy = spyOn((component as any).smartContractsService, 'postSourceCode').and.returnValue(observableOf({data: [{contract_name: 'contractName'}]}));
+      const sourceCode = {
+        sourcecode: component.smartContractForm.value.file
+      };
+
+      component.onSubmitSourceCode();
+      expect(spy).toHaveBeenCalledWith(sourceCode);
+    });
+
+    it('should show an error if code submission fails', () => {
+      const spy = spyOn((component as any).smartContractsService, 'postSourceCode').and.returnValue(throwError({ error: 'error' }));
+      const sourceCode = {
+        sourcecode: component.smartContractForm.value.file
+      };
+
+      component.onSubmitSourceCode();
+      expect(spy).toHaveBeenCalledWith(sourceCode);
+      expect(component.modalState.error).toBeTruthy();
+    });
+  });
+
+  describe('On smart contract selection', () => {
+    it('should select the appropriate constructorAbi', () => {
+      component.multiContractResponse = [{contract_name: 'TestContract', metadata: testVersion.metadata}];
+      component.contractsForm.controls['selectedContract'].setValue('TestContract');
+      component.onSelectContract();
+      expect(component.constructorAbi).toBe(testVersion.metadata.output.abi[0]);
+    });
+  });
+
+  describe('Parameter encoding', () => {
+    it('should correctly encode the constructorAbi parameters', () => {
+      component.multiContractResponse = [{contract_name: 'TestContract', metadata: testVersion.metadata}];
+      component.contractsForm.controls['selectedContract'].setValue('TestContract');
+      component.onSelectContract();
+
+      component.constructorParamsForm.controls['addr'].setValue('0x166c22687709b3273097283a73daf33bed4bb252');
+      component.constructorParamsForm.controls['title'].setValue('a');
+
+      const result = (component as any).encodeConstructorParams();
+
+      expect(result).toBe('000000000000000000000000166c22687709b3273097283a73daf33bed4bb2526100000000000000000000000000000000000000000000000000000000000000');
+    });
+  });
+
   describe('On smart contract submission', () => {
+    it('should call postSmartContract if the modalState.isUpdateExternal is false', () => {
+      const spy = spyOn(component, 'postSmartContract');
+      expect(component.modalState.isUpdateExternal).toBe(false);
+      component.onSubmitSmartContract();
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should call updateExistingSmartContract if the modalState.isUpdateExternal is true', () => {
+      const spy = spyOn(component, 'updateExistingSmartContract');
+      component.modalState.isUpdateExternal = true;
+      component.onSubmitSmartContract();
+      expect(spy).toHaveBeenCalled();
+    });
+
+    it('should emit the contractCreated event on update success', () => {
+      component.modalState.isUpdateExternal = true;
+      component.version = testVersion;
+      const spy = spyOn((component as any).smartContractsService, 'updateExistingVersion').and.returnValue(observableOf(true));
+      const contract = {
+        from: component.smartContractForm.value.from,
+        contract_id: component.smartContractForm.value.contractId,
+        version: component.smartContractForm.value.version,
+        sourcecode: component.smartContractForm.value.file,
+        contractName: component.contractsForm.value.selectedContract,
+        constructorParams: '',
+        existingVersionName: testVersion.version,
+        existingContractId: testVersion.contract_id
+      };
+      const eventSpy = spyOn(component.contractCreated, 'emit');
+      component.onSubmitSmartContract();
+      expect(spy).toHaveBeenCalledWith(testVersion.contract_id, testVersion.version, contract);
+      expect(eventSpy).toHaveBeenCalled();
+    });
+
+    it('should generate an error when update of smart contract version fails', () => {
+      component.modalState.isUpdateExternal = true;
+      component.version = testVersion;
+      const spy = spyOn((component as any).smartContractsService, 'updateExistingVersion').and.returnValue(throwError({ error: 'error' }));
+      const contract = {
+        from: component.smartContractForm.value.from,
+        contract_id: component.smartContractForm.value.contractId,
+        version: component.smartContractForm.value.version,
+        sourcecode: component.smartContractForm.value.file,
+        contractName: component.contractsForm.value.selectedContract,
+        constructorParams: '',
+        existingVersionName: testVersion.version,
+        existingContractId: testVersion.contract_id
+      };
+
+      component.onSubmitSmartContract();
+      expect(spy).toHaveBeenCalledWith(testVersion.contract_id, testVersion.version, contract);
+      expect(component.modalState.error).toBeTruthy();
+    });
+
     it('should emit contract created event on submit success', () => {
       const spy = spyOn((component as any).smartContractsService, 'postContract').and.returnValue(observableOf(true));
       const contract = {
@@ -139,7 +276,9 @@ describe('ContractFormComponent', () => {
         from: component.smartContractForm.value.from,
         contract_id: component.smartContractForm.value.contractId,
         version: component.smartContractForm.value.version,
-        sourcecode: component.smartContractForm.value.file
+        sourcecode: component.smartContractForm.value.file,
+        contractName: component.contractsForm.value.selectedContract,
+        constructorParams: ''
       };
       const eventSpy = spyOn(component.contractCreated, 'emit');
 
@@ -155,7 +294,9 @@ describe('ContractFormComponent', () => {
         from: component.smartContractForm.value.from,
         contract_id: component.smartContractForm.value.contractId,
         version: component.smartContractForm.value.version,
-        sourcecode: component.smartContractForm.value.file
+        sourcecode: component.smartContractForm.value.file,
+        contractName: component.contractsForm.value.selectedContract,
+        constructorParams: ''
       };
 
       component.onSubmitSmartContract();
@@ -170,7 +311,9 @@ describe('ContractFormComponent', () => {
         from: component.smartContractForm.value.from,
         contract_id: component.smartContractForm.value.contractId,
         version: component.smartContractForm.value.version,
-        sourcecode: component.smartContractForm.value.file
+        sourcecode: component.smartContractForm.value.file,
+        contractName: component.contractsForm.value.selectedContract,
+        constructorParams: ''
       };
 
       component.onSubmitSmartContract();
