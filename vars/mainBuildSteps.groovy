@@ -5,26 +5,7 @@ def call(){
         nodejs 'Node 8.9.1'
     }
     parameters {
-      booleanParam defaultValue: false, description: 'If tests pass, deploy the docker images for production', name: 'deploy'
-      string defaultValue: 'vmwblockchain/concord-core',
-             description: 'The docker repo for the core/backend.',
-             name: 'athena_docker_repo_param'
-      string defaultValue: '',
-             description: 'The docker tag for the core/backend.',
-             name: 'athena_docker_tag_param'
-      string defaultValue: 'vmwblockchain/concord-ui',
-             description: 'The docker repo for the ui api server.',
-             name: 'helen_docker_repo_param'
-      string defaultValue: '',
-             description: 'The docker tag for the ui api server.',
-             name: 'helen_docker_tag_param'
-      string defaultValue: 'vmwblockchain/concord-ds-api',
-             description: 'The docker repo for the deployment service api server.',
-             name: 'andes_docker_repo_param'
-      string defaultValue: '',
-             description: 'The docker tag for the deployment service api server.',
-             name: 'andes_docker_tag_param'
-
+      booleanParam defaultValue: false, description: 'If tests pass, deploy the docker images for production', name: 'Deploy'
       string defaultValue: '',
              description: 'Athena commit or branch to use.  Providing a branch name will pull the branch\'s latest commit.',
              name: 'athena_branch_or_commit'
@@ -195,15 +176,10 @@ def call(){
             steps {
               script {
                 dir('helen') {
-
-                  script {
-                    env.helen_docker_tag = env.helen_docker_tag_param ? env.helen_docker_tag_param : env.actual_helen_fetched
-                  }
-
                   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                     sh '''
                       # Can stop using sudo when template is updated.
-                      echo "${PASSWORD}" | sudo -S docker build . -t "${helen_docker_repo_param}:${helen_docker_tag}"
+                      echo "${PASSWORD}" | sudo -S docker build . -t "helen:${actual_helen_fetched}"
                       echo "${PASSWORD}" | sudo -S docker system prune -f
                     '''
                   }
@@ -212,20 +188,14 @@ def call(){
             }
           }
 
-
           stage('Build athena docker image') {
             steps {
               script {
                 dir('athena') {
-
-                  script {
-                    env.athena_docker_tag = env.athena_docker_tag_param ? env.athena_docker_tag_param : env.actual_athena_fetched
-                  }
-
                   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                     sh '''
                       # Can stop using sudo when template is updated.
-                      echo "${PASSWORD}" | sudo -S ./docker-build.sh "${athena_docker_repo_param}" "${athena_docker_tag}"
+                      echo "${PASSWORD}" | sudo -S ./docker-build.sh athena "${actual_athena_fetched}"
                       echo "${PASSWORD}" | sudo -S docker system prune -f
                     '''
                   }
@@ -271,33 +241,6 @@ def call(){
       //     }
       //   }
       // }
-
-      stage('Push to docker repository') {
-        when {
-          environment name: 'deploy', value: 'true'
-        }
-        steps {
-          withDockerRegistry([ credentialsId: "VMWATHENABOT_DOCKERHUB_CREDENTIALS", url: "" ]) {
-
-            // Can stop using sudo with template version 4.
-            withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-              sh '''
-                echo "${PASSWORD}" | sudo -S docker push ${athena_docker_repo_param}:${athena_docker_tag}
-                echo "${PASSWORD}" | sudo -S docker tag ${athena_docker_repo_param}:${athena_docker_tag} ${athena_docker_repo_param}:latest
-                echo "${PASSWORD}" | sudo -S docker push ${athena_docker_repo_param}:latest
-
-                echo "${PASSWORD}" | sudo -S docker push ${helen_docker_repo_param}:${helen_docker_tag}
-                echo "${PASSWORD}" | sudo -S docker tag ${helen_docker_repo_param}:${helen_docker_tag} ${helen_docker_repo_param}:latest
-                echo "${PASSWORD}" | sudo -S docker push ${helen_docker_repo_param}:latest
-
-                # echo "${PASSWORD}" | sudo -S docker push ${andes_docker_repo_param}:${andes_docker_tag}
-                # echo "${PASSWORD}" | sudo -S docker tag ${andes_docker_repo_param}:${andes_docker_tag} ${andes_docker_repo_param}:latest
-                # echo "${PASSWORD}" | sudo -S docker push ${andes_docker_repo_param}:latest
-              '''
-            }
-          }
-        }
-      }
     }// End stages
 
     post {
