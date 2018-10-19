@@ -49,9 +49,6 @@
       "title": "Actions",
       "resetTasks": "Reset Tasks"
     },
-    "metrics": {
-      "activeNodes": "Active Nodes {{value}}"
-    },
     "dashboard": {
       "title": "Dashboard"
     },
@@ -453,111 +450,6 @@
     },
     "deleteOrgForm": {
       "title": "Delete Org(s)",
-      "submit": {
-        "title": "Yes"
-      }
-    }
-  },
-  "kubernetes": {
-    "title": "Kubernetes Management",
-    "actions": {
-      "title": "Actions",
-      "options": {
-        "add": {
-          "title": "Add Instance"
-        },
-        "delete": {
-          "title": "Delete Instance"
-        }
-      }
-    },
-    "grid": {
-      "pagination": {
-        "title": "Instances"
-      },
-      "columns": {
-        "id": {
-          "title": "ID"
-        },
-        "name": {
-          "title": "Name"
-        },
-        "apiServerUrl": {
-          "title": "API Server"
-        },
-        "ca": {
-          "title": "CA"
-        },
-        "kubectlCliUrl": {
-          "title": "Kube CLI URL"
-        },
-        "helmCliUrl": {
-          "title": "Helm URL"
-        },
-        "credentialType": {
-          "title": "Credential Type"
-        },
-        "insecure": {
-          "title": "Insecure"
-        },
-        "created": {
-          "title": "Created On"
-        },
-        "updated": {
-          "title": "Updated On"
-        }
-      }
-    },
-    "addKubeForm": {
-      "title": "Add Kubernetes",
-      "inputs": {
-        "name": {
-          "title": "Name",
-          "placeholder": "MyKubernetes"
-        },
-        "apiServerUrl": {
-          "title": "API Server URL",
-          "placeholder": "https://1.1.1.1"
-        },
-        "credentialType": {
-          "title": "Credential type",
-          "options": {
-            "basic_auth": {
-              "title": "User Auth"
-            },
-            "certificate": {
-              "title": "Cert/Key"
-            },
-            "configFile": {
-              "title": "Config File"
-            }
-          }
-        },
-        "username": {
-          "title": "Username",
-          "placeholder": "myUsername"
-        },
-        "password": {
-          "title": "Password"
-        },
-        "certificate": {
-          "title": "Certificate",
-          "placeholder": "Paste certificate here"
-        },
-        "key": {
-          "title": "Key",
-          "placeholder": "Paste key here"
-        },
-        "configFile": {
-          "title": "Config File"
-        }
-      },
-      "submit": {
-        "title": "Add"
-      }
-    },
-    "deleteKubeForm": {
-      "title": "Delete Instance(s)",
       "submit": {
         "title": "Yes"
       }
