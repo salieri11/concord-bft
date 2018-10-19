@@ -10,7 +10,7 @@ set(kvblockchain_sources
   ReplicaImp.cpp ReplicaImp.h
   RocksDBClient.cpp RocksDBClient.h
   SimpleThreadPool.h
-  slice.cpp slice.h
+  status.cpp status.hpp
   sliver.cpp sliver.hpp
   bft_configuration.hpp)
 

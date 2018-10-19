@@ -265,7 +265,7 @@ Status com::vmware::athena::KVBStorage::write_block(uint64_t timestamp)
    // Actually write the block
    BlockId outBlockId;
    Status status = blockAppender_->addBlock(updates, outBlockId);
-   if (status.ok()) {
+   if (status.isOK()) {
       LOG4CPLUS_INFO(logger, "Appended block number " << outBlockId);
    } else {
       LOG4CPLUS_ERROR(logger, "Failed to append block");
@@ -432,10 +432,10 @@ EthBlock com::vmware::athena::KVBStorage::get_block(uint64_t number)
    Status status = roStorage_.getBlockData(1+number, outBlockData);
 
    LOG4CPLUS_DEBUG(logger, "Getting block number " << number <<
-                   " status: " << status.ToString() <<
+                   " status: " << status <<
                    " value.size: " << outBlockData.size());
 
-   if (status.ok()) {
+   if (status.isOK()) {
       for (auto kvp: outBlockData) {
          if (kvp.first.data()[0] == TYPE_BLOCK) {
             return EthBlock::deserialize(kvp.second);
@@ -452,11 +452,11 @@ EthBlock com::vmware::athena::KVBStorage::get_block(const evm_uint256be &hash)
    Status status = get(kvbkey, value);
 
    LOG4CPLUS_DEBUG(logger, "Getting block " << hash <<
-                   " status: " << status.ToString() <<
+                   " status: " << status <<
                    " key: " << kvbkey <<
                    " value.length: " << value.length());
 
-   if (status.ok() && value.length() > 0) {
+   if (status.isOK() && value.length() > 0) {
       // TODO: we may store less for block, by using this part to get the number,
       // then get_block(number) to rebuild the transaction list from KV pairs
       return EthBlock::deserialize(value);
@@ -473,11 +473,11 @@ EthTransaction com::vmware::athena::KVBStorage::get_transaction(
    Status status = get(kvbkey, value);
 
    LOG4CPLUS_DEBUG(logger, "Getting transaction " << hash <<
-                   " status: " << status.ToString() <<
+                   " status: " << status <<
                    " key: " << kvbkey <<
                    " value.length: " << value.length());
 
-   if (status.ok() && value.length() > 0) {
+   if (status.isOK() && value.length() > 0) {
       // TODO: lookup block hash and number as well
       return EthTransaction::deserialize(value);
    }
@@ -500,12 +500,12 @@ uint64_t com::vmware::athena::KVBStorage::get_balance(const evm_address &addr, u
 
    LOG4CPLUS_DEBUG(logger, "Getting nonce " << addr <<
                            " lookup block starting at: " << block_number <<
-                           " status: " << status.ToString() <<
+                           " status: " << status <<
                            " key: " << kvbkey <<
                            " value.length: " << value.length() <<
                            " out block at: " << outBlock);
 
-   if (status.ok() && value.length() > 0) {
+   if (status.isOK() && value.length() > 0) {
       kvb::Balance balance;
       if (balance.ParseFromArray(value.data(), value.length())) {
          if (balance.version() == balance_storage_version) {
@@ -536,12 +536,12 @@ uint64_t com::vmware::athena::KVBStorage::get_nonce(const evm_address &addr,
 
    LOG4CPLUS_DEBUG(logger, "Getting nonce " << addr <<
                    " lookup block starting at: " << block_number <<
-                   " status: " << status.ToString() <<
+                   " status: " << status <<
                    " key: " << kvbkey <<
                    " value.length: " << value.length() <<
                    " out block at: " << outBlock);
 
-   if (status.ok() && value.length() > 0) {
+   if (status.isOK() && value.length() > 0) {
       kvb::Nonce nonce;
       if (nonce.ParseFromArray(value.data(), value.length())) {
          if (nonce.version() == nonce_storage_version) {
@@ -563,11 +563,11 @@ bool com::vmware::athena::KVBStorage::account_exists(const evm_address &addr)
    Status status = get(kvbkey, value);
 
    LOG4CPLUS_DEBUG(logger, "Getting balance " << addr <<
-                   " status: " << status.ToString() <<
+                   " status: " << status <<
                    " key: " << kvbkey <<
                    " value.length: " << value.length());
 
-   if (status.ok() && value.length() > 0) {
+   if (status.isOK() && value.length() > 0) {
       // if there was a balance recorded, the account exists
       return true;
    }
@@ -609,12 +609,12 @@ bool com::vmware::athena::KVBStorage::get_code(const evm_address &addr,
 
    LOG4CPLUS_DEBUG(logger, "Getting code " << addr <<
                    " lookup block starting at: " << block_number <<
-                   " status: " << status.ToString() <<
+                   " status: " << status <<
                    " key: " << kvbkey <<
                    " value.length: " << value.length() <<
                    " out block at: " << outBlock);
 
-   if (status.ok() && value.length() > 0) {
+   if (status.isOK() && value.length() > 0) {
       kvb::Code code;
       if (code.ParseFromArray(value.data(), value.length())) {
          if (code.version() == code_storage_version) {
@@ -660,13 +660,13 @@ evm_uint256be com::vmware::athena::KVBStorage::get_storage(
    LOG4CPLUS_INFO(logger, "Getting storage " << addr <<
                   " at " << location <<
                   " lookup block starting at: " << block_number <<
-                  " status: " << status.ToString() <<
+                  " status: " << status <<
                   " key: " << kvbkey <<
                   " value.length: " << value.length() <<
                   " out block at: " << outBlock);
 
    evm_uint256be out;
-   if (status.ok() && value.length() > 0) {
+   if (status.isOK() && value.length() > 0) {
       if (value.length() == sizeof(evm_uint256be)) {
          std::copy(value.data(), value.data()+value.length(), out.bytes);
       } else {

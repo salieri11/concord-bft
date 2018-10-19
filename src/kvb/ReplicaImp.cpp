@@ -194,7 +194,7 @@ Status ReplicaImp::mayHaveConflictBetween(Sliver key,
    Sliver dummy;
    BlockId block = 0;
    Status s = getInternal(toBlock, key, dummy, block);
-   if (s.ok() && block < fromBlock) {
+   if (s.isOK() && block < fromBlock) {
       outRes = false;
    }
 
@@ -336,7 +336,7 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs& updates,
 
    Sliver blockRaw = createBlockFromUpdates(updates, updatesInNewBlock);
    Status s = m_bcDbAdapter->addBlock(block, blockRaw);
-   if (!s.ok())
+   if (!s.isOK())
    {
       LOG4CPLUS_ERROR(logger, "Failed to add block");
       return s;
@@ -351,7 +351,7 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs& updates,
                       " the value " << kvPair.second);
 
       Status s = m_bcDbAdapter->updateKey(kvPair.first, block, kvPair.second);
-      if (!s.ok()) {
+      if (!s.isOK()) {
          LOG4CPLUS_ERROR(logger, "Failed to update key " << kvPair.first <<
                          ", block " << block);
          return s;
@@ -371,7 +371,7 @@ Status ReplicaImp::getInternal(BlockId readVersion,
 {
    Status s = m_bcDbAdapter->getKeyByReadVersion(
       readVersion, key, outValue, outBlock);
-   if (!s.ok()) {
+   if (!s.isOK()) {
       LOG4CPLUS_ERROR(logger, "Failed to get key " << key <<
                       " by read version " << readVersion);
       return s;
@@ -386,7 +386,7 @@ void ReplicaImp::revertBlock(BlockId blockId)
    Sliver blockRaw;
    bool found;
    Status s = m_bcDbAdapter->getBlockById(blockId, blockRaw, found);
-   if (!s.ok()) {
+   if (!s.isOK()) {
       // the replica is corrupted!
       // TODO(GG): what do we want to do now?
       LOG4CPLUS_FATAL(logger, "replica may be corrupted");
@@ -403,7 +403,7 @@ void ReplicaImp::revertBlock(BlockId blockId)
                                 header->entries[i].keySize);
 
          Status s = m_bcDbAdapter->delKey(keySliver, blockId);
-         if (!s.ok()) {
+         if (!s.isOK()) {
             // TODO(SG): What to do?
             LOG4CPLUS_FATAL(logger, "Failed to delete key");
             exit(1);
@@ -426,7 +426,7 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Sliver block)
    bool found = false;
    Sliver blockRaw;
    Status s = 	m_bcDbAdapter->getBlockById(blockId, blockRaw, found);
-   if (!s.ok()) {
+   if (!s.isOK()) {
       // the replica is corrupted!
       // TODO(GG): what do we want to do now?
       LOG4CPLUS_FATAL(logger, "replica may be corrupted\n\n");
@@ -474,7 +474,7 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Sliver block)
             const KeyIDPair pk(keySliver, blockId);
 
             Status s = m_bcDbAdapter->updateKey(pk.key, pk.blockId, valSliver);
-            if (!s.ok()) {
+            if (!s.isOK()) {
                // TODO(SG): What to do?
                LOG4CPLUS_FATAL(logger, "Failed to update key");
                exit(1);
@@ -482,7 +482,7 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Sliver block)
          }
 
          Status s = m_bcDbAdapter->addBlock(blockId, block);
-         if (!s.ok()) {
+         if (!s.isOK()) {
             // TODO(SG): What to do?
             printf("Failed to add block");
             exit(1);
@@ -490,7 +490,7 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Sliver block)
       }
       else {
          Status s = m_bcDbAdapter->addBlock(blockId, block);
-         if (!s.ok()) {
+         if (!s.isOK()) {
             // TODO(SG): What to do?
             printf("Failed to add block");
             exit(1);
@@ -507,7 +507,7 @@ Sliver ReplicaImp::getBlockInternal(BlockId blockId) const
 
    bool found;
    Status s = m_bcDbAdapter->getBlockById(blockId, retVal, found);
-   if (!s.ok()) {
+   if (!s.isOK()) {
       // TODO(SG): To do something smarter
       LOG4CPLUS_ERROR(logger, "An error occurred in get block");
       return Sliver();
@@ -577,7 +577,7 @@ Status ReplicaImp::StorageWrapperForIdleMode::mayHaveConflictBetween(
    BlockId block = 0;
    Status s = rep->getInternal(toBlock, key, dummy, block);
 
-   if (s.ok() && block < fromBlock) {
+   if (s.isOK() && block < fromBlock) {
       outRes = false;
    }
 
@@ -714,7 +714,7 @@ int ReplicaImp::get_block(int n,
    bool found = false;
    Sliver blockRaw;
    Status s = getBcDbAdapter()->getBlockById(bId, blockRaw, found);
-   if (!s.ok()) {
+   if (!s.isOK()) {
       LOG4CPLUS_ERROR(Logger::getInstance("com.vmware.athena.kvb"),
                       "error getting block by id " << bId);
       return -1;
@@ -775,9 +775,9 @@ Blockchain::createReplica(Blockchain::CommConfig &commConfig,
    //genesis block creation.
    Status s = db->init();
 
-   if (!s.ok()) {
+   if (!s.isOK()) {
       LOG4CPLUS_FATAL(Logger::getInstance("com.vmware.athena.kvb"),
-                      "Failure in Database Initialization");
+                      "Failure in Database Initialization, status: " << s);
       throw ReplicaInitException("Failure in Database Initialization");
    }
 
@@ -811,13 +811,13 @@ KeyValuePair ReplicaImp::StorageIterator::first(BlockId readVersion,
    Status s = rep->getBcDbAdapter()->first(
       m_iter, readVersion, actualVersion, isEnd, key, value);
 
-   if (s.IsNotFound()) {
+   if (s.isNotFound()) {
       isEnd = true;
       m_current = KeyValuePair();
       return m_current;
    }
 
-   if (!s.ok()) {
+   if (!s.isOK()) {
       LOG4CPLUS_ERROR(logger, "Failed to get first");
       exit(1);
    }
@@ -838,13 +838,13 @@ KeyValuePair ReplicaImp::StorageIterator::seekAtLeast(BlockId readVersion,
    Status s = rep->getBcDbAdapter()->seekAtLeast(
       m_iter, key, readVersion, actualVersion, actualKey, value, isEnd);
 
-   if (s.IsNotFound()) {
+   if (s.isNotFound()) {
       isEnd = true;
       m_current = KeyValuePair();
       return m_current;
    }
 
-   if (!s.ok()) {
+   if (!s.isOK()) {
       LOG4CPLUS_FATAL(logger, "Failed to seek at least");
       exit(1);
    }
@@ -872,13 +872,13 @@ KeyValuePair ReplicaImp::StorageIterator::next(BlockId readVersion,
    Status s = rep->getBcDbAdapter()->next(
       m_iter, readVersion, nextKey, nextValue, actualVersion, isEnd);
 
-   if (s.IsNotFound()) {
+   if (s.isNotFound()) {
       isEnd = true;
       m_current = KeyValuePair();
       return m_current;
    }
 
-   if (!s.ok()) {
+   if (!s.isOK()) {
       LOG4CPLUS_FATAL(logger, "Failed to get next");
       exit(1);
    }
@@ -894,7 +894,7 @@ KeyValuePair ReplicaImp::StorageIterator::getCurrent()
    Value value;
    Status s = rep->getBcDbAdapter()->getCurrent(m_iter, key, value);
 
-   if (!s.ok()) {
+   if (!s.isOK()) {
       LOG4CPLUS_FATAL(logger, "Failed to get current");
       exit(1);
    }
@@ -908,7 +908,7 @@ bool ReplicaImp::StorageIterator::isEnd()
    bool isEnd;
    Status s = rep->getBcDbAdapter()->isEnd(m_iter, isEnd);
 
-   if (!s.ok()) {
+   if (!s.isOK()) {
       LOG4CPLUS_FATAL(logger, "Failed to get current");
       exit(1);
    }

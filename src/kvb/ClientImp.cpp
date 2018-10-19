@@ -58,9 +58,9 @@ Status ClientImp::invokeCommandSynch(const char *request,
    if(res == 0)
       return Status::OK();
    else if (res == -1)
-      return Status::GeneralError(Slice("error"), Slice("timeout"));
+      return Status::GeneralError("timeout");
    else
-      return  Status::InvalidArgument(Slice("error"), Slice("small buffer"));
+      return  Status::InvalidArgument("small buffer");
 }
 
 IClient* createClient(Blockchain::CommConfig &commConfig,

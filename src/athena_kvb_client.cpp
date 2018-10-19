@@ -33,12 +33,12 @@ bool com::vmware::athena::KVBClient::send_request_sync(AthenaRequest &req,
      isReadOnly,
      OUT_BUFFER_SIZE, m_outBuffer, &actualReplySize);
 
-   if (status.ok() && actualReplySize) {
+   if (status.isOK() && actualReplySize) {
       return resp.ParseFromArray(m_outBuffer, actualReplySize);
    } else {
       LOG4CPLUS_ERROR(logger_, "Error invoking "
                       << (isReadOnly ? "read-only" : "read-write")
-                      << " command. Status: " << status.ToString()
+                      << " command. Status: " << status
                       << " Reply size: " << actualReplySize);
       ErrorResponse *err = resp.add_error_response();
       err->set_description("Internal Athena Error");

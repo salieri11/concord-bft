@@ -307,7 +307,7 @@ Status BlockchainDBAdapter::getBlockById(BlockId _blockId,
 {
    Sliver key = genBlockDbKey(_blockId);
    Status s = m_db->get(key, _blockRaw);
-   if (s.IsNotFound())
+   if (s.isNotFound())
    {
       _found = false;
       return Status::OK();

@@ -11,7 +11,7 @@
 #ifndef DATABASEINTERFACE_H
 #define DATABASEINTERFACE_H
 
-#include "status.h"
+#include "status.hpp"
 #include "sliver.hpp"
 
 #define OUT
