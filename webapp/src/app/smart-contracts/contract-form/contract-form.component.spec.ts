@@ -14,7 +14,9 @@ import { of as observableOf, throwError } from 'rxjs';
 import { MockSharedModule } from '../../shared/shared.module';
 import { ContractFormComponent } from './contract-form.component';
 import { SmartContractsService } from '../shared/smart-contracts.service';
-import { SmartContractsSolidityFunctionInputsComponent } from '../smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
+import {
+  SmartContractsSolidityFunctionInputsComponent
+} from '../smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
 
 
 describe('ContractFormComponent', () => {
@@ -42,10 +44,10 @@ describe('ContractFormComponent', () => {
       output: {
         abi: [{
           payable: false,
-          inputs: [{name:"addr",type:"address"},{name:"title",type:"bytes1"}],
+          inputs: [{name: 'addr', type: 'address'}, {name: 'title', type: 'bytes1'}],
           outputs: [],
-          stateMutability: "nonpayable",
-          type: "constructor"
+          stateMutability: 'nonpayable',
+          type: 'constructor'
         }],
         devdoc: 'devdoc',
         userdoc: 'userdoc',
@@ -169,7 +171,8 @@ describe('ContractFormComponent', () => {
 
   describe('On smart contract source code submission', () => {
     it('should call postSourceCode on source code submission', () => {
-      const spy = spyOn((component as any).smartContractsService, 'postSourceCode').and.returnValue(observableOf({data: [{contract_name: 'contractName'}]}));
+      const spy = spyOn((component as any).smartContractsService, 'postSourceCode')
+        .and.returnValue(observableOf({data: [{contract_name: 'contractName'}]}));
       const sourceCode = {
         sourcecode: component.smartContractForm.value.file
       };
@@ -210,6 +213,7 @@ describe('ContractFormComponent', () => {
 
       const result = (component as any).encodeConstructorParams();
 
+      // tslint:disable-next-line
       expect(result).toBe('000000000000000000000000166c22687709b3273097283a73daf33bed4bb2526100000000000000000000000000000000000000000000000000000000000000');
     });
   });

@@ -15,7 +15,9 @@ import { SmartContractsComponent } from './smart-contracts.component';
 import { CanViewDirective } from '../../shared/directives/can-view.directive';
 import { TourService } from '../../shared/tour.service';
 import { SmartContract } from '../shared/smart-contracts.model';
-import { SmartContractsSolidityFunctionInputsComponent } from '../smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
+import {
+  SmartContractsSolidityFunctionInputsComponent
+} from '../smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
 
 describe('SmartContractsComponent', () => {
   let component: SmartContractsComponent;
