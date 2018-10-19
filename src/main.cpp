@@ -243,9 +243,9 @@ run_service(variables_map &opts, Logger logger)
       // Genesis must be added before the replica is started.
       Blockchain::Status genesis_status =
          create_genesis_block(replica, params, logger);
-      if (!genesis_status.ok()) {
+      if (!genesis_status.isOK()) {
          LOG4CPLUS_FATAL(logger, "Unable to load genesis block: " <<
-                                 genesis_status.ToString());
+                         genesis_status);
          throw EVMException("Unable to load genesis block");
       }
 

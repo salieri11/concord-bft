@@ -216,7 +216,8 @@ void RocksDBClient::monitor() const
  */
 RocksDBClientIterator::RocksDBClientIterator(const RocksDBClient *_parentClient)
    : logger(log4cplus::Logger::getInstance("com.vmware.athena.kvb")),
-     m_parentClient(_parentClient)
+     m_parentClient(_parentClient),
+     m_status(Status::OK())
 {
    m_iter = m_parentClient->getNewRocksDbIterator();
 }

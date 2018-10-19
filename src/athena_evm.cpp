@@ -17,7 +17,6 @@
 #include "common/athena_eth_hash.hpp"
 #include "kvb/BlockchainInterfaces.h"
 #include "kvb/HashDefs.h"
-#include "kvb/slice.h"
 #include "kvb/HexTools.h"
 
 #ifdef USE_HERA

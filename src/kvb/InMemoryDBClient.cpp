@@ -14,12 +14,13 @@
  */
 
 #include <chrono>
+#include <cstring>
 #include <log4cplus/loggingmacros.h>
 
 #include "HexTools.h"
 #include "InMemoryDBClient.h"
 #include "sliver.hpp"
-#include "status.h"
+#include "status.hpp"
 
 using namespace Blockchain;
 

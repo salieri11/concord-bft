@@ -13,7 +13,7 @@
 #include <set>
 #include <Replica.hpp>
 #include "sliver.hpp"
-#include "status.h"
+#include "status.hpp"
 #include "DatabaseInterface.h"
 #include "StatusInfo.h"
 #include "ICommunication.hpp"
