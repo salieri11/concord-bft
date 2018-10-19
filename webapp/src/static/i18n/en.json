@@ -1,5 +1,5 @@
 {
-  "title": "VMware Athena",
+  "title": "VMware Blockchain",
   "common": {
     "all": "All",
     "close": "Close",
@@ -111,7 +111,7 @@
   },
   "marketing": {
     "subTitle": "Deploy The Industry's Most Advanced Permissioned Blockchains",
-    "description": "The Athena blockchain delivers the fastest TPS in the industry. Deploy and Manage Athena and Hyperledger for your consortium and organizations today.",
+    "description": "The VMware blockchain delivers the fastest TPS in the industry. Deploy and Manage Concord and Hyperledger for your consortium and organizations today.",
     "callToAction": "Get Started",
     "midHeading": "Get the most advanced enterprise blockchain",
     "itemOne": {
@@ -128,7 +128,7 @@
     }
   },
   "signUp": {
-    "description": "VMware Athena delivers the industries most advanced blockchain with the SBFT protocol.",
+    "description": "VMware blockchain delivers the industries most advanced blockchain with the SBFT protocol.",
     "callToAction": "Complete your information to get started.",
     "duplicateEmailError": "This email has already been used, please login.",
     "form": {
@@ -608,7 +608,7 @@
     "bodyText": "Are you sure you want to delete"
   },
   "globalError": {
-    "routingError": "You do not have permission to visit this section of Athena, please contact your sysadmin for more info."
+    "routingError": "You do not have permission to visit this section of VMware Blockchain, please contact your sysadmin for more info."
   },
   "users": {
     "title": "User Management",
@@ -769,7 +769,7 @@
       "navTitle": "Blockchain & Consortium",
       "info": "Selecting local fault tolerance will deploy nodes near your location, whereas global will distribute many nodes across all available regions.  Your consortium will be associated with this blockchain.",
       "blockchainType": "Blockchain Type",
-      "athena": "Athena",
+      "athena": "Concord",
       "hyperledger": "Hyperledger",
       "faultTolerance": "Fault Tolerance",
       "global": "Global",
