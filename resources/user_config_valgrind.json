@@ -1,0 +1,124 @@
+{
+  "product": {
+    "launch": [
+      {
+        "cockroachDB": {
+          "buildRoot": "./resources/",
+          "cockroachDB": {
+            "launchCommand": "./cockroachdb_test_setup.sh",
+            "parameters": []
+          }
+        }
+      },
+      {
+        "apiServer": {
+          "buildRoot": "/home/rsg/blockchain/git/helen",
+          "helen1": {
+            "launchCommand": "/usr/bin/java",
+            "parameters": [
+                "-jar",
+                "-Dspring.profiles.active=test",
+                "/home/rsg/blockchain/git/helen/target/helen-1.0-SNAPSHOT.jar",
+              "application-test.properties"
+            ]
+          }
+        }
+      },
+      {
+        "athena1": {
+          "buildRoot": "/home/rsg/blockchain/git/athena/build",
+          "athena1": {
+            "launchCommand": "valgrind",
+            "parameters": [
+              "--leak-check=full",
+              "--show-leak-kinds=all",
+              "--track-origins=yes",
+              "--log-file=athena1.log",
+              "src/athena",
+              "--logger_config",
+              "./resources/log4cplus.properties",
+              "-c",
+              "resources/athena1.config"
+            ]
+          }
+        }
+      },
+      {
+        "athena2": {
+          "buildRoot": "/home/rsg/blockchain/git/athena/build",
+          "athena2": {
+            "launchCommand": "valgrind",
+            "parameters": [
+              "--leak-check=full",
+              "--show-leak-kinds=all",
+              "--track-origins=yes",
+              "--log-file=athena1.log",
+              "src/athena",
+              "--logger_config",
+              "./resources/log4cplus.properties",
+              "-c",
+              "resources/athena2.config"
+            ]
+          }
+        }
+      },
+      {
+        "athena3": {
+          "buildRoot": "/home/rsg/blockchain/git/athena/build",
+          "athena3": {
+            "launchCommand": "valgrind",
+            "parameters": [
+              "--leak-check=full",
+              "--show-leak-kinds=all",
+              "--track-origins=yes",
+              "--log-file=athena1.log",
+              "src/athena",
+              "--logger_config",
+              "./resources/log4cplus.properties",
+              "-c",
+              "resources/athena3.config"
+            ]
+          }
+        }
+      },
+      {
+        "athena4": {
+          "buildRoot": "/home/rsg/blockchain/git/athena/build",
+          "athena4": {
+            "launchCommand": "valgrind",
+            "parameters": [
+              "--leak-check=full",
+              "--show-leak-kinds=all",
+              "--track-origins=yes",
+              "--log-file=athena1.log",
+              "src/athena",
+              "--logger_config",
+              "./resources/log4cplus.properties",
+              "-c",
+              "resources/athena4.config"
+            ]
+          }
+        }
+      }
+    ],
+    "users": [
+      {
+        "hash": "0x1111111111111111111111111111111111111111",
+        "password": "11111"
+      }
+    ]
+  },
+  "ethereum": {
+    "testRoot": "/home/rsg/blockchain/git/ethereum_tests",
+    "url": "http://localhost:8545",
+    "users": [
+      {
+        "hash": "0x2407cbf3b57e480df66c91650535319ef8bf74c8",
+        "password": "11111"
+      }
+    ]
+  },
+  "performance": {
+    "filename": "NORMALIZED_COMMANDS.txt.gz"
+  }
+}

@@ -55,6 +55,7 @@ class CoreVMTests(test_suite.TestSuite):
       ''' Runs all of the tests. '''
       if self._productMode and not self._noLaunch:
          try:
+            log.info("Launching product...")
             p = self.launchProduct(self._args,
                                    self._apiServerUrl,
                                    self._userConfig["product"])
@@ -64,6 +65,7 @@ class CoreVMTests(test_suite.TestSuite):
 
       tests = self._getTests()
 
+      log.info("Launching tests...")
       for test in tests:
          if not self._isSourceCodeTestFile(test):
             testCompiled = self._loadCompiledTest(test)
@@ -103,7 +105,8 @@ class CoreVMTests(test_suite.TestSuite):
       log.info("Tests are done.")
 
       if self._productMode and not self._noLaunch:
-         p.stopProduct()
+         if not self._memory_leak_test:
+            p.stopProduct()
 
       return self._resultFile
 

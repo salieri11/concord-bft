@@ -159,8 +159,8 @@ class Product():
       be better, as it will also confirm that the user(s) we were given are valid
       and unlock them.
       '''
-      # Waiting for 10 seconds for 5 times is enough
-      retries = 5
+      # Waiting for 10 seconds for 20 times (to support valgrind runs)
+      retries = 20
       attempts = 0
       # Helen now takes ~7-8 seconds to boot so we should wait for around 10 seconds
       sleepTime = 10
