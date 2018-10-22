@@ -217,12 +217,13 @@ def call(){
                   script {
                     env.athena_docker_tag = env.athena_docker_tag_param ? env.athena_docker_tag_param : env.actual_athena_fetched
                   }
-
-                  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-                    sh '''
-                      # Can stop using sudo when template is updated.
-                      echo "${PASSWORD}" | sudo -S ./docker-build.sh "${athena_repo}" "${athena_docker_tag}"
-                    '''
+                  withDockerRegistry([ credentialsId: "VMWATHENABOT_DOCKERHUB_CREDENTIALS", url: "" ]) {
+                    withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+                      sh '''
+                        # Can stop using sudo when template is updated.
+                        echo "${PASSWORD}" | sudo -S ./docker-build.sh "${athena_repo}" "${athena_docker_tag}"
+                      '''
+                    }
                   }
                 }
               }
