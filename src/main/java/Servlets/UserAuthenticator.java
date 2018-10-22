@@ -166,12 +166,21 @@ public class UserAuthenticator extends BaseServlet {
          JSONObject requestJSON = (JSONObject) parser.parse(requestBody);
          if (requestJSON.containsKey(EMAIL_LABEL)
             && requestJSON.containsKey(PASSWORD_LABEL)) {
+
             String email = requestJSON.get(EMAIL_LABEL).toString();
             User u = userRepository.findUserByEmail(email).get();
+            String password = requestJSON.get(PASSWORD_LABEL).toString();
 
-            String enPw = passwordEncoder.encode(requestJSON.get(PASSWORD_LABEL).toString());
-            responseStatus = HttpStatus.OK;
-            responseJSON = prm.changePassword(email, enPw);
+            if (passwordEncoder.matches(password, u.getPassword())) {
+               responseJSON
+                  = APIHelper.errorJSON("Can't use same password!");
+               responseStatus = HttpStatus.BAD_REQUEST;
+            } else {
+               String enPw = passwordEncoder.encode(password);
+               responseStatus = HttpStatus.OK;
+               responseJSON = prm.changePassword(email, enPw);
+            }
+
          } else {
             responseJSON
                = APIHelper.errorJSON("email or password " + "field missing");

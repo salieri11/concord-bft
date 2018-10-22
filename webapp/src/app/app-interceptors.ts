@@ -35,9 +35,13 @@ export class RequestInterceptor implements HttpInterceptor {
               if (request.url === 'api/auth/login') {
                 return throwError(error);
               }
-              this.authService.redirectUrl = this.router.url;
-              this.router.navigate([`auth/login`]);
               return this.handle401Error(request, next);
+            case 400:
+                if ( error.url.indexOf('api/auth/refresh') !== -1 ){
+                  this.authService.redirectUrl = this.router.url;
+                  this.router.navigate([`auth/login`]);
+                }
+                return throwError(error);
             default:
               return throwError(error);
           }
@@ -74,12 +78,11 @@ export class RequestInterceptor implements HttpInterceptor {
             return next.handle(this.addTokenToRequest(request, user.token));
           }),
           catchError(err => {
-            if (err && err.url.indexOf('api/auth/refresh') !== -1) {
+            if (err) {
               this.authService.redirectUrl = this.router.url;
               this.router.navigate([`auth/login`]);
               this.authService.logOut();
             }
-
             return of(err);
           }),
           finalize(() => {
