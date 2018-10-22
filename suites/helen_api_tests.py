@@ -651,10 +651,10 @@ class HelenAPITests(test_suite.TestSuite):
          return (False, "Patch didn't update name")
 
       patchData = {}
-      patchData['role'] = 'org_user'
+      patchData['role'] = 'ORG_USER'
       request.callUserAPI("/users/{}/".format(user_id), "PATCH", data=patchData)
       user = self._get_user(request, user_id)
-      if user['role'] != 'org_user':
+      if user['role'] != 'ORG_USER':
          return (False, "Patch didn't update role")
 
 
