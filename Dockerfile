@@ -2,7 +2,7 @@
 ## before building the docker image! See README.md.
 
 ## Build image
-FROM vmwblockchain/concord-core:prereqs-test1
+FROM vmwblockchain/concord-core:prereqs-v1
 
 
 WORKDIR /athena
