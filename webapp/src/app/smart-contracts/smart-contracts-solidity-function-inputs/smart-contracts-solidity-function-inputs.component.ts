@@ -6,7 +6,7 @@ import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/cor
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 
 import { AbiFunctionParameter } from '../shared/smart-contracts.model';
-import { isBytes, isHexAddress, isInt, isUint } from '../shared/custom-validators';
+import { isBytes, isBytesArray, isHexAddress, isInt, isUint } from '../shared/custom-validators';
 
 @Component({
   selector: 'athena-smart-contracts-solidity-function-inputs',
@@ -32,6 +32,12 @@ export class SmartContractsSolidityFunctionInputsComponent implements OnInit, On
     }
   }
 
+  isByteArray(controlType: string): boolean {
+    const bytesArrayRegex = /^byte[s]?\d{0,2}\[\d*]$/;
+
+    return bytesArrayRegex.test(controlType);
+  }
+
   getFormControl(controlType: string): FormControl {
     const intRegex = /^int.*$/;
     const uintRegex = /^uint.*$/;
@@ -44,6 +50,8 @@ export class SmartContractsSolidityFunctionInputsComponent implements OnInit, On
       return new FormControl('', [Validators.required, isHexAddress]);
     } else if (bytesRegex.test(controlType)) {
       return new FormControl('', [Validators.required, isBytes(controlType)]);
+    } else if (this.isByteArray(controlType)) {
+      return new FormControl('', [Validators.required, isBytesArray(controlType)]);
     } else {
       return new FormControl('', [Validators.required]);
     }

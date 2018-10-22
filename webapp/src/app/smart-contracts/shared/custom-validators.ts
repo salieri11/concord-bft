@@ -184,6 +184,35 @@ export function isBytes(controlType: string): ValidatorFn {
   };
 }
 
+export function isBytesArray(controlType: string): ValidatorFn {
+  const bytesType = controlType.split('[')[0];
+  const arrayLength = getArrayLength(controlType.split(bytesType)[1]);
+  const hexLength = getByteLength(bytesType) * 2;
+
+  return(control: AbstractControl): { [key: string]: boolean } | null => {
+    if (control.value === undefined || control.value === null) {
+      return null;
+    }
+    const controlArrayValue = control.value.split('\n');
+    let hasIncorrectByteLength = false;
+    // Check correct array length
+    if (arrayLength !== -1 && controlArrayValue.length !== arrayLength) {
+      return {invalidArrayLength: true};
+    }
+    controlArrayValue.forEach((item) => {
+      // Check correct byte length in each item
+      const controlValue = Web3Utils.isHexStrict(item) ? item : Web3Utils.asciiToHex(item);
+      const controlValueHexLength = controlValue.length - 2;
+      if (bytesType !== 'bytes' && controlValueHexLength > hexLength) {
+        hasIncorrectByteLength = true;
+      }
+    });
+    if (hasIncorrectByteLength) {
+      return {invalidByteArrayByteLength: true};
+    }
+  };
+}
+
 export function newVersionValue(existingVersions: string[]): ValidatorFn {
   return (control: AbstractControl): any => {
     return (existingVersions.indexOf(control.value) !== -1) ? { versionExists: true } : null;
@@ -223,6 +252,14 @@ function getByteLength(controlType) {
     return -1;
   } else {
     return parseInt(controlType.split('bytes')[1], 10);
+  }
+}
+
+function getArrayLength(arrayNotation) {
+  if (arrayNotation === '[]') {
+    return -1;
+  } else {
+    return parseInt(arrayNotation.replace(/[\[\]]/g, ''), 10);
   }
 }
 

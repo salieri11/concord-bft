@@ -125,12 +125,18 @@ export class SmartContractVersionComponent implements OnChanges {
 
   private encodeFunction() {
     const bytesRegex = /^byte[s]?\d{0,2}$/;
+    const bytesArrayRegex = /^byte[s]?\d{0,2}\[\d*]$/;
     const paramsForm = this.versionForm.get('contractForm').get('functionInputs');
     const params = this.inputs.map((input) => {
       let value = paramsForm.value[input.name];
 
       if (bytesRegex.test(input.type)) {
         value = Web3Utils.asciiToHex(value);
+      } else if (bytesArrayRegex.test(input.type)) {
+        value = value.split('\n');
+        value = value.map((x) => {
+          return Web3Utils.isHexStrict(x) ? x : Web3Utils.asciiToHex(x);
+        });
       }
 
       return value;

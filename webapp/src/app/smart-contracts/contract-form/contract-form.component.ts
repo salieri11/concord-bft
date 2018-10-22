@@ -244,11 +244,18 @@ export class ContractFormComponent implements OnInit {
 
     if (this.constructorAbi) {
       const bytesRegex = /^byte[s]?\d{0,2}$/;
+      const bytesArrayRegex = /^byte[s]?\d{0,2}\[\d*]$/;
       const paramTypes = this.constructorAbi.inputs.map(input => input.type);
       const paramValues = this.constructorAbi.inputs.map((input) => {
         let value = this.constructorParamsForm.value[input.name];
+
         if (bytesRegex.test(input.type)) {
           value = Web3Utils.asciiToHex(value);
+        } else if (bytesArrayRegex.test(input.type)) {
+          value = value.split('\n');
+          value = value.map((x) => {
+            return Web3Utils.isHexStrict(x) ? x : Web3Utils.asciiToHex(x);
+          });
         }
         return value;
       });
