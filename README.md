@@ -167,6 +167,50 @@ make
 ```
 Note: the build directory starts with and underscore (_) it is required to use the exact same name
 
+### Persistence
+
+Athena can also be run using persistent storage for the blockchain data.
+The persistent storage used currently is [RocksDB](https://rocksdb.org/).
+
+Build and install RocksDB dependencies:
+
+```shell
+sudo apt-get install libsnappy-dev
+sudo apt-get install zlib1g-dev
+sudo apt-get install libbz2-dev
+sudo apt-get install liblz4-dev
+sudo apt-get install libzstd-dev
+```
+
+Build and install RocksDB:
+
+```shell
+cd
+wget https://github.com/facebook/rocksdb/archive/v5.7.3.tar.gz
+tar -xzf v5.7.3.tar.gz
+cd rocksdb-5.7.3
+make shared_lib
+sudo make install-shared
+```
+
+Tell CMakeLists that you want to use RocksDB:
+
+```shell
+athena$ emacs CMakeLists.txt &
+```
+
+Set Use_RocksDB to True
+
+Also, provide a path to the location where you want the database files to be stored:
+
+```shell
+athena$ emacs resources/athena.config &
+```
+
+If not present, add a key `blockchain_db_impl` and set its value to `rocksdb`.
+If not present, add a key `blockchain_db_path` and set its value to the path of the
+location where storage is desired.
+
 ### Athena
 
 Once dependencies are installed, make sure you have initialized the
@@ -226,50 +270,6 @@ athena/build$ ./src/athena -c resources/athena3.config
 
 With Athena running, you probably want to go set up
 [Helen](https://github.com/vmwathena/helen) to talk to it.
-
-### Persistence
-
-Athena can also be run using persistent storage for the blockchain data.
-The persistent storage used currently is [RocksDB](https://rocksdb.org/).
-
-Build and install RocksDB dependencies:
-
-```shell
-sudo apt-get install libsnappy-dev
-sudo apt-get install zlib1g-dev
-sudo apt-get install libbz2-dev
-sudo apt-get install liblz4-dev
-sudo apt-get install libzstd-dev
-```
-
-Build and install RocksDB:
-
-```shell
-cd
-wget https://github.com/facebook/rocksdb/archive/v5.7.3.tar.gz
-tar -xzf v5.7.3.tar.gz
-cd rocksdb-5.7.3
-make shared_lib
-sudo make install-shared
-```
-
-Tell CMakeLists that you want to use RocksDB:
-
-```shell
-athena$ emacs CMakeLists.txt &
-```
-
-Set Use_RocksDB to True
-
-Also, provide a path to the location where you want the database files to be stored:
-
-```shell
-athena$ emacs resources/athena.config &
-```
-
-If not present, add a key `blockchain_db_impl` and set its value to `rocksdb`.
-If not present, add a key `blockchain_db_path` and set its value to the path of the
-location where storage is desired.
 
 ## What is here:
 
