@@ -105,8 +105,7 @@ class CoreVMTests(test_suite.TestSuite):
             self.writeResult(testName, result, info)
       log.info("Tests are done.")
 
-      if self._productMode and not self._noLaunch:
-         if not self._memory_leak_test:
+      if self._productMode and not self._noLaunch and not self._repeatSuiteRun:
             p.stopProduct()
 
       return self._resultFile

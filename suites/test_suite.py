@@ -58,10 +58,10 @@ class TestSuite(ABC):
       self._unintentionallySkippedTests = {}
       self._userUnlocked = False
 
-      if self._args.noOfRuns > 1:
-         self._memory_leak_test = True
+      if self._args.repeatSuiteRun > 1:
+         self._repeatSuiteRun = True
       else:
-         self._memory_leak_test = False
+         self._repeatSuiteRun = False
 
    def loadConfigFile(self):
       '''

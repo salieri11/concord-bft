@@ -51,7 +51,7 @@ def main():
                        help="Keep and re-use the existing Athena database files.",
                        default=False,
                        action='store_true')
-   parser.add_argument("--noOfRuns",
+   parser.add_argument("--repeatSuiteRun",
                        default=1,
                        type=int,
                        help="Number of times to repeat test runs")
@@ -59,8 +59,8 @@ def main():
    parent_results_dir = args.resultsDir
 
    setUpLogging(args)
-   for run_count in range(1, args.noOfRuns+1):
-      log.info("\nTestrun: {0}/{1}".format(run_count, args.noOfRuns))
+   for run_count in range(1, args.repeatSuiteRun+1):
+      log.info("\nTestrun: {0}/{1}".format(run_count, args.repeatSuiteRun))
       log.info("Start time: {}".format(startTime))
       args.resultsDir = createResultsDir(args.suite,
                                          parent_results_dir=parent_results_dir)
@@ -72,19 +72,19 @@ def main():
       log.info("End time: {}".format(endTime))
       log.info("Elapsed time: {}".format(str(endTime - startTime)))
       if not success:
-         save_memory_leak_test_result(parent_results_dir, "fail", args.noOfRuns)
+         update_repeated_suite_run_result(parent_results_dir, "fail", args.repeatSuiteRun)
          exit(2)
 
-      if args.noOfRuns > 1:
+      if args.repeatSuiteRun > 1:
          args.noLaunch = True
 
-   save_memory_leak_test_result(parent_results_dir, "pass", args.noOfRuns)
+   update_repeated_suite_run_result(parent_results_dir, "pass", args.repeatSuiteRun)
 
-def save_memory_leak_test_result(parent_results_dir, result, no_of_runs):
+def update_repeated_suite_run_result(parent_results_dir, result, no_of_runs):
    if no_of_runs > 1:
       result_file = os.path.join(parent_results_dir,
                                  'test_status.{0}'.format(result))
-      log.info("Memory leak testrun result: {0} [{1}]".format(result, result_file))
+      log.info("Repeated Suite run result: {0} [{1}]".format(result, result_file))
       open(result_file, 'a').close()
 
 def setUpLogging(args):

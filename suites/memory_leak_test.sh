@@ -2,11 +2,11 @@
 
 while [ "$1" != "" ] ; do
    case $1 in
-      "--testsuite")
+      "--testSuite")
          shift
-         TEST_SUITES=$1
+         TEST_SUITE=$1
          ;;
-      "--noOfRuns")
+      "--repeatSuiteRun")
          shift
          NO_OF_RUNS=$1
          ;;
@@ -25,15 +25,15 @@ MEMORY_INFO_LOG_FILE=${RESULTS_DIR}/memory_info_${TIME_STAMP}.log
 MEMORY_INFO_CSV_FILE=${RESULTS_DIR}/memory_info_${TIME_STAMP}.csv
 SLEEP_TIME_IN_SEC=60
 MEMORY_LEAK_PASS_FILE="${RESULTS_DIR}/test_status.pass"
-ATHENA1_VALGRIND_LOG_FILE="/home/builder/source/athena/build/valgrind_athena1.log"
+ATHENA1_VALGRIND_LOG_FILE="$HOME/source/athena/build/valgrind_athena1.log"
 HERMES_START_FILE="./main.py"
 SPECIFIC_TESTS=""
 RC=1
 
 check_usage() {
-    if [ "x${TEST_SUITES}" = "x" -o "x${NO_OF_RUNS}" = "x" ]
+    if [ "x${TEST_SUITE}" = "x" -o "x${NO_OF_RUNS}" = "x" ]
     then
-        echo "Usage: $0 --testsuite <Testsuite to run e.g CoreVMTests> --noOfRuns <No. of times to repeat complete test runs>"
+        echo "Usage: $0 --testSuite <Testsuite to run e.g CoreVMTests> --repeatSuiteRun <No. of times to repeat complete test runs>"
         exit 1
     fi
 }
@@ -45,7 +45,7 @@ launch_memory_test() {
     then
         SPECIFIC_TESTS="--tests ${TESTS}"
     fi
-    "${HERMES_START_FILE}" "${TEST_SUITES}" --config resources/user_config_valgrind.json --noOfRuns ${NO_OF_RUNS} --resultsDir ${RESULTS_DIR} ${SPECIFIC_TESTS} &
+    "${HERMES_START_FILE}" "${TEST_SUITE}" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir ${RESULTS_DIR} ${SPECIFIC_TESTS} &
     PID=$!
 
     cd $CWD
@@ -66,7 +66,7 @@ launch_memory_test() {
             fi
             if [ -f "${ATHENA1_VALGRIND_LOG_FILE}" ]
             then
-                mv ${ATHENA1_VALGRIND_LOG_FILE} ${RESULTS_DIR}
+                mv "${ATHENA1_VALGRIND_LOG_FILE}" "${RESULTS_DIR}"
             fi
             echo "Results: ${RESULTS_DIR}"
             exit $RC
