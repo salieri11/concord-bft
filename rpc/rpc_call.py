@@ -165,6 +165,19 @@ class RPC():
       else:
          return response
 
+   def addUser(self, url="http://localhost:8080/api/auth/login"):
+      '''
+      Create first user so basic auth works
+      '''
+      curlCmd = ["curl",
+                 "-X", "POST",
+                 "-H", "Content-Type: application/json",
+                 "--data", json.dumps({}),
+                 url,
+                 "--verbose"]
+
+      curlProc = subprocess.run(curlCmd)
+
    def _setUpOutput(self, method):
       '''
       Creates the log directory and sets the response/output files for an
