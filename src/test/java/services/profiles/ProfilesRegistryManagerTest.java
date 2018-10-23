@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 import org.json.simple.JSONObject;
@@ -22,6 +23,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.junit4.SpringRunner;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Tests for the ProfilesRegistryManager.
@@ -38,9 +41,6 @@ public class ProfilesRegistryManagerTest {
     @Mock
     UserRepository userRepository;
 
-    @Mock
-    User user;
-
     @InjectMocks
     ProfilesRegistryManager prm;
 
@@ -56,7 +56,7 @@ public class ProfilesRegistryManagerTest {
     public void init() {
         MockitoAnnotations.initMocks(this);
         MockitoAnnotations.initMocks(prm);
-        // consotium and organization
+        // consortium and organization
         consortium = new Consortium();
         consortium.setConsortiumID(200L);
         consortium.setConsortiumName("Consortium Test");
@@ -253,5 +253,82 @@ public class ProfilesRegistryManagerTest {
         }
         Assert.fail("Should not have gotten here");
     }
+
+    @Test(expected = UserModificationException.class)
+    public void testUpdateNoUser() throws Exception {
+        when(userRepository.findById(100L)).thenReturn(Optional.empty());
+        UsersAPIMessage msg = new UsersAPIMessage();
+        msg.setUserID(100L);
+        try {
+            prm.updateUser(msg);
+        } catch (UserModificationException e) {
+            Assert.assertEquals("No user found with ID: 100", e.getMessage());
+            verify(userRepository, times(0)).save(any());
+            verify(organizationRepository, times(0)).save(any());
+            verify(consortiumRepository, times(0)).save(any());
+            throw e;
+        }
+        Assert.fail("Should not have gotten here");
+    }
+
+    @Test(expected = UserModificationException.class)
+    public void testUpdateDupEmail() throws Exception {
+        Map<String, String> m = new ImmutableMap.Builder<String, String>()
+                .put(UsersAPIMessage.EMAIL_LABEL, "test@a.com").build();
+        JSONObject json = new JSONObject(m);
+        UsersAPIMessage msg = new UsersAPIMessage(json);
+        msg.setUserID(101L);
+        try {
+            prm.updateUser(msg);
+        } catch (UserModificationException e) {
+            Assert.assertEquals("Duplicate email address", e.getMessage());
+            verify(userRepository, times(0)).save(any());
+            verify(organizationRepository, times(0)).save(any());
+            verify(consortiumRepository, times(0)).save(any());
+            throw e;
+        }
+        Assert.fail("Should not have gotten here");
+    }
+
+    @Test
+    public void testUpdateEmailAndRole() throws Exception {
+        Map<String, String> m = new ImmutableMap.Builder<String, String>()
+                .put(UsersAPIMessage.EMAIL_LABEL, "old-test@a.com")
+                .put(UsersAPIMessage.ROLE_LABEL, "org_admin").build();
+        JSONObject json = new JSONObject(m);
+        UsersAPIMessage msg = new UsersAPIMessage(json);
+        msg.setUserID(101L);
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        prm.updateUser(msg);
+        verify(userRepository, times(1)).save(captor.capture());
+        verify(organizationRepository, times(0)).save(any());
+        verify(consortiumRepository, times(0)).save(any());
+        // email should have changed, but not first or last name
+        User u = captor.getValue();
+        Assert.assertEquals("old-test@a.com", u.getEmail());
+        Assert.assertEquals("Test", u.getFirstName());
+        Assert.assertEquals("User", u.getLastName());
+        Assert.assertEquals("org_admin", u.getRole());
+    }
+
+    @Test(expected = UserModificationException.class)
+    public void testUpdateBadRold() throws Exception {
+        Map<String, String> m = new ImmutableMap.Builder<String, String>()
+                .put(UsersAPIMessage.ROLE_LABEL, "invalid_role").build();
+        JSONObject json = new JSONObject(m);
+        UsersAPIMessage msg = new UsersAPIMessage(json);
+        msg.setUserID(101L);
+        try {
+            prm.updateUser(msg);
+        } catch (UserModificationException e) {
+            Assert.assertEquals("Invalid role value: invalid_role", e.getMessage());
+            verify(userRepository, times(0)).save(any());
+            verify(organizationRepository, times(0)).save(any());
+            verify(consortiumRepository, times(0)).save(any());
+            throw e;
+        }
+        Assert.fail("Should not have gotten here");
+    }
+
 
 }
