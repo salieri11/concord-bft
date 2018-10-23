@@ -11,6 +11,7 @@
       <label class="required clr-col-xs-12 clr-col-md-3">{{input.name}}</label>
       <input class="clr-col-xs-12 clr-col-md-9" clrInput type="text" [formControlName]="input.name" required>
       <clr-control-helper>{{'smartContracts.version.parameterHelper' | translate}}</clr-control-helper>
+      <clr-control-helper>{{'smartContracts.version.inputTypeHelper' | translate: {type: input.type} }}</clr-control-helper>
       <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}</clr-control-error>
       <clr-control-error *clrIfError="'hexAddress'">{{'smartContracts.version.addressPatternValidationMessage' | translate}}</clr-control-error>
       <clr-control-error *clrIfError="'unsignedInteger'">{{'smartContracts.version.inputUIntValidationMessage' | translate}}</clr-control-error>
@@ -21,6 +22,7 @@
       <label class="required clr-col-xs-12 clr-col-md-3">{{input.name}}</label>
       <textarea class="clr-col-xs-12 clr-col-md-9" clrTextarea [formControlName]="input.name" required></textarea>
       <clr-control-helper>{{'smartContracts.version.parameterHelper' | translate}}</clr-control-helper>
+      <clr-control-helper>{{'smartContracts.version.inputTypeHelper' | translate: {type: input.type} }}</clr-control-helper>
       <clr-control-helper>{{'smartContracts.version.arrayParameterHelper' | translate}}</clr-control-helper>
       <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}</clr-control-error>
       <clr-control-error *clrIfError="'invalidByteArrayByteLength'">{{'smartContracts.version.inputByteArrayByteLengthValidationMessage' | translate}}</clr-control-error>
