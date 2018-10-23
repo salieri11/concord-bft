@@ -20,30 +20,10 @@ export class BlockListComponent implements OnInit {
   recentTransactions: any[] = [];
   nextBlockUrl: string;
 
-  constructor(
-    private blocksService: BlocksService,
-  ) {
-    this.graphData = this.dailyData;
-  }
+  constructor(private blocksService: BlocksService) {}
 
   ngOnInit() {
     this.loadInitialBlocks();
-  }
-
-  getTodaysData() {
-    this.graphData = this.dailyData;
-  }
-
-  getLastSevenDaysData() {
-    this.graphData = this.weeklyData;
-  }
-
-  getLastThirtyDaysData() {
-    this.graphData = this.monthlyData;
-  }
-
-  getLastNinetyDaysData() {
-    this.graphData = this.quarterlyData;
   }
 
   loadInitialBlocks() {
