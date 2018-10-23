@@ -7,7 +7,7 @@
           <div class="col-sm-12 col-md-7 contract-form">
             <div class="card">
               <div class="card-block">
-                <clr-alert *ngIf="alertMessage" [clrAlertType]="alertType" [clrAlertClosable]="false">
+                <clr-alert *ngIf="alertMessage && resultType === 'error'" [clrAlertType]="alertType" [clrAlertClosable]="false">
                   <div class="alert-item">
                     <span class="alert-text">
                         {{alertMessage}}
@@ -77,7 +77,7 @@
               </div>
             </div>
           </div>
-          <div *ngIf="resultType === 'call' && alertType === 'alert-success'" class="col-sm-12 col-md-5">
+          <div *ngIf="resultType === 'call' && alertType === 'alert-success'" class="col-sm-12 col-md-5 call-success">
             <div class="card">
               <div class="card-header">
                 {{'smartContracts.version.returnValues' | translate}}
@@ -87,7 +87,7 @@
               </div>
             </div>
           </div>
-          <div *ngIf="resultType === 'send' && alertType === 'alert-success'" class="col-sm-12 col-md-5">
+          <div *ngIf="resultType === 'send' && alertType === 'alert-success'" class="col-sm-12 col-md-5 send-success">
             <div class="card">
               <div class="card-header">
                 {{'smartContracts.version.transaction' | translate}}
