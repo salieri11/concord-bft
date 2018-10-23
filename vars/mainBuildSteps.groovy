@@ -217,7 +217,7 @@ def call(){
                   script {
                     env.athena_docker_tag = env.athena_docker_tag_param ? env.athena_docker_tag_param : env.actual_athena_fetched
                   }
-                  withDockerRegistry([ credentialsId: "VMWATHENABOT_DOCKERHUB_CREDENTIALS", url: "" ]) {
+                  withDockerRegistry([ credentialsId: "BLOCKCHAINREADER_DOCKERHUB_CREDENTIALS", url: "" ]) {
                     withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                       sh '''
                         # Can stop using sudo when template is updated.
@@ -273,7 +273,7 @@ def call(){
           environment name: 'deploy', value: 'true'
         }
         steps {
-          withDockerRegistry([ credentialsId: "VMWATHENABOT_DOCKERHUB_CREDENTIALS", url: "" ]) {
+          withDockerRegistry([ credentialsId: "BLOCKCHAINWRITER_DOCKERHUB_CREDENTIALS", url: "" ]) {
 
             // Can stop using sudo with template version 4.
             withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
