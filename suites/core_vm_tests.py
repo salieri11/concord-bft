@@ -55,6 +55,7 @@ class CoreVMTests(test_suite.TestSuite):
       ''' Runs all of the tests. '''
       if self._productMode and not self._noLaunch:
          try:
+            log.info("Launching product...")
             p = self.launchProduct(self._args,
                                    self._apiServerUrl,
                                    self._userConfig["product"])
@@ -64,6 +65,8 @@ class CoreVMTests(test_suite.TestSuite):
 
       tests = self._getTests()
 
+      log.info("Launching tests...")
+      time.sleep(5)
       for test in tests:
          if not self._isSourceCodeTestFile(test):
             testCompiled = self._loadCompiledTest(test)
@@ -102,8 +105,8 @@ class CoreVMTests(test_suite.TestSuite):
             self.writeResult(testName, result, info)
       log.info("Tests are done.")
 
-      if self._productMode and not self._noLaunch:
-         p.stopProduct()
+      if self._productMode and not self._noLaunch and not self._repeatSuiteRun:
+            p.stopProduct()
 
       return self._resultFile
 

@@ -7,7 +7,7 @@ import argparse
 import datetime
 import logging
 import os
-from tempfile import mkdtemp
+import tempfile
 from time import strftime, localtime
 
 from suites import core_vm_tests, helen_api_tests, ext_rpc_tests, \
@@ -32,6 +32,7 @@ def main():
                        "'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'",
                        default="INFO")
    parser.add_argument("--resultsDir",
+                       default=tempfile.gettempdir(),
                        help="Results directory")
    parser.add_argument("--tests",
                        help="Run specific tests. Details depend on the suite " \
@@ -42,29 +43,49 @@ def main():
    parser.add_argument("--config",
                        help="User config file to be considered.")
    parser.add_argument("--noLaunch",
-                        default=False,
-                        action='store_true',
-                       help="Will not launch the product, assuming it is already running")
+                       default=False,
+                       action='store_true',
+                       help="Will not launch the product, assuming it is "
+                            "already running")
    parser.add_argument("--keepAthenaDB",
                        help="Keep and re-use the existing Athena database files.",
                        default=False,
                        action='store_true')
+   parser.add_argument("--repeatSuiteRun",
+                       default=1,
+                       type=int,
+                       help="Number of times to repeat test runs")
    args = parser.parse_args()
-
-   if (args.resultsDir == None):
-      args.resultsDir = createResultsDir(args.suite)
+   parent_results_dir = args.resultsDir
 
    setUpLogging(args)
-   log.info("Start time: {}".format(startTime))
-   log.info("Results directory: {}".format(args.resultsDir))
-   suite = createTestSuite(args)
-   log.info("Running suite {}".format(suite.getName()))
-   success = processResults(suite.run())
-   endTime = datetime.datetime.now()
-   log.info("End time: {}".format(endTime))
-   log.info("Elapsed time: {}".format(str(endTime - startTime)))
-   if not success:
-     exit(2)
+   for run_count in range(1, args.repeatSuiteRun+1):
+      log.info("\nTestrun: {0}/{1}".format(run_count, args.repeatSuiteRun))
+      log.info("Start time: {}".format(startTime))
+      args.resultsDir = createResultsDir(args.suite,
+                                         parent_results_dir=parent_results_dir)
+      log.info("Results directory: {}".format(args.resultsDir))
+      suite = createTestSuite(args)
+      log.info("Running suite {}".format(suite.getName()))
+      success = processResults(suite.run())
+      endTime = datetime.datetime.now()
+      log.info("End time: {}".format(endTime))
+      log.info("Elapsed time: {}".format(str(endTime - startTime)))
+      if not success:
+         update_repeated_suite_run_result(parent_results_dir, "fail", args.repeatSuiteRun)
+         exit(2)
+
+      if args.repeatSuiteRun > 1:
+         args.noLaunch = True
+
+   update_repeated_suite_run_result(parent_results_dir, "pass", args.repeatSuiteRun)
+
+def update_repeated_suite_run_result(parent_results_dir, result, no_of_runs):
+   if no_of_runs > 1:
+      result_file = os.path.join(parent_results_dir,
+                                 'test_status.{0}'.format(result))
+      log.info("Repeated Suite run result: {0} [{1}]".format(result, result_file))
+      open(result_file, 'a').close()
 
 def setUpLogging(args):
    '''
@@ -100,10 +121,11 @@ def createTestSuite(args):
    elif (args.suite == "RegressionTests"):
       return regression_tests.RegressionTests(args)
 
-def createResultsDir(suiteName):
-   prefix = suiteName + "_" + strftime("%Y%m%d_%H%M_", localtime())
-
-   return mkdtemp(prefix=prefix)
+def createResultsDir(suiteName, parent_results_dir=tempfile.gettempdir()):
+   prefix = suiteName + "_" + strftime("%Y%m%d_%H%M%S", localtime())
+   results_dir = os.path.join(parent_results_dir, prefix)
+   os.makedirs(results_dir)
+   return results_dir
 
 def processResults(resultsFile):
    '''
