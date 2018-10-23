@@ -34,7 +34,7 @@
               "--leak-check=full",
               "--show-leak-kinds=all",
               "--track-origins=yes",
-              "--log-file=valgrind_athena1.log",
+              "--log-file=/tmp/valgrind_athena1.log",
               "src/athena",
               "--logger_config",
               "./resources/log4cplus.properties",
