@@ -86,17 +86,17 @@
         <clr-icon clrVerticalNavIcon shape="home"></clr-icon>
         {{'nav.dashboard.title' | translate}}
       </a>
-      <a clrVerticalNavLink routerLink="/nodes" routerLinkActive="active">
-        <clr-icon clrVerticalNavIcon shape="network-globe"></clr-icon>
-        {{'nav.nodeList.title' | translate}}
-      </a>
-      <a clrVerticalNavLink routerLink="/blocks" routerLinkActive="active">
-        <clr-icon clrVerticalNavIcon shape="block"></clr-icon>
-        {{'nav.blockList.title' | translate}}
-      </a>
       <a clrVerticalNavLink routerLink="/smart-contracts" routerLinkActive="active">
         <clr-icon clrVerticalNavIcon shape="scroll"></clr-icon>
         {{'nav.smartContracts.title' | translate}}
+      </a>
+      <a clrVerticalNavLink routerLink="/blocks" routerLinkActive="active">
+        <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon>
+        {{'nav.blockList.title' | translate}}
+      </a>
+      <a clrVerticalNavLink routerLink="/transactions" routerLinkActive="active">
+        <clr-icon clrVerticalNavIcon shape="tags"></clr-icon>
+        {{'nav.transactionList.title' | translate}}
       </a>
       <ng-container *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
         <div class="nav-divider"></div>
