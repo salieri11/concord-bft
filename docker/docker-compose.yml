@@ -1,7 +1,7 @@
 version: '3'
 services:
   athena1:
-    image: athena:latest
+    image: "${athena_repo}:${athena_tag}"
     expose:
       - 5458
       - 3501/udp
@@ -16,7 +16,7 @@ services:
       - ./config-public:/athena/config-public:ro
 
   athena2:
-    image: athena:latest
+    image: "${athena_repo}:${athena_tag}"
     expose:
       - 5458
       - 3501/udp
@@ -31,7 +31,7 @@ services:
       - ./config-public:/athena/config-public:ro
 
   athena3:
-    image: athena:latest
+    image: "${athena_repo}:${athena_tag}"
     expose:
       - 5458
       - 3501/udp
@@ -46,7 +46,7 @@ services:
       - ./config-public:/athena/config-public:ro
 
   athena4:
-    image: athena:latest
+    image: "${athena_repo}:${athena_tag}"
     expose:
       - 5458
       - 3501/udp
@@ -61,7 +61,7 @@ services:
       - ./config-public:/athena/config-public:ro
 
   helen:
-    image: helen:latest
+    image: "${helen_repo}:${helen_tag}"
     ports:
       - 8080:8080
   db-server:
