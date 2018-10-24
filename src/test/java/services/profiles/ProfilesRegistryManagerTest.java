@@ -22,6 +22,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.google.common.collect.ImmutableMap;
@@ -40,6 +41,9 @@ public class ProfilesRegistryManagerTest {
 
     @Mock
     UserRepository userRepository;
+
+    @Mock
+    PasswordEncoder passwordEncoder;
 
     @InjectMocks
     ProfilesRegistryManager prm;
@@ -87,11 +91,10 @@ public class ProfilesRegistryManagerTest {
         when(userRepository.save(any(User.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(organizationRepository.findAll()).thenReturn(Collections.emptyList());
-        when(organizationRepository.save(any(Organization.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(organizationRepository.save(any(Organization.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(consortiumRepository.findAll()).thenReturn(Collections.emptyList());
-        when(consortiumRepository.save(any(Consortium.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(consortiumRepository.save(any(Consortium.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(passwordEncoder.encode(any(CharSequence.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
 
@@ -284,7 +287,7 @@ public class ProfilesRegistryManagerTest {
         Assert.assertEquals("old-test@a.com", u.getEmail());
         Assert.assertEquals("Test", u.getFirstName());
         Assert.assertEquals("User", u.getLastName());
-        Assert.assertEquals(Roles.ORG_ADMIN, u.getRole());
+        Assert.assertEquals(Roles.ORG_ADMIN.toString(), u.getRole());
     }
 
     @Test(expected = UserModificationException.class)
