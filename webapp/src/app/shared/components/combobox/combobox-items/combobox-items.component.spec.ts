@@ -186,7 +186,7 @@ describe('VmwComboboxItems', () => {
 
       it('shows No items found', () => {
         expect(element.querySelectorAll('.dropdown-item').length).toBe(1);
-        expect(element.querySelector('.dropdown-item').innerText).toBe('No items found.');
+        expect(element.querySelector('.dropdown-item').innerText).toBe(' No items found. ');
       });
     });
 
@@ -303,7 +303,7 @@ describe('VmwComboboxItems', () => {
     describe('and the noItemsFoudString is not set', () => {
       it('shows No items available', () => {
         expect(element.querySelectorAll('.dropdown-item').length).toEqual(1);
-        expect(element.querySelector('.dropdown-item').innerText).toEqual('No items found.');
+        expect(element.querySelector('.dropdown-item').innerText).toEqual(' No items found. ');
       });
     });
 
@@ -317,7 +317,7 @@ describe('VmwComboboxItems', () => {
         expect(element.querySelectorAll('.dropdown-item').length)
           .toEqual(1);
         expect(element.querySelector('.dropdown-item').innerText)
-          .toEqual('No Items found custom string');
+          .toEqual(' No Items found custom string ');
       });
     });
 
