@@ -167,7 +167,8 @@ class RPC():
 
    def addUser(self, url="http://localhost:8080/api/auth/login"):
       '''
-      Create first user so basic auth works
+      TEMPORARY, this will soon be replaced by CSP and VIDM
+      Create first user so basic auth works for API calls.
       '''
       curlCmd = ["curl",
                  "-X", "POST",
