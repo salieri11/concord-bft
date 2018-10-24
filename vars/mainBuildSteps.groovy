@@ -309,11 +309,10 @@ def call(){
 // Next, get master.
 // Next, try to get BRANCH_NAME.  If getting BRANCH_NAME fails, we are probably testing
 // a branch that is in only in one or two of the repos.  That's fine.
-// Returns the name of the branch or commit that was used.
+// Returns the short form commit hash.
 void getRepoCode(repo_url, branch_or_commit){
   if (branch_or_commit.trim()){
     checkoutRepo(repo_url, branch_or_commit)
-    return branch_or_commit
   }else{
     checkoutRepo(repo_url, "master")
 
@@ -321,15 +320,17 @@ void getRepoCode(repo_url, branch_or_commit){
     // environment variable.
     if (env.BRANCH_NAME && env.BRANCH_NAME.trim()){
       try {
-        checkoutRepo(repo_url, env.BRANCH_NAME)
-        return env.BRANCH_NAME
+        checkoutRepo(repo_url, "/refs/heads/${env.BRANCH_NAME}")
       } catch (Exception e) {
         echo "Branch ${env.BRANCH_NAME} for ${repo_url} not found."
       }
     }
-
-    return "master"
   }
+
+  return sh (
+    script: 'git rev-parse --short HEAD',
+    returnStdout: true
+  ).trim()
 }
 
 // All that varies for each repo is the branch, so wrap this very large call.
