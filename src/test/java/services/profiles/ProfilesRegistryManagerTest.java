@@ -22,6 +22,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.google.common.collect.ImmutableMap;
@@ -40,6 +41,9 @@ public class ProfilesRegistryManagerTest {
 
     @Mock
     UserRepository userRepository;
+
+    @Mock
+    PasswordEncoder passwordEncoder;
 
     @InjectMocks
     ProfilesRegistryManager prm;
@@ -73,7 +77,7 @@ public class ProfilesRegistryManagerTest {
         existingUser.setPassword("foobar");
         existingUser.setConsortium(consortium);
         existingUser.setOrganization(organization);
-        existingUser.setRole("org_user");
+        existingUser.setRole(Roles.ORG_ADMIN);
         newUser = new User();
         newUser.setEmail("newbie@a.com");
         newUser.setFirstName("New B.");
@@ -81,17 +85,16 @@ public class ProfilesRegistryManagerTest {
         newUser.setPassword("foobar");
         newUser.setConsortium(consortium);
         newUser.setOrganization(organization);
-        newUser.setRole("org_user");
+        newUser.setRole(Roles.ORG_USER);
         when(userRepository.findById(101L)).thenReturn(Optional.of(existingUser));
         when(userRepository.findUserByEmail("test@a.com")).thenReturn(Optional.of(existingUser));
         when(userRepository.save(any(User.class)))
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(organizationRepository.findAll()).thenReturn(Collections.emptyList());
-        when(organizationRepository.save(any(Organization.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(organizationRepository.save(any(Organization.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(consortiumRepository.findAll()).thenReturn(Collections.emptyList());
-        when(consortiumRepository.save(any(Consortium.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
+        when(consortiumRepository.save(any(Consortium.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(passwordEncoder.encode(any(CharSequence.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
 
@@ -104,28 +107,22 @@ public class ProfilesRegistryManagerTest {
 
     @Test
     public void testLoginGood() throws Exception {
-        JSONObject json = prm.loginUser("test@a.com", "foobar");
+        JSONObject json = prm.loginUser("test@a.com");
         Assert.assertEquals(Boolean.TRUE, json.get("isAuthenticated"));
         Assert.assertNotNull(json.get("last_login"));
         verify(userRepository, times(1)).save(any(User.class));
     }
 
-    @Test
-    public void testLogingBad() throws Exception {
-        JSONObject json = prm.loginUser("test@a.com", "arglebargle");
-        Assert.assertEquals(Boolean.FALSE, json.get("isAuthenticated"));
-    }
-
     @Test(expected = UserModificationException.class)
     public void testLoginNoUser() throws Exception {
-        prm.loginUser("noeone@a.com", "arglebargle");
+        prm.loginUser("noeone@a.com");
         Assert.fail("Should not get this far");
     }
 
     @Test
     public void testChangePassword() throws Exception {
         prm.changePassword("test@a.com", "arglebargle");
-        Assert.assertEquals(Boolean.TRUE, prm.loginUser("test@a.com", "arglebargle").get("isAuthenticated"));
+        Assert.assertEquals(Boolean.TRUE, prm.loginUser("test@a.com").get("isAuthenticated"));
         // save is called once by the change, and once by login
         verify(userRepository, times(2)).save(any(User.class));
     }
@@ -133,18 +130,18 @@ public class ProfilesRegistryManagerTest {
     @Test
     public void testCreateOrg() throws Exception {
         ArgumentCaptor<Organization> captor = ArgumentCaptor.forClass(Organization.class);
-        Long l = prm.createOrgIfNotExist();
+        Organization l = prm.createOrgIfNotExist();
         verify(organizationRepository, times(1)).save(captor.capture());
-        Assert.assertEquals("TEST_ORG", captor.getValue().getOrganizationName());
+        Assert.assertEquals("ADMIN", captor.getValue().getOrganizationName());
         // since we're just creating a new one, ID will be zero in unit tests
-        Assert.assertEquals(Long.valueOf(0), l);
+        Assert.assertEquals(Long.valueOf(0), l.getOrganizationID());
     }
 
     @Test
     public void testCreateOrgExits() throws Exception {
         when(organizationRepository.findAll()).thenReturn(Collections.singletonList(organization));
-        Long l = prm.createOrgIfNotExist();
-        Assert.assertEquals(Long.valueOf(300), l);
+        Organization l = prm.createOrgIfNotExist();
+        Assert.assertEquals(Long.valueOf(300), l.getOrganizationID());
         verify(organizationRepository, times(0)).save(any(Organization.class));
     }
 
@@ -153,16 +150,16 @@ public class ProfilesRegistryManagerTest {
         ArgumentCaptor<Consortium> captor = ArgumentCaptor.forClass(Consortium.class);
         prm.createConsortiumIfNotExist();
         verify(consortiumRepository, times(1)).save(captor.capture());
-        Assert.assertEquals("TEST_CON", captor.getValue().getConsortiumName());
-        Assert.assertEquals("ATHENA", captor.getValue().getConsortiumType());
+        Assert.assertEquals("ADMIN", captor.getValue().getConsortiumName());
+        Assert.assertEquals("ADMIN", captor.getValue().getConsortiumType());
     }
 
     @Test
     public void testCreateConsortiumExits() throws Exception {
         when(consortiumRepository.findAll()).thenReturn(Collections.singletonList(consortium));
-        Long l = prm.createConsortiumIfNotExist();
+        Consortium l = prm.createConsortiumIfNotExist();
         verify(consortiumRepository, times(0)).save(any(Consortium.class));
-        Assert.assertEquals(Long.valueOf(200), l);
+        Assert.assertEquals(Long.valueOf(200), l.getConsortiumID());
     }
 
     @Test
@@ -237,24 +234,6 @@ public class ProfilesRegistryManagerTest {
     }
 
     @Test(expected = UserModificationException.class)
-    public void testCreateUserBadRole() throws Exception {
-        when(organizationRepository.findById(300L)).thenReturn(Optional.of(organization));
-        when(consortiumRepository.findById(200L)).thenReturn(Optional.of(consortium));
-        newUser.setRole("dice_role");
-        UsersAPIMessage msg = new UsersAPIMessage(newUser);
-        try {
-            prm.createUser(msg);
-        } catch (UserModificationException e) {
-            Assert.assertEquals("dice_role is invalid Role value.", e.getMessage());
-            verify(userRepository, times(0)).save(any());
-            verify(organizationRepository, times(0)).save(any());
-            verify(consortiumRepository, times(0)).save(any());
-            throw e;
-        }
-        Assert.fail("Should not have gotten here");
-    }
-
-    @Test(expected = UserModificationException.class)
     public void testUpdateNoUser() throws Exception {
         when(userRepository.findById(100L)).thenReturn(Optional.empty());
         UsersAPIMessage msg = new UsersAPIMessage();
@@ -293,9 +272,9 @@ public class ProfilesRegistryManagerTest {
     @Test
     public void testUpdateEmailAndRole() throws Exception {
         Map<String, String> m = new ImmutableMap.Builder<String, String>()
-                .put(UsersAPIMessage.EMAIL_LABEL, "old-test@a.com")
-                .put(UsersAPIMessage.ROLE_LABEL, "org_admin").build();
+                .put(UsersAPIMessage.EMAIL_LABEL, "old-test@a.com").build();
         JSONObject json = new JSONObject(m);
+        json.put("role", "ORG_ADMIN");
         UsersAPIMessage msg = new UsersAPIMessage(json);
         msg.setUserID(101L);
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
@@ -308,7 +287,7 @@ public class ProfilesRegistryManagerTest {
         Assert.assertEquals("old-test@a.com", u.getEmail());
         Assert.assertEquals("Test", u.getFirstName());
         Assert.assertEquals("User", u.getLastName());
-        Assert.assertEquals("org_admin", u.getRole());
+        Assert.assertEquals(Roles.ORG_ADMIN.toString(), u.getRole());
     }
 
     @Test(expected = UserModificationException.class)
