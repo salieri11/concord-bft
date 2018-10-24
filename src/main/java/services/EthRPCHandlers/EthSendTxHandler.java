@@ -243,11 +243,13 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
       JSONObject params = (JSONObject) paramsArray.get(0);
       String fromParam = (String) params.get("from");
       String toParam = (String) params.get("to");
+      String byteCode = (String) params.get("data");
+      byteCode = byteCode.replace("0x", "");
       respObject.put("result",
                      APIHelper.binaryStringToHex(ethResponse.getData()));
       if (!isInternalContract && toParam == null) {
          try {
-            handleSmartContractCreation(APIHelper.binaryStringToHex(ethResponse.getData()), fromParam);
+            handleSmartContractCreation(APIHelper.binaryStringToHex(ethResponse.getData()), fromParam, byteCode);
          } catch (Exception e) {
             logger.error("Error in smart contract linking.", e);
          }
@@ -255,7 +257,7 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
       return respObject;
    }
 
-   private void handleSmartContractCreation(String transactionHash, String from) throws Exception  {
+   private void handleSmartContractCreation(String transactionHash, String from, String byteCode) throws Exception  {
       JSONObject ethRequest = new JSONObject();
       JSONArray paramsArray = new JSONArray();
       ethRequest.put("id", 1);
@@ -273,7 +275,6 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
             String contractVersion = "1";
             String contractAddress = (String) result.get("contractAddress");
             String metaData = "";
-            String byteCode = "";
             String solidityCode = "";
             boolean success = registryManager.addNewContractVersion(contractAddress,
                     from,

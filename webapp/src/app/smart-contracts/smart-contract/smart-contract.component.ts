@@ -71,6 +71,6 @@ export class SmartContractComponent implements OnInit {
   }
 
   get versionIsExternal() {
-    return this.version && this.version.sourcecode === '' && this.version.bytecode === '';
+    return this.version && this.version.sourcecode === '' && Object.keys(this.version.metadata).length === 0;
   }
 }

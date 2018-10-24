@@ -393,7 +393,6 @@ public class ContractsServlet extends BaseServlet {
                        from,
                        contractVersion,
                        result.getMetadataMap().get(selectedContract),
-                       byteCode,
                        solidityCode
                );
 

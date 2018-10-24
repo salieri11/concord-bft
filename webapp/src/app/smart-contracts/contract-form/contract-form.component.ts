@@ -99,7 +99,7 @@ export class ContractFormComponent implements OnInit {
 
   open(smartContract?: SmartContract, version?: SmartContractVersion) {
     this.fileInput.nativeElement.value = '';
-    if (version && version.bytecode === '' && version.sourcecode === '') {
+    if (version && Object.keys(version.metadata).length === 0 && version.sourcecode === '') {
       // Update external mode
       this.modalTitle = this.translate.instant('smartContracts.updateContract');
       this.modalState.isUpdateExternal = true;

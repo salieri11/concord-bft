@@ -43,7 +43,7 @@
       </div>
     </div>
   </clr-alert>
-  <athena-smart-contract-version *ngIf="version && !versionIsExternal" [version]="version"></athena-smart-contract-version>
+  <athena-smart-contract-version *ngIf="version" [version]="version"></athena-smart-contract-version>
 </div>
 
 <athena-contract-form #contractFormModal (contractCreated)="afterUpdateContract($event)"></athena-contract-form>

@@ -180,6 +180,9 @@ export class SmartContractVersionComponent implements OnChanges {
   }
 
   private onVersionChange(version: SimpleChange) {
+    if(Object.keys(version.currentValue.metadata).length === 0) {
+      return;
+    }
     this.functions = version.currentValue.metadata.output.abi.filter(abi => abi.type === 'function');
     this.versionForm.reset();
     this.versionForm.value.contractForm.functionInputs = new FormGroup({});
