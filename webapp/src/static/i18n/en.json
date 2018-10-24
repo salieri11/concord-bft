@@ -373,6 +373,14 @@
         "title": "Contract Info",
         "content": "Contract information, such as source code bytecode and meta data can be found in these tabs"
       }
+    },
+    "truffle": {
+      "title": "How to connect with truffle",
+      "first": "Install and setup truffle.",
+      "second": "In your truffle project do an npm init if you haven't done so already and install web3@0.19.0",
+      "third": "Edit your truffle.js file so that it is similar to below, make sure to change your password, your email is your username.",
+      "option": "You may need to modify the web3 basic auth like below, depending on your version of web3.",
+      "fourth": "Now you should be able to deploy using truffle."
     }
   },
   "organization": {
