@@ -683,6 +683,8 @@ BlockId BlockchainDBAdapter::getLatestBlock()
    //Read the previous key
    x = iter->previous();
 
+   m_db->freeIterator(iter);
+
    if((x.first).length() == 0) { //no blocks
       return 0;
    }
