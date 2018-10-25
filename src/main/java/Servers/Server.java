@@ -86,8 +86,8 @@ public class Server {
        cacheConfiguration.setName("TokenCache");
        cacheConfiguration.setMemoryStoreEvictionPolicy("LRU");
        cacheConfiguration.setMaxEntriesLocalHeap(500);
-       cacheConfiguration.timeToIdleSeconds(TimeUnit.MINUTES.toSeconds(5));
-       cacheConfiguration.timeToLiveSeconds(TimeUnit.MINUTES.toSeconds(5));
+       cacheConfiguration.timeToIdleSeconds(TimeUnit.MINUTES.toSeconds(10));
+       cacheConfiguration.timeToLiveSeconds(TimeUnit.MINUTES.toSeconds(10));
 
        net.sf.ehcache.config.Configuration config = new net.sf.ehcache.config.Configuration();
        config.addCache(cacheConfiguration);
