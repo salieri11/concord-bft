@@ -730,8 +730,8 @@ int ReplicaImp::get_block(int n,
    }
 
    LOG4CPLUS_DEBUG(Logger::getInstance("com.vmware.athena.kvb"),
-                   "n " << n << " size " << size << " page " <<
-                   Sliver(reinterpret_cast<uint8_t*>(*page), size));
+                   "n " << n << " size " << size << " page " << page);
+
    return size;
 }
 
