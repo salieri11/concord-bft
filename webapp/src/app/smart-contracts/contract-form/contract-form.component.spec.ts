@@ -64,22 +64,9 @@ describe('ContractFormComponent', () => {
     contract_id: 'contractId',
     version: 'version',
     owner: 'owner',
-    metadata: {
-      compiler: {
-        version: 'version'
-      },
-      language: 'language',
-      output: {
-        abi: [],
-        devdoc: 'devdoc',
-        userdoc: 'userdoc',
-      },
-      settings: 'settings',
-      sources: 'sources',
-      version: 1,
-    },
+    metadata: {},
     address: 'address',
-    bytecode: '',
+    bytecode: 'bytecode',
     sourcecode: ''
   };
 
@@ -140,7 +127,7 @@ describe('ContractFormComponent', () => {
       expect((component as any).createUpdateContractForm).toHaveBeenCalled();
     });
 
-    it('opens the update existing form when a version is provided without bytecode and sourcecode', () => {
+    it('opens the update existing form when a version is provided without metadata and sourcecode', () => {
       spyOn((component as any), 'createUpdateExternalContractForm').and.callThrough();
       component.open(testContract, testExternalversion);
       expect((component as any).createUpdateExternalContractForm).toHaveBeenCalled();
