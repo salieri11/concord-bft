@@ -18,12 +18,17 @@ package Servers;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.ehcache.EhCacheCacheManager;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
@@ -33,6 +38,7 @@ import configurations.ConfigurationFactory.ConfigurationType;
 import configurations.IConfiguration;
 import connections.AthenaConnectionFactory;
 import connections.AthenaConnectionPool;
+import net.sf.ehcache.config.CacheConfiguration;
 import services.profiles.ProfilesRegistryManager;
 import services.profiles.User;
 
@@ -41,6 +47,7 @@ import services.profiles.User;
 @EnableJpaRepositories(basePackageClasses = { ProfilesRegistryManager.class })
 @ComponentScan(basePackageClasses = { BlockList.class,
    ProfilesRegistryManager.class, HelenSpringWebConfig.class })
+@EnableCaching
 public class Server {
 
 
@@ -71,6 +78,26 @@ public class Server {
       logger.info("athena connection pool initialized");
 
       SpringApplication.run(Server.class, args);
+   }
+
+   private net.sf.ehcache.CacheManager ehCacheManager() {
+       //TODO visit these numbers
+       CacheConfiguration cacheConfiguration = new CacheConfiguration();
+       cacheConfiguration.setName("TokenCache");
+       cacheConfiguration.setMemoryStoreEvictionPolicy("LRU");
+       cacheConfiguration.setMaxEntriesLocalHeap(500);
+       cacheConfiguration.timeToIdleSeconds(TimeUnit.MINUTES.toSeconds(5));
+       cacheConfiguration.timeToLiveSeconds(TimeUnit.MINUTES.toSeconds(5));
+
+       net.sf.ehcache.config.Configuration config = new net.sf.ehcache.config.Configuration();
+       config.addCache(cacheConfiguration);
+
+       return net.sf.ehcache.CacheManager.newInstance(config);
+   }
+
+   @Bean
+   CacheManager cacheManager() {
+       return new EhCacheCacheManager(ehCacheManager());
    }
 
 
