@@ -15,7 +15,12 @@
         </select>
       </div>
     </div>
-    <button *ngIf="versionSelected && !versionIsExternal" class="btn btn-primary-outline" type="button" (click)="contractFormModal.open(smartContract, version)">{{'common.update' | translate}}</button>
+    <div class="options">
+      <button type="button" class="btn btn-icon btn-link" (click)="startTour()">
+        <clr-icon size="24" shape="help"></clr-icon>
+      </button>
+      <button *ngIf="versionSelected  && !versionIsExternal" class="btn btn-primary-outline" type="button" (click)="contractFormModal.open(smartContract, version)">{{'common.update' | translate}}</button>
+    </div>
   </div>
   <clr-icon shape="user"></clr-icon>
   <clr-tooltip>
