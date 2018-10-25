@@ -16,6 +16,9 @@ from util.debug import pp as pp
 
 log = logging.getLogger(__name__)
 
+CONFIG_JSON = "resources/user_config.json"
+
+
 class Request():
    # Class
    # Incremented for every call, even across test cases, to have
@@ -42,6 +45,8 @@ class Request():
       self._subPath = ""
       self._params = ""
 
+      self._userConfig = util.json_helper.readJsonFile(CONFIG_JSON)
+
 
    def _send(self, verb=None):
       '''
@@ -57,11 +62,16 @@ class Request():
       self._setUpOutput(self._endpointName)
       Request._idCounter += 1
       lock.release()
+      user = self._userConfig.get('product').get('db_users')[0]
+      username = user['username']
+      password = user['password']
 
       if verb is None:
          if self._data is None:
             curlCmd = ["curl",
                        "-H", "Accept: application/json",
+                       "--user", "{0}:{1}".format(
+                        username, password),
                        self._baseUrl+self._subPath+self._params,
                        "--output", self._responseFile,
                        "--verbose"]
@@ -69,6 +79,8 @@ class Request():
             curlCmd = ["curl",
                        "-H", "Accept: application/json",
                        "-H", "Content-Type: application/json",
+                       "--user", "{0}:{1}".format(
+                        username, password),
                        "--data", json.dumps(self._data),
                        self._baseUrl+self._subPath+self._params,
                        "--output", self._responseFile,
@@ -78,6 +90,8 @@ class Request():
                     "--request", verb,
                     "-H", "Accept: application/json",
                     "-H", "Content-Type: application/json",
+                    "--user", "{0}:{1}".format(
+                        username, password),
                     "--data", json.dumps(self._data),
                     self._baseUrl+self._subPath+self._params,
                     "--output", self._responseFile,

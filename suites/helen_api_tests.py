@@ -547,7 +547,7 @@ class HelenAPITests(test_suite.TestSuite):
       data['email'] = self.email_generator() + '@email.com'
       data['details'] = details
       data['password'] = 'root'
-      data['role'] = 'system_admin'
+      data['role'] = 'SYSTEM_ADMIN'
       return data
 
 
@@ -600,22 +600,38 @@ class HelenAPITests(test_suite.TestSuite):
       return (False, "Incorrect response for invalid user")
 
    def _test_user_login(self, request):
-      mock = self._get_mock_user_data()
-      response = self._create_mock_user(request, mock)
-      user_id = response['user_id']
-      user_email = mock['email']
-      password = mock['password']
+      user = self._userConfig.get('product').get('db_users')[0]
+      username = user['username']
+      password = user['password']
       loginData = {}
-      loginData['email'] = user_email
+      loginData['email'] = username
       loginData['password'] = password
-      response = request.callUserAPI("/login", data=loginData)
+
+      response = request.callUserAPI("/auth/login", data=loginData)
       after = int(round(time.time() * 1000))
-      user = self._get_user(request, user_id)
+      user = self._get_user(request, response['user_id'])
+      message = ''
       # Newly created users last_login value will return 0
       # to signify they are a new user
-      if response['last_login'] == 0 and user['last_login'] < after:
+      has_token = response.get('token', None) is not None
+      has_refresh_token = response.get('refresh_token', None) is not None
+      has_token_expires = response.get('token_expires', None) == 1800000
+      last_login_correct = response['last_login'] == 0 and user['last_login'] < after
+
+      if has_token == False:
+        message += "Token isn't correct. "
+      if not has_refresh_token:
+        message += "Refresh token isn't correct. "
+      if not has_token_expires:
+        message += "Token expires isn't correct. "
+      if not last_login_correct:
+        message += "Last login timestamp not updated correctly. "
+
+      if (has_token and has_refresh_token
+            and has_token_expires and last_login_correct):
          return (True, None)
-      return (False, "last login timestamp not updated correctly")
+
+      return (False, message)
 
    def _test_patch_user(self, request):
       response = self._create_mock_user(request);
@@ -635,10 +651,10 @@ class HelenAPITests(test_suite.TestSuite):
          return (False, "Patch didn't update name")
 
       patchData = {}
-      patchData['role'] = 'org_user'
+      patchData['role'] = 'ORG_USER'
       request.callUserAPI("/users/{}/".format(user_id), "PATCH", data=patchData)
       user = self._get_user(request, user_id)
-      if user['role'] != 'org_user':
+      if user['role'] != 'ORG_USER':
          return (False, "Patch didn't update role")
 
 
