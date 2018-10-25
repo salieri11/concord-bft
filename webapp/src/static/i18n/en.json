@@ -316,7 +316,7 @@
       "parameterHelper": "Parameter Required By Function",
       "arrayParameterHelper": "To add multiple array values, enter each one on a new line",
       "download": "Download",
-      "inputTypeHelper": "Control Type: {{type}}",
+      "inputTypeHelper": "Expected value should be: {{type}}",
       "addressLengthValidationMessage": "Must be 42 characters long",
       "addressPatternValidationMessage": "Must be a valid hexadecimal address",
       "inputUIntValidationMessage": "Must be a valid unsigned integer value",
