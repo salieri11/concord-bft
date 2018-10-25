@@ -309,6 +309,13 @@ ReplicaImp::~ReplicaImp()
       delete m_stateTransfer;
    }
 
+   if (m_replicaPtr) {
+     if (m_replicaPtr->isRunning()) {
+       m_replicaPtr->stop();
+     }
+     delete m_replicaPtr;
+   }
+
    State::freeStaticData();
 }
 
