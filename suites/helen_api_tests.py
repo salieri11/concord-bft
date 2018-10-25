@@ -283,6 +283,8 @@ class HelenAPITests(test_suite.TestSuite):
       data["contract_id"] = contractId
       data["version"] = contractVersion
       data["sourcecode"] = sourceCode
+      data["contractName"] = "HelloWorld"
+      data["constructorParams"] = ""
       return request.uploadContract(data)
 
    def random_string_generator(self, size=6, chars=string.ascii_uppercase + string.digits):
@@ -298,10 +300,10 @@ class HelenAPITests(test_suite.TestSuite):
       contractFile = open("resources/contracts/HelloWorld.sol", 'r')
       result = self.contract_upload_util(request, contractId, contractVersion,
                                          contractFile.read())
-      if "url" in result[0]:
+      if "url" in result:
          return (contractId, contractVersion)
       else:
-         raise Exception("Contract upload failed with error '{}'".format(result[0]["error"]))
+         raise Exception("Contract upload failed with error '{}'".format(result["error"]))
 
    def has_contract(self, request, contractId, contractVersion):
       result = request.callContractAPI('/api/athena/contracts/' + contractId
