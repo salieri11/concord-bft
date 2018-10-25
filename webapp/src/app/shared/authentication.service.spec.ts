@@ -25,7 +25,7 @@ describe('AuthenticationService', () => {
   }));
 
   it('should broadcast an email after log in', inject([AuthenticationService], function(service: AuthenticationService) {
-    service.handleLogIn('test@vmware.com', 'asdfasdf', Personas.SystemsAdmin);
+    service.handleLogin({email: 'test@vmware.com'}, Personas.SystemsAdmin);
     const subscription = service.user.subscribe(user => {
       expect(user.email).toEqual('test@vmware.com');
     });

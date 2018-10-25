@@ -115,7 +115,7 @@ describe('SmartContractComponent', () => {
 
     component.versionSelected = 1;
     component.getVersionInfo();
-    expect(spy).toHaveBeenCalledWith(['smart-contracts', '1', 'versions', 1], {replaceUrl: true});
+    expect(spy).toHaveBeenCalledWith(['smart-contracts', '1', 'versions', 1], Object({ replaceUrl: true }));
   });
 
   describe('should load smart contract with contractId in the params', () => {

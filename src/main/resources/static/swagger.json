@@ -935,7 +935,7 @@
         }
       }
     },
-    "/login/{user_id}": {
+    "/auth/login": {
       "summary": "Helen User management",
       "post": {
         "summary": "Authenticate a user",
@@ -1050,7 +1050,7 @@
         }
       }
     },
-    "/change-password": {
+    "/auth/change-password": {
       "summary": "Change user password",
       "post": {
         "summary": "Change a user password",
@@ -1148,6 +1148,57 @@
                     "isAuthenticated": {
                       "type": "boolean",
                       "description": "True if login succeeded. False otherwise."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/token": {
+      "summary": "Refresh auth token",
+      "post": {
+        "summary": "Refresh authentication token",
+        "operationId": "RefreshToken",
+        "requestBody": {
+          "description": "Refresh authentication token",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refresh_token": {
+                    "type": "string",
+                    "description": "Token needed to generate new authentication token.",
+                    "required": true
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Returns an object with a token, token_expires and refresh_token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "token": {
+                      "type": "string",
+                      "description": "Token used for authentication."
+                    },
+                    "refresh_token": {
+                      "type": "string",
+                      "description": "Token used to regenerate a token, token_expires and refresh_token"
+                    },
+                    "token_expires": {
+                      "type": "string",
+                      "description": "Amount of time till your token expires."
                     }
                   }
                 }

@@ -1,4 +1,9 @@
 /**
+ * Copyright 2018 VMware, all rights reserved.
+ *
+ */
+
+/**
  * Main class for helen, does some basic initializations and then calls
  * SpringApplication.run() method. This class also does the job of providing all
  * spring related configuration annotations
@@ -38,6 +43,7 @@ import services.profiles.User;
    ProfilesRegistryManager.class, HelenSpringWebConfig.class })
 public class Server {
 
+
    // Set current datetime for logging purposes
    static {
       SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy-hh-mm-ss");
@@ -66,5 +72,7 @@ public class Server {
 
       SpringApplication.run(Server.class, args);
    }
+
+
 
 }

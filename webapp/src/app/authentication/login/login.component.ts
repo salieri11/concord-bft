@@ -66,21 +66,31 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
       this.loginForm.value.email,
       this.loginForm.value.password,
       this.loginForm.value.persona
-    ).subscribe((user) => {
-      if (user['last_login'] === 0 || localStorage.getItem('changePassword')) {
-        localStorage.setItem('changePassword', 'true');
-        this.newUser = true;
-        this.hideLoginForm = true;
-        this.hideChangePassword = false;
-        setTimeout(() => {
-          this.newPassword.nativeElement.focus();
-        }, 10);
+    ).subscribe(
+      user => this.handleLogin(user),
+      (error) => {
+        if (error) {
+          this.errorMessage = this.translateService.instant('authentication.errorMessage');
+        }
+      });
+  }
+
+  private handleLogin(user) {
+    if (user['last_login'] === 0 || localStorage.getItem('changePassword')) {
+      localStorage.setItem('changePassword', 'true');
+      this.newUser = true;
+      this.hideLoginForm = true;
+      this.hideChangePassword = false;
+      setTimeout(() => {
+        this.newPassword.nativeElement.focus();
+      }, 10);
+    } else {
+      if (this.authenticationService.redirectUrl) {
+        this.router.navigateByUrl(this.authenticationService.redirectUrl);
       } else {
         this.router.navigate(['dashboard']);
       }
-    }, (error) => {
-      this.errorMessage = error.error.error || this.translateService.instant('authentication.errorMessage');
-    });
+    }
   }
 
   changePassword() {

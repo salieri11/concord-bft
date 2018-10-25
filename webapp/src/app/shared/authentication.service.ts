@@ -14,8 +14,9 @@ import { User } from '../users/shared/user.model';
 export class AuthenticationService {
   private userSubject: BehaviorSubject<User>;
   readonly user: Observable<User>;
-  agreement: any = { accepted: false };
-
+  agreement: any = {accepted: false};
+  currentUser: User;
+  redirectUrl: string;
   constructor(private personaService: PersonaService, private http: HttpClient) {
     this.userSubject = new BehaviorSubject<User>({
       email: localStorage['helen.email'],
@@ -29,29 +30,34 @@ export class AuthenticationService {
     return localStorage['helen.email'] !== undefined;
   }
 
-  handleLogIn(email: string, password: string, persona: Personas) {
-    password = '';
-    localStorage.setItem('helen.email', email);
-    localStorage.setItem('helen.password', password);
-    this.personaService.currentPersona = persona;
-    this.userSubject.next({
-      email: email,
-      persona: persona
-    });
+
+  refreshToken(): Observable<any> {
+    const url = 'api/auth/token';
+    return this.http.post<{refresh_token: string}>(url, {
+      refresh_token: localStorage.getItem('jwtRefreshToken')
+    }).pipe(
+      map(response => {
+        this.setToken(response);
+        return response;
+      })
+    );
   }
 
-  logIn(email: string, password: string, persona: Personas) {
-    const url = 'api/login';
-    return this.http.post<{ email: string, password: string }>(url, { email: email, password: password }).pipe(
-      map((response) => {
-        this.handleLogIn(email, password, persona);
+  logIn(email: string, password: string, persona: Personas): Observable<any> {
+    const url = 'api/auth/login';
+    return this.http.post<{email: string, password: string}>(url, {
+      email: email,
+      password: password
+    }).pipe(
+      map(response => {
+        this.handleLogin(response, persona);
         return response;
       })
     );
   }
 
   changePassword(email: string, newPassword: string) {
-    const url = 'api/change-password';
+    const url = 'api/auth/change-password';
     return this.http.post<{ email: string, password: string }>(
       url, {
         email: email,
@@ -62,22 +68,48 @@ export class AuthenticationService {
 
   logOut() {
     localStorage.removeItem('helen.email');
+    localStorage.removeItem('jwtToken');
+    localStorage.removeItem('jwtRefreshToken');
+    localStorage.removeItem('jwtTokenExpiresAt');
+    localStorage.removeItem('jwtRefreshTokenExpiresAt');
     localStorage.removeItem('helen.persona');
+
     this.personaService.currentPersona = undefined;
-    this.userSubject.next({ email: localStorage['helen.email'], persona: localStorage['helen.persona'] });
+    this.userSubject.next({email: localStorage['helen.email'], persona: localStorage['helen.persona']});
   }
 
   checkForLegalAgreements(): Observable<any> {
     return this.http.get('api/agreements/1').pipe(
-      map((response) => {
-        this.agreement = response;
-        return response;
-      }),
-    );
+        map((response) => {
+          this.agreement = response;
+          return response;
+        }),
+      );
   }
 
   acceptLegalAgreement(params: any): Observable<any> {
     return this.http.patch<any>('api/agreements/1', params);
+  }
+
+  handleLogin(response: User, persona: Personas) {
+    this.currentUser = response;
+    localStorage.setItem('helen.email', response.email);
+    this.setToken(response);
+    this.personaService.currentPersona = persona;
+    this.userSubject.next({
+      email: response.email,
+      persona: persona
+    });
+  }
+
+  private setToken(response): void {
+    const expiresAt = Date.now() + response.token_expires;
+    const refreshExpiresAt = Date.now() + (response.token_expires * 2);
+
+    localStorage.setItem('jwtToken', response.token);
+    localStorage.setItem('jwtRefreshToken', response.refresh_token);
+    localStorage.setItem('jwtTokenExpiresAt', expiresAt.toString());
+    localStorage.setItem('jwtRefreshTokenExpiresAt', refreshExpiresAt.toString());
   }
 
   // TODO: Use country list from CSP VIP

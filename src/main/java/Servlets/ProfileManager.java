@@ -73,19 +73,19 @@ public class ProfileManager extends BaseServlet {
 
    private void createTestProfiles(JSONObject requestJson) {
       if (!requestJson.containsKey(ORGANIZATION_LABEL)) {
-         Long organizationId = prm.createOrgIfNotExist();
+         Organization org = prm.createOrgIfNotExist();
          JSONObject orgJson = new JSONObject();
-         orgJson.put(ORGANIZATION_ID_LABEL, organizationId);
+         orgJson.put(ORGANIZATION_ID_LABEL, org.getOrganizationID());
          requestJson.put(ORGANIZATION_LABEL, orgJson);
-         logger.debug("New test org created with ID:" + organizationId);
+         logger.debug("New test org created with ID:" + org.getOrganizationID());
       }
 
       if (!requestJson.containsKey(CONSORTIUM_LABEL)) {
-         Long consortiumId = prm.createConsortiumIfNotExist();
+         Consortium consortium = prm.createConsortiumIfNotExist();
          JSONObject consJson = new JSONObject();
-         consJson.put(CONSORTIUM_ID_LABEL, consortiumId);
+         consJson.put(CONSORTIUM_ID_LABEL, consortium.getConsortiumID());
          requestJson.put(CONSORTIUM_LABEL, consJson);
-         logger.debug("New test consortium created with ID:" + consortiumId);
+         logger.debug("New test consortium created with ID:" + consortium.getConsortiumID());
       }
    }
 
