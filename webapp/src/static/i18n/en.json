@@ -29,14 +29,8 @@
         "addOrg": {
           "title": "Add Organization"
         },
-        "addBlockchains": {
-          "title": "Add Blockchain"
-        },
         "addConsortium": {
           "title": "Add Consortium"
-        },
-        "addKubernetes": {
-          "title": "Add Kubernetes"
         },
         "addUsers": {
           "title": "Add Users"
@@ -377,7 +371,7 @@
     "truffle": {
       "title": "How to connect with truffle",
       "first": "Install and setup truffle.",
-      "second": "In your truffle project do an npm init if you haven't done so already and install web3@0.19.0",
+      "second": "In your truffle project do an npm init, if you haven't done so already, and install web3@0.19.0",
       "third": "Edit your truffle.js file so that it is similar to below, make sure to change your password, your email is your username.",
       "option": "You may need to modify the web3 basic auth like below, depending on your version of web3.",
       "fourth": "Now you should be able to deploy using truffle."
@@ -885,13 +879,17 @@
     "prevBtnText": "Prev",
     "endBtnText": "End",
     "dashboard": {
+      "dashStats": {
+        "title": "General Status",
+        "text": "Here you can see the general status of nodes, contracts, blocks and transactions.  Dashboard stats and lists refresh automatically, so no need to reload the page."
+      },
       "nodeStatus": {
         "title": "Node Status",
         "text": "Hover over a node on the map to see its health and status."
       },
-      "transactionList": {
-        "title": "Transaction List",
-        "text": "Here are recent blockchain transactions. You can click each row to see more details."
+      "contractList": {
+        "title": "Contract List",
+        "text": "Here are recent contracts that have been added. As well as other lists with recent updates."
       }
     },
     "smartContracts": {
@@ -900,8 +898,8 @@
         "text":  "This is where you can manage and view your smart contracts as well as other smart contracts submitted by members of your consortium."
       },
       "createSmartContract": {
-        "title": "Create",
-        "text": "Click here to create a contract"
+        "title": "Deploy",
+        "text": "Click here to deploy a contract"
       }
     },
     "users": {

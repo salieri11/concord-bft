@@ -14,9 +14,6 @@
         <button [disabled]="selected?.length !== 1" (click)="userForm.openEditUserForm()" clrDropdownItem>
           {{ 'users.actions.options.edit.title' | translate }}
         </button>
-        <button [disabled]="selected?.length === 0" (click)="userForm.confirmUserDeletion()" clrDropdownItem>
-          {{ 'users.actions.options.delete.title' | translate }}
-        </button>
       </clr-dropdown-menu>
     </clr-dropdown>
   </h2>

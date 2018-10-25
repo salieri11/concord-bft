@@ -5,6 +5,7 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
+import { ActivatedRoute } from '@angular/router';
 
 import { User } from '../shared/user.model';
 import { UsersService } from '../shared/users.service';
@@ -32,10 +33,25 @@ export class UserFormComponent implements OnInit {
   editUserForm: FormGroup;
   personaOptions = PersonaService.getOptions();
 
-  constructor(private translate: TranslateService, private usersService: UsersService, private fb: FormBuilder) {
+  constructor(
+    private translate: TranslateService,
+    private usersService: UsersService,
+    private fb: FormBuilder,
+    private route: ActivatedRoute
+    ) {
   }
 
   ngOnInit() {
+    this.route.fragment.subscribe(fragment => {
+      switch (fragment) {
+        case 'add':
+          this.openAddUserForm();
+          break;
+        default:
+          // code...
+          break;
+      }
+    });
   }
 
   deleteUser(): void {
@@ -68,7 +84,7 @@ export class UserFormComponent implements OnInit {
       email: ['', Validators.required],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required, Validators.minLength(8), matchPasswordValidator('password')]],
-      organization: ['', Validators.required],
+      organization: ['ADMIN', Validators.required],
       role: ['', Validators.required]
     }));
   }
