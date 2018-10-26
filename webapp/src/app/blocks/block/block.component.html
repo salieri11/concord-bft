@@ -55,4 +55,4 @@
   </div>
 </div>
 
-<athena-transaction-list [transactions]="block?.transactions" [blockNumber]="block?.number"></athena-transaction-list>
+<athena-transaction-list *ngIf="block" [transactions]="block?.transactions" [blockNumber]="block?.number"></athena-transaction-list>

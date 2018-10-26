@@ -211,7 +211,7 @@ export class SmartContractVersionComponent implements OnChanges, OnInit {
   }
 
   private onVersionChange(version: SimpleChange) {
-    if(Object.keys(version.currentValue.metadata).length === 0) {
+    if (Object.keys(version.currentValue.metadata).length === 0) {
       return;
     }
     this.functions = version.currentValue.metadata.output.abi.filter(abi => abi.type === 'function');

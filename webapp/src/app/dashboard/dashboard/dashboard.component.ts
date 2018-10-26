@@ -173,7 +173,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private loadNodes() {
     this.nodesService.getNodes().subscribe((resp) => {
       this.nodes = resp;
-      this.nodeHealth = this.healthyNodesCount/this.nodes.length;
+      this.nodeHealth = this.healthyNodesCount / this.nodes.length;
     });
   }
 

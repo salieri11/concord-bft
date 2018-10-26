@@ -3,6 +3,7 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { MockSharedModule } from '../../shared/shared.module';
 
 import { ConnectWithTruffleComponent } from './connect-with-truffle.component';
 
@@ -12,6 +13,9 @@ describe('ConnectWithTruffleComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
+      imports: [
+        MockSharedModule
+      ],
       declarations: [ ConnectWithTruffleComponent ]
     })
     .compileComponents();
