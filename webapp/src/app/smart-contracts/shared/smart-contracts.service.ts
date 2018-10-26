@@ -34,8 +34,16 @@ export class SmartContractsService extends AthenaApiService {
     return this.httpClient.get<SmartContractVersion>(this.resourcePath(`${contractId}/versions/${version}`));
   }
 
+  updateExistingVersion(contractId: string, version: string, request) {
+    return this.httpClient.put<SmartContractVersion>(this.resourcePath(`${contractId}/versions/${version}`), request);
+  }
+
   postContract(contract) {
     return this.httpClient.post<any>(this.resourcePath(), contract);
+  }
+
+  postSourceCode(request) {
+    return this.httpClient.post<any>(this.resourcePath('compile'), request);
   }
 
 }

@@ -292,6 +292,8 @@
     "owner": "Owner",
     "file": "File",
     "preview": "Preview",
+    "externalSourceWarning": "This contract version was deployed from an external source and therefore has no associated sourcecode or metadata.",
+    "externalSourceUpload": "Upload",
     "paginationSummary": "{{start}} - {{finish}} of {{total}} contracts",
     "version": {
       "title": "Version",
@@ -312,12 +314,16 @@
       "addressHelper": "This is your address",
       "functionParameters": "Function Parameters",
       "parameterHelper": "Parameter Required By Function",
+      "arrayParameterHelper": "To add multiple array values, enter each one on a new line",
       "download": "Download",
+      "inputTypeHelper": "Expected value should be: {{type}}",
       "addressLengthValidationMessage": "Must be 42 characters long",
       "addressPatternValidationMessage": "Must be a valid hexadecimal address",
       "inputUIntValidationMessage": "Must be a valid unsigned integer value",
       "inputSignedIntValidationMessage": "Must be a valid signed integer value",
       "inputByteLengthValidationMessage": "Invalid byte length for input",
+      "inputByteArrayByteLengthValidationMessage": "One or more values in this array have an incorrect byte length",
+      "inputArrayLengthValidationMessage": "The array has an invalid length",
       "tabs": {
         "execute": "Execute",
         "source": "Source",
@@ -336,7 +342,13 @@
       "versionHelper": "Please update the version before updating",
       "versionDuplicateValidationMessage": "You must choose a new value for version",
       "versionLengthValidationMessage": "Version must be 16 or fewer characters",
-      "callSuccessMessage": "Contract was locally invoked successfully, click send to execute the contract on the blockchain"
+      "callSuccessMessage": "Contract was locally invoked successfully, click send to execute the contract on the blockchain",
+      "generalInformationTitle": "General Information",
+      "contractSelectionTitle": "Contract Selection",
+      "contractSelectionHelper": "Select the contract you'd like to deploy from this file",
+      "constructorParametersTitle": "Constructor Parameters",
+      "constructorParametersRequiredHelper": "Please provide the parameters for the contract constructor below.",
+      "constructorParametersNotRequiredHelper": "There are no constructor parameters needed to deploy this contract."
     }
   },
   "organization": {

@@ -37,10 +37,12 @@ export class SmartContractComponent implements OnInit {
   }
 
   loadSmartContract(contractId, versionId?) {
+    const hasNewContractId = this.smartContract && this.smartContract.contract_id !== contractId;
+
     this.smartContractsService.getSmartContract(contractId).subscribe((smartContract) => {
       this.smartContract = smartContract;
 
-      if (this.smartContract.versions.length && typeof versionId === 'undefined') {
+      if ((this.smartContract.versions.length && typeof versionId === 'undefined') || hasNewContractId) {
         // Select the latest version on load if available
         this.versionSelected = this.smartContract.versions[0].version;
         this.getVersionInfo();
@@ -66,5 +68,9 @@ export class SmartContractComponent implements OnInit {
       this.versionSelected
     ];
     this.router.navigate(path, {replaceUrl: true});
+  }
+
+  get versionIsExternal() {
+    return this.version && this.version.sourcecode === '' && Object.keys(this.version.metadata).length === 0;
   }
 }

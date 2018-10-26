@@ -214,7 +214,7 @@ public final class EthDispatcher extends BaseServlet {
     * @return Response for user
     * @throws Exception
     */
-   JSONObject dispatch(JSONObject requestJson) throws Exception {
+   public JSONObject dispatch(JSONObject requestJson) throws Exception {
       // Default initialize variables, so that if exception is thrown
       // while initializing the variables error message can be constructed
       // with default values.
@@ -233,7 +233,12 @@ public final class EthDispatcher extends BaseServlet {
          if (ethMethodName.equals(_conf.getStringValue("SendTransaction_Name"))
             || ethMethodName.equals(_conf.getStringValue("SendRawTransaction_Name"))
             || ethMethodName.equals(_conf.getStringValue("Call_Name"))) {
-            handler = new EthSendTxHandler();
+            if (requestJson.containsKey("isInternalContract")) {
+               requestJson.remove("isInternalContract");
+               handler = new EthSendTxHandler(true);
+            } else {
+               handler = new EthSendTxHandler(false);
+            }
          } else if (ethMethodName.equals(_conf.getStringValue("NewAccount_Name"))) {
             handler = new EthNewAccountHandler();
          } else if (ethMethodName.equals(_conf.getStringValue("GetTransactionReceipt_Name"))) {

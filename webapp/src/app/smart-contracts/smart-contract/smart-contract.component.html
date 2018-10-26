@@ -15,7 +15,7 @@
         </select>
       </div>
     </div>
-    <button *ngIf="versionSelected" class="btn btn-primary-outline" type="button" (click)="contractFormModal.open(smartContract, version)">{{'common.update' | translate}}</button>
+    <button *ngIf="versionSelected && !versionIsExternal" class="btn btn-primary-outline" type="button" (click)="contractFormModal.open(smartContract, version)">{{'common.update' | translate}}</button>
   </div>
   <clr-icon shape="user"></clr-icon>
   <clr-tooltip>
@@ -33,6 +33,16 @@
     [value]="smartContract?.owner"
     [size]="12">
   </athena-copy-to-clipboard-button>
+  <clr-alert [clrAlertClosable]="false" [clrAlertType]="'alert-warning'" *ngIf="versionIsExternal">
+    <div clr-alert-item class="alert-item">
+        <span class="alert-text">
+            {{'smartContracts.externalSourceWarning' | translate}}
+        </span>
+      <div class="alert-actions">
+        <a href="javascript:;" (click)="contractFormModal.open(smartContract, version)">{{'smartContracts.externalSourceUpload' | translate}}</a>
+      </div>
+    </div>
+  </clr-alert>
   <athena-smart-contract-version *ngIf="version" [version]="version"></athena-smart-contract-version>
 </div>
 

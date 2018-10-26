@@ -3,6 +3,7 @@
  */
 
 import { Component, OnInit, ViewChild } from '@angular/core';
+import { Router } from '@angular/router';
 
 import { ContractFormComponent } from '../contract-form/contract-form.component';
 import { SmartContractsService } from '../shared/smart-contracts.service';
@@ -20,11 +21,22 @@ export class SmartContractsComponent implements OnInit {
   personas = Personas;
 
   constructor (
-    private smartContractsService: SmartContractsService
+    private smartContractsService: SmartContractsService,
+    private router: Router
   ) { }
 
   ngOnInit() {
     this.loadSmartContracts();
+  }
+
+  contractCreated(contract) {
+    const path = [
+      'smart-contracts',
+      contract.contract_id,
+      'versions',
+      contract.version
+    ];
+    this.router.navigate(path);
   }
 
   loadSmartContracts() {

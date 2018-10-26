@@ -16,11 +16,11 @@ export class SmartContractPage {
   }
 
   getCallSuccessAlert() {
-    return element(by.css('.alert-success'));
+    return element(by.css('.call-success'));
   }
 
   getTransactionSuccessAlert() {
-    return element(by.css('.alert-success'));
+    return element(by.css('.send-success'));
   }
 
   getContractId() {

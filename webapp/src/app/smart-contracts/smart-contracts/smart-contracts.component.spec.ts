@@ -3,6 +3,7 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { FormsModule } from '@angular/forms';
 import { of as observableOf } from 'rxjs';
 import { ClrFormsNextModule } from '@clr/angular';
 import { MockSharedModule } from '../../shared/shared.module';
@@ -14,6 +15,9 @@ import { SmartContractsComponent } from './smart-contracts.component';
 import { CanViewDirective } from '../../shared/directives/can-view.directive';
 import { TourService } from '../../shared/tour.service';
 import { SmartContract } from '../shared/smart-contracts.model';
+import {
+  SmartContractsSolidityFunctionInputsComponent
+} from '../smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
 
 describe('SmartContractsComponent', () => {
   let component: SmartContractsComponent;
@@ -27,9 +31,15 @@ describe('SmartContractsComponent', () => {
         RouterTestingModule,
         HttpClientTestingModule,
         MockSharedModule,
-        ClrFormsNextModule
+        ClrFormsNextModule,
+        FormsModule
       ],
-      declarations: [ SmartContractsComponent, ContractFormComponent, CanViewDirective ],
+      declarations: [
+        SmartContractsComponent,
+        ContractFormComponent,
+        CanViewDirective,
+        SmartContractsSolidityFunctionInputsComponent
+      ],
       providers: [ TourService ]
     })
     .compileComponents();
