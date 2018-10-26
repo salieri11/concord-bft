@@ -44,6 +44,7 @@ private:
 
 public:
    KVBClientPool(std::vector<KVBClient*> &clients);
+   ~KVBClientPool();
 
    bool send_request_sync(com::vmware::athena::AthenaRequest &req,
                           bool isReadOnly,

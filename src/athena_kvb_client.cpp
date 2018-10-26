@@ -55,6 +55,19 @@ com::vmware::athena::KVBClientPool::KVBClientPool(std::vector<KVBClient*> &clien
    }
 }
 
+com::vmware::athena::KVBClientPool::~KVBClientPool() {
+  while (true) {
+    KVBClient *client;
+    if (!clients_.pop(client)) {
+      LOG4CPLUS_INFO(logger_, "Client cleanup complete");
+      break;
+    }
+
+    LOG4CPLUS_DEBUG(logger_, "Stopping and deleting client");
+    delete client;
+  }
+}
+
 bool com::vmware::athena::KVBClientPool::send_request_sync(AthenaRequest &req,
                                                            bool isReadOnly,
                                                            AthenaResponse &resp)
