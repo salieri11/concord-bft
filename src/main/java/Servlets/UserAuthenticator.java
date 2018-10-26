@@ -129,7 +129,11 @@ public class UserAuthenticator extends BaseServlet {
 
       try {
           JSONObject requestJSON = (JSONObject) parser.parse(requestBody);
-          String token = requestJSON.get("refresh_token").toString();
+          String token = null;
+
+          if (requestJSON.get("refresh_token") != null) {
+            token = requestJSON.get("refresh_token").toString();
+          }
 
           if (token != null && jwtTokenProvider.validateToken(token)) {
               responseStatus = HttpStatus.OK;
