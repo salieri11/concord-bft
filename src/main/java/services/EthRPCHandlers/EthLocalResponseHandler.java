@@ -164,6 +164,10 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
                                                                            id,
                                                                            jsonRpc)
                                                              .toJSONString());
+            } finally {
+              if (conn != null) {
+                AthenaConnectionPool.getInstance().putConnection(conn);
+              }
             }
          } else {
             EthDispatcher.netVersionSet = true;
