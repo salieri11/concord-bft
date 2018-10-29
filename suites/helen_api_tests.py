@@ -313,6 +313,9 @@ class HelenAPITests(test_suite.TestSuite):
       if contractVersion is None:
          contractVersion = self.random_string_generator()
 
+      # This file contains two contract definitions, 'HelloWorld' and 'DummyContract'.
+      # The contract_upload_util function sets the required contractName parameter to 'HelloWorld', thereby
+      # specifying 'HelloWorld' as the contract to compile.
       contractFile = open("resources/contracts/HelloWorldMultiple.sol", 'r')
       result = self.contract_upload_util(request, contractId, contractVersion,
                                          contractFile.read())
