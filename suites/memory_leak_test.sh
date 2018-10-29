@@ -18,6 +18,7 @@ while [ "$1" != "" ] ; do
    shift
 done
 
+retVal=1
 TIME_STAMP=`date +%m%d%Y_%H%M%S`
 BASE_LOG_DIR=/var/log/vmwblockchain
 RESULTS_DIR=${BASE_LOG_DIR}/memory_leak_testrun_${TIME_STAMP}
@@ -28,7 +29,6 @@ MEMORY_LEAK_PASS_FILE="${RESULTS_DIR}/test_status.pass"
 ATHENA1_VALGRIND_LOG_FILE="/tmp/valgrind_athena1.log"
 HERMES_START_FILE="./main.py"
 SPECIFIC_TESTS=""
-RC=1
 
 check_usage() {
     if [ "x${TEST_SUITE}" = "x" -o "x${NO_OF_RUNS}" = "x" ]
@@ -56,20 +56,12 @@ launch_memory_test() {
         then
             sleep 5
             echo "Done running memory leak tests"
-            if [ -f "${MEMORY_LEAK_PASS_FILE}" ]
-            then
-                echo "Memory Leak Test Passed"
-                RC=0
-            else
-                echo "Memory Leak Test Failed"
-                RC=1
-            fi
             if [ -f "${ATHENA1_VALGRIND_LOG_FILE}" ]
             then
                 mv "${ATHENA1_VALGRIND_LOG_FILE}" "${RESULTS_DIR}"
             fi
             echo "Results: ${RESULTS_DIR}"
-            exit $RC
+            break
         fi
         memory_info=`free -m`
         total_memory=`echo "${memory_info}" | grep "Mem:" | tr -s " " | cut -d" " -f2`
@@ -88,4 +80,14 @@ fi
 
 check_usage
 launch_memory_test 2>&1 | tee ${MEMORY_INFO_LOG_FILE}
+if [ -f "${MEMORY_LEAK_PASS_FILE}" ]
+then
+    echo "Memory Leak Test Passed"
+    retVal=0
+else
+    echo "Memory Leak Test Failed"
+    retVal=1
+fi
 
+echo "Exit status: $retVal"
+exit $retVal
