@@ -365,7 +365,7 @@ class HelenAPITests(test_suite.TestSuite):
       '836020036101000a031916815260200191505b509250505060405180910390f35b606060408'
       '05190810160405280600d81526020017f48656c6c6f2c20576f726c64210000000000000000'
       '00000000000000000000008152509050905600')
-      contractId, contractVersion = self.upload_mock_contract(request)
+      contractId, contractVersion = self.upload_mock_multiple_contract(request)
 
       result = request.callContractAPI('/api/athena/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
