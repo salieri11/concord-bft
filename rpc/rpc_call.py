@@ -31,7 +31,7 @@ class RPC():
    _outputFile = None
    _url = None
 
-   def __init__(self, logDir, testName, url):
+   def __init__(self, logDir, testName, url, config_file=CONFIG_JSON):
       self._logDir = logDir
       os.makedirs(self._logDir, exist_ok=True)
 
@@ -41,7 +41,10 @@ class RPC():
 
       self._testName = testName
       self._url = url
-      self._userConfig = util.json_helper.readJsonFile(CONFIG_JSON)
+      if config_file == None:
+         self._userConfig = util.json_helper.readJsonFile(CONFIG_JSON)
+      else:
+         self._userConfig = util.json_helper.readJsonFile(config_file)
 
    @staticmethod
    def searchResponse(searchMe, findMe):

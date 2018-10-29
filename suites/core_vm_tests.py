@@ -210,7 +210,8 @@ class CoreVMTests(test_suite.TestSuite):
       expectedOut = self._getExpectedOutResults(testCompiled)
       rpc = RPC(testLogDir,
                 testName,
-                self._apiServerUrl)
+                self._apiServerUrl,
+                config_file=self._args.config)
       gas = self._getGas()
       testData = testCompiled[testName]["exec"]["data"]
       self._unlockUser(rpc, user)
