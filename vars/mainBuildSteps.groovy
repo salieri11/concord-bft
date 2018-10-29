@@ -7,14 +7,8 @@ def call(){
     parameters {
       booleanParam defaultValue: false, description: 'If tests pass, deploy the docker images for production', name: 'deploy'
       string defaultValue: '',
-             description: 'The docker tag for the core/backend.',
-             name: 'athena_docker_tag_param'
-      string defaultValue: '',
-             description: 'The docker tag for the ui api server.',
-             name: 'helen_docker_tag_param'
-      string defaultValue: '',
-             description: 'The docker tag for the deployment service api server.',
-             name: 'andes_docker_tag_param'
+             description: 'The version number for releases. Used as a tag in DockerHub and GitHub.',
+             name: 'version_param'
 
       string defaultValue: '',
              description: 'Athena commit or branch to use.  Providing a branch name will pull the branch\'s latest commit.',
@@ -43,7 +37,7 @@ def call(){
               sh 'mkdir athena'
               dir('athena') {
                 script {
-                  env.actual_athena_fetched = getRepoCode("https://github.com/vmwathena/athena", params.athena_branch_or_commit)
+                  env.actual_athena_fetched = getRepoCode("git@github.com:vmwathena/athena.git", params.athena_branch_or_commit)
                 }
               }
             }
@@ -54,7 +48,7 @@ def call(){
               sh 'mkdir helen'
               dir('helen') {
                 script {
-                  env.actual_helen_fetched = getRepoCode("https://github.com/vmwathena/helen", params.helen_branch_or_commit)
+                  env.actual_helen_fetched = getRepoCode("git@github.com:vmwathena/helen.git", params.helen_branch_or_commit)
                 }
               }
             }
@@ -65,7 +59,7 @@ def call(){
               sh 'mkdir hermes'
               dir('hermes') {
                 script {
-                  env.actual_hermes_fetched = getRepoCode("https://github.com/vmwathena/hermes", params.hermes_branch_or_commit)
+                  env.actual_hermes_fetched = getRepoCode("git@github.com:vmwathena/hermes.git", params.hermes_branch_or_commit)
                 }
               }
             }
@@ -161,7 +155,7 @@ def call(){
         }
       }
 
-      stage('Configure docker') {
+      stage('Configure docker and git') {
         steps {
           // Docker will fail to launch unless we fix up this DNS stuff.  It will try to use Google's
           // DNS servers by default, and here in VMware's network, we can't do that.
@@ -178,6 +172,23 @@ def call(){
             '''
           }
 
+          // Log into docker.  Does it expire?  Try doing it once, here, and see what happens.
+          withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
+
+            sh '''
+              echo "${DOCKERHUB_PASSWORD}" | docker login -u blockchainrepositorywriter --password-stdin
+            '''
+          }
+
+          // To invoke "git tag" and commit that change, git wants to know who we are.
+          // This will be set up in template VM version 5, at which point these commands can
+          // be removed.
+          sh '''
+            git config --global user.email "vmwathenabot@vmware.com"
+            git config --global user.name "build system"
+          '''
+
+          // These are constants which mirror the DockerHub repos.
           script {
             env.athena_repo = 'vmwblockchain/concord-core'
             env.helen_repo = 'vmwblockchain/concord-ui'
@@ -194,13 +205,12 @@ def call(){
                 dir('helen') {
 
                   script {
-                    env.helen_docker_tag = env.helen_docker_tag_param ? env.helen_docker_tag_param : env.actual_helen_fetched
+                    env.helen_docker_tag = env.version_param ? env.version_param : env.actual_helen_fetched
                   }
 
                   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                     sh '''
-                      # Can stop using sudo when template is updated.
-                      echo "${PASSWORD}" | sudo -S docker build . -t "${helen_repo}:${helen_docker_tag}"
+                      docker build . -t "${helen_repo}:${helen_docker_tag}"
                     '''
                   }
                 }
@@ -215,15 +225,12 @@ def call(){
                 dir('athena') {
 
                   script {
-                    env.athena_docker_tag = env.athena_docker_tag_param ? env.athena_docker_tag_param : env.actual_athena_fetched
+                    env.athena_docker_tag = env.version_param ? env.version_param : env.actual_athena_fetched
                   }
-                  withDockerRegistry([ credentialsId: "BLOCKCHAINREADER_DOCKERHUB_CREDENTIALS", url: "" ]) {
-                    withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-                      sh '''
-                        # Can stop using sudo when template is updated.
-                        echo "${PASSWORD}" | sudo -S ./docker-build.sh "${athena_repo}" "${athena_docker_tag}"
-                      '''
-                    }
+                  withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
+                    sh '''
+                      ./docker-build.sh "${athena_repo}" "${athena_docker_tag}"
+                    '''
                   }
                 }
               }
@@ -273,24 +280,32 @@ def call(){
           environment name: 'deploy', value: 'true'
         }
         steps {
-          withDockerRegistry([ credentialsId: "BLOCKCHAINWRITER_DOCKERHUB_CREDENTIALS", url: "" ]) {
+          dir('athena') {
+            createAndPushTag(env.version_param)
+          }
+          dir('helen') {
+            createAndPushTag(env.version_param)
+          }
+          dir('hermes') {
+            createAndPushTag(env.version_param)
+          }
+          // dir('andes') {
+          //   createAndPushTag(env.version_param)
+          // }
+          withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
+            sh '''
+              docker push ${athena_repo}:${version_param}
+              docker tag ${athena_repo}:${version_param} ${athena_repo}:latest
+              docker push ${athena_repo}:latest
 
-            // Can stop using sudo with template version 4.
-            withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-              sh '''
-                echo "${PASSWORD}" | sudo -S docker push ${athena_repo}:${athena_docker_tag}
-                echo "${PASSWORD}" | sudo -S docker tag ${athena_repo}:${athena_docker_tag} ${athena_repo}:latest
-                echo "${PASSWORD}" | sudo -S docker push ${athena_repo}:latest
+              docker push ${helen_repo}:${version_param}
+              docker tag ${helen_repo}:${version_param} ${helen_repo}:latest
+              docker push ${helen_repo}:latest
 
-                echo "${PASSWORD}" | sudo -S docker push ${helen_repo}:${helen_docker_tag}
-                echo "${PASSWORD}" | sudo -S docker tag ${helen_repo}:${helen_docker_tag} ${helen_repo}:latest
-                echo "${PASSWORD}" | sudo -S docker push ${helen_repo}:latest
-
-                # echo "${PASSWORD}" | sudo -S docker push ${andes_repo}:${andes_docker_tag}
-                # echo "${PASSWORD}" | sudo -S docker tag ${andes_repo}:${andes_docker_tag} ${andes_repo}:latest
-                # echo "${PASSWORD}" | sudo -S docker push ${andes_repo}:latest
-              '''
-            }
+              # docker push ${andes_repo}:${version_param}
+              # docker tag ${andes_repo}:${version_param} ${andes_repo}:latest
+              # docker push ${andes_repo}:latest
+            '''
           }
         }
       }
@@ -310,7 +325,7 @@ def call(){
 // Next, try to get BRANCH_NAME.  If getting BRANCH_NAME fails, we are probably testing
 // a branch that is in only in one or two of the repos.  That's fine.
 // Returns the short form commit hash.
-void getRepoCode(repo_url, branch_or_commit){
+String getRepoCode(repo_url, branch_or_commit){
   if (branch_or_commit.trim()){
     checkoutRepo(repo_url, branch_or_commit)
   }else{
@@ -336,4 +351,18 @@ void getRepoCode(repo_url, branch_or_commit){
 // All that varies for each repo is the branch, so wrap this very large call.
 void checkoutRepo(repo_url, branch_or_commit){
   checkout([$class: 'GitSCM', branches: [[name: branch_or_commit]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '27bbd815-703c-4647-909b-836919db98ef', url: repo_url]]])
+}
+
+// Creates a git tag and commits it. Must be called when the pwd is the
+// source git directory.
+void createAndPushTag(tag){
+  sh (
+    script: "git tag -a ${tag} -m 'Version tag created by the build system'",
+    returnStdout: false
+  )
+
+  sh (
+    script: "git push origin ${tag}",
+    returnStdout: false
+  )
 }

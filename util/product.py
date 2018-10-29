@@ -180,6 +180,7 @@ class Product():
          attempts += 1
 
          try:
+            rpc.addUser()
             txHash = rpc.sendTransaction(caller, data)
          except Exception as e:
             log.debug("Waiting for product startup...")
