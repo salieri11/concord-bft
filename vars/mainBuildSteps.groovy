@@ -326,7 +326,10 @@ def call(){
 // a branch that is in only in one or two of the repos.  That's fine.
 // Returns the short form commit hash.
 String getRepoCode(repo_url, branch_or_commit){
+  refPrefix = "refs/heads/"
+
   if (branch_or_commit.trim()){
+    // We don't know if this was a branch or a commit, so don't add the refPrefix.
     checkoutRepo(repo_url, branch_or_commit)
   }else{
     checkoutRepo(repo_url, "master")
@@ -335,7 +338,7 @@ String getRepoCode(repo_url, branch_or_commit){
     // environment variable.
     if (env.BRANCH_NAME && env.BRANCH_NAME.trim()){
       try {
-        checkoutRepo(repo_url, "/refs/heads/${env.BRANCH_NAME}")
+        checkoutRepo(repo_url, refPrefix + env.BRANCH_NAME)
       } catch (Exception e) {
         echo "Branch ${env.BRANCH_NAME} for ${repo_url} not found."
       }
