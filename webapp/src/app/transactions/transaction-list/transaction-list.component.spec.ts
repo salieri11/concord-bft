@@ -36,6 +36,7 @@ describe('TransactionListComponent', () => {
   beforeEach(() => {
     fixture = TestBed.createComponent(TransactionListComponent);
     component = fixture.componentInstance;
+    component.transactions = [];
     fixture.detectChanges();
   });
 

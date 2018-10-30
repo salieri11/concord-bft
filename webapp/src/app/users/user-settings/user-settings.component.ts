@@ -16,11 +16,7 @@ export class UserSettingsComponent implements OnInit {
   @ViewChild('authenticationForm') authenticationForm: CredentialFormComponent;
 
   isOpen = false;
-  organizations: any[] = [
-    'Bank of China',
-    'Bank of America',
-    'Bank of London'
-  ];
+  organizations: any[] = [];
 
   constructor(private translate: TranslateService) {
   }

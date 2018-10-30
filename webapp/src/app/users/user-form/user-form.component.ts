@@ -5,6 +5,7 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { TranslateService } from '@ngx-translate/core';
+import { ActivatedRoute } from '@angular/router';
 
 import { User } from '../shared/user.model';
 import { UsersService } from '../shared/users.service';
@@ -20,7 +21,6 @@ export class UserFormComponent implements OnInit {
   static rolesAllowed: Personas[] = [Personas.SystemsAdmin, Personas.ConsortiumAdmin, Personas.OrgAdmin];
   @Input('selected') selected: Array<User>;
   @Output('createUser') createUser: EventEmitter<any> = new EventEmitter<any>();
-  @Output('deleteUsers') deleteUsers: EventEmitter<any> = new EventEmitter<any>();
   @Output('updateUser') updateUser: EventEmitter<any> = new EventEmitter<any>();
 
   openModalForm = false;
@@ -32,16 +32,24 @@ export class UserFormComponent implements OnInit {
   editUserForm: FormGroup;
   personaOptions = PersonaService.getOptions();
 
-  constructor(private translate: TranslateService, private usersService: UsersService, private fb: FormBuilder) {
+  constructor(
+    private translate: TranslateService,
+    private usersService: UsersService,
+    private fb: FormBuilder,
+    private route: ActivatedRoute
+    ) {
   }
 
   ngOnInit() {
-  }
-
-  deleteUser(): void {
-    this.selected.forEach(user => {
-      this.usersService.deleteUser(user.user_id)
-        .subscribe(response => this.handleDeletion(response));
+    this.route.fragment.subscribe(fragment => {
+      switch (fragment) {
+        case 'add':
+          this.openAddUserForm();
+          break;
+        default:
+          // code...
+          break;
+      }
     });
   }
 
@@ -68,7 +76,7 @@ export class UserFormComponent implements OnInit {
       email: ['', Validators.required],
       password: ['', [Validators.required, Validators.minLength(8)]],
       confirmPassword: ['', [Validators.required, Validators.minLength(8), matchPasswordValidator('password')]],
-      organization: ['', Validators.required],
+      organization: ['ADMIN', Validators.required],
       role: ['', Validators.required]
     }));
   }
@@ -79,10 +87,6 @@ export class UserFormComponent implements OnInit {
 
   openEditUserForm(): void {
     this.openModal('edit');
-  }
-
-  confirmUserDeletion() {
-    this.openModal('delete');
   }
 
   addUser() {
@@ -131,12 +135,6 @@ export class UserFormComponent implements OnInit {
     this.updateUser.emit(response);
   }
 
-  private handleDeletion(response): void {
-    console.log('deletion response', response);
-    this.openModalForm = false;
-    this.deleteUsers.emit();
-  }
-
   private openModal(type: string): void {
     this.formType = type;
 
@@ -150,10 +148,6 @@ export class UserFormComponent implements OnInit {
         this.createEditUserForm();
         this.modalSize = 'md';
         this.modalTitle = this.translate.instant('users.editUserForm.title');
-        break;
-      case 'delete':
-        this.modalSize = 'sm';
-        this.modalTitle = this.translate.instant('users.deleteUserForm.title');
         break;
     }
 

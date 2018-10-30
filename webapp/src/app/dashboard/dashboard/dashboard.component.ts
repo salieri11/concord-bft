@@ -36,6 +36,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   routerFragmentChange: Subscription;
   firstBlockTransactionCount: number = 0;
   pollIntervalId: any;
+  nodeHealth: number = 1;
 
   constructor(
     private transactionsService: TransactionsService,
@@ -172,6 +173,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private loadNodes() {
     this.nodesService.getNodes().subscribe((resp) => {
       this.nodes = resp;
+      this.nodeHealth = this.healthyNodesCount / this.nodes.length;
     });
   }
 

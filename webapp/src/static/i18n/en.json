@@ -1,10 +1,11 @@
 {
-  "title": "VMware Athena",
+  "title": "VMware Blockchain",
   "common": {
     "all": "All",
     "close": "Close",
     "cancel": "Cancel",
     "create": "Create",
+    "deploy": "Deploy",
     "back": "Back",
     "next": "Next",
     "finish": "Finish",
@@ -18,8 +19,9 @@
       "title": "Menu",
       "options": {
         "contract": {
-          "title": "Create Smart Contract"
+          "title": "Deploy Smart Contract"
         },
+        "generalTitle": "General",
         "sysAdminTitle": "System Admin",
         "deploy": {
           "title": "Deploy"
@@ -27,14 +29,8 @@
         "addOrg": {
           "title": "Add Organization"
         },
-        "addBlockchains": {
-          "title": "Add Blockchain"
-        },
         "addConsortium": {
           "title": "Add Consortium"
-        },
-        "addKubernetes": {
-          "title": "Add Kubernetes"
         },
         "addUsers": {
           "title": "Add Users"
@@ -48,9 +44,6 @@
       "title": "Actions",
       "resetTasks": "Reset Tasks"
     },
-    "metrics": {
-      "activeNodes": "Active Nodes {{value}}"
-    },
     "dashboard": {
       "title": "Dashboard"
     },
@@ -58,7 +51,10 @@
       "title": "Node List"
     },
     "blockList": {
-      "title": "Block List"
+      "title": "Blocks"
+    },
+    "transactionList": {
+      "title": "Transactions"
     },
     "testing": {
       "title": "Testing"
@@ -113,7 +109,7 @@
   },
   "marketing": {
     "subTitle": "Deploy The Industry's Most Advanced Permissioned Blockchains",
-    "description": "The Athena blockchain delivers the fastest TPS in the industry. Deploy and Manage Athena and Hyperledger for your consortium and organizations today.",
+    "description": "The VMware Blockchain delivers the fastest TPS in the industry. Deploy and Manage Concord and Hyperledger for your consortium and organizations today.",
     "callToAction": "Get Started",
     "midHeading": "Get the most advanced enterprise blockchain",
     "itemOne": {
@@ -130,7 +126,7 @@
     }
   },
   "signUp": {
-    "description": "VMware Athena delivers the industries most advanced blockchain with the SBFT protocol.",
+    "description": "VMware Blockchain delivers the industries most advanced blockchain with the SBFT protocol.",
     "callToAction": "Complete your information to get started.",
     "duplicateEmailError": "This email has already been used, please login.",
     "form": {
@@ -281,9 +277,9 @@
   "smartContracts": {
     "smartContracts": "Smart Contracts",
     "smartContractUpload": "Upload Smart Contracts",
-    "contractId": "Contract ID",
+    "name": "Name",
     "contractOwnerAddress": "Contract Owner Address",
-    "createContract": "Create Contract",
+    "createContract": "Deploy Contract",
     "updateContract": "Update Contract",
     "createContractError": "There was an error uploading your contract. Please correct any errors and try again:",
     "viewDetail": "View Details",
@@ -292,6 +288,7 @@
     "owner": "Owner",
     "file": "File",
     "preview": "Preview",
+    "connectWithTruffle": "Connect With Truffle",
     "externalSourceWarning": "This contract version was deployed from an external source and therefore has no associated sourcecode or metadata.",
     "externalSourceUpload": "Upload",
     "paginationSummary": "{{start}} - {{finish}} of {{total}} contracts",
@@ -349,6 +346,36 @@
       "constructorParametersTitle": "Constructor Parameters",
       "constructorParametersRequiredHelper": "Please provide the parameters for the contract constructor below.",
       "constructorParametersNotRequiredHelper": "There are no constructor parameters needed to deploy this contract."
+    },
+    "tour": {
+      "deployed": {
+        "title": "Contract Address",
+        "content": "Your contract has been deployed to the blockchain, it is accessible via this contract address."
+      },
+      "availableActions": {
+        "title": "Available Functions",
+        "content": "Choose an available smart contract function to execute.  Some methods retrieve previous transaction information, others perform transactions, please refer to the source code to understand each function."
+      },
+      "call": {
+        "title": "Call",
+        "content": "This is a read only operation, that does not broadcast or publish on to the blockchain.  This is useful for retrieving previously executed information saved in a contract or for testing a transaction before executing."
+      },
+      "send": {
+        "title": "Send",
+        "content": "This will perform a transaction on the blockchain."
+      },
+      "tabs": {
+        "title": "Contract Info",
+        "content": "Contract information, such as source code bytecode and meta data can be found in these tabs"
+      }
+    },
+    "truffle": {
+      "title": "How to connect with truffle",
+      "first": "Install and setup truffle.",
+      "second": "In your truffle project do an npm init, if you haven't done so already, and install web3@0.19.0",
+      "third": "Edit your truffle.js file so that it is similar to below, make sure to change your password, your email is your username.",
+      "option": "You may need to modify the web3 basic auth like below, depending on your version of web3.",
+      "fourth": "Now you should be able to deploy using truffle."
     }
   },
   "organization": {
@@ -430,111 +457,6 @@
     },
     "deleteOrgForm": {
       "title": "Delete Org(s)",
-      "submit": {
-        "title": "Yes"
-      }
-    }
-  },
-  "kubernetes": {
-    "title": "Kubernetes Management",
-    "actions": {
-      "title": "Actions",
-      "options": {
-        "add": {
-          "title": "Add Instance"
-        },
-        "delete": {
-          "title": "Delete Instance"
-        }
-      }
-    },
-    "grid": {
-      "pagination": {
-        "title": "Instances"
-      },
-      "columns": {
-        "id": {
-          "title": "ID"
-        },
-        "name": {
-          "title": "Name"
-        },
-        "apiServerUrl": {
-          "title": "API Server"
-        },
-        "ca": {
-          "title": "CA"
-        },
-        "kubectlCliUrl": {
-          "title": "Kube CLI URL"
-        },
-        "helmCliUrl": {
-          "title": "Helm URL"
-        },
-        "credentialType": {
-          "title": "Credential Type"
-        },
-        "insecure": {
-          "title": "Insecure"
-        },
-        "created": {
-          "title": "Created On"
-        },
-        "updated": {
-          "title": "Updated On"
-        }
-      }
-    },
-    "addKubeForm": {
-      "title": "Add Kubernetes",
-      "inputs": {
-        "name": {
-          "title": "Name",
-          "placeholder": "MyKubernetes"
-        },
-        "apiServerUrl": {
-          "title": "API Server URL",
-          "placeholder": "https://1.1.1.1"
-        },
-        "credentialType": {
-          "title": "Credential type",
-          "options": {
-            "basic_auth": {
-              "title": "User Auth"
-            },
-            "certificate": {
-              "title": "Cert/Key"
-            },
-            "configFile": {
-              "title": "Config File"
-            }
-          }
-        },
-        "username": {
-          "title": "Username",
-          "placeholder": "myUsername"
-        },
-        "password": {
-          "title": "Password"
-        },
-        "certificate": {
-          "title": "Certificate",
-          "placeholder": "Paste certificate here"
-        },
-        "key": {
-          "title": "Key",
-          "placeholder": "Paste key here"
-        },
-        "configFile": {
-          "title": "Config File"
-        }
-      },
-      "submit": {
-        "title": "Add"
-      }
-    },
-    "deleteKubeForm": {
-      "title": "Delete Instance(s)",
       "submit": {
         "title": "Yes"
       }
@@ -693,7 +615,7 @@
     "bodyText": "Are you sure you want to delete"
   },
   "globalError": {
-    "routingError": "You do not have permission to visit this section of Athena, please contact your sysadmin for more info."
+    "routingError": "You do not have permission to visit this section of VMware Blockchain, please contact your sysadmin for more info."
   },
   "users": {
     "title": "User Management",
@@ -854,7 +776,7 @@
       "navTitle": "Blockchain & Consortium",
       "info": "Selecting local fault tolerance will deploy nodes near your location, whereas global will distribute many nodes across all available regions.  Your consortium will be associated with this blockchain.",
       "blockchainType": "Blockchain Type",
-      "athena": "Athena",
+      "athena": "Concord",
       "hyperledger": "Hyperledger",
       "faultTolerance": "Fault Tolerance",
       "global": "Global",
@@ -958,13 +880,17 @@
     "prevBtnText": "Prev",
     "endBtnText": "End",
     "dashboard": {
+      "dashStats": {
+        "title": "General Status",
+        "text": "Here you can see the general status of nodes, contracts, blocks and transactions.  Dashboard stats and lists refresh automatically, so no need to reload the page."
+      },
       "nodeStatus": {
         "title": "Node Status",
         "text": "Hover over a node on the map to see its health and status."
       },
-      "transactionList": {
-        "title": "Transaction List",
-        "text": "Here are recent blockchain transactions. You can click each row to see more details."
+      "contractList": {
+        "title": "Contract List",
+        "text": "Here are recent contracts that have been added. As well as other lists with recent updates."
       }
     },
     "smartContracts": {
@@ -973,8 +899,8 @@
         "text":  "This is where you can manage and view your smart contracts as well as other smart contracts submitted by members of your consortium."
       },
       "createSmartContract": {
-        "title": "Create",
-        "text": "Click here to create a contract"
+        "title": "Deploy",
+        "text": "Click here to deploy a contract"
       }
     },
     "users": {

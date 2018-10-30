@@ -5,6 +5,7 @@
 span.copy-button {
     button {
         margin-right: 0px !important;
+        margin-left: .1rem;
         border: none;
         padding: 0;
     }
@@ -14,11 +15,6 @@ span.copy-button {
     -webkit-animation: flip-horizontal-bottom 0.5s cubic-bezier(0.455, 0.030, 0.515, 0.955) both;
             animation: flip-horizontal-bottom 0.5s cubic-bezier(0.455, 0.030, 0.515, 0.955) both;
 }
-
-// .flip-horizontal-reverse {
-//     -webkit-animation: flip-horizontal-reverse 0.5s cubic-bezier(0.455, 0.030, 0.515, 0.955) both;
-//             animation: flip-horizontal-reverse 0.5s cubic-bezier(0.455, 0.030, 0.515, 0.955) both;
-// }
 
 .anim-object {
     transform-style: preserve-3d;
@@ -36,10 +32,6 @@ span.copy-button {
     overflow: hidden;
     text-overflow: ellipsis;
     transform: rotateX(0deg);
-}
-
-clr-icon {
-  color: #565656;
 }
 
 .front {

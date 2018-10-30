@@ -10,6 +10,7 @@ import { ClrFormsNextModule } from '@clr/angular';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 import { RouterTestingModule } from '@angular/router/testing';
+import { TourService as NgxTourService } from 'ngx-tour-ngx-popper';
 
 import { SmartContractComponent } from './smart-contract.component';
 import { SmartContractVersionComponent } from '../smart-contract-version/smart-contract-version.component';
@@ -17,10 +18,13 @@ import {
   SmartContractsSolidityFunctionInputsComponent
 } from '../smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
 import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview-form/contract-payload-preview-form.component';
-import { SmartContractsService } from '../shared/smart-contracts.service';
 import { ContractFormComponent } from '../contract-form/contract-form.component';
 import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
 import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
+
+import { SmartContractsService } from '../shared/smart-contracts.service';
+import { TourService } from '../../shared/tour.service';
+
 
 class MockActivatedRoute extends ActivatedRoute {
   constructor() {
@@ -41,7 +45,7 @@ describe('SmartContractComponent', () => {
         RouterTestingModule,
         FormsModule,
         HttpClientTestingModule,
-        ClrFormsNextModule
+        ClrFormsNextModule,
       ],
       declarations: [
         SmartContractComponent,
@@ -54,6 +58,8 @@ describe('SmartContractComponent', () => {
       ],
       providers: [
         SmartContractsService,
+        TourService,
+        NgxTourService,
         { provide: ActivatedRoute, useClass: MockActivatedRoute }
       ]
     })
