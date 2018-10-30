@@ -25,10 +25,11 @@ class Product():
    _userProductConfig = None
    _cmdlineArgs = None
 
-   def __init__(self, cmdlineArgs, apiServerUrl, userProductConfig):
+   def __init__(self, cmdlineArgs, apiServerUrl, userConfig):
       self._cmdlineArgs = cmdlineArgs
       self._apiServerUrl = apiServerUrl
-      self._userProductConfig = userProductConfig
+      self._userConfig = userConfig
+      self._userProductConfig = userConfig["product"]
 
    def launchProduct(self):
       '''
@@ -166,7 +167,10 @@ class Product():
       sleepTime = 10
       startupLogDir = os.path.join(self._cmdlineArgs.resultsDir, PRODUCT_LOGS_DIR,
                                    "waitForStartup")
-      rpc = RPC(startupLogDir, "waitForStartup", self._apiServerUrl)
+      rpc = RPC(startupLogDir,
+                "waitForStartup",
+                self._apiServerUrl,
+                self._userConfig)
       caller = self._userProductConfig["users"][0]["hash"]
       data = ("0x60606040523415600e57600080fd5b603580601b6000396000f3006060604"
               "052600080fd00a165627a7a723058202909725de95a67cf9907b67867deb3f7"

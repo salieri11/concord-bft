@@ -58,7 +58,7 @@ class CoreVMTests(test_suite.TestSuite):
             log.info("Launching product...")
             p = self.launchProduct(self._args,
                                    self._apiServerUrl,
-                                   self._userConfig["product"])
+                                   self._userConfig)
          except Exception as e:
             log.error(traceback.format_exc())
             return self._resultFile
@@ -211,7 +211,7 @@ class CoreVMTests(test_suite.TestSuite):
       rpc = RPC(testLogDir,
                 testName,
                 self._apiServerUrl,
-                config_file=self._args.config)
+                self._userConfig)
       gas = self._getGas()
       testData = testCompiled[testName]["exec"]["data"]
       self._unlockUser(rpc, user)

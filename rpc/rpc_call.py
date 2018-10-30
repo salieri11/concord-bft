@@ -12,8 +12,6 @@ from numbers import Number
 import util.json_helper
 
 log = logging.getLogger(__name__)
-CONFIG_JSON = "resources/user_config.json"
-
 
 class RPC():
    # Class
@@ -31,7 +29,7 @@ class RPC():
    _outputFile = None
    _url = None
 
-   def __init__(self, logDir, testName, url, config_file=CONFIG_JSON):
+   def __init__(self, logDir, testName, url, userConfig):
       self._logDir = logDir
       os.makedirs(self._logDir, exist_ok=True)
 
@@ -41,10 +39,7 @@ class RPC():
 
       self._testName = testName
       self._url = url
-      if config_file == None:
-         self._userConfig = util.json_helper.readJsonFile(CONFIG_JSON)
-      else:
-         self._userConfig = util.json_helper.readJsonFile(config_file)
+      self._userConfig = userConfig
 
    @staticmethod
    def searchResponse(searchMe, findMe):

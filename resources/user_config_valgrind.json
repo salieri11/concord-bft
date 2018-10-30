@@ -92,7 +92,11 @@
         "hash": "0x1111111111111111111111111111111111111111",
         "password": "11111"
       }
-    ]
+    ],
+    "db_users": [{
+      "username": "admin@blockchain.local",
+      "password": "Admin!23"
+    }]
   },
   "ethereum": {
     "testRoot": "~/source/ethereum_tests",
