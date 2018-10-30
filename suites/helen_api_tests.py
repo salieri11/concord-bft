@@ -99,6 +99,7 @@ class HelenAPITests(test_suite.TestSuite):
               ("block", self._test_getBlocks), \
               ("transaction", self._test_getTransactions), \
               ("contract_upload", self._test_contractUpload), \
+              ("multiple_contract_upload", self._test_multiContractUpload), \
               ("contract_tx", self._test_contractTx), \
               ("contract_call", self._test_contractCall), \
               ("get_contracts", self._test_getAllContracts), \
@@ -283,6 +284,8 @@ class HelenAPITests(test_suite.TestSuite):
       data["contract_id"] = contractId
       data["version"] = contractVersion
       data["sourcecode"] = sourceCode
+      data["contractName"] = "HelloWorld"
+      data["constructorParams"] = ""
       return request.uploadContract(data)
 
    def random_string_generator(self, size=6, chars=string.ascii_uppercase + string.digits):
@@ -298,10 +301,28 @@ class HelenAPITests(test_suite.TestSuite):
       contractFile = open("resources/contracts/HelloWorld.sol", 'r')
       result = self.contract_upload_util(request, contractId, contractVersion,
                                          contractFile.read())
-      if "url" in result[0]:
+      if "url" in result:
          return (contractId, contractVersion)
       else:
-         raise Exception("Contract upload failed with error '{}'".format(result[0]["error"]))
+         raise Exception("Contract upload failed with error '{}'".format(result["error"]))
+
+   def upload_mock_multiple_contract(self, request, contractId=None,
+                            contractVersion=None):
+      if contractId is None:
+         contractId = self.random_string_generator()
+      if contractVersion is None:
+         contractVersion = self.random_string_generator()
+
+      # This file contains two contract definitions, 'HelloWorld' and 'DummyContract'.
+      # The contract_upload_util function sets the required contractName parameter to 'HelloWorld', thereby
+      # specifying 'HelloWorld' as the contract to compile.
+      contractFile = open("resources/contracts/HelloWorldMultiple.sol", 'r')
+      result = self.contract_upload_util(request, contractId, contractVersion,
+                                         contractFile.read())
+      if "url" in result:
+         return (contractId, contractVersion)
+      else:
+         raise Exception("Contract upload failed with error '{}'".format(result["error"]))
 
    def has_contract(self, request, contractId, contractVersion):
       result = request.callContractAPI('/api/athena/contracts/' + contractId
@@ -314,11 +335,44 @@ class HelenAPITests(test_suite.TestSuite):
          print(e)
          return False
 
+   def has_contract_with_bytecode(self, request, contractId, contractVersion, contractByteCode):
+      result = request.callContractAPI('/api/athena/contracts/' + contractId
+                                       + '/versions/' + contractVersion, "")
+      # Remove swarm hash from deployed contract bytecode
+      parsedBytecode = result["bytecode"].split("a165627a7a72305820")[0]
+      try:
+         if (result["contract_id"] == contractId and
+             result["version"] == contractVersion and
+             parsedBytecode == contractByteCode):
+            return True
+      except Exception as e:
+         print(e)
+         return False
+
    def _test_contractUpload(self, request):
       contractId, contractVersion = self.upload_mock_contract(request)
       result = request.callContractAPI('/api/athena/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
       if self.has_contract(request, contractId, contractVersion):
+         return (True, None)
+      else:
+         return (False, "Unable to retrieve uploaded contract")
+
+   def _test_multiContractUpload(self, request):
+      contractBytecode = ('608060405234801561001057600080fd5b5061013f80610020600'
+      '0396000f300608060405260043610610041576000357c010000000000000000000000000000'
+      '0000000000000000000000000000900463ffffffff16806319ff1d2114610046575b600080f'
+      'd5b34801561005257600080fd5b5061005b6100d6565b604051808060200182810382528381'
+      '8151815260200191508051906020019080838360005b8381101561009b57808201518184015'
+      '2602081019050610080565b50505050905090810190601f1680156100c85780820380516001'
+      '836020036101000a031916815260200191505b509250505060405180910390f35b606060408'
+      '05190810160405280600d81526020017f48656c6c6f2c20576f726c64210000000000000000'
+      '00000000000000000000008152509050905600')
+      contractId, contractVersion = self.upload_mock_multiple_contract(request)
+
+      result = request.callContractAPI('/api/athena/contracts/' + contractId
+                                       + '/versions/' + contractVersion, "")
+      if self.has_contract_with_bytecode(request, contractId, contractVersion, contractBytecode):
          return (True, None)
       else:
          return (False, "Unable to retrieve uploaded contract")
