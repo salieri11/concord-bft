@@ -18,8 +18,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
                                                    Organization o);
    
    Optional<User> findUserByEmail(String email);
-   
+
    List<User> findUsersByConsortium(Consortium c);
-   
+
    List<User> findUsersByOrganization(Organization o);
 }
