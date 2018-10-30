@@ -109,7 +109,7 @@
   },
   "marketing": {
     "subTitle": "Deploy The Industry's Most Advanced Permissioned Blockchains",
-    "description": "The VMware blockchain delivers the fastest TPS in the industry. Deploy and Manage Concord and Hyperledger for your consortium and organizations today.",
+    "description": "The VMware Blockchain delivers the fastest TPS in the industry. Deploy and Manage Concord and Hyperledger for your consortium and organizations today.",
     "callToAction": "Get Started",
     "midHeading": "Get the most advanced enterprise blockchain",
     "itemOne": {
@@ -126,7 +126,7 @@
     }
   },
   "signUp": {
-    "description": "VMware blockchain delivers the industries most advanced blockchain with the SBFT protocol.",
+    "description": "VMware Blockchain delivers the industries most advanced blockchain with the SBFT protocol.",
     "callToAction": "Complete your information to get started.",
     "duplicateEmailError": "This email has already been used, please login.",
     "form": {
@@ -288,6 +288,7 @@
     "owner": "Owner",
     "file": "File",
     "preview": "Preview",
+    "connectWithTruffle": "Connect With Truffle",
     "externalSourceWarning": "This contract version was deployed from an external source and therefore has no associated sourcecode or metadata.",
     "externalSourceUpload": "Upload",
     "paginationSummary": "{{start}} - {{finish}} of {{total}} contracts",
