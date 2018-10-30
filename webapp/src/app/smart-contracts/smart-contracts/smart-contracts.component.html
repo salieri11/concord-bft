@@ -26,6 +26,12 @@
       <clr-dg-cell><a [routerLink]="['/smart-contracts', smartContract.contract_id]">{{ smartContract.contract_id }} :
         {{ smartContract.owner }}</a></clr-dg-cell>
     </clr-dg-row>
+    <clr-dg-footer>
+      <clr-dg-pagination #pagination [clrDgPageSize]="10">
+        {{'smartContracts.paginationSummary' | translate: { start: pagination.firstItem + 1, finish: pagination.lastItem + 1,
+        total: pagination.totalItems} }}
+      </clr-dg-pagination>
+    </clr-dg-footer>
   </clr-datagrid>
 </div>
 
