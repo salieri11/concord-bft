@@ -84,7 +84,6 @@ public class JwtTokenProvider {
     return null;
   }
 
-  @Cacheable("TokenCache")
   public boolean validateToken(String token) {
     try {
       Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token);
