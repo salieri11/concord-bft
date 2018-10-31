@@ -29,7 +29,7 @@ describe('athena-ui App', () => {
   // it('should display the page title', () => {
   //   marketingPage.navigateTo();
   //   marketingPage.clickLoginButton();
-  //   loginPage.fillLogInForm('testlogin@example.com', 'T3sting!');
+  //   loginPage.fillLogInForm('admin@blockchain.local', 'T3sting!');
   //   expect(dashboardPage.getPageTitle()).toEqual('VMware Athena');
   // });
 });
