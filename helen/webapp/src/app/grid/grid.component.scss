@@ -1,0 +1,30 @@
+@import "../../styles/theme";
+
+.grid-container {
+  .search-box {
+    float: right;
+  }
+}
+
+.info-cell .signpost {
+  h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+  }
+  ol li {
+    padding: 5px 0;
+  }
+}
+
+@keyframes new {
+  from {
+    background-color: $lightBlue;
+  }
+  to {
+    background-color: inherit;
+  }
+}
+
+.new-row {
+  animation: new .75s 2;
+}

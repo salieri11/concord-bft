@@ -1,0 +1,127 @@
+.content-container > athena-task-panel {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  width: 372px;
+}
+
+clr-main-container vmw-right-drawer athena-task-panel {
+  position: initial;
+  right: unset;
+  bottom: unset;
+  width: auto;
+
+  margin-bottom: 10px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+
+  clr-icon[shape="caret"] {
+    display: none !important;
+  }
+
+  button.dismiss {
+    display: none;
+  }
+
+  athena-task {
+    &:first-child clr-icon[shape="times"] {
+      margin-right: -6px !important;
+    }
+  }
+}
+
+athena-task-panel {
+  display: block;
+  color: #FFF;
+
+  // these colors match the Clarity header colors
+  &.panel-1 > .panel {
+    background-color: #313131;
+  }
+
+  &.panel-2 .panel {
+    background-color: #485969;
+  }
+
+  &.panel-3 .panel {
+    background-color: #281336;
+  }
+
+  &.panel-4 .panel {
+    background-color: #006a91;
+  }
+
+  &.panel-5 .panel {
+    background-color: #004a70;
+  }
+
+  &.panel-6 .panel {
+    background-color: #002538;
+  }
+
+  &.panel-7 .panel {
+    background-color: #314351;
+  }
+
+  &.panel-8 .panel {
+    background-color: #0F171C;
+  }
+}
+
+.panel .tasks {
+  athena-task:first-child .task-container {
+    margin-top: 0 !important;
+    padding-top: 5px;
+  }
+
+  athena-task .task-container.focused {
+    margin-top: 5px;
+  }
+
+  athena-task:last-child:not(.completed):not(.failed) .task-container {
+    padding-bottom: 18px;
+  }
+}
+
+.panel {
+  border-radius: 3px;
+
+  .summary {
+    display: none;
+  }
+
+  clr-icon[shape="caret"] {
+    top: 8px;
+    position: absolute;
+    right: 11px;
+    fill: #CCC;
+    cursor: pointer;
+    opacity: 0.8;
+    &:hover {
+      opacity: 1.0;
+    }
+    display: none;
+  }
+
+  &.collapsed {
+    padding: 4px 0 4px 12px;
+    cursor: pointer;
+
+    .summary {
+      display: block;
+    }
+  }
+
+  &.running {
+    clr-icon[shape="caret"] {
+      display: block;
+    }
+
+    athena-task:first-child .task-container {
+      .title > *:last-child {
+        margin-right: 18px;
+      }
+    }
+  }
+}

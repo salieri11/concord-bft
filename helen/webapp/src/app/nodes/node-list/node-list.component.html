@@ -1,0 +1,26 @@
+<clr-datagrid>
+  <clr-dg-column [clrDgField]="'hostname'">{{'nodes.hostname' | translate}}</clr-dg-column>
+  <clr-dg-column>{{'nodes.address' | translate}}</clr-dg-column>
+  <clr-dg-column>
+    {{'nodes.status' | translate}}
+    <clr-dg-filter [clrDgFilter]="statusFilter">
+      <athena-nodes-status-filter #statusFilter></athena-nodes-status-filter>
+    </clr-dg-filter>
+  </clr-dg-column>
+  <clr-dg-column>
+    {{'nodes.health' | translate}}
+  </clr-dg-column>
+  <clr-dg-row *clrDgItems="let node of nodes">
+    <clr-dg-cell>{{node.hostname}}</clr-dg-cell>
+    <clr-dg-cell>{{node.address}}</clr-dg-cell>
+    <clr-dg-cell>{{node.status}}</clr-dg-cell>
+    <clr-dg-cell>
+      <span *ngIf="node.millis_since_last_message < node.millis_since_last_message_threshold" class="label label-success">
+        {{'nodes.healthy' | translate}}
+      </span>
+      <span *ngIf="node.millis_since_last_message >= node.millis_since_last_message_threshold" class="label label-danger">
+        {{'nodes.unhealthy' | translate}}
+      </span>
+    </clr-dg-cell>
+  </clr-dg-row>
+</clr-datagrid>

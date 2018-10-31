@@ -1,0 +1,41 @@
+<ng-container *ngIf="viewModel$ | async as vm">
+  <div class="panel"
+       *ngIf="vm.tasks.length"
+       [ngClass]="panelClasses(vm.runningTasks)">
+
+    <clr-icon shape="caret"
+              dir="{{state === 'collapsed' ? 'up' : 'down'}}"
+              (click)="toggleState()"></clr-icon>
+
+    <div class="tasks"
+         [@collapse]="state">
+      <ng-container *ngFor="let task of vm.tasks">
+        <athena-task [ngClass]="taskClasses(task)"
+                  [progress]="task.taskInfo.progress"
+                  [state]="task.state"
+                  [cancelable]="task.cancelable"
+                  (dismissed)="dismissTask(task)"
+                  (cancelled)="cancelTask(task)"
+                  (cleared)="clearTask(task)">
+
+          <h4 class="title">{{task.taskInfo.title}}</h4>
+
+          <span class="description">
+                        {{task.taskInfo.description}}
+                    </span>
+        </athena-task>
+      </ng-container>
+    </div>
+
+    <div class="summary"
+         (click)="toggleState()"
+         [ngPlural]="vm.runningTasks">
+      <ng-template ngPluralCase="=1">
+        {{vm.runningTasks}} task running...
+      </ng-template>
+      <ng-template ngPluralCase="other">
+        {{vm.runningTasks}} tasks running...
+      </ng-template>
+    </div>
+  </div>
+</ng-container>

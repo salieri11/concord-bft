@@ -1,0 +1,255 @@
+@import "../../../../styles/theme";
+
+$xxs-width: 321px;
+
+$xs-width: 543px;
+$xs-max: 543px;
+
+$small-min: 544px;
+$small-width: 767px;
+$small-max: 767px;
+
+$medium-min: 768px;
+$medium-width: 991px;
+$medium-width2: 990px;
+
+$large-min: 992px;
+$large-width: 1199px;
+
+$xl-min-width: 1600px;
+$xxl-min-width: 1919px;
+
+:host.no-subheader {
+  > div > .accordion-header {
+    > .title-container {
+      width: 100% !important;
+    }
+
+    > .accordion-subheader {
+      display: none !important;
+    }
+  }
+}
+
+::ng-deep .stack-block:not(.stack-block-expanded) .stack-children {
+  height: 0px;
+}
+
+.accordion-header {
+  -webkit-transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  -moz-transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  border-bottom: 1px solid $accordion-border-color;
+  border-color: $accordion-border-color;
+  vertical-align: middle;
+  padding: 8px 12px;
+  cursor: default;
+  position: relative;
+
+  &:hover {
+    background-color: $offWhite;
+  }
+
+  clr-icon[shape="caret down"],
+  clr-icon[shape="caret right"] {
+    width: 16px;
+    height: 16px;
+  }
+
+  &.expandable {
+    cursor: pointer;
+  }
+
+  &:not(.expandable) .title-container {
+    clr-icon[shape="caret down"],
+    clr-icon[shape="caret right"] {
+      color: $accordion-title-container-color;
+    }
+  }
+
+  .title-container {
+    display: inline-block;
+    width: 16%;
+
+    @media screen and (max-width: $large-width) {
+      width: 20%;
+    }
+
+    @media screen and (max-width: $medium-width) {
+      width: 28%;
+    }
+
+    @media screen and (max-width: $small-width) {
+      width: 32%;
+    }
+
+    @media screen and (max-width: $xs-width) {
+      width: 48%;
+    }
+
+    @media screen and (min-width: $xl-min-width) {
+      width: 16%;
+    }
+
+    @media screen and (min-width: $xxl-min-width) {
+      width: 12%;
+    }
+  }
+
+  .title {
+    font-weight: bold;
+  }
+
+  .accordion-subheader {
+    vertical-align: top;
+    width: 100%;
+
+    &.wrapper {
+      display: inline-block;
+      width: 100%;
+      max-width: 84%;
+      margin-right: -12px;
+
+      @media screen and (max-width: $large-width) {
+        max-width: 80%;
+      }
+
+      @media screen and (max-width: $medium-width) {
+        max-width: 72%;
+      }
+
+      @media screen and (max-width: $small-width) {
+        max-width: 68%;
+      }
+
+      @media screen and (max-width: $xs-width) {
+        max-width: 52%;
+      }
+
+      @media screen and (max-width: $xxs-width) {
+        width: 55%;
+      }
+
+      @media screen and (min-width: $xl-min-width) {
+        max-width: 84%;
+      }
+
+      @media screen and (min-width: $xxl-min-width) {
+        max-width: 88%;
+      }
+    }
+  }
+}
+
+.accordion-body {
+  [class^="col-"] {
+    padding: 0 16px;
+  }
+}
+
+.accordion-body.wrapper {
+  position: relative;
+  border-bottom: 1px solid $accordion-border-color;
+
+  .accordion-overlay {
+    height: 100%;
+    width: 100%;
+    background: $accordion-overlay-background-color;
+    text-align: center;
+    position: absolute;
+    top: 0;
+    opacity: 0.5;
+    cursor: not-allowed;
+    .spinner-container {
+      position: relative;
+      height: calc(50% + 20px);
+      .spinner {
+        position: absolute;
+        left: 50%;
+        bottom: 0;
+      }
+    }
+  }
+}
+
+.expanded {
+  > .accordion-header {
+    border-bottom: 1px solid $accordion-border-bottom-color;
+    background-color: $lightGrey;
+
+    &:hover {
+      background-color: $lightGrey;
+    }
+  }
+
+  .icon {
+    background: none;
+  }
+}
+
+::ng-deep .compact {
+  .accordion-header {
+    padding: 0 0 0 5px;
+
+    clr-icon[shape="caret down"],
+    clr-icon[shape="caret right"] {
+      margin-top: -2px;
+      width: 12px !important;
+      height: 12px !important;
+    }
+
+  }
+}
+
+::ng-deep .no-border {
+  .accordion-body.wrapper {
+    border-bottom: none;
+  }
+}
+
+::ng-deep .no-seperator {
+  .accordion-header {
+    border-bottom: none;
+  }
+
+  .expanded {
+    > .accordion-header {
+      border-bottom: none !important;
+    }
+  }
+}
+
+::ng-deep .no-highlight {
+  .expanded {
+    > .accordion-header {
+      background-color: transparent !important;
+    }
+  }
+}
+
+::ng-deep .dark {
+  .accordion-body.wrapper .accordion-overlay {
+    background-color: $accordion-black-color !important;
+  }
+
+  .accordion-header,
+  .accordion-body.wrapper {
+    border-color: $accordion-black-color !important;
+
+    &:not(.expandable) .title-container {
+      clr-icon[shape="caret down"],
+      clr-icon[shape="caret right"] {
+        color: $accordion-title-container-color-dark !important;
+      }
+    }
+  }
+
+  .expanded .accordion-header {
+    background-color: $accordion-header-bg-color-dark !important;
+    border-bottom: 1px solid $accordion-black-color !important;
+  }
+
+  .accordion-header:hover {
+    background-color: $lightGrey !important;
+  }
+}

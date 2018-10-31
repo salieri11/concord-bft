@@ -1,0 +1,19 @@
+.dropdown-menu {
+  visibility: visible;
+  display: block;
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.combobox-items-container {
+  display: block;
+}
+
+.dropdown-menu li.dropdown-item {
+  align-items: center;
+  display: flex;
+}
+
+.combobox-container {
+  width: 100%;
+}

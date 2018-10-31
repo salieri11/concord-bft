@@ -1,0 +1,33 @@
+<div class="p-2">
+  <h2 class="page-title">
+    <clr-icon shape="blocks-group" size="30"></clr-icon>
+    {{'blocks.blocks' | translate}}
+  </h2>
+  <clr-datagrid>
+    <clr-dg-column [clrDgField]="'number'">{{'blocks.index' | translate}}:{{'blocks.hash' | translate}}</clr-dg-column>
+    <clr-dg-row *clrDgItems="let block of blocks">
+      <clr-dg-cell>
+        <a [routerLink]="[block.number]">
+          {{block.number}} : {{block.hash}}
+        </a>
+        <athena-copy-to-clipboard-button
+          classList="ctc-btn-inline"
+          [tooltip]="'common.copyToClip' | translate"
+          tooltipDirection="top-right"
+          [value]="block.number + ' : ' + block.hash"
+          [size]="12">
+        </athena-copy-to-clipboard-button>
+      </clr-dg-cell>
+      <clr-dg-row-detail>
+        <athena-block-details *clrIfExpanded ngProjectAs="clr-dg-row-detail"
+                              [blockNumber]="block?.number"></athena-block-details>
+      </clr-dg-row-detail>
+    </clr-dg-row>
+    <clr-dg-footer>
+      <clr-dg-pagination #pagination [clrDgPageSize]="10">
+        {{'blocks.paginationSummary' | translate: { start: pagination.firstItem + 1, finish: pagination.lastItem + 1,
+        total: pagination.totalItems} }}
+      </clr-dg-pagination>
+    </clr-dg-footer>
+  </clr-datagrid>
+</div>

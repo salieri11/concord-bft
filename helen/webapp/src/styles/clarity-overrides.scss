@@ -1,0 +1,37 @@
+body .main-container .content-container .content-area {
+  padding: 0;
+}
+
+.page-title {
+  margin-top: 0;
+  word-break: break-all;
+
+  clr-icon {
+    margin-top: -5px;
+  }
+  .dropdown-toggle {
+    font-size: .75rem;
+    padding-right: 15px;
+
+  }
+  .dropdown-menu .dropdown-item {
+    line-height: 1rem;
+  }
+}
+
+body .datagrid {
+  margin-top: 0;
+}
+
+body.dark {
+  // These control styles should be fixed in the next release of Clarity: https://github.com/vmware/clarity/commit/eee0003599f0f587251a37b166bc0c8455e02b31
+  // If the version of clarity used in the project is > 0.13.3 we should be safe to remove the next two rules
+  .clr-control-label {
+    color: white;
+  }
+  .clr-select-wrapper {
+    select {
+      color: white;
+    }
+  }
+}

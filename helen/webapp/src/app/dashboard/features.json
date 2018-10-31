@@ -1,0 +1,260 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -82.996216,
+          40.367474
+        ]
+      },
+      "properties": {
+        "codeName": "us-east-2",
+        "location": "Ohio, US East",
+        "nodes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -78.024902,
+          37.926868
+        ]
+      },
+      "properties": {
+        "codeName": "us-east-1",
+        "location": "N. Virginia US East",
+        "nodes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -119.417931,
+          36.778259
+        ]
+      },
+      "properties": {
+        "codeName": "us-west-1",
+        "location": "N. California, US West",
+        "nodes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.679565,
+          45.512794
+        ]
+      },
+      "properties": {
+        "codeName": "us-west-2",
+        "location": "Oregon, US West",
+        "nodes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          139.753372,
+          35.685360
+        ]
+      },
+      "properties": {
+        "codeName": "ap-northeast-1",
+        "location": "Tokyo, Asia Pacific",
+        "nodes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          135.5022,
+          34.6937
+        ]
+      },
+      "properties": {
+        "codeName": "ap-northeast-3",
+        "location": "Osaka-Local, Asia Pacific",
+        "nodes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          72.854118,
+          19.228825
+        ]
+      },
+      "properties": {
+        "codeName": "ap-south-1",
+        "location": "Mumbai, Asia Pacific",
+        "nodes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          103.851959,
+          1.290270
+        ]
+      },
+      "properties": {
+        "codeName": "ap-southeast-1",
+        "location": "Singapore, Asia Pacific",
+        "nodes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          151.209900,
+          -33.865143
+        ]
+      },
+      "properties": {
+        "codeName": "ap-southeast-2",
+        "location": "Sydney, Asia Pacific",
+        "nodes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -79.411079,
+          43.761539
+        ]
+      },
+      "properties": {
+        "codeName": "ca-central-1",
+        "location": "Canada, Central",
+        "nodes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          116.363625,
+          39.913818
+        ]
+      },
+      "properties": {
+        "codeName": "cn-north-1",
+        "location": "China, Beijing",
+        "nodes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          106.249290,
+          38.488800
+        ]
+      },
+      "properties": {
+        "codeName": "cn-northwest-1",
+        "location": "China, Ningxia",
+        "nodes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          8.682127,
+          50.110924
+        ]
+      },
+      "properties": {
+        "codeName": "eu-central-1",
+        "location": "Frankfurt, EU",
+        "nodes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -6.266155,
+          53.350140
+        ]
+      },
+      "properties": {
+        "codeName": "eu-west-1",
+        "location": "Ireland, EU",
+        "nodes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -0.076132,
+          51.508530
+        ]
+      },
+      "properties": {
+        "codeName": "eu-west-2",
+        "location": "London, EU",
+        "nodes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          2.349014,
+          48.864716
+        ]
+      },
+      "properties": {
+        "codeName": "eu-west-3",
+        "location": "Paris, EU",
+        "nodes": []
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -46.625290,
+          -23.533773
+        ]
+      },
+      "properties": {
+        "codeName": "sa-east-1",
+        "location": "São Paulo, South America",
+        "nodes": []
+      }
+    }
+  ]
+}

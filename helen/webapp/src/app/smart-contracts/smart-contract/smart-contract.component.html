@@ -1,0 +1,55 @@
+<div class="p-2">
+  <div class="flex-items-xs-middle media flex-items-xs-between">
+    <div class="media flex-items-xs-middle">
+      <h2 class="page-title">
+        {{smartContract?.contract_id}}
+      </h2>
+      <label class="ml-1"> {{'smartContracts.version.title' | translate}}</label>
+      <div class="select version-select">
+        <select id="selectedVersion"
+                name="version"
+                [(ngModel)]="versionSelected"
+                (change)="getVersionInfo()">
+          <option [value]="undefined" *ngIf="!versionSelected">{{'smartContracts.version.selectVersion' | translate}}</option>
+          <option *ngFor="let versionVar of smartContract?.versions" [value]="versionVar.version">{{ versionVar.version }}</option>
+        </select>
+      </div>
+    </div>
+    <div class="options" *ngIf="versionSelected  && !versionIsExternal">
+      <button type="button" class="btn btn-icon btn-link" (click)="startTour()">
+        <clr-icon size="24" shape="help"></clr-icon>
+      </button>
+      <button class="btn btn-primary-outline" type="button" (click)="contractFormModal.open(smartContract, version)">{{'common.update' | translate}}</button>
+    </div>
+  </div>
+  <clr-icon shape="user"></clr-icon>
+  <clr-tooltip>
+    <span class="contract-owner" clrTooltipTrigger>{{smartContract?.owner}}</span>
+    <clr-tooltip-content clrPosition="top-right" clrSize="md" *clrIfOpen>
+      <span>
+        {{'smartContracts.contractOwnerAddress' | translate}}
+      </span>
+    </clr-tooltip-content>
+  </clr-tooltip>
+  <athena-copy-to-clipboard-button
+    classList="ctc-btn-inline"
+    [tooltip]="'common.copyToClip' | translate"
+    tooltipDirection="top-right"
+    [value]="smartContract?.owner"
+    [size]="12">
+  </athena-copy-to-clipboard-button>
+  <clr-alert [clrAlertClosable]="false" [clrAlertType]="'alert-warning'" *ngIf="versionIsExternal">
+    <div clr-alert-item class="alert-item">
+        <span class="alert-text">
+            {{'smartContracts.externalSourceWarning' | translate}}
+        </span>
+      <div class="alert-actions">
+        <a href="javascript:;" (click)="contractFormModal.open(smartContract, version)">{{'smartContracts.externalSourceUpload' | translate}}</a>
+      </div>
+    </div>
+  </clr-alert>
+  <athena-smart-contract-version *ngIf="version" [version]="version"></athena-smart-contract-version>
+</div>
+
+<athena-contract-form #contractFormModal (contractCreated)="afterUpdateContract($event)"></athena-contract-form>
+

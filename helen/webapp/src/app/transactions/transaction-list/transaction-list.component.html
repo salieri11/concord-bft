@@ -1,0 +1,63 @@
+<div class="p-2">
+  <div class="row">
+    <div class="col-xs-12">
+      <h2 class="page-title">
+      <clr-icon shape="tags" size="30"></clr-icon>
+      {{'transactions.transactions' | translate}}
+    </h2>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-xs-12">
+      <clr-datagrid [clrDgLoading]="!transactions.length">
+        <clr-dg-column [clrDgSortBy]="'hash'" class="hash">{{'transactions.hash' | translate}}</clr-dg-column>
+        <clr-dg-column>{{'transactions.nonce' | translate}}</clr-dg-column>
+        <clr-dg-column class="status">
+          {{'transactions.status' | translate}}
+          <clr-dg-filter [clrDgFilter]="statusFilter">
+            <athena-transactions-status-filter #statusFilter></athena-transactions-status-filter>
+          </clr-dg-filter>
+        </clr-dg-column>
+        <clr-dg-row *clrDgItems="let transaction of transactions">
+          <clr-dg-cell class="hash">
+            <a [routerLink]="['/blocks', transaction.block_number !== undefined ? transaction.block_number : blockNumber, 'transactions', transaction.hash]">{{transaction?.hash}}</a>
+            <athena-copy-to-clipboard-button
+              classList="ctc-btn-inline"
+              [tooltip]="'common.copyToClip' | translate"
+              tooltipDirection="top-right"
+              [value]="transaction?.hash"
+              [size]="12">
+            </athena-copy-to-clipboard-button>
+          </clr-dg-cell>
+          <clr-dg-cell>{{(transaction.nonce !== undefined ? transaction.nonce : 'transactions.none' | translate)  }}</clr-dg-cell>
+          <clr-dg-cell class="status">
+            <ng-container [ngSwitch]="transaction.status">
+              <ng-container *ngSwitchCase="1">
+                <span class="label label-success">
+                  {{'transactions.success' | translate}}
+                </span>
+              </ng-container>
+              <ng-container *ngSwitchCase="0">
+                <span class="label label-danger">
+                  {{ 'transactions.failure' | translate }}
+                </span>
+              </ng-container>
+              <ng-container *ngSwitchDefault>
+                {{ 'transactions.none' | translate }}
+              </ng-container>
+            </ng-container>
+          </clr-dg-cell>
+          <clr-dg-row-detail>
+            <athena-transaction-details *clrIfExpanded [transactionHash]="transaction?.hash" ngProjectAs="clr-dg-row-detail"></athena-transaction-details>
+          </clr-dg-row-detail>
+        </clr-dg-row>
+        <clr-dg-footer>
+          <clr-dg-pagination #pagination [clrDgPageSize]="10">
+            {{'transactions.paginationSummary' | translate: { start: pagination.firstItem + 1, finish: pagination.lastItem + 1, total:
+            pagination.totalItems} }}
+          </clr-dg-pagination>
+        </clr-dg-footer>
+      </clr-datagrid>
+    </div>
+  </div>
+</div>

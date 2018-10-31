@@ -1,0 +1,23 @@
+// Only include variable definitions as this file should be safe to pull in to any component without polluting
+// components with unused/duplicate CSS rules.
+
+@import "~@clr/ui/src/color/utils/_colors.clarity.scss";
+
+// Global colors
+$black: #000;
+$white: #fff;
+$offWhite: #eee;
+$lightGrey: #fafafa;
+$lightBlue: #49AFD9;
+
+// Accordian - light theme
+$accordion-background-color: #EEEEEE;
+$accordion-border-color: #DDDDDD;
+$accordion-title-container-color: #CCC;
+$accordion-border-bottom-color: #CCCCCC;
+$accordion-overlay-background-color: #9b9b9b;
+
+// Accordian - dark theme
+$accordion-black-color: #000;
+$accordion-title-container-color-dark: #324E60;
+$accordion-header-bg-color-dark: #22343C;

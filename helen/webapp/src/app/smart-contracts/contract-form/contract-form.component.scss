@@ -1,0 +1,35 @@
+@import "~@clr/ui/src/color/utils/_colors.clarity.scss";
+
+.modal-body {
+  // the import button was getting cut off
+  min-height: 260px;
+}
+
+form {
+  label {
+    text-align: left !important;
+    &.required {
+      &:after {
+        content: '*';
+        font-size: 0.58479532rem; // Approximately 14px.
+        line-height: 0.5rem;
+        color: $clr-red;
+        margin-left: 0.25rem;
+      }
+    }
+  }
+  .clr-input  {
+    // Hash's get cut off
+    min-width: 350px;
+  }
+}
+
+input[type='file'] {
+  border: none !important;
+  background: none !important;
+  margin-left: 10px;
+}
+
+.helper-text {
+  flex: 1 0 100%;
+}

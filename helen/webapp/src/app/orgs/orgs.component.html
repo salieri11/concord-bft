@@ -1,0 +1,25 @@
+<div class="p-2">
+  <h2 class="page-title">
+    <clr-icon shape="organization" size="30"></clr-icon> {{ 'organization.title' | translate }} |
+    <clr-dropdown>
+      <button class="nav-icon" clrDropdownTrigger>
+        {{ 'organization.actions.title' | translate }}
+        <clr-icon shape="caret down"></clr-icon>
+      </button>
+      <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
+        <button type="button" (click)="orgForm.openAddOrg()" clrDropdownItem>
+          {{ 'organization.actions.options.add.title' | translate }}
+        </button>
+        <button type="button" (click)="orgForm.openImportForm()" clrDropdownItem>
+          {{ 'organization.actions.options.import.title' | translate }}
+        </button>
+        <button type="button" [disabled]="selected.length === 0" (click)="orgForm.confirmDeleteOrg()" clrDropdownItem>
+          {{ 'organization.actions.options.delete.title' | translate }}
+        </button>
+      </clr-dropdown-menu>
+    </clr-dropdown>
+  </h2>
+
+  <athena-org-list #orgList (selected)="orgsSelectionChange($event)"></athena-org-list>
+  <athena-orgs-form #orgForm [selected]="selected" (addOrganization)="addOrg($event)" (deleteOrganizations)="deleteOrg()"></athena-orgs-form>
+</div>

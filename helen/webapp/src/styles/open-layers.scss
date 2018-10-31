@@ -1,0 +1,9 @@
+// OpenLayers CSS
+@import url("../node_modules/ol/ol.css");
+
+.ol-zoom {
+  top: initial;
+  right: 0.5em;
+  bottom: 0.5em;
+  left: initial;
+}

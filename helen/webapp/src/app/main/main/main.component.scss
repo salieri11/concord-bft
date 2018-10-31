@@ -1,0 +1,44 @@
+@import "../../../styles/theme";
+
+.header-nav:after, .header-nav:before, form.search:after {
+  position: absolute;
+  content: "";
+  display: inline-block;
+  background: #fafafa;
+  opacity: .15;
+  height: 1.66667rem;
+  width: 1px;
+  top: .41667rem;
+}
+
+.header-nav clr-dropdown button{
+  height: 2.5rem;
+  padding: 0 1rem;
+}
+
+.header .header-actions > .dropdown .dropdown-toggle.nav-icon clr-icon[shape^="cog"] {
+  transform: translate(-50%, -50%);
+}
+
+.header .header-actions > .dropdown .dropdown-toggle.nav-icon clr-icon[shape^="help"] {
+  transform: translate(-50%, -50%);
+}
+
+.active-nodes {
+  display: flex;
+  align-items: center;
+
+  clr-icon[shape='circle'] {
+    margin-right: 10px;
+  }
+}
+
+.persona-selector {
+  .dropdown-item.active {
+    font-weight: bold;
+  }
+}
+
+.header-nav #menu {
+  color: #fff;
+}

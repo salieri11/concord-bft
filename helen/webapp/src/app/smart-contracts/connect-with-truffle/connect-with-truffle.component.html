@@ -1,0 +1,19 @@
+<clr-modal [(clrModalOpen)]="open" [clrModalSize]="'lg'">
+  <h3 class="modal-title">{{ 'smartContracts.truffle.title' | translate }}</h3>
+  <div class="modal-body">
+    <p>1. <a href="https://truffleframework.com/docs/truffle/getting-started/installation" target="_blank">{{ 'smartContracts.truffle.first' | translate }}</a></p>
+    <pre class="language-bash">npm install -g truffle</pre>
+    <p>2. {{ 'smartContracts.truffle.second' | translate }}</p>
+    <pre class="language-clike" [innerHtml]="truffleSetup"></pre>
+    <p>3. {{ 'smartContracts.truffle.third' | translate }}</p>
+    <pre class="language-clike" [innerHtml]="truffleExample1"></pre>
+    <p>{{ 'smartContracts.truffle.option' | translate }}</p>
+    <pre class="language-clike" [innerHtml]="truffleExample2">
+    </pre>
+    <p>4. {{ 'smartContracts.truffle.fourth' | translate }} </p>
+    <pre class="language-bash" [innerHtml]="truffleDeployString"></pre>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-primary" (click)="open = false">Ok</button>
+  </div>
+</clr-modal>

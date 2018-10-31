@@ -1,0 +1,8 @@
+@import "styles/theme";                            // Clarity variable overrides and global styles
+@import "styles/clarity-overrides";                // Clarity overrides that can not be controlled through variables
+
+@import "styles/global";                           // Common global styles to apply to common components
+@import "styles/utilities";                        // Utility styles that apply simple rules
+
+@import "styles/open-layers";
+@import "styles/prism";
