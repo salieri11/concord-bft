@@ -122,7 +122,7 @@ class BytecodeContractCreator(test_suite.TestSuite):
          try:
             p = self.launchProduct(self._args,
                                    self._apiServerUrl,
-                                   self._userConfig)
+                                   self._userConfig["product"])
          except Exception as e:
             log.error(traceback.format_exc())
             return self._resultFile
