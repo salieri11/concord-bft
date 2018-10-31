@@ -79,3 +79,10 @@ helen/src/main/resources/static/index.html
 .worksheet
 
 .idea
+
+# Hermes Specific
+*~
+*.pyc
+igor.local.config
+cockroachdb_test_local.sh
+.vscode/*
