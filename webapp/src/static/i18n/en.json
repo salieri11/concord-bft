@@ -305,6 +305,8 @@
       "send": "Send",
       "emptyResponse": "Empty Response",
       "returnValues": "Return Values",
+      "decoded": "Decoded:",
+      "raw": "Raw:",
       "transaction": "Transaction",
       "preview": "Preview",
       "selectVersion": "Select Version",
