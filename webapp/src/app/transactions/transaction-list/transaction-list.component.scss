@@ -1,3 +1,20 @@
+
+$hashWidth: 65%;
+$statusWidth: 20%;
+
 athena-transaction-details {
   width: 100%;
 }
+clr-dg-column.hash.datagrid-column {
+  min-width: $hashWidth;
+}
+clr-dg-cell.hash {
+  min-width: $hashWidth;
+}
+clr-dg-column.status.datagrid-column {
+  min-width: $statusWidth;
+}
+clr-dg-cell.status {
+  min-width: $statusWidth;
+}
+

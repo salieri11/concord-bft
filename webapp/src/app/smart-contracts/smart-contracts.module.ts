@@ -19,6 +19,7 @@ import {
   SmartContractsSolidityFunctionInputsComponent
 } from './smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
 import { ContractPayloadPreviewFormComponent } from './contract-payload-preview-form/contract-payload-preview-form.component';
+import { ConnectWithTruffleComponent } from './connect-with-truffle/connect-with-truffle.component';
 
 @NgModule({
   imports: [
@@ -35,7 +36,8 @@ import { ContractPayloadPreviewFormComponent } from './contract-payload-preview-
     SmartContractVersionComponent,
     ContractPayloadPreviewFormComponent,
     ContractFormComponent,
-    SmartContractsSolidityFunctionInputsComponent
+    SmartContractsSolidityFunctionInputsComponent,
+    ConnectWithTruffleComponent
   ]
 })
 export class SmartContractsModule { }

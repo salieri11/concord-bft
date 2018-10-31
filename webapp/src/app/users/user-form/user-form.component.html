@@ -47,13 +47,6 @@
               <span *ngIf="(addUserForm.get('confirmPassword').touched ||addUserForm.get('confirmPassword').dirty) && addUserForm.get('confirmPassword').hasError('mismatch')">{{ 'users.addUserForm.errors.password.mismatch' | translate }}</span>
             </div>
             <div class="form-group">
-              <label for="organization">
-                {{ 'users.addUserForm.inputs.organization.title' | translate }}
-              </label>
-              <input formControlName="organization" type="text" id="organization" [placeholder]="'users.addUserForm.inputs.organization.placeholder' | translate"
-                     size=35>
-            </div>
-            <div class="form-group">
               <label for="roleAddUser">
                 {{ 'users.addUserForm.inputs.role.title' | translate }}
               </label>

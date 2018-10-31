@@ -12,7 +12,15 @@ body .main-container .content-container .content-area {
   .dropdown-toggle {
     font-size: .75rem;
     padding-right: 15px;
+
   }
+  .dropdown-menu .dropdown-item {
+    line-height: 1rem;
+  }
+}
+
+body .datagrid {
+  margin-top: 0;
 }
 
 body.dark {

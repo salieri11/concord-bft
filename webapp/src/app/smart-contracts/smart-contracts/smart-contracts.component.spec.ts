@@ -10,6 +10,7 @@ import { MockSharedModule } from '../../shared/shared.module';
 import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 
+import { ConnectWithTruffleComponent } from '../connect-with-truffle/connect-with-truffle.component';
 import { ContractFormComponent } from '../contract-form/contract-form.component';
 import { SmartContractsComponent } from './smart-contracts.component';
 import { CanViewDirective } from '../../shared/directives/can-view.directive';
@@ -38,7 +39,8 @@ describe('SmartContractsComponent', () => {
         SmartContractsComponent,
         ContractFormComponent,
         CanViewDirective,
-        SmartContractsSolidityFunctionInputsComponent
+        SmartContractsSolidityFunctionInputsComponent,
+        ConnectWithTruffleComponent,
       ],
       providers: [ TourService ]
     })

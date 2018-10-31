@@ -11,11 +11,8 @@ import { AuthenticatedGuard } from '../../shared/authenticated-guard.service';
 import { AgreementGuard } from '../../shared/agreement-guard.service';
 import { blockRoutes } from '../../blocks/blocks-routing';
 import { nodeRoutes } from '../../nodes/nodes-routing';
-import { testingRoutes } from '../../testing/testing-routing';
-import { blockChainsRoutes } from '../../blockchains/blockchains-routing';
 import { smartContractRoutes } from '../../smart-contracts/smart-contracts-routing';
 import { consortiumRoutes } from '../../consortium/consortium-routing';
-import { kubernetesRoutes } from '../../kubernetes/kubernetes-routing';
 import { orgRoutes } from '../../orgs/orgs-routing';
 import { usersRoutes } from '../../users/users-routing';
 import { transactionsRoutes } from '../../transactions/transactions-routing';
@@ -31,11 +28,8 @@ const routes: Routes = [
       { path: 'blocks', children: blockRoutes },
       { path: 'nodes', children: nodeRoutes },
       { path: 'smart-contracts', children: smartContractRoutes },
-      { path: 'testing', children: testingRoutes },
-      { path: 'blockchains', children: blockChainsRoutes },
       { path: 'consortium', children: consortiumRoutes },
       { path: 'organization', children: orgRoutes },
-      { path: 'kubernetes', children: kubernetesRoutes },
       { path: 'users', children: usersRoutes },
       { path: 'transactions', children: transactionsRoutes }
     ]

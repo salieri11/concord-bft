@@ -3,7 +3,6 @@
  */
 
 import { Injectable } from '@angular/core';
-import { Router } from '@angular/router';
 import { BehaviorSubject } from 'rxjs/internal/BehaviorSubject';
 import { Observable } from 'rxjs/internal/Observable';
 import { TranslateService } from '@ngx-translate/core';
@@ -27,7 +26,6 @@ export class TourService {
 
   constructor(
     private personaService: PersonaService,
-    private router: Router,
     private translate: TranslateService,
     private ngxTourService: NgxTourService
   ) {}
@@ -67,16 +65,24 @@ export class TourService {
   startTour() {
     this.steps = [
       {
-        anchorId: 'onboardingTour.transactionList',
-        content: this.translate.instant('tourSteps.dashboard.transactionList.text'),
-        title: this.translate.instant('tourSteps.dashboard.transactionList.title'),
+        anchorId: 'onboardingTour.dashStats',
+        content: this.translate.instant('tourSteps.dashboard.dashStats.text'),
+        title: this.translate.instant('tourSteps.dashboard.dashStats.title'),
+        route: 'dashboard',
+        placement: 'bottom'
+      },
+      {
+        anchorId: 'onboardingTour.contractList',
+        content: this.translate.instant('tourSteps.dashboard.contractList.text'),
+        title: this.translate.instant('tourSteps.dashboard.contractList.title'),
         route: 'dashboard'
       },
       {
         anchorId: 'onboardingTour.manageSmartContracts',
         content: this.translate.instant('tourSteps.smartContracts.manageSmartContracts.text'),
         title: this.translate.instant('tourSteps.smartContracts.manageSmartContracts.title'),
-        route: 'smart-contracts'
+        route: 'smart-contracts',
+        placement: 'top'
       },
       {
         anchorId: 'onboardingTour.createSmartContract',
@@ -100,20 +106,7 @@ export class TourService {
         title: this.translate.instant('tourSteps.users.userActions.title'),
         route: 'users',
         placement: 'left'
-      },
-      {
-        anchorId: 'onboardingTour.userSettings',
-        content: this.translate.instant('tourSteps.users.userSettings.text'),
-        title: this.translate.instant('tourSteps.users.userSettings.title'),
-        placement: 'left',
-        route: 'users'
-      },
-      {
-        anchorId: 'onboardingTour.downloadCertificate',
-        content: this.translate.instant('tourSteps.users.downloadCertificate.text'),
-        title: this.translate.instant('tourSteps.users.downloadCertificate.title'),
-        route: 'users/settings'
-      },
+      }
     ];
 
     if ((this.personaService.currentPersona === Personas.OrgDeveloper )) {
@@ -146,14 +139,52 @@ export class TourService {
       }
     });
 
-    this.ngxTourService.end$.subscribe(() => {
-      this.router.navigate(['dashboard']);
-    });
-
     this.ngxTourService.initialize(this.steps, {
       prevBtnTitle: this.translate.instant('tourSteps.prevBtnText'),
       nextBtnTitle: this.translate.instant('tourSteps.nextBtnText'),
       endBtnTitle: this.translate.instant('tourSteps.endBtnText'),
+      popperSettings: {
+        hideOnClickOutside: false
+      }
+    });
+
+    this.ngxTourService.start();
+  }
+
+  startContractTour() {
+    this.steps = [
+      {
+        anchorId: 'contract.deployed',
+        title: this.translate.instant('smartContracts.tour.deployed.title'),
+        content: this.translate.instant('smartContracts.tour.deployed.content'),
+        placement: 'right',
+      },
+      {
+        anchorId: 'contract.availableActions',
+        title: this.translate.instant('smartContracts.tour.availableActions.title'),
+        content: this.translate.instant('smartContracts.tour.availableActions.content'),
+      },
+      {
+        anchorId: 'contract.call',
+        title: this.translate.instant('smartContracts.tour.call.title'),
+        content: this.translate.instant('smartContracts.tour.call.content'),
+      },
+      {
+        anchorId: 'contract.send',
+        title: this.translate.instant('smartContracts.tour.send.title'),
+        content: this.translate.instant('smartContracts.tour.send.content'),
+      },
+      {
+        anchorId: 'contract.tabs',
+        title: this.translate.instant('smartContracts.tour.tabs.title'),
+        content: this.translate.instant('smartContracts.tour.tabs.content'),
+        placement: 'bottom',
+      },
+    ];
+
+    this.ngxTourService.initialize(this.steps, {
+      prevBtnTitle: this.translate.instant('tourSteps.prevBtnText'),
+      nextBtnTitle: this.translate.instant('tourSteps.nextBtnText'),
       popperSettings: {
         hideOnClickOutside: false
       }

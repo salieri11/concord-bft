@@ -5,6 +5,7 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 
+import { ConnectWithTruffleComponent } from '../connect-with-truffle/connect-with-truffle.component';
 import { ContractFormComponent } from '../contract-form/contract-form.component';
 import { SmartContractsService } from '../shared/smart-contracts.service';
 import { Personas } from '../../shared/persona.service';
@@ -16,6 +17,7 @@ import { Personas } from '../../shared/persona.service';
 })
 export class SmartContractsComponent implements OnInit {
   @ViewChild('contractFormModal') contractFormModal: ContractFormComponent;
+  @ViewChild('truffleModal') truffleModal: ConnectWithTruffleComponent;
 
   smartContracts = [];
   personas = Personas;
@@ -41,5 +43,9 @@ export class SmartContractsComponent implements OnInit {
 
   loadSmartContracts() {
     this.smartContractsService.getSmartContracts().subscribe(smartContracts => this.smartContracts = smartContracts);
+  }
+
+  connectWithTruffle(): void {
+    this.truffleModal.openModal();
   }
 }

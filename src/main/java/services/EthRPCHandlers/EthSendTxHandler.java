@@ -239,15 +239,26 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
       EthResponse ethResponse = athenaResponse.getEthResponse(0);
       JSONObject respObject = initializeResponseObject(ethResponse);
       // Set method specific responses
-      JSONArray paramsArray = (JSONArray) requestJson.get("params");
-      JSONObject params = (JSONObject) paramsArray.get(0);
-      String fromParam = (String) params.get("from");
-      String toParam = (String) params.get("to");
-      String byteCode = (String) params.get("data");
-      byteCode = byteCode.replace("0x", "");
+      String method = (String) requestJson.get("method");
+      String fromParam = "";
+      String toParam = "";
+      String byteCode = "";
+      // params will only be an object when using eth_sendTransaction. To avoid parsing errors,
+      // only perform the following steps if this is the method being used
+      boolean isSendTransaction = method.equals(_conf.getStringValue("SendTransaction_Name"));
+      if(isSendTransaction) {
+         JSONArray paramsArray = (JSONArray) requestJson.get("params");
+         JSONObject params = (JSONObject) paramsArray.get(0);
+         fromParam = (String) params.get("from");
+         toParam = (String) params.get("to");
+         byteCode = (String) params.get("data");
+         if(byteCode != null) {
+            byteCode = byteCode.replace("0x", "");
+         }
+      }
       respObject.put("result",
                      APIHelper.binaryStringToHex(ethResponse.getData()));
-      if (!isInternalContract && toParam == null) {
+      if (isSendTransaction && !isInternalContract && toParam == null) {
          try {
             handleSmartContractCreation(APIHelper.binaryStringToHex(ethResponse.getData()), fromParam, byteCode);
          } catch (Exception e) {

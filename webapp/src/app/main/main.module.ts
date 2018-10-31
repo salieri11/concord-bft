@@ -9,12 +9,9 @@ import { TourNgxPopperModule } from 'ngx-tour-ngx-popper';
 
 import { MainComponent } from './main/main.component';
 import { BlocksModule } from '../blocks/blocks.module';
-import { BlockchainsModule } from '../blockchains/blockchains.module';
-import { ChannelsModule } from '../channels/channels.module';
 import { NodesModule } from '../nodes/nodes.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { DashboardModule } from '../dashboard/dashboard.module';
-import { TestingModule } from '../testing/testing.module';
 import { AuthenticationModule } from '../authentication/authentication.module';
 import { ErrorAlertService, GlobalErrorHandlerService } from '../shared/global-error-handler.service';
 import { RequestInterceptor } from '../app-interceptors';
@@ -23,7 +20,6 @@ import { MainRoutingModule } from './main/main-routing.module';
 import { SmartContractsModule } from '../smart-contracts/smart-contracts.module';
 import { OrgsModule } from '../orgs/orgs.module';
 import { ConsortiumModule } from '../consortium/consortium.module';
-import { KubernetesModule } from '../kubernetes/kubernetes.module';
 import { UsersModule } from '../users/users.module';
 
 
@@ -38,13 +34,9 @@ import { UsersModule } from '../users/users.module';
     NodesModule,
     BlocksModule,
     TransactionsModule,
-    TestingModule,
     OrgsModule,
-    BlockchainsModule,
     ConsortiumModule,
-    KubernetesModule,
     SmartContractsModule,
-    ChannelsModule,
     UsersModule,
     TourNgxPopperModule
   ],

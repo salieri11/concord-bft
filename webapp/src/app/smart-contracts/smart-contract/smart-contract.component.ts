@@ -8,6 +8,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { SmartContract, SmartContractCreateResult, SmartContractVersion } from '../shared/smart-contracts.model';
 import { SmartContractsService } from '../shared/smart-contracts.service';
 import { ContractFormComponent } from '../contract-form/contract-form.component';
+import { TourService } from '../../shared/tour.service';
 
 @Component({
   selector: 'athena-smart-contract',
@@ -22,7 +23,12 @@ export class SmartContractComponent implements OnInit {
   version: SmartContractVersion;
   versionSelected;
 
-  constructor(private smartContractsService: SmartContractsService, private route: ActivatedRoute, private router: Router) {}
+  constructor(
+    private smartContractsService: SmartContractsService,
+    private route: ActivatedRoute,
+    private router: Router,
+    private tourService: TourService,
+  ) {}
 
   ngOnInit() {
     this.route.params.subscribe(params => {
@@ -72,5 +78,9 @@ export class SmartContractComponent implements OnInit {
 
   get versionIsExternal() {
     return this.version && this.version.sourcecode === '' && Object.keys(this.version.metadata).length === 0;
+  }
+
+  startTour(): void {
+    this.tourService.startContractTour();
   }
 }

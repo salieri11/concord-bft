@@ -4,6 +4,7 @@
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { TranslateLoader, TranslateModule, TranslateService } from '@ngx-translate/core';
@@ -106,6 +107,7 @@ describe('UserFormComponent', () => {
         MockSharedModule,
         GridModule,
         HttpClientTestingModule,
+        BrowserAnimationsModule,
         TranslateModule.forRoot({
           loader: {
             provide: TranslateLoader,
@@ -123,7 +125,7 @@ describe('UserFormComponent', () => {
           useValue: {
             fragment: {
               subscribe: (fn: (value) => void) => fn(
-                'add'
+                'test'
               ),
             },
           },
@@ -203,19 +205,6 @@ describe('UserFormComponent', () => {
     });
   });
 
-  describe('On open delete user form', () => {
-    it('should set the formType to delete', () => {
-      expect(component.formType).toBeFalsy();
-      component.confirmUserDeletion();
-      expect(component.formType).toBe('delete');
-    });
-
-    it('should set the modal title', () => {
-      component.confirmUserDeletion();
-      expect(component.modalTitle).toBe('users.deleteUserForm.title');
-    });
-  });
-
   describe('On create user', () => {
     let createUserSpy;
     beforeEach(() => {
@@ -269,33 +258,6 @@ describe('UserFormComponent', () => {
       const handleEditSpy = spyOn((component as any), 'handleEdit');
       component.editUser();
       expect(handleEditSpy).toHaveBeenCalled();
-    });
-  });
-
-  describe('On delete user', () => {
-    let deleteUserSpy;
-    beforeEach(() => {
-      deleteUserSpy = spyOn((component as any).usersService, 'deleteUser')
-        .and.returnValue(observableOf({}));
-      component.selected = selected;
-      component.confirmUserDeletion();
-    });
-
-    it('should set openModalForm to false', () => {
-      expect(component.openModalForm).toBe(true);
-      component.deleteUser();
-      expect(component.openModalForm).toBe(false);
-    });
-
-    it('should call deleteUser for each selected user', () => {
-      component.deleteUser();
-      expect(deleteUserSpy.calls.count()).toBe(selected.length);
-    });
-
-    it('should call the handleDeletion function for each selected user', () => {
-      const handleDeletionSpy = spyOn((component as any), 'handleDeletion');
-      component.deleteUser();
-      expect(handleDeletionSpy.calls.count()).toBe(selected.length);
     });
   });
 });

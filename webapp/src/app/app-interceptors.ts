@@ -37,7 +37,7 @@ export class RequestInterceptor implements HttpInterceptor {
               }
               return this.handle401Error(request, next);
             case 400:
-                if ( error.url.indexOf('api/auth/refresh') !== -1 ) {
+                if ( error.url.indexOf('api/auth/refresh' ) !== -1 ) {
                   this.authService.redirectUrl = this.router.url;
                   this.router.navigate([`auth/login`]);
                 }

@@ -1,21 +1,39 @@
 <div class="ps-1">
   <div class="card p-1">
-    <div class="media">
+    <div class="media" tourAnchor="onboardingTour.dashStats">
       <div class="dashboard-stat-container">
         <div>{{'dashboard.nodeHealth' | translate}}</div>
-        <h2 class="mt-0">{{healthyNodesCount}}/{{nodes.length}}</h2>
-      </div>
-      <div class="dashboard-stat-container">
-        <div>{{'blocks.blocks' | translate}}</div>
-        <h2 class="mt-0">{{blocks[0] ? blocks[0].number : 0}}</h2>
-      </div>
-      <div class="dashboard-stat-container">
-        <div>{{'transactions.transactions' | translate}}</div>
-        <h2 class="mt-0">{{transactionCount}}</h2>
+        <h2 class="mt-0" [ngClass]="{
+          'green': nodeHealth >= .9,
+          'yellow': nodeHealth >= .7,
+          'red': nodeHealth <= .69
+        }">
+          {{healthyNodesCount}}/{{nodes.length}}
+        </h2>
       </div>
       <div class="dashboard-stat-container">
         <div>{{'dashboard.deployedContracts' | translate}}</div>
-        <h2 class="mt-0">{{smartContracts.length}}</h2>
+        <h2 class="mt-0">
+          <a routerLink="/smart-contracts">
+            {{smartContracts.length}}
+          </a>
+        </h2>
+      </div>
+      <div class="dashboard-stat-container">
+        <div>{{'blocks.blocks' | translate}}</div>
+        <h2 class="mt-0">
+          <a routerLink="/blocks">
+            {{blocks[0] ? blocks[0].number : 0}}
+          </a>
+        </h2>
+      </div>
+      <div class="dashboard-stat-container">
+        <div>{{'transactions.transactions' | translate}}</div>
+        <h2 class="mt-0">
+          <a routerLink="/transactions">
+            {{transactionCount}}
+          </a>
+        </h2>
       </div>
     </div>
   </div>
@@ -26,16 +44,16 @@
     <div class="col-xs-6 mt-1 pb-1">
       <athena-dashboard-list [listConfig]="nodesConfig" [items]="nodes"></athena-dashboard-list>
     </div>
-    <div class="col-xs-6 mt-1 pb-1">
-      <athena-dashboard-list [listConfig]="blocksConfig" [items]="blocks"></athena-dashboard-list>
+    <div class="col-xs-6 mt-1 pb-1" tourAnchor="onboardingTour.contractList">
+      <athena-dashboard-list [listConfig]="contractsConfig" [items]="smartContracts"></athena-dashboard-list>
     </div>
   </div>
   <div class="row">
-    <div class="col-xs-6 mt-1 pb-1" tourAnchor="onboardingTour.transactionList">
-      <athena-dashboard-list [listConfig]="transactionsConfig" [items]="transactions"></athena-dashboard-list>
+    <div class="col-xs-6 mt-1 pb-1">
+      <athena-dashboard-list [listConfig]="blocksConfig" [items]="blocks"></athena-dashboard-list>
     </div>
     <div class="col-xs-6 mt-1 pb-1">
-      <athena-dashboard-list [listConfig]="contractsConfig" [items]="smartContracts"></athena-dashboard-list>
+      <athena-dashboard-list [listConfig]="transactionsConfig" [items]="transactions"></athena-dashboard-list>
     </div>
   </div>
 </div>
