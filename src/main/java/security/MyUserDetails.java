@@ -10,8 +10,7 @@ import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -27,18 +26,10 @@ public class MyUserDetails implements UserDetailsService {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    CacheManager cacheManager;
-
     @Override
+    @Cacheable("UserCache")
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        Cache userCache = cacheManager.getCache("UserCache");
-        // see if our user is cached
-        UserDetails userDetails = userCache.get(email, UserDetails.class);
-        if (userDetails != null) {
-            return userDetails;
-        }
-            // Otherwise, look it up
+
         final Optional<User> user = userRepository.findUserByEmail(email);
 
         if (!user.isPresent()) {
@@ -47,7 +38,7 @@ public class MyUserDetails implements UserDetailsService {
 
         User u = user.get();
 
-        userDetails = org.springframework.security.core.userdetails.User
+        return org.springframework.security.core.userdetails.User
                 .withUsername(email)
                 .password(u.getPassword())
                 .authorities(u.getRoles())
@@ -56,8 +47,6 @@ public class MyUserDetails implements UserDetailsService {
                 .credentialsExpired(false)
                 .disabled(false)
                 .build();
-        userCache.put(email, userDetails);
-        return userDetails;
     }
 
 }
