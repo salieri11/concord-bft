@@ -119,9 +119,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return `<span class="label ${labelClass}">${text}</span>`;
       }],
       tableHeader: 'nodes.nodes',
-      itemLink: (node) => {
-        return ['/nodes', node.hostname];
-      },
       paginationSummary: 'nodes.paginationSummary'
     };
   }

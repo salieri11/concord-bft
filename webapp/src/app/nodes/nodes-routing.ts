@@ -5,10 +5,8 @@
 import { Routes } from '@angular/router';
 
 import { NodesComponent } from './nodes/nodes.component';
-import { NodeComponent } from './node/node.component';
 
 export const nodeRoutes: Routes = [
-  { path: '', component: NodesComponent },
-  { path: ':id', component: NodeComponent }
+  { path: '', component: NodesComponent }
 ];
 

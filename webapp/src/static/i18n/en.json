@@ -195,7 +195,6 @@
     "transactionsPerSecond": "Transactions/second",
     "averageValidationTime": "Avg Validation Time",
     "xSeconds": "{{seconds}} <small>seconds</small>",
-    "location": "Location",
     "status": "Status",
     "live": "Live",
     "offline": "Offline",
@@ -210,7 +209,6 @@
     "address": "Address",
     "viewDetail": "View Detail",
     "network": "Network",
-    "nodeLocation": "Node Location",
     "transactions": "Transactions",
     "timestamp": "Timestamp",
     "origination": "Origination",
@@ -219,9 +217,6 @@
     "amount": "Amount",
     "trans": "Trans",
     "length": "Length",
-    "orgOwners": "Org Owners",
-    "averageXPerSecond": "Avg {{value}}/sec",
-    "averageXSeconds": "Avg {{value}} sec",
     "paginationSummary": "{{start}} - {{finish}} of {{total}} nodes"
   },
   "blocks": {

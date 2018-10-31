@@ -11,7 +11,7 @@
     {{'nodes.health' | translate}}
   </clr-dg-column>
   <clr-dg-row *clrDgItems="let node of nodes">
-    <clr-dg-cell><a [routerLink]="[node.hostname]">{{node.hostname}}</a></clr-dg-cell>
+    <clr-dg-cell>{{node.hostname}}</clr-dg-cell>
     <clr-dg-cell>{{node.address}}</clr-dg-cell>
     <clr-dg-cell>{{node.status}}</clr-dg-cell>
     <clr-dg-cell>

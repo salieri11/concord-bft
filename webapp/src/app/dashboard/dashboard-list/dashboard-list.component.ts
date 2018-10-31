@@ -8,7 +8,7 @@ export interface DashboardListConfig {
   headers: string[];
   displayProperties: Array<string|Function>;
   tableHeader: string;
-  itemLink: Function;
+  itemLink?: Function;
   paginationSummary?: string;
 }
 
