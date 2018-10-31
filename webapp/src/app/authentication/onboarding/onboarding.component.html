@@ -1,5 +1,4 @@
 <div class="main-container">
-
   <div class="content-container">
     <div class="content-area">
       <div class="onboarding-container">
@@ -20,11 +19,11 @@
                 </g>
               </g>
             </svg>
-            <h1>{{ 'agreement.title' | translate }}</h1>
           </div>
         </div>
         <div class="row flex-items-xs-center">
-          <div class="col-sm-6 col-xs-12">
+          <div [ngClass]="{'hidden-xs-up': showServiceAvailability}" class="col-sm-6 col-xs-12">
+            <h2 class="title">{{ 'agreement.title' | translate }}</h2>
             <textarea readonly [value]="agreement?.content" #agreementEl id="agreementEl" rows="20"></textarea>
             <form class="clr-form clr-form-horizontal" [formGroup]="agreementForm">
               <div class="clr-form-control">
@@ -54,6 +53,15 @@
               </div>
             </form>
           </div>
+          <div [ngClass]="{'hidden-xs-up': !showServiceAvailability}" class="col-sm-6 col-xs-12">
+            <h2 class="title">{{ 'expectations.title' | translate }}</h2>
+            <p>{{ 'expectations.one' | translate }}</p>
+            <p>{{ 'expectations.two' | translate }}</p>
+            <p>{{ 'expectations.three' | translate }}</p>
+            <p>{{ 'expectations.four' | translate }}</p>
+            <button class="btn btn-primary" id="next" (click)="next()">{{ 'common.next' | translate }}</button>
+          </div>
+
         </div>
       </div>
     </div>

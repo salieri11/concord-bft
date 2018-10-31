@@ -18,6 +18,7 @@ export class OnboardingComponent implements OnInit {
   agreement: {type?: string, content?: string, accepted: boolean, id?: number};
   disabledAgreement = true;
   agreementForm: FormGroup;
+  showServiceAvailability: boolean = false;
 
   constructor(
     private authService: AuthenticationService,
@@ -54,9 +55,13 @@ export class OnboardingComponent implements OnInit {
     })
       .subscribe(response => {
         this.authService.agreement.accepted = true;
-        this.goToLogin();
+        this.goToServiceAvailablity();
         return response;
       });
+  }
+
+  next(): void {
+    this.goToLogin();
   }
 
   private handleAgreement(agreement) {
@@ -74,6 +79,10 @@ export class OnboardingComponent implements OnInit {
     if (reachedBottom && this.disabledAgreement) {
       this.disabledAgreement = false;
     }
+  }
+
+  private goToServiceAvailablity() {
+    this.showServiceAvailability = true;
   }
 
   private goToLogin() {

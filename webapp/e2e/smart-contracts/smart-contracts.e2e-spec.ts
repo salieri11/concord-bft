@@ -27,7 +27,7 @@ describe('athena-ui Smart Contracts', () => {
     loginPage = new LoginPage();
     authHelper = new AuthHelper();
     loginPage.navigateTo();
-    loginPage.fillLogInForm('testlogin@example.com', 'T3sting!');
+    loginPage.fillLogInForm('admin@blockchain.local', 'T3sting!');
     browser.sleep(1000);
   });
 
@@ -60,7 +60,7 @@ describe('athena-ui Smart Contracts', () => {
   });
 
   it('should navigate to the smart contract page with the latest version selected', () => {
-    const expectedLinkText = `${contractId} : ${from}`;
+    const expectedLinkText = `${contractId}`;
 
     smartContractsPage.getTableLinkElement(expectedLinkText).click();
 
