@@ -1,0 +1,75 @@
+version: '3'
+services:
+  athena1:
+    image: "${athena_repo}:${athena_tag}"
+    expose:
+      - 5458
+      - 3501/udp
+      - 3502/udp
+      - 3503/udp
+      - 3504/udp
+      - 3505/udp
+    volumes:
+      - ./rocksdbdata1:/athena/rocksdbdata
+      - ./log1:/athena/log
+      - ./config-athena1:/athena/config-local
+      - ./config-public:/athena/config-public:ro
+
+  athena2:
+    image: "${athena_repo}:${athena_tag}"
+    expose:
+      - 5458
+      - 3501/udp
+      - 3502/udp
+      - 3503/udp
+      - 3504/udp
+      - 3505/udp
+    volumes:
+      - ./rocksdbdata2:/athena/rocksdbdata
+      - ./log2:/athena/log
+      - ./config-athena2:/athena/config-local
+      - ./config-public:/athena/config-public:ro
+
+  athena3:
+    image: "${athena_repo}:${athena_tag}"
+    expose:
+      - 5458
+      - 3501/udp
+      - 3502/udp
+      - 3503/udp
+      - 3504/udp
+      - 3505/udp
+    volumes:
+      - ./rocksdbdata3:/athena/rocksdbdata
+      - ./log3:/athena/log
+      - ./config-athena3:/athena/config-local
+      - ./config-public:/athena/config-public:ro
+
+  athena4:
+    image: "${athena_repo}:${athena_tag}"
+    expose:
+      - 5458
+      - 3501/udp
+      - 3502/udp
+      - 3503/udp
+      - 3504/udp
+      - 3505/udp
+    volumes:
+      - ./rocksdbdata4:/athena/rocksdbdata
+      - ./log4:/athena/log
+      - ./config-athena4:/athena/config-local
+      - ./config-public:/athena/config-public:ro
+
+  helen:
+    image: "${helen_repo}:${helen_tag}"
+    ports:
+      - 8080:8080
+  db-server:
+    image: cockroachdb/cockroach:v2.0.2
+    ports:
+      - 26257:26257
+    volumes:
+      - ./cockroachDB:/cockroach/cockroach-data
+    command:
+      - start
+      - --insecure
