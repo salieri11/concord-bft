@@ -25,10 +25,6 @@ import { isHexAddress } from '../shared/custom-validators';
 import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview-form/contract-payload-preview-form.component';
 import { TourService } from '../../shared/tour.service';
 
-const FALSE_HEX_VALUE = '0x0000000000000000000000000000000000000000000000000000000000000000';
-const TRUE_HEX_VALUE = '0x0000000000000000000000000000000000000000000000000000000000000001';
-const VOID_HEX_VALUE = '0x';
-
 @Component({
   selector: 'athena-smart-contract-version',
   templateUrl: './smart-contract-version.component.html',
@@ -41,12 +37,14 @@ export class SmartContractVersionComponent implements OnChanges, OnInit {
   functions;
   versionForm: FormGroup;
   inputs = [];
+  outputs = [];
   alertMessage: string;
   alertType: string;
   resultType: string;
   highlightedMetaData: string;
   highlightedSourceCode: string;
   callReturnValue: string;
+  rawCallReturnValue: string;
   functionDefinition;
 
   constructor(
@@ -91,6 +89,7 @@ export class SmartContractVersionComponent implements OnChanges, OnInit {
     const result = this.functions.filter(func => func.name === this.versionForm.value.functionName);
     if (result.length > 0) {
       this.inputs = result[0].inputs;
+      this.outputs = result[0].outputs;
       this.functionDefinition = result[0];
     } else {
       this.inputs = [];
@@ -122,21 +121,16 @@ export class SmartContractVersionComponent implements OnChanges, OnInit {
         this.alertMessage = this.translate.instant('smartContracts.form.callSuccessMessage');
         this.alertType = 'alert-success';
         this.resultType = 'call';
-
-        switch (resp.result) {
-          case FALSE_HEX_VALUE:
-            this.callReturnValue = 'false';
-            break;
-          case TRUE_HEX_VALUE:
-            this.callReturnValue = 'true';
-            break;
-          case VOID_HEX_VALUE:
-            this.callReturnValue = this.translate.instant('smartContracts.version.emptyResponse');
-            break;
-          default:
-            this.callReturnValue = Web3Utils.hexToAscii(resp.result);
-            break;
-        }
+        this.rawCallReturnValue = resp.result;
+        const decodedValues = Web3EthAbi.decodeParameters(this.outputs, resp.result);
+        delete decodedValues.__length__;
+        this.callReturnValue = this.highlighter.highlight(
+          JSON.stringify(
+            decodedValues,
+            null,
+            4),
+          this.highlighter.languages.json
+        );
       }
     }, errorResp => this.handleError(errorResp));
   }
