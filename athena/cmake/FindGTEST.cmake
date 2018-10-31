@@ -1,5 +1,5 @@
 find_path(GTEST_INCLUDE_DIR gtest/gtest.h
-  HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../googletest/googletest/include)
+  HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../googletest/googletest/include)
 
 if(DEFINED GTEST_INCLUDE_DIR_NOTFOUND)
   message(SEND_ERROR "GTEST not found")

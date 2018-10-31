@@ -1,5 +1,5 @@
 find_path(Evmjit_INCLUDE_DIR evmjit.h
-  HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../evmjit/include)
+  HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../evmjit/include)
 
 if(DEFINED EVM_INCLUDE_DIR_NOTFOUND)
    message(SEND_ERROR "Evmjit not found")
