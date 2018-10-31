@@ -3,10 +3,12 @@
   <clr-dg-column *ngFor="let header of listConfig?.headers">{{header | translate}}</clr-dg-column>
   <clr-dg-row *clrDgItems="let item of items">
     <clr-dg-cell *ngFor="let prop of listConfig?.displayProperties; let i = index;">
-      <div *ngIf="i === 0">
+      <div *ngIf="i === 0 && listConfig.itemLink; else textProp">
         <a [routerLink]="listConfig.itemLink(item)" [innerHTML]="getItemProp(item, prop)"></a>
       </div>
-      <div *ngIf="i > 0" [innerHTML]="getItemProp(item, prop)"></div>
+      <ng-template #textProp>
+        <div [innerHTML]="getItemProp(item, prop)"></div>
+      </ng-template>
     </clr-dg-cell>
   </clr-dg-row>
   <clr-dg-footer *ngIf="listConfig?.paginationSummary">
