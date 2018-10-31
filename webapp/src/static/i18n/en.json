@@ -159,6 +159,13 @@
     "lastName": "Last Name",
     "company": "Company"
   },
+  "expectations": {
+    "title": "Service Availability Expectations",
+    "one": "i. The primary purpose of the PoC-grade VMware Blockchain service is to allow development and porting of Ethereum compatible DApps on the VMware blockchain stack, allowing developers to get familiar with our stack and allowing VMware to find and fix any compatibility issues. VMware will make every attempt to resolve any issues found as quickly as possible and provide a new build on the service, so DApp development is not blocked.",
+    "two": "ii. In-place upgrades are currently not supported on the service. A new build will be delivered by creating an entirely new blockchain stack with a new URL for the UI and API endpoint. This means that any data saved on the old stack will be lost and developers are strongly encouraged to have their own data setup automation, so they can start using the new build quickly.",
+    "three": "iii. The service does not currently support graceful recovery from crashes. This means that there is the possibility of data corruption and loss on a crash of any sort. In the event of an unrecoverable crash, the VMware team will provide developers with a new blockchain instance which will also require data set up by the developer.",
+    "four": "iv. Sensitive data requiring a high level of security must not be kept in the PoC-grade service. Developers should use dummy data sets to develop and test their applications."
+  },
   "dashboard": {
     "totalActiveNodes": "Total Active Nodes",
     "inactiveNodes": "Inactive Nodes",
