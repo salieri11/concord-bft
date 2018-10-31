@@ -16,9 +16,6 @@ from util.debug import pp as pp
 
 log = logging.getLogger(__name__)
 
-CONFIG_JSON = "resources/user_config.json"
-
-
 class Request():
    # Class
    # Incremented for every call, even across test cases, to have
@@ -36,7 +33,7 @@ class Request():
    _params = ""
    _data = None
 
-   def __init__(self, logDir, testName, baseUrl):
+   def __init__(self, logDir, testName, baseUrl, userConfig):
       self._logDir = logDir
       os.makedirs(self._logDir, exist_ok=True)
 
@@ -45,7 +42,7 @@ class Request():
       self._subPath = ""
       self._params = ""
 
-      self._userConfig = util.json_helper.readJsonFile(CONFIG_JSON)
+      self._userConfig = userConfig
 
 
    def _send(self, verb=None):
