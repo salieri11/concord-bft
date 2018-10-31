@@ -94,15 +94,6 @@ public class Server {
        net.sf.ehcache.config.Configuration config = new net.sf.ehcache.config.Configuration();
        config.addCache(cacheConfiguration);
 
-       CacheConfiguration userCacheConfiguration = new CacheConfiguration();
-       userCacheConfiguration.setName("UserRepositoryCache");
-       userCacheConfiguration.setMemoryStoreEvictionPolicy("LRU");
-       userCacheConfiguration.setMaxEntriesLocalHeap(500);
-       userCacheConfiguration.timeToIdleSeconds(TimeUnit.MINUTES.toSeconds(5));
-       userCacheConfiguration.timeToLiveSeconds(TimeUnit.MINUTES.toSeconds(5));
-
-       config.addCache(userCacheConfiguration);
-
        return net.sf.ehcache.CacheManager.newInstance(config);
    }
 
