@@ -20,11 +20,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-
-import org.springframework.context.annotation.Bean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
 
 
 /**
@@ -41,7 +41,6 @@ public class ProfilesRegistryManager {
    @Autowired
    private UserRepository userRepository;
 
-
    @Autowired
    private OrganizationRepository organizationRepository;
 
@@ -53,6 +52,9 @@ public class ProfilesRegistryManager {
 
    @Autowired
    private PasswordEncoder passwordEncoder;
+
+   @Autowired
+   CacheManager cacheManager;
 
 
    /** Needed for spring */
@@ -234,12 +236,16 @@ public class ProfilesRegistryManager {
 
    public JSONObject
           changePassword(String email, String password) throws UserModificationException {
-         Optional<User> oUser = userRepository.findUserByEmail(email);
+      Optional<User> oUser = userRepository.findUserByEmail(email);
       if (oUser.isPresent()) {
          User u = oUser.get();
          JSONObject userJSON = getUserWithID(String.valueOf(u.getUserID()));
          u.setPassword(password);
          u = userRepository.save(u);
+         // if the password changes, we need to evict any cached userDetails
+         Cache userCache = cacheManager.getCache("UserCache");
+         userCache.evict(email);
+
 
          return userJSON;
       } else {

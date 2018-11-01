@@ -83,11 +83,13 @@ public class Server {
    private net.sf.ehcache.CacheManager ehCacheManager() {
        //TODO visit these numbers
        CacheConfiguration cacheConfiguration = new CacheConfiguration();
-       cacheConfiguration.setName("TokenCache");
+       cacheConfiguration.setName("UserCache");
        cacheConfiguration.setMemoryStoreEvictionPolicy("LRU");
        cacheConfiguration.setMaxEntriesLocalHeap(500);
-       cacheConfiguration.timeToIdleSeconds(TimeUnit.MINUTES.toSeconds(10));
-       cacheConfiguration.timeToLiveSeconds(TimeUnit.MINUTES.toSeconds(10));
+       cacheConfiguration.timeToIdleSeconds(TimeUnit.MINUTES.toSeconds(5));
+       cacheConfiguration.timeToLiveSeconds(TimeUnit.MINUTES.toSeconds(5));
+       cacheConfiguration.copyOnRead(true);
+       cacheConfiguration.copyOnWrite(true);
 
        net.sf.ehcache.config.Configuration config = new net.sf.ehcache.config.Configuration();
        config.addCache(cacheConfiguration);
