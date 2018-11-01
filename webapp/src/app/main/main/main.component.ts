@@ -27,6 +27,7 @@ export class MainComponent implements OnInit, OnDestroy {
   username: string;
   personas = Personas;
   personaOptions = PersonaService.getOptions();
+  inactivityTimeout: any;
 
   constructor(
     private authenticationService: AuthenticationService,
@@ -51,6 +52,7 @@ export class MainComponent implements OnInit, OnDestroy {
       });
     });
 
+    this.setInactivityTimeout();
   }
 
   ngOnInit() {
@@ -72,6 +74,30 @@ export class MainComponent implements OnInit, OnDestroy {
     this.authenticationService.logOut();
     this.router.navigate(['']);
   }
+
+  private setInactivityTimeout() {
+    // If the user is inactive for oneHour we log them
+    // out the expiring jwt token isn't enough to handle this
+    // because we have polling on the dashboard that will continuously
+    // refresh the token.
+    const resetTimer = this.resetTimer.bind(this);
+    window.onload = resetTimer;
+    window.onmousemove = resetTimer;
+    window.onmousedown = resetTimer;
+    window.onclick = resetTimer;
+    window.onscroll = resetTimer;
+    window.onkeypress = resetTimer;
+  }
+
+  private resetTimer() {
+    const oneHour = 3600000;
+    clearTimeout(this.inactivityTimeout);
+    this.inactivityTimeout = setTimeout(() => {
+      this.authenticationService.logOut();
+      this.router.navigate(['auth/login']);
+    }, oneHour);
+  }
+
 
   private addAlert(alert: any): void {
     if (alert && alert.message) {
