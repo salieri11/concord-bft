@@ -1,24 +1,27 @@
 {
-  "title": "VMware Athena",
+  "title": "VMware Blockchain",
   "common": {
     "all": "すべて",
     "close": "閉じる",
     "cancel": "キャンセル",
     "create": "作成",
+    "deploy": "展開",
     "back": "戻る",
     "next": "次へ",
     "finish": "完了",
     "edit": "編集",
     "update": "更新",
-    "requiredValidationMessage": "このフィールドは必須です"
+    "requiredValidationMessage": "このフィールドは必須です",
+    "copyToClip": "クリップボードにコピー"
   },
   "nav": {
     "menu": {
       "title": "メニュー",
       "options": {
         "contract": {
-          "title": "スマート コントラクトの作成"
+          "title": "スマート コントラクトの展開"
         },
+        "generalTitle": "全般",
         "sysAdminTitle": "システム管理者",
         "deploy": {
           "title": "展開"
@@ -26,14 +29,8 @@
         "addOrg": {
           "title": "組織の追加"
         },
-        "addBlockchains": {
-          "title": "ブロックチェーンの追加"
-        },
         "addConsortium": {
           "title": "コンソーシアムの追加"
-        },
-        "addKubernetes": {
-          "title": "Kubernetes の追加"
         },
         "addUsers": {
           "title": "ユーザーの追加"
@@ -47,9 +44,6 @@
       "title": "アクション",
       "resetTasks": "タスクのリセット"
     },
-    "metrics": {
-      "activeNodes": "アクティブ ノード {{value}}"
-    },
     "dashboard": {
       "title": "ダッシュボード"
     },
@@ -57,7 +51,10 @@
       "title": "ノードのリスト"
     },
     "blockList": {
-      "title": "ブロック リスト"
+      "title": "ブロック"
+    },
+    "transactionList": {
+      "title": "トランザクション"
     },
     "testing": {
       "title": "テスト"
@@ -95,8 +92,12 @@
     "welcome": "Welcome to",
     "username": "ユーザー名",
     "password": "パスワード",
+    "newPassword": "新しいパスワード",
+    "confirmPassword": "パスワードの確認",
     "next": "次へ",
-    "errorMessage": "ユーザー名またはパスワードが無効です"
+    "errorMessage": "ユーザー名またはパスワードが無効です",
+    "changePassword": "パスワードの変更",
+    "passwordReq": "パスワードは 6 ～ 35 文字としてください。また、数字を 1 字以上、英大文字と英小文字をそれぞれ 1 字以上、特殊文字を 1 字以上含める必要があります。"
   },
   "grid": {
     "search": {
@@ -108,7 +109,7 @@
   },
   "marketing": {
     "subTitle": "業界最先端のパーミッションド ブロックチェーンの導入",
-    "description": "Athena ブロックチェーンは業界最速のトランザクション能力 (TPS） を提供します。Hyperledger と Athena をコンソーシアムや組織にただちに導入し、管理することができます。",
+    "description": "VMware ブロックチェーンは、業界最速のトランザクション (TPS) を提供します。コンソーシアムや組織に今すぐ Concord と Hyperledger を展開して管理できます。",
     "callToAction": "導入を開始する",
     "midHeading": "先進のエンタープライズ ブロックチェーンを入手",
     "itemOne": {
@@ -125,7 +126,7 @@
     }
   },
   "signUp": {
-    "description": "VMware Athena は SBFT （Simplified Byzantine Fault Tolerance） プロトコルにより、業界最先端のブロックチェーンを提供します。",
+    "description": "Vmware Blockchainは、業界最先端のブロックチェーンと SBFT プロトコルを提供します。",
     "callToAction": "導入を開始するには、ユーザー情報をすべて入力する必要があります。",
     "duplicateEmailError": "このメール アドレスはすでに使用されています。ログインしてください。",
     "form": {
@@ -151,21 +152,18 @@
       "submit": "登録"
     }
   },
-  "onboarding": {
-    "title": "Athena のご利用ありがとうございます",
-    "setupOrg": {
-      "title": "組織の設定",
-      "description": "組織へのユーザーの追加、スマート コントラクトの作成、ブロックチェーンの認証情報の取得、組織のトランザクションの作成を開始します。"
-    },
-    "deployBlockchain": {
-      "title": "ブロックチェーンの展開",
-      "description": "Athena、Hyperledger、Corda または Quorom ブロックチェーンを展開し、パーミッションド ブロックチェーンのトランザクションの実行を開始する組織を招待します。"
-    }
+  "agreement": {
+    "title": "法的契約",
+    "accept": "承諾する",
+    "firstName": "名前（名）",
+    "lastName": "名前（姓）",
+    "company": "会社名"
   },
   "dashboard": {
     "totalActiveNodes": "アクティブ ノードの合計数",
     "inactiveNodes": "非アクティブ ノード",
-    "overallNodeHealth": "ノード全体の健全性",
+    "nodeHealth": "ノードの健全性",
+    "deployedContracts": "展開された契約",
     "transactionsPerSecond": "トランザクション数（毎秒）",
     "averageValidationTime": "平均検証時間",
     "xSeconds": "{{seconds}} <small>秒</small>"
@@ -192,13 +190,16 @@
     "xSeconds": "{{seconds}} <small>秒</small>",
     "location": "場所",
     "status": "状態",
-    "connected": "接続済み",
+    "live": "ライブ",
     "offline": "オフライン",
     "totalActiveNodes": "アクティブ ノードの合計数",
     "inactiveNodes": "非アクティブ ノード",
     "searchPlaceholder": "検索...",
     "filters": "フィルタ",
     "hostname": "ホスト名",
+    "health": "健全性",
+    "healthy": "良好",
+    "unhealthy": "不良",
     "address": "アドレス",
     "viewDetail": "詳細の表示",
     "network": "ネットワーク",
@@ -213,7 +214,8 @@
     "length": "長さ",
     "orgOwners": "組織の所有者",
     "averageXPerSecond": "平均 {{value}} (毎秒）",
-    "averageXSeconds": "平均 {{value}} 秒"
+    "averageXSeconds": "平均 {{value}} 秒",
+    "paginationSummary": "{{total}} 台中 {{start}} ～ {{finish}} 台のノード"
   },
   "blocks": {
     "title": "ブロック",
@@ -224,7 +226,7 @@
     "hash": "ハッシュ",
     "next": "次へ",
     "viewDetail": "詳細の表示",
-    "paginationSummary": "{{total}} 件中 {{start}} ～ {{finish}} 件のブロック"
+    "paginationSummary": "{{total}} 個中 {{start}} ～ {{finish}} のブロック"
   },
   "transactions": {
     "title": "トランザクション",
@@ -249,7 +251,7 @@
     "nonce": "ノンス",
     "parentHash": "親ハッシュ",
     "size": "サイズ",
-    "paginationSummary": "{{total}} 件中 {{start}} ～ {{finish}} 件のトランザクション"
+    "paginationSummary": "{{total}} 個中 {{start}} ～ {{finish}} のトランザクション"
   },
   "testing": {
     "testingGround": "テスト環境",
@@ -275,9 +277,9 @@
   "smartContracts": {
     "smartContracts": "スマート コントラクト",
     "smartContractUpload": "スマート コントラクトのアップロード",
-    "contractId": "コントラクト ID",
+    "name": "名前",
     "contractOwnerAddress": "コントラクト所有者のアドレス",
-    "createContract": "コントラクトの作成",
+    "createContract": "コントラクトの展開",
     "updateContract": "コントラクトの更新",
     "createContractError": "コントラクトのアップロード中にエラーが発生しました。エラーを解決して再試行してください。",
     "viewDetail": "詳細の表示",
@@ -286,6 +288,9 @@
     "owner": "所有者",
     "file": "ファイル",
     "preview": "プレビュー",
+    "externalSourceWarning": "このバージョンのコントラクトは外部ソースから展開されたため、関連されるソースコードまたはメタデータはありません。",
+    "externalSourceUpload": "アップロード",
+    "paginationSummary": "{{total}} 個中 {{start}} ～ {{finish}} のコントラクト",
     "version": {
       "title": "バージョン",
       "version": "バージョン",
@@ -297,17 +302,24 @@
       "from": "送信元",
       "call": "呼び出し",
       "send": "送信",
-      "view": "表示",
+      "emptyResponse": "空の応答",
+      "returnValues": "値を返す",
+      "transaction": "トランザクション",
       "preview": "プレビュー",
       "selectVersion": "バージョンの選択",
       "addressHelper": "ユーザーのアドレスです",
       "functionParameters": "関数パラメータ",
       "parameterHelper": "関数で必要なパラメータ",
+      "arrayParameterHelper": "複数のアレイ値を追加するには、新しい行に 1 つずつ入力します。",
       "download": "ダウンロード",
+      "inputTypeHelper": "想定される値： {{type}}",
       "addressLengthValidationMessage": "42 文字で入力してください。",
       "addressPatternValidationMessage": "有効な 16 進数のアドレスを入力してください。",
       "inputUIntValidationMessage": "有効な符号なし整数値を入力してください。",
       "inputSignedIntValidationMessage": "有効な符号付き整数値を入力してください。",
+      "inputByteLengthValidationMessage": "無効なバイト長が入力されました",
+      "inputByteArrayByteLengthValidationMessage": "このアレイの 1 つ以上のバイト長が正しくありません",
+      "inputArrayLengthValidationMessage": "アレイの長さが無効です。",
       "tabs": {
         "execute": "実行",
         "source": "ソース",
@@ -326,7 +338,43 @@
       "versionHelper": "更新する前に、バージョンをアップデートしてください。",
       "versionDuplicateValidationMessage": "新しいバージョン用に値を選択する必要があります。",
       "versionLengthValidationMessage": "バージョンは 16 文字以下である必要があります。",
-      "callSuccessMessage": "コントラクトがローカルで正常に呼び出されました。送信をクリックしてブロックチェーンでコントラクトを実行してください。"
+      "callSuccessMessage": "コントラクトがローカルで正常に呼び出されました。送信をクリックしてブロックチェーンでコントラクトを実行してください。",
+      "generalInformationTitle": "全般情報",
+      "contractSelectionTitle": "コントラクトの選択",
+      "contractSelectionHelper": "このファイルから展開するコントラクトを選択します",
+      "constructorParametersTitle": "コンストラクタのパラメータ",
+      "constructorParametersRequiredHelper": "以下のコントラクト コンストラクタのパラメータを指定してください。",
+      "constructorParametersNotRequiredHelper": "このコントラクトの展開に必要なコンストラクタのパラメータがありません。"
+    },
+    "tour": {
+      "deployed": {
+        "title": "コントラクトのアドレス",
+        "content": "コントラクトがブロックチェーンに展開されました。このコントラクト アドレスからアクセスできます。"
+      },
+      "availableActions": {
+        "title": "利用可能な関数",
+        "content": "実行するスマート コントラクト関数を選択します。メソッドによっては、前回のトランザクション情報を取得したり、トランザクションを処理するものがあります。それぞれの関数については、ソース コードを参照してください。"
+      },
+      "call": {
+        "title": "呼び出し",
+        "content": "これは読み取り専用の処理で、ブロードキャストまたはブロックチェーンへの公開は行ないません。これは、コントラクトに保存している以前実行した情報の取得や、実行前にトランザクションをテストする際に使用できます。"
+      },
+      "send": {
+        "title": "送信",
+        "content": "これは、ブロックチェーン上でトランザクションを処理します。"
+      },
+      "tabs": {
+        "title": "コントラクト情報",
+        "content": "ソース コードのバイトコードやメタ データなどのコントラクト情報がこれらのタブに表示されます"
+      }
+    },
+    "truffle": {
+      "title": "Truffle で接続するには",
+      "first": "Truffle をインストールおよびセットアップします。",
+      "second": "Truffle プロジェクトで npm の初期化を実行します。まだ実行していない場合は、web3@0.19.0 をインストールして、",
+      "third": "truffle.js ファイルを次のように編集します。パスワードを変更し、ユーザー名がメール アドレスとなっていることを確認します。",
+      "option": "Web3 のバージョンによっては、Web3 ベーシック認証を以下のように変更する必要があります。",
+      "fourth": "これで、Truffle を使用して展開できます。"
     }
   },
   "organization": {
@@ -408,111 +456,6 @@
     },
     "deleteOrgForm": {
       "title": "組織の削除",
-      "submit": {
-        "title": "はい"
-      }
-    }
-  },
-  "kubernetes": {
-    "title": "Kubernetes の管理",
-    "actions": {
-      "title": "アクション",
-      "options": {
-        "add": {
-          "title": "インスタンスの追加"
-        },
-        "delete": {
-          "title": "インスタンスの削除"
-        }
-      }
-    },
-    "grid": {
-      "pagination": {
-        "title": "インスタンス"
-      },
-      "columns": {
-        "id": {
-          "title": "ID"
-        },
-        "name": {
-          "title": "名前"
-        },
-        "apiServerUrl": {
-          "title": "API サーバ"
-        },
-        "ca": {
-          "title": "認証局 (CA)"
-        },
-        "kubectlCliUrl": {
-          "title": "Kube CLI URL"
-        },
-        "helmCliUrl": {
-          "title": "Helm URL"
-        },
-        "credentialType": {
-          "title": "認証情報のタイプ"
-        },
-        "insecure": {
-          "title": "安全ではありません"
-        },
-        "created": {
-          "title": "作成日"
-        },
-        "updated": {
-          "title": "更新日"
-        }
-      }
-    },
-    "addKubeForm": {
-      "title": "Kubernetes の追加",
-      "inputs": {
-        "name": {
-          "title": "名前",
-          "placeholder": "自分の Kubernetes"
-        },
-        "apiServerUrl": {
-          "title": "API サーバ URL",
-          "placeholder": "https://1.1.1.1"
-        },
-        "credentialType": {
-          "title": "認証情報のタイプ",
-          "options": {
-            "basic_auth": {
-              "title": "ユーザー認証"
-            },
-            "certificate": {
-              "title": "証明書とキー"
-            },
-            "configFile": {
-              "title": "構成ファイル"
-            }
-          }
-        },
-        "username": {
-          "title": "ユーザー名",
-          "placeholder": "自分のユーザー名"
-        },
-        "password": {
-          "title": "パスワード"
-        },
-        "certificate": {
-          "title": "証明書",
-          "placeholder": "ここに証明書を貼り付け"
-        },
-        "key": {
-          "title": "キー",
-          "placeholder": "ここにキーを貼り付け"
-        },
-        "configFile": {
-          "title": "構成ファイル"
-        }
-      },
-      "submit": {
-        "title": "追加"
-      }
-    },
-    "deleteKubeForm": {
-      "title": "インスタンスの削除",
       "submit": {
         "title": "はい"
       }
@@ -671,7 +614,7 @@
     "bodyText": "ファイアウォール ルールを削除しますか"
   },
   "globalError": {
-    "routingError": "Athena のこのセクションを参照する権限がありません。詳細についてはシステム管理者にお問い合わせください。"
+    "routingError": "VMware Blockchain のこのセクションにアクセスする権限がありません。詳細については、システム管理者にお問い合わせください。"
   },
   "users": {
     "title": "ユーザーの管理",
@@ -713,7 +656,7 @@
       "inputs": {
         "firstName": {
           "title": "名前（名）",
-          "placeholder": "c"
+          "placeholder": "名前（名）"
         },
         "lastName": {
           "title": "名前（姓）",
@@ -736,8 +679,8 @@
       "title": "ユーザーの追加",
       "inputs": {
         "firstName": {
-          "title": "名前（姓）",
-          "placeholder": "名前（姓）"
+          "title": "名前（名）",
+          "placeholder": "名前（名）"
         },
         "lastName": {
           "title": "名前（姓）",
@@ -832,7 +775,7 @@
       "navTitle": "ブロックチェーンおよびコンソーシアム",
       "info": "ローカル フォルト トレランスを選択すると、近くのリージョンでノードが展開されます。グローバルを選択すると、使用可能なすべてのリージョンに多くのノードが分散されます。ユーザーのコンソーシアムはこのブロックチェーンに関連付けられます。",
       "blockchainType": "ブロックチェーン タイプ",
-      "athena": "Athena",
+      "athena": "Concord",
       "hyperledger": "Hyperledger",
       "faultTolerance": "フォルト トレランス",
       "global": "グローバル",
@@ -843,7 +786,7 @@
     "addOrgs": {
       "pageTitle": "組織の追加",
       "navTitle": "組織の追加",
-      "info": "このコンソーシアムに組織を追加してください。ブロックチェーンのトランザクションを実行するための認証情報が、各組織に与えられます。遅延を最短にするには、組織の場所を指定して、各組織の近くにノードをセットアップしてください。",
+      "info": "このコンソーシアムに組織を追加してください。ブロックチェーンのトランザクションを処理するための認証情報が、各組織に与えられます。遅延を最短にするには、組織の場所を指定して、各組織の近くにノードをセットアップしてください。",
       "addOrganization": "組織の追加",
       "name": "名前",
       "namePlaceholder": "自分の組織",
@@ -934,14 +877,19 @@
     "title": "使い方を見る",
     "nextBtnText": "次へ",
     "prevBtnText": "前へ",
+    "endBtnText": "終了",
     "dashboard": {
+      "dashStats": {
+        "title": "全体の状態",
+        "text": "ノード、コントラクト、ブロック、およびトランザクションの全体の状態がここに表示されます。ダッシュボード統計およびリストは自動的に更新されるため、ページを再ロードする必要はありません。"
+      },
       "nodeStatus": {
         "title": "ノードの状態",
         "text": "マップ上のノードにマウスを動かし、健全性や状態を確認します。"
       },
-      "transactionList": {
-        "title": "トランザクションの一覧",
-        "text": "最近のブロックチェーン トランザクションです。各行を展開して詳細を表示することができます。"
+      "contractList": {
+        "title": "コントラクトのリスト",
+        "text": "最近追加されたコントラクトやアップデートされたその他のリストがここに表示されます。"
       }
     },
     "smartContracts": {
@@ -950,8 +898,8 @@
         "text":  "ここでは、自分のスマート コントラクトや、コンソーシアムのメンバーが送信した他のスマート コントラクトを管理および表示することができます。"
       },
       "createSmartContract": {
-        "title": "作成",
-        "text": "コントラクトを作成するにはここをクリックしてください"
+        "title": "展開",
+        "text": "コントラクトを展開するにはここをクリックしてください"
       }
     },
     "users": {

@@ -1,24 +1,27 @@
 {
-  "title": "VMware Athena",
+  "title": "VMware 区块链",
   "common": {
     "all": "全部",
     "close": "关闭",
     "cancel": "取消",
     "create": "创建",
+    "deploy": "部署",
     "back": "上一步",
     "next": "下一步",
     "finish": "完成",
     "edit": "编辑",
     "update": "更新",
-    "requiredValidationMessage": "此字段为必填字段"
+    "requiredValidationMessage": "此字段为必填字段",
+    "copyToClip": "复制到剪贴板"
   },
   "nav": {
     "menu": {
       "title": "菜单",
       "options": {
         "contract": {
-          "title": "创建智能合约"
+          "title": "部署智能合约"
         },
+        "generalTitle": "常规",
         "sysAdminTitle": "系统管理员",
         "deploy": {
           "title": "部署"
@@ -26,14 +29,8 @@
         "addOrg": {
           "title": "添加组织"
         },
-        "addBlockchains": {
-          "title": "添加区块链"
-        },
         "addConsortium": {
           "title": "添加联盟"
-        },
-        "addKubernetes": {
-          "title": "添加 Kubernetes"
         },
         "addUsers": {
           "title": "添加用户"
@@ -47,9 +44,6 @@
       "title": "操作",
       "resetTasks": "重置任务"
     },
-    "metrics": {
-      "activeNodes": "活动节点数 {{value}}"
-    },
     "dashboard": {
       "title": "仪表板"
     },
@@ -57,7 +51,10 @@
       "title": "节点列表"
     },
     "blockList": {
-      "title": "区块列表"
+      "title": "区块"
+    },
+    "transactionList": {
+      "title": "交易"
     },
     "testing": {
       "title": "测试"
@@ -95,8 +92,12 @@
     "welcome": "欢迎使用",
     "username": "用户名",
     "password": "密码",
+    "newPassword": "新密码",
+    "confirmPassword": "确认密码",
     "next": "下一步",
-    "errorMessage": "无效的用户名或密码"
+    "errorMessage": "无效的用户名或密码",
+    "changePassword": "更改密码",
+    "passwordReq": "密码必须为 6 到 35 个字符，并且至少包含一个数字、一个大写字母、一个小写字母和一个特殊字符。"
   },
   "grid": {
     "search": {
@@ -108,7 +109,7 @@
   },
   "marketing": {
     "subTitle": "部署业界领先的许可区块链",
-    "description": "Athena 区块链提供了业界迅捷的 TPS。立即为贵联盟和组织部署和管理 Athena 和 Hyperledger。",
+    "description": "VMware 区块链提供了业界迅捷的 TPS。立即为您的联盟和组织部署和管理 Concord 和 Hyperledger。",
     "callToAction": "开始使用",
     "midHeading": "获取领先的企业级区块链",
     "itemOne": {
@@ -125,7 +126,7 @@
     }
   },
   "signUp": {
-    "description": "VMware Athena 提供了业界领先的 SBFT 协议区块链。",
+    "description": "VMware 区块链是业界领先的 SBFT 协议区块链。",
     "callToAction": "请完成您的信息以便开始使用。",
     "duplicateEmailError": "此电子邮件已被使用，请登录。",
     "form": {
@@ -151,21 +152,18 @@
       "submit": "注册"
     }
   },
-  "onboarding": {
-    "title": "欢迎使用 Athena",
-    "setupOrg": {
-      "title": "设置组织",
-      "description": "开始向贵组织添加其他用户、创建智能合约、获取区块链凭据并开始代表贵组织开展交易。"
-    },
-    "deployBlockchain": {
-      "title": "部署区块链",
-      "description": "部署 Athena、 Hyperledger、Corda 或 Quorom 区块链，并邀请各组织开始在您的授权区块链上开展交易。"
-    }
+  "agreement": {
+    "title": "法律协议",
+    "accept": "接受",
+    "firstName": "名字",
+    "lastName": "姓氏",
+    "company": "公司"
   },
   "dashboard": {
     "totalActiveNodes": "活动节点总数",
     "inactiveNodes": "非活动节点数",
-    "overallNodeHealth": "节点整体运行状况",
+    "nodeHealth": "节点运行状况",
+    "deployedContracts": "部署的合约",
     "transactionsPerSecond": "每秒交易数",
     "averageValidationTime": "平均验证时间",
     "xSeconds": "{{seconds}} <small>秒</small>"
@@ -187,18 +185,21 @@
     "nodes": "节点",
     "nodeActivity": "节点活动",
     "overallNodeHealth": "节点整体运行状况",
-    "transactionsPerSecond": "交易数/秒",
+    "transactionsPerSecond": "每秒交易数",
     "averageValidationTime": "平均验证时间",
     "xSeconds": "{{seconds}} <small>秒</small>",
     "location": "位置",
     "status": "状态",
-    "connected": "已连接",
+    "live": "实时",
     "offline": "脱机",
     "totalActiveNodes": "活动节点总数",
     "inactiveNodes": "非活动节点数",
     "searchPlaceholder": "搜索...",
     "filters": "筛选器",
     "hostname": "主机名",
+    "health": "运行状况",
+    "healthy": "正常",
+    "unhealthy": "不正常",
     "address": "地址",
     "viewDetail": "查看详细信息",
     "network": "网络",
@@ -213,7 +214,8 @@
     "length": "长度",
     "orgOwners": "组织所有者",
     "averageXPerSecond": "平均 {{value}}/秒",
-    "averageXSeconds": "平均 {{value}}/秒"
+    "averageXSeconds": "平均 {{value}}/秒",
+    "paginationSummary": "节点 {{start}} - {{finish}}/共 {{total}} 个"
   },
   "blocks": {
     "title": "区块",
@@ -275,9 +277,9 @@
   "smartContracts": {
     "smartContracts": "智能合约",
     "smartContractUpload": "上载智能合约",
-    "contractId": "合约 ID",
+    "name": "名称",
     "contractOwnerAddress": "合约所有者地址",
-    "createContract": "创建合约",
+    "createContract": "部署合约",
     "updateContract": "更新合约",
     "createContractError": "上载合约时出错。请更正任何错误，然后重试:",
     "viewDetail": "查看详细信息",
@@ -286,28 +288,38 @@
     "owner": "所有者",
     "file": "文件",
     "preview": "预览",
+    "externalSourceWarning": "此合约版本从外部源部署，因此没有关联的源代码或元数据。",
+    "externalSourceUpload": "上载",
+    "paginationSummary": "合约 {{start}} - {{finish}}/共 {{total}} 个",
     "version": {
       "title": "版本",
       "version": "版本",
       "placeholder": "1.0",
       "address": "地址",
-      "functions": "功能",
+      "functions": "方法",
       "gas": "Gas",
       "value": "值",
       "from": "自",
       "call": "调用",
       "send": "发送",
-      "view": "查看",
+      "emptyResponse": "响应为空",
+      "returnValues": "返回值",
+      "transaction": "交易",
       "preview": "预览",
       "selectVersion": "选择版本",
       "addressHelper": "这是您的地址",
-      "functionParameters": "功能参数",
-      "parameterHelper": "功能必需参数",
+      "functionParameters": "方法参数",
+      "parameterHelper": "方法必需参数",
+      "arrayParameterHelper": "要添加多个数组值，请在新行中输入每个值",
       "download": "下载",
+      "inputTypeHelper": "预期值应为: {{type}}",
       "addressLengthValidationMessage": "长度必须为 42 个字符",
       "addressPatternValidationMessage": "必须为有效的十六进制地址",
       "inputUIntValidationMessage": "必须为有效的无符号整型值",
       "inputSignedIntValidationMessage": "必须为有效的有符号整型值",
+      "inputByteLengthValidationMessage": "输入的字节长度无效",
+      "inputByteArrayByteLengthValidationMessage": "此数组中一个或多个值的字节长度不正确",
+      "inputArrayLengthValidationMessage": "数组的长度无效",
       "tabs": {
         "execute": "执行",
         "source": "源",
@@ -317,7 +329,7 @@
       "tooltips": {
         "contractAddress": "合约地址",
         "availableActions": "可用合约操作",
-        "requiredParameters": "必需功能参数",
+        "requiredParameters": "方法功能参数",
         "callHelper": "可以使用此操作执行本地调用，最好先执行这一步进行测试，之后再单击发送并在区块链上调用。"
       }
     },
@@ -326,7 +338,43 @@
       "versionHelper": "请在更新前先更新版本",
       "versionDuplicateValidationMessage": "您必须选择一个新版本值",
       "versionLengthValidationMessage": "版本字符数不得超过 16 个",
-      "callSuccessMessage": "此合约已在本地成功调用，单击“发送”可在区块链上执行此合约"
+      "callSuccessMessage": "此合约已在本地成功调用，单击“发送”可在区块链上执行此合约",
+      "generalInformationTitle": "一般信息",
+      "contractSelectionTitle": "合约选择",
+      "contractSelectionHelper": "从此文件中选择要部署的合约",
+      "constructorParametersTitle": "构造函数参数",
+      "constructorParametersRequiredHelper": "请在下面提供合约构造函数的参数。",
+      "constructorParametersNotRequiredHelper": "部署此合约不需要构造函数参数。"
+    },
+    "tour": {
+      "deployed": {
+        "title": "合约地址",
+        "content": "您的合约已部署到区块链，可通过此合约地址访问。"
+      },
+      "availableActions": {
+        "title": "可用方法",
+        "content": "选择要执行的可用智能合约方法。有些方法可检索以前的交易信息，有些方法可执行交易，请参考源代码以了解每个方法。"
+      },
+      "call": {
+        "title": "调用",
+        "content": "这是只读操作，不会广播或发布到区块链。这对于检索合约中保存的先前执行的信息或在执行之前测试交易非常有用。"
+      },
+      "send": {
+        "title": "发送",
+        "content": "这将在区块链上执行交易。"
+      },
+      "tabs": {
+        "title": "合约信息",
+        "content": "可以在这些选项卡中找到合约信息，例如源代码字节码和元数据"
+      }
+    },
+    "truffle": {
+      "title": "如何使用 truffle 连接",
+      "first": "安装和设置 truffle。",
+      "second": "在 truffle 项目中，执行 npm init (如果尚未执行此操作)，并安装 web3@0.19.0",
+      "third": "编辑 truffle.js 文件使其内容类似如下，请确保更改密码，您的电子邮件即为您的用户名。",
+      "option": "您可能需要修改 web3 基本身份验证，如下所示，具体取决于您的 web3 版本。",
+      "fourth": "现在您可以使用 truffle 进行部署。"
     }
   },
   "organization": {
@@ -408,111 +456,6 @@
     },
     "deleteOrgForm": {
       "title": "删除组织",
-      "submit": {
-        "title": "是"
-      }
-    }
-  },
-  "kubernetes": {
-    "title": "Kubernetes 管理",
-    "actions": {
-      "title": "操作",
-      "options": {
-        "add": {
-          "title": "添加实例"
-        },
-        "delete": {
-          "title": "删除实例"
-        }
-      }
-    },
-    "grid": {
-      "pagination": {
-        "title": "实例"
-      },
-      "columns": {
-        "id": {
-          "title": "ID"
-        },
-        "name": {
-          "title": "名称"
-        },
-        "apiServerUrl": {
-          "title": "API 服务器"
-        },
-        "ca": {
-          "title": "CA"
-        },
-        "kubectlCliUrl": {
-          "title": "Kube CLI URL"
-        },
-        "helmCliUrl": {
-          "title": "Helm URL"
-        },
-        "credentialType": {
-          "title": "凭据类型"
-        },
-        "insecure": {
-          "title": "不安全"
-        },
-        "created": {
-          "title": "创建时间"
-        },
-        "updated": {
-          "title": "更新时间"
-        }
-      }
-    },
-    "addKubeForm": {
-      "title": "添加 Kubernetes",
-      "inputs": {
-        "name": {
-          "title": "名称",
-          "placeholder": "我的 Kubernetes"
-        },
-        "apiServerUrl": {
-          "title": "API 服务器 URL",
-          "placeholder": "https://1.1.1.1"
-        },
-        "credentialType": {
-          "title": "凭据类型",
-          "options": {
-            "basic_auth": {
-              "title": "用户身份验证"
-            },
-            "certificate": {
-              "title": "证书/密钥"
-            },
-            "configFile": {
-              "title": "配置文件"
-            }
-          }
-        },
-        "username": {
-          "title": "用户名",
-          "placeholder": "我的用户名"
-        },
-        "password": {
-          "title": "密码"
-        },
-        "certificate": {
-          "title": "证书",
-          "placeholder": "在此处粘贴证书"
-        },
-        "key": {
-          "title": "密钥",
-          "placeholder": "在此处粘贴密钥"
-        },
-        "configFile": {
-          "title": "配置文件"
-        }
-      },
-      "submit": {
-        "title": "添加"
-      }
-    },
-    "deleteKubeForm": {
-      "title": "删除实例",
       "submit": {
         "title": "是"
       }
@@ -671,7 +614,7 @@
     "bodyText": "是否确定要删除"
   },
   "globalError": {
-    "routingError": "您没有权限访问 Athena 的此部分内容，请与系统管理员联系以获取更多信息。"
+    "routingError": "您没有权限访问 VMware 区块链的此部分内容，请与系统管理员联系以获取更多信息。"
   },
   "users": {
     "title": "用户管理",
@@ -832,7 +775,7 @@
       "navTitle": "区块链和联盟",
       "info": "选择本地容错会将节点部署在您附近，而选择全局则会将多个节点分布在所有可用区域之间。您的联盟将与此区块链相关联。",
       "blockchainType": "区块链类型",
-      "athena": "Athena",
+      "athena": "Concord",
       "hyperledger": "Hyperledger",
       "faultTolerance": "容错",
       "global": "全局",
@@ -934,14 +877,19 @@
     "title": "简易教程",
     "nextBtnText": "下一项",
     "prevBtnText": "上一项",
+    "endBtnText": "结束",
     "dashboard": {
+      "dashStats": {
+        "title": "一般状态",
+        "text": "您可以在此处查看节点、合约、区块和交易的一般状态。仪表板统计信息和列表会自动刷新，因此无需重新加载页面。"
+      },
       "nodeStatus": {
         "title": "节点状态",
         "text": "悬停在地图中的节点上，可查看其运行状况和状态。"
       },
-      "transactionList": {
-        "title": "交易列表",
-        "text": "下方为近期区块链交易。可展开每行来查看更多详细信息。"
+      "contractList": {
+        "title": "合约列表",
+        "text": "以下是近期添加的合约，以及其他近期更新的列表。"
       }
     },
     "smartContracts": {
@@ -950,8 +898,8 @@
         "text":  "您可以在此处管理和查看您的智能合约以及联盟成员提交的其他智能合约。"
       },
       "createSmartContract": {
-        "title": "创建",
-        "text": "单击此处创建合约"
+        "title": "部署",
+        "text": "单击此处部署合约"
       }
     },
     "users": {
