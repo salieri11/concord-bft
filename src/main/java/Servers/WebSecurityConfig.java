@@ -53,10 +53,11 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     public void configure(WebSecurity web) throws Exception {
-        // Allow swagger to be accessed without authentication
+        // Allow access to auth, UI routing URLs, UI assets, and swagger, without authentication
         web.ignoring().antMatchers("/api/agreements/1")
-                .antMatchers("/api/auth/token")
-                .antMatchers("/api/auth/login")
+                .antMatchers("/api/auth/token", "/api/auth/login")
+                .antMatchers("/auth/login", "/auth/onboarding")
+                .antMatchers("/dashboard", "/smart-contracts/**", "/blocks/**", "/transactions/**", "/users/**")
                 .antMatchers("/swagger/**")
                 .antMatchers("/assets/**");
     }
