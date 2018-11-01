@@ -1,5 +1,9 @@
+# Before monorepo, evmjit was located at ../evmjit. After monorepo,
+# it's located at ../../evmjit ... except in Docker building, where
+# it's still at ../evmjit. (TODO)
 find_path(Evmjit_INCLUDE_DIR evmjit.h
-  HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../evmjit/include)
+  HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../evmjit/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../evmjit/include)
 
 if(DEFINED EVM_INCLUDE_DIR_NOTFOUND)
    message(SEND_ERROR "Evmjit not found")

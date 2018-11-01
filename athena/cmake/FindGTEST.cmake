@@ -1,5 +1,9 @@
+# Before monorepo, googletest was located at ../googletest. After
+# monorepo, it's located at ../../googletest ... except in Docker
+# building, where it's still at ../googletest. (TODO)
 find_path(GTEST_INCLUDE_DIR gtest/gtest.h
-  HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../googletest/googletest/include)
+  HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../googletest/googletest/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/../../googletest/googletest/include)
 
 if(DEFINED GTEST_INCLUDE_DIR_NOTFOUND)
   message(SEND_ERROR "GTEST not found")
