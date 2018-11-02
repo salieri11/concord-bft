@@ -10,6 +10,7 @@ export class SmartContractsPage {
   }
 
   openCreateModal() {
+    browser.waitForAngularEnabled(false);
     element(by.css('.create-contract')).click();
   }
 
