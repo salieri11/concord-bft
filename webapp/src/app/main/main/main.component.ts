@@ -62,7 +62,7 @@ export class MainComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.authenticationChange.unsubscribe();
     this.userProfileMenuToggleChanges.unsubscribe();
-    clearTimeout(this.inactivityTimeout);
+    this.deregisterWindowListeners();
   }
 
   onPersonaChange(persona: Personas) {
@@ -99,6 +99,15 @@ export class MainComponent implements OnInit, OnDestroy {
     }, oneHour);
   }
 
+  private deregisterWindowListeners() {
+    clearTimeout(this.inactivityTimeout);
+    window.onload = undefined;
+    window.onmousemove = undefined;
+    window.onmousedown = undefined;
+    window.onclick = undefined;
+    window.onscroll = undefined;
+    window.onkeypress = undefined;
+  }
 
   private addAlert(alert: any): void {
     if (alert && alert.message) {
