@@ -3,6 +3,7 @@
  */
 
 import { Injectable } from '@angular/core';
+import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -14,10 +15,14 @@ import { User } from '../users/shared/user.model';
 export class AuthenticationService {
   private userSubject: BehaviorSubject<User>;
   readonly user: Observable<User>;
-  agreement: any = {accepted: false};
+  agreement: any = { accepted: false };
   currentUser: User;
   redirectUrl: string;
-  constructor(private personaService: PersonaService, private http: HttpClient) {
+  constructor(
+    private personaService: PersonaService,
+    private http: HttpClient,
+    private router: Router,
+  ) {
     this.userSubject = new BehaviorSubject<User>({
       email: localStorage['helen.email'],
       persona: localStorage['helen.persona']
@@ -33,7 +38,7 @@ export class AuthenticationService {
 
   refreshToken(): Observable<any> {
     const url = 'api/auth/token';
-    return this.http.post<{refresh_token: string}>(url, {
+    return this.http.post<{ refresh_token: string }>(url, {
       refresh_token: localStorage.getItem('jwtRefreshToken')
     }).pipe(
       map(response => {
@@ -45,7 +50,7 @@ export class AuthenticationService {
 
   logIn(email: string, password: string, persona: Personas): Observable<any> {
     const url = 'api/auth/login';
-    return this.http.post<{email: string, password: string}>(url, {
+    return this.http.post<{ email: string, password: string }>(url, {
       email: email,
       password: password
     }).pipe(
@@ -75,16 +80,17 @@ export class AuthenticationService {
     localStorage.removeItem('helen.persona');
 
     this.personaService.currentPersona = undefined;
-    this.userSubject.next({email: localStorage['helen.email'], persona: localStorage['helen.persona']});
+    this.userSubject.next({ email: localStorage['helen.email'], persona: localStorage['helen.persona'] });
+    this.redirectUrl = this.router.url;
   }
 
   checkForLegalAgreements(): Observable<any> {
     return this.http.get('api/agreements/1').pipe(
-        map((response) => {
-          this.agreement = response;
-          return response;
-        }),
-      );
+      map((response) => {
+        this.agreement = response;
+        return response;
+      }),
+    );
   }
 
   acceptLegalAgreement(params: any): Observable<any> {
