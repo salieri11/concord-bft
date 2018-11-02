@@ -1062,7 +1062,7 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "password": {
+                  "email": {
                     "type": "string",
                     "description": "email of the user",
                     "required": true

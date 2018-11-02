@@ -47,23 +47,17 @@ describe('athena-ui Smart Contracts', () => {
 
   it('should create a smart contract', () => {
     const absolutePath = path.resolve(__dirname, file);
-    const expectedLinkText = `${contractId} : ${from}`;
     smartContractsPage.openCreateModal();
     smartContractsPage.fillContractFormStep1(from, contractId, version, absolutePath);
     smartContractsPage.clickWizardNextButton();
     smartContractsPage.clickWizardNextButton();
     smartContractsPage.clickWizardFinishButton();
-
-    // expect(smartContractsPage.getTableLinkElement(expectedLinkText).isPresent()).toBe(true);
-
     expect(smartContractPage.getContractId()).toBe(contractId);
   });
 
   it('should navigate to the smart contract page with the latest version selected', () => {
     const expectedLinkText = `${contractId}`;
-
     smartContractsPage.getTableLinkElement(expectedLinkText).click();
-
     expect(smartContractPage.getContractId()).toBe(contractId);
 
     expect(smartContractPage.getVersionName()).toBe(version);
@@ -74,7 +68,6 @@ describe('athena-ui Smart Contracts', () => {
   it('should send a call when call is clicked with a valid form', () => {
     smartContractPage.navigateTo(contractId, version);
     expect(smartContractPage.getCallSuccessAlert().isPresent()).toBe(false);
-
     smartContractPage.fillParameterForm(from, 'call');
 
     expect(smartContractPage.getCallSuccessAlert().isPresent()).toBe(true);
@@ -83,9 +76,7 @@ describe('athena-ui Smart Contracts', () => {
   it('should send a transaction when transaction is clicked with a valid form', () => {
     smartContractPage.navigateTo(contractId, version);
     expect(smartContractPage.getTransactionSuccessAlert().isPresent()).toBe(false);
-
     smartContractPage.fillParameterForm(from, 'transaction');
-
     expect(smartContractPage.getTransactionSuccessAlert().isPresent()).toBe(true);
   });
 });

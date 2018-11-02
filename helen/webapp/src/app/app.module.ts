@@ -42,14 +42,19 @@ export function langInitializerFactory(translate: TranslateService, injector: In
 }
 
 function initLanguage(translate: TranslateService, languages: string[], resolve: any) {
+  const languageMap = {
+    'zh': 'zh-CN'
+  };
+
   if (languages.length === 0) {
     return;
   }
+  const mappedLanguage = languageMap[languages[0]] || languages[0];
 
-  translate.use(languages[0]).subscribe(() => {
-    console.info(`Successfully initialized '${languages[0]}' language.'`);
+  translate.use(mappedLanguage).subscribe(() => {
+    console.info(`Successfully initialized '${mappedLanguage}' language.'`);
   }, err => {
-    console.error(`Problem with '${languages[0]}' language initialization: ${err}`);
+    console.error(`Problem with '${mappedLanguage}' language initialization: ${err}`);
     languages.splice(0, 1);
     initLanguage(translate, languages, resolve);
   }, () => {

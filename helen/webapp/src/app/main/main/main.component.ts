@@ -27,6 +27,7 @@ export class MainComponent implements OnInit, OnDestroy {
   username: string;
   personas = Personas;
   personaOptions = PersonaService.getOptions();
+  inactivityTimeout: any;
 
   constructor(
     private authenticationService: AuthenticationService,
@@ -51,6 +52,7 @@ export class MainComponent implements OnInit, OnDestroy {
       });
     });
 
+    this.setInactivityTimeout();
   }
 
   ngOnInit() {
@@ -60,6 +62,7 @@ export class MainComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.authenticationChange.unsubscribe();
     this.userProfileMenuToggleChanges.unsubscribe();
+    this.deregisterWindowListeners();
   }
 
   onPersonaChange(persona: Personas) {
@@ -71,6 +74,45 @@ export class MainComponent implements OnInit, OnDestroy {
   onLogOut() {
     this.authenticationService.logOut();
     this.router.navigate(['']);
+  }
+
+  private setInactivityTimeout() {
+    // If the user is inactive for oneHour we log them
+    // out the expiring jwt token isn't enough to handle this
+    // because we have polling on the dashboard that will continuously
+    // refresh the token.
+    const resetTimer = this.resetTimer.bind(this);
+    window.onload = resetTimer;
+    window.onmousemove = resetTimer;
+    window.onmousedown = resetTimer;
+    window.onclick = resetTimer;
+    window.onscroll = resetTimer;
+    window.onkeypress = resetTimer;
+  }
+
+  private resetTimer() {
+    const oneHour = 3600000;
+    clearTimeout(this.inactivityTimeout);
+    // e2e tests wait for the Zone to stabilize. This timeout stalls out protractor if not
+    // run outside of angular: https://www.protractortest.org/#/timeouts
+    this.zone.runOutsideAngular(() => {
+      this.inactivityTimeout = setTimeout(() => {
+        this.zone.run(() => {
+          this.authenticationService.logOut();
+          this.router.navigate(['auth/login']);
+        });
+      }, oneHour);
+    });
+  }
+
+  private deregisterWindowListeners() {
+    clearTimeout(this.inactivityTimeout);
+    window.onload = undefined;
+    window.onmousemove = undefined;
+    window.onmousedown = undefined;
+    window.onclick = undefined;
+    window.onscroll = undefined;
+    window.onkeypress = undefined;
   }
 
   private addAlert(alert: any): void {

@@ -5,6 +5,7 @@
 package services.profiles;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,6 +23,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -44,6 +47,12 @@ public class ProfilesRegistryManagerTest {
 
     @Mock
     PasswordEncoder passwordEncoder;
+
+    @Mock
+    CacheManager cacheManager;
+
+    @Mock
+    Cache cache;
 
     @InjectMocks
     ProfilesRegistryManager prm;
@@ -95,6 +104,7 @@ public class ProfilesRegistryManagerTest {
         when(consortiumRepository.findAll()).thenReturn(Collections.emptyList());
         when(consortiumRepository.save(any(Consortium.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(passwordEncoder.encode(any(CharSequence.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(cacheManager.getCache(anyString())).thenReturn(cache);
     }
 
 

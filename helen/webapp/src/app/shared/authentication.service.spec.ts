@@ -4,6 +4,7 @@
 
 import { TestBed, inject } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { RouterTestingModule } from '@angular/router/testing';
 
 import { AuthenticationService } from './authentication.service';
 import { Personas, PersonaService } from './persona.service';
@@ -11,7 +12,7 @@ import { Personas, PersonaService } from './persona.service';
 describe('AuthenticationService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
+      imports: [HttpClientTestingModule, RouterTestingModule],
       providers: [AuthenticationService, PersonaService]
     });
   });
