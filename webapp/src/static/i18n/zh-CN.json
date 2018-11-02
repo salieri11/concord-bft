@@ -44,6 +44,7 @@
       "title": "操作",
       "resetTasks": "重置任务"
     },
+    "exploreAPIs": "浏览 API ",
     "dashboard": {
       "title": "仪表板"
     },
@@ -159,6 +160,13 @@
     "lastName": "姓氏",
     "company": "公司"
   },
+  "expectations": {
+    "title": "服务可用性期望",
+    "one": "i. VMware 区块链服务旨在概念证明 (PoC)，主要为支持在 VMware 区块链堆栈上开发和移植与以太坊兼容的 DApp，从而使开发人员熟悉 VMware 区块链堆栈，并使 VMware 能够查找和修复任何兼容性问题。 VMware 将尽一切努力尽快解决发现的任何问题并提供新的服务版本，以支持 DApp 顺利开发。",
+    "two": "ii. 目前，VMware 区块链服务不支持就地升级。我们将通过创建一个全新的区块链堆栈以及 UI 和 API 端点的新 URL 来为开发人员提供新的服务版本。这意味着保存在旧堆栈上的任何数据都将丢失，强烈建议开发人员拥有自己的数据设置自动化，以便快速启用新版本。",
+    "three": "iii. 该服务目前尚不支持正常恢复崩溃前状态。这意味着任何类型的崩溃都可能导致数据损坏和丢失。如果发生不可恢复的崩溃，VMware 团队将为开发人员提供新的区块链实例，但仍需开发人员自行设置数据。",
+    "four": "iv. 需要高级别安全性的敏感数据不得保留在 PoC 级服务中。开发人员应使用虚拟数据集来开发和测试其应用程序。"
+  },
   "dashboard": {
     "totalActiveNodes": "活动节点总数",
     "inactiveNodes": "非活动节点数",
@@ -188,7 +196,6 @@
     "transactionsPerSecond": "每秒交易数",
     "averageValidationTime": "平均验证时间",
     "xSeconds": "{{seconds}} <small>秒</small>",
-    "location": "位置",
     "status": "状态",
     "live": "实时",
     "offline": "脱机",
@@ -203,7 +210,6 @@
     "address": "地址",
     "viewDetail": "查看详细信息",
     "network": "网络",
-    "nodeLocation": "节点位置",
     "transactions": "交易",
     "timestamp": "时间戳",
     "origination": "来源",
@@ -212,9 +218,6 @@
     "amount": "金额",
     "trans": "交易",
     "length": "长度",
-    "orgOwners": "组织所有者",
-    "averageXPerSecond": "平均 {{value}}/秒",
-    "averageXSeconds": "平均 {{value}}/秒",
     "paginationSummary": "节点 {{start}} - {{finish}}/共 {{total}} 个"
   },
   "blocks": {
@@ -288,6 +291,7 @@
     "owner": "所有者",
     "file": "文件",
     "preview": "预览",
+    "connectWithTruffle": "使用 Truffle 连接",
     "externalSourceWarning": "此合约版本从外部源部署，因此没有关联的源代码或元数据。",
     "externalSourceUpload": "上载",
     "paginationSummary": "合约 {{start}} - {{finish}}/共 {{total}} 个",
@@ -304,6 +308,8 @@
       "send": "发送",
       "emptyResponse": "响应为空",
       "returnValues": "返回值",
+      "decoded": "解码：",
+      "raw": "原始：",
       "transaction": "交易",
       "preview": "预览",
       "selectVersion": "选择版本",

@@ -44,6 +44,7 @@
       "title": "アクション",
       "resetTasks": "タスクのリセット"
     },
+    "exploreAPIs": "API を検索します。",
     "dashboard": {
       "title": "ダッシュボード"
     },
@@ -159,6 +160,13 @@
     "lastName": "名前（姓）",
     "company": "会社名"
   },
+  "expectations": {
+    "title": "サービスの可用性",
+    "one": "i. PoC グレード VMware Blockchain サービスの主な目的は開発を許可するおよび Ethereum の互換性のある DApps VMware blockchain スタック上の移植、弊社のスタックを理解して開発者 VMware を検索し、修正を許可互換性の問題。VMware が解決するには問題が見つかりましたが、できるだけ早くおよび DApp 開発がブロックされていないため、サービスで新しいビルドを提供しようできなくなります。",
+    "two": "ii. インプレース アップグレードは、現在、サービスでサポートされません。新しいビルドが新しいユーザー インターフェイスと API エンドポイントの URL で、まったく新しい blockchain スタックを作成することで配信されます。つまり、古いスタックに保存されている任意のデータが失われる開発者は、新しいビルドをすばやく使用を開始することができますが、独自のデータ セットアップ automation を強くお勧めします。",
+    "three": "iii。 サービスは、クラッシュからグレースフル リカバリを現在サポートしていません。これはデータの破損および任意の種類がクラッシュするの損失の可能性があることを意味します。VMware チームでは、リカバリ不能のクラッシュが発生した場合、開発者によりのデータ セットが必要も新しい blockchain インスタンスと開発者が提供されます。",
+    "four": "PoC グレード サービスで、高レベルのセキュリティを必要とする iv。 機密データは保持されませんする必要があります。開発者は、そのアプリケーションを開発およびテスト ダミーのデータ セットを使用する必要があります。"
+  },
   "dashboard": {
     "totalActiveNodes": "アクティブ ノードの合計数",
     "inactiveNodes": "非アクティブ ノード",
@@ -188,7 +196,6 @@
     "transactionsPerSecond": "トランザクション数（毎秒）",
     "averageValidationTime": "平均検証時間",
     "xSeconds": "{{seconds}} <small>秒</small>",
-    "location": "場所",
     "status": "状態",
     "live": "ライブ",
     "offline": "オフライン",
@@ -203,7 +210,6 @@
     "address": "アドレス",
     "viewDetail": "詳細の表示",
     "network": "ネットワーク",
-    "nodeLocation": "ノードの場所",
     "transactions": "トランザクション",
     "timestamp": "タイムスタンプ",
     "origination": "送信元",
@@ -212,9 +218,6 @@
     "amount": "量",
     "trans": "トランザクション",
     "length": "長さ",
-    "orgOwners": "組織の所有者",
-    "averageXPerSecond": "平均 {{value}} (毎秒）",
-    "averageXSeconds": "平均 {{value}} 秒",
     "paginationSummary": "{{total}} 台中 {{start}} ～ {{finish}} 台のノード"
   },
   "blocks": {
@@ -288,6 +291,7 @@
     "owner": "所有者",
     "file": "ファイル",
     "preview": "プレビュー",
+    "connectWithTruffle": "Truffle と接続します。",
     "externalSourceWarning": "このバージョンのコントラクトは外部ソースから展開されたため、関連されるソースコードまたはメタデータはありません。",
     "externalSourceUpload": "アップロード",
     "paginationSummary": "{{total}} 個中 {{start}} ～ {{finish}} のコントラクト",
@@ -304,6 +308,8 @@
       "send": "送信",
       "emptyResponse": "空の応答",
       "returnValues": "値を返す",
+      "decoded": "デコード。",
+      "raw": "Raw:",
       "transaction": "トランザクション",
       "preview": "プレビュー",
       "selectVersion": "バージョンの選択",
