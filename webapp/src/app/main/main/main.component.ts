@@ -62,6 +62,7 @@ export class MainComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.authenticationChange.unsubscribe();
     this.userProfileMenuToggleChanges.unsubscribe();
+    clearTimeout(this.inactivityTimeout);
   }
 
   onPersonaChange(persona: Personas) {
