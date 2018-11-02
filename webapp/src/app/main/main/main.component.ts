@@ -93,10 +93,16 @@ export class MainComponent implements OnInit, OnDestroy {
   private resetTimer() {
     const oneHour = 3600000;
     clearTimeout(this.inactivityTimeout);
-    this.inactivityTimeout = setTimeout(() => {
-      this.authenticationService.logOut();
-      this.router.navigate(['auth/login']);
-    }, oneHour);
+    // e2e tests wait for the Zone to stabilize. This timeout stalls out protractor if not
+    // run outside of angular: https://www.protractortest.org/#/timeouts
+    this.zone.runOutsideAngular(() => {
+      this.inactivityTimeout = setTimeout(() => {
+        this.zone.run(() => {
+          this.authenticationService.logOut();
+          this.router.navigate(['auth/login']);
+        });
+      }, oneHour);
+    });
   }
 
   private deregisterWindowListeners() {
