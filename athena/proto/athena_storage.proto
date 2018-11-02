@@ -29,6 +29,13 @@ message Transaction {
    optional bytes sig_r = 13;           // 32 bytes
    optional bytes sig_s = 14;           // 32 bytes
    optional uint32 sig_v = 15;
+   repeated Log log = 16;
+}
+
+message Log {
+   optional bytes address = 1;          // 20 bytes
+   repeated bytes topic = 2;            // 32 bytes each
+   optional bytes data = 3;
 }
 
 message Balance {

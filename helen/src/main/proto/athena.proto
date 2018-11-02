@@ -202,6 +202,13 @@ message TransactionResponse {
    optional int64 nonce = 9;
    optional int32 status = 10;
    optional bytes contract_address = 11;
+   repeated LogResponse log = 12;
+}
+
+message LogResponse {
+   optional bytes address = 1;
+   repeated bytes topic = 2;
+   optional bytes data = 3;
 }
 
 message TestResponse {

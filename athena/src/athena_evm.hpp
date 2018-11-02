@@ -37,6 +37,7 @@ extern "C" {
       struct evm_context evmctx;
       class EVM *ath_object;
       class KVBStorage *kvbStorage;
+      std::vector<EthLog> *evmLogs;
       log4cplus::Logger *logger;
       uint64_t timestamp;
    } athena_context;
@@ -106,11 +107,13 @@ public:
    /* Athena API */
    evm_result run(evm_message &message,
                   uint64_t timestamp,
-                  KVBStorage &kvbStorage);
+                  KVBStorage &kvbStorage,
+                  std::vector<EthLog> &evmLogs);
    evm_result create(evm_address &contract_address,
                      evm_message &message,
                      uint64_t timestamp,
-                     KVBStorage &kvbStorage);
+                     KVBStorage &kvbStorage,
+                     std::vector<EthLog> &evmLogs);
    bool new_account(const std::string &passphrase,
                     KVBStorage &kvbStorage,
                     evm_address &address /* OUT */);
@@ -126,6 +129,7 @@ private:
    evm_result execute(evm_message &message,
                       uint64_t timestamp,
                       KVBStorage &kvbStorage,
+                      std::vector<EthLog> &evmLogs,
                       const std::vector<uint8_t> &code);
 };
 

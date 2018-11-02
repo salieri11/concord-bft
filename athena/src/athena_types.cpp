@@ -134,6 +134,17 @@ size_t com::vmware::athena::EthTransaction::serialize(uint8_t** serialized)
    out.set_sig_r(this->sig_r.bytes, sizeof(this->sig_r));
    out.set_sig_s(this->sig_s.bytes, sizeof(this->sig_s));
 
+   for (EthLog& log: this->logs) {
+     kvb::Log* outlog = out.add_log();
+     outlog->set_address(log.address.bytes, sizeof(evm_address));
+     for (evm_uint256be topic: log.topics) {
+       outlog->add_topic(topic.bytes, sizeof(evm_uint256be));
+     }
+     if (log.data.size() > 0) {
+       outlog->set_data(std::string(log.data.begin(), log.data.end()));
+     }
+   }
+
    size_t size = out.ByteSize();
 
    *serialized = new uint8_t[size];
@@ -216,6 +227,29 @@ com::vmware::athena::EthTransaction::deserialize(Blockchain::Sliver &input)
          outtx.sig_v = intx.sig_v();
       } else {
          outtx.sig_v = 0;
+      }
+
+      for (int i = 0; i < intx.log_size(); i++) {
+        kvb::Log inlog = intx.log(i);
+
+        evm_address addr;
+        std::copy(inlog.address().begin(), inlog.address().end(), addr.bytes);
+
+        std::vector<evm_uint256be> topics;
+        for (int j = 0; j < inlog.topic_size(); j++) {
+          evm_uint256be topic;
+          std::copy(inlog.topic(j).begin(), inlog.topic(j).end(), topic.bytes);
+          topics.push_back(topic);
+        }
+
+        std::vector<uint8_t> data;
+        if (inlog.has_data()) {
+          std::copy(inlog.data().begin(), inlog.data().end(),
+                    std::back_inserter(data));
+        }
+
+        EthLog outlog{addr, topics, data};
+        outtx.logs.push_back(outlog);
       }
 
       return outtx;
