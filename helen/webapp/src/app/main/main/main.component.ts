@@ -73,7 +73,6 @@ export class MainComponent implements OnInit, OnDestroy {
 
   onLogOut() {
     this.authenticationService.logOut();
-    this.router.navigate(['']);
   }
 
   private setInactivityTimeout() {
@@ -99,7 +98,6 @@ export class MainComponent implements OnInit, OnDestroy {
       this.inactivityTimeout = setTimeout(() => {
         this.zone.run(() => {
           this.authenticationService.logOut();
-          this.router.navigate(['auth/login']);
         });
       }, oneHour);
     });
