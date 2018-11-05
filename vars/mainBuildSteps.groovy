@@ -11,17 +11,11 @@ def call(){
              name: 'version_param'
 
       string defaultValue: '',
-             description: 'Athena commit or branch to use.  Providing a branch name will pull the branch\'s latest commit.',
-             name: 'athena_branch_or_commit'
+             description: 'Blockchain commit or branch to use.  Providing a branch name will pull the branch\'s latest commit.',
+             name: 'blockchain_branch_or_commit'
       string defaultValue: '',
-             description: 'Helen commit or branch to use.  Providing a branch name will pull the branch\'s latest commit.',
-             name: 'helen_branch_or_commit'
-      string defaultValue: '',
-             description: 'Hermes commit or branch to use.  Providing a branch name will pull the branch\'s latest commit.',
-             name: 'hermes_branch_or_commit'
-      string defaultValue: '',
-             description: 'Shared Jenkins lib commit or branch to use.  Providing a branch name will pull the branch\'s latest commit.',
-             name: 'shared_lib_branch_or_commit'
+             description: 'Shared Jenkins lib branch to use.',
+             name: 'shared_lib_branch'
     }
     stages {
       stage('Clean') {
@@ -29,37 +23,14 @@ def call(){
           cleanWs()
         }
       }
-      stage('Fetch all source code') {
+      stage('Fetch source code') {
         parallel {
-          stage('Fetch Athena source') {
+          stage('Fetch blockchain repo source') {
             steps {
-              echo "Athena branch/commit: ${params.athena_branch_or_commit}"
-              sh 'mkdir athena'
-              dir('athena') {
+              sh 'mkdir blockchain'
+              dir('blockchain') {
                 script {
-                  env.actual_athena_fetched = getRepoCode("git@github.com:vmwathena/athena.git", params.athena_branch_or_commit)
-                }
-              }
-            }
-          }
-          stage('Fetch Helen source') {
-            steps {
-              echo "Helen branch/commit: ${params.helen_branch_or_commit}"
-              sh 'mkdir helen'
-              dir('helen') {
-                script {
-                  env.actual_helen_fetched = getRepoCode("git@github.com:vmwathena/helen.git", params.helen_branch_or_commit)
-                }
-              }
-            }
-          }
-          stage('Fetch Hermes source') {
-            steps {
-              echo "Hermes branch/commit: ${params.hermes_branch_or_commit}"
-              sh 'mkdir hermes'
-              dir('hermes') {
-                script {
-                  env.actual_hermes_fetched = getRepoCode("git@github.com:vmwathena/hermes.git", params.hermes_branch_or_commit)
+                  env.actual_blockchain_fetched = getRepoCode("git@github.com:vmwathena/blockchain.git", params.blockchain_branch_or_commit)
                 }
               }
             }
@@ -96,25 +67,11 @@ def call(){
         }
       }
 
-      // stage('test email') {
-      //   steps() {
-      //     script {
-      //       emailext (
-      //         subject: "STARTED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
-      //         body: """<p>STARTED: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]':</p>
-      //           <p>Check console output at "<a href="${env.BUILD_URL}">${env.JOB_NAME} [${env.BUILD_NUMBER}]</a>"</p>""",
-      //         recipientProviders: [[$class: 'DevelopersRecipientProvider']],
-      //         to: "rvollmar@vmware.com"
-      //       )
-      //     }
-      //   }
-      // }
-
       stage('Build products') {
         parallel {
           stage('Build Athena') {
             steps {
-              dir('athena') {
+              dir('blockchain/athena') {
                 sh '''currentDir=`pwd`
                 sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/athena1.config
                 sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/athena2.config
@@ -132,12 +89,8 @@ def call(){
           }
           stage('Build Helen') {
             steps {
-              dir('helen') {
+              dir('blockchain/helen') {
                 sh 'mvn clean install package'
-                //  Maybe add those tests here at some point. Need investigation and config.
-                //              dir('webapps') {
-                //                sh 'npm run e2e'
-                //              }
               }
             }
           }
@@ -145,8 +98,7 @@ def call(){
       }
       stage('Run tests') {
         steps {
-          dir('hermes') {
-            configFileProvider([configFile(fileId: 'aa8c3633-2505-4522-a242-4276a0796aec', targetLocation: 'resources/user_config.json')]) {}
+          dir('blockchain/hermes') {
             sh './main.py CoreVMTests'
             sh './main.py HelenAPITests'
             sh './main.py ExtendedRPCTests'
@@ -192,7 +144,6 @@ def call(){
           script {
             env.athena_repo = 'vmwblockchain/concord-core'
             env.helen_repo = 'vmwblockchain/concord-ui'
-            env.andes_repo = 'vmwblockchain/concord-ds-api'
           }
         }
       }
@@ -202,10 +153,10 @@ def call(){
           stage('Build helen docker image') {
             steps {
               script {
-                dir('helen') {
+                dir('blockchain/helen') {
 
-                  script {
-                    env.helen_docker_tag = env.version_param ? env.version_param : env.actual_helen_fetched
+                 script {
+                    env.helen_docker_tag = env.version_param ? env.version_param : env.actual_blockchain_fetched
                   }
 
                   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
@@ -222,10 +173,10 @@ def call(){
           stage('Build athena docker image') {
             steps {
               script {
-                dir('athena') {
+                dir('blockchain/athena') {
 
                   script {
-                    env.athena_docker_tag = env.version_param ? env.version_param : env.actual_athena_fetched
+                    env.athena_docker_tag = env.version_param ? env.version_param : env.actual_blockchain_fetched
                   }
                   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                     sh '''
@@ -280,18 +231,9 @@ def call(){
           environment name: 'deploy', value: 'true'
         }
         steps {
-          dir('athena') {
+          dir('blockchain') {
             createAndPushTag(env.version_param)
           }
-          dir('helen') {
-            createAndPushTag(env.version_param)
-          }
-          dir('hermes') {
-            createAndPushTag(env.version_param)
-          }
-          // dir('andes') {
-          //   createAndPushTag(env.version_param)
-          // }
           withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
             sh '''
               docker push ${athena_repo}:${version_param}
@@ -301,10 +243,6 @@ def call(){
               docker push ${helen_repo}:${version_param}
               docker tag ${helen_repo}:${version_param} ${helen_repo}:latest
               docker push ${helen_repo}:latest
-
-              # docker push ${andes_repo}:${version_param}
-              # docker tag ${andes_repo}:${version_param} ${andes_repo}:latest
-              # docker push ${andes_repo}:latest
             '''
           }
         }
@@ -328,21 +266,16 @@ def call(){
 String getRepoCode(repo_url, branch_or_commit){
   refPrefix = "refs/heads/"
 
-  if (branch_or_commit.trim()){
+  if (branch_or_commit && branch_or_commit.trim()){
     // We don't know if this was a branch or a commit, so don't add the refPrefix.
     checkoutRepo(repo_url, branch_or_commit)
-  }else{
-    checkoutRepo(repo_url, "master")
-
+  }else if (env.BRANCH_NAME && env.BRANCH_NAME.trim()){
     // When launched via the multibranch pipeline plugin, there is a BRANCH_NAME
     // environment variable.
-    if (env.BRANCH_NAME && env.BRANCH_NAME.trim()){
-      try {
-        checkoutRepo(repo_url, refPrefix + env.BRANCH_NAME)
-      } catch (Exception e) {
-        echo "Branch ${env.BRANCH_NAME} for ${repo_url} not found."
-      }
-    }
+    checkoutRepo(repo_url, refPrefix + env.BRANCH_NAME)
+  }else{
+    // This was launched some other way. Just get latest.
+    checkoutRepo(repo_url, "master")
   }
 
   return sh (
