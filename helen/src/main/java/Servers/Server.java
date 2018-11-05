@@ -32,7 +32,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
-import Servlets.BlockList;
 import configurations.ConfigurationFactory;
 import configurations.ConfigurationFactory.ConfigurationType;
 import configurations.IConfiguration;
@@ -43,15 +42,14 @@ import services.profiles.ProfilesRegistryManager;
 import services.profiles.User;
 
 @SpringBootApplication
-@EntityScan(basePackageClasses = { User.class })
-@EnableJpaRepositories(basePackageClasses = { ProfilesRegistryManager.class })
-@ComponentScan(basePackageClasses = { BlockList.class,
-   ProfilesRegistryManager.class, HelenSpringWebConfig.class })
+@EntityScan(basePackageClasses = {User.class})
+@ComponentScan(basePackages = {"Servers", "configurations", "database", "security", "services", "Servlets"})
+@EnableJpaRepositories(basePackageClasses = {ProfilesRegistryManager.class})
 @EnableCaching
 public class Server {
 
 
-   // Set current datetime for logging purposes
+    // Set current datetime for logging purposes
    static {
       SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy-hh-mm-ss");
       System.setProperty("current.date.time", dateFormat.format(new Date()));

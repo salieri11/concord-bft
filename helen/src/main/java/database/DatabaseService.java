@@ -5,9 +5,9 @@ import java.sql.DriverManager;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import configurations.ConfigurationFactory;
-import configurations.IConfiguration;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 /**
  * <p>
@@ -16,44 +16,61 @@ import configurations.IConfiguration;
  *
  * A class which manages and provides access to database Connection objects.
  */
+@Component
 public class DatabaseService {
 
-   // TODO: create a pool of connection objects rather than using just a single
-   // object
-   private static Connection db = null;
-   private static boolean initDone = false;
-   private static Logger logger = LogManager.getLogger(DatabaseService.class);
-   private static IConfiguration _conf;
+    // TODO: create a pool of connection objects rather than using just a single
+    // object
+    private static Connection db = null;
+    private static boolean initDone = false;
+    private static Logger logger = LogManager.getLogger(DatabaseService.class);
 
-   private static void init() throws Exception {
-      _conf
-         = ConfigurationFactory.getConfiguration(ConfigurationFactory.ConfigurationType.File);
-      String url = _conf.getStringValue("DB_PROTOCOL") + "://"
-         + _conf.getStringValue("DB_IP") + ":" + _conf.getStringValue("DB_PORT")
-         + "/" + _conf.getStringValue("DB_NAME") + "?"
-         + _conf.getStringValue("DB_OPTIONS");
-      logger.debug("Connecting to database at: " + url);
-      db = DriverManager.getConnection(url,
-                                       _conf.getStringValue("DB_USER"),
-                                       _conf.getStringValue("DB_PASSWORD"));
-   }
+    private String dbProtocol;
+    private String dbIp;
+    private String dbPort;
+    private String dbName;
+    private String dbOptions;
+    private String dbUser;
+    private String dbPassword;
 
-   public static synchronized Connection
-          getDatabaseConnection() throws ServiceUnavailableException {
-      if (!initDone) {
-         try {
-            init();
-         } catch (Exception e) {
-            logger.error(e);
-         }
-         initDone = true;
-      }
+    @Autowired
+    public DatabaseService(
+            @Value("${DB_PROTOCOL}") String dbProtocol, 
+            @Value("${DB_IP}") String dbIp,
+            @Value("${DB_PORT}") String dbPort, 
+            @Value("${DB_NAME}") String dbName,
+            @Value("${DB_OPTIONS}") String dbOptions, 
+            @Value("${DB_USER}") String dbUser,
+            @Value("${DB_PASSWORD}") String dbPassword) {
+        this.dbProtocol = dbProtocol;
+        this.dbIp = dbIp;
+        this.dbPort = dbPort;
+        this.dbName = dbName;
+        this.dbOptions = dbOptions;
+        this.dbUser = dbUser;
+        this.dbPassword = dbPassword;
+    }
 
-      if (initDone && db == null) {
-         throw new ServiceUnavailableException("Database service is not "
-            + "available");
-      }
+    private void init() throws Exception {
+        String url = String.format("%s://%s:%s/%s?%s", dbProtocol, dbIp, dbPort, dbName, dbOptions);
+        logger.debug("Connecting to database at: " + url);
+        db = DriverManager.getConnection(url, dbUser, dbPassword);
+    }
 
-      return db;
-   }
+    public synchronized Connection getDatabaseConnection() throws ServiceUnavailableException {
+        if (!initDone) {
+            try {
+                init();
+            } catch (Exception e) {
+                logger.error(e);
+            }
+            initDone = true;
+        }
+
+        if (initDone && db == null) {
+            throw new ServiceUnavailableException("Database service is not " + "available");
+        }
+
+        return db;
+    }
 }

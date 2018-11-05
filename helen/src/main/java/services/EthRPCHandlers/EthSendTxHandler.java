@@ -14,7 +14,6 @@ import com.vmware.athena.Athena.EthResponse;
 
 import Servlets.APIHelper;
 import Servlets.EthDispatcher;
-
 import services.contracts.ContractRegistryManager;
 
 /**
@@ -34,15 +33,10 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
    private static boolean isInternalContract;
    private ContractRegistryManager registryManager;
 
-   public EthSendTxHandler(boolean _isInternalContract) {
+   public EthSendTxHandler(ContractRegistryManager registryManager, boolean _isInternalContract) {
       // If isInternalContract is true, the handler is processing a contract created from the Helen UI.
       isInternalContract = _isInternalContract;
-      try {
-         registryManager = ContractRegistryManager.getInstance();
-      } catch (Exception e) {
-         logger.fatal("Unable to instantiate ContractRegistryManager", e);
-         registryManager = null;
-      }
+      this.registryManager = registryManager;
    }
 
    /**
@@ -277,7 +271,7 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
       paramsArray.add(transactionHash);
       ethRequest.put("params", paramsArray);
       String responseString
-              = new EthDispatcher().dispatch(ethRequest).toJSONString();
+              = new EthDispatcher(registryManager, null).dispatch(ethRequest).toJSONString();
       try {
          JSONObject txReceipt
                  = (JSONObject) new JSONParser().parse(responseString);
