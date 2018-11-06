@@ -42,6 +42,11 @@ def main():
                        "'--tests vmArithmeticTest/add0.json'")
    parser.add_argument("--config",
                        help="User config file to be considered.")
+   parser.add_argument("--dockerComposeFile",
+                       help="REQUIRES SUDO. Accepts a docker compose file " \
+                       "which starts athena and helen.  The product will " \
+                       "be launched in docker images instead of on the " \
+                       "command line.")
    parser.add_argument("--noLaunch",
                        default=False,
                        action='store_true',
