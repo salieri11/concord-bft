@@ -205,7 +205,10 @@ EOF
               '''
 
               sh '''
+                echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../athena/docker/docker-compose.yml
+                echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../athena/docker/docker-compose.yml
                 echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../athena/docker/docker-compose.yml
+                echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../athena/docker/docker-compose.yml
               '''
             }
           }
