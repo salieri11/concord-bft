@@ -196,15 +196,17 @@ def call(){
             withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
               sh '''
                 echo "${PASSWORD}" | sudo -S ls
-                sudo cat >.env <<EOL
+                sudo cat >.env <<EOF
 athena_repo=${athena_repo}
 athena_tag=${athena_docker_tag}
-athena_repo=${helen_repo}
-athena_repo=${helen_docker_tag}
-                EOL
+helen_repo=${helen_repo}
+helen_tag=${helen_docker_tag}
+EOF
               '''
 
-              sh 'sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../athena/docker/docker-compose.yml'
+              sh '''
+                echo "${PASSWORD}" | sudo ./main.py ExtendedRPCTests --dockerComposeFile ../athena/docker/docker-compose.yml
+              '''
             }
           }
         }
