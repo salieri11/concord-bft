@@ -221,6 +221,7 @@ EOF
               sh '''
                 echo "${PASSWORD}" | sudo -S chown -R builder:builder .
               '''
+            }
           }
         }
       }
