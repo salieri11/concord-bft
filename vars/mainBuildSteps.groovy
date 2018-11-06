@@ -202,11 +202,10 @@ athena_tag=${athena_docker_tag}
 athena_repo=${helen_repo}
 athena_repo=${helen_docker_tag}
                 EOL
+              '''
 
-                echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../athena/docker/docker-compose.yml
-             '''
+              sh 'sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../athena/docker/docker-compose.yml'
             }
-            sh 'rm -f .env'
           }
         }
       }
