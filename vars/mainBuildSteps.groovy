@@ -205,7 +205,7 @@ EOF
               '''
 
               sh '''
-                echo "${PASSWORD}" | sudo ./main.py ExtendedRPCTests --dockerComposeFile ../athena/docker/docker-compose.yml
+                echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../athena/docker/docker-compose.yml
               '''
             }
           }
