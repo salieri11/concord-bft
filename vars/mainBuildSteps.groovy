@@ -212,16 +212,18 @@ EOF
               '''
             }
           }
+
+          // The DB files belong to root because they were created by the docker process.  That will
+          // make the subsequent run unable to clean the workspace.  Just make the entire blockchain dir
+          // belong to builder in case that DB directory gets changed at some point.
+          dir('blockchain'){
+            withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+              sh '''
+                echo "${PASSWORD}" | sudo -S chown -R builder:builder .
+              '''
+          }
         }
       }
-
-      // stage('Clean containers') {
-      //   steps {
-      //     dir('docker') {
-      //       sh "docker-compose down"
-      //     }
-      //   }
-      // }
 
       stage('Push to docker repository') {
         when {
