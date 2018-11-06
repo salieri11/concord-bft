@@ -189,35 +189,28 @@ def call(){
           }
         }
       }
-      // stage('Prepare docker compose') {
-      //   steps {
-      //     sh 'mkdir docker'
-      //     dir('docker') {
-      //       configFileProvider([configFile(fileId: '4bcb682e-fe63-4f12-944b-a8d1f93b81eb', targetLocation: 'docker-compose.yml')]) {
-      //       }
-      //       sh "sed -i'' 's/{{tag}}/${env.BRANCH_NAME}/g' docker-compose.yml"
-      //     }
-      //   }
-      // }
-      // RV 2018/09/20: When this runs, the docker/cockroachdb directory has files which Jenkins cannot delete.
-      //                Need to investigate.
-      // stage('Run the product in containers along with the tests') {
-      //   steps {
-      //     dir('hermes') {
-      //       configFileProvider([configFile(fileId: 'd3dd9fd0-f578-4fae-a0dd-5a9ef81698cc', targetLocation: 'resources/user_config.json')]) {
-      //       }
-      //       sh "sed -i'' 's/{{build_root}}/..\\/docker\\//g' resources/user_config.json"
-      //       sh './main.py CoreVMTests'
 
-      //       // RV 2018/09/20: HelenAPITests in a Docker fail.
-      //       //                Need toinvestigate.
-      //       // sh './main.py HelenAPITests'
+      stage('Run tests in containers') {
+        steps {
+          dir('blockchain/hermes'){
+            withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+              sh '''
+                echo "${PASSWORD}" | sudo -S ls
+                sudo cat >.env <<EOL
+athena_repo=${athena_repo}
+athena_tag=${athena_docker_tag}
+athena_repo=${helen_repo}
+athena_repo=${helen_docker_tag}
+                EOL
 
-      //       sh './main.py ExtendedRPCTests'
-      //       sh './main.py RegressionTests'
-      //     }
-      //   }
-      // }
+                echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../athena/docker/docker-compose.yml
+             '''
+            }
+            sh 'rm -f .env'
+          }
+        }
+      }
+
       // stage('Clean containers') {
       //   steps {
       //     dir('docker') {
