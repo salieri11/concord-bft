@@ -20,7 +20,6 @@ import * as Web3EthAbi from 'web3-eth-abi';
 import * as Web3Utils from 'web3-utils';
 
 import { EthApiService } from '../../shared/eth-api.service';
-import { HighlightService } from '../../shared/highlight.service';
 import { isHexAddress } from '../shared/custom-validators';
 import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview-form/contract-payload-preview-form.component';
 import { TourService } from '../../shared/tour.service';
@@ -41,15 +40,13 @@ export class SmartContractVersionComponent implements OnChanges, OnInit {
   alertMessage: string;
   alertType: string;
   resultType: string;
-  highlightedMetaData: string;
-  highlightedSourceCode: string;
+  metadataString: string;
   callReturnValue: string;
   rawCallReturnValue: string;
   functionDefinition;
 
   constructor(
     private ethApiService: EthApiService,
-    private highlighter: HighlightService,
     private translate: TranslateService,
     private route: ActivatedRoute,
     private tourService: TourService,
@@ -124,13 +121,7 @@ export class SmartContractVersionComponent implements OnChanges, OnInit {
         this.rawCallReturnValue = resp.result;
         const decodedValues = Web3EthAbi.decodeParameters(this.outputs, resp.result);
         delete decodedValues.__length__;
-        this.callReturnValue = this.highlighter.highlight(
-          JSON.stringify(
-            decodedValues,
-            null,
-            4),
-          this.highlighter.languages.json
-        );
+        this.callReturnValue = JSON.stringify(decodedValues, null, 4);
       }
     }, errorResp => this.handleError(errorResp));
   }
@@ -187,8 +178,7 @@ export class SmartContractVersionComponent implements OnChanges, OnInit {
   }
 
   private highlightCode() {
-    this.highlightedSourceCode = this.highlighter.highlight(this.version.sourcecode, this.highlighter.languages.solidity);
-    this.highlightedMetaData = this.highlighter.highlight(JSON.stringify(this.version.metadata, null, 4), this.highlighter.languages.json);
+    this.metadataString = JSON.stringify(this.version.metadata, null, 4);
   }
 
   private onDownload(source, file) {

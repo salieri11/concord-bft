@@ -6,6 +6,7 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { MockSharedModule } from '../../shared/shared.module';
 
 import { ConnectWithTruffleComponent } from './connect-with-truffle.component';
+import { CodeHighlighterComponent } from '../../shared/components/code-highlighter/code-highlighter.component';
 
 describe('ConnectWithTruffleComponent', () => {
   let component: ConnectWithTruffleComponent;
@@ -16,7 +17,7 @@ describe('ConnectWithTruffleComponent', () => {
       imports: [
         MockSharedModule
       ],
-      declarations: [ ConnectWithTruffleComponent ]
+      declarations: [ ConnectWithTruffleComponent, CodeHighlighterComponent ]
     })
     .compileComponents();
   }));

@@ -24,6 +24,7 @@ import { TransactionDetailsComponent } from '../../transactions/transaction-deta
 
 import { SmartContractsService } from '../shared/smart-contracts.service';
 import { TourService } from '../../shared/tour.service';
+import { CodeHighlighterComponent } from '../../shared/components/code-highlighter/code-highlighter.component';
 
 
 class MockActivatedRoute extends ActivatedRoute {
@@ -55,6 +56,7 @@ describe('SmartContractComponent', () => {
         SmartContractsSolidityFunctionInputsComponent,
         TransactionDetailsComponent,
         VmwCopyToClipboardButtonComponent,
+        CodeHighlighterComponent
       ],
       providers: [
         SmartContractsService,

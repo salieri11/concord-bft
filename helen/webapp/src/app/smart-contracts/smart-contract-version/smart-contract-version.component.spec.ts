@@ -20,6 +20,7 @@ import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview
 import { TransactionDetailsComponent } from '../../transactions/transaction-details/transaction-details.component';
 import { SmartContractVersion } from '../shared/smart-contracts.model';
 import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
+import { CodeHighlighterComponent } from '../../shared/components/code-highlighter/code-highlighter.component';
 
 const initialVersion = {
   contract_id: 'id',
@@ -105,6 +106,7 @@ describe('SmartContractVersionComponent', () => {
         TransactionDetailsComponent,
         TestWrapperClassComponent,
         VmwCopyToClipboardButtonComponent,
+        CodeHighlighterComponent
       ],
       providers: [
         NgxTourService
