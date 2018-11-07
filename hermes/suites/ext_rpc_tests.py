@@ -56,7 +56,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
          try:
             p = self.launchProduct(self._args,
                                    self._apiServerUrl,
-                                   self._userConfig["product"])
+                                   self._userConfig)
          except Exception as e:
             log.error(traceback.format_exc())
             return self._resultFile
@@ -112,8 +112,12 @@ class ExtendedRPCTests(test_suite.TestSuite):
       log.info("Starting test '{}'".format(testName))
       rpc = RPC(testLogDir,
                 testName,
-                self._apiServerUrl)
-      request = Request(testLogDir, testName, self._apiBaseServerUrl)
+                self._apiServerUrl,
+                self._userConfig)
+      request = Request(testLogDir,
+                        testName,
+                        self._apiBaseServerUrl,
+                        self._userConfig)
       return testFun(rpc, request)
 
    def _test_web3_sha3(self, rpc, request):

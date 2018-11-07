@@ -57,7 +57,7 @@ class RegressionTests(test_suite.TestSuite):
          try:
             p = self.launchProduct(self._args,
                                    self._apiServerUrl,
-                                   self._userConfig["product"])
+                                   self._userConfig)
          except Exception as e:
             log.error(traceback.format_exc())
             return self._resultFile
@@ -103,7 +103,8 @@ class RegressionTests(test_suite.TestSuite):
       log.info("Starting test '{}'".format(testName))
       rpc = RPC(testLogDir,
                 testName,
-                self._apiServerUrl)
+                self._apiServerUrl,
+                self._userConfig)
       return testFun(rpc)
 
    def _test_nested_contract_creation(self, rpc):
