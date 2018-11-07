@@ -1,4 +1,4 @@
-package com.vmware.blockchain.services.EthRPCHandlers;
+package com.vmware.blockchain.services.ethereum;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;

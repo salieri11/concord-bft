@@ -1,4 +1,4 @@
-package com.vmware.blockchain.services.EthRPCHandlers;
+package com.vmware.blockchain.services.ethereum;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,20 +16,20 @@ import com.vmware.athena.Athena.EthResponse;
  * Copyright 2018 VMware, all rights reserved.
  * </p>
  *
- * This handler is used to service eth_getStorageAt POST requests.
+ * This handler is used to service eth_getTransactionCount POST requests.
  */
-public class EthGetStorageAtHandler extends AbstractEthRPCHandler {
+public class EthGetTransactionCountHandler extends AbstractEthRPCHandler {
 
-    public EthGetStorageAtHandler(AthenaProperties config) {
+    public EthGetTransactionCountHandler(AthenaProperties config) {
         super(config);
         // TODO Auto-generated constructor stub
     }
 
-    Logger logger = LogManager.getLogger(EthBlockNumberHandler.class);
+    Logger logger = LogManager.getLogger(EthGetTransactionCountHandler.class);
 
     /**
-     * Builds the Athena request builder. Extracts the 'to' address and data from the request and uses it to set up an
-     * Athena Request builder with an EthRequest.
+     * Builds the Athena request builder. Extracts the 'to' address from the request and uses it to set up an Athena
+     * Request builder with an EthRequest.
      *
      * @param builder Object in which request is built
      * @param requestJson Request parameters passed by the user
@@ -37,29 +37,26 @@ public class EthGetStorageAtHandler extends AbstractEthRPCHandler {
     @Override
     public void buildRequest(Athena.AthenaRequest.Builder athenaRequestBuilder, JSONObject requestJson)
             throws Exception {
-        Athena.EthRequest ethRequest = null;
+        Athena.EthRequest athenaEthRequest = null;
         try {
             EthRequest.Builder b = initializeRequestObject(requestJson);
-            b.setMethod(EthMethod.GET_STORAGE_AT);
+            b.setMethod(EthMethod.GET_TX_COUNT);
             JSONArray params = extractRequestParams(requestJson);
             b.setAddrTo(APIHelper.hexStringToBinary((String) params.get(0)));
-            String p = (String) params.get(1);
-            String s = APIHelper.padZeroes(p);
-            b.setData(APIHelper.hexStringToBinary(s));
             // add "block" parameter, the default block parameter is "latest".
             // if no parameter or its value is negative, athena treat is as default
-            if (params.size() == 3) {
+            if (params.size() == 2) {
                 long blockNumber = APIHelper.parseBlockNumber(params);
                 if (blockNumber >= 0) {
                     b.setBlockNumber(blockNumber);
                 }
             }
-            ethRequest = b.build();
+            athenaEthRequest = b.build();
         } catch (Exception e) {
-            logger.error("Exception in get storage at handler", e);
+            logger.error("Exception in get code handler", e);
             throw e;
         }
-        athenaRequestBuilder.addEthRequest(ethRequest);
+        athenaRequestBuilder.addEthRequest(athenaEthRequest);
     }
 
     /**

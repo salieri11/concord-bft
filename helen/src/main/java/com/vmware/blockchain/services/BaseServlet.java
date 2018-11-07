@@ -18,8 +18,8 @@ import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.blockchain.connections.AthenaConnectionException;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.connections.IAthenaConnection;
-import com.vmware.blockchain.services.EthRPCHandlers.APIHelper;
-import com.vmware.blockchain.services.EthRPCHandlers.AthenaHelper;
+import com.vmware.blockchain.services.ethereum.APIHelper;
+import com.vmware.blockchain.services.ethereum.AthenaHelper;
 
 @Controller
 public abstract class BaseServlet {

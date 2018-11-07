@@ -1,14 +1,10 @@
-package com.vmware.blockchain.services.EthRPCHandlers;
-
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
+package com.vmware.blockchain.services.ethereum;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-import com.google.protobuf.ByteString;
 import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
@@ -20,20 +16,20 @@ import com.vmware.athena.Athena.EthResponse;
  * Copyright 2018 VMware, all rights reserved.
  * </p>
  *
- * This handler is used to service personal_newAccount POST requests.
+ * This handler is used to service eth_getStorageAt POST requests.
  */
-public class EthNewAccountHandler extends AbstractEthRPCHandler {
+public class EthGetStorageAtHandler extends AbstractEthRPCHandler {
 
-    public EthNewAccountHandler(AthenaProperties config) {
+    public EthGetStorageAtHandler(AthenaProperties config) {
         super(config);
         // TODO Auto-generated constructor stub
     }
 
-    private static Logger logger = LogManager.getLogger(EthNewAccountHandler.class);
+    Logger logger = LogManager.getLogger(EthBlockNumberHandler.class);
 
     /**
-     * Builds the Athena request builder. Extracts the passphrase from the request and uses it to set up an Athena
-     * Request builder with an EthRequest.
+     * Builds the Athena request builder. Extracts the 'to' address and data from the request and uses it to set up an
+     * Athena Request builder with an EthRequest.
      *
      * @param builder Object in which request is built
      * @param requestJson Request parameters passed by the user
@@ -41,23 +37,26 @@ public class EthNewAccountHandler extends AbstractEthRPCHandler {
     @Override
     public void buildRequest(Athena.AthenaRequest.Builder athenaRequestBuilder, JSONObject requestJson)
             throws Exception {
-        Athena.EthRequest ethRequest;
+        Athena.EthRequest ethRequest = null;
         try {
             EthRequest.Builder b = initializeRequestObject(requestJson);
-            b.setMethod(EthMethod.NEW_ACCOUNT);
+            b.setMethod(EthMethod.GET_STORAGE_AT);
             JSONArray params = extractRequestParams(requestJson);
-
-            String passphrase = (String) params.get(0);
-            try {
-                b.setData(ByteString.copyFrom(passphrase, StandardCharsets.UTF_8.name()));
-            } catch (UnsupportedEncodingException e) {
-                logger.error("Invalid passphrase");
-                throw new EthRPCHandlerException(
-                        EthDispatcher.errorMessage("Invalid passphrase", b.getId(), jsonRpc).toJSONString());
+            b.setAddrTo(APIHelper.hexStringToBinary((String) params.get(0)));
+            String p = (String) params.get(1);
+            String s = APIHelper.padZeroes(p);
+            b.setData(APIHelper.hexStringToBinary(s));
+            // add "block" parameter, the default block parameter is "latest".
+            // if no parameter or its value is negative, athena treat is as default
+            if (params.size() == 3) {
+                long blockNumber = APIHelper.parseBlockNumber(params);
+                if (blockNumber >= 0) {
+                    b.setBlockNumber(blockNumber);
+                }
             }
             ethRequest = b.build();
         } catch (Exception e) {
-            logger.error("Exception in new account handler", e);
+            logger.error("Exception in get storage at handler", e);
             throw e;
         }
         athenaRequestBuilder.addEthRequest(ethRequest);

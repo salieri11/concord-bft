@@ -1,7 +1,7 @@
 /**
  * This class contains helper functions for communicating with Athena
  */
-package com.vmware.blockchain.services.EthRPCHandlers;
+package com.vmware.blockchain.services.ethereum;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

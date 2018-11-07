@@ -1,4 +1,4 @@
-package com.vmware.blockchain.services.EthRPCHandlers;
+package com.vmware.blockchain.services.ethereum;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,13 +16,13 @@ import com.vmware.athena.Athena.EthResponse;
  * Copyright 2018 VMware, all rights reserved.
  * </p>
  *
- * This handler is used to service eth_getCode POST requests.
+ * This handler is used to service eth_getBalance POST requests.
  */
-public class EthGetCodeHandler extends AbstractEthRPCHandler {
+public class EthGetBalanceHandler extends AbstractEthRPCHandler {
 
     Logger logger = LogManager.getLogger(EthGetCodeHandler.class);
 
-    public EthGetCodeHandler(AthenaProperties config) {
+    public EthGetBalanceHandler(AthenaProperties config) {
         super(config);
         // TODO Auto-generated constructor stub
     }
@@ -40,7 +40,7 @@ public class EthGetCodeHandler extends AbstractEthRPCHandler {
         Athena.EthRequest athenaEthRequest = null;
         try {
             EthRequest.Builder b = initializeRequestObject(requestJson);
-            b.setMethod(EthMethod.GET_CODE);
+            b.setMethod(EthMethod.GET_BALANCE);
             JSONArray params = extractRequestParams(requestJson);
             b.setAddrTo(APIHelper.hexStringToBinary((String) params.get(0)));
             // add "block" parameter, the default block parameter is "latest".
@@ -71,7 +71,7 @@ public class EthGetCodeHandler extends AbstractEthRPCHandler {
     public JSONObject buildResponse(Athena.AthenaResponse athenaResponse, JSONObject requestJson) {
         EthResponse ethResponse = athenaResponse.getEthResponse(0);
         JSONObject respObject = initializeResponseObject(ethResponse);
-        respObject.put("result", APIHelper.binaryStringToHex(ethResponse.getData()));
+        respObject.put("result", APIHelper.binaryStringToHex(ethResponse.getData(), true));
         return respObject;
     }
 }

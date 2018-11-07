@@ -19,7 +19,7 @@ import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
-import com.vmware.blockchain.services.EthRPCHandlers.APIHelper;
+import com.vmware.blockchain.services.ethereum.APIHelper;
 
 @Controller
 public class TransactionList extends BaseServlet {

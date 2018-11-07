@@ -18,8 +18,8 @@ import org.apache.logging.log4j.Logger;
 
 import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
-import com.vmware.blockchain.services.EthRPCHandlers.AthenaHelper;
-import com.vmware.blockchain.services.EthRPCHandlers.EthDispatcher;
+import com.vmware.blockchain.services.ethereum.AthenaHelper;
+import com.vmware.blockchain.services.ethereum.EthDispatcher;
 
 public final class AthenaTCPConnection implements IAthenaConnection {
    private Socket socket;

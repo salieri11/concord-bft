@@ -1,7 +1,7 @@
 /**
  * Contains helper functions for API servlets.
  */
-package com.vmware.blockchain.services.EthRPCHandlers;
+package com.vmware.blockchain.services.ethereum;
 
 import java.io.IOException;
 import java.io.PrintWriter;

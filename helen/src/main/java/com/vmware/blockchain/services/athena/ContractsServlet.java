@@ -1,6 +1,6 @@
 package com.vmware.blockchain.services.athena;
 
-import static com.vmware.blockchain.services.EthRPCHandlers.APIHelper.errorJSON;
+import static com.vmware.blockchain.services.ethereum.APIHelper.errorJSON;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -28,13 +28,13 @@ import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
-import com.vmware.blockchain.services.EthRPCHandlers.EthDispatcher;
 import com.vmware.blockchain.services.contracts.BriefContractInfo;
 import com.vmware.blockchain.services.contracts.BriefVersionInfo;
 import com.vmware.blockchain.services.contracts.Compiler;
 import com.vmware.blockchain.services.contracts.ContractRegistryManager;
 import com.vmware.blockchain.services.contracts.ContractRetrievalException;
 import com.vmware.blockchain.services.contracts.FullVersionInfo;
+import com.vmware.blockchain.services.ethereum.EthDispatcher;
 
 /**
  * <p>

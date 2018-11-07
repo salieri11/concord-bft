@@ -1,4 +1,4 @@
-package com.vmware.blockchain.services.EthRPCHandlers;
+package com.vmware.blockchain.services.ethereum;
 
 import java.util.List;
 
