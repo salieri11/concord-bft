@@ -19,6 +19,7 @@ import { SmartContract } from '../shared/smart-contracts.model';
 import {
   SmartContractsSolidityFunctionInputsComponent
 } from '../smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
+import { CodeHighlighterComponent } from '../../shared/components/code-highlighter/code-highlighter.component';
 
 describe('SmartContractsComponent', () => {
   let component: SmartContractsComponent;
@@ -41,6 +42,7 @@ describe('SmartContractsComponent', () => {
         CanViewDirective,
         SmartContractsSolidityFunctionInputsComponent,
         ConnectWithTruffleComponent,
+        CodeHighlighterComponent
       ],
       providers: [ TourService ]
     })

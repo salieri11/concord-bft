@@ -85,9 +85,11 @@
                 </div>
                 <div class="card-block">
                   {{'smartContracts.version.decoded' | translate}}
-                  <pre class="language-json call-result-container" [innerHtml]="callReturnValue"></pre>
+                  <athena-code-highlighter [textToHighlight]="callReturnValue" [language]="'json'"></athena-code-highlighter>
                   {{'smartContracts.version.raw' | translate}}
-                  <pre class="language-markup bytecode-container">{{rawCallReturnValue}}</pre>
+                  <athena-code-highlighter [textToHighlight]="rawCallReturnValue"
+                                           [language]="'markup'"
+                                           [breakWord]="true"></athena-code-highlighter>
                 </div>
               </div>
             </div>
@@ -124,7 +126,10 @@
                 </clr-tooltip>
               </div>
               <div class="card-block">
-                <pre class="language-clike" [innerHtml]="highlightedSourceCode"></pre>
+                <athena-code-highlighter [textToHighlight]="version.sourcecode"
+                                         [language]="'c-like'"
+                                         [noScroll]="true"
+                                         [noBorder]="true"></athena-code-highlighter>
               </div>
             </div>
           </div>
@@ -149,7 +154,11 @@
               </clr-tooltip>
             </div>
             <div class="card-block">
-              <pre class="language-markup bytecode-container" [innerHtml]="version?.bytecode"></pre>
+              <athena-code-highlighter [textToHighlight]="version?.bytecode"
+                                       [language]="'markup'"
+                                       [noScroll]="true"
+                                       [noBorder]="true"
+                                       [breakWord]="true"></athena-code-highlighter>
             </div>
           </div>
         </div>
@@ -174,7 +183,10 @@
                 </clr-tooltip>
               </div>
               <div class="card-block">
-                <pre class="language-json" [innerHtml]="highlightedMetaData"></pre>
+                <athena-code-highlighter [textToHighlight]="metadataString"
+                                         [language]="'json'"
+                                         [noScroll]="true"
+                                         [noBorder]="true"></athena-code-highlighter>
               </div>
             </div>
           </div>

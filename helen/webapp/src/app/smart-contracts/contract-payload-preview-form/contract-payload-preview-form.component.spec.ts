@@ -7,6 +7,7 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { ClarityModule } from '@clr/angular';
 import { MockSharedModule } from '../../shared/shared.module';
 import { ContractPayloadPreviewFormComponent } from './contract-payload-preview-form.component';
+import { CodeHighlighterComponent } from '../../shared/components/code-highlighter/code-highlighter.component';
 
 
 describe('ContractPayloadPreviewFormComponent', () => {
@@ -19,7 +20,7 @@ describe('ContractPayloadPreviewFormComponent', () => {
         ClarityModule,
         MockSharedModule
       ],
-      declarations: [ContractPayloadPreviewFormComponent]
+      declarations: [ContractPayloadPreviewFormComponent, CodeHighlighterComponent]
     })
       .compileComponents();
   }));

@@ -28,6 +28,7 @@ import { VmwComboboxComponent } from './components/combobox/combobox.component';
 import { VmwComboboxItemsComponent } from './components/combobox/combobox-items/combobox-items.component';
 import { VmwCopyToClipboardButtonComponent } from './components/copy-to-clipboard-button/copy-to-clipboard-button.component';
 import { VmwThemeSwitchButtonComponent } from './components/theme-switch-button/theme-switch-button.component';
+import { CodeHighlighterComponent } from './components/code-highlighter/code-highlighter.component';
 
 @NgModule({
   imports: [
@@ -50,7 +51,8 @@ import { VmwThemeSwitchButtonComponent } from './components/theme-switch-button/
     VmwComboboxItemsComponent,
     VmwCopyToClipboardButtonComponent,
     BlockchainWizardComponent,
-    VmwThemeSwitchButtonComponent
+    VmwThemeSwitchButtonComponent,
+    CodeHighlighterComponent
   ],
   exports: [
     CommonModule,
@@ -68,7 +70,8 @@ import { VmwThemeSwitchButtonComponent } from './components/theme-switch-button/
     VmwComboboxItemsComponent,
     VmwCopyToClipboardButtonComponent,
     BlockchainWizardComponent,
-    VmwThemeSwitchButtonComponent
+    VmwThemeSwitchButtonComponent,
+    CodeHighlighterComponent
   ]
 })
 export class SharedModule {

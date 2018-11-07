@@ -20,15 +20,6 @@ form {
 }
 .card {
   max-width: 1000px;
-  pre {
-    max-height: inherit;
-    border: 0;
-  }
-}
-
-.bytecode-container {
-  word-break: break-all !important;
-  white-space: normal !important;
 }
 
 .transaction-details {

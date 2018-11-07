@@ -4,8 +4,6 @@
 
 import { Component } from '@angular/core';
 
-import { HighlightService } from '../../shared/highlight.service';
-
 @Component({
   selector: 'athena-contract-payload-preview-form',
   templateUrl: './contract-payload-preview-form.component.html',
@@ -15,15 +13,16 @@ export class ContractPayloadPreviewFormComponent {
   isOpen = false;
   payloadPreview: string;
 
-  constructor(private highlighter: HighlightService) {
+  constructor() {
   }
 
   open(payloadPreview: string) {
-    this.payloadPreview = this.highlighter.highlight(payloadPreview, this.highlighter.languages.json);
+    this.payloadPreview = payloadPreview;
     this.isOpen = true;
   }
 
   onClose() {
     this.isOpen = false;
+    this.payloadPreview = null;
   }
 }
