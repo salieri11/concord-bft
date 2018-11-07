@@ -29,7 +29,6 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.ehcache.EhCacheCacheManager;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 import com.vmware.blockchain.services.profiles.ProfilesRegistryManager;
@@ -39,7 +38,6 @@ import net.sf.ehcache.config.CacheConfiguration;
 
 @SpringBootApplication
 @EntityScan(basePackageClasses = {User.class})
-@ComponentScan(basePackages = {"Servers", "configurations", "connections", "database", "security", "services", "Servlets"})
 @EnableJpaRepositories(basePackageClasses = {ProfilesRegistryManager.class})
 @EnableCaching
 public class Server {
