@@ -1,0 +1,78 @@
+<!--
+  ~ Copyright (c) 2016 VMware, Inc. All rights reserved. VMware Confidential
+  -->
+<FindBugsFilter>
+    <Match>
+        <Class name="com.vmware.skyscraper.sddc.driver.zerocloud.ZeroCloudDriver"/>
+        <Method name="restartEsx"/>
+        <Bug pattern="NP_NONNULL_PARAM_VIOLATION"/>
+    </Match>
+    <Match>
+        <Class name="com.vmware.skyscraper.sddc.driver.onecloud.OneCloudDriver"/>
+        <Method name="restartEsx"/>
+        <Bug pattern="NP_NONNULL_PARAM_VIOLATION"/>
+    </Match>
+    <Match>
+        <!-- revisit this - not sure if this is something to worry about -->
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+    <Match>
+        <Class name="com.vmware.skyscraper.auth.TokenValidationUtil$UserInfo"/>
+        <Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
+    </Match>
+    <Match>
+        <Class name="com.vmware.skyscraper.sddc.SddcBuilder"/>
+        <Bug pattern="URF_UNREAD_FIELD"/>
+    </Match>
+    <Match>
+        <!-- dont worry too much about test code - just high confidence warnings -->
+        <Package name="com.vmware.skyscraper.test"/>
+        <Priority value="2"/>
+    </Match>
+    <Match>
+        <!-- Ignore serialization issue in tests, we are never going to serialize it anyway -->
+        <Package name="com.vmware.skyscraper.SkyscraperInitializerTests"/>
+        <Bug pattern="SE_BAD_FIELD" />
+    </Match>
+    <Match>
+        <Class name="com.vmware.skyscraper.spring.ControllerExceptionHandlerTests$FakeConfig"/>
+        <Bug pattern="UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD"/>
+    </Match>
+    <Match>
+        <Class name="com.vmware.skyscraper.spring.TestController$Test1Config"/>
+        <Bug pattern="URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"/>
+    </Match>
+    <Match>
+        <!-- Generated source code -->
+        <Package name="net.entrust.ws.wsdl"/>
+    </Match>
+    <Match>
+        <Class name="com.vmware.skyscraper.cms.entrust.CmsRunner"/>
+        <Bug pattern="DM_EXIT"/>
+    </Match>
+    <Match>
+        <Class name="com.vmware.skyscraper.sddc.EsxDeletionServiceImpl"/>
+        <Method name="processStage" />
+        <Bug pattern="DLS_DEAD_LOCAL_STORE"/>
+    </Match>
+    <Match>
+        <Class name="com.vmware.skyscraper.sddc.EsxProvisioningServiceImpl"/>
+        <Method name="processStage" />
+        <Bug pattern="DLS_DEAD_LOCAL_STORE"/>
+    </Match>
+    <Match>
+        <Class name="com.vmware.skyscraper.sddc.EsxProvisioningInAllClustersServiceImpl"/>
+        <Method name="processStage" />
+        <Bug pattern="DLS_DEAD_LOCAL_STORE"/>
+    </Match>
+    <Match>
+        <Class name="com.vmware.skyscraper.csp.CspHelpers"/>
+        <Bug pattern="IS2_INCONSISTENT_SYNC"/>
+    </Match>
+    <Match>
+        <!-- https://github.com/findbugsproject/findbugs/issues/79 -->
+        <Class name="com.vmware.skyscraper.sddc.certificate.CertificateManager"/>
+        <Method name="deactivateRequest" />
+        <Bug pattern="NP_NONNULL_PARAM_VIOLATION"/>
+    </Match>
+</FindBugsFilter>
