@@ -10,6 +10,9 @@ import org.springframework.context.annotation.Configuration;
 
 import configurations.AthenaProperties;
 
+/**
+ * Temporary configuration to create connection pool bean.
+ */
 @Configuration
 public class AthenaConfiguration {
     private final Logger logger = LogManager.getLogger(AthenaConfiguration.class);
