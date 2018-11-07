@@ -44,7 +44,7 @@ class HelenAPITests(test_suite.TestSuite):
          try:
             p = self.launchProduct(self._args,
                                    self._apiBaseServerUrl + "/api/athena/eth",
-                                   self._userConfig["product"])
+                                   self._userConfig)
          except Exception as e:
             log.error(traceback.format_exc())
             return self._resultFile
@@ -89,7 +89,10 @@ class HelenAPITests(test_suite.TestSuite):
 
    def _runRestTest(self, testName, testFun, testLogDir):
       log.info("Starting test '{}'".format(testName))
-      request = Request(testLogDir, testName, self._apiBaseServerUrl)
+      request = Request(testLogDir,
+                        testName,
+                        self._apiBaseServerUrl,
+                        self._userConfig)
       return testFun(request)
 
    def _getTests(self):
@@ -394,7 +397,8 @@ class HelenAPITests(test_suite.TestSuite):
                                        + '/versions/' + contractVersion, "")
       rpc = RPC(request._logDir,
                 self.getName(),
-                self._apiServerUrl)
+                self._apiServerUrl,
+                self._userConfig)
       txres = rpc.sendTransaction("0x1111111111111111111111111111111111111111",
                                   "0x19ff1d21", # HelloWorld.sol's hello function
                                   to=result["address"])
@@ -414,7 +418,8 @@ class HelenAPITests(test_suite.TestSuite):
                                        + '/versions/' + contractVersion, "")
       rpc = RPC(request._logDir,
                 self.getName(),
-                self._apiServerUrl)
+                self._apiServerUrl,
+                self._userConfig)
       txres = rpc.callContract(result["address"],
                                "0x19ff1d21") # HelloWorld.sol's hello function
 
@@ -492,7 +497,8 @@ class HelenAPITests(test_suite.TestSuite):
    def _mock_transaction(self, request, data = "0x00"):
       rpc = RPC(request._logDir,
                 self.getName(),
-                self._apiServerUrl)
+                self._apiServerUrl,
+                self._userConfig)
       # do a transaction so that we have some block
       caller = "0x1111111111111111111111111111111111111111"
       to = "0x2222222222222222222222222222222222222222"

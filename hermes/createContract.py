@@ -122,7 +122,7 @@ class BytecodeContractCreator(test_suite.TestSuite):
          try:
             p = self.launchProduct(self._args,
                                    self._apiServerUrl,
-                                   self._userConfig["product"])
+                                   self._userConfig)
          except Exception as e:
             log.error(traceback.format_exc())
             return self._resultFile
@@ -133,7 +133,8 @@ class BytecodeContractCreator(test_suite.TestSuite):
       user = self._getAUser()
       rpc = RPC(self._testLogDir,
                 "CreateBytecodeContract",
-                self._apiServerUrl)
+                self._apiServerUrl,
+                self._userConfig)
       gas = self._getGas()
       self._unlockUser(rpc, user)
 

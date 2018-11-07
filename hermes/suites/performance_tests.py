@@ -42,7 +42,7 @@ class PerformanceTests(test_suite.TestSuite):
          try:
             p = self.launchProduct(self._args,
                                    self._apiBaseServerUrl + "/api/athena/eth",
-                                   self._userConfig["product"])
+                                   self._userConfig)
          except Exception as e:
             log.error(traceback.format_exc())
             return self._resultFile
@@ -186,7 +186,10 @@ class PerformanceTests(test_suite.TestSuite):
 
                testName = "performance"
                testLogDir = os.path.join(self._testLogDir, testName)
-               rpc = RPC(testLogDir, testName, self._apiServerUrl)
+               rpc = RPC(testLogDir,
+                         testName,
+                         self._apiServerUrl,
+                         self._userConfig)
 
                print("Sending requests..")
                print("")
