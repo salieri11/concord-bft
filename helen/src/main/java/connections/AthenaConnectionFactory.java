@@ -4,11 +4,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 
-import configurations.IConfiguration;
+import configurations.AthenaProperties;
 
 public final class AthenaConnectionFactory {
-   private ConnectionType _type;
-   private IConfiguration _conf;
+   private ConnectionType type;
+   private AthenaProperties config;
    private ArrayList<Authority> athenaList;
    private AtomicLong nextAuthority;
 
@@ -17,14 +17,14 @@ public final class AthenaConnectionFactory {
       Mock
    }
 
-   public AthenaConnectionFactory(ConnectionType type, IConfiguration conf) {
-      _type = type;
-      _conf = conf;
+   public AthenaConnectionFactory(ConnectionType type, AthenaProperties config) {
+      this.type = type;
+      this.config = config;
       nextAuthority = new AtomicLong();
 
       // Read list of athenas from config
       athenaList = new ArrayList<>();
-      String authorities = _conf.getStringValue("AthenaAuthorities");
+      String authorities = config.getAthenaAuthorities();
       String[] authorityList = authorities.split(",");
       for (String authority : authorityList) {
          String[] group = authority.split(":");
@@ -35,21 +35,21 @@ public final class AthenaConnectionFactory {
 
    public IAthenaConnection create() throws IOException,
                                      UnsupportedOperationException {
-      switch (_type) {
+      switch (type) {
       case TCP:
          // Select an Athena instance to connect with in a round robin fashion
          int chosenAuthority
             = (int) nextAuthority.getAndIncrement() % athenaList.size();
          Authority athenaInstance = athenaList.get(chosenAuthority);
          AthenaTCPConnection connection
-            = new AthenaTCPConnection(_conf,
+            = new AthenaTCPConnection(config,
                                       athenaInstance.getHost(),
                                       athenaInstance.getPort());
          return connection;
       case Mock:
-         return new MockConnection(_conf);
+         return new MockConnection(config);
       default:
-         throw new UnsupportedOperationException("type not supported" + _type);
+         throw new UnsupportedOperationException("type not supported" + type);
       }
    }
 

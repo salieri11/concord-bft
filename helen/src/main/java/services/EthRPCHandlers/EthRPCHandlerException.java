@@ -8,9 +8,9 @@ package services.EthRPCHandlers;
  * This class serves as a common exception type thrown by all EthRPC handlers.
  */
 public class EthRPCHandlerException extends Exception {
-   private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-   public EthRPCHandlerException(String message) {
-      super(message);
-   }
+    public EthRPCHandlerException(String message) {
+        super(message);
+    }
 }

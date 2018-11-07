@@ -21,7 +21,7 @@ import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.AthenaResponse;
 import com.vmware.athena.Athena.ErrorResponse;
 
-import configurations.AthenaConfiguration;
+import configurations.AthenaProperties;
 import connections.AthenaConnectionPool;
 import connections.IAthenaConnection;
 import services.EthRPCHandlers.AbstractEthRPCHandler;
@@ -68,17 +68,15 @@ public final class EthDispatcher extends BaseServlet {
     private JSONArray rpcList;
     private String jsonRpc;
     private ContractRegistryManager registryManager;
-    private AthenaConfiguration config;
 
     @Autowired
-    public EthDispatcher(ContractRegistryManager registryManager, AthenaConfiguration config) throws ParseException {
-        super();
+    public EthDispatcher(ContractRegistryManager registryManager, AthenaProperties config, AthenaConnectionPool connectionPool) throws ParseException {
+        super(config, connectionPool);
         JSONParser p = new JSONParser();
         this.registryManager = registryManager;
-        this.config = config;
         try {
-            rpcList = (JSONArray) p.parse(_conf.getStringValue("EthRPCList"));
-            jsonRpc = _conf.getStringValue("JSONRPC");
+            rpcList = (JSONArray) p.parse(config.getEthRPCList());
+            jsonRpc = config.getJSONRPC();
         } catch (Exception e) {
             logger.error("Failed to read RPC information from config file", e);
         }
@@ -236,49 +234,49 @@ public final class EthDispatcher extends BaseServlet {
         try {
             ethMethodName = getEthMethodName(requestJson);
             id = getEthRequestId(requestJson);
-            if (ethMethodName.equals(_conf.getStringValue("SendTransaction_Name"))
-                    || ethMethodName.equals(_conf.getStringValue("SendRawTransaction_Name"))
-                    || ethMethodName.equals(_conf.getStringValue("Call_Name"))) {
+            if (ethMethodName.equals(config.getSendTransaction_Name())
+                    || ethMethodName.equals(config.getSendRawTransaction_Name())
+                    || ethMethodName.equals(config.getCall_Name())) {
                 if (requestJson.containsKey("isInternalContract")) {
                     requestJson.remove("isInternalContract");
-                    handler = new EthSendTxHandler(registryManager, true);
+                    handler = new EthSendTxHandler(config, athenaConnectionPool, registryManager, true);
                 } else {
-                    handler = new EthSendTxHandler(registryManager, false);
+                    handler = new EthSendTxHandler(config, athenaConnectionPool, registryManager, false);
                 }
-            } else if (ethMethodName.equals(_conf.getStringValue("NewAccount_Name"))) {
-                handler = new EthNewAccountHandler();
-            } else if (ethMethodName.equals(_conf.getStringValue("GetTransactionReceipt_Name"))) {
-                handler = new EthGetTxReceiptHandler();
-            } else if (ethMethodName.equals(_conf.getStringValue("GetStorageAt_Name"))) {
-                handler = new EthGetStorageAtHandler();
-            } else if (ethMethodName.equals(_conf.getStringValue("GetCode_Name"))) {
-                handler = new EthGetCodeHandler();
-            } else if (ethMethodName.equals(_conf.getStringValue("GetTransactionCount_Name"))) {
-                handler = new EthGetTransactionCountHandler();
-            } else if (ethMethodName.equals(_conf.getStringValue("GetBalance_Name"))) {
-                handler = new EthGetBalanceHandler();
-            } else if (ethMethodName.equals(_conf.getStringValue("GetBlockByHash_Name"))
-                    || ethMethodName.equals(_conf.getStringValue("GetBlockByNumber_Name"))) {
-                handler = new EthGetBlockHandler();
-            } else if (ethMethodName.equals(_conf.getStringValue("NewFilter_Name"))
-                    || ethMethodName.equals(_conf.getStringValue("NewBlockFilter_Name"))
-                    || ethMethodName.equals(_conf.getStringValue("NewPendingTransactionFilter_Name"))
-                    || ethMethodName.equals(_conf.getStringValue("FilterChange_Name"))
-                    || ethMethodName.equals(_conf.getStringValue("UninstallFilter_Name"))) {
-                handler = new EthFilterHandler();
-            } else if (ethMethodName.equals(_conf.getStringValue("Web3SHA3_Name"))
-                    || ethMethodName.equals(_conf.getStringValue("RPCModules_Name"))
-                    || ethMethodName.equals(_conf.getStringValue("Coinbase_Name"))
-                    || ethMethodName.equals(_conf.getStringValue("ClientVersion_Name"))
-                    || ethMethodName.equals(_conf.getStringValue("Mining_Name"))
-                    || ethMethodName.equals(_conf.getStringValue("NetVersion_Name"))
-                    || ethMethodName.equals(_conf.getStringValue("Accounts_Name"))
-                    || ethMethodName.equals(_conf.getStringValue("GasPrice_Name"))
-                    || ethMethodName.equals(_conf.getStringValue("Syncing_Name"))) {
-                handler = new EthLocalResponseHandler();
+            } else if (ethMethodName.equals(config.getNewAccount_Name())) {
+                handler = new EthNewAccountHandler(config);
+            } else if (ethMethodName.equals(config.getGetTransactionReceipt_Name())) {
+                handler = new EthGetTxReceiptHandler(config);
+            } else if (ethMethodName.equals(config.getGetStorageAt_Name())) {
+                handler = new EthGetStorageAtHandler(config);
+            } else if (ethMethodName.equals(config.getGetCode_Name())) {
+                handler = new EthGetCodeHandler(config);
+            } else if (ethMethodName.equals(config.getGetTransactionCount_Name())) {
+                handler = new EthGetTransactionCountHandler(config);
+            } else if (ethMethodName.equals(config.getGetBalance_Name())) {
+                handler = new EthGetBalanceHandler(config);
+            } else if (ethMethodName.equals(config.getGetBlockByHash_Name())
+                    || ethMethodName.equals(config.getGetBlockByNumber_Name())) {
+                handler = new EthGetBlockHandler(config);
+            } else if (ethMethodName.equals(config.getNewFilter_Name())
+                    || ethMethodName.equals(config.getNewBlockFilter_Name())
+                    || ethMethodName.equals(config.getNewPendingTransactionFilter_Name())
+                    || ethMethodName.equals(config.getFilterChange_Name())
+                    || ethMethodName.equals(config.getUninstallFilter_Name())) {
+                handler = new EthFilterHandler(config);
+            } else if (ethMethodName.equals(config.getWeb3SHA3_Name())
+                    || ethMethodName.equals(config.getRPCModules_Name())
+                    || ethMethodName.equals(config.getCoinbase_Name())
+                    || ethMethodName.equals(config.getClientVersion_Name())
+                    || ethMethodName.equals(config.getMining_Name())
+                    || ethMethodName.equals(config.getNetVersion_Name())
+                    || ethMethodName.equals(config.getAccounts_Name())
+                    || ethMethodName.equals(config.getGasPrice_Name())
+                    || ethMethodName.equals(config.getSyncing_Name())) {
+                handler = new EthLocalResponseHandler(config, athenaConnectionPool);
                 isLocal = true;
-            } else if (ethMethodName.equals(_conf.getStringValue("BlockNumber_Name"))) {
-                handler = new EthBlockNumberHandler();
+            } else if (ethMethodName.equals(config.getBlockNumber_Name())) {
+                handler = new EthBlockNumberHandler(config);
             } else {
                 throw new Exception("Invalid method name.");
             }
@@ -323,12 +321,12 @@ public final class EthDispatcher extends BaseServlet {
         IAthenaConnection conn = null;
         Athena.AthenaResponse athenaResponse = null;
         try {
-            conn = AthenaConnectionPool.getInstance().getConnection();
+            conn = athenaConnectionPool.getConnection();
             if (conn == null) {
                 throw new Exception("Error communicating with athena");
             }
 
-            boolean res = AthenaHelper.sendToAthena(req, conn, _conf);
+            boolean res = AthenaHelper.sendToAthena(req, conn, config);
             if (!res) {
                 throw new Exception("Error communicating with athena");
             }
@@ -342,7 +340,7 @@ public final class EthDispatcher extends BaseServlet {
             logger.error("General exception communicating with athena: ", e);
             throw e;
         } finally {
-            AthenaConnectionPool.getInstance().putConnection(conn);
+            athenaConnectionPool.putConnection(conn);
         }
 
         return athenaResponse;

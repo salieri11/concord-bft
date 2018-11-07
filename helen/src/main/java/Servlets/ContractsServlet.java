@@ -26,7 +26,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.vmware.athena.Athena;
 
-import configurations.AthenaConfiguration;
+import configurations.AthenaProperties;
+import connections.AthenaConnectionPool;
 import services.contracts.BriefContractInfo;
 import services.contracts.BriefVersionInfo;
 import services.contracts.Compiler;
@@ -46,16 +47,20 @@ public class ContractsServlet extends BaseServlet {
 
     private static final long serialVersionUID = 1L;
     private final static Logger logger = LogManager.getLogger(ContractsServlet.class);
-    private final String jsonRpc = _conf.getStringValue("JSONRPC");
-    private final String contractEndpoint = _conf.getStringValue("Contracts_Endpoint");
+    private final String jsonRpc;
+    private final String contractEndpoint;
     private ContractRegistryManager registryManager;
-    private AthenaConfiguration config;
     private Random random = new Random();
+    private EthDispatcher ethDispatcher;
 
     @Autowired
-    public ContractsServlet(ContractRegistryManager registryManger, AthenaConfiguration config) {
+    public ContractsServlet(ContractRegistryManager registryManger, AthenaProperties config,
+            AthenaConnectionPool connectionPool, EthDispatcher ethDispatcher) {
+        super(config, connectionPool);
         this.registryManager = registryManger;
-        this.config = config;
+        this.jsonRpc = config.getJSONRPC();
+        this.contractEndpoint = config.getContracts_Endpoint();
+        this.ethDispatcher = ethDispatcher;
     }
 
 
@@ -393,7 +398,7 @@ public class ContractsServlet extends BaseServlet {
         if (hasContract) {
             String byteCode = result.getByteCodeMap().get(selectedContract) + constructorParams;
             JSONObject sendTxrequest = buildEthSendTxRequest(from, requestID, byteCode);
-            String responseString = new EthDispatcher(registryManager, config).dispatch(sendTxrequest).toJSONString();
+            String responseString = ethDispatcher.dispatch(sendTxrequest).toJSONString();
             logger.trace("Dispatcher response: " + responseString);
             JSONObject ethResponse = (JSONObject) new JSONParser().parse(responseString);
 
@@ -404,7 +409,7 @@ public class ContractsServlet extends BaseServlet {
                 // Now call eth_getTransactionReceipt API to get the address
                 // of deployed contract
                 JSONObject txReceiptRequest = buildEthTxReceiptRequest(random.nextInt(), transactionHash);
-                String txReceipt = new EthDispatcher(registryManager, config).dispatch(txReceiptRequest).toJSONString();
+                String txReceipt = ethDispatcher.dispatch(txReceiptRequest).toJSONString();
                 logger.info("New contract deployed at: " + extractContractAddress(txReceipt));
                 boolean success = registryManager.addNewContractVersion(contractId, from, contractVersion,
                         extractContractAddress(txReceipt), result.getMetadataMap().get(selectedContract), byteCode,

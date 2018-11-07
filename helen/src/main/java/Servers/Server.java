@@ -32,18 +32,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
-import configurations.ConfigurationFactory;
-import configurations.ConfigurationFactory.ConfigurationType;
-import configurations.IConfiguration;
-import connections.AthenaConnectionFactory;
-import connections.AthenaConnectionPool;
 import net.sf.ehcache.config.CacheConfiguration;
 import services.profiles.ProfilesRegistryManager;
 import services.profiles.User;
 
 @SpringBootApplication
 @EntityScan(basePackageClasses = {User.class})
-@ComponentScan(basePackages = {"Servers", "configurations", "database", "security", "services", "Servlets"})
+@ComponentScan(basePackages = {"Servers", "configurations", "connections", "database", "security", "services", "Servlets"})
 @EnableJpaRepositories(basePackageClasses = {ProfilesRegistryManager.class})
 @EnableCaching
 public class Server {
@@ -57,23 +52,16 @@ public class Server {
 
    public static void main(String[] args) throws IOException {
       final Logger logger = LogManager.getLogger(Server.class);
+      String[] testEnv = {"--spring.profiles.active=test"};
 
+      // backwards compatibility for testing
       if (args.length == 1) {
-         // This accepts only 1 argument and it is name of configuration file
-         ConfigurationFactory.init(args[0]);
-      } else {
-         ConfigurationFactory.init();
+          // used to hand in a property file name.  Make the argument the active profile
+          if ("application-test.properties".equals(args[0])) {
+              args = testEnv;
+              logger.info("Setting test environment");
+          }
       }
-
-      // Read configurations file
-      IConfiguration conf
-         = ConfigurationFactory.getConfiguration(ConfigurationType.File);
-
-      AthenaConnectionFactory factory
-         = new AthenaConnectionFactory(AthenaConnectionFactory.ConnectionType.TCP,
-                                       conf);
-      AthenaConnectionPool.getInstance().initialize(conf, factory);
-      logger.info("athena connection pool initialized");
 
       SpringApplication.run(Server.class, args);
    }

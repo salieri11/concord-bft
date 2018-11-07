@@ -4,17 +4,20 @@
 
 package configurations;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import lombok.Getter;
+import lombok.Setter;
 
 @Component
 @Getter
-public class AthenaConfiguration {
+@Setter
+public class AthenaProperties {
 
     //Athena configurations
-    String AthenaAuthorities;
+    @Value("${AthenaAuthorities}") String AthenaAuthorities;
     @Value("${ConnectionPoolSize}") int ConnectionPoolSize;
     @Value("${ConnectionPoolFactor}") int ConnectionPoolFactor;
     @Value("${ConnectionPoolWaitTimeoutMs}") int ConnectionPoolWaitTimeoutMs;
@@ -77,4 +80,9 @@ public class AthenaConfiguration {
     @Value("${GasPrice_Name}") String GasPrice_Name;
     @Value("${Syncing_Name}") String Syncing_Name;
 
+    public AthenaProperties instance() {
+        AthenaProperties prop = new AthenaProperties();
+        BeanUtils.copyProperties(this, prop);
+        return prop;
+    }
 }

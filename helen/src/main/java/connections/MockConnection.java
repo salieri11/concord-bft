@@ -5,15 +5,15 @@ import java.nio.ByteOrder;
 
 import com.vmware.athena.Athena;
 
-import configurations.IConfiguration;
+import configurations.AthenaProperties;
 
 public class MockConnection implements IAthenaConnection {
-   private static Athena.ProtocolResponse _protocolResponse
+   private static Athena.ProtocolResponse protocolResponse
       = Athena.ProtocolResponse.newBuilder().setServerVersion(1).build();
-   private IConfiguration _conf;
+   private AthenaProperties config;
 
-   public MockConnection(IConfiguration conf) {
-      _conf = conf;
+   public MockConnection(AthenaProperties config) {
+      this.config = config;
    }
 
    @Override
@@ -33,8 +33,8 @@ public class MockConnection implements IAthenaConnection {
     * AthenaProtocolResponse message
     */
    public byte[] receive() {
-      byte[] data = _protocolResponse.toByteArray();
-      int headerLength = _conf.getIntegerValue("ReceiveHeaderSizeBytes");
+      byte[] data = protocolResponse.toByteArray();
+      int headerLength = config.getReceiveHeaderSizeBytes();
       byte[] bytes = ByteBuffer.allocate(headerLength + data.length)
                                .order(ByteOrder.LITTLE_ENDIAN)
                                .putShort((short) data.length)
