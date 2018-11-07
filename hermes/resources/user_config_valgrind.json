@@ -12,13 +12,13 @@
       },
       {
         "apiServer": {
-          "buildRoot": "~/source/helen",
+          "buildRoot": "../helen",
           "helen1": {
             "launchCommand": "/usr/bin/java",
             "parameters": [
                 "-jar",
                 "-Dspring.profiles.active=test",
-                "~/source/helen/target/helen-1.0-SNAPSHOT.jar",
+                "target/helen-1.0-SNAPSHOT.jar",
               "application-valgrind.properties"
             ]
           }
@@ -26,7 +26,7 @@
       },
       {
         "athena1": {
-          "buildRoot": "~/source/athena/build",
+          "buildRoot": "../athena/build",
           "athena1": {
             "launchCommand": "valgrind",
             "parameters": [
@@ -46,7 +46,7 @@
       },
       {
         "athena2": {
-          "buildRoot": "~/source/athena/build",
+          "buildRoot": "../athena/build",
           "athena2": {
             "launchCommand": "src/athena",
             "parameters": [
@@ -60,7 +60,7 @@
       },
       {
         "athena3": {
-          "buildRoot": "~/source/athena/build",
+          "buildRoot": "../athena/build",
           "athena3": {
             "launchCommand": "src/athena",
             "parameters": [
@@ -74,7 +74,7 @@
       },
       {
         "athena4": {
-          "buildRoot": "~/source/athena/build",
+          "buildRoot": "../athena/build",
           "athena4": {
             "launchCommand": "src/athena",
             "parameters": [
@@ -99,7 +99,7 @@
     }]
   },
   "ethereum": {
-    "testRoot": "~/source/ethereum_tests",
+    "testRoot": "../../ethereum_tests",
     "url": "http://localhost:8545",
     "users": [
       {
