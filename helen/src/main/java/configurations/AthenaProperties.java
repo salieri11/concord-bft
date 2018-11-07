@@ -39,7 +39,8 @@ public class AthenaProperties {
     @Value("${ClientVersion}") String ClientVersion;
     @Value("${Is_Mining}") int Is_Mining;
     // Gas price is a quantity, which allows odd-nibble values
-    @Value("${GasPrice}") int GasPrice;
+    // Also,  this seems to be treated as a String
+    @Value("${GasPrice}") String GasPrice;
 
     //Other Constants
     @Value("${BlockList_DefaultCount}") long BlockList_DefaultCount;
