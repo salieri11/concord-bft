@@ -13,12 +13,12 @@ import org.apache.logging.log4j.Logger;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.vmware.athena.Athena;
 
-import configurations.IConfiguration;
+import configurations.AthenaProperties;
 import connections.IAthenaConnection;
 
 public class AthenaHelper {
 
-   private static Logger _log = LogManager.getLogger(AthenaHelper.class);
+   private static Logger log = LogManager.getLogger(AthenaHelper.class);
 
    /**
     * Converts an int into two bytes.
@@ -38,7 +38,7 @@ public class AthenaHelper {
    /**
     * Sends a Google Protocol Buffer request to Athena. Athena expects two bytes
     * signifying the size of the request before the actual request.
-    * 
+    *
     * @param socketRequest
     *           OutputStream object
     * @param request
@@ -47,11 +47,11 @@ public class AthenaHelper {
     */
    public static boolean sendToAthena(Athena.AthenaRequest request,
                                       IAthenaConnection conn,
-                                      IConfiguration conf) throws IOException {
+                                      AthenaProperties conf) throws IOException {
       // here specifically, request.toString() it time consuming,
       // so checking level enabled can gain performance
-      if (_log.isTraceEnabled())
-         _log.trace(String.format("Sending request to Athena : %s %s",
+      if (log.isTraceEnabled())
+         log.trace(String.format("Sending request to Athena : %s %s",
                                   System.lineSeparator(),
                                   request));
 
@@ -65,7 +65,7 @@ public class AthenaHelper {
 
       byte[] size
          = intToSizeBytes(requestSize,
-                          conf.getIntegerValue("ReceiveHeaderSizeBytes"));
+                          conf.getReceiveHeaderSizeBytes());
       byte[] protobufRequest = request.toByteArray();
       ByteBuffer msg
          = ByteBuffer.allocate(size.length + protobufRequest.length);
@@ -80,7 +80,7 @@ public class AthenaHelper {
    /**
     * Receives a Google Protocol Buffer response from Athena. Athena sends two
     * bytes signifying the size of the response before the actual response.
-    * 
+    *
     * @param socketResponse
     *           InputStream object
     * @return Athena's response
@@ -98,13 +98,13 @@ public class AthenaHelper {
          try {
             athenaResponse = Athena.AthenaResponse.parseFrom(data);
          } catch (InvalidProtocolBufferException e) {
-            _log.error("Error in parsing Athena's response");
+            log.error("Error in parsing Athena's response");
             throw new InvalidProtocolBufferException(e.getMessage());
          }
 
          return athenaResponse;
       } catch (Exception e) {
-         _log.error("receiveFromAthena", e);
+         log.error("receiveFromAthena", e);
          return null;
       }
    }

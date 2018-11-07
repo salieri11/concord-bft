@@ -20,15 +20,15 @@ import com.vmware.athena.Athena;
 
 import Servlets.AthenaHelper;
 import Servlets.EthDispatcher;
-import configurations.IConfiguration;
+import configurations.AthenaProperties;
 
 public final class AthenaTCPConnection implements IAthenaConnection {
-   private Socket _socket;
-   private AtomicBoolean _disposed;
-   private final int _receiveTimeout; // ms
-   private final int _receiveLengthSize; // bytes
-   private IConfiguration _conf;
-   private static Logger _logger
+   private Socket socket;
+   private AtomicBoolean disposed;
+   private final int receiveTimeout; // ms
+   private final int receiveLengthSize; // bytes
+   private AthenaProperties config;
+   private static Logger logger
       = LogManager.getLogger(AthenaTCPConnection.class);
    private static Athena.ProtocolRequest _protocolRequestMsg
       = Athena.ProtocolRequest.newBuilder().setClientVersion(1).build();
@@ -42,29 +42,29 @@ public final class AthenaTCPConnection implements IAthenaConnection {
     *
     * @throws IOException
     */
-   public AthenaTCPConnection(IConfiguration conf, String host,
+   public AthenaTCPConnection(AthenaProperties config, String host,
                               int port) throws IOException {
-      _conf = conf;
-      _receiveLengthSize = _conf.getIntegerValue("ReceiveHeaderSizeBytes");
-      _receiveTimeout = _conf.getIntegerValue("ReceiveTimeoutMs");
-      _disposed = new AtomicBoolean(false);
+      this.config = config;
+      receiveLengthSize = config.getReceiveHeaderSizeBytes();
+      receiveTimeout = config.getReceiveTimeoutMs();
+      disposed = new AtomicBoolean(false);
 
       // Create the TCP connection and input and output streams
       try {
-         _socket = new Socket(host, port);
-         _socket.setTcpNoDelay(true);
-         _socket.setSoTimeout(_receiveTimeout);
+         socket = new Socket(host, port);
+         socket.setTcpNoDelay(true);
+         socket.setSoTimeout(receiveTimeout);
       } catch (UnknownHostException e) {
-         _logger.error("Error creating TCP connection with Athena. Host= "
+         logger.error("Error creating TCP connection with Athena. Host= "
             + host + ", port= " + port);
          throw new UnknownHostException();
       } catch (IOException e) {
-         _logger.error("Error creating input/output stream with Athena. Host= "
+         logger.error("Error creating input/output stream with Athena. Host= "
             + host + ", port= " + port);
          throw new IOException();
       }
 
-      _logger.debug("Socket connection with Athena created");
+      logger.debug("Socket connection with Athena created");
    }
 
    /**
@@ -72,16 +72,16 @@ public final class AthenaTCPConnection implements IAthenaConnection {
     */
    @Override
    public void close() {
-      if (_disposed.get())
+      if (disposed.get())
          return;
 
-      if (_socket != null && !_socket.isClosed()) {
+      if (socket != null && !socket.isClosed()) {
          try {
-            _socket.close();
+            socket.close();
          } catch (IOException e) {
-            _logger.error("Error in closing TCP socket");
+            logger.error("Error in closing TCP socket");
          } finally {
-            _disposed.set(true);
+            disposed.set(true);
          }
       }
    }
@@ -91,9 +91,9 @@ public final class AthenaTCPConnection implements IAthenaConnection {
     */
    @Override
    protected void finalize() throws Throwable {
-      _logger.info("connection disposed");
+      logger.info("connection disposed");
       try {
-         if (!_disposed.get())
+         if (!disposed.get())
             close();
       } finally {
          super.finalize();
@@ -107,22 +107,22 @@ public final class AthenaTCPConnection implements IAthenaConnection {
    @Override
    public byte[] receive() {
       try {
-         java.io.InputStream is = _socket.getInputStream();
+         java.io.InputStream is = socket.getInputStream();
          long start = System.currentTimeMillis();
          int msgSize = -1;
-         byte[] msgSizeBuf = new byte[_receiveLengthSize];
+         byte[] msgSizeBuf = new byte[receiveLengthSize];
          int msgSizeOffset = 0;
          byte[] result = null;
          int resultOffset = 0;
 
-         while (System.currentTimeMillis() - start < _receiveTimeout) {
+         while (System.currentTimeMillis() - start < receiveTimeout) {
             // we need to read at least the header before we can do anything
-            if (msgSizeOffset < _receiveLengthSize) {
+            if (msgSizeOffset < receiveLengthSize) {
                int count = is.read(msgSizeBuf,
                                    msgSizeOffset,
-                                   _receiveLengthSize - msgSizeOffset);
+                                   receiveLengthSize - msgSizeOffset);
                if (count < 0) {
-                  _logger.error("No bytes read from athena");
+                  logger.error("No bytes read from athena");
                   break;
                } else {
                   msgSizeOffset += count;
@@ -130,7 +130,7 @@ public final class AthenaTCPConnection implements IAthenaConnection {
             }
 
             // we have the header - find out how big the body is
-            if (msgSizeOffset == _receiveLengthSize && msgSize < 0) {
+            if (msgSizeOffset == receiveLengthSize && msgSize < 0) {
                // msgSize is sent as an unsigned 16-bit integer
                msgSize
                   = Short.toUnsignedInt(ByteBuffer.wrap(msgSizeBuf)
@@ -145,7 +145,7 @@ public final class AthenaTCPConnection implements IAthenaConnection {
                int count
                   = is.read(result, resultOffset, msgSize - resultOffset);
                if (count < 0) {
-                  _logger.error("No bytes read from athena");
+                  logger.error("No bytes read from athena");
                   break;
                } else {
                   resultOffset += count;
@@ -161,7 +161,7 @@ public final class AthenaTCPConnection implements IAthenaConnection {
          // if we didn't read the whole message, consider the stream corrupt and
          // close it
          if (resultOffset != msgSize) {
-            _logger.error("Failed to receive message (" + resultOffset + " != "
+            logger.error("Failed to receive message (" + resultOffset + " != "
                + msgSize + "). Closing socket.");
             close();
             return null;
@@ -169,7 +169,7 @@ public final class AthenaTCPConnection implements IAthenaConnection {
 
          return result;
       } catch (IOException e) {
-         _logger.error("Failed to read from socket", e);
+         logger.error("Failed to read from socket", e);
          close();
          return null;
       }
@@ -181,10 +181,10 @@ public final class AthenaTCPConnection implements IAthenaConnection {
    @Override
    public boolean send(byte[] msg) {
       try {
-         _socket.getOutputStream().write(msg);
+         socket.getOutputStream().write(msg);
          return true;
       } catch (Exception e) {
-         _logger.error("sendMessage", e);
+         logger.error("sendMessage", e);
          return false;
       }
    }
@@ -192,14 +192,14 @@ public final class AthenaTCPConnection implements IAthenaConnection {
    @Override
    public boolean check() {
       try {
-         _logger.trace("check enter");
-         boolean res = AthenaHelper.sendToAthena(_athenaRequest, this, _conf);
+         logger.trace("check enter");
+         boolean res = AthenaHelper.sendToAthena(_athenaRequest, this, config);
          if (res) {
             Athena.AthenaResponse resp = AthenaHelper.receiveFromAthena(this);
             if (resp != null) {
                Athena.ProtocolResponse pResp = resp.getProtocolResponse();
                if (pResp != null) {
-                  _logger.debug("check, got server version: "
+                  logger.debug("check, got server version: "
                      + pResp.getServerVersion());
                   EthDispatcher.netVersion = pResp.getNetVersion();
                   return true;
@@ -209,10 +209,10 @@ public final class AthenaTCPConnection implements IAthenaConnection {
 
          return false;
       } catch (IOException e) {
-         _logger.error("check", e);
+         logger.error("check", e);
          return false;
       } finally {
-         _logger.trace("check exit");
+         logger.trace("check exit");
       }
    }
 }

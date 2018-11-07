@@ -6,28 +6,32 @@ package Servlets;
 import org.apache.logging.log4j.LogManager;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
 
 import com.vmware.athena.Athena;
 
-import configurations.ConfigurationFactory;
-import configurations.ConfigurationFactory.ConfigurationType;
-import configurations.IConfiguration;
+import configurations.AthenaProperties;
 import connections.AthenaConnectionException;
 import connections.AthenaConnectionPool;
 import connections.IAthenaConnection;
 
+@Controller
 public abstract class BaseServlet {
    protected static final long serialVersionUID = 1L;
 
-   protected IConfiguration _conf;
+   protected AthenaProperties config;
    protected HttpHeaders standardHeaders;
+   protected AthenaConnectionPool athenaConnectionPool;
 
-   protected BaseServlet() {
-      _conf = ConfigurationFactory.getConfiguration(ConfigurationType.File);
+   @Autowired
+   protected BaseServlet(AthenaProperties config, AthenaConnectionPool athenaConnectionPool) {
+      this.config = config;
+      this.athenaConnectionPool = athenaConnectionPool;
       standardHeaders = new HttpHeaders();
       standardHeaders.setContentType(MediaType.APPLICATION_JSON_UTF8);
       standardHeaders.set("Content-Transfer-Encoding", "8BIT");
@@ -47,13 +51,13 @@ public abstract class BaseServlet {
       IAthenaConnection conn = null;
       Athena.AthenaResponse athenaResponse;
       try {
-         conn = AthenaConnectionPool.getInstance().getConnection();
+         conn = athenaConnectionPool.getConnection();
          if (conn == null) {
             throw new AthenaConnectionException("Unable to get athena "
                + "connection");
          }
 
-         boolean res = AthenaHelper.sendToAthena(req, conn, _conf);
+         boolean res = AthenaHelper.sendToAthena(req, conn, config);
          if (!res) {
             throw new AthenaConnectionException("Sending to athena failed");
          }
@@ -68,7 +72,7 @@ public abstract class BaseServlet {
          throw new AthenaConnectionException("Athena internal error: "
             + e.getMessage());
       } finally {
-         AthenaConnectionPool.getInstance().putConnection(conn);
+         athenaConnectionPool.putConnection(conn);
       }
    }
 
