@@ -30,7 +30,7 @@ class Product():
    def __init__(self, cmdlineArgs, apiServerUrl, userConfig):
       self._cmdlineArgs = cmdlineArgs
       self._apiServerUrl = apiServerUrl
-      self._userProductConfig = userConfig
+      self._userConfig = userConfig
       self._userProductConfig = userConfig["product"]
 
    def launchProduct(self):
