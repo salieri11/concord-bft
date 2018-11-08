@@ -5,6 +5,7 @@ import atexit
 import json
 import logging
 import os
+import pathlib
 from rpc.rpc_call import RPC
 import shutil
 import socket
@@ -110,6 +111,7 @@ class Product():
                      cmd.append(os.path.expanduser(param))
                      previousParam = param
 
+                  pathlib.Path(productLogsDir).mkdir(parents=True, exist_ok=True)
                   logFile = open(os.path.join(productLogsDir, executable + ".log"),
                              "wb+")
                   self._logs.append(logFile)
