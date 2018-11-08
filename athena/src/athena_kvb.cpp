@@ -411,6 +411,17 @@ void com::vmware::athena::KVBCommandsHandler::build_transaction_response(
    response->set_value(tx.value);
    response->set_block_hash(tx.block_hash.bytes, sizeof(evm_uint256be));
    response->set_block_number(tx.block_number);
+
+   for (EthLog& log: tx.logs) {
+     LogResponse* outlog = response->add_log();
+     outlog->set_address(log.address.bytes, sizeof(evm_address));
+     for (evm_uint256be topic: log.topics) {
+       outlog->add_topic(topic.bytes, sizeof(evm_uint256be));
+     }
+     if (log.data.size() > 0) {
+       outlog->set_data(std::string(log.data.begin(), log.data.end()));
+     }
+   }
 }
 
 /**
@@ -961,6 +972,7 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
    }
 
    uint64_t timestamp = request.has_timestamp() ? request.timestamp() : 0;
+   std::vector<EthLog> logs;
 
    if (request.has_addr_to()) {
       message.kind = EVM_CALL;
@@ -972,7 +984,7 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
       }
       memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
 
-      result = athevm_.run(message, timestamp, kvbStorage);
+      result = athevm_.run(message, timestamp, kvbStorage, logs);
    } else {
       message.kind = EVM_CREATE;
 
@@ -982,7 +994,7 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
          athevm_.contract_destination(message.sender, nonce);
 
       result = athevm_.create(
-         contract_address, message, timestamp, kvbStorage);
+        contract_address, message, timestamp, kvbStorage, logs);
    }
 
    LOG4CPLUS_INFO(logger, "Execution result -" <<
@@ -999,7 +1011,7 @@ evm_result com::vmware::athena::KVBCommandsHandler::run_evm(
    if (!kvbStorage.is_read_only()) {
       // If this is a transaction, and not just a call, record it.
       txhash = record_transaction(
-         message, request, nonce, result, timestamp, kvbStorage);
+        message, request, nonce, result, timestamp, logs, kvbStorage);
    }
 
    return result;
@@ -1015,6 +1027,7 @@ evm_uint256be com::vmware::athena::KVBCommandsHandler::record_transaction(
    const uint64_t nonce,
    const evm_result &result,
    const uint64_t timestamp,
+   const std::vector<EthLog> &logs,
    KVBStorage &kvbStorage) const
 {
    // "to" is empty if this was a create
@@ -1056,6 +1069,7 @@ evm_uint256be com::vmware::athena::KVBCommandsHandler::record_transaction(
       transfer_val,   // value
       gas_price,
       gas_limit,      // TODO: also record gas used?
+      logs,
       sig_r,
       sig_s,
       sig_v

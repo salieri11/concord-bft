@@ -208,6 +208,8 @@ class CoreVMTests(test_suite.TestSuite):
       user = self._getAUser()
       expectedStorage = self._getExpectedStorageResults(testSource, testCompiled)
       expectedOut = self._getExpectedOutResults(testCompiled)
+      expectedLogs = self._getExpectedLogsResults(testCompiled)
+      expectedAddress = testCompiled[testName]["exec"]["address"]
       rpc = RPC(testLogDir,
                 testName,
                 self._apiServerUrl,
@@ -228,7 +230,9 @@ class CoreVMTests(test_suite.TestSuite):
                                               testData,
                                               txReceipt,
                                               expectedStorage,
-                                              expectedOut)
+                                              expectedOut,
+                                              expectedLogs,
+                                              expectedAddress)
          else:
             info = "Did not receive a transaction receipt."
       else:
@@ -291,6 +295,27 @@ class CoreVMTests(test_suite.TestSuite):
             storage[hex(i)] = "0x0"
 
       return storage
+
+   def _getExpectedLogsResults(self, testCompiled):
+      '''
+      Test cases have an "logs" field defined in the compiled JSON file:
+      {
+        "log0_emptyMem" : {
+          ...,
+          "logs" : "0xea63b4dbbdbca1bd985580a0c3b6f35a4955d4d4cf0b4d903003cdfc4c40ba1c",
+          ...
+        },
+      This is the Keccak hash of the RLP encoded logs attached to the
+      transaction sent by this test case.
+      Returns this value.  Returns None if not provided.
+      '''
+      ret = None
+      testName = list(testCompiled.keys())[0]
+
+      if "logs" in list(testCompiled[testName]):
+         ret = testCompiled[testName]["logs"]
+
+      return ret
 
    def _getExpectTxSuccess(self, testCompiled):
       '''
@@ -368,7 +393,9 @@ class CoreVMTests(test_suite.TestSuite):
                     testData,
                     txReceipt,
                     expectedStorage,
-                    expectedOut):
+                    expectedOut,
+                    expectedLogs,
+                    expectedAddress):
       '''
       Loops through the expected storage structure in the test case, comparing
       those values to the actual stored values in the block.
@@ -402,13 +429,23 @@ class CoreVMTests(test_suite.TestSuite):
                                                     expectedStorage)
          testVerified = True
 
+      if success and expectedLogs:
+         logs = RPC.searchResponse(callerReceipt,
+                                   ["logs"])
+         success, info = self._checkExpectedLogs(rpc,
+                                                 logs,
+                                                 expectedLogs,
+                                                 expectedAddress,
+                                                 contractAddress)
+         testVerified = True
+
       if not testVerified:
          # The test may be checking gas, logs, or callcreates, which
          # we're not checking (yet). This test should be added to the
          # skip list so it is not run in the future.
          success = None
-         info = "No expected storage found, and the test was expected " \
-                "to be successful. Test needs verification by some " \
+         info = "No expected storage or logs found, and the test was " \
+                "expected to be successful. Test needs verification by some " \
                 "other method. Test will be marked skipped."
 
       return success, info
@@ -555,6 +592,106 @@ class CoreVMTests(test_suite.TestSuite):
          log.info(info)
 
       return success, info
+
+   def _checkExpectedLogs(self, rpc, logs, expectedLogs, expectedAddress, actualAddress):
+      '''
+      Checks the expected logs, which is a keccak hash of the RLP encoding of
+      the returned logs.
+      Returns whether it was successful, and an informational message if not.
+      '''
+      log.debug("Checking expected logs.")
+
+      rlpLogs = self._rlpEncodeLogs(logs, expectedAddress, actualAddress)
+      hashLogs = rpc.sha3(rlpLogs)
+      return self._compareActAndExpValues(hashLogs, expectedLogs)
+
+   def _rlpEncodeLogs(self, logs, expectedAddress, actualAddress):
+      '''
+      Encodes the RLP for a list of logs:
+        [
+         [address, [topic, ...], data],
+         ...
+        ]
+      '''
+      rlp = ""
+
+      for log in logs:
+         rlp += self._rlpEncodeLog(log, expectedAddress, actualAddress)
+
+      rlp = self._rlpListPrefix(len(rlp)) + rlp
+
+      return rlp
+
+   def _rlpEncodeLog(self, log, expectedAddress, actualAddress):
+      '''
+      Enocdes the RLP for one log:
+        [address, [topic, ...], data]
+      '''
+      rlp = ""
+
+      if "address" in log:
+         trimmedAddress = log["address"][2:]
+         # The ethereum tests expect the contract to be at a
+         # particular address. We can't guarantee this until we are
+         # running all of their tests. So, for now, as long as the log
+         # came from our contract under test, pretend that it came
+         # from the expected contract address, for the purposes of
+         # hashing.
+         if log["address"] == actualAddress:
+            trimmedAddress = expectedAddress[2:]
+         rlp += self._rlpStringPrefix(len(trimmedAddress)) + trimmedAddress
+      else:
+         rlp += "80"
+
+      if "topics" in log:
+         rlp += self._rlpEncodeTopics(log["topics"])
+
+      if "data" in log:
+         trimmedData = log["data"][2:]
+         rlp += self._rlpStringPrefix(len(trimmedData)) + trimmedData
+
+      rlp = self._rlpListPrefix(len(rlp)) + rlp
+
+      return rlp
+
+   def _rlpEncodeTopics(self, topics):
+      '''
+      Encodes the RLP for a log's topics:
+        [topic, ...]
+      '''
+      rlp = ""
+
+      for topic in topics:
+         trimmedTopic = topic[2:]
+         rlp += self._rlpStringPrefix(len(trimmedTopic)) + trimmedTopic
+
+      rlp = self._rlpListPrefix(len(rlp)) + rlp
+
+      return rlp
+
+   def _rlpStringPrefix(self, length):
+      return self._rlpLengthPrefix(length, 0x80, 0xb7)
+
+   def _rlpListPrefix(self, length):
+      return self._rlpLengthPrefix(length, 0xc0, 0xf7)
+
+   def _rlpLengthPrefix(self, stringLength, shortPrefix, longPrefix):
+      '''
+      Computes the correct prefix for an RLP string of a given length.
+      Length is in hex characters.
+      The [2:] strips the "0x" from the front of hex's return.
+      '''
+      byteLength = stringLength // 2
+      if byteLength <= 55:
+         rlp = hex(shortPrefix + byteLength)[2:]
+      else:
+         rlp = ""
+         while byteLength > 0:
+            rlp += hex(byteLength & 0xff)[2:]
+            byteLength >>= 8
+         rlp = hex(longPrefix + (len(rlp) // 2))[2:] + rlp
+
+      return rlp
 
    def _checkTxStatus(self, rpc, txReceipt, expectTxSuccess):
       '''

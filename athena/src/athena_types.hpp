@@ -19,6 +19,12 @@ namespace com {
 namespace vmware {
 namespace athena {
 
+typedef struct EthLog {
+  evm_address address;
+  std::vector<evm_uint256be> topics;
+  std::vector<uint8_t> data;
+} EthLog;
+
 typedef struct EthTransaction {
    uint64_t nonce;
    evm_uint256be block_hash;
@@ -31,6 +37,7 @@ typedef struct EthTransaction {
    uint64_t value;
    uint64_t gas_price;
    uint64_t gas_limit;
+   std::vector<EthLog> logs;
    evm_uint256be sig_r;
    evm_uint256be sig_s;
    uint64_t sig_v;

@@ -68,7 +68,8 @@ com::vmware::athena::EVM::~EVM()
  */
 evm_result com::vmware::athena::EVM::run(evm_message &message,
                                          uint64_t timestamp,
-                                         KVBStorage &kvbStorage)
+                                         KVBStorage &kvbStorage,
+                                         std::vector<EthLog> &evmLogs)
 {
    assert(message.kind != EVM_CREATE);
 
@@ -84,7 +85,7 @@ evm_result com::vmware::athena::EVM::run(evm_message &message,
       message.code_hash = hash;
 
       try {
-         result = execute(message, timestamp, kvbStorage, code);
+         result = execute(message, timestamp, kvbStorage, evmLogs, code);
       } catch (EVMException e) {
          LOG4CPLUS_ERROR(logger,
                          "EVM execution exception: '" << e.what() << "'. "
@@ -155,7 +156,8 @@ evm_result com::vmware::athena::EVM::run(evm_message &message,
 evm_result com::vmware::athena::EVM::create(evm_address &contract_address,
                                             evm_message &message,
                                             uint64_t timestamp,
-                                            KVBStorage &kvbStorage)
+                                            KVBStorage &kvbStorage,
+                                            std::vector<EthLog> &evmLogs)
 {
    assert(message.kind == EVM_CREATE);
    assert(message.input_size > 0);
@@ -175,7 +177,7 @@ evm_result com::vmware::athena::EVM::create(evm_address &contract_address,
       // something random
       message.code_hash = EthHash::keccak_hash(create_code);
 
-      result = execute(message, timestamp, kvbStorage, create_code);
+      result = execute(message, timestamp, kvbStorage, evmLogs, create_code);
 
       // TODO: check if the new contract is zero bytes in length;
       //       return error, not success in that case
@@ -301,6 +303,7 @@ bool com::vmware::athena::EVM::new_account(
          0,                      // value
          0,                      // gas_price
          0,                      // gas_limit
+         std::vector<EthLog>(),  // logs
          zero_hash,              // sig_r: zero-address signature?
          zero_hash,              // sig_s: zero-address signature?
          0                       // sig_v: zero-address signature? chainID?
@@ -317,12 +320,14 @@ bool com::vmware::athena::EVM::new_account(
 evm_result com::vmware::athena::EVM::execute(evm_message &message,
                                              uint64_t timestamp,
                                              KVBStorage &kvbStorage,
+                                             std::vector<EthLog> &evmLogs,
                                              const std::vector<uint8_t> &code)
 {
    // wrap an evm context in an athena context
    athena_context athctx = {{&athena_fn_table},
                             this,
                             &kvbStorage,
+                            &evmLogs,
                             &logger,
                             timestamp};
 
@@ -444,9 +449,18 @@ extern "C" {
                      const struct evm_uint256be topics[],
                      size_t topics_count) {
       LOG4CPLUS_INFO(*(ath_context(evmctx)->logger),
-                     "EVM::emit_log called, address: " << *address);
+                     "EVM::emit_log called, address: " << *address <<
+                     " topics_count: " << topics_count <<
+                     " data_size: " << data_size);
 
-      // TODO: Actually log the message.
+      EthLog log;
+      log.address = *address;
+      for (size_t i = 0; i < topics_count; i++) {
+        log.topics.push_back(topics[i]);
+      }
+      std::copy(data, data+data_size, std::back_inserter(log.data));
+
+      ath_context(evmctx)->evmLogs->push_back(log);
    }
 
    void ath_call(struct evm_result* result,
@@ -479,11 +493,13 @@ extern "C" {
          *result = ath_object(evmctx)->create(contract_address,
                                               call_msg,
                                               ath_context(evmctx)->timestamp,
-                                              *kvbStorage);
+                                              *kvbStorage,
+                                              *(ath_context(evmctx)->evmLogs));
       } else {
          *result = ath_object(evmctx)->run(call_msg,
                                            ath_context(evmctx)->timestamp,
-                                           *(ath_context(evmctx)->kvbStorage));
+                                           *(ath_context(evmctx)->kvbStorage),
+                                           *(ath_context(evmctx)->evmLogs));
       }
    }
 

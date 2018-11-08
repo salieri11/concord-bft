@@ -103,10 +103,8 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
             // response before returning it.
             result.put("status", "0x" + Integer.toString(transactionResponse.getStatus() == 0 ? 1 : 0));
 
-            // TODO : Passing empty JSON array for logs as Truffle expects this
-            // Fix this with actual logs - HEL 128
-            JSONArray logs = new JSONArray();
-            result.put("logs", logs);
+            result.put("logs", buildLogs(transactionResponse));
+
             respObject.put("result", result);
         } catch (Exception e) {
             // This should never get triggered as params are already checked while
@@ -115,4 +113,28 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
         }
         return respObject;
     }
+
+    public static JSONArray buildLogs(Athena.TransactionResponse transactionResponse) {
+        JSONArray logs = new JSONArray();
+        for (int i = 0; i < transactionResponse.getLogCount(); i++) {
+            Athena.LogResponse log = transactionResponse.getLog(i);
+            JSONObject logJSON = new JSONObject();
+            logJSON.put("address", APIHelper.binaryStringToHex(log.getAddress()));
+
+            JSONArray topics = new JSONArray();
+            for (int j = 0; j < log.getTopicCount(); j++) {
+                topics.add(APIHelper.binaryStringToHex(log.getTopic(j)));
+            }
+            logJSON.put("topics", topics);
+
+            if (log.hasData()) {
+                logJSON.put("data", APIHelper.binaryStringToHex(log.getData()));
+            } else {
+                logJSON.put("data", "0x");
+            }
+            logs.add(logJSON);
+        }
+        return logs;
+    }
+
 }
