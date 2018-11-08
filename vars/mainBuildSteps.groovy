@@ -98,11 +98,22 @@ def call(){
       }
       stage('Run tests') {
         steps {
+          // These are locations specified in the script which are later saved as build artifacts.
+          script {
+            env.test_log_root = new File(env.WORKSPACE, "testLogs").toString()
+            env.core_vm_test_logs = new File(env.test_log_root, "CoreVM").toString()
+            env.helen_api_test_logs = new File(env.test_log_root, "HelenAPI").toString()
+            env.extended_rpc_test_logs = new File(env.test_log_root, "ExtendedRPC").toString()
+            env.regression_test_logs = new File(env.test_log_root, "Regression").toString()
+          }
+
           dir('blockchain/hermes') {
-            sh './main.py CoreVMTests'
-            sh './main.py HelenAPITests'
-            sh './main.py ExtendedRPCTests'
-            sh './main.py RegressionTests'
+            sh '''
+              ./main.py CoreVMTests --resultsDir "${core_vm_test_logs}"
+              ./main.py HelenAPITests --resultsDir "${helen_api_test_logs}"
+              ./main.py ExtendedRPCTests --resultsDir "${extended_rpc_test_logs}"
+              ./main.py RegressionTests --resultsDir "${regression_test_logs}"
+            '''
           }
         }
       }
@@ -194,6 +205,13 @@ def call(){
         steps {
           dir('blockchain/hermes'){
             withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+              script {
+                env.core_vm_test_logs_docker = env.core_vm_test_logs + "Docker"
+                env.helen_api_test_logs_docker = env.helen_api_test_logs + "Docker"
+                env.extended_rpc_test_logs_docker = env.extended_rpc_test_logs + "Docker"
+                env.regression_test_logs_docker = env.regression_test_logs + "Docker"
+              }
+
               sh '''
                 echo "${PASSWORD}" | sudo -S ls
                 sudo cat >.env <<EOF
@@ -205,10 +223,10 @@ EOF
               '''
 
               sh '''
-                echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../athena/docker/docker-compose.yml
-                echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../athena/docker/docker-compose.yml
-                echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../athena/docker/docker-compose.yml
-                echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../athena/docker/docker-compose.yml
+                echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../athena/docker/docker-compose.yml --resultsDir "${core_vm_test_logs_docker}"
+                echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../athena/docker/docker-compose.yml --resultsDir "${helen_api_test_logs_docker}"
+                echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../athena/docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs_docker}"
+                echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../athena/docker/docker-compose.yml --resultsDir "${regression_test_logs_docker}"
               '''
             }
           }
@@ -251,7 +269,7 @@ EOF
 
     post {
       always {
-        archiveArtifacts artifacts: '**/*.log', allowEmptyArchive: true
+        archiveArtifacts artifacts: "**/*.log", allowEmptyArchive: true
       }
     }
   }
