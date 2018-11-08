@@ -5,7 +5,13 @@
 package com.vmware.blockchain.services.profiles;
 
 import java.time.Instant;
-import javax.persistence.*;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.Table;
 
 /**
  * A Spring Data JPA (or Hibernate) Entity class representing a user in the system.
@@ -40,7 +46,7 @@ public class Agreement {
     @Column(nullable = true)
     private Long acceptedOn;
 
-    public Long getID() {
+    public Long getId() {
         return id;
     }
 

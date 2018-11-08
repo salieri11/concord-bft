@@ -5,10 +5,6 @@
 package com.vmware.blockchain.services.contracts;
 
 /**
- * <p>
- * Copyright 2018 VMware, all rights reserved.
- * </p>
- *
  * Represents one specific version of a specific contract. This class also represents a single row in the `Contracts`
  * table of the database.
  */
@@ -105,6 +101,11 @@ public class ContractVersion implements FullVersionInfo {
         return versionName;
     }
 
+    /**
+     * Check if address is the owners.
+     * @param address Address in question
+     * @return true if it's the owners
+     */
     public boolean isOwner(String address) {
         if (!address.startsWith("0x")) {
             address = "0x" + address;

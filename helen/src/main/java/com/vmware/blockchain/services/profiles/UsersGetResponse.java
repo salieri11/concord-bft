@@ -7,8 +7,8 @@ package com.vmware.blockchain.services.profiles;
 import org.json.simple.JSONObject;
 
 /**
- * A interface which defines the API for response generated for a GET request in User management API
+ * A interface which defines the API for response generated for a GET request in User management API.
  */
 public interface UsersGetResponse {
-    JSONObject toJSON();
+    JSONObject toJson();
 }

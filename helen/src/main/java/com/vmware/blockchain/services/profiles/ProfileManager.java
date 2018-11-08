@@ -4,11 +4,11 @@
 
 package com.vmware.blockchain.services.profiles;
 
-import static com.vmware.blockchain.services.profiles.UsersAPIMessage.CONSORTIUM_ID_LABEL;
-import static com.vmware.blockchain.services.profiles.UsersAPIMessage.CONSORTIUM_LABEL;
-import static com.vmware.blockchain.services.profiles.UsersAPIMessage.ORGANIZATION_ID_LABEL;
-import static com.vmware.blockchain.services.profiles.UsersAPIMessage.ORGANIZATION_LABEL;
-import static com.vmware.blockchain.services.profiles.UsersAPIMessage.USER_ID_LABEL;
+import static com.vmware.blockchain.services.profiles.UsersApiMessage.CONSORTIUM_ID_LABEL;
+import static com.vmware.blockchain.services.profiles.UsersApiMessage.CONSORTIUM_LABEL;
+import static com.vmware.blockchain.services.profiles.UsersApiMessage.ORGANIZATION_ID_LABEL;
+import static com.vmware.blockchain.services.profiles.UsersApiMessage.ORGANIZATION_LABEL;
+import static com.vmware.blockchain.services.profiles.UsersApiMessage.USER_ID_LABEL;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -32,12 +32,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
+import com.vmware.blockchain.common.UserModificationException;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.ethereum.APIHelper;
 
 /**
- * A servlet which manages all GET/POST/PATCH requests related to user management API of helen
+ * A servlet which manages all GET/POST/PATCH requests related to user management API of helen.
  */
 @Controller
 public class ProfileManager extends BaseServlet {
@@ -62,9 +63,14 @@ public class ProfileManager extends BaseServlet {
         return new ResponseEntity<>(result, standardHeaders, HttpStatus.OK);
     }
 
+    /**
+     * Get user from ID.
+     * @param userId User Id
+     * @return the user
+     */
     @RequestMapping(path = "/api/users/{user_id}", method = RequestMethod.GET)
-    public ResponseEntity<JSONAware> getUserFromID(@PathVariable("user_id") String userID) {
-        JSONObject result = prm.getUserWithID(userID);
+    public ResponseEntity<JSONAware> getUserFromId(@PathVariable("user_id") String userId) {
+        JSONObject result = prm.getUserWithId(userId);
         if (result.isEmpty()) {
             return new ResponseEntity<>(new JSONObject(), standardHeaders, HttpStatus.NOT_FOUND);
         } else {
@@ -76,17 +82,17 @@ public class ProfileManager extends BaseServlet {
         if (!requestJson.containsKey(ORGANIZATION_LABEL)) {
             Organization org = prm.createOrgIfNotExist();
             JSONObject orgJson = new JSONObject();
-            orgJson.put(ORGANIZATION_ID_LABEL, org.getOrganizationID());
+            orgJson.put(ORGANIZATION_ID_LABEL, org.getOrganizationId());
             requestJson.put(ORGANIZATION_LABEL, orgJson);
-            logger.debug("New test org created with ID:" + org.getOrganizationID());
+            logger.debug("New test org created with ID:" + org.getOrganizationId());
         }
 
         if (!requestJson.containsKey(CONSORTIUM_LABEL)) {
             Consortium consortium = prm.createConsortiumIfNotExist();
             JSONObject consJson = new JSONObject();
-            consJson.put(CONSORTIUM_ID_LABEL, consortium.getConsortiumID());
+            consJson.put(CONSORTIUM_ID_LABEL, consortium.getConsortiumId());
             requestJson.put(CONSORTIUM_LABEL, consJson);
-            logger.debug("New test consortium created with ID:" + consortium.getConsortiumID());
+            logger.debug("New test consortium created with ID:" + consortium.getConsortiumId());
         }
     }
 
@@ -102,9 +108,14 @@ public class ProfileManager extends BaseServlet {
         }
     }
 
+    /**
+     * Create a new user.
+     * @param requestBody User info
+     * @return user id
+     */
     @RequestMapping(path = "/api/users", method = RequestMethod.POST)
     public ResponseEntity<JSONAware> doPost(@RequestBody String requestBody) throws IOException {
-        JSONObject responseJSON;
+        JSONObject responseJson;
         HttpStatus responseStatus;
         try {
             JSONParser parser = new JSONParser();
@@ -115,23 +126,23 @@ public class ProfileManager extends BaseServlet {
             // organization & consortium to allow easy testing. Delete this
             // method once testing phase is done
             createTestProfiles(requestJson);
-            UsersAPIMessage postRequest = new UsersAPIMessage(requestJson);
+            UsersApiMessage postRequest = new UsersApiMessage(requestJson);
 
             validateCreateRequest(postRequest);
 
-            String userID = prm.createUser(postRequest);
+            String userId = prm.createUser(postRequest);
 
-            responseJSON = new JSONObject();
-            responseJSON.put(USER_ID_LABEL, userID);
+            responseJson = new JSONObject();
+            responseJson.put(USER_ID_LABEL, userId);
             responseStatus = HttpStatus.OK;
 
         } catch (ParseException | UserModificationException e) {
             logger.warn("Error while adding new user", e);
-            responseJSON = APIHelper.errorJSON(e.getMessage());
+            responseJson = APIHelper.errorJSON(e.getMessage());
             responseStatus = HttpStatus.BAD_REQUEST;
         }
 
-        return new ResponseEntity<>(responseJSON, standardHeaders, responseStatus);
+        return new ResponseEntity<>(responseJson, standardHeaders, responseStatus);
     }
 
     private void validatePatchRequest(UserPatchRequest upr) throws UserModificationException {
@@ -152,8 +163,14 @@ public class ProfileManager extends BaseServlet {
         }
     }
 
+    /**
+     * Update user information.
+     * @param userId user id
+     * @param requestBody User info to patch
+     * @return user id
+     */
     @RequestMapping(path = "/api/users/{user_id}", method = RequestMethod.PATCH)
-    public ResponseEntity<JSONAware> doPatch(@PathVariable(name = "user_id") String userID,
+    public ResponseEntity<JSONAware> doPatch(@PathVariable(name = "user_id") String userId,
             @RequestBody String requestBody) {
         HttpStatus responseStatus;
         JSONObject responseJson;
@@ -161,8 +178,8 @@ public class ProfileManager extends BaseServlet {
 
             JSONParser parser = new JSONParser();
             JSONObject requestJson = (JSONObject) parser.parse(requestBody);
-            UserPatchRequest upr = new UsersAPIMessage(requestJson);
-            upr.setUserID(Long.parseLong(userID));
+            UserPatchRequest upr = new UsersApiMessage(requestJson);
+            upr.setUserId(Long.parseLong(userId));
             validatePatchRequest(upr);
             prm.updateUser(upr);
 

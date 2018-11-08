@@ -6,6 +6,9 @@ package com.vmware.blockchain.services.profiles;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+/**
+ * JPA Agreements repo.  Empty for now.
+ */
 public interface AgreementRepository extends JpaRepository<Agreement, Long> {
 
 }

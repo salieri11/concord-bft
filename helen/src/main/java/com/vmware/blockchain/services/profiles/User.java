@@ -8,7 +8,17 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.persistence.*;
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
 
 /**
  * A Spring Data JPA (or Hibernate) Entity class representing a user in the system.
@@ -20,7 +30,7 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long userID = 0L;
+    private Long userId = 0L;
 
     @Column(nullable = false)
     private String name;
@@ -53,12 +63,12 @@ public class User {
 
     protected User() {}
 
-    protected void setUserID(Long userID) {
-        this.userID = userID;
+    protected void setUserId(Long userId) {
+        this.userId = userId;
     }
 
-    public Long getUserID() {
-        return userID;
+    public Long getUserId() {
+        return userId;
     }
 
     public String getName() {
@@ -139,14 +149,15 @@ public class User {
 
     @Override
     public int hashCode() {
-        return (int) ((userID * 53) % 17);
+        return (int) ((userId * 53) % 17);
     }
 
     @Override
     public boolean equals(Object o) {
-        if (o == null || !(o instanceof User))
+        if (o == null || !(o instanceof User)) {
             return false;
+        }
         User u = (User) o;
-        return u.getUserID().equals(userID);
+        return u.getUserId().equals(userId);
     }
 }

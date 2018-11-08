@@ -8,7 +8,6 @@ import java.util.Optional;
 
 import javax.transaction.Transactional;
 
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -23,17 +22,22 @@ public class AgreementsRegistryManager {
     @Autowired
     private AgreementRepository agreementRepository;
 
-    /** Needed for spring */
+    /* Needed for spring */
     protected AgreementsRegistryManager() {}
 
-    public JSONObject getAgreementWithID(String id) {
+    /**
+     * Get an agreement from the DB, and convert to JSON.
+     * @param id Agreement ID
+     * @return JSON Object
+     */
+    public JSONObject getAgreementWithId(String id) {
         JSONObject json = new JSONObject();
         Optional<Agreement> oAgreement = agreementRepository.findById(Long.parseLong(id));
 
         if (oAgreement.isPresent()) {
             Agreement a = oAgreement.get();
             Boolean accepted = a.getAcceptance();
-            json.put("id", a.getID());
+            json.put("id", a.getId());
             json.put("type", a.getType());
             json.put("accepted", accepted);
             json.put("first_name", a.getFirstName());
@@ -51,6 +55,13 @@ public class AgreementsRegistryManager {
         return json;
     }
 
+    /**
+     * Update the agreement in the DB from the json request.
+     *
+     * @param id Agreement ID
+     * @param request JSON Object with new agreement info
+     * @return updated agreement JSON
+     */
     public JSONObject updateAgreement(String id, JSONObject request) {
         JSONObject json = new JSONObject();
         Optional<Agreement> oAgreement = agreementRepository.findById(Long.parseLong(id));

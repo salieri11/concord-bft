@@ -26,7 +26,7 @@ import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.ethereum.APIHelper;
 
 /**
- * A servlet which manages all GET/POST/PATCH requests related to user management API of helen
+ * A Controller that manages all GET/POST/PATCH requests related to user management API of helen.
  */
 @Controller
 public class AgreementServlet extends BaseServlet {
@@ -43,9 +43,14 @@ public class AgreementServlet extends BaseServlet {
         this.arm = arm;
     }
 
+    /**
+     * Get an agreement.
+     * @param id Id
+     * @return Agreement
+     */
     @RequestMapping(path = "/api/agreements/{id}", method = RequestMethod.GET)
-    public ResponseEntity<JSONAware> getAgreementFromID(@PathVariable("id") String ID) {
-        JSONObject result = arm.getAgreementWithID(ID);
+    public ResponseEntity<JSONAware> getAgreementFromId(@PathVariable("id") String id) {
+        JSONObject result = arm.getAgreementWithId(id);
         if (result.isEmpty()) {
             result.put("error", "Agreement not found");
             return new ResponseEntity<>(result, standardHeaders, HttpStatus.NOT_FOUND);
@@ -54,6 +59,11 @@ public class AgreementServlet extends BaseServlet {
         }
     }
 
+    /**
+     * Update an Agreement.
+     * @param id Id
+     * @param requestBody Patch details.
+     */
     @RequestMapping(path = "/api/agreements/{id}", method = RequestMethod.PATCH)
     public ResponseEntity<JSONAware> doPatch(@PathVariable(name = "id") String id, @RequestBody String requestBody) {
         HttpStatus responseStatus;

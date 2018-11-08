@@ -13,7 +13,7 @@ import org.json.simple.JSONObject;
  * Do not use this object directly, always hold object in a reference of appropriate interface. This is because all
  * fields might not be populated in every request/response.
  */
-public class UsersAPIMessage implements UserCreateRequest, UserPatchRequest, UsersGetResponse {
+public class UsersApiMessage implements UserCreateRequest, UserPatchRequest, UsersGetResponse {
 
     /*
      * TODO: These should be made protected once we add new API for organization and consortium creation
@@ -36,7 +36,7 @@ public class UsersAPIMessage implements UserCreateRequest, UserPatchRequest, Use
     public static final String CONSORTIUM_ID_LABEL = "consortium_id";
     public static final String CONSORTIUM_NAME_LABEL = "consortium_name";
 
-    private Long userID;
+    private Long userId;
     private String userName;
     private String firstName;
     private String lastName;
@@ -46,34 +46,34 @@ public class UsersAPIMessage implements UserCreateRequest, UserPatchRequest, Use
     private Long lastLogin;
     private String organizationName;
     private String consortiumName;
-    private Long organizationID;
-    private Long consortiumID;
+    private Long organizationId;
+    private Long consortiumId;
 
     private boolean isEmpty;
 
-    public UsersAPIMessage(JSONObject requestJSON) {
-        parseMessageJSON(requestJSON);
+    public UsersApiMessage(JSONObject requestJson) {
+        parseMessageJson(requestJson);
     }
 
-    public UsersAPIMessage(User user) {
+    public UsersApiMessage(User user) {
         extractUserFields(user);
     }
 
-    public UsersAPIMessage() {
+    public UsersApiMessage() {
         isEmpty = true;
     }
 
     private void extractUserFields(User user) {
-        this.userID = user.getUserID();
+        this.userId = user.getUserId();
         this.userName = user.getName();
         this.firstName = user.getFirstName();
         this.lastName = user.getLastName();
         this.email = user.getEmail();
         this.role = user.getRole();
         this.lastLogin = user.getLastLogin();
-        this.organizationID = user.getOrganization().getOrganizationID();
+        this.organizationId = user.getOrganization().getOrganizationId();
         this.organizationName = user.getOrganization().getOrganizationName();
-        this.consortiumID = user.getConsortium().getConsortiumID();
+        this.consortiumId = user.getConsortium().getConsortiumId();
         this.consortiumName = user.getConsortium().getConsortiumName();
     }
 
@@ -103,46 +103,46 @@ public class UsersAPIMessage implements UserCreateRequest, UserPatchRequest, Use
 
     private void extractOrganizationFields(JSONObject request) {
         if (request.containsKey(ORGANIZATION_LABEL)) {
-            JSONObject orgJSON = (JSONObject) request.get(ORGANIZATION_LABEL);
-            if (orgJSON.containsKey(ORGANIZATION_ID_LABEL)) {
-                organizationID = (Long) orgJSON.get(ORGANIZATION_ID_LABEL);
+            JSONObject orgJson = (JSONObject) request.get(ORGANIZATION_LABEL);
+            if (orgJson.containsKey(ORGANIZATION_ID_LABEL)) {
+                organizationId = (Long) orgJson.get(ORGANIZATION_ID_LABEL);
             }
-            if (orgJSON.containsKey(ORGANIZATION_NAME_LABEL)) {
-                organizationName = (String) orgJSON.get(ORGANIZATION_NAME_LABEL);
+            if (orgJson.containsKey(ORGANIZATION_NAME_LABEL)) {
+                organizationName = (String) orgJson.get(ORGANIZATION_NAME_LABEL);
             }
         }
     }
 
     private void extractConsortiumFields(JSONObject request) {
         if (request.containsKey(CONSORTIUM_LABEL)) {
-            JSONObject conJSON = (JSONObject) request.get(CONSORTIUM_LABEL);
-            if (conJSON.containsKey(CONSORTIUM_ID_LABEL)) {
-                consortiumID = (Long) conJSON.get(CONSORTIUM_ID_LABEL);
+            JSONObject conJson = (JSONObject) request.get(CONSORTIUM_LABEL);
+            if (conJson.containsKey(CONSORTIUM_ID_LABEL)) {
+                consortiumId = (Long) conJson.get(CONSORTIUM_ID_LABEL);
             }
-            if (conJSON.containsKey(CONSORTIUM_NAME_LABEL)) {
-                consortiumName = (String) conJSON.get(CONSORTIUM_NAME_LABEL);
+            if (conJson.containsKey(CONSORTIUM_NAME_LABEL)) {
+                consortiumName = (String) conJson.get(CONSORTIUM_NAME_LABEL);
             }
         }
     }
 
-    private void parseMessageJSON(JSONObject request) {
+    private void parseMessageJson(JSONObject request) {
         extractUserFields(request);
         extractOrganizationFields(request);
         extractConsortiumFields(request);
     }
 
-    public Long getUserID() {
-        return userID;
+    public Long getUserId() {
+        return userId;
     }
 
     /**
      * set method is only added for userID because it is part of URI and not the JSON object. All other attributes are
      * part of JSON and will be set by reading the request JSON
      *
-     * @param userID
+     * @param userId user id
      */
-    public void setUserID(Long userID) {
-        this.userID = userID;
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
     @Override
@@ -206,33 +206,34 @@ public class UsersAPIMessage implements UserCreateRequest, UserPatchRequest, Use
         return consortiumName;
     }
 
-    public Long getOrganizationID() {
-        return organizationID;
+    public Long getOrganizationId() {
+        return organizationId;
     }
 
-    public Long getConsortiumID() {
-        return consortiumID;
+    public Long getConsortiumId() {
+        return consortiumId;
     }
 
     @Override
-    public JSONObject toJSON() {
+    public JSONObject toJson() {
         JSONObject json = new JSONObject();
-        if (isEmpty)
+        if (isEmpty) {
             return json;
+        }
 
         JSONObject details = new JSONObject();
         details.put(FIRST_NAME_LABEL, firstName);
         details.put(LAST_NAME_LABEL, lastName);
 
         JSONObject orgJson = new JSONObject();
-        orgJson.put(ORGANIZATION_ID_LABEL, organizationID);
+        orgJson.put(ORGANIZATION_ID_LABEL, organizationId);
         orgJson.put(ORGANIZATION_NAME_LABEL, organizationName);
 
         JSONObject conJson = new JSONObject();
-        conJson.put(CONSORTIUM_ID_LABEL, consortiumID);
+        conJson.put(CONSORTIUM_ID_LABEL, consortiumId);
         conJson.put(CONSORTIUM_NAME_LABEL, consortiumName);
 
-        json.put(USER_ID_LABEL, userID);
+        json.put(USER_ID_LABEL, userId);
         json.put(NAME_LABEL, userName);
         json.put(DETAILS_LABEL, details);
         json.put(EMAIL_LABEL, email);

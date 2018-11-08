@@ -23,6 +23,8 @@ import org.springframework.cache.CacheManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import com.vmware.blockchain.common.UserModificationException;
+
 
 /**
  * This class manages all persistence related operations related to User management API.
@@ -52,12 +54,12 @@ public class ProfilesRegistryManager {
     CacheManager cacheManager;
 
 
-    /** Needed for spring */
+    /* Needed for spring */
     protected ProfilesRegistryManager() {}
 
-    private List<User> getUsersInternal(String consortiumID, String organizationID) {
-        Optional<Organization> org = organizationRepository.findById(Long.parseLong(organizationID));
-        Optional<Consortium> con = consortiumRepository.findById(Long.parseLong(consortiumID));
+    private List<User> getUsersInternal(String consortiumId, String organizationId) {
+        Optional<Organization> org = organizationRepository.findById(Long.parseLong(organizationId));
+        Optional<Consortium> con = consortiumRepository.findById(Long.parseLong(consortiumId));
 
         if (org.isPresent() && con.isPresent()) {
             return userRepository.findUsersByConsortiumAndOrganization(con.get(), org.get());
@@ -66,8 +68,8 @@ public class ProfilesRegistryManager {
         }
     }
 
-    private List<User> getUsersInternalByConsortiumID(String consortiumID) {
-        Optional<Consortium> con = consortiumRepository.findById(Long.parseLong(consortiumID));
+    private List<User> getUsersInternalByConsortiumId(String consortiumId) {
+        Optional<Consortium> con = consortiumRepository.findById(Long.parseLong(consortiumId));
         if (con.isPresent()) {
             return new ArrayList<>(con.get().getUsers());
         } else {
@@ -75,8 +77,8 @@ public class ProfilesRegistryManager {
         }
     }
 
-    private List<User> getUsersInternalByOrganizationID(String organizationID) {
-        Optional<Organization> org = organizationRepository.findById(Long.parseLong(organizationID));
+    private List<User> getUsersInternalByOrganizationId(String organizationId) {
+        Optional<Organization> org = organizationRepository.findById(Long.parseLong(organizationId));
         if (org.isPresent()) {
             return new ArrayList<>(org.get().getUsers());
         } else {
@@ -84,40 +86,46 @@ public class ProfilesRegistryManager {
         }
     }
 
-    public JSONArray getUsers(Optional<String> consortiumID, Optional<String> organizationID) {
+    /**
+     * Get users, optionally filtered on Consortium or Organization.
+     * @param consortiumId Optional consortium id
+     * @param organizationId Option organizartion id
+     * @return user in JSON object
+     */
+    public JSONArray getUsers(Optional<String> consortiumId, Optional<String> organizationId) {
         List<User> userList;
-        if (consortiumID.isPresent() && organizationID.isPresent()) {
-            userList = getUsersInternal(consortiumID.get(), organizationID.get());
-        } else if (consortiumID.isPresent()) {
-            userList = getUsersInternalByConsortiumID(consortiumID.get());
-        } else if (organizationID.isPresent()) {
-            userList = getUsersInternalByOrganizationID(organizationID.get());
+        if (consortiumId.isPresent() && organizationId.isPresent()) {
+            userList = getUsersInternal(consortiumId.get(), organizationId.get());
+        } else if (consortiumId.isPresent()) {
+            userList = getUsersInternalByConsortiumId(consortiumId.get());
+        } else if (organizationId.isPresent()) {
+            userList = getUsersInternalByOrganizationId(organizationId.get());
         } else {
             userList = userRepository.findAll();
         }
 
-        return userList.stream().map(UsersAPIMessage::new).map(UsersGetResponse::toJSON).reduce(new JSONArray(),
-                (arr, obj) -> {
-                    arr.add(obj);
-                    return arr;
-                }, (arr1, arr2) -> {
-                    arr1.addAll(arr2);
-                    return arr1;
-                });
+        return userList.stream().map(UsersApiMessage::new).map(UsersGetResponse::toJson).reduce(new JSONArray(),
+            (arr, obj) -> {
+                arr.add(obj);
+                return arr;
+            }, (arr1, arr2) -> {
+                arr1.addAll(arr2);
+                return arr1;
+            });
     }
 
-    private List<User> getUsersWithID(List<String> userIdList) {
-        return userIdList.stream().map(this::getUserWithIDInternal).filter(Optional::isPresent).map(Optional::get)
+    private List<User> getUsersWithId(List<String> userIdList) {
+        return userIdList.stream().map(this::getUserWithIdInternal).filter(Optional::isPresent).map(Optional::get)
                 .collect(Collectors.toList());
     }
 
-    private Optional<User> getUserWithIDInternal(String userID) {
-        return userRepository.findById(Long.parseLong(userID));
+    private Optional<User> getUserWithIdInternal(String userId) {
+        return userRepository.findById(Long.parseLong(userId));
     }
 
-    public JSONObject getUserWithID(String userID) {
-        Optional<User> oUser = getUserWithIDInternal(userID);
-        return oUser.map(UsersAPIMessage::new).map(UsersAPIMessage::toJSON).orElse(new JSONObject());
+    public JSONObject getUserWithId(String userId) {
+        Optional<User> oUser = getUserWithIdInternal(userId);
+        return oUser.map(UsersApiMessage::new).map(UsersApiMessage::toJson).orElse(new JSONObject());
     }
 
     private boolean isDuplicateEmail(String email) {
@@ -125,10 +133,13 @@ public class ProfilesRegistryManager {
         return existingUserWithSameEmail.isPresent();
     }
 
+    /**
+     * Create a new user.
+     */
     public String createUser(UserCreateRequest request) throws UserModificationException {
 
-        Optional<Organization> o = organizationRepository.findById(request.getOrganizationID());
-        Optional<Consortium> c = consortiumRepository.findById(request.getConsortiumID());
+        Optional<Organization> o = organizationRepository.findById(request.getOrganizationId());
+        Optional<Consortium> c = consortiumRepository.findById(request.getConsortiumId());
 
         // First check if user with same email already exists
         if (isDuplicateEmail(request.getEmail())) {
@@ -153,21 +164,25 @@ public class ProfilesRegistryManager {
             c.get().addUser(u);
             consortiumRepository.save(c.get());
             organizationRepository.save(o.get());
-            return Long.toString(u.getUserID());
+            return Long.toString(u.getUserId());
         } else {
             o.orElseThrow(() -> new UserModificationException(
-                    "Organization with" + " ID " + request.getOrganizationID() + " not found."));
+                    "Organization with" + " ID " + request.getOrganizationId() + " not found."));
             c.orElseThrow(() -> new UserModificationException(
-                    "Consortium with" + " ID " + request.getConsortiumID() + " not found."));
+                    "Consortium with" + " ID " + request.getConsortiumId() + " not found."));
             throw new UserModificationException(request.getRole() + " is invalid Role value.");
         }
     }
 
+    /**
+     * Patch an existing user.
+     */
     public void updateUser(UserPatchRequest request) throws UserModificationException {
-        Optional<User> oUser = userRepository.findById(request.getUserID());
+        Optional<User> oUser = userRepository.findById(request.getUserId());
 
-        if (!oUser.isPresent())
-            throw new UserModificationException("No user found with ID: " + request.getUserID());
+        if (!oUser.isPresent()) {
+            throw new UserModificationException("No user found with ID: " + request.getUserId());
+        }
 
         // First check if user with same email already exists
         if (request.getOptionalEmail().isPresent() && isDuplicateEmail(request.getOptionalEmail().get())) {
@@ -189,6 +204,9 @@ public class ProfilesRegistryManager {
         userRepository.save(user);
     }
 
+    /**
+     * Login this user.
+     */
     public JSONObject loginUser(String email) throws UserModificationException {
         Optional<User> oUser = userRepository.findUserByEmail(email);
         if (oUser.isPresent()) {
@@ -197,22 +215,25 @@ public class ProfilesRegistryManager {
             // TODO: We know this is not a long-term solution and this will be
             // replaced by CSP authentication very soon.
 
-            JSONObject userJSON = getUserWithID(String.valueOf(u.getUserID()));
+            JSONObject userJson = getUserWithId(String.valueOf(u.getUserId()));
             u.setLastLogin(Instant.now().toEpochMilli());
             userRepository.save(u);
-            userJSON.put("isAuthenticated", Boolean.TRUE);
+            userJson.put("isAuthenticated", Boolean.TRUE);
 
-            return userJSON;
+            return userJson;
         } else {
             throw new UserModificationException("No user found with email: " + email);
         }
     }
 
+    /**
+     * Change the user's password.
+     */
     public JSONObject changePassword(String email, String password) throws UserModificationException {
         Optional<User> oUser = userRepository.findUserByEmail(email);
         if (oUser.isPresent()) {
             User u = oUser.get();
-            JSONObject userJSON = getUserWithID(String.valueOf(u.getUserID()));
+            final JSONObject userJson = getUserWithId(String.valueOf(u.getUserId()));
             u.setPassword(password);
             u = userRepository.save(u);
             // if the password changes, we need to evict any cached userDetails
@@ -220,13 +241,19 @@ public class ProfilesRegistryManager {
             userCache.evict(email);
 
 
-            return userJSON;
+            return userJson;
         } else {
             throw new UserModificationException("No user found with email: " + email);
         }
     }
 
+    // TODO: These next few methords are just testing convenience methods and should be removed
+    // when actual POST API for organization and consortium creation is
+    // available
 
+    /**
+     * Create the test user if it does not already exist.
+     */
     public User createUserIfNotExist() {
         String email = "admin@blockchain.local";
         String password = "Admin!23";
@@ -254,6 +281,9 @@ public class ProfilesRegistryManager {
         }
     }
 
+    /**
+     * Create the test org if it doesn't exist.
+     */
     public Organization createOrgIfNotExist() {
         List<Organization> oList = organizationRepository.findAll();
         if (oList.isEmpty()) {
@@ -266,9 +296,9 @@ public class ProfilesRegistryManager {
         }
     }
 
-    // TODO: This is just testing convenience methods and should be removed
-    // when actual POST API for organization and consortium creation is
-    // available
+    /**
+     * Create the test consortium if it doesn't exist.
+     */
     public Consortium createConsortiumIfNotExist() {
         List<Consortium> cList = consortiumRepository.findAll();
         if (cList.isEmpty()) {

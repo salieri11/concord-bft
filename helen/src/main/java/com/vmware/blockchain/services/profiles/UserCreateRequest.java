@@ -7,7 +7,7 @@ package com.vmware.blockchain.services.profiles;
 import java.util.Optional;
 
 /**
- * An interface which defines the API for interacting with a new user creation request in user management system
+ * An interface which defines the API for interacting with a new user creation request in user management system.
  */
 public interface UserCreateRequest {
     String getUserName();
@@ -22,7 +22,7 @@ public interface UserCreateRequest {
 
     String getPassword();
 
-    Long getOrganizationID();
+    Long getOrganizationId();
 
-    Long getConsortiumID();
+    Long getConsortiumId();
 }

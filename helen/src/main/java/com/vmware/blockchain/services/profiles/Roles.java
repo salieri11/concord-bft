@@ -4,13 +4,13 @@
 
 package com.vmware.blockchain.services.profiles;
 
-import org.springframework.security.core.GrantedAuthority;
-
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.security.core.GrantedAuthority;
+
 /**
- * Enum to define all user roles
+ * Enum to define all user roles.
  */
 public enum Roles implements GrantedAuthority {
 
@@ -27,18 +27,26 @@ public enum Roles implements GrantedAuthority {
         return name;
     }
 
+    /**
+     * True if this is name of one of the roles.
+     */
     public static boolean contains(String s) {
         for (Roles r : Roles.values()) {
-            if (r.toString().equals(s))
+            if (r.toString().equals(s)) {
                 return true;
+            }
         }
         return false;
     }
 
+    /**
+     * Get Role with this name.
+     */
     public static Roles fromString(String s) {
         for (Roles r : Roles.values()) {
-            if (r.toString().equals(s))
+            if (r.toString().equals(s)) {
                 return r;
+            }
         }
         return null;
     }
