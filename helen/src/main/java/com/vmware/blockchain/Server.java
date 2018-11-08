@@ -31,14 +31,11 @@ import org.springframework.cache.ehcache.EhCacheCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
-import com.vmware.blockchain.services.profiles.ProfilesRegistryManager;
-import com.vmware.blockchain.services.profiles.User;
-
 import net.sf.ehcache.config.CacheConfiguration;
 
 @SpringBootApplication
-@EntityScan(basePackageClasses = {User.class})
-@EnableJpaRepositories(basePackageClasses = {ProfilesRegistryManager.class})
+@EntityScan(basePackages = "com.vmware.blockchain")
+@EnableJpaRepositories(basePackages = "com.vmware.blockchain")
 @EnableCaching
 public class Server {
 
