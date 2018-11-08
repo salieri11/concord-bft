@@ -270,6 +270,8 @@ EOF
     post {
       always {
         archiveArtifacts artifacts: "**/*.log", allowEmptyArchive: true
+        archiveArtifacts artifacts: "**/*.json", allowEmptyArchive: true
+        archiveArtifacts artifacts: "**/*.html", allowEmptyArchive: true
       }
     }
   }
