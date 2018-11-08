@@ -1,8 +1,5 @@
-/**
- * <p>
- * Copyright 2018 VMware, all rights reserved.
- * </p>
- *
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.services.profiles;
@@ -11,89 +8,88 @@ import java.time.Instant;
 import javax.persistence.*;
 
 /**
- * A Spring Data JPA (or Hibernate) Entity class representing a user in the
- * system.
+ * A Spring Data JPA (or Hibernate) Entity class representing a user in the system.
  */
 @Table(name = "AGREEMENTS")
 @Entity
 public class Agreement {
 
-   @Id
-   @GeneratedValue(strategy = GenerationType.AUTO)
-   @Column(unique = true)
-   private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(unique = true)
+    private Long id;
 
-   @Column(nullable = false)
-   private Boolean accepted;
+    @Column(nullable = false)
+    private Boolean accepted;
 
-   @Column(nullable = false)
-   private String type;
+    @Column(nullable = false)
+    private String type;
 
-   @Column(nullable = false)
-   private String content;
+    @Column(nullable = false)
+    private String content;
 
-   @Column(nullable = true)
-   private String firstName;
+    @Column(nullable = true)
+    private String firstName;
 
-   @Column(nullable = true)
-   private String lastName;
+    @Column(nullable = true)
+    private String lastName;
 
-   @Column(nullable = true)
-   private String company;
+    @Column(nullable = true)
+    private String company;
 
-   @Column(nullable = true)
-   private Long acceptedOn;
+    @Column(nullable = true)
+    private Long acceptedOn;
 
-   public Long getID() {
-      return id;
-   }
+    public Long getID() {
+        return id;
+    }
 
-   public String getContent() {
-      return content;
-   }
+    public String getContent() {
+        return content;
+    }
 
-   public String getType() {
-      return type;
-   }
+    public String getType() {
+        return type;
+    }
 
-   public Boolean getAcceptance() {
-      return accepted;
-   }
+    public Boolean getAcceptance() {
+        return accepted;
+    }
 
-   public String getFirstName() {
-      return firstName;
-   }
+    public String getFirstName() {
+        return firstName;
+    }
 
-   public String getLastName() {
-      return lastName;
-   }
+    public String getLastName() {
+        return lastName;
+    }
 
-   public String getCompany() {
-      return company;
-   }
+    public String getCompany() {
+        return company;
+    }
 
-   public Long getAcceptedOn() {
-      return acceptedOn;
-   }
+    public Long getAcceptedOn() {
+        return acceptedOn;
+    }
 
-   protected void accepted() {
-      this.accepted = true;
-   }
+    protected void accepted() {
+        this.accepted = true;
+    }
 
-   protected void setFirstName(String firstName) {
-      this.firstName = firstName;
-   }
+    protected void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
 
-   protected void setLastName(String lastName) {
-      this.lastName = lastName;
-   }
+    protected void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
 
-   protected void setCompany(String company) {
-      this.company = company;
-   }
+    protected void setCompany(String company) {
+        this.company = company;
+    }
 
-   protected void setAcceptedOn() {
-      this.acceptedOn = Instant.now().toEpochMilli();
-   }
+    protected void setAcceptedOn() {
+        this.acceptedOn = Instant.now().toEpochMilli();
+    }
 
 }

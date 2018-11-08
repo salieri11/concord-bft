@@ -1,8 +1,5 @@
-/**
- * <p>
- * Copyright 2018 VMware, all rights reserved.
- * </p>
- *
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.services.profiles;
@@ -14,12 +11,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
-   List<User> findUsersByConsortiumAndOrganization(Consortium c,
-                                                   Organization o);
-   
-   Optional<User> findUserByEmail(String email);
+    List<User> findUsersByConsortiumAndOrganization(Consortium c, Organization o);
 
-   List<User> findUsersByConsortium(Consortium c);
+    Optional<User> findUserByEmail(String email);
 
-   List<User> findUsersByOrganization(Organization o);
+    List<User> findUsersByConsortium(Consortium c);
+
+    List<User> findUsersByOrganization(Organization o);
 }

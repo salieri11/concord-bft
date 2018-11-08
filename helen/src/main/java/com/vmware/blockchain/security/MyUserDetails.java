@@ -1,6 +1,5 @@
-/**
- * Copyright 2018 VMware, all rights reserved.
- *
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.security;
@@ -38,15 +37,9 @@ public class MyUserDetails implements UserDetailsService {
 
         User u = user.get();
 
-        return org.springframework.security.core.userdetails.User
-                .withUsername(email)
-                .password(u.getPassword())
-                .authorities(u.getRoles())
-                .accountExpired(false)
-                .accountLocked(false)
-                .credentialsExpired(false)
-                .disabled(false)
-                .build();
+        return org.springframework.security.core.userdetails.User.withUsername(email).password(u.getPassword())
+                .authorities(u.getRoles()).accountExpired(false).accountLocked(false).credentialsExpired(false)
+                .disabled(false).build();
     }
 
 }

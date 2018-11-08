@@ -1,16 +1,15 @@
-/**
- * this interface defines the contract for any classes that wish to communicate
- * with Athena methods are defined to send and receive messages to/from Athena
- * and checking the connection
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
+
 package com.vmware.blockchain.connections;
 
 public interface IAthenaConnection {
-   void close();
+    void close();
 
-   boolean send(byte[] msg);
+    boolean send(byte[] msg);
 
-   byte[] receive();
+    byte[] receive();
 
-   boolean check();
+    boolean check();
 }

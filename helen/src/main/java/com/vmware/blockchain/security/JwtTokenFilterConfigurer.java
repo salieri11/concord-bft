@@ -1,6 +1,5 @@
-/**
- * Copyright 2018 VMware, all rights reserved.
- *
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.security;
@@ -12,16 +11,16 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 public class JwtTokenFilterConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilterChain, HttpSecurity> {
 
-  private JwtTokenProvider jwtTokenProvider;
+    private JwtTokenProvider jwtTokenProvider;
 
-  public JwtTokenFilterConfigurer(JwtTokenProvider jwtTokenProvider) {
-    this.jwtTokenProvider = jwtTokenProvider;
-  }
+    public JwtTokenFilterConfigurer(JwtTokenProvider jwtTokenProvider) {
+        this.jwtTokenProvider = jwtTokenProvider;
+    }
 
-  @Override
-  public void configure(HttpSecurity http) throws Exception {
-    JwtTokenFilter customFilter = new JwtTokenFilter(jwtTokenProvider);
-    http.addFilterBefore(customFilter, UsernamePasswordAuthenticationFilter.class);
-  }
+    @Override
+    public void configure(HttpSecurity http) throws Exception {
+        JwtTokenFilter customFilter = new JwtTokenFilter(jwtTokenProvider);
+        http.addFilterBefore(customFilter, UsernamePasswordAuthenticationFilter.class);
+    }
 
 }

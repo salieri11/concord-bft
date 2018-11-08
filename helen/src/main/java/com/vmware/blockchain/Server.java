@@ -1,16 +1,13 @@
-/**
- * Copyright 2018 VMware, all rights reserved.
- *
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 /**
- * Main class for helen, does some basic initializations and then calls
- * SpringApplication.run() method. This class also does the job of providing all
- * spring related configuration annotations
+ * Main class for helen, does some basic initializations and then calls SpringApplication.run() method. This class also
+ * does the job of providing all spring related configuration annotations
  *
- * Helen connects to Athena at the backend. Communication between Helen and
- * Athena is via a TCP socket connection. Messages are sent in Google Protocol
- * Buffer format. Responses from Helen to the client are in Json format.
+ * Helen connects to Athena at the backend. Communication between Helen and Athena is via a TCP socket connection.
+ * Messages are sent in Google Protocol Buffer format. Responses from Helen to the client are in Json format.
  *
  */
 package com.vmware.blockchain;
@@ -41,48 +38,48 @@ public class Server {
 
 
     // Set current datetime for logging purposes
-   static {
-      SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy-hh-mm-ss");
-      System.setProperty("current.date.time", dateFormat.format(new Date()));
-   }
+    static {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy-hh-mm-ss");
+        System.setProperty("current.date.time", dateFormat.format(new Date()));
+    }
 
-   public static void main(String[] args) throws IOException {
-      final Logger logger = LogManager.getLogger(Server.class);
-      String[] testEnv = {"--spring.profiles.active=test"};
+    public static void main(String[] args) throws IOException {
+        final Logger logger = LogManager.getLogger(Server.class);
+        String[] testEnv = {"--spring.profiles.active=test"};
 
-      // backwards compatibility for testing
-      if (args.length == 1) {
-          // used to hand in a property file name.  Make the argument the active profile
-          if ("application-test.properties".equals(args[0])) {
-              args = testEnv;
-              logger.info("Setting test environment");
-          }
-      }
+        // backwards compatibility for testing
+        if (args.length == 1) {
+            // used to hand in a property file name. Make the argument the active profile
+            if ("application-test.properties".equals(args[0])) {
+                args = testEnv;
+                logger.info("Setting test environment");
+            }
+        }
 
-      SpringApplication.run(Server.class, args);
-   }
+        SpringApplication.run(Server.class, args);
+    }
 
-   private net.sf.ehcache.CacheManager ehCacheManager() {
-       //TODO visit these numbers
-       CacheConfiguration cacheConfiguration = new CacheConfiguration();
-       cacheConfiguration.setName("UserCache");
-       cacheConfiguration.setMemoryStoreEvictionPolicy("LRU");
-       cacheConfiguration.setMaxEntriesLocalHeap(500);
-       cacheConfiguration.timeToIdleSeconds(TimeUnit.MINUTES.toSeconds(5));
-       cacheConfiguration.timeToLiveSeconds(TimeUnit.MINUTES.toSeconds(5));
-       cacheConfiguration.copyOnRead(true);
-       cacheConfiguration.copyOnWrite(true);
+    private net.sf.ehcache.CacheManager ehCacheManager() {
+        // TODO visit these numbers
+        CacheConfiguration cacheConfiguration = new CacheConfiguration();
+        cacheConfiguration.setName("UserCache");
+        cacheConfiguration.setMemoryStoreEvictionPolicy("LRU");
+        cacheConfiguration.setMaxEntriesLocalHeap(500);
+        cacheConfiguration.timeToIdleSeconds(TimeUnit.MINUTES.toSeconds(5));
+        cacheConfiguration.timeToLiveSeconds(TimeUnit.MINUTES.toSeconds(5));
+        cacheConfiguration.copyOnRead(true);
+        cacheConfiguration.copyOnWrite(true);
 
-       net.sf.ehcache.config.Configuration config = new net.sf.ehcache.config.Configuration();
-       config.addCache(cacheConfiguration);
+        net.sf.ehcache.config.Configuration config = new net.sf.ehcache.config.Configuration();
+        config.addCache(cacheConfiguration);
 
-       return net.sf.ehcache.CacheManager.newInstance(config);
-   }
+        return net.sf.ehcache.CacheManager.newInstance(config);
+    }
 
-   @Bean
-   CacheManager cacheManager() {
-       return new EhCacheCacheManager(ehCacheManager());
-   }
+    @Bean
+    CacheManager cacheManager() {
+        return new EhCacheCacheManager(ehCacheManager());
+    }
 
 
 

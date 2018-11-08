@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.services.contracts;
 
 /**
@@ -7,9 +11,9 @@ package com.vmware.blockchain.services.contracts;
  *
  */
 public class DuplicateContractException extends Exception {
-   private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-   public DuplicateContractException(String message) {
-      super(message);
-   }
+    public DuplicateContractException(String message) {
+        super(message);
+    }
 }

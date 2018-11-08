@@ -1,8 +1,5 @@
-/**
- * <p>
- * Copyright 2018 VMware, all rights reserved.
- * </p>
- *
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.services.profiles;
@@ -14,58 +11,55 @@ import java.util.Set;
 import javax.persistence.*;
 
 /**
- * A Spring Data JPA (or Hibernate) Entity class representing an organization in
- * the system.
+ * A Spring Data JPA (or Hibernate) Entity class representing an organization in the system.
  */
 @Table(name = "ORGANIZATIONS")
 @Entity
 public class Organization {
-   @OneToMany(mappedBy = "organization",
-              cascade = { CascadeType.PERSIST, CascadeType.REMOVE })
-   protected Set<User> users = new HashSet<>();
-   @Id
-   @GeneratedValue(strategy = GenerationType.AUTO)
-   private Long organizationID = 0L;
-   private String organizationName;
+    @OneToMany(mappedBy = "organization", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
+    protected Set<User> users = new HashSet<>();
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private Long organizationID = 0L;
+    private String organizationName;
 
-   protected Organization() {
-   }
+    protected Organization() {}
 
-   public Long getOrganizationID() {
-      return organizationID;
-   }
+    public Long getOrganizationID() {
+        return organizationID;
+    }
 
-   protected void setOrganizationID(Long organizationID) {
-      this.organizationID = organizationID;
-   }
+    protected void setOrganizationID(Long organizationID) {
+        this.organizationID = organizationID;
+    }
 
-   public String getOrganizationName() {
-      return organizationName;
-   }
+    public String getOrganizationName() {
+        return organizationName;
+    }
 
-   protected void setOrganizationName(String organizationName) {
-      this.organizationName = organizationName;
-   }
+    protected void setOrganizationName(String organizationName) {
+        this.organizationName = organizationName;
+    }
 
-   public Set<User> getUsers() {
-      return Collections.unmodifiableSet(users);
-   }
+    public Set<User> getUsers() {
+        return Collections.unmodifiableSet(users);
+    }
 
-   protected void addUser(User u) {
-      users.add(u);
-   }
+    protected void addUser(User u) {
+        users.add(u);
+    }
 
-   @Override
-   public int hashCode() {
-      return (int) ((organizationID * 53) % 17);
-   }
+    @Override
+    public int hashCode() {
+        return (int) ((organizationID * 53) % 17);
+    }
 
-   @Override
-   public boolean equals(Object o) {
-      if (o == null || !(o instanceof Organization))
-         return false;
-      Organization org = (Organization) o;
-      return org.getOrganizationID().equals(organizationID);
-   }
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || !(o instanceof Organization))
+            return false;
+        Organization org = (Organization) o;
+        return org.getOrganizationID().equals(organizationID);
+    }
 
 }

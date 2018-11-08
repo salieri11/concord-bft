@@ -1,7 +1,7 @@
-/**
- * This singleton class contains methods to implement connection pooling for Helen. The timeout and pool size can be
- * adjusted from the application.properties file.
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
+
 package com.vmware.blockchain.connections;
 
 import java.io.IOException;

@@ -1,13 +1,7 @@
-/**
- * url endpoint : /api/athena/members
- *
- * Used to fetch the Athena Consensus Membership List.
- *
- * This servlet is used to send Peer Requests to Athena and to parse the responses into JSON. A TCP socket connection is
- * made to Athena and requests and responses are encoded in the Google Protocol Buffer format.
- *
- * TODO : Handle the case of no/incorrect response from Athena
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
+
 package com.vmware.blockchain.services.athena;
 
 import java.io.IOException;

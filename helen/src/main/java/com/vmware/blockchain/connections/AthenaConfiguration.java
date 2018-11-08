@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.connections;
 
 import java.io.IOException;
@@ -25,7 +29,8 @@ public class AthenaConfiguration {
 
     @Bean
     AthenaConnectionPool athenaConnectionPool() throws IOException {
-        AthenaConnectionFactory factory = new AthenaConnectionFactory(AthenaConnectionFactory.ConnectionType.TCP, config);
+        AthenaConnectionFactory factory =
+                new AthenaConnectionFactory(AthenaConnectionFactory.ConnectionType.TCP, config);
         AthenaConnectionPool pool = new AthenaConnectionPool().initialize(config, factory);
         logger.info("athena connection pool initialized");
         return pool;

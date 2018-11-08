@@ -1,12 +1,7 @@
-/**
- * url endpoint : /api/athena/blocks/{N}
- *
- * Used to fetch a specific block from the chain.
- *
- * This servlet is used to send BlockNumber Requests to Athena and to parse the responses into JSON. A TCP socket
- * connection is made to Athena and requests and responses are encoded in the Google Protocol Buffer format.
- *
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
+
 package com.vmware.blockchain.services.athena;
 
 import java.util.List;

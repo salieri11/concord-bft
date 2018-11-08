@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.services.athena;
 
 import static com.vmware.blockchain.services.ethereum.APIHelper.errorJSON;

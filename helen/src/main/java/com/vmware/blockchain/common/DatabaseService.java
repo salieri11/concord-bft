@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.common;
 
 import java.sql.Connection;
@@ -34,13 +38,9 @@ public class DatabaseService {
     private String dbPassword;
 
     @Autowired
-    public DatabaseService(
-            @Value("${DB_PROTOCOL}") String dbProtocol, 
-            @Value("${DB_IP}") String dbIp,
-            @Value("${DB_PORT}") String dbPort, 
-            @Value("${DB_NAME}") String dbName,
-            @Value("${DB_OPTIONS}") String dbOptions, 
-            @Value("${DB_USER}") String dbUser,
+    public DatabaseService(@Value("${DB_PROTOCOL}") String dbProtocol, @Value("${DB_IP}") String dbIp,
+            @Value("${DB_PORT}") String dbPort, @Value("${DB_NAME}") String dbName,
+            @Value("${DB_OPTIONS}") String dbOptions, @Value("${DB_USER}") String dbUser,
             @Value("${DB_PASSWORD}") String dbPassword) {
         this.dbProtocol = dbProtocol;
         this.dbIp = dbIp;

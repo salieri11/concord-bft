@@ -1,6 +1,5 @@
-/**
- * Copyright 2018 VMware, all rights reserved.
- *
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain;
@@ -43,31 +42,29 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         // Disable CSRF (cross site request forgery)
-        http.csrf().disable().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and().authorizeRequests()
-                .antMatchers("/api/auth/login", "/api/auth/token", "/api/agreements/1", "/", "/assets/**", "/swagger/**").permitAll()
-                .antMatchers("/api/users").hasAnyAuthority("CONSORTIUM_ADMIN", "SYSTEM_ADMIN", "ORG_ADMIN")
-                .antMatchers("/api/athena/**").hasAnyAuthority("CONSORTIUM_ADMIN", "SYSTEM_ADMIN", "ORG_ADMIN", "ORG_DEVELOPER")
-                .anyRequest().authenticated().and().apply(new JwtTokenFilterConfigurer(jwtTokenProvider))
-                .and().exceptionHandling().authenticationEntryPoint(restAuthticationEntryPoint)
-                .and().anonymous().and().httpBasic();
+        http.csrf().disable().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
+                .authorizeRequests()
+                .antMatchers("/api/auth/login", "/api/auth/token", "/api/agreements/1", "/", "/assets/**",
+                        "/swagger/**")
+                .permitAll().antMatchers("/api/users").hasAnyAuthority("CONSORTIUM_ADMIN", "SYSTEM_ADMIN", "ORG_ADMIN")
+                .antMatchers("/api/athena/**")
+                .hasAnyAuthority("CONSORTIUM_ADMIN", "SYSTEM_ADMIN", "ORG_ADMIN", "ORG_DEVELOPER").anyRequest()
+                .authenticated().and().apply(new JwtTokenFilterConfigurer(jwtTokenProvider)).and().exceptionHandling()
+                .authenticationEntryPoint(restAuthticationEntryPoint).and().anonymous().and().httpBasic();
     }
 
     @Override
     public void configure(WebSecurity web) throws Exception {
         // Allow access to auth, UI routing URLs, UI assets, and swagger, without authentication
-        web.ignoring().antMatchers("/api/agreements/1")
-                .antMatchers("/api/auth/token", "/api/auth/login")
+        web.ignoring().antMatchers("/api/agreements/1").antMatchers("/api/auth/token", "/api/auth/login")
                 .antMatchers("/auth/login", "/auth/onboarding")
                 .antMatchers("/dashboard", "/smart-contracts/**", "/blocks/**", "/transactions/**", "/users/**")
-                .antMatchers("/swagger/**")
-                .antMatchers("/assets/**");
+                .antMatchers("/swagger/**").antMatchers("/assets/**");
     }
 
     @Override
-    protected void configure( AuthenticationManagerBuilder auth ) throws Exception {
-        auth
-                .userDetailsService( userDetails() )
-                .passwordEncoder( passwordEncoder() );
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.userDetailsService(userDetails()).passwordEncoder(passwordEncoder());
     }
 
     @Bean

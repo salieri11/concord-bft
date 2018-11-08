@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.services;
 
 import org.apache.logging.log4j.LogManager;
@@ -9,14 +13,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 public class StaticContent {
 
-   private static final long serialVersionUID = 1L;
-   private static final Logger logger
-      = LogManager.getLogger(StaticContent.class);
+    private static final long serialVersionUID = 1L;
+    private static final Logger logger = LogManager.getLogger(StaticContent.class);
 
-   //TODO: move these strings to properties file
-   @RequestMapping(path = "/api")
-   public String handleAPIRequest() {
-      return "swagger.json";
-   }
+    // TODO: move these strings to properties file
+    @RequestMapping(path = "/api")
+    public String handleAPIRequest() {
+        return "swagger.json";
+    }
 
 }

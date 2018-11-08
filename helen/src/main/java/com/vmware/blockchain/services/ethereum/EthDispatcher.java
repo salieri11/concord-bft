@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.services.ethereum;
 
 import java.io.IOException;
@@ -57,7 +61,8 @@ public final class EthDispatcher extends BaseServlet {
     private ContractRegistryManager registryManager;
 
     @Autowired
-    public EthDispatcher(ContractRegistryManager registryManager, AthenaProperties config, AthenaConnectionPool connectionPool) throws ParseException {
+    public EthDispatcher(ContractRegistryManager registryManager, AthenaProperties config,
+            AthenaConnectionPool connectionPool) throws ParseException {
         super(config, connectionPool);
         JSONParser p = new JSONParser();
         this.registryManager = registryManager;

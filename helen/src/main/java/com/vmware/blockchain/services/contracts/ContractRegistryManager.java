@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.services.contracts;
 
 import java.sql.Connection;
@@ -20,16 +24,14 @@ import com.vmware.blockchain.common.ServiceUnavailableException;
  * Copyright 2018 VMware, all rights reserved.
  * </p>
  *
- * A class which provides functions for doing contract management queries over
- * the database.
+ * A class which provides functions for doing contract management queries over the database.
  */
 // TODO: Have all database queries and configs in separate DBconfig file.
 @Component
 public class ContractRegistryManager {
     private static ContractRegistryManager self = null;
     private static Object instanceLock = new Object();
-    private static Logger logger
-    = LogManager.getLogger(ContractRegistryManager.class);
+    private static Logger logger = LogManager.getLogger(ContractRegistryManager.class);
 
     private String CONTRACTS_TABLE_NAME = "contracts";
     private String CONTRACT_ID_COLUMN_LABEL = "contract_id";
@@ -46,57 +48,43 @@ public class ContractRegistryManager {
     // multiple tables but as of now having everything in single table is easier.
     // sequence_number is of cockroach DB SERIAL type which ensures that every
     // insert gets a higher sequence number than previous ones.
-    private String createNewTableQuery
-    = "CREATE TABLE IF NOT EXISTS " + CONTRACTS_TABLE_NAME + "("
-            + CONTRACT_ID_COLUMN_LABEL + " TEXT, " + CONTRACT_VERSION_COLUMN_LABEL
-            + " TEXT, PRIMARY KEY (" + CONTRACT_ID_COLUMN_LABEL + ","
-            + CONTRACT_VERSION_COLUMN_LABEL + "), " + CONTRACT_SOURCE_COLUMN_LABEL
-            + " TEXT, " + CONTRACT_BYTECODE_COLUMN_LABEL + " TEXT, "
-            + CONTRACT_METADATA_COLUMN_LABEL + " TEXT, "
-            + CONTRACT_ADDRESS_COLUMN_LABEL + " char(" + MAX_ADDRESS_LEN + "), "
-            + CONTRACT_OWNER_COLUMN_LABEL + " char(" + MAX_ADDRESS_LEN + "), "
-            + CONTRACT_SEQUENCE_NUMBER_LABEL + " SERIAL)";
+    private String createNewTableQuery = "CREATE TABLE IF NOT EXISTS " + CONTRACTS_TABLE_NAME + "("
+            + CONTRACT_ID_COLUMN_LABEL + " TEXT, " + CONTRACT_VERSION_COLUMN_LABEL + " TEXT, PRIMARY KEY ("
+            + CONTRACT_ID_COLUMN_LABEL + "," + CONTRACT_VERSION_COLUMN_LABEL + "), " + CONTRACT_SOURCE_COLUMN_LABEL
+            + " TEXT, " + CONTRACT_BYTECODE_COLUMN_LABEL + " TEXT, " + CONTRACT_METADATA_COLUMN_LABEL + " TEXT, "
+            + CONTRACT_ADDRESS_COLUMN_LABEL + " char(" + MAX_ADDRESS_LEN + "), " + CONTRACT_OWNER_COLUMN_LABEL
+            + " char(" + MAX_ADDRESS_LEN + "), " + CONTRACT_SEQUENCE_NUMBER_LABEL + " SERIAL)";
 
-    private String insertNewVersionQuery
-    = "INSERT into " + CONTRACTS_TABLE_NAME + " values (?, ?, ?, ?, ?, ?, ?)";
+    private String insertNewVersionQuery = "INSERT into " + CONTRACTS_TABLE_NAME + " values (?, ?, ?, ?, ?, ?, ?)";
 
-    private String updateExistingVersionQuery
-    = "UPDATE " + CONTRACTS_TABLE_NAME + " SET (" + CONTRACT_ID_COLUMN_LABEL + ", " + CONTRACT_SOURCE_COLUMN_LABEL
-    + ", " + CONTRACT_METADATA_COLUMN_LABEL + ", " + CONTRACT_OWNER_COLUMN_LABEL
-    + ", " + CONTRACT_VERSION_COLUMN_LABEL + ") = (?, ?, ?, ?, ?) WHERE " + CONTRACT_ID_COLUMN_LABEL
-    + " = ? AND " + CONTRACT_VERSION_COLUMN_LABEL + " = ?;";
+    private String updateExistingVersionQuery = "UPDATE " + CONTRACTS_TABLE_NAME + " SET (" + CONTRACT_ID_COLUMN_LABEL
+            + ", " + CONTRACT_SOURCE_COLUMN_LABEL + ", " + CONTRACT_METADATA_COLUMN_LABEL + ", "
+            + CONTRACT_OWNER_COLUMN_LABEL + ", " + CONTRACT_VERSION_COLUMN_LABEL + ") = (?, ?, ?, ?, ?) WHERE "
+            + CONTRACT_ID_COLUMN_LABEL + " = ? AND " + CONTRACT_VERSION_COLUMN_LABEL + " = ?;";
 
-    private String hasContractQuery
-    = "SELECT " + CONTRACT_ID_COLUMN_LABEL + " from " + CONTRACTS_TABLE_NAME
-    + " where " + CONTRACT_ID_COLUMN_LABEL + " = ?";
+    private String hasContractQuery = "SELECT " + CONTRACT_ID_COLUMN_LABEL + " from " + CONTRACTS_TABLE_NAME + " where "
+            + CONTRACT_ID_COLUMN_LABEL + " = ?";
 
-    private String hasVersionQuery = "SELECT " + CONTRACT_ID_COLUMN_LABEL
-            + " from " + CONTRACTS_TABLE_NAME + " where " + CONTRACT_ID_COLUMN_LABEL
+    private String hasVersionQuery = "SELECT " + CONTRACT_ID_COLUMN_LABEL + " from " + CONTRACTS_TABLE_NAME + " where "
+            + CONTRACT_ID_COLUMN_LABEL + " = ? AND " + CONTRACT_VERSION_COLUMN_LABEL + " = ?";
+
+    private String getVersionQuery = "SELECT * from " + CONTRACTS_TABLE_NAME + " where " + CONTRACT_ID_COLUMN_LABEL
             + " = ? AND " + CONTRACT_VERSION_COLUMN_LABEL + " = ?";
 
-    private String getVersionQuery = "SELECT * from " + CONTRACTS_TABLE_NAME
-            + " where " + CONTRACT_ID_COLUMN_LABEL + " = ? AND "
-            + CONTRACT_VERSION_COLUMN_LABEL + " = ?";
-
-    private String getAllContractsShortQuery
-    = "SELECT DISTINCT " + CONTRACT_ID_COLUMN_LABEL + ", "
+    private String getAllContractsShortQuery = "SELECT DISTINCT " + CONTRACT_ID_COLUMN_LABEL + ", "
             + CONTRACT_OWNER_COLUMN_LABEL + " from " + CONTRACTS_TABLE_NAME;
 
     // We need versions sorted in descending order of sequence_number column.
-    private String getAllVersionsShortQuery
-    = "SELECT " + CONTRACT_VERSION_COLUMN_LABEL + ", "
-            + CONTRACT_METADATA_COLUMN_LABEL + ", " + CONTRACT_ADDRESS_COLUMN_LABEL
-            + ", " + CONTRACT_OWNER_COLUMN_LABEL + " from " + CONTRACTS_TABLE_NAME
-            + " where " + CONTRACT_ID_COLUMN_LABEL + " = ? ORDER BY "
+    private String getAllVersionsShortQuery = "SELECT " + CONTRACT_VERSION_COLUMN_LABEL + ", "
+            + CONTRACT_METADATA_COLUMN_LABEL + ", " + CONTRACT_ADDRESS_COLUMN_LABEL + ", " + CONTRACT_OWNER_COLUMN_LABEL
+            + " from " + CONTRACTS_TABLE_NAME + " where " + CONTRACT_ID_COLUMN_LABEL + " = ? ORDER BY "
             + CONTRACT_SEQUENCE_NUMBER_LABEL + " DESC";
 
-    private String getContractOwnerQuery
-    = "SELECT DISTINCT" + CONTRACT_OWNER_COLUMN_LABEL + " from "
+    private String getContractOwnerQuery = "SELECT DISTINCT" + CONTRACT_OWNER_COLUMN_LABEL + " from "
             + CONTRACTS_TABLE_NAME + " where " + CONTRACT_ID_COLUMN_LABEL + " = ?";
 
-    private String getContractInfoQuery = "SELECT " + CONTRACT_ID_COLUMN_LABEL
-            + ", " + CONTRACT_OWNER_COLUMN_LABEL + " from " + CONTRACTS_TABLE_NAME
-            + " where " + CONTRACT_ID_COLUMN_LABEL + " = ?";
+    private String getContractInfoQuery = "SELECT " + CONTRACT_ID_COLUMN_LABEL + ", " + CONTRACT_OWNER_COLUMN_LABEL
+            + " from " + CONTRACTS_TABLE_NAME + " where " + CONTRACT_ID_COLUMN_LABEL + " = ?";
 
     // TODO: we might have to write method which closes all these statement
     // objects. However, that will only have to be done when our servlet dies
@@ -111,9 +99,8 @@ public class ContractRegistryManager {
     private PreparedStatement getContractOwnerPstmt;
     private PreparedStatement getContractInfoPstmt;
 
-    private ContractRegistryManager(
-            @Autowired DatabaseService databaseService) throws SQLException,
-    ServiceUnavailableException {
+    private ContractRegistryManager(@Autowired DatabaseService databaseService)
+            throws SQLException, ServiceUnavailableException {
 
         Connection con = databaseService.getDatabaseConnection();
         con.createStatement().executeUpdate(createNewTableQuery);
@@ -123,8 +110,7 @@ public class ContractRegistryManager {
         hasContractPstmt = con.prepareStatement(hasContractQuery);
         hasVersionPstmt = con.prepareStatement(hasVersionQuery);
         getVersionPstmt = con.prepareStatement(getVersionQuery);
-        getAllContractsShortPstmt
-        = con.prepareStatement(getAllContractsShortQuery);
+        getAllContractsShortPstmt = con.prepareStatement(getAllContractsShortQuery);
         getAllVersionsShortPstmt = con.prepareStatement(getAllVersionsShortQuery);
         getContractOwnerPstmt = con.prepareStatement(getContractOwnerQuery);
         getContractInfoPstmt = con.prepareStatement(getContractInfoQuery);
@@ -133,8 +119,7 @@ public class ContractRegistryManager {
     /**
      * A method to check if a contract with given contractId exists.
      * 
-     * @param contractId
-     *           The `contractId` to check for
+     * @param contractId The `contractId` to check for
      * @return True if a contract with given contractId exists, False otherwise.
      */
     public boolean hasContract(String contractId) {
@@ -170,19 +155,13 @@ public class ContractRegistryManager {
     /**
      * Retrieves a particular version of a particular contract.
      * 
-     * @param contractId
-     *           The contractId to look for
-     * @param versionName
-     *           The versionName to look for in contract with ID as contractId
-     * @return A FullVersionInfo object which can be queries to get information
-     *         about this contract version.
-     * @throws ContractRetrievalException
-     *            In case contract was not found or some other database exception
-     *            occurs then throws this exception.
+     * @param contractId The contractId to look for
+     * @param versionName The versionName to look for in contract with ID as contractId
+     * @return A FullVersionInfo object which can be queries to get information about this contract version.
+     * @throws ContractRetrievalException In case contract was not found or some other database exception occurs then
+     *         throws this exception.
      */
-    public FullVersionInfo
-    getContractVersion(String contractId,
-            String versionName) throws ContractRetrievalException {
+    public FullVersionInfo getContractVersion(String contractId, String versionName) throws ContractRetrievalException {
         try {
             getVersionPstmt.setString(1, contractId);
             getVersionPstmt.setString(2, versionName);
@@ -190,19 +169,14 @@ public class ContractRegistryManager {
 
             if (rs.isBeforeFirst()) {
                 rs.next();
-                ContractVersion cv
-                = new ContractVersion(rs.getString(CONTRACT_ID_COLUMN_LABEL),
-                        rs.getString(CONTRACT_OWNER_COLUMN_LABEL),
-                        rs.getString(CONTRACT_VERSION_COLUMN_LABEL),
-                        rs.getString(CONTRACT_ADDRESS_COLUMN_LABEL),
-                        rs.getString(CONTRACT_METADATA_COLUMN_LABEL),
-                        rs.getString(CONTRACT_BYTECODE_COLUMN_LABEL),
-                        rs.getString(CONTRACT_SOURCE_COLUMN_LABEL));
+                ContractVersion cv = new ContractVersion(rs.getString(CONTRACT_ID_COLUMN_LABEL),
+                        rs.getString(CONTRACT_OWNER_COLUMN_LABEL), rs.getString(CONTRACT_VERSION_COLUMN_LABEL),
+                        rs.getString(CONTRACT_ADDRESS_COLUMN_LABEL), rs.getString(CONTRACT_METADATA_COLUMN_LABEL),
+                        rs.getString(CONTRACT_BYTECODE_COLUMN_LABEL), rs.getString(CONTRACT_SOURCE_COLUMN_LABEL));
                 return cv;
             } else {
-                throw new ContractRetrievalException("Contract with contract ID: "
-                        + contractId + " and version: " + versionName + " not "
-                        + "found.");
+                throw new ContractRetrievalException("Contract with contract ID: " + contractId + " and version: "
+                        + versionName + " not " + "found.");
             }
         } catch (SQLException e) {
             logger.warn("Exception in getContract", e);
@@ -220,17 +194,12 @@ public class ContractRegistryManager {
      * @param metaData
      * @param byteCode
      * @param sourceCode
-     * @return True if a contract with given version was added successfully,
-     *         False otherwise.
-     * @throws DuplicateContractException
-     *            If there already exists another contract with same contractId
-     *            and versionName, then this method throws this exception.
+     * @return True if a contract with given version was added successfully, False otherwise.
+     * @throws DuplicateContractException If there already exists another contract with same contractId and versionName,
+     *         then this method throws this exception.
      */
-    public boolean
-    addNewContractVersion(String contractId, String ownerAddress,
-            String versionName, String address,
-            String metaData, String byteCode,
-            String sourceCode) throws DuplicateContractException {
+    public boolean addNewContractVersion(String contractId, String ownerAddress, String versionName, String address,
+            String metaData, String byteCode, String sourceCode) throws DuplicateContractException {
         try {
             if (!hasContractVersion(contractId, versionName)) {
                 insertNewVersionPstmt.setString(1, contractId);
@@ -243,9 +212,8 @@ public class ContractRegistryManager {
                 insertNewVersionPstmt.execute();
                 return true;
             } else {
-                throw new DuplicateContractException("ContractVersion with id "
-                        + contractId + " and version: " + versionName
-                        + " already exists.");
+                throw new DuplicateContractException(
+                        "ContractVersion with id " + contractId + " and version: " + versionName + " already exists.");
             }
         } catch (SQLException e) {
             logger.warn("Exception when adding contract: ", e);
@@ -263,16 +231,13 @@ public class ContractRegistryManager {
      * @param versionName
      * @param metaData
      * @param sourceCode
-     * @return True if a contract with given version was updated successfully,
-     *         False otherwise.
-     * @throws DuplicateContractException
-     *            If there already exists another contract with same contractId
-     *            and versionName, then this method throws this exception.
+     * @return True if a contract with given version was updated successfully, False otherwise.
+     * @throws DuplicateContractException If there already exists another contract with same contractId and versionName,
+     *         then this method throws this exception.
      */
-    public boolean
-    updateExistingContractVersion(String existingContractId, String existingVersionName,
-            String contractId, String ownerAddress,
-            String versionName, String metaData, String sourceCode) throws DuplicateContractException {
+    public boolean updateExistingContractVersion(String existingContractId, String existingVersionName,
+            String contractId, String ownerAddress, String versionName, String metaData, String sourceCode)
+            throws DuplicateContractException {
         try {
             if (!hasContractVersion(contractId, versionName)) {
                 updateExistingVersionPstmt.setString(1, contractId);
@@ -285,9 +250,8 @@ public class ContractRegistryManager {
                 updateExistingVersionPstmt.execute();
                 return true;
             } else {
-                throw new DuplicateContractException("ContractVersion with id "
-                        + contractId + " and version: " + versionName
-                        + " already exists.");
+                throw new DuplicateContractException(
+                        "ContractVersion with id " + contractId + " and version: " + versionName + " already exists.");
             }
         } catch (SQLException e) {
             logger.warn("Exception when adding contract: ", e);
@@ -300,24 +264,19 @@ public class ContractRegistryManager {
      * 
      * @param contractId
      * @return The BriefInfo object
-     * @throws ContractRetrievalException
-     *            This exception is thrown when a contract with given contractId
-     *            is not found.
+     * @throws ContractRetrievalException This exception is thrown when a contract with given contractId is not found.
      */
-    public BriefContractInfo
-    getBriefContractInfo(String contractId) throws ContractRetrievalException {
+    public BriefContractInfo getBriefContractInfo(String contractId) throws ContractRetrievalException {
         try {
             getContractInfoPstmt.setString(1, contractId);
             ResultSet rs = getContractInfoPstmt.executeQuery();
             if (rs.isBeforeFirst()) {
                 rs.next();
-                BriefContractInfo bcInfo
-                = new ContractVersion(rs.getString(CONTRACT_ID_COLUMN_LABEL),
+                BriefContractInfo bcInfo = new ContractVersion(rs.getString(CONTRACT_ID_COLUMN_LABEL),
                         rs.getString(CONTRACT_OWNER_COLUMN_LABEL));
                 return bcInfo;
             } else {
-                throw new ContractRetrievalException("Contract with contract ID: "
-                        + contractId + " not found.");
+                throw new ContractRetrievalException("Contract with contract ID: " + contractId + " not found.");
             }
         } catch (SQLException e) {
             logger.warn("Exception when getting contract list ", e);
@@ -326,9 +285,8 @@ public class ContractRegistryManager {
     }
 
     /**
-     * Returns a list of BriefContractInfo objects, containing 1
-     * BriefContractInfo object for every unique contractId present in the
-     * database.
+     * Returns a list of BriefContractInfo objects, containing 1 BriefContractInfo object for every unique contractId
+     * present in the database.
      * 
      * @return The List of BriefContractInfo objects.
      */
@@ -350,8 +308,7 @@ public class ContractRegistryManager {
     }
 
     /**
-     * Retrieves BriefVersionInfo of all available versions of a contract
-     * identified by contractId.
+     * Retrieves BriefVersionInfo of all available versions of a contract identified by contractId.
      * 
      * @param contractId
      * @return Returns a list of all BriefVersionInfo objects.
@@ -371,8 +328,7 @@ public class ContractRegistryManager {
                 versions.add(cv);
             }
         } catch (SQLException e) {
-            logger.warn("Exception when getting version list for contract: "
-                    + contractId, e);
+            logger.warn("Exception when getting version list for contract: " + contractId, e);
         }
         return versions;
     }
