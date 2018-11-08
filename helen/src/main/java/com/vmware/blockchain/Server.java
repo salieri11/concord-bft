@@ -2,14 +2,6 @@
  * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-/**
- * Main class for helen, does some basic initializations and then calls SpringApplication.run() method. This class also
- * does the job of providing all spring related configuration annotations
- *
- * Helen connects to Athena at the backend. Communication between Helen and Athena is via a TCP socket connection.
- * Messages are sent in Google Protocol Buffer format. Responses from Helen to the client are in Json format.
- *
- */
 package com.vmware.blockchain;
 
 import java.io.IOException;
@@ -30,6 +22,13 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 import net.sf.ehcache.config.CacheConfiguration;
 
+/**
+ * Main class for helen, does some basic initializations and then calls SpringApplication.run() method. This class also
+ * does the job of providing all spring related configuration annotations.
+ *
+ * <p>Helen connects to Athena at the backend. Communication between Helen and Athena is via a TCP socket connection.
+ * Messages are sent in Google Protocol Buffer format. Responses from Helen to the client are in Json format.
+ */
 @SpringBootApplication
 @EntityScan(basePackages = "com.vmware.blockchain")
 @EnableJpaRepositories(basePackages = "com.vmware.blockchain")
@@ -43,6 +42,9 @@ public class Server {
         System.setProperty("current.date.time", dateFormat.format(new Date()));
     }
 
+    /**
+     * Main entrypoint for Server.
+     */
     public static void main(String[] args) throws IOException {
         final Logger logger = LogManager.getLogger(Server.class);
         String[] testEnv = {"--spring.profiles.active=test"};

@@ -15,13 +15,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 
 import com.vmware.athena.Athena;
+import com.vmware.blockchain.common.AthenaConnectionException;
 import com.vmware.blockchain.common.AthenaProperties;
-import com.vmware.blockchain.connections.AthenaConnectionException;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.connections.IAthenaConnection;
 import com.vmware.blockchain.services.ethereum.APIHelper;
 import com.vmware.blockchain.services.ethereum.AthenaHelper;
 
+/**
+ * Base for all Helen Controllers.
+ */
 @Controller
 public abstract class BaseServlet {
     protected static final long serialVersionUID = 1L;
@@ -39,10 +42,10 @@ public abstract class BaseServlet {
         standardHeaders.set("Content-Transfer-Encoding", "8BIT");
     }
 
-    protected abstract JSONAware parseToJSON(Athena.AthenaResponse athenaResponse);
+    protected abstract JSONAware parseToJson(Athena.AthenaResponse athenaResponse);
 
     /**
-     * Process get request
+     * Process get request.
      *
      * @param req - Athena request object
      */
@@ -77,7 +80,7 @@ public abstract class BaseServlet {
         JSONAware respObject;
         HttpStatus status;
         if (athenaResponse.getErrorResponseCount() == 0) {
-            respObject = parseToJSON(athenaResponse);
+            respObject = parseToJson(athenaResponse);
             status = respObject == null ? HttpStatus.INTERNAL_SERVER_ERROR : HttpStatus.OK;
         } else {
             Athena.ErrorResponse errorResp = athenaResponse.getErrorResponse(0);

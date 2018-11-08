@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
-import com.vmware.blockchain.common.CustomException;
+import com.vmware.blockchain.common.HelenException;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.services.BaseServlet;
@@ -139,7 +139,7 @@ public class UserAuthenticator extends BaseServlet {
             } else {
                 responseStatus = HttpStatus.BAD_REQUEST;
             }
-        } catch (ParseException | CustomException e) {
+        } catch (ParseException | HelenException e) {
             responseStatus = HttpStatus.BAD_REQUEST;
             responseJSON = APIHelper.errorJSON(e.getMessage());
         }
@@ -184,7 +184,7 @@ public class UserAuthenticator extends BaseServlet {
     }
 
     @Override
-    protected JSONAware parseToJSON(Athena.AthenaResponse athenaResponse) {
+    protected JSONAware parseToJson(Athena.AthenaResponse athenaResponse) {
         return null;
     }
 }

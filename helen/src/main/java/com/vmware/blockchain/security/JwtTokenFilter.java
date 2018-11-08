@@ -4,11 +4,7 @@
 
 package com.vmware.blockchain.security;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.filter.GenericFilterBean;
-
-import com.vmware.blockchain.common.CustomException;
+import java.io.IOException;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -16,8 +12,16 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.filter.GenericFilterBean;
+
+import com.vmware.blockchain.common.HelenException;
+
+/**
+ * Security filter to check that the JWT token is valid.
+ */
 public class JwtTokenFilter extends GenericFilterBean {
 
     private JwtTokenProvider jwtTokenProvider;
@@ -37,7 +41,7 @@ public class JwtTokenFilter extends GenericFilterBean {
                 Authentication auth = token != null ? jwtTokenProvider.getAuthentication(token) : null;
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
-        } catch (CustomException ex) {
+        } catch (HelenException ex) {
             HttpServletResponse response = (HttpServletResponse) res;
             response.sendError(ex.getHttpStatus().value(), ex.getMessage());
             return;

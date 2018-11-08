@@ -18,6 +18,9 @@ import org.springframework.stereotype.Service;
 import com.vmware.blockchain.services.profiles.User;
 import com.vmware.blockchain.services.profiles.UserRepository;
 
+/**
+ * User details as required by Spring Security.
+ */
 @Service
 public class MyUserDetails implements UserDetailsService {
     static final Logger logger = LogManager.getLogger(MyUserDetails.class);

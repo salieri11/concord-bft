@@ -342,7 +342,7 @@ public final class EthDispatcher extends BaseServlet {
      * Not required for this Servlet as each handler builds its response object separately.
      */
     @Override
-    protected JSONAware parseToJSON(AthenaResponse athenaResponse) {
+    protected JSONAware parseToJson(AthenaResponse athenaResponse) {
         throw new UnsupportedOperationException("parseToJSON method is not " + "supported in EthDispatcher Servlet");
     }
 }

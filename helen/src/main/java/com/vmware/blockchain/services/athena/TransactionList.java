@@ -4,8 +4,6 @@
 
 package com.vmware.blockchain.services.athena;
 
-import java.io.IOException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
@@ -25,11 +23,14 @@ import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.ethereum.APIHelper;
 
+/**
+ * Controller to get transaction lists.
+ */
 @Controller
 public class TransactionList extends BaseServlet {
 
     private static final long serialVersionUID = 1L;
-    private final static Logger logger = LogManager.getLogger(TransactionList.class);
+    private static final Logger logger = LogManager.getLogger(TransactionList.class);
     private final String transactionListEndpoint = config.getTransactionList_Endpoint();
 
     @Autowired
@@ -42,9 +43,6 @@ public class TransactionList extends BaseServlet {
      * request) as defined in athena.proto. Sends this request to Athena. Parses the response and converts it into json
      * for responding to the client.
      *
-     * @param request The request received by the servlet
-     * @param response The response object used to respond to the client
-     * @throws IOException
      */
     @RequestMapping(path = "/api/athena/transactions", method = RequestMethod.GET)
     public ResponseEntity<JSONAware> doGet(
@@ -83,25 +81,25 @@ public class TransactionList extends BaseServlet {
      */
     @SuppressWarnings("unchecked")
     @Override
-    protected JSONAware parseToJSON(Athena.AthenaResponse athenaResponse) {
+    protected JSONAware parseToJson(Athena.AthenaResponse athenaResponse) {
         // Extract the transaction response from
         // the athena reponse envelope.
         Athena.TransactionListResponse txListResponse = athenaResponse.getTransactionListResponse();
 
         // Construct the reponse JSON object.
-        JSONObject responseJSON = new JSONObject();
+        JSONObject responseJson = new JSONObject();
         JSONArray trArray = new JSONArray();
         for (Athena.TransactionResponse tr : txListResponse.getTransactionList()) {
-            JSONObject trJson = Transaction.buildTransactionResponseJSON(tr);
+            JSONObject trJson = Transaction.buildTransactionResponseJson(tr);
             trJson.put("url", transactionListEndpoint + "/" + APIHelper.binaryStringToHex(tr.getHash()));
             trArray.add(trJson);
         }
 
-        responseJSON.put("transactions", trArray);
+        responseJson.put("transactions", trArray);
         if (txListResponse.hasNext()) {
-            responseJSON.put("next",
+            responseJson.put("next",
                     transactionListEndpoint + "?latest=" + APIHelper.binaryStringToHex(txListResponse.getNext()));
         }
-        return responseJSON;
+        return responseJson;
     }
 }

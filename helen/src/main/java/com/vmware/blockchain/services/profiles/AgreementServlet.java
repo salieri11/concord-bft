@@ -77,7 +77,7 @@ public class AgreementServlet extends BaseServlet {
     }
 
     @Override
-    protected JSONAware parseToJSON(Athena.AthenaResponse athenaResponse) {
+    protected JSONAware parseToJson(Athena.AthenaResponse athenaResponse) {
         throw new UnsupportedOperationException("parseToJSON method is not " + "supported in ProfileManager class");
     }
 }

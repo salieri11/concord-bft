@@ -13,6 +13,9 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.PathResourceResolver;
 
+/**
+ * Configuration file for Helen.
+ */
 @Configuration
 public class HelenSpringWebConfig implements WebMvcConfigurer {
 

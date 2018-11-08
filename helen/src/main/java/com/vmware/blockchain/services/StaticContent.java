@@ -6,10 +6,12 @@ package com.vmware.blockchain.services;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+/**
+ * Controller to serve up swagger document.
+ */
 @Controller
 public class StaticContent {
 
@@ -18,7 +20,7 @@ public class StaticContent {
 
     // TODO: move these strings to properties file
     @RequestMapping(path = "/api")
-    public String handleAPIRequest() {
+    public String handleApiRequest() {
         return "swagger.json";
     }
 

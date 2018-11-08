@@ -81,7 +81,7 @@ public class BlockList extends BaseServlet {
      */
     @SuppressWarnings("unchecked")
     @Override
-    protected JSONAware parseToJSON(Athena.AthenaResponse athenaResponse) {
+    protected JSONAware parseToJson(Athena.AthenaResponse athenaResponse) {
         try {
             // Extract the blocklist response
             // from the athena reponse envelope.

@@ -81,7 +81,7 @@ public class BlockNumber extends BaseServlet {
      */
     @SuppressWarnings("unchecked")
     @Override
-    protected JSONObject parseToJSON(Athena.AthenaResponse athenaResponse) {
+    protected JSONObject parseToJson(Athena.AthenaResponse athenaResponse) {
 
         // Extract the blocknumber response
         // from the athena reponse envelope.
@@ -93,10 +93,10 @@ public class BlockNumber extends BaseServlet {
 
         for (Athena.TransactionResponse t : list) {
             String hash = APIHelper.binaryStringToHex(t.getHash());
-            JSONObject txJSON = new JSONObject();
-            txJSON.put("hash", hash);
-            txJSON.put("url", config.getTransaction_URLPrefix() + hash);
-            transactionArr.add(txJSON);
+            JSONObject txJson = new JSONObject();
+            txJson.put("hash", hash);
+            txJson.put("url", config.getTransaction_URLPrefix() + hash);
+            transactionArr.add(txJson);
         }
 
         JSONObject blockObj = new JSONObject();
