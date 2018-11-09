@@ -14,6 +14,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import com.vmware.blockchain.common.AthenaProperties;
 
+/**
+ * Connections Unit test configuration.
+ */
 @RunWith(SpringRunner.class)
 @TestPropertySource(locations = "classpath:test.properties")
 @SpringBootTest(classes = AthenaProperties.class)

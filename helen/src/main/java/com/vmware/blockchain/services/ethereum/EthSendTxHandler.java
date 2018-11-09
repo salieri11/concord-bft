@@ -146,20 +146,6 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
         final ByteString value = nextPart(parser, "value");
         final ByteString data = nextPart(parser, "data");
         final ByteString vV = nextPart(parser, "signature V");
-
-        if (!parser.atEnd()) {
-            throw new EthRpcHandlerException("Unable to parse raw transaction (extra data in envelope)");
-        }
-
-        final long nonce = ApiHelper.bytesToLong(nonceV);
-        final long gasPrice = ApiHelper.bytesToLong(gasPriceV);
-        final long gas = ApiHelper.bytesToLong(gasV);
-        final long v = ApiHelper.bytesToLong(vV);
-
-        if (to.size() != 0 && to.size() != 20) {
-            throw new EthRpcHandlerException("Invalid raw transaction (to address too short)");
-        }
-
         ByteString r = nextPart(parser, "signature R");
         if (r.size() > 32) {
             throw new EthRpcHandlerException("Invalid raw transaction (signature R too large)");
@@ -168,7 +154,6 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
             byte[] leadingZeros = new byte[32 - r.size()];
             r = ByteString.copyFrom(leadingZeros).concat(r);
         }
-
         ByteString s = nextPart(parser, "signature S");
         if (s.size() > 32) {
             throw new EthRpcHandlerException("Invalid raw transaction (signature S too large)");
@@ -177,6 +162,20 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
             byte[] leadingZeros = new byte[32 - s.size()];
             s = ByteString.copyFrom(leadingZeros).concat(s);
         }
+
+        if (!parser.atEnd()) {
+            throw new EthRpcHandlerException("Unable to parse raw transaction (extra data in envelope)");
+        }
+
+        if (to.size() != 0 && to.size() != 20) {
+            throw new EthRpcHandlerException("Invalid raw transaction (to address too short)");
+        }
+
+
+        final long nonce = ApiHelper.bytesToLong(nonceV);
+        final long gasPrice = ApiHelper.bytesToLong(gasPriceV);
+        final long gas = ApiHelper.bytesToLong(gasV);
+        final long v = ApiHelper.bytesToLong(vV);
 
         b.setNonce(nonce);
         b.setGasPrice(gasPrice);

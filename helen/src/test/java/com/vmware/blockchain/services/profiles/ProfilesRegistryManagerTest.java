@@ -30,15 +30,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.common.UserModificationException;
-import com.vmware.blockchain.services.profiles.Consortium;
-import com.vmware.blockchain.services.profiles.ConsortiumRepository;
-import com.vmware.blockchain.services.profiles.Organization;
-import com.vmware.blockchain.services.profiles.OrganizationRepository;
-import com.vmware.blockchain.services.profiles.ProfilesRegistryManager;
-import com.vmware.blockchain.services.profiles.Roles;
-import com.vmware.blockchain.services.profiles.User;
-import com.vmware.blockchain.services.profiles.UserRepository;
-import com.vmware.blockchain.services.profiles.UsersApiMessage;
 
 /**
  * Tests for the ProfilesRegistryManager.
