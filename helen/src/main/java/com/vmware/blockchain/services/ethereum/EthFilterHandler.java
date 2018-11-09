@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.services.ethereum;
 
 import org.apache.logging.log4j.LogManager;
@@ -11,16 +15,11 @@ import com.vmware.athena.Athena.EthRequest.EthMethod;
 import com.vmware.athena.Athena.EthResponse;
 import com.vmware.athena.Athena.FilterRequest;
 import com.vmware.athena.Athena.FilterRequest.FilterRequestType;
-import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.athena.Athena.FilterResponse;
+import com.vmware.blockchain.common.AthenaProperties;
 
 /**
- * <p>
- * Copyright 2018 VMware, all rights reserved
- * </p>
- *
- * <p>
- * This handler is used to service following types of filter requests:
+ * This handler is used to service following types of filter requests.
  * <ul>
  * <li>eth_newBlockFilter</li>
  * <li>eth_newFilter(TODO)</li>
@@ -30,7 +29,7 @@ import com.vmware.athena.Athena.FilterResponse;
  * </ul>
  * </p>
  */
-public class EthFilterHandler extends AbstractEthRPCHandler {
+public class EthFilterHandler extends AbstractEthRpcHandler {
 
     private static Logger logger = LogManager.getLogger(EthFilterHandler.class);
 
@@ -42,10 +41,6 @@ public class EthFilterHandler extends AbstractEthRPCHandler {
     /**
      * Builds the EthRequest Object from the type of eth request specified in requestJson. Adds the built request into
      * AthenaRequest using given builder.
-     *
-     * @param builder
-     * @param requestJson
-     * @throws Exception
      */
     public void buildRequest(Athena.AthenaRequest.Builder builder, JSONObject requestJson) throws Exception {
         Athena.EthRequest.Builder b = initializeRequestObject(requestJson);
@@ -67,12 +62,12 @@ public class EthFilterHandler extends AbstractEthRPCHandler {
         } else if (ethMethodName.equals(config.getFilterChange_Name())) {
             FilterRequest.Builder fb = FilterRequest.newBuilder();
             fb.setType(FilterRequestType.FILTER_CHANGE_REQUEST);
-            fb.setFilterId(APIHelper.hexStringToBinary((String) params.get(0)));
+            fb.setFilterId(ApiHelper.hexStringToBinary((String) params.get(0)));
             b.setFilterRequest(fb.build());
         } else if (ethMethodName.equals(config.getUninstallFilter_Name())) {
             FilterRequest.Builder fb = FilterRequest.newBuilder();
             fb.setType(FilterRequestType.UNINSTALL_FILTER);
-            fb.setFilterId(APIHelper.hexStringToBinary((String) params.get(0)));
+            fb.setFilterId(ApiHelper.hexStringToBinary((String) params.get(0)));
             b.setFilterRequest(fb.build());
         }
 
@@ -88,7 +83,6 @@ public class EthFilterHandler extends AbstractEthRPCHandler {
      * @param athenaResponse Object of AthenaResponse
      * @param requestJson The original request Json
      * @return the reply JSON object made from FilterResponse object inside AthenaResponse.
-     * @throws Exception
      */
     @SuppressWarnings("unchecked")
     public JSONObject buildResponse(Athena.AthenaResponse athenaResponse, JSONObject requestJson) throws Exception {
@@ -100,12 +94,12 @@ public class EthFilterHandler extends AbstractEthRPCHandler {
             if (ethMethodName.equals(config.getNewFilter_Name())
                     || ethMethodName.equals(config.getNewBlockFilter_Name())
                     || ethMethodName.equals(config.getNewPendingTransactionFilter_Name())) {
-                respObject.put("result", APIHelper.binaryStringToHex(ethResponse.getFilterResponse().getFilterId()));
+                respObject.put("result", ApiHelper.binaryStringToHex(ethResponse.getFilterResponse().getFilterId()));
             } else if (ethMethodName.equals(config.getFilterChange_Name())) {
                 JSONArray arr = new JSONArray();
                 FilterResponse fresponse = ethResponse.getFilterResponse();
                 for (ByteString hash : fresponse.getBlockHashesList()) {
-                    arr.add(APIHelper.binaryStringToHex(hash));
+                    arr.add(ApiHelper.binaryStringToHex(hash));
                 }
                 respObject.put("result", arr);
             } else {

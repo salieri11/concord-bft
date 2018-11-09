@@ -1,12 +1,7 @@
-/**
- * url endpoint : /api/athena/blocks/{N}
- *
- * Used to fetch a specific block from the chain.
- *
- * This servlet is used to send BlockNumber Requests to Athena and to parse the responses into JSON. A TCP socket
- * connection is made to Athena and requests and responses are encoded in the Google Protocol Buffer format.
- *
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
+
 package com.vmware.blockchain.services.athena;
 
 import java.util.List;
@@ -28,7 +23,7 @@ import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
-import com.vmware.blockchain.services.ethereum.APIHelper;
+import com.vmware.blockchain.services.ethereum.ApiHelper;
 
 /**
  * Servlet class.
@@ -63,7 +58,7 @@ public class BlockNumber extends BaseServlet {
                 number = Long.parseLong(block);
                 blockRequestObj = Athena.BlockRequest.newBuilder().setNumber(number).build();
             } else {
-                blockRequestObj = Athena.BlockRequest.newBuilder().setHash(APIHelper.hexStringToBinary(block)).build();
+                blockRequestObj = Athena.BlockRequest.newBuilder().setHash(ApiHelper.hexStringToBinary(block)).build();
             }
 
             // Envelope the blockRequest object into an athena object.
@@ -73,7 +68,7 @@ public class BlockNumber extends BaseServlet {
 
         } catch (Exception e) {
             logger.error("Invalid block number or hash");
-            return new ResponseEntity<>(APIHelper.errorJSON("Invalid block number or hash"), standardHeaders,
+            return new ResponseEntity<>(ApiHelper.errorJson("Invalid block number or hash"), standardHeaders,
                     HttpStatus.BAD_REQUEST);
         }
     }
@@ -86,7 +81,7 @@ public class BlockNumber extends BaseServlet {
      */
     @SuppressWarnings("unchecked")
     @Override
-    protected JSONObject parseToJSON(Athena.AthenaResponse athenaResponse) {
+    protected JSONObject parseToJson(Athena.AthenaResponse athenaResponse) {
 
         // Extract the blocknumber response
         // from the athena reponse envelope.
@@ -97,11 +92,11 @@ public class BlockNumber extends BaseServlet {
         List<Athena.TransactionResponse> list = blockResponse.getTransactionList();
 
         for (Athena.TransactionResponse t : list) {
-            String hash = APIHelper.binaryStringToHex(t.getHash());
-            JSONObject txJSON = new JSONObject();
-            txJSON.put("hash", hash);
-            txJSON.put("url", config.getTransaction_URLPrefix() + hash);
-            transactionArr.add(txJSON);
+            String hash = ApiHelper.binaryStringToHex(t.getHash());
+            JSONObject txJson = new JSONObject();
+            txJson.put("hash", hash);
+            txJson.put("url", config.getTransaction_URLPrefix() + hash);
+            transactionArr.add(txJson);
         }
 
         JSONObject blockObj = new JSONObject();
@@ -109,12 +104,12 @@ public class BlockNumber extends BaseServlet {
 
         blockObj.put("number", blockResponse.getNumber());
 
-        String hash = APIHelper.binaryStringToHex(blockResponse.getHash());
-        String parentHash = APIHelper.binaryStringToHex(blockResponse.getParentHash());
+        String hash = ApiHelper.binaryStringToHex(blockResponse.getHash());
+        String parentHash = ApiHelper.binaryStringToHex(blockResponse.getParentHash());
 
         blockObj.put("hash", hash);
         blockObj.put("parentHash", parentHash);
-        blockObj.put("nonce", APIHelper.binaryStringToHex(blockResponse.getNonce()));
+        blockObj.put("nonce", ApiHelper.binaryStringToHex(blockResponse.getNonce()));
         blockObj.put("size", blockResponse.getSize());
 
         if (blockResponse.hasTimestamp()) {

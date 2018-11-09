@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.services.ethereum;
 
 import java.io.UnsupportedEncodingException;
@@ -12,17 +16,13 @@ import com.google.protobuf.ByteString;
 import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
-import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.athena.Athena.EthResponse;
+import com.vmware.blockchain.common.AthenaProperties;
 
 /**
- * <p>
- * Copyright 2018 VMware, all rights reserved.
- * </p>
- *
  * This handler is used to service personal_newAccount POST requests.
  */
-public class EthNewAccountHandler extends AbstractEthRPCHandler {
+public class EthNewAccountHandler extends AbstractEthRpcHandler {
 
     public EthNewAccountHandler(AthenaProperties config) {
         super(config);
@@ -35,7 +35,7 @@ public class EthNewAccountHandler extends AbstractEthRPCHandler {
      * Builds the Athena request builder. Extracts the passphrase from the request and uses it to set up an Athena
      * Request builder with an EthRequest.
      *
-     * @param builder Object in which request is built
+     * @param athenaRequestBuilder Object in which request is built
      * @param requestJson Request parameters passed by the user
      */
     @Override
@@ -52,7 +52,7 @@ public class EthNewAccountHandler extends AbstractEthRPCHandler {
                 b.setData(ByteString.copyFrom(passphrase, StandardCharsets.UTF_8.name()));
             } catch (UnsupportedEncodingException e) {
                 logger.error("Invalid passphrase");
-                throw new EthRPCHandlerException(
+                throw new EthRpcHandlerException(
                         EthDispatcher.errorMessage("Invalid passphrase", b.getId(), jsonRpc).toJSONString());
             }
             ethRequest = b.build();
@@ -75,7 +75,7 @@ public class EthNewAccountHandler extends AbstractEthRPCHandler {
     public JSONObject buildResponse(Athena.AthenaResponse athenaResponse, JSONObject requestJson) {
         EthResponse ethResponse = athenaResponse.getEthResponse(0);
         JSONObject respObject = initializeResponseObject(ethResponse);
-        respObject.put("result", APIHelper.binaryStringToHex(ethResponse.getData()));
+        respObject.put("result", ApiHelper.binaryStringToHex(ethResponse.getData()));
         return respObject;
     }
 }

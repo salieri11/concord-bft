@@ -1,7 +1,7 @@
-/**
- * This singleton class contains methods to implement connection pooling for Helen. The timeout and pool size can be
- * adjusted from the application.properties file.
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
+
 package com.vmware.blockchain.connections;
 
 import java.io.IOException;
@@ -100,17 +100,13 @@ public class AthenaConnectionPool {
 
     /**
      * Removes a connection from the connection pool data structure, checks it, and returns it.
-     *
-     * @return
-     * @throws IOException
-     * @throws IllegalStateException
-     * @throws InterruptedException
      */
     public IAthenaConnection getConnection() throws IOException, IllegalStateException, InterruptedException {
         log.trace("getConnection enter");
 
-        if (!initialized.get())
+        if (!initialized.get()) {
             throw new IllegalStateException("getConnection, pool not initialized");
+        }
 
         boolean first = true;
         long start = System.currentTimeMillis();
@@ -153,16 +149,13 @@ public class AthenaConnectionPool {
 
     /**
      * Adds a connection to the connection pool data structure.
-     *
-     * @param conn
-     * @throws IllegalStateException
-     * @throws NullPointerException
      */
     public void putConnection(IAthenaConnection conn) throws IllegalStateException, NullPointerException {
         log.trace("putConnection enter");
 
-        if (!initialized.get())
+        if (!initialized.get()) {
             throw new IllegalStateException("returnConnection, pool not initialized");
+        }
 
         // cannot be null in normal flow
         if (conn == null) {
@@ -182,9 +175,6 @@ public class AthenaConnectionPool {
 
     /**
      * Reads connection pool related configurations.
-     *
-     * @param conf
-     * @throws IOException
      */
     public AthenaConnectionPool initialize(AthenaProperties config, AthenaConnectionFactory factory)
             throws IOException {
@@ -207,7 +197,7 @@ public class AthenaConnectionPool {
     }
 
     /**
-     * Closes all connections in the connection pool
+     * Closes all connections in the connection pool.
      */
     public void closeAll() {
         initialized.set(false);
@@ -220,9 +210,7 @@ public class AthenaConnectionPool {
     }
 
     /**
-     * Returns total number of connections
-     *
-     * @return
+     * Returns total number of connections.
      */
     public int getTotalConnections() {
         if (!initialized.get()) {

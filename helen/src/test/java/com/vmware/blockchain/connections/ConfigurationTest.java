@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.connections;
 
 import org.junit.Assert;
@@ -10,6 +14,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import com.vmware.blockchain.common.AthenaProperties;
 
+/**
+ * Connections Unit test configuration.
+ */
 @RunWith(SpringRunner.class)
 @TestPropertySource(locations = "classpath:test.properties")
 @SpringBootTest(classes = AthenaProperties.class)

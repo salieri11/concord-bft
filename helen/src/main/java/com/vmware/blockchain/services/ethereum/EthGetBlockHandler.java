@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.services.ethereum;
 
 import java.util.List;
@@ -10,19 +14,15 @@ import org.json.simple.JSONObject;
 import com.google.protobuf.ByteString;
 import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.AthenaRequest.Builder;
-import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.athena.Athena.AthenaResponse;
 import com.vmware.athena.Athena.BlockResponse;
 import com.vmware.athena.Athena.TransactionResponse;
+import com.vmware.blockchain.common.AthenaProperties;
 
 /**
- * <p>
- * Copyright 2018 VMware, all rights reserved.
- * </p>
- *
  * This handler is used to service eth_getBlockByHash POST requests.
  */
-public class EthGetBlockHandler extends AbstractEthRPCHandler {
+public class EthGetBlockHandler extends AbstractEthRpcHandler {
 
     Logger logger = LogManager.getLogger(EthGetBlockHandler.class);
 
@@ -78,7 +78,7 @@ public class EthGetBlockHandler extends AbstractEthRPCHandler {
                 }
                 blockRequestObj = Athena.BlockRequest.newBuilder().setNumber(requestedBlockNumber).build();
             } else { // BlockByHash_Name
-                ByteString blockHash = APIHelper.hexStringToBinary((String) params.get(0));
+                ByteString blockHash = ApiHelper.hexStringToBinary((String) params.get(0));
                 blockRequestObj = Athena.BlockRequest.newBuilder().setHash(blockHash).build();
             }
 
@@ -110,9 +110,9 @@ public class EthGetBlockHandler extends AbstractEthRPCHandler {
 
         JSONObject result = new JSONObject();
         result.put("number", "0x" + Long.toHexString(blockResponseObj.getNumber()));
-        result.put("hash", APIHelper.binaryStringToHex(blockResponseObj.getHash()));
-        result.put("parentHash", APIHelper.binaryStringToHex(blockResponseObj.getParentHash()));
-        result.put("nonce", APIHelper.binaryStringToHex(blockResponseObj.getNonce()));
+        result.put("hash", ApiHelper.binaryStringToHex(blockResponseObj.getHash()));
+        result.put("parentHash", ApiHelper.binaryStringToHex(blockResponseObj.getParentHash()));
+        result.put("nonce", ApiHelper.binaryStringToHex(blockResponseObj.getNonce()));
         result.put("size", blockResponseObj.getSize());
 
         if (blockResponseObj.hasTimestamp()) {
@@ -129,16 +129,16 @@ public class EthGetBlockHandler extends AbstractEthRPCHandler {
         if (flag) {
             for (TransactionResponse tr : list) {
                 JSONObject transaction = new JSONObject();
-                transaction.put("hash", APIHelper.binaryStringToHex(tr.getHash()));
+                transaction.put("hash", ApiHelper.binaryStringToHex(tr.getHash()));
                 transaction.put("nonce", "0x" + Long.toHexString(tr.getNonce()));
-                transaction.put("blockHash", APIHelper.binaryStringToHex(tr.getBlockHash()));
+                transaction.put("blockHash", ApiHelper.binaryStringToHex(tr.getBlockHash()));
                 transaction.put("blockNumber", "0x" + Long.toHexString(tr.getBlockNumber()));
                 transaction.put("transactionIndex", "0x" + Long.toHexString(tr.getTransactionIndex()));
-                transaction.put("from", APIHelper.binaryStringToHex(tr.getFrom()));
-                transaction.put("to", APIHelper.binaryStringToHex(tr.getTo()));
+                transaction.put("from", ApiHelper.binaryStringToHex(tr.getFrom()));
+                transaction.put("to", ApiHelper.binaryStringToHex(tr.getTo()));
                 transaction.put("value", "0x" + Long.toString(tr.getValue()));
-                transaction.put("input", APIHelper.binaryStringToHex(tr.getInput()));
-                transaction.put("contractAddress", APIHelper.binaryStringToHex(tr.getContractAddress()));
+                transaction.put("input", ApiHelper.binaryStringToHex(tr.getInput()));
+                transaction.put("contractAddress", ApiHelper.binaryStringToHex(tr.getContractAddress()));
                 transaction.put("logs", EthGetTxReceiptHandler.buildLogs(tr));
 
                 transactions.add(transaction);
@@ -147,7 +147,7 @@ public class EthGetBlockHandler extends AbstractEthRPCHandler {
         // only include the transaction hashes
         else {
             for (TransactionResponse tr : list) {
-                transactions.add(APIHelper.binaryStringToHex(tr.getHash()));
+                transactions.add(ApiHelper.binaryStringToHex(tr.getHash()));
             }
         }
         result.put("transactions", transactions);

@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.services.ethereum;
 
 import org.apache.logging.log4j.LogManager;
@@ -10,18 +14,12 @@ import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
 
 /**
- * <p>
- * Copyright 2018 VMware, all rights reserved.
- * </p>
- *
- * <p>
  * This Handler is used for handling all `eth_getTransactionReceipt` types of requests. EthGetTxReceiptHandler is little
  * different than other handlers because It leverages already existing `TransactionReceipt` AthenaRequest to handle
  * `eth_getTransactionReceipt` requests (see Transaction.java file which implements this API). Hence, in this handler we
  * actually put a `TransactionRequest` inside AthenaRequest and read a TransactionResponse from AthenaResponse.
- * </p>
  */
-public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
+public class EthGetTxReceiptHandler extends AbstractEthRpcHandler {
 
     public EthGetTxReceiptHandler(AthenaProperties config) {
         super(config);
@@ -35,7 +33,6 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
      *
      * @param builder Athena Request Builder.
      * @param requestJson The JSONObject of original RPC request.
-     * @throws Exception
      */
     public void buildRequest(Athena.AthenaRequest.Builder builder, JSONObject requestJson) throws Exception {
         try {
@@ -43,7 +40,7 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
             // Construct a transaction request object.
             JSONArray params = extractRequestParams(requestJson);
             String txHash = (String) params.get(0);
-            ByteString hashBytes = APIHelper.hexStringToBinary(txHash);
+            ByteString hashBytes = ApiHelper.hexStringToBinary(txHash);
 
             Athena.TransactionRequest txRequestObj = Athena.TransactionRequest.newBuilder().setHash(hashBytes).build();
             builder.setTransactionRequest(txRequestObj);
@@ -56,9 +53,6 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
     /**
      * Since the parents initializeResponseObject method takes EthResponse object as input we override it here to take
      * in the id directly.
-     *
-     * @param id
-     * @return
      */
     @SuppressWarnings("unchecked")
     JSONObject initializeResponseObject(long id) {
@@ -87,12 +81,12 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
 
             JSONObject result = new JSONObject();
 
-            result.put("transactionHash", APIHelper.binaryStringToHex(transactionResponse.getHash()));
+            result.put("transactionHash", ApiHelper.binaryStringToHex(transactionResponse.getHash()));
             result.put("transactionIndex", transactionResponse.getTransactionIndex());
             result.put("blockNumber", transactionResponse.getBlockNumber());
-            result.put("blockHash", APIHelper.binaryStringToHex(transactionResponse.getBlockHash()));
+            result.put("blockHash", ApiHelper.binaryStringToHex(transactionResponse.getBlockHash()));
             if (transactionResponse.hasContractAddress()) {
-                result.put("contractAddress", APIHelper.binaryStringToHex(transactionResponse.getContractAddress()));
+                result.put("contractAddress", ApiHelper.binaryStringToHex(transactionResponse.getContractAddress()));
             } else {
                 result.put("contractAddress", null);
             }
@@ -114,25 +108,28 @@ public class EthGetTxReceiptHandler extends AbstractEthRPCHandler {
         return respObject;
     }
 
+    /**
+     * Build the loggin JSON.
+     */
     public static JSONArray buildLogs(Athena.TransactionResponse transactionResponse) {
         JSONArray logs = new JSONArray();
         for (int i = 0; i < transactionResponse.getLogCount(); i++) {
             Athena.LogResponse log = transactionResponse.getLog(i);
-            JSONObject logJSON = new JSONObject();
-            logJSON.put("address", APIHelper.binaryStringToHex(log.getAddress()));
+            JSONObject logJson = new JSONObject();
+            logJson.put("address", ApiHelper.binaryStringToHex(log.getAddress()));
 
             JSONArray topics = new JSONArray();
             for (int j = 0; j < log.getTopicCount(); j++) {
-                topics.add(APIHelper.binaryStringToHex(log.getTopic(j)));
+                topics.add(ApiHelper.binaryStringToHex(log.getTopic(j)));
             }
-            logJSON.put("topics", topics);
+            logJson.put("topics", topics);
 
             if (log.hasData()) {
-                logJSON.put("data", APIHelper.binaryStringToHex(log.getData()));
+                logJson.put("data", ApiHelper.binaryStringToHex(log.getData()));
             } else {
-                logJSON.put("data", "0x");
+                logJson.put("data", "0x");
             }
-            logs.add(logJSON);
+            logs.add(logJson);
         }
         return logs;
     }

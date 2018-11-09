@@ -1,6 +1,5 @@
-/**
- * Copyright 2018 VMware, all rights reserved.
- *
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.security;
@@ -19,6 +18,9 @@ import org.springframework.stereotype.Service;
 import com.vmware.blockchain.services.profiles.User;
 import com.vmware.blockchain.services.profiles.UserRepository;
 
+/**
+ * User details as required by Spring Security.
+ */
 @Service
 public class MyUserDetails implements UserDetailsService {
     static final Logger logger = LogManager.getLogger(MyUserDetails.class);
@@ -38,15 +40,9 @@ public class MyUserDetails implements UserDetailsService {
 
         User u = user.get();
 
-        return org.springframework.security.core.userdetails.User
-                .withUsername(email)
-                .password(u.getPassword())
-                .authorities(u.getRoles())
-                .accountExpired(false)
-                .accountLocked(false)
-                .credentialsExpired(false)
-                .disabled(false)
-                .build();
+        return org.springframework.security.core.userdetails.User.withUsername(email).password(u.getPassword())
+                .authorities(u.getRoles()).accountExpired(false).accountLocked(false).credentialsExpired(false)
+                .disabled(false).build();
     }
 
 }

@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.services.ethereum;
 
 import org.json.simple.JSONArray;
@@ -23,14 +27,14 @@ import com.vmware.blockchain.common.AthenaProperties;
  * Concrete helper methods have been implemented for performing some common actions on request/response objects.
  * </p>
  */
-public abstract class AbstractEthRPCHandler {
+public abstract class AbstractEthRpcHandler {
 
     // Configuration handles
     protected AthenaProperties config;
 
     protected String jsonRpc;
 
-    public AbstractEthRPCHandler(AthenaProperties config) {
+    public AbstractEthRpcHandler(AthenaProperties config) {
         this.config = config;
         this.jsonRpc = config.getJSONRPC();
     }
@@ -41,9 +45,8 @@ public abstract class AbstractEthRPCHandler {
      *
      * @param builder Builder object in which parameters are set.
      * @param requestJson User request
-     * @throws Exception
      */
-    abstract public void buildRequest(Athena.AthenaRequest.Builder builder, JSONObject requestJson) throws Exception;
+    public abstract void buildRequest(Athena.AthenaRequest.Builder builder, JSONObject requestJson) throws Exception;
 
     /**
      * This method extracts the relevant parameters from an AthenaResponse and uses them to build a JSONObject which is
@@ -52,9 +55,8 @@ public abstract class AbstractEthRPCHandler {
      * @param athenaResponse Response received from Athena.
      * @param requestJson User request.
      * @return Response object to be returned to the user.
-     * @throws Exception
      */
-    abstract public JSONObject buildResponse(Athena.AthenaResponse athenaResponse, JSONObject requestJson)
+    public abstract JSONObject buildResponse(Athena.AthenaResponse athenaResponse, JSONObject requestJson)
             throws Exception;
 
     /**
@@ -62,9 +64,8 @@ public abstract class AbstractEthRPCHandler {
      *
      * @param requestJson User request
      * @return Newly initialized EthRequest builder object.
-     * @throws Exception
      */
-    EthRequest.Builder initializeRequestObject(JSONObject requestJson) throws EthRPCHandlerException {
+    EthRequest.Builder initializeRequestObject(JSONObject requestJson) throws EthRpcHandlerException {
         EthRequest.Builder b = Athena.EthRequest.newBuilder();
         long id = EthDispatcher.getEthRequestId(requestJson);
         b.setId(id);
@@ -76,17 +77,16 @@ public abstract class AbstractEthRPCHandler {
      *
      * @param requestJson User request
      * @return the "params" array
-     * @throws Exception
      */
-    JSONArray extractRequestParams(JSONObject requestJson) throws EthRPCHandlerException {
+    JSONArray extractRequestParams(JSONObject requestJson) throws EthRpcHandlerException {
         JSONArray params = null;
         try {
             params = (JSONArray) requestJson.get("params");
             if (params == null) {
-                throw new EthRPCHandlerException("'params' not present");
+                throw new EthRpcHandlerException("'params' not present");
             }
         } catch (ClassCastException cse) {
-            throw new EthRPCHandlerException("'params' must be an array");
+            throw new EthRpcHandlerException("'params' must be an array");
         }
         return params;
     }

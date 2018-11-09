@@ -1,22 +1,28 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.services.ethereum;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.springframework.http.HttpStatus;
 
 import com.google.protobuf.ByteString;
+import com.vmware.blockchain.common.HelenException;
 
-class RLPParser {
+class RlpParser {
 
-    Logger logger = LogManager.getLogger(RLPParser.class);
+    Logger logger = LogManager.getLogger(RlpParser.class);
 
     private ByteString input;
-    private int offset = 0;
+    private int offset;
 
-    public RLPParser(String hexData) throws APIHelper.HexParseException {
-        input = APIHelper.hexStringToBinary(hexData);
+    public RlpParser(String hexData) throws ApiHelper.HexParseException {
+        input = ApiHelper.hexStringToBinary(hexData);
     }
 
-    public RLPParser(ByteString binData) {
+    public RlpParser(ByteString binData) {
         input = binData;
     }
 
@@ -24,9 +30,9 @@ class RLPParser {
         return offset == input.size();
     }
 
-    public ByteString next() throws RLPEmptyException {
+    public ByteString next() throws RlpEmptyException {
         if (atEnd()) {
-            throw new RLPEmptyException();
+            throw new RlpEmptyException();
         }
 
         int tag = 0xff & input.byteAt(offset);
@@ -53,10 +59,10 @@ class RLPParser {
         }
     }
 
-    private ByteString shortRun(int length) throws RLPEmptyException {
+    private ByteString shortRun(int length) throws RlpEmptyException {
         if (offset + length > input.size()) {
             offset = input.size();
-            throw new RLPEmptyException();
+            throw new RlpEmptyException();
         }
 
         ByteString value = input.substring(offset, offset + length);
@@ -64,10 +70,10 @@ class RLPParser {
         return value;
     }
 
-    private ByteString longRun(int lengthLength) throws RLPEmptyException {
+    private ByteString longRun(int lengthLength) throws RlpEmptyException {
         if (offset + lengthLength > input.size()) {
             offset = input.size();
-            throw new RLPEmptyException();
+            throw new RlpEmptyException();
         }
 
         /*
@@ -89,7 +95,7 @@ class RLPParser {
 
         if (offset + length > input.size()) {
             offset = input.size();
-            throw new RLPEmptyException();
+            throw new RlpEmptyException();
         }
 
         ByteString value = input.substring(offset, offset + length);
@@ -97,9 +103,9 @@ class RLPParser {
         return value;
     }
 
-    public static class RLPEmptyException extends Exception {
-        public RLPEmptyException() {
-            super("No more bytes in RLP string");
+    public static class RlpEmptyException extends HelenException {
+        public RlpEmptyException() {
+            super("No more bytes in RLP string", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

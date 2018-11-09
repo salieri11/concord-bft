@@ -29,16 +29,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.google.common.collect.ImmutableMap;
-import com.vmware.blockchain.services.profiles.Consortium;
-import com.vmware.blockchain.services.profiles.ConsortiumRepository;
-import com.vmware.blockchain.services.profiles.Organization;
-import com.vmware.blockchain.services.profiles.OrganizationRepository;
-import com.vmware.blockchain.services.profiles.ProfilesRegistryManager;
-import com.vmware.blockchain.services.profiles.Roles;
-import com.vmware.blockchain.services.profiles.User;
-import com.vmware.blockchain.services.profiles.UserModificationException;
-import com.vmware.blockchain.services.profiles.UserRepository;
-import com.vmware.blockchain.services.profiles.UsersAPIMessage;
+import com.vmware.blockchain.common.UserModificationException;
 
 /**
  * Tests for the ProfilesRegistryManager.
@@ -81,15 +72,15 @@ public class ProfilesRegistryManagerTest {
         MockitoAnnotations.initMocks(prm);
         // consortium and organization
         consortium = new Consortium();
-        consortium.setConsortiumID(200L);
+        consortium.setConsortiumId(200L);
         consortium.setConsortiumName("Consortium Test");
         consortium.setConsortiumType("Test Type");
         organization = new Organization();
-        organization.setOrganizationID(300L);
+        organization.setOrganizationId(300L);
         organization.setOrganizationName("Test Org");
         // our test user
         existingUser = new User();
-        existingUser.setUserID(101L);
+        existingUser.setUserId(101L);
         existingUser.setEmail("test@a.com");
         existingUser.setFirstName("Test");
         existingUser.setLastName("User");
@@ -120,7 +111,7 @@ public class ProfilesRegistryManagerTest {
 
     @Test
     public void testGetUserWithId() throws Exception {
-        JSONObject json = prm.getUserWithID("101");
+        JSONObject json = prm.getUserWithId("101");
         Assert.assertEquals("test@a.com", json.get("email"));
         Assert.assertEquals(101L, json.get("user_id"));
     }
@@ -154,14 +145,14 @@ public class ProfilesRegistryManagerTest {
         verify(organizationRepository, times(1)).save(captor.capture());
         Assert.assertEquals("ADMIN", captor.getValue().getOrganizationName());
         // since we're just creating a new one, ID will be zero in unit tests
-        Assert.assertEquals(Long.valueOf(0), l.getOrganizationID());
+        Assert.assertEquals(Long.valueOf(0), l.getOrganizationId());
     }
 
     @Test
     public void testCreateOrgExits() throws Exception {
         when(organizationRepository.findAll()).thenReturn(Collections.singletonList(organization));
         Organization l = prm.createOrgIfNotExist();
-        Assert.assertEquals(Long.valueOf(300), l.getOrganizationID());
+        Assert.assertEquals(Long.valueOf(300), l.getOrganizationId());
         verify(organizationRepository, times(0)).save(any(Organization.class));
     }
 
@@ -179,7 +170,7 @@ public class ProfilesRegistryManagerTest {
         when(consortiumRepository.findAll()).thenReturn(Collections.singletonList(consortium));
         Consortium l = prm.createConsortiumIfNotExist();
         verify(consortiumRepository, times(0)).save(any(Consortium.class));
-        Assert.assertEquals(Long.valueOf(200), l.getConsortiumID());
+        Assert.assertEquals(Long.valueOf(200), l.getConsortiumId());
     }
 
     @Test
@@ -187,7 +178,7 @@ public class ProfilesRegistryManagerTest {
         when(organizationRepository.findById(300L)).thenReturn(Optional.of(organization));
         when(consortiumRepository.findById(200L)).thenReturn(Optional.of(consortium));
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        UsersAPIMessage msg = new UsersAPIMessage(newUser);
+        UsersApiMessage msg = new UsersApiMessage(newUser);
         String id = prm.createUser(msg);
         verify(userRepository, times(1)).save(captor.capture());
         Assert.assertEquals("0", id);
@@ -206,7 +197,7 @@ public class ProfilesRegistryManagerTest {
     public void testCreateExistingUser() throws Exception {
         when(organizationRepository.findById(300L)).thenReturn(Optional.of(organization));
         when(consortiumRepository.findById(200L)).thenReturn(Optional.of(consortium));
-        UsersAPIMessage msg = new UsersAPIMessage(existingUser);
+        UsersApiMessage msg = new UsersApiMessage(existingUser);
         try {
             prm.createUser(msg);
         } catch (UserModificationException e) {
@@ -223,7 +214,7 @@ public class ProfilesRegistryManagerTest {
     public void testCreateUserBadOrg() throws Exception {
         when(organizationRepository.findById(300L)).thenReturn(Optional.empty());
         when(consortiumRepository.findById(200L)).thenReturn(Optional.of(consortium));
-        UsersAPIMessage msg = new UsersAPIMessage(newUser);
+        UsersApiMessage msg = new UsersApiMessage(newUser);
         try {
             prm.createUser(msg);
         } catch (UserModificationException e) {
@@ -240,7 +231,7 @@ public class ProfilesRegistryManagerTest {
     public void testCreateUserBadConsortium() throws Exception {
         when(organizationRepository.findById(300L)).thenReturn(Optional.of(organization));
         when(consortiumRepository.findById(200L)).thenReturn(Optional.empty());
-        UsersAPIMessage msg = new UsersAPIMessage(newUser);
+        UsersApiMessage msg = new UsersApiMessage(newUser);
         try {
             prm.createUser(msg);
         } catch (UserModificationException e) {
@@ -256,8 +247,8 @@ public class ProfilesRegistryManagerTest {
     @Test(expected = UserModificationException.class)
     public void testUpdateNoUser() throws Exception {
         when(userRepository.findById(100L)).thenReturn(Optional.empty());
-        UsersAPIMessage msg = new UsersAPIMessage();
-        msg.setUserID(100L);
+        UsersApiMessage msg = new UsersApiMessage();
+        msg.setUserId(100L);
         try {
             prm.updateUser(msg);
         } catch (UserModificationException e) {
@@ -273,10 +264,10 @@ public class ProfilesRegistryManagerTest {
     @Test(expected = UserModificationException.class)
     public void testUpdateDupEmail() throws Exception {
         Map<String, String> m = new ImmutableMap.Builder<String, String>()
-                .put(UsersAPIMessage.EMAIL_LABEL, "test@a.com").build();
+                .put(UsersApiMessage.EMAIL_LABEL, "test@a.com").build();
         JSONObject json = new JSONObject(m);
-        UsersAPIMessage msg = new UsersAPIMessage(json);
-        msg.setUserID(101L);
+        UsersApiMessage msg = new UsersApiMessage(json);
+        msg.setUserId(101L);
         try {
             prm.updateUser(msg);
         } catch (UserModificationException e) {
@@ -292,11 +283,11 @@ public class ProfilesRegistryManagerTest {
     @Test
     public void testUpdateEmailAndRole() throws Exception {
         Map<String, String> m = new ImmutableMap.Builder<String, String>()
-                .put(UsersAPIMessage.EMAIL_LABEL, "old-test@a.com").build();
+                .put(UsersApiMessage.EMAIL_LABEL, "old-test@a.com").build();
         JSONObject json = new JSONObject(m);
         json.put("role", "ORG_ADMIN");
-        UsersAPIMessage msg = new UsersAPIMessage(json);
-        msg.setUserID(101L);
+        UsersApiMessage msg = new UsersApiMessage(json);
+        msg.setUserId(101L);
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         prm.updateUser(msg);
         verify(userRepository, times(1)).save(captor.capture());
@@ -313,10 +304,10 @@ public class ProfilesRegistryManagerTest {
     @Test(expected = UserModificationException.class)
     public void testUpdateBadRold() throws Exception {
         Map<String, String> m = new ImmutableMap.Builder<String, String>()
-                .put(UsersAPIMessage.ROLE_LABEL, "invalid_role").build();
+                .put(UsersApiMessage.ROLE_LABEL, "invalid_role").build();
         JSONObject json = new JSONObject(m);
-        UsersAPIMessage msg = new UsersAPIMessage(json);
-        msg.setUserID(101L);
+        UsersApiMessage msg = new UsersApiMessage(json);
+        msg.setUserId(101L);
         try {
             prm.updateUser(msg);
         } catch (UserModificationException e) {

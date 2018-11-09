@@ -1,31 +1,28 @@
-/**
- * <p>
- * Copyright 2018 VMware, all rights reserved.
- * </p>
- *
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
+
 package com.vmware.blockchain.services.profiles;
 
 import java.util.Optional;
 
 /**
- * An interface which defines the API for interacting with a new user creation
- * request in user management system
+ * An interface which defines the API for interacting with a new user creation request in user management system.
  */
 public interface UserCreateRequest {
-   String getUserName();
+    String getUserName();
 
-   Optional<String> getOptionalFirstName();
+    Optional<String> getOptionalFirstName();
 
-   Optional<String> getOptionalLastName();
+    Optional<String> getOptionalLastName();
 
-   String getEmail();
+    String getEmail();
 
-   String getRole();
+    String getRole();
 
-   String getPassword();
-   
-   Long getOrganizationID();
-   
-   Long getConsortiumID();
+    String getPassword();
+
+    Long getOrganizationId();
+
+    Long getConsortiumId();
 }

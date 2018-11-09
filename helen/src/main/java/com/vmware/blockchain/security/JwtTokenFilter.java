@@ -1,15 +1,10 @@
-/**
- * Copyright 2018 VMware, all rights reserved.
- *
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.security;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.filter.GenericFilterBean;
-
-import com.vmware.blockchain.common.CustomException;
+import java.io.IOException;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -17,34 +12,42 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.filter.GenericFilterBean;
+
+import com.vmware.blockchain.common.HelenException;
+
+/**
+ * Security filter to check that the JWT token is valid.
+ */
 public class JwtTokenFilter extends GenericFilterBean {
 
-  private JwtTokenProvider jwtTokenProvider;
+    private JwtTokenProvider jwtTokenProvider;
 
-  public JwtTokenFilter(JwtTokenProvider jwtTokenProvider) {
-    this.jwtTokenProvider = jwtTokenProvider;
-  }
-
-  @Override
-  public void doFilter(ServletRequest req, ServletResponse res, FilterChain filterChain)
-      throws IOException, ServletException {
-
-    try {
-      String token = jwtTokenProvider.resolveToken((HttpServletRequest) req);
-
-      if (token != null && jwtTokenProvider.validateToken(token)) {
-        Authentication auth = token != null ? jwtTokenProvider.getAuthentication(token) : null;
-        SecurityContextHolder.getContext().setAuthentication(auth);
-      }
-    } catch (CustomException ex) {
-      HttpServletResponse response = (HttpServletResponse) res;
-      response.sendError(ex.getHttpStatus().value(), ex.getMessage());
-      return;
+    public JwtTokenFilter(JwtTokenProvider jwtTokenProvider) {
+        this.jwtTokenProvider = jwtTokenProvider;
     }
 
-    filterChain.doFilter(req, res);
-  }
+    @Override
+    public void doFilter(ServletRequest req, ServletResponse res, FilterChain filterChain)
+            throws IOException, ServletException {
+
+        try {
+            String token = jwtTokenProvider.resolveToken((HttpServletRequest) req);
+
+            if (token != null && jwtTokenProvider.validateToken(token)) {
+                Authentication auth = token != null ? jwtTokenProvider.getAuthentication(token) : null;
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            }
+        } catch (HelenException ex) {
+            HttpServletResponse response = (HttpServletResponse) res;
+            response.sendError(ex.getHttpStatus().value(), ex.getMessage());
+            return;
+        }
+
+        filterChain.doFilter(req, res);
+    }
 
 }

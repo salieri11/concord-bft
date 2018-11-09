@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.services.ethereum;
 
 import org.apache.logging.log4j.LogManager;
@@ -12,10 +16,6 @@ import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.connections.IAthenaConnection;
 
 /**
- * <p>
- * Copyright 2018 VMware, all rights reserved.
- * </p>
- *
  * <p>
  * Handles the RPC requests which can be processes directly in helen without forwarding them to Athena. However, this is
  * an exception. When handling `net_version` we do connect to athena but just get the version number from athena. This
@@ -33,7 +33,7 @@ import com.vmware.blockchain.connections.IAthenaConnection;
  * </ul>
  * </p>
  */
-public class EthLocalResponseHandler extends AbstractEthRPCHandler {
+public class EthLocalResponseHandler extends AbstractEthRpcHandler {
 
     private AthenaConnectionPool connectionPool;
 
@@ -49,21 +49,16 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
      * this handler. However, having an empty method like this is probably not a very good idea. TODO: Figure out how to
      * remove this empty method.
      *
-     * @param athenaRequestBuilder
-     * @param requestJson
-     * @throws Exception
      */
     public void buildRequest(Athena.AthenaRequest.Builder athenaRequestBuilder, JSONObject requestJson)
             throws Exception {}
 
     /**
      * Initializes response object by using request JSONObject for local methods. An overload of this method which
-     * accepts EthResponse as input parameter is defined in {@link AbstractEthRPCHandler} class. However, for requests
+     * accepts EthResponse as input parameter is defined in {@link AbstractEthRpcHandler} class. However, for requests
      * which can be handled locally we do not even call athena and hence do not have a valid athena response. Hence we
      * can not use the method provided by parent class.
      *
-     * @param requestJson
-     * @return
      */
     @SuppressWarnings("unchecked")
     JSONObject initializeResponseObject(JSONObject requestJson) {
@@ -83,7 +78,6 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
      *        the athenaResponse object. It can be NULL
      * @param requestJson The original RPC request JSONObject.
      * @return the JSONObject of the response.
-     * @throws Exception
      */
     @SuppressWarnings("unchecked")
     public JSONObject buildResponse(Athena.AthenaResponse athenaResponse, JSONObject requestJson) throws Exception {
@@ -104,16 +98,16 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
             // Request should contain just one param value
             if (params.size() != 1) {
                 logger.error("Invalid request parameter : params");
-                throw new EthRPCHandlerException(EthDispatcher
+                throw new EthRpcHandlerException(EthDispatcher
                         .errorMessage("'params' must contain only one element", id, jsonRpc).toJSONString());
             }
 
             try {
-                localData = APIHelper.getKeccak256Hash((String) params.get(0));
+                localData = ApiHelper.getKeccak256Hash((String) params.get(0));
                 logger.info("Generated keccak hash is: " + localData);
             } catch (Exception e) {
                 logger.error("Error in calculating Keccak hash", e);
-                throw new EthRPCHandlerException(
+                throw new EthRpcHandlerException(
                         EthDispatcher.errorMessage("'invalid param", id, jsonRpc).toJSONString());
             }
         } else if (ethMethodName.equals(config.getRPCModules_Name())) {
@@ -136,7 +130,7 @@ public class EthLocalResponseHandler extends AbstractEthRPCHandler {
                     e.printStackTrace();
                 } catch (Exception e) {
                     logger.error("Unable to connect to athena.");
-                    throw new EthRPCHandlerException(
+                    throw new EthRpcHandlerException(
                             EthDispatcher.errorMessage("Unable to connect to athena.", id, jsonRpc).toJSONString());
                 } finally {
                     if (conn != null) {

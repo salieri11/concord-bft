@@ -1,8 +1,5 @@
-/**
- * <p>
- * Copyright 2018 VMware, all rights reserved.
- * </p>
- *
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.services.profiles;
@@ -26,10 +23,10 @@ import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
-import com.vmware.blockchain.services.ethereum.APIHelper;
+import com.vmware.blockchain.services.ethereum.ApiHelper;
 
 /**
- * A servlet which manages all GET/POST/PATCH requests related to user management API of helen
+ * A Controller that manages all GET/POST/PATCH requests related to user management API of helen.
  */
 @Controller
 public class AgreementServlet extends BaseServlet {
@@ -46,9 +43,14 @@ public class AgreementServlet extends BaseServlet {
         this.arm = arm;
     }
 
+    /**
+     * Get an agreement.
+     * @param id Id
+     * @return Agreement
+     */
     @RequestMapping(path = "/api/agreements/{id}", method = RequestMethod.GET)
-    public ResponseEntity<JSONAware> getAgreementFromID(@PathVariable("id") String ID) {
-        JSONObject result = arm.getAgreementWithID(ID);
+    public ResponseEntity<JSONAware> getAgreementFromId(@PathVariable("id") String id) {
+        JSONObject result = arm.getAgreementWithId(id);
         if (result.isEmpty()) {
             result.put("error", "Agreement not found");
             return new ResponseEntity<>(result, standardHeaders, HttpStatus.NOT_FOUND);
@@ -57,6 +59,11 @@ public class AgreementServlet extends BaseServlet {
         }
     }
 
+    /**
+     * Update an Agreement.
+     * @param id Id
+     * @param requestBody Patch details.
+     */
     @RequestMapping(path = "/api/agreements/{id}", method = RequestMethod.PATCH)
     public ResponseEntity<JSONAware> doPatch(@PathVariable(name = "id") String id, @RequestBody String requestBody) {
         HttpStatus responseStatus;
@@ -72,7 +79,7 @@ public class AgreementServlet extends BaseServlet {
             responseStatus = HttpStatus.OK;
 
         } catch (ParseException e) {
-            responseJson = APIHelper.errorJSON(e.getMessage());
+            responseJson = ApiHelper.errorJson(e.getMessage());
             responseStatus = HttpStatus.BAD_REQUEST;
         }
 
@@ -80,7 +87,7 @@ public class AgreementServlet extends BaseServlet {
     }
 
     @Override
-    protected JSONAware parseToJSON(Athena.AthenaResponse athenaResponse) {
+    protected JSONAware parseToJson(Athena.AthenaResponse athenaResponse) {
         throw new UnsupportedOperationException("parseToJSON method is not " + "supported in ProfileManager class");
     }
 }

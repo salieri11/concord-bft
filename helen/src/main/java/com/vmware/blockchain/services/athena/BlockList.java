@@ -1,12 +1,7 @@
-/**
- * url endpoint : /api/athena/blocks
- *
- * Used to list blocks in the chain, most recent first.
- *
- * This servlet is used to send BlockList Requests to Athena and to parse the responses into JSON. A TCP socket
- * connection is made to Athena and requests and responses are encoded in the Google Protocol Buffer format.
- *
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
+
 package com.vmware.blockchain.services.athena;
 
 import java.util.ArrayList;
@@ -28,7 +23,7 @@ import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
-import com.vmware.blockchain.services.ethereum.APIHelper;
+import com.vmware.blockchain.services.ethereum.ApiHelper;
 
 /**
  * Servlet class.
@@ -86,7 +81,7 @@ public class BlockList extends BaseServlet {
      */
     @SuppressWarnings("unchecked")
     @Override
-    protected JSONAware parseToJSON(Athena.AthenaResponse athenaResponse) {
+    protected JSONAware parseToJson(Athena.AthenaResponse athenaResponse) {
         try {
             // Extract the blocklist response
             // from the athena reponse envelope.
@@ -105,7 +100,7 @@ public class BlockList extends BaseServlet {
                 JSONObject blockJson = new JSONObject();
 
                 long number = block.getNumber();
-                String hexString = APIHelper.binaryStringToHex(block.getHash());
+                String hexString = ApiHelper.binaryStringToHex(block.getHash());
 
                 blockJson.put("number", number);
                 blockJson.put("hash", hexString);

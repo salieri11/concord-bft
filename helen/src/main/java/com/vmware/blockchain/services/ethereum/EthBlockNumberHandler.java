@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.services.ethereum;
 
 import org.apache.logging.log4j.LogManager;
@@ -11,7 +15,7 @@ import com.vmware.blockchain.common.AthenaProperties;
 /**
  * Handler for handling the `eth_blockNumber` RPC call.
  */
-public class EthBlockNumberHandler extends AbstractEthRPCHandler {
+public class EthBlockNumberHandler extends AbstractEthRpcHandler {
 
     Logger logger = LogManager.getLogger(EthBlockNumberHandler.class);
 
@@ -25,7 +29,6 @@ public class EthBlockNumberHandler extends AbstractEthRPCHandler {
      *
      * @param builder Builder object in which parameters are set.
      * @param requestJson User request
-     * @throws Exception
      */
     @Override
     public void buildRequest(Athena.AthenaRequest.Builder builder, JSONObject requestJson) throws Exception {
@@ -42,14 +45,13 @@ public class EthBlockNumberHandler extends AbstractEthRPCHandler {
      * @param athenaResponse Response received from Athena.
      * @param requestJson User request.
      * @return JSON RPC response object
-     * @throws Exception
      */
     @Override
     public JSONObject buildResponse(Athena.AthenaResponse athenaResponse, JSONObject requestJson) throws Exception {
         Athena.EthResponse ethResponse = athenaResponse.getEthResponse(0);
         JSONObject responseObject = initializeResponseObject(ethResponse);
         ByteString latestBlock = ethResponse.getData();
-        responseObject.put("result", APIHelper.binaryStringToHex(latestBlock, true /* drop leading zeros */));
+        responseObject.put("result", ApiHelper.binaryStringToHex(latestBlock, true /* drop leading zeros */));
         return responseObject;
     }
 }

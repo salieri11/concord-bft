@@ -1,6 +1,10 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.services.athena;
 
-import static com.vmware.blockchain.services.ethereum.APIHelper.errorJSON;
+import static com.vmware.blockchain.services.ethereum.ApiHelper.errorJson;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -37,17 +41,13 @@ import com.vmware.blockchain.services.contracts.FullVersionInfo;
 import com.vmware.blockchain.services.ethereum.EthDispatcher;
 
 /**
- * <p>
- * Copyright 2018 VMware, all rights reserved.
- * </p>
- *
  * A servlet which handles all contract management queries sent to `api/athena/contracts/*` URI.
  */
 @Controller
 public class ContractsServlet extends BaseServlet {
 
     private static final long serialVersionUID = 1L;
-    private final static Logger logger = LogManager.getLogger(ContractsServlet.class);
+    private static final Logger logger = LogManager.getLogger(ContractsServlet.class);
     private final String jsonRpc;
     private final String contractEndpoint;
     private ContractRegistryManager registryManager;
@@ -66,10 +66,8 @@ public class ContractsServlet extends BaseServlet {
 
 
     /**
-     * Encodes the given string as per URL encoding rules
+     * Encodes the given string as per URL encoding rules.
      *
-     * @param str
-     * @return
      */
     private String urlEncode(String str) {
         String encodedStr;
@@ -83,11 +81,11 @@ public class ContractsServlet extends BaseServlet {
     }
 
     /**
-     * Builds a JSON which is sent as a response object for `GET api/athena/contracts` queries
+     * Builds a JSON which is sent as a response object for `GET api/athena/contracts` queries.
      *
      * @return JSONObject which should be returned to client
      */
-    private JSONArray buildContractsJSON() {
+    private JSONArray buildContractsJson() {
         JSONArray cArray = new JSONArray();
         List<BriefContractInfo> cInfoList = registryManager.getAllBriefContractInfo();
 
@@ -111,21 +109,20 @@ public class ContractsServlet extends BaseServlet {
 
         // TODO: This check is not a proper way, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJSON("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
-        return new ResponseEntity<>(buildContractsJSON(), standardHeaders, HttpStatus.OK);
+        return new ResponseEntity<>(buildContractsJson(), standardHeaders, HttpStatus.OK);
     }
 
     /**
      * Builds a JSONObject from the given List of BriefVersionInfo objects. This JSONObject is generated as per the
      * response format of `GET api/athena/contracts/{contract_id}` request type.
      *
-     * @param briefVersionInfoList
      * @return Returns the json object containing information about all versions present in the list.
      */
-    private JSONObject buildContractJSON(List<BriefVersionInfo> briefVersionInfoList) {
+    private JSONObject buildContractJson(List<BriefVersionInfo> briefVersionInfoList) {
         // construct response json from contract object
         boolean contractInfoAdded = false;
         JSONObject contract = new JSONObject();
@@ -168,15 +165,15 @@ public class ContractsServlet extends BaseServlet {
 
         // TODO: This check is not a proper way, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJSON("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
         if (registryManager.hasContract(contractId)) {
-            return new ResponseEntity<>(buildContractJSON(registryManager.getAllBriefVersionInfo(contractId)),
+            return new ResponseEntity<>(buildContractJson(registryManager.getAllBriefVersionInfo(contractId)),
                     standardHeaders, HttpStatus.OK);
         } else {
-            return new ResponseEntity<>(errorJSON("No contract found with id: " + contractId), standardHeaders,
+            return new ResponseEntity<>(errorJson("No contract found with id: " + contractId), standardHeaders,
                     HttpStatus.NOT_FOUND);
         }
     }
@@ -185,11 +182,10 @@ public class ContractsServlet extends BaseServlet {
      * Builds a JSONObject representing the given version of the given contract object. The JSONObject is generated to
      * follow the response format of `GET api/athena/contracts/{contract_id}/versions/{version}` request.
      *
-     * @param versionInfo
      * @return The generated JSON with all details of the specific version
      */
-    private JSONObject buildVersionJSON(FullVersionInfo versionInfo) {
-        JSONObject versionJSON = new JSONObject();
+    private JSONObject buildVersionJson(FullVersionInfo versionInfo) {
+        JSONObject versionJson = new JSONObject();
         JSONParser parser = new JSONParser();
         JSONObject metadata = null;
         try {
@@ -198,14 +194,14 @@ public class ContractsServlet extends BaseServlet {
             logger.warn("Metadata parsing failure: ", e);
             metadata = new JSONObject();
         }
-        versionJSON.put("contract_id", versionInfo.getContractId());
-        versionJSON.put("owner", versionInfo.getOwnerAddress());
-        versionJSON.put("version", versionInfo.getVersionName());
-        versionJSON.put("metadata", metadata);
-        versionJSON.put("address", versionInfo.getAddress());
-        versionJSON.put("bytecode", versionInfo.getByteCode());
-        versionJSON.put("sourcecode", versionInfo.getSourceCode());
-        return versionJSON;
+        versionJson.put("contract_id", versionInfo.getContractId());
+        versionJson.put("owner", versionInfo.getOwnerAddress());
+        versionJson.put("version", versionInfo.getVersionName());
+        versionJson.put("metadata", metadata);
+        versionJson.put("address", versionInfo.getAddress());
+        versionJson.put("bytecode", versionInfo.getByteCode());
+        versionJson.put("sourcecode", versionInfo.getSourceCode());
+        return versionJson;
     }
 
     /**
@@ -221,22 +217,22 @@ public class ContractsServlet extends BaseServlet {
 
         // TODO: This check is not a proper way, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJSON("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
         try {
             FullVersionInfo fvInfo = registryManager.getContractVersion(contractId, contractVersion);
-            return new ResponseEntity<>(buildVersionJSON(fvInfo), standardHeaders, HttpStatus.OK);
+            return new ResponseEntity<>(buildVersionJson(fvInfo), standardHeaders, HttpStatus.OK);
         } catch (ContractRetrievalException e) {
             return new ResponseEntity<>(
-                    errorJSON("No contract found with id: " + contractId + " and version: " + contractVersion),
+                    errorJson("No contract found with id: " + contractId + " and version: " + contractVersion),
                     standardHeaders, HttpStatus.NOT_FOUND);
         }
     }
 
     /**
-     * Builds a JSONObject which represents a request of type `eth_sendTransaction` (Ethereum send transaction)
+     * Builds a JSONObject which represents a request of type `eth_sendTransaction`. (Ethereum send transaction).
      *
      * @param from Address from which new contract creation request was sent
      * @param id Request id
@@ -245,9 +241,9 @@ public class ContractsServlet extends BaseServlet {
      */
     private JSONObject buildEthSendTxRequest(String from, long id, String byteCode) {
         // Now make a eth_sendTransaction request json object
-        JSONObject ethRequest = new JSONObject();
-        JSONArray paramsArray = new JSONArray();
-        JSONObject transaction = new JSONObject();
+        final JSONObject ethRequest = new JSONObject();
+        final JSONArray paramsArray = new JSONArray();
+        final JSONObject transaction = new JSONObject();
         ethRequest.put("id", id);
         ethRequest.put("jsonrpc", jsonRpc);
         ethRequest.put("method", "eth_sendTransaction");
@@ -268,8 +264,8 @@ public class ContractsServlet extends BaseServlet {
      */
     private JSONObject buildEthTxReceiptRequest(long id, String transactionHash) {
         // Now make a eth_sendTransaction request json object
-        JSONObject ethRequest = new JSONObject();
-        JSONArray paramsArray = new JSONArray();
+        final JSONObject ethRequest = new JSONObject();
+        final JSONArray paramsArray = new JSONArray();
         ethRequest.put("id", id);
         ethRequest.put("jsonrpc", jsonRpc);
         ethRequest.put("method", "eth_getTransactionReceipt");
@@ -284,7 +280,6 @@ public class ContractsServlet extends BaseServlet {
      * @param jsonStr The string representing JSONObject of the response of `eth_getTransactionReceipt` request.
      * @return The value of key "result" from given JSON string which ideally represents the address at which contract
      *         is deployed.
-     * @throws ParseException
      */
     private String extractContractAddress(String jsonStr) throws ParseException {
         JSONParser parser = new JSONParser();
@@ -300,8 +295,6 @@ public class ContractsServlet extends BaseServlet {
      * @param existingContractId The value of `{contract_id}` from URI
      * @param existingVersionName The value of `{version}` from URI
      * @param paramString HttpRequest object
-     * @return responseEntity HttpResponse object
-     *
      * @return The RESTResult object containing result of this request
      */
     @RequestMapping(method = RequestMethod.PUT, path = "/api/athena/contracts/{contract_id}/versions/{version_id}")
@@ -311,7 +304,7 @@ public class ContractsServlet extends BaseServlet {
 
         // TODO: This check is not a proper way, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJSON("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
@@ -329,7 +322,7 @@ public class ContractsServlet extends BaseServlet {
             String constructorParams = (String) requestObject.get("constructorParams");
             if (registryManager.hasContractVersion(contractId, contractVersion)) {
                 responseEntity =
-                        new ResponseEntity<>(errorJSON("contract with same name and version " + "already exists"),
+                        new ResponseEntity<>(errorJson("contract with same name and version " + "already exists"),
                                 standardHeaders, HttpStatus.CONFLICT);
             } else {
                 Compiler.Result result = Compiler.compile(solidityCode);
@@ -342,27 +335,27 @@ public class ContractsServlet extends BaseServlet {
 
                     if (success) {
                         FullVersionInfo fvInfo = registryManager.getContractVersion(contractId, contractVersion);
-                        return new ResponseEntity<>(buildVersionJSON(fvInfo), standardHeaders, HttpStatus.OK);
+                        return new ResponseEntity<>(buildVersionJson(fvInfo), standardHeaders, HttpStatus.OK);
                     } else {
-                        responseEntity = new ResponseEntity<>(errorJSON("unable to update contract."), standardHeaders,
+                        responseEntity = new ResponseEntity<>(errorJson("unable to update contract."), standardHeaders,
                                 HttpStatus.INTERNAL_SERVER_ERROR);
                     }
                 } else {
-                    responseEntity = new ResponseEntity<>(errorJSON("Compilation failure:\n" + result.getStderr()),
+                    responseEntity = new ResponseEntity<>(errorJson("Compilation failure:\n" + result.getStderr()),
                             standardHeaders, HttpStatus.BAD_REQUEST);
                 }
             }
         } catch (ParseException pe) {
             logger.warn("Exception while parsing request JSON", pe);
-            responseEntity = new ResponseEntity<>(errorJSON("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
                     HttpStatus.BAD_REQUEST);
         } catch (ContractRetrievalException e) {
-            return new ResponseEntity<>(errorJSON(
+            return new ResponseEntity<>(errorJson(
                     "No contract found with id: " + existingContractId + " and version: " + existingVersionName),
                     standardHeaders, HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             logger.warn("Exception in request processing", e);
-            responseEntity = new ResponseEntity<>(errorJSON("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return responseEntity;
@@ -384,7 +377,6 @@ public class ContractsServlet extends BaseServlet {
      * @param selectedContract The name of the contract in the file which should be deployed
      * @param constructorParams The encoded constructor parameters for the contract to be deployed
      * @return The JSONArray containing results of deployment of each contract present in solidity code.
-     * @throws Exception
      */
     private JSONObject deployContracts(String contractId, String contractVersion, String from, Compiler.Result result,
             String solidityCode, String selectedContract, String constructorParams) throws Exception {
@@ -392,13 +384,13 @@ public class ContractsServlet extends BaseServlet {
         // requests we just build a JSON object representing an ethereum
         // request (as if it was received like a normal ethereum JSON RPC)
         // and forward it to EthDispatcher.
-        int requestID = random.nextInt(); // some request ID for JSON RPC
+        int requestId = random.nextInt(); // some request ID for JSON RPC
         boolean hasContract = result.getByteCodeMap().containsKey(selectedContract);
         // Build response object for this particular deployment
         JSONObject deploymentResult = new JSONObject();
         if (hasContract) {
             String byteCode = result.getByteCodeMap().get(selectedContract) + constructorParams;
-            JSONObject sendTxrequest = buildEthSendTxRequest(from, requestID, byteCode);
+            JSONObject sendTxrequest = buildEthSendTxRequest(from, requestId, byteCode);
             String responseString = ethDispatcher.dispatch(sendTxrequest).toJSONString();
             logger.trace("Dispatcher response: " + responseString);
             JSONObject ethResponse = (JSONObject) new JSONParser().parse(responseString);
@@ -449,9 +441,6 @@ public class ContractsServlet extends BaseServlet {
     /**
      * Handles the POST request for `/api/athena/contracts/compile` API.
      *
-     * @param request HttpRequest object
-     * @param response HttpResponse object
-     *
      * @return The RESTResult object containing result of this request
      */
     @RequestMapping(path = "/api/athena/contracts/compile", method = RequestMethod.POST)
@@ -459,7 +448,7 @@ public class ContractsServlet extends BaseServlet {
 
         // TODO: This check is fragile, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJSON("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
@@ -496,16 +485,16 @@ public class ContractsServlet extends BaseServlet {
                 responseJson.put("data", resultArray);
                 responseEntity = new ResponseEntity<>(responseJson, standardHeaders, HttpStatus.OK);
             } else {
-                responseEntity = new ResponseEntity<>(errorJSON("Compilation failure:\n" + result.getStderr()),
+                responseEntity = new ResponseEntity<>(errorJson("Compilation failure:\n" + result.getStderr()),
                         standardHeaders, HttpStatus.BAD_REQUEST);
             }
         } catch (ParseException pe) {
             logger.warn("Exception while parsing request JSON", pe);
-            responseEntity = new ResponseEntity<>(errorJSON("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
                     HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             logger.warn("Exception in request processing", e);
-            responseEntity = new ResponseEntity<>(errorJSON("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return responseEntity;
@@ -516,9 +505,6 @@ public class ContractsServlet extends BaseServlet {
      * POST body. The POST body must be a JSON having a key "params" and value being a strings of solidity contract
      * code.
      *
-     * @param request HttpRequest object
-     * @param response HttpResponse object
-     *
      * @return The RESTResult object containing result of this request
      */
     @RequestMapping(path = "/api/athena/contracts", method = RequestMethod.POST)
@@ -526,7 +512,7 @@ public class ContractsServlet extends BaseServlet {
 
         // TODO: This check is fragile, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJSON("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
@@ -549,14 +535,14 @@ public class ContractsServlet extends BaseServlet {
             // then version number must be different
             if (registryManager.hasContractVersion(contractId, contractVersion)) {
                 responseEntity =
-                        new ResponseEntity<>(errorJSON("contract with same name and version " + "already exists"),
+                        new ResponseEntity<>(errorJson("contract with same name and version " + "already exists"),
                                 standardHeaders, HttpStatus.CONFLICT);
             } else if (registryManager.hasContract(contractId)
                     && !isSameAddress(registryManager.getBriefContractInfo(contractId).getOwnerAddress(), (from))) {
                 // It is a new version of
                 // existing contract but from address doesn't match
                 responseEntity = new ResponseEntity<>(
-                        errorJSON("Only original owner can deploy the" + " new version of a contract"), standardHeaders,
+                        errorJson("Only original owner can deploy the" + " new version of a contract"), standardHeaders,
                         HttpStatus.FORBIDDEN);
             } else {
                 // Compile the given solidity code
@@ -566,17 +552,17 @@ public class ContractsServlet extends BaseServlet {
                             selectedContract, constructorParams);
                     responseEntity = new ResponseEntity<>(resultObject, standardHeaders, HttpStatus.OK);
                 } else {
-                    responseEntity = new ResponseEntity<>(errorJSON("Compilation failure:\n" + result.getStderr()),
+                    responseEntity = new ResponseEntity<>(errorJson("Compilation failure:\n" + result.getStderr()),
                             standardHeaders, HttpStatus.BAD_REQUEST);
                 }
             }
         } catch (ParseException pe) {
             logger.warn("Exception while parsing request JSON", pe);
-            responseEntity = new ResponseEntity<>(errorJSON("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
                     HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             logger.warn("Exception in request processing", e);
-            responseEntity = new ResponseEntity<>(errorJSON("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return responseEntity;
@@ -591,7 +577,7 @@ public class ContractsServlet extends BaseServlet {
      */
     @SuppressWarnings("unchecked")
     @Override
-    protected JSONAware parseToJSON(Athena.AthenaResponse athenaResponse) throws UnsupportedOperationException {
+    protected JSONAware parseToJson(Athena.AthenaResponse athenaResponse) throws UnsupportedOperationException {
         throw new UnsupportedOperationException("parseToJSON is not supported " + "in " + "ContractsServlet");
     }
 }

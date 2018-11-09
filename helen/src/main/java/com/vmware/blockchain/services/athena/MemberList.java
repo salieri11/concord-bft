@@ -1,16 +1,9 @@
-/**
- * url endpoint : /api/athena/members
- *
- * Used to fetch the Athena Consensus Membership List.
- *
- * This servlet is used to send Peer Requests to Athena and to parse the responses into JSON. A TCP socket connection is
- * made to Athena and requests and responses are encoded in the Google Protocol Buffer format.
- *
- * TODO : Handle the case of no/incorrect response from Athena
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
+
 package com.vmware.blockchain.services.athena;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,7 +24,7 @@ import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
 
 /**
- * Servlet class.
+ * Controller for member list.
  */
 @Controller
 public final class MemberList extends BaseServlet {
@@ -49,9 +42,6 @@ public final class MemberList extends BaseServlet {
      * defined in athena.proto. Sends this request to Athena. Parses the response and converts it into json for
      * responding to the client.
      *
-     * @param request The request received by the servlet
-     * @param response The response object used to respond to the client
-     * @throws IOException
      */
     @RequestMapping(method = RequestMethod.GET, path = "/api/athena/members")
     public ResponseEntity<JSONAware> doGet() {
@@ -74,7 +64,7 @@ public final class MemberList extends BaseServlet {
      */
     @SuppressWarnings("unchecked")
     @Override
-    protected JSONAware parseToJSON(Athena.AthenaResponse athenaResponse) {
+    protected JSONAware parseToJson(Athena.AthenaResponse athenaResponse) {
         // Extract the peer response from the athena reponse envelope.
         Athena.PeerResponse peerResponse = athenaResponse.getPeerResponse();
 

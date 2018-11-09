@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.services.ethereum;
 
 import org.apache.logging.log4j.LogManager;
@@ -10,33 +14,32 @@ import com.google.protobuf.ByteString;
 import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
+import com.vmware.athena.Athena.EthResponse;
 import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.contracts.ContractRegistryManager;
-import com.vmware.athena.Athena.EthResponse;
 
 /**
- * <p>
- * Copyright 2018 VMware, all rights reserved.
- * </p>
- *
  * <p>
  * This handler is used to service eth_sendTransaction and eth_call POST requests. These are bundled together here
  * because functionally, the processing for both these request types is similar.
  * </p>
  */
-public class EthSendTxHandler extends AbstractEthRPCHandler {
+public class EthSendTxHandler extends AbstractEthRpcHandler {
 
     private static Logger logger = LogManager.getLogger(EthSendTxHandler.class);
     private static boolean isInternalContract;
     private ContractRegistryManager registryManager;
     private AthenaConnectionPool connectionPool;
 
+    /**
+     * Send transaction constructor.
+     */
     public EthSendTxHandler(AthenaProperties config, AthenaConnectionPool connectionPool,
-            ContractRegistryManager registryManager, boolean _isInternalContract) {
+            ContractRegistryManager registryManager, boolean isInternalContract) {
         super(config);
         // If isInternalContract is true, the handler is processing a contract created from the Helen UI.
-        isInternalContract = _isInternalContract;
+        this.isInternalContract = isInternalContract;
         this.registryManager = registryManager;
         this.connectionPool = connectionPool;
     }
@@ -45,16 +48,15 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
      * Builds the Athena request builder. Extracts the method name, from, to, data and value fields from the request and
      * uses it to set up an Athena Request builder with an EthRequest.
      *
-     * 'from' is mandatory for send tx and 'to' is mandatory for call contract.
+     * <p>'from' is mandatory for send tx and 'to' is mandatory for call contract.
      *
-     * @param builder Object in which request is built
+     * @param athenaRequestBuilder Object in which request is built
      * @param requestJson Request parameters passed by the user
      */
     @Override
     public void buildRequest(Athena.AthenaRequest.Builder athenaRequestBuilder, JSONObject requestJson)
-            throws EthRPCHandlerException, APIHelper.HexParseException, RLPParser.RLPEmptyException {
+            throws EthRpcHandlerException, ApiHelper.HexParseException, RlpParser.RlpEmptyException {
 
-        String from = null, to = null, data = null, value = null;
         Athena.EthRequest ethRequest = null;
         EthRequest.Builder b = initializeRequestObject(requestJson);
         String method = EthDispatcher.getEthMethodName(requestJson);
@@ -71,7 +73,7 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
             buildRequestFromObject(b, (JSONObject) params.get(0), false /* isSendTx */);
             // add "block" parameter
             if (params.size() == 2) {
-                long blockNumber = APIHelper.parseBlockNumber(params);
+                long blockNumber = ApiHelper.parseBlockNumber(params);
                 if (blockNumber != -1) {
                     b.setBlockNumber(blockNumber);
                 }
@@ -83,32 +85,32 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
     }
 
     private void buildRequestFromObject(EthRequest.Builder b, JSONObject obj, boolean isSendTx)
-            throws EthRPCHandlerException, APIHelper.HexParseException {
+            throws EthRpcHandlerException, ApiHelper.HexParseException {
 
         if (obj.containsKey("from")) {
             String from = (String) obj.get("from");
-            ByteString fromAddr = APIHelper.hexStringToBinary(from);
+            ByteString fromAddr = ApiHelper.hexStringToBinary(from);
             b.setAddrFrom(fromAddr);
         } else if (isSendTx) {
             // TODO: if we allow r/s/v signature fields, we don't have to require
             // 'from' when they're present
             logger.error("From field missing in params");
-            throw new EthRPCHandlerException("'from' must be specified");
+            throw new EthRpcHandlerException("'from' must be specified");
         }
 
         if (obj.containsKey("to")) {
             String to = (String) obj.get("to");
-            ByteString toAddr = APIHelper.hexStringToBinary(to);
+            ByteString toAddr = ApiHelper.hexStringToBinary(to);
             b.setAddrTo(toAddr);
         } else if (!isSendTx) {
             logger.error("To field missing in params");
-            throw new EthRPCHandlerException("'to' must be specified");
+            throw new EthRpcHandlerException("'to' must be specified");
         }
 
         if (obj.containsKey("data")) {
             String data = (String) obj.get("data");
             if (data != null) {
-                ByteString dataBytes = APIHelper.hexStringToBinary(data);
+                ByteString dataBytes = ApiHelper.hexStringToBinary(data);
                 b.setData(dataBytes);
             }
         }
@@ -116,7 +118,7 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
         if (obj.containsKey("value")) {
             String value = (String) obj.get("value");
             if (value != null) {
-                ByteString valueBytes = APIHelper.hexStringToBinary(APIHelper.padZeroes(value));
+                ByteString valueBytes = ApiHelper.hexStringToBinary(ApiHelper.padZeroes(value));
                 b.setValue(valueBytes);
             }
         }
@@ -126,55 +128,54 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
     }
 
     private void buildRequestFromString(EthRequest.Builder b, String rlp)
-            throws EthRPCHandlerException, APIHelper.HexParseException, RLPParser.RLPEmptyException {
+            throws EthRpcHandlerException, ApiHelper.HexParseException, RlpParser.RlpEmptyException {
 
-        RLPParser envelope_parser = new RLPParser(rlp);
-        ByteString envelope = envelope_parser.next();
+        RlpParser envelopeParser = new RlpParser(rlp);
+        ByteString envelope = envelopeParser.next();
 
-        if (!envelope_parser.atEnd()) {
-            throw new EthRPCHandlerException("Unable to parse raw transaction (extra data after envelope)");
+        if (!envelopeParser.atEnd()) {
+            throw new EthRpcHandlerException("Unable to parse raw transaction (extra data after envelope)");
         }
 
-        RLPParser parser = new RLPParser(envelope);
+        RlpParser parser = new RlpParser(envelope);
 
-        ByteString nonce_v = nextPart(parser, "nonce");
-        ByteString gasPrice_v = nextPart(parser, "gas price");
-        ByteString gas_v = nextPart(parser, "start gas");
-        ByteString to = nextPart(parser, "to address");
-        ByteString value = nextPart(parser, "value");
-        ByteString data = nextPart(parser, "data");
-        ByteString v_v = nextPart(parser, "signature V");
+        final ByteString nonceV = nextPart(parser, "nonce");
+        final ByteString gasPriceV = nextPart(parser, "gas price");
+        final ByteString gasV = nextPart(parser, "start gas");
+        final ByteString to = nextPart(parser, "to address");
+        final ByteString value = nextPart(parser, "value");
+        final ByteString data = nextPart(parser, "data");
+        final ByteString vV = nextPart(parser, "signature V");
         ByteString r = nextPart(parser, "signature R");
-        ByteString s = nextPart(parser, "signature S");
-
-        if (!parser.atEnd()) {
-            throw new EthRPCHandlerException("Unable to parse raw transaction (extra data in envelope)");
-        }
-
-        long nonce = APIHelper.bytesToLong(nonce_v);
-        long gasPrice = APIHelper.bytesToLong(gasPrice_v);
-        long gas = APIHelper.bytesToLong(gas_v);
-        long v = APIHelper.bytesToLong(v_v);
-
-        if (to.size() != 0 && to.size() != 20) {
-            throw new EthRPCHandlerException("Invalid raw transaction (to address too short)");
-        }
-
         if (r.size() > 32) {
-            throw new EthRPCHandlerException("Invalid raw transaction (signature R too large)");
+            throw new EthRpcHandlerException("Invalid raw transaction (signature R too large)");
         } else if (r.size() < 32) {
             // pad out to 32 bytes to make things easy for Athena
             byte[] leadingZeros = new byte[32 - r.size()];
             r = ByteString.copyFrom(leadingZeros).concat(r);
         }
-
+        ByteString s = nextPart(parser, "signature S");
         if (s.size() > 32) {
-            throw new EthRPCHandlerException("Invalid raw transaction (signature S too large)");
+            throw new EthRpcHandlerException("Invalid raw transaction (signature S too large)");
         } else if (s.size() < 32) {
             // pad out to 32 bytes to make things easy for Athena
             byte[] leadingZeros = new byte[32 - s.size()];
             s = ByteString.copyFrom(leadingZeros).concat(s);
         }
+
+        if (!parser.atEnd()) {
+            throw new EthRpcHandlerException("Unable to parse raw transaction (extra data in envelope)");
+        }
+
+        if (to.size() != 0 && to.size() != 20) {
+            throw new EthRpcHandlerException("Invalid raw transaction (to address too short)");
+        }
+
+
+        final long nonce = ApiHelper.bytesToLong(nonceV);
+        final long gasPrice = ApiHelper.bytesToLong(gasPriceV);
+        final long gas = ApiHelper.bytesToLong(gasV);
+        final long v = ApiHelper.bytesToLong(vV);
 
         b.setNonce(nonce);
         b.setGasPrice(gasPrice);
@@ -189,13 +190,13 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
         b.setSigS(s);
     }
 
-    private ByteString nextPart(RLPParser parser, String label) throws EthRPCHandlerException {
+    private ByteString nextPart(RlpParser parser, String label) throws EthRpcHandlerException {
         try {
             ByteString b = parser.next();
             logger.trace("Extracted " + label + ": " + b.size() + " bytes");
             return b;
-        } catch (RLPParser.RLPEmptyException e) {
-            throw new EthRPCHandlerException("Unable to decode " + label + " from raw transaction");
+        } catch (RlpParser.RlpEmptyException e) {
+            throw new EthRpcHandlerException("Unable to decode " + label + " from raw transaction");
         }
     }
 
@@ -229,10 +230,10 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
                 byteCode = byteCode.replace("0x", "");
             }
         }
-        respObject.put("result", APIHelper.binaryStringToHex(ethResponse.getData()));
+        respObject.put("result", ApiHelper.binaryStringToHex(ethResponse.getData()));
         if (isSendTransaction && !isInternalContract && toParam == null) {
             try {
-                handleSmartContractCreation(APIHelper.binaryStringToHex(ethResponse.getData()), fromParam, byteCode);
+                handleSmartContractCreation(ApiHelper.binaryStringToHex(ethResponse.getData()), fromParam, byteCode);
             } catch (Exception e) {
                 logger.error("Error in smart contract linking.", e);
             }
@@ -241,8 +242,8 @@ public class EthSendTxHandler extends AbstractEthRPCHandler {
     }
 
     private void handleSmartContractCreation(String transactionHash, String from, String byteCode) throws Exception {
-        JSONObject ethRequest = new JSONObject();
-        JSONArray paramsArray = new JSONArray();
+        final JSONObject ethRequest = new JSONObject();
+        final JSONArray paramsArray = new JSONArray();
         ethRequest.put("id", 1);
         ethRequest.put("jsonrpc", jsonRpc);
         ethRequest.put("method", "eth_getTransactionReceipt");

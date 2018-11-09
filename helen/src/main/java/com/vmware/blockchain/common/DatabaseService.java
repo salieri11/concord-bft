@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 package com.vmware.blockchain.common;
 
 import java.sql.Connection;
@@ -10,10 +14,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 /**
- * <p>
- * Copyright 2018 VMware, all rights reserved.
- * </p>
- *
  * A class which manages and provides access to database Connection objects.
  */
 @Component
@@ -21,8 +21,8 @@ public class DatabaseService {
 
     // TODO: create a pool of connection objects rather than using just a single
     // object
-    private static Connection db = null;
-    private static boolean initDone = false;
+    private static Connection db;
+    private static boolean initDone;
     private static Logger logger = LogManager.getLogger(DatabaseService.class);
 
     private String dbProtocol;
@@ -34,13 +34,9 @@ public class DatabaseService {
     private String dbPassword;
 
     @Autowired
-    public DatabaseService(
-            @Value("${DB_PROTOCOL}") String dbProtocol, 
-            @Value("${DB_IP}") String dbIp,
-            @Value("${DB_PORT}") String dbPort, 
-            @Value("${DB_NAME}") String dbName,
-            @Value("${DB_OPTIONS}") String dbOptions, 
-            @Value("${DB_USER}") String dbUser,
+    public DatabaseService(@Value("${DB_PROTOCOL}") String dbProtocol, @Value("${DB_IP}") String dbIp,
+            @Value("${DB_PORT}") String dbPort, @Value("${DB_NAME}") String dbName,
+            @Value("${DB_OPTIONS}") String dbOptions, @Value("${DB_USER}") String dbUser,
             @Value("${DB_PASSWORD}") String dbPassword) {
         this.dbProtocol = dbProtocol;
         this.dbIp = dbIp;
@@ -57,6 +53,11 @@ public class DatabaseService {
         db = DriverManager.getConnection(url, dbUser, dbPassword);
     }
 
+    /**
+     * Get a DB Connection.
+     *
+     * @return Connection
+     */
     public synchronized Connection getDatabaseConnection() throws ServiceUnavailableException {
         if (!initDone) {
             try {
