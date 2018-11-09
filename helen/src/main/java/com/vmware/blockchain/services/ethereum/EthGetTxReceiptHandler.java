@@ -113,16 +113,16 @@ public class EthGetTxReceiptHandler extends AbstractEthRpcHandler {
         for (int i = 0; i < transactionResponse.getLogCount(); i++) {
             Athena.LogResponse log = transactionResponse.getLog(i);
             JSONObject logJSON = new JSONObject();
-            logJSON.put("address", APIHelper.binaryStringToHex(log.getAddress()));
+            logJSON.put("address", ApiHelper.binaryStringToHex(log.getAddress()));
 
             JSONArray topics = new JSONArray();
             for (int j = 0; j < log.getTopicCount(); j++) {
-                topics.add(APIHelper.binaryStringToHex(log.getTopic(j)));
+                topics.add(ApiHelper.binaryStringToHex(log.getTopic(j)));
             }
             logJSON.put("topics", topics);
 
             if (log.hasData()) {
-                logJSON.put("data", APIHelper.binaryStringToHex(log.getData()));
+                logJSON.put("data", ApiHelper.binaryStringToHex(log.getData()));
             } else {
                 logJSON.put("data", "0x");
             }
