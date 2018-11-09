@@ -30,6 +30,7 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "userid")
     private Long userId = 0L;
 
     @Column(nullable = false)

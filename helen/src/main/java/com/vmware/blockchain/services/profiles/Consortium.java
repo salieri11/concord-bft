@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import javax.persistence.CascadeType;
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -27,6 +28,7 @@ public class Consortium {
     protected Set<User> users = new HashSet<>();
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "consortiumid")
     private Long consortiumId = 0L;
     private String consortiumName;
     private String consortiumType;

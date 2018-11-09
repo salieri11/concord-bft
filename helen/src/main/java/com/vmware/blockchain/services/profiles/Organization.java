@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import javax.persistence.CascadeType;
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -26,6 +27,7 @@ public class Organization {
     protected Set<User> users = new HashSet<>();
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "organizationid")
     private Long organizationId = 0L;
     private String organizationName;
 
