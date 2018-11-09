@@ -17,17 +17,11 @@ import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 import com.vmware.athena.Athena.EthResponse;
-import com.vmware.blockchain.common.AthenaProperties;
 
 /**
  * This handler is used to service personal_newAccount POST requests.
  */
 public class EthNewAccountHandler extends AbstractEthRpcHandler {
-
-    public EthNewAccountHandler(AthenaProperties config) {
-        super(config);
-        // TODO Auto-generated constructor stub
-    }
 
     private static Logger logger = LogManager.getLogger(EthNewAccountHandler.class);
 

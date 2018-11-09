@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
@@ -31,7 +32,7 @@ public class TransactionList extends BaseServlet {
 
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LogManager.getLogger(TransactionList.class);
-    private final String transactionListEndpoint = config.getTransactionList_Endpoint();
+    private final String transactionListEndpoint = Constants.TRANSACTION_LIST_ENDPOINT;
 
     @Autowired
     public TransactionList(AthenaProperties config, AthenaConnectionPool athenaConnectionPool) {
@@ -49,7 +50,7 @@ public class TransactionList extends BaseServlet {
             @RequestParam(name = "latest", defaultValue = "", required = false) String latestHash,
             @RequestParam(name = "count", required = false, defaultValue = "-1") long count) {
         if (count == -1) {
-            count = config.getTransactionList_DefaultCount();
+            count = Constants.TRANSACTIONLIST_DEFAULTCOUNT;
         }
         Athena.AthenaRequest athenaRequest;
 

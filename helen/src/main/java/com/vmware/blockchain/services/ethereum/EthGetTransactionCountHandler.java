@@ -13,17 +13,11 @@ import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 import com.vmware.athena.Athena.EthResponse;
-import com.vmware.blockchain.common.AthenaProperties;
 
 /**
  * This handler is used to service eth_getTransactionCount POST requests.
  */
 public class EthGetTransactionCountHandler extends AbstractEthRpcHandler {
-
-    public EthGetTransactionCountHandler(AthenaProperties config) {
-        super(config);
-        // TODO Auto-generated constructor stub
-    }
 
     Logger logger = LogManager.getLogger(EthGetTransactionCountHandler.class);
 

@@ -10,16 +10,25 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.vmware.blockchain.common.AthenaProperties;
 
+/**
+ * Factory to create AthenaConnections of the proper type.
+ */
 public final class AthenaConnectionFactory {
     private ConnectionType type;
     private AthenaProperties config;
     private ArrayList<Authority> athenaList;
     private AtomicLong nextAuthority;
 
+    /**
+     * Connection types supported.
+     */
     public enum ConnectionType {
         TCP, Mock
     }
 
+    /**
+     * Connection Factory for the proper type.
+     */
     public AthenaConnectionFactory(ConnectionType type, AthenaProperties config) {
         this.type = type;
         this.config = config;
@@ -36,14 +45,17 @@ public final class AthenaConnectionFactory {
         }
     }
 
+    /**
+     * Create the connection.
+     */
     public IAthenaConnection create() throws IOException, UnsupportedOperationException {
         switch (type) {
             case TCP:
                 // Select an Athena instance to connect with in a round robin fashion
                 int chosenAuthority = (int) nextAuthority.getAndIncrement() % athenaList.size();
                 Authority athenaInstance = athenaList.get(chosenAuthority);
-                AthenaTCPConnection connection =
-                        new AthenaTCPConnection(config, athenaInstance.getHost(), athenaInstance.getPort());
+                AthenaTcpConnection connection =
+                        new AthenaTcpConnection(config, athenaInstance.getHost(), athenaInstance.getPort());
                 return connection;
             case Mock:
                 return new MockConnection(config);

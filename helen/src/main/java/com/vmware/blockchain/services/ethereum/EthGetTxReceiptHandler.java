@@ -11,7 +11,6 @@ import org.json.simple.JSONObject;
 
 import com.google.protobuf.ByteString;
 import com.vmware.athena.Athena;
-import com.vmware.blockchain.common.AthenaProperties;
 
 /**
  * This Handler is used for handling all `eth_getTransactionReceipt` types of requests. EthGetTxReceiptHandler is little
@@ -20,11 +19,6 @@ import com.vmware.blockchain.common.AthenaProperties;
  * actually put a `TransactionRequest` inside AthenaRequest and read a TransactionResponse from AthenaResponse.
  */
 public class EthGetTxReceiptHandler extends AbstractEthRpcHandler {
-
-    public EthGetTxReceiptHandler(AthenaProperties config) {
-        super(config);
-        // TODO Auto-generated constructor stub
-    }
 
     Logger logger = LogManager.getLogger(EthGetTxReceiptHandler.class);
 

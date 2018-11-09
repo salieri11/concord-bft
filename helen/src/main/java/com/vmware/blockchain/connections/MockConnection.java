@@ -10,6 +10,9 @@ import java.nio.ByteOrder;
 import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
 
+/**
+ * Mock Athena connection, used for testing.
+ */
 public class MockConnection implements IAthenaConnection {
     private static Athena.ProtocolResponse protocolResponse =
             Athena.ProtocolResponse.newBuilder().setServerVersion(1).build();

@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.contracts.BriefContractInfo;
@@ -59,8 +60,8 @@ public class ContractsServlet extends BaseServlet {
             AthenaConnectionPool connectionPool, EthDispatcher ethDispatcher) {
         super(config, connectionPool);
         this.registryManager = registryManger;
-        this.jsonRpc = config.getJSONRPC();
-        this.contractEndpoint = config.getContracts_Endpoint();
+        this.jsonRpc = Constants.JSONRPC;
+        this.contractEndpoint = Constants.CONTRACTS_ENDPOINT;
         this.ethDispatcher = ethDispatcher;
     }
 

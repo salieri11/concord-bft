@@ -16,6 +16,7 @@ import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 import com.vmware.athena.Athena.EthResponse;
 import com.vmware.blockchain.common.AthenaProperties;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.contracts.ContractRegistryManager;
 
@@ -31,17 +32,18 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
     private static boolean isInternalContract;
     private ContractRegistryManager registryManager;
     private AthenaConnectionPool connectionPool;
+    private AthenaProperties config;
 
     /**
      * Send transaction constructor.
      */
     public EthSendTxHandler(AthenaProperties config, AthenaConnectionPool connectionPool,
             ContractRegistryManager registryManager, boolean isInternalContract) {
-        super(config);
         // If isInternalContract is true, the handler is processing a contract created from the Helen UI.
         this.isInternalContract = isInternalContract;
         this.registryManager = registryManager;
         this.connectionPool = connectionPool;
+        this.config = config;
     }
 
     /**
@@ -62,10 +64,10 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
         String method = EthDispatcher.getEthMethodName(requestJson);
 
         JSONArray params = extractRequestParams(requestJson);
-        if (method.equals(config.getSendTransaction_Name())) {
+        if (method.equals(Constants.SEND_TRANSACTION_NAME)) {
             b.setMethod(EthMethod.SEND_TX);
             buildRequestFromObject(b, (JSONObject) params.get(0), true /* isSendTx */);
-        } else if (method.equals(config.getSendRawTransaction_Name())) {
+        } else if (method.equals(Constants.SEND_RAWTRANSACTION_NAME)) {
             b.setMethod(EthMethod.SEND_TX);
             buildRequestFromString(b, (String) params.get(0));
         } else {
@@ -219,7 +221,7 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
         String byteCode = "";
         // params will only be an object when using eth_sendTransaction. To avoid parsing errors,
         // only perform the following steps if this is the method being used
-        boolean isSendTransaction = method.equals(config.getSendTransaction_Name());
+        boolean isSendTransaction = method.equals(Constants.SEND_TRANSACTION_NAME);
         if (isSendTransaction) {
             JSONArray paramsArray = (JSONArray) requestJson.get("params");
             JSONObject params = (JSONObject) paramsArray.get(0);

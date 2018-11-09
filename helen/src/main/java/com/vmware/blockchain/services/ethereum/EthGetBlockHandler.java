@@ -17,7 +17,7 @@ import com.vmware.athena.Athena.AthenaRequest.Builder;
 import com.vmware.athena.Athena.AthenaResponse;
 import com.vmware.athena.Athena.BlockResponse;
 import com.vmware.athena.Athena.TransactionResponse;
-import com.vmware.blockchain.common.AthenaProperties;
+import com.vmware.blockchain.common.Constants;
 
 /**
  * This handler is used to service eth_getBlockByHash POST requests.
@@ -25,11 +25,6 @@ import com.vmware.blockchain.common.AthenaProperties;
 public class EthGetBlockHandler extends AbstractEthRpcHandler {
 
     Logger logger = LogManager.getLogger(EthGetBlockHandler.class);
-
-    public EthGetBlockHandler(AthenaProperties config) {
-        super(config);
-        // TODO Auto-generated constructor stub
-    }
 
     /**
      * Builds the Athena request builder. Extracts the block hash from the request and uses it to set up an Athena
@@ -56,7 +51,7 @@ public class EthGetBlockHandler extends AbstractEthRpcHandler {
             // Construct a blockNumberRequest object. Set its start field.
             final Athena.BlockRequest blockRequestObj;
 
-            if (ethMethodName.equals(config.getGetBlockByNumber_Name())) {
+            if (ethMethodName.equals(Constants.GET_BLOCKBYNUMBER_NAME)) {
                 // Block number string can be either a hex number or it can be one
                 // of "latest", "earliest", "pending". Since, athena only accepts
                 // uint64_t for block number we will replace "latest" with -1

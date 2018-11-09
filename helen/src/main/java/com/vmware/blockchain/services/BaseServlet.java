@@ -29,14 +29,14 @@ import com.vmware.blockchain.services.ethereum.AthenaHelper;
 public abstract class BaseServlet {
     protected static final long serialVersionUID = 1L;
 
-    protected AthenaProperties config;
     protected HttpHeaders standardHeaders;
     protected AthenaConnectionPool athenaConnectionPool;
+    protected AthenaProperties config;
 
     @Autowired
     protected BaseServlet(AthenaProperties config, AthenaConnectionPool athenaConnectionPool) {
-        this.config = config;
         this.athenaConnectionPool = athenaConnectionPool;
+        this.config = config;
         standardHeaders = new HttpHeaders();
         standardHeaders.setContentType(MediaType.APPLICATION_JSON_UTF8);
         standardHeaders.set("Content-Transfer-Encoding", "8BIT");
