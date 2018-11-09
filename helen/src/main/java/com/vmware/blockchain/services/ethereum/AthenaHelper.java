@@ -16,6 +16,9 @@ import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.blockchain.connections.IAthenaConnection;
 
+/**
+ * Some helper functions dealing with protobuf.
+ */
 public class AthenaHelper {
 
     private static Logger log = LogManager.getLogger(AthenaHelper.class);
@@ -35,17 +38,14 @@ public class AthenaHelper {
     /**
      * Sends a Google Protocol Buffer request to Athena. Athena expects two bytes signifying the size of the request
      * before the actual request.
-     *
-     * @param socketRequest OutputStream object
-     * @param request AthenaRequest object
-     * @throws IOException
      */
     public static boolean sendToAthena(Athena.AthenaRequest request, IAthenaConnection conn, AthenaProperties conf)
             throws IOException {
         // here specifically, request.toString() it time consuming,
         // so checking level enabled can gain performance
-        if (log.isTraceEnabled())
+        if (log.isTraceEnabled()) {
             log.trace(String.format("Sending request to Athena : %s %s", System.lineSeparator(), request));
+        }
 
         // Find size of request and pack size into two bytes.
         int requestSize = request.getSerializedSize();
@@ -69,16 +69,13 @@ public class AthenaHelper {
     /**
      * Receives a Google Protocol Buffer response from Athena. Athena sends two bytes signifying the size of the
      * response before the actual response.
-     *
-     * @param socketResponse InputStream object
-     * @return Athena's response
-     * @throws IOException
      **/
     public static Athena.AthenaResponse receiveFromAthena(IAthenaConnection conn) {
         try {
             byte[] data = conn.receive();
-            if (data == null)
+            if (data == null) {
                 return null;
+            }
 
             // Convert read bytes into a Protocol Buffer object.
             Athena.AthenaResponse athenaResponse;

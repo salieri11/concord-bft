@@ -19,7 +19,7 @@ import com.vmware.blockchain.common.AthenaConnectionException;
 import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.connections.IAthenaConnection;
-import com.vmware.blockchain.services.ethereum.APIHelper;
+import com.vmware.blockchain.services.ethereum.ApiHelper;
 import com.vmware.blockchain.services.ethereum.AthenaHelper;
 
 /**
@@ -112,7 +112,7 @@ public abstract class BaseServlet {
             return buildHelenResponse(athenaResponse);
         } catch (AthenaConnectionException ace) {
             LogManager.getLogger(BaseServlet.class).warn("Athena Exception: ", ace);
-            return new ResponseEntity<>(APIHelper.errorJSON(ace.getMessage()), standardHeaders,
+            return new ResponseEntity<>(ApiHelper.errorJson(ace.getMessage()), standardHeaders,
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

@@ -21,7 +21,7 @@ import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
-import com.vmware.blockchain.services.ethereum.APIHelper;
+import com.vmware.blockchain.services.ethereum.ApiHelper;
 
 /**
  * Servlet class.
@@ -41,17 +41,17 @@ public final class Transaction extends BaseServlet {
         // Construct the reponse JSON object.
         JSONObject responseJson = new JSONObject();
 
-        responseJson.put("hash", APIHelper.binaryStringToHex(tr.getHash()));
-        responseJson.put("from", APIHelper.binaryStringToHex(tr.getFrom()));
-        responseJson.put("block_hash", APIHelper.binaryStringToHex(tr.getBlockHash()));
+        responseJson.put("hash", ApiHelper.binaryStringToHex(tr.getHash()));
+        responseJson.put("from", ApiHelper.binaryStringToHex(tr.getFrom()));
+        responseJson.put("block_hash", ApiHelper.binaryStringToHex(tr.getBlockHash()));
         responseJson.put("block_number", tr.getBlockNumber());
 
         if (tr.hasTo()) {
-            responseJson.put("to", APIHelper.binaryStringToHex(tr.getTo()));
+            responseJson.put("to", ApiHelper.binaryStringToHex(tr.getTo()));
         }
 
         if (tr.hasContractAddress()) {
-            responseJson.put("contract_address", APIHelper.binaryStringToHex(tr.getContractAddress()));
+            responseJson.put("contract_address", ApiHelper.binaryStringToHex(tr.getContractAddress()));
         }
 
         if (tr.hasValue()) {
@@ -59,7 +59,7 @@ public final class Transaction extends BaseServlet {
         }
 
         if (tr.hasInput()) {
-            responseJson.put("input", APIHelper.binaryStringToHex(tr.getInput()));
+            responseJson.put("input", ApiHelper.binaryStringToHex(tr.getInput()));
         }
         responseJson.put("nonce", tr.getNonce());
 
@@ -79,7 +79,7 @@ public final class Transaction extends BaseServlet {
         ResponseEntity<JSONAware> responseEntity;
         ByteString hashBytes = null;
         try {
-            hashBytes = APIHelper.hexStringToBinary(hash);
+            hashBytes = ApiHelper.hexStringToBinary(hash);
         } catch (Exception e) {
             logger.error("Invalid Hash");
             return new ResponseEntity<>(new JSONObject(), standardHeaders, HttpStatus.BAD_REQUEST);

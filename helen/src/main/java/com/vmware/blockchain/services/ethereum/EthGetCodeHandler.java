@@ -12,17 +12,13 @@ import org.json.simple.JSONObject;
 import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
-import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.athena.Athena.EthResponse;
+import com.vmware.blockchain.common.AthenaProperties;
 
 /**
- * <p>
- * Copyright 2018 VMware, all rights reserved.
- * </p>
- *
  * This handler is used to service eth_getCode POST requests.
  */
-public class EthGetCodeHandler extends AbstractEthRPCHandler {
+public class EthGetCodeHandler extends AbstractEthRpcHandler {
 
     Logger logger = LogManager.getLogger(EthGetCodeHandler.class);
 
@@ -35,7 +31,7 @@ public class EthGetCodeHandler extends AbstractEthRPCHandler {
      * Builds the Athena request builder. Extracts the 'to' address from the request and uses it to set up an Athena
      * Request builder with an EthRequest.
      *
-     * @param builder Object in which request is built
+     * @param athenaRequestBuilder Object in which request is built
      * @param requestJson Request parameters passed by the user
      */
     @Override
@@ -46,11 +42,11 @@ public class EthGetCodeHandler extends AbstractEthRPCHandler {
             EthRequest.Builder b = initializeRequestObject(requestJson);
             b.setMethod(EthMethod.GET_CODE);
             JSONArray params = extractRequestParams(requestJson);
-            b.setAddrTo(APIHelper.hexStringToBinary((String) params.get(0)));
+            b.setAddrTo(ApiHelper.hexStringToBinary((String) params.get(0)));
             // add "block" parameter, the default block parameter is "latest".
             // if no parameter or its value is negative, athena treat is as default
             if (params.size() == 2) {
-                long blockNumber = APIHelper.parseBlockNumber(params);
+                long blockNumber = ApiHelper.parseBlockNumber(params);
                 if (blockNumber >= 0) {
                     b.setBlockNumber(blockNumber);
                 }
@@ -75,7 +71,7 @@ public class EthGetCodeHandler extends AbstractEthRPCHandler {
     public JSONObject buildResponse(Athena.AthenaResponse athenaResponse, JSONObject requestJson) {
         EthResponse ethResponse = athenaResponse.getEthResponse(0);
         JSONObject respObject = initializeResponseObject(ethResponse);
-        respObject.put("result", APIHelper.binaryStringToHex(ethResponse.getData()));
+        respObject.put("result", ApiHelper.binaryStringToHex(ethResponse.getData()));
         return respObject;
     }
 }

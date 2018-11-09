@@ -4,8 +4,6 @@
 
 package com.vmware.blockchain.services.ethereum;
 
-import java.io.IOException;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
@@ -32,16 +30,12 @@ import com.vmware.blockchain.services.contracts.ContractRegistryManager;
 
 /**
  * <p>
- * Copyright 2018 VMware, all rights reserved.
- * </p>
- *
- * <p>
- * url endpoint : /api/athena/eth
- * </p>
- *
- * <p>
  * GET: Used to list available RPC methods. A list of currently exposed Eth RPC methods is read from the config file and
  * returned to the client.
+ * </p>
+
+ * <p>
+ * url endpoint : /api/athena/eth
  * </p>
  *
  * <p>
@@ -54,7 +48,7 @@ import com.vmware.blockchain.services.contracts.ContractRegistryManager;
 public final class EthDispatcher extends BaseServlet {
     private static final long serialVersionUID = 1L;
     public static long netVersion;
-    public static boolean netVersionSet = false;
+    public static boolean netVersionSet;
     private static Logger logger = LogManager.getLogger(EthDispatcher.class);
     private JSONArray rpcList;
     private String jsonRpc;
@@ -96,48 +90,44 @@ public final class EthDispatcher extends BaseServlet {
     }
 
     /**
-     * Extracts the RPC method name from the request JSON
+     * Extracts the RPC method name from the request JSON.
      *
      * @param ethRequestJson Request JSON
      * @return Method name
-     * @throws Exception
      */
-    public static String getEthMethodName(JSONObject ethRequestJson) throws EthRPCHandlerException {
+    public static String getEthMethodName(JSONObject ethRequestJson) throws EthRpcHandlerException {
         if (ethRequestJson.containsKey("method")) {
             if (ethRequestJson.get("method") instanceof String) {
                 return (String) ethRequestJson.get("method");
             } else {
-                throw new EthRPCHandlerException("method must be a string");
+                throw new EthRpcHandlerException("method must be a string");
             }
         } else {
-            throw new EthRPCHandlerException("request must contain a method");
+            throw new EthRpcHandlerException("request must contain a method");
         }
     }
 
     /**
-     * Extracts the Request Id from the request JSON
+     * Extracts the Request Id from the request JSON.
      *
      * @param ethRequestJson Request JSON
      * @return Request id
-     * @throws Exception
      */
-    public static long getEthRequestId(JSONObject ethRequestJson) throws EthRPCHandlerException {
+    public static long getEthRequestId(JSONObject ethRequestJson) throws EthRpcHandlerException {
         if (ethRequestJson.containsKey("id")) {
             if (ethRequestJson.get("id") instanceof Number) {
                 return ((Number) ethRequestJson.get("id")).longValue();
             } else {
-                throw new EthRPCHandlerException("id must be a number");
+                throw new EthRpcHandlerException("id must be a number");
             }
         } else {
-            throw new EthRPCHandlerException("request must contain an id");
+            throw new EthRpcHandlerException("request must contain an id");
         }
     }
 
     /**
      * Services the Get request for listing currently exposed Eth RPCs. Retrieves the list from the configurations file
      * and returns it to the client.
-     *
-     * @throws IOException
      */
     @RequestMapping(path = "/api/athena/eth", method = RequestMethod.GET)
     public ResponseEntity<JSONAware> doGet() {
@@ -151,8 +141,6 @@ public final class EthDispatcher extends BaseServlet {
     /**
      * Services the POST request for executing the specified methods. Retrieves the request parameters and calls the
      * dispatch function. Builds the response for sending to client.
-     *
-     * @throws IOException
      */
     @SuppressWarnings("unchecked")
     @RequestMapping(path = "/api/athena/eth", method = RequestMethod.POST)
@@ -195,7 +183,7 @@ public final class EthDispatcher extends BaseServlet {
             logger.error("Invalid request", e);
             responseBody = errorMessage("Unable to parse request", -1, jsonRpc);
         } catch (Exception e) {
-            logger.error(APIHelper.exceptionToString(e));
+            logger.error(ApiHelper.exceptionToString(e));
             responseBody = errorMessage(e.getMessage(), -1, jsonRpc);
         }
         logger.debug("Response: " + responseBody.toJSONString());
@@ -208,7 +196,6 @@ public final class EthDispatcher extends BaseServlet {
      *
      * @param requestJson Request parameters
      * @return Response for user
-     * @throws Exception
      */
     public JSONObject dispatch(JSONObject requestJson) throws Exception {
         // Default initialize variables, so that if exception is thrown
@@ -216,7 +203,7 @@ public final class EthDispatcher extends BaseServlet {
         // with default values.
         long id = -1;
         String ethMethodName;
-        AbstractEthRPCHandler handler;
+        AbstractEthRpcHandler handler;
         boolean isLocal = false;
         JSONObject responseObject;
         AthenaResponse athenaResponse;
@@ -297,7 +284,7 @@ public final class EthDispatcher extends BaseServlet {
                 responseObject = handler.buildResponse(null, requestJson);
             }
         } catch (Exception e) {
-            logger.error(APIHelper.exceptionToString(e));
+            logger.error(ApiHelper.exceptionToString(e));
             responseObject = errorMessage(e.getMessage(), id, jsonRpc);
         }
         return responseObject;

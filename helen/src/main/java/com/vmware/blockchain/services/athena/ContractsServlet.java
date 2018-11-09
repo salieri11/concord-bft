@@ -4,7 +4,7 @@
 
 package com.vmware.blockchain.services.athena;
 
-import static com.vmware.blockchain.services.ethereum.APIHelper.errorJSON;
+import static com.vmware.blockchain.services.ethereum.ApiHelper.errorJson;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -109,7 +109,7 @@ public class ContractsServlet extends BaseServlet {
 
         // TODO: This check is not a proper way, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJSON("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
@@ -165,7 +165,7 @@ public class ContractsServlet extends BaseServlet {
 
         // TODO: This check is not a proper way, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJSON("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
@@ -173,7 +173,7 @@ public class ContractsServlet extends BaseServlet {
             return new ResponseEntity<>(buildContractJson(registryManager.getAllBriefVersionInfo(contractId)),
                     standardHeaders, HttpStatus.OK);
         } else {
-            return new ResponseEntity<>(errorJSON("No contract found with id: " + contractId), standardHeaders,
+            return new ResponseEntity<>(errorJson("No contract found with id: " + contractId), standardHeaders,
                     HttpStatus.NOT_FOUND);
         }
     }
@@ -217,7 +217,7 @@ public class ContractsServlet extends BaseServlet {
 
         // TODO: This check is not a proper way, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJSON("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
@@ -226,7 +226,7 @@ public class ContractsServlet extends BaseServlet {
             return new ResponseEntity<>(buildVersionJson(fvInfo), standardHeaders, HttpStatus.OK);
         } catch (ContractRetrievalException e) {
             return new ResponseEntity<>(
-                    errorJSON("No contract found with id: " + contractId + " and version: " + contractVersion),
+                    errorJson("No contract found with id: " + contractId + " and version: " + contractVersion),
                     standardHeaders, HttpStatus.NOT_FOUND);
         }
     }
@@ -304,7 +304,7 @@ public class ContractsServlet extends BaseServlet {
 
         // TODO: This check is not a proper way, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJSON("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
@@ -322,7 +322,7 @@ public class ContractsServlet extends BaseServlet {
             String constructorParams = (String) requestObject.get("constructorParams");
             if (registryManager.hasContractVersion(contractId, contractVersion)) {
                 responseEntity =
-                        new ResponseEntity<>(errorJSON("contract with same name and version " + "already exists"),
+                        new ResponseEntity<>(errorJson("contract with same name and version " + "already exists"),
                                 standardHeaders, HttpStatus.CONFLICT);
             } else {
                 Compiler.Result result = Compiler.compile(solidityCode);
@@ -337,25 +337,25 @@ public class ContractsServlet extends BaseServlet {
                         FullVersionInfo fvInfo = registryManager.getContractVersion(contractId, contractVersion);
                         return new ResponseEntity<>(buildVersionJson(fvInfo), standardHeaders, HttpStatus.OK);
                     } else {
-                        responseEntity = new ResponseEntity<>(errorJSON("unable to update contract."), standardHeaders,
+                        responseEntity = new ResponseEntity<>(errorJson("unable to update contract."), standardHeaders,
                                 HttpStatus.INTERNAL_SERVER_ERROR);
                     }
                 } else {
-                    responseEntity = new ResponseEntity<>(errorJSON("Compilation failure:\n" + result.getStderr()),
+                    responseEntity = new ResponseEntity<>(errorJson("Compilation failure:\n" + result.getStderr()),
                             standardHeaders, HttpStatus.BAD_REQUEST);
                 }
             }
         } catch (ParseException pe) {
             logger.warn("Exception while parsing request JSON", pe);
-            responseEntity = new ResponseEntity<>(errorJSON("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
                     HttpStatus.BAD_REQUEST);
         } catch (ContractRetrievalException e) {
-            return new ResponseEntity<>(errorJSON(
+            return new ResponseEntity<>(errorJson(
                     "No contract found with id: " + existingContractId + " and version: " + existingVersionName),
                     standardHeaders, HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             logger.warn("Exception in request processing", e);
-            responseEntity = new ResponseEntity<>(errorJSON("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return responseEntity;
@@ -448,7 +448,7 @@ public class ContractsServlet extends BaseServlet {
 
         // TODO: This check is fragile, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJSON("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
@@ -485,16 +485,16 @@ public class ContractsServlet extends BaseServlet {
                 responseJson.put("data", resultArray);
                 responseEntity = new ResponseEntity<>(responseJson, standardHeaders, HttpStatus.OK);
             } else {
-                responseEntity = new ResponseEntity<>(errorJSON("Compilation failure:\n" + result.getStderr()),
+                responseEntity = new ResponseEntity<>(errorJson("Compilation failure:\n" + result.getStderr()),
                         standardHeaders, HttpStatus.BAD_REQUEST);
             }
         } catch (ParseException pe) {
             logger.warn("Exception while parsing request JSON", pe);
-            responseEntity = new ResponseEntity<>(errorJSON("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
                     HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             logger.warn("Exception in request processing", e);
-            responseEntity = new ResponseEntity<>(errorJSON("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return responseEntity;
@@ -512,7 +512,7 @@ public class ContractsServlet extends BaseServlet {
 
         // TODO: This check is fragile, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJSON("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
@@ -535,14 +535,14 @@ public class ContractsServlet extends BaseServlet {
             // then version number must be different
             if (registryManager.hasContractVersion(contractId, contractVersion)) {
                 responseEntity =
-                        new ResponseEntity<>(errorJSON("contract with same name and version " + "already exists"),
+                        new ResponseEntity<>(errorJson("contract with same name and version " + "already exists"),
                                 standardHeaders, HttpStatus.CONFLICT);
             } else if (registryManager.hasContract(contractId)
                     && !isSameAddress(registryManager.getBriefContractInfo(contractId).getOwnerAddress(), (from))) {
                 // It is a new version of
                 // existing contract but from address doesn't match
                 responseEntity = new ResponseEntity<>(
-                        errorJSON("Only original owner can deploy the" + " new version of a contract"), standardHeaders,
+                        errorJson("Only original owner can deploy the" + " new version of a contract"), standardHeaders,
                         HttpStatus.FORBIDDEN);
             } else {
                 // Compile the given solidity code
@@ -552,17 +552,17 @@ public class ContractsServlet extends BaseServlet {
                             selectedContract, constructorParams);
                     responseEntity = new ResponseEntity<>(resultObject, standardHeaders, HttpStatus.OK);
                 } else {
-                    responseEntity = new ResponseEntity<>(errorJSON("Compilation failure:\n" + result.getStderr()),
+                    responseEntity = new ResponseEntity<>(errorJson("Compilation failure:\n" + result.getStderr()),
                             standardHeaders, HttpStatus.BAD_REQUEST);
                 }
             }
         } catch (ParseException pe) {
             logger.warn("Exception while parsing request JSON", pe);
-            responseEntity = new ResponseEntity<>(errorJSON("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
                     HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             logger.warn("Exception in request processing", e);
-            responseEntity = new ResponseEntity<>(errorJSON("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return responseEntity;

@@ -15,17 +15,21 @@ import org.bouncycastle.jcajce.provider.digest.Keccak;
 import org.bouncycastle.util.encoders.Hex;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.springframework.http.HttpStatus;
 
 import com.google.protobuf.ByteString;
+import com.vmware.blockchain.common.HelenException;
 
-public class APIHelper {
+/**
+ * Helper functions for Ethereum APIs.
+ */
+public class ApiHelper {
 
     /**
      * Converts a hex string into a binary string.
      *
      * @param param A hex string
      * @return A ByteString object
-     * @throws Exception
      */
     public static ByteString hexStringToBinary(String param) throws HexParseException {
         // Param should strictly be a hex string
@@ -74,11 +78,7 @@ public class APIHelper {
     }
 
     /**
-     * Converts a hex character into its corresponding numerical value
-     *
-     * @param c
-     * @return
-     * @throws Exception
+     * Converts a hex character into its corresponding numerical value.
      */
     private static char hexVal(char c) throws HexParseException {
         if (c >= '0' && c <= '9') {
@@ -137,11 +137,7 @@ public class APIHelper {
     }
 
     /**
-     * Computes the Keccak-256 hash as per ethereum specifications
-     *
-     * @param hex
-     * @return
-     * @throws Exception
+     * Computes the Keccak-256 hash as per ethereum specifications.
      */
     public static String getKeccak256Hash(String hex) throws Exception {
         String result = null;
@@ -155,10 +151,7 @@ public class APIHelper {
     }
 
     /**
-     * Pads zeroes to the hex string to ensure a uniform length of 64 hex characters
-     *
-     * @param p
-     * @return
+     * Pads zeroes to the hex string to ensure a uniform length of 64 hex characters.
      */
     public static String padZeroes(String p) {
         int zeroes = 0;
@@ -181,7 +174,6 @@ public class APIHelper {
     /**
      * An utility function to convert java exceptions stack trace into Strings.
      *
-     * @param e
      * @return string of exception stack trace
      */
     public static String exceptionToString(Exception e) {
@@ -212,7 +204,10 @@ public class APIHelper {
         return responseJson.toJSONString();
     }
 
-    public static JSONObject errorJSON(String message) {
+    /**
+     * Prepare a json error message.
+     */
+    public static JSONObject errorJson(String message) {
         JSONObject error = new JSONObject();
         error.put("error", message);
         return error;
@@ -223,12 +218,18 @@ public class APIHelper {
         return paramString;
     }
 
-    public static class HexParseException extends Exception {
+    /**
+     * Exception during parsing.
+     */
+    public static class HexParseException extends HelenException {
         public HexParseException(String message) {
-            super(message);
+            super(message, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
+    /**
+     * Pull the block number out of JSON.
+     */
     public static long parseBlockNumber(JSONArray params) {
         String blockNumber = (String) params.get(params.size() - 1);
         if (blockNumber.equals("earliest")) {

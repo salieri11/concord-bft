@@ -23,7 +23,7 @@ import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
-import com.vmware.blockchain.services.ethereum.APIHelper;
+import com.vmware.blockchain.services.ethereum.ApiHelper;
 
 /**
  * Servlet class.
@@ -100,7 +100,7 @@ public class BlockList extends BaseServlet {
                 JSONObject blockJson = new JSONObject();
 
                 long number = block.getNumber();
-                String hexString = APIHelper.binaryStringToHex(block.getHash());
+                String hexString = ApiHelper.binaryStringToHex(block.getHash());
 
                 blockJson.put("number", number);
                 blockJson.put("hash", hexString);

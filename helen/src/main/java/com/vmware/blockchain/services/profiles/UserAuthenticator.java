@@ -33,7 +33,7 @@ import com.vmware.blockchain.common.UserModificationException;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.services.BaseServlet;
-import com.vmware.blockchain.services.ethereum.APIHelper;
+import com.vmware.blockchain.services.ethereum.ApiHelper;
 
 
 /**
@@ -101,12 +101,12 @@ public class UserAuthenticator extends BaseServlet {
                     responseJson = new JSONObject();
                 }
             } else {
-                responseJson = APIHelper.errorJSON("email or password " + "field missing");
+                responseJson = ApiHelper.errorJson("email or password " + "field missing");
                 responseStatus = HttpStatus.BAD_REQUEST;
             }
         } catch (ParseException | UserModificationException e) {
             responseStatus = HttpStatus.BAD_REQUEST;
-            responseJson = APIHelper.errorJSON(e.getMessage());
+            responseJson = ApiHelper.errorJson(e.getMessage());
         }
 
         return new ResponseEntity<>(responseJson, standardHeaders, responseStatus);
@@ -142,7 +142,7 @@ public class UserAuthenticator extends BaseServlet {
             }
         } catch (ParseException | HelenException e) {
             responseStatus = HttpStatus.BAD_REQUEST;
-            responseJson = APIHelper.errorJSON(e.getMessage());
+            responseJson = ApiHelper.errorJson(e.getMessage());
         }
 
         return new ResponseEntity<>(responseJson, standardHeaders, responseStatus);
@@ -164,7 +164,7 @@ public class UserAuthenticator extends BaseServlet {
                 String password = requestJson.get(PASSWORD_LABEL).toString();
 
                 if (passwordEncoder.matches(password, u.getPassword())) {
-                    responseJson = APIHelper.errorJSON("Can't use same password!");
+                    responseJson = ApiHelper.errorJson("Can't use same password!");
                     responseStatus = HttpStatus.BAD_REQUEST;
                 } else {
                     String enPw = passwordEncoder.encode(password);
@@ -173,12 +173,12 @@ public class UserAuthenticator extends BaseServlet {
                 }
 
             } else {
-                responseJson = APIHelper.errorJSON("email or password " + "field missing");
+                responseJson = ApiHelper.errorJson("email or password " + "field missing");
                 responseStatus = HttpStatus.BAD_REQUEST;
             }
         } catch (ParseException | UserModificationException e) {
             responseStatus = HttpStatus.BAD_REQUEST;
-            responseJson = APIHelper.errorJSON(e.getMessage());
+            responseJson = ApiHelper.errorJson(e.getMessage());
         }
 
         return new ResponseEntity<>(responseJson, standardHeaders, responseStatus);

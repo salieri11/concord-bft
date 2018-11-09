@@ -21,7 +21,7 @@ import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
-import com.vmware.blockchain.services.ethereum.APIHelper;
+import com.vmware.blockchain.services.ethereum.ApiHelper;
 
 /**
  * Controller to get transaction lists.
@@ -57,7 +57,7 @@ public class TransactionList extends BaseServlet {
             Athena.TransactionListRequest.Builder txListReqBuilder = Athena.TransactionListRequest.newBuilder();
 
             if (!latestHash.isEmpty()) {
-                txListReqBuilder.setLatest(APIHelper.hexStringToBinary(latestHash));
+                txListReqBuilder.setLatest(ApiHelper.hexStringToBinary(latestHash));
             }
             txListReqBuilder.setCount(count);
             logger.info("requested count: " + count);
@@ -69,7 +69,7 @@ public class TransactionList extends BaseServlet {
 
         } catch (Exception e) {
             logger.warn("Exception in transaction list", e);
-            return new ResponseEntity<>(APIHelper.errorJSON(e.getMessage()), standardHeaders, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(ApiHelper.errorJson(e.getMessage()), standardHeaders, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -91,14 +91,14 @@ public class TransactionList extends BaseServlet {
         JSONArray trArray = new JSONArray();
         for (Athena.TransactionResponse tr : txListResponse.getTransactionList()) {
             JSONObject trJson = Transaction.buildTransactionResponseJson(tr);
-            trJson.put("url", transactionListEndpoint + "/" + APIHelper.binaryStringToHex(tr.getHash()));
+            trJson.put("url", transactionListEndpoint + "/" + ApiHelper.binaryStringToHex(tr.getHash()));
             trArray.add(trJson);
         }
 
         responseJson.put("transactions", trArray);
         if (txListResponse.hasNext()) {
             responseJson.put("next",
-                    transactionListEndpoint + "?latest=" + APIHelper.binaryStringToHex(txListResponse.getNext()));
+                    transactionListEndpoint + "?latest=" + ApiHelper.binaryStringToHex(txListResponse.getNext()));
         }
         return responseJson;
     }

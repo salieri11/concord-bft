@@ -23,7 +23,7 @@ import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
-import com.vmware.blockchain.services.ethereum.APIHelper;
+import com.vmware.blockchain.services.ethereum.ApiHelper;
 
 /**
  * A Controller that manages all GET/POST/PATCH requests related to user management API of helen.
@@ -79,7 +79,7 @@ public class AgreementServlet extends BaseServlet {
             responseStatus = HttpStatus.OK;
 
         } catch (ParseException e) {
-            responseJson = APIHelper.errorJSON(e.getMessage());
+            responseJson = ApiHelper.errorJson(e.getMessage());
             responseStatus = HttpStatus.BAD_REQUEST;
         }
 

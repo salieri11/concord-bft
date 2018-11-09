@@ -4,17 +4,17 @@
 
 package com.vmware.blockchain.services.ethereum;
 
+import org.springframework.http.HttpStatus;
+
+import com.vmware.blockchain.common.HelenException;
+
 /**
- * <p>
- * Copyright 2018 VMware, all rights reserved.
- * </p>
- * 
  * This class serves as a common exception type thrown by all EthRPC handlers.
  */
-public class EthRPCHandlerException extends Exception {
+public class EthRpcHandlerException extends HelenException {
     private static final long serialVersionUID = 1L;
 
-    public EthRPCHandlerException(String message) {
-        super(message);
+    public EthRpcHandlerException(String message) {
+        super(message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
