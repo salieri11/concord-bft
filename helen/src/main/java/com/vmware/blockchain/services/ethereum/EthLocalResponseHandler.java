@@ -88,7 +88,7 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
 
         Object localData = null;
 
-        if (ethMethodName.equals(Constants.WEB_3SHA3_NAME)) {
+        if (ethMethodName.equals(Constants.WEB3_SHA3_NAME)) {
             JSONArray params = extractRequestParams(requestJson);
             // Request should contain just one param value
             if (params.size() != 1) {

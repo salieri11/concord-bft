@@ -65,7 +65,7 @@ public class Constants {
     public static final String SEND_RAWTRANSACTION_NAME = "eth_sendRawTransaction";
     public static final String GET_TRANSACTIONRECEIPT_NAME = "eth_getTransactionReceipt";
     public static final String GET_STORAGEAT_NAME = "eth_getStorageAt";
-    public static final String WEB_3SHA3_NAME = "web3_sha3";
+    public static final String WEB3_SHA3_NAME = "web3_sha3";
     public static final String RPC_MODULES_NAME = "rpc_modules";
     public static final String CLIENT_VERSION_NAME = "web3_clientVersion";
     public static final String MINING_NAME = "eth_mining";

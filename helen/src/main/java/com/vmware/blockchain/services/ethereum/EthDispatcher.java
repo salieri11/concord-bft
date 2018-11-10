@@ -266,7 +266,7 @@ public final class EthDispatcher extends BaseServlet {
                     handler = new EthFilterHandler();
                     break;
 
-                case Constants.WEB_3SHA3_NAME:
+                case Constants.WEB3_SHA3_NAME:
                 case Constants.RPC_MODULES_NAME:
                 case Constants.COINBASE_NAME:
                 case Constants.CLIENT_VERSION_NAME:
