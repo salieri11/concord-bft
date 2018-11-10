@@ -13,7 +13,6 @@ import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 import com.vmware.athena.Athena.EthResponse;
-import com.vmware.blockchain.common.AthenaProperties;
 
 /**
  * This handler is used to service eth_getCode POST requests.
@@ -21,11 +20,6 @@ import com.vmware.blockchain.common.AthenaProperties;
 public class EthGetCodeHandler extends AbstractEthRpcHandler {
 
     Logger logger = LogManager.getLogger(EthGetCodeHandler.class);
-
-    public EthGetCodeHandler(AthenaProperties config) {
-        super(config);
-        // TODO Auto-generated constructor stub
-    }
 
     /**
      * Builds the Athena request builder. Extracts the 'to' address from the request and uses it to set up an Athena

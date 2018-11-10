@@ -13,17 +13,11 @@ import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthRequest.EthMethod;
 import com.vmware.athena.Athena.EthResponse;
-import com.vmware.blockchain.common.AthenaProperties;
 
 /**
  * This handler is used to service eth_getStorageAt POST requests.
  */
 public class EthGetStorageAtHandler extends AbstractEthRpcHandler {
-
-    public EthGetStorageAtHandler(AthenaProperties config) {
-        super(config);
-        // TODO Auto-generated constructor stub
-    }
 
     Logger logger = LogManager.getLogger(EthBlockNumberHandler.class);
 

@@ -10,7 +10,7 @@ import org.json.simple.JSONObject;
 import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.EthRequest;
 import com.vmware.athena.Athena.EthResponse;
-import com.vmware.blockchain.common.AthenaProperties;
+import com.vmware.blockchain.common.Constants;
 
 /**
  * <p>
@@ -29,14 +29,11 @@ import com.vmware.blockchain.common.AthenaProperties;
  */
 public abstract class AbstractEthRpcHandler {
 
-    // Configuration handles
-    protected AthenaProperties config;
 
     protected String jsonRpc;
 
-    public AbstractEthRpcHandler(AthenaProperties config) {
-        this.config = config;
-        this.jsonRpc = config.getJSONRPC();
+    public AbstractEthRpcHandler() {
+        this.jsonRpc = Constants.JSONRPC;
     }
 
     /**

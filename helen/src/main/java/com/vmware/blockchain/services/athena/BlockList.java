@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
@@ -60,7 +61,7 @@ public class BlockList extends BaseServlet {
 
         // If listLength is null, request for default no. of blocks
         if (count == -1) {
-            count = config.getBlockList_DefaultCount();
+            count = Constants.BLOCKLIST_DEFAULTCOUNT;
         }
         b.setCount(count);
 
@@ -105,7 +106,7 @@ public class BlockList extends BaseServlet {
                 blockJson.put("number", number);
                 blockJson.put("hash", hexString);
 
-                String url = config.getBlockList_URLPrefix() + number;
+                String url = Constants.BLOCKLIST_URLPREFIX + number;
 
                 blockJson.put("url", url);
 
@@ -118,7 +119,7 @@ public class BlockList extends BaseServlet {
             JSONObject responseJson = new JSONObject();
             responseJson.put("blocks", blockArr);
             if (earliestBlock > 0) {
-                responseJson.put("next", config.getBlockList_NextPrefix() + (earliestBlock - 1));
+                responseJson.put("next", Constants.BLOCKLIST_NEXTPREFIX + (earliestBlock - 1));
             }
 
             return responseJson;

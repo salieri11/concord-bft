@@ -16,6 +16,9 @@ import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.common.AthenaProperties;
 
+/**
+ * Connection pool for a specific Blockchain.
+ */
 @Component
 public class AthenaConnectionPool {
     // Instantiate the instance of this class
@@ -75,7 +78,7 @@ public class AthenaConnectionPool {
     /**
      * Closes a single connection instance with Athena.
      *
-     * @param conn
+     * @param conn Connection
      */
     private void closeConnection(IAthenaConnection conn) {
         log.trace("closeConnection enter");
@@ -165,7 +168,7 @@ public class AthenaConnectionPool {
 
             // cannot fail in normal flow
             if (!res) {
-                ((AthenaTCPConnection) conn).close();
+                ((AthenaTcpConnection) conn).close();
                 log.fatal("putConnection, pool at maximum");
             }
         }

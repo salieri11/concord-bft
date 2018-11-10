@@ -19,24 +19,26 @@ import com.vmware.blockchain.common.AthenaProperties;
 import com.vmware.blockchain.services.ethereum.AthenaHelper;
 import com.vmware.blockchain.services.ethereum.EthDispatcher;
 
-public final class AthenaTCPConnection implements IAthenaConnection {
+/**
+ * TCP implementation of Athena Connections.
+ */
+public final class AthenaTcpConnection implements IAthenaConnection {
     private Socket socket;
     private AtomicBoolean disposed;
     private final int receiveTimeout; // ms
     private final int receiveLengthSize; // bytes
     private AthenaProperties config;
-    private static Logger logger = LogManager.getLogger(AthenaTCPConnection.class);
+    private static Logger logger = LogManager.getLogger(AthenaTcpConnection.class);
     private static Athena.ProtocolRequest _protocolRequestMsg =
             Athena.ProtocolRequest.newBuilder().setClientVersion(1).build();
     private static Athena.AthenaRequest _athenaRequest =
             Athena.AthenaRequest.newBuilder().setProtocolRequest(_protocolRequestMsg).build();
 
     /**
-     * Sets up a TCP connection with Athena
+     * Sets up a TCP connection with Athena.
      *
-     * @throws IOException
      */
-    public AthenaTCPConnection(AthenaProperties config, String host, int port) throws IOException {
+    public AthenaTcpConnection(AthenaProperties config, String host, int port) throws IOException {
         this.config = config;
         receiveLengthSize = config.getReceiveHeaderSizeBytes();
         receiveTimeout = config.getReceiveTimeoutMs();
@@ -59,12 +61,13 @@ public final class AthenaTCPConnection implements IAthenaConnection {
     }
 
     /**
-     * Closes the TCP connection
+     * Closes the TCP connection.
      */
     @Override
     public void close() {
-        if (disposed.get())
+        if (disposed.get()) {
             return;
+        }
 
         if (socket != null && !socket.isClosed()) {
             try {
@@ -78,14 +81,17 @@ public final class AthenaTCPConnection implements IAthenaConnection {
     }
 
     /**
-     * Close the connection before garbage collection
+     * Close the connection before garbage collection.
+     * Should be using closable for this.
      */
+    @SuppressWarnings("checkstyle:NoFinalizer")
     @Override
     protected void finalize() throws Throwable {
         logger.info("connection disposed");
         try {
-            if (!disposed.get())
+            if (!disposed.get()) {
                 close();
+            }
         } finally {
             super.finalize();
         }
@@ -160,7 +166,7 @@ public final class AthenaTCPConnection implements IAthenaConnection {
     }
 
     /**
-     * Sends data to Athena over the connection
+     * Sends data to Athena over the connection.
      */
     @Override
     public boolean send(byte[] msg) {

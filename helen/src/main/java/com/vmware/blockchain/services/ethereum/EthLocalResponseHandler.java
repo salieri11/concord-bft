@@ -11,7 +11,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
 import com.vmware.athena.Athena;
-import com.vmware.blockchain.common.AthenaProperties;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.connections.IAthenaConnection;
 
@@ -37,11 +37,6 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
 
     private AthenaConnectionPool connectionPool;
 
-    public EthLocalResponseHandler(AthenaProperties config, AthenaConnectionPool connectionPool) {
-        super(config);
-        this.connectionPool = connectionPool;
-    }
-
     private static Logger logger = LogManager.getLogger(EthLocalResponseHandler.class);
 
     /**
@@ -64,7 +59,7 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
     JSONObject initializeResponseObject(JSONObject requestJson) {
         JSONObject respObject = new JSONObject();
         respObject.put("id", requestJson.get("id"));
-        respObject.put("jsonrpc", config.getJSONRPC());
+        respObject.put("jsonrpc", Constants.JSONRPC);
         return respObject;
     }
 
@@ -93,7 +88,7 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
 
         Object localData = null;
 
-        if (ethMethodName.equals(config.getWeb3SHA3_Name())) {
+        if (ethMethodName.equals(Constants.WEB3_SHA3_NAME)) {
             JSONArray params = extractRequestParams(requestJson);
             // Request should contain just one param value
             if (params.size() != 1) {
@@ -110,16 +105,16 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
                 throw new EthRpcHandlerException(
                         EthDispatcher.errorMessage("'invalid param", id, jsonRpc).toJSONString());
             }
-        } else if (ethMethodName.equals(config.getRPCModules_Name())) {
+        } else if (ethMethodName.equals(Constants.RPC_MODULES_NAME)) {
             JSONParser p = new JSONParser();
-            localData = (((JSONArray) p.parse(config.getRPCModules())).get(0));
-        } else if (ethMethodName.equals(config.getCoinbase_Name())) {
-            localData = config.getCoinbase();
-        } else if (ethMethodName.equals(config.getClientVersion_Name())) {
-            localData = config.getClientVersion();
-        } else if (ethMethodName.equals(config.getMining_Name())) {
-            localData = config.getIs_Mining() == 0 ? false : true;
-        } else if (ethMethodName.equals(config.getNetVersion_Name())) {
+            localData = (((JSONArray) p.parse(Constants.RPC_MODULES)).get(0));
+        } else if (ethMethodName.equals(Constants.COINBASE_NAME)) {
+            localData = Constants.COINBASE;
+        } else if (ethMethodName.equals(Constants.CLIENT_VERSION_NAME)) {
+            localData = Constants.CLIENT_VERSION;
+        } else if (ethMethodName.equals(Constants.MINING_NAME)) {
+            localData = Constants.IS_MINING == 0 ? false : true;
+        } else if (ethMethodName.equals(Constants.NETVERSION_NAME)) {
             if (!EthDispatcher.netVersionSet) {
                 // The act of creating a connection retrieves info about athena.
                 IAthenaConnection conn = null;
@@ -141,9 +136,9 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
                 EthDispatcher.netVersionSet = true;
             }
             localData = EthDispatcher.netVersion;
-        } else if (ethMethodName.equals(config.getAccounts_Name())) {
+        } else if (ethMethodName.equals(Constants.ACCOUNTS_NAME)) {
             JSONArray usersJsonArr = new JSONArray();
-            String usersStr = config.getUSERS();
+            String usersStr = Constants.USERS;
             if (usersStr != null && !usersStr.trim().isEmpty()) {
                 String[] usersArr = usersStr.split(",");
                 for (int i = 0; i < usersArr.length; i++) {
@@ -151,9 +146,9 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
                 }
             }
             localData = usersJsonArr;
-        } else if (ethMethodName.equals(config.getGasPrice_Name())) {
-            localData = config.getGasPrice();
-        } else if (ethMethodName.equals(config.getSyncing_Name())) {
+        } else if (ethMethodName.equals(Constants.GAS_PRICE_NAME)) {
+            localData = Constants.GAS_PRICE;
+        } else if (ethMethodName.equals(Constants.SYNCING_NAME)) {
             // "false" in this context means that the node believes it is up to
             // date. In the future, we may use this to share when a node knows that
             // it is processing a state transfer, but for now, all nodes believe

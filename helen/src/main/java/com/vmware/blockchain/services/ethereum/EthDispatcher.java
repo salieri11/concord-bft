@@ -23,6 +23,7 @@ import com.vmware.athena.Athena;
 import com.vmware.athena.Athena.AthenaResponse;
 import com.vmware.athena.Athena.ErrorResponse;
 import com.vmware.blockchain.common.AthenaProperties;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.connections.IAthenaConnection;
 import com.vmware.blockchain.services.BaseServlet;
@@ -33,7 +34,7 @@ import com.vmware.blockchain.services.contracts.ContractRegistryManager;
  * GET: Used to list available RPC methods. A list of currently exposed Eth RPC methods is read from the config file and
  * returned to the client.
  * </p>
-
+ *
  * <p>
  * url endpoint : /api/athena/eth
  * </p>
@@ -53,16 +54,18 @@ public final class EthDispatcher extends BaseServlet {
     private JSONArray rpcList;
     private String jsonRpc;
     private ContractRegistryManager registryManager;
+    private AthenaProperties config;
 
     @Autowired
     public EthDispatcher(ContractRegistryManager registryManager, AthenaProperties config,
             AthenaConnectionPool connectionPool) throws ParseException {
         super(config, connectionPool);
+        this.config = config;
         JSONParser p = new JSONParser();
         this.registryManager = registryManager;
         try {
-            rpcList = (JSONArray) p.parse(config.getEthRPCList());
-            jsonRpc = config.getJSONRPC();
+            rpcList = (JSONArray) p.parse(Constants.ETHRPC_LIST);
+            jsonRpc = Constants.JSONRPC;
         } catch (Exception e) {
             logger.error("Failed to read RPC information from config file", e);
         }
@@ -190,6 +193,7 @@ public final class EthDispatcher extends BaseServlet {
         return new ResponseEntity<>(responseBody, standardHeaders, HttpStatus.OK);
     }
 
+
     /**
      * Creates the appropriate handler object and calls its functions to construct an AthenaRequest object. Sends this
      * request to Athena and converts its response into a format required by the user.
@@ -213,51 +217,74 @@ public final class EthDispatcher extends BaseServlet {
         try {
             ethMethodName = getEthMethodName(requestJson);
             id = getEthRequestId(requestJson);
-            if (ethMethodName.equals(config.getSendTransaction_Name())
-                    || ethMethodName.equals(config.getSendRawTransaction_Name())
-                    || ethMethodName.equals(config.getCall_Name())) {
-                if (requestJson.containsKey("isInternalContract")) {
-                    requestJson.remove("isInternalContract");
-                    handler = new EthSendTxHandler(config, athenaConnectionPool, registryManager, true);
-                } else {
-                    handler = new EthSendTxHandler(config, athenaConnectionPool, registryManager, false);
-                }
-            } else if (ethMethodName.equals(config.getNewAccount_Name())) {
-                handler = new EthNewAccountHandler(config);
-            } else if (ethMethodName.equals(config.getGetTransactionReceipt_Name())) {
-                handler = new EthGetTxReceiptHandler(config);
-            } else if (ethMethodName.equals(config.getGetStorageAt_Name())) {
-                handler = new EthGetStorageAtHandler(config);
-            } else if (ethMethodName.equals(config.getGetCode_Name())) {
-                handler = new EthGetCodeHandler(config);
-            } else if (ethMethodName.equals(config.getGetTransactionCount_Name())) {
-                handler = new EthGetTransactionCountHandler(config);
-            } else if (ethMethodName.equals(config.getGetBalance_Name())) {
-                handler = new EthGetBalanceHandler(config);
-            } else if (ethMethodName.equals(config.getGetBlockByHash_Name())
-                    || ethMethodName.equals(config.getGetBlockByNumber_Name())) {
-                handler = new EthGetBlockHandler(config);
-            } else if (ethMethodName.equals(config.getNewFilter_Name())
-                    || ethMethodName.equals(config.getNewBlockFilter_Name())
-                    || ethMethodName.equals(config.getNewPendingTransactionFilter_Name())
-                    || ethMethodName.equals(config.getFilterChange_Name())
-                    || ethMethodName.equals(config.getUninstallFilter_Name())) {
-                handler = new EthFilterHandler(config);
-            } else if (ethMethodName.equals(config.getWeb3SHA3_Name())
-                    || ethMethodName.equals(config.getRPCModules_Name())
-                    || ethMethodName.equals(config.getCoinbase_Name())
-                    || ethMethodName.equals(config.getClientVersion_Name())
-                    || ethMethodName.equals(config.getMining_Name())
-                    || ethMethodName.equals(config.getNetVersion_Name())
-                    || ethMethodName.equals(config.getAccounts_Name())
-                    || ethMethodName.equals(config.getGasPrice_Name())
-                    || ethMethodName.equals(config.getSyncing_Name())) {
-                handler = new EthLocalResponseHandler(config, athenaConnectionPool);
-                isLocal = true;
-            } else if (ethMethodName.equals(config.getBlockNumber_Name())) {
-                handler = new EthBlockNumberHandler(config);
-            } else {
-                throw new Exception("Invalid method name.");
+            switch (ethMethodName) {
+                case Constants.SEND_TRANSACTION_NAME:
+                case Constants.SEND_RAWTRANSACTION_NAME:
+                case Constants.CALL_NAME:
+                    if (requestJson.containsKey("isInternalContract")) {
+                        requestJson.remove("isInternalContract");
+                        handler = new EthSendTxHandler(config, athenaConnectionPool, registryManager, true);
+                    } else {
+                        handler = new EthSendTxHandler(config, athenaConnectionPool, registryManager, false);
+                    }
+                    break;
+
+                case Constants.NEWACCOUNT_NAME:
+                    handler = new EthNewAccountHandler();
+                    break;
+
+                case Constants.GET_TRANSACTIONRECEIPT_NAME:
+                    handler = new EthGetTxReceiptHandler();
+                    break;
+
+                case Constants.GET_STORAGEAT_NAME:
+                    handler = new EthGetStorageAtHandler();
+                    break;
+
+                case Constants.GET_CODE_NAME:
+                    handler = new EthGetCodeHandler();
+                    break;
+
+                case Constants.GET_TRANSACTIONCOUNT_NAME:
+                    handler = new EthGetTransactionCountHandler();
+                    break;
+
+                case Constants.GET_BALANCE_NAME:
+                    handler = new EthGetBalanceHandler();
+                    break;
+
+                case Constants.GET_BLOCKBYHASH_NAME:
+                case Constants.GET_BLOCKBYNUMBER_NAME:
+                    handler = new EthGetBlockHandler();
+                    break;
+
+                case Constants.NEWFILTER_NAME:
+                case Constants.NEWBLOCKFILTER_NAME:
+                case Constants.NEWPENDINGTRANSACTIONFILTER_NAME:
+                case Constants.FILTERCHANGE_NAME:
+                case Constants.UNINSTALLFILTER_NAME:
+                    handler = new EthFilterHandler();
+                    break;
+
+                case Constants.WEB3_SHA3_NAME:
+                case Constants.RPC_MODULES_NAME:
+                case Constants.COINBASE_NAME:
+                case Constants.CLIENT_VERSION_NAME:
+                case Constants.MINING_NAME:
+                case Constants.NETVERSION_NAME:
+                case Constants.ACCOUNTS_NAME:
+                case Constants.GAS_PRICE_NAME:
+                case Constants.SYNCING_NAME:
+                    handler = new EthLocalResponseHandler();
+                    isLocal = true;
+                    break;
+
+                case Constants.BLOCKNUMBER_NAME:
+                    handler = new EthBlockNumberHandler();
+                    break;
+
+                default:
+                    throw new Exception("Invalid method name.");
             }
 
             if (!isLocal) {
@@ -283,6 +310,7 @@ public final class EthDispatcher extends BaseServlet {
                 // athena. Just pass null.
                 responseObject = handler.buildResponse(null, requestJson);
             }
+        // TODO: Need to refactor exception handling.  Shouldn't just catch an exception and eat it.
         } catch (Exception e) {
             logger.error(ApiHelper.exceptionToString(e));
             responseObject = errorMessage(e.getMessage(), id, jsonRpc);

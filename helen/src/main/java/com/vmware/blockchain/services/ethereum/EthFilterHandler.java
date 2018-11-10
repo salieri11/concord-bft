@@ -16,7 +16,7 @@ import com.vmware.athena.Athena.EthResponse;
 import com.vmware.athena.Athena.FilterRequest;
 import com.vmware.athena.Athena.FilterRequest.FilterRequestType;
 import com.vmware.athena.Athena.FilterResponse;
-import com.vmware.blockchain.common.AthenaProperties;
+import com.vmware.blockchain.common.Constants;
 
 /**
  * This handler is used to service following types of filter requests.
@@ -33,11 +33,6 @@ public class EthFilterHandler extends AbstractEthRpcHandler {
 
     private static Logger logger = LogManager.getLogger(EthFilterHandler.class);
 
-    public EthFilterHandler(AthenaProperties config) {
-        super(config);
-        // TODO Auto-generated constructor stub
-    }
-
     /**
      * Builds the EthRequest Object from the type of eth request specified in requestJson. Adds the built request into
      * AthenaRequest using given builder.
@@ -49,22 +44,22 @@ public class EthFilterHandler extends AbstractEthRpcHandler {
 
         b.setMethod(EthMethod.FILTER_REQUEST);
 
-        if (ethMethodName.equals(config.getNewFilter_Name())) {
+        if (ethMethodName.equals(Constants.NEWFILTER_NAME)) {
             // TODO: handle new filter
             logger.warn("eth_newFilter method is not implemented yet");
-        } else if (ethMethodName.equals(config.getNewBlockFilter_Name())) {
+        } else if (ethMethodName.equals(Constants.NEWBLOCKFILTER_NAME)) {
             FilterRequest.Builder fb = FilterRequest.newBuilder();
             fb.setType(FilterRequestType.NEW_BLOCK_FILTER);
             b.setFilterRequest(fb.build());
-        } else if (ethMethodName.equals(config.getNewPendingTransactionFilter_Name())) {
+        } else if (ethMethodName.equals(Constants.NEWPENDINGTRANSACTIONFILTER_NAME)) {
             // TODO: handle new pending transaction filter
             logger.warn("eth_newPendingTransactionFilter method is not" + "implemented yet");
-        } else if (ethMethodName.equals(config.getFilterChange_Name())) {
+        } else if (ethMethodName.equals(Constants.FILTERCHANGE_NAME)) {
             FilterRequest.Builder fb = FilterRequest.newBuilder();
             fb.setType(FilterRequestType.FILTER_CHANGE_REQUEST);
             fb.setFilterId(ApiHelper.hexStringToBinary((String) params.get(0)));
             b.setFilterRequest(fb.build());
-        } else if (ethMethodName.equals(config.getUninstallFilter_Name())) {
+        } else if (ethMethodName.equals(Constants.UNINSTALLFILTER_NAME)) {
             FilterRequest.Builder fb = FilterRequest.newBuilder();
             fb.setType(FilterRequestType.UNINSTALL_FILTER);
             fb.setFilterId(ApiHelper.hexStringToBinary((String) params.get(0)));
@@ -91,11 +86,11 @@ public class EthFilterHandler extends AbstractEthRpcHandler {
             JSONObject respObject = initializeResponseObject(ethResponse);
             String ethMethodName = EthDispatcher.getEthMethodName(requestJson);
 
-            if (ethMethodName.equals(config.getNewFilter_Name())
-                    || ethMethodName.equals(config.getNewBlockFilter_Name())
-                    || ethMethodName.equals(config.getNewPendingTransactionFilter_Name())) {
+            if (ethMethodName.equals(Constants.NEWFILTER_NAME)
+                    || ethMethodName.equals(Constants.NEWBLOCKFILTER_NAME)
+                    || ethMethodName.equals(Constants.NEWPENDINGTRANSACTIONFILTER_NAME)) {
                 respObject.put("result", ApiHelper.binaryStringToHex(ethResponse.getFilterResponse().getFilterId()));
-            } else if (ethMethodName.equals(config.getFilterChange_Name())) {
+            } else if (ethMethodName.equals(Constants.FILTERCHANGE_NAME)) {
                 JSONArray arr = new JSONArray();
                 FilterResponse fresponse = ethResponse.getFilterResponse();
                 for (ByteString hash : fresponse.getBlockHashesList()) {

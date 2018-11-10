@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.AthenaProperties;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.connections.AthenaConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
@@ -95,7 +96,7 @@ public class BlockNumber extends BaseServlet {
             String hash = ApiHelper.binaryStringToHex(t.getHash());
             JSONObject txJson = new JSONObject();
             txJson.put("hash", hash);
-            txJson.put("url", config.getTransaction_URLPrefix() + hash);
+            txJson.put("url", Constants.TRANSACTION_URLPREFIX + hash);
             transactionArr.add(txJson);
         }
 

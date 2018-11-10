@@ -4,6 +4,9 @@
 
 package com.vmware.blockchain.connections;
 
+/**
+ * Athena Connection interface.
+ */
 public interface IAthenaConnection {
     void close();
 

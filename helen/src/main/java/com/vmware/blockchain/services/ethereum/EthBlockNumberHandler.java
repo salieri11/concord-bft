@@ -10,7 +10,6 @@ import org.json.simple.JSONObject;
 
 import com.google.protobuf.ByteString;
 import com.vmware.athena.Athena;
-import com.vmware.blockchain.common.AthenaProperties;
 
 /**
  * Handler for handling the `eth_blockNumber` RPC call.
@@ -18,11 +17,6 @@ import com.vmware.blockchain.common.AthenaProperties;
 public class EthBlockNumberHandler extends AbstractEthRpcHandler {
 
     Logger logger = LogManager.getLogger(EthBlockNumberHandler.class);
-
-    public EthBlockNumberHandler(AthenaProperties config) {
-        super(config);
-        // TODO Auto-generated constructor stub
-    }
 
     /**
      * Builds the EthRequest object which can be sent to Athena from given requestJson object.
