@@ -86,3 +86,4 @@ helen/src/main/resources/static/index.html
 igor.local.config
 cockroachdb_test_local.sh
 .vscode/*
+/hermes/NORMALIZED_COMMANDS.txt.gz
