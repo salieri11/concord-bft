@@ -1,4 +1,4 @@
-version: '3'
+version: '2'
 services:
   athena1:
     image: "${athena_repo}:${athena_tag}"
@@ -64,6 +64,9 @@ services:
     image: "${helen_repo}:${helen_tag}"
     ports:
       - 8080:8080
+    depends_on:
+      - db-server
+
   db-server:
     image: cockroachdb/cockroach:v2.0.2
     ports:
@@ -73,3 +76,14 @@ services:
     command:
       - start
       - --insecure
+
+  reverse-proxy:
+    image: vmwblockchain/reverse-proxy
+    ports:
+      - "443:443"
+      - "8843:8843"
+    volumes:
+      - ./data/nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - helen
+
