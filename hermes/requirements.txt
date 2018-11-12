@@ -1,0 +1,13 @@
+#########################################################################
+# Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+#########################################################################
+
+cycler==0.10.0
+kiwisolver==1.0.1
+matplotlib==3.0.2
+numpy==1.15.4
+p4python==2014.1.898721
+pyparsing==2.3.0
+python-dateutil==2.7.5
+PyYAML==3.13
+six==1.11.0
