@@ -8,14 +8,14 @@ PBFT.
 
 The project is composed of three components:
 
- * [Concord-BFT](vmware/concord-bft) is the consensus engine for
+ * [Concord-BFT](https://github.com/vmware/concord-bft) is the consensus engine for
    Athena.
 
- * [athena](vmwathena/athena) (this repo) provides a key-value
+ * athena (this subdirectory) provides a key-value
    abstraction atop SBFT, and an Etherium VM compatibility layer on
    top of that KV storage
 
- * [helen](vmathena/helen) is the home of Athena's UI and external API
+ * [helen](../helen) is the home of Athena's UI and external API
 
 ## Building
 
