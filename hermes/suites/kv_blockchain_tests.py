@@ -46,7 +46,7 @@ class KVBTests(test_suite.TestSuite):
          log.debug("Running in ethereum mode")
          self._apiServerUrl = "http://localhost:8545"
       else:
-         self._apiServerUrl = "http://localhost:8080/api/athena/eth/"
+         self._apiServerUrl = "https://localhost/blockchains/local/api/athena/eth/"
 
    def getName(self):
       return "KVBTests"
@@ -147,7 +147,7 @@ class KVBTests(test_suite.TestSuite):
          #Kill and reboot Athena
          global p
          p.stopProduct()
-         
+
          try:
             self._args.keepAthenaDB = True
             p = self.launchProduct(self._args,

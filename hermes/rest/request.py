@@ -71,7 +71,8 @@ class Request():
                         username, password),
                        self._baseUrl+self._subPath+self._params,
                        "--output", self._responseFile,
-                       "--verbose"]
+                       "--verbose",
+                       "--insecure"]
          else:
             curlCmd = ["curl",
                        "-H", "Accept: application/json",
@@ -81,7 +82,8 @@ class Request():
                        "--data", json.dumps(self._data),
                        self._baseUrl+self._subPath+self._params,
                        "--output", self._responseFile,
-                       "--verbose"]
+                       "--verbose",
+                       "--insecure"]
       else:
          curlCmd = ["curl",
                     "--request", verb,
@@ -92,7 +94,8 @@ class Request():
                     "--data", json.dumps(self._data),
                     self._baseUrl+self._subPath+self._params,
                     "--output", self._responseFile,
-                    "--verbose"]
+                    "--verbose",
+                    "--insecure"]
 
       with open (self._outputFile, "a") as f:
          # Make people's lives easier by printing a copy/pastable command.

@@ -131,7 +131,8 @@ class RPC():
                  "--data", json.dumps(self._rpcData),
                  self._url,
                  "--output", self._responseFile,
-                 "--verbose"]
+                 "--verbose",
+                 "--insecure"]
       log.debug("RPC COMMAND: {}".format(curlCmd))
 
       with open (self._outputFile, "a") as f:
@@ -163,7 +164,7 @@ class RPC():
       else:
          return response
 
-   def addUser(self, url="http://localhost:8080/api/auth/login"):
+   def addUser(self, url="https://localhost:8080/blockchains/local/api/auth/login"):
       '''
       TEMPORARY, this will soon be replaced by CSP and VIDM
       Create first user so basic auth works for API calls.
@@ -173,7 +174,8 @@ class RPC():
                  "-H", "Content-Type: application/json",
                  "--data", json.dumps({}),
                  url,
-                 "--verbose"]
+                 "--verbose",
+                 "--insecure",]
 
       curlProc = subprocess.run(curlCmd)
 
