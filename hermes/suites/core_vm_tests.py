@@ -46,7 +46,7 @@ class CoreVMTests(test_suite.TestSuite):
          log.debug("Running in ethereum mode")
          self._apiServerUrl = "http://localhost:8545"
       else:
-         self._apiServerUrl = "http://localhost:8080/api/athena/eth/"
+         self._apiServerUrl = "https://localhost/blockchains/local/api/athena/eth/"
 
    def getName(self):
       return "CoreVMTests"

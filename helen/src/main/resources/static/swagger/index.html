@@ -72,25 +72,34 @@
 <script>
 window.onload = function() {
   const jwt = localStorage.getItem('jwtToken');
+  let apiPath = '/api';
+  let loginPath = '/auth/login';
+  const pathArray = window.location.pathname.split('/');
+  pathArray.splice(-2);
+  const basePath = pathArray.join('/');
+  apiPath = `${basePath}${apiPath}`;
+  loginPath = `${basePath}${loginPath}`;
 
   // Build a system
   const ui = SwaggerUIBundle({
-    url: "/api",
+    url: apiPath,
     dom_id: '#swagger-ui',
     deepLinking: true,
-    configs: {
-      preFetch: function(req) {
-        if (jwt) {
-          req.headers["Authorization"] = "Bearer " + jwt;
-        }
-        return req;
-      }
-    },
     responseInterceptor: function(response) {
       if (response && response.status === 401) {
-        window.location.replace('/auth/login');
+        window.location.replace(loginPath);
       }
       return response;
+    },
+    requestInterceptor: function(request) {
+      const location = window.location
+      const url = new URL(request.url, location);
+      // Reconstruct the url because the basePath may change
+      if (url.pathname.startsWith("/api")) {
+        request.url = `${location.protocol}//${url.host}${basePath}${url.pathname}`;
+      }
+      request.headers["Authorization"] = "Bearer " + jwt;
+      return request;
     },
     presets: [
       SwaggerUIBundle.presets.apis,

@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 class PerformanceTests(test_suite.TestSuite):
    _args = None
-   _apiBaseServerUrl = "http://localhost:8080"
+   _apiBaseServerUrl = "https://localhost/blockchains/local"
    _userConfig = None
    _ethereumMode = False
    _productMode = True

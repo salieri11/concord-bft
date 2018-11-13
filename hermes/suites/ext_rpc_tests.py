@@ -44,7 +44,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
          log.debug("Running in ethereum mode")
          self._apiServerUrl = "http://localhost:8545"
       else:
-         self._apiBaseServerUrl = "http://localhost:8080"
+         self._apiBaseServerUrl = "https://localhost/blockchains/local"
          self._apiServerUrl = self._apiBaseServerUrl+"/api/athena/eth/"
 
    def getName(self):
