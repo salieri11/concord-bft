@@ -1,4 +1,4 @@
-version: '2'
+version: '3'
 services:
   athena1:
     image: "${athena_repo}:${athena_tag}"
