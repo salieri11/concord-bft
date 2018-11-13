@@ -125,14 +125,12 @@ java -jar helen-1.0-SNAPSHOT-jar-with-dependencies.jar
 
 ### API
 
- * `/swagger/*` - Used to serve the static content from src/main/resources/static/swagger
-
  * `/assets/*` - Used to serve static content from src/main/resources/static/assets
 
  * `/api/` - Used to return a list of all other APIs serviced
 
  * `/api/athena/*` - API endpoints (see
-   [swagger](https://github.com/vmwathena/helen/blob/master/src/main/resources/static/swagger.json))
+   [swagger](https://github.com/vmwathena/helen/blob/master/webapp/src/static/swagger/swagger.json))
 
  * `/*` - Used to serve content from src/main/resources/static/index.html
 
@@ -140,7 +138,7 @@ java -jar helen-1.0-SNAPSHOT-jar-with-dependencies.jar
 
  * Point your browser to localhost:8080 to load the dashboard.
 
- * Point your browser to localhost:8080/swagger/index.html to load the
+ * Point your browser to localhost:8080/docs/api to load the
    swagger UI.
 
 ### Configurations
@@ -185,11 +183,6 @@ tool called
 ```
 
 ### Components
-
-Files in src/main/resources/static/swagger are from the
-[swagger-ui](https://github.com/swagger-api/swagger-ui) project,
-Copyright 2018 SmartBear Software, Licensed under the Apache License,
-Version 2.0.
 
 A previous version of Helen was written in Erlang. It is archived on
 the [bwf-erlang

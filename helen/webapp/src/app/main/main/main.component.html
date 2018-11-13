@@ -43,7 +43,7 @@
           <a [routerLink]="['/dashboard']" fragment="orgTour" clrDropdownItem>
             {{'tourSteps.title' | translate}}
           </a>
-          <a href="/swagger/index.html" clrDropdownItem>
+          <a [routerLink]="['/docs/api']" clrDropdownItem>
             {{'nav.exploreAPIs' | translate}}
           </a>
         </clr-dropdown-menu>

@@ -1,0 +1,48 @@
+@import "~swagger-ui/dist/swagger-ui.css";
+
+body.dark {
+  .swagger-ui,
+  .swagger-ui .info li,
+  .swagger-ui .info p,
+  .swagger-ui .info table,
+  .swagger-ui .info .title,
+  .swagger-ui .opblock-tag,
+  .swagger-ui .opblock .opblock-summary-operation-id,
+  .swagger-ui .opblock .opblock-summary-path,
+  .swagger-ui .opblock .opblock-summary-path__deprecated,
+  .swagger-ui .opblock .opblock-summary-description,
+  .swagger-ui .opblock-description-wrapper p,
+  .swagger-ui .opblock-external-docs-wrapper p,
+  .swagger-ui .opblock-title_normal p,
+  .swagger-ui .opblock .opblock-section-header h4,
+  .swagger-ui .btn,
+  .swagger-ui .parameter__name,
+  .swagger-ui .parameter__type,
+  .swagger-ui .response-col_links,
+  .swagger-ui .model,
+  .swagger-ui table thead tr td,
+  .swagger-ui table thead tr th,
+  .swagger-ui .response-col_status,
+  .swagger-ui .tab li,
+  .swagger-ui .responses-inner h4,
+  .swagger-ui .responses-inner h5 {
+    color: white;
+  }
+
+  svg.arrow {
+    fill: white;
+  }
+  .swagger-ui .model-toggle:after {
+    background: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='#ffffff' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z'/%3E%3C/svg%3E") 50% no-repeat;
+  }
+
+
+  .swagger-ui .tab li:first-of-type:after {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .swagger-ui .scheme-container,
+  .swagger-ui .opblock .opblock-section-header{
+    background: transparent;
+  }
+}
