@@ -4,4 +4,80 @@
     overflow: initial;
     max-height: initial;
   }
+
+  h2.title {
+    line-height: initial;
+  }
+
+  .main .link .url {
+    display: none;
+  }
+
+  .btn {
+    max-width: none;
+  }
+
+  .swagger-ui {
+    button,
+    input,
+    optgroup,
+    select,
+    textarea,
+    .opblock-tag,
+    .opblock-tag small,
+    .opblock .opblock-section-header label,
+    .opblock .opblock-section-header h4,
+    .opblock .opblock-summary-method,
+    .opblock .opblock-summary-description,
+    .tab li,
+    .opblock-description-wrapper,
+    .opblock-external-docs-wrapper,
+    .opblock-title_normal,
+    .opblock-description-wrapper h4,
+    .opblock-external-docs-wrapper h4,
+    .opblock-title_normal h4,
+    .opblock-description-wrapper p,
+    .opblock-external-docs-wrapper p,
+    .opblock-title_normal p,
+    .responses-inner h4,
+    .responses-inner h5,
+    .response-col_status,
+    .response-col_links,
+    .download-contents,
+    .scheme-container .schemes > label,
+    .loading-container .loading:after,
+    section h3,
+    .btn,
+    .btn.cancel,
+    select,
+    label,
+    .dialog-ux .modal-ux-content p,
+    .dialog-ux .modal-ux-content h4,
+    .dialog-ux .modal-ux-header h3,
+    section.models h4,
+    section.models h5,
+    .model-title,
+    .model-deprecated-warning,
+    .servers > label,
+    table thead tr td,
+    table thead tr th,
+    .parameter__name,
+    .topbar a,
+    .topbar .download-url-wrapper .download-url-button,
+    .info li,
+    .info p,
+    .info table,
+    .info h1,
+    .info h2,
+    .info h3,
+    .info h4,
+    .info h5,
+    .info a,
+    .info .title,
+    .info .title small pre,
+    .scopes h2,
+    .errors-wrapper hgroup h4 {
+      font-family: Metropolis,"Avenir Next","Helvetica Neue",Arial,sans-serif;
+    }
+  }
 }

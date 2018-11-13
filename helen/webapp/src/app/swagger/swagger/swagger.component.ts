@@ -20,7 +20,11 @@ export class SwaggerComponent implements AfterViewInit {
 
   ngAfterViewInit() {
     const jwt = localStorage.getItem('jwtToken');
-    const loginPath = '/auth/login';
+    let loginPath = '/auth/login';
+    const pathArray = window.location.pathname.split('/');
+    pathArray.splice(-2);
+    const basePath = pathArray.join('/');
+    loginPath = `${basePath}${loginPath}`;
 
     SwaggerUI({
       url: '/assets/static/swagger/swagger.json',
@@ -36,6 +40,14 @@ export class SwaggerComponent implements AfterViewInit {
         return response;
       },
       requestInterceptor: function(request) {
+        const location = (window.location as any);
+        const url = new URL(request.url, location);
+        // Reconstruct the url because the basePath may change
+        if (url.pathname.startsWith('/api')) {
+          console.log(request);
+          const queryParameters = request.url.split('?')[1];
+          request.url = `${location.protocol}//${url.host}${basePath}${url.pathname}${queryParameters ? '?' + queryParameters : ''}`;
+        }
         request.headers['Authorization'] = 'Bearer ' + jwt;
         return request;
       },

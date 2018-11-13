@@ -3,10 +3,6 @@
   "info": {
     "title": "VMware Blockchain",
     "description": "A Scalable Byzantine Fault Tolerant Ledger",
-    "contact": {
-      "name": "VMware",
-      "url": "https://github.com/vmware/concord-bft"
-    },
     "version": "1.0.0"
   },
   "servers": [
