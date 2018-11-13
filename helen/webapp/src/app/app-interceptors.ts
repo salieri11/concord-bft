@@ -9,7 +9,6 @@ import {
   HttpEvent,
   HttpInterceptor, HttpResponse, HttpErrorResponse
 } from '@angular/common/http';
-import { Router } from '@angular/router';
 import { Observable, throwError, of, BehaviorSubject } from 'rxjs';
 import { tap, catchError, switchMap, take, finalize, filter } from 'rxjs/operators';
 import { AuthenticationService } from './shared/authentication.service';
@@ -24,7 +23,7 @@ export class RequestInterceptor implements HttpInterceptor {
   isRefreshingToken: boolean = false;
   tokenSubject: BehaviorSubject<string> = new BehaviorSubject<string>(null);
 
-  constructor(private router: Router, private authService: AuthenticationService) { }
+  constructor(private authService: AuthenticationService) { }
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     return next.handle(this.addTokenToRequest(request, localStorage.getItem('jwtToken'))).pipe(
@@ -38,8 +37,7 @@ export class RequestInterceptor implements HttpInterceptor {
               return this.handle401Error(request, next);
             case 400:
                 if ( error.url.indexOf('api/auth/refresh' ) !== -1 ) {
-                  this.authService.redirectUrl = this.router.url;
-                  this.router.navigate([`auth/login`]);
+                  this.authService.logOut();
                 }
                 return throwError(error);
             default:
@@ -79,8 +77,6 @@ export class RequestInterceptor implements HttpInterceptor {
           }),
           catchError(err => {
             if (err) {
-              this.authService.redirectUrl = this.router.url;
-              this.router.navigate([`auth/login`]);
               this.authService.logOut();
             }
             return of(err);
