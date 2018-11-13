@@ -76,6 +76,8 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
   }
 
   private handleLogin(user) {
+    const redirectUrl = this.authenticationService.redirectUrl;
+
     if (user['last_login'] === 0 || localStorage.getItem('changePassword')) {
       localStorage.setItem('changePassword', 'true');
       this.newUser = true;
@@ -85,8 +87,8 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
         this.newPassword.nativeElement.focus();
       }, 10);
     } else {
-      if (this.authenticationService.redirectUrl) {
-        this.router.navigateByUrl(this.authenticationService.redirectUrl);
+      if (redirectUrl) {
+        this.router.navigateByUrl(redirectUrl);
       } else {
         this.router.navigate(['dashboard']);
       }

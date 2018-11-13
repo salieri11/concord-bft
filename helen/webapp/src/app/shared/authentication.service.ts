@@ -81,8 +81,19 @@ export class AuthenticationService {
 
     this.personaService.currentPersona = undefined;
     this.userSubject.next({ email: localStorage['helen.email'], persona: localStorage['helen.persona'] });
-    this.redirectUrl = this.router.url;
+    this.setRedirectPath();
+    this.router.navigate(['auth/login']);
   }
+
+  setRedirectPath() {
+    const redirect = this.router.url;
+    const disallowedRedirects = ['/auth/login'];
+
+    if (disallowedRedirects.indexOf(redirect) === -1) {
+      this.redirectUrl = redirect;
+    }
+  }
+
 
   checkForLegalAgreements(): Observable<any> {
     return this.http.get('api/agreements/1').pipe(
