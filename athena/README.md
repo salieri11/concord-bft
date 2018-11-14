@@ -8,18 +8,41 @@ PBFT.
 
 The project is composed of three components:
 
- * (Concord-BFT)[vmware/concord-bft] is the consensus engine for
+ * [Concord-BFT](https://github.com/vmware/concord-bft) is the consensus engine for
    Athena.
 
- * (athena)[vmwathena/athena] (this repo) provides a key-value
+ * athena (this subdirectory) provides a key-value
    abstraction atop SBFT, and an Etherium VM compatibility layer on
    top of that KV storage
 
- * (helen)[vmathena/helen] is the home of Athena's UI and external API
+ * [helen](../helen) is the home of Athena's UI and external API
 
 ## Building
 
 ### Dependencies
+
+#### Pre-built libraries and tools
+
+You will need cmake, clang, and g++, gmp, GNU Parallel, autoconf, automake, and LLVM 5.0:
+
+```
+sudo apt-get install cmake clang g++ parallel autoconf automake llvm-5.0 llvm-5.0-dev
+```
+
+#### Relic
+
+Then clone and build Relic:
+
+```
+cd
+git clone https://github.com/relic-toolkit/relic
+cd relic/
+mkdir build/
+cd build/
+cmake -DALLOC=AUTO -DWORD=64 -DRAND=UDEV -DSHLIB=ON -DSTLIB=ON -DSTBIN=OFF -DTIMER=HREAL -DCHECK=on -DVERBS=on -DARITH=x64-asm-254 -DFP_PRIME=254 -DFP_METHD="INTEG;INTEG;INTEG;MONTY;LOWER;SLIDE" -DCOMP="-O3 -funroll-loops -fomit-frame-pointer -finline-small-functions -march=native -mtune=native" -DFP_PMERS=off -DFP_QNRES=on -DFPX_METHD="INTEG;INTEG;LAZYR" -DPP_METHD="LAZYR;OATEP" ..
+make
+sudo make install
+```
 
 #### Boost
 
@@ -51,28 +74,23 @@ as it changes some interfaces and header files
 
 Follow below steps for installing this library.
 
-1. Install prerequisites.
-```
-sudo apt-get install autoconf automake
-```
-
-2. Clone the repository.
+1. Clone the repository.
 
 ```
 git clone https://github.com/log4cplus/log4cplus.git
 ```
 
-3. Move to the extracted directory and checkout the appropriate branch.
+2. Move to the extracted directory and checkout the appropriate branch.
 
 ```
 cd log4cplus
 git checkout REL_1_2_1
 ````
 
-4. Edit `configure` to change "am__api_version" from 1.14 to 1.15, the
+3. Edit `configure` to change "am__api_version" from 1.14 to 1.15, the
 version that ubuntu 16.04 supports.
 
-5. Configure/make/install
+4. Configure/make/install
 
 ```
 ./configure CXXFLAGS="--std=c++11"
@@ -94,14 +112,10 @@ execute Ethereum code. While we're figuring out dependency management,
 please clone evmjit to the same directory you cloned athena (i.e. one
 directory up from this README file), and build it.
 
-First make sure you have LLVM 5.0 installed, or your build will take a
-*long* time:
+*Important*: Make sure you have LLVM 5.0 installed (as noted in the pre-built section above), or your build will take a
+*long* time!
 
-```shell
-$ apt-get install llvm-5.0 llvm-5.0-dev
-```
-
-Then clone and build Evmjit (note the path to LLVM cmake files):
+Clone and build Evmjit (note the path to LLVM cmake files):
 
 ```shell
 athena$ cd ..
@@ -114,9 +128,6 @@ $ cd build
 $ cmake -DLLVM_DIR=/usr/lib/llvm-5.0/lib/cmake/llvm ..
 $ cmake --build . --config RelWithDebInfo
 ```
-
-Warning: this will download and compile LLVM, which takes about an
-hour.
 
 #### Cryptopp
 
