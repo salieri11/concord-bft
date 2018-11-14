@@ -333,7 +333,7 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs& updates,
         GenericStateTransfer *genericStateTransfer =
             reinterpret_cast<GenericStateTransfer *>(m_stateTransfer);
         if(genericStateTransfer) {
-          m_stateTransfer->markUpdatedAppPage(lastBlock);
+          genericStateTransfer->markUpdatedAppPage(lastBlock);
         }
       }
    }

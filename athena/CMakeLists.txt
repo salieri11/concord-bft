@@ -10,6 +10,12 @@ set(CMAKE_CXX_EXTENSIONS Off)
 # Storage options
 set(USE_ROCKSDB True)
 
+#concord flags
+set(USE_LOG4CPP TRUE)
+set(CONCORD_LOGGER_NAME "athena.bft")
+#if TRUE, concord will use plain tcp module for communication
+set(BUILD_COMM_TCP_PLAIN FALSE)
+
 if(APPLE)
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "/usr/local/Cellar/protobuf@2.6/2.6.0")
 endif()

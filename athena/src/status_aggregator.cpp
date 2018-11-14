@@ -61,6 +61,7 @@ private:
    const std::string HOSTNAME_PREFIX = "replica";
    const std::string PEER_STATE_READY = "ready";
    const std::string PEER_STATE_LIVE = "live";
+  const std::string PEER_STATE_BROKEN = "broken";
    const int64_t TIME_NO_VALUE = -1;
 
    void
@@ -164,13 +165,17 @@ public:
                static_cast<PeerConnectivityStatus *>(infoMapIt->second);
             UiPeerInfo pi;
             pi.millisSinceLastMessageThreshold = _peerFailThesholdMilli;
-            pi.address = stPtr->peerIp;
+            pi.address = stPtr->peerIp + ":" + to_string(stPtr->peerPort);
             pi.hostname = HOSTNAME_PREFIX + to_string(stPtr->peerId);
 
             if(StatusType::Started != stPtr->statusType) {
                pi.millisSinceLastMessage =
                        get_epoch_millis() - stPtr->statusTime;
-               pi.state = PEER_STATE_LIVE;
+               if(StatusType::Broken == stPtr->statusType) {
+                  pi.state = PEER_STATE_BROKEN;
+               } else {
+                  pi.state = PEER_STATE_LIVE;
+               }
             } else {
                pi.millisSinceLastMessage = TIME_NO_VALUE;
                pi.state = PEER_STATE_READY;

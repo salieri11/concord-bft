@@ -88,6 +88,7 @@ ClientImp::ClientImp(Blockchain::CommConfig &commConfig,
                                     commConfig.statusCallback);
 
    auto comm = bftEngine::CommFactory::create(config);
+   comm->Start();
    m_bftClient = SimpleClient::createSimpleClient(comm,
                                                   conf.clientId,
                                                   conf.maxFaulty,
