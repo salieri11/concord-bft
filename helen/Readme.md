@@ -104,7 +104,7 @@ npm start
 
    To build only with unit tests (No Athena instance is needed) :
 ```
-mvn clean install package
+mvn clean install
 ```
 
    To build with unit and integration tests : (Athena must be running for this)
