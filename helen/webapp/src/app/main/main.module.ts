@@ -21,7 +21,6 @@ import { SmartContractsModule } from '../smart-contracts/smart-contracts.module'
 import { OrgsModule } from '../orgs/orgs.module';
 import { ConsortiumModule } from '../consortium/consortium.module';
 import { UsersModule } from '../users/users.module';
-import { SwaggerModule } from '../swagger/swagger.module';
 
 
 @NgModule({
@@ -38,7 +37,6 @@ import { SwaggerModule } from '../swagger/swagger.module';
     OrgsModule,
     ConsortiumModule,
     SmartContractsModule,
-    SwaggerModule,
     UsersModule,
     TourNgxPopperModule
   ],

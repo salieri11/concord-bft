@@ -16,7 +16,6 @@ import { consortiumRoutes } from '../../consortium/consortium-routing';
 import { orgRoutes } from '../../orgs/orgs-routing';
 import { usersRoutes } from '../../users/users-routing';
 import { transactionsRoutes } from '../../transactions/transactions-routing';
-import { swaggerRoutes } from '../../swagger/swagger-routing';
 
 const routes: Routes = [
   {
@@ -33,7 +32,6 @@ const routes: Routes = [
       { path: 'organization', children: orgRoutes },
       { path: 'users', children: usersRoutes },
       { path: 'transactions', children: transactionsRoutes },
-      { path: 'docs', children: swaggerRoutes }
     ]
   }
 ];
