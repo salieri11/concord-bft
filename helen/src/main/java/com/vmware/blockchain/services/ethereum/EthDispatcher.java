@@ -310,7 +310,7 @@ public final class EthDispatcher extends BaseServlet {
                 // athena. Just pass null.
                 responseObject = handler.buildResponse(null, requestJson);
             }
-        // TODO: Need to refactor exception handling.  Shouldn't just catch an exception and eat it.
+            // TODO: Need to refactor exception handling.  Shouldn't just catch an exception and eat it.
         } catch (Exception e) {
             logger.error(ApiHelper.exceptionToString(e));
             responseObject = errorMessage(e.getMessage(), id, jsonRpc);

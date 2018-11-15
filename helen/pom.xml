@@ -194,13 +194,36 @@
 			<artifactId>spring-boot-configuration-processor</artifactId>
 			<optional>true</optional>
 		</dependency>
-    </dependencies>
+   </dependencies>
 
 
     <build>
         <plugins>
-
-            <plugin>
+			<plugin>
+			   <groupId>org.apache.maven.plugins</groupId>
+			   <artifactId>maven-checkstyle-plugin</artifactId>
+			   <version>3.0.0</version>
+			   <executions>
+			     <execution>
+			       <id>validate</id>
+			       <phase>validate</phase>
+			       <configuration>
+			         <configLocation>developer-config/checkstyle.xml</configLocation>
+			         <encoding>UTF-8</encoding>
+			         <consoleOutput>true</consoleOutput>
+			         <failsOnError>true</failsOnError>
+			         <linkXRef>false</linkXRef>
+			         <includeTestSourceDirectory>true</includeTestSourceDirectory>
+			         <includeTestResources>true</includeTestResources>
+			       </configuration>
+			       <goals>
+			         <goal>checkstyle</goal>
+			         <goal>check</goal>
+			       </goals>
+			     </execution>
+			   </executions>
+			 </plugin>
+             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.7.0</version>
                 <configuration>
