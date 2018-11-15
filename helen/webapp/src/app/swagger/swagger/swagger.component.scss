@@ -18,6 +18,12 @@
   }
 
   .swagger-ui {
+    margin-bottom: 5rem;
+
+    .scheme-container {
+      padding-top: 0;
+    }
+
     button,
     input,
     optgroup,
@@ -80,4 +86,6 @@
       font-family: Metropolis,"Avenir Next","Helvetica Neue",Arial,sans-serif;
     }
   }
+
+
 }

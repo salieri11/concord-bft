@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "VMware Blockchain",
+    "title": "VMware Blockchain API",
     "description": "A Scalable Byzantine Fault Tolerant Ledger",
     "version": "1.0.0"
   },
