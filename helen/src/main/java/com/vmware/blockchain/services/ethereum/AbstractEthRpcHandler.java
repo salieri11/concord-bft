@@ -92,7 +92,7 @@ public abstract class AbstractEthRpcHandler {
      * Initializes the response to be sent to the user and pre-sets the 'id' and 'jsonrpc' fields.
      *
      * @param ethResponse EthResponse part of the response received from Athena.
-     * @return
+     * @return response
      */
     @SuppressWarnings("unchecked")
     JSONObject initializeResponseObject(EthResponse ethResponse) {

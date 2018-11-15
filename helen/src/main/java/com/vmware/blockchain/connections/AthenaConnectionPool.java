@@ -49,7 +49,7 @@ public class AthenaConnectionPool {
     /**
      * Creates a new TCP connection with Athena.
      *
-     * @return
+     * @return the connection
      */
     private IAthenaConnection createConnection() {
         log.trace("createConnection enter");
