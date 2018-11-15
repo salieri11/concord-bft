@@ -216,6 +216,7 @@
                             <linkXRef>false</linkXRef>
                             <includeTestSourceDirectory>true</includeTestSourceDirectory>
                             <includeTestResources>true</includeTestResources>
+                            <excludes>**/generated-sources/**</excludes>
                         </configuration>
                         <goals>
                             <goal>checkstyle</goal>
