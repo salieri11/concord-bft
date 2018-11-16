@@ -109,7 +109,7 @@ def call(){
 
           dir('blockchain/hermes') {
             sh '''
-              ./main.py CoreVMTests --resultsDir "${core_vm_test_logs}"
+              ./main.py CoreVMTests --resultsDir "${core_vm_test_logs}" --logLevel DEBUG
               ./main.py HelenAPITests --resultsDir "${helen_api_test_logs}"
               ./main.py ExtendedRPCTests --resultsDir "${extended_rpc_test_logs}"
               ./main.py RegressionTests --resultsDir "${regression_test_logs}"
