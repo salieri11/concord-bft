@@ -20,14 +20,16 @@ export class SwaggerComponent implements AfterViewInit {
 
   ngAfterViewInit() {
     const jwt = localStorage.getItem('jwtToken');
+    let apiPath = '/assets/static/swagger/swagger.json';
     let loginPath = '/auth/login';
     const pathArray = window.location.pathname.split('/');
     pathArray.splice(-2);
     const basePath = pathArray.join('/');
+    apiPath = `${basePath}${apiPath}`;
     loginPath = `${basePath}${loginPath}`;
 
     SwaggerUI({
-      url: '/assets/static/swagger/swagger.json',
+      url: apiPath,
       domNode: this.el.nativeElement.querySelector('.swagger-container'),
       // deepLinking: true,
       presets: [
