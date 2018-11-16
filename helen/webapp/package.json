@@ -8,7 +8,7 @@
     "build:maven": "node ./node_modules/.bin/ng build --prod --deploy-url assets/ && npm run copy-clarity && npm run build:move",
     "build:local:prod": "ng build --prod --deploy-url assets/ && npm run copy-clarity &&  && npm run build:move",
     "build:local:dev": "ng build --deploy-url assets/ && npm run copy-clarity &&  && npm run build:move",
-    "build:move": "cp -a dist/. ../src/main/resources/static/assets && mv ../src/main/resources/static/assets/index.html ../src/main/resources/static",
+    "build:move": "mkdir -p ../src/main/resources/static/assets && cp -a dist/. ../src/main/resources/static/assets && mv ../src/main/resources/static/assets/index.html ../src/main/resources/static",
     "copy-clarity": "mkdir -p ./src/static/css && cp ./node_modules/@clr/ui/*.css ./src/static/css",
     "clear-contracts-e2e": "docker exec -it $DB_CONTAINER ./cockroach sql --insecure --safe-updates=false -e \"SET DATABASE = helen; DELETE FROM contracts;\"",
     "clear-users-e2e": "docker exec -it $DB_CONTAINER ./cockroach sql --insecure --safe-updates=false -e \"SET DATABASE = helen; DELETE FROM users;\"",
