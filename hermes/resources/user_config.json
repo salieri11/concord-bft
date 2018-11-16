@@ -2,22 +2,6 @@
   "product": {
     "launch": [
       {
-        "reverseProxy": {
-          "buildRoot": "../athena/docker",
-          "helen1": {
-            "launchCommand": "docker",
-            "parameters": [
-              "run",
-              "-v",
-              "${ATHENA_HOME}/docker/data/nginx/local.conf.d:/etc/nginx/conf.d",
-              "--network",
-              "host",
-              "vmwblockchain/reverse-proxy:latest"
-            ]
-          }
-        }
-      },
-      {
         "cockroachDB": {
           "buildRoot": "./resources/",
           "cockroachDB": {
@@ -92,6 +76,22 @@
               "./resources/log4cplus.properties",
               "-c",
               "resources/athena4.config"
+            ]
+          }
+        }
+      },
+      {
+        "reverseProxy": {
+          "buildRoot": "../athena/docker",
+          "helen1": {
+            "launchCommand": "docker",
+            "parameters": [
+              "run",
+              "-v",
+              "/tmp/local.conf.d:/etc/nginx/conf.d",
+              "--network",
+              "host",
+              "vmwblockchain/reverse-proxy:latest"
             ]
           }
         }
