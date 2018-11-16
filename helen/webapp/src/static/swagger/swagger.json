@@ -1,12 +1,8 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "VMware Project Athena",
-    "description": "A Universal BFT Ledger",
-    "contact": {
-      "name": "VMware",
-      "url": "https://github.com/vmwathena/"
-    },
+    "title": "VMware Blockchain API",
+    "description": "A Scalable Byzantine Fault Tolerant Ledger",
     "version": "1.0.0"
   },
   "servers": [
@@ -17,7 +13,7 @@
   ],
   "paths": {
     "/athena/members": {
-      "summary": "Athena Concensus Membership List",
+      "summary": "Blockchain Consensus Membership List",
       "get": {
         "summary": "List nodes that are members",
         "operationId": "memberListGet",
@@ -56,7 +52,7 @@
       }
     },
     "/athena/blocks": {
-      "summary": "Athena Blocks",
+      "summary": "Blockchain Blocks",
       "get": {
         "summary": "List blocks in the chain, most recent first",
         "operationId": "blockListGet",
@@ -119,7 +115,7 @@
       }
     },
     "/athena/blocks/{index}": {
-      "summary": "Specific Athena Block",
+      "summary": "Specific Blockchain Block",
       "get": {
         "summary": "Get a specific block, by its number in the chain",
         "operationId": "blockGet",
@@ -178,7 +174,7 @@
       }
     },
     "/athena/transactions/{hash}": {
-      "summary": "Specific Athena Block",
+      "summary": "Specific Blockchain Block",
       "get": {
         "summary": "Get a specific transaction, by its hash",
         "operationId": "txGet",
@@ -346,7 +342,7 @@
       }
     },
     "/athena/contracts": {
-      "summary": "Athena contracts",
+      "summary": "Blockchain contracts",
       "get": {
         "summary": "List all deployed contracts",
         "operationId": "contractsGet",

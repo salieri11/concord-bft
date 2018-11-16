@@ -11,6 +11,7 @@ import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { MockSharedModule } from '../../shared/shared.module';
 import { AuthenticationService } from '../../shared/authentication.service';
 import { MainComponent } from './main.component';
+import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { CanViewDirective } from '../../shared/directives/can-view.directive';
 import { VmwTaskComponent } from '../../shared/components/task-panel/task.component';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
@@ -34,6 +35,7 @@ describe('MainComponent', () => {
         MainComponent,
         VmwTaskComponent,
         CanViewDirective,
+        AppHeaderComponent,
         VmwThemeSwitchButtonComponent
       ],
       providers: [

@@ -145,16 +145,6 @@ class Request():
 
       return self._send()
 
-   def getSwaggerDefinition(self):
-      '''
-      Get the swagger definition
-      '''
-      self._subPath = "/api"
-      self._params = ""
-      self._endpointName = "swaggerdef"
-
-      return self._send()
-
    def getBlockList(self, nextUrl=None):
       '''
       Get the list of blocks

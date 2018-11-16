@@ -31,7 +31,7 @@ const routes: Routes = [
       { path: 'consortium', children: consortiumRoutes },
       { path: 'organization', children: orgRoutes },
       { path: 'users', children: usersRoutes },
-      { path: 'transactions', children: transactionsRoutes }
+      { path: 'transactions', children: transactionsRoutes },
     ]
   }
 ];

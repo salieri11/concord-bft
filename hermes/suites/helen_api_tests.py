@@ -97,7 +97,6 @@ class HelenAPITests(test_suite.TestSuite):
 
    def _getTests(self):
       return [("getMembers", self._test_getMembers), \
-              ("swaggerDef", self._test_getSwaggerDef), \
               ("blockList", self._test_getBlockList), \
               ("block", self._test_getBlocks), \
               ("transaction", self._test_getTransactions), \
@@ -152,30 +151,6 @@ class HelenAPITests(test_suite.TestSuite):
          if not isinstance(m["millis_since_last_message_threshold"], int):
             return (False, "'millis_since_last_message_threshold' field in member entry is not a string")
 
-      return (True, None)
-
-   def _test_getSwaggerDef(self, request):
-      result = request.getSwaggerDefinition()
-
-      # How stable is comparing to OrderedDict?
-      if not type(result) is collections.OrderedDict:
-         return (False, "Response was not an OrderedDict".format(
-            type(result).__name__))
-
-      (present, missing) = self.requireFields(result, ["info", "paths"])
-      if not present:
-         return (False,
-                 "No '{}' field in result; unlikely to be swagger."
-                 .format(missing))
-
-      if not "title" in result["info"]:
-         return (False, "No 'title' in result['info']; unlikely to be swagger")
-      if not result["info"]["title"] == "VMware Project Athena":
-         return (False, "Wrong title in result; likely wrong swagger file")
-
-      # Maybe we should just read the swagger file from the helen
-      # install, and compare the result to it, but the above is a
-      # pretty good indicator that we found what we're looking for
       return (True, None)
 
    def _test_getBlockList(self, request, latestBlock=None, nextUrl=None):

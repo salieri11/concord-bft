@@ -81,3 +81,8 @@ import 'zone.js/dist/zone';  // Included with Angular CLI.
 /***************************************************************************************************
  * APPLICATION IMPORTS
  */
+
+// Fix for "Buffer is not defined" error found here: https://github.com/agoncal/swagger-ui-angular6/issues/2
+(window as any).global = window;
+// @ts-ignore
+window.Buffer = window.Buffer || require('buffer').Buffer;
