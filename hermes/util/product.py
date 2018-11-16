@@ -108,6 +108,14 @@ class Product():
                      if executable.startswith("replica") and previousParam == "-d":
                         param = os.path.join(self._cmdlineArgs.resultsDir, param)
                         os.makedirs(param)
+
+                     hermes_home = self._cmdlineArgs.hermes_dir
+                     athena_home = os.path.join(hermes_home, '..', 'athena')
+                     helen_home = os.path.join(hermes_home, '..', 'helen')
+                     param = param.replace('${HERMES_HOME}', hermes_home)
+                     param = param.replace('${ATHENA_HOME}', athena_home)
+                     param = param.replace('${HELEN_HOME}', helen_home)
+
                      cmd.append(os.path.expanduser(param))
                      previousParam = param
 
@@ -115,6 +123,7 @@ class Product():
                   logFile = open(os.path.join(productLogsDir, executable + ".log"),
                              "wb+")
                   self._logs.append(logFile)
+
                   log.debug("Launching via command line with {}".format(cmd))
                   p = subprocess.Popen(cmd,
                                        stdout=logFile,

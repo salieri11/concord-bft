@@ -9,7 +9,7 @@
             "parameters": [
               "run",
               "-v",
-              "`pwd`/data/nginx/local.conf.d:/etc/nginx/conf.d",
+              "${ATHENA_HOME}/docker/data/nginx/local.conf.d:/etc/nginx/conf.d",
               "--network",
               "host",
               "vmwblockchain/reverse-proxy:latest"
