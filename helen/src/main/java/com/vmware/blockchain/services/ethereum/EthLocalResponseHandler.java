@@ -40,6 +40,14 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
     private static Logger logger = LogManager.getLogger(EthLocalResponseHandler.class);
 
     /**
+     * Initialize the local response handler.
+     * @param connectionPool Athena connectionpool.
+     */
+    public EthLocalResponseHandler(AthenaConnectionPool connectionPool) {
+        this.connectionPool = connectionPool;
+    }
+
+    /**
      * This method does not build any request since we do not need to send any request to Athena for requests handled by
      * this handler. However, having an empty method like this is probably not a very good idea. TODO: Figure out how to
      * remove this empty method.
@@ -124,7 +132,7 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
                 } catch (IllegalStateException | InterruptedException e) {
                     e.printStackTrace();
                 } catch (Exception e) {
-                    logger.error("Unable to connect to athena.");
+                    logger.error("Unable to connect to athena.", e);
                     throw new EthRpcHandlerException(
                             EthDispatcher.errorMessage("Unable to connect to athena.", id, jsonRpc).toJSONString());
                 } finally {

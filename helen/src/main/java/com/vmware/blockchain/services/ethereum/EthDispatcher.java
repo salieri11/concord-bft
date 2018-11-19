@@ -275,7 +275,7 @@ public final class EthDispatcher extends BaseServlet {
                 case Constants.ACCOUNTS_NAME:
                 case Constants.GAS_PRICE_NAME:
                 case Constants.SYNCING_NAME:
-                    handler = new EthLocalResponseHandler();
+                    handler = new EthLocalResponseHandler(athenaConnectionPool);
                     isLocal = true;
                     break;
 
