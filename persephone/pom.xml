@@ -16,6 +16,9 @@
         <module>core</module>
         <module>metadata-service</module>
         <module>persistence</module>
+        <module>cli</module>
+        <module>deployer</module>
+        <module>model</module>
     </modules>
 
     <repositories>
