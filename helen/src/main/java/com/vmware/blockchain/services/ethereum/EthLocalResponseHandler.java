@@ -124,7 +124,7 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
                 } catch (IllegalStateException | InterruptedException e) {
                     e.printStackTrace();
                 } catch (Exception e) {
-                    logger.error("Unable to connect to athena.");
+                    logger.error("Unable to connect to athena.", e);
                     throw new EthRpcHandlerException(
                             EthDispatcher.errorMessage("Unable to connect to athena.", id, jsonRpc).toJSONString());
                 } finally {
