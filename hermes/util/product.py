@@ -292,6 +292,22 @@ class Product():
 
       return True
 
+   def killDockerContainer(self):
+      '''Kills all docker container. Returns whether the exit code indicated success.'''
+      cmd = ["docker", "kill", "$(docker ps -q)"]
+      log.info(">>> {0}".format(cmd))
+      completedProcess = subprocess.run(cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT)
+      try:
+         completedProcess.check_returncode()
+      except subprocess.CalledProcessError as e:
+         log.error("Command '{}' to kill container failed.  Exit code: '{}'".format(cmd,
+                                                                                         e.returncode))
+         log.error("stdout: '{}', stderr: '{}'".format(completedProcess.stdout, completedProcess.stderr))
+         return False
+
+      return True
 
    def initializeHelenDockerDB(self, dockerCfg):
       '''When the product as Docker containers, we need to initialize the Helen DB
@@ -347,6 +363,18 @@ class Product():
                print("Terminating {}.".format(p.args))
 
          for p in self._processes[:]:
+            if "docker" in p.args:
+               cmd = ["docker", "ps", "-q"]
+               ps_output = subprocess.run(cmd,
+                                          stdout=subprocess.PIPE,
+                                          stderr=subprocess.STDOUT)
+               container_id = ps_output.stdout.decode("UTF-8").split("\n")[0]
+
+               if container_id:
+                  print("Terminating container ID: {0}".format(container_id))
+                  if not self.stopDockerContainer(container_id):
+                     raise Exception("Failure trying to stop docker container.")
+
             while p.poll() is None:
                print("Waiting for process {} to exit.".format(p.args))
                time.sleep(1)
