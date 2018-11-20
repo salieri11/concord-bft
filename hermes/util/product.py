@@ -352,12 +352,14 @@ class Product():
                ps_output = subprocess.run(cmd,
                                           stdout=subprocess.PIPE,
                                           stderr=subprocess.STDOUT)
-               container_id = ps_output.stdout.decode("UTF-8").split("\n")[0]
+               container_ids = ps_output.stdout.decode("UTF-8").split("\n")
+               print ("Container IDs found: {0}".format(container_ids))
 
-               if container_id:
-                  print("Terminating container ID: {0}".format(container_id))
-                  if not self.stopDockerContainer(container_id):
-                     raise Exception("Failure trying to stop docker container.")
+               for container_id in container_ids:
+                  if container_id:
+                     print("Terminating container ID: {0}".format(container_id))
+                     if not self.stopDockerContainer(container_id):
+                        raise Exception("Failure trying to stop docker container.")
 
             while p.poll() is None:
                print("Waiting for process {} to exit.".format(p.args))
