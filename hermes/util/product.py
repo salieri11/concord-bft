@@ -292,22 +292,6 @@ class Product():
 
       return True
 
-   def killDockerContainer(self):
-      '''Kills all docker container. Returns whether the exit code indicated success.'''
-      cmd = ["docker", "kill", "$(docker ps -q)"]
-      log.info(">>> {0}".format(cmd))
-      completedProcess = subprocess.run(cmd,
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.STDOUT)
-      try:
-         completedProcess.check_returncode()
-      except subprocess.CalledProcessError as e:
-         log.error("Command '{}' to kill container failed.  Exit code: '{}'".format(cmd,
-                                                                                         e.returncode))
-         log.error("stdout: '{}', stderr: '{}'".format(completedProcess.stdout, completedProcess.stderr))
-         return False
-
-      return True
 
    def initializeHelenDockerDB(self, dockerCfg):
       '''When the product as Docker containers, we need to initialize the Helen DB
