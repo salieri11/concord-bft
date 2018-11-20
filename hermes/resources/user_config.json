@@ -8,10 +8,13 @@
             "launchCommand": "docker",
             "parameters": [
               "run",
+              "--rm",
               "-v",
               "${ATHENA_HOME}/docker/data/nginx/local.conf.d:/etc/nginx/conf.d",
               "--network",
               "host",
+              "--name",
+              "reverse-proxy-hermes-test",
               "vmwblockchain/reverse-proxy:latest"
             ]
           }

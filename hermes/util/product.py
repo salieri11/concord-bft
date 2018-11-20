@@ -348,7 +348,8 @@ class Product():
 
          for p in self._processes[:]:
             if "docker" in p.args:
-               cmd = ["docker", "ps", "-q"]
+               cmd = ["docker", "ps", "-q", "-f",
+                      "name=reverse-proxy-hermes-test"]
                ps_output = subprocess.run(cmd,
                                           stdout=subprocess.PIPE,
                                           stderr=subprocess.STDOUT)
