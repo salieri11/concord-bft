@@ -8,7 +8,7 @@ export enum Personas {
   SystemsAdmin = 'SYSTEM_ADMIN',
   ConsortiumAdmin = 'CONSORTIUM_ADMIN',
   OrgAdmin = 'ORG_ADMIN',
-  OrgDeveloper = 'ORG_DEVELOPR',
+  OrgDeveloper = 'ORG_DEVELOPER',
   OrgUser = 'ORG_USER'
 }
 
