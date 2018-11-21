@@ -388,7 +388,7 @@ class Product():
       and unlock them.
       '''
       # Waiting for 10 seconds for 5 times is enough
-      retries = 5
+      retries = 10
       attempts = 0
       # Helen now takes ~7-8 seconds to boot so we should wait for around 10 seconds
       sleepTime = 10
