@@ -13,7 +13,7 @@ export interface DashboardListConfig {
 }
 
 @Component({
-  selector: 'athena-dashboard-list',
+  selector: 'concord-dashboard-list',
   templateUrl: './dashboard-list.component.html',
   styleUrls: ['./dashboard-list.component.scss']
 })

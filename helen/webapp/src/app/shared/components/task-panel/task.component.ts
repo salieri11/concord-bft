@@ -13,7 +13,7 @@ import {
 import { VmwTaskState } from './tasks.service';
 
 @Component({
-  selector: 'athena-task',
+  selector: 'concord-task',
   templateUrl: './task.component.html',
   styleUrls: ['./task.component.scss'],
 })

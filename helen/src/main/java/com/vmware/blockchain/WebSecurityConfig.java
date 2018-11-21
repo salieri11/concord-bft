@@ -45,7 +45,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .authorizeRequests()
                 .antMatchers("/api/auth/login", "/api/auth/token", "/api/agreements/1", "/", "/assets/**")
                 .permitAll().antMatchers("/api/users").hasAnyAuthority("CONSORTIUM_ADMIN", "SYSTEM_ADMIN", "ORG_ADMIN")
-                .antMatchers("/api/athena/**")
+                .antMatchers("/api/concord/**")
                 .hasAnyAuthority("CONSORTIUM_ADMIN", "SYSTEM_ADMIN", "ORG_ADMIN", "ORG_DEVELOPER").anyRequest()
                 .authenticated().and().apply(new JwtTokenFilterConfigurer(jwtTokenProvider)).and().exceptionHandling()
                 .authenticationEntryPoint(restAuthticationEntryPoint).and().anonymous().and().httpBasic();

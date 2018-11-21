@@ -1,5 +1,5 @@
 # hermes
-Hermes is the repository for the vmwareathena project's testing framework.
+Hermes is the repository for the VMware Athena project's testing framework.
 
 ## Goals:
 - Tests are run from the hermes project.
@@ -52,12 +52,7 @@ Hermes is the repository for the vmwareathena project's testing framework.
 ## Running a test suite:
 - There will eventually be a config file for build locations.  For now, the build
   directories are hard coded in resources/product_launch_config.json.
-- Pull and build the API server at ~/source/vmwathena/helen.
 - Copy the config.properties file of Helen (if using the java version) over to Hermes and make changes (if required).
-- If you do not have it at this location, then you can link to it:
-  cd ~ && mkdir source && cd source && ln -s $YOUR_PATH_TO_VMWATHENA vmwathena
-- Create a debug build of P2_Blockchain, allowing for the default output
-  directory. (~/builds/p2-blockchain/debug)
 - Run `./main.py CoreVMTests`
 - An alternate Hermes config file may be specified by using [--config].
   example : `./main.py CoreVMTests --config resources/user_config_resilience.json`

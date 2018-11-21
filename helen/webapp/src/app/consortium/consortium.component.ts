@@ -14,7 +14,7 @@ import { ConsortiumListComponent } from './consortium-list/consortium-list.compo
 import { Consortium } from './shared/consortium.model';
 
 @Component({
-  selector: 'athena-consortium',
+  selector: 'concord-consortium',
   templateUrl: './consortium.component.html',
   styleUrls: ['./consortium.component.scss']
 })

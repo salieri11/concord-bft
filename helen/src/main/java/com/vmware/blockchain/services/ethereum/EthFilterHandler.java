@@ -10,13 +10,13 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import com.google.protobuf.ByteString;
-import com.vmware.athena.Athena;
-import com.vmware.athena.Athena.EthRequest.EthMethod;
-import com.vmware.athena.Athena.EthResponse;
-import com.vmware.athena.Athena.FilterRequest;
-import com.vmware.athena.Athena.FilterRequest.FilterRequestType;
-import com.vmware.athena.Athena.FilterResponse;
 import com.vmware.blockchain.common.Constants;
+import com.vmware.concord.Concord;
+import com.vmware.concord.Concord.EthRequest.EthMethod;
+import com.vmware.concord.Concord.EthResponse;
+import com.vmware.concord.Concord.FilterRequest;
+import com.vmware.concord.Concord.FilterRequest.FilterRequestType;
+import com.vmware.concord.Concord.FilterResponse;
 
 /**
  * This handler is used to service following types of filter requests.
@@ -35,10 +35,10 @@ public class EthFilterHandler extends AbstractEthRpcHandler {
 
     /**
      * Builds the EthRequest Object from the type of eth request specified in requestJson. Adds the built request into
-     * AthenaRequest using given builder.
+     * ConcordRequest using given builder.
      */
-    public void buildRequest(Athena.AthenaRequest.Builder builder, JSONObject requestJson) throws Exception {
-        Athena.EthRequest.Builder b = initializeRequestObject(requestJson);
+    public void buildRequest(Concord.ConcordRequest.Builder builder, JSONObject requestJson) throws Exception {
+        Concord.EthRequest.Builder b = initializeRequestObject(requestJson);
         String ethMethodName = EthDispatcher.getEthMethodName(requestJson);
         JSONArray params = extractRequestParams(requestJson);
 
@@ -66,23 +66,23 @@ public class EthFilterHandler extends AbstractEthRpcHandler {
             b.setFilterRequest(fb.build());
         }
 
-        Athena.EthRequest athenaEthRequest = b.build();
+        Concord.EthRequest concordEthRequest = b.build();
 
-        builder.addEthRequest(athenaEthRequest);
+        builder.addEthRequest(concordEthRequest);
     }
 
     /**
-     * Extracts the FilterResponse objects from passed athenaResponse object and returns a RPC JSONObject made from
+     * Extracts the FilterResponse objects from passed concordResponse object and returns a RPC JSONObject made from
      * FilterResponse.
      *
-     * @param athenaResponse Object of AthenaResponse
+     * @param concordResponse Object of ConcordResponse
      * @param requestJson The original request Json
-     * @return the reply JSON object made from FilterResponse object inside AthenaResponse.
+     * @return the reply JSON object made from FilterResponse object inside ConcordResponse.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject buildResponse(Athena.AthenaResponse athenaResponse, JSONObject requestJson) throws Exception {
+    public JSONObject buildResponse(Concord.ConcordResponse concordResponse, JSONObject requestJson) throws Exception {
         try {
-            EthResponse ethResponse = athenaResponse.getEthResponse(0);
+            EthResponse ethResponse = concordResponse.getEthResponse(0);
             JSONObject respObject = initializeResponseObject(ethResponse);
             String ethMethodName = EthDispatcher.getEthMethodName(requestJson);
 

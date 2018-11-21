@@ -13,7 +13,7 @@ declare var require: any;
 
 const path = require('path');
 
-describe('athena-ui Smart Contracts', () => {
+describe('concord-ui Smart Contracts', () => {
   let authHelper: AuthHelper;
   let loginPage: LoginPage;
   let smartContractsPage: SmartContractsPage;

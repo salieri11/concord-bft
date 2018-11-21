@@ -19,11 +19,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import com.vmware.athena.Athena;
-import com.vmware.blockchain.common.AthenaProperties;
-import com.vmware.blockchain.connections.AthenaConnectionPool;
+import com.vmware.blockchain.common.ConcordProperties;
+import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
+import com.vmware.concord.Concord;
 
 /**
  * A Controller that manages all GET/POST/PATCH requests related to user management API of helen.
@@ -37,8 +37,8 @@ public class AgreementServlet extends BaseServlet {
     private AgreementsRegistryManager arm;
 
     @Autowired
-    public AgreementServlet(AgreementsRegistryManager arm, AthenaProperties config,
-            AthenaConnectionPool connectionPool) {
+    public AgreementServlet(AgreementsRegistryManager arm, ConcordProperties config,
+            ConcordConnectionPool connectionPool) {
         super(config, connectionPool);
         this.arm = arm;
     }
@@ -87,7 +87,7 @@ public class AgreementServlet extends BaseServlet {
     }
 
     @Override
-    protected JSONAware parseToJson(Athena.AthenaResponse athenaResponse) {
+    protected JSONAware parseToJson(Concord.ConcordResponse concordResponse) {
         throw new UnsupportedOperationException("parseToJSON method is not " + "supported in ProfileManager class");
     }
 }

@@ -14,7 +14,7 @@ import { TourService } from '../../shared/tour.service';
 import { UsersService } from '../shared/users.service';
 
 @Component({
-  selector: 'athena-users',
+  selector: 'concord-users',
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss']
 })

@@ -24,7 +24,7 @@ import {
  */
 
 @Component({
-  selector: 'athena-accordion',
+  selector: 'concord-accordion',
   templateUrl: 'accordion.component.html',
   styleUrls: ['./accordion.component.scss'],
   animations: [

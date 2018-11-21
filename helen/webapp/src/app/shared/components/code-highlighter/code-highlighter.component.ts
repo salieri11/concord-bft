@@ -7,7 +7,7 @@ import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { HighlightService } from '../../highlight.service';
 
 @Component({
-  selector: 'athena-code-highlighter',
+  selector: 'concord-code-highlighter',
   templateUrl: './code-highlighter.component.html',
   styleUrls: ['./code-highlighter.component.scss']
 })

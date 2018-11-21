@@ -46,7 +46,7 @@ class KVBTests(test_suite.TestSuite):
          log.debug("Running in ethereum mode")
          self._apiServerUrl = "http://localhost:8545"
       else:
-         self._apiServerUrl = "https://localhost/blockchains/local/api/athena/eth/"
+         self._apiServerUrl = "https://localhost/blockchains/local/api/concord/eth/"
 
    def getName(self):
       return "KVBTests"
@@ -136,7 +136,7 @@ class KVBTests(test_suite.TestSuite):
    def _test_disk_persistence(self, rpc):
       '''
       Check if blocks persist to disk.
-      Note: This test is not valid when Athena uses an in memory database.
+      Note: This test is not valid when concord uses an in memory database.
       '''
       if self._productMode:
          pre = int(rpc.getBlockNumber(), 16)
@@ -144,12 +144,12 @@ class KVBTests(test_suite.TestSuite):
          if pre <= 0:
             return (None, "No blocks to restore.")
 
-         #Kill and reboot Athena
+         #Kill and reboot concord
          global p
          p.stopProduct()
 
          try:
-            self._args.keepAthenaDB = True
+            self._args.keepconcordDB = True
             p = self.launchProduct(self._args,
                                    self._apiServerUrl,
                                    self._userConfig)
@@ -161,6 +161,6 @@ class KVBTests(test_suite.TestSuite):
 
          if post < pre:
             return (False, "Blocks not persisted to disk correctly." +
-              "Note: This test should fail if Athena uses an in memory database.")
+              "Note: This test should fail if concord uses an in memory database.")
 
       return (True, None)

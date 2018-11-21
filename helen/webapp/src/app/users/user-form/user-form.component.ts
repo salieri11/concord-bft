@@ -13,7 +13,7 @@ import { Personas, PersonaService } from '../../shared/persona.service';
 import { matchPasswordValidator } from '../../shared/custom-validators';
 
 @Component({
-  selector: 'athena-user-form',
+  selector: 'concord-user-form',
   templateUrl: './user-form.component.html',
   styleUrls: ['./user-form.component.scss']
 })

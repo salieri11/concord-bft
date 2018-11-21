@@ -10,7 +10,7 @@ import { Subject } from 'rxjs';
 import { Node } from '../shared/nodes.model';
 
 @Component({
-  selector: 'athena-nodes-status-filter',
+  selector: 'concord-nodes-status-filter',
   templateUrl: './nodes-status-filter.component.html',
   styleUrls: ['./nodes-status-filter.component.scss']
 })

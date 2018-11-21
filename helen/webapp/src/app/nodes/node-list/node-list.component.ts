@@ -7,7 +7,7 @@ import { Node } from '../shared/nodes.model';
 import { NodesService } from '../shared/nodes.service';
 
 @Component({
-  selector: 'athena-node-list',
+  selector: 'concord-node-list',
   templateUrl: './node-list.component.html',
   styleUrls: ['./node-list.component.scss']
 })

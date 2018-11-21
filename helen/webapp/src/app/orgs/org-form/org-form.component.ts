@@ -13,7 +13,7 @@ import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { Personas } from '../../shared/persona.service';
 
 @Component({
-  selector: 'athena-orgs-form',
+  selector: 'concord-orgs-form',
   templateUrl: './org-form.component.html',
   styleUrls: ['./org-form.component.scss']
 })

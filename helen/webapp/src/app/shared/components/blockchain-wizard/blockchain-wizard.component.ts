@@ -11,7 +11,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { Personas } from '../../persona.service';
 
 @Component({
-  selector: 'athena-blockchain-wizard',
+  selector: 'concord-blockchain-wizard',
   templateUrl: './blockchain-wizard.component.html',
   styleUrls: ['./blockchain-wizard.component.scss']
 })

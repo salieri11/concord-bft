@@ -25,7 +25,7 @@ import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview
 import { TourService } from '../../shared/tour.service';
 
 @Component({
-  selector: 'athena-smart-contract-version',
+  selector: 'concord-smart-contract-version',
   templateUrl: './smart-contract-version.component.html',
   styleUrls: ['./smart-contract-version.component.scss']
 })

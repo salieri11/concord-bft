@@ -22,7 +22,7 @@ const LONG_POLL_INTERVAL = 30000; // Thirty seconds
 const BLOCK_TRANSACTION_LIMIT = 20;
 
 @Component({
-  selector: 'athena-dashboard',
+  selector: 'concord-dashboard',
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })

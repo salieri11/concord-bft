@@ -13,7 +13,7 @@ import { ConsortiumService } from '../shared/consortium.service';
 import { Org } from '../../orgs/shared/org.model';
 
 @Component({
-  selector: 'athena-consortium-list',
+  selector: 'concord-consortium-list',
   templateUrl: './consortium-list.component.html',
   styleUrls: ['./consortium-list.component.scss']
 })

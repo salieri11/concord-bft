@@ -7,18 +7,18 @@ package com.vmware.blockchain.connections;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import com.vmware.athena.Athena;
-import com.vmware.blockchain.common.AthenaProperties;
+import com.vmware.blockchain.common.ConcordProperties;
+import com.vmware.concord.Concord;
 
 /**
- * Mock Athena connection, used for testing.
+ * Mock Concord connection, used for testing.
  */
-public class MockConnection implements IAthenaConnection {
-    private static Athena.ProtocolResponse protocolResponse =
-            Athena.ProtocolResponse.newBuilder().setServerVersion(1).build();
-    private AthenaProperties config;
+public class MockConnection implements IConcordConnection {
+    private static Concord.ProtocolResponse protocolResponse =
+            Concord.ProtocolResponse.newBuilder().setServerVersion(1).build();
+    private ConcordProperties config;
 
-    public MockConnection(AthenaProperties config) {
+    public MockConnection(ConcordProperties config) {
         this.config = config;
     }
 
@@ -35,7 +35,7 @@ public class MockConnection implements IAthenaConnection {
     @Override
     /**
      * this method should be extended to remember last message sent and to return corresponding response. Currently it
-     * returns hardcoded AthenaProtocolResponse message
+     * returns hardcoded ConcordProtocolResponse message
      */
     public byte[] receive() {
         byte[] data = protocolResponse.toByteArray();

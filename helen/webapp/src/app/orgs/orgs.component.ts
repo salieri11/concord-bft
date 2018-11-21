@@ -15,7 +15,7 @@ import { OrgFormComponent } from './org-form/org-form.component';
 
 
 @Component({
-  selector: 'athena-org',
+  selector: 'concord-org',
   templateUrl: './orgs.component.html',
   styleUrls: ['./orgs.component.scss']
 })

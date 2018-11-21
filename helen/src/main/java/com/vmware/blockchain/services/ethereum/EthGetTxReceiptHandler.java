@@ -10,25 +10,25 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import com.google.protobuf.ByteString;
-import com.vmware.athena.Athena;
+import com.vmware.concord.Concord;
 
 /**
  * This Handler is used for handling all `eth_getTransactionReceipt` types of requests. EthGetTxReceiptHandler is little
- * different than other handlers because It leverages already existing `TransactionReceipt` AthenaRequest to handle
+ * different than other handlers because It leverages already existing `TransactionReceipt` ConcordRequest to handle
  * `eth_getTransactionReceipt` requests (see Transaction.java file which implements this API). Hence, in this handler we
- * actually put a `TransactionRequest` inside AthenaRequest and read a TransactionResponse from AthenaResponse.
+ * actually put a `TransactionRequest` inside ConcordRequest and read a TransactionResponse from ConcordResponse.
  */
 public class EthGetTxReceiptHandler extends AbstractEthRpcHandler {
 
     Logger logger = LogManager.getLogger(EthGetTxReceiptHandler.class);
 
     /**
-     * Builds a TransactionRequest object from given requestJson and inserts it into AthenaRequest Object.
+     * Builds a TransactionRequest object from given requestJson and inserts it into ConcordRequest Object.
      *
-     * @param builder Athena Request Builder.
+     * @param builder Concord Request Builder.
      * @param requestJson The JSONObject of original RPC request.
      */
-    public void buildRequest(Athena.AthenaRequest.Builder builder, JSONObject requestJson) throws Exception {
+    public void buildRequest(Concord.ConcordRequest.Builder builder, JSONObject requestJson) throws Exception {
         try {
             logger.debug("Inside GetTXReceipt buildRequest");
             // Construct a transaction request object.
@@ -36,7 +36,8 @@ public class EthGetTxReceiptHandler extends AbstractEthRpcHandler {
             String txHash = (String) params.get(0);
             ByteString hashBytes = ApiHelper.hexStringToBinary(txHash);
 
-            Athena.TransactionRequest txRequestObj = Athena.TransactionRequest.newBuilder().setHash(hashBytes).build();
+            Concord.TransactionRequest txRequestObj =
+                Concord.TransactionRequest.newBuilder().setHash(hashBytes).build();
             builder.setTransactionRequest(txRequestObj);
         } catch (Exception e) {
             logger.error("Exception in tx receipt handler", e);
@@ -57,19 +58,19 @@ public class EthGetTxReceiptHandler extends AbstractEthRpcHandler {
     }
 
     /**
-     * Builds a response JSON object by extracting TransactionResponse object from given AthenaResponse Object.
+     * Builds a response JSON object by extracting TransactionResponse object from given ConcordResponse Object.
      *
-     * @param athenaResponse The AthenaResponse object
+     * @param concordResponse The ConcordResponse object
      * @param requestJson The json object of original RPC request.
      * @return the response JSONObject.
      */
     @SuppressWarnings("unchecked")
     @Override
-    public JSONObject buildResponse(Athena.AthenaResponse athenaResponse, JSONObject requestJson) {
+    public JSONObject buildResponse(Concord.ConcordResponse concordResponse, JSONObject requestJson) {
 
         JSONObject respObject = new JSONObject();
         try {
-            Athena.TransactionResponse transactionResponse = athenaResponse.getTransactionResponse();
+            Concord.TransactionResponse transactionResponse = concordResponse.getTransactionResponse();
 
             respObject = initializeResponseObject(EthDispatcher.getEthRequestId(requestJson));
 
@@ -85,9 +86,9 @@ public class EthGetTxReceiptHandler extends AbstractEthRpcHandler {
                 result.put("contractAddress", null);
             }
 
-            // Athena EVM has status code '0' for success and other Positive
+            // Concord EVM has status code '0' for success and other Positive
             // values to denote error. However, for JSON RPC '1' is success
-            // and '0' is failure. Here we need to reverse status value of athena
+            // and '0' is failure. Here we need to reverse status value of concord
             // response before returning it.
             result.put("status", "0x" + Integer.toString(transactionResponse.getStatus() == 0 ? 1 : 0));
 
@@ -105,10 +106,10 @@ public class EthGetTxReceiptHandler extends AbstractEthRpcHandler {
     /**
      * Build the loggin JSON.
      */
-    public static JSONArray buildLogs(Athena.TransactionResponse transactionResponse) {
+    public static JSONArray buildLogs(Concord.TransactionResponse transactionResponse) {
         JSONArray logs = new JSONArray();
         for (int i = 0; i < transactionResponse.getLogCount(); i++) {
-            Athena.LogResponse log = transactionResponse.getLog(i);
+            Concord.LogResponse log = transactionResponse.getLog(i);
             JSONObject logJson = new JSONObject();
             logJson.put("address", ApiHelper.binaryStringToHex(log.getAddress()));
 

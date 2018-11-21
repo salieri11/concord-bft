@@ -19,7 +19,7 @@
         {{ isValid ? placeholder : errorMessage || 'Validation failed.'}}
     </span>
 
-  <athena-combobox-items
+  <concord-combobox-items
     [hidden]="!showSuggestions"
     [items]="items"
     (selectionChange)="setDisplayValue($event)"
@@ -27,7 +27,7 @@
     [multiSelect]="multiSelect"
     [position]="position"
     [filterIncludes]="filterIncludes">
-  </athena-combobox-items>
+  </concord-combobox-items>
 
   <clr-icon
     [ngClass]="{'carret': !multiSelect}"

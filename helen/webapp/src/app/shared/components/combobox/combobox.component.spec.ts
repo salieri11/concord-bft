@@ -58,7 +58,7 @@ const select = (control: any, item: VmwComboboxItem) => {
 // See https://goo.gl/6zv5So for more details.
 @Component({
   template: `
-      <athena-combobox name="combobox"
+      <concord-combobox name="combobox"
           [items]="items"
           [placeholder]="placeholder"
           [showSuggestionsOnFocus]="showSuggestionsOnFocus"
@@ -67,7 +67,7 @@ const select = (control: any, item: VmwComboboxItem) => {
           [filterItemsWhenTyping]="filterItemsWhenTyping"
           [autoComplete]="autoComplete"
           [multiSelect]="multiSelect">
-      </athena-combobox>`
+      </concord-combobox>`
 })
 class TestHostComponent {
   @ViewChild(VmwComboboxComponent)
@@ -108,13 +108,13 @@ describe('ComboboxComponent', () => {
 
   describe('when the items are not set', () => {
     it('hides the control', () => {
-      expect(element.querySelector('athena-combobox').children.length).toBe(0);
+      expect(element.querySelector('concord-combobox').children.length).toBe(0);
     });
   });
 
   describe('when the items are set to an empty array', () => {
     it('hides the control', () => {
-      expect(element.querySelector('athena-combobox').children.length).toBe(0);
+      expect(element.querySelector('concord-combobox').children.length).toBe(0);
     });
   });
 
@@ -132,7 +132,7 @@ describe('ComboboxComponent', () => {
     });
 
     it('shows the control', () => {
-      expect(element.querySelector('athena-combobox').children.length)
+      expect(element.querySelector('concord-combobox').children.length)
         .toBeGreaterThan(0);
     });
 
@@ -170,7 +170,7 @@ describe('ComboboxComponent', () => {
       });
 
       it('keeps the combobox-items hidden before focus event occurs', () => {
-        expect(element.querySelector('athena-combobox-items').hidden).toBe(true);
+        expect(element.querySelector('concord-combobox-items').hidden).toBe(true);
       });
 
       describe('and the user focuses the input', () => {
@@ -180,7 +180,7 @@ describe('ComboboxComponent', () => {
         });
 
         it('shows the combobox-items', () => {
-          expect(element.querySelector('athena-combobox-items'))
+          expect(element.querySelector('concord-combobox-items'))
             .not.toBe(null);
         });
 
@@ -237,7 +237,7 @@ describe('ComboboxComponent', () => {
           });
 
           it('keeps the suggestion box opened', () => {
-            expect(element.querySelector('athena-combobox-items'))
+            expect(element.querySelector('concord-combobox-items'))
               .not.toBe(null);
           });
 
@@ -248,7 +248,7 @@ describe('ComboboxComponent', () => {
               tick(TIMEOUT);
               fixture.detectChanges();
 
-              expect(element.querySelector('athena-combobox-items').hidden)
+              expect(element.querySelector('concord-combobox-items').hidden)
                 .toBe(true);
             }));
           });
@@ -307,7 +307,7 @@ describe('ComboboxComponent', () => {
         });
 
         it('keeps the suggestions hidden', () => {
-          expect(element.querySelector('athena-combobox-items').hidden).toBe(true);
+          expect(element.querySelector('concord-combobox-items').hidden).toBe(true);
         });
       });
     });

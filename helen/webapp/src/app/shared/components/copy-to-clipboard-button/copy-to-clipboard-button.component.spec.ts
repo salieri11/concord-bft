@@ -13,9 +13,9 @@ import { customMatchers } from '../../../../custom-matchers';
 
 @Component({
   template: `
-        <athena-copy-to-clipboard-button
+        <concord-copy-to-clipboard-button
             [value]="value">
-        </athena-copy-to-clipboard-button>
+        </concord-copy-to-clipboard-button>
     `
 })
 class TestHostComponent {

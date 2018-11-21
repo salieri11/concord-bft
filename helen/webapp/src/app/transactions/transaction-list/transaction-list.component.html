@@ -15,19 +15,19 @@
         <clr-dg-column class="status">
           {{'transactions.status' | translate}}
           <clr-dg-filter [clrDgFilter]="statusFilter">
-            <athena-transactions-status-filter #statusFilter></athena-transactions-status-filter>
+            <concord-transactions-status-filter #statusFilter></concord-transactions-status-filter>
           </clr-dg-filter>
         </clr-dg-column>
         <clr-dg-row *clrDgItems="let transaction of transactions">
           <clr-dg-cell class="hash">
             <a [routerLink]="['/blocks', transaction.block_number !== undefined ? transaction.block_number : blockNumber, 'transactions', transaction.hash]">{{transaction?.hash}}</a>
-            <athena-copy-to-clipboard-button
+            <concord-copy-to-clipboard-button
               classList="ctc-btn-inline"
               [tooltip]="'common.copyToClip' | translate"
               tooltipDirection="top-right"
               [value]="transaction?.hash"
               [size]="12">
-            </athena-copy-to-clipboard-button>
+            </concord-copy-to-clipboard-button>
           </clr-dg-cell>
           <clr-dg-cell>{{(transaction.nonce !== undefined ? transaction.nonce : 'transactions.none' | translate)  }}</clr-dg-cell>
           <clr-dg-cell class="status">
@@ -48,7 +48,7 @@
             </ng-container>
           </clr-dg-cell>
           <clr-dg-row-detail>
-            <athena-transaction-details *clrIfExpanded [transactionHash]="transaction?.hash" ngProjectAs="clr-dg-row-detail"></athena-transaction-details>
+            <concord-transaction-details *clrIfExpanded [transactionHash]="transaction?.hash" ngProjectAs="clr-dg-row-detail"></concord-transaction-details>
           </clr-dg-row-detail>
         </clr-dg-row>
         <clr-dg-footer>

@@ -9,7 +9,7 @@ import { Personas } from '../../shared/persona.service';
 import { User } from '../shared/user.model';
 
 @Component({
-  selector: 'athena-user-list',
+  selector: 'concord-user-list',
   templateUrl: './user-list.component.html',
   styleUrls: ['./user-list.component.scss']
 })

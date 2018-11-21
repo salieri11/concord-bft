@@ -5,7 +5,7 @@ bin/
 tmp/
 logs/
 
-# Athena Specific
+# Concord Specific
 build/
 .idea/
 cmake-build-debug/
@@ -13,7 +13,7 @@ cmake-build-debug/
 .project
 .settings/
 .vscode/
-docker/config-athena*/s_f1c0_config.pub
+docker/config-concord*/s_f1c0_config.pub
 docker/log*
 docker/rocksdbdata*
 docker/cockroachDB

@@ -11,7 +11,7 @@ import { ConsortiumService } from '../shared/consortium.service';
 import { Personas } from '../../shared/persona.service';
 
 @Component({
-  selector: 'athena-consortium-form',
+  selector: 'concord-consortium-form',
   templateUrl: './consortium-form.component.html',
   styleUrls: ['./consortium-form.component.scss']
 })

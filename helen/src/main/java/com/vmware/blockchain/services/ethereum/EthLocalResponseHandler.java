@@ -10,16 +10,16 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
-import com.vmware.athena.Athena;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.connections.AthenaConnectionPool;
-import com.vmware.blockchain.connections.IAthenaConnection;
+import com.vmware.blockchain.connections.ConcordConnectionPool;
+import com.vmware.blockchain.connections.IConcordConnection;
+import com.vmware.concord.Concord;
 
 /**
  * <p>
- * Handles the RPC requests which can be processes directly in helen without forwarding them to Athena. However, this is
- * an exception. When handling `net_version` we do connect to athena but just get the version number from athena. This
- * handler handles following eth RPC requests :
+ * Handles the RPC requests which can be processes directly in helen without forwarding them to Concord. However, this
+ * is an exception. When handling `net_version` we do connect to concord but just get the version number from
+ * concord. This handler handles following eth RPC requests :
  * <ul>
  * <li>web3_sha3</li>
  * <li>eth_coinbase</li>
@@ -35,31 +35,31 @@ import com.vmware.blockchain.connections.IAthenaConnection;
  */
 public class EthLocalResponseHandler extends AbstractEthRpcHandler {
 
-    private AthenaConnectionPool connectionPool;
+    private ConcordConnectionPool connectionPool;
 
     private static Logger logger = LogManager.getLogger(EthLocalResponseHandler.class);
 
     /**
      * Initialize the local response handler.
-     * @param connectionPool Athena connectionpool.
+     * @param connectionPool Concord connectionpool.
      */
-    public EthLocalResponseHandler(AthenaConnectionPool connectionPool) {
+    public EthLocalResponseHandler(ConcordConnectionPool connectionPool) {
         this.connectionPool = connectionPool;
     }
 
     /**
-     * This method does not build any request since we do not need to send any request to Athena for requests handled by
-     * this handler. However, having an empty method like this is probably not a very good idea. TODO: Figure out how to
-     * remove this empty method.
+     * This method does not build any request since we do not need to send any request to Concord for requests handled
+     * by this handler. However, having an empty method like this is probably not a very good idea. TODO: Figure out how
+     * to remove this empty method.
      *
      */
-    public void buildRequest(Athena.AthenaRequest.Builder athenaRequestBuilder, JSONObject requestJson)
+    public void buildRequest(Concord.ConcordRequest.Builder concordRequestBuilder, JSONObject requestJson)
             throws Exception {}
 
     /**
      * Initializes response object by using request JSONObject for local methods. An overload of this method which
      * accepts EthResponse as input parameter is defined in {@link AbstractEthRpcHandler} class. However, for requests
-     * which can be handled locally we do not even call athena and hence do not have a valid athena response. Hence we
+     * which can be handled locally we do not even call concord and hence do not have a valid concord response. Hence we
      * can not use the method provided by parent class.
      *
      */
@@ -76,19 +76,19 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
      * type `web3_sha3` then here we will actually generate the hash of given data and produce a response object
      * containing that hash. We do not do kind of processing in `buildRequest` method.
      *
-     * @param athenaResponse The response receive from athena Note: Since, we do not build anything in
-     *        buildAthenaRequest and we also do not call athena for these requests. Hence this method completely ignores
-     *        the athenaResponse object. It can be NULL
+     * @param concordResponse The response receive from concord Note: Since, we do not build anything in
+     *        buildConcordRequest and we also do not call concord for these requests. Hence this method completely
+     *        ignores the concordResponse object. It can be NULL
      * @param requestJson The original RPC request JSONObject.
      * @return the JSONObject of the response.
      */
     @SuppressWarnings("unchecked")
-    public JSONObject buildResponse(Athena.AthenaResponse athenaResponse, JSONObject requestJson) throws Exception {
+    public JSONObject buildResponse(Concord.ConcordResponse concordResponse, JSONObject requestJson) throws Exception {
         long id = (long) requestJson.get("id");
         String ethMethodName = EthDispatcher.getEthMethodName(requestJson);
         /*
          * Here we can not use parents initializeResponseObject method because it takes a valid EthResponse object as
-         * input parameter, however in local methods we do not even call athena and hence do not have a valid value for
+         * input parameter, however in local methods we do not even call concord and hence do not have a valid value for
          * that parameter. Instead we provide our own overload of initializeResponseObject method in this class which
          * initializes object with requestJson object.
          */
@@ -124,17 +124,17 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
             localData = Constants.IS_MINING == 0 ? false : true;
         } else if (ethMethodName.equals(Constants.NETVERSION_NAME)) {
             if (!EthDispatcher.netVersionSet) {
-                // The act of creating a connection retrieves info about athena.
-                IAthenaConnection conn = null;
+                // The act of creating a connection retrieves info about concord.
+                IConcordConnection conn = null;
                 try {
                     conn = connectionPool.getConnection();
                     conn.check();
                 } catch (IllegalStateException | InterruptedException e) {
                     e.printStackTrace();
                 } catch (Exception e) {
-                    logger.error("Unable to connect to athena.", e);
+                    logger.error("Unable to connect to concord.", e);
                     throw new EthRpcHandlerException(
-                            EthDispatcher.errorMessage("Unable to connect to athena.", id, jsonRpc).toJSONString());
+                            EthDispatcher.errorMessage("Unable to connect to concord.", id, jsonRpc).toJSONString());
                 } finally {
                     if (conn != null) {
                         connectionPool.putConnection(conn);

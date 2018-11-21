@@ -12,7 +12,7 @@
     }
   ],
   "paths": {
-    "/athena/members": {
+    "/concord/members": {
       "summary": "Blockchain Consensus Membership List",
       "get": {
         "summary": "List nodes that are members",
@@ -51,7 +51,7 @@
         }
       }
     },
-    "/athena/blocks": {
+    "/concord/blocks": {
       "summary": "Blockchain Blocks",
       "get": {
         "summary": "List blocks in the chain, most recent first",
@@ -114,7 +114,7 @@
         }
       }
     },
-    "/athena/blocks/{index}": {
+    "/concord/blocks/{index}": {
       "summary": "Specific Blockchain Block",
       "get": {
         "summary": "Get a specific block, by its number in the chain",
@@ -173,7 +173,7 @@
         }
       }
     },
-    "/athena/transactions/{hash}": {
+    "/concord/transactions/{hash}": {
       "summary": "Specific Blockchain Block",
       "get": {
         "summary": "Get a specific transaction, by its hash",
@@ -239,7 +239,7 @@
         }
       }
     },
-    "/athena/eth": {
+    "/concord/eth": {
       "summary": "Ethereum JSON RPC API",
       "get": {
         "summary": "List available RPC methods",
@@ -341,14 +341,14 @@
         }
       }
     },
-    "/athena/contracts": {
+    "/concord/contracts": {
       "summary": "Blockchain contracts",
       "get": {
         "summary": "List all deployed contracts",
         "operationId": "contractsGet",
         "responses": {
           "200": {
-            "description": "Returns a list of all contracts deployed to athena",
+            "description": "Returns a list of all contracts deployed to concord",
             "content": {
               "application/json": {
                 "schema": {
@@ -377,7 +377,7 @@
         }
       },
       "post": {
-        "summary": "Deploy and new contract to athena",
+        "summary": "Deploy and new contract to concord",
         "operationId": "contractsPost",
         "requestBody": {
           "description": "New contract POST request body",
@@ -448,7 +448,7 @@
         }
       }
     },
-    "/athena/contracts/{contract_id}": {
+    "/concord/contracts/{contract_id}": {
       "get": {
         "summary": "Get a contract with id `contract_id`",
         "operationId": "GetContractById",
@@ -512,7 +512,7 @@
         }
       }
     },
-    "/athena/contracts/{contract_id}/versions/{version_name}": {
+    "/concord/contracts/{contract_id}/versions/{version_name}": {
       "get": {
         "summary": "Get a contract identified by given `contract_id` and `version_name`",
         "operationId": "GetContractByIdAndVersion",

@@ -11,7 +11,7 @@ import { BlocksService } from '../shared/blocks.service';
  * Displays a paginated listing of blocks
  */
 @Component({
-  selector: 'athena-block-list',
+  selector: 'concord-block-list',
   templateUrl: './block-list.component.html',
   styleUrls: ['./block-list.component.scss']
 })

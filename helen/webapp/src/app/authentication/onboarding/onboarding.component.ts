@@ -9,7 +9,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthenticationService } from '../../shared/authentication.service';
 
 @Component({
-  selector: 'athena-onboarding',
+  selector: 'concord-onboarding',
   templateUrl: './onboarding.component.html',
   styleUrls: ['./onboarding.component.scss']
 })

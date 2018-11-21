@@ -10,7 +10,7 @@ import { Router } from '../../../node_modules/@angular/router';
 import * as Vivus from 'vivus';
 
 @Component({
-  selector: 'athena-marketing',
+  selector: 'concord-marketing',
   templateUrl: './marketing.component.html',
   styleUrls: ['./marketing.component.scss']
 })

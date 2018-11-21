@@ -7,7 +7,7 @@ import { LoginPage } from '../login/login.po';
 import { MarketingPage } from '../marketing/marketing.po';
 import { DashboardPage } from '../dashboard/dashboard.po';
 
-describe('athena-ui App', () => {
+describe('concord-ui App', () => {
   let authHelper: AuthHelper;
   let loginPage: LoginPage;
   let dashboardPage: DashboardPage;
@@ -30,6 +30,6 @@ describe('athena-ui App', () => {
   //   marketingPage.navigateTo();
   //   marketingPage.clickLoginButton();
   //   loginPage.fillLogInForm('admin@blockchain.local', 'T3sting!');
-  //   expect(dashboardPage.getPageTitle()).toEqual('VMware Athena');
+  //   expect(dashboardPage.getPageTitle()).toEqual('VMware concord');
   // });
 });

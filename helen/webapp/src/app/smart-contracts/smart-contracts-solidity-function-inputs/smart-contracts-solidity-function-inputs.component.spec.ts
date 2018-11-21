@@ -12,11 +12,11 @@ import { MockSharedModule } from '../../shared/shared.module';
 import { AbiFunctionParameter } from '../shared/smart-contracts.model';
 
 @Component({
-  selector: 'athena-test-wrapper',
+  selector: 'concord-test-wrapper',
   template: `
-        <athena-smart-contracts-solidity-function-inputs #solidityInputs
+        <concord-smart-contracts-solidity-function-inputs #solidityInputs
         [formGroup]="functionInputForm"
-        [functionInputs]="functionInputs"></athena-smart-contracts-solidity-function-inputs>
+        [functionInputs]="functionInputs"></concord-smart-contracts-solidity-function-inputs>
     `
 })
 class TestWrapperClassComponent {

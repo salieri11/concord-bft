@@ -3,14 +3,14 @@
     "launch": [
       {
         "reverseProxy": {
-          "buildRoot": "../athena/docker",
+          "buildRoot": "../concord/docker",
           "helen1": {
             "launchCommand": "docker",
             "parameters": [
               "run",
               "--rm",
               "-v",
-              "${ATHENA_HOME}/docker/data/nginx/local.conf.d:/etc/nginx/conf.d",
+              "${CONCORD_HOME}/docker/data/nginx/local.conf.d:/etc/nginx/conf.d",
               "--network",
               "host",
               "--name",
@@ -44,63 +44,63 @@
         }
       },
       {
-        "athena1": {
-          "buildRoot": "../athena/build",
-          "athena1": {
+        "concord1": {
+          "buildRoot": "../concord/build",
+          "concord1": {
             "launchCommand": "valgrind",
             "parameters": [
               "-v",
               "--leak-check=full",
               "--show-leak-kinds=all",
               "--track-origins=yes",
-              "--log-file=/tmp/valgrind_athena1.log",
-              "src/athena",
+              "--log-file=/tmp/valgrind_concord1.log",
+              "src/concord",
               "--logger_config",
               "./resources/log4cplus.properties",
               "-c",
-              "resources/athena1.config"
+              "resources/concord1.config"
             ]
           }
         }
       },
       {
-        "athena2": {
-          "buildRoot": "../athena/build",
-          "athena2": {
-            "launchCommand": "src/athena",
+        "concord2": {
+          "buildRoot": "../concord/build",
+          "concord2": {
+            "launchCommand": "src/concord",
             "parameters": [
               "--logger_config",
               "./resources/log4cplus.properties",
               "-c",
-              "resources/athena2.config"
+              "resources/concord2.config"
             ]
           }
         }
       },
       {
-        "athena3": {
-          "buildRoot": "../athena/build",
-          "athena3": {
-            "launchCommand": "src/athena",
+        "concord3": {
+          "buildRoot": "../concord/build",
+          "concord3": {
+            "launchCommand": "src/concord",
             "parameters": [
               "--logger_config",
               "./resources/log4cplus.properties",
               "-c",
-              "resources/athena3.config"
+              "resources/concord3.config"
             ]
           }
         }
       },
       {
-        "athena4": {
-          "buildRoot": "../athena/build",
-          "athena4": {
-            "launchCommand": "src/athena",
+        "concord4": {
+          "buildRoot": "../concord/build",
+          "concord4": {
+            "launchCommand": "src/concord",
             "parameters": [
               "--logger_config",
               "./resources/log4cplus.properties",
               "-c",
-              "resources/athena4.config"
+              "resources/concord4.config"
             ]
           }
         }

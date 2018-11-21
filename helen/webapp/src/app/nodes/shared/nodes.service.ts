@@ -7,16 +7,16 @@ import { HttpClient } from '@angular/common/http';
 
 import { Observable } from 'rxjs';
 import { Node } from './nodes.model';
-import { ATHENA_API_PREFIX } from '../../shared/shared.config';
-import { AthenaApiService } from '../../shared/athena-api';
+import { CONCORD_API_PREFIX } from '../../shared/shared.config';
+import { concordApiService } from '../../shared/concord-api';
 
 @Injectable({
   providedIn: 'root'
 })
-export class NodesService extends AthenaApiService {
+export class NodesService extends concordApiService {
 
-  constructor(@Inject(ATHENA_API_PREFIX) athenaApiPrefix: string, private httpClient: HttpClient) {
-    super(athenaApiPrefix);
+  constructor(@Inject(CONCORD_API_PREFIX) concordApiPrefix: string, private httpClient: HttpClient) {
+    super(concordApiPrefix);
   }
 
   get apiSubPath() {

@@ -781,7 +781,7 @@
       "navTitle": "Blockchain & Consortium",
       "info": "Selecting local fault tolerance will deploy nodes near your location, whereas global will distribute many nodes across all available regions.  Your consortium will be associated with this blockchain.",
       "blockchainType": "Blockchain Type",
-      "athena": "Concord",
+      "concord": "Concord",
       "hyperledger": "Hyperledger",
       "faultTolerance": "Fault Tolerance",
       "global": "Global",

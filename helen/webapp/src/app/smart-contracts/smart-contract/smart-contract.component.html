@@ -31,13 +31,13 @@
       </span>
     </clr-tooltip-content>
   </clr-tooltip>
-  <athena-copy-to-clipboard-button
+  <concord-copy-to-clipboard-button
     classList="ctc-btn-inline"
     [tooltip]="'common.copyToClip' | translate"
     tooltipDirection="top-right"
     [value]="smartContract?.owner"
     [size]="12">
-  </athena-copy-to-clipboard-button>
+  </concord-copy-to-clipboard-button>
   <clr-alert [clrAlertClosable]="false" [clrAlertType]="'alert-warning'" *ngIf="versionIsExternal">
     <div clr-alert-item class="alert-item">
         <span class="alert-text">
@@ -48,8 +48,8 @@
       </div>
     </div>
   </clr-alert>
-  <athena-smart-contract-version *ngIf="version" [version]="version"></athena-smart-contract-version>
+  <concord-smart-contract-version *ngIf="version" [version]="version"></concord-smart-contract-version>
 </div>
 
-<athena-contract-form #contractFormModal (contractCreated)="afterUpdateContract($event)"></athena-contract-form>
+<concord-contract-form #contractFormModal (contractCreated)="afterUpdateContract($event)"></concord-contract-form>
 

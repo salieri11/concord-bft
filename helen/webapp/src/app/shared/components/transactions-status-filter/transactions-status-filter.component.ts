@@ -10,7 +10,7 @@ import { Subject } from 'rxjs';
 import { Transaction } from '../../../transactions/shared/transactions.model';
 
 @Component({
-  selector: 'athena-transactions-status-filter',
+  selector: 'concord-transactions-status-filter',
   templateUrl: './transactions-status-filter.component.html',
   styleUrls: ['./transactions-status-filter.component.scss']
 })

@@ -32,7 +32,7 @@
                 <artifactId>spring-boot-dependencies</artifactId>
                 <version>2.0.4.RELEASE</version>
                 <type>pom</type>
-                <!--Since we want to use log4j for logging exclude it from 
+                <!--Since we want to use log4j for logging exclude it from
                     spring -->
                 <!--dependency and include it as a separate dependency -->
                 <exclusions>

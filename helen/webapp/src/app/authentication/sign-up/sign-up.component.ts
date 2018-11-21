@@ -12,7 +12,7 @@ import { Personas } from '../../shared/persona.service';
 import { UsersService } from '../../users/shared/users.service';
 
 @Component({
-  selector: 'athena-sign-up',
+  selector: 'concord-sign-up',
   templateUrl: './sign-up.component.html',
   styleUrls: ['./sign-up.component.scss']
 })

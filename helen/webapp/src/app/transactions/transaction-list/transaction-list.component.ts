@@ -7,7 +7,7 @@ import { Transaction } from '../shared/transactions.model';
 import { TransactionsService } from '../shared/transactions.service';
 
 @Component({
-  selector: 'athena-transaction-list',
+  selector: 'concord-transaction-list',
   templateUrl: './transaction-list.component.html',
   styleUrls: ['./transaction-list.component.scss']
 })

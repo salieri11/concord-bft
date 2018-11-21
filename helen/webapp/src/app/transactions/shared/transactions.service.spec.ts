@@ -6,14 +6,14 @@ import { TestBed, inject } from '@angular/core/testing';
 import { HttpClient, HttpHandler } from '@angular/common/http';
 
 import { TransactionsService } from './transactions.service';
-import { ATHENA_API_PREFIX } from '../../shared/shared.config';
+import { CONCORD_API_PREFIX } from '../../shared/shared.config';
 
 describe('TransactionsService', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
         TransactionsService,
-        {provide: ATHENA_API_PREFIX, useValue: 'api/athena'},
+        {provide: CONCORD_API_PREFIX, useValue: 'api/concord'},
         HttpClient,
         HttpHandler
       ]

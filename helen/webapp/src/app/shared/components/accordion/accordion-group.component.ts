@@ -7,7 +7,7 @@ import {
 } from '@angular/core';
 
 @Component({
-  selector: 'athena-accordion-group',
+  selector: 'concord-accordion-group',
   templateUrl: 'accordion-group.component.html',
   styleUrls: ['./accordion-group.component.scss']
 })

@@ -7,7 +7,7 @@ import { Component, Input, OnChanges, EventEmitter, Output } from '@angular/core
 
 
 @Component({
-  selector: 'athena-combobox-items',
+  selector: 'concord-combobox-items',
   templateUrl: './combobox-items.component.html',
   styleUrls: ['./combobox-items.component.scss']
 })

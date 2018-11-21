@@ -44,7 +44,7 @@ def main():
                        help="User config file to be considered.")
    parser.add_argument("--dockerComposeFile",
                        help="REQUIRES SUDO. Accepts a docker compose file " \
-                       "which starts athena and helen.  The product will " \
+                       "which starts concord and helen.  The product will " \
                        "be launched in docker images instead of on the " \
                        "command line.")
    parser.add_argument("--noLaunch",
@@ -52,8 +52,8 @@ def main():
                        action='store_true',
                        help="Will not launch the product, assuming it is "
                             "already running")
-   parser.add_argument("--keepAthenaDB",
-                       help="Keep and re-use the existing Athena database files.",
+   parser.add_argument("--keepconcordDB",
+                       help="Keep and re-use the existing concord database files.",
                        default=False,
                        action='store_true')
    parser.add_argument("--repeatSuiteRun",

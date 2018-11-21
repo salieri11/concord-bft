@@ -1,11 +1,11 @@
-.content-container > athena-task-panel {
+.content-container > concord-task-panel {
   position: absolute;
   right: 24px;
   bottom: 24px;
   width: 372px;
 }
 
-clr-main-container vmw-right-drawer athena-task-panel {
+clr-main-container vmw-right-drawer concord-task-panel {
   position: initial;
   right: unset;
   bottom: unset;
@@ -24,14 +24,14 @@ clr-main-container vmw-right-drawer athena-task-panel {
     display: none;
   }
 
-  athena-task {
+  concord-task {
     &:first-child clr-icon[shape="times"] {
       margin-right: -6px !important;
     }
   }
 }
 
-athena-task-panel {
+concord-task-panel {
   display: block;
   color: #FFF;
 
@@ -70,16 +70,16 @@ athena-task-panel {
 }
 
 .panel .tasks {
-  athena-task:first-child .task-container {
+  concord-task:first-child .task-container {
     margin-top: 0 !important;
     padding-top: 5px;
   }
 
-  athena-task .task-container.focused {
+  concord-task .task-container.focused {
     margin-top: 5px;
   }
 
-  athena-task:last-child:not(.completed):not(.failed) .task-container {
+  concord-task:last-child:not(.completed):not(.failed) .task-container {
     padding-bottom: 18px;
   }
 }
@@ -118,7 +118,7 @@ athena-task-panel {
       display: block;
     }
 
-    athena-task:first-child .task-container {
+    concord-task:first-child .task-container {
       .title > *:last-child {
         margin-right: 18px;
       }

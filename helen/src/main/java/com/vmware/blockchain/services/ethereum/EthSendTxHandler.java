@@ -11,14 +11,14 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
 import com.google.protobuf.ByteString;
-import com.vmware.athena.Athena;
-import com.vmware.athena.Athena.EthRequest;
-import com.vmware.athena.Athena.EthRequest.EthMethod;
-import com.vmware.athena.Athena.EthResponse;
-import com.vmware.blockchain.common.AthenaProperties;
+import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.connections.AthenaConnectionPool;
+import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.services.contracts.ContractRegistryManager;
+import com.vmware.concord.Concord;
+import com.vmware.concord.Concord.EthRequest;
+import com.vmware.concord.Concord.EthRequest.EthMethod;
+import com.vmware.concord.Concord.EthResponse;
 
 /**
  * <p>
@@ -31,13 +31,13 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
     private static Logger logger = LogManager.getLogger(EthSendTxHandler.class);
     private static boolean isInternalContract;
     private ContractRegistryManager registryManager;
-    private AthenaConnectionPool connectionPool;
-    private AthenaProperties config;
+    private ConcordConnectionPool connectionPool;
+    private ConcordProperties config;
 
     /**
      * Send transaction constructor.
      */
-    public EthSendTxHandler(AthenaProperties config, AthenaConnectionPool connectionPool,
+    public EthSendTxHandler(ConcordProperties config, ConcordConnectionPool connectionPool,
             ContractRegistryManager registryManager, boolean isInternalContract) {
         // If isInternalContract is true, the handler is processing a contract created from the Helen UI.
         this.isInternalContract = isInternalContract;
@@ -47,19 +47,19 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
     }
 
     /**
-     * Builds the Athena request builder. Extracts the method name, from, to, data and value fields from the request and
-     * uses it to set up an Athena Request builder with an EthRequest.
+     * Builds the Concord request builder. Extracts the method name, from, to, data and value fields from the request
+     * and uses it to set up an Concord Request builder with an EthRequest.
      *
      * <p>'from' is mandatory for send tx and 'to' is mandatory for call contract.
      *
-     * @param athenaRequestBuilder Object in which request is built
+     * @param concordRequestBuilder Object in which request is built
      * @param requestJson Request parameters passed by the user
      */
     @Override
-    public void buildRequest(Athena.AthenaRequest.Builder athenaRequestBuilder, JSONObject requestJson)
+    public void buildRequest(Concord.ConcordRequest.Builder concordRequestBuilder, JSONObject requestJson)
             throws EthRpcHandlerException, ApiHelper.HexParseException, RlpParser.RlpEmptyException {
 
-        Athena.EthRequest ethRequest = null;
+        Concord.EthRequest ethRequest = null;
         EthRequest.Builder b = initializeRequestObject(requestJson);
         String method = EthDispatcher.getEthMethodName(requestJson);
 
@@ -83,7 +83,7 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
         }
 
         ethRequest = b.build();
-        athenaRequestBuilder.addEthRequest(ethRequest);
+        concordRequestBuilder.addEthRequest(ethRequest);
     }
 
     private void buildRequestFromObject(EthRequest.Builder b, JSONObject obj, boolean isSendTx)
@@ -152,7 +152,7 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
         if (r.size() > 32) {
             throw new EthRpcHandlerException("Invalid raw transaction (signature R too large)");
         } else if (r.size() < 32) {
-            // pad out to 32 bytes to make things easy for Athena
+            // pad out to 32 bytes to make things easy for Concord
             byte[] leadingZeros = new byte[32 - r.size()];
             r = ByteString.copyFrom(leadingZeros).concat(r);
         }
@@ -160,7 +160,7 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
         if (s.size() > 32) {
             throw new EthRpcHandlerException("Invalid raw transaction (signature S too large)");
         } else if (s.size() < 32) {
-            // pad out to 32 bytes to make things easy for Athena
+            // pad out to 32 bytes to make things easy for Concord
             byte[] leadingZeros = new byte[32 - s.size()];
             s = ByteString.copyFrom(leadingZeros).concat(s);
         }
@@ -205,14 +205,14 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
     /**
      * Builds the response object to be returned to the user.
      *
-     * @param athenaResponse Response received from Athena
+     * @param concordResponse Response received from Concord
      * @param requestJson Request parameters passed by the user
      * @return response to be returned to the user
      */
     @SuppressWarnings("unchecked")
     @Override
-    public JSONObject buildResponse(Athena.AthenaResponse athenaResponse, JSONObject requestJson) {
-        EthResponse ethResponse = athenaResponse.getEthResponse(0);
+    public JSONObject buildResponse(Concord.ConcordResponse concordResponse, JSONObject requestJson) {
+        EthResponse ethResponse = concordResponse.getEthResponse(0);
         JSONObject respObject = initializeResponseObject(ethResponse);
         // Set method specific responses
         String method = (String) requestJson.get("method");

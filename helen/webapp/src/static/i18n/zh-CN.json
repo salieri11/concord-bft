@@ -781,7 +781,7 @@
       "navTitle": "区块链和联盟",
       "info": "选择本地容错会将节点部署在您附近，而选择全局则会将多个节点分布在所有可用区域之间。您的联盟将与此区块链相关联。",
       "blockchainType": "区块链类型",
-      "athena": "Concord",
+      "concord": "Concord",
       "hyperledger": "Hyperledger",
       "faultTolerance": "容错",
       "global": "全局",

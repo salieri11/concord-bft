@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "athena-ui-e2e": {
+    "concord-ui-e2e": {
       "root": "",
       "sourceRoot": "e2e",
       "projectType": "application",
@@ -13,7 +13,7 @@
           "builder": "@angular-devkit/build-angular:protractor",
           "options": {
             "protractorConfig": "./protractor.conf.js",
-            "devServerTarget": "athena-ui:serve"
+            "devServerTarget": "concord-ui:serve"
           }
         },
         "lint": {
@@ -29,7 +29,7 @@
         }
       }
     },
-    "athena-ui": {
+    "concord-ui": {
       "root": "",
       "sourceRoot": "src",
       "projectType": "application",
@@ -82,19 +82,19 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "browserTarget": "athena-ui:build",
+            "browserTarget": "concord-ui:build",
             "proxyConfig": "./e2e-proxy.conf.json"
           },
           "configurations": {
             "production": {
-              "browserTarget": "athena-ui:build:production"
+              "browserTarget": "concord-ui:build:production"
             }
           }
         },
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "athena-ui:build"
+            "browserTarget": "concord-ui:build"
           }
         },
         "test": {
@@ -132,14 +132,14 @@
       }
     }
   },
-  "defaultProject": "athena-ui",
+  "defaultProject": "concord-ui",
   "schematics": {
     "@schematics/angular:component": {
-      "prefix": "athena",
+      "prefix": "concord",
       "styleext": "scss"
     },
     "@schematics/angular:directive": {
-      "prefix": "athena"
+      "prefix": "concord"
     }
   }
 }

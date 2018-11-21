@@ -10,8 +10,8 @@ package com.vmware.blockchain.common;
 public class Constants {
     //API Endpoints
     // Below endpoints are needed because some servlets still use this information
-    public static final String TRANSACTION_LIST_ENDPOINT = "/api/athena/transactions";
-    public static final String CONTRACTS_ENDPOINT = "/api/athena/contracts";
+    public static final String TRANSACTION_LIST_ENDPOINT = "/api/concord/transactions";
+    public static final String CONTRACTS_ENDPOINT = "/api/concord/contracts";
     public static final String API_URI_PREFIX = "/api";
     public static final String STATIC_RESOURCE_LOCATION = "classpath:/static/";
     public static final String HOME_PAGE_LOCATION = "classpath:/static/index.html";
@@ -54,9 +54,9 @@ public class Constants {
     //Other Constants.  Maybe think if these should be properties
     public static final int BLOCKLIST_DEFAULTCOUNT = 10;
     public static final int TRANSACTIONLIST_DEFAULTCOUNT = 10;
-    public static final String BLOCKLIST_URLPREFIX = "/api/athena/blocks/";
-    public static final String BLOCKLIST_NEXTPREFIX = "/api/athena/blocks?latest=";
-    public static final String TRANSACTION_URLPREFIX = "/api/athena/transactions/";
+    public static final String BLOCKLIST_URLPREFIX = "/api/concord/blocks/";
+    public static final String BLOCKLIST_NEXTPREFIX = "/api/concord/blocks?latest=";
+    public static final String TRANSACTION_URLPREFIX = "/api/concord/transactions/";
     public static final String COINBASE = "0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019";
 
     //EthRPCs

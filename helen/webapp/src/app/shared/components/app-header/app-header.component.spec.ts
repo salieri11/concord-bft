@@ -16,10 +16,10 @@ import { TourService } from '../../tour.service';
 import { VmwClarityThemeService } from '../../theme.provider';
 
 @Component({
-  selector: 'athena-test-wrapper',
+  selector: 'concord-test-wrapper',
   template: `
         <clr-main-container>
-            <athena-app-header></athena-app-header>
+            <concord-app-header></concord-app-header>
         </clr-main-container>
   `
 })

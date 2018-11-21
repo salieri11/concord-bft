@@ -17,7 +17,7 @@ import { Org } from '../shared/org.model';
 import { Personas } from '../../shared/persona.service';
 
 @Component({
-  selector: 'athena-org-list',
+  selector: 'concord-org-list',
   templateUrl: './org-list.component.html',
   styleUrls: ['./org-list.component.scss']
 })

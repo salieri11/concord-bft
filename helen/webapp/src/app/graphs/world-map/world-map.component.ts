@@ -33,7 +33,7 @@ import { easeOut } from 'ol/easing';
 import { NodeProperties } from './world-map.model';
 
 @Component({
-  selector: 'athena-world-map',
+  selector: 'concord-world-map',
   templateUrl: './world-map.component.html',
   styleUrls: ['./world-map.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush

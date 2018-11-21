@@ -16,10 +16,10 @@
       </clr-dropdown-menu>
     </clr-dropdown>
   </h2>
-  <athena-consortium-list #consortiusmList (selected)="selectedRowChange($event)"></athena-consortium-list>
-  <athena-consortium-form #consortiumForm
+  <concord-consortium-list #consortiusmList (selected)="selectedRowChange($event)"></concord-consortium-list>
+  <concord-consortium-form #consortiumForm
                           [selected]="selected"
                           (consortiumAdd)="addToConsortiumsList($event)"
                           (consortiumDelete)="deleteFromConsortiumsList()">
-  </athena-consortium-form>
+  </concord-consortium-form>
 </div>

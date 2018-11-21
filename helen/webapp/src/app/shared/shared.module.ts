@@ -13,7 +13,7 @@ import { MockTranslateModule } from '../mocks/mock-translate.module';
 import { AuthenticationService } from './authentication.service';
 import { AuthenticatedGuard } from './authenticated-guard.service';
 import { AgreementGuard } from './agreement-guard.service';
-import { ANDES_API_PREFIX, ATHENA_API_PREFIX, ETHEREUM_API_PREFIX } from './shared.config';
+import { ANDES_API_PREFIX, CONCORD_API_PREFIX, ETHEREUM_API_PREFIX } from './shared.config';
 import { TransactionsStatusFilterComponent } from './components/transactions-status-filter/transactions-status-filter.component';
 import { RouterModule } from '@angular/router';
 import { PersonaService } from './persona.service';
@@ -86,8 +86,8 @@ export class SharedModule {
         AuthenticatedGuard,
         AgreementGuard,
         {provide: ANDES_API_PREFIX, useValue: 'api'},
-        {provide: ATHENA_API_PREFIX, useValue: 'api/athena'},
-        {provide: ETHEREUM_API_PREFIX, useValue: 'api/athena/eth'},
+        {provide: CONCORD_API_PREFIX, useValue: 'api/concord'},
+        {provide: ETHEREUM_API_PREFIX, useValue: 'api/concord/eth'},
         PersonaService,
         VmwTasksService
       ]
@@ -107,8 +107,8 @@ export class SharedModule {
     AuthenticationService,
     AuthenticatedGuard,
     {provide: ANDES_API_PREFIX, useValue: 'api'},
-    {provide: ATHENA_API_PREFIX, useValue: 'api/athena'},
-    {provide: ETHEREUM_API_PREFIX, useValue: 'api/athena/eth'},
+    {provide: CONCORD_API_PREFIX, useValue: 'api/concord'},
+    {provide: ETHEREUM_API_PREFIX, useValue: 'api/concord/eth'},
     PersonaService
   ],
   exports: [
@@ -119,4 +119,3 @@ export class SharedModule {
   ]
 })
 export class MockSharedModule {}
-

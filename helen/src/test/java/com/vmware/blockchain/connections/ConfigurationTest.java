@@ -12,22 +12,22 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import com.vmware.blockchain.common.AthenaProperties;
+import com.vmware.blockchain.common.ConcordProperties;
 
 /**
  * Connections Unit test configuration.
  */
 @RunWith(SpringRunner.class)
 @TestPropertySource(locations = "classpath:test.properties")
-@SpringBootTest(classes = AthenaProperties.class)
+@SpringBootTest(classes = ConcordProperties.class)
 public class ConfigurationTest {
     @Autowired
-    AthenaProperties config;
+    ConcordProperties config;
 
     @Test
     public void testOverrideConfiguration() {
         // Get a copy of the properties
-        AthenaProperties props = config.instance();
+        ConcordProperties props = config.instance();
         props.setConnectionPoolFactor(4);
         props.setConnectionPoolSize(20);
         Assert.assertEquals(4, props.getConnectionPoolFactor());

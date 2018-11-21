@@ -22,9 +22,9 @@ WORKDIR /
 COPY src/main/resources/application.properties .
 COPY target/helen*.jar .
 
-# prepare for docker-compose, where athena is available from a virtual
-# hosts named "athena1", "athena2", ...
-RUN sed -i -e "s/AthenaAuthorities=.*/AthenaAuthorities=athena1:5458,athena2:5458,athena3:5458,athena4:5458/g" application.properties
+# prepare for docker-compose, where concord is available from a virtual
+# hosts named "concord1", "concord2", ...
+RUN sed -i -e "s/ConcordAuthorities=.*/ConcordAuthorities=concord1:5458,concord2:5458,concord3:5458,concord4:5458/g" application.properties
 # and CockroachDB is available from a virtual host named db-server
 RUN sed -i -e "s/DB_IP=.*/DB_IP=db-server/g" application.properties
 

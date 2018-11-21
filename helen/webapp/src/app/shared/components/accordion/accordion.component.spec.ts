@@ -11,13 +11,13 @@ import { ClarityModule } from '@clr/angular';
 
 // TestWrapperClass allows us to test the content projection of NetworkSettingComponent
 @Component({
-  selector: 'athena-test-wrapper',
+  selector: 'concord-test-wrapper',
   template: `
-        <athena-accordion
+        <concord-accordion
             [title]="'title thats always there'">
             <div class="accordion-subheader"><span>Our Accordion Subheader</span></div>
             <div class="accordion-body">Our Accordion Body</div>
-        </athena-accordion>
+        </concord-accordion>
     `
 })
 class TestWrapperClassComponent {
@@ -47,16 +47,16 @@ describe('Accordion', () => {
   });
 
   it('shows accordion header and hides accordion body', () => {
-    const header = el.querySelector('athena-accordion .accordion-subheader');
+    const header = el.querySelector('concord-accordion .accordion-subheader');
     expect(header.textContent).toContain('Our Accordion Subheader');
     expect(el.querySelector('clr-icon').getAttribute('shape')).toContain('caret right');
   });
 
   it('hides accordion header and shows accordion body', () => {
-    el.querySelector('athena-accordion .accordion-header').click();
+    el.querySelector('concord-accordion .accordion-header').click();
     fixture.detectChanges();
 
-    const body = el.querySelector('athena-accordion .accordion-body');
+    const body = el.querySelector('concord-accordion .accordion-body');
     expect(body.textContent).toContain('Our Accordion Body');
     expect(el.querySelector('clr-icon').getAttribute('shape')).toContain('caret down');
   });

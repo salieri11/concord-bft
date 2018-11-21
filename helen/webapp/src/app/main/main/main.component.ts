@@ -11,7 +11,7 @@ import { Personas } from '../../shared/persona.service';
 import { TourService } from '../../shared/tour.service';
 
 @Component({
-  selector: 'athena-main',
+  selector: 'concord-main',
   templateUrl: './main.component.html',
   styleUrls: ['./main.component.scss']
 })

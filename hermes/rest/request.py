@@ -137,9 +137,9 @@ class Request():
 
    def getMemberList(self):
       '''
-      Get the list of nodes in the Athena cluster
+      Get the list of nodes in the concord cluster
       '''
-      self._subPath = "/api/athena/members"
+      self._subPath = "/api/concord/members"
       self._params = ""
       self._endpointName = "members"
 
@@ -149,7 +149,7 @@ class Request():
       '''
       Get the list of blocks
       '''
-      self._subPath = nextUrl or "/api/athena/blocks"
+      self._subPath = nextUrl or "/api/concord/blocks"
       self._params = ""
       self._endpointName = "blocklist"
 
@@ -169,7 +169,7 @@ class Request():
       '''
       Get a specific block, by its number
       '''
-      self._subPath = "/api/athena/blocks/{}".format(number)
+      self._subPath = "/api/concord/blocks/{}".format(number)
       self._params = ""
       self._endpointName = "block"
 
@@ -179,7 +179,7 @@ class Request():
       '''
       Get a specific transaction
       '''
-      self._subPath = '/api/athena/transactions/'+txhash
+      self._subPath = '/api/concord/transactions/'+txhash
       self._params = ""
       self._endpointName = "transaction"
 
@@ -200,7 +200,7 @@ class Request():
       Get a list of transactions
       '''
 
-      self._subPath = '/api/athena/transactions/'
+      self._subPath = '/api/concord/transactions/'
       if latest:
          self._subPath += "?latest=" + latest
 
@@ -219,7 +219,7 @@ class Request():
       '''
       Does an upload new contract POST request
       '''
-      self._subPath = '/api/athena/contracts'
+      self._subPath = '/api/concord/contracts'
       self._params = ""
       self._endpointName = "contractsManagement"
       self._data = data

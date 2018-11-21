@@ -24,43 +24,43 @@
         }
       },
       {
-        "athena1": {
-          "buildRoot": "~/source/athena/build",
-          "athena1": {
-            "launchCommand": "src/athena",
+        "concord1": {
+          "buildRoot": "~/source/concord/build",
+          "concord1": {
+            "launchCommand": "src/concord",
             "parameters": [
               "--logger_config",
               "./resources/log4cplus.properties",
               "-c",
-              "resources/athena1.config"
+              "resources/concord1.config"
             ]
           }
         }
       },
       {
-        "athena2": {
-          "buildRoot": "~/source/athena/build",
-          "athena2": {
-            "launchCommand": "src/athena",
+        "concord2": {
+          "buildRoot": "~/source/concord/build",
+          "concord2": {
+            "launchCommand": "src/concord",
             "parameters": [
               "--logger_config",
               "./resources/logc4plus.properties",
               "-c",
-              "resources/athena2.config"
+              "resources/concord2.config"
             ]
           }
         }
       },
       {
-        "athena3": {
-          "buildRoot": "~/source/athena/build",
-          "athena3": {
-            "launchCommand": "src/athena",
+        "concord3": {
+          "buildRoot": "~/source/concord/build",
+          "concord3": {
+            "launchCommand": "src/concord",
             "parameters": [
               "--logger_config",
               "./resources/logc4plus.properties",
               "-c",
-              "resources/athena3.config"
+              "resources/concord3.config"
             ]
           }
         }

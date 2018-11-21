@@ -1,7 +1,7 @@
 #########################################################################
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
-# Utility to test the performance of the Helen+Athena ecosystem
+# Utility to test the performance of the Helen+concord ecosystem
 #########################################################################
 import logging
 import os
@@ -41,7 +41,7 @@ class PerformanceTests(test_suite.TestSuite):
          global p
          try:
             p = self.launchProduct(self._args,
-                                   self._apiBaseServerUrl + "/api/athena/eth",
+                                   self._apiBaseServerUrl + "/api/concord/eth",
                                    self._userConfig)
          except Exception as e:
             log.error(traceback.format_exc())

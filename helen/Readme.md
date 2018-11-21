@@ -1,8 +1,8 @@
-# VMware Project Athena UI and API
+# VMware Project Concord UI and API
 
-Helen is Athena's inter*face to launch a thousand* requests. This
+Helen is Concord's inter*face to launch a thousand* requests. This
 repository will be the home of the API server for Project
-Athena. Helen is a Java Undertow server which invokes different
+Concord. Helen is a Java Undertow server which invokes different
 servlets for different apis. Note : Helen will run on port 8080 of
 localhost by default.
 
@@ -12,7 +12,7 @@ localhost by default.
 
 [Maven](https://www.rosehosting.com/blog/how-to-install-maven-on-ubuntu-16-04/)
 
-[Athena](https://github.com/vmwathena/athena)
+[Concord](https://github.com/vmwathena/athena)
 
 [Solidity compiler](http://solidity.readthedocs.io/en/v0.4.24/installing-solidity.html)
 Install solidity compiler (`solc`) with version >= 0.4.20
@@ -98,16 +98,16 @@ npm start
 
 ### Building and Running Helen
 
- * [Run Athena](https://github.com/vmwathena/athena).
+ * [Run Concord](https://github.com/vmwathena/athena).
 
  * Install dependencies and build using maven.
 
-   To build only with unit tests (No Athena instance is needed) :
+   To build only with unit tests (No Concord instance is needed) :
 ```
 mvn clean install
 ```
 
-   To build with unit and integration tests : (Athena must be running for this)
+   To build with unit and integration tests : (Concord must be running for this)
 ```
 mvn clean install -DskipIntegrationTests=false
 ```
@@ -129,7 +129,7 @@ java -jar helen-1.0-SNAPSHOT-jar-with-dependencies.jar
 
  * `/api/` - Used to return a list of all other APIs serviced
 
- * `/api/athena/*` - API endpoints (see
+ * `/api/concord/*` - API endpoints (see
    [swagger](https://github.com/vmwathena/helen/blob/master/webapp/src/static/swagger/swagger.json))
 
  * `/*` - Used to serve content from src/main/resources/static/index.html
@@ -150,7 +150,7 @@ config.properties file.
 
 ### Latency
 
-The latency of the ecosystem (Helen + Athena) can be tested by using a
+The latency of the ecosystem (Helen + Concord) can be tested by using a
 tool called
 [ApacheBench](https://httpd.apache.org/docs/2.4/programs/ab.html).
 

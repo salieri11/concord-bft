@@ -26,7 +26,7 @@ MEMORY_INFO_LOG_FILE=${RESULTS_DIR}/memory_info_${TIME_STAMP}.log
 MEMORY_INFO_CSV_FILE=${RESULTS_DIR}/memory_info_${TIME_STAMP}.csv
 SLEEP_TIME_IN_SEC=60
 MEMORY_LEAK_PASS_FILE="${RESULTS_DIR}/test_status.pass"
-ATHENA1_VALGRIND_LOG_FILE="/tmp/valgrind_athena1.log"
+concord1_VALGRIND_LOG_FILE="/tmp/valgrind_concord1.log"
 HERMES_START_FILE="./main.py"
 SPECIFIC_TESTS=""
 
@@ -56,9 +56,9 @@ launch_memory_test() {
         then
             sleep 5
             echo "Done running memory leak tests"
-            if [ -f "${ATHENA1_VALGRIND_LOG_FILE}" ]
+            if [ -f "${concord1_VALGRIND_LOG_FILE}" ]
             then
-                mv "${ATHENA1_VALGRIND_LOG_FILE}" "${RESULTS_DIR}"
+                mv "${concord1_VALGRIND_LOG_FILE}" "${RESULTS_DIR}"
             fi
             echo "Results: ${RESULTS_DIR}"
             break

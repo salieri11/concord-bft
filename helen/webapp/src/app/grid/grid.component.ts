@@ -26,7 +26,7 @@ import {
 import { ErrorAlertService } from '../shared/global-error-handler.service';
 
 @Component({
-  selector: 'athena-grid',
+  selector: 'concord-grid',
   templateUrl: './grid.component.html',
   styleUrls: ['./grid.component.scss']
 })

@@ -13,13 +13,13 @@ import { ClarityModule } from '@clr/angular';
 // See https://goo.gl/6zv5So for more details.
 @Component({
   template: `
-        <athena-combobox-items
+        <concord-combobox-items
               [items]="items"
               (selectionChange)="selectionChange($event)"
               [noItemsFoundString]="noItemsFoundString"
               [multiSelect]="multiSelect"
               [position]="position">
-        </athena-combobox-items>`
+        </concord-combobox-items>`
 })
 class TestHostComponent {
   @ViewChild(VmwComboboxItemsComponent)

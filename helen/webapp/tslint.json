@@ -119,13 +119,13 @@
     "directive-selector": [
       true,
       "attribute",
-      "athena",
+      "concord",
       "camelCase"
     ],
     "component-selector": [
       true,
       "element",
-      "athena",
+      "concord",
       "kebab-case"
     ],
     "no-output-on-prefix": true,

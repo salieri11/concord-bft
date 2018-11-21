@@ -8,7 +8,7 @@ import { ActivatedRoute } from '@angular/router';
 import { Transaction } from '../shared/transactions.model';
 
 @Component({
-  selector: 'athena-transaction',
+  selector: 'concord-transaction',
   templateUrl: './transaction.component.html',
   styleUrls: ['./transaction.component.scss']
 })

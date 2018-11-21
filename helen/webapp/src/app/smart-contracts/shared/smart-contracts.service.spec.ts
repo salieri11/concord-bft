@@ -6,7 +6,7 @@ import { TestBed, inject } from '@angular/core/testing';
 import { HttpClient, HttpHandler } from '@angular/common/http';
 
 import { SmartContractsService } from './smart-contracts.service';
-import { ATHENA_API_PREFIX } from '../../shared/shared.config';
+import { CONCORD_API_PREFIX } from '../../shared/shared.config';
 
 describe('SmartContractsService', () => {
   let service: SmartContractsService;
@@ -15,7 +15,7 @@ describe('SmartContractsService', () => {
     TestBed.configureTestingModule({
       providers: [
         SmartContractsService,
-        { provide: ATHENA_API_PREFIX, useValue: 'api/athena' },
+        { provide: CONCORD_API_PREFIX, useValue: 'api/concord' },
         HttpClient,
         HttpHandler
       ]
@@ -31,20 +31,20 @@ describe('SmartContractsService', () => {
   it('should fetch all smart contracts', () => {
       const httpSpy = spyOn((service as any).httpClient, 'get');
       service.getSmartContracts();
-      expect(httpSpy).toHaveBeenCalledWith('api/athena/contracts');
+      expect(httpSpy).toHaveBeenCalledWith('api/concord/contracts');
     }
   );
 
   it('should fetch smart contract with given id', () => {
       const httpSpy = spyOn((service as any).httpClient, 'get');
       service.getSmartContract('contractId');
-      expect(httpSpy).toHaveBeenCalledWith('api/athena/contracts/contractId');
+      expect(httpSpy).toHaveBeenCalledWith('api/concord/contracts/contractId');
   });
 
   it('should fetch version details for given versionId and contractId', () => {
     const httpSpy = spyOn((service as any).httpClient, 'get');
     service.getVersionDetails('contractId', 'version');
-    expect(httpSpy).toHaveBeenCalledWith('api/athena/contracts/contractId/versions/version');
+    expect(httpSpy).toHaveBeenCalledWith('api/concord/contracts/contractId/versions/version');
   });
 
   it('should post a smart contract with given payload', () => {
@@ -58,7 +58,7 @@ describe('SmartContractsService', () => {
     };
 
     service.postContract(contract);
-    expect(httpSpy).toHaveBeenCalledWith('api/athena/contracts', contract);
+    expect(httpSpy).toHaveBeenCalledWith('api/concord/contracts', contract);
   });
 
   it('should put a smart contract with given payload', () => {
@@ -73,7 +73,7 @@ describe('SmartContractsService', () => {
     };
 
     service.updateExistingVersion('contractId', 'version', contract);
-    expect(httpSpy).toHaveBeenCalledWith('api/athena/contracts/contractId/versions/version', contract);
+    expect(httpSpy).toHaveBeenCalledWith('api/concord/contracts/contractId/versions/version', contract);
   });
 
   it('should post smart contract source code', () => {
@@ -83,10 +83,7 @@ describe('SmartContractsService', () => {
     };
 
     service.postSourceCode(payload);
-    expect(httpSpy).toHaveBeenCalledWith('api/athena/contracts/compile', payload);
+    expect(httpSpy).toHaveBeenCalledWith('api/concord/contracts/compile', payload);
   });
 
 });
-
-
-

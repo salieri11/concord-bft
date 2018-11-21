@@ -8,7 +8,7 @@
     </div>
 
     <div class="col-xs-6"
-         *athenaCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin, personas.OrgDeveloper]">
+         *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin, personas.OrgDeveloper]">
       <div class="text-right">
         <button class="btn btn-link" (click)="connectWithTruffle()">
 
@@ -44,5 +44,5 @@
   </clr-datagrid>
 </div>
 
-<athena-contract-form #contractFormModal (contractCreated)="contractCreated($event)"></athena-contract-form>
-<athena-connect-with-truffle #truffleModal ></athena-connect-with-truffle>
+<concord-contract-form #contractFormModal (contractCreated)="contractCreated($event)"></concord-contract-form>
+<concord-connect-with-truffle #truffleModal ></concord-connect-with-truffle>

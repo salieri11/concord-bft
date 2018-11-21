@@ -17,11 +17,11 @@
       </clr-dropdown-menu>
     </clr-dropdown>
   </h2>
-  <athena-user-list #usersList [users]="users" (selected)="onSelectedUsersChange($event)"></athena-user-list>
-  <athena-user-form #userForm [selected]="selected"
+  <concord-user-list #usersList [users]="users" (selected)="onSelectedUsersChange($event)"></concord-user-list>
+  <concord-user-form #userForm [selected]="selected"
                     (createUser)="addUser()"
                     (updateUser)="editUser()"
-                    (deleteUsers)="deleteUsers()"></athena-user-form>
+                    (deleteUsers)="deleteUsers()"></concord-user-form>
 </div>
 
 

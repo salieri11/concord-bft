@@ -8,7 +8,7 @@ import { Block } from '../shared/blocks.model';
 import { BlocksService } from '../shared/blocks.service';
 
 @Component({
-  selector: 'athena-block-details',
+  selector: 'concord-block-details',
   templateUrl: './block-details.component.html',
   styleUrls: ['./block-details.component.scss']
 })

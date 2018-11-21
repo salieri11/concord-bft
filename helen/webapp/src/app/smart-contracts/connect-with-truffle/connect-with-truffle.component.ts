@@ -5,7 +5,7 @@
 import { Component } from '@angular/core';
 
 @Component({
-  selector: 'athena-connect-with-truffle',
+  selector: 'concord-connect-with-truffle',
   templateUrl: './connect-with-truffle.component.html',
   styleUrls: ['./connect-with-truffle.component.scss']
 })
@@ -20,7 +20,7 @@ export class ConnectWithTruffleComponent {
       development: {
         network_id: "*",
         provider: () => {
-          return new Web3.providers.HttpProvider("https://<your-hostname>/api/athena/eth/", 5000, '<username>', '<password>');
+          return new Web3.providers.HttpProvider("https://<your-hostname>/api/concord/eth/", 5000, '<username>', '<password>');
         },
       }
     }
@@ -34,7 +34,7 @@ export class ConnectWithTruffleComponent {
       development: {
         network_id: "*",
         provider: () => {
-          return new Web3.providers.HttpProvider("https://<username>:<password>@<your-host-name>/api/athena/eth/");
+          return new Web3.providers.HttpProvider("https://<username>:<password>@<your-host-name>/api/concord/eth/");
         },
       }
     }

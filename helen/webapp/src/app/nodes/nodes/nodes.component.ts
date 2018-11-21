@@ -9,7 +9,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { Node } from '../shared/nodes.model';
 
 @Component({
-  selector: 'athena-nodes',
+  selector: 'concord-nodes',
   templateUrl: './nodes.component.html',
   styleUrls: ['./nodes.component.scss']
 })

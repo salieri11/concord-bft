@@ -69,14 +69,14 @@ def call(){
 
       stage('Build products') {
         parallel {
-          stage('Build Athena') {
+          stage('Build Concord') {
             steps {
-              dir('blockchain/athena') {
+              dir('blockchain/concord') {
                 sh '''currentDir=`pwd`
-                sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/athena1.config
-                sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/athena2.config
-                sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/athena3.config
-                sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/athena4.config
+                sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/concord1.config
+                sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/concord2.config
+                sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/concord3.config
+                sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/concord4.config
 
                 git submodule init
                 git submodule update --recursive
@@ -91,7 +91,7 @@ def call(){
             steps {
               dir('blockchain/helen') {
               	// "mvn install" runs "package" before "install"
-              	// "mvn clean install package" had the effect of running package twice 
+              	// "mvn clean install package" had the effect of running package twice
                 sh 'mvn clean install'
               }
             }
@@ -155,7 +155,7 @@ def call(){
 
           // These are constants which mirror the DockerHub repos.
           script {
-            env.athena_repo = 'vmwblockchain/concord-core'
+            env.concord_repo = 'vmwblockchain/concord-core'
             env.helen_repo = 'vmwblockchain/concord-ui'
           }
         }
@@ -183,17 +183,17 @@ def call(){
           }
 
 
-          stage('Build athena docker image') {
+          stage('Build concord docker image') {
             steps {
               script {
-                dir('blockchain/athena') {
+                dir('blockchain/concord') {
 
                   script {
-                    env.athena_docker_tag = env.version_param ? env.version_param : env.actual_blockchain_fetched
+                    env.concord_docker_tag = env.version_param ? env.version_param : env.actual_blockchain_fetched
                   }
                   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                     sh '''
-                      ./docker-build.sh "${athena_repo}" "${athena_docker_tag}"
+                      ./docker-build.sh "${concord_repo}" "${concord_docker_tag}"
                     '''
                   }
                 }
@@ -217,18 +217,18 @@ def call(){
               sh '''
                 echo "${PASSWORD}" | sudo -S ls
                 sudo cat >.env <<EOF
-athena_repo=${athena_repo}
-athena_tag=${athena_docker_tag}
+concord_repo=${concord_repo}
+concord_tag=${concord_docker_tag}
 helen_repo=${helen_repo}
 helen_tag=${helen_docker_tag}
 EOF
               '''
 
               sh '''
-                echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../athena/docker/docker-compose.yml --resultsDir "${core_vm_test_logs_docker}"
-                echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../athena/docker/docker-compose.yml --resultsDir "${helen_api_test_logs_docker}"
-                echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../athena/docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs_docker}"
-                echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../athena/docker/docker-compose.yml --resultsDir "${regression_test_logs_docker}"
+                echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${core_vm_test_logs_docker}"
+                echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${helen_api_test_logs_docker}"
+                echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs_docker}"
+                echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${regression_test_logs_docker}"
               '''
             }
           }
@@ -245,9 +245,9 @@ EOF
           }
           withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
             sh '''
-              docker push ${athena_repo}:${version_param}
-              docker tag ${athena_repo}:${version_param} ${athena_repo}:latest
-              docker push ${athena_repo}:latest
+              docker push ${concord_repo}:${version_param}
+              docker tag ${concord_repo}:${version_param} ${concord_repo}:latest
+              docker push ${concord_repo}:latest
 
               docker push ${helen_repo}:${version_param}
               docker tag ${helen_repo}:${version_param} ${helen_repo}:latest

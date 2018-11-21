@@ -7,7 +7,7 @@ import { Component } from '@angular/core';
 import { VmwClarityThemeService, VmwClarityTheme } from '../../theme.provider';
 
 @Component({
-    selector: 'athena-theme-switch-button',
+    selector: 'concord-theme-switch-button',
     templateUrl: 'theme-switch-button.component.html',
     styleUrls: ['./theme-switch-button.component.scss'],
 })

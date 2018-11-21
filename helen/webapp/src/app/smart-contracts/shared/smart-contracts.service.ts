@@ -5,17 +5,17 @@
 import { Inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
-import { ATHENA_API_PREFIX } from '../../shared/shared.config';
+import { CONCORD_API_PREFIX } from '../../shared/shared.config';
 import { SmartContract, SmartContractVersion } from './smart-contracts.model';
-import { AthenaApiService } from '../../shared/athena-api';
+import { concordApiService } from '../../shared/concord-api';
 
 @Injectable({
   providedIn: 'root'
 })
-export class SmartContractsService extends AthenaApiService {
+export class SmartContractsService extends concordApiService {
 
-  constructor(@Inject(ATHENA_API_PREFIX) athenaApiPrefix: string, private httpClient: HttpClient) {
-    super(athenaApiPrefix);
+  constructor(@Inject(CONCORD_API_PREFIX) concordApiPrefix: string, private httpClient: HttpClient) {
+    super(concordApiPrefix);
   }
 
   get apiSubPath() {

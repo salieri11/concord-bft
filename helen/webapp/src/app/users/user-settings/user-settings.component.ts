@@ -8,7 +8,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { CredentialFormComponent } from '../credential-form/credential-form.component';
 
 @Component({
-  selector: 'athena-user-settings',
+  selector: 'concord-user-settings',
   templateUrl: './user-settings.component.html',
   styleUrls: ['./user-settings.component.scss']
 })

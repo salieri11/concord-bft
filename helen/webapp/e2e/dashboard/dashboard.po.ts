@@ -70,7 +70,7 @@ export class DashboardPage {
   }
 
   getTasks() {
-    return element.all(by.css('athena-task'));
+    return element.all(by.css('concord-task'));
   }
 
   fillPage1Form(type, faultTolerance, consortiumName) {

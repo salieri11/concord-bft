@@ -10,7 +10,7 @@
     <div class="tasks"
          [@collapse]="state">
       <ng-container *ngFor="let task of vm.tasks">
-        <athena-task [ngClass]="taskClasses(task)"
+        <concord-task [ngClass]="taskClasses(task)"
                   [progress]="task.taskInfo.progress"
                   [state]="task.state"
                   [cancelable]="task.cancelable"
@@ -23,7 +23,7 @@
           <span class="description">
                         {{task.taskInfo.description}}
                     </span>
-        </athena-task>
+        </concord-task>
       </ng-container>
     </div>
 

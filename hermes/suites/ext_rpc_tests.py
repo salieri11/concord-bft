@@ -45,7 +45,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
          self._apiServerUrl = "http://localhost:8545"
       else:
          self._apiBaseServerUrl = "https://localhost/blockchains/local"
-         self._apiServerUrl = self._apiBaseServerUrl+"/api/athena/eth/"
+         self._apiServerUrl = self._apiBaseServerUrl+"/api/concord/eth/"
 
    def getName(self):
       return "ExtendedRPCTests"

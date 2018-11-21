@@ -19,15 +19,15 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import com.vmware.athena.Athena;
-import com.vmware.athena.Athena.AthenaResponse;
-import com.vmware.athena.Athena.ErrorResponse;
-import com.vmware.blockchain.common.AthenaProperties;
+import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.connections.AthenaConnectionPool;
-import com.vmware.blockchain.connections.IAthenaConnection;
+import com.vmware.blockchain.connections.ConcordConnectionPool;
+import com.vmware.blockchain.connections.IConcordConnection;
 import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.contracts.ContractRegistryManager;
+import com.vmware.concord.Concord;
+import com.vmware.concord.Concord.ConcordResponse;
+import com.vmware.concord.Concord.ErrorResponse;
 
 /**
  * <p>
@@ -36,12 +36,12 @@ import com.vmware.blockchain.services.contracts.ContractRegistryManager;
  * </p>
  *
  * <p>
- * url endpoint : /api/athena/eth
+ * url endpoint : /api/concord/eth
  * </p>
  *
  * <p>
  * POST: Used to execute the specified method. Request and response construction are handled by the appropriate
- * handlers. A TCP socket connection is made to Athena and requests and responses are encoded in the Google Protocol
+ * handlers. A TCP socket connection is made to Concord and requests and responses are encoded in the Google Protocol
  * Buffer format. Also supports a group of requests.
  * </p>
  */
@@ -54,11 +54,11 @@ public final class EthDispatcher extends BaseServlet {
     private JSONArray rpcList;
     private String jsonRpc;
     private ContractRegistryManager registryManager;
-    private AthenaProperties config;
+    private ConcordProperties config;
 
     @Autowired
-    public EthDispatcher(ContractRegistryManager registryManager, AthenaProperties config,
-            AthenaConnectionPool connectionPool) throws ParseException {
+    public EthDispatcher(ContractRegistryManager registryManager, ConcordProperties config,
+            ConcordConnectionPool connectionPool) throws ParseException {
         super(config, connectionPool);
         this.config = config;
         JSONParser p = new JSONParser();
@@ -132,7 +132,7 @@ public final class EthDispatcher extends BaseServlet {
      * Services the Get request for listing currently exposed Eth RPCs. Retrieves the list from the configurations file
      * and returns it to the client.
      */
-    @RequestMapping(path = "/api/athena/eth", method = RequestMethod.GET)
+    @RequestMapping(path = "/api/concord/eth", method = RequestMethod.GET)
     public ResponseEntity<JSONAware> doGet() {
         if (rpcList == null) {
             logger.error("Configurations not read.");
@@ -146,7 +146,7 @@ public final class EthDispatcher extends BaseServlet {
      * dispatch function. Builds the response for sending to client.
      */
     @SuppressWarnings("unchecked")
-    @RequestMapping(path = "/api/athena/eth", method = RequestMethod.POST)
+    @RequestMapping(path = "/api/concord/eth", method = RequestMethod.POST)
     public ResponseEntity<JSONAware> doPost(@RequestBody String paramString) {
         // Retrieve the request fields
         JSONArray batchRequest = null;
@@ -195,8 +195,8 @@ public final class EthDispatcher extends BaseServlet {
 
 
     /**
-     * Creates the appropriate handler object and calls its functions to construct an AthenaRequest object. Sends this
-     * request to Athena and converts its response into a format required by the user.
+     * Creates the appropriate handler object and calls its functions to construct an ConcordRequest object. Sends this
+     * request to Concord and converts its response into a format required by the user.
      *
      * @param requestJson Request parameters
      * @return Response for user
@@ -210,7 +210,7 @@ public final class EthDispatcher extends BaseServlet {
         AbstractEthRpcHandler handler;
         boolean isLocal = false;
         JSONObject responseObject;
-        AthenaResponse athenaResponse;
+        ConcordResponse concordResponse;
 
         // Create object of the suitable handler based on the method specified in
         // the request
@@ -223,9 +223,9 @@ public final class EthDispatcher extends BaseServlet {
                 case Constants.CALL_NAME:
                     if (requestJson.containsKey("isInternalContract")) {
                         requestJson.remove("isInternalContract");
-                        handler = new EthSendTxHandler(config, athenaConnectionPool, registryManager, true);
+                        handler = new EthSendTxHandler(config, concordConnectionPool, registryManager, true);
                     } else {
-                        handler = new EthSendTxHandler(config, athenaConnectionPool, registryManager, false);
+                        handler = new EthSendTxHandler(config, concordConnectionPool, registryManager, false);
                     }
                     break;
 
@@ -275,7 +275,7 @@ public final class EthDispatcher extends BaseServlet {
                 case Constants.ACCOUNTS_NAME:
                 case Constants.GAS_PRICE_NAME:
                 case Constants.SYNCING_NAME:
-                    handler = new EthLocalResponseHandler(athenaConnectionPool);
+                    handler = new EthLocalResponseHandler(concordConnectionPool);
                     isLocal = true;
                     break;
 
@@ -288,26 +288,26 @@ public final class EthDispatcher extends BaseServlet {
             }
 
             if (!isLocal) {
-                Athena.AthenaRequest.Builder athenaRequestBuilder = Athena.AthenaRequest.newBuilder();
-                handler.buildRequest(athenaRequestBuilder, requestJson);
-                athenaResponse = communicateWithAthena(athenaRequestBuilder.build());
-                // If there is an error reported by Athena
-                if (athenaResponse.getErrorResponseCount() > 0) {
-                    ErrorResponse errResponse = athenaResponse.getErrorResponse(0);
+                Concord.ConcordRequest.Builder concordRequestBuilder = Concord.ConcordRequest.newBuilder();
+                handler.buildRequest(concordRequestBuilder, requestJson);
+                concordResponse = communicateWithConcord(concordRequestBuilder.build());
+                // If there is an error reported by Concord
+                if (concordResponse.getErrorResponseCount() > 0) {
+                    ErrorResponse errResponse = concordResponse.getErrorResponse(0);
                     if (errResponse.hasDescription()) {
                         responseObject = errorMessage(errResponse.getDescription(), id, jsonRpc);
                     } else {
-                        responseObject = errorMessage("Error received from athena", id, jsonRpc);
+                        responseObject = errorMessage("Error received from concord", id, jsonRpc);
                     }
                 } else {
-                    responseObject = handler.buildResponse(athenaResponse, requestJson);
+                    responseObject = handler.buildResponse(concordResponse, requestJson);
                 }
             }
             // There are some RPC methods which are handled locally by Helen. No
-            // need to talk to Athena for these cases.
+            // need to talk to Concord for these cases.
             else {
                 // In local request we don't have valid eth resposne from
-                // athena. Just pass null.
+                // concord. Just pass null.
                 responseObject = handler.buildResponse(null, requestJson);
             }
             // TODO: Need to refactor exception handling.  Shouldn't just catch an exception and eat it.
@@ -319,45 +319,45 @@ public final class EthDispatcher extends BaseServlet {
     }
 
     /**
-     * Sends an AthenaRequest to Athena and receives Athena's response.
+     * Sends an ConcordRequest to Concord and receives Concord's response.
      *
-     * @param req AthenaRequest object
-     * @return Response received from Athena
+     * @param req ConcordRequest object
+     * @return Response received from Concord
      */
-    private AthenaResponse communicateWithAthena(Athena.AthenaRequest req) throws Exception {
-        IAthenaConnection conn = null;
-        Athena.AthenaResponse athenaResponse = null;
+    private ConcordResponse communicateWithConcord(Concord.ConcordRequest req) throws Exception {
+        IConcordConnection conn = null;
+        Concord.ConcordResponse concordResponse = null;
         try {
-            conn = athenaConnectionPool.getConnection();
+            conn = concordConnectionPool.getConnection();
             if (conn == null) {
-                throw new Exception("Error communicating with athena");
+                throw new Exception("Error communicating with concord");
             }
 
-            boolean res = AthenaHelper.sendToAthena(req, conn, config);
+            boolean res = ConcordHelper.sendToConcord(req, conn, config);
             if (!res) {
-                throw new Exception("Error communicating with athena");
+                throw new Exception("Error communicating with concord");
             }
 
-            // receive response from Athena
-            athenaResponse = AthenaHelper.receiveFromAthena(conn);
-            if (athenaResponse == null) {
-                throw new Exception("Error communicating with athena");
+            // receive response from Concord
+            concordResponse = ConcordHelper.receiveFromConcord(conn);
+            if (concordResponse == null) {
+                throw new Exception("Error communicating with concord");
             }
         } catch (Exception e) {
-            logger.error("General exception communicating with athena: ", e);
+            logger.error("General exception communicating with concord: ", e);
             throw e;
         } finally {
-            athenaConnectionPool.putConnection(conn);
+            concordConnectionPool.putConnection(conn);
         }
 
-        return athenaResponse;
+        return concordResponse;
     }
 
     /**
      * Not required for this Servlet as each handler builds its response object separately.
      */
     @Override
-    protected JSONAware parseToJson(AthenaResponse athenaResponse) {
+    protected JSONAware parseToJson(ConcordResponse concordResponse) {
         throw new UnsupportedOperationException("parseToJSON method is not " + "supported in EthDispatcher Servlet");
     }
 }

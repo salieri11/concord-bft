@@ -28,13 +28,13 @@
                               <span>{{'smartContracts.version.tooltips.contractAddress' | translate}}</span>
                             </clr-tooltip-content>
                           </clr-tooltip>
-                          <athena-copy-to-clipboard-button
+                          <concord-copy-to-clipboard-button
                             classList="ctc-btn-inline"
                             [tooltip]="'common.copyToClip' | translate"
                             tooltipDirection="top-right"
                             [value]="version?.address"
                             [size]="12">
-                          </athena-copy-to-clipboard-button>
+                          </concord-copy-to-clipboard-button>
                         </div>
                       </div>
                     </div>
@@ -55,8 +55,8 @@
                       <clr-control-error *clrIfError="'required'">{{'common.requiredValidationMessage' | translate}}</clr-control-error>
                       <clr-control-error *clrIfError="'hexAddress'">{{'smartContracts.version.addressPatternValidationMessage' | translate}}</clr-control-error>
                     </clr-input-container>
-                    <athena-smart-contracts-solidity-function-inputs [formGroup]="versionForm.get('contractForm.functionInputs')"
-                                                                     [functionInputs]="inputs"></athena-smart-contracts-solidity-function-inputs>
+                    <concord-smart-contracts-solidity-function-inputs [formGroup]="versionForm.get('contractForm.functionInputs')"
+                                                                     [functionInputs]="inputs"></concord-smart-contracts-solidity-function-inputs>
                   </div>
                 </div>
                 <div class="card-footer">
@@ -85,11 +85,11 @@
                 </div>
                 <div class="card-block">
                   {{'smartContracts.version.decoded' | translate}}
-                  <athena-code-highlighter [textToHighlight]="callReturnValue" [language]="'json'"></athena-code-highlighter>
+                  <concord-code-highlighter [textToHighlight]="callReturnValue" [language]="'json'"></concord-code-highlighter>
                   {{'smartContracts.version.raw' | translate}}
-                  <athena-code-highlighter [textToHighlight]="rawCallReturnValue"
+                  <concord-code-highlighter [textToHighlight]="rawCallReturnValue"
                                            [language]="'markup'"
-                                           [breakWord]="true"></athena-code-highlighter>
+                                           [breakWord]="true"></concord-code-highlighter>
                 </div>
               </div>
             </div>
@@ -99,7 +99,7 @@
                   {{'smartContracts.version.transaction' | translate}}
                 </div>
                 <div class="card-block transaction-details">
-                  <athena-transaction-details [transactionHash]="alertMessage"></athena-transaction-details>
+                  <concord-transaction-details [transactionHash]="alertMessage"></concord-transaction-details>
                 </div>
               </div>
             </div>
@@ -126,10 +126,10 @@
                 </clr-tooltip>
               </div>
               <div class="card-block">
-                <athena-code-highlighter [textToHighlight]="version.sourcecode"
+                <concord-code-highlighter [textToHighlight]="version.sourcecode"
                                          [language]="'c-like'"
                                          [noScroll]="true"
-                                         [noBorder]="true"></athena-code-highlighter>
+                                         [noBorder]="true"></concord-code-highlighter>
               </div>
             </div>
           </div>
@@ -154,11 +154,11 @@
               </clr-tooltip>
             </div>
             <div class="card-block">
-              <athena-code-highlighter [textToHighlight]="version?.bytecode"
+              <concord-code-highlighter [textToHighlight]="version?.bytecode"
                                        [language]="'markup'"
                                        [noScroll]="true"
                                        [noBorder]="true"
-                                       [breakWord]="true"></athena-code-highlighter>
+                                       [breakWord]="true"></concord-code-highlighter>
             </div>
           </div>
         </div>
@@ -183,10 +183,10 @@
                 </clr-tooltip>
               </div>
               <div class="card-block">
-                <athena-code-highlighter [textToHighlight]="metadataString"
+                <concord-code-highlighter [textToHighlight]="metadataString"
                                          [language]="'json'"
                                          [noScroll]="true"
-                                         [noBorder]="true"></athena-code-highlighter>
+                                         [noBorder]="true"></concord-code-highlighter>
               </div>
             </div>
           </div>
@@ -196,4 +196,4 @@
   </clr-tab>
 </clr-tabs>
 
-<athena-contract-payload-preview-form #payloadPreviewModal></athena-contract-payload-preview-form>
+<concord-contract-payload-preview-form #payloadPreviewModal></concord-contract-payload-preview-form>

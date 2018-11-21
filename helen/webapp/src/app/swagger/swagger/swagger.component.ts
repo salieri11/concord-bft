@@ -10,7 +10,7 @@ declare var require: any;
 const SwaggerUI = require('swagger-ui');
 
 @Component({
-  selector: 'athena-swagger',
+  selector: 'concord-swagger',
   templateUrl: './swagger.component.html',
   styleUrls: ['./swagger.component.scss']
 })

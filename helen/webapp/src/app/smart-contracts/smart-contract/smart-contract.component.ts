@@ -11,7 +11,7 @@ import { ContractFormComponent } from '../contract-form/contract-form.component'
 import { TourService } from '../../shared/tour.service';
 
 @Component({
-  selector: 'athena-smart-contract',
+  selector: 'concord-smart-contract',
   templateUrl: './smart-contract.component.html',
   styleUrls: ['./smart-contract.component.scss']
 

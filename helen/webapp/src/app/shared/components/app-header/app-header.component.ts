@@ -11,7 +11,7 @@ import { Personas, PersonaService } from '../../persona.service';
 import { TourService } from '../../tour.service';
 
 @Component({
-  selector: 'athena-app-header',
+  selector: 'concord-app-header',
   templateUrl: './app-header.component.html',
   styleUrls: ['./app-header.component.scss']
 })

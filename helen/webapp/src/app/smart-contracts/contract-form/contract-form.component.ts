@@ -34,7 +34,7 @@ interface ModalState {
 }
 
 @Component({
-  selector: 'athena-contract-form',
+  selector: 'concord-contract-form',
   templateUrl: './contract-form.component.html',
   styleUrls: ['./contract-form.component.scss']
 })

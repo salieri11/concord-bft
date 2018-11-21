@@ -7,7 +7,7 @@ import { ElementRef, HostBinding, Output, EventEmitter, Component, OnInit, Input
 const SHOW_CHECKBOX_TIMEOUT = 1500;
 
 @Component({
-    selector: 'athena-copy-to-clipboard-button',
+    selector: 'concord-copy-to-clipboard-button',
     templateUrl: './copy-to-clipboard-button.component.html',
     styleUrls: ['./copy-to-clipboard-button.component.scss']
 })

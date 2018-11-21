@@ -10,17 +10,17 @@
         <a [routerLink]="[block.number]">
           {{block.number}} : {{block.hash}}
         </a>
-        <athena-copy-to-clipboard-button
+        <concord-copy-to-clipboard-button
           classList="ctc-btn-inline"
           [tooltip]="'common.copyToClip' | translate"
           tooltipDirection="top-right"
           [value]="block.number + ' : ' + block.hash"
           [size]="12">
-        </athena-copy-to-clipboard-button>
+        </concord-copy-to-clipboard-button>
       </clr-dg-cell>
       <clr-dg-row-detail>
-        <athena-block-details *clrIfExpanded ngProjectAs="clr-dg-row-detail"
-                              [blockNumber]="block?.number"></athena-block-details>
+        <concord-block-details *clrIfExpanded ngProjectAs="clr-dg-row-detail"
+                              [blockNumber]="block?.number"></concord-block-details>
       </clr-dg-row-detail>
     </clr-dg-row>
     <clr-dg-footer>

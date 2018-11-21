@@ -1,13 +1,13 @@
 {
-  "name": "athena-ui",
+  "name": "concord-ui",
   "version": "0.0.1",
   "license": "UNLICENSED",
   "scripts": {
     "ng": "ng",
     "start": "npm run copy-clarity && ng serve --proxy-config proxy.conf.json --deploy-url=/",
     "build:maven": "node ./node_modules/.bin/ng build --prod --deploy-url assets/ && npm run copy-clarity && npm run build:move",
-    "build:local:prod": "ng build --prod --deploy-url assets/ && npm run copy-clarity &&  && npm run build:move",
-    "build:local:dev": "ng build --deploy-url assets/ && npm run copy-clarity &&  && npm run build:move",
+    "build:local:prod": "ng build --prod --deploy-url assets/ && npm run copy-clarity && npm run build:move",
+    "build:local:dev": "ng build --deploy-url assets/ && npm run copy-clarity && npm run build:move",
     "build:move": "mkdir -p ../src/main/resources/static/assets && cp -a dist/. ../src/main/resources/static/assets && mv ../src/main/resources/static/assets/index.html ../src/main/resources/static",
     "copy-clarity": "mkdir -p ./src/static/css && cp ./node_modules/@clr/ui/*.css ./src/static/css",
     "clear-contracts-e2e": "docker exec -it $DB_CONTAINER ./cockroach sql --insecure --safe-updates=false -e \"SET DATABASE = helen; DELETE FROM contracts;\"",
@@ -15,8 +15,8 @@
     "unaccept-agreement": "docker exec -it $DB_CONTAINER ./cockroach sql --insecure -e \"SET DATABASE = helen; UPDATE agreements SET accepted = false WHERE id = 1;\"",
     "test": "ng test --source-map=false",
     "test-coverage": "ng test --code-coverage",
-    "lint": "ng lint athena-ui",
-    "lint-fix": "ng lint athena-ui --fix",
+    "lint": "ng lint concord-ui",
+    "lint-fix": "ng lint concord-ui --fix",
     "setup-db": "npm run clear-data-e2e && npm run unaccept-agreement",
     "e2e": "npm run setup-db && ng e2e --port 49152",
     "clear-data-e2e": "npm run clear-contracts-e2e && npm run clear-users-e2e"
@@ -24,11 +24,13 @@
   "private": true,
   "dependencies": {
     "@angular/animations": "^6.1.10",
+    "@angular/cdk": "^7.0.4",
     "@angular/common": "^6.1.10",
     "@angular/compiler": "^6.1.10",
     "@angular/core": "^6.1.10",
     "@angular/forms": "^6.1.10",
     "@angular/http": "^6.1.10",
+    "@angular/material": "^7.0.4",
     "@angular/platform-browser": "^6.1.10",
     "@angular/platform-browser-dynamic": "^6.1.10",
     "@angular/router": "^6.1.10",
@@ -56,7 +58,7 @@
     "zone.js": "^0.8.26"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "~0.6.8",
+    "@angular-devkit/build-angular": "^0.6.8",
     "@angular/cli": "^6.0.8",
     "@angular/compiler-cli": "^6.1.10",
     "@angular/language-service": "^6.1.10",

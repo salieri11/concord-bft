@@ -12,12 +12,12 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import com.google.protobuf.ByteString;
-import com.vmware.athena.Athena;
-import com.vmware.athena.Athena.AthenaRequest.Builder;
-import com.vmware.athena.Athena.AthenaResponse;
-import com.vmware.athena.Athena.BlockResponse;
-import com.vmware.athena.Athena.TransactionResponse;
 import com.vmware.blockchain.common.Constants;
+import com.vmware.concord.Concord;
+import com.vmware.concord.Concord.BlockResponse;
+import com.vmware.concord.Concord.ConcordRequest.Builder;
+import com.vmware.concord.Concord.ConcordResponse;
+import com.vmware.concord.Concord.TransactionResponse;
 
 /**
  * This handler is used to service eth_getBlockByHash POST requests.
@@ -27,7 +27,7 @@ public class EthGetBlockHandler extends AbstractEthRpcHandler {
     Logger logger = LogManager.getLogger(EthGetBlockHandler.class);
 
     /**
-     * Builds the Athena request builder. Extracts the block hash from the request and uses it to set up an Athena
+     * Builds the Concord request builder. Extracts the block hash from the request and uses it to set up an Concord
      * Request builder with a BlockRequest. Also performs basic checks on parameters.
      *
      * @param builder Object in which request is built
@@ -49,14 +49,14 @@ public class EthGetBlockHandler extends AbstractEthRpcHandler {
             boolean flag = (boolean) params.get(1);
 
             // Construct a blockNumberRequest object. Set its start field.
-            final Athena.BlockRequest blockRequestObj;
+            final Concord.BlockRequest blockRequestObj;
 
             if (ethMethodName.equals(Constants.GET_BLOCKBYNUMBER_NAME)) {
                 // Block number string can be either a hex number or it can be one
-                // of "latest", "earliest", "pending". Since, athena only accepts
+                // of "latest", "earliest", "pending". Since, concord only accepts
                 // uint64_t for block number we will replace "latest" with -1
                 // "earliest" with 0 (genesis block) and "pending" with -1 (since
-                // in athena blocks are generated instantaneously we can say that
+                // in concord blocks are generated instantaneously we can say that
                 // "latest" = "pending"
                 String requestedBlockStr = (String) params.get(0);
                 long requestedBlockNumber = -1;
@@ -71,13 +71,13 @@ public class EthGetBlockHandler extends AbstractEthRpcHandler {
                             + "number can either be 'latest', 'pending', 'earliest',"
                             + " or a hex number starting with '0x'");
                 }
-                blockRequestObj = Athena.BlockRequest.newBuilder().setNumber(requestedBlockNumber).build();
+                blockRequestObj = Concord.BlockRequest.newBuilder().setNumber(requestedBlockNumber).build();
             } else { // BlockByHash_Name
                 ByteString blockHash = ApiHelper.hexStringToBinary((String) params.get(0));
-                blockRequestObj = Athena.BlockRequest.newBuilder().setHash(blockHash).build();
+                blockRequestObj = Concord.BlockRequest.newBuilder().setHash(blockHash).build();
             }
 
-            // Add the request to the athena request builder
+            // Add the request to the concord request builder
             builder.setBlockRequest(blockRequestObj);
         } catch (Exception e) {
             logger.error("Exception in get block handler", e);
@@ -89,14 +89,14 @@ public class EthGetBlockHandler extends AbstractEthRpcHandler {
      * Builds the response object to be returned to the user. Checks the flag in the request to determine whether a list
      * of transaction hashes or a list of transaction objects needs to be returned to the user.
      *
-     * @param athenaResponse Response received from Athena
+     * @param concordResponse Response received from Concord
      * @param requestJson Request parameters passed by the user
      * @return response to be returned to the user
      */
     @SuppressWarnings("unchecked")
     @Override
-    public JSONObject buildResponse(AthenaResponse athenaResponse, JSONObject requestJson) throws Exception {
-        BlockResponse blockResponseObj = athenaResponse.getBlockResponse();
+    public JSONObject buildResponse(ConcordResponse concordResponse, JSONObject requestJson) throws Exception {
+        BlockResponse blockResponseObj = concordResponse.getBlockResponse();
         long id = EthDispatcher.getEthRequestId(requestJson);
 
         JSONObject response = new JSONObject();

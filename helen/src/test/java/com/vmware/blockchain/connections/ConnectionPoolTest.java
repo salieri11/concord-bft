@@ -18,26 +18,27 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import com.vmware.blockchain.common.AthenaProperties;
-import com.vmware.blockchain.connections.AthenaConnectionFactory.ConnectionType;
+import com.vmware.blockchain.common.ConcordProperties;
+import com.vmware.blockchain.connections.ConcordConnectionFactory.ConnectionType;
 
 /**
  * Connection pool unit tests.
  */
 @RunWith(SpringRunner.class)
 @TestPropertySource(locations = "classpath:test.properties")
-@SpringBootTest(classes = {AthenaProperties.class})
+@SpringBootTest(classes = {ConcordProperties.class})
 public class ConnectionPoolTest {
 
-    private AthenaConnectionPool pool;
+    private ConcordConnectionPool pool;
     @Autowired
-    private AthenaProperties config;
+    private ConcordProperties config;
 
     private final Logger log = LogManager.getLogger(ConnectionPoolTest.class);
 
     @Before
     public void setup() throws IOException {
-        pool = new AthenaConnectionPool().initialize(config, new AthenaConnectionFactory(ConnectionType.Mock, config));
+        pool = new ConcordConnectionPool()
+            .initialize(config, new ConcordConnectionFactory(ConnectionType.Mock, config));
     }
 
 
@@ -54,7 +55,7 @@ public class ConnectionPoolTest {
 
     @Test
     public void testConnectionCheck() throws IOException, InterruptedException {
-        IAthenaConnection conn = pool.getConnection();
+        IConcordConnection conn = pool.getConnection();
         Assert.assertNotNull(conn);
         if (conn != null) {
             pool.putConnection(conn);

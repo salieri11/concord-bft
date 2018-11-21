@@ -8,7 +8,7 @@ import { SwaggerPage } from './swagger.po';
 import { AuthHelper } from '../helpers/auth';
 import { LoginPage } from '../login/login.po';
 
-describe('athena-ui Smart Contracts', () => {
+describe('concord-ui Smart Contracts', () => {
   let authHelper: AuthHelper;
   let loginPage: LoginPage;
   let swaggerPage: SwaggerPage;
@@ -64,6 +64,6 @@ describe('athena-ui Smart Contracts', () => {
     swaggerPage.clickOpBlockExecuteButtonForId(blocksListGetId);
     browser.sleep(2000);
     expect(swaggerPage.getResponseStatusForId(blocksListGetId)).toEqual('200');
-    expect(swaggerPage.getRequestUrlFromResponse()).toContain('/api/athena/blocks?count=1');
+    expect(swaggerPage.getRequestUrlFromResponse()).toContain('/api/concord/blocks?count=1');
   });
 });

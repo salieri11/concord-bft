@@ -2,7 +2,7 @@
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # Tests covering Helen's non-ethereum ReST API.
-# (i.e. everything under /api/, excluding /api/athena/eth)
+# (i.e. everything under /api/, excluding /api/concord/eth)
 #########################################################################
 import collections
 import json
@@ -43,7 +43,7 @@ class HelenAPITests(test_suite.TestSuite):
       if self._productMode and not self._noLaunch:
          try:
             p = self.launchProduct(self._args,
-                                   self._apiBaseServerUrl + "/api/athena/eth",
+                                   self._apiBaseServerUrl + "/api/concord/eth",
                                    self._userConfig)
          except Exception as e:
             log.error(traceback.format_exc())
@@ -303,7 +303,7 @@ class HelenAPITests(test_suite.TestSuite):
          raise Exception("Contract upload failed with error '{}'".format(result["error"]))
 
    def has_contract(self, request, contractId, contractVersion):
-      result = request.callContractAPI('/api/athena/contracts/' + contractId
+      result = request.callContractAPI('/api/concord/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
       try:
          if (result["contract_id"] == contractId and
@@ -314,7 +314,7 @@ class HelenAPITests(test_suite.TestSuite):
          return False
 
    def has_contract_with_bytecode(self, request, contractId, contractVersion, contractByteCode):
-      result = request.callContractAPI('/api/athena/contracts/' + contractId
+      result = request.callContractAPI('/api/concord/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
       # Remove swarm hash from deployed contract bytecode
       parsedBytecode = result["bytecode"].split("a165627a7a72305820")[0]
@@ -329,7 +329,7 @@ class HelenAPITests(test_suite.TestSuite):
 
    def _test_contractUpload(self, request):
       contractId, contractVersion = self.upload_mock_contract(request)
-      result = request.callContractAPI('/api/athena/contracts/' + contractId
+      result = request.callContractAPI('/api/concord/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
       if self.has_contract(request, contractId, contractVersion):
          return (True, None)
@@ -348,7 +348,7 @@ class HelenAPITests(test_suite.TestSuite):
       '00000000000000000000008152509050905600')
       contractId, contractVersion = self.upload_mock_multiple_contract(request)
 
-      result = request.callContractAPI('/api/athena/contracts/' + contractId
+      result = request.callContractAPI('/api/concord/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
       if self.has_contract_with_bytecode(request, contractId, contractVersion, contractBytecode):
          return (True, None)
@@ -368,7 +368,7 @@ class HelenAPITests(test_suite.TestSuite):
       SBFT (responses from nodes didn't match).
       '''
       contractId, contractVersion = self.upload_mock_contract(request)
-      result = request.callContractAPI('/api/athena/contracts/' + contractId
+      result = request.callContractAPI('/api/concord/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
       rpc = RPC(request._logDir,
                 self.getName(),
@@ -389,7 +389,7 @@ class HelenAPITests(test_suite.TestSuite):
       This test makes a *call* instead of sending a transaction.
       '''
       contractId, contractVersion = self.upload_mock_contract(request)
-      result = request.callContractAPI('/api/athena/contracts/' + contractId
+      result = request.callContractAPI('/api/concord/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
       rpc = RPC(request._logDir,
                 self.getName(),
@@ -409,10 +409,10 @@ class HelenAPITests(test_suite.TestSuite):
          return (False, "Contract call failed")
 
    def _test_getAllContracts(self, request):
-      result = request.callContractAPI('/api/athena/contracts', "")
+      result = request.callContractAPI('/api/concord/contracts', "")
       existingCount = len(result)
       contractId, contractVersion = self.upload_mock_contract(request)
-      result = request.callContractAPI('/api/athena/contracts', "")
+      result = request.callContractAPI('/api/concord/contracts', "")
       newCount = len(result)
       result = result[0]
       if (self.has_contract(request, contractId, contractVersion) and
@@ -420,7 +420,7 @@ class HelenAPITests(test_suite.TestSuite):
          return (True, None)
       else:
          return (False,
-                 "GET /api/athena/contracts did not return correct response." \
+                 "GET /api/concord/contracts did not return correct response." \
                  "Expected count to be {} but found {}".format(existingCount + 1,
                                                                newCount))
 
@@ -445,7 +445,7 @@ class HelenAPITests(test_suite.TestSuite):
    def _test_getAllVersions(self, request):
       contractId, contractVersion = self.upload_mock_contract(request)
       _, newContractVersion = self.upload_mock_contract(request, contractId)
-      uri = '/api/athena/contracts/' + contractId
+      uri = '/api/concord/contracts/' + contractId
       expectedVersionCount = 2
       result = request.callContractAPI(uri, "")
       if (result["contract_id"] == contractId and
@@ -453,12 +453,12 @@ class HelenAPITests(test_suite.TestSuite):
          return (True, None)
       else:
          return (False,
-                 "GET /api/athena/contracts/{} did not return correct response" \
+                 "GET /api/concord/contracts/{} did not return correct response" \
                  " expected {} versions".format(contractId, expectedVersionCount))
 
    def _test_getVersion(self, request):
       contractId, contractVersion = self.upload_mock_contract(request)
-      uri = '/api/athena/contracts/' + contractId \
+      uri = '/api/concord/contracts/' + contractId \
             + '/versions/' + contractVersion
       result = request.callContractAPI(uri, "")
       if (result["contract_id"] == contractId and
@@ -466,7 +466,7 @@ class HelenAPITests(test_suite.TestSuite):
          return (True, None)
       else:
          return (False,
-                 "GET /api/athena/contracts/{}/versions/{} did not return" \
+                 "GET /api/concord/contracts/{}/versions/{} did not return" \
                  " correct response".format(contractId, contractVersion))
 
    def _mock_transaction(self, request, data = "0x00"):
@@ -487,8 +487,8 @@ class HelenAPITests(test_suite.TestSuite):
       blockNumber = txReceipt['blockNumber']
       blockHash = txReceipt['blockHash']
       # query same block with hash and number and compare results
-      block1 = request.getBlock("/api/athena/blocks/{}".format(blockNumber))
-      block2 = request.getBlock("/api/athena/blocks/{}".format(blockHash))
+      block1 = request.getBlock("/api/concord/blocks/{}".format(blockNumber))
+      block2 = request.getBlock("/api/concord/blocks/{}".format(blockHash))
       if (block1 == block2):
          return (True, None)
       return (False, "Block returned with block hash API doesn't match with block returned by block Number")
@@ -496,7 +496,7 @@ class HelenAPITests(test_suite.TestSuite):
 
    def _test_invalidBlockHash(self, request):
       try:
-         block = request.getBlock("/api/athena/blocks/0xbadbeef")
+         block = request.getBlock("/api/concord/blocks/0xbadbeef")
       except Exception as e:
          return(True, None)
       return (False, "invalid block hash exception should be thrown")
@@ -735,7 +735,7 @@ class HelenAPITests(test_suite.TestSuite):
       ### 3. Reply will be 48k+ in size
       ###
       ### This will require the highest bit in the size prefix of the
-      ### Athena->Helen response to be set, which makes the length look
+      ### concord->Helen response to be set, which makes the length look
       ### negative to Java's signed short type. If we get a response, then
       ### HEL-34 remains fixed.
 

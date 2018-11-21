@@ -14,13 +14,13 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 
-import com.vmware.athena.Athena;
-import com.vmware.blockchain.common.AthenaConnectionException;
-import com.vmware.blockchain.common.AthenaProperties;
-import com.vmware.blockchain.connections.AthenaConnectionPool;
-import com.vmware.blockchain.connections.IAthenaConnection;
+import com.vmware.blockchain.common.ConcordConnectionException;
+import com.vmware.blockchain.common.ConcordProperties;
+import com.vmware.blockchain.connections.ConcordConnectionPool;
+import com.vmware.blockchain.connections.IConcordConnection;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
-import com.vmware.blockchain.services.ethereum.AthenaHelper;
+import com.vmware.blockchain.services.ethereum.ConcordHelper;
+import com.vmware.concord.Concord;
 
 /**
  * Base for all Helen Controllers.
@@ -30,67 +30,67 @@ public abstract class BaseServlet {
     protected static final long serialVersionUID = 1L;
 
     protected HttpHeaders standardHeaders;
-    protected AthenaConnectionPool athenaConnectionPool;
-    protected AthenaProperties config;
+    protected ConcordConnectionPool concordConnectionPool;
+    protected ConcordProperties config;
 
     @Autowired
-    protected BaseServlet(AthenaProperties config, AthenaConnectionPool athenaConnectionPool) {
-        this.athenaConnectionPool = athenaConnectionPool;
+    protected BaseServlet(ConcordProperties config, ConcordConnectionPool concordConnectionPool) {
+        this.concordConnectionPool = concordConnectionPool;
         this.config = config;
         standardHeaders = new HttpHeaders();
         standardHeaders.setContentType(MediaType.APPLICATION_JSON_UTF8);
         standardHeaders.set("Content-Transfer-Encoding", "8BIT");
     }
 
-    protected abstract JSONAware parseToJson(Athena.AthenaResponse athenaResponse);
+    protected abstract JSONAware parseToJson(Concord.ConcordResponse concordResponse);
 
     /**
      * Process get request.
      *
-     * @param req - Athena request object
+     * @param req - Concord request object
      */
-    protected Athena.AthenaResponse forwardToAthena(Athena.AthenaRequest req) throws AthenaConnectionException {
-        IAthenaConnection conn = null;
-        Athena.AthenaResponse athenaResponse;
+    protected Concord.ConcordResponse forwardToConcord(Concord.ConcordRequest req) throws ConcordConnectionException {
+        IConcordConnection conn = null;
+        Concord.ConcordResponse concordResponse;
         try {
-            conn = athenaConnectionPool.getConnection();
+            conn = concordConnectionPool.getConnection();
             if (conn == null) {
-                throw new AthenaConnectionException("Unable to get athena " + "connection");
+                throw new ConcordConnectionException("Unable to get concord " + "connection");
             }
 
-            boolean res = AthenaHelper.sendToAthena(req, conn, config);
+            boolean res = ConcordHelper.sendToConcord(req, conn, config);
             if (!res) {
-                throw new AthenaConnectionException("Sending to athena failed");
+                throw new ConcordConnectionException("Sending to concord failed");
             }
 
-            // receive response from Athena
-            athenaResponse = AthenaHelper.receiveFromAthena(conn);
-            if (athenaResponse == null) {
-                throw new AthenaConnectionException("Athena sent invalid response");
+            // receive response from Concord
+            concordResponse = ConcordHelper.receiveFromConcord(conn);
+            if (concordResponse == null) {
+                throw new ConcordConnectionException("Concord sent invalid response");
             }
-            return athenaResponse;
+            return concordResponse;
         } catch (Exception e) {
-            throw new AthenaConnectionException("Athena internal error: " + e.getMessage());
+            throw new ConcordConnectionException("Concord internal error: " + e.getMessage());
         } finally {
-            athenaConnectionPool.putConnection(conn);
+            concordConnectionPool.putConnection(conn);
         }
     }
 
-    protected ResponseEntity<JSONAware> buildHelenResponse(Athena.AthenaResponse athenaResponse) {
+    protected ResponseEntity<JSONAware> buildHelenResponse(Concord.ConcordResponse concordResponse) {
         JSONAware respObject;
         HttpStatus status;
-        if (athenaResponse.getErrorResponseCount() == 0) {
-            respObject = parseToJson(athenaResponse);
+        if (concordResponse.getErrorResponseCount() == 0) {
+            respObject = parseToJson(concordResponse);
             status = respObject == null ? HttpStatus.INTERNAL_SERVER_ERROR : HttpStatus.OK;
         } else {
-            Athena.ErrorResponse errorResp = athenaResponse.getErrorResponse(0);
+            Concord.ErrorResponse errorResp = concordResponse.getErrorResponse(0);
 
             String message = errorResp.getDescription();
             JSONObject obj = new JSONObject();
             obj.put("error", message);
             respObject = obj;
             // trying to be a little fancy with status codes here, but we should
-            // probably change ErrorResponse to include a "code" field, so Athena
+            // probably change ErrorResponse to include a "code" field, so Concord
             // can signal exactly what kind of error happened
             if (message.contains("not found")) {
                 // block/transaction not found
@@ -106,12 +106,12 @@ public abstract class BaseServlet {
         return new ResponseEntity<>(respObject, standardHeaders, status);
     }
 
-    protected ResponseEntity<JSONAware> sendToAthenaAndBuildHelenResponse(Athena.AthenaRequest athenaRequest) {
+    protected ResponseEntity<JSONAware> sendToConcordAndBuildHelenResponse(Concord.ConcordRequest concordRequest) {
         try {
-            Athena.AthenaResponse athenaResponse = forwardToAthena(athenaRequest);
-            return buildHelenResponse(athenaResponse);
-        } catch (AthenaConnectionException ace) {
-            LogManager.getLogger(BaseServlet.class).warn("Athena Exception: ", ace);
+            Concord.ConcordResponse concordResponse = forwardToConcord(concordRequest);
+            return buildHelenResponse(concordResponse);
+        } catch (ConcordConnectionException ace) {
+            LogManager.getLogger(BaseServlet.class).warn("Concord Exception: ", ace);
             return new ResponseEntity<>(ApiHelper.errorJson(ace.getMessage()), standardHeaders,
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }

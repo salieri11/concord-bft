@@ -7,7 +7,7 @@ import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { ClrWizard } from '@clr/angular';
 
 @Component({
-  selector: 'athena-credential-form',
+  selector: 'concord-credential-form',
   templateUrl: './credential-form.component.html',
   styleUrls: ['./credential-form.component.scss']
 })

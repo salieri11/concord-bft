@@ -11,7 +11,7 @@ import { SmartContractsService } from '../shared/smart-contracts.service';
 import { Personas } from '../../shared/persona.service';
 
 @Component({
-  selector: 'athena-smart-contracts',
+  selector: 'concord-smart-contracts',
   templateUrl: './smart-contracts.component.html',
   styleUrls: ['./smart-contracts.component.scss']
 })

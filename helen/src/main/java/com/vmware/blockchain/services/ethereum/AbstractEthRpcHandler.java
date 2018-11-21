@@ -7,10 +7,10 @@ package com.vmware.blockchain.services.ethereum;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-import com.vmware.athena.Athena;
-import com.vmware.athena.Athena.EthRequest;
-import com.vmware.athena.Athena.EthResponse;
 import com.vmware.blockchain.common.Constants;
+import com.vmware.concord.Concord;
+import com.vmware.concord.Concord.EthRequest;
+import com.vmware.concord.Concord.EthResponse;
 
 /**
  * <p>
@@ -19,7 +19,7 @@ import com.vmware.blockchain.common.Constants;
  *
  * <p>
  * This abstract class serves as a template for all EthRPC Handler classes. These handlers are used to construct
- * AthenaRequest objects from user requests and to construct responses for the user from AthenaResponses based on the
+ * ConcordRequest objects from user requests and to construct responses for the user from ConcordResponses based on the
  * method specified by the user.
  * </p>
  *
@@ -37,23 +37,23 @@ public abstract class AbstractEthRpcHandler {
     }
 
     /**
-     * This method extracts relevant parameters from the user request and sets them in the AthenaRequest builder object
+     * This method extracts relevant parameters from the user request and sets them in the ConcordRequest builder object
      * passed by the caller as a parameter.
      *
      * @param builder Builder object in which parameters are set.
      * @param requestJson User request
      */
-    public abstract void buildRequest(Athena.AthenaRequest.Builder builder, JSONObject requestJson) throws Exception;
+    public abstract void buildRequest(Concord.ConcordRequest.Builder builder, JSONObject requestJson) throws Exception;
 
     /**
-     * This method extracts the relevant parameters from an AthenaResponse and uses them to build a JSONObject which is
+     * This method extracts the relevant parameters from an ConcordResponse and uses them to build a JSONObject which is
      * then sent to the user as a response to the RPC request.
      *
-     * @param athenaResponse Response received from Athena.
+     * @param concordResponse Response received from Concord.
      * @param requestJson User request.
      * @return Response object to be returned to the user.
      */
-    public abstract JSONObject buildResponse(Athena.AthenaResponse athenaResponse, JSONObject requestJson)
+    public abstract JSONObject buildResponse(Concord.ConcordResponse concordResponse, JSONObject requestJson)
             throws Exception;
 
     /**
@@ -63,7 +63,7 @@ public abstract class AbstractEthRpcHandler {
      * @return Newly initialized EthRequest builder object.
      */
     EthRequest.Builder initializeRequestObject(JSONObject requestJson) throws EthRpcHandlerException {
-        EthRequest.Builder b = Athena.EthRequest.newBuilder();
+        EthRequest.Builder b = Concord.EthRequest.newBuilder();
         long id = EthDispatcher.getEthRequestId(requestJson);
         b.setId(id);
         return b;
@@ -91,7 +91,7 @@ public abstract class AbstractEthRpcHandler {
     /**
      * Initializes the response to be sent to the user and pre-sets the 'id' and 'jsonrpc' fields.
      *
-     * @param ethResponse EthResponse part of the response received from Athena.
+     * @param ethResponse EthResponse part of the response received from Concord.
      * @return response
      */
     @SuppressWarnings("unchecked")

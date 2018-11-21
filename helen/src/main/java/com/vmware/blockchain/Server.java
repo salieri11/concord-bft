@@ -26,7 +26,7 @@ import net.sf.ehcache.config.CacheConfiguration;
  * Main class for helen, does some basic initializations and then calls SpringApplication.run() method. This class also
  * does the job of providing all spring related configuration annotations.
  *
- * <p>Helen connects to Athena at the backend. Communication between Helen and Athena is via a TCP socket connection.
+ * <p>Helen connects to Concord at the backend. Communication between Helen and Concord is via a TCP socket connection.
  * Messages are sent in Google Protocol Buffer format. Responses from Helen to the client are in Json format.
  */
 @SpringBootApplication

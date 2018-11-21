@@ -42,20 +42,20 @@
 <div class="ps-1">
   <div class="row">
     <div class="col-xs-6 mt-1 pb-1">
-      <athena-dashboard-list [listConfig]="nodesConfig" [items]="nodes"></athena-dashboard-list>
+      <concord-dashboard-list [listConfig]="nodesConfig" [items]="nodes"></concord-dashboard-list>
     </div>
     <div class="col-xs-6 mt-1 pb-1" tourAnchor="onboardingTour.contractList">
-      <athena-dashboard-list [listConfig]="contractsConfig" [items]="smartContracts"></athena-dashboard-list>
+      <concord-dashboard-list [listConfig]="contractsConfig" [items]="smartContracts"></concord-dashboard-list>
     </div>
   </div>
   <div class="row">
     <div class="col-xs-6 mt-1 pb-1">
-      <athena-dashboard-list [listConfig]="blocksConfig" [items]="blocks"></athena-dashboard-list>
+      <concord-dashboard-list [listConfig]="blocksConfig" [items]="blocks"></concord-dashboard-list>
     </div>
     <div class="col-xs-6 mt-1 pb-1">
-      <athena-dashboard-list [listConfig]="transactionsConfig" [items]="transactions"></athena-dashboard-list>
+      <concord-dashboard-list [listConfig]="transactionsConfig" [items]="transactions"></concord-dashboard-list>
     </div>
   </div>
 </div>
 
-<athena-blockchain-wizard #setupWizard></athena-blockchain-wizard>
+<concord-blockchain-wizard #setupWizard></concord-blockchain-wizard>

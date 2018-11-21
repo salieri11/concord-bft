@@ -5,7 +5,7 @@
 import { Component } from '@angular/core';
 
 @Component({
-  selector: 'athena-contract-payload-preview-form',
+  selector: 'concord-contract-payload-preview-form',
   templateUrl: './contract-payload-preview-form.component.html',
   styleUrls: ['./contract-payload-preview-form.component.scss']
 })

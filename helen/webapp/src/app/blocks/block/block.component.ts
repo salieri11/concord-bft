@@ -12,7 +12,7 @@ import { BlocksService } from '../shared/blocks.service';
  * Displays a single block's details
  */
 @Component({
-  selector: 'athena-block',
+  selector: 'concord-block',
   templateUrl: './block.component.html',
   styleUrls: ['./block.component.scss']
 })

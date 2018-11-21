@@ -10,7 +10,7 @@ import { LoginPage } from '../login/login.po';
 import { OnboardingPage } from './onboarding.po';
 import { DashboardPage } from '../dashboard/dashboard.po';
 
-describe('athena-ui Onboarding Flow', () => {
+describe('concord-ui Onboarding Flow', () => {
   let authHelper: AuthHelper;
   let appPage: AppPage;
   let dashboardPage: DashboardPage;

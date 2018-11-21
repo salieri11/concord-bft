@@ -75,8 +75,8 @@
       <p *ngIf="constructorAbi?.inputs.length">{{'smartContracts.form.constructorParametersRequiredHelper' | translate}}</p>
       <p *ngIf="!constructorAbi?.inputs.length">{{'smartContracts.form.constructorParametersNotRequiredHelper' | translate}}</p>
       <form *ngIf="constructorAbi?.inputs.length" clrForm clrLayout="horizontal" class="contract-form">
-          <athena-smart-contracts-solidity-function-inputs [formGroup]="constructorParamsForm"
-                                                           [functionInputs]="constructorAbi.inputs"></athena-smart-contracts-solidity-function-inputs>
+          <concord-smart-contracts-solidity-function-inputs [formGroup]="constructorParamsForm"
+                                                           [functionInputs]="constructorAbi.inputs"></concord-smart-contracts-solidity-function-inputs>
       </form>
     </clr-wizard-page>
   </clr-wizard>

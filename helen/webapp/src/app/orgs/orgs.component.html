@@ -20,6 +20,6 @@
     </clr-dropdown>
   </h2>
 
-  <athena-org-list #orgList (selected)="orgsSelectionChange($event)"></athena-org-list>
-  <athena-orgs-form #orgForm [selected]="selected" (addOrganization)="addOrg($event)" (deleteOrganizations)="deleteOrg()"></athena-orgs-form>
+  <concord-org-list #orgList (selected)="orgsSelectionChange($event)"></concord-org-list>
+  <concord-orgs-form #orgForm [selected]="selected" (addOrganization)="addOrg($event)" (deleteOrganizations)="deleteOrg()"></concord-orgs-form>
 </div>

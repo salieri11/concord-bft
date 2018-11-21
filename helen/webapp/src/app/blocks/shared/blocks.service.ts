@@ -5,17 +5,17 @@
 import { Inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 
-import { ATHENA_API_PREFIX } from '../../shared/shared.config';
+import { CONCORD_API_PREFIX } from '../../shared/shared.config';
 import { Block, BlockListing } from './blocks.model';
-import { AthenaApiService } from '../../shared/athena-api';
+import { concordApiService } from '../../shared/concord-api';
 
 @Injectable({
   providedIn: 'root'
 })
-export class BlocksService extends AthenaApiService {
+export class BlocksService extends concordApiService {
 
-  constructor(@Inject(ATHENA_API_PREFIX) athenaApiPrefix: string, private httpClient: HttpClient) {
-    super(athenaApiPrefix);
+  constructor(@Inject(CONCORD_API_PREFIX) concordApiPrefix: string, private httpClient: HttpClient) {
+    super(concordApiPrefix);
   }
 
   get apiSubPath() {

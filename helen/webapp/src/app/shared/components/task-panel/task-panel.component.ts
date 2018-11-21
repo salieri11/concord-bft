@@ -28,7 +28,7 @@ import {
 } from './tasks.service';
 
 @Component({
-  selector: 'athena-task-panel',
+  selector: 'concord-task-panel',
   templateUrl: './task-panel.component.html',
   styleUrls: ['./task-panel.component.scss'],
   encapsulation: ViewEncapsulation.None,

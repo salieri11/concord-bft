@@ -27,7 +27,7 @@
           <label for="blockchainType">{{'blockchainWizard.blockchainAndConsortium.blockchainType' | translate}}</label>
           <div class="select">
             <select id="blockchainType" formControlName="type">
-              <option value="athena">{{'blockchainWizard.blockchainAndConsortium.athena' | translate}}</option>
+              <option value="concord">{{'blockchainWizard.blockchainAndConsortium.concord' | translate}}</option>
               <option value="hyperledger">{{'blockchainWizard.blockchainAndConsortium.hyperledger' | translate}}
               </option>
             </select>
@@ -307,8 +307,8 @@
       </h4>
 
       <div formGroupName="advancedSettings" class="mt-1">
-        <athena-accordion-group class="accordion-table-header">
-          <athena-accordion>
+        <concord-accordion-group class="accordion-table-header">
+          <concord-accordion>
             <span class="title">{{'blockchainWizard.reviewDeployment.advanced' | translate}}</span>
             <div class="accordion-body">
               <div class="form-block">
@@ -322,19 +322,19 @@
                 </div>
                 <div class="form-group">
                   <label>{{'blockchainWizard.reviewDeployment.publicNodesRegions' | translate}}</label>
-                  <athena-combobox id="publicNodesRegions" formControlName="publicNodesRegions" [items]="publicNodeItems"
+                  <concord-combobox id="publicNodesRegions" formControlName="publicNodesRegions" [items]="publicNodeItems"
                                    [position]="'top-left'" [multiSelect]="true"
-                                   [showTooltip]="false"></athena-combobox>
+                                   [showTooltip]="false"></concord-combobox>
                 </div>
                 <div class="form-group">
                   <label>{{'blockchainWizard.reviewDeployment.privateNode' | translate}}</label>
-                  <athena-combobox id="privateNode" formControlName="privateNode" [items]="privateNodeItems" [position]="'top-left'"
-                                   [multiSelect]="true" [showTooltip]="false"></athena-combobox>
+                  <concord-combobox id="privateNode" formControlName="privateNode" [items]="privateNodeItems" [position]="'top-left'"
+                                   [multiSelect]="true" [showTooltip]="false"></concord-combobox>
                 </div>
               </div>
             </div>
-          </athena-accordion>
-        </athena-accordion-group>
+          </concord-accordion>
+        </concord-accordion-group>
       </div>
 
     </clr-wizard-page>

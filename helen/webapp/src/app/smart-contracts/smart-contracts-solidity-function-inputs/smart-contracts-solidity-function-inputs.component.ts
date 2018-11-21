@@ -9,7 +9,7 @@ import { AbiFunctionParameter } from '../shared/smart-contracts.model';
 import { isBytes, isBytesArray, isHexAddress, isInt, isUint } from '../shared/custom-validators';
 
 @Component({
-  selector: 'athena-smart-contracts-solidity-function-inputs',
+  selector: 'concord-smart-contracts-solidity-function-inputs',
   templateUrl: './smart-contracts-solidity-function-inputs.component.html',
   styleUrls: ['./smart-contracts-solidity-function-inputs.component.scss']
 })

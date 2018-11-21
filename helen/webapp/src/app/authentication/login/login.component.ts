@@ -13,7 +13,7 @@ import { matchPasswordValidator } from '../../shared/custom-validators';
 
 
 @Component({
-  selector: 'athena-login',
+  selector: 'concord-login',
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
 })

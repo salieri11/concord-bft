@@ -26,14 +26,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import com.vmware.athena.Athena;
-import com.vmware.blockchain.common.AthenaProperties;
+import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.HelenException;
 import com.vmware.blockchain.common.UserModificationException;
-import com.vmware.blockchain.connections.AthenaConnectionPool;
+import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
+import com.vmware.concord.Concord;
 
 
 /**
@@ -54,10 +54,10 @@ public class UserAuthenticator extends BaseServlet {
     private JwtTokenProvider jwtTokenProvider;
 
     @Autowired
-    public UserAuthenticator(AthenaProperties config, AthenaConnectionPool athenaConnectionPool,
+    public UserAuthenticator(ConcordProperties config, ConcordConnectionPool concordConnectionPool,
             UserRepository userRepository, ProfilesRegistryManager prm, PasswordEncoder passwordEncoder,
             JwtTokenProvider jwtTokenProvider) {
-        super(config, athenaConnectionPool);
+        super(config, concordConnectionPool);
         this.userRepository = userRepository;
         this.prm = prm;
         this.passwordEncoder = passwordEncoder;
@@ -185,7 +185,7 @@ public class UserAuthenticator extends BaseServlet {
     }
 
     @Override
-    protected JSONAware parseToJson(Athena.AthenaResponse athenaResponse) {
+    protected JSONAware parseToJson(Concord.ConcordResponse concordResponse) {
         return null;
     }
 }

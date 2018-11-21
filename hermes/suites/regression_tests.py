@@ -2,7 +2,7 @@
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # Tests the special corner case scenarios which where discovered while
-# running ethereum transactions on Athena
+# running ethereum transactions on concord
 #########################################################################
 import argparse
 import collections
@@ -45,7 +45,7 @@ class RegressionTests(test_suite.TestSuite):
          log.debug("Running in ethereum mode")
          self._apiServerUrl = "http://localhost:8545"
       else:
-         self._apiServerUrl = "https://localhost/blockchains/local/api/athena/eth/"
+         self._apiServerUrl = "https://localhost/blockchains/local/api/concord/eth/"
 
    def getName(self):
       return "RegressionTests"
@@ -191,7 +191,7 @@ class RegressionTests(test_suite.TestSuite):
                return (False, "Invalid address allowed from=%s, to=%s" % (f, s))
             except:
                # Receiving an error message will arrive here. An error is
-               # fine - we just need to make sure that Athena is still up
+               # fine - we just need to make sure that concord is still up
                # afterward.
                pass
 
@@ -199,7 +199,7 @@ class RegressionTests(test_suite.TestSuite):
          txHash = rpc.sendTransaction(valid_from, data="0x00", to=valid_to, value="0x01")
          if txHash:
             # we don't actually care if that transaction worked - just
-            # that Athena was alive to give us the hash for it
+            # that concord was alive to give us the hash for it
             return (True, None)
 
          return (False, "No transaction hash was returned")
@@ -210,9 +210,9 @@ class RegressionTests(test_suite.TestSuite):
 
    def _test_call_writer(self, rpc):
       '''
-      Submit an eth_call to a contract that modifies storage. Athena
+      Submit an eth_call to a contract that modifies storage. concord
       should properly catch the exception, and stay up to handle
-      requests afterward. In ATH-53, it was found that Athena would
+      requests afterward. In ATH-53, it was found that concord would
       exit in this case.
       '''
       if self._productMode:
@@ -236,8 +236,8 @@ class RegressionTests(test_suite.TestSuite):
                except:
                   pass
 
-               # Before ATH-53, the above call would crash Athena, so
-               # we now send a transaction to see if Athena is still up
+               # Before ATH-53, the above call would crash concord, so
+               # we now send a transaction to see if concord is still up
 
                sendData = "0x0102"
                sendHash = rpc.sendTransaction(from_addr,

@@ -11,39 +11,39 @@
         <th>{{'transactions.hash' | translate}}</th>
         <td>
           {{block?.hash}}
-          <athena-copy-to-clipboard-button
+          <concord-copy-to-clipboard-button
             classList="ctc-btn-inline"
             [tooltip]="'common.copyToClip' | translate"
             tooltipDirection="top-right"
             [value]="block?.hash"
             [size]="12">
-          </athena-copy-to-clipboard-button>
+          </concord-copy-to-clipboard-button>
         </td>
       </tr>
       <tr>
         <th>{{'transactions.parentHash' | translate}}</th>
         <td>
           {{block?.parentHash}}
-          <athena-copy-to-clipboard-button
+          <concord-copy-to-clipboard-button
             classList="ctc-btn-inline"
             [tooltip]="'common.copyToClip' | translate"
             tooltipDirection="top-right"
             [value]="block?.parentHash"
             [size]="12">
-          </athena-copy-to-clipboard-button>
+          </concord-copy-to-clipboard-button>
         </td>
       </tr>
       <tr>
         <th>{{'transactions.nonce' | translate}}</th>
         <td>
           {{block?.nonce}}
-          <athena-copy-to-clipboard-button
+          <concord-copy-to-clipboard-button
             classList="ctc-btn-inline"
             [tooltip]="'common.copyToClip' | translate"
             tooltipDirection="top-right"
             [value]="block?.nonce"
             [size]="12">
-          </athena-copy-to-clipboard-button>
+          </concord-copy-to-clipboard-button>
         </td>
       </tr>
       <tr>
@@ -55,4 +55,4 @@
   </div>
 </div>
 
-<athena-transaction-list *ngIf="block" [transactions]="block?.transactions" [blockNumber]="block?.number"></athena-transaction-list>
+<concord-transaction-list *ngIf="block" [transactions]="block?.transactions" [blockNumber]="block?.number"></concord-transaction-list>

@@ -11,7 +11,7 @@ import { KeyCodes } from './key-codes';
 export const TIMEOUT = 200;
 
 @Component({
-  selector: 'athena-combobox',
+  selector: 'concord-combobox',
   templateUrl: './combobox.component.html',
   styleUrls: ['./combobox.component.scss'],
   providers: [{

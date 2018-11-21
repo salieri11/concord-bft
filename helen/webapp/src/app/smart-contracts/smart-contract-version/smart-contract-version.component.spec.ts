@@ -46,9 +46,9 @@ const initialVersion = {
 };
 
 @Component({
-  selector: 'athena-test-wrapper',
+  selector: 'concord-test-wrapper',
   template: `
-        <athena-smart-contract-version #versionComponent [version]="version"></athena-smart-contract-version>
+        <concord-smart-contract-version #versionComponent [version]="version"></concord-smart-contract-version>
     `
 })
 class TestWrapperClassComponent {

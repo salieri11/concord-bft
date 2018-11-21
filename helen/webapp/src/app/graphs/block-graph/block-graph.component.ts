@@ -5,7 +5,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 
 @Component({
-  selector: 'athena-block-graph',
+  selector: 'concord-block-graph',
   templateUrl: './block-graph.component.html',
   styleUrls: ['./block-graph.component.scss']
 })

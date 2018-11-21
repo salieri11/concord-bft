@@ -55,14 +55,14 @@ class Product():
          with open(self._cmdlineArgs.dockerComposeFile, "r") as f:
             dockerCfg = yaml.load(f)
 
-         if not self._cmdlineArgs.keepAthenaDB:
+         if not self._cmdlineArgs.keepconcordDB:
             self.clearDBsForDockerLaunch(dockerCfg)
             self.initializeHelenDockerDB(dockerCfg)
 
          cmd = ["docker-compose",
                 "--file", self._cmdlineArgs.dockerComposeFile,
                 "up"]
-         logFile = open(os.path.join(productLogsDir, "athena.log"),
+         logFile = open(os.path.join(productLogsDir, "concord.log"),
                     "wb+")
          self._logs.append(logFile)
          log.debug("Launching via docker-compose with {}".format(cmd))
@@ -88,9 +88,9 @@ class Product():
             buildRoot = projectSection["buildRoot"]
             buildRoot = os.path.expanduser(buildRoot)
 
-            if not self._cmdlineArgs.keepAthenaDB and \
-               project.lower().startswith("athena"):
-               self.clearAthenaDBForCmdlineLaunch(launchElement[project])
+            if not self._cmdlineArgs.keepconcordDB and \
+               project.lower().startswith("concord"):
+               self.clearconcordDBForCmdlineLaunch(launchElement[project])
 
             for executable in projectSection:
                if executable == "buildRoot":
@@ -110,10 +110,10 @@ class Product():
                         os.makedirs(param)
 
                      hermes_home = self._cmdlineArgs.hermes_dir
-                     athena_home = os.path.join(hermes_home, '..', 'athena')
+                     concord_home = os.path.join(hermes_home, '..', 'concord')
                      helen_home = os.path.join(hermes_home, '..', 'helen')
                      param = param.replace('${HERMES_HOME}', hermes_home)
-                     param = param.replace('${ATHENA_HOME}', athena_home)
+                     param = param.replace('${CONCORD_HOME}', concord_home)
                      param = param.replace('${HELEN_HOME}', helen_home)
 
                      cmd.append(os.path.expanduser(param))
@@ -136,9 +136,9 @@ class Product():
       if not self._waitForProductStartup():
          raise Exception("The product did not start. Exiting.")
 
-   def clearAthenaDBForCmdlineLaunch(self, athenaSection):
+   def clearconcordDBForCmdlineLaunch(self, concordSection):
       '''
-      Deletes the Athena DB so we get a clean start.
+      Deletes the concord DB so we get a clean start.
       Other test suites can leave it in a state that makes
       it fail.
       Note that Helen's DB is cleared by the cockroach shell script
@@ -146,15 +146,15 @@ class Product():
       '''
       params = None
 
-      for subSection in athenaSection:
-         if subSection.lower().startswith("athena"):
-            params = athenaSection[subSection]["parameters"]
+      for subSection in concordSection:
+         if subSection.lower().startswith("concord"):
+            params = concordSection[subSection]["parameters"]
 
       isConfigParam = False
 
       for param in params:
          if isConfigParam:
-            configFile = os.path.join(athenaSection["buildRoot"],
+            configFile = os.path.join(concordSection["buildRoot"],
                                       param)
             configFile = os.path.expanduser(configFile)
             subPath = None
@@ -166,10 +166,10 @@ class Product():
                      prop.lower().startswith("blockchain_db_path"):
                      subPath = prop.split("=")[1]
 
-            dbPath = os.path.join(athenaSection["buildRoot"], subPath)
+            dbPath = os.path.join(concordSection["buildRoot"], subPath)
             dbPath = os.path.expanduser(dbPath)
             if os.path.isdir(dbPath):
-               log.debug("Clearing Athena DB directory '{}'".format(dbPath))
+               log.debug("Clearing concord DB directory '{}'".format(dbPath))
                shutil.rmtree(dbPath)
 
          if param == "-c":
