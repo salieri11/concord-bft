@@ -63,6 +63,11 @@ def main():
    args = parser.parse_args()
    parent_results_dir = args.resultsDir
 
+   dir_path = os.path.dirname(os.path.realpath(__file__))
+   # In future, if the location of main.py changes from hermes/,
+   # update args.hermes_dir accordingly
+   args.hermes_dir = dir_path
+
    setUpLogging(args)
    for run_count in range(1, args.repeatSuiteRun+1):
       log.info("\nTestrun: {0}/{1}".format(run_count, args.repeatSuiteRun))

@@ -78,12 +78,11 @@ services:
       - --insecure
 
   reverse-proxy:
-    image: vmwblockchain/reverse-proxy
+    image: vmwblockchain/reverse-proxy:latest
     ports:
       - "443:443"
       - "8843:8843"
     volumes:
-      - ./data/nginx/conf.d:/etc/nginx/conf.d
+      - ./data/nginx/docker-compose.conf.d:/etc/nginx/conf.d
     depends_on:
       - helen
-

@@ -108,6 +108,14 @@ class Product():
                      if executable.startswith("replica") and previousParam == "-d":
                         param = os.path.join(self._cmdlineArgs.resultsDir, param)
                         os.makedirs(param)
+
+                     hermes_home = self._cmdlineArgs.hermes_dir
+                     athena_home = os.path.join(hermes_home, '..', 'athena')
+                     helen_home = os.path.join(hermes_home, '..', 'helen')
+                     param = param.replace('${HERMES_HOME}', hermes_home)
+                     param = param.replace('${ATHENA_HOME}', athena_home)
+                     param = param.replace('${HELEN_HOME}', helen_home)
+
                      cmd.append(os.path.expanduser(param))
                      previousParam = param
 
@@ -115,6 +123,7 @@ class Product():
                   logFile = open(os.path.join(productLogsDir, executable + ".log"),
                              "wb+")
                   self._logs.append(logFile)
+
                   log.debug("Launching via command line with {}".format(cmd))
                   p = subprocess.Popen(cmd,
                                        stdout=logFile,
@@ -338,6 +347,21 @@ class Product():
                print("Terminating {}.".format(p.args))
 
          for p in self._processes[:]:
+            if "docker" in p.args:
+               cmd = ["docker", "ps", "-q", "-f",
+                      "name=reverse-proxy-hermes-test"]
+               ps_output = subprocess.run(cmd,
+                                          stdout=subprocess.PIPE,
+                                          stderr=subprocess.STDOUT)
+               container_ids = ps_output.stdout.decode("UTF-8").split("\n")
+               print ("Container IDs found: {0}".format(container_ids))
+
+               for container_id in container_ids:
+                  if container_id:
+                     print("Terminating container ID: {0}".format(container_id))
+                     if not self.stopDockerContainer(container_id):
+                        raise Exception("Failure trying to stop docker container.")
+
             while p.poll() is None:
                print("Waiting for process {} to exit.".format(p.args))
                time.sleep(1)
@@ -364,7 +388,7 @@ class Product():
       and unlock them.
       '''
       # Waiting for 10 seconds for 5 times is enough
-      retries = 5
+      retries = 10
       attempts = 0
       # Helen now takes ~7-8 seconds to boot so we should wait for around 10 seconds
       sleepTime = 10
