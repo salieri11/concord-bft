@@ -98,6 +98,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
               ("eth_mining", self._test_eth_mining), \
               ("rpc_modules", self._test_rpc_modules), \
               ("eth_gasPrice", self._test_eth_gasPrice), \
+              ("eth_estimateGas", self._test_eth_estimateGas), \
               ("eth_syncing", self._test_eth_syncing), \
               ("eth_getTransactionCount", self._test_eth_getTransactionCount), \
               ("eth_sendRawTransaction", self._test_eth_sendRawTransaction), \
@@ -203,6 +204,21 @@ class ExtendedRPCTests(test_suite.TestSuite):
       Check that gas price is reported correctly
       '''
       result = rpc.gasPrice()
+      if self._ethereumMode and (not len(result) > 2):
+         return (False, "Expected ethereumMode to have 0x... gas price, " \
+                 "but found '{}'".format(result))
+      elif self._productMode and (not result == "0x0"):
+         # "0x0" is the default GasPrice in Helen's application.properties
+         return (False, "Expected product to have zero gas price, " \
+                 "but found '{}'".format(result))
+
+      return (True, None)
+
+   def _test_eth_estimateGas(self, rpc, request):
+      '''
+      Check that gas price is reported correctly
+      '''
+      result = rpc.estimateGas()
       if self._ethereumMode and (not len(result) > 2):
          return (False, "Expected ethereumMode to have 0x... gas price, " \
                  "but found '{}'".format(result))

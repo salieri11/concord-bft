@@ -483,6 +483,16 @@ class RPC():
       response = self._call()
       return self.getResultFromResponse(response)
 
+   def estimateGas(self):
+      '''
+      Ask what the gasPrice is.
+      '''
+      self._rpcData["method"] = "eth_estimateGas"
+      self._rpcData["params"] = []
+
+      response = self._call()
+      return self.getResultFromResponse(response)
+
    def syncing(self):
       '''
       Ask what the syncing state of the node is.
