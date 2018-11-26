@@ -254,7 +254,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if not startNonce:
          return (False, "Unable to get starting nonce")
 
-      if not startNonce == "0x0000000000000000000000000000000000000000000000000000000000000000":
+      if not startNonce == "0x0":
          return (False, "Start nonce was not zero (was {})".format(startNonce))
 
       if not txResult:
@@ -264,7 +264,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if not endNonce:
          return (False, "Unable to get ending nonce")
 
-      if not endNonce == "0x0000000000000000000000000000000000000000000000000000000000000001":
+      if not endNonce == "0x1":
          return (False, "End nonce was not 1 (was {})".format(endNonce))
 
       return (True, None)

@@ -65,7 +65,7 @@ public class EthGetTransactionCountHandler extends AbstractEthRpcHandler {
     public JSONObject buildResponse(Concord.ConcordResponse concordResponse, JSONObject requestJson) {
         EthResponse ethResponse = concordResponse.getEthResponse(0);
         JSONObject respObject = initializeResponseObject(ethResponse);
-        respObject.put("result", ApiHelper.binaryStringToHex(ethResponse.getData()));
+        respObject.put("result", ApiHelper.binaryStringToHex(ethResponse.getData(), true));
         return respObject;
     }
 }
