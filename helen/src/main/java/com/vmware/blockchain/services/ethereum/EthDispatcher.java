@@ -274,6 +274,7 @@ public final class EthDispatcher extends BaseServlet {
                 case Constants.NETVERSION_NAME:
                 case Constants.ACCOUNTS_NAME:
                 case Constants.GAS_PRICE_NAME:
+                case Constants.ESTIMATE_GAS_NAME:
                 case Constants.SYNCING_NAME:
                     handler = new EthLocalResponseHandler(concordConnectionPool);
                     isLocal = true;

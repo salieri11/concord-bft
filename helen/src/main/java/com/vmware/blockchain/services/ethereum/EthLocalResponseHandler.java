@@ -29,6 +29,7 @@ import com.vmware.concord.Concord;
  * <li>eth_accounts</li>
  * <li>rpc_modules</li>
  * <li>eth_gasPrice</li>
+ * <li>eth_estimateGas</li>
  * <li>eth_syncing</li>
  * </ul>
  * </p>
@@ -155,6 +156,8 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
             }
             localData = usersJsonArr;
         } else if (ethMethodName.equals(Constants.GAS_PRICE_NAME)) {
+            localData = Constants.GAS_PRICE;
+        } else if (ethMethodName.equals(Constants.ESTIMATE_GAS_NAME)) {
             localData = Constants.GAS_PRICE;
         } else if (ethMethodName.equals(Constants.SYNCING_NAME)) {
             // "false" in this context means that the node believes it is up to
