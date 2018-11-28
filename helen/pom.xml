@@ -214,6 +214,7 @@
                             <consoleOutput>true</consoleOutput>
                             <failsOnError>true</failsOnError>
                             <linkXRef>false</linkXRef>
+                            <sourceDirectories>${project.build.sourceDirectory}</sourceDirectories>
                             <includeTestSourceDirectory>true</includeTestSourceDirectory>
                             <includeTestResources>true</includeTestResources>
                             <excludes>**/generated-sources/**</excludes>
