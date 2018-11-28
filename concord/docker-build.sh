@@ -5,6 +5,7 @@
 
 default_name="concord"
 default_tag="latest"
+label_string=""
 
 # Before even trying, make sure submodules are present
 if [ ! -e "submodules/concord-bft/README.md" ]; then
@@ -21,23 +22,46 @@ if [ ! -e "submodules/state-transfer/README.md" ]; then
     exit 1
 fi
 
-if [ $# -eq 2 ]; then
-    name="${1}"
-    tag="${2}"
-elif [ $# -eq 0 ]; then
+echo "${1}" | grep -i "help" > /dev/null
+need_help=$?
+
+if [ $# -eq 0 ]
+then
     name="${default_name}"
     tag="${default_tag}"
-else
-    echo Usage: docker-build.sh [name tag]
+elif [ $# -eq 1 ]
+then
+    need_help=0
+elif [ $# -ge 2 ]; then
+    name="${1}"
+    shift
+    tag="${1}"
+    shift
+fi
+
+if [ "${need_help}" -eq 0 ]
+then
+    echo Usage: docker-build.sh name tag [labelKey=labelValue labelKey=labelValue ...]
     echo If the name and tag are not provided, the defaults are:
     echo name: "${default_name}"
     echo tag: "${default_tag}"
     exit 1
 fi
 
-# Build the generic image. See docker/docker-compose.yml for how to
-# launch this image for each replica configuration.
-docker build . -t "${name}:${tag}"
+for label in "$@"
+do
+    label_string="${label_string}--label \"${label}\" "
+done
+
+full_command="docker build . -t \"${name}:${tag}\""
+
+if [ "${label_string}" != "" ]
+then
+    full_command="${full_command} ${label_string}"
+fi
+
+echo "Building docker image with command: ${full_command}"
+eval "${full_command}"
 
 if [ $? -ne 0 ]; then
     echo "Image creation failed."
