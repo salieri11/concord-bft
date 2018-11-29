@@ -226,6 +226,7 @@ public final class EthDispatcher extends BaseServlet {
         // the request
         try {
             ethMethodName = getEthMethodName(requestJson);
+            MDC.put("source", ethMethodName);
             id = getEthRequestId(requestJson);
             MDC.put("id", String.valueOf(id));
             switch (ethMethodName) {
@@ -330,8 +331,6 @@ public final class EthDispatcher extends BaseServlet {
                 // concord. Just pass null.
                 responseObject = handler.buildResponse(null, requestJson);
             }
-
-            MDC.put("source", ethMethodName);
             logger.info("Eth RPC request");
             MDC.clear();
             // TODO: Need to refactor exception handling.  Shouldn't just catch an exception and eat it.
