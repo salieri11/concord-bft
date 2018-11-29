@@ -11,6 +11,7 @@ import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -50,7 +51,7 @@ public final class EthDispatcher extends BaseServlet {
     private static final long serialVersionUID = 1L;
     public static long netVersion;
     public static boolean netVersionSet;
-    private static Logger logger = LogManager.getLogger(EthDispatcher.class);
+    private static Logger logger = LogManager.getLogger("ethLogger");
     private JSONArray rpcList;
     private String jsonRpc;
     private ContractRegistryManager registryManager;
@@ -138,6 +139,14 @@ public final class EthDispatcher extends BaseServlet {
             logger.error("Configurations not read.");
             return new ResponseEntity<>(new JSONArray(), standardHeaders, HttpStatus.SERVICE_UNAVAILABLE);
         }
+
+        MDC.put("organization_id", "1234");
+        MDC.put("consortium_id", "1234");
+        MDC.put("source", "/api/concord/eth");
+        MDC.put("method", "GET");
+        MDC.put("response", rpcList.toJSONString());
+        logger.info("Request Eth RPC API list");
+        MDC.clear();
         return new ResponseEntity<>(rpcList, standardHeaders, HttpStatus.OK);
     }
 
@@ -319,6 +328,13 @@ public final class EthDispatcher extends BaseServlet {
                 // concord. Just pass null.
                 responseObject = handler.buildResponse(null, requestJson);
             }
+            MDC.put("organization_id", "1234");
+            MDC.put("consortium_id", "1234");
+            MDC.put("source", ethMethodName);
+            MDC.put("method", "POST");
+            MDC.put("response", responseObject.toJSONString());
+            logger.info("Eth RPC request");
+            MDC.clear();
             // TODO: Need to refactor exception handling.  Shouldn't just catch an exception and eat it.
         } catch (Exception e) {
             logger.error(ApiHelper.exceptionToString(e));
