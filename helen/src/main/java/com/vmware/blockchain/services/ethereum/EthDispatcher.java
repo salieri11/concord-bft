@@ -135,16 +135,14 @@ public final class EthDispatcher extends BaseServlet {
      */
     @RequestMapping(path = "/api/concord/eth", method = RequestMethod.GET)
     public ResponseEntity<JSONAware> doGet() {
-        if (rpcList == null) {
-            logger.error("Configurations not read.");
-            return new ResponseEntity<>(new JSONArray(), standardHeaders, HttpStatus.SERVICE_UNAVAILABLE);
-        }
-
         MDC.put("organization_id", "1234");
         MDC.put("consortium_id", "1234");
         MDC.put("source", "/api/concord/eth");
         MDC.put("method", "GET");
-        MDC.put("response", rpcList.toJSONString());
+        if (rpcList == null) {
+            logger.error("Configurations not read.");
+            return new ResponseEntity<>(new JSONArray(), standardHeaders, HttpStatus.SERVICE_UNAVAILABLE);
+        }
         logger.info("Request Eth RPC API list");
         MDC.clear();
         return new ResponseEntity<>(rpcList, standardHeaders, HttpStatus.OK);
@@ -221,11 +219,15 @@ public final class EthDispatcher extends BaseServlet {
         JSONObject responseObject;
         ConcordResponse concordResponse;
 
+        MDC.put("organization_id", "1234");
+        MDC.put("consortium_id", "1234");
+        MDC.put("method", "POST");
         // Create object of the suitable handler based on the method specified in
         // the request
         try {
             ethMethodName = getEthMethodName(requestJson);
             id = getEthRequestId(requestJson);
+            MDC.put("id", String.valueOf(id));
             switch (ethMethodName) {
                 case Constants.SEND_TRANSACTION_NAME:
                 case Constants.SEND_RAWTRANSACTION_NAME:
@@ -328,11 +330,8 @@ public final class EthDispatcher extends BaseServlet {
                 // concord. Just pass null.
                 responseObject = handler.buildResponse(null, requestJson);
             }
-            MDC.put("organization_id", "1234");
-            MDC.put("consortium_id", "1234");
+
             MDC.put("source", ethMethodName);
-            MDC.put("method", "POST");
-            MDC.put("response", responseObject.toJSONString());
             logger.info("Eth RPC request");
             MDC.clear();
             // TODO: Need to refactor exception handling.  Shouldn't just catch an exception and eat it.
