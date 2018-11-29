@@ -5,6 +5,7 @@ import atexit
 import json
 import logging
 import os
+import os.path
 import pathlib
 from rpc.rpc_call import RPC
 import shutil
@@ -55,6 +56,8 @@ class Product():
          with open(self._cmdlineArgs.dockerComposeFile, "r") as f:
             dockerCfg = yaml.load(f)
 
+         self._copyEnvFile()
+
          if not self._cmdlineArgs.keepconcordDB:
             self.clearDBsForDockerLaunch(dockerCfg)
             self.initializeHelenDockerDB(dockerCfg)
@@ -76,6 +79,15 @@ class Product():
       else:
          raise Exception("The docker compose file '{}' does not " \
                          "exist. Exiting.".format(self._cmdlineArgs.dockerComposeFile))
+
+
+   def _copyEnvFile(self):
+      # This file contains variables fed to docker-compose.yml.  It is picked up from the
+      # location of the process which invokes docker compose.
+      if not os.path.isfile(".env"):
+         log.debug("Copying .env file from Concord.")
+         shutil.copyfile("../concord/docker/.env", "./.env")
+
 
    def _launchViaCmdLine(self, productLogsDir):
       # Since we change directories while launching products, save cwd here

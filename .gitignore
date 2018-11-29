@@ -13,10 +13,10 @@ cmake-build-debug/
 .project
 .settings/
 .vscode/
-docker/config-concord*/s_f1c0_config.pub
-docker/log*
-docker/rocksdbdata*
-docker/cockroachDB
+concord/docker/config-concord*/s_f1c0_config.pub
+concord/docker/log*
+concord/docker/rocksdbdata*
+concord/docker/cockroachDB
 
 # Helen Specific
 target/
@@ -87,3 +87,4 @@ igor.local.config
 cockroachdb_test_local.sh
 .vscode/*
 /hermes/NORMALIZED_COMMANDS.txt.gz
+hermes/.env
