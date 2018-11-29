@@ -90,9 +90,8 @@ def call(){
           stage('Build Helen') {
             steps {
               dir('blockchain/helen') {
-              	// "mvn install" runs "package" before "install"
-              	// "mvn clean install package" had the effect of running package twice
-                sh 'mvn clean install'
+              	// "TODO: Revert to 'mvn clean install' once the UI is separated from Helen to avoid running package twice."
+                sh 'mvn clean install package'
               }
             }
           }
