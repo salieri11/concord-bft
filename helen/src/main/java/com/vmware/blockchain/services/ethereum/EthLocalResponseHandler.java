@@ -53,9 +53,12 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
      * by this handler. However, having an empty method like this is probably not a very good idea. TODO: Figure out how
      * to remove this empty method.
      *
+     * @return Always false - handling locally means never sending a request to concord.
      */
-    public void buildRequest(Concord.ConcordRequest.Builder concordRequestBuilder, JSONObject requestJson)
-            throws Exception {}
+    public boolean buildRequest(Concord.ConcordRequest.Builder concordRequestBuilder, JSONObject requestJson)
+        throws Exception {
+        return false;
+    }
 
     /**
      * Initializes response object by using request JSONObject for local methods. An overload of this method which

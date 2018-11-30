@@ -510,3 +510,33 @@ class RPC():
 
       response = self._call()
       return self.getResultFromResponse(response)
+
+   def newBlockFilter(self):
+      '''
+      Create a new block filter.
+      '''
+      self._rpcData["method"] = "eth_newBlockFilter"
+      self._rpcData["params"] = []
+
+      response = self._call()
+      return self.getResultFromResponse(response)
+
+   def getFilterChanges(self, filterId):
+      '''
+      Get changes since a filter was last queried/created
+      '''
+      self._rpcData["method"] = "eth_getFilterChanges"
+      self._rpcData["params"] = [filterId]
+
+      response = self._call()
+      return self.getResultFromResponse(response)
+
+   def uninstallFilter(self, filterId):
+      '''
+      Uninstall a filter
+      '''
+      self._rpcData["method"] = "eth_uninstallFilter"
+      self._rpcData["params"] = [filterId]
+
+      response = self._call()
+      return self.getResultFromResponse(response)

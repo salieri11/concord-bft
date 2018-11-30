@@ -106,7 +106,10 @@ class ExtendedRPCTests(test_suite.TestSuite):
               ("eth_getBlockByNumber", self._test_eth_getBlockByNumber),
               ("eth_getBalance", self._test_eth_getBalance),
               ("eth_getStorageAt", self._test_eth_getStorageAt),
-              ("eth_getCode", self._test_eth_getCode)]
+              ("eth_getCode", self._test_eth_getCode),
+              ("block_filter", self._test_block_filter),
+              ("block_filter_independence", self._test_block_filter_independence),
+              ("block_filter_uninstall", self._test_block_filter_uninstall)]
 
    def _runRpcTest(self, testName, testFun, testLogDir):
       ''' Runs one test. '''
@@ -538,3 +541,112 @@ class ExtendedRPCTests(test_suite.TestSuite):
             return (False, "receiver balance does not match expected value")
 
       return (True, None)
+
+   def _createBlockFilterAndSendTransactions(self, rpc, txCount):
+      '''
+      Setup a new block filter, and send txCount transactions that it
+      should catch. txCount is assumed to be at least 1.
+      '''
+      # These are just dummy addresses, that could be passed as
+      # parameters if needed in a future version
+      addrFrom = "0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019"
+      addrTo = "0x5bb088f57365907b1840e45984cae028a82af934"
+      transferAmount = "1"
+
+      # Ethereum apps all create filters after submitting the
+      # transaction that they expect the filter to catch. Mimic that
+      # here, to make sure the filter actually returns the block with
+      # this transaction.
+      rpc.sendTransaction(addrFrom,
+                          data=None,
+                          to=addrTo,
+                          value=transferAmount)
+
+      # create the block filter now, so it sees our transactions
+      filter = rpc.newBlockFilter()
+
+      # submit a bunch of tranasactions to create a bunch of blocks
+      for x in range(1,txCount):
+         # data has to be set as None for transferring-fund kind of transaction
+         rpc.sendTransaction(addrFrom,
+                             data=None,
+                             to=addrTo,
+                             value=transferAmount)
+
+      return filter
+
+   def _readFilterToEnd(self, rpc, filter):
+      '''
+      Read all of the blocks a filter currently matches. Returns the
+      number of blocks found before the poll for changes returns an
+      empty list.
+      '''
+      doubleEmpty = False
+      blocksCaught = 0
+      # now read until the filter says there's nothing more
+      while True:
+         result = rpc.getFilterChanges(filter)
+         if len(result) == 0:
+            # web3 doesn't expect an immediate update to a filter, so
+            # during the first poll we return "no new blocks" - don't
+            # stop yet, try one more read
+            if doubleEmpty:
+               # no more blocks to read
+               break
+            doubleEmpty = True
+
+         blocksCaught += len(result)
+
+      return blocksCaught
+
+   def _test_block_filter(self, rpc, request):
+
+      '''
+      Check that a block filter sees updates
+      '''
+      testCount = 25
+
+      filter = self._createBlockFilterAndSendTransactions(rpc, testCount)
+      blocksCaught = self._readFilterToEnd(rpc, filter)
+      if blocksCaught == testCount:
+         return (True, None)
+      else:
+         return (False, "Expected %d blocks, but read %d from filter" %
+                 (testCount, blocksCaught))
+
+   def _test_block_filter_independence(self, rpc, request):
+      '''
+      Check that two block filters see updates independently.
+      '''
+      testCount1 = 5
+      testCount2 = 5
+
+      filter1 = self._createBlockFilterAndSendTransactions(rpc, testCount1)
+      filter2 = self._createBlockFilterAndSendTransactions(rpc, testCount2)
+
+      blocksCaught = self._readFilterToEnd(rpc, filter1)
+      if blocksCaught == testCount1 + testCount2:
+         return (True, None)
+      else:
+         return (False, "Expected %d blocks, but read %d from filter1" %
+                 (testCount1 + testCount2, blocksCaught))
+
+      blocksCaught = self._readFilterToEnd(rpc, filter2)
+      if blocksCaught == testCount2:
+         return (True, None)
+      else:
+         return (False, "Expected %d blocks, but read %d from filter2" %
+                 (testCount2, blocksCaught))
+
+   def _test_block_filter_uninstall(self, rpc, request):
+      '''
+      Check that a filter can't be found after uninstalling it
+      '''
+      filter = rpc.newBlockFilter()
+      result = rpc.getFilterChanges(filter)
+      success = rpc.uninstallFilter(filter)
+      try:
+         rpc.getFilterChanges(filter)
+         return (False, "Deleted filter should not be found")
+      except:
+         return (True, None)

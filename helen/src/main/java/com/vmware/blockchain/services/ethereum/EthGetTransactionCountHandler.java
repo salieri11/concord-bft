@@ -27,9 +27,10 @@ public class EthGetTransactionCountHandler extends AbstractEthRpcHandler {
      *
      * @param concordRequestBuilder Object in which request is built
      * @param requestJson Request parameters passed by the user
+     * @return Always true - send the request.
      */
     @Override
-    public void buildRequest(Concord.ConcordRequest.Builder concordRequestBuilder, JSONObject requestJson)
+    public boolean buildRequest(Concord.ConcordRequest.Builder concordRequestBuilder, JSONObject requestJson)
             throws Exception {
         Concord.EthRequest concordEthRequest = null;
         try {
@@ -51,6 +52,7 @@ public class EthGetTransactionCountHandler extends AbstractEthRpcHandler {
             throw e;
         }
         concordRequestBuilder.addEthRequest(concordEthRequest);
+        return true;
     }
 
     /**

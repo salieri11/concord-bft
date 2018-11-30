@@ -42,8 +42,11 @@ public abstract class AbstractEthRpcHandler {
      *
      * @param builder Builder object in which parameters are set.
      * @param requestJson User request
+     * @return True if the request should be sent to Concord. False if the request should be ignored, and buildResponse
+     *         should be called with a null ConcordResponse.
      */
-    public abstract void buildRequest(Concord.ConcordRequest.Builder builder, JSONObject requestJson) throws Exception;
+    public abstract boolean buildRequest(Concord.ConcordRequest.Builder builder, JSONObject requestJson)
+        throws Exception;
 
     /**
      * This method extracts the relevant parameters from an ConcordResponse and uses them to build a JSONObject which is

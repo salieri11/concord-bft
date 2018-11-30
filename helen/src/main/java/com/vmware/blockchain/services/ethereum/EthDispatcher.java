@@ -258,12 +258,16 @@ public final class EthDispatcher extends BaseServlet {
                     handler = new EthGetBlockHandler();
                     break;
 
+                case Constants.UNINSTALLFILTER_NAME:
+                    isLocal = true; // fallthrough
                 case Constants.NEWFILTER_NAME:
                 case Constants.NEWBLOCKFILTER_NAME:
                 case Constants.NEWPENDINGTRANSACTIONFILTER_NAME:
+                    handler = new EthFilterManageHandler();
+                    break;
+
                 case Constants.FILTERCHANGE_NAME:
-                case Constants.UNINSTALLFILTER_NAME:
-                    handler = new EthFilterHandler();
+                    handler = new EthFilterChangeHandler();
                     break;
 
                 case Constants.WEB3_SHA3_NAME:
@@ -290,18 +294,22 @@ public final class EthDispatcher extends BaseServlet {
 
             if (!isLocal) {
                 Concord.ConcordRequest.Builder concordRequestBuilder = Concord.ConcordRequest.newBuilder();
-                handler.buildRequest(concordRequestBuilder, requestJson);
-                concordResponse = communicateWithConcord(concordRequestBuilder.build());
-                // If there is an error reported by Concord
-                if (concordResponse.getErrorResponseCount() > 0) {
-                    ErrorResponse errResponse = concordResponse.getErrorResponse(0);
-                    if (errResponse.hasDescription()) {
-                        responseObject = errorMessage(errResponse.getDescription(), id, jsonRpc);
+                if (handler.buildRequest(concordRequestBuilder, requestJson)) {
+                    concordResponse = communicateWithConcord(concordRequestBuilder.build());
+                    // If there is an error reported by Concord
+                    if (concordResponse.getErrorResponseCount() > 0) {
+                        ErrorResponse errResponse = concordResponse.getErrorResponse(0);
+                        if (errResponse.hasDescription()) {
+                            responseObject = errorMessage(errResponse.getDescription(), id, jsonRpc);
+                        } else {
+                            responseObject = errorMessage("Error received from concord", id, jsonRpc);
+                        }
                     } else {
-                        responseObject = errorMessage("Error received from concord", id, jsonRpc);
+                        responseObject = handler.buildResponse(concordResponse, requestJson);
                     }
                 } else {
-                    responseObject = handler.buildResponse(concordResponse, requestJson);
+                    // Handler said not to bother with the request. This request is handled locally instead.
+                    responseObject = handler.buildResponse(null, requestJson);
                 }
             }
             // There are some RPC methods which are handled locally by Helen. No

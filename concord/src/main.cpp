@@ -277,8 +277,6 @@ run_service(variables_map &opts, Logger logger)
 
       KVBClientPool pool(clients);
 
-      FilterManager filterManager;
-
       std::string ip = opts["ip"].as<std::string>();
       short port = opts["port"].as<short>();
 
@@ -286,7 +284,6 @@ run_service(variables_map &opts, Logger logger)
       tcp::endpoint endpoint(address::from_string(ip), port);
       api_acceptor acceptor(*api_service,
                             endpoint,
-                            filterManager,
                             pool,
                             sag);
 
