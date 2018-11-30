@@ -277,6 +277,7 @@ bool com::vmware::concord::KVBCommandsHandler::handle_personal_newAccount(
    if (athevm_.new_account(passphrase, kvbStorage, address)) {
       EthResponse *response = athresp.add_eth_response();
       response->set_data(address.bytes, sizeof(evm_address));
+      response->set_id(request.id());
    } else {
       LOG4CPLUS_INFO(logger, "Use another passphrase : " << passphrase);
       ErrorResponse *error = athresp.add_error_response();
@@ -632,10 +633,12 @@ bool com::vmware::concord::KVBCommandsHandler::handle_eth_blockNumber(
    KVBStorage &kvbStorage,
    ConcordResponse &athresp) const
 {
+   const EthRequest request = athreq.eth_request(0);
    EthResponse *response = athresp.add_eth_response();
    evm_uint256be current_block{{0}};
    to_evm_uint256be(kvbStorage.current_block_number(), &current_block);
    response->set_data(current_block.bytes, sizeof(evm_uint256be));
+   response->set_id(request.id());
 
    return true;
 }
@@ -661,6 +664,7 @@ bool com::vmware::concord::KVBCommandsHandler::handle_eth_getCode(
    if (kvbStorage.get_code(account, code, hash, block_number)) {
       EthResponse *response = athresp.add_eth_response();
       response->set_data(std::string(code.begin(), code.end()));
+      response->set_id(request.id());
    } else {
       ErrorResponse *error = athresp.add_error_response();
       error->set_description("No code found at given address");
