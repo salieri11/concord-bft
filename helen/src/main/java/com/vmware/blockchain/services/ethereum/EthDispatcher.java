@@ -162,6 +162,10 @@ public final class EthDispatcher extends BaseServlet {
         JSONAware responseBody;
         boolean isBatch = false;
         ResponseEntity<JSONAware> responseEntity;
+        // TODO change the organization_id and consortium_id to real ones in future
+        MDC.put("organization_id", "1234");
+        MDC.put("consortium_id", "1234");
+        MDC.put("method", "POST");
         try {
             logger.debug("Request Parameters: " + paramString);
 
@@ -195,6 +199,8 @@ public final class EthDispatcher extends BaseServlet {
         } catch (Exception e) {
             logger.error(ApiHelper.exceptionToString(e));
             responseBody = errorMessage(e.getMessage(), -1, jsonRpc);
+        } finally {
+            MDC.clear();
         }
         logger.debug("Response: " + responseBody.toJSONString());
         return new ResponseEntity<>(responseBody, standardHeaders, HttpStatus.OK);
@@ -218,10 +224,6 @@ public final class EthDispatcher extends BaseServlet {
         boolean isLocal = false;
         JSONObject responseObject;
         ConcordResponse concordResponse;
-
-        MDC.put("organization_id", "1234");
-        MDC.put("consortium_id", "1234");
-        MDC.put("method", "POST");
         // Create object of the suitable handler based on the method specified in
         // the request
         try {
@@ -332,7 +334,6 @@ public final class EthDispatcher extends BaseServlet {
                 responseObject = handler.buildResponse(null, requestJson);
             }
             logger.info("Eth RPC request");
-            MDC.clear();
             // TODO: Need to refactor exception handling.  Shouldn't just catch an exception and eat it.
         } catch (Exception e) {
             logger.error(ApiHelper.exceptionToString(e));
