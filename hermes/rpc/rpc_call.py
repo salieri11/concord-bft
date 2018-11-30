@@ -150,6 +150,14 @@ class RPC():
             exception = "RPC response contained an error.\n" \
                         "Data sent: '{}'\n".format(self._rpcData) + \
                         "Response: '{}'".format(response)
+         elif not ("id" in response):
+            exception = "RPC response must contain an id field.\n" \
+                        "Data sent: '{}'\n".format(self._rpcData) + \
+                        "Response: '{}'".format(response)
+         elif not (response["id"] == self._rpcData["id"]):
+            exception = "RPC response should contain same id as request.\n" \
+                        "Data sent: '{}'\n".format(self._rpcData) + \
+                        "Response: '{}'".format(response)
       else:
          exception = "No response for an RPC call was received.  Is the " \
                      "server running?"
