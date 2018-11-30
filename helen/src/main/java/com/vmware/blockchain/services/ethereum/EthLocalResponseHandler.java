@@ -9,13 +9,15 @@ import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.connections.IConcordConnection;
-import com.vmware.concord.Concord;
 import com.vmware.blockchain.services.profiles.ApplicationContextHolder;
 import com.vmware.blockchain.services.profiles.KeystoresRegistryManager;
+import com.vmware.concord.Concord;
 
 /**
  * <p>
@@ -163,7 +165,9 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
             String address = (String) wallet.get("address");
             KeystoresRegistryManager krm = ApplicationContextHolder.getContext()
                     .getBean(KeystoresRegistryManager.class);
-            krm.storeKeystore(address, wallet.toJSONString());
+            UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication()
+                    .getPrincipal();
+            krm.storeKeystore(userDetails.getUsername(), address, wallet.toJSONString());
             localData = "0x" + address;
         } else if (ethMethodName.equals(Constants.ACCOUNTS_NAME)) {
             JSONArray usersJsonArr = new JSONArray();

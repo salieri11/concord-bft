@@ -6,7 +6,10 @@ package com.vmware.blockchain.services.profiles;
 
 
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
 /**
@@ -20,6 +23,10 @@ public class Keystore {
     @Id
     private String address;
     private String wallet;
+
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(nullable = false)
+    private User user;
 
     protected Keystore() {
     }
@@ -38,6 +45,14 @@ public class Keystore {
 
     protected void setWallet(String wallet) {
         this.wallet = wallet;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 
     @Override

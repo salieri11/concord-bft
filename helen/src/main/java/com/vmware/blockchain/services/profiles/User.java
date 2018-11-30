@@ -6,8 +6,12 @@ package com.vmware.blockchain.services.profiles;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -18,7 +22,9 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
+
 
 /**
  * A Spring Data JPA (or Hibernate) Entity class representing a user in the system.
@@ -27,6 +33,8 @@ import javax.persistence.Table;
 @Entity
 public class User {
 
+    @OneToMany(mappedBy = "user", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
+    protected Set<Keystore> keystores = new HashSet<>();
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -146,6 +154,14 @@ public class User {
 
     protected void setLastLogin(Long lastLogin) {
         this.lastLogin = lastLogin;
+    }
+
+    public Set<Keystore> getKeystores() {
+        return Collections.unmodifiableSet(keystores);
+    }
+
+    protected void addKeystore(Keystore keystore) {
+        keystores.add(keystore);
     }
 
     @Override
