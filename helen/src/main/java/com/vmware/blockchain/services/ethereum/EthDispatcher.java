@@ -137,7 +137,8 @@ public final class EthDispatcher extends BaseServlet {
     public ResponseEntity<JSONAware> doGet() {
         MDC.put("organization_id", "1234");
         MDC.put("consortium_id", "1234");
-        MDC.put("source", "/api/concord/eth");
+        MDC.put("uri", "/api/concord/eth");
+        MDC.put("source", "rpcList");
         MDC.put("method", "GET");
         if (rpcList == null) {
             logger.error("Configurations not read.");
@@ -166,6 +167,7 @@ public final class EthDispatcher extends BaseServlet {
         MDC.put("organization_id", "1234");
         MDC.put("consortium_id", "1234");
         MDC.put("method", "POST");
+        MDC.put("uri", "/api/concord/eth");
         try {
             logger.debug("Request Parameters: " + paramString);
 
