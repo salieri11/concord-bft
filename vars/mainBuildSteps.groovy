@@ -1,3 +1,5 @@
+import groovy.json.*
+
 def call(){
   pipeline {
     agent any
@@ -30,7 +32,7 @@ def call(){
               sh 'mkdir blockchain'
               dir('blockchain') {
                 script {
-                  env.actual_blockchain_fetched = getRepoCode("git@github.com:vmwathena/blockchain.git", params.blockchain_branch_or_commit)
+                  env.commit = getRepoCode("git@github.com:vmwathena/blockchain.git", params.blockchain_branch_or_commit)
                 }
               }
             }
@@ -63,6 +65,24 @@ def call(){
                 sh 'cp -ar /var/jenkins/workspace/ethereum_tests/* .'
               }
             }
+          }
+        }
+      }
+
+      stage('Write version for GUI') {
+        steps() {
+          dir('blockchain') {
+            script {
+              version = env.version_param ? env.version_param : env.commit
+              env.version_json = createVersionInfo(version, env.commit)
+            }
+            // The groovy calls to create directories and files fail, only in Jenkins,
+            // so do those in a shell block.  Jenkins has some quirky ideas of security?
+            sh '''
+              dir=helen/src/main/resources/static/assets/data
+              mkdir -p ${dir}
+              echo ${version_json} > ${dir}/version.json
+            '''
           }
         }
       }
@@ -153,7 +173,7 @@ def call(){
                 dir('blockchain/helen') {
 
                  script {
-                    env.helen_docker_tag = env.version_param ? env.version_param : env.actual_blockchain_fetched
+                    env.helen_docker_tag = env.version_param ? env.version_param : env.commit
                   }
 
                   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
@@ -173,7 +193,7 @@ def call(){
                 dir('blockchain/concord') {
 
                   script {
-                    env.concord_docker_tag = env.version_param ? env.version_param : env.actual_blockchain_fetched
+                    env.concord_docker_tag = env.version_param ? env.version_param : env.commit
                   }
                   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                     sh '''
@@ -321,4 +341,13 @@ void createAndPushTag(tag){
     script: "git push origin ${tag}",
     returnStdout: false
   )
+}
+
+// Use groovy to create and return json for the version and commit
+// for this run.
+void createVersionInfo(version, commit){
+  versionObject = [:]
+  versionObject.version = version
+  versionObject.commit = commit
+  return new JsonOutput().toJson(versionObject)
 }
