@@ -11,6 +11,7 @@ import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -50,7 +51,7 @@ public final class EthDispatcher extends BaseServlet {
     private static final long serialVersionUID = 1L;
     public static long netVersion;
     public static boolean netVersionSet;
-    private static Logger logger = LogManager.getLogger(EthDispatcher.class);
+    private static Logger logger = LogManager.getLogger("ethLogger");
     private JSONArray rpcList;
     private String jsonRpc;
     private ContractRegistryManager registryManager;
@@ -134,10 +135,17 @@ public final class EthDispatcher extends BaseServlet {
      */
     @RequestMapping(path = "/api/concord/eth", method = RequestMethod.GET)
     public ResponseEntity<JSONAware> doGet() {
+        MDC.put("organization_id", "1234");
+        MDC.put("consortium_id", "1234");
+        MDC.put("uri", "/api/concord/eth");
+        MDC.put("source", "rpcList");
+        MDC.put("method", "GET");
         if (rpcList == null) {
             logger.error("Configurations not read.");
             return new ResponseEntity<>(new JSONArray(), standardHeaders, HttpStatus.SERVICE_UNAVAILABLE);
         }
+        logger.info("Request Eth RPC API list");
+        MDC.clear();
         return new ResponseEntity<>(rpcList, standardHeaders, HttpStatus.OK);
     }
 
@@ -155,6 +163,11 @@ public final class EthDispatcher extends BaseServlet {
         JSONAware responseBody;
         boolean isBatch = false;
         ResponseEntity<JSONAware> responseEntity;
+        // TODO change the organization_id and consortium_id to real ones in future
+        MDC.put("organization_id", "1234");
+        MDC.put("consortium_id", "1234");
+        MDC.put("method", "POST");
+        MDC.put("uri", "/api/concord/eth");
         try {
             logger.debug("Request Parameters: " + paramString);
 
@@ -188,6 +201,8 @@ public final class EthDispatcher extends BaseServlet {
         } catch (Exception e) {
             logger.error(ApiHelper.exceptionToString(e));
             responseBody = errorMessage(e.getMessage(), -1, jsonRpc);
+        } finally {
+            MDC.clear();
         }
         logger.debug("Response: " + responseBody.toJSONString());
         return new ResponseEntity<>(responseBody, standardHeaders, HttpStatus.OK);
@@ -211,12 +226,13 @@ public final class EthDispatcher extends BaseServlet {
         boolean isLocal = false;
         JSONObject responseObject;
         ConcordResponse concordResponse;
-
         // Create object of the suitable handler based on the method specified in
         // the request
         try {
             ethMethodName = getEthMethodName(requestJson);
+            MDC.put("source", ethMethodName);
             id = getEthRequestId(requestJson);
+            MDC.put("id", String.valueOf(id));
             switch (ethMethodName) {
                 case Constants.SEND_TRANSACTION_NAME:
                 case Constants.SEND_RAWTRANSACTION_NAME:
@@ -319,6 +335,7 @@ public final class EthDispatcher extends BaseServlet {
                 // concord. Just pass null.
                 responseObject = handler.buildResponse(null, requestJson);
             }
+            logger.info("Eth RPC request");
             // TODO: Need to refactor exception handling.  Shouldn't just catch an exception and eat it.
         } catch (Exception e) {
             logger.error(ApiHelper.exceptionToString(e));
