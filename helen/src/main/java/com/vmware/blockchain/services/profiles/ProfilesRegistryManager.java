@@ -279,9 +279,6 @@ public class ProfilesRegistryManager {
             org.addUser(u);
             consortium.addUser(u);
             logger.info("Admin user created. Username: " + email + " Password: " + password);
-            return u;
-        } else {
-            return oUser.get(0);
         }
     }
 
