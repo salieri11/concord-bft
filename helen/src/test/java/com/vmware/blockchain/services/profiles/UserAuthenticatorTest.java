@@ -75,9 +75,22 @@ public class UserAuthenticatorTest {
      */
     @Before
     public void init() {
+        Consortium consortium = new Consortium();
+        consortium.setConsortiumId(200L);
+        consortium.setConsortiumName("Consortium Test");
+        consortium.setConsortiumType("Test Type");
+        Organization organization = new Organization();
+        organization.setOrganizationId(300L);
+        organization.setOrganizationName("Test Org");
+        // our test user
         testUser = new User();
+        testUser.setUserId(20L);
         testUser.setEmail("user@test.com");
+        testUser.setFirstName("Test");
+        testUser.setLastName("User");
         testUser.setPassword("1234");
+        testUser.setConsortium(consortium);
+        testUser.setOrganization(organization);
         testUser.setRole(Roles.SYSTEM_ADMIN);
 
         // The order of these matters.  When the user is "user@test.com" return the test user,
@@ -105,7 +118,8 @@ public class UserAuthenticatorTest {
     @Test
     public void loginTest() throws Exception {
         String loginRequest = "{\"email\": \"user@test.com\", \"password\": \"1234\"}";
-        String loginResponse = "{\"token\":\"token\",\"refresh_token\":\"refresh_token\",\"token_expires\":1800000}";
+        String loginResponse =
+                "{\"user_id\":20, \"token\":\"token\",\"refresh_token\":\"refresh_token\",\"token_expires\":1800000}";
         mvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON).content(loginRequest))
                 .andDo(MockMvcResultHandlers.print())

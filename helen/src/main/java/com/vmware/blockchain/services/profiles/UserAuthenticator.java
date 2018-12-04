@@ -70,10 +70,40 @@ public class UserAuthenticator extends BaseServlet {
     @NoArgsConstructor
     @JsonInclude(value =  Include.NON_EMPTY)
     private static class LoginResponse {
-        String token;
-        String refreshToken;
-        Long tokenExpires;
-        String error;
+        // login response potentially has all the fields of User
+        private Long userId;
+        private String userName;
+        private String firstName;
+        private String lastName;
+        private String email;
+        private String role;
+        private String password;
+        private Long lastLogin;
+        private String organizationName;
+        private String consortiumName;
+        private Long organizationId;
+        private Long consortiumId;
+        private Boolean authenticated;
+        private String token;
+        private String refreshToken;
+        private Long tokenExpires;
+        private String error;
+
+        // Convenience function for dealing with the user fields
+        public void setUser(User user) {
+            this.userId = user.getUserId();
+            this.userName = user.getName();
+            this.firstName = user.getFirstName();
+            this.lastName = user.getLastName();
+            this.email = user.getEmail();
+            this.role = user.getRole();
+            this.lastLogin = user.getLastLogin();
+            this.organizationId = user.getOrganization().getOrganizationId();
+            this.organizationName = user.getOrganization().getOrganizationName();
+            this.consortiumId = user.getConsortium().getConsortiumId();
+            this.consortiumName = user.getConsortium().getConsortiumName();
+        }
+
     }
 
     @Autowired
@@ -107,6 +137,8 @@ public class UserAuthenticator extends BaseServlet {
 
             if (u != null && passwordEncoder.matches(password, u.getPassword())) {
                 responseStatus = HttpStatus.OK;
+                loginResponse.setUser(u);
+                loginResponse.setAuthenticated(true);
                 loginResponse.setToken(jwtTokenProvider.createToken(u));
                 loginResponse.setRefreshToken(jwtTokenProvider.createRefreshToken(u));
                 loginResponse.setTokenExpires(jwtTokenProvider.validityInMilliseconds);
