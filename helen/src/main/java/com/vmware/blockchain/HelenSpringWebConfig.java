@@ -9,6 +9,7 @@ import java.io.IOException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.PathResourceResolver;
@@ -17,6 +18,7 @@ import org.springframework.web.servlet.resource.PathResourceResolver;
  * Configuration file for Helen.
  */
 @Configuration
+@EnableJpaRepositories(basePackages = "com.vmware.blockchain")
 public class HelenSpringWebConfig implements WebMvcConfigurer {
 
     // Value annotation is a new spring feature which allows you to inject

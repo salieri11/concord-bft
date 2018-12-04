@@ -6,7 +6,6 @@ package com.vmware.blockchain.security;
 
 import java.util.Base64;
 import java.util.Date;
-import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -23,7 +22,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.common.HelenException;
-import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.profiles.User;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -59,13 +58,26 @@ public class JwtTokenProvider {
     /**
      * Create a new JWT with the specified user name and roles.
      */
-    public String createToken(String username, List<Roles> roles) {
-        Claims claims = Jwts.claims().setSubject(username);
-        claims.put("auth", roles.stream().map(s -> new SimpleGrantedAuthority(s.getAuthority()))
+    public String createToken(User user) {
+        return createJwt(user, validityInMilliseconds);
+    }
+
+    /**
+     * Create a refresh token for given user with roles.
+     */
+    public String createRefreshToken(User user) {
+        return createJwt(user, refreshTokenValidityInMilliseconds);
+    }
+
+    private String createJwt(User user, long ttl) {
+        Claims claims = Jwts.claims().setSubject(user.getEmail());
+        claims.put("auth", user.getRoles().stream().map(s -> new SimpleGrantedAuthority(s.getAuthority()))
                 .filter(Objects::nonNull).collect(Collectors.toList()));
+        // "context_name" is what this field will be when we integrate with CSP
+        claims.put("context_name", user.getConsortium().getConsortiumId());
 
         Date now = new Date();
-        Date validity = new Date(now.getTime() + validityInMilliseconds);
+        Date validity = new Date(now.getTime() + ttl);
 
         return Jwts.builder().setClaims(claims).setIssuedAt(now).setExpiration(validity)
                 .signWith(SignatureAlgorithm.HS256, secretKey).compact();
@@ -103,21 +115,5 @@ public class JwtTokenProvider {
         }
     }
 
-    /**
-     * Create a refresh token for given user with roles.
-     */
-    public String createRefreshToken(String username, List<Roles> roles) {
-        Date now = new Date();
-        Date validity = new Date(now.getTime() + refreshTokenValidityInMilliseconds);
-
-        Claims claims = Jwts.claims().setSubject(username);
-        claims.put("auth", roles.stream().map(s -> new SimpleGrantedAuthority(s.getAuthority()))
-                .filter(Objects::nonNull).collect(Collectors.toList()));
-
-        String token = Jwts.builder().setClaims(claims).setIssuedAt(now).setExpiration(validity)
-                .signWith(SignatureAlgorithm.HS256, secretKey).compact();
-
-        return token;
-    }
 
 }

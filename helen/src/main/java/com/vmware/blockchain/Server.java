@@ -13,12 +13,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.ehcache.EhCacheCacheManager;
 import org.springframework.context.annotation.Bean;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 import net.sf.ehcache.config.CacheConfiguration;
 
@@ -30,11 +28,8 @@ import net.sf.ehcache.config.CacheConfiguration;
  * Messages are sent in Google Protocol Buffer format. Responses from Helen to the client are in Json format.
  */
 @SpringBootApplication
-@EntityScan(basePackages = "com.vmware.blockchain")
-@EnableJpaRepositories(basePackages = "com.vmware.blockchain")
 @EnableCaching
 public class Server {
-
 
     // Set current datetime for logging purposes
     static {
@@ -82,7 +77,5 @@ public class Server {
     CacheManager cacheManager() {
         return new EhCacheCacheManager(ehCacheManager());
     }
-
-
 
 }
