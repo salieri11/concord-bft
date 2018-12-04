@@ -275,7 +275,7 @@ EOF
                   release_notification_recipients = readFile(release_notification_address_file).replaceAll("\n", " ")
                   emailext body: "Changes: \n" + getChangesSinceLastTag(),
                        to: release_notification_recipients,
-                       subject: "Version " + env.version_param + " has been pushed to DockerHub."
+                       subject: "[Build] Concord version " + env.version_param + " has been pushed to DockerHub."
                 }
               }
             }
