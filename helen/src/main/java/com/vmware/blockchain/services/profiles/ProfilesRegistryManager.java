@@ -258,11 +258,12 @@ public class ProfilesRegistryManager {
      */
     @EventListener(classes = ApplicationReadyEvent.class)
     public void createUserIfNotExist() {
-        logger.info("Application ready.  Seeding user");
+        logger.info("Application ready");
         String email = "admin@blockchain.local";
         String password = "Admin!23";
         List<User> oUser = userRepository.findAll();
         if (oUser.isEmpty()) {
+            logger.info("Creating Initial User");
             Organization org = createOrgIfNotExist();
             Consortium consortium = createConsortiumIfNotExist();
             User u = new User();
