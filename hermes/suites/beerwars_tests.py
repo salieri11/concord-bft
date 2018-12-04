@@ -102,7 +102,7 @@ class BeerWarsTests(test_suite.TestSuite):
       os.system("docker rmi $(docker images | grep beerwars | sed 's/|/ /' | awk '{print $3}')")
 
    def _test_beerwars(self, fileRoot):
-      status_docker_run = os.system('docker run --name beerwars-test -td mmukundram/beerwars:1.0.3')
+      status_docker_run = os.system('docker run --name beerwars-test -td mmukundram/beerwars:latest')
       if os.WEXITSTATUS(status_docker_run):
          return (False, "Could not run docker container")
       if self._apiServerUrl != '':
