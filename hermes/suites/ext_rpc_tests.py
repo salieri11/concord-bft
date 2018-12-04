@@ -409,6 +409,9 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if not currentBlock["number"] == currentBlockNumber:
          return (False, "Current block does not have current block number")
 
+      if not currentBlock["gasLimit"] == "0xf4240":
+         return (False, "Gas limit isn't 0xf4240")
+
       futureBlockNumber = 1 + int(currentBlockNumber, 16)
 
       try:
