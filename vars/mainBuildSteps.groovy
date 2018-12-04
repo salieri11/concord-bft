@@ -25,6 +25,7 @@ def call(){
           cleanWs()
         }
       }
+
       stage('Fetch source code') {
         parallel {
           stage('Fetch blockchain repo source') {
@@ -265,6 +266,19 @@ EOF
               docker tag ${helen_repo}:${version_param} ${helen_repo}:latest
               docker push ${helen_repo}:latest
             '''
+
+            dir('blockchain/vars') {
+              script {
+                release_notification_address_file = "release_notification_recipients.txt"
+
+                if (fileExists(release_notification_address_file)) {
+                  release_notification_recipients = readFile(release_notification_address_file).replaceAll("\n", " ")
+                  emailext body: "Changes: \n" + getChangesSinceLastTag(),
+                       to: release_notification_recipients,
+                       subject: "Version " + env.version_param + " has been pushed to DockerHub."
+                }
+              }
+            }
           }
         }
       }
@@ -341,6 +355,14 @@ void createAndPushTag(tag){
     script: "git push origin ${tag}",
     returnStdout: false
   )
+}
+
+// Returns all changes since the last git tag.
+String getChangesSinceLastTag(){
+  return sh (
+    script: 'git log `git tag -l --sort=-v:refname | head -n 1`..HEAD',
+    returnStdout: true
+  ).trim()
 }
 
 // Use groovy to create and return json for the version and commit
