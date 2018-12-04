@@ -126,9 +126,6 @@ public class UserAuthenticator extends BaseServlet {
     @RequestMapping(method = RequestMethod.POST, path = "/api/auth/login")
     protected ResponseEntity<LoginResponse> doPost(@RequestBody LoginRequest request) {
         HttpStatus responseStatus;
-        // Need to create an init user if one doesn't exist
-        // so we can login.
-        prm.createUserIfNotExist();
         LoginResponse loginResponse = new LoginResponse();
         try {
             String password = request.getPassword();

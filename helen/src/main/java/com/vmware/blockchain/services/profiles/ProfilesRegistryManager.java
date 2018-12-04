@@ -18,8 +18,10 @@ import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.context.event.EventListener;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -252,9 +254,11 @@ public class ProfilesRegistryManager {
     // available
 
     /**
-     * Create the test user if it does not already exist.
+     * Create the test user if it does not already exist.  Do this when the application goes ready.
      */
-    public User createUserIfNotExist() {
+    @EventListener(classes = ApplicationReadyEvent.class)
+    public void createUserIfNotExist() {
+        logger.info("Application ready.  Seeding user");
         String email = "admin@blockchain.local";
         String password = "Admin!23";
         List<User> oUser = userRepository.findAll();
