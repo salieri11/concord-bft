@@ -61,7 +61,7 @@ public class WalletServlet extends BaseServlet {
                 responseJson = krm.getWalletByAddress(address);
                 responseStatus = HttpStatus.OK;
             } catch (ParseException e) {
-                logger.warn("Error while adding new user", e);
+                logger.warn("Error while retrieving client wallet", e);
                 responseJson = ApiHelper.errorJson(e.getMessage());
                 responseStatus = HttpStatus.BAD_REQUEST;
             }

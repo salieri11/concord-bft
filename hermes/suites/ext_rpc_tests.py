@@ -24,6 +24,9 @@ from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
 from util.product import Product
 import util.json_helper
 
+import web3
+from web3 import Web3, HTTPProvider
+
 log = logging.getLogger(__name__)
 
 class ExtendedRPCTests(test_suite.TestSuite):
@@ -109,7 +112,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
               ("eth_getCode", self._test_eth_getCode),
               ("block_filter", self._test_block_filter),
               ("block_filter_independence", self._test_block_filter_independence),
-              ("block_filter_uninstall", self._test_block_filter_uninstall)]
+              ("block_filter_uninstall", self._test_block_filter_uninstall),
+              ("eth_personal_newAccount", self._test_personal_newAccount)]
 
    def _runRpcTest(self, testName, testFun, testLogDir):
       ''' Runs one test. '''
@@ -653,3 +657,44 @@ class ExtendedRPCTests(test_suite.TestSuite):
          return (False, "Deleted filter should not be found")
       except:
          return (True, None)
+
+   def _test_personal_newAccount(self, rpc, request):
+      '''
+      Check that account is created correctly
+      :param password:
+      :return:
+      '''
+      web3 = Web3(HTTPProvider(
+         'http://admin@blockchain.local:Admin!23@127.0.0.1:8080/api/concord/eth'))
+      password = "123456"
+      address = web3.personal.newAccount(password)
+      wallet = request.getWallet(3, address[2:].lower())
+      private_key = web3.eth.account.decrypt(wallet, password)
+      transaction = {
+         'to': '0xF0109fC8DF283027b6285cc889F5aA624EaC1F55',
+         'value': 0,
+         'gas': 0,
+         'gasPrice': 0,
+         'nonce': 0,
+         'chainId': 1}
+      signed = web3.eth.account.signTransaction(transaction, private_key)
+      txResult = web3.eth.sendRawTransaction(signed.rawTransaction)
+      if not txResult:
+         return (False, "Transaction was not accepted")
+
+
+      if not self._productMode:
+         log.warn("No verification done in ethereum mode")
+      else:
+         hexstring = txResult.hex();
+         tx = request.getTransaction(hexstring)
+         if not tx:
+            return (False, "No transaction receipt found")
+
+         # Note that the there is no leading '0x' for address in wallet
+         if not tx["from"][2:] == wallet['address']:
+            return (False, "Found from does not match expected from")
+
+      return (True, None)
+
+
