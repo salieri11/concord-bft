@@ -134,13 +134,14 @@ public class UserAuthenticator extends BaseServlet {
 
             if (u != null && passwordEncoder.matches(password, u.getPassword())) {
                 // need to get another image of user
-                prm.loginUser(email);
                 responseStatus = HttpStatus.OK;
                 loginResponse.setUser(u);
                 loginResponse.setAuthenticated(true);
                 loginResponse.setToken(jwtTokenProvider.createToken(u));
                 loginResponse.setRefreshToken(jwtTokenProvider.createRefreshToken(u));
                 loginResponse.setTokenExpires(jwtTokenProvider.validityInMilliseconds);
+                // This needs to be after we have copied the old user data
+                prm.loginUser(u);
             } else {
                 loginResponse.setError("Invalid email/password");
                 responseStatus = HttpStatus.UNAUTHORIZED;
