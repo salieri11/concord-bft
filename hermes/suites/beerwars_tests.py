@@ -57,7 +57,7 @@ class BeerWarsTests(test_suite.TestSuite):
       if self._args.password != None:
          self._password = self._args.password
       else:
-         self._password = "Passw0rd!"
+         self._password = "Admin!23"
 
       if self._args.endpoint != None:
          self._apiServerUrl = self._args.endpoint
