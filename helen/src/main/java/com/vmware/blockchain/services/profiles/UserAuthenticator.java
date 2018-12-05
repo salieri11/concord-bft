@@ -133,7 +133,8 @@ public class UserAuthenticator extends BaseServlet {
             User u = userRepository.findUserByEmail(email).orElse(null);
 
             if (u != null && passwordEncoder.matches(password, u.getPassword())) {
-                prm.loginUser(u);
+                // need to get another image of user
+                prm.loginUser(email);
                 responseStatus = HttpStatus.OK;
                 loginResponse.setUser(u);
                 loginResponse.setAuthenticated(true);
