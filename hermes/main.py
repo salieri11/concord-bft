@@ -61,13 +61,10 @@ def main():
                        type=int,
                        help="Number of times to repeat test runs")
    parser.add_argument("--endpoint",
-                       default="",
                        help="Endpoint for BeerWars tests")
    parser.add_argument("--user",
-                       default="",
                        help="User name for BeerWars tests")
    parser.add_argument("--password",
-                       default="",
                        help="Password for BeerWars tests")
    args = parser.parse_args()
    parent_results_dir = args.resultsDir
