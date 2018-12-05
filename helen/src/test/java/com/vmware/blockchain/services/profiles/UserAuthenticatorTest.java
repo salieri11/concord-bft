@@ -6,6 +6,7 @@ package com.vmware.blockchain.services.profiles;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -14,6 +15,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.Optional;
 
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -111,7 +113,11 @@ public class UserAuthenticatorTest {
         when(jwtTokenProvider.getAuthentication("token"))
             .thenReturn(new TestingAuthenticationToken("user@test.com", "1234"));
 
-        // We don't need to mock anything in prm.
+        doAnswer(invocation -> {
+            User u = invocation.getArgument(0);
+            u.setLastLogin(1000L);
+            return null;
+        }).when(prm).loginUser(any(User.class));
     }
 
 
@@ -119,11 +125,13 @@ public class UserAuthenticatorTest {
     public void loginTest() throws Exception {
         String loginRequest = "{\"email\": \"user@test.com\", \"password\": \"1234\"}";
         String loginResponse =
-                "{\"user_id\":20, \"token\":\"token\",\"refresh_token\":\"refresh_token\",\"token_expires\":1800000}";
+                "{\"user_id\":20, \"last_login\":0, \"token\":\"token\",\"refresh_token\":"
+                + "\"refresh_token\",\"token_expires\":1800000}";
         mvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON).content(loginRequest))
                 .andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isOk()).andExpect(content().json(loginResponse));
+        Assert.assertNotEquals(new Long(0), testUser.getLastLogin());
     }
 
     @Test
