@@ -56,7 +56,7 @@ class Product():
          with open(self._cmdlineArgs.dockerComposeFile, "r") as f:
             dockerCfg = yaml.load(f)
 
-         self._copyEnvFile()
+         self.copyEnvFile()
 
          if not self._cmdlineArgs.keepconcordDB:
             self.clearDBsForDockerLaunch(dockerCfg)
@@ -81,7 +81,7 @@ class Product():
                          "exist. Exiting.".format(self._cmdlineArgs.dockerComposeFile))
 
 
-   def _copyEnvFile(self):
+   def copyEnvFile(self):
       # This file contains variables fed to docker-compose.yml.  It is picked up from the
       # location of the process which invokes docker compose.
       if not os.path.isfile(".env"):
@@ -332,14 +332,14 @@ class Product():
                   "cockroachDB" in v:
                   yamlDir = os.path.dirname(self._cmdlineArgs.dockerComposeFile)
                   deleteMe = os.path.join(yamlDir, v.split(":")[0])
-                  log.debug("Deleting: {}".format(deleteMe))
+                  log.info("Deleting: {}".format(deleteMe))
 
                   if os.path.isdir(deleteMe):
                      try:
                         shutil.rmtree(deleteMe)
                      except PermissionError as e:
                         log.error("Could not delete {}. Try running with sudo " \
-                                  "when running tests in docker mode.".format(deleteMe))
+                                  "when running in docker mode.".format(deleteMe))
                         raise e
 
    def stopProduct(self):
