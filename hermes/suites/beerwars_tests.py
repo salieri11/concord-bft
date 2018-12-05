@@ -124,41 +124,64 @@ class BeerWarsTests(test_suite.TestSuite):
    def _getTests(self):
       return [("beerwars", self._test_beerwars)]
 
+   def _executeInContainer(self, command):
+      p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+      data, err = p.communicate()
+      if err != None:
+         return (None, err)
+      out = data.strip().decode('utf-8')
+      return (out, None)
+
+   def _concatenatedExecuteInContainer(self, command1, command2):
+      ''' Equivalent to the following steps :
+             1. Execute command2
+             2. If errors in 1., exit
+             3. If non-empty output in 1., execute command1 with the output as STDIN
+      '''
+      out1, err1 =self. _executeInContainer(command2)
+      if out1 != None and out1 != '':
+         return self._executeInContainer(command1 + " " + out1)
+      return (out1, err1)
 
    def _cleanUp(self):
       ''' Cleaning up the Docker changes the test(s) caused '''
       log.info("Cleaning up")
-      os.system("docker stop $(docker ps | grep beerwars | sed 's/|/ /' | awk '{print $1}')")
-      os.system("docker rm $(docker ps -a | grep beerwars | sed 's/|/ /' | awk '{print $1}')")
-      os.system("docker rmi $(docker images | grep beerwars | sed 's/|/ /' | awk '{print $3}')")
+      self._concatenatedExecuteInContainer("docker stop","docker ps | grep beerwars | sed 's/|/ /' | awk '{print $1}'")
+      self._concatenatedExecuteInContainer("docker rm -f", "docker ps -a | grep beerwars | sed 's/|/ /' | awk '{print $1}'")
+      self._concatenatedExecuteInContainer("docker rmi", "docker images | grep beerwars | sed 's/|/ /' | awk '{print $3}'")
 
 
    def _test_beerwars(self, fileRoot):
       ''' Tests if BeerWars can be deployed using the docker container '''
-      status_docker_run = os.system('docker run --name beerwars-test --network="host" -td mmukundram/beerwars:latest')
-      if os.WEXITSTATUS(status_docker_run):
-         return (False, "Could not run docker container")
+      out, err = self._executeInContainer("docker run --name beerwars-test --network='host' -td mmukundram/beerwars:latest")
+      if err != None:
+         return (False, err)
 
       # The endpoint for the DApp to be deployed is the host of the container
       # Following command is to get the IP address of the host in the host-container network
-      p1 = subprocess.Popen('ifconfig docker | grep "inet addr" | cut -d: -f2 | cut -d " " -f1 | awk "{print $1}"', shell=True, stdout=subprocess.PIPE)
-      out1, err1 = p1.communicate()
-      self._apiServerUrl = self._apiServerUrl.replace("URL_PLACEHOLDER", out1.strip().decode('utf-8'))
+      out, err = self._executeInContainer("ifconfig docker | grep 'inet addr' | cut -d: -f2 | cut -d ' ' -f1 | awk '{print $1}'")
+      self._apiServerUrl = self._apiServerUrl.replace("URL_PLACEHOLDER", out)
 
       if self._apiServerUrl != '':
          pass_endpoint = self._apiServerUrl.replace('/','\/');
 
          # Edit placeholders with actual values inside the container
          comm = 'docker exec beerwars-test sed -i -e \'s/ADDRESS_PLACEHOLDER/' + pass_endpoint + '/g\' test/test_BeerWars.js'
-         status_exec_0 = os.system(comm);
-         status_exec_1 = os.system('docker exec beerwars-test sed -i -e \'s/USER_PLACEHOLDER/' + self._user + '/g\' test/test_BeerWars.js');
-         status_exec_2 = os.system('docker exec beerwars-test sed -i -e \'s/PASSWORD_PLACEHOLDER/' + self._password + '/g\' test/test_BeerWars.js');
-         if os.WEXITSTATUS(status_exec_0) or os.WEXITSTATUS(status_exec_1) or os.WEXITSTATUS(status_exec_2):
-            return (False, "Could not run commands on docker container")
+         out1, err1 = self._executeInContainer(comm)
+         if err1 != None:
+            return (False, err1)
+
+         out2, err2 = self._executeInContainer("docker exec beerwars-test sed -i -e 's/USER_PLACEHOLDER/" + self._user + "/g' test/test_BeerWars.js")
+         if err2 != None:
+            return (False, err2)
+
+         out3, err3 = self._executeInContainer("docker exec beerwars-test sed -i -e 's/PASSWORD_PLACEHOLDER/" + self._password + "/g' test/test_BeerWars.js")
+         if err3 != None:
+            return (False, err3)
 
       # Run the test script(s)
-      status_mocha = os.system('docker exec beerwars-test mocha')
-      if os.WEXITSTATUS(status_mocha):
-         return (False, "Mocha tests failed")
+      out, err = self._executeInContainer("docker exec beerwars-test mocha")
+      if err != None:
+         return (False, err)
 
       return (True, None)
