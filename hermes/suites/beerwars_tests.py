@@ -59,6 +59,7 @@ class BeerWarsTests(test_suite.TestSuite):
       else:
          self._password = "Admin!23"
 
+      # Test does not launch the product if a URL is passed to it
       if self._args.endpoint != None:
          self._apiServerUrl = self._args.endpoint
          self._noLaunch = True
@@ -80,6 +81,7 @@ class BeerWarsTests(test_suite.TestSuite):
 
 
    def run(self):
+      ''' Runs all of the tests. '''
       if self._productMode and not self._noLaunch:
          try:
             p = self.launchProduct(self._args,
@@ -124,6 +126,7 @@ class BeerWarsTests(test_suite.TestSuite):
 
 
    def _cleanUp(self):
+      ''' Cleaning up the Docker changes the test(s) caused '''
       log.info("Cleaning up")
       os.system("docker stop $(docker ps | grep beerwars | sed 's/|/ /' | awk '{print $1}')")
       os.system("docker rm $(docker ps -a | grep beerwars | sed 's/|/ /' | awk '{print $1}')")
@@ -131,23 +134,31 @@ class BeerWarsTests(test_suite.TestSuite):
 
 
    def _test_beerwars(self, fileRoot):
+      ''' Tests if BeerWars can be deployed using the docker container '''
       status_docker_run = os.system('docker run --name beerwars-test --network="host" -td mmukundram/beerwars:latest')
       if os.WEXITSTATUS(status_docker_run):
          return (False, "Could not run docker container")
 
+      # The endpoint for the DApp to be deployed is the host of the container
+      # Following command is to get the IP address of the host in the host-container network
       p1 = subprocess.Popen('ifconfig docker | grep "inet addr" | cut -d: -f2 | cut -d " " -f1 | awk "{print $1}"', shell=True, stdout=subprocess.PIPE)
       out1, err1 = p1.communicate()
       self._apiServerUrl = self._apiServerUrl.replace("URL_PLACEHOLDER", out1.strip().decode('utf-8'))
 
       if self._apiServerUrl != '':
          pass_endpoint = self._apiServerUrl.replace('/','\/');
+
+         # Edit placeholders with actual values inside the container
          comm = 'docker exec beerwars-test sed -i -e \'s/ADDRESS_PLACEHOLDER/' + pass_endpoint + '/g\' test/test_BeerWars.js'
-         os.system(comm);
+         status_exec_0 = os.system(comm);
          status_exec_1 = os.system('docker exec beerwars-test sed -i -e \'s/USER_PLACEHOLDER/' + self._user + '/g\' test/test_BeerWars.js');
          status_exec_2 = os.system('docker exec beerwars-test sed -i -e \'s/PASSWORD_PLACEHOLDER/' + self._password + '/g\' test/test_BeerWars.js');
-      if os.WEXITSTATUS(status_exec_1) or os.WEXITSTATUS(status_exec_2):
-         return (False, "Could not run commands on docker container")
+         if os.WEXITSTATUS(status_exec_0) or os.WEXITSTATUS(status_exec_1) or os.WEXITSTATUS(status_exec_2):
+            return (False, "Could not run commands on docker container")
+
+      # Run the test script(s)
       status_mocha = os.system('docker exec beerwars-test mocha')
       if os.WEXITSTATUS(status_mocha):
          return (False, "Mocha tests failed")
+
       return (True, None)
