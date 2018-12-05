@@ -320,5 +320,10 @@ public class ProfilesRegistryManagerTest {
         Assert.fail("Should not have gotten here");
     }
 
+    @Test
+    public void testLoginUser() throws Exception {
+        prm.loginUser(existingUser);
+        Assert.assertNotEquals(new Long(0), existingUser.getLastLogin());
+    }
 
 }

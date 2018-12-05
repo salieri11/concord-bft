@@ -218,14 +218,18 @@ public class ProfilesRegistryManager {
             // replaced by CSP authentication very soon.
 
             JSONObject userJson = getUserWithId(String.valueOf(u.getUserId()));
-            u.setLastLogin(Instant.now().toEpochMilli());
-            userRepository.save(u);
+            loginUser(u);
             userJson.put("isAuthenticated", Boolean.TRUE);
 
             return userJson;
         } else {
             throw new UserModificationException("No user found with email: " + email);
         }
+    }
+
+    public void loginUser(User user) throws UserModificationException {
+        user.setLastLogin(Instant.now().toEpochMilli());
+        userRepository.save(user);
     }
 
     /**
