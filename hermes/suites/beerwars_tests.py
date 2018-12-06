@@ -57,7 +57,7 @@ class BeerWarsTests(test_suite.TestSuite):
          self._apiServerUrl = self._args.endpoint
          self._noLaunch = True
       else:
-         self._apiServerUrl = "https://URL_PLACEHOLDER:8080/api/concord/eth"
+         self._apiServerUrl = "http://URL_PLACEHOLDER:8080/api/concord/eth"
 
       if self._ethereumMode:
          self._noLaunch = True
@@ -146,7 +146,7 @@ class BeerWarsTests(test_suite.TestSuite):
 
    def _test_beerwars(self, fileRoot):
       ''' Tests if BeerWars can be deployed using the docker container '''
-      out, err = self._executeInContainer("docker run --name beerwars-test --network='host' -td mmukundram/beerwars:latest")
+      out, err = self._executeInContainer("docker run --rm --name beerwars-test --network='host' -td mmukundram/beerwars:latest")
       if err != None:
          return (False, err)
 
