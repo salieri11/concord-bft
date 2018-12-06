@@ -57,7 +57,7 @@ class BeerWarsTests(test_suite.TestSuite):
          self._apiServerUrl = self._args.endpoint
          self._noLaunch = True
       else:
-         self._apiServerUrl = "http://URL_PLACEHOLDER:8080/api/concord/eth"
+         self._apiServerUrl = "https://URL_PLACEHOLDER:8080/api/concord/eth"
 
       if self._ethereumMode:
          self._noLaunch = True
