@@ -161,9 +161,10 @@ Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
    kvbStorage.set_nonce(zero_address, nonce);
 
    uint64_t timestamp = params.get_timestamp();
+   uint64_t gasLimit = params.get_gas_limit();
 
    // Genesis is always proposed and accepted at the same time.
-   return kvbStorage.write_block(timestamp);
+   return kvbStorage.write_block(timestamp, gasLimit);
 }
 
 
@@ -282,10 +283,12 @@ run_service(variables_map &opts, Logger logger)
 
       api_service = new io_service();
       tcp::endpoint endpoint(address::from_string(ip), port);
+      uint64_t gasLimit = opts["gas_limit"].as<uint64_t>();
       api_acceptor acceptor(*api_service,
                             endpoint,
                             pool,
-                            sag);
+                            sag,
+                            gasLimit);
 
       signal(SIGINT, signalHandler);
 

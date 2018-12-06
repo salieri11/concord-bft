@@ -397,7 +397,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
       (present, missing) = self.requireFields(
          latestBlock,
-         ["number","hash","parentHash","timestamp"])
+         ["number","hash","parentHash","timestamp","gasLimit"])
       if not present:
          return (False, "No '{}' field in block response.".format(missing))
 

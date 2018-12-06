@@ -34,7 +34,8 @@ public:
    create(boost::asio::io_service &io_service,
           connection_manager &connManager,
           KVBClientPool &clientPool,
-          StatusAggregator &sag);
+          StatusAggregator &sag,
+          uint64_t gasLimit);
 
    boost::asio::ip::tcp::socket&
    socket();
@@ -98,7 +99,8 @@ private:
    api_connection(boost::asio::io_service &io_service,
                   connection_manager &connManager,
                   KVBClientPool &clientPool,
-                  StatusAggregator &sag);
+                  StatusAggregator &sag,
+                  uint64_t gasLimit);
 
    uint16_t
    get_message_length(const char * buffer);
@@ -162,6 +164,7 @@ private:
    const uint8_t MSG_LENGTH_BYTES = 2;
 
    StatusAggregator sag_;
+   const uint64_t gasLimit_;
 };
 
 }

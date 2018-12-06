@@ -514,6 +514,7 @@ bool com::vmware::concord::KVBCommandsHandler::handle_block_request(
       response->set_hash(block.hash.bytes, sizeof(evm_uint256be));
       response->set_parent_hash(block.parent_hash.bytes, sizeof(evm_uint256be));
       response->set_timestamp(block.timestamp);
+      response->set_gas_limit(block.gas_limit);
 
       // TODO: We're not mining, so nonce is mostly irrelevant. Maybe there will
       // be something relevant from KVBlockchain to put in here?
@@ -955,8 +956,12 @@ evm_result com::vmware::concord::KVBCommandsHandler::run_evm(
                 message.value.bytes+val_offset);
    }
 
-   // TODO: get this from the request
-   message.gas = 1000000;
+   if (request.has_gas_limit()) {
+     message.gas = request.gas_limit();
+   } else {
+     // This was the former static value used for the gas limit.
+     message.gas = 1000000;
+   }
 
    // If this is not a transaction, nonce doesn't matter. If it is, get it from
    // either the request or storage.
@@ -1085,7 +1090,7 @@ evm_uint256be com::vmware::concord::KVBCommandsHandler::record_transaction(
    LOG4CPLUS_DEBUG(logger, "Recording transaction " << txhash);
 
    assert(message.depth == 0);
-   kvbStorage.write_block(timestamp);
+   kvbStorage.write_block(timestamp, message.gas);
 
    return txhash;
 }

@@ -219,8 +219,8 @@ void com::vmware::concord::KVBStorage::put(const Sliver &key,
  * been prepared. A ReadOnlyModeException will be thrown if this object is in
  * read-only mode.
  */
-Status com::vmware::concord::KVBStorage::write_block(uint64_t timestamp)
-{
+Status com::vmware::concord::KVBStorage::write_block(uint64_t timestamp,
+                                                     uint64_t gas_limit) {
    if (!blockAppender_) {
       throw ReadOnlyModeException();
    }
@@ -237,6 +237,7 @@ Status com::vmware::concord::KVBStorage::write_block(uint64_t timestamp)
    }
 
    blk.timestamp = timestamp;
+   blk.gas_limit = gas_limit;
 
    // We need hash of all transactions for calculating hash of a block
    // but we also need block hash inside transaction strcture (not required

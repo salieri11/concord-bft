@@ -72,7 +72,12 @@ com::vmware::concord::EVMInitParams::EVMInitParams(
 
    if (genesis_block.find("timestamp") != genesis_block.end()) {
       std::string time_str = genesis_block["timestamp"];
-      timestamp = parse_timestamp(time_str);
+      timestamp = parse_number("timestamp", time_str);
+   }
+
+   if (genesis_block.find("gasLimit") != genesis_block.end()) {
+     std::string gas_str = genesis_block["gasLimit"];
+     gasLimit = parse_number("gasLimit", gas_str);
    }
 }
 
@@ -96,32 +101,31 @@ json com::vmware::concord::EVMInitParams::parse_genesis_block(
    return genesis_block;
 }
 
-uint64_t com::vmware::concord::EVMInitParams::parse_timestamp(
-   std::string time_str)
-{
-   // Time values can have odd nibble counts - pad & retry
-   if (time_str.size() % 2 != 0) {
-      std::string even_time_str = "0";
-      if (time_str.size() >= 2 && time_str[0] == '0' && time_str[1] == 'x') {
-         even_time_str += time_str.substr(2);
+uint64_t com::vmware::concord::EVMInitParams::parse_number(
+  std::string label, std::string val_str) {
+   // Values can have odd nibble counts - pad & retry
+   if (val_str.size() % 2 != 0) {
+      std::string even_val_str = "0";
+      if (val_str.size() >= 2 && val_str[0] == '0' && val_str[1] == 'x') {
+         even_val_str += val_str.substr(2);
       } else {
-         even_time_str += time_str;
+         even_val_str += val_str;
       }
-      return parse_timestamp(even_time_str);
+      return parse_number(label, even_val_str);
    }
 
-   std::vector<uint8_t> time_v = dehex(time_str);
+   std::vector<uint8_t> val_v = dehex(val_str);
 
-   if (time_v.size() > sizeof(uint64_t)) {
-      throw EVMInitParamException("Timestamp value is too large");
+   if (val_v.size() > sizeof(uint64_t)) {
+      throw EVMInitParamException(label + " value is too large");
    }
 
-   uint64_t time = 0;
-   for (auto b = time_v.begin(); b != time_v.end(); b++) {
-      time <<= 8;
-      time |= *b;
+   uint64_t val = 0;
+   for (auto b = val_v.begin(); b != val_v.end(); b++) {
+      val <<= 8;
+      val |= *b;
    }
-   return time;
+   return val;
 }
 
 const std::map<evm_address, uint64_t>&
@@ -135,4 +139,8 @@ uint64_t com::vmware::concord::EVMInitParams::get_chainID() const {
 
 uint64_t com::vmware::concord::EVMInitParams::get_timestamp() const {
    return timestamp;
+}
+
+uint64_t com::vmware::concord::EVMInitParams::get_gas_limit() const {
+   return gasLimit;
 }

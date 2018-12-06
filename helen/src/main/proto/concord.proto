@@ -35,7 +35,7 @@ message EthRequest {
 
    enum EthMethod {
       SEND_TX = 1;
-      SEND_TX_RAW = 2;
+      // SEND_TX_RAW is removed
       // GET_TX_RECEIPT is removed
       // instead directly call TransactionRequest
       GET_STORAGE_AT = 4;
@@ -64,6 +64,7 @@ message EthRequest {
    optional bytes sig_s = 14;
    optional int64 timestamp = 15; // Internal only!
    optional int64 block_number = 16; // for the default block parameter
+   optional int64 gas_limit = 17; // Internal only!
 }
 
 
@@ -141,6 +142,7 @@ message BlockResponse {
    optional int64 size = 5;
    repeated TransactionResponse transaction = 6;
    optional int64 timestamp = 7;
+   optional int64 gas_limit = 8;
 }
 
 message TransactionResponse {

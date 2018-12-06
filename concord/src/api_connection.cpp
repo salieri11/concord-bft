@@ -51,10 +51,10 @@ api_connection::pointer
 api_connection::create(io_service &io_service,
                        connection_manager &connManager,
                        KVBClientPool &clientPool,
-                       StatusAggregator &sag)
-{
-   return pointer(new api_connection(
-                     io_service, connManager, clientPool, sag));
+                       StatusAggregator &sag,
+                       uint64_t gasLimit) {
+  return pointer(new api_connection(
+                   io_service, connManager, clientPool, sag, gasLimit));
 }
 
 tcp::socket&
@@ -425,10 +425,16 @@ api_connection::handle_eth_request(int i)
      EthRequest *internalEthRequest = internalRequest.add_eth_request();
      internalEthRequest->CopyFrom(request);
 
-     // Transactions create blocks, which need timestamps
+     // Transactions create blocks, which need timestamps, and gas.
      if (request.method() == EthRequest_EthMethod_SEND_TX) {
        time_t currentTime = std::time(nullptr);
        internalEthRequest->set_timestamp(currentTime);
+
+       // Gas limit must be chosen on the client side, because all replicas must
+       // store the same gas limit in the block. If replica configs differed,
+       // different gas limits would be stored, and then reads would fail
+       // because responses wouldn't match.
+       internalEthRequest->set_gas_limit(gasLimit_);
      }
 
      ConcordResponse internalResponse;
@@ -709,13 +715,15 @@ api_connection::api_connection(
    io_service &io_service,
    connection_manager &manager,
    KVBClientPool &clientPool,
-   StatusAggregator &sag)
+   StatusAggregator &sag,
+   uint64_t gasLimit)
    : socket_(io_service),
      logger_(
         log4cplus::Logger::getInstance("com.vmware.concord.api_connection")),
      connManager_(manager),
      clientPool_(clientPool),
-     sag_(sag)
+     sag_(sag),
+     gasLimit_(gasLimit)
 {
    // nothing to do here yet other than initialize the socket and logger
 }

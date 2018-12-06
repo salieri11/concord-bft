@@ -111,11 +111,13 @@ public class EthGetBlockHandler extends AbstractEthRpcHandler {
         result.put("parentHash", ApiHelper.binaryStringToHex(blockResponseObj.getParentHash()));
         result.put("nonce", ApiHelper.binaryStringToHex(blockResponseObj.getNonce()));
         result.put("size", blockResponseObj.getSize());
-        // static gas limit used on concord_kvb.cpp
-        result.put("gasLimit", "0xf4240");
 
         if (blockResponseObj.hasTimestamp()) {
             result.put("timestamp", "0x" + Long.toHexString(blockResponseObj.getTimestamp()));
+        }
+
+        if (blockResponseObj.hasGasLimit()) {
+            result.put("gasLimit", "0x" + Long.toHexString(blockResponseObj.getGasLimit()));
         }
 
         JSONArray transactions = new JSONArray();

@@ -312,7 +312,7 @@ bool com::vmware::concord::EVM::new_account(
       kvbStorage.set_nonce(zero_address, nonce+1);
       //TODO: use parent block timestamp, not zero here
       //      (but really this whole thing should move to helen HEL-80)
-      kvbStorage.write_block(0);
+      kvbStorage.write_block(0, 0);
       return true;
    }
 }
