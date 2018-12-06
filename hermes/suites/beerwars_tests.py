@@ -49,15 +49,19 @@ class BeerWarsTests(test_suite.TestSuite):
       super(BeerWarsTests, self).__init__(passedArgs)
       self._args = passedArgs
 
+      user = self._userConfig.get('product').get('db_users')[0]
+      username = user['username']
+      password = user['password']
+
       if self._args.user != None:
          self._user = self._args.user
       else:
-         self._user = "admin@blockchain.local"
+         self._user = username
 
       if self._args.password != None:
          self._password = self._args.password
       else:
-         self._password = "Admin!23"
+         self._password = password
 
       # Test does not launch the product if a URL is passed to it
       if self._args.endpoint != None:
@@ -183,5 +187,6 @@ class BeerWarsTests(test_suite.TestSuite):
       out, err = self._executeInContainer("docker exec beerwars-test mocha")
       if err != None:
          return (False, err)
+      log.info(out)
 
       return (True, None)
