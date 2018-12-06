@@ -9,29 +9,18 @@
 # Example executions
 # 1)
 # ./main.py BeerWarsTests --endpoint='https://mgmt.blockchain.vmware.com/
-# blockchains/c3e4c911-9f9d-4899-9c92-6ced72d3ded3/api/
-# concord/eth' --user='admin@blockchain.local' --password='Passw0rd!'
+# blockchains/c3e4c911-9f9d-4899-9c92-6ced72d3ded3/api/concord/eth'
+# --user='admin@blockchain.local' --password='Passw0rd!'
 # 2)
 # ./main.py BeerWarsTests
 #########################################################################
 
-import collections
-import json
 import logging
 import os
 import traceback
-import string
-import random
-import time
 import subprocess
-from time import sleep
 
 from . import test_suite
-from util.product import Product
-from rest.request import Request
-from rpc.rpc_call import RPC
-
-import util.json_helper
 
 log = logging.getLogger(__name__)
 
