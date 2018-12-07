@@ -25,10 +25,10 @@
   </div>
 
   <clr-datagrid tourAnchor="onboardingTour.manageSmartContracts">
-    <clr-dg-column>
+    <clr-dg-column [clrDgField]="'contract_id'">
       {{'smartContracts.name' | translate}}
     </clr-dg-column>
-    <clr-dg-column>
+    <clr-dg-column [clrDgField]="'owner'">
       {{'smartContracts.owner' | translate}}
     </clr-dg-column>
     <clr-dg-row *clrDgItems="let smartContract of smartContracts">
