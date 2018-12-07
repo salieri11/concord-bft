@@ -20,6 +20,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { MarketingModule } from './marketing/marketing.module';
 import { SwaggerModule } from './swagger/swagger.module';
 import { VmwClarityThemeService } from './shared/theme.provider';
+import { VIPModule } from '@vmw/ngx-vip';
 
 export function HttpLoaderFactory(http: HttpClient) {
   return new TranslateHttpLoader(http, 'static/i18n/', '.json');
@@ -71,6 +72,7 @@ function initLanguage(translate: TranslateService, languages: string[], resolve:
     BrowserModule,
     BrowserAnimationsModule,
     AppRoutingModule,
+    VIPModule,
     MainModule,
     SwaggerModule,
     ClarityModule,

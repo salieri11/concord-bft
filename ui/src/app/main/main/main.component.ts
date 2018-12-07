@@ -10,6 +10,7 @@ import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { Personas } from '../../shared/persona.service';
 import { TourService } from '../../shared/tour.service';
 
+
 @Component({
   selector: 'concord-main',
   templateUrl: './main.component.html',
@@ -25,11 +26,11 @@ export class MainComponent implements OnInit, OnDestroy {
     private router: Router,
     private alertService: ErrorAlertService,
     public zone: NgZone,
-    private tourService: TourService
+    private tourService: TourService,
   ) {
+
     this.alertService.notify
       .subscribe(error => this.addAlert(error));
-
     this.setInactivityTimeout();
   }
 
@@ -40,6 +41,7 @@ export class MainComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.deregisterWindowListeners();
   }
+
 
   private setInactivityTimeout() {
     // If the user is inactive for oneHour we log them

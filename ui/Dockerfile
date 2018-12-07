@@ -3,6 +3,8 @@ LABEL Description="VMware Blockchain UI"
 
 WORKDIR /app
 
+COPY .npmrc /app/
+COPY package-lock.json /app/
 COPY package.json /app/
 
 RUN npm install

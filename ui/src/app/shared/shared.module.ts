@@ -9,6 +9,9 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ClarityModule, ClrFormsNextModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
 import { MockTranslateModule } from '../mocks/mock-translate.module';
+import { VmwContextualHelpModule } from '@vmw/ngx-contextual-help';
+import { CspComponentsModule } from '@vmw/csp-ngx-components';
+import { VmwComponentsModule } from '@vmw/ngx-components';
 
 import { AuthenticationService } from './authentication.service';
 import { AuthenticatedGuard } from './authenticated-guard.service';
@@ -40,7 +43,10 @@ import { VersionComponent } from './components/version/version.component';
     ClrFormsNextModule,
     FormsModule,
     ReactiveFormsModule,
-    RouterModule
+    RouterModule,
+    VmwContextualHelpModule.forRoot(),
+    CspComponentsModule.forRoot(),
+    VmwComponentsModule.forRoot(),
   ],
   declarations: [
     TransactionsStatusFilterComponent,
@@ -106,7 +112,10 @@ export class SharedModule {
     MockTranslateModule,
     ClarityModule,
     ClrFormsNextModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    VmwContextualHelpModule.forRoot(),
+    CspComponentsModule.forRoot(),
+    VmwComponentsModule.forRoot(),
   ],
   providers: [
     AuthenticationService,
@@ -122,7 +131,10 @@ export class SharedModule {
     CommonModule,
     MockTranslateModule,
     ClarityModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    VmwContextualHelpModule,
+    CspComponentsModule,
+    VmwComponentsModule,
   ]
 })
 export class MockSharedModule {}
