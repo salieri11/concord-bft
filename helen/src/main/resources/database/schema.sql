@@ -45,7 +45,13 @@ null, organization_organizationid int8 not null, primary key (userid),
 foreign key (consortium_consortiumid) references consortiums, foreign
 key (organization_organizationid) references organizations);
 
--- User Agreements
+-- Blockchain entity
+create table if not exists blockchains (id UUID not null unique, 
+consortium_consortiumid int8 not null, ip_list varchar,
+foreign key (consortium_consortiumid) references consortiums,
+primary key (id));
+
+	-- User Agreements
 create table if not exists agreements (id int8 not null unique,
 type varchar(255) not null, first_name varchar(255),
 last_name varchar(255), company varchar(255), accepted_on int8,

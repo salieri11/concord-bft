@@ -139,41 +139,6 @@ public class ProfilesRegistryManagerTest {
     }
 
     @Test
-    public void testCreateOrg() throws Exception {
-        ArgumentCaptor<Organization> captor = ArgumentCaptor.forClass(Organization.class);
-        Organization l = prm.createOrgIfNotExist();
-        verify(organizationRepository, times(1)).save(captor.capture());
-        Assert.assertEquals("ADMIN", captor.getValue().getOrganizationName());
-        // since we're just creating a new one, ID will be zero in unit tests
-        Assert.assertEquals(Long.valueOf(0), l.getOrganizationId());
-    }
-
-    @Test
-    public void testCreateOrgExits() throws Exception {
-        when(organizationRepository.findAll()).thenReturn(Collections.singletonList(organization));
-        Organization l = prm.createOrgIfNotExist();
-        Assert.assertEquals(Long.valueOf(300), l.getOrganizationId());
-        verify(organizationRepository, times(0)).save(any(Organization.class));
-    }
-
-    @Test
-    public void testCreateConsortium() throws Exception {
-        ArgumentCaptor<Consortium> captor = ArgumentCaptor.forClass(Consortium.class);
-        prm.createConsortiumIfNotExist();
-        verify(consortiumRepository, times(1)).save(captor.capture());
-        Assert.assertEquals("ADMIN", captor.getValue().getConsortiumName());
-        Assert.assertEquals("ADMIN", captor.getValue().getConsortiumType());
-    }
-
-    @Test
-    public void testCreateConsortiumExits() throws Exception {
-        when(consortiumRepository.findAll()).thenReturn(Collections.singletonList(consortium));
-        Consortium l = prm.createConsortiumIfNotExist();
-        verify(consortiumRepository, times(0)).save(any(Consortium.class));
-        Assert.assertEquals(Long.valueOf(200), l.getConsortiumId());
-    }
-
-    @Test
     public void testCreateUser() throws Exception {
         when(organizationRepository.findById(300L)).thenReturn(Optional.of(organization));
         when(consortiumRepository.findById(200L)).thenReturn(Optional.of(consortium));
