@@ -18,10 +18,8 @@ import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
-import org.springframework.context.event.EventListener;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -45,9 +43,6 @@ public class ProfilesRegistryManager {
 
     @Autowired
     private ConsortiumRepository consortiumRepository;
-
-    @Autowired
-    private ProfilesRegistryManager prm;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -253,69 +248,5 @@ public class ProfilesRegistryManager {
         }
     }
 
-    // TODO: These next few methords are just testing convenience methods and should be removed
-    // when actual POST API for organization and consortium creation is
-    // available
-
-    /**
-     * Create the test user if it does not already exist.  Do this when the application goes ready.
-     */
-    @EventListener(classes = ApplicationReadyEvent.class)
-    public void createUserIfNotExist() {
-        logger.info("Application ready");
-        String email = "admin@blockchain.local";
-        String password = "Admin!23";
-        List<User> oUser = userRepository.findAll();
-        if (oUser.isEmpty()) {
-            logger.info("Creating Initial User");
-            Organization org = createOrgIfNotExist();
-            Consortium consortium = createConsortiumIfNotExist();
-            User u = new User();
-            u.setName("ADMIN");
-            u.setEmail(email);
-            u.setPassword(passwordEncoder.encode(password));
-            u.setRole(Roles.get("SYSTEM_ADMIN"));
-            u.setOrganization(org);
-            u.setConsortium(consortium);
-            // Note: The order of next 5 statements is very important, The user
-            // object must be saved before it can be added and saved into
-            // consortium & organization objects.
-            u = userRepository.save(u);
-            org.addUser(u);
-            consortium.addUser(u);
-            logger.info("Admin user created. Username: " + email + " Password: " + password);
-        }
-    }
-
-    /**
-     * Create the test org if it doesn't exist.
-     */
-    public Organization createOrgIfNotExist() {
-        List<Organization> oList = organizationRepository.findAll();
-        if (oList.isEmpty()) {
-            Organization o = new Organization();
-            o.setOrganizationName("ADMIN");
-            o = organizationRepository.save(o);
-            return o;
-        } else {
-            return oList.get(0);
-        }
-    }
-
-    /**
-     * Create the test consortium if it doesn't exist.
-     */
-    public Consortium createConsortiumIfNotExist() {
-        List<Consortium> cList = consortiumRepository.findAll();
-        if (cList.isEmpty()) {
-            Consortium c = new Consortium();
-            c.setConsortiumName("ADMIN");
-            c.setConsortiumType("ADMIN");
-            c = consortiumRepository.save(c);
-            return c;
-        } else {
-            return cList.get(0);
-        }
-    }
 
 }

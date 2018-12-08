@@ -1,24 +1,3 @@
--- This script creates a new cockroach database named 'helen' and also
--- creates a new admin user named 'helen_admin' for that database. As of
--- now contracts management services and profile(user) management services
--- need this database.
--- The table creation part for profile(user) managment services is done
--- in this script (because those services are developed using hibernate and
--- so we don't have to directly deal with SQL quries). However, the
--- contract management services were developed earlier and hence they
--- directly deal with SQL queries using JDBC. Hence, contract management
--- table creation is not done here
-
--- Create a helen database
-CREATE DATABASE IF NOT EXISTS helen;
-
--- Allow helen_admin all access to helen database
-GRANT ALL ON DATABASE helen TO helen_admin;
-
--- switch to helen database
-use helen;
-
-
 -- Profile schema creation
 -- Below queries are taken from hibernate logs and will have to be modified
 -- if we add a new persistent entity or update existing entity.
@@ -44,6 +23,13 @@ null, role varchar(255) not null, consortium_consortiumid int8 not
 null, organization_organizationid int8 not null, primary key (userid),
 foreign key (consortium_consortiumid) references consortiums, foreign
 key (organization_organizationid) references organizations);
+
+	-- User Agreements
+create table if not exists agreements (id int8 not null unique,
+type varchar(255) not null, first_name varchar(255),
+last_name varchar(255), company varchar(255), accepted_on int8,
+accepted boolean not null default false,
+content text not null);
 
 -- Blockchain entity
 create table if not exists blockchains (id UUID not null unique, 

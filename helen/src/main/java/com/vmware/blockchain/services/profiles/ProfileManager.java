@@ -47,12 +47,14 @@ public class ProfileManager extends BaseServlet {
     private static final Logger logger = LogManager.getLogger(ProfileManager.class);
 
     private ProfilesRegistryManager prm;
+    private DefaultProfiles profiles;
 
     @Autowired
-    public ProfileManager(ProfilesRegistryManager prm, ConcordProperties config,
+    public ProfileManager(ProfilesRegistryManager prm, DefaultProfiles profiles, ConcordProperties config,
             ConcordConnectionPool concordConnectionPool) {
         super(config, concordConnectionPool);
         this.prm = prm;
+        this.profiles = profiles;
     }
 
     // /api/users?consortium=<c>&organization=<o>
@@ -80,7 +82,7 @@ public class ProfileManager extends BaseServlet {
 
     private void createTestProfiles(JSONObject requestJson) {
         if (!requestJson.containsKey(ORGANIZATION_LABEL)) {
-            Organization org = prm.createOrgIfNotExist();
+            Organization org = profiles.getOrganization();
             JSONObject orgJson = new JSONObject();
             orgJson.put(ORGANIZATION_ID_LABEL, org.getOrganizationId());
             requestJson.put(ORGANIZATION_LABEL, orgJson);
@@ -88,7 +90,7 @@ public class ProfileManager extends BaseServlet {
         }
 
         if (!requestJson.containsKey(CONSORTIUM_LABEL)) {
-            Consortium consortium = prm.createConsortiumIfNotExist();
+            Consortium consortium = profiles.getConsortium();
             JSONObject consJson = new JSONObject();
             consJson.put(CONSORTIUM_ID_LABEL, consortium.getConsortiumId());
             requestJson.put(CONSORTIUM_LABEL, consJson);

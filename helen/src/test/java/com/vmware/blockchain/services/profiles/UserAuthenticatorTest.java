@@ -70,6 +70,9 @@ public class UserAuthenticatorTest {
     @MockBean
     private AgreementRepository agreementRepository;
 
+    @MockBean
+    private DefaultProfiles profiles;
+
     private User testUser;
 
     /**
