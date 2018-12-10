@@ -88,6 +88,18 @@ def call(){
         }
       }
 
+      stage('Build product prereqs') {
+        parallel {
+          stage('Build Communication') {
+            steps {
+              dir ('blockchain/communication') {
+                sh 'mvn clean install'
+              }
+            }
+          }
+        }
+      }
+
       stage('Build products') {
         parallel {
           stage('Build Concord') {
@@ -111,7 +123,7 @@ def call(){
           stage('Build Helen') {
             steps {
               dir('blockchain/helen') {
-              	// "TODO: Revert to 'mvn clean install' once the UI is separated from Helen to avoid running package twice."
+                // "TODO: Revert to 'mvn clean install' once the UI is separated from Helen to avoid running package twice."
                 sh 'mvn clean install package'
               }
             }
@@ -198,7 +210,7 @@ def call(){
                   }
                   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                     sh '''
-                      ./docker-build.sh "${concord_repo}" "${concord_docker_tag}" "${version_label}=${concord_docker_tag}" "${commit_label}=${actual_blockchain_fetched}"
+                      docker build .. -f Dockerfile -t "${concord_repo}:${concord_docker_tag}" --label ${version_label}=${concord_docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
                   }
                 }
