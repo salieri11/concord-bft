@@ -3,13 +3,6 @@
     "target": "http://0.0.0.0:8080",
     "secure": false
   },
-  "/assets/static": {
-    "target": "https://localhost:4200",
-    "secure": false,
-    "pathRewrite": {
-      "^/assets/static": "/static"
-    }
-  },
   "/swagger": {
     "target": "http://localhost:8080",
     "secure": false
