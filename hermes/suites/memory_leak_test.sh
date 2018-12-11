@@ -26,9 +26,13 @@ MEMORY_INFO_LOG_FILE=${RESULTS_DIR}/memory_info_${TIME_STAMP}.log
 MEMORY_INFO_CSV_FILE=${RESULTS_DIR}/memory_info_${TIME_STAMP}.csv
 SLEEP_TIME_IN_SEC=60
 MEMORY_LEAK_PASS_FILE="${RESULTS_DIR}/test_status.pass"
-concord1_VALGRIND_LOG_FILE="/tmp/valgrind_concord1.log"
+VALGRIND_LOG_FILENAME="valgrind_concord1.log"
+concord1_VALGRIND_LOG_FILE="/tmp/$VALGRIND_LOG_FILENAME"
 HERMES_START_FILE="./main.py"
 SPECIFIC_TESTS=""
+# to represent leak summary on graph
+# memory leak summary data gets saved in repo: hermes-data
+MEMORY_LEAK_SUMMARY_FILE="../../../hermes-data/memory_leak_test/memory_leak_summary.csv"
 
 check_usage() {
     if [ "x${TEST_SUITE}" = "x" -o "x${NO_OF_RUNS}" = "x" ]
@@ -73,6 +77,26 @@ launch_memory_test() {
     done
 }
 
+fetch_leak_summary() {
+    leak_summary=`awk '/LEAK SUMMARY/{getline; print}' "${RESULTS_DIR}/${VALGRIND_LOG_FILENAME}" | grep -oP "definitely lost: .{0,10}" | cut -d ":" -f2 | cut -d " " -f 2 | tr -d ','`
+    if [ "$leak_summary" != "" ]
+    then
+        echo "Updating memory leak summary..."
+        if [ ! -f ${MEMORY_LEAK_SUMMARY_FILE} ]
+        then
+            echo "\"Date\"","\"Memory Leak Summary\"" > ${MEMORY_LEAK_SUMMARY_FILE}
+        fi
+        echo "LEAK SUMMARY: $leak_summary bytes"
+        echo "`date +%D`,$leak_summary" >> ${MEMORY_LEAK_SUMMARY_FILE}
+
+        if [ "${WORKSPACE}" != "" ]
+        then
+            echo "Copying Memory leak summary file to ${WORKSPACE} for graph"
+            cp ${MEMORY_LEAK_SUMMARY_FILE} ${WORKSPACE}
+        fi
+    fi
+}
+
 if [ ! -d "${RESULTS_DIR}" ]
 then
     mkdir -p ${RESULTS_DIR}
@@ -83,6 +107,7 @@ launch_memory_test 2>&1 | tee ${MEMORY_INFO_LOG_FILE}
 if [ -f "${MEMORY_LEAK_PASS_FILE}" ]
 then
     echo "Memory Leak Test Passed"
+    fetch_leak_summary
     retVal=0
 else
     echo "Memory Leak Test Failed"
