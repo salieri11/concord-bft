@@ -45,7 +45,7 @@ launch_memory_test() {
     then
         SPECIFIC_TESTS="--tests ${TESTS}"
     fi
-    "${HERMES_START_FILE}" "${TEST_SUITE}" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir ${RESULTS_DIR} ${SPECIFIC_TESTS} &
+    "${HERMES_START_FILE}" "${TEST_SUITE}" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir ${RESULTS_DIR} ${SPECIFIC_TESTS} --dockerComposeFile "" &
     PID=$!
 
     cd $CWD

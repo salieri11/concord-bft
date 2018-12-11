@@ -306,6 +306,7 @@ size_t com::vmware::concord::EthBlock::serialize(uint8_t** serialized)
    }
 
    out.set_timestamp(this->timestamp);
+   out.set_gas_limit(this->gas_limit);
 
    size_t size = out.ByteSize();
 
@@ -345,6 +346,13 @@ com::vmware::concord::EthBlock::deserialize(Blockchain::Sliver &input)
          outblk.timestamp = inblk.timestamp();
       } else {
          outblk.timestamp = 0;
+      }
+
+      if (inblk.has_gas_limit()) {
+        outblk.gas_limit = inblk.gas_limit();
+      } else {
+        // This was the former static value used for the gas limit.
+        outblk.gas_limit = 1000000;
       }
 
       return outblk;

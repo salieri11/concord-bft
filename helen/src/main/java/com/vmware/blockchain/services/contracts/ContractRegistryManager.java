@@ -66,7 +66,8 @@ public class ContractRegistryManager {
             + " = ? AND " + CONTRACT_VERSION_COLUMN_LABEL + " = ?";
 
     private String getAllContractsShortQuery = "SELECT DISTINCT " + CONTRACT_ID_COLUMN_LABEL + ", "
-            + CONTRACT_OWNER_COLUMN_LABEL + " from " + CONTRACTS_TABLE_NAME;
+            + CONTRACT_OWNER_COLUMN_LABEL + " from " + CONTRACTS_TABLE_NAME + " ORDER BY "
+            + CONTRACT_SEQUENCE_NUMBER_LABEL + " DESC";
 
     // We need versions sorted in descending order of sequence_number column.
     private String getAllVersionsShortQuery = "SELECT " + CONTRACT_VERSION_COLUMN_LABEL + ", "

@@ -1,3 +1,5 @@
+import groovy.json.*
+
 def call(){
   pipeline {
     agent any
@@ -23,6 +25,7 @@ def call(){
           cleanWs()
         }
       }
+
       stage('Fetch source code') {
         parallel {
           stage('Fetch blockchain repo source') {
@@ -30,7 +33,7 @@ def call(){
               sh 'mkdir blockchain'
               dir('blockchain') {
                 script {
-                  env.actual_blockchain_fetched = getRepoCode("git@github.com:vmwathena/blockchain.git", params.blockchain_branch_or_commit)
+                  env.commit = getRepoCode("git@github.com:vmwathena/blockchain.git", params.blockchain_branch_or_commit)
                 }
               }
             }
@@ -67,6 +70,36 @@ def call(){
         }
       }
 
+      stage('Write version for GUI') {
+        steps() {
+          dir('blockchain') {
+            script {
+              version = env.version_param ? env.version_param : env.commit
+              env.version_json = createVersionInfo(version, env.commit)
+            }
+            // The groovy calls to create directories and files fail, only in Jenkins,
+            // so do those in a shell block.  Jenkins has some quirky ideas of security?
+            sh '''
+              dir=helen/src/main/resources/static/assets/data
+              mkdir -p ${dir}
+              echo ${version_json} > ${dir}/version.json
+            '''
+          }
+        }
+      }
+
+      stage('Build product prereqs') {
+        parallel {
+          stage('Build Communication') {
+            steps {
+              dir ('blockchain/communication') {
+                sh 'mvn clean install'
+              }
+            }
+          }
+        }
+      }
+
       stage('Build products') {
         parallel {
           stage('Build Concord') {
@@ -90,32 +123,10 @@ def call(){
           stage('Build Helen') {
             steps {
               dir('blockchain/helen') {
-              	// "mvn install" runs "package" before "install"
-              	// "mvn clean install package" had the effect of running package twice
-                sh 'mvn clean install'
+                // "TODO: Revert to 'mvn clean install' once the UI is separated from Helen to avoid running package twice."
+                sh 'mvn clean install package'
               }
             }
-          }
-        }
-      }
-      stage('Run tests') {
-        steps {
-          // These are locations specified in the script which are later saved as build artifacts.
-          script {
-            env.test_log_root = new File(env.WORKSPACE, "testLogs").toString()
-            env.core_vm_test_logs = new File(env.test_log_root, "CoreVM").toString()
-            env.helen_api_test_logs = new File(env.test_log_root, "HelenAPI").toString()
-            env.extended_rpc_test_logs = new File(env.test_log_root, "ExtendedRPC").toString()
-            env.regression_test_logs = new File(env.test_log_root, "Regression").toString()
-          }
-
-          dir('blockchain/hermes') {
-            sh '''
-              # ./main.py CoreVMTests --resultsDir "${core_vm_test_logs}"
-              # ./main.py HelenAPITests --resultsDir "${helen_api_test_logs}"
-              # ./main.py ExtendedRPCTests --resultsDir "${extended_rpc_test_logs}"
-              # ./main.py RegressionTests --resultsDir "${regression_test_logs}"
-            '''
           }
         }
       }
@@ -158,6 +169,12 @@ def call(){
             env.concord_repo = 'vmwblockchain/concord-core'
             env.helen_repo = 'vmwblockchain/concord-ui'
           }
+
+          // These are constants related to labels.
+          script {
+            env.version_label = 'com.vmware.blockchain.version'
+            env.commit_label = 'com.vmware.blockchain.commit'
+          }
         }
       }
 
@@ -169,12 +186,12 @@ def call(){
                 dir('blockchain/helen') {
 
                  script {
-                    env.helen_docker_tag = env.version_param ? env.version_param : env.actual_blockchain_fetched
+                    env.helen_docker_tag = env.version_param ? env.version_param : env.commit
                   }
 
                   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                     sh '''
-                      docker build . -t "${helen_repo}:${helen_docker_tag}"
+                      docker build . -t "${helen_repo}:${helen_docker_tag}" --label ${version_label}=${helen_docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
                   }
                 }
@@ -189,11 +206,11 @@ def call(){
                 dir('blockchain/concord') {
 
                   script {
-                    env.concord_docker_tag = env.version_param ? env.version_param : env.actual_blockchain_fetched
+                    env.concord_docker_tag = env.version_param ? env.version_param : env.commit
                   }
                   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                     sh '''
-                      ./docker-build.sh "${concord_repo}" "${concord_docker_tag}"
+                      docker build .. -f Dockerfile -t "${concord_repo}:${concord_docker_tag}" --label ${version_label}=${concord_docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
                   }
                 }
@@ -208,10 +225,11 @@ def call(){
           dir('blockchain/hermes'){
             withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
               script {
-                env.core_vm_test_logs_docker = env.core_vm_test_logs + "Docker"
-                env.helen_api_test_logs_docker = env.helen_api_test_logs + "Docker"
-                env.extended_rpc_test_logs_docker = env.extended_rpc_test_logs + "Docker"
-                env.regression_test_logs_docker = env.regression_test_logs + "Docker"
+                env.test_log_root = new File(env.WORKSPACE, "testLogs").toString()
+                env.core_vm_test_logs = new File(env.test_log_root, "CoreVM").toString()
+                env.helen_api_test_logs = new File(env.test_log_root, "HelenAPI").toString()
+                env.extended_rpc_test_logs = new File(env.test_log_root, "ExtendedRPC").toString()
+                env.regression_test_logs = new File(env.test_log_root, "Regression").toString()
               }
 
               sh '''
@@ -225,10 +243,10 @@ EOF
               '''
 
               sh '''
-                echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${core_vm_test_logs_docker}"
-                echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${helen_api_test_logs_docker}"
-                echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs_docker}"
-                echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${regression_test_logs_docker}"
+                echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${core_vm_test_logs}"
+                echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${helen_api_test_logs}"
+                echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"
+                echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${regression_test_logs}"
               '''
             }
           }
@@ -245,14 +263,34 @@ EOF
           }
           withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
             sh '''
+              # Keep these echo lines for test runs.
+              # echo Would run docker push ${concord_repo}:${version_param}
+              # echo Would run docker tag ${concord_repo}:${version_param} ${concord_repo}:latest
+              # echo Would run docker push ${concord_repo}:latest
               docker push ${concord_repo}:${version_param}
               docker tag ${concord_repo}:${version_param} ${concord_repo}:latest
               docker push ${concord_repo}:latest
 
+              # echo Would run docker push ${helen_repo}:${version_param}
+              # echo Would run docker tag ${helen_repo}:${version_param} ${helen_repo}:latest
+              # echo Would run docker push ${helen_repo}:latest
               docker push ${helen_repo}:${version_param}
               docker tag ${helen_repo}:${version_param} ${helen_repo}:latest
               docker push ${helen_repo}:latest
             '''
+
+            dir('blockchain/vars') {
+              script {
+                release_notification_address_file = "release_notification_recipients.txt"
+
+                if (fileExists(release_notification_address_file)) {
+                  release_notification_recipients = readFile(release_notification_address_file).replaceAll("\n", " ")
+                  emailext body: "Changes: \n" + getChangesSinceLastTag(),
+                       to: release_notification_recipients,
+                       subject: "[Build] Concord version " + env.version_param + " has been pushed to DockerHub."
+                }
+              }
+            }
           }
         }
       }
@@ -329,4 +367,21 @@ void createAndPushTag(tag){
     script: "git push origin ${tag}",
     returnStdout: false
   )
+}
+
+// Returns all changes since the last git tag.
+String getChangesSinceLastTag(){
+  return sh (
+    script: 'git log `git tag -l --sort=-v:refname | head -n 1`..HEAD',
+    returnStdout: true
+  ).trim()
+}
+
+// Use groovy to create and return json for the version and commit
+// for this run.
+void createVersionInfo(version, commit){
+  versionObject = [:]
+  versionObject.version = version
+  versionObject.commit = commit
+  return new JsonOutput().toJson(versionObject)
 }

@@ -7,8 +7,6 @@ package com.vmware.blockchain.services.profiles;
 import static com.vmware.blockchain.services.profiles.UsersApiMessage.EMAIL_LABEL;
 import static com.vmware.blockchain.services.profiles.UsersApiMessage.PASSWORD_LABEL;
 
-import java.util.List;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONAware;
@@ -26,6 +24,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.HelenException;
 import com.vmware.blockchain.common.UserModificationException;
@@ -33,7 +33,11 @@ import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
-import com.vmware.concord.Concord;
+import com.vmware.concord.Concord.ConcordResponse;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 
 /**
@@ -53,6 +57,55 @@ public class UserAuthenticator extends BaseServlet {
 
     private JwtTokenProvider jwtTokenProvider;
 
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    private static class LoginRequest {
+        private String email;
+        private String password;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @JsonInclude(value =  Include.NON_EMPTY)
+    private static class LoginResponse {
+        // login response potentially has all the fields of User
+        private Long userId;
+        private String userName;
+        private String firstName;
+        private String lastName;
+        private String email;
+        private String role;
+        private String password;
+        private Long lastLogin;
+        private String organizationName;
+        private String consortiumName;
+        private Long organizationId;
+        private Long consortiumId;
+        private Boolean authenticated;
+        private String token;
+        private String refreshToken;
+        private Long tokenExpires;
+        private String error;
+
+        // Convenience function for dealing with the user fields
+        public void setUser(User user) {
+            this.userId = user.getUserId();
+            this.userName = user.getName();
+            this.firstName = user.getFirstName();
+            this.lastName = user.getLastName();
+            this.email = user.getEmail();
+            this.role = user.getRole();
+            this.lastLogin = user.getLastLogin();
+            this.organizationId = user.getOrganization().getOrganizationId();
+            this.organizationName = user.getOrganization().getOrganizationName();
+            this.consortiumId = user.getConsortium().getConsortiumId();
+            this.consortiumName = user.getConsortium().getConsortiumName();
+        }
+
+    }
+
     @Autowired
     public UserAuthenticator(ConcordProperties config, ConcordConnectionPool concordConnectionPool,
             UserRepository userRepository, ProfilesRegistryManager prm, PasswordEncoder passwordEncoder,
@@ -64,67 +117,57 @@ public class UserAuthenticator extends BaseServlet {
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
+
     // TODO: This is not a proper way to authenticate the user. We have plans to
     // authenticate every user via CSP, however that integration will take time
     // and till then some way of authentication is needed. Hence, we have added
     // this temporary (and not very secure) login feature. Remove this and
     // authenticate every user with CSP as soon as possible
     @RequestMapping(method = RequestMethod.POST, path = "/api/auth/login")
-    protected ResponseEntity<JSONAware> doPost(@RequestBody String requestBody) {
-        JSONParser parser = new JSONParser();
+    protected ResponseEntity<LoginResponse> doPost(@RequestBody LoginRequest request) {
         HttpStatus responseStatus;
-        JSONObject responseJson;
-        // Need to create an init user if one doesn't exist
-        // so we can login.
-        prm.createUserIfNotExist();
+        LoginResponse loginResponse = new LoginResponse();
         try {
-            JSONObject requestJson = (JSONObject) parser.parse(requestBody);
-            if (requestJson.containsKey(EMAIL_LABEL) && requestJson.containsKey(PASSWORD_LABEL)) {
+            String password = request.getPassword();
+            String email = request.getEmail();
+            User u = userRepository.findUserByEmail(email).orElse(null);
 
-                String password = requestJson.get(PASSWORD_LABEL).toString();
-                String email = requestJson.get(EMAIL_LABEL).toString();
-                User u = userRepository.findUserByEmail(email).get();
-
-                if (passwordEncoder.matches(password, u.getPassword())) {
-                    JSONObject user = prm.loginUser(email);
-                    responseStatus = HttpStatus.OK;
-                    responseJson = user;
-
-                    List<Roles> roles = u.getRoles();
-                    String token = jwtTokenProvider.createToken(email, u.getRoles());
-                    responseJson.put("token", token);
-                    String refreshToken = jwtTokenProvider.createRefreshToken(email, u.getRoles());
-                    responseJson.put("refresh_token", refreshToken);
-                    responseJson.put("token_expires", jwtTokenProvider.validityInMilliseconds);
-                } else {
-                    responseStatus = HttpStatus.UNAUTHORIZED;
-                    responseJson = new JSONObject();
-                }
+            if (u != null && passwordEncoder.matches(password, u.getPassword())) {
+                // need to get another image of user
+                responseStatus = HttpStatus.OK;
+                loginResponse.setUser(u);
+                loginResponse.setAuthenticated(true);
+                loginResponse.setToken(jwtTokenProvider.createToken(u));
+                loginResponse.setRefreshToken(jwtTokenProvider.createRefreshToken(u));
+                loginResponse.setTokenExpires(jwtTokenProvider.validityInMilliseconds);
+                // This needs to be after we have copied the old user data
+                prm.loginUser(u);
             } else {
-                responseJson = ApiHelper.errorJson("email or password " + "field missing");
-                responseStatus = HttpStatus.BAD_REQUEST;
+                loginResponse.setError("Invalid email/password");
+                responseStatus = HttpStatus.UNAUTHORIZED;
             }
-        } catch (ParseException | UserModificationException e) {
+        } catch (UserModificationException e) {
+            loginResponse.setError(e.getMessage());
             responseStatus = HttpStatus.BAD_REQUEST;
-            responseJson = ApiHelper.errorJson(e.getMessage());
         }
 
-        return new ResponseEntity<>(responseJson, standardHeaders, responseStatus);
+        return new ResponseEntity<>(loginResponse, standardHeaders, responseStatus);
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    private static class TokenRequest {
+        private String refreshToken;
     }
 
     @RequestMapping(value = "/api/auth/token", method = RequestMethod.POST)
-    protected ResponseEntity<JSONAware> refreshToken(@RequestBody String requestBody) {
-        JSONObject responseJson = new JSONObject();
-        JSONParser parser = new JSONParser();
+    protected ResponseEntity<LoginResponse> refreshToken(@RequestBody TokenRequest request) {
         HttpStatus responseStatus;
+        LoginResponse loginResponse = new LoginResponse();
 
         try {
-            JSONObject requestJson = (JSONObject) parser.parse(requestBody);
-            String token = null;
-
-            if (requestJson.get("refresh_token") != null) {
-                token = requestJson.get("refresh_token").toString();
-            }
+            String token = request.getRefreshToken();
 
             if (token != null && jwtTokenProvider.validateToken(token)) {
                 responseStatus = HttpStatus.OK;
@@ -132,20 +175,21 @@ public class UserAuthenticator extends BaseServlet {
                 SecurityContextHolder.getContext().setAuthentication(auth);
                 String email = jwtTokenProvider.getEmail(token);
                 User u = userRepository.findUserByEmail(email).get();
-                String newToken = jwtTokenProvider.createToken(email, u.getRoles());
-                responseJson.put("token", newToken);
-                String refreshToken = jwtTokenProvider.createRefreshToken(email, u.getRoles());
-                responseJson.put("refresh_token", refreshToken);
-                responseJson.put("token_expires", jwtTokenProvider.validityInMilliseconds);
+                String newToken = jwtTokenProvider.createToken(u);
+                String refreshToken = jwtTokenProvider.createRefreshToken(u);
+                loginResponse.setToken(newToken);
+                loginResponse.setRefreshToken(refreshToken);
+                loginResponse.setTokenExpires(jwtTokenProvider.validityInMilliseconds);
             } else {
                 responseStatus = HttpStatus.BAD_REQUEST;
+                loginResponse.setError("Bad Token");
             }
-        } catch (ParseException | HelenException e) {
+        } catch (HelenException e) {
             responseStatus = HttpStatus.BAD_REQUEST;
-            responseJson = ApiHelper.errorJson(e.getMessage());
+            loginResponse.setError(e.getMessage());
         }
 
-        return new ResponseEntity<>(responseJson, standardHeaders, responseStatus);
+        return new ResponseEntity<>(loginResponse, standardHeaders, responseStatus);
 
     }
 
@@ -184,8 +228,12 @@ public class UserAuthenticator extends BaseServlet {
         return new ResponseEntity<>(responseJson, standardHeaders, responseStatus);
     }
 
+
     @Override
-    protected JSONAware parseToJson(Concord.ConcordResponse concordResponse) {
+    protected JSONAware parseToJson(ConcordResponse concordResponse) {
+        // TODO Auto-generated method stub
         return null;
     }
+
 }
+

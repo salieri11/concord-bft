@@ -50,12 +50,11 @@ using namespace com::vmware::concord;
 api_connection::pointer
 api_connection::create(io_service &io_service,
                        connection_manager &connManager,
-                       FilterManager &filterManager,
                        KVBClientPool &clientPool,
-                       StatusAggregator &sag)
-{
-   return pointer(new api_connection(
-                     io_service, connManager, filterManager, clientPool, sag));
+                       StatusAggregator &sag,
+                       uint64_t gasLimit) {
+  return pointer(new api_connection(
+                   io_service, connManager, clientPool, sag, gasLimit));
 }
 
 tcp::socket&
@@ -381,71 +380,73 @@ api_connection::handle_eth_request(int i)
 {
    const EthRequest request = concordRequest_.eth_request(i);
 
-   if (request.method() == EthRequest_EthMethod_FILTER_REQUEST) {
-      handle_filter_requests(request);
-   } else {
-      bool validRequest;
-      bool isReadOnly = true;
-      switch(request.method()) {
-      case EthRequest_EthMethod_SEND_TX:
-         validRequest = is_valid_eth_sendTransaction(request);
-         isReadOnly = false;
-         break;
-      case EthRequest_EthMethod_NEW_ACCOUNT:
-         validRequest = is_valid_personal_newAccount(request);
-         isReadOnly = false;
-         break;
-      case EthRequest_EthMethod_CALL_CONTRACT:
-         // TODO: complicated validation; let it through for now
-         validRequest = true;
-         break;
-      case EthRequest_EthMethod_GET_STORAGE_AT:
-         validRequest = is_valid_eth_getStorageAt(request);
-         break;
-      case EthRequest_EthMethod_GET_CODE:
-         validRequest = is_valid_eth_getCode(request);
-         break;
-      case EthRequest_EthMethod_BLOCK_NUMBER:
-         // no parameters to validate
-         validRequest = true;
-         break;
-      case EthRequest_EthMethod_GET_TX_COUNT:
-         validRequest = is_valid_eth_getTransactionCount(request);
-         break;
-      case EthRequest_EthMethod_GET_BALANCE:
-         validRequest = is_valid_eth_getBalance(request);
-         break;
-      default:
-         validRequest = false;
-         ErrorResponse *e = concordResponse_.add_error_response();
-         e->mutable_description()->assign("ETH Method Not Implemented");
-      }
+   bool validRequest;
+   bool isReadOnly = true;
+   switch(request.method()) {
+   case EthRequest_EthMethod_SEND_TX:
+     validRequest = is_valid_eth_sendTransaction(request);
+     isReadOnly = false;
+     break;
+   case EthRequest_EthMethod_NEW_ACCOUNT:
+     validRequest = is_valid_personal_newAccount(request);
+     isReadOnly = false;
+     break;
+   case EthRequest_EthMethod_CALL_CONTRACT:
+     // TODO: complicated validation; let it through for now
+     validRequest = true;
+     break;
+   case EthRequest_EthMethod_GET_STORAGE_AT:
+     validRequest = is_valid_eth_getStorageAt(request);
+     break;
+   case EthRequest_EthMethod_GET_CODE:
+     validRequest = is_valid_eth_getCode(request);
+     break;
+   case EthRequest_EthMethod_BLOCK_NUMBER:
+     // no parameters to validate
+     validRequest = true;
+     break;
+   case EthRequest_EthMethod_GET_TX_COUNT:
+     validRequest = is_valid_eth_getTransactionCount(request);
+     break;
+   case EthRequest_EthMethod_GET_BALANCE:
+     validRequest = is_valid_eth_getBalance(request);
+     break;
+   default:
+     validRequest = false;
+     ErrorResponse *e = concordResponse_.add_error_response();
+     e->mutable_description()->assign("ETH Method Not Implemented");
+   }
 
-      // If the request is valid, submit it to SBFT. If the request was not
-      // valid, the validation function should have added an error message to
-      // concordResponse_.
-      if (validRequest) {
-         ConcordRequest internalRequest;
-         EthRequest *internalEthRequest = internalRequest.add_eth_request();
-         internalEthRequest->CopyFrom(request);
+   // If the request is valid, submit it to SBFT. If the request was not
+   // valid, the validation function should have added an error message to
+   // concordResponse_.
+   if (validRequest) {
+     ConcordRequest internalRequest;
+     EthRequest *internalEthRequest = internalRequest.add_eth_request();
+     internalEthRequest->CopyFrom(request);
 
-         // Transactions create blocks, which need timestamps
-         if (request.method() == EthRequest_EthMethod_SEND_TX) {
-            time_t currentTime = std::time(nullptr);
-            internalEthRequest->set_timestamp(currentTime);
-         }
+     // Transactions create blocks, which need timestamps, and gas.
+     if (request.method() == EthRequest_EthMethod_SEND_TX) {
+       time_t currentTime = std::time(nullptr);
+       internalEthRequest->set_timestamp(currentTime);
 
-         ConcordResponse internalResponse;
+       // Gas limit must be chosen on the client side, because all replicas must
+       // store the same gas limit in the block. If replica configs differed,
+       // different gas limits would be stored, and then reads would fail
+       // because responses wouldn't match.
+       internalEthRequest->set_gas_limit(gasLimit_);
+     }
 
-         if (clientPool_.send_request_sync(
-                internalRequest, isReadOnly, internalResponse)) {
-            concordResponse_.MergeFrom(internalResponse);
-         } else {
-            LOG4CPLUS_ERROR(logger_, "Error parsing response");
-            ErrorResponse *resp = concordResponse_.add_error_response();
-            resp->set_description("Internal concord Error");
-         }
-      }
+     ConcordResponse internalResponse;
+
+     if (clientPool_.send_request_sync(
+           internalRequest, isReadOnly, internalResponse)) {
+       concordResponse_.MergeFrom(internalResponse);
+     } else {
+       LOG4CPLUS_ERROR(logger_, "Error parsing response");
+       ErrorResponse *resp = concordResponse_.add_error_response();
+       resp->set_description("Internal concord Error");
+     }
    }
 }
 
@@ -690,123 +691,6 @@ api_connection::handle_test_request()
 }
 
 
-void
-api_connection::handle_filter_requests(const EthRequest &request)
-{
-   if (request.has_filter_request()) {
-      const FilterRequest &filter_request = request.filter_request();
-      switch (filter_request.type()) {
-      case FilterRequest_FilterRequestType_NEW_FILTER:
-      case FilterRequest_FilterRequestType_NEW_BLOCK_FILTER:
-         handle_new_block_filter(request);
-         break;
-      case FilterRequest_FilterRequestType_NEW_PENDING_TRANSACTION_FILTER:
-      case FilterRequest_FilterRequestType_FILTER_CHANGE_REQUEST:
-         handle_get_filter_changes(request);
-         break;
-      case FilterRequest_FilterRequestType_UNINSTALL_FILTER:
-         handle_uninstall_filter(request);
-      default:
-         break;
-      }
-   } else {
-      ErrorResponse *error = concordResponse_.add_error_response();
-      error->set_description("Invalid Filter request.");
-   }
-}
-
-
-/**
- * Creates a new block filter and returns the associated ID.
- */
-void
-api_connection::handle_new_block_filter(const EthRequest &request) {
-   uint64_t current_block = current_block_number();
-   evm_uint256be filterId =
-      filterManager_.create_new_block_filter(current_block);
-   EthResponse *response = concordResponse_.add_eth_response();
-   response->set_id(request.id());
-   FilterResponse *fresponse = response->mutable_filter_response();
-   fresponse->set_filter_id(filterId.bytes, sizeof(filterId));
-}
-
-/**
- * Returns all the new changes that happend after the last call to this method.
- * This method may returns different data based on the type of filter.
- */
-void
-api_connection::handle_get_filter_changes(const EthRequest &request)
-{
-   const FilterRequest frequest = request.filter_request();
-   evm_uint256be filterId;
-   try {
-      if (frequest.filter_id().size() != sizeof(filterId)) {
-         throw FilterException("Filter ID should be exactly " +
-                               std::to_string(sizeof(filterId)) + " bytes");
-      }
-      std::copy(frequest.filter_id().begin(),
-                frequest.filter_id().end(),
-                filterId.bytes);
-      EthResponse *response = concordResponse_.add_eth_response();
-      response->set_id(request.id());
-      if (filterManager_.get_filter_type(filterId) ==
-          EthFilterType::LOG_FILTER) {
-         LOG4CPLUS_WARN(logger_,
-                        "newFilter API (LOG_FILTER) is not implemented yet");
-      } else if (filterManager_.get_filter_type(filterId) ==
-                 EthFilterType::NEW_BLOCK_FILTER) {
-         uint64_t current_block = current_block_number();
-         vector<evm_uint256be>  block_changes =
-            filterManager_.get_new_block_filter_changes(
-               filterId, current_block, clientPool_);
-         if (block_changes.size() > 0) {
-            FilterResponse *filterResponse = response->mutable_filter_response();
-            for (auto block_hash : block_changes) {
-               filterResponse->add_block_hashes(block_hash.bytes,
-                                                sizeof(block_hash));
-            }
-         }
-      } else if (filterManager_.get_filter_type(filterId) ==
-                 EthFilterType::NEW_PENDING_TRANSACTION_FILTER) {
-         LOG4CPLUS_WARN(logger_, "newPendingTransactionFilter API"
-                        "(NEW_PENDING_TRANSACTION_FILTER) is not implemented yet");
-      }
-   } catch (FilterException e) {
-      LOG4CPLUS_DEBUG(logger_, e.what());
-      // We might have added response to concordResponse, clear it first
-      concordResponse_.clear_eth_response();
-      ErrorResponse *resp = concordResponse_.add_error_response();
-      resp->set_description(e.what());
-   }
-}
-
-void
-api_connection::handle_uninstall_filter(const EthRequest &request)
-{
-   const FilterRequest frequest = request.filter_request();
-   evm_uint256be filterId;
-   try {
-      if (frequest.filter_id().size() != sizeof(filterId)) {
-         throw FilterException("Filter ID should be exactly " +
-                               std::to_string(sizeof(filterId)) + " bytes");
-      }
-      std::copy(frequest.filter_id().begin(),
-                frequest.filter_id().end(),
-                filterId.bytes);
-      filterManager_.uninstall_filter(filterId);
-      EthResponse *response = concordResponse_.add_eth_response();
-      response->set_id(request.id());
-      FilterResponse *filterResponse = response->mutable_filter_response();
-      filterResponse->set_success(true);
-   } catch (FilterException e) {
-      LOG4CPLUS_DEBUG(logger_, e.what());
-      // We might have added response to concordResponse, clear it first
-      concordResponse_.clear_eth_response();
-      ErrorResponse *resp = concordResponse_.add_error_response();
-      resp->set_description(e.what());
-   }
-}
-
 uint64_t api_connection::current_block_number() {
    ConcordRequest internalReq;
    EthRequest *ethReq = internalReq.add_eth_request();
@@ -830,16 +714,16 @@ uint64_t api_connection::current_block_number() {
 api_connection::api_connection(
    io_service &io_service,
    connection_manager &manager,
-   FilterManager &filterManager,
    KVBClientPool &clientPool,
-   StatusAggregator &sag)
+   StatusAggregator &sag,
+   uint64_t gasLimit)
    : socket_(io_service),
      logger_(
         log4cplus::Logger::getInstance("com.vmware.concord.api_connection")),
      connManager_(manager),
-     filterManager_(filterManager),
      clientPool_(clientPool),
-     sag_(sag)
+     sag_(sag),
+     gasLimit_(gasLimit)
 {
    // nothing to do here yet other than initialize the socket and logger
 }

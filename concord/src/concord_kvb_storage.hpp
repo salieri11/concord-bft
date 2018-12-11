@@ -95,7 +95,7 @@ public:
                              const evm_uint256be &location,
                              uint64_t &block_number);
 
-   Blockchain::Status write_block(uint64_t timestamp);
+   Blockchain::Status write_block(uint64_t timestamp, uint64_t gas_limit);
    void reset();
    void add_transaction(EthTransaction &tx);
    void set_balance(const evm_address &addr, uint64_t balance);

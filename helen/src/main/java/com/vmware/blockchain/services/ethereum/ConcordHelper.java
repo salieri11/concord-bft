@@ -54,6 +54,10 @@ public class ConcordHelper {
         if (requestSize > 65535) {
             throw new IOException("Request too large: " + requestSize);
         }
+        if (requestSize == 0) {
+            log.error("Do not send empty messages to concord.");
+            throw new IOException("Empty request");
+        }
 
         byte[] size = intToSizeBytes(requestSize, conf.getReceiveHeaderSizeBytes());
         byte[] protobufRequest = request.toByteArray();

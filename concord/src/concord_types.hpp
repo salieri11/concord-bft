@@ -53,6 +53,7 @@ typedef struct EthBlock {
    uint64_t timestamp;
    evm_uint256be hash;
    evm_uint256be parent_hash;
+   uint64_t gas_limit;
    std::vector<evm_uint256be> transactions;
 
    evm_uint256be get_hash() const;

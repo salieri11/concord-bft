@@ -23,12 +23,14 @@ public class EthBlockNumberHandler extends AbstractEthRpcHandler {
      *
      * @param builder Builder object in which parameters are set.
      * @param requestJson User request
+     * @return Always true - send the request.
      */
     @Override
-    public void buildRequest(Concord.ConcordRequest.Builder builder, JSONObject requestJson) throws Exception {
+    public boolean buildRequest(Concord.ConcordRequest.Builder builder, JSONObject requestJson) throws Exception {
         Concord.EthRequest.Builder ethRequestBuilder = initializeRequestObject(requestJson);
         ethRequestBuilder.setMethod(Concord.EthRequest.EthMethod.BLOCK_NUMBER);
         builder.addEthRequest(ethRequestBuilder.build());
+        return true;
     }
 
     /**

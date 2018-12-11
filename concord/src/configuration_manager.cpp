@@ -30,6 +30,9 @@ static const int default_api_worker_thread_pool_size = 4;
 // default count of maximum transactions returned by transaction list query
 static const int default_transaction_list_max_count = 10;
 
+// default gas limit for transaction execution
+static const int64_t default_gas_limit = 1000000;
+
 
 variables_map initialize_config(int argc, char **argv) {
    // A map to hold key-value pairs of all options
@@ -102,8 +105,10 @@ variables_map initialize_config(int argc, char **argv) {
        "Number of threads to create for handling TCP connections")
       ("transaction_list_max_count",
        value<int>()->default_value(default_transaction_list_max_count),
-       "Maximum transactions returned for a transaction list query");
-
+       "Maximum transactions returned for a transaction list query")
+      ("gas_limit",
+       value<uint64_t>()->default_value(default_gas_limit),
+       "Maximum gas a transaction may consume");
 
    options_description all_options; // description of all options
    all_options.add(generic).add(config);

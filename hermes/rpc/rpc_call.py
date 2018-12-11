@@ -150,6 +150,14 @@ class RPC():
             exception = "RPC response contained an error.\n" \
                         "Data sent: '{}'\n".format(self._rpcData) + \
                         "Response: '{}'".format(response)
+         elif not ("id" in response):
+            exception = "RPC response must contain an id field.\n" \
+                        "Data sent: '{}'\n".format(self._rpcData) + \
+                        "Response: '{}'".format(response)
+         elif not (response["id"] == self._rpcData["id"]):
+            exception = "RPC response should contain same id as request.\n" \
+                        "Data sent: '{}'\n".format(self._rpcData) + \
+                        "Response: '{}'".format(response)
       else:
          exception = "No response for an RPC call was received.  Is the " \
                      "server running?"
@@ -499,6 +507,36 @@ class RPC():
       '''
       self._rpcData["method"] = "eth_syncing"
       self._rpcData["params"] = []
+
+      response = self._call()
+      return self.getResultFromResponse(response)
+
+   def newBlockFilter(self):
+      '''
+      Create a new block filter.
+      '''
+      self._rpcData["method"] = "eth_newBlockFilter"
+      self._rpcData["params"] = []
+
+      response = self._call()
+      return self.getResultFromResponse(response)
+
+   def getFilterChanges(self, filterId):
+      '''
+      Get changes since a filter was last queried/created
+      '''
+      self._rpcData["method"] = "eth_getFilterChanges"
+      self._rpcData["params"] = [filterId]
+
+      response = self._call()
+      return self.getResultFromResponse(response)
+
+   def uninstallFilter(self, filterId):
+      '''
+      Uninstall a filter
+      '''
+      self._rpcData["method"] = "eth_uninstallFilter"
+      self._rpcData["params"] = [filterId]
 
       response = self._call()
       return self.getResultFromResponse(response)

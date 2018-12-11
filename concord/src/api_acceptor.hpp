@@ -21,17 +21,17 @@ class api_acceptor {
 public:
    api_acceptor(boost::asio::io_service &io_service,
                 boost::asio::ip::tcp::endpoint endpoint,
-                FilterManager &filterManager,
                 KVBClientPool &clientPool,
-                StatusAggregator &sag);
+                StatusAggregator &sag,
+                uint64_t gasLimit);
 
 private:
    boost::asio::ip::tcp::acceptor acceptor_;
-   FilterManager &filterManager_;
    KVBClientPool &clientPool_;
    log4cplus::Logger logger_;
    connection_manager connManager_;
    StatusAggregator sag_;
+   uint64_t gasLimit_;
 
    void
    start_accept();

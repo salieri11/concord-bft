@@ -32,9 +32,10 @@ public class EthGetBlockHandler extends AbstractEthRpcHandler {
      *
      * @param builder Object in which request is built
      * @param requestJson Request parameters passed by the user
+     * @return Always true - send the request.
      */
     @Override
-    public void buildRequest(Builder builder, JSONObject requestJson) throws Exception {
+    public boolean buildRequest(Builder builder, JSONObject requestJson) throws Exception {
         try {
             JSONArray params = extractRequestParams(requestJson);
             if (params.size() != 2) {
@@ -79,6 +80,7 @@ public class EthGetBlockHandler extends AbstractEthRpcHandler {
 
             // Add the request to the concord request builder
             builder.setBlockRequest(blockRequestObj);
+            return true;
         } catch (Exception e) {
             logger.error("Exception in get block handler", e);
             throw e;
@@ -112,6 +114,10 @@ public class EthGetBlockHandler extends AbstractEthRpcHandler {
 
         if (blockResponseObj.hasTimestamp()) {
             result.put("timestamp", "0x" + Long.toHexString(blockResponseObj.getTimestamp()));
+        }
+
+        if (blockResponseObj.hasGasLimit()) {
+            result.put("gasLimit", "0x" + Long.toHexString(blockResponseObj.getGasLimit()));
         }
 
         JSONArray transactions = new JSONArray();

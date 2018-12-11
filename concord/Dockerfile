@@ -1,12 +1,21 @@
 ## IMPORTANT: You must have initialized and updated the submodules
 ## before building the docker image! See README.md.
 
+## ALSO IMPORTANT: You must pass the parent directory as the path for
+## this build. We need to copy files from ../communication, and Docker
+## will not allow copying files from outside the build scope. Use either:
+##
+## from this directory: docker build -f Dockerfile ..
+##         from parent: docker build -f concord/Dockerfile .
+
 ## Build image
 FROM vmwblockchain/concord-core:prereqs-v1
 
+## Remember context is the parent of this directory
+COPY ./communication /communication
 
 WORKDIR /concord
-COPY . /concord
+COPY ./concord /concord
 WORKDIR /concord/build
 RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make
 

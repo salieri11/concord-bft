@@ -27,8 +27,9 @@ public class EthGetTxReceiptHandler extends AbstractEthRpcHandler {
      *
      * @param builder Concord Request Builder.
      * @param requestJson The JSONObject of original RPC request.
+     * @return Always true - send the request;
      */
-    public void buildRequest(Concord.ConcordRequest.Builder builder, JSONObject requestJson) throws Exception {
+    public boolean buildRequest(Concord.ConcordRequest.Builder builder, JSONObject requestJson) throws Exception {
         try {
             logger.debug("Inside GetTXReceipt buildRequest");
             // Construct a transaction request object.
@@ -39,6 +40,7 @@ public class EthGetTxReceiptHandler extends AbstractEthRpcHandler {
             Concord.TransactionRequest txRequestObj =
                 Concord.TransactionRequest.newBuilder().setHash(hashBytes).build();
             builder.setTransactionRequest(txRequestObj);
+            return true;
         } catch (Exception e) {
             logger.error("Exception in tx receipt handler", e);
             throw e;

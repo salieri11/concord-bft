@@ -198,7 +198,11 @@ export class SmartContractVersionComponent implements OnChanges, OnInit {
     if (Object.keys(version.currentValue.metadata).length === 0) {
       return;
     }
-    this.functions = version.currentValue.metadata.output.abi.filter(abi => abi.type === 'function');
+    this.functions = version.currentValue.metadata.output.abi.filter(abi => abi.type === 'function').sort((a, b) => {
+      const aName = a.name.toUpperCase();
+      const bName = b.name.toUpperCase();
+      return (aName < bName) ? -1 : (aName > bName) ? 1 : 0;
+    });
     this.versionForm.reset();
     this.versionForm.value.contractForm.functionInputs = new FormGroup({});
     if (this.functions.length) {

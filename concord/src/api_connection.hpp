@@ -11,7 +11,6 @@
 #include <log4cplus/loggingmacros.h>
 
 #include "concord.pb.h"
-#include "filter_manager.hpp"
 #include "concord_kvb_client.hpp"
 #include "status_aggregator.hpp"
 
@@ -34,9 +33,9 @@ public:
    static pointer
    create(boost::asio::io_service &io_service,
           connection_manager &connManager,
-          FilterManager &filterManager,
           KVBClientPool &clientPool,
-          StatusAggregator &sag);
+          StatusAggregator &sag,
+          uint64_t gasLimit);
 
    boost::asio::ip::tcp::socket&
    socket();
@@ -92,24 +91,16 @@ private:
    is_valid_eth_getBalance(const EthRequest &request);
    bool
    is_valid_personal_newAccount(const EthRequest &request);
-   void
-   handle_filter_requests(const EthRequest &request);
-   void
-   handle_new_block_filter(const EthRequest &request);
-   void
-   handle_get_filter_changes(const EthRequest &reqest);
-   void
-   handle_uninstall_filter(const EthRequest &reqest);
 
-   /* This serves not only eth_blockNumber, but also filter curiosity. */
+   /* This serves eth_blockNumber. */
    uint64_t current_block_number();
 
    /* Constructor. */
    api_connection(boost::asio::io_service &io_service,
                   connection_manager &connManager,
-                  FilterManager &filterManager,
                   KVBClientPool &clientPool,
-                  StatusAggregator &sag);
+                  StatusAggregator &sag,
+                  uint64_t gasLimit);
 
    uint16_t
    get_message_length(const char * buffer);
@@ -157,8 +148,6 @@ private:
 
    connection_manager &connManager_;
 
-   // TODO (Amit) : FilterManagement is not made thread-safe. Move it to helen
-   FilterManager &filterManager_;
    KVBClientPool &clientPool_;
 
    boost::asio::ip::tcp::endpoint remotePeer_;
@@ -175,6 +164,7 @@ private:
    const uint8_t MSG_LENGTH_BYTES = 2;
 
    StatusAggregator sag_;
+   const uint64_t gasLimit_;
 };
 
 }

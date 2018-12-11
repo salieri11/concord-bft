@@ -54,9 +54,10 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
      *
      * @param concordRequestBuilder Object in which request is built
      * @param requestJson Request parameters passed by the user
+     * @return Always true - send the request.
      */
     @Override
-    public void buildRequest(Concord.ConcordRequest.Builder concordRequestBuilder, JSONObject requestJson)
+    public boolean buildRequest(Concord.ConcordRequest.Builder concordRequestBuilder, JSONObject requestJson)
             throws EthRpcHandlerException, ApiHelper.HexParseException, RlpParser.RlpEmptyException {
 
         Concord.EthRequest ethRequest = null;
@@ -84,6 +85,7 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
 
         ethRequest = b.build();
         concordRequestBuilder.addEthRequest(ethRequest);
+        return true;
     }
 
     private void buildRequestFromObject(EthRequest.Builder b, JSONObject obj, boolean isSendTx)

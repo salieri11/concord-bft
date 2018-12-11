@@ -14,14 +14,14 @@ using namespace com::vmware::concord;
 
 api_acceptor::api_acceptor(io_service &io_service,
                            tcp::endpoint endpoint,
-                           FilterManager &filterManager,
                            KVBClientPool &clientPool,
-                           StatusAggregator &sag)
+                           StatusAggregator &sag,
+                           uint64_t gasLimit)
    : acceptor_(io_service, endpoint),
-     filterManager_(filterManager),
      clientPool_(clientPool),
      logger_(log4cplus::Logger::getInstance("com.vmware.concord.api_acceptor")),
-     sag_(sag)
+     sag_(sag),
+     gasLimit_(gasLimit)
 {
    // set SO_REUSEADDR option on this socket so that if listener thread fails
    // we can still bind again to this socket
@@ -37,9 +37,9 @@ api_acceptor::start_accept()
    api_connection::pointer new_connection =
       api_connection::create(acceptor_.get_io_service(),
                              connManager_,
-                             filterManager_,
                              clientPool_,
-                             sag_);
+                             sag_,
+                             gasLimit_);
 
    acceptor_.async_accept(new_connection->socket(),
                           boost::bind(&api_acceptor::handle_accept,

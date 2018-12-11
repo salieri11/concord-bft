@@ -44,3 +44,10 @@ null, role varchar(255) not null, consortium_consortiumid int8 not
 null, organization_organizationid int8 not null, primary key (userid),
 foreign key (consortium_consortiumid) references consortiums, foreign
 key (organization_organizationid) references organizations);
+
+-- Blockchain entity
+create table if not exists blockchains (id UUID not null unique, 
+consortium_consortiumid int8 not null, ip_list varchar,
+foreign key (consortium_consortiumid) references consortiums,
+primary key (id));
+

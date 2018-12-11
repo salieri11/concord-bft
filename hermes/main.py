@@ -46,7 +46,8 @@ def main():
                        help="REQUIRES SUDO. Accepts a docker compose file " \
                        "which starts concord and helen.  The product will " \
                        "be launched in docker images instead of on the " \
-                       "command line.")
+                       "command line.",
+                       default="../concord/docker/docker-compose.yml")
    parser.add_argument("--noLaunch",
                        default=False,
                        action='store_true',
