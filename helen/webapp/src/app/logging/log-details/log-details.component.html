@@ -1,0 +1,34 @@
+<div>
+  <table class="mt-0 table table-vertical">
+    <tbody>
+    <tr *ngIf="log?.ingest_timestamp">
+      <th>{{ 'logDetails.col.ingestTimestamp' | translate }}</th>
+      <td>{{log.ingest_timestamp}}</td>
+    </tr>
+    <tr *ngIf="log?.log_timestamp">
+      <th>{{ 'logDetails.col.logTimestamp' | translate }}</th>
+      <td>{{log.log_timestamp}}</td>
+    </tr>
+    <tr *ngIf="log?.appname">
+      <th>{{ 'logDetails.col.appName' | translate }}</th>
+      <td>{{log.appname}}</td>
+    </tr>
+    <tr *ngIf="log?.organization_id">
+      <th>{{ 'logDetails.col.organizationId' | translate }}</th>
+      <td>{{log.organization_id}}</td>
+    </tr>
+    <tr *ngIf="log?.source">
+      <th>{{ 'logDetails.col.source' | translate }}</th>
+      <td>{{log.source}}</td>
+    </tr>
+    <tr *ngIf="log?.id">
+      <th>{{ 'logDetails.col.id' | translate }}</th>
+      <td>{{log.id}}</td>
+    </tr>
+    <tr *ngIf="log?.process">
+      <th>{{ 'logDetails.col.process' | translate }}</th>
+      <td>{{log.process}}</td>
+    </tr>
+    </tbody>
+  </table>
+</div>

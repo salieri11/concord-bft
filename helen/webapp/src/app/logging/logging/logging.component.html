@@ -1,0 +1,49 @@
+<div class="p-2">
+  <div class="row">
+    <div class="col-xs-12">
+      <h3 class="mt-0">{{ 'logging.bar.title' | translate }}</h3>
+    </div>
+    <div class="col-xs-12">
+      <div class="card">
+        <div class="card-block">
+          <concord-log-graph [graphData]="graphData"></concord-log-graph>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-xs-7">
+      <clr-datagrid [clrDgLoading]="listLoading">
+        <clr-dg-column>{{ 'logging.logTable.title' | translate }}</clr-dg-column>
+        <clr-dg-row *clrDgItems="let log of logs">
+          <clr-dg-cell>
+            {{ log.text }}
+          </clr-dg-cell>
+          <clr-dg-row-detail>
+            <concord-log-details *clrIfExpanded ngProjectAs="clr-dg-row-detail"
+                                   [log]="log"></concord-log-details>
+          </clr-dg-row-detail>
+        </clr-dg-row>
+      </clr-datagrid>
+      <div class="text-right">
+        <button *ngIf="nextPageLink"
+                (click)="onFetchNextPage()"
+                [attr.disabled]="listLoading ? '' : null"
+                type="button"
+                class="btn btn-primary next-page">
+          {{ 'logging.actions.nextPage' | translate }}
+        </button>
+      </div>
+    </div>
+    <div class="col-xs-5">
+      <div class="card heat-map-container">
+        <div class="card-header">
+          {{ 'logging.heatMap.title' | translate }}
+        </div>
+        <div class="card-block">
+          <concord-log-heat-map [graphData]="heatMapData"></concord-log-heat-map>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
