@@ -51,7 +51,6 @@ public class WalletServlet extends BaseServlet {
     public ResponseEntity<JSONAware> getWalletFromAddress(@PathVariable("user_id") String userId,
                                                    @PathVariable("address") String address) {
         JSONObject user = prm.getUserWithId(userId);
-        logger.info(userId + "----:---" + user.toJSONString());
         if (user.isEmpty()) {
             return new ResponseEntity<>(new JSONObject(), standardHeaders, HttpStatus.NOT_FOUND);
         } else {

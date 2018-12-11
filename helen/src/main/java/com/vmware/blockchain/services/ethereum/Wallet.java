@@ -28,7 +28,10 @@ import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.bouncycastle.jcajce.provider.digest.Keccak;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.util.encoders.Hex;
 import org.json.simple.JSONObject;
+
+import com.vmware.blockchain.common.WalletException;
 
 
 /**
@@ -76,7 +79,7 @@ public class Wallet {
      * @return wallet in json format
      * @throws Exception any exception during create wallet
      */
-    public static JSONObject creatWallet(String password) throws Exception {
+    public static JSONObject createWallet(String password) throws Exception {
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("ECDSA", "BC");
         ECGenParameterSpec ecGenParameterSpec = new ECGenParameterSpec("secp256k1");
         keyPairGenerator.initialize(ecGenParameterSpec, secureRandom);
@@ -99,9 +102,9 @@ public class Wallet {
         wallet.put("version", CURRENT_VERSION);
         JSONObject crypto = new JSONObject();
         crypto.put("cipher", CIPHER);
-        crypto.put("ciphertext", toHexString(cipherText));
+        crypto.put("ciphertext", Hex.toHexString(cipherText));
         JSONObject cipherparams = new JSONObject();
-        cipherparams.put("iv", toHexString(iv));
+        cipherparams.put("iv", Hex.toHexString(iv));
         crypto.put("cipherparams", cipherparams);
         crypto.put("kdf", SCRYPT);
         JSONObject kdfparams = new JSONObject();
@@ -109,9 +112,9 @@ public class Wallet {
         kdfparams.put("n", N_STANDARD);
         kdfparams.put("p", P_STANDARD);
         kdfparams.put("r", R);
-        kdfparams.put("salt", toHexString(salt));
+        kdfparams.put("salt", Hex.toHexString(salt));
         crypto.put("kdfparams", kdfparams);
-        crypto.put("mac", toHexString(mac));
+        crypto.put("mac", Hex.toHexString(mac));
         wallet.put("crypto", crypto);
 
         return wallet;
@@ -134,7 +137,7 @@ public class Wallet {
      * @param length desired length
      * @return padded bytes
      */
-    public static byte[] toBytesPadded(BigInteger value, int length) {
+    public static byte[] toBytesPadded(BigInteger value, int length) throws WalletException {
         byte[] result = new byte[length];
         byte[] bytes = value.toByteArray();
 
@@ -152,7 +155,7 @@ public class Wallet {
         }
 
         if (bytesLength > length) {
-            throw new RuntimeException("Input is too large to put in byte array of size " + length);
+            throw new WalletException("Input is too large to put in byte array of size " + length);
         }
 
         int destOffset = length - bytesLength;
@@ -198,19 +201,6 @@ public class Wallet {
     }
 
     /**
-     * Bytes to hex string.
-     * @param input bytes
-     * @return hex string
-     */
-    public static String toHexString(byte[] input) {
-        StringBuilder stringBuilder = new StringBuilder();
-        for (int i = 0; i < input.length; i++) {
-            stringBuilder.append(String.format("%02x", input[i] & 0xFF));
-        }
-        return stringBuilder.toString();
-    }
-
-    /**
      * generate wallet address with public key.
      * @param keyPair keypair which including the public key
      * @return address in hex, no leading '0x'
@@ -219,7 +209,7 @@ public class Wallet {
         BCECPublicKey publicKey = (BCECPublicKey) keyPair.getPublic();
         byte[] publicKeyBytes = publicKey.getQ().getEncoded(false);
         // As the first byte is constantly "0x04", ignore it as Ethereum
-        String hash = toHexString(sha3(Arrays.copyOfRange(publicKeyBytes, 1, publicKeyBytes.length)));
+        String hash = Hex.toHexString(sha3(Arrays.copyOfRange(publicKeyBytes, 1, publicKeyBytes.length)));
         return hash.substring(hash.length() - ADDRESS_LENGTH_IN_HEX);
     }
 }

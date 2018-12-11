@@ -161,7 +161,7 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
                                 .toJSONString());
             }
             String password = (String) params.get(0);
-            JSONObject wallet = Wallet.creatWallet(password);
+            JSONObject wallet = Wallet.createWallet(password);
             String address = (String) wallet.get("address");
             KeystoresRegistryManager krm = ApplicationContextHolder.getContext()
                     .getBean(KeystoresRegistryManager.class);

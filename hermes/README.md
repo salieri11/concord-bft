@@ -57,6 +57,43 @@ Hermes is the repository for the VMware Athena project's testing framework.
 - An alternate Hermes config file may be specified by using [--config].
   example : `./main.py CoreVMTests --config resources/user_config_resilience.json`
 
+## Running a test suite in Python Virtual Environment
+- Intall the python virtual environment, you could choose anyone you like, here we use Miniconda for example,
+  
+  ```
+  wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+  bash Miniconda3-latest-Linux-x86_64.sh
+  ```
+- Create a python environment for your project
+  ```bash
+  conda create -n hermes python=3.7
+  ```  
+  You can list all your virtual environments
+  ```bash
+  conda info --envs
+  ```
+  You should be able to see the new create virtual environment `hermes`. 
+  For more detail about how to use `conda`, please refer [Getting started with conda](https://conda.io/docs/user-guide/getting-started.html#getting-started-with-conda)
+
+- Change to your blockchain/hermes directory and activate you new created virtual environment
+  ```bash
+  cd your-blockchain-hermes-dir
+  source activate hermes
+  ```
+- Install all the dependencies for hermes project
+    ```bash
+    pip install -r requirements.txt
+    ```
+- Locate the path of python executable of your virtual environment
+    ```bash
+    which python
+    ```
+    
+- Modify the first line `#!/usr/bin/python3` of `main.py` to match the path you got in previous step, for example, mine is 
+   `#!/home/perfecthu/anaconda3/envs/hermes/bin/python`
+   
+All set! Run hermes as usual.
+
 ## Running the Performance Test suite:
 - The performance test utility assumes the format specified [here](https://vmwblockchain.atlassian.net/browse/ATH-4?filter=-5)
   for the test file.
