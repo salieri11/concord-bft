@@ -71,6 +71,9 @@ public class UserAuthenticatorTest {
     private AgreementRepository agreementRepository;
 
     @MockBean
+    private KeystoreRepository keystoreRepository;
+
+    @MockBean
     private DefaultProfiles profiles;
 
     private User testUser;
