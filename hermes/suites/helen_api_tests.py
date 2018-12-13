@@ -18,6 +18,7 @@ from . import test_suite
 from util.product import Product
 from rest.request import Request
 from rpc.rpc_call import RPC
+from uuid import uuid4
 
 import util.json_helper
 
@@ -643,7 +644,7 @@ class HelenAPITests(test_suite.TestSuite):
    def _test_get_non_existing_user(self, request):
       response = self._create_mock_user(request)
       user_id = response['user_id']
-      response = self._get_user(request, str(int(user_id) + 1000))
+      response = self._get_user(request, str(uuid4()))
       if not response:
          return (True, None)
       return (False, "Incorrect response for invalid user")
@@ -725,7 +726,7 @@ class HelenAPITests(test_suite.TestSuite):
       user_count = 5
       for i in range(1, user_count):
          response = self._create_mock_user(request);
-         created_user_id.append(int(response['user_id']))
+         created_user_id.append(response['user_id'])
       user = self._get_user(request, created_user_id[0])
       params = "?consortium={}&organization={}".format(user['consortium']['consortium_id'],
                                                       user['organization']['organization_id'])

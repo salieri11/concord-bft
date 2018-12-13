@@ -664,11 +664,12 @@ class ExtendedRPCTests(test_suite.TestSuite):
       :param password:
       :return:
       '''
+      user_id = request.getUsers()[0]['user_id']
       web3 = Web3(HTTPProvider(
          'http://admin@blockchain.local:Admin!23@127.0.0.1:8080/api/concord/eth'))
       password = "123456"
       address = web3.personal.newAccount(password)
-      wallet = request.getWallet(3, address[2:].lower())
+      wallet = request.getWallet(user_id, address[2:].lower())
       private_key = web3.eth.account.decrypt(wallet, password)
       transaction = {
          'to': '0xF0109fC8DF283027b6285cc889F5aA624EaC1F55',

@@ -5,6 +5,7 @@
 package com.vmware.blockchain.services.profiles;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import org.json.simple.JSONObject;
 
@@ -36,7 +37,7 @@ public class UsersApiMessage implements UserCreateRequest, UserPatchRequest, Use
     public static final String CONSORTIUM_ID_LABEL = "consortium_id";
     public static final String CONSORTIUM_NAME_LABEL = "consortium_name";
 
-    private Long userId;
+    private UUID userId;
     private String userName;
     private String firstName;
     private String lastName;
@@ -46,8 +47,8 @@ public class UsersApiMessage implements UserCreateRequest, UserPatchRequest, Use
     private Long lastLogin;
     private String organizationName;
     private String consortiumName;
-    private Long organizationId;
-    private Long consortiumId;
+    private UUID organizationId;
+    private UUID consortiumId;
 
     private boolean isEmpty;
 
@@ -105,7 +106,7 @@ public class UsersApiMessage implements UserCreateRequest, UserPatchRequest, Use
         if (request.containsKey(ORGANIZATION_LABEL)) {
             JSONObject orgJson = (JSONObject) request.get(ORGANIZATION_LABEL);
             if (orgJson.containsKey(ORGANIZATION_ID_LABEL)) {
-                organizationId = (Long) orgJson.get(ORGANIZATION_ID_LABEL);
+                organizationId = (UUID) orgJson.get(ORGANIZATION_ID_LABEL);
             }
             if (orgJson.containsKey(ORGANIZATION_NAME_LABEL)) {
                 organizationName = (String) orgJson.get(ORGANIZATION_NAME_LABEL);
@@ -117,7 +118,7 @@ public class UsersApiMessage implements UserCreateRequest, UserPatchRequest, Use
         if (request.containsKey(CONSORTIUM_LABEL)) {
             JSONObject conJson = (JSONObject) request.get(CONSORTIUM_LABEL);
             if (conJson.containsKey(CONSORTIUM_ID_LABEL)) {
-                consortiumId = (Long) conJson.get(CONSORTIUM_ID_LABEL);
+                consortiumId = (UUID) conJson.get(CONSORTIUM_ID_LABEL);
             }
             if (conJson.containsKey(CONSORTIUM_NAME_LABEL)) {
                 consortiumName = (String) conJson.get(CONSORTIUM_NAME_LABEL);
@@ -131,7 +132,7 @@ public class UsersApiMessage implements UserCreateRequest, UserPatchRequest, Use
         extractConsortiumFields(request);
     }
 
-    public Long getUserId() {
+    public UUID getUserId() {
         return userId;
     }
 
@@ -141,7 +142,7 @@ public class UsersApiMessage implements UserCreateRequest, UserPatchRequest, Use
      *
      * @param userId user id
      */
-    public void setUserId(Long userId) {
+    public void setUserId(UUID userId) {
         this.userId = userId;
     }
 
@@ -206,11 +207,11 @@ public class UsersApiMessage implements UserCreateRequest, UserPatchRequest, Use
         return consortiumName;
     }
 
-    public Long getOrganizationId() {
+    public UUID getOrganizationId() {
         return organizationId;
     }
 
-    public Long getConsortiumId() {
+    public UUID getConsortiumId() {
         return consortiumId;
     }
 

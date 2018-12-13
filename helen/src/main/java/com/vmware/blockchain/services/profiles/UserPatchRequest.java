@@ -5,14 +5,15 @@
 package com.vmware.blockchain.services.profiles;
 
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * An interface which defines the API for interacting with a user update (PATCH) request sent to the system.
  */
 public interface UserPatchRequest {
-    Long getUserId();
+    UUID getUserId();
 
-    void setUserId(Long userId);
+    void setUserId(UUID userId);
 
     Optional<String> getOptionalRole();
 

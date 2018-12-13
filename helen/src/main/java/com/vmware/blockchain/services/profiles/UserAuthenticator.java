@@ -7,6 +7,8 @@ package com.vmware.blockchain.services.profiles;
 import static com.vmware.blockchain.services.profiles.UsersApiMessage.EMAIL_LABEL;
 import static com.vmware.blockchain.services.profiles.UsersApiMessage.PASSWORD_LABEL;
 
+import java.util.UUID;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONAware;
@@ -71,7 +73,7 @@ public class UserAuthenticator extends BaseServlet {
     @JsonInclude(value =  Include.NON_EMPTY)
     private static class LoginResponse {
         // login response potentially has all the fields of User
-        private Long userId;
+        private UUID userId;
         private String userName;
         private String firstName;
         private String lastName;
@@ -81,8 +83,8 @@ public class UserAuthenticator extends BaseServlet {
         private Long lastLogin;
         private String organizationName;
         private String consortiumName;
-        private Long organizationId;
-        private Long consortiumId;
+        private UUID organizationId;
+        private UUID consortiumId;
         private Boolean authenticated;
         private String token;
         private String refreshToken;

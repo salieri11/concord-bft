@@ -6,13 +6,14 @@ package com.vmware.blockchain.services.profiles;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**
  * JPA Repository for Users.
  */
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, UUID> {
 
     List<User> findUsersByConsortiumAndOrganization(Consortium c, Organization o);
 
