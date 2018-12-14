@@ -2,44 +2,29 @@
  * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.services.ethereum;
+package com.vmware.concord;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.vmware.blockchain.common.ConcordProperties;
-import com.vmware.blockchain.connections.IConcordConnection;
-import com.vmware.concord.Concord;
 
 /**
  * Some helper functions dealing with protobuf.
  */
 public class ConcordHelper {
 
-    private static Logger log = LogManager.getLogger(ConcordHelper.class);
-
-    /**
-     * Converts an int into two bytes.
-     *
-     * @param value that needs to be converted
-     * @param size size of returned byte array
-     * @return A byte array containing two bytes.
-     */
-    private static byte[] intToSizeBytes(int value, int size) {
-        byte[] bytes = ByteBuffer.allocate(size).order(ByteOrder.LITTLE_ENDIAN).putShort((short) value).array();
-        return bytes;
-    }
+    private static Logger log = LoggerFactory.getLogger(ConcordHelper.class);
 
     /**
      * Sends a Google Protocol Buffer request to Concord. Concord expects two bytes signifying the size of the request
      * before the actual request.
      */
-    public static boolean sendToConcord(Concord.ConcordRequest request, IConcordConnection conn, ConcordProperties conf)
+    public static boolean sendToConcord(Concord.ConcordRequest request, IConcordConnection conn)
             throws IOException {
         // here specifically, request.toString() it time consuming,
         // so checking level enabled can gain performance
@@ -47,27 +32,11 @@ public class ConcordHelper {
             log.trace(String.format("Sending request to Concord : %s %s", System.lineSeparator(), request));
         }
 
-        // Find size of request and pack size into two bytes.
-        int requestSize = request.getSerializedSize();
-
-        // If the request size doesn't fit in two bytes, abort.
-        if (requestSize > 65535) {
-            throw new IOException("Request too large: " + requestSize);
-        }
-        if (requestSize == 0) {
-            log.error("Do not send empty messages to concord.");
-            throw new IOException("Empty request");
-        }
-
-        byte[] size = intToSizeBytes(requestSize, conf.getReceiveHeaderSizeBytes());
-        byte[] protobufRequest = request.toByteArray();
-        ByteBuffer msg = ByteBuffer.allocate(size.length + protobufRequest.length);
-        msg.put(size, 0, size.length);
-        msg.put(protobufRequest, 0, protobufRequest.length);
-
         // Write requests over the output stream.
-        boolean res = conn.send(msg.array());
-        return res;
+        conn.send(request.toByteArray());
+
+        // TODO: now that send throws IOException, there's no reason to return a boolean here
+        return true;
     }
 
     /**
@@ -93,6 +62,7 @@ public class ConcordHelper {
             return concordResponse;
         } catch (Exception e) {
             log.error("receiveFromConcord", e);
+            conn.close();
             return null;
         }
     }

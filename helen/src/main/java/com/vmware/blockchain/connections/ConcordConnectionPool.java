@@ -16,6 +16,9 @@ import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.common.ConcordProperties;
 
+import com.vmware.concord.ConcordTcpConnection;
+import com.vmware.concord.IConcordConnection;
+
 /**
  * Connection pool for a specific Blockchain.
  */
