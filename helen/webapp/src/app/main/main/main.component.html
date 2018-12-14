@@ -22,6 +22,10 @@
         <clr-icon clrVerticalNavIcon shape="scroll"></clr-icon>
         {{'nav.smartContracts.title' | translate}}
       </a>
+      <!--<a clrVerticalNavLink routerLink="/logging" routerLinkActive="active">-->
+        <!--<clr-icon clrVerticalNavIcon shape="details"></clr-icon>-->
+        <!--{{'nav.logsAndAnalysis.title' | translate}}-->
+      <!--</a>-->
       <a clrVerticalNavLink routerLink="/blocks" routerLinkActive="active">
         <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon>
         {{'nav.blockList.title' | translate}}
@@ -33,7 +37,7 @@
       <ng-container *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
         <div class="nav-divider"></div>
         <label class="nav-header">
-          {{ 'nav.sysadmin.title' | translate }}
+          {{'nav.sysadmin.title' | translate}}
         </label>
         <a clrVerticalNavLink
            [routerLink]="['/users']"
@@ -41,7 +45,7 @@
            *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]"
            tourAnchor="onboardingTour.userManagement">
           <clr-icon clrVerticalNavIcon shape="administrator"></clr-icon>
-          {{ 'nav.users.title' | translate }}
+          {{'nav.users.title' | translate}}
         </a>
       </ng-container>
     </clr-vertical-nav>
