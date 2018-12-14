@@ -180,6 +180,7 @@ def call(){
           script {
             env.concord_repo = 'vmwblockchain/concord-core'
             env.helen_repo = 'vmwblockchain/concord-ui'
+            env.fluentd_repo = 'vmwblockchain/fluentd'
           }
 
           // These are constants related to labels.
@@ -227,6 +228,25 @@ def call(){
               }
             }
           }
+
+          stage('Build fluentd docker image') {
+            steps {
+              script {
+                dir('blockchain/concord/docker') {
+
+                  script {
+                    env.fluentd_tag = env.version_param ? env.version_param : env.commit
+                  }
+                  withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
+                    sh '''
+                      docker-compose build fluentd
+                    '''
+                  }
+                }
+              }
+            }
+          }
+
         }
       }
 
@@ -249,6 +269,8 @@ concord_repo=${concord_repo}
 concord_tag=${concord_docker_tag}
 helen_repo=${helen_repo}
 helen_tag=${helen_docker_tag}
+fluentd_repo=${fluentd_repo}
+fluentd_tag=${fluentd_tag}
 EOF
               '''
 
@@ -287,6 +309,13 @@ EOF
               docker push ${helen_repo}:${version_param}
               docker tag ${helen_repo}:${version_param} ${helen_repo}:latest
               docker push ${helen_repo}:latest
+
+              # echo Would run docker push ${fluentd_repo}:${version_param}
+              # echo Would run docker tag ${fluentd_repo}:${version_param} ${fluentd_repo}:latest
+              # echo Would run docker push ${fluentd_repo}:latest
+              docker push ${fluentd_repo}:${version_param}
+              docker tag ${fluentd_repo}:${version_param} ${fluentd_repo}:latest
+              docker push ${fluentd_repo}:latest
             '''
 
             dir('blockchain/vars') {
