@@ -21,6 +21,7 @@ import { SmartContractsModule } from '../smart-contracts/smart-contracts.module'
 import { OrgsModule } from '../orgs/orgs.module';
 import { ConsortiumModule } from '../consortium/consortium.module';
 import { UsersModule } from '../users/users.module';
+import { LoggingModule } from '../logging/logging.module';
 
 
 @NgModule({
@@ -38,6 +39,7 @@ import { UsersModule } from '../users/users.module';
     ConsortiumModule,
     SmartContractsModule,
     UsersModule,
+    LoggingModule,
     TourNgxPopperModule
   ],
   declarations: [MainComponent],

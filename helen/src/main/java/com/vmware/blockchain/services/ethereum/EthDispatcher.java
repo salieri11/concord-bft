@@ -23,12 +23,14 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
-import com.vmware.blockchain.connections.IConcordConnection;
 import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.contracts.ContractRegistryManager;
+
 import com.vmware.concord.Concord;
 import com.vmware.concord.Concord.ConcordResponse;
 import com.vmware.concord.Concord.ErrorResponse;
+import com.vmware.concord.ConcordHelper;
+import com.vmware.concord.IConcordConnection;
 
 /**
  * <p>
@@ -282,18 +284,22 @@ public final class EthDispatcher extends BaseServlet {
                     handler = new EthFilterChangeHandler();
                     break;
 
+                case Constants.NETVERSION_NAME:
+                    handler = new EthLocalResponseHandler();
+                    isLocal = netVersionSet;
+                    break;
+
                 case Constants.WEB3_SHA3_NAME:
                 case Constants.RPC_MODULES_NAME:
                 case Constants.COINBASE_NAME:
                 case Constants.CLIENT_VERSION_NAME:
                 case Constants.MINING_NAME:
-                case Constants.NETVERSION_NAME:
                 case Constants.NEWACCOUNT_NAME:
                 case Constants.ACCOUNTS_NAME:
                 case Constants.GAS_PRICE_NAME:
                 case Constants.ESTIMATE_GAS_NAME:
                 case Constants.SYNCING_NAME:
-                    handler = new EthLocalResponseHandler(concordConnectionPool);
+                    handler = new EthLocalResponseHandler();
                     isLocal = true;
                     break;
 
@@ -356,7 +362,7 @@ public final class EthDispatcher extends BaseServlet {
                 throw new Exception("Error communicating with concord");
             }
 
-            boolean res = ConcordHelper.sendToConcord(req, conn, config);
+            boolean res = ConcordHelper.sendToConcord(req, conn);
             if (!res) {
                 throw new Exception("Error communicating with concord");
             }

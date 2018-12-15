@@ -205,6 +205,12 @@ body.dark {
   text{
     fill: $clr-dark-midtone-gray;
   }
+
+  .heat-map {
+    rect.cell {
+      rx: 0;
+    }
+  }
 }
 
 // Copy to clipboard button

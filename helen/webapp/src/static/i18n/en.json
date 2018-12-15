@@ -63,6 +63,9 @@
     "smartContracts": {
       "title": "Smart Contracts"
     },
+    "logsAndAnalysis": {
+      "title": "Logs And Analysis"
+    },
     "sysadmin": {
       "title": "SYSTEM ADMIN"
     },
@@ -609,6 +612,29 @@
       }
     }
   },
+  "logging": {
+    "heatMap": {
+      "title": "Methods by time of day",
+      "days": {
+        "0": "Sun",
+        "1": "Mon",
+        "2": "Tue",
+        "3": "Wed",
+        "4": "Thu",
+        "5": "Fri",
+        "6": "Sat"
+      }
+    },
+    "logTable": {
+      "title": "Logs"
+    },
+    "actions": {
+      "nextPage": "Next Page"
+    },
+    "bar": {
+      "title": "Total Method Calls"
+    }
+  },
   "personas": {
     "systemsAdmin": "Systems Admin",
     "consortiumAdmin": "Consortium Admin",
@@ -936,6 +962,17 @@
       "4": "Thursday",
       "5": "Friday",
       "6": "Saturday"
+    }
+  },
+  "logDetails": {
+    "col": {
+      "ingestTimestamp": "ingest_timestamp",
+      "logTimestamp": "log_timestamp",
+      "appName": "appname",
+      "organizationId": "organization_id",
+      "source": "source",
+      "id": "id",
+      "process": "process"
     }
   }
 }

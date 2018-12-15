@@ -10,6 +10,9 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.vmware.blockchain.common.ConcordProperties;
 
+import com.vmware.concord.ConcordTcpConnection;
+import com.vmware.concord.IConcordConnection;
+
 /**
  * Factory to create ConcordConnections of the proper type.
  */
@@ -55,10 +58,11 @@ public final class ConcordConnectionFactory {
                 int chosenAuthority = (int) nextAuthority.getAndIncrement() % concordList.size();
                 Authority concordInstance = concordList.get(chosenAuthority);
                 ConcordTcpConnection connection =
-                        new ConcordTcpConnection(config, concordInstance.getHost(), concordInstance.getPort());
+                    new ConcordTcpConnection(config.getReceiveTimeoutMs(), config.getReceiveHeaderSizeBytes(),
+                                             concordInstance.getHost(), concordInstance.getPort());
                 return connection;
             case Mock:
-                return new MockConnection(config);
+                return new MockConnection();
             default:
                 throw new UnsupportedOperationException("type not supported" + type);
         }

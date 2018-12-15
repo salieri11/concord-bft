@@ -7,7 +7,7 @@ import { Inject } from '@angular/core';
 import { CONCORD_API_PREFIX } from './shared.config';
 import { BaseApi } from '../base-api';
 
-export abstract class concordApiService extends BaseApi {
+export abstract class ConcordApiService extends BaseApi {
 
   constructor(@Inject(CONCORD_API_PREFIX) private concordApiPrefix: string) {
     super();

@@ -13,8 +13,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.connections.ConcordConnectionPool;
-import com.vmware.blockchain.connections.IConcordConnection;
 import com.vmware.blockchain.services.profiles.ApplicationContextHolder;
 import com.vmware.blockchain.services.profiles.KeystoresRegistryManager;
 import com.vmware.concord.Concord;
@@ -40,28 +38,25 @@ import com.vmware.concord.Concord;
  */
 public class EthLocalResponseHandler extends AbstractEthRpcHandler {
 
-    private ConcordConnectionPool connectionPool;
-
     private static Logger logger = LogManager.getLogger(EthLocalResponseHandler.class);
 
     /**
-     * Initialize the local response handler.
-     * @param connectionPool Concord connectionpool.
-     */
-    public EthLocalResponseHandler(ConcordConnectionPool connectionPool) {
-        this.connectionPool = connectionPool;
-    }
-
-    /**
-     * This method does not build any request since we do not need to send any request to Concord for requests handled
-     * by this handler. However, having an empty method like this is probably not a very good idea. TODO: Figure out how
-     * to remove this empty method.
+     * The *local* response handler shouldn't need to send a request ... except that it does in some very specific cases
+     * (documented inline). These cases could be refactored into other handlers, if they get more complicated.
      *
-     * @return Always false - handling locally means never sending a request to concord.
+     * @return True when a request does need to be sent, false otherwise.
      */
     public boolean buildRequest(Concord.ConcordRequest.Builder concordRequestBuilder, JSONObject requestJson)
         throws Exception {
-        return false;
+        String ethMethodName = EthDispatcher.getEthMethodName(requestJson);
+        if (ethMethodName.equals(Constants.NETVERSION_NAME)) {
+            // eth_netVersion has to send a request to concord the first time, but the value is cached afterward
+            concordRequestBuilder.setProtocolRequest(Concord.ProtocolRequest.newBuilder());
+            return true;
+        } else {
+            // no other methods send a request to concord
+            return false;
+        }
     }
 
     /**
@@ -131,25 +126,12 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
         } else if (ethMethodName.equals(Constants.MINING_NAME)) {
             localData = Constants.IS_MINING == 0 ? false : true;
         } else if (ethMethodName.equals(Constants.NETVERSION_NAME)) {
-            if (!EthDispatcher.netVersionSet) {
-                // The act of creating a connection retrieves info about concord.
-                IConcordConnection conn = null;
-                try {
-                    conn = connectionPool.getConnection();
-                    conn.check();
-                } catch (IllegalStateException | InterruptedException e) {
-                    e.printStackTrace();
-                } catch (Exception e) {
-                    logger.error("Unable to connect to concord.", e);
-                    throw new EthRpcHandlerException(
-                            EthDispatcher.errorMessage("Unable to connect to concord.", id, jsonRpc).toJSONString());
-                } finally {
-                    if (conn != null) {
-                        connectionPool.putConnection(conn);
-                    }
+            if (!EthDispatcher.netVersionSet && concordResponse != null && concordResponse.hasProtocolResponse()) {
+                Concord.ProtocolResponse protocolResponse = concordResponse.getProtocolResponse();
+                if (protocolResponse.hasNetVersion()) {
+                    EthDispatcher.netVersion = protocolResponse.getNetVersion();
+                    EthDispatcher.netVersionSet = true;
                 }
-            } else {
-                EthDispatcher.netVersionSet = true;
             }
             localData = EthDispatcher.netVersion;
         } else if (ethMethodName.equals(Constants.NEWACCOUNT_NAME)) {

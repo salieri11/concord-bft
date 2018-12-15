@@ -7,12 +7,12 @@ import { HttpClient } from '@angular/common/http';
 
 import { CONCORD_API_PREFIX } from '../../shared/shared.config';
 import { SmartContract, SmartContractVersion } from './smart-contracts.model';
-import { concordApiService } from '../../shared/concord-api';
+import { ConcordApiService } from '../../shared/concord-api';
 
 @Injectable({
   providedIn: 'root'
 })
-export class SmartContractsService extends concordApiService {
+export class SmartContractsService extends ConcordApiService {
 
   constructor(@Inject(CONCORD_API_PREFIX) concordApiPrefix: string, private httpClient: HttpClient) {
     super(concordApiPrefix);

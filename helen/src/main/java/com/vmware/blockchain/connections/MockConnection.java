@@ -4,22 +4,22 @@
 
 package com.vmware.blockchain.connections;
 
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
+import java.io.IOException;
 
-import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.concord.Concord;
+import com.vmware.concord.IConcordConnection;
 
 /**
  * Mock Concord connection, used for testing.
  */
 public class MockConnection implements IConcordConnection {
+    // Pre-allocated check response
     private static Concord.ProtocolResponse protocolResponse =
-            Concord.ProtocolResponse.newBuilder().setServerVersion(1).build();
-    private ConcordProperties config;
+        Concord.ProtocolResponse.newBuilder().setServerVersion(1).build();
+    private static Concord.ConcordResponse concordResponse =
+        Concord.ConcordResponse.newBuilder().setProtocolResponse(protocolResponse).build();
 
-    public MockConnection(ConcordProperties config) {
-        this.config = config;
+    public MockConnection() {
     }
 
     @Override
@@ -28,8 +28,8 @@ public class MockConnection implements IConcordConnection {
     }
 
     @Override
-    public boolean send(byte[] msg) {
-        return true;
+    public void send(byte[] msg) throws IOException {
+        // MockConnection just throws the request away
     }
 
     @Override
@@ -37,12 +37,8 @@ public class MockConnection implements IConcordConnection {
      * this method should be extended to remember last message sent and to return corresponding response. Currently it
      * returns hardcoded ConcordProtocolResponse message
      */
-    public byte[] receive() {
-        byte[] data = protocolResponse.toByteArray();
-        int headerLength = config.getReceiveHeaderSizeBytes();
-        byte[] bytes = ByteBuffer.allocate(headerLength + data.length).order(ByteOrder.LITTLE_ENDIAN)
-                .putShort((short) data.length).put(data).array();
-        return bytes;
+    public byte[] receive() throws IOException {
+        return concordResponse.toByteArray();
     }
 
     @Override

@@ -21,6 +21,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.connections.ConcordConnectionFactory.ConnectionType;
 
+import com.vmware.concord.IConcordConnection;
+
 /**
  * Connection pool unit tests.
  */

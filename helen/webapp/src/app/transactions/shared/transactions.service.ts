@@ -10,12 +10,12 @@ import { mergeMap } from 'rxjs/operators';
 import { CONCORD_API_PREFIX } from '../../shared/shared.config';
 import { Transaction, TransactionListing } from './transactions.model';
 import { BlocksService } from '../../blocks/shared/blocks.service';
-import { concordApiService } from '../../shared/concord-api';
+import { ConcordApiService } from '../../shared/concord-api';
 
 @Injectable({
   providedIn: 'root'
 })
-export class TransactionsService extends concordApiService {
+export class TransactionsService extends ConcordApiService {
 
   constructor(
     @Inject(CONCORD_API_PREFIX) concordApiPrefix: string,

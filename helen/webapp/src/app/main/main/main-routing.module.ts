@@ -16,6 +16,7 @@ import { consortiumRoutes } from '../../consortium/consortium-routing';
 import { orgRoutes } from '../../orgs/orgs-routing';
 import { usersRoutes } from '../../users/users-routing';
 import { transactionsRoutes } from '../../transactions/transactions-routing';
+import { loggingRoutes } from '../../logging/logging-routing';
 
 const routes: Routes = [
   {
@@ -28,6 +29,7 @@ const routes: Routes = [
       { path: 'blocks', children: blockRoutes },
       { path: 'nodes', children: nodeRoutes },
       { path: 'smart-contracts', children: smartContractRoutes },
+      { path: 'logging', children: loggingRoutes },
       { path: 'consortium', children: consortiumRoutes },
       { path: 'organization', children: orgRoutes },
       { path: 'users', children: usersRoutes },

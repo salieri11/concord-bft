@@ -17,10 +17,11 @@ import org.springframework.stereotype.Controller;
 import com.vmware.blockchain.common.ConcordConnectionException;
 import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
-import com.vmware.blockchain.connections.IConcordConnection;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
-import com.vmware.blockchain.services.ethereum.ConcordHelper;
+
 import com.vmware.concord.Concord;
+import com.vmware.concord.ConcordHelper;
+import com.vmware.concord.IConcordConnection;
 
 /**
  * Base for all Helen Controllers.
@@ -58,7 +59,7 @@ public abstract class BaseServlet {
                 throw new ConcordConnectionException("Unable to get concord " + "connection");
             }
 
-            boolean res = ConcordHelper.sendToConcord(req, conn, config);
+            boolean res = ConcordHelper.sendToConcord(req, conn);
             if (!res) {
                 throw new ConcordConnectionException("Sending to concord failed");
             }

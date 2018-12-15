@@ -2,7 +2,9 @@
  * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.connections;
+package com.vmware.concord;
+
+import java.io.IOException;
 
 /**
  * Concord Connection interface.
@@ -10,9 +12,9 @@ package com.vmware.blockchain.connections;
 public interface IConcordConnection {
     void close();
 
-    boolean send(byte[] msg);
+    void send(byte[] msg) throws IOException;
 
-    byte[] receive();
+    byte[] receive() throws IOException;
 
     boolean check();
 }
