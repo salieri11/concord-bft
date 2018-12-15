@@ -51,3 +51,7 @@ consortium_consortiumid int8 not null, ip_list varchar,
 foreign key (consortium_consortiumid) references consortiums,
 primary key (id));
 
+-- keystore entity
+create table if not exists keystores (address varchar(40) not null,
+wallet string not null, user_userid int8, foreign key (user_userid) references users,
+primary key (address));

@@ -247,10 +247,6 @@ public final class EthDispatcher extends BaseServlet {
                     }
                     break;
 
-                case Constants.NEWACCOUNT_NAME:
-                    handler = new EthNewAccountHandler();
-                    break;
-
                 case Constants.GET_TRANSACTIONRECEIPT_NAME:
                     handler = new EthGetTxReceiptHandler();
                     break;
@@ -298,6 +294,7 @@ public final class EthDispatcher extends BaseServlet {
                 case Constants.COINBASE_NAME:
                 case Constants.CLIENT_VERSION_NAME:
                 case Constants.MINING_NAME:
+                case Constants.NEWACCOUNT_NAME:
                 case Constants.ACCOUNTS_NAME:
                 case Constants.GAS_PRICE_NAME:
                 case Constants.ESTIMATE_GAS_NAME:
