@@ -160,7 +160,7 @@ export class WorldMapComponent implements AfterViewInit, OnChanges, OnDestroy {
     this.animationInterval = setInterval(this.checkAndSchedulePulseAnimation.bind(this), this.animationDuration + 1000);
 
     // Fetch and set up GeoJSON backed country layer
-    this.http.get('assets/static/countries-110m.json').subscribe(result => {
+    this.http.get('static/countries-110m.json').subscribe(result => {
       // Convert GeoJSON source to vector tiles
       const tileSource = geojsonvt(result, {
         extent: 4096,

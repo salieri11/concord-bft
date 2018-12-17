@@ -22,7 +22,7 @@ import { SwaggerModule } from './swagger/swagger.module';
 import { VmwClarityThemeService } from './shared/theme.provider';
 
 export function HttpLoaderFactory(http: HttpClient) {
-  return new TranslateHttpLoader(http, 'assets/static/i18n/', '.json');
+  return new TranslateHttpLoader(http, 'static/i18n/', '.json');
 }
 
 export function langInitializerFactory(translate: TranslateService, injector: Injector, themeService: VmwClarityThemeService) {

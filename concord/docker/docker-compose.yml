@@ -75,6 +75,15 @@ services:
     #     fluentd-address: 0.0.0.0:24224
     #     tag: httpd.access
 
+  ui:
+    build:
+      context: ../../ui
+    image: "${ui_repo}:${ui_tag}"
+    ports:
+      - 80:80
+    depends_on:
+      - helen
+
   db-server:
     image: cockroachdb/cockroach:v2.0.2
     ports:

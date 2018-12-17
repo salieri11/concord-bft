@@ -4,8 +4,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "ng": "ng",
-    "start": "npm run copy-clarity && ng serve --ssl --proxy-config proxy.conf.json --deploy-url=/",
-    "build:maven": "node ./node_modules/.bin/ng build --prod --deploy-url assets/ && npm run copy-clarity && npm run build:move",
+    "start": "npm run copy-clarity && ng serve --ssl --proxy-config proxy.conf.json",
+    "build:prod": "ng build --prod && npm run copy-clarity",
     "build:local:prod": "ng build --prod --deploy-url assets/ && npm run copy-clarity && npm run build:move",
     "build:local:dev": "ng build --deploy-url assets/ && npm run copy-clarity && npm run build:move",
     "build:move": "mkdir -p ../src/main/resources/static/assets && cp -a dist/. ../src/main/resources/static/assets && mv ../src/main/resources/static/assets/index.html ../src/main/resources/static",
