@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.UUID;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -37,6 +38,11 @@ import io.jsonwebtoken.Jwts;
 @RunWith(SpringRunner.class)
 @ContextConfiguration
 public class JwtTokenProviderTest {
+    // Just some random UUIDs
+    private static final UUID USER_ID = UUID.fromString("f1c1aa4f-4958-4e93-8a51-930d595fb65b");
+    private static final UUID ORG_ID = UUID.fromString("82634974-88cf-4944-a99d-6b92664bb765");
+    private static final UUID CONSORTIUM_ID = UUID.fromString("5c7cd0e9-57ad-44af-902f-74af2f3dd8fe");
+
 
     @Autowired
     public JwtTokenProvider jwtTokenProvider;
@@ -60,12 +66,12 @@ public class JwtTokenProviderTest {
     public void init() {
         // consortium and organization
         MockitoAnnotations.initMocks(this);
-        when(consortium.getConsortiumId()).thenReturn(200L);
+        when(consortium.getConsortiumId()).thenReturn(CONSORTIUM_ID);
         when(consortium.getConsortiumName()).thenReturn("Consortium Test");
         when(consortium.getConsortiumType()).thenReturn("Constorium Type");
-        when(organization.getOrganizationId()).thenReturn(300L);
+        when(organization.getOrganizationId()).thenReturn(ORG_ID);
         when(organization.getOrganizationName()).thenReturn("Test Org");
-        when(user.getUserId()).thenReturn(100L);
+        when(user.getUserId()).thenReturn(USER_ID);
         when(user.getEmail()).thenReturn("user@test.com");
         when(user.getFirstName()).thenReturn("U");
         when(user.getLastName()).thenReturn("Ser");
@@ -82,7 +88,7 @@ public class JwtTokenProviderTest {
         Jws<Claims> jws = Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token);
         Claims claims = jws.getBody();
         Assert.assertEquals("user@test.com", claims.getSubject());
-        Assert.assertEquals(new Integer(200), claims.get("context_name", Integer.class));
+        Assert.assertEquals(CONSORTIUM_ID.toString(), claims.get("context_name", String.class));
         System.out.println(jws);
     }
 

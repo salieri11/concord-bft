@@ -215,6 +215,13 @@ class Request():
 
       return self._send()
 
+   def getUsers(self):
+       self._subPath = '/api/users'
+       self._params = ""
+       self._endpointName = "users"
+       
+       return self._send()
+   
    def getWallet(self, userId, address):
       '''
       Get the wallet of the user & address

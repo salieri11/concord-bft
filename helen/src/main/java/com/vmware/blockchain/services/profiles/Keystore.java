@@ -4,7 +4,6 @@
 
 package com.vmware.blockchain.services.profiles;
 
-
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.Id;

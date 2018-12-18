@@ -14,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -45,6 +46,11 @@ import com.vmware.blockchain.security.JwtTokenProvider;
 @ContextConfiguration(classes = MvcConfig.class)
 @ComponentScan(basePackageClasses = { UserAuthenticatorTest.class })
 public class UserAuthenticatorTest {
+
+    // Just some random UUIDs
+    private static final UUID USER_ID = UUID.fromString("f1c1aa4f-4958-4e93-8a51-930d595fb65b");
+    private static final UUID ORG_ID = UUID.fromString("82634974-88cf-4944-a99d-6b92664bb765");
+    private static final UUID CONSORTIUM_ID = UUID.fromString("5c7cd0e9-57ad-44af-902f-74af2f3dd8fe");
 
     @Autowired
     private MockMvc mvc;
@@ -84,15 +90,15 @@ public class UserAuthenticatorTest {
     @Before
     public void init() {
         Consortium consortium = new Consortium();
-        consortium.setConsortiumId(200L);
+        consortium.setConsortiumId(CONSORTIUM_ID);
         consortium.setConsortiumName("Consortium Test");
         consortium.setConsortiumType("Test Type");
         Organization organization = new Organization();
-        organization.setOrganizationId(300L);
+        organization.setOrganizationId(ORG_ID);
         organization.setOrganizationName("Test Org");
         // our test user
         testUser = new User();
-        testUser.setUserId(20L);
+        testUser.setUserId(USER_ID);
         testUser.setEmail("user@test.com");
         testUser.setFirstName("Test");
         testUser.setLastName("User");
@@ -131,7 +137,8 @@ public class UserAuthenticatorTest {
     public void loginTest() throws Exception {
         String loginRequest = "{\"email\": \"user@test.com\", \"password\": \"1234\"}";
         String loginResponse =
-                "{\"user_id\":20, \"last_login\":0, \"token\":\"token\",\"refresh_token\":"
+                "{\"user_id\":\"f1c1aa4f-4958-4e93-8a51-930d595fb65b\","
+                + "\"last_login\":0, \"token\":\"token\",\"refresh_token\":"
                 + "\"refresh_token\",\"token_expires\":1800000}";
         mvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON).content(loginRequest))

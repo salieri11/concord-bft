@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.transaction.Transactional;
@@ -55,8 +56,8 @@ public class ProfilesRegistryManager {
     protected ProfilesRegistryManager() {}
 
     private List<User> getUsersInternal(String consortiumId, String organizationId) {
-        Optional<Organization> org = organizationRepository.findById(Long.parseLong(organizationId));
-        Optional<Consortium> con = consortiumRepository.findById(Long.parseLong(consortiumId));
+        Optional<Organization> org = organizationRepository.findById(UUID.fromString(organizationId));
+        Optional<Consortium> con = consortiumRepository.findById(UUID.fromString(consortiumId));
 
         if (org.isPresent() && con.isPresent()) {
             return userRepository.findUsersByConsortiumAndOrganization(con.get(), org.get());
@@ -66,7 +67,7 @@ public class ProfilesRegistryManager {
     }
 
     private List<User> getUsersInternalByConsortiumId(String consortiumId) {
-        Optional<Consortium> con = consortiumRepository.findById(Long.parseLong(consortiumId));
+        Optional<Consortium> con = consortiumRepository.findById(UUID.fromString(consortiumId));
         if (con.isPresent()) {
             return new ArrayList<>(con.get().getUsers());
         } else {
@@ -75,7 +76,7 @@ public class ProfilesRegistryManager {
     }
 
     private List<User> getUsersInternalByOrganizationId(String organizationId) {
-        Optional<Organization> org = organizationRepository.findById(Long.parseLong(organizationId));
+        Optional<Organization> org = organizationRepository.findById(UUID.fromString(organizationId));
         if (org.isPresent()) {
             return new ArrayList<>(org.get().getUsers());
         } else {
@@ -117,7 +118,7 @@ public class ProfilesRegistryManager {
     }
 
     private Optional<User> getUserWithIdInternal(String userId) {
-        return userRepository.findById(Long.parseLong(userId));
+        return userRepository.findById(UUID.fromString(userId));
     }
 
     public JSONObject getUserWithId(String userId) {
@@ -161,7 +162,7 @@ public class ProfilesRegistryManager {
             c.get().addUser(u);
             consortiumRepository.save(c.get());
             organizationRepository.save(o.get());
-            return Long.toString(u.getUserId());
+            return u.getUserId().toString();
         } else {
             o.orElseThrow(() -> new UserModificationException(
                     "Organization with" + " ID " + request.getOrganizationId() + " not found."));

@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.json.simple.JSONObject;
 import org.junit.Assert;
@@ -36,6 +37,12 @@ import com.vmware.blockchain.common.UserModificationException;
  */
 @RunWith(SpringRunner.class)
 public class ProfilesRegistryManagerTest {
+    // Just some random UUIDs
+    private static final UUID USER_ID = UUID.fromString("f1c1aa4f-4958-4e93-8a51-930d595fb65b");
+    private static final UUID NEW_USER_ID = UUID.fromString("f7e5d195-5281-4c7f-b719-3b6b40a736f2");
+    private static final UUID ORG_ID = UUID.fromString("82634974-88cf-4944-a99d-6b92664bb765");
+    private static final UUID CONSORTIUM_ID = UUID.fromString("5c7cd0e9-57ad-44af-902f-74af2f3dd8fe");
+
 
     @Mock
     ConsortiumRepository consortiumRepository;
@@ -72,15 +79,15 @@ public class ProfilesRegistryManagerTest {
         MockitoAnnotations.initMocks(prm);
         // consortium and organization
         consortium = new Consortium();
-        consortium.setConsortiumId(200L);
+        consortium.setConsortiumId(CONSORTIUM_ID);
         consortium.setConsortiumName("Consortium Test");
         consortium.setConsortiumType("Test Type");
         organization = new Organization();
-        organization.setOrganizationId(300L);
+        organization.setOrganizationId(ORG_ID);
         organization.setOrganizationName("Test Org");
         // our test user
         existingUser = new User();
-        existingUser.setUserId(101L);
+        existingUser.setUserId(USER_ID);
         existingUser.setEmail("test@a.com");
         existingUser.setFirstName("Test");
         existingUser.setLastName("User");
@@ -96,10 +103,16 @@ public class ProfilesRegistryManagerTest {
         newUser.setConsortium(consortium);
         newUser.setOrganization(organization);
         newUser.setRole(Roles.ORG_USER);
-        when(userRepository.findById(101L)).thenReturn(Optional.of(existingUser));
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(existingUser));
         when(userRepository.findUserByEmail("test@a.com")).thenReturn(Optional.of(existingUser));
         when(userRepository.save(any(User.class)))
-            .thenAnswer(invocation -> invocation.getArgument(0));
+            .thenAnswer(invocation -> {
+                User u = invocation.getArgument(0);
+                if (u.getUserId() == null) {
+                    u.setUserId(NEW_USER_ID);
+                }
+                return u;
+            });
         when(organizationRepository.findAll()).thenReturn(Collections.emptyList());
         when(organizationRepository.save(any(Organization.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(consortiumRepository.findAll()).thenReturn(Collections.emptyList());
@@ -111,9 +124,9 @@ public class ProfilesRegistryManagerTest {
 
     @Test
     public void testGetUserWithId() throws Exception {
-        JSONObject json = prm.getUserWithId("101");
+        JSONObject json = prm.getUserWithId(USER_ID.toString());
         Assert.assertEquals("test@a.com", json.get("email"));
-        Assert.assertEquals(101L, json.get("user_id"));
+        Assert.assertEquals(USER_ID, json.get("user_id"));
     }
 
     @Test
@@ -140,13 +153,13 @@ public class ProfilesRegistryManagerTest {
 
     @Test
     public void testCreateUser() throws Exception {
-        when(organizationRepository.findById(300L)).thenReturn(Optional.of(organization));
-        when(consortiumRepository.findById(200L)).thenReturn(Optional.of(consortium));
+        when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.of(organization));
+        when(consortiumRepository.findById(CONSORTIUM_ID)).thenReturn(Optional.of(consortium));
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         UsersApiMessage msg = new UsersApiMessage(newUser);
         String id = prm.createUser(msg);
         verify(userRepository, times(1)).save(captor.capture());
-        Assert.assertEquals("0", id);
+        Assert.assertEquals(NEW_USER_ID.toString(), id);
         User u = captor.getValue();
         Assert.assertEquals(newUser.getFirstName(), u.getFirstName());
         Assert.assertEquals(newUser.getLastName(), u.getLastName());
@@ -160,8 +173,8 @@ public class ProfilesRegistryManagerTest {
 
     @Test(expected = UserModificationException.class)
     public void testCreateExistingUser() throws Exception {
-        when(organizationRepository.findById(300L)).thenReturn(Optional.of(organization));
-        when(consortiumRepository.findById(200L)).thenReturn(Optional.of(consortium));
+        when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.of(organization));
+        when(consortiumRepository.findById(CONSORTIUM_ID)).thenReturn(Optional.of(consortium));
         UsersApiMessage msg = new UsersApiMessage(existingUser);
         try {
             prm.createUser(msg);
@@ -177,13 +190,13 @@ public class ProfilesRegistryManagerTest {
 
     @Test(expected = UserModificationException.class)
     public void testCreateUserBadOrg() throws Exception {
-        when(organizationRepository.findById(300L)).thenReturn(Optional.empty());
-        when(consortiumRepository.findById(200L)).thenReturn(Optional.of(consortium));
+        when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.empty());
+        when(consortiumRepository.findById(CONSORTIUM_ID)).thenReturn(Optional.of(consortium));
         UsersApiMessage msg = new UsersApiMessage(newUser);
         try {
             prm.createUser(msg);
         } catch (UserModificationException e) {
-            Assert.assertEquals("Organization with ID 300 not found.", e.getMessage());
+            Assert.assertEquals("Organization with ID 82634974-88cf-4944-a99d-6b92664bb765 not found.", e.getMessage());
             verify(userRepository, times(0)).save(any());
             verify(organizationRepository, times(0)).save(any());
             verify(consortiumRepository, times(0)).save(any());
@@ -194,13 +207,13 @@ public class ProfilesRegistryManagerTest {
 
     @Test(expected = UserModificationException.class)
     public void testCreateUserBadConsortium() throws Exception {
-        when(organizationRepository.findById(300L)).thenReturn(Optional.of(organization));
-        when(consortiumRepository.findById(200L)).thenReturn(Optional.empty());
+        when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.of(organization));
+        when(consortiumRepository.findById(CONSORTIUM_ID)).thenReturn(Optional.empty());
         UsersApiMessage msg = new UsersApiMessage(newUser);
         try {
             prm.createUser(msg);
         } catch (UserModificationException e) {
-            Assert.assertEquals("Consortium with ID 200 not found.", e.getMessage());
+            Assert.assertEquals("Consortium with ID 5c7cd0e9-57ad-44af-902f-74af2f3dd8fe not found.", e.getMessage());
             verify(userRepository, times(0)).save(any());
             verify(organizationRepository, times(0)).save(any());
             verify(consortiumRepository, times(0)).save(any());
@@ -211,13 +224,13 @@ public class ProfilesRegistryManagerTest {
 
     @Test(expected = UserModificationException.class)
     public void testUpdateNoUser() throws Exception {
-        when(userRepository.findById(100L)).thenReturn(Optional.empty());
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.empty());
         UsersApiMessage msg = new UsersApiMessage();
-        msg.setUserId(100L);
+        msg.setUserId(USER_ID);
         try {
             prm.updateUser(msg);
         } catch (UserModificationException e) {
-            Assert.assertEquals("No user found with ID: 100", e.getMessage());
+            Assert.assertEquals("No user found with ID: " + USER_ID, e.getMessage());
             verify(userRepository, times(0)).save(any());
             verify(organizationRepository, times(0)).save(any());
             verify(consortiumRepository, times(0)).save(any());
@@ -232,7 +245,7 @@ public class ProfilesRegistryManagerTest {
                 .put(UsersApiMessage.EMAIL_LABEL, "test@a.com").build();
         JSONObject json = new JSONObject(m);
         UsersApiMessage msg = new UsersApiMessage(json);
-        msg.setUserId(101L);
+        msg.setUserId(USER_ID);
         try {
             prm.updateUser(msg);
         } catch (UserModificationException e) {
@@ -252,7 +265,7 @@ public class ProfilesRegistryManagerTest {
         JSONObject json = new JSONObject(m);
         json.put("role", "ORG_ADMIN");
         UsersApiMessage msg = new UsersApiMessage(json);
-        msg.setUserId(101L);
+        msg.setUserId(USER_ID);
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         prm.updateUser(msg);
         verify(userRepository, times(1)).save(captor.capture());
@@ -272,7 +285,7 @@ public class ProfilesRegistryManagerTest {
                 .put(UsersApiMessage.ROLE_LABEL, "invalid_role").build();
         JSONObject json = new JSONObject(m);
         UsersApiMessage msg = new UsersApiMessage(json);
-        msg.setUserId(101L);
+        msg.setUserId(USER_ID);
         try {
             prm.updateUser(msg);
         } catch (UserModificationException e) {

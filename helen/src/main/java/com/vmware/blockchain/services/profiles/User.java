@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -39,7 +40,7 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "userid")
-    private Long userId = 0L;
+    private UUID userId;
 
     @Column(nullable = false)
     private String name;
@@ -72,11 +73,11 @@ public class User {
 
     protected User() {}
 
-    protected void setUserId(Long userId) {
+    protected void setUserId(UUID userId) {
         this.userId = userId;
     }
 
-    public Long getUserId() {
+    public UUID getUserId() {
         return userId;
     }
 
@@ -166,7 +167,7 @@ public class User {
 
     @Override
     public int hashCode() {
-        return (int) ((userId * 53) % 17);
+        return userId.hashCode();
     }
 
     @Override
