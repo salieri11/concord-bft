@@ -595,14 +595,18 @@
             "name": "consortium",
             "description": "ID of the consortium",
             "required": true,
-            "type":"string"
+            "schema": {
+            	"type":"string"
+            }
           },
           {
             "in": "query",
             "name": "organization",
             "description": "ID of the organization",
             "required": true,
-            "type":"string"
+            "schema": {
+                "type":"string"
+            }
           }
         ],
         "responses": {
@@ -616,8 +620,9 @@
                     "type": "object",
                     "properties": {
                       "user_id": {
-                        "type": "integer",
-                        "description": "integer value representing ID of this user"
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "UUID value representing ID of this user"
                       },
                       "name": {
                         "type": "string",
@@ -652,7 +657,8 @@
                         "type": "object",
                         "properties": {
                           "consortium_id": {
-                            "type": "integer",
+                            "type": "string",
+                            "format": "uuid",
                             "description": "ID of consortium to which this user belongs"
                           },
                           "consortium_name": {
@@ -665,7 +671,8 @@
                         "type": "object",
                         "properties": {
                           "organization_id": {
-                            "type": "integer",
+                            "type": "string",
+                            "format": "uuid",
                             "description": "ID of organization to which this user belongs"
                           },
                           "organization_name": {
@@ -724,7 +731,8 @@
                     "type": "object",
                     "properties": {
                       "consortium_id": {
-                        "type": "integer",
+                        "type": "string",
+                        "format": "uuid",
                         "description": "ID of consortium to which this user belongs",
                         "required": true
                       }
@@ -734,7 +742,8 @@
                     "type": "object",
                     "properties": {
                       "organization_id": {
-                        "type": "integer",
+                        "type": "string",
+                        "format": "uuid",
                         "required": true,
                         "description": "ID of organization to which this user belongs"
                       }
@@ -761,6 +770,7 @@
                   "properties": {
                     "user_id": {
                       "type": "string",
+                      "format": "uuid",
                       "description": "User ID of newly created user"
                     }
                   }
@@ -784,7 +794,7 @@
             "required": "true",
             "schema": {
               "type": "string",
-              "format": "string"
+              "format": "uuid"
             },
             "style": "simple"
           }
@@ -798,8 +808,9 @@
                   "type": "object",
                   "properties": {
                     "user_id": {
-                      "type": "integer",
-                      "description": "integer value representing ID of this user"
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "UUID value representing ID of this user"
                     },
                     "name": {
                       "type": "string",
@@ -834,7 +845,8 @@
                       "type": "object",
                       "properties": {
                         "consortium_id": {
-                          "type": "integer",
+                          "type": "string",
+                          "format": "uuid",
                           "description": "ID of consortium to which this user belongs"
                         },
                         "consortium_name": {
@@ -847,7 +859,8 @@
                       "type": "object",
                       "properties": {
                         "organization_id": {
-                          "type": "integer",
+                          "type": "string",
+                          "format": "uuid",
                           "description": "ID of organization to which this user belongs"
                         },
                         "organization_name": {
@@ -874,7 +887,7 @@
             "required": "true",
             "schema": {
               "type": "string",
-              "format": "string"
+              "format": "uuid"
             },
             "style": "simple"
           }
@@ -944,7 +957,7 @@
             "required": "true",
             "schema": {
               "type": "string",
-              "format": "string"
+              "format": "uuid"
             },
             "style": "simple"
           }
@@ -976,7 +989,8 @@
                   "type": "object",
                   "properties": {
                     "user_id": {
-                      "type": "integer",
+                      "type": "string",
+                      "format": "uuid",
                       "description": "integer value representing ID of this user"
                     },
                     "name": {
@@ -1012,7 +1026,8 @@
                       "type": "object",
                       "properties": {
                         "consortium_id": {
-                          "type": "integer",
+                          "type": "string",
+                          "format": "uuid",
                           "description": "ID of consortium to which this user belongs"
                         },
                         "consortium_name": {
@@ -1025,7 +1040,8 @@
                       "type": "object",
                       "properties": {
                         "organization_id": {
-                          "type": "integer",
+                          "type": "string",
+                          "format": "uuid",
                           "description": "ID of organization to which this user belongs"
                         },
                         "organization_name": {
@@ -1083,7 +1099,8 @@
                   "type": "object",
                   "properties": {
                     "user_id": {
-                      "type": "integer",
+                      "type": "string",
+                      "format": "uuid",
                       "description": "integer value representing ID of this user"
                     },
                     "name": {
@@ -1119,7 +1136,8 @@
                       "type": "object",
                       "properties": {
                         "consortium_id": {
-                          "type": "integer",
+                          "type": "string",
+                          "format": "uuid",
                           "description": "ID of consortium to which this user belongs"
                         },
                         "consortium_name": {
@@ -1132,7 +1150,8 @@
                       "type": "object",
                       "properties": {
                         "organization_id": {
-                          "type": "integer",
+                          "type": "string",
+                          "format": "uuid",
                           "description": "ID of organization to which this user belongs"
                         },
                         "organization_name": {
