@@ -149,7 +149,7 @@ class BeerWarsTests(test_suite.TestSuite):
 
    def _test_beerwars(self, fileRoot):
       ''' Tests if BeerWars can be deployed using the docker container '''
-      out, err = self._executeInContainer("docker run --rm --name beerwars-test --network docker_default -td mmukundram/beerwars:latest")
+      out, err = self._executeInContainer("docker run --rm --name beerwars-test --network docker_default -td blockchainrepositorywriter/beerwars:latest")
       if err != None:
          return (False, err)
 
