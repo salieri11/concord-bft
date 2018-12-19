@@ -81,7 +81,7 @@ class BeerWarsTests(test_suite.TestSuite):
       if self._productMode and not self._noLaunch:
          try:
             p = self.launchProduct(self._args,
-                                   self._apiBaseServerUrl + "/api/concord/eth",
+                                   "https://localhost/blockchains/local/api/concord/eth",
                                    self._userConfig)
          except Exception as e:
             log.error(traceback.format_exc())
