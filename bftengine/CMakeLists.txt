@@ -56,7 +56,10 @@ find_package(Threads REQUIRED)
 #message("Threads library: ${CMAKE_THREAD_LIBS_INIT}")
 
 if(${BUILD_COMM_TCP_PLAIN})
-    set(corebft_source_files ${corebft_source_files} src/communication/PlainTcpCommunication.cpp src/communication/CommFactory.cpp)
+    set(corebft_source_files ${corebft_source_files} src/communication/PlainTcpCommunication.cpp)
+endif()
+if(${BUILD_COMM_TCP_TLS})
+    set(corebft_source_files ${corebft_source_files} src/communication/TlsTCPCommunication.cpp)
 endif()
 
 #
@@ -64,7 +67,7 @@ endif()
 #
 add_library(corebft STATIC ${corebft_source_files})
 
-if(${BUILD_COMM_TCP_PLAIN})
+if(${BUILD_COMM_TCP_PLAIN} OR ${BUILD_COMM_TCP_TLS})
     set(Boost_USE_STATIC_LIBS        ON) # only find static libs
     set(Boost_USE_MULTITHREADED      ON)
     set(Boost_USE_STATIC_RUNTIME    OFF)
@@ -73,7 +76,12 @@ if(${BUILD_COMM_TCP_PLAIN})
         include_directories(${Boost_INCLUDE_DIRS})
         target_link_libraries(corebft PUBLIC ${Boost_LIBRARIES})
     endif()
-    target_compile_definitions(corebft PUBLIC USE_COMM_PLAIN_TCP)
+    if(${BUILD_COMM_TCP_PLAIN})
+        target_compile_definitions(corebft PUBLIC USE_COMM_PLAIN_TCP)
+    elseif(${BUILD_COMM_TCP_TLS})
+        target_compile_definitions(corebft PUBLIC USE_COMM_PLAIN_TLS)
+    endif()
+
 endif()
 
 TARGET_COMPILE_DEFINITIONS(corebft PUBLIC

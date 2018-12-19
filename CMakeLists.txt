@@ -17,7 +17,6 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-
 set(IS_LEAKCHECK FALSE)
 set(SLEEP_FOR_DBG FALSE)
 
@@ -25,6 +24,9 @@ set(SLEEP_FOR_DBG FALSE)
 # Release builds can be enabled by running cmake with -DCMAKE_BUILD_TYPE=Release
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Enable debug or release builds" FORCE)
+endif()
+if(NOT BUILD_COMM_TCP_TLS)
+    set(BUILD_COMM_TCP_TLS FALSE)
 endif()
 
 # Default USE_LOG4CPP to FALSE
