@@ -68,3 +68,10 @@ add_custom_target(copy_simple_test_scripts ALL COMMENT "Copying scripts of simpl
 add_custom_command(TARGET copy_simple_test_scripts
     COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:simpleTest_client>/scripts
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_CURRENT_SOURCE_DIR}/scripts $<TARGET_FILE_DIR:simpleTest_client>/scripts)
+
+add_custom_target(copy_tls_certs ALL COMMENT "Copying TLS certificates")
+add_custom_command(TARGET copy_tls_certs
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+        $<TARGET_FILE_DIR:simpleTest_client>/certs
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${PROKECT_SOURCE_DIR}/scripts/certs ${TARGET_FILE_DIR}/certs)

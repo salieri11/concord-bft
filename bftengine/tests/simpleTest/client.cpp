@@ -50,6 +50,8 @@ using bftEngine::PlainUDPCommunication;
 using bftEngine::PlainUdpConfig;
 using bftEngine::PlainTCPCommunication;
 using bftEngine::PlainTcpConfig;
+using bftEngine::TlsTCPCommunication;
+using bftEngine::TlsTcpConfig;
 using bftEngine::SeqNumberGeneratorForClientRequests;
 using bftEngine::SimpleClient;
 
@@ -221,6 +223,8 @@ int main(int argc, char **argv) {
 #ifdef USE_COMM_PLAIN_TCP
   PlainTcpConfig conf = testCommConfig.GetTCPConfig(
       false, id, cp.numOfClients, cp.numOfReplicas, cp.configFileName);
+#elif USE_COMM_PLAIN_TLS
+  TlsTcpConfig conf = getTlsTCPConfig(id);
 #else
   PlainUdpConfig conf = testCommConfig.GetUDPConfig(
       false, id, cp.numOfClients, cp.numOfReplicas, cp.configFileName);
