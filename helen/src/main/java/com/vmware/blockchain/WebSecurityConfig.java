@@ -54,11 +54,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     public void configure(WebSecurity web) throws Exception {
         // Allow access to auth, UI routing URLs, and UI assets, without authentication
-        web.ignoring().antMatchers("/api/agreements/1").antMatchers("/api/auth/token", "/api/auth/login")
-                .antMatchers("/auth/login", "/auth/onboarding")
-                .antMatchers("/dashboard", "/smart-contracts/**", "/blocks/**", "/transactions/**", "/users/**",
-                        "/docs/api")
-                .antMatchers("/assets/**");
+        web.ignoring().antMatchers("/api/agreements/1").antMatchers("/api/auth/token", "/api/auth/login");
     }
 
     @Override

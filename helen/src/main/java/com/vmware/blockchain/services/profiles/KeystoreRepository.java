@@ -1,0 +1,14 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
+package com.vmware.blockchain.services.profiles;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+/**
+ * JPA Keystores repo.  Empty for now.
+ */
+public interface KeystoreRepository extends JpaRepository<Keystore, String> {
+
+}

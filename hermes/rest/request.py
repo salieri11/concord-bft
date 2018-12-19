@@ -215,6 +215,28 @@ class Request():
 
       return self._send()
 
+   def getUsers(self):
+       self._subPath = '/api/users'
+       self._params = ""
+       self._endpointName = "users"
+       
+       return self._send()
+   
+   def getWallet(self, userId, address):
+      '''
+      Get the wallet of the user & address
+      :param userId:
+      :param address:
+      :return:
+      '''
+
+      self._subPath = '/api/users/{}'.format(userId)
+      self._subPath += '/wallet/' + address
+      self._params = ""
+      self._endpointName = "wallet"
+
+      return self._send()
+
    def uploadContract(self, data):
       '''
       Does an upload new contract POST request

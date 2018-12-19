@@ -12,6 +12,7 @@ import static com.vmware.blockchain.services.profiles.UsersApiMessage.USER_ID_LA
 
 import java.io.IOException;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -181,7 +182,7 @@ public class ProfileManager extends BaseServlet {
             JSONParser parser = new JSONParser();
             JSONObject requestJson = (JSONObject) parser.parse(requestBody);
             UserPatchRequest upr = new UsersApiMessage(requestJson);
-            upr.setUserId(Long.parseLong(userId));
+            upr.setUserId(UUID.fromString(userId));
             validatePatchRequest(upr);
             prm.updateUser(upr);
 

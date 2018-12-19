@@ -5,6 +5,7 @@
 package com.vmware.blockchain.services.profiles;
 
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * An interface which defines the API for interacting with a new user creation request in user management system.
@@ -22,7 +23,7 @@ public interface UserCreateRequest {
 
     String getPassword();
 
-    Long getOrganizationId();
+    UUID getOrganizationId();
 
-    Long getConsortiumId();
+    UUID getConsortiumId();
 }

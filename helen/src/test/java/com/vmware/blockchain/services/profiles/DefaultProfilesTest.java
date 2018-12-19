@@ -30,6 +30,11 @@ import org.springframework.test.context.junit4.SpringRunner;
 @TestPropertySource(locations = "classpath:test.properties")
 @ComponentScan(basePackageClasses = {DefaultProfilesTest.class})
 public class DefaultProfilesTest {
+    // Just some random UUIDs
+    private static final UUID USER_ID = UUID.fromString("f1c1aa4f-4958-4e93-8a51-930d595fb65b");
+    private static final UUID ORG_ID = UUID.fromString("82634974-88cf-4944-a99d-6b92664bb765");
+    private static final UUID CONSORTIUM_ID = UUID.fromString("5c7cd0e9-57ad-44af-902f-74af2f3dd8fe");
+
     @MockBean
     ConsortiumRepository consortiumRepository;
 
@@ -61,12 +66,12 @@ public class DefaultProfilesTest {
     @Before
     public void init() {
         consortium = new Consortium();
-        consortium.setConsortiumId(200L);
+        consortium.setConsortiumId(CONSORTIUM_ID);
         consortium.setConsortiumName("Consortium Test");
         consortium.setConsortiumType("Test Type");
 
         organization = new Organization();
-        organization.setOrganizationId(300L);
+        organization.setOrganizationId(ORG_ID);
         organization.setOrganizationName("Test Org");
 
         blockchain = new Blockchain();
@@ -76,7 +81,7 @@ public class DefaultProfilesTest {
 
         // our test user
         testUser = new User();
-        testUser.setUserId(20L);
+        testUser.setUserId(USER_ID);
         testUser.setEmail("user@test.com");
         testUser.setFirstName("Test");
         testUser.setLastName("User");
@@ -103,13 +108,13 @@ public class DefaultProfilesTest {
         when(consortiumRepository.findAll()).thenReturn(Collections.emptyList());
         when(consortiumRepository.save(any(Consortium.class))).then(in -> {
             Consortium c = in.getArgument(0);
-            c.setConsortiumId(200L);
+            c.setConsortiumId(CONSORTIUM_ID);
             return c;
         });
         when(organizationRepository.findAll()).thenReturn(Collections.emptyList());
         when(organizationRepository.save(any(Organization.class))).then(in -> {
             Organization o = in.getArgument(0);
-            o.setOrganizationId(300L);
+            o.setOrganizationId(ORG_ID);
             return o;
         });
         when(blockchainRepository.findAll()).thenReturn(Collections.emptyList());
@@ -121,7 +126,7 @@ public class DefaultProfilesTest {
         when(userRepository.findAll()).thenReturn(Collections.emptyList());
         when(userRepository.save(any(User.class))).thenAnswer(in -> {
             User u = in.getArgument(0);
-            u.setUserId(20L);
+            u.setUserId(USER_ID);
             return u;
         });
         profiles.initialize();

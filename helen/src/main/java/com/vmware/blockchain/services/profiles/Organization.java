@@ -7,6 +7,7 @@ package com.vmware.blockchain.services.profiles;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -28,16 +29,16 @@ public class Organization {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "organizationid")
-    private Long organizationId = 0L;
+    private UUID organizationId;
     private String organizationName;
 
     protected Organization() {}
 
-    public Long getOrganizationId() {
+    public UUID getOrganizationId() {
         return organizationId;
     }
 
-    protected void setOrganizationId(Long organizationId) {
+    protected void setOrganizationId(UUID organizationId) {
         this.organizationId = organizationId;
     }
 
@@ -59,7 +60,7 @@ public class Organization {
 
     @Override
     public int hashCode() {
-        return (int) ((organizationId * 53) % 17);
+        return organizationId.hashCode();
     }
 
     @Override

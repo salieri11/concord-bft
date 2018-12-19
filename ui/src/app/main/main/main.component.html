@@ -1,0 +1,53 @@
+<clr-main-container>
+  <clr-alerts>
+    <clr-alert *ngFor="let alert of alerts" [clrAlertType]="'alert-danger'" [clrAlertAppLevel]="true">
+      <clr-alert-item>
+        <span class="alert-text">
+          {{ alert.message }}
+        </span>
+      </clr-alert-item>
+    </clr-alert>
+  </clr-alerts>
+  <concord-app-header></concord-app-header>
+  <div class="content-container">
+    <main class="content-area">
+      <router-outlet></router-outlet>
+    </main>
+    <clr-vertical-nav>
+      <a clrVerticalNavLink routerLink="/dashboard" routerLinkActive="active">
+        <clr-icon clrVerticalNavIcon shape="home"></clr-icon>
+        {{'nav.dashboard.title' | translate}}
+      </a>
+      <a clrVerticalNavLink routerLink="/smart-contracts" routerLinkActive="active">
+        <clr-icon clrVerticalNavIcon shape="scroll"></clr-icon>
+        {{'nav.smartContracts.title' | translate}}
+      </a>
+      <!--<a clrVerticalNavLink routerLink="/logging" routerLinkActive="active">-->
+        <!--<clr-icon clrVerticalNavIcon shape="details"></clr-icon>-->
+        <!--{{'nav.logsAndAnalysis.title' | translate}}-->
+      <!--</a>-->
+      <a clrVerticalNavLink routerLink="/blocks" routerLinkActive="active">
+        <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon>
+        {{'nav.blockList.title' | translate}}
+      </a>
+      <a clrVerticalNavLink routerLink="/transactions" routerLinkActive="active">
+        <clr-icon clrVerticalNavIcon shape="tags"></clr-icon>
+        {{'nav.transactionList.title' | translate}}
+      </a>
+      <ng-container *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
+        <div class="nav-divider"></div>
+        <label class="nav-header">
+          {{'nav.sysadmin.title' | translate}}
+        </label>
+        <a clrVerticalNavLink
+           [routerLink]="['/users']"
+           routerLinkActive="active"
+           *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]"
+           tourAnchor="onboardingTour.userManagement">
+          <clr-icon clrVerticalNavIcon shape="administrator"></clr-icon>
+          {{'nav.users.title' | translate}}
+        </a>
+      </ng-container>
+    </clr-vertical-nav>
+  </div>
+</clr-main-container>

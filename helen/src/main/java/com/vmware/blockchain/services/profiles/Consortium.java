@@ -7,6 +7,7 @@ package com.vmware.blockchain.services.profiles;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
@@ -29,17 +30,17 @@ public class Consortium {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "consortiumid")
-    private Long consortiumId = 0L;
+    private UUID consortiumId;
     private String consortiumName;
     private String consortiumType;
 
     protected Consortium() {}
 
-    public Long getConsortiumId() {
+    public UUID getConsortiumId() {
         return consortiumId;
     }
 
-    protected void setConsortiumId(Long consortiumId) {
+    protected void setConsortiumId(UUID consortiumId) {
         this.consortiumId = consortiumId;
     }
 
@@ -69,7 +70,7 @@ public class Consortium {
 
     @Override
     public int hashCode() {
-        return (int) ((consortiumId * 53) % 17);
+        return consortiumId.hashCode();
     }
 
     @Override

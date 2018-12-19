@@ -7,20 +7,32 @@ def call(){
         nodejs 'Node 8.9.1'
     }
     parameters {
-      booleanParam defaultValue: false, description: 'If tests pass, deploy the docker images for production', name: 'deploy'
-      string defaultValue: '',
-             description: 'The version number for releases. Used as a tag in DockerHub and GitHub.',
-             name: 'version_param'
+      booleanParam defaultValue: false, description: "Whether to deploy the docker images for production. REQUIRES A VERSION NUMBER IN THE 'version_param' FIELD.", name: "deploy"
+      string defaultValue: "",
+             description: "The version number for releases. Used as a tag in DockerHub and GitHub.  REQUIRED IF THE 'deploy' CHECKBOX IS CHECKED.",
+             name: "version_param"
 
-      string defaultValue: '',
-             description: 'Blockchain commit or branch to use.  Providing a branch name will pull the branch\'s latest commit.',
-             name: 'blockchain_branch_or_commit'
-      string defaultValue: '',
-             description: 'Shared Jenkins lib branch to use.',
-             name: 'shared_lib_branch'
+      string defaultValue: "",
+             description: "Blockchain commit or branch to use.  Providing a branch name will pull the branch's latest commit.",
+             name: "blockchain_branch_or_commit"
+      string defaultValue: "",
+             description: "Shared Jenkins lib branch to use.",
+             name: "shared_lib_branch"
     }
     stages {
-      stage('Clean') {
+      stage("Check parameters"){
+        steps{
+          script{
+            errString = "Parameter check error: "
+
+            if (params.deploy && (!params.version_param || !params.version_param.trim())){
+              throw new Exception (errString + "A version number must be entered when the 'deploy' checkbox is checked.")
+            }
+          }
+        }
+      }
+
+      stage("Clean") {
         steps {
           cleanWs()
         }
@@ -28,7 +40,7 @@ def call(){
 
       stage('Fetch source code') {
         parallel {
-          stage('Fetch blockchain repo source') {
+          stage("Fetch blockchain repo source") {
             steps {
               sh 'mkdir blockchain'
               dir('blockchain') {
@@ -41,9 +53,9 @@ def call(){
         }
       }
 
-      stage('Copy dependencies') {
+      stage("Copy dependencies") {
         parallel {
-          stage('Copy googletest') {
+          stage("Copy googletest") {
             steps() {
               sh 'mkdir googletest'
               dir('googletest') {
@@ -51,7 +63,7 @@ def call(){
               }
             }
           }
-          stage('Copy evmjit') {
+          stage("Copy evmjit") {
             steps() {
               sh 'mkdir evmjit'
               dir('evmjit') {
@@ -59,7 +71,7 @@ def call(){
               }
             }
           }
-          stage('Copy etherium tests') {
+          stage("Copy etherium tests") {
             steps() {
               sh 'mkdir ethereum_tests'
               dir('ethereum_tests') {
@@ -80,7 +92,7 @@ def call(){
             // The groovy calls to create directories and files fail, only in Jenkins,
             // so do those in a shell block.  Jenkins has some quirky ideas of security?
             sh '''
-              dir=helen/src/main/resources/static/assets/data
+              dir=ui/src/static/data
               mkdir -p ${dir}
               echo ${version_json} > ${dir}/version.json
             '''
@@ -120,18 +132,17 @@ def call(){
               }
             }
           }
-          stage('Build Helen') {
+          stage("Build Helen") {
             steps {
               dir('blockchain/helen') {
-                // "TODO: Revert to 'mvn clean install' once the UI is separated from Helen to avoid running package twice."
-                sh 'mvn clean install package'
+                sh 'mvn clean install'
               }
             }
           }
         }
       }
 
-      stage('Configure docker and git') {
+      stage("Configure docker and git") {
         steps {
           // Docker will fail to launch unless we fix up this DNS stuff.  It will try to use Google's
           // DNS servers by default, and here in VMware's network, we can't do that.
@@ -168,6 +179,8 @@ def call(){
           script {
             env.concord_repo = 'vmwblockchain/concord-core'
             env.helen_repo = 'vmwblockchain/concord-ui'
+            env.fluentd_repo = 'vmwblockchain/fluentd'
+            env.ui_repo = 'vmwblockchain/ui'
           }
 
           // These are constants related to labels.
@@ -178,9 +191,9 @@ def call(){
         }
       }
 
-      stage('Build docker images') {
+      stage("Build docker images") {
         parallel {
-          stage('Build helen docker image') {
+          stage("Build helen docker image") {
             steps {
               script {
                 dir('blockchain/helen') {
@@ -199,12 +212,10 @@ def call(){
             }
           }
 
-
           stage('Build concord docker image') {
             steps {
               script {
                 dir('blockchain/concord') {
-
                   script {
                     env.concord_docker_tag = env.version_param ? env.version_param : env.commit
                   }
@@ -217,10 +228,44 @@ def call(){
               }
             }
           }
+
+          stage('Build fluentd docker image') {
+            steps {
+              script {
+                dir('blockchain/concord/docker') {
+                  script {
+                    env.fluentd_tag = env.version_param ? env.version_param : env.commit
+                  }
+                  withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
+                    sh '''
+                      docker-compose build fluentd
+                    '''
+                  }
+                }
+              }
+            }
+          }
+
+          stage('Build ui docker image') {
+            steps {
+              script {
+                dir('blockchain/concord/docker') {
+                  script {
+                    env.ui_docker_tag = env.version_param ? env.version_param : env.commit
+                  }
+                  withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
+                    sh '''
+                      docker-compose build ui
+                    '''
+                  }
+                }
+              }
+            }
+          }
         }
       }
 
-      stage('Run tests in containers') {
+      stage("Run tests in containers") {
         steps {
           dir('blockchain/hermes'){
             withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
@@ -239,6 +284,10 @@ concord_repo=${concord_repo}
 concord_tag=${concord_docker_tag}
 helen_repo=${helen_repo}
 helen_tag=${helen_docker_tag}
+fluentd_repo=${fluentd_repo}
+fluentd_tag=${fluentd_tag}
+ui_repo=${ui_repo}
+ui_tag=${ui_docker_tag}
 EOF
               '''
 
@@ -253,7 +302,7 @@ EOF
         }
       }
 
-      stage('Push to docker repository') {
+      stage("Push to docker repository") {
         when {
           environment name: 'deploy', value: 'true'
         }
@@ -277,6 +326,20 @@ EOF
               docker push ${helen_repo}:${version_param}
               docker tag ${helen_repo}:${version_param} ${helen_repo}:latest
               docker push ${helen_repo}:latest
+
+              # echo Would run docker push ${fluentd_repo}:${version_param}
+              # echo Would run docker tag ${fluentd_repo}:${version_param} ${fluentd_repo}:latest
+              # echo Would run docker push ${fluentd_repo}:latest
+              docker push ${fluentd_repo}:${version_param}
+              docker tag ${fluentd_repo}:${version_param} ${fluentd_repo}:latest
+              docker push ${fluentd_repo}:latest
+
+              # echo Would run docker push ${ui_repo}:${version_param}
+              # echo Would run docker tag ${ui_repo}:${version_param} ${ui_repo}:latest
+              # echo Would run docker push ${ui_repo}:latest
+              docker push ${ui_repo}:${version_param}
+              docker tag ${ui_repo}:${version_param} ${ui_repo}:latest
+              docker push ${ui_repo}:latest
             '''
 
             dir('blockchain/vars') {
