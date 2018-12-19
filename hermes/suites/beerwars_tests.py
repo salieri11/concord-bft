@@ -7,12 +7,14 @@
 
 #########################################################################
 # Example executions
-# 1)
+# 1) Passing an endpoint runs tests in --noLaunch mode
 # ./main.py BeerWarsTests --endpoint='https://mgmt.blockchain.vmware.com/
 # blockchains/c3e4c911-9f9d-4899-9c92-6ced72d3ded3/api/concord/eth'
 # --user='admin@blockchain.local' --password='Passw0rd!'
-# 2)
+# 2) Passing no endpoint launches the product
 # ./main.py BeerWarsTests
+# 3) You can also pass username and/or password, skipping the endpoint;
+# this runs tests on the locally launched product
 #########################################################################
 
 import logging
@@ -26,7 +28,8 @@ log = logging.getLogger(__name__)
 
 class BeerWarsTests(test_suite.TestSuite):
    _args = None
-   _apiBaseServerUrl = "https://localhost/blockchains/local"
+   _apiBaseServerUrl = "https://reverse-proxy/blockchains/local"
+   _subPath = "/api/concord/eth"
    _userConfig = None
    _ethereumMode = False
    _productMode = True
@@ -57,7 +60,7 @@ class BeerWarsTests(test_suite.TestSuite):
          self._apiServerUrl = self._args.endpoint
          self._noLaunch = True
       else:
-         self._apiServerUrl = "http://URL_PLACEHOLDER:8080/api/concord/eth"
+         self._apiServerUrl = self._apiBaseServerUrl + self._subPath
 
       if self._ethereumMode:
          self._noLaunch = True
@@ -141,19 +144,14 @@ class BeerWarsTests(test_suite.TestSuite):
       log.info("Cleaning up")
       self._concatenatedExecuteInContainer("docker stop","docker ps | grep beerwars | sed 's/|/ /' | awk '{print $1}'")
       self._concatenatedExecuteInContainer("docker rm -f", "docker ps -a | grep beerwars | sed 's/|/ /' | awk '{print $1}'")
-      self._concatenatedExecuteInContainer("docker rmi", "docker images | grep beerwars | sed 's/|/ /' | awk '{print $3}'")
+      self._concatenatedExecuteInContainer("docker rmi -f", "docker images | grep beerwars | sed 's/|/ /' | awk '{print $3}'")
 
 
    def _test_beerwars(self, fileRoot):
       ''' Tests if BeerWars can be deployed using the docker container '''
-      out, err = self._executeInContainer("docker run --rm --name beerwars-test --network='host' -td mmukundram/beerwars:latest")
+      out, err = self._executeInContainer("docker run --rm --name beerwars-test --network docker_default -td mmukundram/beerwars:latest")
       if err != None:
          return (False, err)
-
-      # The endpoint for the DApp to be deployed is the host of the container
-      # Following command is to get the IP address of the host in the host-container network
-      out, err = self._executeInContainer("ifconfig docker | grep 'inet addr' | cut -d: -f2 | cut -d ' ' -f1 | awk '{print $1}'")
-      self._apiServerUrl = self._apiServerUrl.replace("URL_PLACEHOLDER", out)
 
       if self._apiServerUrl != '':
          pass_endpoint = self._apiServerUrl.replace('/','\/');
@@ -176,6 +174,8 @@ class BeerWarsTests(test_suite.TestSuite):
       out, err = self._executeInContainer("docker exec beerwars-test mocha")
       if err != None:
          return (False, err)
-      log.info(out)
+      elif 'Error' in out or 'error' in out:
+         return (False, out)
+      log.debug(out)
 
       return (True, None)
