@@ -36,6 +36,8 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 
+#include "Logging.hpp"
+
 class AsyncTlsConnection;
 
 using namespace std;
@@ -53,24 +55,6 @@ typedef std::shared_ptr<AsyncTlsConnection> ASYNC_CONN_PTR;
 typedef boost::asio::ssl::stream<tcp::socket> SSL_SOCKET;
 typedef unique_ptr<SSL_SOCKET> B_TLS_SOCKET_PTR;
 
-///TODO(IG): to get rid of all global variables
-
-// first 4 bytes - message length, next 2 bytes - message type
-static constexpr uint8_t LENGTH_FIELD_SIZE = 4;
-static constexpr uint8_t MSGTYPE_FIELD_SIZE = 2;
-
-// levels aligned with boost log and log4j
-enum LogLevel {
-  all,
-  trace,
-  debug,
-  info,
-  warning,
-  error,
-  fatal,
-  off
-};
-
 enum MessageType : uint16_t {
   Reserved = 0,
   Hello,
@@ -82,60 +66,6 @@ enum ConnType : uint8_t {
   Outgoing
 };
 
-void getTime(std::stringstream &ss) {
-#if defined(_WIN32)
-  SYSTEMTIME  sysTime;
-   GetLocalTime(&sysTime); // TODO(GG): GetSystemTime ???
-
-   uint32_t hour = sysTime.wHour;
-   uint32_t minute = sysTime.wMinute;
-   uint32_t seconds = sysTime.wSecond;
-   uint32_t milli = sysTime.wMilliseconds;
-#else
-  timeval t;
-  gettimeofday(&t, NULL);
-
-  uint32_t secondsInDay = t.tv_sec % (3600 * 24);
-
-  uint32_t hour = secondsInDay / 3600;
-  uint32_t minute = (secondsInDay % 3600) / 60;
-  uint32_t seconds = secondsInDay % 60;
-  uint32_t milli = t.tv_usec / 1000;
-#endif
-  ss << hour << ":" << minute << ":" << seconds << "." << milli;
-}
-
-LogLevel currentLogLevel = LogLevel::off;
-mutex _logGuard;
-recursive_mutex _connectionsGuard;
-
-void log_write(std::ostringstream &ss) {
-  lock_guard<mutex> lock(_logGuard);
-  std::stringstream sstime;
-  getTime(sstime);
-  printf("%s %s", sstime.str().c_str(), ss.str().c_str());
-}
-
-#define LOG_DEBUG(txt) {if (currentLogLevel <= LogLevel::debug) \
-{std::ostringstream oss; \
-oss << " DEBUG: " << __func__ << ", line: " << __LINE__ << " " << txt << endl; \
-log_write(oss); }}
-
-#define LOG_TRACE(txt) {if (currentLogLevel <= LogLevel::trace) \
-{std::ostringstream oss; \
-oss << " TRACE: " << __func__ << ", line: " << __LINE__ << " " << txt << endl; \
-log_write(oss); }}
-
-#define LOG_ERROR(txt) {if (currentLogLevel <= LogLevel::error) \
-{std::ostringstream oss; \
-oss << " ERROR: " << __func__ << ", line: " << __LINE__ << " " << txt << endl; \
-log_write(oss); }}
-
-#define LOG_INFO(txt) {if (currentLogLevel <= LogLevel::info) \
-{std::ostringstream oss; \
-oss << " INFO: " << __func__ << ", line: " << __LINE__ << " " << txt << endl; \
-log_write(oss); }}
-
 /**
  * this class will handle single connection using boost::make_shared idiom
  * will receive the IReceiver as a parameter and call it when new message
@@ -143,6 +73,11 @@ log_write(oss); }}
  */
 class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
  private:
+  // first 4 bytes - message length, next 2 bytes - message type
+  static constexpr uint8_t LENGTH_FIELD_SIZE = 4;
+  static constexpr uint8_t MSGTYPE_FIELD_SIZE = 2;
+
+  recursive_mutex _connectionsGuard;
   unique_ptr<ssl::context> _pSslContext = nullptr;
   io_service *_service = nullptr;
   uint32_t _bufferLength;
@@ -247,10 +182,10 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
         fs::path("server");
     _pSslContext->use_certificate_chain_file((path / fs::path("server.cert")
                                              ).string());
-    _pSslContext->use_private_key_file((path / fs::path("server.key")
+    _pSslContext->use_private_key_file((path / fs::path("pk.pem")
                                        ).string(),
                                        boost::asio::ssl::context::pem);
-    _pSslContext->use_tmp_dh_file((path / fs::path("dh2048.pem")
+    _pSslContext->use_tmp_dh_file((path / fs::path("dh_srv.pem")
                                   ).string());
   }
 
@@ -270,9 +205,9 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
                     _2));
 
     _pSslContext->use_certificate_chain_file((path / "client.cert").string());
-    _pSslContext->use_private_key_file((path / "client.key").string(),
+    _pSslContext->use_private_key_file((path / "pk.pem").string(),
                                        boost::asio::ssl::context::pem);
-    _pSslContext->use_tmp_dh_file((path / "dh2048.pem").string());
+    _pSslContext->use_tmp_dh_file((path / "dh_cl.pem").string());
 
     _pSslContext->load_verify_file((serverPath / "server.cert").string());
   }
@@ -283,14 +218,14 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
     // false - we dont provide client's verification file in the ctx
     // creation since we dont know which clients will connect to this node
 
-    char subject[256];
+    char subject[512];
     X509 *cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
     if (!cert) {
       LOG_ERROR("no certificate from client");
       return false;
     }
 
-    X509_NAME_oneline(X509_get_subject_name(cert), subject, 256);
+    X509_NAME_oneline(X509_get_subject_name(cert), subject, 512);
     LOG_DEBUG("Verifying client: " << subject << ", " << preverified);
     auto res = check_sertificate(cert, "client", string(subject));
     LOG_DEBUG("Manual verifying client: " << subject << ", " << res);
