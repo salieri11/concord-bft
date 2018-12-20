@@ -24,7 +24,15 @@ RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make
 FROM ubuntu:16.04
 LABEL Description="Concord"
 
-RUN apt-get update && apt-get -y install \
+ARG memleak_util=""
+ARG memleak_util_cmd=""
+
+# Get this variable into the docker image for the CMD.
+# szczescie: Not sure if this is needed, the way I ended up doing it.
+ENV memleak_util_cmd="${memleak_util_cmd}"
+
+RUN apt-get update
+RUN apt-get -y install ${memleak_util} \
     bind9-host \
     libbz2-1.0 \
     libgmp10 \
@@ -53,6 +61,7 @@ WORKDIR /concord
 CMD export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
     cp /concord/config-public/*.pub /concord/config-local && \
     /concord/config-public/find-docker-instances.sh && \
+    ${memleak_util_cmd} \
     /concord/concord -c /concord/config-local/concord.config
 # concord<->helen
 EXPOSE 5458

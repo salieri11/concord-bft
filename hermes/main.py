@@ -46,13 +46,21 @@ def main():
                        help="REQUIRES SUDO. Accepts a docker compose file " \
                        "which starts concord and helen.  The product will " \
                        "be launched in docker images instead of on the " \
-                       "command line.",
-                       default="../concord/docker/docker-compose.yml")
+                       "command line.  May be a space-separated list of files, " \
+                       "in the order in which the files should be applied.",
+                       default=["../concord/docker/docker-compose.yml"],
+                       nargs="*")
    parser.add_argument("--noLaunch",
                        default=False,
                        action='store_true',
                        help="Will not launch the product, assuming it is "
                             "already running")
+   parser.add_argument("--productLaunchAttempts",
+                       help="Number of times to attempt to launch the product " \
+                       "before failing.  Used to work around intermittent bugs " \
+                       "with product startup.",
+                       default=1,
+                       type=int)
    parser.add_argument("--keepconcordDB",
                        help="Keep and re-use the existing concord database files.",
                        default=False,

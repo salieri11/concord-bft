@@ -76,7 +76,7 @@ class PerformanceTests(test_suite.TestSuite):
 
       log.info("Tests are done.")
 
-      if self._productMode and not self._noLaunch:
+      if self._shouldStop():
          p.stopProduct()
 
       return self._resultFile

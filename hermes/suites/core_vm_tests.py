@@ -105,7 +105,7 @@ class CoreVMTests(test_suite.TestSuite):
             self.writeResult(testName, result, info)
       log.info("Tests are done.")
 
-      if self._productMode and not self._noLaunch and not self._repeatSuiteRun:
+      if self._shouldStop():
             p.stopProduct()
 
       return self._resultFile

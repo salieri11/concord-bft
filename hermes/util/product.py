@@ -2,6 +2,7 @@
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 import atexit
+import collections
 import json
 import logging
 import os
@@ -44,17 +45,63 @@ class Product():
       productLogsDir = os.path.join(self._cmdlineArgs.resultsDir, PRODUCT_LOGS_DIR)
       os.makedirs(productLogsDir, exist_ok=True)
 
-      if self._cmdlineArgs.dockerComposeFile:
-         self._launchViaDocker(productLogsDir)
-      else:
-         self._launchViaCmdLine(productLogsDir)
+      # Workaround for intermittent product launch issues.
+      numAttempts = 0
+      launched = False
+
+      while (not launched) and (numAttempts < self._cmdlineArgs.productLaunchAttempts):
+         try:
+            if self._cmdlineArgs.dockerComposeFile:
+               self._launchViaDocker(productLogsDir)
+            else:
+               self._launchViaCmdLine(productLogsDir)
+
+            launched = True
+         except Exception as e:
+            numAttempts += 1
+            log.info("Attempt {} to launch the product failed. Exception: '{}'".format(
+               numAttempts, str(e)))
+
+            if numAttempts < self._cmdlineArgs.productLaunchAttempts:
+               log.info("Stopping whatever was launched and attempting to launch again.")
+               self.stopProduct()
+
+      if not launched:
+         raise Exception("Failed to launch the product after {} attempt(s).  Exiting".format(numAttempts))
+
+
+   def validatePaths(self, paths):
+      '''Make sure the given paths are all valid.'''
+      for path in paths:
+         if not os.path.isfile(path):
+            log.error("The file '{}' does not exist.".format(path))
+            return False
+
+      return True
+
+
+   def mergeDictionaries(self, orig, new):
+      '''Python's update() simply replaces keys at the top level.'''
+      for newK, newV in new.items():
+         if newK in orig:
+            if isinstance(newV, collections.Mapping):
+               self.mergeDictionaries(orig[newK], newV)
+            elif isinstance(newV, list):
+               orig[newK] = orig[newK] + newV
+            else:
+               orig[newK] = newV
+         else:
+            orig[newK] = newV
+
 
    def _launchViaDocker(self, productLogsDir):
-      dockerCfg = None
+      dockerCfg = {}
 
-      if os.path.isfile(self._cmdlineArgs.dockerComposeFile):
-         with open(self._cmdlineArgs.dockerComposeFile, "r") as f:
-            dockerCfg = yaml.load(f)
+      if self.validatePaths(self._cmdlineArgs.dockerComposeFile):
+         for cfgFile in self._cmdlineArgs.dockerComposeFile:
+            with open(cfgFile, "r") as f:
+               newCfg = yaml.load(f)
+               self.mergeDictionaries(dockerCfg, newCfg)
 
          self.copyEnvFile()
 
@@ -62,23 +109,27 @@ class Product():
             self.clearDBsForDockerLaunch(dockerCfg)
             self.initializeHelenDockerDB(dockerCfg)
 
-         cmd = ["docker-compose",
-                "--file", self._cmdlineArgs.dockerComposeFile,
-                "up"]
+         cmd = ["docker-compose"]
+
+         for cfgFile in self._cmdlineArgs.dockerComposeFile:
+            cmd += ["--file", cfgFile]
+
+         cmd += ["up"]
+
          logFile = open(os.path.join(productLogsDir, "concord.log"),
                     "wb+")
          self._logs.append(logFile)
          log.debug("Launching via docker-compose with {}".format(cmd))
+
          p = subprocess.Popen(cmd,
                               stdout=logFile,
                               stderr=subprocess.STDOUT)
          self._processes.append(p)
 
          if not self._waitForProductStartup():
-            raise Exception("The product did not start. Exiting.")
+            raise Exception("The product did not start.")
       else:
-         raise Exception("The docker compose file '{}' does not " \
-                         "exist. Exiting.".format(self._cmdlineArgs.dockerComposeFile))
+         raise Exception("The docker compose file list contains an invalid value.")
 
 
    def copyEnvFile(self):
@@ -146,7 +197,7 @@ class Product():
 
       # All pieces should be launched now.
       if not self._waitForProductStartup():
-         raise Exception("The product did not start. Exiting.")
+         raise Exception("The product did not start.")
 
    def clearconcordDBForCmdlineLaunch(self, concordSection):
       '''
@@ -188,11 +239,40 @@ class Product():
             isConfigParam = True
 
 
+   def pullHelenDBImage(self, dockerCfg):
+      '''This is the cockroach DB.  Make sure we have it before trying to start
+         the product so we don't time out while downloading it.'''
+      image = dockerCfg["services"]["db-server"]["image"]
+      image_name = image.split(":")[0]
+      pull_cmd = ["docker", "pull", image]
+      find_cmd = ["docker", "images", "--filter", "reference="+image]
+      found = False
+
+      completedProcess = subprocess.run(pull_cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT)
+      # Sleep just in case there is a gap between the time "pull" finishes
+      # and "images" can find it. In testing, it looks immediate.
+      time.sleep(1)
+      completedProcess = subprocess.run(find_cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT)
+      psOutput = completedProcess.stdout.decode("UTF-8")
+
+      if image_name in psOutput:
+         found = True
+
+      return found
+
+
    def startHelenDockerDB(self, dockerCfg):
       ''' Starts the Helen DB.  Returns True if able to start, False if not.'''
-      cmd = ["docker-compose",
-             "--file", self._cmdlineArgs.dockerComposeFile,
-             "up", "db-server"]
+      cmd = ["docker-compose"]
+
+      for cfgFile in self._cmdlineArgs.dockerComposeFile:
+         cmd += ["--file", cfgFile]
+
+      cmd += ["up", "db-server"]
       log.debug("Launching Helen DB with command '{}'".format(cmd))
       subprocess.Popen(cmd,
                        stdout=subprocess.PIPE,
@@ -274,11 +354,13 @@ class Product():
       ]
 
       for cmd in commands:
+         log.info("running '{}'".format(cmd))
          completedProcess = subprocess.run(cmd,
                                            stdout=subprocess.PIPE,
                                            stderr=subprocess.STDOUT)
          try:
             completedProcess.check_returncode()
+            log.info("stdout: {}, stderr: {}".format(completedProcess.stdout, completedProcess.stderr))
          except subprocess.CalledProcessError as e:
             log.error("Command '{}' to configure the Helen DB failed.  Exit code: '{}'".format(cmd, e.returncode))
             log.error("stdout: '{}', stderr: '{}'".format(completedProcess.stdout, completedProcess.stderr))
@@ -289,6 +371,7 @@ class Product():
 
    def stopDockerContainer(self, containerId):
       '''Stops the given docker container. Returns whether the exit code indicated success.'''
+      log.info("Stopping '{}'".format(containerId))
       cmd = ["docker", "kill", containerId]
       completedProcess = subprocess.run(cmd,
                                         stdout=subprocess.PIPE,
@@ -309,6 +392,9 @@ class Product():
       '''When the product as Docker containers, we need to initialize the Helen DB
          in a different way than when launched via command line.  Raises an exception
          on error.'''
+      if not self.pullHelenDBImage(dockerCfg):
+         raise Exception("Unable to pull the Helen DB image.")
+
       if not self.startHelenDockerDB(dockerCfg):
          raise Exception("The Helen DB failed to come up.")
 
@@ -330,7 +416,7 @@ class Product():
             for v in serviceObj["volumes"]:
                if "rocksdbdata" in v or \
                   "cockroachDB" in v:
-                  yamlDir = os.path.dirname(self._cmdlineArgs.dockerComposeFile)
+                  yamlDir = os.path.dirname(self._cmdlineArgs.dockerComposeFile[0])
                   deleteMe = os.path.join(yamlDir, v.split(":")[0])
                   log.info("Deleting: {}".format(deleteMe))
 
@@ -347,9 +433,12 @@ class Product():
       Stops the product executables and closes the logs.
       '''
       if self._cmdlineArgs.dockerComposeFile:
-         cmd = ["docker-compose",
-                "--file", self._cmdlineArgs.dockerComposeFile,
-                "down"]
+         cmd = ["docker-compose"]
+
+         for cfgFile in self._cmdlineArgs.dockerComposeFile:
+            cmd += ["--file", cfgFile]
+
+         cmd += ["down"]
          print("Stopping the product with command '{}'".format(cmd))
          p = subprocess.run(cmd)
       else:
