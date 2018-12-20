@@ -81,7 +81,7 @@ class BeerWarsTests(test_suite.TestSuite):
       if self._productMode and not self._noLaunch:
          try:
             p = self.launchProduct(self._args,
-                                   self._apiBaseServerUrl + "/api/concord/eth",
+                                   "https://localhost/blockchains/local/api/concord/eth",
                                    self._userConfig)
          except Exception as e:
             log.error(traceback.format_exc())
@@ -121,11 +121,16 @@ class BeerWarsTests(test_suite.TestSuite):
       return [("beerwars", self._test_beerwars)]
 
    def _executeInContainer(self, command):
+      '''
+          Execute command; check for errors and return (output, error) pair
+      '''
       p = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
       data, err = p.communicate()
+      out = data.strip().decode('utf-8')
       if err != None:
          return (None, err)
-      out = data.strip().decode('utf-8')
+      elif 'Error' in out or 'error' in out:
+         return (None, out)
       return (out, None)
 
    def _concatenatedExecuteInContainer(self, command1, command2):
@@ -149,7 +154,7 @@ class BeerWarsTests(test_suite.TestSuite):
 
    def _test_beerwars(self, fileRoot):
       ''' Tests if BeerWars can be deployed using the docker container '''
-      out, err = self._executeInContainer("docker run --rm --name beerwars-test --network docker_default -td blockchainrepositorywriter/beerwars:latest")
+      out, err = self._executeInContainer("docker run --rm --name beerwars-test --network docker_default -td vmwblockchain/beer-wars:1.0.4")
       if err != None:
          return (False, err)
 
@@ -174,8 +179,7 @@ class BeerWarsTests(test_suite.TestSuite):
       out, err = self._executeInContainer("docker exec beerwars-test mocha")
       if err != None:
          return (False, err)
-      elif 'Error' in out or 'error' in out:
-         return (False, out)
+
       log.debug(out)
 
       return (True, None)
