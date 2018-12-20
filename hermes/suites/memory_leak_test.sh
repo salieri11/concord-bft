@@ -30,6 +30,7 @@ VALGRIND_LOG_FILENAME="valgrind_concord1.log"
 concord1_VALGRIND_LOG_FILE="/tmp/$VALGRIND_LOG_FILENAME"
 HERMES_START_FILE="./main.py"
 SPECIFIC_TESTS=""
+HERMES_PID_FILE="/tmp/hermes_pid"
 # to represent leak summary on graph
 # memory leak summary data gets saved in repo: hermes-data
 MEMORY_LEAK_SUMMARY_FILE="../../../hermes-data/memory_leak_test/memory_leak_summary.csv"
@@ -49,13 +50,17 @@ launch_memory_test() {
     then
         SPECIFIC_TESTS="--tests ${TESTS}"
     fi
-    "${HERMES_START_FILE}" "${TEST_SUITE}" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir ${RESULTS_DIR} ${SPECIFIC_TESTS} --dockerComposeFile "" &
-    PID=$!
+
+    "${HERMES_START_FILE}" "${TEST_SUITE}" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir ${RESULTS_DIR} ${SPECIFIC_TESTS} --productLaunchAttempts 10 --dockerComposeFile ../concord/docker/docker-compose.yml ../concord/docker/docker-compose-memleak.yml &
+    HERMES_PID=$!
+    rm -f "${HERMES_PID_FILE}"
+    echo ${HERMES_PID} > "${HERMES_PID_FILE}"
+    echo Hermes process ID ${HERMES_PID} written to "${HERMES_PID_FILE}".
 
     cd $CWD
     while true
     do
-        is_process_still_running=`ps -ef | grep "${HERMES_START_FILE}" | grep $PID`
+        is_process_still_running=`ps -ef | grep "${HERMES_START_FILE}" | grep ${HERMES_PID}`
         if [ "x$is_process_still_running" = "x" ]
         then
             sleep 5
@@ -75,6 +80,22 @@ launch_memory_test() {
         echo "`date +%m/%d/%Y\ %T`,${total_memory},${used_memory},${free_memory}" >> ${MEMORY_INFO_CSV_FILE}
         sleep ${SLEEP_TIME_IN_SEC}
     done
+}
+
+trap_ctrlc() {
+    if [ -f "${HERMES_PID_FILE}" ]
+    then
+        read HERMES_PID < "${HERMES_PID_FILE}"
+        if [ "$HERMES_PID" != "" ]
+        then
+            echo Interrupt detected after Hermes launch.  Killing Hermes process "${HERMES_PID}".
+            kill "${HERMES_PID}"
+            rm -f "${HERMES_PID_FILE}"
+            echo Killing and removing all docker containers.
+            docker kill $(docker ps -aq)
+            docker rm $(docker ps -aq)
+        fi
+    fi
 }
 
 fetch_leak_summary() {
@@ -97,6 +118,8 @@ fetch_leak_summary() {
     fi
 }
 
+trap "trap_ctrlc" 2
+
 if [ ! -d "${RESULTS_DIR}" ]
 then
     mkdir -p ${RESULTS_DIR}
@@ -113,6 +136,8 @@ else
     echo "Memory Leak Test Failed"
     retVal=1
 fi
+
+rm -f "${HERMES_PID_FILE}"
 
 echo "Exit status: $retVal"
 exit $retVal

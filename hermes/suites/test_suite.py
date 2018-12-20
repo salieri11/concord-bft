@@ -146,7 +146,6 @@ class TestSuite(ABC):
          return p
       except Exception as e:
          log.error(str(e))
-         log.error("The product did not start")
          self.writeResult("All Tests", None, "The product did not start.")
          raise(e)
 
@@ -358,6 +357,9 @@ class TestSuite(ABC):
          txReceipt = rpc.getTransactionReceipt(txHash, self._ethereumMode)
 
       return txReceipt
+
+   def _shouldStop(self):
+      return self._productMode and not self._noLaunch and not self._repeatSuiteRun
 
    def requireFields(self, ob, fieldList):
       for f in fieldList:

@@ -16,7 +16,7 @@ def main():
    parser = argparse.ArgumentParser()
    parser.add_argument("--dockerComposeFile",
                        help="Accepts a docker compose file to start the DB.",
-                       default="../concord/docker/docker-compose.yml")
+                       default=["../concord/docker/docker-compose.yml"])
    parser.add_argument("--logLevel",
                        help="Set the log level.  Valid values:"
                        "'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'",
@@ -29,7 +29,7 @@ def main():
                None,
                userConfig)
 
-   with open(args.dockerComposeFile, "r") as f:      
+   with open(args.dockerComposeFile[0], "r") as f:
       dockerCfg = yaml.load(f)
       pp = pprint.PrettyPrinter(indent=4)
       log.info("Database config:")
