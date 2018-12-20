@@ -1,0 +1,11 @@
+version: '3'
+services:
+  ui:
+    build:
+      context: ./ui
+    image: "${ui_repo}:${ui_tag}"
+    ports:
+      - 80:80
+    # we need to expose the host IP to the UI server as the host "helen"
+    extra_hosts:
+      - helen:${helen_ip}
