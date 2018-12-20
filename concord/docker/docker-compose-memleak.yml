@@ -4,5 +4,3 @@ services:
     image: "${concord_repo}:${concord_tag}_memleak"
     volumes:
       - /tmp:/tmp
-
-

@@ -28,7 +28,6 @@ ARG memleak_util=""
 ARG memleak_util_cmd=""
 
 # Get this variable into the docker image for the CMD.
-# szczescie: Not sure if this is needed, the way I ended up doing it.
 ENV memleak_util_cmd="${memleak_util_cmd}"
 
 RUN apt-get update
