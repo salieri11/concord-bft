@@ -39,5 +39,5 @@ content text not null);
 
 -- keystore entity
 create table if not exists keystores (address varchar(40) not null,
-wallet string not null, user_userid UUID, foreign key (user_userid) references users,
+wallet varchar(1024)  not null, user_userid UUID, foreign key (user_userid) references users,
 primary key (address));

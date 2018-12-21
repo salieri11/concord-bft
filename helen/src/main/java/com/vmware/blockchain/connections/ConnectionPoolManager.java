@@ -1,0 +1,64 @@
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
+package com.vmware.blockchain.connections;
+
+import java.io.IOException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.event.EventListener;
+import org.springframework.stereotype.Component;
+
+import com.vmware.blockchain.common.ConcordProperties;
+import com.vmware.blockchain.connections.ConcordConnectionPool.ConnectionType;
+import com.vmware.blockchain.services.profiles.Blockchain;
+import com.vmware.blockchain.services.profiles.BlockchainManagerEvent;
+
+/**
+ * Connection Pool Manager for blockchains.
+ * Create/delete and get connection pools.
+ */
+@Component
+public class ConnectionPoolManager {
+    private ConcurrentMap<Blockchain, ConcordConnectionPool> pools;
+    // This field is really just for testing.  In unit tests, this will be set to Mock
+    private ConnectionType type = ConnectionType.TCP;
+    private ConcordProperties config;
+
+    @Autowired
+    public ConnectionPoolManager(ConcordProperties config) {
+        this.pools = new ConcurrentHashMap<>();
+        this.config = config;
+    }
+
+    /**
+     * Create a new connection pool for the blockchain.
+     * Throws AlreadyBoundException if the blockchain is already present.
+     */
+    public ConcordConnectionPool createPool(Blockchain blockchain) throws IOException {
+        ConcordConnectionPool newPool = new ConcordConnectionPool(blockchain, type);
+        // set the pool.  If it already was there, pool != null
+        ConcordConnectionPool pool = pools.putIfAbsent(blockchain, newPool);
+        if (pool == null) {
+            return newPool.initialize(config);
+        }
+        return pool;
+    }
+
+    public ConcordConnectionPool getPool(Blockchain blockchain) {
+        return pools.get(blockchain);
+    }
+
+    public void deletePool(Blockchain blockchain) {
+        ConcordConnectionPool pool = pools.remove(blockchain);
+        pool.closeAll();
+    }
+
+    @EventListener
+    public void handleBlockchainEvent(BlockchainManagerEvent event)  {
+        // TODO: update the connection pool.
+    }
+}

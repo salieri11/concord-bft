@@ -9,10 +9,10 @@ import org.springframework.http.HttpStatus;
 /**
  * There was an error trying to modify the user.
  */
-public class UserModificationException extends HelenException {
+public class EntityModificationException extends HelenException {
     private static final long serialVersionUID = 1L;
 
-    public UserModificationException(String message) {
+    public EntityModificationException(String message) {
         super(message, HttpStatus.BAD_REQUEST);
     }
 }

@@ -10,7 +10,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -73,7 +73,7 @@ public class DefaultProfiles {
     /**
      * Create the default profiles if they don't exist.  Do this when the application goes ready.
      */
-    @EventListener(classes = ApplicationReadyEvent.class)
+    @EventListener(classes = ApplicationStartedEvent.class)
     public void initialize() {
         // the order of these creates matters.
         // consortium must exist before blockchain.

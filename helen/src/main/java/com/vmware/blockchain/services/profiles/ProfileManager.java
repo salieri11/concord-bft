@@ -32,7 +32,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import com.vmware.blockchain.common.ConcordProperties;
-import com.vmware.blockchain.common.UserModificationException;
+import com.vmware.blockchain.common.EntityModificationException;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
@@ -99,15 +99,15 @@ public class ProfileManager extends BaseServlet {
         }
     }
 
-    private void validateCreateRequest(UserCreateRequest ucr) throws UserModificationException {
+    private void validateCreateRequest(UserCreateRequest ucr) throws EntityModificationException {
         if (ucr.getEmail() == null || ucr.getEmail().isEmpty()) {
-            throw new UserModificationException("invalid email specified");
+            throw new EntityModificationException("invalid email specified");
         }
         if (ucr.getUserName() == null || ucr.getEmail().isEmpty()) {
-            throw new UserModificationException("invalid name specified");
+            throw new EntityModificationException("invalid name specified");
         }
         if (ucr.getPassword() == null || ucr.getPassword().isEmpty()) {
-            throw new UserModificationException("invalid password specified");
+            throw new EntityModificationException("invalid password specified");
         }
     }
 
@@ -139,7 +139,7 @@ public class ProfileManager extends BaseServlet {
             responseJson.put(USER_ID_LABEL, userId);
             responseStatus = HttpStatus.OK;
 
-        } catch (ParseException | UserModificationException e) {
+        } catch (ParseException | EntityModificationException e) {
             logger.warn("Error while adding new user", e);
             responseJson = ApiHelper.errorJson(e.getMessage());
             responseStatus = HttpStatus.BAD_REQUEST;
@@ -148,21 +148,21 @@ public class ProfileManager extends BaseServlet {
         return new ResponseEntity<>(responseJson, standardHeaders, responseStatus);
     }
 
-    private void validatePatchRequest(UserPatchRequest upr) throws UserModificationException {
+    private void validatePatchRequest(UserPatchRequest upr) throws EntityModificationException {
         if (upr.getOptionalRole().isPresent() && !Roles.contains(upr.getOptionalRole().get())) {
-            throw new UserModificationException("invalid role provided");
+            throw new EntityModificationException("invalid role provided");
         }
         if (upr.getOptionalLastName().isPresent() && upr.getOptionalLastName().get().isEmpty()) {
-            throw new UserModificationException("invalid last name provided");
+            throw new EntityModificationException("invalid last name provided");
         }
         if (upr.getOptionalFirstName().isPresent() && upr.getOptionalFirstName().get().isEmpty()) {
-            throw new UserModificationException("invalid first name provided");
+            throw new EntityModificationException("invalid first name provided");
         }
         if (upr.getOptionalEmail().isPresent() && upr.getOptionalEmail().get().isEmpty()) {
-            throw new UserModificationException("invalid email provided");
+            throw new EntityModificationException("invalid email provided");
         }
         if (upr.getOptionalName().isPresent() && upr.getOptionalName().get().isEmpty()) {
-            throw new UserModificationException("invalid name provided");
+            throw new EntityModificationException("invalid name provided");
         }
     }
 
@@ -189,7 +189,7 @@ public class ProfileManager extends BaseServlet {
             responseJson = new JSONObject();
             responseStatus = HttpStatus.OK;
 
-        } catch (ParseException | UserModificationException e) {
+        } catch (ParseException | EntityModificationException e) {
             responseJson = ApiHelper.errorJson(e.getMessage());
             responseStatus = HttpStatus.BAD_REQUEST;
         }

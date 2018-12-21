@@ -29,8 +29,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.vmware.blockchain.common.ConcordProperties;
+import com.vmware.blockchain.common.EntityModificationException;
 import com.vmware.blockchain.common.HelenException;
-import com.vmware.blockchain.common.UserModificationException;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.services.BaseServlet;
@@ -40,7 +40,6 @@ import com.vmware.concord.Concord.ConcordResponse;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 
 /**
  * A servlet for handling the user authentication flow of helen. This servlet is just added for temporary usage. Actual
@@ -148,7 +147,7 @@ public class UserAuthenticator extends BaseServlet {
                 loginResponse.setError("Invalid email/password");
                 responseStatus = HttpStatus.UNAUTHORIZED;
             }
-        } catch (UserModificationException e) {
+        } catch (EntityModificationException e) {
             loginResponse.setError(e.getMessage());
             responseStatus = HttpStatus.BAD_REQUEST;
         }
@@ -222,7 +221,7 @@ public class UserAuthenticator extends BaseServlet {
                 responseJson = ApiHelper.errorJson("email or password " + "field missing");
                 responseStatus = HttpStatus.BAD_REQUEST;
             }
-        } catch (ParseException | UserModificationException e) {
+        } catch (ParseException | EntityModificationException e) {
             responseStatus = HttpStatus.BAD_REQUEST;
             responseJson = ApiHelper.errorJson(e.getMessage());
         }
