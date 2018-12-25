@@ -223,8 +223,9 @@ int main(int argc, char **argv) {
 #ifdef USE_COMM_PLAIN_TCP
   PlainTcpConfig conf = testCommConfig.GetTCPConfig(
       false, id, cp.numOfClients, cp.numOfReplicas, cp.configFileName);
-#elif USE_COMM_PLAIN_TLS
-  TlsTcpConfig conf = getTlsTCPConfig(id);
+#elif USE_COMM_TLS_TCP
+  TlsTcpConfig conf = testCommConfig.getTlsTCPConfig(
+      false, id, cp.numOfClients, cp.numOfReplicas, cp.configFileName);
 #else
   PlainUdpConfig conf = testCommConfig.GetUDPConfig(
       false, id, cp.numOfClients, cp.numOfReplicas, cp.configFileName);

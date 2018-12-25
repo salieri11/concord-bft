@@ -100,6 +100,7 @@ using bftEngine::PlainUDPCommunication;
 using bftEngine::PlainUdpConfig;
 using bftEngine::PlainTCPCommunication;
 using bftEngine::PlainTcpConfig;
+using bftEngine::TlsTcpConfig;
 using bftEngine::Replica;
 using bftEngine::ReplicaConfig;
 using bftEngine::RequestsHandler;
@@ -323,6 +324,11 @@ int main(int argc, char **argv) {
 
 #ifdef USE_COMM_PLAIN_TCP
   PlainTcpConfig conf = testCommConfig.GetTCPConfig(true, rp.replicaId,
+                                                    rp.numOfClients,
+                                                    rp.numOfReplicas,
+                                                    rp.configFileName);
+#elif USE_COMM_TLS_TCP
+  TlsTcpConfig conf = testCommConfig.getTlsTCPConfig(true, rp.replicaId,
                                                     rp.numOfClients,
                                                     rp.numOfReplicas,
                                                     rp.configFileName);
