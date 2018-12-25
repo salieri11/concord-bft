@@ -24,6 +24,16 @@ set(SLEEP_FOR_DBG FALSE)
 # Release builds can be enabled by running cmake with -DCMAKE_BUILD_TYPE=Release
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Enable debug or release builds" FORCE)
+
+set(BUILD_COMM_TCP_TLS TRUE)
+
+#if not set to TRUE by the app, set from here
+if(NOT USE_LOG4CPP)
+    set(USE_LOG4CPP FALSE)
+endif()
+if(NOT BUILD_COMM_TCP_PLAIN)
+    set(BUILD_COMM_TCP_PLAIN FALSE)
+
 endif()
 if(NOT BUILD_COMM_TCP_TLS)
     set(BUILD_COMM_TCP_TLS FALSE)
