@@ -13,8 +13,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(IS_LEAKCHECK FALSE)
 set(SLEEP_FOR_DBG FALSE)
 
-set(BUILD_COMM_TCP_TLS TRUE)
-
 #if not set to TRUE by the app, set from here
 if(NOT USE_LOG4CPP)
     set(USE_LOG4CPP FALSE)
@@ -29,6 +27,11 @@ endif()
 if(NOT CONCORD_LOGGER_NAME)
     set(CONCORD_LOGGER_NAME "concord")
 endif()
+
+
+
+
+
 
 if(SLEEP_FOR_DBG)
     add_definitions(-DSLEEP_DBG)

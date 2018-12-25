@@ -24,8 +24,13 @@ if(USE_LOG4CPP)
 endif()
 
 if(${USE_COMM_PLAIN_TCP})
-    target_compile_definitions(simnpleTest_client PUBLIC USE_COMM_PLAIN_TCP=1)
-    target_compile_definitions(simnpleTest_server PUBLIC USE_COMM_PLAIN_TCP=1)
+    target_compile_definitions(simnpleTest_client PUBLIC USE_COMM_PLAIN_TCP)
+    target_compile_definitions(simnpleTest_server PUBLIC USE_COMM_PLAIN_TCP)
+endif()
+
+if(${USE_COMM_TLS_TCP})
+    target_compile_definitions(simnpleTest_client PUBLIC USE_COMM_TLS_TCP)
+    target_compile_definitions(simnpleTest_server PUBLIC USE_COMM_TLS_TCP)
 endif()
 
 set_target_properties(simpleTest_client PROPERTIES OUTPUT_NAME client)
@@ -51,8 +56,9 @@ add_custom_command(TARGET copy_simple_test_scripts
 add_custom_target(copy_tls_certs ALL COMMENT "Copying TLS certificates")
 add_custom_command(TARGET copy_tls_certs
         COMMAND ${CMAKE_COMMAND} -E make_directory
-        $<TARGET_FILE_DIR:simpleTest_client>/certs
+        $<TARGET_FILE_DIR:simpleTest_client>/scripts/certs
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${PROKECT_SOURCE_DIR}/scripts/certs ${TARGET_FILE_DIR}/certs)
+        ${PROJECT_SOURCE_DIR}/scripts/certs
+        $<TARGET_FILE_DIR:simpleTest_client>/scripts/certs)
 
     

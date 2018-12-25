@@ -54,6 +54,7 @@ using bftEngine::SimpleClient;
 // Declarations of functions form config.cpp.
 PlainUdpConfig getUDPConfig(uint16_t id);
 extern PlainTcpConfig getTCPConfig(uint16_t id);
+extern TlsTcpConfig getTlsTCPConfig(uint16_t id);
 
 int main(int argc, char **argv) {
 // TODO(IG:) configure Log4Cplus's output format, using default for now
@@ -83,7 +84,7 @@ int main(int argc, char **argv) {
   // Configure, create, and start the Concord client to use.
 #ifdef USE_COMM_PLAIN_TCP
   PlainTcpConfig conf = getTCPConfig(id);
-#elif USE_COMM_PLAIN_TLS
+#elif USE_COMM_TLS_TCP
   TlsTcpConfig conf = getTlsTCPConfig(id);
 #else
   PlainUdpConfig conf = getUDPConfig(id);

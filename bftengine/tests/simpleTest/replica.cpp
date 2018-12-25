@@ -71,6 +71,7 @@ using bftEngine::PlainUDPCommunication;
 using bftEngine::PlainUdpConfig;
 using bftEngine::PlainTCPCommunication;
 using bftEngine::PlainTcpConfig;
+using bftEngine::TlsTcpConfig;
 using bftEngine::Replica;
 using bftEngine::ReplicaConfig;
 using bftEngine::RequestsHandler;
@@ -79,6 +80,7 @@ using bftEngine::RequestsHandler;
 void getReplicaConfig(uint16_t replicaId, bftEngine::ReplicaConfig* outConfig);
 PlainUdpConfig getUDPConfig(uint16_t id);
 extern PlainTcpConfig getTCPConfig(uint16_t id);
+extern TlsTcpConfig getTlsTCPConfig(uint16_t id);
 
 // The replica state machine.
 class SimpleAppState : public RequestsHandler {
@@ -151,6 +153,7 @@ int main(int argc, char **argv) {
   BasicConfigurator config;
   config.configure();
 #endif
+  //std::this_thread::sleep_for(chrono::seconds(20));
 
   // This program expects one argument: the index number of the replica being
   // started. This index is used to choose the correct config files (which
@@ -162,13 +165,15 @@ int main(int argc, char **argv) {
   ReplicaConfig replicaConfig;
   getReplicaConfig(id, &replicaConfig);
 
+// Configure, create, and start the Concord client to use.
 #ifdef USE_COMM_PLAIN_TCP
   PlainTcpConfig conf = getTCPConfig(id);
+#elif USE_COMM_TLS_TCP
+  TlsTcpConfig conf = getTlsTCPConfig(id);
 #else
   PlainUdpConfig conf = getUDPConfig(id);
 #endif
   ICommunication* comm = bftEngine::CommFactory::create(conf);
-
   // This is the state machine that the replica will drive.
   SimpleAppState simpleAppState;
 
