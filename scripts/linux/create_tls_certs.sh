@@ -39,10 +39,10 @@ $serverDir/pk.pem
 $clientDir/pk.pem
 
    openssl req -new -key $serverDir/pk.pem -nodes -days 365 -x509 \
--subj "/C=/ST=/L=/O=/OU=$i/CN=node"$i"ser" -out $serverDir/server.cert
+-subj "/C=NA/ST=NA/L=NA/O=NA/OU=node"$i"/CN=node"$i"ser" -out $serverDir/server.cert
 
    openssl req -new -key $clientDir/pk.pem -nodes -days 365 -x509 \
--subj "/C=/ST=/L=/O=/OU=$i/CN=node"$i"cli" -out $clientDir/client.cert
+-subj "/C=NA/ST=NA/L=NA/O=NA/OU=node"$i"/CN=node"$i"cli" -out $clientDir/client.cert
 
    let i=i+1
 done

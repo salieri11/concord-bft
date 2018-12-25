@@ -13,6 +13,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(IS_LEAKCHECK FALSE)
 set(SLEEP_FOR_DBG FALSE)
 
+set(BUILD_COMM_TCP_TLS TRUE)
+
 #if not set to TRUE by the app, set from here
 if(NOT USE_LOG4CPP)
     set(USE_LOG4CPP FALSE)
@@ -35,7 +37,7 @@ endif()
 #
 # Compiler options
 #
-# 
+#
 
 string(APPEND CXX_FLAGS " -Wall")
 string(APPEND CXX_FLAGS " -Wbuiltin-macro-redefined")

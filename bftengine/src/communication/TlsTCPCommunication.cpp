@@ -10,7 +10,7 @@
 // terms and conditions of the subcomponent's license, as noted in the
 // LICENSE file.
 
-#include "CommImpl.hpp"
+#include "CommDefs.hpp"
 #include <string>
 #include <functional>
 #include <iostream>
@@ -35,13 +35,13 @@
 #include "openssl/ssl.h"
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
-
 #include "Logging.hpp"
 
 class AsyncTlsConnection;
 
 using namespace std;
 using namespace bftEngine;
+using namespace concordlogger;
 using namespace boost::asio;
 using namespace boost::asio::ip;
 using namespace boost::posix_time;
@@ -100,6 +100,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
   bool _connecting = false;
   B_TLS_SOCKET_PTR _socket = nullptr;
   string _certificatesRootFolder;
+  Logger _logger;
  public:
   bool connected;
 
@@ -122,8 +123,9 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
       _connType(type),
       _closed(false),
       _certificatesRootFolder(certificatesRootFolder),
+      _logger(Logger::getLogger("concord-bft.tls")),
       connected(false) {
-    LOG_TRACE("enter, node " << _selfId << ", dest: " << _destId);
+    LOG_TRACE(_logger, "enter, node " << _selfId << ", dest: " << _destId);
 
     _inBuffer = new char[bufferLength];
     _outBuffer = new char[bufferLength];
@@ -134,7 +136,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
     _socket = B_TLS_SOCKET_PTR(new SSL_SOCKET(*service, *_pSslContext));
 
     _connectTimer.expires_at(boost::posix_time::pos_infin);
-    LOG_TRACE("exit, node " << _selfId << ", dest: " << _destId);
+    LOG_TRACE(_logger, "exit, node " << _selfId << ", dest: " << _destId);
   }
 
   void parse_message_header(const char *buffer,
@@ -221,14 +223,14 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
     char subject[512];
     X509 *cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
     if (!cert) {
-      LOG_ERROR("no certificate from client");
+      LOG_ERROR(_logger, "no certificate from client");
       return false;
     }
 
     X509_NAME_oneline(X509_get_subject_name(cert), subject, 512);
-    LOG_DEBUG("Verifying client: " << subject << ", " << preverified);
+    LOG_DEBUG(_logger, "Verifying client: " << subject << ", " << preverified);
     auto res = check_sertificate(cert, "client", string(subject));
-    LOG_DEBUG("Manual verifying client: " << subject << ", " << res);
+    LOG_DEBUG(_logger, "Manual verifying client: " << subject << ", " << res);
     return true;
   }
 
@@ -243,13 +245,13 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
     char subject[256];
     X509 *cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
     if (!cert) {
-      LOG_ERROR("no certificate from server");
+      LOG_ERROR(_logger, "no certificate from server");
       return false;
     }
     X509_NAME_oneline(X509_get_subject_name(cert), subject, 256);
-    LOG_DEBUG("Verifying server: " << subject << ", " << preverified);
+    LOG_DEBUG(_logger, "Verifying server: " << subject << ", " << preverified);
     auto res = check_sertificate(cert, "server", string(subject), _destId);
-    LOG_DEBUG("Manual verifying server: " << subject << ", " << res);
+    LOG_DEBUG(_logger, "Manual verifying server: " << subject << ", " << res);
     return true;
   }
 
@@ -261,17 +263,20 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
                          string connectionType,
                          string subject,
                          NodeNum expectedPeerId = -1) {
+
+    // first, basic sanity test, just to eliminate disk read if the certificate
+    // is unknown
     regex r("OU=\\d*", regex_constants::icase);
     smatch sm;
     regex_search(subject, sm, r);
     if (4 > sm.length()) {
-      LOG_ERROR("OU not found or empty: " << subject);
+      LOG_ERROR(_logger, "OU not found or empty: " << subject);
       return false;
     }
 
     string remPeer = sm.str().substr(0, sm.str().length() - 3);
     if (0 == remPeer.length()) {
-      LOG_ERROR("OU empty " << subject);
+      LOG_ERROR(_logger, "OU empty " << subject);
       return false;
     }
 
@@ -279,14 +284,14 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
     try {
       remotePeerId = stoi(sm.str());
     } catch (const std::invalid_argument &ia) {
-      LOG_ERROR("cannot convert OU, " << subject);
+      LOG_ERROR(_logger, "cannot convert OU, " << subject);
       return false;
     }
 
     // if server has been verified, check that we co
     if (-1 != expectedPeerId) {
       if (remotePeerId != expectedPeerId) {
-        LOG_ERROR("peers doesnt match, expected: " << expectedPeerId
+        LOG_ERROR(_logger, "peers doesnt match, expected: " << expectedPeerId
                                                    << ", received: "
                                                    << remPeer);
         return false;
@@ -300,13 +305,13 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
 
     FILE *fp = fopen(path.c_str(), "r");
     if (!fp) {
-      LOG_ERROR("certificate file not found, path: " << path);
+      LOG_ERROR(_logger, "certificate file not found, path: " << path);
       return false;
     }
 
     X509 *localCert = PEM_read_X509(fp, NULL, NULL, NULL);
     if (!localCert) {
-      LOG_ERROR("cannot parse certificate, path: " << path);
+      LOG_ERROR(_logger, "cannot parse certificate, path: " << path);
       fclose(fp);
       return false;
     }
@@ -320,7 +325,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
   }
 
   void close_socket() {
-    LOG_TRACE("enter, node " << _selfId << ", dest: " << _destId
+    LOG_TRACE(_logger, "enter, node " << _selfId << ", dest: " << _destId
                              << ", connected: " << connected << ", closed: "
                              << _closed);
 
@@ -332,19 +337,19 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
       if (_pSslContext)
         _pSslContext.release();
     } catch (std::exception &e) {
-      LOG_ERROR("exception, node " << _selfId << ", dest: " << _destId
+      LOG_ERROR(_logger, "exception, node " << _selfId << ", dest: " << _destId
                                    << ", connected: " << connected
                                    << ", ex: " << e.what());
     }
 
-    LOG_TRACE("exit, node " << _selfId << ", dest: " << _destId
+    LOG_TRACE(_logger, "exit, node " << _selfId << ", dest: " << _destId
                             << ", connected: " << connected << ", closed: "
                             << _closed);
   }
 
   void close() {
     _connecting = true;
-    LOG_TRACE("enter, node " << _selfId << ", dest: " << _destId
+    LOG_TRACE(_logger, "enter, node " << _selfId << ", dest: " << _destId
                              << ", connected: " << connected << ", closed: "
                              << _closed);
 
@@ -361,12 +366,12 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
       if (_pSslContext)
         _pSslContext.release();
     } catch (std::exception &e) {
-      LOG_ERROR("exception, node " << _selfId << ", dest: " << _destId
+      LOG_ERROR(_logger, "exception, node " << _selfId << ", dest: " << _destId
                                    << ", connected: " << connected
                                    << ", ex: " << e.what());
     }
 
-    LOG_TRACE("exit, node " << _selfId << ", dest: " << _destId
+    LOG_TRACE(_logger, "exit, node " << _selfId << ", dest: " << _destId
                             << ", connected: " << connected << ", closed: "
                             << _closed);
 
@@ -374,7 +379,8 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
   }
 
   bool was_error(const B_ERROR_CODE &ec, string where) {
-    if (ec) LOG_ERROR("where: " << where << ", node " << _selfId << ", dest: "
+    if (ec)
+     LOG_ERROR(_logger, "where: " << where << ", node " << _selfId << ", dest: "
                                 << _destId << ", connected: " << connected
                                 << ", ex: " << ec.message());
 
@@ -384,7 +390,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
   void reconnect() {
     _connecting = true;
 
-    LOG_TRACE("enter, node " << _selfId << ", dest: " << _destId
+    LOG_TRACE(_logger, "enter, node " << _selfId << ", dest: " << _destId
                              << ", connected: " << connected << "is_open: "
                              << get_socket().is_open());
 
@@ -402,7 +408,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
     setTimeOut();
     connect(_ip, _port);
 
-    LOG_TRACE("exit, node " << _selfId << ", dest: " << _destId
+    LOG_TRACE(_logger, "exit, node " << _selfId << ", dest: " << _destId
                             << ", connected: " << connected << "is_open: "
                             << get_socket().is_open());
   }
@@ -420,7 +426,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
   void
   read_header_async_completed(const B_ERROR_CODE &ec,
                               const uint32_t bytesRead) {
-    LOG_TRACE("enter, node " << _selfId << ", dest: " << _destId
+    LOG_TRACE(_logger, "enter, node " << _selfId << ", dest: " << _destId
                              << ", connected: " << connected << "is_open: "
                              << get_socket().is_open());
 
@@ -428,7 +434,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
 
     // (IG): patch, dont do it, need to fix multithreading
     if (_wasError || _connecting) {
-      LOG_TRACE("was error, node " << _selfId << ", dest: " << _destId);
+      LOG_TRACE(_logger, "was error, node " << _selfId << ", dest: " << _destId);
       return;
     }
 
@@ -441,19 +447,19 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
     uint32_t msgLength;
     parse_message_header(_inBuffer, msgLength);
     if (msgLength == 0) {
-      LOG_ERROR("on_read_async_header_completed, msgLen=0");
+      LOG_ERROR(_logger, "on_read_async_header_completed, msgLen=0");
       return;
     }
 
     read_msg_async(LENGTH_FIELD_SIZE, msgLength);
 
-    LOG_TRACE("exit, node " << _selfId << ", dest: " << _destId
+    LOG_TRACE(_logger, "exit, node " << _selfId << ", dest: " << _destId
                             << ", connected: " << connected << "is_open: "
                             << get_socket().is_open());
   }
 
   void read_header_async() {
-    LOG_TRACE("enter, node " << _selfId << ", dest: " << _destId
+    LOG_TRACE(_logger, "enter, node " << _selfId << ", dest: " << _destId
                              << ", connected: " << connected << "is_open: "
                              << get_socket().is_open());
 
@@ -465,7 +471,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
                            boost::asio::placeholders::error,
                            boost::asio::placeholders::bytes_transferred));
 
-    LOG_TRACE("exit, node " << _selfId << ", dest: " << _destId
+    LOG_TRACE(_logger, "exit, node " << _selfId << ", dest: " << _destId
                             << ", connected: " << connected << "is_open: "
                             << get_socket().is_open());
   }
@@ -482,7 +488,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
                     _inBuffer + LENGTH_FIELD_SIZE +
                         MSGTYPE_FIELD_SIZE)));
 
-        LOG_DEBUG("node: " << _selfId << " got hello from:" << _destId);
+        LOG_DEBUG(_logger, "node: " << _selfId << " got hello from:" << _destId);
 
         _fOnHellOMessage(_destId, shared_from_this());
         return true;
@@ -493,32 +499,23 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
 
   void read_msg_async_completed(const boost::system::error_code &ec,
                                 size_t bytesRead) {
-    // (IG): patch, dont do it, need to fix multithreading
-    LOG_TRACE("enter, node " << _selfId << ", dest: " << _destId);
+    LOG_TRACE(_logger, "enter, node " << _selfId << ", dest: " << _destId);
 
     lock_guard<recursive_mutex> lock(_connectionsGuard);
 
     if (_wasError || _connecting) {
-      LOG_TRACE("was error, node " << _selfId << ", dest: " << _destId);
+      LOG_TRACE(_logger, "was error, node " << _selfId << ", dest: " << _destId);
       return;
     }
 
     auto err = was_error(ec, __func__);
     if (err) {
-      // (IG): patch, dont do it, need to fix multithreading
       _wasError = true;
-      /*
-      if(ConnType::Incoming == _connType)
-         close();
-      else
-         reconnect();
-      */
-
       return;
     }
 
     if (!is_service_message()) {
-      LOG_DEBUG("data msg received, msgLen: " << bytesRead);
+      LOG_DEBUG(_logger, "data msg received, msgLen: " << bytesRead);
       _receiver->
           onNewMessage(_destId,
                        _inBuffer + LENGTH_FIELD_SIZE +
@@ -528,11 +525,11 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
 
     read_header_async();
 
-    LOG_TRACE("exit, node " << _selfId << ", dest: " << _destId);
+    LOG_TRACE(_logger, "exit, node " << _selfId << ", dest: " << _destId);
   }
 
   void read_msg_async(uint32_t offset, uint32_t msgLength) {
-    LOG_TRACE("enter, node " << _selfId << ", dest: " << _destId);
+    LOG_TRACE(_logger, "enter, node " << _selfId << ", dest: " << _destId);
 
     // async operation will finish when either expectedBytes are read
     // or error occured
@@ -544,15 +541,15 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
                            boost::asio::placeholders::error,
                            boost::asio::placeholders::bytes_transferred));
 
-    LOG_TRACE("exit, node " << _selfId << ", dest: " << _destId);
+    LOG_TRACE(_logger, "exit, node " << _selfId << ", dest: " << _destId);
   }
 
   void write_async_completed(const B_ERROR_CODE &err,
                              size_t bytesTransferred) {
-    LOG_TRACE("enter, node " << _selfId << ", dest: " << _destId);
+    LOG_TRACE(_logger, "enter, node " << _selfId << ", dest: " << _destId);
 
     if (_wasError) {
-      LOG_TRACE("was error, node " << _selfId << ", dest: " << _destId);
+      LOG_TRACE(_logger, "was error, node " << _selfId << ", dest: " << _destId);
       return;
     }
 
@@ -569,7 +566,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
       return;
     }
 
-    LOG_TRACE("exit, node " << _selfId << ", dest: " << _destId);
+    LOG_TRACE(_logger, "exit, node " << _selfId << ", dest: " << _destId);
   }
 
   uint16_t prepare_output_buffer(uint16_t msgType, uint32_t dataLength) {
@@ -586,7 +583,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
     auto offset = prepare_output_buffer(MessageType::Hello, sizeof(_selfId));
     memcpy(_outBuffer + offset, &_selfId, sizeof(_selfId));
 
-    LOG_DEBUG("sending hello from:" << _selfId << " to: " << _destId
+    LOG_DEBUG(_logger, "sending hello from:" << _selfId << " to: " << _destId
                                     << ", size: "
                                     << (offset + sizeof(_selfId)));
 
@@ -601,25 +598,23 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
   }
 
   void connect_timer_tick(const B_ERROR_CODE &ec) {
-    LOG_TRACE("enter, node " << _selfId << ", dest: " << _destId << ", ec: "
-                             << ec.message());
+    LOG_TRACE(_logger, "enter, node " << _selfId << ", dest: " << _destId << ", ec: " << ec.message());
 
     if (_closed) {
-      LOG_DEBUG(
+      LOG_DEBUG(_logger,
           "closed, node " << _selfId << ", dest: " << _destId << ", ec: "
                           << ec.message());
     } else {
       if (connected) {
-        LOG_DEBUG("already connected, node " << _selfId << ", dest: "
+        LOG_DEBUG(_logger, "already connected, node " << _selfId << ", dest: "
                                              << _destId << ", ec: " << ec);
         _connectTimer.expires_at(boost::posix_time::pos_infin);
       } else if (_connectTimer.expires_at() <=
           deadline_timer::traits_type::now()) {
 
-        LOG_DEBUG("reconnecting, node " << _selfId << ", dest: " << _destId
-                                        << ", ec: " << ec);
+        LOG_DEBUG(_logger, "reconnecting, node " << _selfId << ", dest: " << _destId << ", ec: " << ec);
         reconnect();
-      } else LOG_DEBUG(
+      } else LOG_DEBUG(_logger,
           "else, node " << _selfId << ", dest: " << _destId << ", ec: "
                         << ec.message());
 
@@ -629,12 +624,11 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
                       boost::asio::placeholders::error));
     }
 
-    LOG_TRACE("exit, node " << _selfId << ", dest: " << _destId << ", ec: "
-                            << ec.message());
+    LOG_TRACE(_logger,"exit, node " << _selfId << ", dest: " << _destId << ", ec: " << ec.message());
   }
 
   void connect_completed(const B_ERROR_CODE &err) {
-    LOG_TRACE("enter, node " << _selfId << ", dest: " << _destId);
+    LOG_TRACE(_logger, "enter, node " << _selfId << ", dest: " << _destId);
 
     lock_guard<recursive_mutex> lock(_connectionsGuard);
     auto res = was_error(err, __func__);
@@ -643,8 +637,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
       // async_connect opens socket on start so
       //nothing to do here since timeout occured and closed the socket
       if (connected) {
-        LOG_DEBUG("node " << _selfId << " is DISCONNECTED from node " <<
-                          _destId);
+        LOG_DEBUG(_logger, "node " << _selfId << " is DISCONNECTED from node " <<  _destId);
       }
       connected = false;
     } else if (res) {
@@ -652,8 +645,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
       //timeout didnt happen yet but the connection failed
       // nothig to do here, left for clarity
     } else {
-      LOG_DEBUG("connected, node " << _selfId << ", dest: " << _destId <<
-                                   ", res: " << res);
+      LOG_DEBUG(_logger, "connected, node " << _selfId << ", dest: " << _destId << ", res: " << res);
 
       _socket->async_handshake(boost::asio::ssl::stream_base::client,
                                boost::bind(
@@ -663,7 +655,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
 
     }
 
-    LOG_TRACE("exit, node " << _selfId << ", dest: " << _destId);
+    LOG_TRACE(_logger, "exit, node " << _selfId << ", dest: " << _destId);
   }
 
   void handle_handshake(const B_ERROR_CODE &err) {
@@ -718,11 +710,11 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
   void connect(string ip, uint16_t port) {
     _ip = ip;
     _port = port;
-    LOG_TRACE("enter, from: " << _selfId << " ,to: " << _destId <<
+    LOG_TRACE(_logger, "enter, from: " << _selfId << " ,to: " << _destId <<
                               ", ip: " << ip << ", port: " << port);
 
     tcp::endpoint ep(address::from_string(ip), port);
-    LOG_DEBUG("connecting from: " << _selfId << " ,to: " << _destId <<
+    LOG_DEBUG(_logger, "connecting from: " << _selfId << " ,to: " << _destId <<
                                   ", timeout: " << _currentTimeout);
 
     _connectTimer.expires_from_now(
@@ -732,7 +724,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
                                boost::bind(&AsyncTlsConnection::connect_completed,
                                            shared_from_this(),
                                            boost::asio::placeholders::error));
-    LOG_TRACE("exit, from: " << _selfId << " ,to: " << _destId <<
+    LOG_TRACE(_logger, "exit, from: " << _selfId << " ,to: " << _destId <<
                              ", ip: " << ip << ", port: " << port);
   }
 
@@ -746,7 +738,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
   }
 
   void send(const char *data, uint32_t length) {
-    LOG_TRACE("enter, node " << _selfId << ", dest: " << _destId);
+    LOG_TRACE(_logger, "enter, node " << _selfId << ", dest: " << _destId);
 
     lock_guard<recursive_mutex> lock(_connectionsGuard);
     auto offset = prepare_output_buffer(MessageType::Regular,
@@ -754,9 +746,8 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
     memcpy(_outBuffer + offset, data, length);
     write_async(_outBuffer, offset + length);
 
-    LOG_DEBUG("send exit, from: " << ", to: " << _destId << ", offset: " <<
-                                  offset << ", length: " << length);
-    LOG_TRACE("exit, node " << _selfId << ", dest: " << _destId);
+    LOG_DEBUG(_logger, "send exit, from: " << ", to: " << _destId << ", offset: " << offset << ", length: " << length);
+    LOG_TRACE(_logger, "exit, node " << _selfId << ", dest: " << _destId);
   }
 
   void setReceiver(NodeNum nodeId, IReceiver *rec) {
@@ -785,14 +776,14 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
   }
 
   virtual ~AsyncTlsConnection() {
-    LOG_TRACE("enter, node " << _selfId << ", dest: " << _destId
+    LOG_TRACE(_logger, "enter, node " << _selfId << ", dest: " << _destId
                              << ", connected: " << connected
                              << ", closed: " << _closed);
 
     delete[] _inBuffer;
     delete[] _outBuffer;
 
-    LOG_TRACE("exit, node " << _selfId
+    LOG_TRACE(_logger, "exit, node " << _selfId
                             << ", dest: " << _destId
                             << ", connected: " << connected
                             << ", closed: " << _closed);
@@ -818,15 +809,18 @@ class TlsTCPCommunication::TlsTcpImpl {
   uint32_t _bufferLength;
   uint32_t _maxServerId;
   string _certRootFolder;
+  Logger _logger;
+
+  recursive_mutex _connectionsGuard;
 
   void on_async_connection_error(NodeNum peerId) {
-    LOG_ERROR("to: " << peerId);
+    LOG_ERROR(_logger, "to: " << peerId);
     lock_guard<recursive_mutex> lock(_connectionsGuard);
     _connections.erase(peerId);
   }
 
   void on_hello_message(NodeNum id, ASYNC_CONN_PTR conn) {
-    LOG_DEBUG("node: " << _selfId <<
+    LOG_DEBUG(_logger, "node: " << _selfId <<
                        ", from: " << id);
 
     lock_guard<recursive_mutex> lock(_connectionsGuard);
@@ -836,7 +830,7 @@ class TlsTCPCommunication::TlsTcpImpl {
 
   void on_accept(ASYNC_CONN_PTR conn,
                  const B_ERROR_CODE &ec) {
-    LOG_TRACE("enter, node: " + to_string(_selfId) +
+    LOG_TRACE(_logger, "enter, node: " + to_string(_selfId) +
         ", ec: " + ec.message());
 
     if (!ec) {
@@ -846,14 +840,14 @@ class TlsTCPCommunication::TlsTcpImpl {
 
     //LOG4CPLUS_DEBUG(logger_, "handle_accept before start_accept");
     start_accept();
-    LOG_TRACE("exit, node: " + to_string(_selfId) +
+    LOG_TRACE(_logger, "exit, node: " + to_string(_selfId) +
         ", ec: " + ec.message());
   }
 
   // here need to check how "this" passed to handlers behaves if the object is
   // deleted.
   void start_accept() {
-    LOG_TRACE("enter, node: " << _selfId);
+    LOG_TRACE(_logger, "enter, node: " << _selfId);
     auto conn =
         AsyncTlsConnection::create(
             &_service,
@@ -877,7 +871,7 @@ class TlsTCPCommunication::TlsTcpImpl {
                                  this,
                                  conn,
                                  boost::asio::placeholders::error));
-    LOG_TRACE("exit, node: " << _selfId);
+    LOG_TRACE(_logger, "exit, node: " << _selfId);
   }
 
   TlsTcpImpl(const TlsTcpImpl &) = delete;
@@ -897,22 +891,28 @@ class TlsTCPCommunication::TlsTcpImpl {
       _listenIp(listenIp),
       _bufferLength(bufferLength),
       _maxServerId(maxServerId),
-      _certRootFolder(certRootFolder) {
+      _certRootFolder(certRootFolder),
+      _logger(Logger::getLogger("concord-bft.tls")) {
     //_service = new io_service();
     for (auto it = nodes.begin(); it != nodes.end(); it++) {
       _nodes.insert({it->first, it->second});
     }
 
+    // all replicas are in listen mode
     if (_selfId < _maxServerId) {
       tcp::endpoint ep(address::from_string(_listenIp), _listenPort);
       _pAcceptor = boost::make_unique<tcp::acceptor>(_service, ep);
       start_accept();
-    } else LOG_INFO("skipping listen for node: " << _selfId);
+    } else // clients donn't listen
+      LOG_INFO(_logger, "skipping listen for node: " << _selfId);
 
+    // this node should connect only to nodes with lower ID
+    // and all nodes with higher ID will connect to this node
+    // we dont want that clients will connect to another clients
     for (auto it = _nodes.begin(); it != _nodes.end(); it++) {
       // connect only to nodes with ID higher than selfId
       // and all nodes with lower ID will connect to this node
-      if (it->first < _selfId && it->first < maxServerId) {
+      if (it->first < _selfId && it->first <= maxServerId) {
         auto conn =
             AsyncTlsConnection::create(
                 &_service,
@@ -934,7 +934,7 @@ class TlsTCPCommunication::TlsTcpImpl {
         string peerIp = std::get<0>(it->second);
         uint16_t peerPort = std::get<1>(it->second);
         conn->connect(peerIp, peerPort);
-        LOG_TRACE("connect called for node " << to_string(it->first));
+        LOG_TRACE(_logger, "connect called for node " << to_string(it->first));
       }
     }
   }
@@ -1016,29 +1016,28 @@ class TlsTCPCommunication::TlsTcpImpl {
   int sendAsyncMessage(const NodeNum destNode,
                        const char *const message,
                        const size_t messageLength) {
-    LOG_TRACE("enter, from: " << _selfId << ", to: " <<
+    LOG_TRACE(_logger, "enter, from: " << _selfId << ", to: " <<
                               to_string(destNode));
 
     lock_guard<recursive_mutex> lock(_connectionsGuard);
     auto temp = _connections.find(destNode);
     if (temp != _connections.end()) {
-      LOG_TRACE("conncection found, from: " << _selfId <<
-                                            ", to: " << destNode);
+      LOG_TRACE(_logger, "conncection found, from: " << _selfId << ", to: " << destNode);
 
       if (temp->second->connected) {
         temp->second->send(message, messageLength);
-      } else LOG_TRACE(
+      } else LOG_TRACE(_logger,
           "connecction found but disconnected, from: " << _selfId <<
                                                        ", to: " << destNode);
     }
 
-    LOG_TRACE("exit, from: " << _selfId << ", to: " <<
+    LOG_TRACE(_logger, "exit, from: " << _selfId << ", to: " <<
                              to_string(destNode));
     return 0;
   }
 
   ~TlsTcpImpl() {
-    LOG_TRACE("DTOR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+    LOG_TRACE(_logger, "DTOR!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
   }
 };
 
