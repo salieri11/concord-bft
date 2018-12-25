@@ -37,8 +37,13 @@ if(USE_LOG4CPP)
 endif()
 
 if(${USE_COMM_PLAIN_TCP})
-    target_compile_definitions(simnpleTest_client PUBLIC USE_COMM_PLAIN_TCP=1)
-    target_compile_definitions(simnpleTest_server PUBLIC USE_COMM_PLAIN_TCP=1)
+    target_compile_definitions(simnpleTest_client PUBLIC USE_COMM_PLAIN_TCP)
+    target_compile_definitions(simnpleTest_server PUBLIC USE_COMM_PLAIN_TCP)
+endif()
+
+if(${USE_COMM_TLS_TCP})
+    target_compile_definitions(simnpleTest_client PUBLIC USE_COMM_TLS_TCP)
+    target_compile_definitions(simnpleTest_server PUBLIC USE_COMM_TLS_TCP)
 endif()
 
 set_target_properties(simpleTest_client PROPERTIES OUTPUT_NAME client)

@@ -51,6 +51,13 @@ if(NOT CONCORD_LOGGER_NAME)
 endif()
 
 
+<<<<<<< HEAD
+=======
+
+
+
+
+>>>>>>> fix tls support and certificates creation
 if(SLEEP_FOR_DBG)
     add_definitions(-DSLEEP_DBG)
 endif()
