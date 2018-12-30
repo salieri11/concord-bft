@@ -3,7 +3,6 @@
  * *********************************************************************/
 package com.vmware.blockchain.model.deployment
 
-import com.vmware.blockchain.model.core.Credential
 import com.vmware.blockchain.model.core.UUID
 
 /**

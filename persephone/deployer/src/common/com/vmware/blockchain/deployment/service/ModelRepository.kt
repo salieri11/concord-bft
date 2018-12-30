@@ -9,7 +9,7 @@ import com.vmware.blockchain.model.deployment.ConcordModelIdentifier
 /**
  * Denote the contract of the image repository service for Concord cluster deployment.
  */
-interface Repository {
+interface ModelRepository {
     /**
      * Create a deployment image based on a [ConcordModel].
      *
@@ -17,7 +17,7 @@ interface Repository {
      *   model specification of the deployment image.
      *
      * @return
-     *   identifier of the deployment image, if found.
+     *   identifier of the deployment image, if created.
      */
     fun create(model: ConcordModel): ConcordModelIdentifier?
 
@@ -30,7 +30,7 @@ interface Repository {
      * @return
      *   deployment model corresponding to the identifier, if found.
      */
-    fun get(identifier: ConcordModelIdentifier): ConcordModel
+    fun get(identifier: ConcordModelIdentifier): ConcordModel?
 
     /**
      * Delete the deployment image associated with a given [ConcordModelIdentifier].
