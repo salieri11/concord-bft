@@ -9,12 +9,16 @@ rm -f private_replica_*
 
 ../../../../tools/GenerateConcordKeys -n 4 -f 1 -o private_replica_
 
+echo "Generating new TLS certificates..."
+rm -rf certs/
+./create_tls_certs.sh 5
+
 parallel --halt now,fail=1 -j0 ::: \
     "$scriptdir/../server 0" \
     "$scriptdir/../server 1" \
     "$scriptdir/../server 2" \
     "$scriptdir/../server 3" &
-	
+
 repl_pid=$!
 
 $scriptdir/../client
@@ -31,4 +35,3 @@ kill $repl_pid
 echo
 echo "Killing server processes named '$scriptdir/../server'"
 killall "$scriptdir/../server" || :
-
