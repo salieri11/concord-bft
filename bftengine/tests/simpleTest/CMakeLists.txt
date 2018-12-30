@@ -12,12 +12,15 @@ set(simpleTest_replica_source_files
     ${concord_bft_tools_SOURCE_DIR}/KeyfileIOUtils.cpp
 )
 
+<<<<<<< HEAD
 # This target should be moved to UT infrastructure code when created.
 set(config_source_files
     config_file_parser.cpp
     config_file_parser_test.cpp
 )
 
+=======
+>>>>>>> move cert creating to test script
 add_executable(simpleTest_client
     ${simpleTest_client_source_files}
 )
@@ -33,7 +36,10 @@ add_executable(configTest
 if(USE_LOG4CPP)
     target_compile_definitions(simpleTest_server PUBLIC USE_LOG4CPP=1)
     target_compile_definitions(simpleTest_client PUBLIC USE_LOG4CPP=1)
+<<<<<<< HEAD
     target_compile_definitions(configTest PUBLIC USE_LOG4CPP=1)
+=======
+>>>>>>> move cert creating to test script
 endif()
 
 if(${USE_COMM_PLAIN_TCP})
@@ -85,3 +91,9 @@ configure_file (
     "${CMAKE_CURRENT_SOURCE_DIR}/scripts/simpleTest.py.in"
     "${CMAKE_CURRENT_BINARY_DIR}/scripts/simpleTest.py"
 )
+
+add_custom_target(copy_tls_script ALL COMMENT "Copying TLS script")
+add_custom_command(TARGET copy_tls_script
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${PROJECT_SOURCE_DIR}/scripts/linux/create_tls_certs.sh
+     $<TARGET_FILE_DIR:simpleTest_client>/scripts/create_tls_certs.sh)
