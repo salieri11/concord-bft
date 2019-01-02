@@ -35,6 +35,7 @@ class Product():
       self._apiServerUrl = apiServerUrl
       self._userConfig = userConfig
       self._userProductConfig = userConfig["product"]
+      self._running = False
 
    def launchProduct(self):
       '''
@@ -57,6 +58,7 @@ class Product():
                self._launchViaCmdLine(productLogsDir)
 
             launched = True
+            self._running = True
          except Exception as e:
             numAttempts += 1
             log.info("Attempt {} to launch the product failed. Exception: '{}'".format(
@@ -432,44 +434,47 @@ class Product():
       '''
       Stops the product executables and closes the logs.
       '''
-      if self._cmdlineArgs.dockerComposeFile:
-         cmd = ["docker-compose"]
+      if self._running:
+         if self._cmdlineArgs.dockerComposeFile:
+            cmd = ["docker-compose"]
 
-         for cfgFile in self._cmdlineArgs.dockerComposeFile:
-            cmd += ["--file", cfgFile]
+            for cfgFile in self._cmdlineArgs.dockerComposeFile:
+               cmd += ["--file", cfgFile]
 
-         cmd += ["down"]
-         print("Stopping the product with command '{}'".format(cmd))
-         p = subprocess.run(cmd)
-      else:
-         for p in self._processes[:]:
-            if p.poll() is None:
-               p.terminate()
-               print("Terminating {}.".format(p.args))
+            cmd += ["down", "--timeout", "120"]
+            print("Stopping the product with command '{}'".format(cmd))
+            p = subprocess.run(cmd)
+            self._running = False
+         else:
+            for p in self._processes[:]:
+               if p.poll() is None:
+                  p.terminate()
+                  print("Terminating {}.".format(p.args))
 
-         for p in self._processes[:]:
-            if "docker" in p.args:
-               cmd = ["docker", "ps", "-q", "-f",
-                      "name=reverse-proxy-hermes-test"]
-               ps_output = subprocess.run(cmd,
-                                          stdout=subprocess.PIPE,
-                                          stderr=subprocess.STDOUT)
-               container_ids = ps_output.stdout.decode("UTF-8").split("\n")
-               print ("Container IDs found: {0}".format(container_ids))
+            for p in self._processes[:]:
+               if "docker" in p.args:
+                  cmd = ["docker", "ps", "-q", "-f",
+                         "name=reverse-proxy-hermes-test"]
+                  ps_output = subprocess.run(cmd,
+                                             stdout=subprocess.PIPE,
+                                             stderr=subprocess.STDOUT)
+                  container_ids = ps_output.stdout.decode("UTF-8").split("\n")
+                  print ("Container IDs found: {0}".format(container_ids))
 
-               for container_id in container_ids:
-                  if container_id:
-                     print("Terminating container ID: {0}".format(container_id))
-                     if not self.stopDockerContainer(container_id):
-                        raise Exception("Failure trying to stop docker container.")
+                  for container_id in container_ids:
+                     if container_id:
+                        print("Terminating container ID: {0}".format(container_id))
+                        if not self.stopDockerContainer(container_id):
+                           raise Exception("Failure trying to stop docker container.")
 
-            while p.poll() is None:
-               print("Waiting for process {} to exit.".format(p.args))
-               time.sleep(1)
+               while p.poll() is None:
+                  print("Waiting for process {} to exit.".format(p.args))
+                  time.sleep(1)
 
-      for log in self._logs[:]:
-         log.close()
-         self._logs.remove(log)
+            self._running = False
+         for log in self._logs[:]:
+            log.close()
+            self._logs.remove(log)
 
    def _waitForProductStartup(self):
       '''
