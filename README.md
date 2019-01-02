@@ -28,8 +28,8 @@ blockchain/communication$ mvn clean install
 
 ### Building Helen
 
-Helen is first build using Maven (see helen/README.md for additional
-dependencies, like Java and NPM):
+Helen is first built using Maven (see helen/README.md for additional
+dependencies, like Java):
 
 ```
 blockchain/helen$ mvn clean install package
@@ -49,6 +49,24 @@ is run from the same directory as this README, and *not* from the
 
 ```
 blockchain$ docker build -f concord/Dockerfile . -t concord:latest
+```
+
+### Building EthRPC (Optional)
+
+The EthRPC component is not yet in use, but if you're testing it, or
+Jenkins is failing to build it, this is how to build it yourself.
+
+EthRPC is first built using Maven (see helen/README.md for additional
+dependencies, like Java):
+
+```
+blockchain/ethrpc$ mvn clean install package
+```
+
+Now, build the docker image, and tag it `ethrpc:latest`:
+
+```
+blockchain/ethrpc$ docker build . -t ethrpc:latest
 ```
 
 ## Testing

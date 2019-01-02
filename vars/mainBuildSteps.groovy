@@ -139,6 +139,13 @@ def call(){
               }
             }
           }
+          stage("Build EthRPC") {
+            steps {
+              dir('blockchain/ethrpc') {
+                sh 'mvn clean install'
+              }
+            }
+          }
         }
       }
 
@@ -179,6 +186,7 @@ def call(){
           script {
             env.concord_repo = 'vmwblockchain/concord-core'
             env.helen_repo = 'vmwblockchain/concord-ui'
+            env.ethrpc_repo = 'vmwblockchain/ethrpc'
             env.fluentd_repo = 'vmwblockchain/fluentd'
             env.ui_repo = 'vmwblockchain/ui'
           }
@@ -205,6 +213,25 @@ def call(){
                   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                     sh '''
                       docker build . -t "${helen_repo}:${helen_docker_tag}" --label ${version_label}=${helen_docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
+                    '''
+                  }
+                }
+              }
+            }
+          }
+
+          stage("Build ethrpc docker image") {
+            steps {
+              script {
+                dir('blockchain/ethrpc') {
+
+                 script {
+                    env.ethrpc_docker_tag = env.version_param ? env.version_param : env.commit
+                  }
+
+                  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+                    sh '''
+                      docker build . -t "${ethrpc_repo}:${ethrpc_docker_tag}" --label ${version_label}=${ethrpc_docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
                   }
                 }
@@ -284,6 +311,8 @@ concord_repo=${concord_repo}
 concord_tag=${concord_docker_tag}
 helen_repo=${helen_repo}
 helen_tag=${helen_docker_tag}
+ethrpc_repo=${ethrpc_repo}
+ethrpc_tag=${ethrpc_docker_tag}
 fluentd_repo=${fluentd_repo}
 fluentd_tag=${fluentd_tag}
 ui_repo=${ui_repo}
@@ -326,6 +355,13 @@ EOF
               docker push ${helen_repo}:${version_param}
               docker tag ${helen_repo}:${version_param} ${helen_repo}:latest
               docker push ${helen_repo}:latest
+
+              # echo Would run docker push ${ethrpc_repo}:${version_param}
+              # echo Would run docker tag ${ethrpc_repo}:${version_param} ${ethrpc_repo}:latest
+              # echo Would run docker push ${ethrpc_repo}:latest
+              docker push ${ethrpc_repo}:${version_param}
+              docker tag ${ethrpc_repo}:${version_param} ${ethrpc_repo}:latest
+              docker push ${ethrpc_repo}:latest
 
               # echo Would run docker push ${fluentd_repo}:${version_param}
               # echo Would run docker tag ${fluentd_repo}:${version_param} ${fluentd_repo}:latest
