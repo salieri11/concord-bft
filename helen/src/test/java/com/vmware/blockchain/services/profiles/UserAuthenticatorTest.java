@@ -82,6 +82,9 @@ public class UserAuthenticatorTest {
     @MockBean
     private DefaultProfiles profiles;
 
+    @MockBean
+    private BlockchainManager blockchainManager;
+
     private User testUser;
 
     /**

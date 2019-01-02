@@ -30,7 +30,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.google.common.collect.ImmutableMap;
-import com.vmware.blockchain.common.UserModificationException;
+import com.vmware.blockchain.common.EntityModificationException;
 
 /**
  * Tests for the ProfilesRegistryManager.
@@ -137,7 +137,7 @@ public class ProfilesRegistryManagerTest {
         verify(userRepository, times(1)).save(any(User.class));
     }
 
-    @Test(expected = UserModificationException.class)
+    @Test(expected = EntityModificationException.class)
     public void testLoginNoUser() throws Exception {
         prm.loginUser("noeone@a.com");
         Assert.fail("Should not get this far");
@@ -171,14 +171,14 @@ public class ProfilesRegistryManagerTest {
         Assert.assertTrue(consortium.getUsers().contains(u));
     }
 
-    @Test(expected = UserModificationException.class)
+    @Test(expected = EntityModificationException.class)
     public void testCreateExistingUser() throws Exception {
         when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.of(organization));
         when(consortiumRepository.findById(CONSORTIUM_ID)).thenReturn(Optional.of(consortium));
         UsersApiMessage msg = new UsersApiMessage(existingUser);
         try {
             prm.createUser(msg);
-        } catch (UserModificationException e) {
+        } catch (EntityModificationException e) {
             Assert.assertEquals("Duplicate email address", e.getMessage());
             verify(userRepository, times(0)).save(any());
             verify(organizationRepository, times(0)).save(any());
@@ -188,14 +188,14 @@ public class ProfilesRegistryManagerTest {
         Assert.fail("Should not have gotten here");
     }
 
-    @Test(expected = UserModificationException.class)
+    @Test(expected = EntityModificationException.class)
     public void testCreateUserBadOrg() throws Exception {
         when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.empty());
         when(consortiumRepository.findById(CONSORTIUM_ID)).thenReturn(Optional.of(consortium));
         UsersApiMessage msg = new UsersApiMessage(newUser);
         try {
             prm.createUser(msg);
-        } catch (UserModificationException e) {
+        } catch (EntityModificationException e) {
             Assert.assertEquals("Organization with ID 82634974-88cf-4944-a99d-6b92664bb765 not found.", e.getMessage());
             verify(userRepository, times(0)).save(any());
             verify(organizationRepository, times(0)).save(any());
@@ -205,14 +205,14 @@ public class ProfilesRegistryManagerTest {
         Assert.fail("Should not have gotten here");
     }
 
-    @Test(expected = UserModificationException.class)
+    @Test(expected = EntityModificationException.class)
     public void testCreateUserBadConsortium() throws Exception {
         when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.of(organization));
         when(consortiumRepository.findById(CONSORTIUM_ID)).thenReturn(Optional.empty());
         UsersApiMessage msg = new UsersApiMessage(newUser);
         try {
             prm.createUser(msg);
-        } catch (UserModificationException e) {
+        } catch (EntityModificationException e) {
             Assert.assertEquals("Consortium with ID 5c7cd0e9-57ad-44af-902f-74af2f3dd8fe not found.", e.getMessage());
             verify(userRepository, times(0)).save(any());
             verify(organizationRepository, times(0)).save(any());
@@ -222,14 +222,14 @@ public class ProfilesRegistryManagerTest {
         Assert.fail("Should not have gotten here");
     }
 
-    @Test(expected = UserModificationException.class)
+    @Test(expected = EntityModificationException.class)
     public void testUpdateNoUser() throws Exception {
         when(userRepository.findById(USER_ID)).thenReturn(Optional.empty());
         UsersApiMessage msg = new UsersApiMessage();
         msg.setUserId(USER_ID);
         try {
             prm.updateUser(msg);
-        } catch (UserModificationException e) {
+        } catch (EntityModificationException e) {
             Assert.assertEquals("No user found with ID: " + USER_ID, e.getMessage());
             verify(userRepository, times(0)).save(any());
             verify(organizationRepository, times(0)).save(any());
@@ -239,7 +239,7 @@ public class ProfilesRegistryManagerTest {
         Assert.fail("Should not have gotten here");
     }
 
-    @Test(expected = UserModificationException.class)
+    @Test(expected = EntityModificationException.class)
     public void testUpdateDupEmail() throws Exception {
         Map<String, String> m = new ImmutableMap.Builder<String, String>()
                 .put(UsersApiMessage.EMAIL_LABEL, "test@a.com").build();
@@ -248,7 +248,7 @@ public class ProfilesRegistryManagerTest {
         msg.setUserId(USER_ID);
         try {
             prm.updateUser(msg);
-        } catch (UserModificationException e) {
+        } catch (EntityModificationException e) {
             Assert.assertEquals("Duplicate email address", e.getMessage());
             verify(userRepository, times(0)).save(any());
             verify(organizationRepository, times(0)).save(any());
@@ -279,7 +279,7 @@ public class ProfilesRegistryManagerTest {
         Assert.assertEquals(Roles.ORG_ADMIN.toString(), u.getRole());
     }
 
-    @Test(expected = UserModificationException.class)
+    @Test(expected = EntityModificationException.class)
     public void testUpdateBadRold() throws Exception {
         Map<String, String> m = new ImmutableMap.Builder<String, String>()
                 .put(UsersApiMessage.ROLE_LABEL, "invalid_role").build();
@@ -288,7 +288,7 @@ public class ProfilesRegistryManagerTest {
         msg.setUserId(USER_ID);
         try {
             prm.updateUser(msg);
-        } catch (UserModificationException e) {
+        } catch (EntityModificationException e) {
             Assert.assertEquals("Invalid role value: invalid_role", e.getMessage());
             verify(userRepository, times(0)).save(any());
             verify(organizationRepository, times(0)).save(any());

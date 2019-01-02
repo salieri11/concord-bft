@@ -9,9 +9,14 @@ import java.io.IOException;
 import com.vmware.concord.Concord;
 import com.vmware.concord.IConcordConnection;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 /**
  * Mock Concord connection, used for testing.
  */
+@Getter
+@AllArgsConstructor
 public class MockConnection implements IConcordConnection {
     // Pre-allocated check response
     private static Concord.ProtocolResponse protocolResponse =
@@ -19,7 +24,11 @@ public class MockConnection implements IConcordConnection {
     private static Concord.ConcordResponse concordResponse =
         Concord.ConcordResponse.newBuilder().setProtocolResponse(protocolResponse).build();
 
-    public MockConnection() {
+    String host;
+    int ip;
+
+    public String getIpStr() {
+        return String.format("%s:%s", host, ip);
     }
 
     @Override
