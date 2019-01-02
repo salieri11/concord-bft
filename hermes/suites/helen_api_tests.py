@@ -151,6 +151,10 @@ class HelenAPITests(test_suite.TestSuite):
             return (False, "'millis_since_last_message' field in member entry is not a string")
          if not isinstance(m["millis_since_last_message_threshold"], int):
             return (False, "'millis_since_last_message_threshold' field in member entry is not a string")
+         if not isinstance(m["rpc_url"], str):
+            return (False, "'rpc_url' field in member entry is not a string")
+         if m["rpc_url"] == "":
+            return (False, "'rpc_url' field in member entry is empty string")
 
       return (True, None)
 
