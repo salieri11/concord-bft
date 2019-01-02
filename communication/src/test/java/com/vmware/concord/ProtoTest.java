@@ -1,32 +1,38 @@
-package com.vmware.concord;
+/*
+ * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ */
 
-import junit.framework.Test;
-import junit.framework.TestCase;
-import junit.framework.TestSuite;
+package com.vmware.concord;
 
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import com.vmware.concord.Concord.ConcordRequest;
 import com.vmware.concord.Concord.ProtocolRequest;
 
+import junit.framework.Test;
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+
 /**
  * This is mostly a sanity test, to make sure that protobuf compilation happens correctly.
  */
 public class ProtoTest  extends TestCase {
     /**
-     * Create the test case
+     * Create the test case.
      *
      * @param testName name of the test case
      */
-    public ProtoTest( String testName ) {
-        super( testName );
+    public ProtoTest(String testName) {
+        super(testName);
     }
 
     /**
+     * Get the suite.
+     *
      * @return the suite of tests being tested
      */
     public static Test suite() {
-        return new TestSuite( ProtoTest.class );
+        return new TestSuite(ProtoTest.class);
     }
 
     /**

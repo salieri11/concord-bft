@@ -129,8 +129,12 @@ public class MockTcpServer extends Thread {
         } finally {
             logger.debug("Mock server shutting down.");
             if (socket != null) {
-                try { socket.close(); }
-                catch (IOException e) { /* nothing we can do */ }
+                try {
+                    socket.close();
+                }
+                catch (IOException e) {
+                    /* nothing we can do */
+                }
             }
             listenCloseLock.lock();
             try {
@@ -198,14 +202,14 @@ public class MockTcpServer extends Thread {
         // Continue reading & processing until the stream closes, or the test signals we're done.
         while (true) {
             // Read message length
-            byte b[] = new byte[getHeaderSizeBytes()];
+            byte[] b = new byte[getHeaderSizeBytes()];
             read(is, b);
 
-            // Yes, there is an implementation of this decoding in ConcordTcpConnection. The independent implementation hear
-            // is meant as validation that the other implentation is correct.
+            // Yes, there is an implementation of this decoding in ConcordTcpConnection. The independent implementation
+            // here is meant as validation that the other implentation is correct.
             int length = 0;
             for (int i = 0; i < b.length; i++) {
-                length = length + (b[i] << (8*i));
+                length = length + (b[i] << (8 * i));
             }
 
             logger.debug("Mock server read header, expecting " + length + "-byte message.");
@@ -220,9 +224,9 @@ public class MockTcpServer extends Thread {
             // Process & respond
             lastResponse = dispatch(lastRequest);
             b = lastResponse.toByteArray();
-            byte h[] = new byte[getHeaderSizeBytes()];
+            byte[] h = new byte[getHeaderSizeBytes()];
             for (int i = 0; i < h.length; i++) {
-                h[i] = (byte)((b.length >> (8*i)) & 0xff);
+                h[i] = (byte) ((b.length >> (8 * i)) & 0xff);
             }
             os.write(h);
             os.write(b);
@@ -237,10 +241,11 @@ public class MockTcpServer extends Thread {
         int index = 0;
         while (index < buffer.length) {
             try {
-                int count = is.read(buffer, index, buffer.length-index);
-                logger.debug("Mock server read " + count + " bytes of " + (buffer.length-index) + " expected");
+                int count = is.read(buffer, index, buffer.length - index);
+                logger.debug("Mock server read " + count + " bytes of " + (buffer.length - index) + " expected");
                 if (count == -1) {
-                    throw new IOException("Stream closed after " + index + " of " + buffer.length + " bytes were read.");
+                    throw new IOException("Stream closed after " + index
+                                          + " of " + buffer.length + " bytes were read.");
                 }
                 index += count;
             } catch (SocketTimeoutException ste) {

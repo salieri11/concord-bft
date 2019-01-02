@@ -12,10 +12,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.protobuf.ByteString;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.protobuf.ByteString;
 
 /**
  * Basic tests of ConcordTcpConnection. This uses a mock server, so that we can deal with just our client
@@ -29,6 +29,9 @@ public class TcpTest {
     // This is a local echo server, it should be fast.
     private static final int receiveTimeoutMs = 1000;
 
+    /**
+     * Start and wait for the mock server.
+     */
     @Before
     public void startServer() {
         server = new MockTcpServer();
@@ -39,6 +42,9 @@ public class TcpTest {
         }
     }
 
+    /**
+     * Tear down the mock server.
+     */
     @After
     public void stopServer() {
         if (server != null) {
@@ -97,7 +103,7 @@ public class TcpTest {
         Assert.assertEquals(true, conn.check());
 
         // Get some data to echo. Randomness is just a small hurdle to fight "coding to the test".
-        byte echoString[] = new byte[64];
+        byte[] echoString = new byte[64];
         new Random().nextBytes(echoString);
         final ByteString echoByteString = ByteString.copyFrom(echoString);
 
@@ -121,7 +127,8 @@ public class TcpTest {
     }
 
     /**
-     * Test actual error message, and thus ConcordHelper. The rejection error message was hidden from our test in testConnectionCheckRejection. Send an invalid EthRequest to make an error happen.
+     * Test actual error message, and thus ConcordHelper. The rejection error message was hidden from our test in
+     * testConnectionCheckRejection. Send an invalid EthRequest to make an error happen.
      */
     @Test
     public void testErrorMessage() throws IOException {
