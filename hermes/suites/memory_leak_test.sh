@@ -67,7 +67,11 @@ launch_memory_test() {
             echo "Done running memory leak tests"
             if [ -f "${concord1_VALGRIND_LOG_FILE}" ]
             then
+                echo concord1_valgrind_log_file "${concord1_VALGRIND_LOG_FILE}" was found.
                 mv "${concord1_VALGRIND_LOG_FILE}" "${RESULTS_DIR}"
+            else
+                echo concord1_valgrind_log_file "${concord1_VALGRIND_LOG_FILE}" was not found.
+                exit 1
             fi
             echo "Results: ${RESULTS_DIR}"
             break
@@ -76,7 +80,7 @@ launch_memory_test() {
         total_memory=`echo "${memory_info}" | grep "Mem:" | tr -s " " | cut -d" " -f2`
         used_memory=`echo "${memory_info}" | grep "Mem:" | tr -s " " | cut -d" " -f3`
         free_memory=`echo "${memory_info}" | grep "Mem:" | tr -s " " | cut -d" " -f7`
-        echo "${memory_info}"
+        echo Memory info "${memory_info}" being written to "${MEMORY_INFO_CSV_FILE}"
         echo "`date +%m/%d/%Y\ %T`,${total_memory},${used_memory},${free_memory}" >> ${MEMORY_INFO_CSV_FILE}
         sleep ${SLEEP_TIME_IN_SEC}
     done
@@ -100,6 +104,7 @@ trap_ctrlc() {
 
 fetch_leak_summary() {
     leak_summary=`awk '/LEAK SUMMARY/{getline; print}' "${RESULTS_DIR}/${VALGRIND_LOG_FILENAME}" | grep -oP "definitely lost: .{0,10}" | cut -d ":" -f2 | cut -d " " -f 2 | tr -d ','`
+    echo leak_summary in fetch_leak_summary: "${leak_summary}"
     if [ "$leak_summary" != "" ]
     then
         echo "Updating memory leak summary..."
@@ -115,6 +120,9 @@ fetch_leak_summary() {
             echo "Copying Memory leak summary file to ${WORKSPACE} for graph"
             cp ${MEMORY_LEAK_SUMMARY_FILE} ${WORKSPACE}
         fi
+    else
+        echo leak_summary was empty.  Aborting.
+        exit 1
     fi
 }
 
