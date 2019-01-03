@@ -359,9 +359,7 @@ class TestSuite(ABC):
       return txReceipt
 
    def _shouldStop(self):
-      stop = self._productMode and not self._noLaunch and not self._repeatSuiteRun
-      print("In _shouldStop(), returning {}".format(stop))
-      return stop
+      return self._productMode and not self._noLaunch and not self._repeatSuiteRun
 
    def requireFields(self, ob, fieldList):
       for f in fieldList:

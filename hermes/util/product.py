@@ -35,7 +35,6 @@ class Product():
       self._apiServerUrl = apiServerUrl
       self._userConfig = userConfig
       self._userProductConfig = userConfig["product"]
-      self._running = False
 
    def launchProduct(self):
       '''
@@ -58,7 +57,6 @@ class Product():
                self._launchViaCmdLine(productLogsDir)
 
             launched = True
-            self._running = True
          except Exception as e:
             numAttempts += 1
             log.info("Attempt {} to launch the product failed. Exception: '{}'".format(
@@ -304,6 +302,37 @@ class Product():
       return dbRunning
 
 
+   def getRunningContainerIds(self, searchString):
+      '''
+      Return the docker container Id(s) which are running and whose "docker ps" output
+      contains the given search string.
+      '''
+      containerIds = []
+
+      # The processes cmd gives us a string like:
+      # CONTAINER ID        IMAGE                          COMMAND ...
+      # 21d37f282847        cockroachdb/cockroach:v2.0.2   "/cockroach/cockroac…" ...
+      cmd = ["docker", "ps", "--filter", "status=running"]
+      log.debug("Getting running containers with command '{}'".format(cmd))
+      completedProcess = subprocess.run(cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT)
+      psOutput = completedProcess.stdout.decode("UTF-8")
+      lines = psOutput.split("\n")
+
+      for line in lines:
+         if searchString in line:
+            log.debug("Found container '{}' with search string '{}' in the ps output.".format(line, searchString))
+            fields = line.strip().split(" ")
+            containerIds.append(fields[0])
+
+      if not containerIds:
+         log.debug("Unable to find a running container for '{}'.".format(searchString))
+         log.debug("stdout: '{}', stderr: '{}'".format(completedProcess.stdout, completedProcess.stderr))
+
+      return containerIds
+
+
    def getHelenDBContainerId(self, dockerCfg):
       '''Returns the running Helen DB container's ID, or None if it cannot be found.'''
       dbImageName = dockerCfg["services"]["db-server"]["image"]
@@ -313,26 +342,10 @@ class Product():
       numTries = 0
 
       while numTries < maxTries and not containerId:
-         # The processes cmd gives us a string like:
-         # CONTAINER ID        IMAGE                          COMMAND ...
-         # 21d37f282847        cockroachdb/cockroach:v2.0.2   "/cockroach/cockroac…" ...
-         cmd = ["docker", "ps"]
-         log.debug("Looking for the running Helen DB container with command '{}'".format(cmd))
-         completedProcess = subprocess.run(cmd,
-                                           stdout=subprocess.PIPE,
-                                           stderr=subprocess.STDOUT)
-         psOutput = completedProcess.stdout.decode("UTF-8")
-         lines = psOutput.split("\n")
+         containerIds = self.getRunningContainerIds(dbImageName)
 
-         for line in lines:
-            if dbImageName in line:
-               fields = line.split(" ")
-               containerId = fields[0]
-
-         if not containerId:
-            log.debug("The docker ps command is not listing the Helen DB container yet.")
-            log.debug("stdout: '{}', stderr: '{}'".format(completedProcess.stdout, completedProcess.stderr))
-
+         if containerIds:
+            containerId = containerIds[0]
             if numTries < maxTries:
                numTries += 1
                log.debug("Will try again in {} seconds.".format(sleepTime))
@@ -430,51 +443,97 @@ class Product():
                                   "when running in docker mode.".format(deleteMe))
                         raise e
 
+
+   def stopProcessesInContainers(self, containerSearchString, processSearchString):
+      '''
+      containerSearchString: A string appearing in the "docker ps" output for the container
+      to look for.
+      processSearchSring: A string appearing in the docker container's "ps" output for
+      the process to look for.
+      Sends a process (processSearchString) in a container (containerSearchString)
+      a polite request to stop before we kill the container in which it is running.
+      This is needed because a "docker kill" of a container abruptly terminates a utility
+      such as Valgrind, which prevents it from summarizing memory leak data.
+      '''
+      containerIds = self.getRunningContainerIds(containerSearchString)
+
+      for containerId in containerIds:
+         cmd = ["docker", "exec", containerId, "ps", "-x"]
+         completedProcess = subprocess.run(cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT)
+         psOutput = completedProcess.stdout.decode("UTF-8")
+         lines = psOutput.split("\n")
+
+         for line in lines:
+            if processSearchString in line and not "/bin/sh" in line:
+               fields = line.strip().split(" ")
+               processId = fields[0]
+               log.info("Killing process id '{}' in container '{}' because we were " \
+                        "asked to kill processes containing '{}' in containers " \
+                        "containing '{}'".format(processId, containerId,
+                                               processSearchString, containerSearchString))
+               cmd = ["docker", "exec", containerId, "kill", processId]
+               completedProcess = subprocess.run(cmd,
+                                              stdout=subprocess.PIPE,
+                                              stderr=subprocess.STDOUT)
+               psOutput = completedProcess.stdout.decode("UTF-8")
+               log.info("Kill command output: {}".format(psOutput))
+
+
+   def stopMemoryLeakNode(self):
+      '''
+      We need to send Valgrind a polite request to terminate before
+      killing the container it is running in so that it can summarize
+      memory leak information.  Then we give it a few seconds to do so.
+      '''
+      self.stopProcessesInContainers("memleak", "valgrind")
+      time.sleep(10)
+
+
    def stopProduct(self):
       '''
       Stops the product executables and closes the logs.
       '''
-      if self._running:
-         if self._cmdlineArgs.dockerComposeFile:
-            cmd = ["docker-compose"]
+      if self._cmdlineArgs.dockerComposeFile:
+         self.stopMemoryLeakNode()
+         cmd = ["docker-compose"]
 
-            for cfgFile in self._cmdlineArgs.dockerComposeFile:
-               cmd += ["--file", cfgFile]
+         for cfgFile in self._cmdlineArgs.dockerComposeFile:
+            cmd += ["--file", cfgFile]
 
-            cmd += ["down", "--timeout", "120"]
-            print("Stopping the product with command '{}'".format(cmd))
-            p = subprocess.run(cmd)
-            self._running = False
-         else:
-            for p in self._processes[:]:
-               if p.poll() is None:
-                  p.terminate()
-                  print("Terminating {}.".format(p.args))
+         cmd += ["down"]
+         print("Stopping the product with command '{}'".format(cmd))
+         p = subprocess.run(cmd)
+      else:
+         for p in self._processes[:]:
+            if p.poll() is None:
+               p.terminate()
+               print("Terminating {}.".format(p.args))
 
-            for p in self._processes[:]:
-               if "docker" in p.args:
-                  cmd = ["docker", "ps", "-q", "-f",
-                         "name=reverse-proxy-hermes-test"]
-                  ps_output = subprocess.run(cmd,
-                                             stdout=subprocess.PIPE,
-                                             stderr=subprocess.STDOUT)
-                  container_ids = ps_output.stdout.decode("UTF-8").split("\n")
-                  print ("Container IDs found: {0}".format(container_ids))
+         for p in self._processes[:]:
+            if "docker" in p.args:
+               cmd = ["docker", "ps", "-q", "-f",
+                      "name=reverse-proxy-hermes-test"]
+               ps_output = subprocess.run(cmd,
+                                          stdout=subprocess.PIPE,
+                                          stderr=subprocess.STDOUT)
+               container_ids = ps_output.stdout.decode("UTF-8").split("\n")
+               print ("Container IDs found: {0}".format(container_ids))
 
-                  for container_id in container_ids:
-                     if container_id:
-                        print("Terminating container ID: {0}".format(container_id))
-                        if not self.stopDockerContainer(container_id):
-                           raise Exception("Failure trying to stop docker container.")
+               for container_id in container_ids:
+                  if container_id:
+                     print("Terminating container ID: {0}".format(container_id))
+                     if not self.stopDockerContainer(container_id):
+                        raise Exception("Failure trying to stop docker container.")
 
-               while p.poll() is None:
-                  print("Waiting for process {} to exit.".format(p.args))
-                  time.sleep(1)
+            while p.poll() is None:
+               print("Waiting for process {} to exit.".format(p.args))
+               time.sleep(1)
 
-            self._running = False
-         for log in self._logs[:]:
-            log.close()
-            self._logs.remove(log)
+      for log in self._logs[:]:
+         log.close()
+         self._logs.remove(log)
 
    def _waitForProductStartup(self):
       '''
