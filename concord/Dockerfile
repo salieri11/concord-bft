@@ -9,7 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM vmwblockchain/concord-core:prereqs-v1
+FROM vmwblockchain/concord-core:prereqs-v2
 
 ## Remember context is the parent of this directory
 COPY ./communication /communication
