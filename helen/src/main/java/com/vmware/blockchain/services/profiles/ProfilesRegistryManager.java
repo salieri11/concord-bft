@@ -126,6 +126,38 @@ public class ProfilesRegistryManager {
         return oUser.map(UsersApiMessage::new).map(UsersApiMessage::toJson).orElse(new JSONObject());
     }
 
+    /**
+     * Get the user's consortium ID with email.
+     * @param email user's email address
+     * @return UUID of consortium
+     */
+    public UUID getUserConsortiumIdWithEmail(String email) {
+        Optional<User> oUser = userRepository.findUserByEmail(email);
+        if (oUser.isPresent()) {
+            User user = oUser.get();
+            Consortium consortium = user.getConsortium();
+            return consortium.getConsortiumId();
+        } else {
+            throw new EntityModificationException("No user found with email: " + email);
+        }
+    }
+
+    /**
+     * Get user's organization ID with email.
+     * @param email user's email address
+     * @return UUID of organization
+     */
+    public UUID getUserOrganizationIdWithEmail(String email) {
+        Optional<User> oUser = userRepository.findUserByEmail(email);
+        if (oUser.isPresent()) {
+            User user = oUser.get();
+            Organization organization = user.getOrganization();
+            return organization.getOrganizationId();
+        } else {
+            throw new EntityModificationException("No user found with email: " + email);
+        }
+    }
+
     private boolean isDuplicateEmail(String email) {
         Optional<User> existingUserWithSameEmail = userRepository.findUserByEmail(email);
         return existingUserWithSameEmail.isPresent();

@@ -15,6 +15,7 @@ import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.services.contracts.ContractRegistryManager;
+import com.vmware.blockchain.services.profiles.ProfilesRegistryManager;
 import com.vmware.concord.Concord;
 import com.vmware.concord.Concord.EthRequest;
 import com.vmware.concord.Concord.EthRequest.EthMethod;
@@ -31,6 +32,7 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
     private static Logger logger = LogManager.getLogger(EthSendTxHandler.class);
     private static boolean isInternalContract;
     private ContractRegistryManager registryManager;
+    private ProfilesRegistryManager profilesRegistryManager;
     private ConcordConnectionPool connectionPool;
     private ConcordProperties config;
 
@@ -38,10 +40,12 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
      * Send transaction constructor.
      */
     public EthSendTxHandler(ConcordProperties config, ConcordConnectionPool connectionPool,
-            ContractRegistryManager registryManager, boolean isInternalContract) {
+            ContractRegistryManager registryManager, ProfilesRegistryManager profilesRegistryManager,
+                            boolean isInternalContract) {
         // If isInternalContract is true, the handler is processing a contract created from the Helen UI.
         this.isInternalContract = isInternalContract;
         this.registryManager = registryManager;
+        this.profilesRegistryManager = profilesRegistryManager;
         this.connectionPool = connectionPool;
         this.config = config;
     }
@@ -253,8 +257,8 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
         ethRequest.put("method", "eth_getTransactionReceipt");
         paramsArray.add(transactionHash);
         ethRequest.put("params", paramsArray);
-        String responseString =
-                new EthDispatcher(registryManager, config, connectionPool).dispatch(ethRequest).toJSONString();
+        String responseString = new EthDispatcher(registryManager, profilesRegistryManager, config, connectionPool)
+                .dispatch(ethRequest).toJSONString();
         try {
             JSONObject txReceipt = (JSONObject) new JSONParser().parse(responseString);
             JSONObject result = (JSONObject) txReceipt.get("result");
