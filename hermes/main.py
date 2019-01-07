@@ -11,13 +11,16 @@ import os
 import tempfile
 from time import strftime, localtime
 
-from suites import core_vm_tests, helen_api_tests, ext_rpc_tests, \
-   kv_blockchain_tests, performance_tests, regression_tests, simple_st_test
+from suites import (core_vm_tests, helen_api_tests, ext_rpc_tests,
+                    kv_blockchain_tests, performance_tests, regression_tests,
+                    simple_st_test, ui_tests)
+
 from util import html, json_helper
 
 log = None
 suites = ["CoreVMTests", "ExtendedRPCTests", "HelenAPITests",
-          "PerformanceTests", "KVBlockchainTests", "RegressionTests", "SimpleStateTransferTest"]
+          "PerformanceTests", "KVBlockchainTests", "RegressionTests",
+          "SimpleStateTransferTest", "UiTests",]
 
 def main():
    startTime = datetime.datetime.now()
@@ -146,6 +149,8 @@ def createTestSuite(args):
       return regression_tests.RegressionTests(args)
    elif (args.suite == "SimpleStateTransferTest"):
       return simple_st_test.SimpleStateTransferTest(args)
+   elif (args.suite == "UiTests"):
+      return ui_tests.UiTests(args)
 
 def createResultsDir(suiteName, parent_results_dir=tempfile.gettempdir()):
    prefix = suiteName + "_" + strftime("%Y%m%d_%H%M%S", localtime())

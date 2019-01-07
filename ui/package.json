@@ -15,11 +15,13 @@
     "create-user-e2e": "docker exec -it $DB_CONTAINER ./cockroach sql --insecure -e \"SET DATABASE = helen; INSERT INTO users (userid, email, first_name, last_name, name, password, role, consortium_consortiumid, organization_organizationid, last_login) VALUES (999999, 'admin@blockchain.local', 'Test', 'User', 'Test User', '\\$2a\\$04\\$ChnseApH8oWVE/D/zL9KYeo/vhCR0Ejz6dQvePAtDDSX2bnTYln7e', 'SYSTEM_ADMIN', 2, 1, 0);\"",
     "unaccept-agreement": "docker exec -it $DB_CONTAINER ./cockroach sql --insecure -e \"SET DATABASE = helen; UPDATE agreements SET accepted = false WHERE id = 1;\"",
     "test": "ng test --source-map=false",
+    "test:build": "ng test --source-map=false  --watch=false",
     "test-coverage": "ng test --code-coverage",
     "lint": "ng lint concord-ui",
     "lint-fix": "ng lint concord-ui --fix",
     "setup-db": "npm run clear-data-e2e && npm run create-user-e2e && npm run unaccept-agreement",
     "e2e": "npm run setup-db && ng e2e --port 49152",
+    "e2e:build": "ng e2e --baseUrl=http://localhost/ --configuration=noserve",
     "clear-data-e2e": "npm run clear-contracts-e2e && npm run clear-users-e2e"
   },
   "private": true,

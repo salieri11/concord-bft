@@ -28,6 +28,10 @@ export class SmartContractsPage {
     element(by.cssContainingText('button.clr-wizard-btn--primary', 'Next')).click();
   }
 
+  addProprosals() {
+    element(by.css('.clr-textarea-wrapper .clr-textarea')).sendKeys('fun\nno fun');
+  }
+
   clickWizardFinishButton() {
     element(by.cssContainingText('button.clr-wizard-btn--primary.btn-success', 'Finish')).click();
   }

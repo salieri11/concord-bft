@@ -43,7 +43,7 @@
                         "type": "integer"
                       },
                       "rpc_url": {
-                        "type": "string"
+                        "type": "string",
                         "format": "url"
                       }
                     }

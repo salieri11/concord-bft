@@ -79,6 +79,13 @@ def call(){
               }
             }
           }
+          stage("Install node package dependencies") {
+            steps() {
+              dir('blockchain/ui') {
+                sh 'npm install'
+              }
+            }
+          }
         }
       }
 

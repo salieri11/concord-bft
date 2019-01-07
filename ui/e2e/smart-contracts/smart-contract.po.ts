@@ -36,7 +36,7 @@ export class SmartContractPage {
   }
 
   fillParameterForm(from, type) {
-    element(by.cssContainingText('option', 'cancelBuyerBid')).click();
+    element(by.cssContainingText('option', 'chairperson')).click();
     element(by.css('input[formcontrolname="from"]')).sendKeys(from);
     switch (type) {
       case 'call':
