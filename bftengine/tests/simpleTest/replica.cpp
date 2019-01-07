@@ -153,7 +153,6 @@ int main(int argc, char **argv) {
   BasicConfigurator config;
   config.configure();
 #endif
-  //std::this_thread::sleep_for(chrono::seconds(20));
 
   // This program expects one argument: the index number of the replica being
   // started. This index is used to choose the correct config files (which
