@@ -85,10 +85,6 @@ private:
       ConcordRequest &athreq,
       KVBStorage &kvbStorage,
       ConcordResponse &athresp) const;
-   bool handle_personal_newAccount(
-      ConcordRequest &athreq,
-      KVBStorage &kvbStorage,
-      ConcordResponse &athresp) const;
    bool handle_eth_request_read_only(
       ConcordRequest &athreq,
       KVBStorage &kvbStorage,

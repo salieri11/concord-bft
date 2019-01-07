@@ -199,9 +199,6 @@ bool com::vmware::concord::KVBCommandsHandler::handle_eth_request(
    case EthRequest_EthMethod_SEND_TX:
       return handle_eth_sendTransaction(athreq, kvbStorage, athresp);
       break;
-   case EthRequest_EthMethod_NEW_ACCOUNT:
-      return handle_personal_newAccount(athreq, kvbStorage, athresp);
-      break;
    default:
       // SBFT may decide to try one of our read-only commands in read-write
       // mode, for example if it has failed several times. So, go check the
@@ -248,43 +245,6 @@ bool com::vmware::concord::KVBCommandsHandler::handle_eth_sendTransaction(
    // expect that all replicas will return that error. If in the future, there
    // is a failure mode that we don't expect on all nodes (for example, the disk
    // is full), then it will be appropriate to return false.
-   return true;
-}
-
-/**
- * Handle a personal.newAccount request.
- * This method currently sets the account address as the last 20 bytes
- * of the hash of the passphrase provided by the user.
- */
-bool com::vmware::concord::KVBCommandsHandler::handle_personal_newAccount(
-   ConcordRequest &athreq,
-   KVBStorage &kvbStorage,
-   ConcordResponse &athresp) const
-{
-   const EthRequest request = athreq.eth_request(0);
-   const string& passphrase = request.data();
-
-   LOG4CPLUS_INFO(logger, "Creating new account with passphrase : "
-                  << passphrase);
-
-   /**
-    * This is an extremely hacky approach for setting the user address
-    * as this means that multiple accounts cannot have the same password.
-    * TODO : Implement the ethereum way of setting account addresses.
-    * (Note : See https://github.com/vmwathena/athena/issues/55)
-    */
-   evm_address address{{0}};
-   if (athevm_.new_account(passphrase, kvbStorage, address)) {
-      EthResponse *response = athresp.add_eth_response();
-      response->set_data(address.bytes, sizeof(evm_address));
-      response->set_id(request.id());
-   } else {
-      LOG4CPLUS_INFO(logger, "Use another passphrase : " << passphrase);
-      ErrorResponse *error = athresp.add_error_response();
-      error->set_description("Use another passphrase");
-   }
-
-   // requests are valid, even if they fail
    return true;
 }
 

@@ -387,10 +387,6 @@ api_connection::handle_eth_request(int i)
      validRequest = is_valid_eth_sendTransaction(request);
      isReadOnly = false;
      break;
-   case EthRequest_EthMethod_NEW_ACCOUNT:
-     validRequest = is_valid_personal_newAccount(request);
-     isReadOnly = false;
-     break;
    case EthRequest_EthMethod_CALL_CONTRACT:
      // TODO: complicated validation; let it through for now
      validRequest = true;
@@ -483,23 +479,6 @@ api_connection::is_valid_eth_sendTransaction(const EthRequest &request)
 
    //everything checked out
    return true;
-}
-
-/**
- * Verify a personal.newAccount request is valid (that it includes a pass
- * phrase).
- */
-bool
-api_connection::is_valid_personal_newAccount(const EthRequest &request)
-{
-   if (request.has_data()) {
-      // request must have included a pass phrase
-      return true;
-   } else {
-      ErrorResponse *error = concordResponse_.add_error_response();
-      error->set_description("Missing passphrase");
-      return false;
-   }
 }
 
 /**
