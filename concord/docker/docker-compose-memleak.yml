@@ -4,3 +4,9 @@ services:
     image: "${concord_repo}:${concord_tag}_memleak"
     volumes:
       - /tmp:/tmp
+  helen:
+    command:
+      - java
+      - -jar
+      - helen-1.0-SNAPSHOT.jar
+      - --ConcordAuthorities=concord:5458

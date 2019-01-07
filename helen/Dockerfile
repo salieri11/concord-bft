@@ -18,15 +18,13 @@ RUN apt-get update && apt-get -y install \
     solc \
     && rm -rf /var/lib/apt/lists/*
 
-ARG concord_authorities=concord1:5458,concord2:5458,concord3:5458,concord4:5458
-
 WORKDIR /
 COPY src/main/resources/application.properties .
 COPY target/helen*.jar .
 
 # prepare for docker-compose, where concord is available from a virtual
 # hosts named "concord1", "concord2", ...
-RUN sed -i -e "s/ConcordAuthorities=.*/ConcordAuthorities=${concord_authorities}/g" application.properties
+RUN sed -i -e "s/ConcordAuthorities=.*/ConcordAuthorities=concord1:5458,concord2:5458,concord3:5458,concord4:5458/g" application.properties
 # and CockroachDB is available from a virtual host named db-server
 RUN sed -i -e "s/DB_IP=.*/DB_IP=db-server/g" application.properties
 
