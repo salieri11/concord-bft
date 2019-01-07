@@ -31,12 +31,24 @@ set(BUILD_COMM_TCP_TLS TRUE)
 if(NOT USE_LOG4CPP)
     set(USE_LOG4CPP FALSE)
 endif()
+
+set(COMM_MODULES 0)
 if(NOT BUILD_COMM_TCP_PLAIN)
     set(BUILD_COMM_TCP_PLAIN FALSE)
-
+else()
+    math(EXPR COMM_MODULES "${COMM_MODULES}+1")
 endif()
+
 if(NOT BUILD_COMM_TCP_TLS)
     set(BUILD_COMM_TCP_TLS FALSE)
+else()
+    math(EXPR COMM_MODULES "${COMM_MODULES}+1")
+endif()
+
+# UDP module is not part of the CMake configuration, it will be used by default
+# if neither of plain TCP or TLS will be chosen
+if(${COMM_MODULES} GREATER 1)
+    message(FATAL_ERROR "Only one comm module can be chosen")
 endif()
 
 # Default USE_LOG4CPP to FALSE
@@ -50,14 +62,6 @@ if(NOT CONCORD_LOGGER_NAME)
     set(CONCORD_LOGGER_NAME "concord" CACHE STRING "Set concord logger name" FORCE)
 endif()
 
-
-<<<<<<< HEAD
-=======
-
-
-
-
->>>>>>> fix tls support and certificates creation
 if(SLEEP_FOR_DBG)
     add_definitions(-DSLEEP_DBG)
 endif()
@@ -148,4 +152,3 @@ include(CTest)
 if(BUILD_TESTING)
     add_subdirectory(bftengine/tests)
 endif()
-

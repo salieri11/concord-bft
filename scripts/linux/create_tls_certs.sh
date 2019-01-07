@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-
-
-#!/usr/bin/env bash
-
 # creates simple self signed certificates to use with TCP TLS module
 
 if [ "$#" -eq 0 ] || [ -z "$1" ]; then
