@@ -56,29 +56,32 @@ public class ConnectionPoolManagerTest {
         // This is the only reason the "type" field exists in the ConnectionPoolManager.
         ReflectionTestUtils.setField(manager, "type", ConnectionType.Mock);
         chain1 = new Blockchain(UUID.fromString("9b22ea6f-5a2f-4159-b2f0-f10a1d751649"), null,
-                "ip1:5458,ip2:5458,ip3:5458,ip4:5458");
+                "ip1:5458,ip2:5458,ip3:5458,ip4:5458",
+                "a=ip1:5458,b=ip2:5458,c=ip3:5458,d=ip4:5458");
         chain2 = new Blockchain(UUID.fromString("f6b18a1e-53fa-4716-863c-2b99891ab0b5"), null,
-                "vip1:5458,vip2:5458,vip3:5458,vip4:5458");
+                "vip1:5458,vip2:5458,vip3:5458,vip4:5458",
+                "aa=vip1:5458,bb=vip2:5458,cc=vip3:5458,dd=vip4:5458");
         pool1 = manager.createPool(chain1);
         pool2 = manager.createPool(chain2);
     }
 
     @Test
-    void testBasic() {
+    public void testBasic() {
         Assertions.assertNotNull(pool1.getId());
         Assertions.assertNotNull(pool2.getId());
-        Assertions.assertEquals(pool1, manager.getPool(chain1));
-        Assertions.assertEquals(pool2, manager.getPool(chain2));
+        Assertions.assertEquals(pool1, manager.getPool(chain1.getId()));
+        Assertions.assertEquals(pool2, manager.getPool(chain2.getId()));
         Assertions.assertNotEquals(pool1, pool2);
+
     }
 
     @Test
-    void testPool() throws IllegalStateException, IOException, InterruptedException {
-        MockConnection conn = (MockConnection) manager.getPool(chain1).getConnection();
+    public void testPool() throws IllegalStateException, IOException, InterruptedException {
+        MockConnection conn = (MockConnection) manager.getPool(chain1.getId()).getConnection();
         // The connection we get should be in chain1, but not chain2
-        Assertions.assertTrue(chain1.getIpAsList().contains(conn.getIpStr()));
-        Assertions.assertFalse(chain2.getIpAsList().contains(conn.getIpStr()));
-        manager.getPool(chain1).putConnection(conn);
+        Assertions.assertTrue(chain1.getUrlsAsMap().containsValue(conn.getIpStr()));
+        Assertions.assertFalse(chain2.getUrlsAsMap().containsValue(conn.getIpStr()));
+        manager.getPool(chain1.getId()).putConnection(conn);
     }
 
     @Test

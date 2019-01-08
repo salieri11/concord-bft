@@ -5,6 +5,7 @@
 package com.vmware.blockchain.services.profiles;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Assertions;
@@ -19,7 +20,9 @@ import org.springframework.test.context.jdbc.Sql.ExecutionPhase;
 import org.springframework.test.context.jdbc.SqlGroup;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.vmware.blockchain.services.contracts.Contract;
+import com.vmware.blockchain.services.contracts.ContractRepository;
 
 /**
  * Test the Blockchain JPA.
@@ -39,8 +42,12 @@ class BlockchainJpaTest {
     @Autowired
     private ConsortiumRepository cnRepo;
 
+    @Autowired
+    private ContractRepository ctRepo;
+
     private Consortium consortium;
     private Blockchain blockchain;
+    private Contract contract;
 
     /**
      * Create a Consortium and a Blockchain, and save it.
@@ -55,7 +62,16 @@ class BlockchainJpaTest {
         blockchain = new Blockchain();
         blockchain.setConsortium(consortium);
         blockchain.setIpList("1,2,3");
+        blockchain.setRpcUrls("a=1,b=2,c=3");
         blockchain = bcRepo.save(blockchain);
+
+        contract = Contract.builder()
+                    .name("Contract")
+                    .versionName("version 1")
+                    .blockchainId(blockchain.getId())
+                    .owner("owner").build();
+        contract = ctRepo.save(contract);
+        Optional<Contract> c = ctRepo.findById(contract.getId());
     }
 
 
@@ -75,16 +91,16 @@ class BlockchainJpaTest {
 
     @Test
     void getAsListTest() {
-        List<String> expected = ImmutableList.of("1", "2", "3");
-        Assertions.assertEquals(expected, blockchain.getIpAsList());
+        Map<String, String> expected = ImmutableMap.of("a", "1", "b", "2", "c", "3");
+        Assertions.assertEquals(expected, blockchain.getUrlsAsMap());
     }
 
     @Test
     void updateListTest() {
-        List<String> expected = ImmutableList.of("4", "3", "2", "1");
-        blockchain.setIpAsList(expected);
+        Map<String, String> expected = ImmutableMap.of("a", "1", "b", "2", "c", "3");
+        blockchain.setUrlsAsMap(expected);
         Blockchain bc = bcRepo.save(blockchain);
-        Assertions.assertEquals(expected, bc.getIpAsList());
+        Assertions.assertEquals(expected, bc.getUrlsAsMap());
     }
 
 }

@@ -10,7 +10,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
+import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,10 +30,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.connections.ConcordConnectionPool;
-import com.vmware.blockchain.services.BaseServlet;
+import com.vmware.blockchain.connections.ConnectionPoolManager;
+import com.vmware.blockchain.services.ConcordControllerHelper;
+import com.vmware.blockchain.services.ConcordServlet;
 import com.vmware.blockchain.services.contracts.BriefContractInfo;
 import com.vmware.blockchain.services.contracts.BriefVersionInfo;
 import com.vmware.blockchain.services.contracts.Compiler;
@@ -39,13 +41,13 @@ import com.vmware.blockchain.services.contracts.ContractRegistryManager;
 import com.vmware.blockchain.services.contracts.ContractRetrievalException;
 import com.vmware.blockchain.services.contracts.FullVersionInfo;
 import com.vmware.blockchain.services.ethereum.EthDispatcher;
-import com.vmware.concord.Concord;
+import com.vmware.blockchain.services.profiles.DefaultProfiles;
 
 /**
  * A servlet which handles all contract management queries sent to `api/concord/contracts/*` URI.
  */
 @Controller
-public class ContractsServlet extends BaseServlet {
+public class ContractsServlet extends ConcordServlet {
 
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LogManager.getLogger(ContractsServlet.class);
@@ -56,9 +58,9 @@ public class ContractsServlet extends BaseServlet {
     private EthDispatcher ethDispatcher;
 
     @Autowired
-    public ContractsServlet(ContractRegistryManager registryManger, ConcordProperties config,
-            ConcordConnectionPool connectionPool, EthDispatcher ethDispatcher) {
-        super(config, connectionPool);
+    public ContractsServlet(ContractRegistryManager registryManger, EthDispatcher ethDispatcher,
+            ConnectionPoolManager connectionPoolManager, DefaultProfiles defaultProfiles) {
+        super(connectionPoolManager, defaultProfiles);
         this.registryManager = registryManger;
         this.jsonRpc = Constants.JSONRPC;
         this.contractEndpoint = Constants.CONTRACTS_ENDPOINT;
@@ -86,9 +88,9 @@ public class ContractsServlet extends BaseServlet {
      *
      * @return JSONObject which should be returned to client
      */
-    private JSONArray buildContractsJson() {
+    private JSONArray buildContractsJson(UUID blockchain) {
         JSONArray cArray = new JSONArray();
-        List<BriefContractInfo> cInfoList = registryManager.getAllBriefContractInfo();
+        List<BriefContractInfo> cInfoList = registryManager.getAllBriefContractInfo(blockchain);
 
         for (BriefContractInfo cinfo : cInfoList) {
             JSONObject contract = new JSONObject();
@@ -106,15 +108,16 @@ public class ContractsServlet extends BaseServlet {
      * @return the RESTResult object which contains response of this request.
      */
     @RequestMapping(method = RequestMethod.GET, path = "/api/concord/contracts")
-    public ResponseEntity<JSONAware> handleGetContracts() {
+    public ResponseEntity<JSONAware> handleGetContracts(
+            @PathVariable(name = "id", required = false) Optional<UUID> id) {
 
         // TODO: This check is not a proper way, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."),
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
-        return new ResponseEntity<>(buildContractsJson(), standardHeaders, HttpStatus.OK);
+        return new ResponseEntity<>(buildContractsJson(getBlockchainId(id)), HttpStatus.OK);
     }
 
     /**
@@ -162,19 +165,21 @@ public class ContractsServlet extends BaseServlet {
      * @return The RESTResult object containing result of this request
      */
     @RequestMapping(method = RequestMethod.GET, path = "/api/concord/contracts/{contract_id}")
-    public ResponseEntity<JSONAware> handleGetContract(@PathVariable("contract_id") String contractId) {
+    public ResponseEntity<JSONAware> handleGetContract(@PathVariable(name = "id", required = false) Optional<UUID> id,
+            @PathVariable("contract_id") String contractId) {
 
         // TODO: This check is not a proper way, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."),
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
-        if (registryManager.hasContract(contractId)) {
-            return new ResponseEntity<>(buildContractJson(registryManager.getAllBriefVersionInfo(contractId)),
-                    standardHeaders, HttpStatus.OK);
+        if (registryManager.hasContract(contractId, getBlockchainId(id))) {
+            return new ResponseEntity<>(
+                    buildContractJson(registryManager.getAllBriefVersionInfo(contractId, getBlockchainId(id))),
+                    HttpStatus.OK);
         } else {
-            return new ResponseEntity<>(errorJson("No contract found with id: " + contractId), standardHeaders,
+            return new ResponseEntity<>(errorJson("No contract found with id: " + contractId),
                     HttpStatus.NOT_FOUND);
         }
     }
@@ -213,22 +218,24 @@ public class ContractsServlet extends BaseServlet {
      * @return The RESTResult object containing result of this request
      */
     @RequestMapping(method = RequestMethod.GET, path = "/api/concord/contracts/{contract_id}/versions/{version_id}")
-    public ResponseEntity<JSONAware> handleGetVersion(@PathVariable("contract_id") String contractId,
+    public ResponseEntity<JSONAware> handleGetVersion(@PathVariable(name = "id", required = false) Optional<UUID> id,
+            @PathVariable("contract_id") String contractId,
             @PathVariable("version_id") String contractVersion) {
 
         // TODO: This check is not a proper way, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."),
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
         try {
-            FullVersionInfo fvInfo = registryManager.getContractVersion(contractId, contractVersion);
-            return new ResponseEntity<>(buildVersionJson(fvInfo), standardHeaders, HttpStatus.OK);
+            FullVersionInfo fvInfo =
+                    registryManager.getContractVersion(contractId, contractVersion, getBlockchainId(id));
+            return new ResponseEntity<>(buildVersionJson(fvInfo), HttpStatus.OK);
         } catch (ContractRetrievalException e) {
             return new ResponseEntity<>(
                     errorJson("No contract found with id: " + contractId + " and version: " + contractVersion),
-                    standardHeaders, HttpStatus.NOT_FOUND);
+                    HttpStatus.NOT_FOUND);
         }
     }
 
@@ -300,12 +307,13 @@ public class ContractsServlet extends BaseServlet {
      */
     @RequestMapping(method = RequestMethod.PUT, path = "/api/concord/contracts/{contract_id}/versions/{version_id}")
     public ResponseEntity<JSONAware> handleUpdateVersion(@RequestBody String paramString,
+            @PathVariable(name = "id", required = false) Optional<UUID> id,
             @PathVariable("contract_id") String existingContractId,
             @PathVariable("version_id") String existingVersionName) {
 
         // TODO: This check is not a proper way, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."),
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
@@ -321,10 +329,10 @@ public class ContractsServlet extends BaseServlet {
             String solidityCode = (String) requestObject.get("sourcecode");
             String selectedContract = (String) requestObject.get("contractName");
             String constructorParams = (String) requestObject.get("constructorParams");
-            if (registryManager.hasContractVersion(contractId, contractVersion)) {
+            if (registryManager.hasContractVersion(contractId, contractVersion, getBlockchainId(id))) {
                 responseEntity =
                         new ResponseEntity<>(errorJson("contract with same name and version " + "already exists"),
-                                standardHeaders, HttpStatus.CONFLICT);
+                                HttpStatus.CONFLICT);
             } else {
                 Compiler.Result result = Compiler.compile(solidityCode);
                 if (result.isSuccess()) {
@@ -332,31 +340,32 @@ public class ContractsServlet extends BaseServlet {
 
                     boolean success = registryManager.updateExistingContractVersion(existingContractId,
                             existingVersionName, contractId, from, contractVersion,
-                            result.getMetadataMap().get(selectedContract), solidityCode);
+                            result.getMetadataMap().get(selectedContract), solidityCode, getBlockchainId(id));
 
                     if (success) {
-                        FullVersionInfo fvInfo = registryManager.getContractVersion(contractId, contractVersion);
-                        return new ResponseEntity<>(buildVersionJson(fvInfo), standardHeaders, HttpStatus.OK);
+                        FullVersionInfo fvInfo =
+                                registryManager.getContractVersion(contractId, contractVersion, getBlockchainId(id));
+                        return new ResponseEntity<>(buildVersionJson(fvInfo), HttpStatus.OK);
                     } else {
-                        responseEntity = new ResponseEntity<>(errorJson("unable to update contract."), standardHeaders,
+                        responseEntity = new ResponseEntity<>(errorJson("unable to update contract."),
                                 HttpStatus.INTERNAL_SERVER_ERROR);
                     }
                 } else {
                     responseEntity = new ResponseEntity<>(errorJson("Compilation failure:\n" + result.getStderr()),
-                            standardHeaders, HttpStatus.BAD_REQUEST);
+                            HttpStatus.BAD_REQUEST);
                 }
             }
         } catch (ParseException pe) {
             logger.warn("Exception while parsing request JSON", pe);
-            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."),
                     HttpStatus.BAD_REQUEST);
         } catch (ContractRetrievalException e) {
             return new ResponseEntity<>(errorJson(
                     "No contract found with id: " + existingContractId + " and version: " + existingVersionName),
-                    standardHeaders, HttpStatus.NOT_FOUND);
+                    HttpStatus.NOT_FOUND);
         } catch (Exception e) {
             logger.warn("Exception in request processing", e);
-            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."),
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return responseEntity;
@@ -369,6 +378,7 @@ public class ContractsServlet extends BaseServlet {
      * contract and send them to concord in a loop. After every request we call `eth_getTransactionReceipt` to either
      * get the address at which contract was deployed or the error in case of failure.
      *
+     * @param blockchain The UUID of the blockchain that owns this contract
      * @param contractId The unique contract_id provided by the user
      * @param contractVersion The version number for this contract provided by the user.
      * @param from Address of the account which initiated this request.
@@ -379,8 +389,9 @@ public class ContractsServlet extends BaseServlet {
      * @param constructorParams The encoded constructor parameters for the contract to be deployed
      * @return The JSONArray containing results of deployment of each contract present in solidity code.
      */
-    private JSONObject deployContracts(String contractId, String contractVersion, String from, Compiler.Result result,
-            String solidityCode, String selectedContract, String constructorParams) throws Exception {
+    private JSONObject deployContracts(UUID blockchain, String contractId, String contractVersion, String from,
+            Compiler.Result result, String solidityCode, String selectedContract, String constructorParams)
+            throws Exception {
         // Since EthDispatcher already has the code of handling ethereum
         // requests we just build a JSON object representing an ethereum
         // request (as if it was received like a normal ethereum JSON RPC)
@@ -392,7 +403,7 @@ public class ContractsServlet extends BaseServlet {
         if (hasContract) {
             String byteCode = result.getByteCodeMap().get(selectedContract) + constructorParams;
             JSONObject sendTxrequest = buildEthSendTxRequest(from, requestId, byteCode);
-            String responseString = ethDispatcher.dispatch(sendTxrequest).toJSONString();
+            String responseString = ethDispatcher.dispatch(Optional.of(blockchain), sendTxrequest).toJSONString();
             logger.trace("Dispatcher response: " + responseString);
             JSONObject ethResponse = (JSONObject) new JSONParser().parse(responseString);
 
@@ -403,11 +414,11 @@ public class ContractsServlet extends BaseServlet {
                 // Now call eth_getTransactionReceipt API to get the address
                 // of deployed contract
                 JSONObject txReceiptRequest = buildEthTxReceiptRequest(random.nextInt(), transactionHash);
-                String txReceipt = ethDispatcher.dispatch(txReceiptRequest).toJSONString();
+                String txReceipt = ethDispatcher.dispatch(Optional.of(blockchain), txReceiptRequest).toJSONString();
                 logger.info("New contract deployed at: " + extractContractAddress(txReceipt));
                 boolean success = registryManager.addNewContractVersion(contractId, from, contractVersion,
                         extractContractAddress(txReceipt), result.getMetadataMap().get(selectedContract), byteCode,
-                        solidityCode);
+                        solidityCode, blockchain);
 
                 if (success) {
                     deploymentResult.put("contract_id", contractId);
@@ -449,7 +460,7 @@ public class ContractsServlet extends BaseServlet {
 
         // TODO: This check is fragile, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."),
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
@@ -484,18 +495,18 @@ public class ContractsServlet extends BaseServlet {
                 }
                 JSONObject responseJson = new JSONObject();
                 responseJson.put("data", resultArray);
-                responseEntity = new ResponseEntity<>(responseJson, standardHeaders, HttpStatus.OK);
+                responseEntity = new ResponseEntity<>(responseJson, HttpStatus.OK);
             } else {
                 responseEntity = new ResponseEntity<>(errorJson("Compilation failure:\n" + result.getStderr()),
-                        standardHeaders, HttpStatus.BAD_REQUEST);
+                        HttpStatus.BAD_REQUEST);
             }
         } catch (ParseException pe) {
             logger.warn("Exception while parsing request JSON", pe);
-            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."),
                     HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             logger.warn("Exception in request processing", e);
-            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."),
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return responseEntity;
@@ -509,13 +520,16 @@ public class ContractsServlet extends BaseServlet {
      * @return The RESTResult object containing result of this request
      */
     @RequestMapping(path = "/api/concord/contracts", method = RequestMethod.POST)
-    public ResponseEntity<JSONAware> handlePost(@RequestBody String paramString) {
+    public ResponseEntity<JSONAware> handlePost(@PathVariable(name = "id", required = false) Optional<UUID> id,
+            @RequestBody String paramString) {
 
         // TODO: This check is fragile, find a better approach
         if (registryManager == null) {
-            return new ResponseEntity<>(errorJson("Service unavailable."), standardHeaders,
+            return new ResponseEntity<>(errorJson("Service unavailable."),
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
+
+        final ConcordControllerHelper helper = getHelper(id);
 
         ResponseEntity<JSONAware> responseEntity;
 
@@ -534,51 +548,38 @@ public class ContractsServlet extends BaseServlet {
 
             // Check if contract with same id already exists, if yes
             // then version number must be different
-            if (registryManager.hasContractVersion(contractId, contractVersion)) {
-                responseEntity =
-                        new ResponseEntity<>(errorJson("contract with same name and version " + "already exists"),
-                                standardHeaders, HttpStatus.CONFLICT);
-            } else if (registryManager.hasContract(contractId)
-                    && !isSameAddress(registryManager.getBriefContractInfo(contractId).getOwnerAddress(), (from))) {
+            if (registryManager.hasContractVersion(contractId, contractVersion, getBlockchainId(id))) {
+                responseEntity = new ResponseEntity<>(
+                        errorJson("contract with same name and version " + "already exists"), HttpStatus.CONFLICT);
+            } else if (registryManager.hasContract(contractId, getBlockchainId(id)) && !isSameAddress(
+                    registryManager.getBriefContractInfo(contractId, getBlockchainId(id)).getOwnerAddress(), (from))) {
                 // It is a new version of
                 // existing contract but from address doesn't match
                 responseEntity = new ResponseEntity<>(
-                        errorJson("Only original owner can deploy the" + " new version of a contract"), standardHeaders,
+                        errorJson("Only original owner can deploy the" + " new version of a contract"),
                         HttpStatus.FORBIDDEN);
             } else {
                 // Compile the given solidity code
                 Compiler.Result result = Compiler.compile(solidityCode);
                 if (result.isSuccess()) {
-                    JSONObject resultObject = deployContracts(contractId, contractVersion, from, result, solidityCode,
-                            selectedContract, constructorParams);
-                    responseEntity = new ResponseEntity<>(resultObject, standardHeaders, HttpStatus.OK);
+                    JSONObject resultObject = deployContracts(helper.getBlockchain(), contractId, contractVersion, from,
+                            result, solidityCode, selectedContract, constructorParams);
+                    responseEntity = new ResponseEntity<>(resultObject, HttpStatus.OK);
                 } else {
                     responseEntity = new ResponseEntity<>(errorJson("Compilation failure:\n" + result.getStderr()),
-                            standardHeaders, HttpStatus.BAD_REQUEST);
+                            HttpStatus.BAD_REQUEST);
                 }
             }
         } catch (ParseException pe) {
             logger.warn("Exception while parsing request JSON", pe);
-            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."),
                     HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
             logger.warn("Exception in request processing", e);
-            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."), standardHeaders,
+            responseEntity = new ResponseEntity<>(errorJson("unable to parse request."),
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return responseEntity;
     }
 
-    /**
-     * This method is not required in this servlet since we never directly contact concord here. We only forward request
-     * to other servlets which talk with concord.
-     *
-     * @param concordResponse Protocol Buffer object containing Concord's reponse
-     * @return Response in JSON format
-     */
-    @SuppressWarnings("unchecked")
-    @Override
-    protected JSONAware parseToJson(Concord.ConcordResponse concordResponse) throws UnsupportedOperationException {
-        throw new UnsupportedOperationException("parseToJSON is not supported " + "in " + "ContractsServlet");
-    }
 }

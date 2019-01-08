@@ -10,6 +10,8 @@ import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -23,11 +25,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
 /**
  * Tests for the DefaultProfiles component.
  */
 @ExtendWith(SpringExtension.class)
-@TestPropertySource(locations = "classpath:test.properties")
+@TestPropertySource(locations = "classpath:default-test.properties")
 @ComponentScan(basePackageClasses = {DefaultProfilesTest.class})
 class DefaultProfilesTest {
     // Just some random UUIDs
@@ -48,12 +53,14 @@ class DefaultProfilesTest {
     PasswordEncoder passwordEncoder;
 
     @MockBean
-    BlockchainRepository blockchainRepository;
+    BlockchainManager blockchainManager;
 
     DefaultProfiles profiles;
 
     @Value("${ConcordAuthorities}")
     private String ipList;
+    @Value("${ConcordRpcUrls}")
+    private String rpcUrls;
     private Consortium consortium;
     private Organization organization;
     private User testUser;
@@ -77,7 +84,8 @@ class DefaultProfilesTest {
         blockchain = new Blockchain();
         blockchain.setId(uuid);
         blockchain.setConsortium(consortium);
-        blockchain.setIpList("1,2,3,4");
+        blockchain.setIpList("1,2,3,4 ");
+        blockchain.setRpcUrls("a=1,b=2,c=3,d=4");
 
         // our test user
         testUser = new User();
@@ -91,7 +99,7 @@ class DefaultProfilesTest {
         testUser.setRole(Roles.SYSTEM_ADMIN);
 
         profiles = new DefaultProfiles(userRepository, organizationRepository, consortiumRepository, passwordEncoder,
-                blockchainRepository, ipList);
+                blockchainManager, ipList, rpcUrls);
 
         when(passwordEncoder.encode(anyString())).then(a -> a.getArguments().toString());
     }
@@ -99,7 +107,7 @@ class DefaultProfilesTest {
     private void initProfilesExist() {
         when(consortiumRepository.findAll()).thenReturn(Arrays.asList(consortium));
         when(organizationRepository.findAll()).thenReturn(Arrays.asList(organization));
-        when(blockchainRepository.findAll()).thenReturn(Arrays.asList(blockchain));
+        when(blockchainManager.list()).thenReturn(Arrays.asList(blockchain));
         when(userRepository.findAll()).thenReturn(Arrays.asList(testUser));
         profiles.initialize();
     }
@@ -117,10 +125,12 @@ class DefaultProfilesTest {
             o.setOrganizationId(ORG_ID);
             return o;
         });
-        when(blockchainRepository.findAll()).thenReturn(Collections.emptyList());
-        when(blockchainRepository.save(any(Blockchain.class))).then(in -> {
-            Blockchain b = in.getArgument(0);
+        when(blockchainManager.list()).thenReturn(Collections.emptyList());
+        when(blockchainManager.create(any(Consortium.class), anyString(), anyString())).then(in -> {
+            Blockchain b = new Blockchain();
             b.setId(uuid);
+            b.setIpList(ipList);
+            b.setRpcUrls(rpcUrls);
             return b;
         });
         when(userRepository.findAll()).thenReturn(Collections.emptyList());
@@ -135,12 +145,19 @@ class DefaultProfilesTest {
     @Test
     void testProfileExisting() {
         initProfilesExist();
+        Map<String, String> ipMap = new ImmutableMap.Builder<String, String>()
+                .put("a", "1")
+                .put("b", "2")
+                .put("c", "3")
+                .put("d", "4").build();
+        List<String> ipList = new ImmutableList.Builder<String>().add("1", "2", "3", "4").build();
         Assertions.assertEquals(organization, profiles.getOrganization());
         Assertions.assertEquals("Test Org", profiles.getOrganization().getOrganizationName());
         Assertions.assertEquals(consortium, profiles.getConsortium());
         Assertions.assertEquals("Consortium Test", profiles.getConsortium().getConsortiumName());
         Assertions.assertEquals(blockchain, profiles.getBlockchain());
-        Assertions.assertEquals("1,2,3,4", profiles.getBlockchain().getIpList());
+        Assertions.assertEquals(ipList, profiles.getBlockchain().getIpAsList());
+        Assertions.assertEquals(ipMap, profiles.getBlockchain().getUrlsAsMap());
         Assertions.assertEquals(testUser, profiles.getUser());
         Assertions.assertEquals("user@test.com", profiles.getUser().getEmail());
     }
@@ -149,12 +166,19 @@ class DefaultProfilesTest {
     void testProfileEmpty() {
         // This will use the system generated profiles, rather than the ones we created.
         initProfilesEmpty();
+        Map<String, String> ipMap = new ImmutableMap.Builder<String, String>()
+                .put("replica0", "localhost:5458")
+                .put("replica1", "localhost:5459")
+                .put("replica2", "localhost:5460")
+                .put("replica3", "localhost:5461").build();
         Assertions.assertEquals(organization, profiles.getOrganization());
         Assertions.assertEquals("ADMIN", profiles.getOrganization().getOrganizationName());
         Assertions.assertEquals(consortium, profiles.getConsortium());
         Assertions.assertEquals("ADMIN", profiles.getConsortium().getConsortiumName());
         Assertions.assertEquals(blockchain, profiles.getBlockchain());
-        Assertions.assertEquals(ipList, profiles.getBlockchain().getIpList());
+        Assertions.assertEquals(ipMap, profiles.getBlockchain().getUrlsAsMap());
+        Assertions.assertEquals("localhost:5458,localhost:5459,localhost:5460,localhost:5461",
+                profiles.getBlockchain().getIpList());
         Assertions.assertEquals(testUser, profiles.getUser());
         Assertions.assertEquals("admin@blockchain.local", profiles.getUser().getEmail());
     }

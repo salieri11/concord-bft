@@ -5,6 +5,8 @@
 package com.vmware.blockchain.connections;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -288,16 +290,24 @@ public class ConcordConnectionPool {
         private int port = 5458;
 
         public IpAddr(String ipAddr) {
-            String[] parts = ipAddr.split(":");
-            // zero length means a string like ":123"
-            if (parts[0].length() > 0) {
-                this.host = parts[0];
-            }
-            if (parts.length > 1) {
-                try {
-                    this.port = Integer.parseInt(parts[1]);
-                } catch (NumberFormatException e) {
-                    // do nothing, return default port
+            try {
+                // Try with standard url syntax
+                URL url = new URL(ipAddr);
+                host = url.getHost();
+                port = url.getPort();
+            } catch (MalformedURLException u) {
+                // Assume it's in the form of host:port
+                String[] parts = ipAddr.split(":");
+                // zero length means a string like ":123"
+                if (parts[0].length() > 0) {
+                    this.host = parts[0];
+                }
+                if (parts.length > 1) {
+                    try {
+                        this.port = Integer.parseInt(parts[1]);
+                    } catch (NumberFormatException e) {
+                        // do nothing, return default port
+                    }
                 }
             }
         }

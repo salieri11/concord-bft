@@ -28,15 +28,11 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.EntityModificationException;
 import com.vmware.blockchain.common.HelenException;
-import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.security.HelenUserDetails;
 import com.vmware.blockchain.security.JwtTokenProvider;
-import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
-import com.vmware.concord.Concord.ConcordResponse;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -47,7 +43,7 @@ import lombok.Setter;
  * authentication will be done with CSP. Do NOT rely on this servlet for primary authentication method.
  */
 @Controller
-public class UserAuthenticator extends BaseServlet {
+public class UserAuthenticator {
 
     private static final Logger logger = LogManager.getLogger(UserAuthenticator.class);
 
@@ -109,10 +105,8 @@ public class UserAuthenticator extends BaseServlet {
     }
 
     @Autowired
-    public UserAuthenticator(ConcordProperties config, ConcordConnectionPool concordConnectionPool,
-            UserRepository userRepository, ProfilesRegistryManager prm, PasswordEncoder passwordEncoder,
-            JwtTokenProvider jwtTokenProvider) {
-        super(config, concordConnectionPool);
+    public UserAuthenticator(UserRepository userRepository, ProfilesRegistryManager prm,
+            PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider) {
         this.userRepository = userRepository;
         this.prm = prm;
         this.passwordEncoder = passwordEncoder;
@@ -153,7 +147,7 @@ public class UserAuthenticator extends BaseServlet {
             responseStatus = HttpStatus.BAD_REQUEST;
         }
 
-        return new ResponseEntity<>(loginResponse, standardHeaders, responseStatus);
+        return new ResponseEntity<>(loginResponse, responseStatus);
     }
 
     @Getter
@@ -193,7 +187,7 @@ public class UserAuthenticator extends BaseServlet {
             loginResponse.setError(e.getMessage());
         }
 
-        return new ResponseEntity<>(loginResponse, standardHeaders, responseStatus);
+        return new ResponseEntity<>(loginResponse, responseStatus);
 
     }
 
@@ -229,15 +223,7 @@ public class UserAuthenticator extends BaseServlet {
             responseJson = ApiHelper.errorJson(e.getMessage());
         }
 
-        return new ResponseEntity<>(responseJson, standardHeaders, responseStatus);
+        return new ResponseEntity<>(responseJson, responseStatus);
     }
-
-
-    @Override
-    protected JSONAware parseToJson(ConcordResponse concordResponse) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
 }
 
