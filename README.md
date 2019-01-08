@@ -174,7 +174,6 @@ It should be
 
     Python 3.x.x
 
-
 ### Select comm module
 We support both UDP and TCP communication. UDP is the default. In order to
 enable TCP communication, build with `-DBUILD_COMM_TCP_PLAIN=TRUE` in the cmake
