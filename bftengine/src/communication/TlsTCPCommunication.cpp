@@ -294,20 +294,22 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
                          NodeNum expectedPeerId = -1) {
 
     // first, basic sanity test, just to eliminate disk read if the certificate
-    // is unknown
+    // is unknown.
+    // the certificate must have node id, as we put it in OU field on creation.
+    // since we use pinning we must know who is the remote peer.
+    // peerIdPrefixLength stands for the length of 'OU=' substring
+    size_t peerIdPrefixLength = 3;
     regex r("OU=\\d*", regex_constants::icase);
     smatch sm;
     regex_search(subject, sm, r);
-    if (4 > sm.length()) {
+    if (sm.length() <= peerIdPrefixLength) {
       LOG_ERROR(_logger, "OU not found or empty: " << subject);
       return false;
     }
 
-    // the certificate must have node id, as we put it in OU field on creation.
-    // since we use pinning we must know who is the remote peer.
-    // peerNIdPrfixLength stands for the length of 'OU=' substring
-    size_t peerNIdPrfixLength = 3;
-    string remPeer = sm.str().substr(3, sm.str().length() - peerNIdPrfixLength);
+    string remPeer =
+        sm.str().substr(
+            peerIdPrefixLength, sm.str().length() - peerIdPrefixLength);
     if (0 == remPeer.length()) {
       LOG_ERROR(_logger, "OU empty " << subject);
       return false;

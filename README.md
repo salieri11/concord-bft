@@ -174,7 +174,6 @@ It should be
     
     Python 3.x.x
  
-
 ### Select comm module
 We support both UDP and TCP communication (UDP is the default one).
 In the main Cmake file please set BUILD_COMM_TCP_PLAIN flag to TRUE to
