@@ -318,7 +318,7 @@ class HelenAPITests(test_suite.TestSuite):
          print(e)
          return False
 
-   def has_contract_with_bytecode(self, request, contractId, contractVersion, contractByteCode):
+   def has_contract_with_bytecode(self, request, contractId, contractVersion, contractBytecode):
       result = request.callContractAPI('/api/concord/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
       # Remove swarm hash from deployed contract bytecode
@@ -326,7 +326,7 @@ class HelenAPITests(test_suite.TestSuite):
       try:
          if (result["contract_id"] == contractId and
              result["version"] == contractVersion and
-             parsedBytecode == contractByteCode):
+             parsedBytecode == contractBytecode):
             return True
          else:
             return False
@@ -364,12 +364,23 @@ class HelenAPITests(test_suite.TestSuite):
       '0405280600d81526020017f48656c6c6f2c20576f726c642100000000000000000000000000'
       '00000000000081525090509056fe')
 
+      contractBytecode_0_5_2 = ('608060405234801561001057600080fd5b506101398061002'
+      '06000396000f3fe608060405234801561001057600080fd5b5060043610610048576000357c'
+      '01000000000000000000000000000000000000000000000000000000009004806319ff1d211'
+      '461004d575b600080fd5b6100556100d0565b60405180806020018281038252838181518152'
+      '60200191508051906020019080838360005b838110156100955780820151818401526020810'
+      '1905061007a565b50505050905090810190601f1680156100c2578082038051600183602003'
+      '6101000a031916815260200191505b509250505060405180910390f35b60606040805190810'
+      '160405280600d81526020017f48656c6c6f2c20576f726c6421000000000000000000000000'
+      '0000000000000081525090509056fe')
+
       contractId, contractVersion = self.upload_mock_multiple_contract(request)
 
       result = request.callContractAPI('/api/concord/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
       if self.has_contract_with_bytecode(request, contractId, contractVersion, contractBytecode_0_4_19) \
-         or self.has_contract_with_bytecode(request, contractId, contractVersion, contractBytecode_0_5):
+         or self.has_contract_with_bytecode(request, contractId, contractVersion, contractBytecode_0_5) \
+         or self.has_contract_with_bytecode(request, contractId, contractVersion, contractBytecode_0_5_2):
          return (True, None)
       else:
          return (False, "Unable to retrieve uploaded contract")
