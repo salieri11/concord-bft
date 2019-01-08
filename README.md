@@ -160,6 +160,11 @@ You may also need to export CPLUS_INCLUDE_PATH variable set to /usr/local/includ
 
 After installation, set USE_LOG4CPP flag to TRUE in the main CmakeLists.txt . The library doesn't initialize the log4cpp subsystem, including formats and appenders, it expects that the upper level application will do it and the log4cpp subsystem is already initialized.
 
+#### (Optional, only if TLS is used as communication module)
+We use OpenSSL for TLS communication module. Please install it using `sudo apt-get install openssl libssl-dev`
+
+
+
 ### Select comm module
 We support both UDP and TCP communication (UDP is the default one).
 In the main Cmake file please set BUILD_COMM_TCP_PLAIN flag to TRUE to
