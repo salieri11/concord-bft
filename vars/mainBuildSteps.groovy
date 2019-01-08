@@ -302,6 +302,7 @@ def call(){
                 env.helen_api_test_logs = new File(env.test_log_root, "HelenAPI").toString()
                 env.extended_rpc_test_logs = new File(env.test_log_root, "ExtendedRPC").toString()
                 env.regression_test_logs = new File(env.test_log_root, "Regression").toString()
+                env.statetransfer_test_logs = new File(env.test_log_root, "StateTransfer").toString()
               }
 
               sh '''
@@ -325,6 +326,7 @@ EOF
                 echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${helen_api_test_logs}"
                 echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"
                 echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${regression_test_logs}"
+                echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
               '''
             }
           }

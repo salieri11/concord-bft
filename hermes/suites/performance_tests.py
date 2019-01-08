@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 
 class PerformanceTests(test_suite.TestSuite):
    _args = None
-   _apiBaseServerUrl = "https://localhost/blockchains/local"
+   _apiBaseServerUrl = None
    _userConfig = None
    _ethereumMode = False
    _productMode = True
@@ -32,6 +32,7 @@ class PerformanceTests(test_suite.TestSuite):
 
    def __init__(self, passedArgs):
       super(PerformanceTests, self).__init__(passedArgs)
+      self._apiServerUrl = passedArgs.baseUrl
 
    def getName(self):
       return "PerformanceTests"
@@ -41,7 +42,7 @@ class PerformanceTests(test_suite.TestSuite):
          global p
          try:
             p = self.launchProduct(self._args,
-                                   self._apiBaseServerUrl + "/api/concord/eth",
+                                   self._apiBaseServerUrl + "/api/concord/eth/",
                                    self._userConfig)
          except Exception as e:
             log.error(traceback.format_exc())

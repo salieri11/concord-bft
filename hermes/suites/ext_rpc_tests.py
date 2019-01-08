@@ -47,7 +47,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
          log.debug("Running in ethereum mode")
          self._apiServerUrl = "http://localhost:8545"
       else:
-         self._apiBaseServerUrl = "https://localhost/blockchains/local"
+         self._apiBaseServerUrl = passedArgs.baseUrl
          self._apiServerUrl = self._apiBaseServerUrl+"/api/concord/eth/"
 
    def getName(self):
@@ -413,8 +413,10 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if not currentBlock["number"] == currentBlockNumber:
          return (False, "Current block does not have current block number")
 
-      if not currentBlock["gasLimit"] == "0xf4240":
-         return (False, "Gas limit isn't 0xf4240")
+      # this gasLimit value is exactly as specified by --gas_limit param
+      # of concord CLI
+      if not currentBlock["gasLimit"] == "0x989680":
+         return (False, "Gas limit isn't 0x989680")
 
       futureBlockNumber = 1 + int(currentBlockNumber, 16)
 
@@ -697,5 +699,3 @@ class ExtendedRPCTests(test_suite.TestSuite):
             return (False, "Found from does not match expected from")
 
       return (True, None)
-
-

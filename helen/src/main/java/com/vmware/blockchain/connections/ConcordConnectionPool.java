@@ -143,11 +143,6 @@ public class ConcordConnectionPool {
                 int c = connectionCount.decrementAndGet();
                 log.debug("connection closed, active connections: " + c);
                 log.info("broken connection closed");
-
-                // attempt to replace the broken connection
-                if (c < minPoolSize && initialized.get()) {
-                    putConnection(createConnection());
-                }
             }
         } catch (Exception e) {
             log.error("closeConnection", e);
@@ -192,8 +187,18 @@ public class ConcordConnectionPool {
                 if (!res) {
                     log.error("Failed to check connection");
                     closeConnection(conn);
-                    // see if we can get another connection
-                    continue;
+
+                    // attempt to replace the broken connection
+                    // this may fail if there are _maxPoolSize
+                    // connections already in the pool
+                    if (connectionCount.get() < minPoolSize
+                        && initialized.get()) {
+                        IConcordConnection newConn = createConnection();
+                        return newConn;
+                    } else {
+                        // try to wait for connection to become available
+                        continue;
+                    }
                 }
 
                 log.trace("getConnection exit");

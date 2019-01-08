@@ -36,6 +36,14 @@
   <build>
     <plugins>
       <plugin>
+      <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.7.0</version>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+        </configuration>
+      </plugin>
+      <plugin>
         <!-- https://www.xolstice.org/protobuf-maven-plugin/usage.html -->
         <groupId>org.xolstice.maven.plugins</groupId>
         <artifactId>protobuf-maven-plugin</artifactId>

@@ -37,12 +37,13 @@ class TestSuite(ABC):
       self._ethereumMode = self._args.ethereumMode
       self._productMode = not self._ethereumMode
       self._noLaunch = self._args.noLaunch
+      self._baseUrl = passedArgs.baseUrl
 
       if self._ethereumMode:
          log.debug("Running in ethereum mode")
          self._apiServerUrl = "http://localhost:8545"
       else:
-         self._apiServerUrl = "https://localhost/blockchains/local/api/concord/eth/"
+         self._apiServerUrl = passedArgs.baseUrl + "/api/concord/eth/"
 
       self._results = {
          self.getName(): {
@@ -141,7 +142,7 @@ class TestSuite(ABC):
 
    def launchProduct(self, cmdlineArgs, url, userConfig):
       try:
-         p = Product(cmdlineArgs, url, userConfig)
+         p = Product(cmdlineArgs, url, userConfig, self._baseUrl)
          p.launchProduct()
          return p
       except Exception as e:

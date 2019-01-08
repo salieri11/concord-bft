@@ -3,6 +3,7 @@
 #########################################################################
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
+
 import argparse
 import datetime
 import logging
@@ -11,12 +12,12 @@ import tempfile
 from time import strftime, localtime
 
 from suites import core_vm_tests, helen_api_tests, ext_rpc_tests, \
-   kv_blockchain_tests, performance_tests, regression_tests
+   kv_blockchain_tests, performance_tests, regression_tests, simple_st_test
 from util import html, json_helper
 
 log = None
 suites = ["CoreVMTests", "ExtendedRPCTests", "HelenAPITests",
-          "PerformanceTests", "KVBlockchainTests", "RegressionTests"]
+          "PerformanceTests", "KVBlockchainTests", "RegressionTests", "SimpleStateTransferTest"]
 
 def main():
    startTime = datetime.datetime.now()
@@ -69,6 +70,10 @@ def main():
                        default=1,
                        type=int,
                        help="Number of times to repeat test runs")
+   parser.add_argument("--baseUrl",
+                       default="https://localhost/blockchains/local",
+                       help="API sever base URL")
+
    args = parser.parse_args()
    parent_results_dir = args.resultsDir
 
@@ -139,6 +144,8 @@ def createTestSuite(args):
       return performance_tests.PerformanceTests(args)
    elif (args.suite == "RegressionTests"):
       return regression_tests.RegressionTests(args)
+   elif (args.suite == "SimpleStateTransferTest"):
+      return simple_st_test.SimpleStateTransferTest(args)
 
 def createResultsDir(suiteName, parent_results_dir=tempfile.gettempdir()):
    prefix = suiteName + "_" + strftime("%Y%m%d_%H%M%S", localtime())

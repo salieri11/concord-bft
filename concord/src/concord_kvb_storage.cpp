@@ -658,7 +658,9 @@ evm_uint256be com::vmware::concord::KVBStorage::get_storage(
    BlockId outBlock;
    Status status = get(block_number, kvbkey, value, outBlock);
 
-   LOG4CPLUS_INFO(logger, "Getting storage " << addr <<
+   // (IG): when running ST tests, logs are full of this line. Changed to Debug
+   // level
+   LOG4CPLUS_DEBUG(logger, "Getting storage " << addr <<
                   " at " << location <<
                   " lookup block starting at: " << block_number <<
                   " status: " << status <<

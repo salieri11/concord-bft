@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 
 class HelenAPITests(test_suite.TestSuite):
    _args = None
-   _apiBaseServerUrl = "https://localhost/blockchains/local"
+   _apiBaseServerUrl = None
    _userConfig = None
    _ethereumMode = False
    _productMode = True
@@ -35,6 +35,7 @@ class HelenAPITests(test_suite.TestSuite):
 
    def __init__(self, passedArgs):
       super(HelenAPITests, self).__init__(passedArgs)
+      self._apiBaseServerUrl = passedArgs.baseUrl
 
    def getName(self):
       return "HelenAPITests"
@@ -44,7 +45,7 @@ class HelenAPITests(test_suite.TestSuite):
       if self._productMode and not self._noLaunch:
          try:
             p = self.launchProduct(self._args,
-                                   self._apiBaseServerUrl + "/api/concord/eth",
+                                   self._apiBaseServerUrl + "/api/concord/eth/",
                                    self._userConfig)
          except Exception as e:
             log.error(traceback.format_exc())
@@ -257,19 +258,23 @@ class HelenAPITests(test_suite.TestSuite):
 
       return (True, None)
 
-   def contract_upload_util(self, request, contractId,
-                            contractVersion, sourceCode):
-      '''
-      A helper method to upload simple hello world contract.
-      '''
-      data = {};
-      data["from"] = "0x1111111111111111111111111111111111111111"
+   def contract_upload_util_generic(self,request,contractId,
+    contractVersion,sourceCode, fromAddr, contractName, ctorParams):
+
+      data = {}
+      data["from"] = fromAddr
       data["contract_id"] = contractId
       data["version"] = contractVersion
       data["sourcecode"] = sourceCode
-      data["contractName"] = "HelloWorld"
-      data["constructorParams"] = ""
+      data["contractName"] = contractName
+      data["constructorParams"] = ctorParams
       return request.uploadContract(data)
+
+   def contract_upload_util(self, request, contractId, contractVersion, sourceCode):
+      '''
+      A helper method to upload simple hello world contract.
+      '''
+      return self.contract_upload_util_generic(request, contractId, contractVersion, sourceCode,"0x1111111111111111111111111111111111111111", "HelloWorld", "")
 
    def random_string_generator(self, size=6, chars=string.ascii_uppercase + string.digits):
       return ''.join(random.choice(chars) for _ in range(size))

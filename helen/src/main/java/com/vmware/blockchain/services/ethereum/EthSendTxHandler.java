@@ -127,7 +127,7 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
             }
         }
 
-        // TODO: add gas, gasPrice, nonce, r, s, v
+        // TODO: add gasPrice, nonce, r, s, v
         // (no, rsv are not specified in the doc, but why not?)
     }
 

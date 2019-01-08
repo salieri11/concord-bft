@@ -70,7 +70,7 @@ namespace Blockchain
       : logger(log4cplus::Logger::getInstance("com.concord.vmware.kvb")),
          m_dbPath(_dbPath), m_comparator(_comparator) {}
 
-      virtual Status init() override;
+      virtual Status init(bool readOnly = false) override;
       virtual Status get(Sliver _key, OUT Sliver & _outValue) const override;
       virtual IDBClientIterator* getIterator() const override;
       virtual Status freeIterator(IDBClientIterator *_iter) const override;

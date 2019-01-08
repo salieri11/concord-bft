@@ -31,7 +31,9 @@ static const int default_api_worker_thread_pool_size = 4;
 static const int default_transaction_list_max_count = 10;
 
 // default gas limit for transaction execution
-static const int64_t default_gas_limit = 1000000;
+// this high value is a temporary solution until we will find the way
+// to customize docker build to run concord processes with CLI params
+static const int64_t default_gas_limit = 10000000;
 
 
 variables_map initialize_config(int argc, char **argv) {

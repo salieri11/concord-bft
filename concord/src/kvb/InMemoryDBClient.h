@@ -68,7 +68,7 @@ namespace Blockchain
          setComparator(comp);
       }
 
-      virtual Status init() override;
+      virtual Status init(bool readOnly) override;
       virtual Status get(Sliver _key, OUT Sliver &_outValue) const override;
       virtual IDBClientIterator *getIterator() const override;
       virtual Status freeIterator(IDBClientIterator *_iter) const override;

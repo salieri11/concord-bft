@@ -63,3 +63,6 @@ target_link_libraries(ecsign
                       log4cplus
                       secp256k1
                       ${Cryptopp_LIBRARIES})
+
+add_executable(conc_rocksdb_adp "conc_rocksdb_adp.cpp")
+target_link_libraries(conc_rocksdb_adp kvblockchain)

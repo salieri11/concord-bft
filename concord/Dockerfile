@@ -49,7 +49,6 @@ COPY --from=0 /usr/local/lib/liblog4cplus* /usr/local/lib/
 COPY --from=0 /usr/local/lib/librelic* /usr/local/lib/
 COPY --from=0 /usr/local/lib/librocksdb.* /usr/local/lib/
 COPY --from=0 /usr/local/lib/libsecp256k1* /usr/local/lib/
-COPY --from=0 /concord/build/submodules/state-transfer/libbyzst.so* /usr/local/lib/
 
 WORKDIR /concord/resources
 COPY --from=0 /concord/build/src/concord /concord/concord

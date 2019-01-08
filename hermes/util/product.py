@@ -14,10 +14,26 @@ import socket
 import subprocess
 import time
 import yaml
+import signal
 
 PRODUCT_LOGS_DIR = "product_logs"
 
 log = logging.getLogger(__name__)
+
+class ConcordInstsanceMetaData():
+    _processIndex = None
+    _processCmd = None
+    _logFile = None
+    _instanceId = None
+    _path = None
+    _containerName = None
+
+    def __init__(self, pIndex, pCmd, logFile, id, path):
+        self._processIndex = pIndex
+        self._processCmd = pCmd
+        self._logFile = logFile
+        self._instanceId = id
+        self._path = path
 
 class Product():
    '''
@@ -27,14 +43,17 @@ class Product():
    _apiServerUrl = None
    _logs = []
    _processes = []
+   _concordProcessesMetaData = []
    _userProductConfig = None
    _cmdlineArgs = None
+   _baseUrl = None
 
-   def __init__(self, cmdlineArgs, apiServerUrl, userConfig):
+   def __init__(self, cmdlineArgs, apiServerUrl, userConfig, baseUrl):
       self._cmdlineArgs = cmdlineArgs
       self._apiServerUrl = apiServerUrl
       self._userConfig = userConfig
       self._userProductConfig = userConfig["product"]
+      self._baseUrl = baseUrl
 
    def launchProduct(self):
       '''
@@ -67,7 +86,7 @@ class Product():
                self.stopProduct()
 
       if not launched:
-         raise Exception("Failed to launch the product after {} attempt(s).  Exiting".format(numAttempts))
+         raise Exception("Failed to launch the product after {} attempt(s). Exiting".format(numAttempts))
 
 
    def validatePaths(self, paths):
@@ -192,6 +211,15 @@ class Product():
                                        stdout=logFile,
                                        stderr=subprocess.STDOUT)
                   self._processes.append(p)
+                  if project.lower().startswith("concord"):
+                      cm = ConcordInstsanceMetaData(
+                        len(self._processes) - 1,
+                        cmd,
+                        logFile,
+                        int(project[len("concord"):]),
+                        os.getcwd()
+                      )
+                      self._concordProcessesMetaData.append(cm)
             # switch back to original cwd
             os.chdir(original_cwd)
 
@@ -199,7 +227,8 @@ class Product():
       if not self._waitForProductStartup():
          raise Exception("The product did not start.")
 
-   def clearconcordDBForCmdlineLaunch(self, concordSection):
+
+   def clearconcordDBForCmdlineLaunch(self, concordSection, serviceName=None):
       '''
       Deletes the concord DB so we get a clean start.
       Other test suites can leave it in a state that makes
@@ -209,11 +238,17 @@ class Product():
       '''
       params = None
 
+      log.debug("serviceName{}".format(serviceName))
+
       for subSection in concordSection:
-         if subSection.lower().startswith("concord"):
-            params = concordSection[subSection]["parameters"]
+         if serviceName is None:
+             if subSection.lower().startswith("concord"):
+                 params = concordSection[subSection]["parameters"]
+         elif subSection.lower() == serviceName:
+             params = concordSection[subSection]["parameters"]
 
       isConfigParam = False
+      buildRoot = None
 
       for param in params:
          if isConfigParam:
@@ -229,14 +264,18 @@ class Product():
                      prop.lower().startswith("blockchain_db_path"):
                      subPath = prop.split("=")[1]
 
+            buildRoot = os.path.abspath(concordSection["buildRoot"])
             dbPath = os.path.join(concordSection["buildRoot"], subPath)
             dbPath = os.path.expanduser(dbPath)
             if os.path.isdir(dbPath):
                log.debug("Clearing concord DB directory '{}'".format(dbPath))
                shutil.rmtree(dbPath)
+            isConfigParam = False
 
          if param == "-c":
             isConfigParam = True
+
+      return buildRoot
 
 
    def pullHelenDBImage(self, dockerCfg):
@@ -424,24 +463,28 @@ class Product():
          raise Exception("Failure trying to stop the Helen DB.")
 
 
-   def clearDBsForDockerLaunch(self, dockerCfg):
+   def clearDBsForDockerLaunch(self, dockerCfg, serviceName=None):
+      concordDbPath = None
       for service in dockerCfg["services"]:
-         serviceObj = dockerCfg["services"][service]
-         if "volumes" in serviceObj:
-            for v in serviceObj["volumes"]:
-               if "rocksdbdata" in v or \
-                  "cockroachDB" in v:
-                  yamlDir = os.path.dirname(self._cmdlineArgs.dockerComposeFile[0])
-                  deleteMe = os.path.join(yamlDir, v.split(":")[0])
-                  log.info("Deleting: {}".format(deleteMe))
-
-                  if os.path.isdir(deleteMe):
-                     try:
-                        shutil.rmtree(deleteMe)
-                     except PermissionError as e:
-                        log.error("Could not delete {}. Try running with sudo " \
-                                  "when running in docker mode.".format(deleteMe))
-                        raise e
+         if serviceName is None or  service == serviceName:
+             serviceObj = dockerCfg["services"][service]
+             if "volumes" in serviceObj:
+                for v in serviceObj["volumes"]:
+                   if "rocksdbdata" in v or \
+                      "cockroachDB" in v:
+                      yamlDir = os.path.dirname(self._cmdlineArgs.dockerComposeFile[0])
+                      deleteMe = os.path.join(yamlDir, v.split(":")[0])
+                      log.info("Deleting: {}".format(deleteMe))
+                      if serviceName == service and "rocksdbdata" in v:
+                        concordDbPath = os.path.abspath(yamlDir)
+                      if os.path.isdir(deleteMe):
+                         try:
+                            shutil.rmtree(deleteMe)
+                         except PermissionError as e:
+                            log.error("Could not delete {}. Try running with sudo " \
+                                      "when running in docker mode.".format(deleteMe))
+                            raise e
+      return concordDbPath
 
 
    def stopProcessesInContainers(self, containerSearchString, processSearchString):
@@ -576,10 +619,106 @@ class Product():
          attempts += 1
 
          try:
-            rpc.addUser()
+            rpc.addUser(self._baseUrl)
             txHash = rpc.sendTransaction(caller, data)
          except Exception as e:
             log.debug("Waiting for product startup...")
             log.debug(e)
-
       return txHash != None
+
+   def cleanConcordDb(self, instanceId):
+      if len(self._concordProcessesMetaData) == 0:
+         if os.path.isfile(self._cmdlineArgs.dockerComposeFile[0]):
+            with open(self._cmdlineArgs.dockerComposeFile[0], "r") as f:
+               dockerCfg = yaml.load(f)
+               res= self.clearDBsForDockerLaunch(dockerCfg, "concord{}".format(instanceId))
+               return res
+      else:
+        for launchElement in self._userProductConfig["launch"]:
+           for project in launchElement:
+              projectSection = launchElement[project]
+              buildRoot = projectSection["buildRoot"]
+              buildRoot = os.path.expanduser(buildRoot)
+
+              if not self._cmdlineArgs.keepconcordDB and \
+                 project.lower() == "concord" + str(instanceId):
+                 path = self.clearconcordDBForCmdlineLaunch(launchElement[project], "concord" + str(instanceId))
+                 return path
+
+   def get_concord_container_name(self, replicaId):
+      command = 'docker ps --format "{0}" | grep concord{1}'.format("{{ .Names }}", replicaId)
+      output = subprocess.Popen(command,stderr=subprocess.PIPE, shell=True, stdout=subprocess.PIPE).stdout.read().decode().replace(os.linesep,"")
+      return output
+
+   def action_on_concord_container(self, containerName, action):
+      command = "docker {0} {1}".format(action, containerName)
+      output = subprocess.Popen(command,stderr=subprocess.PIPE, shell=True, stdout=subprocess.PIPE).stdout.read().decode().replace(os.linesep,"")
+      if output != containerName:
+        return False
+      return True
+
+   def start_concord_replica(self, id):
+       if len(self._concordProcessesMetaData) == 0:
+          containerName = "docker_concord{}_1".format(id)
+          return self.action_on_concord_container(containerName, "start")
+
+       originalCwd = os.getcwd()
+       result = False
+       for idx, meta in enumerate(self._concordProcessesMetaData):
+           if meta._instanceId == id:
+               log.info("Starting concord replica{}".format(id))
+               os.chdir(meta._path)
+               p = subprocess.Popen(meta._processCmd,
+                                    stdout=meta._logFile,
+                                    stderr=subprocess.STDOUT)
+               log.info("Concord replica{} started".format(id))
+               self._processes.append(p)
+               meta._processIndex = len(self._processes) - 1
+               self._concordProcessesMetaData[idx] = meta
+               result = True
+               break
+       os.chdir(originalCwd)
+       return result
+
+   def kill_concord_replica(self, id):
+       if len(self._concordProcessesMetaData) == 0:
+          containerName = self.get_concord_container_name(id)
+          if len(containerName) == 0:
+             return False
+          return self.action_on_concord_container(containerName, "kill")
+
+       for meta in self._concordProcessesMetaData:
+           if meta._instanceId == id:
+               log.info("Killing concord replica with ID {}".format(id))
+               self._processes[meta._processIndex].kill()
+               meta._processIndex = None
+               log.info("Killed concord replica with ID {}".format(id))
+               return True
+       return False
+
+   def pause_concord_replica(self, id):
+       if len(self._concordProcessesMetaData) == 0:
+          containerName = self.get_concord_container_name(id)
+          if len(containerName) == 0:
+             return False
+          return self.action_on_concord_container(containerName, "pause")
+
+       for meta in self._concordProcessesMetaData:
+           if meta._instanceId == id:
+               log.info("Suspending concord replica with ID {}".format(id))
+               os.kill(self._processes[meta._processIndex].pid, signal.SIGSTOP)
+               log.info("Suspended concord replica with ID {}".format(id))
+               return True
+       return False
+
+   def resume_concord_replica(self,id):
+       if len(self._concordProcessesMetaData) == 0:
+          containerName = "docker_concord{}_1".format(id)
+          return self.action_on_concord_container(containerName, "unpause")
+
+       for meta in self._concordProcessesMetaData:
+           if meta._instanceId == id:
+               log.info("Resuming concord replica with ID {}".format(id))
+               os.kill(self._processes[meta._processIndex].pid, signal.SIGCONT)
+               log.info("Resumed concord replica with ID {}".format(id))
+       return True

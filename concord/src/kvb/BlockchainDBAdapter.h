@@ -85,6 +85,7 @@ namespace Blockchain {
       void monitor() const;
 
       BlockId getLatestBlock();
+      BlockId getLastReachableBlock();
 
    private:
       log4cplus::Logger logger;

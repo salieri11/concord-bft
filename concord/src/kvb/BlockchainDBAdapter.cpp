@@ -694,4 +694,42 @@ BlockId BlockchainDBAdapter::getLatestBlock()
 
    return extractBlockIdFromKey(x.first);
 }
+
+/**
+ * @brief Used to retrieve the last reachable block
+ *
+ * Searches for the last reachable block.
+ * From ST perspective, this is maximal block number N
+ * such that all blocks 1 <= i <= N exist.
+ * In the normal state, it should be equal to last block ID
+ *
+ * @return Block ID of the last reachable block.
+ */
+BlockId BlockchainDBAdapter::getLastReachableBlock()
+{
+   IDBClient::IDBClientIterator *iter = m_db->getIterator();
+
+   BlockId lastReachableId = 0;
+   Sliver blockKey = genBlockDbKey(1);
+   KeyValuePair kvp = iter->seekAtLeast(blockKey);
+   if (kvp.first.length() == 0) {
+      return 0;
+   }
+
+   while (!iter->isEnd()
+      && (extractTypeFromKey(kvp.first) ==
+         (char) EDBKeyType::E_DB_KEY_TYPE_BLOCK)) {
+      BlockId id = extractBlockIdFromKey(kvp.first);
+      if(id == lastReachableId + 1) {
+         lastReachableId++;
+         kvp = iter->next();
+      } else {
+         break;
+      }
+   }
+
+   m_db->freeIterator(iter);
+   return lastReachableId;
+}
+
 }
