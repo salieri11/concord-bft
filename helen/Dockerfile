@@ -7,7 +7,7 @@
 # containers.
 
 ## Image to build dependencies
-FROM vmwblockchain/concord-ui:prereqs-v2
+FROM athena-docker-local.artifactory.eng.vmware.com/helen:prereqs-v2
 LABEL Description="Helen"
 
 WORKDIR /

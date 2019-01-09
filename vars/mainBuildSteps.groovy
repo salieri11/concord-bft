@@ -166,11 +166,9 @@ def call(){
             '''
           }
 
-          // Log into docker.  Does it expire?  Try doing it once, here, and see what happens.
-          withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
-
+          withCredentials([string(credentialsId: 'ATHENA_DEPLOYER_ARTIFACTORY_PASSWORD', variable: 'ARTIFACTORY_PASSWORD')]) {
             sh '''
-              echo "${DOCKERHUB_PASSWORD}" | docker login -u blockchainrepositorywriter --password-stdin
+              docker login -u athena-deployer -p "${ARTIFACTORY_PASSWORD}" athena-docker-local.artifactory.eng.vmware.com
             '''
           }
 
@@ -182,7 +180,7 @@ def call(){
             git config --global user.name "build system"
           '''
 
-          // These are constants which mirror the DockerHub repos.
+          // These are constants which mirror the DockerHub repos.  DockerHub is only used for publishing releases.
           script {
             env.concord_repo = 'vmwblockchain/concord-core'
             env.helen_repo = 'vmwblockchain/concord-ui'
@@ -341,8 +339,12 @@ EOF
           dir('blockchain') {
             createAndPushTag(env.version_param)
           }
+
           withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
             sh '''
+              docker logout
+              docker login -u blockchainrepositorywriter -p "${DOCKERHUB_PASSWORD}"
+
               # Keep these echo lines for test runs.
               # echo Would run docker push ${concord_repo}:${version_param}
               # echo Would run docker tag ${concord_repo}:${version_param} ${concord_repo}:latest
@@ -378,18 +380,20 @@ EOF
               docker push ${ui_repo}:${version_param}
               docker tag ${ui_repo}:${version_param} ${ui_repo}:latest
               docker push ${ui_repo}:latest
+
+              docker logout
             '''
+          }
 
-            dir('blockchain/vars') {
-              script {
-                release_notification_address_file = "release_notification_recipients.txt"
+          dir('blockchain/vars') {
+            script {
+              release_notification_address_file = "release_notification_recipients.txt"
 
-                if (fileExists(release_notification_address_file)) {
-                  release_notification_recipients = readFile(release_notification_address_file).replaceAll("\n", " ")
-                  emailext body: "Changes: \n" + getChangesSinceLastTag(),
-                       to: release_notification_recipients,
-                       subject: "[Build] Concord version " + env.version_param + " has been pushed to DockerHub."
-                }
+              if (fileExists(release_notification_address_file)) {
+                release_notification_recipients = readFile(release_notification_address_file).replaceAll("\n", " ")
+                emailext body: "Changes: \n" + getChangesSinceLastTag(),
+                     to: release_notification_recipients,
+                     subject: "[Build] Concord version " + env.version_param + " has been pushed to DockerHub."
               }
             }
           }
