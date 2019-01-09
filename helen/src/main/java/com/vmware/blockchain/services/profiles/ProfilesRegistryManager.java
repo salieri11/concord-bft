@@ -25,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.common.EntityModificationException;
+import com.vmware.blockchain.common.NoSuchUserException;
 
 
 /**
@@ -138,7 +139,7 @@ public class ProfilesRegistryManager {
             Consortium consortium = user.getConsortium();
             return consortium.getConsortiumId();
         } else {
-            throw new EntityModificationException("No user found with email: " + email);
+            throw new NoSuchUserException("No user found with email: " + email);
         }
     }
 
@@ -154,7 +155,7 @@ public class ProfilesRegistryManager {
             Organization organization = user.getOrganization();
             return organization.getOrganizationId();
         } else {
-            throw new EntityModificationException("No user found with email: " + email);
+            throw new NoSuchUserException("No user found with email: " + email);
         }
     }
 
