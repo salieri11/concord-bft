@@ -114,9 +114,6 @@ public:
                      uint64_t timestamp,
                      KVBStorage &kvbStorage,
                      std::vector<EthLog> &evmLogs);
-   bool new_account(const std::string &passphrase,
-                    KVBStorage &kvbStorage,
-                    evm_address &address /* OUT */);
    evm_address contract_destination(evm_address &sender, uint64_t nonce) const;
 
 private:
