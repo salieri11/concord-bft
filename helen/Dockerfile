@@ -7,12 +7,8 @@
 # containers.
 
 ## Image to build dependencies
-FROM vmwblockchain/concord-ui:prereqs-v1
+FROM vmwblockchain/concord-ui:prereqs-v2
 LABEL Description="Helen"
-
-RUN apt-get update && apt-get -y install \
-    openjdk-8-jre-headless
-RUN rm -rf /var/lib/apt/lists/*
 
 WORKDIR /
 COPY src/main/resources/application.properties .
