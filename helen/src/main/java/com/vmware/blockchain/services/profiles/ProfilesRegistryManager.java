@@ -25,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.common.EntityModificationException;
+import com.vmware.blockchain.common.NoSuchUserException;
 
 
 /**
@@ -124,6 +125,38 @@ public class ProfilesRegistryManager {
     public JSONObject getUserWithId(String userId) {
         Optional<User> oUser = getUserWithIdInternal(userId);
         return oUser.map(UsersApiMessage::new).map(UsersApiMessage::toJson).orElse(new JSONObject());
+    }
+
+    /**
+     * Get the user's consortium ID with email.
+     * @param email user's email address
+     * @return UUID of consortium
+     */
+    public UUID getUserConsortiumIdWithEmail(String email) {
+        Optional<User> oUser = userRepository.findUserByEmail(email);
+        if (oUser.isPresent()) {
+            User user = oUser.get();
+            Consortium consortium = user.getConsortium();
+            return consortium.getConsortiumId();
+        } else {
+            throw new NoSuchUserException("No user found with email: " + email);
+        }
+    }
+
+    /**
+     * Get user's organization ID with email.
+     * @param email user's email address
+     * @return UUID of organization
+     */
+    public UUID getUserOrganizationIdWithEmail(String email) {
+        Optional<User> oUser = userRepository.findUserByEmail(email);
+        if (oUser.isPresent()) {
+            User user = oUser.get();
+            Organization organization = user.getOrganization();
+            return organization.getOrganizationId();
+        } else {
+            throw new NoSuchUserException("No user found with email: " + email);
+        }
     }
 
     private boolean isDuplicateEmail(String email) {
