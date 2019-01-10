@@ -9,4 +9,4 @@ services:
       - java
       - -jar
       - helen-1.0-SNAPSHOT.jar
-      - --ConcordAuthorities=concord:5458
+      - --ConcordAuthorities=concord1:5458
