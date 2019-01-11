@@ -10,10 +10,10 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.UUID;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +21,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.Organization;
@@ -35,7 +35,7 @@ import io.jsonwebtoken.Jwts;
 /**
  * Tests for the JWT Token Provider.
  */
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @ContextConfiguration
 public class JwtTokenProviderTest {
     // Just some random UUIDs
@@ -62,8 +62,8 @@ public class JwtTokenProviderTest {
     /**
      * Initialize the mocks.
      */
-    @Before
-    public void init() {
+    @BeforeEach
+    void init() {
         // consortium and organization
         MockitoAnnotations.initMocks(this);
         when(consortium.getConsortiumId()).thenReturn(CONSORTIUM_ID);
@@ -83,12 +83,12 @@ public class JwtTokenProviderTest {
     }
 
     @Test
-    public void testJwt() throws Exception {
+    void testJwt() throws Exception {
         String token = jwtTokenProvider.createRefreshToken(user);
         Jws<Claims> jws = Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token);
         Claims claims = jws.getBody();
-        Assert.assertEquals("user@test.com", claims.getSubject());
-        Assert.assertEquals(CONSORTIUM_ID.toString(), claims.get("context_name", String.class));
+        Assertions.assertEquals("user@test.com", claims.getSubject());
+        Assertions.assertEquals(CONSORTIUM_ID.toString(), claims.get("context_name", String.class));
         System.out.println(jws);
     }
 

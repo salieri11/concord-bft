@@ -7,17 +7,17 @@ package com.vmware.blockchain.connections;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.vmware.blockchain.common.ConcordProperties;
@@ -27,7 +27,7 @@ import com.vmware.blockchain.services.profiles.Blockchain;
 /**
  * Test the ConnectionPoolManger.
  */
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @TestPropertySource(locations = "classpath:test.properties")
 @ContextConfiguration(classes = {ConnectionPoolManagerTest.Config.class})
 public class ConnectionPoolManagerTest {
@@ -51,8 +51,8 @@ public class ConnectionPoolManagerTest {
     /**
      * Initialize mocks and test structures.
      */
-    @Before
-    public void init() throws IOException {
+    @BeforeEach
+    void init() throws IOException {
         // This is the only reason the "type" field exists in the ConnectionPoolManager.
         ReflectionTestUtils.setField(manager, "type", ConnectionType.Mock);
         chain1 = new Blockchain(UUID.fromString("9b22ea6f-5a2f-4159-b2f0-f10a1d751649"), null,
@@ -64,27 +64,27 @@ public class ConnectionPoolManagerTest {
     }
 
     @Test
-    public void testBasic() {
-        Assert.assertNotNull(pool1.getId());
-        Assert.assertNotNull(pool2.getId());
-        Assert.assertEquals(pool1, manager.getPool(chain1));
-        Assert.assertEquals(pool2, manager.getPool(chain2));
-        Assert.assertNotEquals(pool1, pool2);
+    void testBasic() {
+        Assertions.assertNotNull(pool1.getId());
+        Assertions.assertNotNull(pool2.getId());
+        Assertions.assertEquals(pool1, manager.getPool(chain1));
+        Assertions.assertEquals(pool2, manager.getPool(chain2));
+        Assertions.assertNotEquals(pool1, pool2);
     }
 
     @Test
-    public void testPool() throws IllegalStateException, IOException, InterruptedException {
+    void testPool() throws IllegalStateException, IOException, InterruptedException {
         MockConnection conn = (MockConnection) manager.getPool(chain1).getConnection();
         // The connection we get should be in chain1, but not chain2
-        Assert.assertTrue(chain1.getIpAsList().contains(conn.getIpStr()));
-        Assert.assertFalse(chain2.getIpAsList().contains(conn.getIpStr()));
+        Assertions.assertTrue(chain1.getIpAsList().contains(conn.getIpStr()));
+        Assertions.assertFalse(chain2.getIpAsList().contains(conn.getIpStr()));
         manager.getPool(chain1).putConnection(conn);
     }
 
     @Test
-    public void testDoubleCreate() throws IOException {
+    void testDoubleCreate() throws IOException {
         ConcordConnectionPool pool = manager.createPool(chain1);
-        Assert.assertEquals(pool1, pool);
+        Assertions.assertEquals(pool1, pool);
 
     }
 

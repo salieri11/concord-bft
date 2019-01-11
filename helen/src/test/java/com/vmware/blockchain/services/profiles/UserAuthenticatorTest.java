@@ -16,10 +16,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.Optional;
 import java.util.UUID;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -28,7 +28,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 
@@ -39,13 +39,13 @@ import com.vmware.blockchain.security.JwtTokenProvider;
 
 /**
  * User Authenticator tests.
- * Initialize with MvcConfig, and only scan this compoenent.
+ * Initialize with MvcConfig, and only scan this component.
  */
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @WebMvcTest(secure = false, controllers = UserAuthenticator.class)
 @ContextConfiguration(classes = MvcConfig.class)
 @ComponentScan(basePackageClasses = { UserAuthenticatorTest.class })
-public class UserAuthenticatorTest {
+class UserAuthenticatorTest {
 
     // Just some random UUIDs
     private static final UUID USER_ID = UUID.fromString("f1c1aa4f-4958-4e93-8a51-930d595fb65b");
@@ -90,8 +90,8 @@ public class UserAuthenticatorTest {
     /**
      * initialize test user and mocks.
      */
-    @Before
-    public void init() {
+    @BeforeEach
+    void init() {
         Consortium consortium = new Consortium();
         consortium.setConsortiumId(CONSORTIUM_ID);
         consortium.setConsortiumName("Consortium Test");
@@ -137,7 +137,7 @@ public class UserAuthenticatorTest {
 
 
     @Test
-    public void loginTest() throws Exception {
+    void loginTest() throws Exception {
         String loginRequest = "{\"email\": \"user@test.com\", \"password\": \"1234\"}";
         String loginResponse =
                 "{\"user_id\":\"f1c1aa4f-4958-4e93-8a51-930d595fb65b\","
@@ -147,11 +147,11 @@ public class UserAuthenticatorTest {
                 .contentType(MediaType.APPLICATION_JSON).content(loginRequest))
                 .andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isOk()).andExpect(content().json(loginResponse));
-        Assert.assertNotEquals(new Long(0), testUser.getLastLogin());
+        Assertions.assertNotEquals(0, testUser.getLastLogin());
     }
 
     @Test
-    public void missingParamTest() throws Exception {
+    void missingParamTest() throws Exception {
         String loginRequest = "{\"email\": \"user@test.com\"}";
         String loginResponse = "{\"error\":\"Invalid email/password\"}";
         mvc.perform(post("/api/auth/login").with(csrf()).with(csrf())
@@ -160,7 +160,7 @@ public class UserAuthenticatorTest {
     }
 
     @Test
-    public void badPasswordTest() throws Exception {
+    void badPasswordTest() throws Exception {
         String loginRequest = "{\"email\": \"user@test.com\", \"password\": \"3456\"}";
         String loginResponse = "{\"error\":\"Invalid email/password\"}";
         mvc.perform(post("/api/auth/login").with(csrf())
@@ -169,7 +169,7 @@ public class UserAuthenticatorTest {
     }
 
     @Test
-    public void noUserTest() throws Exception {
+    void noUserTest() throws Exception {
         String loginRequest = "{\"email\": \"baduser@test.com\", \"password\": \"1234\"}";
         String loginResponse = "{\"error\":\"Invalid email/password\"}";
         mvc.perform(post("/api/auth/login").with(csrf())
@@ -178,7 +178,7 @@ public class UserAuthenticatorTest {
     }
 
     @Test
-    public void tokenTest() throws Exception {
+    void tokenTest() throws Exception {
         String tokenRequest = "{\"refresh_token\": \"token\"}";
         String tokenResponse = "{\"refresh_token\":\"refresh_token\",\"token_expires\":1800000,\"token\":\"token\"}";
         mvc.perform(post("/api/auth/token").with(csrf())

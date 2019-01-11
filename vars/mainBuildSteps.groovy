@@ -100,55 +100,6 @@ def call(){
         }
       }
 
-      stage('Build product prereqs') {
-        parallel {
-          stage('Build Communication') {
-            steps {
-              dir ('blockchain/communication') {
-                sh 'mvn clean install'
-              }
-            }
-          }
-        }
-      }
-
-      stage('Build products') {
-        parallel {
-          stage('Build Concord') {
-            steps {
-              dir('blockchain/concord') {
-                sh '''currentDir=`pwd`
-                sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/concord1.config
-                sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/concord2.config
-                sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/concord3.config
-                sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/concord4.config
-
-                git submodule init
-                git submodule update --recursive
-                mkdir -p build
-                cd build
-                cmake ..
-                make'''
-              }
-            }
-          }
-          stage("Build Helen") {
-            steps {
-              dir('blockchain/helen') {
-                sh 'mvn clean install'
-              }
-            }
-          }
-          stage("Build EthRPC") {
-            steps {
-              dir('blockchain/ethrpc') {
-                sh 'mvn clean install'
-              }
-            }
-          }
-        }
-      }
-
       stage("Configure docker and git") {
         steps {
           // Docker will fail to launch unless we fix up this DNS stuff.  It will try to use Google's
@@ -195,6 +146,67 @@ def call(){
           script {
             env.version_label = 'com.vmware.blockchain.version'
             env.commit_label = 'com.vmware.blockchain.commit'
+          }
+        }
+      }
+
+      stage('Set up maven repository container volume') {
+        steps {
+            sh 'docker volume create --name mvn-repo'
+        }
+      }
+
+      stage('Build product prerequisites') {
+        parallel {
+          stage('Build Communication') {
+            steps {
+              dir ('blockchain') {
+                sh '''
+                  docker run --rm --name mvn-build-communication -v mvn-repo:/root/.m2 -v "$(pwd)":/workspace -w /workspace maven:3.6.0-jdk-11 mvn clean install -pl communication
+                '''
+              }
+            }
+          }
+        }
+      }
+
+      stage('Build products') {
+        parallel {
+          stage('Build Concord') {
+            steps {
+              dir('blockchain/concord') {
+                sh '''currentDir=`pwd`
+                sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/concord1.config
+                sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/concord2.config
+                sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/concord3.config
+                sed -i\'\' "s?/tmp/genesis.json?${currentDir}/test/resources/genesis.json?g" resources/concord4.config
+
+                git submodule init
+                git submodule update --recursive
+                mkdir -p build
+                cd build
+                cmake ..
+                make'''
+              }
+            }
+          }
+          stage("Build Helen") {
+            steps {
+              dir('blockchain') {
+                sh '''
+                  docker run --rm --name mvn-build-helen -v mvn-repo:/root/.m2 -v "$(pwd)":/workspace -w /workspace maven:3.6.0-jdk-11 mvn clean install -pl helen
+                '''
+              }
+            }
+          }
+          stage("Build EthRPC") {
+            steps {
+              dir('blockchain') {
+                sh '''
+                  docker run --rm --name mvn-build-ethrpc -v mvn-repo:/root/.m2 -v "$(pwd)":/workspace -w /workspace maven:3.6.0-jdk-11 mvn clean install -pl ethrpc
+                '''
+              }
+            }
           }
         }
       }

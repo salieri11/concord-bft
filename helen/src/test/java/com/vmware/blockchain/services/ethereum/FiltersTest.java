@@ -6,36 +6,36 @@ package com.vmware.blockchain.services.ethereum;
 
 import java.util.Random;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 /**
  * Simple tests of FilterManager and EthereumFilter.
  */
-public class FiltersTest {
+class FiltersTest {
 
     /**
      * A simple test to make sure initial values are recorded.
      */
     @Test
-    public void directNewBlockFilterInitialValues() {
+    void directNewBlockFilterInitialValues() {
         Random rand = new Random();
         final String testId = Long.toHexString(rand.nextLong());
         final long testLatestBlock = rand.nextLong();
 
         final EthereumFilter testFilter = EthereumFilter.newBlockFilter(testId, testLatestBlock);
 
-        Assert.assertEquals(EthereumFilter.FilterType.BlockFilter, testFilter.type);
-        Assert.assertEquals(testId, testFilter.id);
-        Assert.assertEquals(testLatestBlock, testFilter.latestBlock);
-        Assert.assertEquals(true, testFilter.delay);
+        Assertions.assertEquals(EthereumFilter.FilterType.BlockFilter, testFilter.type);
+        Assertions.assertEquals(testId, testFilter.id);
+        Assertions.assertEquals(testLatestBlock, testFilter.latestBlock);
+        Assertions.assertTrue(testFilter.delay);
     }
 
     /**
      * A simple tests to make sure update values are recorded, and non-chaning fields don't change.
      */
     @Test
-    public void directUpdateBlockFilterValues() {
+    void directUpdateBlockFilterValues() {
         Random rand = new Random();
         final String testId = Long.toHexString(rand.nextLong());
         final long testInitialBlock = rand.nextLong();
@@ -45,21 +45,21 @@ public class FiltersTest {
         final EthereumFilter updatedFilter = initialFilter.updateFilter(testLatestBlock);
 
         // type and ID should not change
-        Assert.assertEquals(EthereumFilter.FilterType.BlockFilter, updatedFilter.type);
-        Assert.assertEquals(testId, updatedFilter.id);
+        Assertions.assertEquals(EthereumFilter.FilterType.BlockFilter, updatedFilter.type);
+        Assertions.assertEquals(testId, updatedFilter.id);
 
         // latest block should be new value
-        Assert.assertEquals(testLatestBlock, updatedFilter.latestBlock);
+        Assertions.assertEquals(testLatestBlock, updatedFilter.latestBlock);
 
         // and delay should clear
-        Assert.assertEquals(false, updatedFilter.delay);
+        Assertions.assertFalse(updatedFilter.delay);
     }
 
     /**
      * Repeat the initial and update tests above, but go through the FilterManager.
      */
     @Test
-    public void managerBlockFilterValues() {
+    void managerBlockFilterValues() {
         Random rand = new Random();
         final long testInitialBlock = rand.nextLong();
         final long testLatestBlock = rand.nextLong();
@@ -67,28 +67,28 @@ public class FiltersTest {
         final String initialFilterId = FilterManager.createBlockFilter(testInitialBlock);
         final EthereumFilter initialFilter = FilterManager.getFilter(initialFilterId);
 
-        Assert.assertEquals(initialFilterId, initialFilter.id);
-        Assert.assertEquals(EthereumFilter.FilterType.BlockFilter, initialFilter.type);
-        Assert.assertEquals(testInitialBlock, initialFilter.latestBlock);
-        Assert.assertEquals(true, initialFilter.delay);
+        Assertions.assertEquals(initialFilterId, initialFilter.id);
+        Assertions.assertEquals(EthereumFilter.FilterType.BlockFilter, initialFilter.type);
+        Assertions.assertEquals(testInitialBlock, initialFilter.latestBlock);
+        Assertions.assertTrue(initialFilter.delay);
 
         FilterManager.updateFilter(initialFilter, testLatestBlock);
         final EthereumFilter updatedFilter = FilterManager.getFilter(initialFilter.id);
 
         // this "not equal" is a little specious, but EthereumFilter is documented as immutable, so this a prevention of
         // a change to that guarantee
-        Assert.assertNotEquals(initialFilter, updatedFilter);
-        Assert.assertEquals(initialFilterId, updatedFilter.id);
-        Assert.assertEquals(EthereumFilter.FilterType.BlockFilter, updatedFilter.type);
-        Assert.assertEquals(testLatestBlock, updatedFilter.latestBlock);
-        Assert.assertEquals(false, updatedFilter.delay);
+        Assertions.assertNotEquals(initialFilter, updatedFilter);
+        Assertions.assertEquals(initialFilterId, updatedFilter.id);
+        Assertions.assertEquals(EthereumFilter.FilterType.BlockFilter, updatedFilter.type);
+        Assertions.assertEquals(testLatestBlock, updatedFilter.latestBlock);
+        Assertions.assertFalse(updatedFilter.delay);
     }
 
     /**
      * Test that new IDs are created for each filter.
      */
     @Test
-    public void managerCreatesNewIds() {
+    void managerCreatesNewIds() {
         final int testFilterCount = 10;
         String[] filterIds = new String[testFilterCount];
 
@@ -98,7 +98,7 @@ public class FiltersTest {
 
             // this new filter's ID shouldn't be the same as any already created
             for (int j = 0; j < i; j++) {
-                Assert.assertNotEquals(filterIds[j], filterIds[i]);
+                Assertions.assertNotEquals(filterIds[j], filterIds[i]);
             }
         }
     }
@@ -107,16 +107,16 @@ public class FiltersTest {
      * Test that uninstalling a filter makes it unfindable.
      */
     @Test
-    public void managerUninstallsFilters() {
+    void managerUninstallsFilters() {
         // latest block parameter doesn't matter here
         final String filterId = FilterManager.createBlockFilter(0);
 
         boolean uninstallSuccess = FilterManager.uninstallFilter(filterId);
 
-        Assert.assertEquals(true, uninstallSuccess);
+        Assertions.assertTrue(uninstallSuccess);
 
         final EthereumFilter foundFilter = FilterManager.getFilter(filterId);
 
-        Assert.assertEquals(null, foundFilter);
+        Assertions.assertNull(foundFilter);
     }
 }

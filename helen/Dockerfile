@@ -12,7 +12,7 @@ LABEL Description="Helen"
 
 WORKDIR /
 COPY src/main/resources/application.properties .
-COPY target/helen*.jar .
+COPY target/blockchain-helen*.jar .
 
 # prepare for docker-compose, where concord is available from a virtual
 # hosts named "concord1", "concord2", ...
@@ -20,6 +20,6 @@ RUN sed -i -e "s/ConcordAuthorities=.*/ConcordAuthorities=concord1:5458,concord2
 # and CockroachDB is available from a virtual host named db-server
 RUN sed -i -e "s/DB_IP=.*/DB_IP=db-server/g" application.properties
 
-CMD java -jar helen*.jar
+CMD java -jar blockchain-helen*.jar
 
 EXPOSE 8080

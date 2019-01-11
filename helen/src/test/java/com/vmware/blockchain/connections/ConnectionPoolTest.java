@@ -13,17 +13,17 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.connections.ConcordConnectionPool.ConnectionType;
@@ -33,7 +33,7 @@ import com.vmware.blockchain.services.profiles.Consortium;
 /**
  * Connection pool unit tests.
  */
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @TestPropertySource(locations = "classpath:test.properties")
 @SpringBootTest(classes = {ConcordProperties.class})
 public class ConnectionPoolTest {
@@ -53,8 +53,8 @@ public class ConnectionPoolTest {
     /**
      * Initialize mocks.
      */
-    @Before
-    public void setup() throws IOException {
+    @BeforeEach
+    void setup() throws IOException {
         MockitoAnnotations.initMocks(this);
         when(consortium.getConsortiumId()).thenReturn(UUID.fromString("277858b5-b962-4aa5-850e-c992c84cfdcb"));
         when(consortium.getConsortiumName()).thenReturn("Test Name");
@@ -68,8 +68,8 @@ public class ConnectionPoolTest {
     /**
      * Tear down the test pool.
      */
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown() {
         log.info("tearDown");
         if (pool != null && pool.isInitialized()) {
             pool.closeAll();
@@ -77,16 +77,16 @@ public class ConnectionPoolTest {
     }
 
     @Test
-    public void testPool() {
-        Assert.assertTrue(pool.isInitialized());
-        Assert.assertNotNull(pool.getId());
+    void testPool() {
+        Assertions.assertTrue(pool.isInitialized());
+        Assertions.assertNotNull(pool.getId());
     }
 
     @Test
     public void testConnectionCheck() throws IOException, InterruptedException {
         MockConnection conn = (MockConnection) pool.getConnection();
-        Assert.assertNotNull(conn);
-        Assert.assertTrue(blockchain.getIpAsList().contains(conn.getIpStr()));
+        Assertions.assertNotNull(conn);
+        Assertions.assertTrue(blockchain.getIpAsList().contains(conn.getIpStr()));
         if (conn != null) {
             pool.putConnection(conn);
         }
@@ -95,7 +95,7 @@ public class ConnectionPoolTest {
 
     @Test
     public void testConnectionSetup() {
-        Assert.assertEquals(config.getConnectionPoolSize(), pool.getTotalConnections());
+        Assertions.assertEquals(config.getConnectionPoolSize(), pool.getTotalConnections());
         log.info("testConnectinSetup end");
     }
 
@@ -109,15 +109,15 @@ public class ConnectionPoolTest {
             ips.remove(conn.getIpStr());
         }
         // we should have hit each ip once
-        Assert.assertEquals(0, ips.size());
+        Assertions.assertEquals(0, ips.size());
     }
 
     @Test
     public void testCloseAll() throws IOException {
         ConcordConnectionPool tPool = new ConcordConnectionPool(blockchain, ConnectionType.Mock).initialize(config);
-        Assert.assertTrue(tPool.isInitialized());
+        Assertions.assertTrue(tPool.isInitialized());
         tPool.closeAll();
-        Assert.assertFalse(tPool.isInitialized());
+        Assertions.assertFalse(tPool.isInitialized());
     }
 
 }
