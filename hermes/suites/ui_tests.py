@@ -5,6 +5,7 @@
 #########################################################################
 import logging
 import os
+import pathlib
 import traceback
 import subprocess
 
@@ -22,6 +23,7 @@ class UiTests(test_suite.TestSuite):
     _productMode = True
     _resultFile = None
     _xvfb_present = False
+    _testCaseDir = None
     p = None
 
     def __init__(self, passedArgs):
@@ -48,7 +50,8 @@ class UiTests(test_suite.TestSuite):
         tests = self._get_tests()
         for (testName, testFun) in tests:
             result = False
-            testLogDir = os.path.join(self._testLogDir, testName)
+            self._testCaseDir = os.path.join(self._testLogDir, testName)
+            pathlib.Path(self._testCaseDir).mkdir(parents=True, exist_ok=True)
 
             try:
                 result, info = getattr(self, "_test_{}".format(testName))()
@@ -64,9 +67,9 @@ class UiTests(test_suite.TestSuite):
         if self._xvfb_present:
             self.vdisplay.stop()
 
-        relativeLogDir = self.makeRelativeTestPath(testLogDir)
+        relativeLogDir = self.makeRelativeTestPath(self._testLogDir)
         info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
-                                                    testLogDir)
+                                                    self._testLogDir)
 
         if self._shouldStop():
             p.stopProduct()
@@ -87,44 +90,49 @@ class UiTests(test_suite.TestSuite):
     def _get_tests(self):
         return [("ui_lint", self._test_ui_lint),
                 ("ui_unit", self._test_ui_unit),
-                ("ui_e2e", self._test_ui_e2e), ]
+                ("ui_e2e", self._test_ui_e2e)]
 
     def _test_ui_unit(self):
         cmd = ["npm", "run", "test:build", ]
-        proc_output = subprocess.run(cmd,
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.STDOUT,
-                                     cwd=self.ui_path, )
+        logFilePath = os.path.join(self._testCaseDir, "unit_tests.log")
+
+        with open(logFilePath, "wb+") as logFile:
+            proc_output = subprocess.run(cmd,
+                                         stdout=logFile,
+                                         stderr=subprocess.STDOUT,
+                                         cwd=self.ui_path, )
 
         if proc_output.returncode == 1:
-            log.info(proc_output.stdout.decode("UTF-8"))
-            return False, "UI Unit tests failed, please check build log"
+            return False, "UI Unit tests failed, please see {}".format(logFilePath)
 
         return True, "UI unit tests passed"
 
     def _test_ui_e2e(self):
-
         cmd = ["npm", "run", "e2e:build", ]
-        proc_output = subprocess.run(cmd,
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.STDOUT,
-                                     cwd=self.ui_path, )
+        logFilePath = os.path.join(self._testCaseDir, "e2e.log")
+
+        with open(logFilePath, "wb+") as logFile:
+            proc_output = subprocess.run(cmd,
+                                         stdout=logFile,
+                                         stderr=subprocess.STDOUT,
+                                         cwd=self.ui_path, )
 
         if proc_output.returncode == 1:
-            log.info(proc_output.stdout.decode("UTF-8"))
-            return False, "UI E2E tests failed, please check build log"
+            return False, "UI E2E tests failed, please see {}".format(logFilePath)
 
         return True, "UI E2E passed"
 
     def _test_ui_lint(self):
         cmd = ["npm", "run", "lint", ]
-        proc_output = subprocess.run(cmd,
-                                     stdout=subprocess.PIPE,
-                                     stderr=subprocess.STDOUT,
-                                     cwd=self.ui_path, )
+        logFilePath = os.path.join(self._testLogDir, "lint.log")
+
+        with open(logFilePath, "wb+") as logFile:
+            proc_output = subprocess.run(cmd,
+                                         stdout=logFile,
+                                         stderr=subprocess.STDOUT,
+                                         cwd=self.ui_path, )
 
         if proc_output.returncode == 1:
-            log.info(proc_output.stdout.decode("UTF-8"))
-            return False, "UI E2E tests failed, please check build log"
+            return False, "UI E2E tests failed, please see {}".format(logFilePath)
 
         return True, "UI linter passed"

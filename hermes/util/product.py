@@ -399,7 +399,7 @@ class Product():
       '''
       schema = None
 
-      with open("resources/schema.sql", "r") as f:
+      with open("../helen/src/main/resources/database/schema.sql", "r") as f:
          schema = f.read()
 
       commands = [
