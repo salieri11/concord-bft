@@ -14,6 +14,10 @@ while [ "$1" != "" ] ; do
          shift
          TESTS=$1
          ;;
+      "--resultsDir")
+         shift
+         RESULTS_DIR=$1
+         ;;
    esac
    shift
 done
@@ -21,7 +25,10 @@ done
 retVal=1
 TIME_STAMP=`date +%m%d%Y_%H%M%S`
 BASE_LOG_DIR=/var/log/vmwblockchain
-RESULTS_DIR=${BASE_LOG_DIR}/memory_leak_testrun_${TIME_STAMP}
+if [ -z "${RESULTS_DIR}" ]
+then
+    RESULTS_DIR=${BASE_LOG_DIR}/memory_leak_testrun_${TIME_STAMP}
+fi
 MEMORY_INFO_LOG_FILE=${RESULTS_DIR}/memory_info_${TIME_STAMP}.log
 MEMORY_INFO_CSV_FILE=${RESULTS_DIR}/memory_info_${TIME_STAMP}.csv
 SLEEP_TIME_IN_SEC=60
