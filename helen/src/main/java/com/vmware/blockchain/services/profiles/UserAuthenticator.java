@@ -32,6 +32,7 @@ import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.EntityModificationException;
 import com.vmware.blockchain.common.HelenException;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
+import com.vmware.blockchain.security.HelenUserDetails;
 import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
@@ -170,11 +171,13 @@ public class UserAuthenticator extends BaseServlet {
         try {
             String token = request.getRefreshToken();
 
-            if (token != null && jwtTokenProvider.validateToken(token)) {
+            if (token != null) {
                 responseStatus = HttpStatus.OK;
-                Authentication auth = token != null ? jwtTokenProvider.getAuthentication(token) : null;
+                Authentication auth = jwtTokenProvider.getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(auth);
-                String email = jwtTokenProvider.getEmail(token);
+                HelenUserDetails details = (HelenUserDetails) auth.getPrincipal();
+
+                String email = details.getUsername();
                 User u = userRepository.findUserByEmail(email).get();
                 String newToken = jwtTokenProvider.createToken(u);
                 String refreshToken = jwtTokenProvider.createRefreshToken(u);
