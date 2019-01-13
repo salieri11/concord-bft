@@ -970,7 +970,7 @@ class TlsTCPCommunication::TlsTcpImpl {
     }
 
     // all replicas are in listen mode
-    if (_selfId < _maxServerId) {
+    if (_selfId <= _maxServerId) {
       tcp::endpoint ep(address::from_string(_listenIp), _listenPort);
       _pAcceptor = boost::make_unique<tcp::acceptor>(_service, ep);
       start_accept();
