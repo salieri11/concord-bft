@@ -36,6 +36,20 @@ In the `scripts` directory, you'll find:
   * `runReplias.sh`, which just starts all four replicas.
 
   * `runClient.sh`, which just runs the client test.
+  
+  * `create_tls_certs.ssh`, which creates self signed SSL certificates to be used with TlsTcp module.
+
+If you have built Concord with `BUILD_COMM_TCP_TLS TRUE` you must run the following commands to create SSL certificates:
+
+```
+rm -rf certs/
+./create_tls_certs.sh num_of_replicas+num_of_clients
+```
+E.g., for running the Simple Test using `testReplicasAndClient.sh, which runs 4 replicas and 1 client, you will need to run
+```
+rm -rf certs/
+./create_tls_certs.sh 5
+```
 
 If you have built Concord, by running `make.sh` from the top-level
 directory, you can run the test using the following commands:
