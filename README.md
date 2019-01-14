@@ -160,10 +160,29 @@ You may also need to export CPLUS_INCLUDE_PATH variable set to /usr/local/includ
 
 After installation, set USE_LOG4CPP flag to TRUE in the main CmakeLists.txt . The library doesn't initialize the log4cpp subsystem, including formats and appenders, it expects that the upper level application will do it and the log4cpp subsystem is already initialized.
 
-#### (Optional, only if TLS is used as communication module)
-We use OpenSSL for TLS communication module. Please install it using `sudo apt-get install openssl libssl-dev`
+#### (Optional) Only if using TLS as communication module
+We use OpenSSL for TLS communication module. Please install it using
 
+    sudo apt-get install openssl libssl-dev
 
+#### (Optional) Only if using TLS or plain TCP as communication module 
+We use Boost both for plain TCP and TLS communication. Please follow these 
+instructions to install this library
+
+Download Boost version 1.64
+
+    wget https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.gz
+    
+Unpack the archive
+
+    tar -xf boost_1_64_0.tar.gz
+    
+Build and install Boost (note that these commands will install only modules 
+that are mandatory for building this project)
+
+    cd boost_1_64_0
+    ./bootstrap.sh
+    sudo ./b2 --with=system --with=filesystem install
 
 ### Select comm module
 We support both UDP and TCP communication (UDP is the default one).
