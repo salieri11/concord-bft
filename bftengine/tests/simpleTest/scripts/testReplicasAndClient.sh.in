@@ -10,10 +10,6 @@ rm -f private_replica_*
 
 $toolsdir/GenerateConcordKeys -n 4 -f 1 -o private_replica_
 
-echo "Generating new TLS certificates..."
-rm -rf certs/
-./create_tls_certs.sh 5
-
 parallel --halt now,fail=1 -j0 ::: \
     "$scriptdir/../server 0" \
     "$scriptdir/../server 1" \
