@@ -6,6 +6,7 @@ package com.vmware.blockchain.security;
 
 import java.util.Base64;
 import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -17,8 +18,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.common.HelenException;
@@ -48,7 +49,7 @@ public class JwtTokenProvider {
     private long refreshTokenValidityInMilliseconds = 3600000; // 1 hour
 
     @Autowired
-    private MyUserDetails myUserDetails;
+    private HelenUserDetailsService helenUserDetailsService;
 
     @PostConstruct
     protected void init() {
@@ -71,7 +72,8 @@ public class JwtTokenProvider {
 
     private String createJwt(User user, long ttl) {
         Claims claims = Jwts.claims().setSubject(user.getEmail());
-        claims.put("auth", user.getRoles().stream().map(s -> new SimpleGrantedAuthority(s.getAuthority()))
+        // Changing this to be more like GAZ generated token
+        claims.put("perms", user.getRoles().stream().map(s -> s.getAuthority())
                 .filter(Objects::nonNull).collect(Collectors.toList()));
         // "context_name" is what this field will be when we integrate with CSP
         claims.put("context_name", user.getConsortium().getConsortiumId());
@@ -83,13 +85,25 @@ public class JwtTokenProvider {
                 .signWith(SignatureAlgorithm.HS256, secretKey).compact();
     }
 
+    /**
+     * Return an Authentication for the give token.  Note that this always returns a value.
+     * Throws HelenException if anything is wrong.
+     */
     public Authentication getAuthentication(String token) {
-        UserDetails userDetails = myUserDetails.loadUserByUsername(getEmail(token));
-        return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
-    }
+        // throws exception if token not valid
+        Claims claims = validateToken(token);
+        String email = claims.getSubject();
+        String orgId = claims.get("context_name", String.class);
+        @SuppressWarnings("unchecked")
+        List<String> roles = claims.get("perms", List.class);
+        List<GrantedAuthority> authorities =
+                roles.stream().map(r -> new SimpleGrantedAuthority(r)).collect(Collectors.toList());
+        // throws exception if user not found.
+        HelenUserDetails userDetails = (HelenUserDetails) helenUserDetailsService.loadUserByUsername(email);
+        userDetails.setAuthToken(token);
+        userDetails.setOrgId(orgId);
 
-    public String getEmail(String token) {
-        return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody().getSubject();
+        return new UsernamePasswordAuthenticationToken(userDetails, "", authorities);
     }
 
     /**
@@ -104,12 +118,11 @@ public class JwtTokenProvider {
     }
 
     /**
-     * Check the validity of the current token.
+     * Check the validity of the current token, and get the claims.
      */
-    public boolean validateToken(String token) {
+    private Claims validateToken(String token) {
         try {
-            Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token);
-            return true;
+            return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody();
         } catch (JwtException | IllegalArgumentException e) {
             throw new HelenException("Expired or invalid JWT token", HttpStatus.UNAUTHORIZED);
         }

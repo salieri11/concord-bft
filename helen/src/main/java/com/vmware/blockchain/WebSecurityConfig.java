@@ -17,9 +17,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.vmware.blockchain.security.HelenUserDetailsService;
 import com.vmware.blockchain.security.JwtTokenFilterConfigurer;
 import com.vmware.blockchain.security.JwtTokenProvider;
-import com.vmware.blockchain.security.MyUserDetails;
 import com.vmware.blockchain.security.RestAuthenticationEntryPoint;
 
 
@@ -46,7 +46,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/auth/login", "/api/auth/token", "/api/agreements/1", "/", "/assets/**")
                 .permitAll().antMatchers("/api/users").hasAnyAuthority("CONSORTIUM_ADMIN", "SYSTEM_ADMIN", "ORG_ADMIN")
                 .antMatchers("/api/concord/**")
-                .hasAnyAuthority("CONSORTIUM_ADMIN", "SYSTEM_ADMIN", "ORG_ADMIN", "ORG_DEVELOPER").anyRequest()
+                .hasAnyAuthority("CONSORTIUM_ADMIN", "SYSTEM_ADMIN", "ORG_ADMIN", "ORG_DEVELOPER", "ORG_USER")
+                .anyRequest()
                 .authenticated().and().apply(new JwtTokenFilterConfigurer(jwtTokenProvider)).and().exceptionHandling()
                 .authenticationEntryPoint(restAuthticationEntryPoint).and().anonymous().and().httpBasic();
     }
@@ -73,8 +74,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     }
 
     @Bean
-    public MyUserDetails userDetails() {
-        return new MyUserDetails();
+    public HelenUserDetailsService userDetails() {
+        return new HelenUserDetailsService();
     }
 
 }
