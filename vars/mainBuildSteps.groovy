@@ -140,11 +140,33 @@ def call(){
 
           // These are constants which mirror the DockerHub repos.  DockerHub is only used for publishing releases.
           script {
+            env.docker_tag = env.version_param ? env.version_param : env.commit
             env.concord_repo = 'vmwblockchain/concord-core'
             env.helen_repo = 'vmwblockchain/concord-ui'
             env.ethrpc_repo = 'vmwblockchain/ethrpc'
             env.fluentd_repo = 'vmwblockchain/fluentd'
             env.ui_repo = 'vmwblockchain/ui'
+          }
+
+          // Docker-compose picks up values from the environment or, if not there,
+          // the .env file in the directory from which docker-compose is run.
+          withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+            sh '''
+              echo "${PASSWORD}" | sudo -S ls
+              sudo cat >blockchain/concord/docker/.env <<EOF
+concord_repo=${concord_repo}
+concord_tag=${docker_tag}
+helen_repo=${helen_repo}
+helen_tag=${docker_tag}
+ethrpc_repo=${ethrpc_repo}
+ethrpc_tag=${docker_tag}
+fluentd_repo=${fluentd_repo}
+fluentd_tag=${docker_tag}
+ui_repo=${ui_repo}
+ui_tag=${docker_tag}
+EOF
+              cp blockchain/concord/docker/.env blockchain/hermes/
+            '''
           }
 
           // These are constants related to labels.
@@ -222,14 +244,9 @@ def call(){
             steps {
               script {
                 dir('blockchain/helen') {
-
-                 script {
-                    env.helen_docker_tag = env.version_param ? env.version_param : env.commit
-                  }
-
                   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                     sh '''
-                      docker build . -t "${helen_repo}:${helen_docker_tag}" --label ${version_label}=${helen_docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
+                      docker build . -t "${helen_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
                   }
                 }
@@ -241,14 +258,9 @@ def call(){
             steps {
               script {
                 dir('blockchain/ethrpc') {
-
-                 script {
-                    env.ethrpc_docker_tag = env.version_param ? env.version_param : env.commit
-                  }
-
                   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                     sh '''
-                      docker build . -t "${ethrpc_repo}:${ethrpc_docker_tag}" --label ${version_label}=${ethrpc_docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
+                      docker build . -t "${ethrpc_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
                   }
                 }
@@ -260,12 +272,9 @@ def call(){
             steps {
               script {
                 dir('blockchain/concord') {
-                  script {
-                    env.concord_docker_tag = env.version_param ? env.version_param : env.commit
-                  }
                   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                     sh '''
-                      docker build .. -f Dockerfile -t "${concord_repo}:${concord_docker_tag}" --label ${version_label}=${concord_docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
+                      docker build .. -f Dockerfile -t "${concord_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
                   }
                 }
@@ -277,9 +286,6 @@ def call(){
             steps {
               script {
                 dir('blockchain/concord/docker') {
-                  script {
-                    env.fluentd_tag = env.version_param ? env.version_param : env.commit
-                  }
                   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                     sh '''
                       docker-compose build fluentd
@@ -294,9 +300,6 @@ def call(){
             steps {
               script {
                 dir('blockchain/concord/docker') {
-                  script {
-                    env.ui_docker_tag = env.version_param ? env.version_param : env.commit
-                  }
                   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                     sh '''
                       docker-compose build ui
@@ -322,22 +325,6 @@ def call(){
                 env.regression_test_logs = new File(env.test_log_root, "Regression").toString()
                 env.statetransfer_test_logs = new File(env.test_log_root, "StateTransfer").toString()
               }
-
-              sh '''
-                echo "${PASSWORD}" | sudo -S ls
-                sudo cat >.env <<EOF
-concord_repo=${concord_repo}
-concord_tag=${concord_docker_tag}
-helen_repo=${helen_repo}
-helen_tag=${helen_docker_tag}
-ethrpc_repo=${ethrpc_repo}
-ethrpc_tag=${ethrpc_docker_tag}
-fluentd_repo=${fluentd_repo}
-fluentd_tag=${fluentd_tag}
-ui_repo=${ui_repo}
-ui_tag=${ui_docker_tag}
-EOF
-              '''
 
               sh '''
                 # We need to delete the database files before running UI tests because
