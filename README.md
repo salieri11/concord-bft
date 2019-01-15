@@ -195,8 +195,9 @@ Build and install Boost (note that these commands will install only modules
 that are mandatory for building this project)
 
     cd boost_1_64_0
-    ./bootstrap.sh
-    sudo ./b2 --with=system --with=filesystem install
+    ./bootstrap.sh --with-libraries=system,filesystem
+    ./b2
+    sudo ./b2 install
 
 ### Select comm module
 We support both UDP and TCP communication. UDP is the default. In order to
