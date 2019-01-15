@@ -19,6 +19,7 @@ import { TourService } from '../../shared/tour.service';
 import { Personas } from '../../shared/persona.service';
 import { VmwThemeSwitchButtonComponent } from '../../shared/components/theme-switch-button/theme-switch-button.component';
 import { VmwClarityThemeService } from '../../shared/theme.provider';
+import { VersionComponent } from '../../shared/components/version/version.component';
 
 describe('MainComponent', () => {
   let component: MainComponent;
@@ -36,7 +37,8 @@ describe('MainComponent', () => {
         VmwTaskComponent,
         CanViewDirective,
         AppHeaderComponent,
-        VmwThemeSwitchButtonComponent
+        VmwThemeSwitchButtonComponent,
+        VersionComponent
       ],
       providers: [
         ErrorAlertService,

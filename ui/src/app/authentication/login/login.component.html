@@ -5,12 +5,6 @@
       <h3>{{'nav.login' | translate}}</h3>
     </section>
     <div class="login-group">
-<!-- This is useful for testing, but don't want in the POC, won't delete just yet
-      <div class="auth-source select">
-        <select name="persona" id="persona" formControlName="persona">
-          <option *ngFor="let persona of personaOptions" [value]="persona.value">{{persona.name | translate}}</option>
-        </select>
-      </div> -->
       <input #username class="username" type="text" id="loginUsername" [attr.placeholder]="'authentication.username' | translate" formControlName="email">
       <input class="password" type="password" id="loginPassword" [attr.placeholder]="'authentication.password' | translate" formControlName="password">
       <div class="error active" *ngIf="errorMessage">
@@ -34,4 +28,5 @@
       <button type="submit" id="changePassword" class="btn btn-primary" [disabled]="changePasswordForm.invalid || (loginForm.value.password === changePasswordForm.value.confirmPassword)">{{'authentication.next' | translate}}</button>
     </div>
   </form>
+  <concord-version></concord-version>
 </div>

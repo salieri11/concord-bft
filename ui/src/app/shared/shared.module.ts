@@ -30,6 +30,7 @@ import { VmwCopyToClipboardButtonComponent } from './components/copy-to-clipboar
 import { VmwThemeSwitchButtonComponent } from './components/theme-switch-button/theme-switch-button.component';
 import { CodeHighlighterComponent } from './components/code-highlighter/code-highlighter.component';
 import { AppHeaderComponent } from './components/app-header/app-header.component';
+import { VersionComponent } from './components/version/version.component';
 
 @NgModule({
   imports: [
@@ -54,7 +55,8 @@ import { AppHeaderComponent } from './components/app-header/app-header.component
     BlockchainWizardComponent,
     VmwThemeSwitchButtonComponent,
     CodeHighlighterComponent,
-    AppHeaderComponent
+    AppHeaderComponent,
+    VersionComponent
   ],
   exports: [
     CommonModule,
@@ -74,7 +76,8 @@ import { AppHeaderComponent } from './components/app-header/app-header.component
     BlockchainWizardComponent,
     VmwThemeSwitchButtonComponent,
     CodeHighlighterComponent,
-    AppHeaderComponent
+    AppHeaderComponent,
+    VersionComponent
   ]
 })
 export class SharedModule {
