@@ -1,19 +1,59 @@
 <div class="p-2">
   <div class="row">
-    <div class="col-xs-12">
-      <h3 class="mt-0">{{ 'logging.bar.title' | translate }}</h3>
+    <div class="col-xs-6">
+      <h2 class="page-title">{{ 'logging.bar.title' | translate }}</h2>
+    </div>
+    <div class="col-xs-6">
+      <div class="text-right button-container-margin">
+        <clr-dropdown>
+          <button type="button"
+                  class="btn btn-outline-primary"
+                  clrDropdownTrigger
+                  [disabled]="countLoading || listLoading">
+            {{selectedTimePeriod.title}}
+            <clr-icon shape="caret down"></clr-icon>
+          </button>
+          <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
+            <button type="button"
+                    *ngFor="let period of timePeriods"
+                    [ngClass]="{'active': period.value === selectedTimePeriod.value}"
+                    (click)="onSelectTimePeriod(period)"
+                    clrDropdownItem>
+              {{period.title}}
+            </button>
+          </clr-dropdown-menu>
+        </clr-dropdown>
+      </div>
     </div>
     <div class="col-xs-12">
-      <div class="card">
+      <div class="card area-chart-container">
         <div class="card-block">
-          <concord-log-graph [graphData]="graphData"></concord-log-graph>
+          <div *ngIf="countLoading" class="spinner-container-absolute">
+            <span class="spinner spinner-lg"></span>
+          </div>
+          <concord-log-graph
+            [graphData]="graphData"
+            [xAxisTickFormatting]="xAxisTickFormatting"
+            [interval]="selectedTimePeriod.interval"></concord-log-graph>
         </div>
       </div>
     </div>
   </div>
   <div class="row">
-    <div class="col-xs-7">
+    <div class="col-xs-12 text-right total-count-container">
+      <div *ngIf="countLoading">
+        <span class="spinner spinner-inline"></span>
+        <span class="total-count-loading-text">{{'logging.counts.loadingTotalCount' | translate}}</span>
+      </div>
+      <div *ngIf="!countLoading"
+           [innerHTML]="'logging.counts.totalCount' | translate:{total: (totalCount | number)}">
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-xs-8">
       <clr-datagrid [clrDgLoading]="listLoading">
+        <clr-dg-placeholder>{{ 'logging.logTable.noLogsFound' | translate }}</clr-dg-placeholder>
         <clr-dg-column>{{ 'logging.logTable.title' | translate }}</clr-dg-column>
         <clr-dg-row *clrDgItems="let log of logs">
           <clr-dg-cell>
@@ -30,18 +70,36 @@
                 (click)="onFetchNextPage()"
                 [attr.disabled]="listLoading ? '' : null"
                 type="button"
-                class="btn btn-primary next-page">
-          {{ 'logging.actions.nextPage' | translate }}
+                class="btn btn-outline-primary next-page">
+          {{ 'logging.actions.loadMore' | translate }}
         </button>
       </div>
     </div>
-    <div class="col-xs-5">
+    <div class="col-xs-4">
       <div class="card heat-map-container">
         <div class="card-header">
-          {{ 'logging.heatMap.title' | translate }}
+          {{ heatMapTitle }}
         </div>
-        <div class="card-block">
-          <concord-log-heat-map [graphData]="heatMapData"></concord-log-heat-map>
+        <div class="card-block" [ngClass]="{'is-loading': countLoading}">
+          <div *ngIf="countLoading" class="spinner-container-absolute">
+            <span class="spinner spinner-lg"></span>
+          </div>
+          <div *ngIf="!isSmallSeries && !countLoading" class="heat-map">
+            <div class="heat-map-label heat-map-y-axis-label">{{selectedTimePeriod.yAxisLabel}}</div>
+            <concord-log-heat-map [graphData]="heatMapData"
+                                  [xAxisLabel]="selectedTimePeriod.xAxisLabel"
+                                  [yAxisLabel]="selectedTimePeriod.yAxisLabel"></concord-log-heat-map>
+            <div class="heat-map-label text-center">{{selectedTimePeriod.xAxisLabel}}</div>
+          </div>
+          <div *ngIf="isSmallSeries">
+            <clr-alert [clrAlertClosable]="false">
+              <clr-alert-item>
+                <span class="alert-text">
+                    {{ 'logging.heatMap.notEnoughData' | translate }}
+                </span>
+              </clr-alert-item>
+            </clr-alert>
+          </div>
         </div>
       </div>
     </div>
