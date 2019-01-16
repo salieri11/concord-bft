@@ -9,7 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v2
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v3
 
 ## Remember context is the parent of this directory
 COPY ./communication /communication
@@ -21,7 +21,7 @@ RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make
 
 
 ## Base Run image
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 LABEL Description="Concord"
 
 ARG memleak_util=""
@@ -36,9 +36,9 @@ RUN apt-get -y install ${memleak_util} \
     libbz2-1.0 \
     libgmp10 \
     liblz4-1 \
-    libprotobuf9v5 \
+    libprotobuf10 \
     libsnappy1v5 \
-    libzstd0 \
+    libzstd1 \
     llvm-5.0 \
     && rm -rf /var/lib/apt/lists/*
 

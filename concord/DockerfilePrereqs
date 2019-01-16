@@ -1,8 +1,9 @@
-## IMPORTANT: You must have initialized and updated the submodules
-## before building the docker image! See README.md.
+## IMPORTANT: While Dockerfile is meant to be built with the parent of
+## this directory as the context, this DockerfilePrereqs is meant to
+## be build with this directory (concord) as the context.
 
 ## Build image
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 LABEL Description="Build environment for concord"
 
 RUN apt-get update && apt-get -y install \
@@ -36,6 +37,7 @@ WORKDIR /
 RUN git clone https://github.com/weidai11/cryptopp.git
 WORKDIR /cryptopp
 RUN git checkout CRYPTOPP_5_6_5
+## This is the reason that the concord directory must be the context
 COPY ./cross-platform-cryptopp.patch .
 RUN git apply --whitespace=nowarn cross-platform-cryptopp.patch
 WORKDIR /cryptopp/build
