@@ -177,26 +177,6 @@ EOF
         }
       }
 
-      stage('Set up maven repository container volume') {
-        steps {
-            sh 'docker volume create --name mvn-repo'
-        }
-      }
-
-      stage('Build product prerequisites') {
-        parallel {
-          stage('Build Communication') {
-            steps {
-              dir ('blockchain') {
-                sh '''
-                  docker run --rm --name mvn-build-communication -v mvn-repo:/root/.m2 -v "$(pwd)":/workspace -w /workspace maven:3.6.0-jdk-11 mvn clean install -pl communication
-                '''
-              }
-            }
-          }
-        }
-      }
-
       stage('Build products') {
         parallel {
           stage('Build Concord') {
@@ -217,24 +197,6 @@ EOF
               }
             }
           }
-          stage("Build Helen") {
-            steps {
-              dir('blockchain') {
-                sh '''
-                  docker run --rm --name mvn-build-helen -v mvn-repo:/root/.m2 -v "$(pwd)":/workspace -w /workspace maven:3.6.0-jdk-11 mvn clean install -pl helen
-                '''
-              }
-            }
-          }
-          stage("Build EthRPC") {
-            steps {
-              dir('blockchain') {
-                sh '''
-                  docker run --rm --name mvn-build-ethrpc -v mvn-repo:/root/.m2 -v "$(pwd)":/workspace -w /workspace maven:3.6.0-jdk-11 mvn clean install -pl ethrpc
-                '''
-              }
-            }
-          }
         }
       }
 
@@ -246,7 +208,7 @@ EOF
                 dir('blockchain/helen') {
                   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                     sh '''
-                      docker build . -t "${helen_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
+                      docker build .. -f Dockerfile -t "${helen_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
                   }
                 }
@@ -260,7 +222,7 @@ EOF
                 dir('blockchain/ethrpc') {
                   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                     sh '''
-                      docker build . -t "${ethrpc_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
+                      docker build .. -f Dockerfile -t "${ethrpc_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
                   }
                 }
