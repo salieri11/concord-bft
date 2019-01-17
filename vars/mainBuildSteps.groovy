@@ -138,38 +138,50 @@ def call(){
             git config --global user.name "build system"
           '''
 
-          // These are constants which mirror the DockerHub repos.  DockerHub is only used for publishing releases.
+          // Set up repo variables.
           script {
             env.docker_tag = env.version_param ? env.version_param : env.commit
-            env.concord_repo = 'vmwblockchain/concord-core'
-            env.helen_repo = 'vmwblockchain/concord-ui'
-            env.ethrpc_repo = 'vmwblockchain/ethrpc'
-            env.fluentd_repo = 'vmwblockchain/fluentd'
-            env.ui_repo = 'vmwblockchain/ui'
+            env.release_repo = "vmwblockchain"
+            env.internal_repo = "athena-docker-local.artifactory.eng.vmware.com"
+
+            // These are constants which mirror the DockerHub repos.  DockerHub is only used for publishing releases.
+            env.release_concord_repo = env.release_repo + "/concord-core"
+            env.release_helen_repo = env.release_repo + "/concord-ui"
+            env.release_ethrpc_repo = env.release_repo + "/ethrpc"
+            env.release_fluentd_repo = env.release_repo + "/fluentd"
+            env.release_ui_repo = env.release_repo + "/ui"
+
+            // These are constants which mirror the internal artifactory repos.  We put all merges
+            // to master in the internal VMware artifactory.
+            env.internal_concord_repo = env.release_concord_repo.replace(env.release_repo, env.internal_repo)
+            env.internal_helen_repo = env.internal_repo + "/helen"
+            env.internal_ethrpc_repo = env.release_ethrpc_repo.replace(env.release_repo, env.internal_repo)
+            env.internal_fluentd_repo = env.release_fluentd_repo.replace(env.release_repo, env.internal_repo)
+            env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
           }
 
-          // Docker-compose picks up values from the environment or, if not there,
-          // the .env file in the directory from which docker-compose is run.
+          // Docker-compose picks up values from the .env file in the directory from which
+          // docker-compose is run.
           withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
             sh '''
               echo "${PASSWORD}" | sudo -S ls
               sudo cat >blockchain/concord/docker/.env <<EOF
-concord_repo=${concord_repo}
+concord_repo=${internal_concord_repo}
 concord_tag=${docker_tag}
-helen_repo=${helen_repo}
+helen_repo=${internal_helen_repo}
 helen_tag=${docker_tag}
-ethrpc_repo=${ethrpc_repo}
+ethrpc_repo=${internal_ethrpc_repo}
 ethrpc_tag=${docker_tag}
-fluentd_repo=${fluentd_repo}
+fluentd_repo=${internal_fluentd_repo}
 fluentd_tag=${docker_tag}
-ui_repo=${ui_repo}
+ui_repo=${internal_ui_repo}
 ui_tag=${docker_tag}
 EOF
               cp blockchain/concord/docker/.env blockchain/hermes/
             '''
           }
 
-          // These are constants related to labels.
+          // These are constants related to labelling Docker images.
           script {
             env.version_label = 'com.vmware.blockchain.version'
             env.commit_label = 'com.vmware.blockchain.commit'
@@ -178,7 +190,7 @@ EOF
       }
 
       stage('Build products') {
-        parallel {
+        stages {
           stage('Build Concord') {
             steps {
               dir('blockchain/concord') {
@@ -208,7 +220,7 @@ EOF
                 dir('blockchain/helen') {
                   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                     sh '''
-                      docker build .. -f Dockerfile -t "${helen_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
+                      docker build .. -f Dockerfile -t "${internal_helen_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
                   }
                 }
@@ -222,9 +234,9 @@ EOF
                 dir('blockchain/ethrpc') {
                   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                     sh '''
-                      docker build .. -f Dockerfile -t "${ethrpc_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
+                      docker build .. -f Dockerfile -t "${internal_ethrpc_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
-                  }
+                    }
                 }
               }
             }
@@ -236,7 +248,7 @@ EOF
                 dir('blockchain/concord') {
                   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                     sh '''
-                      docker build .. -f Dockerfile -t "${concord_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
+                      docker build .. -f Dockerfile -t "${internal_concord_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
                   }
                 }
@@ -307,59 +319,69 @@ EOF
         }
       }
 
-      stage("Push to docker repository") {
+      stage("Save to artifactory"){
+        when {
+          expression {
+            return JOB_NAME == "Blockchain Master"
+          }
+        }
+        steps{
+          withCredentials([string(credentialsId: 'ATHENA_DEPLOYER_ARTIFACTORY_PASSWORD', variable: 'ARTIFACTORY_PASSWORD')]) {
+            sh '''
+              docker login -u athena-deployer -p "${ARTIFACTORY_PASSWORD}" athena-docker-local.artifactory.eng.vmware.com
+            '''
+          }
+
+          script {
+            // Pass in false for whether to tag as latest because VMware's
+            // artifactory does not allow re-using a tag.
+            pushDockerImage(env.internal_concord_repo, env.docker_tag, false)
+            pushDockerImage(env.internal_helen_repo, env.docker_tag, false)
+            pushDockerImage(env.internal_ethrpc_repo, env.docker_tag, false)
+            pushDockerImage(env.internal_fluentd_repo, env.docker_tag, false)
+            pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
+          }
+
+          sh '''
+            docker logout
+          '''
+        }
+      }
+
+      stage("Release") {
         when {
           environment name: 'deploy', value: 'true'
         }
         steps {
           dir('blockchain') {
-            createAndPushTag(env.version_param)
+            createAndPushGitTag(env.version_param)
           }
 
           withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
             sh '''
               docker logout
               docker login -u blockchainrepositorywriter -p "${DOCKERHUB_PASSWORD}"
-
-              # Keep these echo lines for test runs.
-              # echo Would run docker push ${concord_repo}:${version_param}
-              # echo Would run docker tag ${concord_repo}:${version_param} ${concord_repo}:latest
-              # echo Would run docker push ${concord_repo}:latest
-              docker push ${concord_repo}:${version_param}
-              docker tag ${concord_repo}:${version_param} ${concord_repo}:latest
-              docker push ${concord_repo}:latest
-
-              # echo Would run docker push ${helen_repo}:${version_param}
-              # echo Would run docker tag ${helen_repo}:${version_param} ${helen_repo}:latest
-              # echo Would run docker push ${helen_repo}:latest
-              docker push ${helen_repo}:${version_param}
-              docker tag ${helen_repo}:${version_param} ${helen_repo}:latest
-              docker push ${helen_repo}:latest
-
-              # echo Would run docker push ${ethrpc_repo}:${version_param}
-              # echo Would run docker tag ${ethrpc_repo}:${version_param} ${ethrpc_repo}:latest
-              # echo Would run docker push ${ethrpc_repo}:latest
-              docker push ${ethrpc_repo}:${version_param}
-              docker tag ${ethrpc_repo}:${version_param} ${ethrpc_repo}:latest
-              docker push ${ethrpc_repo}:latest
-
-              # echo Would run docker push ${fluentd_repo}:${version_param}
-              # echo Would run docker tag ${fluentd_repo}:${version_param} ${fluentd_repo}:latest
-              # echo Would run docker push ${fluentd_repo}:latest
-              docker push ${fluentd_repo}:${version_param}
-              docker tag ${fluentd_repo}:${version_param} ${fluentd_repo}:latest
-              docker push ${fluentd_repo}:latest
-
-              # echo Would run docker push ${ui_repo}:${version_param}
-              # echo Would run docker tag ${ui_repo}:${version_param} ${ui_repo}:latest
-              # echo Would run docker push ${ui_repo}:latest
-              docker push ${ui_repo}:${version_param}
-              docker tag ${ui_repo}:${version_param} ${ui_repo}:latest
-              docker push ${ui_repo}:latest
-
-              docker logout
             '''
           }
+
+          script {
+            sh '''
+              docker tag ${internal_concord_repo}:${docker_tag} ${release_concord_repo}:${docker_tag}
+              docker tag ${internal_helen_repo}:${docker_tag} ${release_helen_repo}:${docker_tag}
+              docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
+              docker tag ${internal_fluentd_repo}:${docker_tag} ${release_fluentd_repo}:${docker_tag}
+              docker tag ${internal_ui_repo}:${docker_tag} ${release_ui_repo}:${docker_tag}
+            '''
+            pushDockerImage(env.release_concord_repo, env.docker_tag, true)
+            pushDockerImage(env.release_helen_repo, env.docker_tag, true)
+            pushDockerImage(env.release_ethrpc_repo, env.docker_tag, true)
+            pushDockerImage(env.release_fluentd_repo, env.docker_tag, true)
+            pushDockerImage(env.release_ui_repo, env.docker_tag, true)
+          }
+
+          sh '''
+            docker logout
+          '''
 
           dir('blockchain/vars') {
             script {
@@ -436,9 +458,25 @@ void checkoutRepo(repo_url, branch_or_commit){
   checkout([$class: 'GitSCM', branches: [[name: branch_or_commit]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '27bbd815-703c-4647-909b-836919db98ef', url: repo_url]]])
 }
 
+// Given a repo and tag, pushes a docker image to whatever repo we
+// are currently logged into (set up by the caller).  If tagAsLatest
+// is set to true, that image will be re-tagged as latest and pushed
+// again.
+void pushDockerImage(repo, tag, tagAsLatest){
+  result = sh (
+    script: "docker push ${repo}:${tag}",
+  )
+
+  if(tagAsLatest){
+    sh(
+      script: "docker tag ${repo}:${tag} ${repo}:latest && docker push ${repo}:latest",
+    )
+  }
+}
+
 // Creates a git tag and commits it. Must be called when the pwd is the
 // source git directory.
-void createAndPushTag(tag){
+void createAndPushGitTag(tag){
   sh (
     script: "git tag -a ${tag} -m 'Version tag created by the build system'",
     returnStdout: false

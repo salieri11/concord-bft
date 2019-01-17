@@ -22,7 +22,7 @@ COPY ./ethrpc/src ./ethrpc/src
 RUN mvn -f ethrpc/pom.xml package
 
 ## Runtime image.
-FROM vmwblockchain/concord-ui:prereqs-v2
+FROM athena-docker-local.artifactory.eng.vmware.com/helen:prereqs-v2
 LABEL description="RPC Server for Ethereum API"
 
 WORKDIR /ethrpc
