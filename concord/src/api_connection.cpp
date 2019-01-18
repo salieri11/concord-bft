@@ -405,6 +405,7 @@ api_connection::handle_eth_request(int i)
                                               Check https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md#specification \
                                               for more details.");
          }
+      }
    }
 
    bool validRequest;
