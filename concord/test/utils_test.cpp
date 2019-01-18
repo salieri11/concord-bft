@@ -12,7 +12,7 @@ TEST(utils_test, parses_genesis_block) {
    // string genesis_test_file = "resources/genesis.json";
    // json pj = concord::parse_genesis_block(genesis_test_file);
    // int chainID = pj["config"]["chainId"];
-   // ASSERT_EQ(chainID, 12349876);
+   // ASSERT_EQ(chainID, 1);
 }
 
 // examples from https://github.com/ethereum/wiki/wiki/RLP
