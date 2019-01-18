@@ -294,8 +294,7 @@ EOF
                 # needs to be run with sudo is so it can delete any existing DB files.)
                 echo "${PASSWORD}" | sudo -S rm -rf ../concord/docker/rocksdbdata*
                 echo "${PASSWORD}" | sudo -S rm -rf ../concord/docker/cockroachDB
-                # Jan. 18: Temporarily commenting out UI tests due to failures.
-                # ./main.py UiTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${ui_test_logs}"
+                ./main.py UiTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${ui_test_logs}"
 
                 echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${core_vm_test_logs}"
                 echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${helen_api_test_logs}"
