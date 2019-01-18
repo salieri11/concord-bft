@@ -23,7 +23,8 @@ public:
                 boost::asio::ip::tcp::endpoint endpoint,
                 KVBClientPool &clientPool,
                 StatusAggregator &sag,
-                uint64_t gasLimit);
+                uint64_t gasLimit,
+                uint64_t chainID);
 
 private:
    boost::asio::ip::tcp::acceptor acceptor_;
@@ -32,6 +33,7 @@ private:
    connection_manager connManager_;
    StatusAggregator sag_;
    uint64_t gasLimit_;
+   uint64_t chainID_;
 
    void
    start_accept();

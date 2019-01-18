@@ -52,9 +52,10 @@ api_connection::create(io_service &io_service,
                        connection_manager &connManager,
                        KVBClientPool &clientPool,
                        StatusAggregator &sag,
-                       uint64_t gasLimit) {
+                       uint64_t gasLimit,
+                       uint64_t chainID) {
   return pointer(new api_connection(
-                   io_service, connManager, clientPool, sag, gasLimit));
+                   io_service, connManager, clientPool, sag, gasLimit, chainID));
 }
 
 tcp::socket&
@@ -379,6 +380,32 @@ void
 api_connection::handle_eth_request(int i)
 {
    const EthRequest request = concordRequest_.eth_request(i);
+   uint64_t sigV, chainID;
+
+   // Verify if request conforms with the requirements
+   // for replay protection : EIP-155
+   if (request.has_sig_v()) {
+      LOG4CPLUS_INFO(logger_, "Request has the following chainID");
+      LOG4CPLUS_INFO(logger_, request.sig_v());
+      sigV = request.sig_v();
+      if (sigV == 27 || sigV == 28) {
+         LOG4CPLUS_INFO(logger_, "Request uses conventional signature");
+         LOG4CPLUS_INFO(logger_, "Read https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md#specification for more details");
+      } else {
+         if (sigV % 2 == 0) {
+            chainID = (sigV - 36)/2;
+         } else {
+            chainID = (sigV - 35)/2;
+         }
+         if (chainID != chainID_) {
+            LOG4CPLUS_ERROR(logger_, chainID);
+            LOG4CPLUS_ERROR(logger_, chainID_);
+            ErrorResponse *e = concordResponse_.add_error_response();
+            e->mutable_description()->assign("Request's chainID does not conform with VMware Blockchain ID. \
+                                              Check https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md#specification \
+                                              for more details.");
+         }
+   }
 
    bool validRequest;
    bool isReadOnly = true;
@@ -695,14 +722,16 @@ api_connection::api_connection(
    connection_manager &manager,
    KVBClientPool &clientPool,
    StatusAggregator &sag,
-   uint64_t gasLimit)
+   uint64_t gasLimit,
+   uint64_t chainID)
    : socket_(io_service),
      logger_(
         log4cplus::Logger::getInstance("com.vmware.concord.api_connection")),
      connManager_(manager),
      clientPool_(clientPool),
      sag_(sag),
-     gasLimit_(gasLimit)
+     gasLimit_(gasLimit),
+     chainID_(chainID)
 {
    // nothing to do here yet other than initialize the socket and logger
 }

@@ -35,7 +35,8 @@ public:
           connection_manager &connManager,
           KVBClientPool &clientPool,
           StatusAggregator &sag,
-          uint64_t gasLimit);
+          uint64_t gasLimit,
+          uint64_t chainID);
 
    boost::asio::ip::tcp::socket&
    socket();
@@ -98,7 +99,8 @@ private:
                   connection_manager &connManager,
                   KVBClientPool &clientPool,
                   StatusAggregator &sag,
-                  uint64_t gasLimit);
+                  uint64_t gasLimit,
+                  uint64_t chainID);
 
    uint16_t
    get_message_length(const char * buffer);
@@ -163,6 +165,7 @@ private:
 
    StatusAggregator sag_;
    const uint64_t gasLimit_;
+   const uint64_t chainID_;
 };
 
 }
