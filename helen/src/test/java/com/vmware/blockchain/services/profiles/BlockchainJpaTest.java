@@ -21,8 +21,6 @@ import org.springframework.test.context.jdbc.SqlGroup;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.ImmutableMap;
-import com.vmware.blockchain.services.contracts.Contract;
-import com.vmware.blockchain.services.contracts.ContractRepository;
 
 /**
  * Test the Blockchain JPA.
@@ -42,12 +40,8 @@ class BlockchainJpaTest {
     @Autowired
     private ConsortiumRepository cnRepo;
 
-    @Autowired
-    private ContractRepository ctRepo;
-
     private Consortium consortium;
     private Blockchain blockchain;
-    private Contract contract;
 
     /**
      * Create a Consortium and a Blockchain, and save it.
@@ -64,14 +58,6 @@ class BlockchainJpaTest {
         blockchain.setIpList("1,2,3");
         blockchain.setRpcUrls("a=1,b=2,c=3");
         blockchain = bcRepo.save(blockchain);
-
-        contract = Contract.builder()
-                    .name("Contract")
-                    .versionName("version 1")
-                    .blockchainId(blockchain.getId())
-                    .owner("owner").build();
-        contract = ctRepo.save(contract);
-        Optional<Contract> c = ctRepo.findById(contract.getId());
     }
 
 
