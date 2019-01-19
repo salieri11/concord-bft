@@ -20,6 +20,17 @@ def call(){
              name: "shared_lib_branch"
     }
     stages {
+      stage("Display node info"){
+        steps{
+          sh '''
+            set +x
+            echo Jenkins node information:
+            ifconfig | grep -A 2 "ens"
+            set -x
+          '''
+        }
+      }
+
       stage("Check parameters"){
         steps{
           script{
