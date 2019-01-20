@@ -394,14 +394,17 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
                              << ", connected: " << connected << ", closed: "
                              << _closed);
 
-    lock_guard<recursive_mutex> lock(_connectionsGuard);
+    _connectionsGuard.lock();
 
     connected = false;
     _closed = true;
     _connectTimer.cancel();
 
+    _connectionsGuard.unlock();
+
     try {
       B_ERROR_CODE ec;
+      _socket->shutdown();
       get_socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, ec);
       get_socket().close();
       if (_pSslContext)
@@ -486,6 +489,8 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
                              << get_socket().is_open());
 
     lock_guard<recursive_mutex> lock(_connectionsGuard);
+    if(_closed)
+      return;
 
     if (_wasError || _connecting) {
       LOG_TRACE(_logger,
@@ -558,6 +563,8 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
     LOG_TRACE(_logger, "enter, node " << _selfId << ", dest: " << _destId);
 
     lock_guard<recursive_mutex> lock(_connectionsGuard);
+    if(_closed)
+      return;
 
     if (_wasError || _connecting) {
       LOG_TRACE(_logger, "was error, node " << _selfId << ", dest: " << _destId);
@@ -790,6 +797,9 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
 
   void send(const char *data, uint32_t length) {
     lock_guard<recursive_mutex> lock(_connectionsGuard);
+    if(_closed)
+      return;
+
     auto offset = prepare_output_buffer(MessageType::Regular,
                                         length);
     memcpy(_outBuffer + offset, data, length);
@@ -841,17 +851,8 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
   }
 
   virtual ~AsyncTlsConnection() {
-    LOG_TRACE(_logger, "enter, node " << _selfId << ", dest: " << _destId
-                             << ", connected: " << connected
-                             << ", closed: " << _closed);
-
     delete[] _inBuffer;
     delete[] _outBuffer;
-
-    LOG_TRACE(_logger, "exit, node " << _selfId
-                            << ", dest: " << _destId
-                            << ", connected: " << connected
-                            << ", closed: " << _closed);
   }
 };
 
