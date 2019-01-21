@@ -3,6 +3,8 @@
  * *********************************************************************/
 package com.vmware.blockchain.model.deployment
 
+import kotlinx.serialization.Serializable
+
 /**
  * Model definition of a component within a deployment of Concord instance.
  *
@@ -10,13 +12,11 @@ package com.vmware.blockchain.model.deployment
  *   type of the component.
  * @property[name]
  *   name of the component.
- * @property[url]
- *   url of the artifact.
  */
+@Serializable
 data class ConcordComponent(
     val type: ConcordComponentType,
-    val name: String,
-    val url: String
+    val name: String
 )
 
 /**

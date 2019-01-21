@@ -8,7 +8,8 @@ data class SddcResourceConfig(
     val vc_url: String,
     val cloud_username: String,
     val cloud_password: String,
-    val nsx_mgr_url: String) {
+    val nsx_mgr_url: String,
+    val nsx_api_public_endpoint_url: String) {
 
     enum class SddcResourceProvider {
         AWS

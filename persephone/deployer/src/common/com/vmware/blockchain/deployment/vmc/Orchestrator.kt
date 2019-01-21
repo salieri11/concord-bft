@@ -4,9 +4,11 @@
 package com.vmware.blockchain.deployment.vmc
 
 import com.vmware.blockchain.deployment.serialization.JsonSerializer
+import com.vmware.blockchain.deployment.vm.InitScript
 import com.vmware.blockchain.model.core.URI
 import com.vmware.blockchain.model.deployment.OrchestrationSite
-import com.vmware.blockchain.model.deployment.VmcOrchestrationSite
+import com.vmware.blockchain.model.nsx.Segment
+import com.vmware.blockchain.model.nsx.SegmentSubnet
 import com.vmware.blockchain.model.sddc.GetDatastoreResponse
 import com.vmware.blockchain.model.sddc.GetFolderResponse
 import com.vmware.blockchain.model.sddc.GetNetworkResponse
@@ -30,6 +32,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlin.coroutines.CoroutineContext
 import kotlin.random.Random
 
@@ -43,7 +46,8 @@ import kotlin.random.Random
  */
 class Orchestrator private constructor(
     private val vmc: VmcClient,
-    private val vSphere: VSphereClient
+    private val vSphere: VSphereClient,
+    private val nsx: VmcClient
 ) {
     companion object {
         /**
@@ -125,19 +129,21 @@ class Orchestrator private constructor(
         ): Deferred<Orchestrator?> {
             // Precondition.
             require(site.type == OrchestrationSite.Type.VMC)
-            require(site is VmcOrchestrationSite)
-            val token = requireNotNull(site.authentication.credential.tokenCredential).token
+            require(site.info is OrchestrationSite.Info.Vmc)
+
+            val info = (site.info as OrchestrationSite.Info.Vmc).entries
+            val token = requireNotNull(info.authentication.credential.tokenCredential).token
 
             /** Create a shared common data model serializer. */
             val serializer = JsonSerializer()
 
             // Create new VMC client.
             val vmcContext = VmcClient.Context(
-                    endpoint = site.api.address,
-                    authenticationEndpoint = site.authentication.address,
+                    endpoint = info.api.address,
+                    authenticationEndpoint = info.authentication.address,
                     refreshToken = token,
-                    organization = site.organization,
-                    datacenter = site.datacenter
+                    organization = info.organization,
+                    datacenter = info.datacenter
             )
             val vmc = VmcClient(vmcContext, serializer)
 
@@ -145,16 +151,34 @@ class Orchestrator private constructor(
             return CoroutineScope(executionContext).async {
                 // Use VMC client to obtain vSphere information.
                 getSddc(vmc)
-                        ?.let {
-                            // Transform SDDC info into vSphere client context.
-                            VSphereClient.Context(
-                                    endpoint = URI(it.resource_config.vc_url),
-                                    username = it.resource_config.cloud_username,
-                                    password = it.resource_config.cloud_password
-                            )
+                        ?.let { sddc ->
+                            val nsx = sddc
+                                    .let {
+                                        val base = sddc.resource_config.nsx_api_public_endpoint_url
+                                        val url = "$base/sks-nsxt-manager"
+                                        VmcClient.Context(
+                                                endpoint = URI(url),
+                                                authenticationEndpoint = info.authentication.address,
+                                                refreshToken = token,
+                                                organization = info.organization,
+                                                datacenter = info.datacenter
+                                        )
+                                    }
+                                    .let { VmcClient(it, serializer) } // New proxied NSX client.
+                            val vsphere = sddc
+                                    .let {
+                                        // Transform SDDC info into vSphere client context.
+                                        VSphereClient.Context(
+                                                endpoint = URI(sddc.resource_config.vc_url),
+                                                username = sddc.resource_config.cloud_username,
+                                                password = sddc.resource_config.cloud_password
+                                        )
+                                    }
+                                    .let { VSphereClient(it, serializer) } // New vSphere client.
+
+                            // New Orchestrator instance.
+                            Orchestrator(vmc, vsphere, nsx)
                         }
-                        ?.let { VSphereClient(it, serializer) } // Create new vSphere client.
-                        ?.let { Orchestrator(vmc, it) } // Create new Orchestrator instance.
             }
         }
     }
@@ -235,6 +259,78 @@ class Orchestrator private constructor(
     }
 
     /**
+     * Get information regarding a specified tier-1 network segment based on name.
+     *
+     * @param[tier1]
+     *   identifier of the tier-1 network.
+     * @param[name]
+     *   name of the network segment to look up.
+     *
+     * @return
+     *   information regarding the network as a [Segment], if found.
+     */
+    suspend fun getNetworkSegment(tier1: String, name: String): Segment? {
+        return nsx
+                .get<Segment>(
+                        Endpoints.NSX_NETWORK_SEGMENT
+                                .interpolate(pathVariables = listOf(Pair("{tier1}", tier1),
+                                                                    Pair("{segment}", name))),
+                        contentType = "application/json",
+                        headers = emptyList()
+                )
+                .takeIf { it.statusCode() == 200 }
+                ?.let { it.body() }
+    }
+
+    private suspend fun createNetworkSegment(
+        tier1: String,
+        name: String,
+        prefix: Int,
+        prefixSubnet: Int,
+        subnetSize: Int = 28
+    ): String? {
+        // Generate a network model based on a randomly generated subnet.
+        // Note (current implementation choices):
+        // - Primary address is set to the first address in the subnet.
+        // - DHCP pool can assign addresses from second address to subnet-broadcast (max) - 1.
+        val subnet = randomSubnet(prefix, prefixSubnet, subnetSize)
+        val subnetMax = subnet + (1 shl (Int.SIZE_BITS - subnetSize)) - 1
+        val segmentSubnet = SegmentSubnet(
+                gateway_address = "${toIPv4Address(subnet + 1)}/$subnetSize",
+                dhcp_ranges = listOf("${toIPv4Address(subnet + 2)}-${toIPv4Address(subnetMax - 1)}")
+        )
+        val segment = Segment(subnets = listOf(segmentSubnet))
+
+        val response = nsx
+                .patch<Segment>(
+                        Endpoints.NSX_NETWORK_SEGMENT
+                                .interpolate(pathVariables = listOf(Pair("{tier1}", tier1),
+                                                                    Pair("{segment}", name))),
+                        contentType = "application/json",
+                        headers = emptyList(),
+                        body = segment
+                )
+
+        return when (response.statusCode()) {
+            200 -> {
+                // The API does not return the resource ID from vSphere's perspective, so we have to
+                // follow up w/ another GET.
+                //
+                // We need to be able to retrieve the ID by name. If not found, just return no
+                // result and let caller try again.
+                //
+                // Note:
+                // Given that getNetwork() and intent creation are via 2 separate endpoints, it is
+                // possible that vSphere does not yet have the created entity even though the NSX
+                // network intent has been created. In this case, status 200 will still result in
+                // entity not found (i.e. null).
+                getNetwork(name)
+            }
+            else -> null
+        }
+    }
+
+    /**
      * Get ID of a specified NSX logical network based on name.
      *
      * @param[name]
@@ -273,7 +369,7 @@ class Orchestrator private constructor(
      * @return
      *   ID of the network as a [String], if found.
      */
-    private suspend fun getNetwork(name: String, type: String = "DISTRIBUTED_PORTGROUP"): String? {
+    private suspend fun getNetwork(name: String, type: String = "OPAQUE_NETWORK"): String? {
         return vSphere
                 .get<GetNetworkResponse>(
                     path = Endpoints.VSPHERE_NETWORKS
@@ -319,11 +415,19 @@ class Orchestrator private constructor(
         prefixSubnet: Int,
         subnetSize: Int = 28
     ): String {
-        var result: String? = getNetwork(name)
+        var result: String? = null
         while (result == null) {
-            result = createLogicalNetwork(attachedGateway, name, prefix, prefixSubnet, subnetSize)
-        }
+            // Create the network segment and resolve its vSphere name. Due to realization delays,
+            // the create() call may not immediately yield any result. In such cases, let the loop
+            // take care of eventually getting a network segment that matches the desired name.
+            result = getNetwork(name)
+                    ?: createNetworkSegment(attachedGateway, name, prefix, prefixSubnet, subnetSize)
 
+            if (result == null) {
+                // Do not engage next iteration immediately.
+                delay(500) // 500ms.
+            }
+        }
         return result
     }
 
@@ -429,7 +533,8 @@ class Orchestrator private constructor(
      */
     suspend fun getLibraryItem(name: String): String? {
         // TODO(jameschang) - Finish integration work with Content Library API.
-        return "301189ea-bae3-4e94-80db-f90a0e1e66f0"
+        // return "a1500e02-5cd7-4afd-8429-1695f2fd8d6c"
+        return "f4ccb861-6716-4e08-b58d-323977f13aab"
     }
 
     /**
@@ -458,7 +563,9 @@ class Orchestrator private constructor(
                                         `@class` = OvfParameterTypes.PROPERTY_PARAMS.classValue,
                                         type = OvfParameterTypes.PROPERTY_PARAMS.type,
                                         properties = listOf(
-                                                OvfProperty("instance-id", instanceName)
+                                                OvfProperty("instance-id", instanceName),
+                                                OvfProperty("hostname", instanceName),
+                                                OvfProperty("user-data", String(InitScript().base64()))
                                         )
                                 )
                         )

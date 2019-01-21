@@ -13,7 +13,11 @@ enum class Endpoints(
     private val parameterMappings: Set<String>,
     private val pathMappings: Set<String> = emptySet()
 ) {
-
+    NSX_NETWORK_SEGMENT(
+            "policy/api/v1/infra/tier-1s/{tier1}/segments/{segment}",
+            emptySet(),
+            setOf("{tier1}", "{segment}")
+    ),
     VMC_AUTHENTICATION("/csp/gateway/am/api/auth/api-tokens/authorize", setOf("refresh_token")),
     VMC_LOGICAL_NETWORK(
             "/vmc/api/orgs/{org}/sddcs/{sddc}/networks/4.0/sddc/networks/{network}",

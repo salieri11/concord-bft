@@ -4,6 +4,8 @@
 package com.vmware.blockchain.model.deployment
 
 import com.vmware.blockchain.model.core.UUID
+import kotlinx.serialization.ContextualSerialization
+import kotlinx.serialization.Serializable
 
 /**
  * Denote the identifier of a [ConcordModel].
@@ -22,10 +24,11 @@ typealias ConcordClusterIdentifier = UUID
  * @property[size]
  *   size of the cluster deployment.
  */
+@Serializable
 data class ConcordClusterSpecification(
-    val orchestrations: List<OrchestrationSite>,
+    val orchestrations: List<OrchestrationSiteIdentifier>,
     val name: String,
-    val image: ConcordModelIdentifier,
+    @ContextualSerialization val image: ConcordModelIdentifier,
     val size: Short
 )
 
@@ -33,8 +36,9 @@ data class ConcordClusterSpecification(
  * Model definition of a deployed Concord cluster.
  *
  * @property[instances]
- *   entries of [OrchestrationSite]s and the deployed [ConcordInstance]s hosted by it.
+ *   entries of [OrchestrationSiteIdentifier]s and the deployed [ConcordInstance]s hosted by it.
  */
+@Serializable
 data class ConcordCluster(
-    val instances: Map<OrchestrationSite, Set<ConcordInstance>>
+    val instances: Map<OrchestrationSiteIdentifier, Set<ConcordInstance>>
 )

@@ -3,6 +3,8 @@
  * *********************************************************************/
 package com.vmware.blockchain.model.core
 
+import kotlinx.serialization.Serializable
+
 /**
  * Represent the metadata and content of a public key.
  *
@@ -14,4 +16,5 @@ package com.vmware.blockchain.model.core
  * @property[base64Encoding]
  *   content of the key in base64 encoding.
  */
+@Serializable
 data class PublicKey(val algorithm: String, val base64Encoding: String)

@@ -48,7 +48,7 @@ expect abstract class AccessTokenAwareHttpClient {
      * body mapped to a typed instance if request was successful.
      *
      * @param[path]
-     *   path to be resolved against the base [serviceEndpoint].
+     *   path to be resolved against the base service endpoint.
      * @param[contentType]
      *   HTTP content type.
      * @param[headers]
@@ -64,11 +64,34 @@ expect abstract class AccessTokenAwareHttpClient {
     ): HttpResponse<T?>
 
     /**
+     * Send a HTTP PATCH with content specified by parameter and return the response with response
+     * body mapped to a typed instance if request was successful.
+     *
+     * @param[path]
+     *   path to be resolved against the base service endpoint.
+     * @param[contentType]
+     *   HTTP content type.
+     * @param[headers]
+     *   list of HTTP headers to be set for the request.
+     * @param[body]
+     *   request body.
+     *
+     * @return
+     *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
+     */
+    internal suspend inline fun <reified T> patch(
+        path: String,
+        contentType: String,
+        headers: List<Pair<String, String>>,
+        body: Any?
+    ): HttpResponse<T?>
+
+    /**
      * Send a HTTP POST with content specified by parameter and return the response with response
      * body mapped to a typed instance if request was successful.
      *
      * @param[path]
-     *   path to be resolved against the base [serviceEndpoint].
+     *   path to be resolved against the base service endpoint.
      * @param[contentType]
      *   HTTP content type.
      * @param[headers]
@@ -91,7 +114,7 @@ expect abstract class AccessTokenAwareHttpClient {
      * body mapped to a typed instance if request was successful.
      *
      * @param[path]
-     *   path to be resolved against the base [serviceEndpoint].
+     *   path to be resolved against the base service endpoint.
      * @param[contentType]
      *   HTTP content type.
      * @param[headers]

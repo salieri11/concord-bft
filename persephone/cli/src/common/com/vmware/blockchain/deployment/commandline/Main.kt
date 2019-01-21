@@ -9,7 +9,14 @@ import com.vmware.blockchain.deployment.logging.logger
 import com.vmware.blockchain.deployment.vmc.Orchestrator
 import com.vmware.blockchain.model.core.BearerTokenCredential
 import com.vmware.blockchain.model.core.Credential
+import com.vmware.blockchain.model.core.Endpoint
 import com.vmware.blockchain.model.core.URI
+import com.vmware.blockchain.model.core.URISerializer
+import com.vmware.blockchain.model.core.UUID
+import com.vmware.blockchain.model.core.UUIDSerializer
+import com.vmware.blockchain.model.deployment.ConcordComponent
+import com.vmware.blockchain.model.deployment.ConcordComponentType
+import com.vmware.blockchain.model.deployment.ConcordModel
 import com.vmware.blockchain.model.deployment.OrchestrationSite
 import com.vmware.blockchain.model.deployment.VmcOrchestrationSite
 import kotlinx.coroutines.CoroutineName
@@ -18,6 +25,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.context.SimpleModule
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.list
 import kotlin.random.Random
 
 /**
@@ -46,6 +56,7 @@ fun main(args: Array<String>) {
             )
     )
 
+    val blockchainId = "testchain"
     runBlocking(Dispatchers.IO + CoroutineName("ProvisioningDispatcher")) {
         coroutineScope {
             val provisioner = requireNotNull(Orchestrator.newOrchestrator(site, coroutineContext).await())
@@ -54,15 +65,15 @@ fun main(args: Array<String>) {
             val getDatastore = async { provisioner.getDatastore() }
             val getResourcePool = async { provisioner.getResourcePool() }
             val createControlNetwork = async {
-                provisioner.ensureLogicalNetwork("edge-2", "blockchain-control", 0x0AC10000, 16)
+                provisioner.ensureLogicalNetwork("cgw", "sddc-cgw-vpn", 0x0AC00000, 24)
             }
             val createReplicaNetwork = async {
-                provisioner.ensureLogicalNetwork("edge-2", "blockchain-replica", 0x0AC00000, 16)
+                provisioner.ensureLogicalNetwork("cgw", "$blockchainId-data", 0x0AC00000, 24)
             }
             val getLibraryItem = async { provisioner.getLibraryItem("photon-2.0") }
 
-            provisioner.getLogicalNetwork("blockchain-control").also { log.info { "Logical ControlNetwork: $it" }}
-            provisioner.getLogicalNetwork("blockchain-replica").also { log.info { "Logical ControlNetwork: $it" }}
+            provisioner.getNetworkSegment("cgw", "sddc-cgw-vpn").also { log.info { "Logical ControlNetwork: $it" }}
+            provisioner.getNetworkSegment("cgw", "$blockchainId-data").also { log.info { "Logical DataNetwork: $it" }}
 
             // Collect all information and deploy.
             launch {
@@ -73,7 +84,7 @@ fun main(args: Array<String>) {
                 val dataNetwork = createReplicaNetwork.await().also { log.info { "DataNetwork: $it" }}
                 val libraryItem = getLibraryItem.await().also { log.info { "LibraryItem: $it" }}
                 val instance = provisioner.createInstance(
-                        instanceName = "replica-${Random.nextInt(0, 100)}",
+                        instanceName = "$blockchainId-replica${Random.nextInt(0, 100)}",
                         libraryItem = requireNotNull(libraryItem),
                         datastore = requireNotNull(datastore),
                         resourcePool = requireNotNull(resourcePool),

@@ -6,6 +6,8 @@ package com.vmware.blockchain.model.deployment
 import com.vmware.blockchain.model.core.PublicKey
 import com.vmware.blockchain.model.core.URI
 import com.vmware.blockchain.model.core.UUID
+import kotlinx.serialization.ContextualSerialization
+import kotlinx.serialization.Serializable
 
 /**
  * Denote the identifier of a [ConcordModel].
@@ -27,6 +29,7 @@ typealias ConcordModelIdentifier = UUID
  *
  *   Note: Orchestration engine may utilize the sequence order during deployment workflow.
  */
+@Serializable
 data class ConcordModel(
     val version: String,
     val template: String,
@@ -43,8 +46,9 @@ data class ConcordModel(
  * @property[model]
  *   identifier of the [ConcordModel] used to create the instance.
  */
+@Serializable
 data class ConcordInstance(
-    val resource: URI,
+    @ContextualSerialization val resource: URI,
     val publicKey: PublicKey,
-    val model: ConcordModelIdentifier
+    @ContextualSerialization val model: ConcordModelIdentifier
 )

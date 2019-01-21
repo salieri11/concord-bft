@@ -9,7 +9,7 @@ import com.vmware.blockchain.deployment.serialization.JsonSerializer
 import com.vmware.blockchain.model.core.BearerTokenCredential
 import com.vmware.blockchain.model.core.Credential
 import com.vmware.blockchain.model.core.URI
-import com.vmware.blockchain.model.sddc.VmcAuthenticationResponse
+import com.vmware.blockchain.model.vmc.VmcAuthenticationResponse
 
 /**
  * An HTTP REST client for issuing API to a VMware Cloud endpoint.

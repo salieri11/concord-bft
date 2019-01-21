@@ -1,5 +1,7 @@
 package com.vmware.blockchain.model.core
 
+import kotlinx.serialization.Serializable
+
 /**
  * Union of all credential types.
  *
@@ -19,6 +21,7 @@ package com.vmware.blockchain.model.core
  * @property[tokenCredential]
  *   content of token-based credential.
  */
+@Serializable
 data class Credential(
     val type: Type = Type.NONE,
     val passwordCredential: PasswordCredential? = null,
@@ -38,6 +41,7 @@ data class Credential(
  * @property[password]
  *   login password to present to the endpoint.
  */
+@Serializable
 data class PasswordCredential(val username: String, val password: String)
 
 /**
@@ -46,4 +50,5 @@ data class PasswordCredential(val username: String, val password: String)
  * @property[token]
  *   token value to present to the endpoint.
  */
+@Serializable
 data class BearerTokenCredential(val token: String)

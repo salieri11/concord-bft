@@ -3,6 +3,8 @@
  * *********************************************************************/
 package com.vmware.blockchain.model.core
 
+import kotlinx.serialization.KSerializer
+
 /* ******************************************************************************************
  * Type definitions to allow a zero-cost, type-safe abstraction in case definition changes.
  *
@@ -28,6 +30,16 @@ expect class URI(string: String) {
 }
 
 /**
+ * Singleton serializer object for [URI] that conforms to [KSerializer] contract.
+ */
+expect object URISerializer : KSerializer<URI>
+
+/**
  * Represent an immutable 128-bit universally unique identifier (UUID).
  */
 expect class UUID
+
+/**
+ * Singleton serializer object for [UUID] that conforms to [KSerializer] contract.
+ */
+expect object UUIDSerializer : KSerializer<UUID>

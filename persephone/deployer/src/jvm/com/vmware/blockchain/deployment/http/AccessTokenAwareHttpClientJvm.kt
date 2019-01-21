@@ -180,6 +180,42 @@ actual abstract class AccessTokenAwareHttpClient(
     }
 
     /**
+     * Send a HTTP PATCH with content specified by parameter and return the response with response
+     * body mapped to a typed instance if request was successful.
+     *
+     * @param[path]
+     *   path to be resolved against the base [serviceEndpoint].
+     * @param[contentType]
+     *   HTTP content type.
+     * @param[headers]
+     *   list of HTTP headers to be set for the request.
+     * @param[body]
+     *   request body.
+     *
+     * @return
+     *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
+     */
+    internal actual suspend inline fun <reified T> patch(
+        path: String,
+        contentType: String,
+        headers: List<Pair<String, String>>,
+        body: Any?
+    ): HttpResponse<T?> {
+        val bodyPublisher = body
+                ?.let { serializer.toJson(body) }
+                ?.let { JdkHttpRequest.BodyPublishers.ofString(it) }
+                ?: JdkHttpRequest.BodyPublishers.noBody()
+        val httpRequest = JdkHttpRequest.newBuilder()
+                .method("PATCH", bodyPublisher)
+                .uri(serviceEndpoint.resolve(path))
+                .header("Content-Type", contentType)
+                .header(accessTokenHeader(), token())
+                .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
+                .build()
+        return request(httpRequest)
+    }
+
+    /**
      * Send a HTTP POST with content specified by parameter and return the response with response
      * body mapped to a typed instance if request was successful.
      *
@@ -267,13 +303,18 @@ actual abstract class AccessTokenAwareHttpClient(
                 null
             }
         }
-        val handler: JdkHttpResponse.BodyHandler<T?> = JdkHttpResponse.BodyHandler<T?> { response ->
+        val logging = JdkHttpResponse.BodySubscribers.mapping<String, T?>(upstream) { value ->
+            log.info { "API: raw response body($value)"}
+            null
+        }
+
+        val handler: JdkHttpResponse.BodyHandler<T?> = JdkHttpResponse.BodyHandler { response ->
             when (response.statusCode()) {
                 200 -> bindToResult
                 201 -> bindToResult
                 202 -> bindToResult
                 203 -> bindToResult
-                else -> JdkHttpResponse.BodySubscribers.replacing(null)
+                else -> logging // no logging => JdkHttpResponse.BodySubscribers.replacing(null)
             }
         }
 

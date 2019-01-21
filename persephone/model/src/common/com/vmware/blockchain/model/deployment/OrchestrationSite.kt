@@ -3,30 +3,33 @@
  * *********************************************************************/
 package com.vmware.blockchain.model.deployment
 
-import com.vmware.blockchain.model.core.Credential
-import com.vmware.blockchain.model.core.URI
+import com.vmware.blockchain.model.core.Endpoint
+
+/**
+ * Denote the identifier of a [ConcordModel].
+ */
+typealias OrchestrationSiteIdentifier = String
 
 /**
  * Representation of an orchestration site.
  *
  * @param[type]
  *   type of the the endpoint.
+ * @param[info]
+ *   info pertaining to the endpoint.
  */
-sealed class OrchestrationSite(val type: Type) {
+class OrchestrationSite(val type: Type, val info: Info) {
     /**
      * Enumeration of possible [OrchestrationSite] types.
      */
     enum class Type { VMC }
 
     /**
-     * Endpoint information.
-     *
-     * @param[address]
-     *   address of the server endpoint as an [URI].
-     * @param[credential]
-     *   credential to present to the endpoint during connection.
+     * Representation of all possible orchestration sites.
      */
-    data class Endpoint(val address: URI, val credential: Credential)
+    sealed class Info {
+        data class Vmc(val entries: VmcOrchestrationSite): Info()
+    }
 }
 
 /**
@@ -46,4 +49,4 @@ data class VmcOrchestrationSite(
     val api: Endpoint,
     val organization: String,
     val datacenter: String
-) : OrchestrationSite(Type.VMC)
+)
