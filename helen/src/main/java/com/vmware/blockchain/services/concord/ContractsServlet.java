@@ -42,6 +42,7 @@ import com.vmware.blockchain.services.contracts.ContractRetrievalException;
 import com.vmware.blockchain.services.contracts.FullVersionInfo;
 import com.vmware.blockchain.services.ethereum.EthDispatcher;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
+import com.vmware.concord.Concord.ConcordResponse;
 
 /**
  * A servlet which handles all contract management queries sent to `api/concord/contracts/*` URI.
@@ -580,6 +581,12 @@ public class ContractsServlet extends ConcordServlet {
                     HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return responseEntity;
+    }
+
+
+    @Override
+    public JSONAware parseToJson(ConcordResponse concordResponse) {
+        throw new UnsupportedOperationException("parseToJSON method is not supported in ContractServlet class");
     }
 
 }

@@ -26,8 +26,13 @@ public interface IParseToJson {
 
     /**
      * Return a response in Json, where the blockchain id is needed by the response.
+     * Throw a "Unsupported Operation" if blockchain is null, to prevent an infinite recursion
+     * if no override is implemented.
      */
     default JSONAware parseToJson(UUID blockchain, Concord.ConcordResponse concordResponse) {
+        if (blockchain == null) {
+            throw new UnsupportedOperationException("No blockchain specified");
+        }
         return parseToJson(concordResponse);
     }
 
