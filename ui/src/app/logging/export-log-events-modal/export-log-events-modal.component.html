@@ -1,0 +1,36 @@
+<clr-modal [(clrModalOpen)]="isOpen" [clrModalStaticBackdrop]="true" [clrModalClosable]="false">
+  <h3 class="modal-title">{{'logging.exports.exportLogEvents.title' | translate}}</h3>
+  <div class="modal-body">
+    <div *ngIf="!isLoading && !logCountAboveThreshold"
+         [innerHTML]="'logging.exports.exportLogEvents.logsToExport' | translate:{count: (totalCount | number)}">
+    </div>
+    <div *ngIf="logCountAboveThreshold">
+      {{'logging.exports.exportLogEvents.tooManyLogs' | translate}}
+    </div>
+    <div *ngIf="isLoading">
+      <h4 class="mt-0"
+          [innerHTML]="'logging.exports.exportLogEvents.exportingXLogs' | translate:{count: (totalCount | number)}"></h4>
+      <div class="progress labeled">
+        <progress max="100" [value]="percentageComplete * 100"></progress>
+        <span><div>{{percentageComplete | percent}}</div></span>
+      </div>
+      <clr-alert [clrAlertClosable]="false" class="close-warning-alert">
+        <clr-alert-item>
+          <span class="alert-text">
+            {{'logging.exports.exportLogEvents.closeWarning' | translate}}
+          </span>
+        </clr-alert-item>
+      </clr-alert>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button (click)="onClose()" class="btn btn-outline-primary">
+      {{'logging.exports.actions.close' | translate}}
+    </button>
+    <button (click)="exportToCsv()"
+            class="btn btn-primary"
+            [disabled]="isLoading || logCountAboveThreshold">
+      {{'logging.exports.actions.export' | translate}}
+    </button>
+  </div>
+</clr-modal>

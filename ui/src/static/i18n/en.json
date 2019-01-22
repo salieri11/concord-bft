@@ -661,6 +661,24 @@
     "counts": {
       "loadingTotalCount": "Getting total count...",
       "totalCount": "{{total}} Total"
+    },
+    "exports": {
+      "title": "Export",
+      "exportChartData": {
+        "title": "Export Chart Data",
+        "countsToExport": "{{count}} counts to export"
+      },
+      "exportLogEvents": {
+        "title": "Export Log Events",
+        "logsToExport": "{{count}} logs to export",
+        "tooManyLogs": "Too many logs in the selected time frame to export. Please select a smaller time frame.",
+        "exportingXLogs": "Exporting {{count}} logs",
+        "closeWarning": "Closing this dialog or navigating away from this screen will cancel the export."
+      },
+      "actions": {
+        "export": "Export",
+        "close": "Close"
+      }
     }
   },
   "personas": {

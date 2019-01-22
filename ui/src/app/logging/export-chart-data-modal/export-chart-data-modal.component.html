@@ -1,0 +1,15 @@
+<clr-modal [(clrModalOpen)]="isOpen" [clrModalStaticBackdrop]="true" [clrModalClosable]="false">
+  <h3 class="modal-title">{{'logging.exports.exportChartData.title' | translate}}</h3>
+  <div class="modal-body"
+       [innerHTML]="'logging.exports.exportChartData.countsToExport' | translate:{count: (chartData.length | number)}">
+  </div>
+  <div class="modal-footer">
+    <button (click)="onClose()" class="btn btn-outline-primary">
+      {{'logging.exports.actions.close' | translate}}
+    </button>
+    <button (click)="exportToCsv()"
+            class="btn btn-primary">
+      {{'logging.exports.actions.export' | translate}}
+    </button>
+  </div>
+</clr-modal>
