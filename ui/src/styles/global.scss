@@ -217,3 +217,28 @@ body.dark {
 .ctc-btn-inline {
   margin: -2px 0 0 0;
 }
+
+// additional height for loading spinner in datagrid
+clr-datagrid .datagrid-spinner {
+  height: 200px;
+}
+
+// Absolutely positioned spinner container
+.spinner-container-absolute {
+  position: absolute;
+  z-index: 10;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+body.dark {
+  .spinner-container-absolute {
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+}

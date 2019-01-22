@@ -7,6 +7,7 @@ import { NgxChartsModule } from '@swimlane/ngx-charts';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 
 import { LogGraphComponent } from './log-graph.component';
+import { MockSharedModule } from '../../shared/shared.module';
 
 describe('LogGraphComponent', () => {
   let component: LogGraphComponent;
@@ -14,7 +15,7 @@ describe('LogGraphComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      imports: [ NgxChartsModule, NoopAnimationsModule ],
+      imports: [ MockSharedModule, NgxChartsModule, NoopAnimationsModule ],
       declarations: [ LogGraphComponent ]
     })
     .compileComponents();

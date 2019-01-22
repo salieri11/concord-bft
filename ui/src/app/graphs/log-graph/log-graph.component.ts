@@ -3,6 +3,7 @@
  */
 
 import { Component, Input, OnInit } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'concord-log-graph',
@@ -11,6 +12,8 @@ import { Component, Input, OnInit } from '@angular/core';
 })
 export class LogGraphComponent implements OnInit {
   @Input('graphData') graphData: any[];
+  @Input('interval') interval: number;
+  @Input('xAxisTickFormatting') xAxisTickFormatting: (date) => string;
 
   // graph options
   showXAxis = true;
@@ -22,9 +25,19 @@ export class LogGraphComponent implements OnInit {
     domain: ['#0094d2']
   };
 
-  constructor() { }
+  constructor(private translate: TranslateService) { }
 
   ngOnInit() {
+  }
+
+  getStartTimeText(model) {
+    const pastDate = new Date(model.name.valueOf() - this.interval);
+
+    return this.translate.instant('logging.bar.fromDate', {fromDate: pastDate.toUTCString()});
+  }
+
+  getEndTimeText(model) {
+    return this.translate.instant('logging.bar.toDate', {toDate: model.name.toUTCString()});
   }
 
 }
