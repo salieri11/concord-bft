@@ -2,6 +2,7 @@
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 import atexit
+import collections
 import json
 import logging
 import os
@@ -13,10 +14,26 @@ import socket
 import subprocess
 import time
 import yaml
+import signal
 
 PRODUCT_LOGS_DIR = "product_logs"
 
 log = logging.getLogger(__name__)
+
+class ConcordInstsanceMetaData():
+    _processIndex = None
+    _processCmd = None
+    _logFile = None
+    _instanceId = None
+    _path = None
+    _containerName = None
+
+    def __init__(self, pIndex, pCmd, logFile, id, path):
+        self._processIndex = pIndex
+        self._processCmd = pCmd
+        self._logFile = logFile
+        self._instanceId = id
+        self._path = path
 
 class Product():
    '''
@@ -26,14 +43,17 @@ class Product():
    _apiServerUrl = None
    _logs = []
    _processes = []
+   _concordProcessesMetaData = []
    _userProductConfig = None
    _cmdlineArgs = None
+   _baseUrl = None
 
-   def __init__(self, cmdlineArgs, apiServerUrl, userConfig):
+   def __init__(self, cmdlineArgs, apiServerUrl, userConfig, baseUrl):
       self._cmdlineArgs = cmdlineArgs
       self._apiServerUrl = apiServerUrl
       self._userConfig = userConfig
       self._userProductConfig = userConfig["product"]
+      self._baseUrl = baseUrl
 
    def launchProduct(self):
       '''
@@ -44,17 +64,63 @@ class Product():
       productLogsDir = os.path.join(self._cmdlineArgs.resultsDir, PRODUCT_LOGS_DIR)
       os.makedirs(productLogsDir, exist_ok=True)
 
-      if self._cmdlineArgs.dockerComposeFile:
-         self._launchViaDocker(productLogsDir)
-      else:
-         self._launchViaCmdLine(productLogsDir)
+      # Workaround for intermittent product launch issues.
+      numAttempts = 0
+      launched = False
+
+      while (not launched) and (numAttempts < self._cmdlineArgs.productLaunchAttempts):
+         try:
+            if self._cmdlineArgs.dockerComposeFile:
+               self._launchViaDocker(productLogsDir)
+            else:
+               self._launchViaCmdLine(productLogsDir)
+
+            launched = True
+         except Exception as e:
+            numAttempts += 1
+            log.info("Attempt {} to launch the product failed. Exception: '{}'".format(
+               numAttempts, str(e)))
+
+            if numAttempts < self._cmdlineArgs.productLaunchAttempts:
+               log.info("Stopping whatever was launched and attempting to launch again.")
+               self.stopProduct()
+
+      if not launched:
+         raise Exception("Failed to launch the product after {} attempt(s). Exiting".format(numAttempts))
+
+
+   def validatePaths(self, paths):
+      '''Make sure the given paths are all valid.'''
+      for path in paths:
+         if not os.path.isfile(path):
+            log.error("The file '{}' does not exist.".format(path))
+            return False
+
+      return True
+
+
+   def mergeDictionaries(self, orig, new):
+      '''Python's update() simply replaces keys at the top level.'''
+      for newK, newV in new.items():
+         if newK in orig:
+            if isinstance(newV, collections.Mapping):
+               self.mergeDictionaries(orig[newK], newV)
+            elif isinstance(newV, list):
+               orig[newK] = orig[newK] + newV
+            else:
+               orig[newK] = newV
+         else:
+            orig[newK] = newV
+
 
    def _launchViaDocker(self, productLogsDir):
-      dockerCfg = None
+      dockerCfg = {}
 
-      if os.path.isfile(self._cmdlineArgs.dockerComposeFile):
-         with open(self._cmdlineArgs.dockerComposeFile, "r") as f:
-            dockerCfg = yaml.load(f)
+      if self.validatePaths(self._cmdlineArgs.dockerComposeFile):
+         for cfgFile in self._cmdlineArgs.dockerComposeFile:
+            with open(cfgFile, "r") as f:
+               newCfg = yaml.load(f)
+               self.mergeDictionaries(dockerCfg, newCfg)
 
          self.copyEnvFile()
 
@@ -62,23 +128,27 @@ class Product():
             self.clearDBsForDockerLaunch(dockerCfg)
             self.initializeHelenDockerDB(dockerCfg)
 
-         cmd = ["docker-compose",
-                "--file", self._cmdlineArgs.dockerComposeFile,
-                "up"]
+         cmd = ["docker-compose"]
+
+         for cfgFile in self._cmdlineArgs.dockerComposeFile:
+            cmd += ["--file", cfgFile]
+
+         cmd += ["up"]
+
          logFile = open(os.path.join(productLogsDir, "concord.log"),
                     "wb+")
          self._logs.append(logFile)
          log.debug("Launching via docker-compose with {}".format(cmd))
+
          p = subprocess.Popen(cmd,
                               stdout=logFile,
                               stderr=subprocess.STDOUT)
          self._processes.append(p)
 
          if not self._waitForProductStartup():
-            raise Exception("The product did not start. Exiting.")
+            raise Exception("The product did not start.")
       else:
-         raise Exception("The docker compose file '{}' does not " \
-                         "exist. Exiting.".format(self._cmdlineArgs.dockerComposeFile))
+         raise Exception("The docker compose file list contains an invalid value.")
 
 
    def copyEnvFile(self):
@@ -141,14 +211,24 @@ class Product():
                                        stdout=logFile,
                                        stderr=subprocess.STDOUT)
                   self._processes.append(p)
+                  if project.lower().startswith("concord"):
+                      cm = ConcordInstsanceMetaData(
+                        len(self._processes) - 1,
+                        cmd,
+                        logFile,
+                        int(project[len("concord"):]),
+                        os.getcwd()
+                      )
+                      self._concordProcessesMetaData.append(cm)
             # switch back to original cwd
             os.chdir(original_cwd)
 
       # All pieces should be launched now.
       if not self._waitForProductStartup():
-         raise Exception("The product did not start. Exiting.")
+         raise Exception("The product did not start.")
 
-   def clearconcordDBForCmdlineLaunch(self, concordSection):
+
+   def clearconcordDBForCmdlineLaunch(self, concordSection, serviceName=None):
       '''
       Deletes the concord DB so we get a clean start.
       Other test suites can leave it in a state that makes
@@ -158,11 +238,17 @@ class Product():
       '''
       params = None
 
+      log.debug("serviceName{}".format(serviceName))
+
       for subSection in concordSection:
-         if subSection.lower().startswith("concord"):
-            params = concordSection[subSection]["parameters"]
+         if serviceName is None:
+             if subSection.lower().startswith("concord"):
+                 params = concordSection[subSection]["parameters"]
+         elif subSection.lower() == serviceName:
+             params = concordSection[subSection]["parameters"]
 
       isConfigParam = False
+      buildRoot = None
 
       for param in params:
          if isConfigParam:
@@ -178,21 +264,54 @@ class Product():
                      prop.lower().startswith("blockchain_db_path"):
                      subPath = prop.split("=")[1]
 
+            buildRoot = os.path.abspath(concordSection["buildRoot"])
             dbPath = os.path.join(concordSection["buildRoot"], subPath)
             dbPath = os.path.expanduser(dbPath)
             if os.path.isdir(dbPath):
                log.debug("Clearing concord DB directory '{}'".format(dbPath))
                shutil.rmtree(dbPath)
+            isConfigParam = False
 
          if param == "-c":
             isConfigParam = True
 
+      return buildRoot
+
+
+   def pullHelenDBImage(self, dockerCfg):
+      '''This is the cockroach DB.  Make sure we have it before trying to start
+         the product so we don't time out while downloading it.'''
+      image = dockerCfg["services"]["db-server"]["image"]
+      image_name = image.split(":")[0]
+      pull_cmd = ["docker", "pull", image]
+      find_cmd = ["docker", "images", "--filter", "reference="+image]
+      found = False
+
+      completedProcess = subprocess.run(pull_cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT)
+      # Sleep just in case there is a gap between the time "pull" finishes
+      # and "images" can find it. In testing, it looks immediate.
+      time.sleep(1)
+      completedProcess = subprocess.run(find_cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT)
+      psOutput = completedProcess.stdout.decode("UTF-8")
+
+      if image_name in psOutput:
+         found = True
+
+      return found
+
 
    def startHelenDockerDB(self, dockerCfg):
       ''' Starts the Helen DB.  Returns True if able to start, False if not.'''
-      cmd = ["docker-compose",
-             "--file", self._cmdlineArgs.dockerComposeFile,
-             "up", "db-server"]
+      cmd = ["docker-compose"]
+
+      for cfgFile in self._cmdlineArgs.dockerComposeFile:
+         cmd += ["--file", cfgFile]
+
+      cmd += ["up", "db-server"]
       log.debug("Launching Helen DB with command '{}'".format(cmd))
       subprocess.Popen(cmd,
                        stdout=subprocess.PIPE,
@@ -222,6 +341,37 @@ class Product():
       return dbRunning
 
 
+   def getRunningContainerIds(self, searchString):
+      '''
+      Return the docker container Id(s) which are running and whose "docker ps" output
+      contains the given search string.
+      '''
+      containerIds = []
+
+      # The processes cmd gives us a string like:
+      # CONTAINER ID        IMAGE                          COMMAND ...
+      # 21d37f282847        cockroachdb/cockroach:v2.0.2   "/cockroach/cockroac…" ...
+      cmd = ["docker", "ps", "--filter", "status=running"]
+      log.debug("Getting running containers with command '{}'".format(cmd))
+      completedProcess = subprocess.run(cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT)
+      psOutput = completedProcess.stdout.decode("UTF-8")
+      lines = psOutput.split("\n")
+
+      for line in lines:
+         if searchString in line:
+            log.debug("Found container '{}' with search string '{}' in the ps output.".format(line, searchString))
+            fields = line.strip().split(" ")
+            containerIds.append(fields[0])
+
+      if not containerIds:
+         log.debug("Unable to find a running container for '{}'.".format(searchString))
+         log.debug("stdout: '{}', stderr: '{}'".format(completedProcess.stdout, completedProcess.stderr))
+
+      return containerIds
+
+
    def getHelenDBContainerId(self, dockerCfg):
       '''Returns the running Helen DB container's ID, or None if it cannot be found.'''
       dbImageName = dockerCfg["services"]["db-server"]["image"]
@@ -231,26 +381,10 @@ class Product():
       numTries = 0
 
       while numTries < maxTries and not containerId:
-         # The processes cmd gives us a string like:
-         # CONTAINER ID        IMAGE                          COMMAND ...
-         # 21d37f282847        cockroachdb/cockroach:v2.0.2   "/cockroach/cockroac…" ...
-         cmd = ["docker", "ps"]
-         log.debug("Looking for the running Helen DB container with command '{}'".format(cmd))
-         completedProcess = subprocess.run(cmd,
-                                           stdout=subprocess.PIPE,
-                                           stderr=subprocess.STDOUT)
-         psOutput = completedProcess.stdout.decode("UTF-8")
-         lines = psOutput.split("\n")
+         containerIds = self.getRunningContainerIds(dbImageName)
 
-         for line in lines:
-            if dbImageName in line:
-               fields = line.split(" ")
-               containerId = fields[0]
-
-         if not containerId:
-            log.debug("The docker ps command is not listing the Helen DB container yet.")
-            log.debug("stdout: '{}', stderr: '{}'".format(completedProcess.stdout, completedProcess.stderr))
-
+         if containerIds:
+            containerId = containerIds[0]
             if numTries < maxTries:
                numTries += 1
                log.debug("Will try again in {} seconds.".format(sleepTime))
@@ -265,7 +399,7 @@ class Product():
       '''
       schema = None
 
-      with open("resources/schema.sql", "r") as f:
+      with open("../helen/src/main/resources/database/schema.sql", "r") as f:
          schema = f.read()
 
       commands = [
@@ -274,11 +408,13 @@ class Product():
       ]
 
       for cmd in commands:
+         log.info("running '{}'".format(cmd))
          completedProcess = subprocess.run(cmd,
                                            stdout=subprocess.PIPE,
                                            stderr=subprocess.STDOUT)
          try:
             completedProcess.check_returncode()
+            log.info("stdout: {}, stderr: {}".format(completedProcess.stdout, completedProcess.stderr))
          except subprocess.CalledProcessError as e:
             log.error("Command '{}' to configure the Helen DB failed.  Exit code: '{}'".format(cmd, e.returncode))
             log.error("stdout: '{}', stderr: '{}'".format(completedProcess.stdout, completedProcess.stderr))
@@ -289,6 +425,7 @@ class Product():
 
    def stopDockerContainer(self, containerId):
       '''Stops the given docker container. Returns whether the exit code indicated success.'''
+      log.info("Stopping '{}'".format(containerId))
       cmd = ["docker", "kill", containerId]
       completedProcess = subprocess.run(cmd,
                                         stdout=subprocess.PIPE,
@@ -309,6 +446,9 @@ class Product():
       '''When the product as Docker containers, we need to initialize the Helen DB
          in a different way than when launched via command line.  Raises an exception
          on error.'''
+      if not self.pullHelenDBImage(dockerCfg):
+         raise Exception("Unable to pull the Helen DB image.")
+
       if not self.startHelenDockerDB(dockerCfg):
          raise Exception("The Helen DB failed to come up.")
 
@@ -323,33 +463,89 @@ class Product():
          raise Exception("Failure trying to stop the Helen DB.")
 
 
-   def clearDBsForDockerLaunch(self, dockerCfg):
+   def clearDBsForDockerLaunch(self, dockerCfg, serviceName=None):
+      concordDbPath = None
       for service in dockerCfg["services"]:
-         serviceObj = dockerCfg["services"][service]
-         if "volumes" in serviceObj:
-            for v in serviceObj["volumes"]:
-               if "rocksdbdata" in v or \
-                  "cockroachDB" in v:
-                  yamlDir = os.path.dirname(self._cmdlineArgs.dockerComposeFile)
-                  deleteMe = os.path.join(yamlDir, v.split(":")[0])
-                  log.info("Deleting: {}".format(deleteMe))
+         if serviceName is None or  service == serviceName:
+             serviceObj = dockerCfg["services"][service]
+             if "volumes" in serviceObj:
+                for v in serviceObj["volumes"]:
+                   if "rocksdbdata" in v or \
+                      "cockroachDB" in v:
+                      yamlDir = os.path.dirname(self._cmdlineArgs.dockerComposeFile[0])
+                      deleteMe = os.path.join(yamlDir, v.split(":")[0])
+                      log.info("Deleting: {}".format(deleteMe))
+                      if serviceName == service and "rocksdbdata" in v:
+                        concordDbPath = os.path.abspath(yamlDir)
+                      if os.path.isdir(deleteMe):
+                         try:
+                            shutil.rmtree(deleteMe)
+                         except PermissionError as e:
+                            log.error("Could not delete {}. Try running with sudo " \
+                                      "when running in docker mode.".format(deleteMe))
+                            raise e
+      return concordDbPath
 
-                  if os.path.isdir(deleteMe):
-                     try:
-                        shutil.rmtree(deleteMe)
-                     except PermissionError as e:
-                        log.error("Could not delete {}. Try running with sudo " \
-                                  "when running in docker mode.".format(deleteMe))
-                        raise e
+
+   def stopProcessesInContainers(self, containerSearchString, processSearchString):
+      '''
+      containerSearchString: A string appearing in the "docker ps" output for the container
+      to look for.
+      processSearchSring: A string appearing in the docker container's "ps" output for
+      the process to look for.
+      Sends a process (processSearchString) in a container (containerSearchString)
+      a polite request to stop before we kill the container in which it is running.
+      This is needed because a "docker kill" of a container abruptly terminates a utility
+      such as Valgrind, which prevents it from summarizing memory leak data.
+      '''
+      containerIds = self.getRunningContainerIds(containerSearchString)
+
+      for containerId in containerIds:
+         cmd = ["docker", "exec", containerId, "ps", "-x"]
+         completedProcess = subprocess.run(cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT)
+         psOutput = completedProcess.stdout.decode("UTF-8")
+         lines = psOutput.split("\n")
+
+         for line in lines:
+            if processSearchString in line and not "/bin/sh" in line:
+               fields = line.strip().split(" ")
+               processId = fields[0]
+               log.info("Killing process id '{}' in container '{}' because we were " \
+                        "asked to kill processes containing '{}' in containers " \
+                        "containing '{}'".format(processId, containerId,
+                                               processSearchString, containerSearchString))
+               cmd = ["docker", "exec", containerId, "kill", processId]
+               completedProcess = subprocess.run(cmd,
+                                              stdout=subprocess.PIPE,
+                                              stderr=subprocess.STDOUT)
+               psOutput = completedProcess.stdout.decode("UTF-8")
+               log.info("Kill command output: {}".format(psOutput))
+
+
+   def stopMemoryLeakNode(self):
+      '''
+      We need to send Valgrind a polite request to terminate before
+      killing the container it is running in so that it can summarize
+      memory leak information.  Then we give it a few seconds to do so.
+      '''
+      self.stopProcessesInContainers("memleak", "valgrind")
+      time.sleep(10)
+
 
    def stopProduct(self):
       '''
       Stops the product executables and closes the logs.
       '''
       if self._cmdlineArgs.dockerComposeFile:
-         cmd = ["docker-compose",
-                "--file", self._cmdlineArgs.dockerComposeFile,
-                "down"]
+         self.stopMemoryLeakNode()
+         cmd = ["docker-compose"]
+
+         for cfgFile in self._cmdlineArgs.dockerComposeFile:
+            cmd += ["--file", cfgFile]
+
+         cmd += ["down"]
          print("Stopping the product with command '{}'".format(cmd))
          p = subprocess.run(cmd)
       else:
@@ -423,10 +619,106 @@ class Product():
          attempts += 1
 
          try:
-            rpc.addUser()
+            rpc.addUser(self._baseUrl)
             txHash = rpc.sendTransaction(caller, data)
          except Exception as e:
             log.debug("Waiting for product startup...")
             log.debug(e)
-
       return txHash != None
+
+   def cleanConcordDb(self, instanceId):
+      if len(self._concordProcessesMetaData) == 0:
+         if os.path.isfile(self._cmdlineArgs.dockerComposeFile[0]):
+            with open(self._cmdlineArgs.dockerComposeFile[0], "r") as f:
+               dockerCfg = yaml.load(f)
+               res= self.clearDBsForDockerLaunch(dockerCfg, "concord{}".format(instanceId))
+               return res
+      else:
+        for launchElement in self._userProductConfig["launch"]:
+           for project in launchElement:
+              projectSection = launchElement[project]
+              buildRoot = projectSection["buildRoot"]
+              buildRoot = os.path.expanduser(buildRoot)
+
+              if not self._cmdlineArgs.keepconcordDB and \
+                 project.lower() == "concord" + str(instanceId):
+                 path = self.clearconcordDBForCmdlineLaunch(launchElement[project], "concord" + str(instanceId))
+                 return path
+
+   def get_concord_container_name(self, replicaId):
+      command = 'docker ps --format "{0}" | grep concord{1}'.format("{{ .Names }}", replicaId)
+      output = subprocess.Popen(command,stderr=subprocess.PIPE, shell=True, stdout=subprocess.PIPE).stdout.read().decode().replace(os.linesep,"")
+      return output
+
+   def action_on_concord_container(self, containerName, action):
+      command = "docker {0} {1}".format(action, containerName)
+      output = subprocess.Popen(command,stderr=subprocess.PIPE, shell=True, stdout=subprocess.PIPE).stdout.read().decode().replace(os.linesep,"")
+      if output != containerName:
+        return False
+      return True
+
+   def start_concord_replica(self, id):
+       if len(self._concordProcessesMetaData) == 0:
+          containerName = "docker_concord{}_1".format(id)
+          return self.action_on_concord_container(containerName, "start")
+
+       originalCwd = os.getcwd()
+       result = False
+       for idx, meta in enumerate(self._concordProcessesMetaData):
+           if meta._instanceId == id:
+               log.info("Starting concord replica{}".format(id))
+               os.chdir(meta._path)
+               p = subprocess.Popen(meta._processCmd,
+                                    stdout=meta._logFile,
+                                    stderr=subprocess.STDOUT)
+               log.info("Concord replica{} started".format(id))
+               self._processes.append(p)
+               meta._processIndex = len(self._processes) - 1
+               self._concordProcessesMetaData[idx] = meta
+               result = True
+               break
+       os.chdir(originalCwd)
+       return result
+
+   def kill_concord_replica(self, id):
+       if len(self._concordProcessesMetaData) == 0:
+          containerName = self.get_concord_container_name(id)
+          if len(containerName) == 0:
+             return False
+          return self.action_on_concord_container(containerName, "kill")
+
+       for meta in self._concordProcessesMetaData:
+           if meta._instanceId == id:
+               log.info("Killing concord replica with ID {}".format(id))
+               self._processes[meta._processIndex].kill()
+               meta._processIndex = None
+               log.info("Killed concord replica with ID {}".format(id))
+               return True
+       return False
+
+   def pause_concord_replica(self, id):
+       if len(self._concordProcessesMetaData) == 0:
+          containerName = self.get_concord_container_name(id)
+          if len(containerName) == 0:
+             return False
+          return self.action_on_concord_container(containerName, "pause")
+
+       for meta in self._concordProcessesMetaData:
+           if meta._instanceId == id:
+               log.info("Suspending concord replica with ID {}".format(id))
+               os.kill(self._processes[meta._processIndex].pid, signal.SIGSTOP)
+               log.info("Suspended concord replica with ID {}".format(id))
+               return True
+       return False
+
+   def resume_concord_replica(self,id):
+       if len(self._concordProcessesMetaData) == 0:
+          containerName = "docker_concord{}_1".format(id)
+          return self.action_on_concord_container(containerName, "unpause")
+
+       for meta in self._concordProcessesMetaData:
+           if meta._instanceId == id:
+               log.info("Resuming concord replica with ID {}".format(id))
+               os.kill(self._processes[meta._processIndex].pid, signal.SIGCONT)
+               log.info("Resumed concord replica with ID {}".format(id))
+       return True

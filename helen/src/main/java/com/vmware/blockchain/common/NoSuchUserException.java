@@ -7,12 +7,12 @@ package com.vmware.blockchain.common;
 import org.springframework.http.HttpStatus;
 
 /**
- * There was an error trying to modify the user.
+ * There was an error when the user does not exist.
  */
-public class UserModificationException extends HelenException {
+public class NoSuchUserException extends HelenException {
     private static final long serialVersionUID = 1L;
 
-    public UserModificationException(String message) {
+    public NoSuchUserException(String message) {
         super(message, HttpStatus.BAD_REQUEST);
     }
 }

@@ -46,7 +46,7 @@ class KVBTests(test_suite.TestSuite):
          log.debug("Running in ethereum mode")
          self._apiServerUrl = "http://localhost:8545"
       else:
-         self._apiServerUrl = "https://localhost/blockchains/local/api/concord/eth/"
+         self._apiServerUrl = passedArgs.baseUrl + "/api/concord/eth/"
 
    def getName(self):
       return "KVBTests"
@@ -89,7 +89,7 @@ class KVBTests(test_suite.TestSuite):
 
       log.info("Tests are done.")
 
-      if self._productMode and not self._noLaunch:
+      if self._shouldStop():
          p.stopProduct()
 
       return self._resultFile

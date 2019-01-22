@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.services.profiles;
@@ -24,7 +24,8 @@ import org.springframework.cache.CacheManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import com.vmware.blockchain.common.UserModificationException;
+import com.vmware.blockchain.common.EntityModificationException;
+import com.vmware.blockchain.common.NoSuchUserException;
 
 
 /**
@@ -126,6 +127,38 @@ public class ProfilesRegistryManager {
         return oUser.map(UsersApiMessage::new).map(UsersApiMessage::toJson).orElse(new JSONObject());
     }
 
+    /**
+     * Get the user's consortium ID with email.
+     * @param email user's email address
+     * @return UUID of consortium
+     */
+    public UUID getUserConsortiumIdWithEmail(String email) {
+        Optional<User> oUser = userRepository.findUserByEmail(email);
+        if (oUser.isPresent()) {
+            User user = oUser.get();
+            Consortium consortium = user.getConsortium();
+            return consortium.getConsortiumId();
+        } else {
+            throw new NoSuchUserException("No user found with email: " + email);
+        }
+    }
+
+    /**
+     * Get user's organization ID with email.
+     * @param email user's email address
+     * @return UUID of organization
+     */
+    public UUID getUserOrganizationIdWithEmail(String email) {
+        Optional<User> oUser = userRepository.findUserByEmail(email);
+        if (oUser.isPresent()) {
+            User user = oUser.get();
+            Organization organization = user.getOrganization();
+            return organization.getOrganizationId();
+        } else {
+            throw new NoSuchUserException("No user found with email: " + email);
+        }
+    }
+
     private boolean isDuplicateEmail(String email) {
         Optional<User> existingUserWithSameEmail = userRepository.findUserByEmail(email);
         return existingUserWithSameEmail.isPresent();
@@ -134,14 +167,14 @@ public class ProfilesRegistryManager {
     /**
      * Create a new user.
      */
-    public String createUser(UserCreateRequest request) throws UserModificationException {
+    public String createUser(UserCreateRequest request) throws EntityModificationException {
 
         Optional<Organization> o = organizationRepository.findById(request.getOrganizationId());
         Optional<Consortium> c = consortiumRepository.findById(request.getConsortiumId());
 
         // First check if user with same email already exists
         if (isDuplicateEmail(request.getEmail())) {
-            throw new UserModificationException("Duplicate email address");
+            throw new EntityModificationException("Duplicate email address");
         }
 
         if (o.isPresent() && c.isPresent() && Roles.contains(request.getRole())) {
@@ -164,27 +197,27 @@ public class ProfilesRegistryManager {
             organizationRepository.save(o.get());
             return u.getUserId().toString();
         } else {
-            o.orElseThrow(() -> new UserModificationException(
+            o.orElseThrow(() -> new EntityModificationException(
                     "Organization with" + " ID " + request.getOrganizationId() + " not found."));
-            c.orElseThrow(() -> new UserModificationException(
+            c.orElseThrow(() -> new EntityModificationException(
                     "Consortium with" + " ID " + request.getConsortiumId() + " not found."));
-            throw new UserModificationException(request.getRole() + " is invalid Role value.");
+            throw new EntityModificationException(request.getRole() + " is invalid Role value.");
         }
     }
 
     /**
      * Patch an existing user.
      */
-    public void updateUser(UserPatchRequest request) throws UserModificationException {
+    public void updateUser(UserPatchRequest request) throws EntityModificationException {
         Optional<User> oUser = userRepository.findById(request.getUserId());
 
         if (!oUser.isPresent()) {
-            throw new UserModificationException("No user found with ID: " + request.getUserId());
+            throw new EntityModificationException("No user found with ID: " + request.getUserId());
         }
 
         // First check if user with same email already exists
         if (request.getOptionalEmail().isPresent() && isDuplicateEmail(request.getOptionalEmail().get())) {
-            throw new UserModificationException("Duplicate email address");
+            throw new EntityModificationException("Duplicate email address");
         }
 
         User user = oUser.get();
@@ -196,7 +229,7 @@ public class ProfilesRegistryManager {
             if (Roles.contains(request.getOptionalRole().get())) {
                 user.setRole(Roles.get(request.getOptionalRole().get()));
             } else {
-                throw new UserModificationException("Invalid role value: " + request.getOptionalRole().get());
+                throw new EntityModificationException("Invalid role value: " + request.getOptionalRole().get());
             }
         }
         userRepository.save(user);
@@ -205,7 +238,7 @@ public class ProfilesRegistryManager {
     /**
      * Login this user.
      */
-    public JSONObject loginUser(String email) throws UserModificationException {
+    public JSONObject loginUser(String email) throws EntityModificationException {
         Optional<User> oUser = userRepository.findUserByEmail(email);
         if (oUser.isPresent()) {
             User u = oUser.get();
@@ -219,11 +252,11 @@ public class ProfilesRegistryManager {
 
             return userJson;
         } else {
-            throw new UserModificationException("No user found with email: " + email);
+            throw new EntityModificationException("No user found with email: " + email);
         }
     }
 
-    public void loginUser(User user) throws UserModificationException {
+    public void loginUser(User user) throws EntityModificationException {
         user.setLastLogin(Instant.now().toEpochMilli());
         userRepository.save(user);
     }
@@ -231,7 +264,7 @@ public class ProfilesRegistryManager {
     /**
      * Change the user's password.
      */
-    public JSONObject changePassword(String email, String password) throws UserModificationException {
+    public JSONObject changePassword(String email, String password) throws EntityModificationException {
         Optional<User> oUser = userRepository.findUserByEmail(email);
         if (oUser.isPresent()) {
             User u = oUser.get();
@@ -245,7 +278,7 @@ public class ProfilesRegistryManager {
 
             return userJson;
         } else {
-            throw new UserModificationException("No user found with email: " + email);
+            throw new EntityModificationException("No user found with email: " + email);
         }
     }
 

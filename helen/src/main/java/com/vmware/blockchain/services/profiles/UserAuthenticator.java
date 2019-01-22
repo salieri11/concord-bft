@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.services.profiles;
@@ -29,9 +29,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.vmware.blockchain.common.ConcordProperties;
+import com.vmware.blockchain.common.EntityModificationException;
 import com.vmware.blockchain.common.HelenException;
-import com.vmware.blockchain.common.UserModificationException;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
+import com.vmware.blockchain.security.HelenUserDetails;
 import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
@@ -40,7 +41,6 @@ import com.vmware.concord.Concord.ConcordResponse;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 
 /**
  * A servlet for handling the user authentication flow of helen. This servlet is just added for temporary usage. Actual
@@ -148,7 +148,7 @@ public class UserAuthenticator extends BaseServlet {
                 loginResponse.setError("Invalid email/password");
                 responseStatus = HttpStatus.UNAUTHORIZED;
             }
-        } catch (UserModificationException e) {
+        } catch (EntityModificationException e) {
             loginResponse.setError(e.getMessage());
             responseStatus = HttpStatus.BAD_REQUEST;
         }
@@ -171,11 +171,13 @@ public class UserAuthenticator extends BaseServlet {
         try {
             String token = request.getRefreshToken();
 
-            if (token != null && jwtTokenProvider.validateToken(token)) {
+            if (token != null) {
                 responseStatus = HttpStatus.OK;
-                Authentication auth = token != null ? jwtTokenProvider.getAuthentication(token) : null;
+                Authentication auth = jwtTokenProvider.getAuthentication(token);
                 SecurityContextHolder.getContext().setAuthentication(auth);
-                String email = jwtTokenProvider.getEmail(token);
+                HelenUserDetails details = (HelenUserDetails) auth.getPrincipal();
+
+                String email = details.getUsername();
                 User u = userRepository.findUserByEmail(email).get();
                 String newToken = jwtTokenProvider.createToken(u);
                 String refreshToken = jwtTokenProvider.createRefreshToken(u);
@@ -222,7 +224,7 @@ public class UserAuthenticator extends BaseServlet {
                 responseJson = ApiHelper.errorJson("email or password " + "field missing");
                 responseStatus = HttpStatus.BAD_REQUEST;
             }
-        } catch (ParseException | UserModificationException e) {
+        } catch (ParseException | EntityModificationException e) {
             responseStatus = HttpStatus.BAD_REQUEST;
             responseJson = ApiHelper.errorJson(e.getMessage());
         }

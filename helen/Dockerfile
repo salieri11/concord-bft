@@ -1,33 +1,44 @@
-# This Dockerfile does not build Helen, it just dockerizes it.
-# You must build the UI and the HTTP Server first (see Readme.md).
-# Also, helen needs cockroach DB to run, when running helen inside a
+# Helen needs cockroach DB to run, when running helen inside a
 # container, we should also start another container for cockroach DB.
 # The `run_cockroachdb_docker.sh` script starts a cockroachDB container
 # and configures it for helen. Run that script first before starting helen
 # containers.
+FROM maven:3.6.0-jdk-11
 
-## Run image
-FROM ubuntu:16.04
-LABEL Description="Helen"
+# Copy the POM files (rarely changing).
+COPY ./helen/developer-config/checkstyle.xml ./helen/developer-config/checkstyle.xml
+COPY ./blockchain-build/pom.xml ./blockchain-build/pom.xml
+COPY ./communication/pom.xml ./communication/pom.xml
+COPY ./helen/pom.xml ./helen/pom.xml
 
-RUN apt-get update && apt-get -y install \
-    openjdk-8-jre-headless \
-    software-properties-common
-RUN add-apt-repository -y ppa:ethereum/ethereum
-RUN apt-get update && apt-get -y install \
-    solc \
-    && rm -rf /var/lib/apt/lists/*
+# Resolve / fetch all dependencies for communication module.
+RUN mvn -f communication/pom.xml dependency:go-offline -B
 
-WORKDIR /
-COPY src/main/resources/application.properties .
-COPY target/helen*.jar .
+# Build communication module.
+COPY ./communication/src ./communication/src
+RUN mvn -f communication/pom.xml install
+
+# Resolve / fetch all dependencies for helen module.
+RUN mvn -f helen/pom.xml dependency:go-offline -B
+
+# Build helen module.
+COPY ./helen/src ./helen/src
+RUN mvn -f helen/pom.xml package
+
+## Runtime image.
+FROM athena-docker-local.artifactory.eng.vmware.com/helen:prereqs-v2
+LABEL description="Blockchain Management Service (Helen)"
+
+WORKDIR /helen
+COPY ./helen/src/main/resources/application.properties ./application.properties
+COPY --from=0 ./helen/target/blockchain-helen*.jar ./blockchain-helen.jar
 
 # prepare for docker-compose, where concord is available from a virtual
 # hosts named "concord1", "concord2", ...
-RUN sed -i -e "s/ConcordAuthorities=.*/ConcordAuthorities=concord1:5458,concord2:5458,concord3:5458,concord4:5458/g" application.properties
+RUN sed -i -e "s/ConcordAuthorities=.*/ConcordAuthorities=concord1:5458,concord2:5458,concord3:5458,concord4:5458/g" ./application.properties
 # and CockroachDB is available from a virtual host named db-server
-RUN sed -i -e "s/DB_IP=.*/DB_IP=db-server/g" application.properties
+RUN sed -i -e "s/DB_IP=.*/DB_IP=db-server/g" ./application.properties
 
-CMD java -jar helen*.jar
+CMD ["java", "-jar", "blockchain-helen.jar"]
 
 EXPOSE 8080

@@ -14,6 +14,7 @@ import { CanViewDirective } from '../../directives/can-view.directive';
 import { VmwThemeSwitchButtonComponent } from '../theme-switch-button/theme-switch-button.component';
 import { TourService } from '../../tour.service';
 import { VmwClarityThemeService } from '../../theme.provider';
+import { VersionComponent } from '../version/version.component';
 
 @Component({
   selector: 'concord-test-wrapper',
@@ -32,7 +33,13 @@ describe('AppHeaderComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [ RouterTestingModule, MockSharedModule, HttpClientTestingModule ],
-      declarations: [ AppHeaderComponent, CanViewDirective, VmwThemeSwitchButtonComponent, TestWrapperClassComponent ],
+      declarations: [
+        AppHeaderComponent,
+        CanViewDirective,
+        VmwThemeSwitchButtonComponent,
+        TestWrapperClassComponent,
+        VersionComponent,
+      ],
       providers: [ TourService, NgxTourService, VmwClarityThemeService ]
     })
     .compileComponents();

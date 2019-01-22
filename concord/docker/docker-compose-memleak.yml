@@ -1,0 +1,12 @@
+version: '3'
+services:
+  concord1:
+    image: "${concord_repo}:${concord_tag}_memleak"
+    volumes:
+      - /tmp:/tmp
+  helen:
+    command:
+      - java
+      - -jar
+      - blockchain-helen.jar
+      - --ConcordAuthorities=concord1:5458

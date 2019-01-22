@@ -1,0 +1,47 @@
+## Image to build dependencies
+FROM ubuntu:18.04
+
+RUN apt-get update && apt-get -y install \
+    git \
+    sudo
+
+# Using Solidity 0.5.2 because it is the latest, and we need to pin
+# to a release.  Reference:
+# https://solidity.readthedocs.io/en/v0.5.2/installing-solidity.html
+
+RUN git clone --recursive https://github.com/ethereum/solidity.git
+WORKDIR /solidity
+RUN git submodule update --init --recursive
+RUN git checkout 1df8f40cd2fd7b47698d847907b8ca7b47eb488d
+RUN ./scripts/install_deps.sh
+RUN ./scripts/build.sh
+
+## Drop source code and build time dependencies
+FROM ubuntu:18.04
+LABEL Description="Helen Prerequisites"
+
+COPY --from=0 /usr/local/bin/solc /usr/local/bin/solc
+COPY --from=0 /usr/lib/x86_64-linux-gnu/libz3.so.4 /usr/lib/x86_64-linux-gnu/
+COPY --from=0 /usr/lib/x86_64-linux-gnu/libgomp.so.1 /usr/lib/x86_64-linux-gnu/
+COPY --from=0 /usr/lib/x86_64-linux-gnu/libgomp.so.1.0.0 /usr/lib/x86_64-linux-gnu/
+
+## Install necessary software packages and purge apt cache.
+RUN apt-get update && apt-get -y install \
+    software-properties-common \
+    wget \
+    libasound2 \
+    libasound2-data \
+ && rm -rf /var/lib/apt/lists/*
+
+## Install JDK.
+RUN wget --no-cookies --no-check-certificate --header "Cookie: oraclelicense=accept-securebackup-cookie" \
+         --directory-prefix=/tmp \
+         https://download.oracle.com/otn-pub/java/jdk/11.0.1+13/90cf5d8f270a4347a95050320eef3fb7/jdk-11.0.1_linux-x64_bin.deb \
+    && dpkg -i /tmp/jdk-11.0.1_linux-x64_bin.deb \
+    && update-alternatives --install /usr/bin/java java /usr/lib/jvm/jdk-11.0.1/bin/java 2 \
+    && update-alternatives --config java \
+    && update-alternatives --install /usr/bin/jar jar /usr/lib/jvm/jdk-11.0.1/bin/jar 2 \
+    && update-alternatives --install /usr/bin/javac javac /usr/lib/jvm/jdk-11.0.1/bin/javac 2 \
+    && update-alternatives --set jar /usr/lib/jvm/jdk-11.0.1/bin/jar \
+    && update-alternatives --set javac /usr/lib/jvm/jdk-11.0.1/bin/javac \
+    && rm -rf /tmp/jdk-11.0.1_linux-x64_bin.deb

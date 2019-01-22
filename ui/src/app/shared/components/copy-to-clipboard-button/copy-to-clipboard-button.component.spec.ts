@@ -96,7 +96,7 @@ describe('CopyToClipboardButtonComponent', () => {
       expect(element).toHaveRendered('button.btn.btn-outline');
 
       const label = element.querySelector('button .face-label span');
-      expect(label.innerText).toEqual(' COPY TO CLIPBOARD ');
+      expect(label.innerText).toEqual('COPY TO CLIPBOARD');
     });
   });
 });

@@ -33,7 +33,7 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
     private authenticationService: AuthenticationService,
     private formBuilder: FormBuilder,
     private router: Router,
-    private translateService: TranslateService
+    private translateService: TranslateService,
   ) {
 
     this.loginForm = this.formBuilder.group({

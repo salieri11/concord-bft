@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.services.profiles;
@@ -12,24 +12,24 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 /**
  * Tests for the DefaultProfiles component.
  */
-@RunWith(SpringRunner.class)
+@ExtendWith(SpringExtension.class)
 @TestPropertySource(locations = "classpath:test.properties")
 @ComponentScan(basePackageClasses = {DefaultProfilesTest.class})
-public class DefaultProfilesTest {
+class DefaultProfilesTest {
     // Just some random UUIDs
     private static final UUID USER_ID = UUID.fromString("f1c1aa4f-4958-4e93-8a51-930d595fb65b");
     private static final UUID ORG_ID = UUID.fromString("82634974-88cf-4944-a99d-6b92664bb765");
@@ -63,8 +63,8 @@ public class DefaultProfilesTest {
     /**
      * initialize the various mocks.
      */
-    @Before
-    public void init() {
+    @BeforeEach
+    void init() {
         consortium = new Consortium();
         consortium.setConsortiumId(CONSORTIUM_ID);
         consortium.setConsortiumName("Consortium Test");
@@ -133,30 +133,30 @@ public class DefaultProfilesTest {
     }
 
     @Test
-    public void testProfileExisting() {
+    void testProfileExisting() {
         initProfilesExist();
-        Assert.assertEquals(organization, profiles.getOrganization());
-        Assert.assertEquals("Test Org", profiles.getOrganization().getOrganizationName());
-        Assert.assertEquals(consortium, profiles.getConsortium());
-        Assert.assertEquals("Consortium Test", profiles.getConsortium().getConsortiumName());
-        Assert.assertEquals(blockchain, profiles.getBlockchain());
-        Assert.assertEquals("1,2,3,4", profiles.getBlockchain().getIpList());
-        Assert.assertEquals(testUser, profiles.getUser());
-        Assert.assertEquals("user@test.com", profiles.getUser().getEmail());
+        Assertions.assertEquals(organization, profiles.getOrganization());
+        Assertions.assertEquals("Test Org", profiles.getOrganization().getOrganizationName());
+        Assertions.assertEquals(consortium, profiles.getConsortium());
+        Assertions.assertEquals("Consortium Test", profiles.getConsortium().getConsortiumName());
+        Assertions.assertEquals(blockchain, profiles.getBlockchain());
+        Assertions.assertEquals("1,2,3,4", profiles.getBlockchain().getIpList());
+        Assertions.assertEquals(testUser, profiles.getUser());
+        Assertions.assertEquals("user@test.com", profiles.getUser().getEmail());
     }
 
     @Test
-    public void testProfileEmpty() {
+    void testProfileEmpty() {
         // This will use the system generated profiles, rather than the ones we created.
         initProfilesEmpty();
-        Assert.assertEquals(organization, profiles.getOrganization());
-        Assert.assertEquals("ADMIN", profiles.getOrganization().getOrganizationName());
-        Assert.assertEquals(consortium, profiles.getConsortium());
-        Assert.assertEquals("ADMIN", profiles.getConsortium().getConsortiumName());
-        Assert.assertEquals(blockchain, profiles.getBlockchain());
-        Assert.assertEquals(ipList, profiles.getBlockchain().getIpList());
-        Assert.assertEquals(testUser, profiles.getUser());
-        Assert.assertEquals("admin@blockchain.local", profiles.getUser().getEmail());
+        Assertions.assertEquals(organization, profiles.getOrganization());
+        Assertions.assertEquals("ADMIN", profiles.getOrganization().getOrganizationName());
+        Assertions.assertEquals(consortium, profiles.getConsortium());
+        Assertions.assertEquals("ADMIN", profiles.getConsortium().getConsortiumName());
+        Assertions.assertEquals(blockchain, profiles.getBlockchain());
+        Assertions.assertEquals(ipList, profiles.getBlockchain().getIpList());
+        Assertions.assertEquals(testUser, profiles.getUser());
+        Assertions.assertEquals("admin@blockchain.local", profiles.getUser().getEmail());
     }
 
 }

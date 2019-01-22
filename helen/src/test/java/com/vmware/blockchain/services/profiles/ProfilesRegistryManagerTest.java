@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.services.profiles;
@@ -16,10 +16,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.json.simple.JSONObject;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -27,16 +27,16 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.ImmutableMap;
-import com.vmware.blockchain.common.UserModificationException;
+import com.vmware.blockchain.common.EntityModificationException;
 
 /**
  * Tests for the ProfilesRegistryManager.
  */
-@RunWith(SpringRunner.class)
-public class ProfilesRegistryManagerTest {
+@ExtendWith(SpringExtension.class)
+class ProfilesRegistryManagerTest {
     // Just some random UUIDs
     private static final UUID USER_ID = UUID.fromString("f1c1aa4f-4958-4e93-8a51-930d595fb65b");
     private static final UUID NEW_USER_ID = UUID.fromString("f7e5d195-5281-4c7f-b719-3b6b40a736f2");
@@ -73,8 +73,8 @@ public class ProfilesRegistryManagerTest {
     /**
      * Initialize the mocks.
      */
-    @Before
-    public void init() {
+    @BeforeEach
+    void init() {
         MockitoAnnotations.initMocks(this);
         MockitoAnnotations.initMocks(prm);
         // consortium and organization
@@ -123,147 +123,158 @@ public class ProfilesRegistryManagerTest {
 
 
     @Test
-    public void testGetUserWithId() throws Exception {
+    void testGetUserWithId() {
         JSONObject json = prm.getUserWithId(USER_ID.toString());
-        Assert.assertEquals("test@a.com", json.get("email"));
-        Assert.assertEquals(USER_ID, json.get("user_id"));
+        Assertions.assertEquals("test@a.com", json.get("email"));
+        Assertions.assertEquals(USER_ID, json.get("user_id"));
     }
 
     @Test
-    public void testLoginGood() throws Exception {
+    void testLoginGood() {
         JSONObject json = prm.loginUser("test@a.com");
-        Assert.assertEquals(Boolean.TRUE, json.get("isAuthenticated"));
-        Assert.assertNotNull(json.get("last_login"));
+        Assertions.assertEquals(Boolean.TRUE, json.get("isAuthenticated"));
+        Assertions.assertNotNull(json.get("last_login"));
         verify(userRepository, times(1)).save(any(User.class));
     }
 
-    @Test(expected = UserModificationException.class)
-    public void testLoginNoUser() throws Exception {
-        prm.loginUser("noeone@a.com");
-        Assert.fail("Should not get this far");
+    @Test
+    void testLoginNoUser() {
+        Assertions.assertThrows(
+            EntityModificationException.class,
+            () -> prm.loginUser("noeone@a.com"));
     }
 
     @Test
-    public void testChangePassword() throws Exception {
+    void testChangePassword() {
         prm.changePassword("test@a.com", "arglebargle");
-        Assert.assertEquals(Boolean.TRUE, prm.loginUser("test@a.com").get("isAuthenticated"));
+        Assertions.assertEquals(Boolean.TRUE, prm.loginUser("test@a.com").get("isAuthenticated"));
         // save is called once by the change, and once by login
         verify(userRepository, times(2)).save(any(User.class));
     }
 
     @Test
-    public void testCreateUser() throws Exception {
+    void testCreateUser() {
         when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.of(organization));
         when(consortiumRepository.findById(CONSORTIUM_ID)).thenReturn(Optional.of(consortium));
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         UsersApiMessage msg = new UsersApiMessage(newUser);
         String id = prm.createUser(msg);
         verify(userRepository, times(1)).save(captor.capture());
-        Assert.assertEquals(NEW_USER_ID.toString(), id);
+        Assertions.assertEquals(NEW_USER_ID.toString(), id);
         User u = captor.getValue();
-        Assert.assertEquals(newUser.getFirstName(), u.getFirstName());
-        Assert.assertEquals(newUser.getLastName(), u.getLastName());
-        Assert.assertEquals(newUser.getEmail(), u.getEmail());
-        Assert.assertEquals(newUser.getRole(), u.getRole());
+        Assertions.assertEquals(newUser.getFirstName(), u.getFirstName());
+        Assertions.assertEquals(newUser.getLastName(), u.getLastName());
+        Assertions.assertEquals(newUser.getEmail(), u.getEmail());
+        Assertions.assertEquals(newUser.getRole(), u.getRole());
         verify(organizationRepository, times(1)).save(any(Organization.class));
         verify(consortiumRepository, times(1)).save(any(Consortium.class));
-        Assert.assertTrue(organization.getUsers().contains(u));
-        Assert.assertTrue(consortium.getUsers().contains(u));
+        Assertions.assertTrue(organization.getUsers().contains(u));
+        Assertions.assertTrue(consortium.getUsers().contains(u));
     }
 
-    @Test(expected = UserModificationException.class)
-    public void testCreateExistingUser() throws Exception {
+    @Test
+    void testCreateExistingUser() {
         when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.of(organization));
         when(consortiumRepository.findById(CONSORTIUM_ID)).thenReturn(Optional.of(consortium));
         UsersApiMessage msg = new UsersApiMessage(existingUser);
-        try {
-            prm.createUser(msg);
-        } catch (UserModificationException e) {
-            Assert.assertEquals("Duplicate email address", e.getMessage());
-            verify(userRepository, times(0)).save(any());
-            verify(organizationRepository, times(0)).save(any());
-            verify(consortiumRepository, times(0)).save(any());
-            throw e;
-        }
-        Assert.fail("Should not have gotten here");
+        Assertions.assertThrows(EntityModificationException.class, () -> {
+            try {
+                prm.createUser(msg);
+            } catch (EntityModificationException e) {
+                Assertions.assertEquals("Duplicate email address", e.getMessage());
+                verify(userRepository, times(0)).save(any());
+                verify(organizationRepository, times(0)).save(any());
+                verify(consortiumRepository, times(0)).save(any());
+                throw e;
+            }
+        });
     }
 
-    @Test(expected = UserModificationException.class)
-    public void testCreateUserBadOrg() throws Exception {
+    @Test
+    void testCreateUserBadOrg() {
         when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.empty());
         when(consortiumRepository.findById(CONSORTIUM_ID)).thenReturn(Optional.of(consortium));
         UsersApiMessage msg = new UsersApiMessage(newUser);
-        try {
-            prm.createUser(msg);
-        } catch (UserModificationException e) {
-            Assert.assertEquals("Organization with ID 82634974-88cf-4944-a99d-6b92664bb765 not found.", e.getMessage());
-            verify(userRepository, times(0)).save(any());
-            verify(organizationRepository, times(0)).save(any());
-            verify(consortiumRepository, times(0)).save(any());
-            throw e;
-        }
-        Assert.fail("Should not have gotten here");
+        Assertions.assertThrows(EntityModificationException.class, () -> {
+            try {
+                prm.createUser(msg);
+            } catch (EntityModificationException e) {
+                Assertions.assertEquals(
+                    "Organization with ID 82634974-88cf-4944-a99d-6b92664bb765 not found.",
+                    e.getMessage());
+                verify(userRepository, times(0)).save(any());
+                verify(organizationRepository, times(0)).save(any());
+                verify(consortiumRepository, times(0)).save(any());
+                throw e;
+            }
+        });
     }
 
-    @Test(expected = UserModificationException.class)
-    public void testCreateUserBadConsortium() throws Exception {
+    @Test
+    void testCreateUserBadConsortium() {
         when(organizationRepository.findById(ORG_ID)).thenReturn(Optional.of(organization));
         when(consortiumRepository.findById(CONSORTIUM_ID)).thenReturn(Optional.empty());
         UsersApiMessage msg = new UsersApiMessage(newUser);
-        try {
-            prm.createUser(msg);
-        } catch (UserModificationException e) {
-            Assert.assertEquals("Consortium with ID 5c7cd0e9-57ad-44af-902f-74af2f3dd8fe not found.", e.getMessage());
-            verify(userRepository, times(0)).save(any());
-            verify(organizationRepository, times(0)).save(any());
-            verify(consortiumRepository, times(0)).save(any());
-            throw e;
-        }
-        Assert.fail("Should not have gotten here");
+        Assertions.assertThrows(EntityModificationException.class, () -> {
+            try {
+                prm.createUser(msg);
+            } catch (EntityModificationException e) {
+                Assertions.assertEquals(
+                    "Consortium with ID 5c7cd0e9-57ad-44af-902f-74af2f3dd8fe not found.",
+                    e.getMessage());
+                verify(userRepository, times(0)).save(any());
+                verify(organizationRepository, times(0)).save(any());
+                verify(consortiumRepository, times(0)).save(any());
+                throw e;
+            }
+        });
     }
 
-    @Test(expected = UserModificationException.class)
-    public void testUpdateNoUser() throws Exception {
+    @Test
+    void testUpdateNoUser() {
         when(userRepository.findById(USER_ID)).thenReturn(Optional.empty());
         UsersApiMessage msg = new UsersApiMessage();
         msg.setUserId(USER_ID);
-        try {
-            prm.updateUser(msg);
-        } catch (UserModificationException e) {
-            Assert.assertEquals("No user found with ID: " + USER_ID, e.getMessage());
-            verify(userRepository, times(0)).save(any());
-            verify(organizationRepository, times(0)).save(any());
-            verify(consortiumRepository, times(0)).save(any());
-            throw e;
-        }
-        Assert.fail("Should not have gotten here");
+        Assertions.assertThrows(EntityModificationException.class, () -> {
+            try {
+                prm.updateUser(msg);
+            } catch (EntityModificationException e) {
+                Assertions.assertEquals("No user found with ID: " + USER_ID, e.getMessage());
+                verify(userRepository, times(0)).save(any());
+                verify(organizationRepository, times(0)).save(any());
+                verify(consortiumRepository, times(0)).save(any());
+                throw e;
+            }
+        });
     }
 
-    @Test(expected = UserModificationException.class)
-    public void testUpdateDupEmail() throws Exception {
+    @Test
+    void testUpdateDupEmail() {
         Map<String, String> m = new ImmutableMap.Builder<String, String>()
                 .put(UsersApiMessage.EMAIL_LABEL, "test@a.com").build();
         JSONObject json = new JSONObject(m);
         UsersApiMessage msg = new UsersApiMessage(json);
         msg.setUserId(USER_ID);
-        try {
-            prm.updateUser(msg);
-        } catch (UserModificationException e) {
-            Assert.assertEquals("Duplicate email address", e.getMessage());
-            verify(userRepository, times(0)).save(any());
-            verify(organizationRepository, times(0)).save(any());
-            verify(consortiumRepository, times(0)).save(any());
-            throw e;
-        }
-        Assert.fail("Should not have gotten here");
+        Assertions.assertThrows(EntityModificationException.class, () -> {
+            try {
+                prm.updateUser(msg);
+            } catch (EntityModificationException e) {
+                Assertions.assertEquals("Duplicate email address", e.getMessage());
+                verify(userRepository, times(0)).save(any());
+                verify(organizationRepository, times(0)).save(any());
+                verify(consortiumRepository, times(0)).save(any());
+                throw e;
+            }
+        });
     }
 
     @Test
-    public void testUpdateEmailAndRole() throws Exception {
+    void testUpdateEmailAndRole() {
         Map<String, String> m = new ImmutableMap.Builder<String, String>()
                 .put(UsersApiMessage.EMAIL_LABEL, "old-test@a.com").build();
         JSONObject json = new JSONObject(m);
-        json.put("role", "ORG_ADMIN");
+        @SuppressWarnings("unchecked") Map<String, String> jsonAsMap = (Map<String, String>) json;
+        jsonAsMap.put("role", "ORG_ADMIN");
         UsersApiMessage msg = new UsersApiMessage(json);
         msg.setUserId(USER_ID);
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
@@ -273,35 +284,36 @@ public class ProfilesRegistryManagerTest {
         verify(consortiumRepository, times(0)).save(any());
         // email should have changed, but not first or last name
         User u = captor.getValue();
-        Assert.assertEquals("old-test@a.com", u.getEmail());
-        Assert.assertEquals("Test", u.getFirstName());
-        Assert.assertEquals("User", u.getLastName());
-        Assert.assertEquals(Roles.ORG_ADMIN.toString(), u.getRole());
+        Assertions.assertEquals("old-test@a.com", u.getEmail());
+        Assertions.assertEquals("Test", u.getFirstName());
+        Assertions.assertEquals("User", u.getLastName());
+        Assertions.assertEquals(Roles.ORG_ADMIN.toString(), u.getRole());
     }
 
-    @Test(expected = UserModificationException.class)
-    public void testUpdateBadRold() throws Exception {
+    @Test
+    void testUpdateBadRold() {
         Map<String, String> m = new ImmutableMap.Builder<String, String>()
                 .put(UsersApiMessage.ROLE_LABEL, "invalid_role").build();
         JSONObject json = new JSONObject(m);
         UsersApiMessage msg = new UsersApiMessage(json);
         msg.setUserId(USER_ID);
-        try {
-            prm.updateUser(msg);
-        } catch (UserModificationException e) {
-            Assert.assertEquals("Invalid role value: invalid_role", e.getMessage());
-            verify(userRepository, times(0)).save(any());
-            verify(organizationRepository, times(0)).save(any());
-            verify(consortiumRepository, times(0)).save(any());
-            throw e;
-        }
-        Assert.fail("Should not have gotten here");
+        Assertions.assertThrows(EntityModificationException.class, () -> {
+            try {
+                prm.updateUser(msg);
+            } catch (EntityModificationException e) {
+                Assertions.assertEquals("Invalid role value: invalid_role", e.getMessage());
+                verify(userRepository, times(0)).save(any());
+                verify(organizationRepository, times(0)).save(any());
+                verify(consortiumRepository, times(0)).save(any());
+                throw e;
+            }
+        });
     }
 
     @Test
-    public void testLoginUser() throws Exception {
+    void testLoginUser() {
         prm.loginUser(existingUser);
-        Assert.assertNotEquals(new Long(0), existingUser.getLastLogin());
+        Assertions.assertNotEquals(0, existingUser.getLastLogin());
     }
 
 }

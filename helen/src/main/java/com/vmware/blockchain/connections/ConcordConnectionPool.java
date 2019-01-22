@@ -1,10 +1,12 @@
 /*
- * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.connections;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -12,21 +14,25 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.common.ConcordProperties;
-
+import com.vmware.blockchain.services.profiles.Blockchain;
 import com.vmware.concord.ConcordTcpConnection;
 import com.vmware.concord.IConcordConnection;
 
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+
 /**
  * Connection pool for a specific Blockchain.
+ * This has been modified to include the one method remaining in ConnectionPoolFactory.
  */
-@Component
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ConcordConnectionPool {
-    // Instantiate the instance of this class
     private static Logger log = LogManager.getLogger(ConcordConnectionPool.class);
     private AtomicInteger connectionCount;
+    // should only be incremented a few times (pool size + broken connections)
+    private  AtomicInteger nextConnection;
     // initialized with fairness = true, longest waiting threads
     // are served first
     private ArrayBlockingQueue<IConcordConnection> pool;
@@ -36,21 +42,66 @@ public class ConcordConnectionPool {
     private int waitTimeout;
     // pool starts at this size
     private int minPoolSize;
-    // pool can grow up to this size. currently no cleaning routine is
-    // implemented, TODO
     private int maxPoolSize;
-    private ConcordConnectionFactory factory;
+
+    @Getter
+    @EqualsAndHashCode.Include
+    private UUID id = UUID.randomUUID();
+
+    private Blockchain blockchain;
+
+    List<String> ips;
+    private ConnectionType connectionType;
+
+    /**
+     * Connection types supported.
+     */
+    public enum ConnectionType {
+        TCP, Mock
+    }
 
     /**
      * Initializes local variables.
      */
-    public ConcordConnectionPool() {
+    public ConcordConnectionPool(Blockchain blockchain, ConnectionType connectionType) {
         initialized = new AtomicBoolean(false);
         connectionCount = new AtomicInteger(0);
+        nextConnection = new AtomicInteger(0);
+        this.blockchain = blockchain;
+        this.ips = blockchain.getIpAsList();
+        this.connectionType = connectionType;
+    }
+
+    public ConcordConnectionPool(Blockchain blockchain) {
+        this(blockchain, ConnectionType.TCP);
+    }
+
+    public boolean isInitialized() {
+        return initialized.get();
+    }
+
+    /**
+     * Create a connection to the request IP.
+     */
+    public IConcordConnection create(String nodeIp) throws IOException, UnsupportedOperationException {
+        IpAddr ip = new IpAddr(nodeIp);
+        switch (connectionType) {
+            case TCP:
+                ConcordTcpConnection connection =
+                    new ConcordTcpConnection(config.getReceiveTimeoutMs(), config.getReceiveHeaderSizeBytes(),
+                                             ip.getHost(), ip.getPort());
+                return connection;
+            case Mock:
+                return new MockConnection(ip.getHost(), ip.getPort());
+            default:
+                throw new UnsupportedOperationException("type not supported" + connectionType);
+        }
     }
 
     /**
      * Creates a new TCP connection with Concord.
+     * Use the nextConnection variable to spread the connections around.
+     * I'm not convinced this needs to be atomic anymore.
      *
      * @return the connection
      */
@@ -60,7 +111,8 @@ public class ConcordConnectionPool {
             // increment first, so that all errors can decrement
             int c = connectionCount.incrementAndGet();
             if (c <= maxPoolSize) {
-                IConcordConnection res = factory.create();
+                int i = nextConnection.incrementAndGet() % ips.size();
+                IConcordConnection res = create(ips.get(i));
                 log.info("new connection created, active connections: " + c);
                 return res;
             } else {
@@ -91,11 +143,6 @@ public class ConcordConnectionPool {
                 int c = connectionCount.decrementAndGet();
                 log.debug("connection closed, active connections: " + c);
                 log.info("broken connection closed");
-
-                // attempt to replace the broken connection
-                if (c < minPoolSize && initialized.get()) {
-                    putConnection(createConnection());
-                }
             }
         } catch (Exception e) {
             log.error("closeConnection", e);
@@ -140,8 +187,18 @@ public class ConcordConnectionPool {
                 if (!res) {
                     log.error("Failed to check connection");
                     closeConnection(conn);
-                    // see if we can get another connection
-                    continue;
+
+                    // attempt to replace the broken connection
+                    // this may fail if there are _maxPoolSize
+                    // connections already in the pool
+                    if (connectionCount.get() < minPoolSize
+                        && initialized.get()) {
+                        IConcordConnection newConn = createConnection();
+                        return newConn;
+                    } else {
+                        // try to wait for connection to become available
+                        continue;
+                    }
                 }
 
                 log.trace("getConnection exit");
@@ -182,11 +239,10 @@ public class ConcordConnectionPool {
     /**
      * Reads connection pool related configurations.
      */
-    public ConcordConnectionPool initialize(ConcordProperties config, ConcordConnectionFactory factory)
+    public ConcordConnectionPool initialize(ConcordProperties config)
             throws IOException {
         if (initialized.compareAndSet(false, true)) {
             this.config = config;
-            this.factory = factory;
             waitTimeout = config.getConnectionPoolWaitTimeoutMs();
             minPoolSize = config.getConnectionPoolSize();
             int poolFactor = config.getConnectionPoolFactor();
@@ -223,5 +279,27 @@ public class ConcordConnectionPool {
             throw new IllegalStateException("returnConnection, pool not initialized");
         }
         return connectionCount.get();
+    }
+
+    @Getter
+    private static class IpAddr {
+        // Default values
+        private String host = "concord";
+        private int port = 5458;
+
+        public IpAddr(String ipAddr) {
+            String[] parts = ipAddr.split(":");
+            // zero length means a string like ":123"
+            if (parts[0].length() > 0) {
+                this.host = parts[0];
+            }
+            if (parts.length > 1) {
+                try {
+                    this.port = Integer.parseInt(parts[1]);
+                } catch (NumberFormatException e) {
+                    // do nothing, return default port
+                }
+            }
+        }
     }
 }

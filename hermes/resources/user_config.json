@@ -52,7 +52,9 @@
               "--logger_config",
               "./resources/log4cplus.properties",
               "-c",
-              "resources/concord1.config"
+              "resources/concord1.config",
+              "--gas_limit",
+              "10000000"
             ]
           }
         }
@@ -66,7 +68,9 @@
               "--logger_config",
               "./resources/log4cplus.properties",
               "-c",
-              "resources/concord2.config"
+              "resources/concord2.config",
+              "--gas_limit",
+              "10000000"
             ]
           }
         }
@@ -80,7 +84,9 @@
               "--logger_config",
               "./resources/log4cplus.properties",
               "-c",
-              "resources/concord3.config"
+              "resources/concord3.config",
+              "--gas_limit",
+              "10000000"
             ]
           }
         }
@@ -94,7 +100,9 @@
               "--logger_config",
               "./resources/log4cplus.properties",
               "-c",
-              "resources/concord4.config"
+              "resources/concord4.config",
+              "--gas_limit",
+              "10000000"
             ]
           }
         }

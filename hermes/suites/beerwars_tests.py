@@ -180,6 +180,6 @@ class BeerWarsTests(test_suite.TestSuite):
       if err != None:
          return (False, err)
 
-      log.debug(out)
+      log.info(out)
 
       return (True, None)

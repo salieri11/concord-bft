@@ -263,60 +263,6 @@ evm_address com::vmware::concord::EVM::contract_destination(
    return address;
 }
 
-/**
- * Creates a new user account with 0 balance.
- * Generates a Keccak256 hash of the passphrase provided by the
- * user and uses its last 20 bytes as the account address.
- */
-bool com::vmware::concord::EVM::new_account(
-   const std::string& passphrase,
-   KVBStorage &kvbStorage,
-   evm_address& address /* OUT */)
-{
-   std::vector<uint8_t> vec(passphrase.begin(), passphrase.end());
-   evm_uint256be hash = EthHash::keccak_hash(vec);
-
-   std::copy(hash.bytes+(sizeof(evm_uint256be)-sizeof(evm_address)),
-             hash.bytes+sizeof(evm_uint256be),
-             address.bytes);
-
-   if(kvbStorage.account_exists(address)) {
-      return false;
-   } else {
-      kvbStorage.set_balance(address, 0);
-      // TODO: "zero-address?" notes below: personal_newAccount should be
-      // handled entirely in Helen. The creation of the account does not need to
-      // be recorded on the blockchain, except to appease concord_evm's existence
-      // check before allowing a balance transfer. Checking that the destination
-      // of a balance transfer exists should also be removed (see Ethereum
-      // address 0's current balance for compatibility arguments).
-      uint64_t nonce = kvbStorage.get_nonce(zero_address);
-      EthTransaction tx = {
-         nonce,                  // nonce: zero-address nonce?
-         zero_hash,              // block_hash: will be set in write_block
-         0,                      // block_number: will be set in write_block
-         zero_address,           // from
-         address,                // to
-         zero_address,           // contract_address
-         std::vector<uint8_t>(), // input
-         EVM_SUCCESS,            // status
-         0,                      // value
-         0,                      // gas_price
-         0,                      // gas_limit
-         std::vector<EthLog>(),  // logs
-         zero_hash,              // sig_r: zero-address signature?
-         zero_hash,              // sig_s: zero-address signature?
-         0                       // sig_v: zero-address signature? chainID?
-      };
-      kvbStorage.add_transaction(tx);
-      kvbStorage.set_nonce(zero_address, nonce+1);
-      //TODO: use parent block timestamp, not zero here
-      //      (but really this whole thing should move to helen HEL-80)
-      kvbStorage.write_block(0, 0);
-      return true;
-   }
-}
-
 evm_result com::vmware::concord::EVM::execute(evm_message &message,
                                              uint64_t timestamp,
                                              KVBStorage &kvbStorage,

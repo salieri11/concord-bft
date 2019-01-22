@@ -89,8 +89,6 @@ private:
    is_valid_eth_getTransactionCount(const EthRequest &request);
    bool
    is_valid_eth_getBalance(const EthRequest &request);
-   bool
-   is_valid_personal_newAccount(const EthRequest &request);
 
    /* This serves eth_blockNumber. */
    uint64_t current_block_number();

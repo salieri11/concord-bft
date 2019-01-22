@@ -19,6 +19,7 @@
 #include "ICommunication.hpp"
 #include "CommDefs.hpp"
 #include "ThresholdSignaturesSchemes.h"
+#include "SimpleBCStateTransfer.hpp"
 
 using std::string;
 using std::pair;

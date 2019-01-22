@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.services.concord;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -69,20 +69,22 @@ public final class MemberList extends BaseServlet {
         Concord.PeerResponse peerResponse = concordResponse.getPeerResponse();
 
         // Read list of peer objects from the peer response object.
-        List<Concord.Peer> peerList = new ArrayList<>();
-        peerList = peerResponse.getPeerList();
-
+        List<Concord.Peer> peerList = peerResponse.getPeerList();
         JSONArray peerArr = new JSONArray();
+
+        Map<String, String> rpcUrls = config.getRpcUrlsAsMap();
 
         // Iterate through each peer and construct
         // a corresponding JSON object
         for (Concord.Peer peer : peerList) {
             JSONObject peerJson = new JSONObject();
-            peerJson.put("hostname", peer.getHostname());
+            String hostname = peer.getHostname();
+            peerJson.put("hostname", hostname);
             peerJson.put("address", peer.getAddress());
             peerJson.put("status", peer.getStatus());
             peerJson.put("millis_since_last_message", peer.getMillisSinceLastMessage());
             peerJson.put("millis_since_last_message_threshold", peer.getMillisSinceLastMessageThreshold());
+            peerJson.put("rpc_url", rpcUrls.getOrDefault(hostname, ""));
 
             // Store into a JSON array of all peers.
             peerArr.add(peerJson);

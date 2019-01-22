@@ -75,13 +75,19 @@ Sliver copyRocksdbSlice(rocksdb::Slice _s) {
  *
  *  @return GeneralError in case of error in connection, else OK.
  */
-Status RocksDBClient::init()
+Status RocksDBClient::init(bool readOnly)
 {
    rocksdb::Options options;
    options.create_if_missing = true;
    options.comparator = m_comparator;
 
-   rocksdb::Status s = rocksdb::DB::Open(options, m_dbPath, &m_dbInstance);
+
+   rocksdb::Status s;
+   if(readOnly) {
+      s = rocksdb::DB::OpenForReadOnly(options, m_dbPath, &m_dbInstance);
+   } else {
+      s = rocksdb::DB::Open(options, m_dbPath, &m_dbInstance);
+   }
 
    if (!s.ok()) {
       LOG4CPLUS_ERROR(logger, "Failed to open rocksdb database at " <<

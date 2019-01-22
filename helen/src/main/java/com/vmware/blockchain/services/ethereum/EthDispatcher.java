@@ -1,8 +1,10 @@
 /*
- * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.services.ethereum;
+
+import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,6 +17,9 @@ import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +31,7 @@ import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.contracts.ContractRegistryManager;
 
+import com.vmware.blockchain.services.profiles.ProfilesRegistryManager;
 import com.vmware.concord.Concord;
 import com.vmware.concord.Concord.ConcordResponse;
 import com.vmware.concord.Concord.ErrorResponse;
@@ -57,15 +63,17 @@ public final class EthDispatcher extends BaseServlet {
     private JSONArray rpcList;
     private String jsonRpc;
     private ContractRegistryManager registryManager;
+    private ProfilesRegistryManager profilesRegistryManager;
     private ConcordProperties config;
 
     @Autowired
-    public EthDispatcher(ContractRegistryManager registryManager, ConcordProperties config,
-            ConcordConnectionPool connectionPool) throws ParseException {
+    public EthDispatcher(ContractRegistryManager registryManager, ProfilesRegistryManager profilesRegistryManager,
+                         ConcordProperties config, ConcordConnectionPool connectionPool) throws ParseException {
         super(config, connectionPool);
         this.config = config;
         JSONParser p = new JSONParser();
         this.registryManager = registryManager;
+        this.profilesRegistryManager = profilesRegistryManager;
         try {
             rpcList = (JSONArray) p.parse(Constants.ETHRPC_LIST);
             jsonRpc = Constants.JSONRPC;
@@ -137,8 +145,12 @@ public final class EthDispatcher extends BaseServlet {
      */
     @RequestMapping(path = "/api/concord/eth", method = RequestMethod.GET)
     public ResponseEntity<JSONAware> doGet() {
-        MDC.put("organization_id", "1234");
-        MDC.put("consortium_id", "1234");
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        UUID organizationId = profilesRegistryManager.getUserOrganizationIdWithEmail(userDetails.getUsername());
+        UUID consortiumId = profilesRegistryManager.getUserConsortiumIdWithEmail(userDetails.getUsername());
+        MDC.put("organization_id", organizationId.toString());
+        MDC.put("consortium_id", consortiumId.toString());
         MDC.put("uri", "/api/concord/eth");
         MDC.put("source", "rpcList");
         MDC.put("method", "GET");
@@ -165,9 +177,13 @@ public final class EthDispatcher extends BaseServlet {
         JSONAware responseBody;
         boolean isBatch = false;
         ResponseEntity<JSONAware> responseEntity;
-        // TODO change the organization_id and consortium_id to real ones in future
-        MDC.put("organization_id", "1234");
-        MDC.put("consortium_id", "1234");
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
+        UUID organizationId = profilesRegistryManager.getUserOrganizationIdWithEmail(userDetails.getUsername());
+        UUID consortiumId = profilesRegistryManager.getUserConsortiumIdWithEmail(userDetails.getUsername());
+        MDC.put("organization_id", organizationId.toString());
+        MDC.put("consortium_id", consortiumId.toString());
         MDC.put("method", "POST");
         MDC.put("uri", "/api/concord/eth");
         try {
@@ -241,9 +257,11 @@ public final class EthDispatcher extends BaseServlet {
                 case Constants.CALL_NAME:
                     if (requestJson.containsKey("isInternalContract")) {
                         requestJson.remove("isInternalContract");
-                        handler = new EthSendTxHandler(config, concordConnectionPool, registryManager, true);
+                        handler = new EthSendTxHandler(config, concordConnectionPool, registryManager,
+                                                       profilesRegistryManager, true);
                     } else {
-                        handler = new EthSendTxHandler(config, concordConnectionPool, registryManager, false);
+                        handler = new EthSendTxHandler(config, concordConnectionPool, registryManager,
+                                                       profilesRegistryManager, false);
                     }
                     break;
 

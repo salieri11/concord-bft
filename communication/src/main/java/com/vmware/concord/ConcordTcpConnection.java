@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.concord;
@@ -39,7 +39,8 @@ public final class ConcordTcpConnection implements IConcordConnection {
      * Sets up a TCP connection with Concord.
      *
      */
-    public ConcordTcpConnection(int receiveTimeoutMs, int receiveHeaderSizeBytes, String host, int port) throws IOException {
+    public ConcordTcpConnection(int receiveTimeoutMs, int receiveHeaderSizeBytes, String host, int port)
+        throws IOException {
         this.receiveTimeoutMs = receiveTimeoutMs;
         this.receiveHeaderSizeBytes = receiveHeaderSizeBytes;
         maxMessageSizeBytes = (1 << (receiveHeaderSizeBytes * 8)) - 1;

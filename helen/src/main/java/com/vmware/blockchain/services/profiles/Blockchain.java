@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.services.profiles;
@@ -18,8 +18,10 @@ import javax.persistence.JoinColumn;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 /**
@@ -30,6 +32,8 @@ import lombok.ToString;
 @Data
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ToString
+@AllArgsConstructor
+@NoArgsConstructor
 public class Blockchain {
 
     @Id
@@ -42,9 +46,10 @@ public class Blockchain {
     private Consortium consortium;
 
     /**
-     * Comma separated list of IP addresses for each node in the chain.
+     * Comma separated list of IP addresses for each node in the chain.  On insert,
+     * we normalize this list.  No two blockchains can share the same list of nodes.
      */
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String ipList;
 
     /**

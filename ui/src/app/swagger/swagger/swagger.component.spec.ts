@@ -14,6 +14,7 @@ import { VmwThemeSwitchButtonComponent } from '../../shared/components/theme-swi
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { TourService } from '../../shared/tour.service';
 import { VmwClarityThemeService } from '../../shared/theme.provider';
+import { VersionComponent } from '../../shared/components/version/version.component';
 
 describe('SwaggerComponent', () => {
   let component: SwaggerComponent;
@@ -22,7 +23,13 @@ describe('SwaggerComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [ RouterTestingModule, MockSharedModule, HttpClientTestingModule ],
-      declarations: [ AppHeaderComponent, CanViewDirective, SwaggerComponent, VmwThemeSwitchButtonComponent ],
+      declarations: [
+        AppHeaderComponent,
+         CanViewDirective,
+         SwaggerComponent,
+         VmwThemeSwitchButtonComponent,
+         VersionComponent
+      ],
       providers: [ TourService, NgxTourService, VmwClarityThemeService ]
     })
     .compileComponents();

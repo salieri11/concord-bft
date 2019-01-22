@@ -47,10 +47,12 @@ describe('concord-ui Smart Contracts', () => {
 
   it('should create a smart contract', () => {
     const absolutePath = path.resolve(__dirname, file);
+    browser.sleep(500);
     smartContractsPage.openCreateModal();
     smartContractsPage.fillContractFormStep1(from, contractId, version, absolutePath);
     smartContractsPage.clickWizardNextButton();
     smartContractsPage.clickWizardNextButton();
+    smartContractsPage.addProprosals();
     smartContractsPage.clickWizardFinishButton();
     expect(smartContractPage.getContractId()).toBe(contractId);
   });

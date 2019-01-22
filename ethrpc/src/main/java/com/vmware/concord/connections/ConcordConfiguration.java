@@ -1,8 +1,8 @@
 /*
- * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.connections;
+package com.vmware.concord.connections;
 
 import java.io.IOException;
 
@@ -11,8 +11,6 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import com.vmware.blockchain.common.ConcordProperties;
 
 /**
  * Temporary configuration to create connection pool bean.

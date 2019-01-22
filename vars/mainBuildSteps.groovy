@@ -79,6 +79,13 @@ def call(){
               }
             }
           }
+          stage("Install node package dependencies") {
+            steps() {
+              dir('blockchain/ui') {
+                sh 'npm install'
+              }
+            }
+          }
         }
       }
 
@@ -100,14 +107,72 @@ def call(){
         }
       }
 
-      stage('Build product prereqs') {
-        parallel {
-          stage('Build Communication') {
-            steps {
-              dir ('blockchain/communication') {
-                sh 'mvn clean install'
-              }
-            }
+      stage("Configure docker and git") {
+        steps {
+          // Docker will fail to launch unless we fix up this DNS stuff.  It will try to use Google's
+          // DNS servers by default, and here in VMware's network, we can't do that.
+          // Also, since this will run on a VM which may have been deployed anywhere in the world,
+          // do not hard code the DNS values.  Always probe the current environment and write
+          // this file.
+          // Reference: https://development.robinwinslow.uk/2016/06/23/fix-docker-networking-dns/
+          withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+            sh '''
+              DNS_JSON_STRING=$(echo {\\"dns\\": [\\"`nmcli dev show | grep 'IP4.DNS' | cut --delimiter=':' --fields=2 | xargs | sed 's/\\s/", "/g'`\\"]})
+              echo "${PASSWORD}" | sudo -S ls > /dev/null
+              echo $DNS_JSON_STRING | sudo tee -a /etc/docker/daemon.json
+              sudo service docker restart
+            '''
+          }
+
+          withCredentials([string(credentialsId: 'ATHENA_DEPLOYER_ARTIFACTORY_PASSWORD', variable: 'ARTIFACTORY_PASSWORD')]) {
+            sh '''
+              docker login -u athena-deployer -p "${ARTIFACTORY_PASSWORD}" athena-docker-local.artifactory.eng.vmware.com
+            '''
+          }
+
+          // To invoke "git tag" and commit that change, git wants to know who we are.
+          // This will be set up in template VM version 5, at which point these commands can
+          // be removed.
+          sh '''
+            git config --global user.email "vmwathenabot@vmware.com"
+            git config --global user.name "build system"
+          '''
+
+          // These are constants which mirror the DockerHub repos.  DockerHub is only used for publishing releases.
+          script {
+            env.docker_tag = env.version_param ? env.version_param : env.commit
+            env.concord_repo = 'vmwblockchain/concord-core'
+            env.helen_repo = 'vmwblockchain/concord-ui'
+            env.ethrpc_repo = 'vmwblockchain/ethrpc'
+            env.fluentd_repo = 'vmwblockchain/fluentd'
+            env.ui_repo = 'vmwblockchain/ui'
+          }
+
+          // Docker-compose picks up values from the environment or, if not there,
+          // the .env file in the directory from which docker-compose is run.
+          withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+            sh '''
+              echo "${PASSWORD}" | sudo -S ls
+              sudo cat >blockchain/concord/docker/.env <<EOF
+concord_repo=${concord_repo}
+concord_tag=${docker_tag}
+helen_repo=${helen_repo}
+helen_tag=${docker_tag}
+ethrpc_repo=${ethrpc_repo}
+ethrpc_tag=${docker_tag}
+fluentd_repo=${fluentd_repo}
+fluentd_tag=${docker_tag}
+ui_repo=${ui_repo}
+ui_tag=${docker_tag}
+EOF
+              cp blockchain/concord/docker/.env blockchain/hermes/
+            '''
+          }
+
+          // These are constants related to labels.
+          script {
+            env.version_label = 'com.vmware.blockchain.version'
+            env.commit_label = 'com.vmware.blockchain.commit'
           }
         }
       }
@@ -132,62 +197,6 @@ def call(){
               }
             }
           }
-          stage("Build Helen") {
-            steps {
-              dir('blockchain/helen') {
-                sh 'mvn clean install'
-              }
-            }
-          }
-        }
-      }
-
-      stage("Configure docker and git") {
-        steps {
-          // Docker will fail to launch unless we fix up this DNS stuff.  It will try to use Google's
-          // DNS servers by default, and here in VMware's network, we can't do that.
-          // Also, since this will run on a VM which may have been deployed anywhere in the world,
-          // do not hard code the DNS values.  Always probe the current environment and write
-          // this file.
-          // Reference: https://development.robinwinslow.uk/2016/06/23/fix-docker-networking-dns/
-          withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-            sh '''
-              DNS_JSON_STRING=$(echo {\\"dns\\": [\\"`nmcli dev show | grep 'IP4.DNS' | cut --delimiter=':' --fields=2 | xargs | sed 's/\\s/", "/g'`\\"]})
-              echo "${PASSWORD}" | sudo -S ls > /dev/null
-              echo $DNS_JSON_STRING | sudo tee -a /etc/docker/daemon.json
-              sudo service docker restart
-            '''
-          }
-
-          // Log into docker.  Does it expire?  Try doing it once, here, and see what happens.
-          withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
-
-            sh '''
-              echo "${DOCKERHUB_PASSWORD}" | docker login -u blockchainrepositorywriter --password-stdin
-            '''
-          }
-
-          // To invoke "git tag" and commit that change, git wants to know who we are.
-          // This will be set up in template VM version 5, at which point these commands can
-          // be removed.
-          sh '''
-            git config --global user.email "vmwathenabot@vmware.com"
-            git config --global user.name "build system"
-          '''
-
-          // These are constants which mirror the DockerHub repos.
-          script {
-            env.concord_repo = 'vmwblockchain/concord-core'
-            env.helen_repo = 'vmwblockchain/concord-ui'
-            env.fluentd_repo = 'vmwblockchain/fluentd'
-            env.ui_repo = 'vmwblockchain/ui'
-          }
-
-          // These are constants related to labels.
-          script {
-            env.version_label = 'com.vmware.blockchain.version'
-            env.commit_label = 'com.vmware.blockchain.commit'
-          }
         }
       }
 
@@ -197,14 +206,23 @@ def call(){
             steps {
               script {
                 dir('blockchain/helen') {
-
-                 script {
-                    env.helen_docker_tag = env.version_param ? env.version_param : env.commit
-                  }
-
                   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                     sh '''
-                      docker build . -t "${helen_repo}:${helen_docker_tag}" --label ${version_label}=${helen_docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
+                      docker build .. -f Dockerfile -t "${helen_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
+                    '''
+                  }
+                }
+              }
+            }
+          }
+
+          stage("Build ethrpc docker image") {
+            steps {
+              script {
+                dir('blockchain/ethrpc') {
+                  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+                    sh '''
+                      docker build .. -f Dockerfile -t "${ethrpc_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
                   }
                 }
@@ -216,12 +234,9 @@ def call(){
             steps {
               script {
                 dir('blockchain/concord') {
-                  script {
-                    env.concord_docker_tag = env.version_param ? env.version_param : env.commit
-                  }
                   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                     sh '''
-                      docker build .. -f Dockerfile -t "${concord_repo}:${concord_docker_tag}" --label ${version_label}=${concord_docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
+                      docker build .. -f Dockerfile -t "${concord_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
                   }
                 }
@@ -233,9 +248,6 @@ def call(){
             steps {
               script {
                 dir('blockchain/concord/docker') {
-                  script {
-                    env.fluentd_tag = env.version_param ? env.version_param : env.commit
-                  }
                   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                     sh '''
                       docker-compose build fluentd
@@ -250,9 +262,6 @@ def call(){
             steps {
               script {
                 dir('blockchain/concord/docker') {
-                  script {
-                    env.ui_docker_tag = env.version_param ? env.version_param : env.commit
-                  }
                   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                     sh '''
                       docker-compose build ui
@@ -271,31 +280,27 @@ def call(){
             withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
               script {
                 env.test_log_root = new File(env.WORKSPACE, "testLogs").toString()
+                env.ui_test_logs = new File(env.test_log_root, "UI").toString()
                 env.core_vm_test_logs = new File(env.test_log_root, "CoreVM").toString()
                 env.helen_api_test_logs = new File(env.test_log_root, "HelenAPI").toString()
                 env.extended_rpc_test_logs = new File(env.test_log_root, "ExtendedRPC").toString()
                 env.regression_test_logs = new File(env.test_log_root, "Regression").toString()
+                env.statetransfer_test_logs = new File(env.test_log_root, "StateTransfer").toString()
               }
 
               sh '''
-                echo "${PASSWORD}" | sudo -S ls
-                sudo cat >.env <<EOF
-concord_repo=${concord_repo}
-concord_tag=${concord_docker_tag}
-helen_repo=${helen_repo}
-helen_tag=${helen_docker_tag}
-fluentd_repo=${fluentd_repo}
-fluentd_tag=${fluentd_tag}
-ui_repo=${ui_repo}
-ui_tag=${ui_docker_tag}
-EOF
-              '''
+                # We need to delete the database files before running UI tests because
+                # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
+                # needs to be run with sudo is so it can delete any existing DB files.)
+                echo "${PASSWORD}" | sudo -S rm -rf ../concord/docker/rocksdbdata*
+                echo "${PASSWORD}" | sudo -S rm -rf ../concord/docker/cockroachDB
+                ./main.py UiTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${ui_test_logs}"
 
-              sh '''
                 echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${core_vm_test_logs}"
                 echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${helen_api_test_logs}"
                 echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"
                 echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${regression_test_logs}"
+                echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
               '''
             }
           }
@@ -310,8 +315,12 @@ EOF
           dir('blockchain') {
             createAndPushTag(env.version_param)
           }
+
           withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
             sh '''
+              docker logout
+              docker login -u blockchainrepositorywriter -p "${DOCKERHUB_PASSWORD}"
+
               # Keep these echo lines for test runs.
               # echo Would run docker push ${concord_repo}:${version_param}
               # echo Would run docker tag ${concord_repo}:${version_param} ${concord_repo}:latest
@@ -327,6 +336,13 @@ EOF
               docker tag ${helen_repo}:${version_param} ${helen_repo}:latest
               docker push ${helen_repo}:latest
 
+              # echo Would run docker push ${ethrpc_repo}:${version_param}
+              # echo Would run docker tag ${ethrpc_repo}:${version_param} ${ethrpc_repo}:latest
+              # echo Would run docker push ${ethrpc_repo}:latest
+              docker push ${ethrpc_repo}:${version_param}
+              docker tag ${ethrpc_repo}:${version_param} ${ethrpc_repo}:latest
+              docker push ${ethrpc_repo}:latest
+
               # echo Would run docker push ${fluentd_repo}:${version_param}
               # echo Would run docker tag ${fluentd_repo}:${version_param} ${fluentd_repo}:latest
               # echo Would run docker push ${fluentd_repo}:latest
@@ -340,18 +356,20 @@ EOF
               docker push ${ui_repo}:${version_param}
               docker tag ${ui_repo}:${version_param} ${ui_repo}:latest
               docker push ${ui_repo}:latest
+
+              docker logout
             '''
+          }
 
-            dir('blockchain/vars') {
-              script {
-                release_notification_address_file = "release_notification_recipients.txt"
+          dir('blockchain/vars') {
+            script {
+              release_notification_address_file = "release_notification_recipients.txt"
 
-                if (fileExists(release_notification_address_file)) {
-                  release_notification_recipients = readFile(release_notification_address_file).replaceAll("\n", " ")
-                  emailext body: "Changes: \n" + getChangesSinceLastTag(),
-                       to: release_notification_recipients,
-                       subject: "[Build] Concord version " + env.version_param + " has been pushed to DockerHub."
-                }
+              if (fileExists(release_notification_address_file)) {
+                release_notification_recipients = readFile(release_notification_address_file).replaceAll("\n", " ")
+                emailext body: "Changes: \n" + getChangesSinceLastTag(),
+                     to: release_notification_recipients,
+                     subject: "[Build] Concord version " + env.version_param + " has been pushed to DockerHub."
               }
             }
           }

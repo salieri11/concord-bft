@@ -14,6 +14,10 @@ while [ "$1" != "" ] ; do
          shift
          TESTS=$1
          ;;
+      "--resultsDir")
+         shift
+         RESULTS_DIR=$1
+         ;;
    esac
    shift
 done
@@ -21,7 +25,10 @@ done
 retVal=1
 TIME_STAMP=`date +%m%d%Y_%H%M%S`
 BASE_LOG_DIR=/var/log/vmwblockchain
-RESULTS_DIR=${BASE_LOG_DIR}/memory_leak_testrun_${TIME_STAMP}
+if [ -z "${RESULTS_DIR}" ]
+then
+    RESULTS_DIR=${BASE_LOG_DIR}/memory_leak_testrun_${TIME_STAMP}
+fi
 MEMORY_INFO_LOG_FILE=${RESULTS_DIR}/memory_info_${TIME_STAMP}.log
 MEMORY_INFO_CSV_FILE=${RESULTS_DIR}/memory_info_${TIME_STAMP}.csv
 SLEEP_TIME_IN_SEC=60
@@ -30,9 +37,12 @@ VALGRIND_LOG_FILENAME="valgrind_concord1.log"
 concord1_VALGRIND_LOG_FILE="/tmp/$VALGRIND_LOG_FILENAME"
 HERMES_START_FILE="./main.py"
 SPECIFIC_TESTS=""
+HERMES_PID_FILE="/tmp/hermes_pid"
 # to represent leak summary on graph
 # memory leak summary data gets saved in repo: hermes-data
 MEMORY_LEAK_SUMMARY_FILE="../../../hermes-data/memory_leak_test/memory_leak_summary.csv"
+MEMORY_LEAK_ALERT_FILE="${RESULTS_DIR}/memory_leak_spiked.log"
+LEAK_SPIKE_BUFFER=500
 
 check_usage() {
     if [ "x${TEST_SUITE}" = "x" -o "x${NO_OF_RUNS}" = "x" ]
@@ -49,20 +59,28 @@ launch_memory_test() {
     then
         SPECIFIC_TESTS="--tests ${TESTS}"
     fi
-    "${HERMES_START_FILE}" "${TEST_SUITE}" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir ${RESULTS_DIR} ${SPECIFIC_TESTS} --dockerComposeFile "" &
-    PID=$!
+
+    "${HERMES_START_FILE}" "${TEST_SUITE}" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir ${RESULTS_DIR} ${SPECIFIC_TESTS} --productLaunchAttempts 10 --dockerComposeFile ../concord/docker/docker-compose.yml ../concord/docker/docker-compose-memleak.yml &
+    HERMES_PID=$!
+    rm -f "${HERMES_PID_FILE}"
+    echo ${HERMES_PID} > "${HERMES_PID_FILE}"
+    echo "Hermes process ID ${HERMES_PID} written to ${HERMES_PID_FILE}"
 
     cd $CWD
     while true
     do
-        is_process_still_running=`ps -ef | grep "${HERMES_START_FILE}" | grep $PID`
+        is_process_still_running=`ps -ef | grep "${HERMES_START_FILE}" | grep ${HERMES_PID}`
         if [ "x$is_process_still_running" = "x" ]
         then
             sleep 5
-            echo "Done running memory leak tests"
+            echo "Done running Memory Leak Tests"
             if [ -f "${concord1_VALGRIND_LOG_FILE}" ]
             then
+                echo "Valgrind Log file: ${concord1_VALGRIND_LOG_FILE} Found"
                 mv "${concord1_VALGRIND_LOG_FILE}" "${RESULTS_DIR}"
+            else
+                echo "Valgrind Log file: ${concord1_VALGRIND_LOG_FILE} NOT Found"
+                exit 1
             fi
             echo "Results: ${RESULTS_DIR}"
             break
@@ -71,10 +89,26 @@ launch_memory_test() {
         total_memory=`echo "${memory_info}" | grep "Mem:" | tr -s " " | cut -d" " -f2`
         used_memory=`echo "${memory_info}" | grep "Mem:" | tr -s " " | cut -d" " -f3`
         free_memory=`echo "${memory_info}" | grep "Mem:" | tr -s " " | cut -d" " -f7`
-        echo "${memory_info}"
+        echo "Updating ${MEMORY_INFO_CSV_FILE} with Memory Info: ${memory_info}"
         echo "`date +%m/%d/%Y\ %T`,${total_memory},${used_memory},${free_memory}" >> ${MEMORY_INFO_CSV_FILE}
         sleep ${SLEEP_TIME_IN_SEC}
     done
+}
+
+trap_ctrlc() {
+    if [ -f "${HERMES_PID_FILE}" ]
+    then
+        read HERMES_PID < "${HERMES_PID_FILE}"
+        if [ "$HERMES_PID" != "" ]
+        then
+            echo "Interrupt detected after Hermes launch. Killing Hermes process ${HERMES_PID}"
+            kill "${HERMES_PID}"
+            rm -f "${HERMES_PID_FILE}"
+            echo "Killing and removing all docker containers"
+            docker kill $(docker ps -aq)
+            docker rm $(docker ps -aq)
+        fi
+    fi
 }
 
 fetch_leak_summary() {
@@ -86,7 +120,7 @@ fetch_leak_summary() {
         then
             echo "\"Date\"","\"Memory Leak Summary\"" > ${MEMORY_LEAK_SUMMARY_FILE}
         fi
-        echo "LEAK SUMMARY: $leak_summary bytes"
+        echo "\t**** LEAK SUMMARY: $leak_summary bytes"
         echo "`date +%D`,$leak_summary" >> ${MEMORY_LEAK_SUMMARY_FILE}
 
         if [ "${WORKSPACE}" != "" ]
@@ -94,16 +128,62 @@ fetch_leak_summary() {
             echo "Copying Memory leak summary file to ${WORKSPACE} for graph"
             cp ${MEMORY_LEAK_SUMMARY_FILE} ${WORKSPACE}
         fi
+
+        # Check if Memory LEAK has spiked up
+        check_for_spiked_mem_leak "$leak_summary"
+    else
+        echo "$MEMORY_LEAK_SUMMARY_FILE NOT updated with LEAK SUMMARY. Aborting."
+        exit 1
     fi
 }
+
+check_for_spiked_mem_leak() {
+    echo "Checking if Memory LEAK has Spiked up..."
+
+    current_leak=$1
+    no_of_lines=`cat ${MEMORY_LEAK_SUMMARY_FILE} | wc -l`
+    if [ "$no_of_lines" -gt "2" ]
+    then
+        previous_leak=`tail -2 ${MEMORY_LEAK_SUMMARY_FILE} | head -1 | cut -d, -f2`
+    fi
+
+    if [ ! "${previous_leak}" = "" ]
+    then
+        echo "\tMemory LEAK from Previous Run: $previous_leak"
+        echo "\tMemory LEAK from Current Run: $current_leak"
+
+        leak_diff=`expr $current_leak - $previous_leak`
+        if [ "$leak_diff" -gt "$LEAK_SPIKE_BUFFER" ]
+        then
+            echo "\n\t**** Memory LEAK has spiked up in this run ***"
+            echo "Memory LEAK from Previous Run: $previous_leak" > "${MEMORY_LEAK_ALERT_FILE}"
+            echo "Memory LEAK from Current Run: $current_leak" >> "${MEMORY_LEAK_ALERT_FILE}"
+
+            echo "Creating log file for Alert Notification: ${MEMORY_LEAK_ALERT_FILE}"
+        else
+            echo "\tDifference falls within permitted buffer ($leak_diff bytes)"
+        fi
+    else
+        echo "WARNING: No Memory LEAK data found from previous runs"
+    fi
+}
+
+
+trap "trap_ctrlc" 2
+check_usage
 
 if [ ! -d "${RESULTS_DIR}" ]
 then
     mkdir -p ${RESULTS_DIR}
 fi
 
-check_usage
+if [ -f "${MEMORY_LEAK_ALERT_FILE}" ]
+then
+    rm -f "${MEMORY_LEAK_ALERT_FILE}"
+fi
+
 launch_memory_test 2>&1 | tee ${MEMORY_INFO_LOG_FILE}
+
 if [ -f "${MEMORY_LEAK_PASS_FILE}" ]
 then
     echo "Memory Leak Test Passed"
@@ -113,6 +193,8 @@ else
     echo "Memory Leak Test Failed"
     retVal=1
 fi
+
+rm -f "${HERMES_PID_FILE}"
 
 echo "Exit status: $retVal"
 exit $retVal

@@ -47,6 +47,7 @@ describe('concord-ui Smart Contracts', () => {
 
     // Test get nodes
     swaggerPage.clickSwaggerHeaderForId(memberListGetId);
+    browser.sleep(500);
     swaggerPage.clickTryItOutButtonForId(memberListGetId);
     expect(swaggerPage.getOpBlockExecuteButtonForId(memberListGetId).isPresent()).toBe(true);
     swaggerPage.clickOpBlockExecuteButtonForId(memberListGetId);
@@ -58,6 +59,7 @@ describe('concord-ui Smart Contracts', () => {
     swaggerPage.clickSwaggerHeaderForId(memberListGetId);
     // Test get blocks with a parameter
     swaggerPage.clickSwaggerHeaderForId(blocksListGetId);
+    browser.sleep(500);
     swaggerPage.clickTryItOutButtonForId(blocksListGetId);
     expect(swaggerPage.getOpBlockExecuteButtonForId(blocksListGetId).isPresent()).toBe(true);
     swaggerPage.getInputForAttribute('count').sendKeys(1);

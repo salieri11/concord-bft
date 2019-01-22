@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 
 class HelenAPITests(test_suite.TestSuite):
    _args = None
-   _apiBaseServerUrl = "https://localhost/blockchains/local"
+   _apiBaseServerUrl = None
    _userConfig = None
    _ethereumMode = False
    _productMode = True
@@ -35,6 +35,7 @@ class HelenAPITests(test_suite.TestSuite):
 
    def __init__(self, passedArgs):
       super(HelenAPITests, self).__init__(passedArgs)
+      self._apiBaseServerUrl = passedArgs.baseUrl
 
    def getName(self):
       return "HelenAPITests"
@@ -44,7 +45,7 @@ class HelenAPITests(test_suite.TestSuite):
       if self._productMode and not self._noLaunch:
          try:
             p = self.launchProduct(self._args,
-                                   self._apiBaseServerUrl + "/api/concord/eth",
+                                   self._apiBaseServerUrl + "/api/concord/eth/",
                                    self._userConfig)
          except Exception as e:
             log.error(traceback.format_exc())
@@ -83,7 +84,7 @@ class HelenAPITests(test_suite.TestSuite):
 
       log.info("Tests are done.")
 
-      if self._productMode and not self._noLaunch:
+      if self._shouldStop():
          p.stopProduct()
 
       return self._resultFile
@@ -151,6 +152,10 @@ class HelenAPITests(test_suite.TestSuite):
             return (False, "'millis_since_last_message' field in member entry is not a string")
          if not isinstance(m["millis_since_last_message_threshold"], int):
             return (False, "'millis_since_last_message_threshold' field in member entry is not a string")
+         if not isinstance(m["rpc_url"], str):
+            return (False, "'rpc_url' field in member entry is not a string")
+         if m["rpc_url"] == "":
+            return (False, "'rpc_url' field in member entry is empty string")
 
       return (True, None)
 
@@ -253,19 +258,23 @@ class HelenAPITests(test_suite.TestSuite):
 
       return (True, None)
 
-   def contract_upload_util(self, request, contractId,
-                            contractVersion, sourceCode):
-      '''
-      A helper method to upload simple hello world contract.
-      '''
-      data = {};
-      data["from"] = "0x1111111111111111111111111111111111111111"
+   def contract_upload_util_generic(self,request,contractId,
+    contractVersion,sourceCode, fromAddr, contractName, ctorParams):
+
+      data = {}
+      data["from"] = fromAddr
       data["contract_id"] = contractId
       data["version"] = contractVersion
       data["sourcecode"] = sourceCode
-      data["contractName"] = "HelloWorld"
-      data["constructorParams"] = ""
+      data["contractName"] = contractName
+      data["constructorParams"] = ctorParams
       return request.uploadContract(data)
+
+   def contract_upload_util(self, request, contractId, contractVersion, sourceCode):
+      '''
+      A helper method to upload simple hello world contract.
+      '''
+      return self.contract_upload_util_generic(request, contractId, contractVersion, sourceCode,"0x1111111111111111111111111111111111111111", "HelloWorld", "")
 
    def random_string_generator(self, size=6, chars=string.ascii_uppercase + string.digits):
       return ''.join(random.choice(chars) for _ in range(size))
@@ -314,7 +323,7 @@ class HelenAPITests(test_suite.TestSuite):
          print(e)
          return False
 
-   def has_contract_with_bytecode(self, request, contractId, contractVersion, contractByteCode):
+   def has_contract_with_bytecode(self, request, contractId, contractVersion, contractBytecode):
       result = request.callContractAPI('/api/concord/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
       # Remove swarm hash from deployed contract bytecode
@@ -322,7 +331,7 @@ class HelenAPITests(test_suite.TestSuite):
       try:
          if (result["contract_id"] == contractId and
              result["version"] == contractVersion and
-             parsedBytecode == contractByteCode):
+             parsedBytecode == contractBytecode):
             return True
          else:
             return False
@@ -360,12 +369,23 @@ class HelenAPITests(test_suite.TestSuite):
       '0405280600d81526020017f48656c6c6f2c20576f726c642100000000000000000000000000'
       '00000000000081525090509056fe')
 
+      contractBytecode_0_5_2 = ('608060405234801561001057600080fd5b506101398061002'
+      '06000396000f3fe608060405234801561001057600080fd5b5060043610610048576000357c'
+      '01000000000000000000000000000000000000000000000000000000009004806319ff1d211'
+      '461004d575b600080fd5b6100556100d0565b60405180806020018281038252838181518152'
+      '60200191508051906020019080838360005b838110156100955780820151818401526020810'
+      '1905061007a565b50505050905090810190601f1680156100c2578082038051600183602003'
+      '6101000a031916815260200191505b509250505060405180910390f35b60606040805190810'
+      '160405280600d81526020017f48656c6c6f2c20576f726c6421000000000000000000000000'
+      '0000000000000081525090509056fe')
+
       contractId, contractVersion = self.upload_mock_multiple_contract(request)
 
       result = request.callContractAPI('/api/concord/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
       if self.has_contract_with_bytecode(request, contractId, contractVersion, contractBytecode_0_4_19) \
-         or self.has_contract_with_bytecode(request, contractId, contractVersion, contractBytecode_0_5):
+         or self.has_contract_with_bytecode(request, contractId, contractVersion, contractBytecode_0_5) \
+         or self.has_contract_with_bytecode(request, contractId, contractVersion, contractBytecode_0_5_2):
          return (True, None)
       else:
          return (False, "Unable to retrieve uploaded contract")

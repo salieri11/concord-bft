@@ -10,10 +10,15 @@
       "architect": {
 
         "e2e": {
+          "configurations": {
+            "noserve": {
+              "devServerTarget": ""
+            }
+          },
           "builder": "@angular-devkit/build-angular:protractor",
           "options": {
             "protractorConfig": "./protractor.conf.js",
-            "devServerTarget": "concord-ui:serve"
+            "devServerTarget": "concord-ui:serve",
           }
         },
         "lint": {

@@ -21,6 +21,7 @@
 #include <chrono>
 #include <CommDefs.hpp>
 #include "sliver.hpp"
+#include <cassert>
 
 using log4cplus::Logger;
 using namespace bftEngine;
@@ -36,30 +37,10 @@ struct blockEntry
 struct blockHeader
 {
    uint32_t numberOfElements;
+   uint32_t parentDigestLength;
+   int8_t parentDigest[SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE];
    blockEntry entries[1]; // n>0 entries
 };
-
-static int get_block_wrapper(void *ctx, int n, char **page)
-{
-   ReplicaImp *r = reinterpret_cast<ReplicaImp*>(ctx);
-   assert(r);
-
-   auto res = r->get_block(n, page);
-   return res;
-}
-
-static void put_blocks_wrapper(void *ctx,
-                               int count,
-                               int *sizes,
-                               int *indices,
-                               char **pages)
-{
-   ReplicaImp *r = reinterpret_cast<ReplicaImp*>(ctx);
-   assert(r);
-
-   r->put_blocks(count, sizes, indices, pages);
-}
-
 
 /**
  * Opens the database and creates the replica thread. Replica state moves to
@@ -286,18 +267,13 @@ ReplicaImp::ReplicaImp(Blockchain::CommConfig &commConfig,
 
    m_ptrComm = bftEngine::CommFactory::create(config);
 
-   State::initStaticData();
-   m_stateTransfer = new GenericStateTransfer(
-       this,
-       (const uint16_t)(3 * replicaConfig.fVal + 2 * replicaConfig.cVal + 1),
-       (const uint16_t)replicaConfig.fVal,
-       (const uint16_t)replicaConfig.cVal,
-       (const uint16_t)replicaConfig.replicaId,
-       10 * 1e6,
-       get_block_wrapper,
-       put_blocks_wrapper,
-       0,
-       0);
+   bftEngine::SimpleBlockchainStateTransfer::Config c;
+   c.myReplicaId =  m_replicaConfig.replicaId,
+   c.cVal = m_replicaConfig.cVal,
+   c.fVal = m_replicaConfig.fVal;
+
+   m_appState = new BlockchainAppState(this);
+   m_stateTransfer = SimpleBlockchainStateTransfer::create(c, m_appState, false);
 }
 
 ReplicaImp::~ReplicaImp()
@@ -316,32 +292,44 @@ ReplicaImp::~ReplicaImp()
      delete m_replicaPtr;
    }
 
-   State::freeStaticData();
 }
 
 Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs& updates,
                                     BlockId& outBlockId)
 {
    lastBlock++;
+   m_appState->m_lastReachableBlock++;
 
    BlockId block = lastBlock;
    SetOfKeyValuePairs updatesInNewBlock;
 
-   if (getReplicaStatus() == RepStatus::Running) {
-      // TODO(GG): sizeof(int) is not enough, byz engine should support BlockId
-      if(m_stateTransfer) {
-        GenericStateTransfer *genericStateTransfer =
-            reinterpret_cast<GenericStateTransfer *>(m_stateTransfer);
-        if(genericStateTransfer) {
-          genericStateTransfer->markUpdatedAppPage(lastBlock);
-        }
-      }
-   }
-
    LOG4CPLUS_DEBUG(logger,
                    "addBlockInternal: Got " << updates.size() << " updates");
 
-   Sliver blockRaw = createBlockFromUpdates(updates, updatesInNewBlock);
+   SimpleBlockchainStateTransfer::StateTransferDigest stDigest;
+   if(block > 1) {
+     Sliver parentBlockData;
+     bool found;
+     m_bcDbAdapter->getBlockById(block - 1, parentBlockData, found);
+     if (!found || parentBlockData.length() == 0) {
+       //(IG): panic, data corrupted
+       LOG4CPLUS_FATAL(logger,
+                       "addBlockInternal: no block or block data for id "
+                           << block - 1);
+       exit(1);
+     }
+
+     SimpleBlockchainStateTransfer::computeBlockDigest(block -1,
+       reinterpret_cast<const char*>(parentBlockData.data()),
+       parentBlockData.length(),
+       &stDigest);
+   } else {
+     memset(stDigest.content, 0,
+         SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE);
+   }
+
+   Sliver blockRaw =
+       createBlockFromUpdates(updates, updatesInNewBlock, stDigest);
    Status s = m_bcDbAdapter->addBlock(block, blockRaw);
    if (!s.isOK())
    {
@@ -428,6 +416,12 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Sliver block)
 {
    if (blockId > lastBlock) {
       lastBlock = blockId;
+   }
+   // when ST runs, blocks arrive in batches in reverse order. we need to keep
+   // track on the "Gap" and to close it. Only when it is closed, the last
+   // reachable block becomes the same as the last block
+   if (blockId == m_appState->m_lastReachableBlock + 1) {
+      m_appState->m_lastReachableBlock = lastBlock;
    }
 
    bool found = false;
@@ -616,7 +610,9 @@ void ReplicaImp::StorageWrapperForIdleMode::monitor() const
 }
 
 Sliver ReplicaImp::createBlockFromUpdates(
-   const SetOfKeyValuePairs &updates, SetOfKeyValuePairs &outUpdatesInNewBlock)
+   const SetOfKeyValuePairs &updates,
+   SetOfKeyValuePairs &outUpdatesInNewBlock,
+   SimpleBlockchainStateTransfer::StateTransferDigest &parentDigest)
 {
    // TODO(GG): overflow handling ....
    // TODO(SG): How? Right now - will put empty block instead
@@ -631,8 +627,11 @@ Sliver ReplicaImp::createBlockFromUpdates(
       blockBodySize += (it->first.length() + it->second.length());
    }
 
-   const uint32_t headerSize =
-      sizeof(blockHeader::numberOfElements) + sizeof(blockEntry)*(numOfElemens);
+   const uint32_t headerSize = sizeof(blockHeader::numberOfElements)
+       + sizeof(blockHeader::parentDigestLength)
+       + SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE
+       + sizeof(blockEntry)*(numOfElemens);
+
    const uint32_t blockSize = headerSize + blockBodySize;
 
    try {
@@ -641,6 +640,11 @@ Sliver ReplicaImp::createBlockFromUpdates(
       Sliver blockSliver(blockBuffer, blockSize);
 
       blockHeader *header = (blockHeader*)blockBuffer;
+      memcpy(header->parentDigest,
+          parentDigest.content,
+          SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE);
+      header->parentDigestLength =
+          SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE;
 
       int16_t idx = 0;
       header->numberOfElements = numOfElemens;
@@ -712,62 +716,6 @@ SetOfKeyValuePairs ReplicaImp::fetchBlockData(Sliver block)
    return retVal;
 }
 
-int ReplicaImp::get_block(int n,
-                          char **page)
-{
-   BlockId bId = n;
-   size_t size;
-
-   bool found = false;
-   Sliver blockRaw;
-   Status s = getBcDbAdapter()->getBlockById(bId, blockRaw, found);
-   if (!s.isOK()) {
-      LOG4CPLUS_ERROR(Logger::getInstance("com.vmware.concord.kvb"),
-                      "error getting block by id " << bId);
-      return -1;
-   }
-
-   if (found) {
-      size = blockRaw.length();
-      *page = new char[size];
-      memcpy(*page, blockRaw.data(), size);
-   } else {
-      *page = nullptr;
-      size = 0;
-   }
-
-   LOG4CPLUS_DEBUG(Logger::getInstance("com.vmware.concord.kvb"),
-                   "n " << n << " size " << size << " page " << page);
-
-   return size;
-}
-
-/// context ptr here is for compatibility with Generic state transfer
-void ReplicaImp::put_blocks(int count,
-                            int *sizes,
-                            int *indices,
-                            char **pages)
-{
-   for (int i = 0; i < count; i++) {
-      BlockId blockId = indices[i];
-      size_t blockSize = sizes[i];
-      uint8_t *blockPtr = reinterpret_cast<uint8_t*>(pages[i]);
-
-      // here the memory must be copied because StateTransfer
-      // will try to free it after Sliver has been disposed
-      uint8_t *tPtr = new uint8_t[blockSize];
-      memcpy(tPtr, blockPtr, blockSize);
-      Sliver b(tPtr, blockSize);
-
-      insertBlockInternal(blockId, b);
-   }
-}
-
-bool ReplicaImp::check_nond(char *buffer)
-{
-   return true;
-}
-
 IReplica*
 Blockchain::createReplica(Blockchain::CommConfig &commConfig,
                           ReplicaConsensusConfig &config,
@@ -796,6 +744,8 @@ Blockchain::createReplica(Blockchain::CommConfig &commConfig,
    //Will always be 0 for either InMemory mode or for persistence mode
    //when no database files exist.
    r->lastBlock = dbAdapter->getLatestBlock();
+   r->m_appState->m_lastReachableBlock = dbAdapter->getLastReachableBlock();
+
    return r;
 }
 
@@ -931,4 +881,86 @@ bool ReplicaImp::StorageIterator::isEnd()
 Status ReplicaImp::StorageIterator::freeInternalIterator()
 {
    return rep->getBcDbAdapter()->freeIterator(m_iter);
+}
+
+/*
+ * These functions are used by the ST module to interact with the KVB
+ */
+ReplicaImp::BlockchainAppState::BlockchainAppState(
+    Blockchain::ReplicaImp *const parent) : m_ptrReplicaImpl{parent},
+    m_logger{log4cplus::Logger::getInstance("blockchainappstate")}
+{}
+
+/*
+ * This method assumes that *outBlock is big enough to hold block content
+ * The caller is the owner of the memory
+ */
+bool ReplicaImp::BlockchainAppState::getBlock(uint64_t blockId,
+                                              char *outBlock,
+                                              uint32_t *outBlockSize)
+{
+   Sliver res = m_ptrReplicaImpl->getBlockInternal(blockId);
+   if(0 == res.length()) {
+      // in normal state it should not happen. If it happened - the data is
+      // corrupted
+      LOG4CPLUS_FATAL(m_logger, "Block not found, ID: " << blockId);
+      exit(1);
+   }
+
+   *outBlockSize = res.length();
+   memcpy(outBlock, res.data(), res.length());
+   return true;
+}
+
+bool ReplicaImp::BlockchainAppState::hasBlock(uint64_t blockId)
+{
+  Sliver res = m_ptrReplicaImpl->getBlockInternal(blockId);
+  return res.length() > 0;
+}
+
+bool ReplicaImp::BlockchainAppState::getPrevDigestFromBlock(
+    uint64_t blockId,
+    SimpleBlockchainStateTransfer::StateTransferDigest *outPrevBlockDigest)
+{
+   assert(blockId > 0);
+   Sliver result;
+   bool found;
+   m_ptrReplicaImpl->m_bcDbAdapter->getBlockById(blockId, result, found);
+   if(!found) {
+      // in normal state it should not happen. If it happened - the data is
+      // corrupted
+      LOG4CPLUS_FATAL(m_logger,
+          "Block not found for parent digest, ID: " << blockId);
+      exit(1);
+   }
+
+   blockHeader *bh = reinterpret_cast<blockHeader*>(result.data());
+   assert(outPrevBlockDigest);
+   memcpy(outPrevBlockDigest, bh->parentDigest, bh->parentDigestLength);
+   return true;
+}
+
+/*
+ * This method cant return false by current insertBlockInternal impl.
+ */
+bool ReplicaImp::BlockchainAppState::putBlock(uint64_t blockId,
+                                              char *block,
+                                              uint32_t blockSize)
+{
+   uint8_t *tmpBlockPtr = new uint8_t[blockSize];
+   memcpy(tmpBlockPtr, block, blockSize);
+   Sliver s(tmpBlockPtr, blockSize);
+
+   m_ptrReplicaImpl->insertBlockInternal(blockId, s);
+   return true;
+}
+
+uint64_t ReplicaImp::BlockchainAppState::getLastReachableBlockNum()
+{
+  return m_lastReachableBlock;
+}
+
+uint64_t ReplicaImp::BlockchainAppState::getLastBlockNum()
+{
+   return m_ptrReplicaImpl->lastBlock;
 }

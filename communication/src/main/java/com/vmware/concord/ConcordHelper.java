@@ -1,12 +1,10 @@
 /*
- * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.concord;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

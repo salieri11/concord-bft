@@ -15,6 +15,19 @@ services:
       - ./config-concord1:/concord/config-local
       - ./config-public:/concord/config-public:ro
 
+# This is an example of what ConcordRpcUrls in helen's
+# application.properties refers to. If you have an ethrpc image
+# available, you can uncomment this block to use it.
+#  ethrpc1:
+#    image: "${ethrpc_repo}:${ethrpc_tag}"
+#    ports:
+#      - 8545:8545
+#    command:
+#      - java
+#      - -jar
+#      - concord-ethrpc-1.0-SNAPSHOT.jar
+#      - --ConcordAuthorities=concord1:5458
+
   concord2:
     image: "${concord_repo}:${concord_tag}"
     expose:
@@ -95,7 +108,7 @@ services:
       - --insecure
 
   reverse-proxy:
-    image: vmwblockchain/reverse-proxy:latest
+    image: athena-docker-local.artifactory.eng.vmware.com/reverse-proxy:0.1.2
     ports:
       - "443:443"
       - "8843:8843"

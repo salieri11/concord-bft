@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.security;
@@ -13,6 +13,8 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.GenericFilterBean;
@@ -33,13 +35,18 @@ public class JwtTokenFilter extends GenericFilterBean {
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain filterChain)
             throws IOException, ServletException {
-
+        HttpServletRequest httpReq = (HttpServletRequest) req;
         try {
-            String token = jwtTokenProvider.resolveToken((HttpServletRequest) req);
+            String token = jwtTokenProvider.resolveToken(httpReq);
 
-            if (token != null && jwtTokenProvider.validateToken(token)) {
+            if (token != null) {
                 Authentication auth = token != null ? jwtTokenProvider.getAuthentication(token) : null;
                 SecurityContextHolder.getContext().setAuthentication(auth);
+            } else {
+                String authHeader = httpReq.getHeader(HttpHeaders.AUTHORIZATION);
+                if (authHeader == null || !authHeader.startsWith("Basic")) {
+                    throw new HelenException("No Authorization", HttpStatus.UNAUTHORIZED);
+                }
             }
         } catch (HelenException ex) {
             HttpServletResponse response = (HttpServletResponse) res;

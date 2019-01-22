@@ -1,0 +1,70 @@
+version: '3'
+services:
+  concord1:
+    image: "${concord_repo}:${concord_tag}"
+    expose:
+      - 5458
+      - 3501/udp
+      - 3502/udp
+      - 3503/udp
+      - 3504/udp
+      - 3505/udp
+    ports:
+      - 5458:5458
+    volumes:
+      - ./devdata/rocksdbdata1:/concord/rocksdbdata
+      - ./devdata/log1:/concord/log
+      - ./concord/docker/config-concord1:/concord/config-local
+      - ./concord/docker/config-public:/concord/config-public:ro
+
+  concord2:
+    image: "${concord_repo}:${concord_tag}"
+    expose:
+      - 5458
+      - 3501/udp
+      - 3502/udp
+      - 3503/udp
+      - 3504/udp
+      - 3505/udp
+    ports:
+      - 5459:5458
+    volumes:
+      - ./devdata/rocksdbdata2:/concord/rocksdbdata
+      - ./devdata/log2:/concord/log
+      - ./concord/docker/config-concord2:/concord/config-local
+      - ./concord/docker/config-public:/concord/config-public:ro
+
+  concord3:
+    image: "${concord_repo}:${concord_tag}"
+    expose:
+      - 5458
+      - 3501/udp
+      - 3502/udp
+      - 3503/udp
+      - 3504/udp
+      - 3505/udp
+    ports:
+      - 5460:5458
+    volumes:
+      - ./devdata/rocksdbdata3:/concord/rocksdbdata
+      - ./devdata/log3:/concord/log
+      - ./concord/docker/config-concord3:/concord/config-local
+      - ./concord/docker/config-public:/concord/config-public:ro
+
+  concord4:
+    image: "${concord_repo}:${concord_tag}"
+    expose:
+      - 5458
+      - 3501/udp
+      - 3502/udp
+      - 3503/udp
+      - 3504/udp
+      - 3505/udp
+    ports:
+      - 5461:5458
+    volumes:
+      - ./devdata/rocksdbdata4:/concord/rocksdbdata
+      - ./devdata/log4:/concord/log
+      - ./concord/docker/config-concord4:/concord/config-local
+      - ./concord/docker/config-public:/concord/config-public:ro
+

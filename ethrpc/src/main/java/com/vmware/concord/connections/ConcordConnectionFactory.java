@@ -1,14 +1,12 @@
 /*
- * Copyright (c) 2018 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.connections;
+package com.vmware.concord.connections;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
-
-import com.vmware.blockchain.common.ConcordProperties;
 
 import com.vmware.concord.ConcordTcpConnection;
 import com.vmware.concord.IConcordConnection;

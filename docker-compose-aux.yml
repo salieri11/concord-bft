@@ -1,0 +1,22 @@
+version: '3'
+services:
+  reverse-proxy:
+    image: vmwblockchain/reverse-proxy:latest
+    ports:
+      - "443:443"
+      - "8843:8843"
+    volumes:
+      - ./concord/docker/data/nginx/docker-compose.conf.d:/etc/nginx/conf.d
+
+  fluentd:
+    build:
+      context: ./concord/docker/fluentd
+    image: "${fluentd_repo}:${fluentd_tag}"
+    container_name: fluentd
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    environment:
+      - FLUENTD_CONF=fluentd.conf
+    volumes:
+      - ./concord/docker/fluentd:/fluentd/etc

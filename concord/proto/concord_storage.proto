@@ -2,6 +2,8 @@
 //
 // Internal storage definition.
 
+syntax = "proto2";
+
 package com.vmware.concord.kvb;
 
 message Block {

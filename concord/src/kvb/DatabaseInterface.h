@@ -27,7 +27,7 @@ namespace Blockchain
    public:
       typedef bool (*KeyComparator)(const Sliver&, const Sliver&);
 
-      virtual Status init() = 0;
+      virtual Status init(bool readOnly=false) = 0;
       virtual Status close() = 0;
       virtual Status get(Sliver _key, OUT Sliver &_outValue) const = 0;
       virtual Status put(Sliver _key, Sliver _value) = 0;

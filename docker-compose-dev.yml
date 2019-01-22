@@ -1,0 +1,144 @@
+version: '3'
+services:
+  concord1:
+    image: "${concord_repo}:${concord_tag}"
+    expose:
+      - 5458
+      - 3501/udp
+      - 3502/udp
+      - 3503/udp
+      - 3504/udp
+      - 3505/udp
+    ports:
+      - 5458:5458
+    volumes:
+      - ./devdata/rocksdbdata1:/concord/rocksdbdata
+      - ./devdata/log1:/concord/log
+      - ./concord/docker/config-concord1:/concord/config-local
+      - ./concord/docker/config-public:/concord/config-public:ro
+
+  concord2:
+    image: "${concord_repo}:${concord_tag}"
+    expose:
+      - 5458
+      - 3501/udp
+      - 3502/udp
+      - 3503/udp
+      - 3504/udp
+      - 3505/udp
+    ports:
+      - 5459:5458
+    volumes:
+      - ./devdata/rocksdbdata2:/concord/rocksdbdata
+      - ./devdata/log2:/concord/log
+      - ./concord/docker/config-concord2:/concord/config-local
+      - ./concord/docker/config-public:/concord/config-public:ro
+
+  concord3:
+    image: "${concord_repo}:${concord_tag}"
+    expose:
+      - 5458
+      - 3501/udp
+      - 3502/udp
+      - 3503/udp
+      - 3504/udp
+      - 3505/udp
+    ports:
+      - 5460:5458
+    volumes:
+      - ./devdata/rocksdbdata3:/concord/rocksdbdata
+      - ./devdata/log3:/concord/log
+      - ./concord/docker/config-concord3:/concord/config-local
+      - ./concord/docker/config-public:/concord/config-public:ro
+
+  concord4:
+    image: "${concord_repo}:${concord_tag}"
+    expose:
+      - 5458
+      - 3501/udp
+      - 3502/udp
+      - 3503/udp
+      - 3504/udp
+      - 3505/udp
+    ports:
+      - 5461:5458
+    volumes:
+      - ./devdata/rocksdbdata4:/concord/rocksdbdata
+      - ./devdata/log4:/concord/log
+      - ./concord/docker/config-concord4:/concord/config-local
+      - ./concord/docker/config-public:/concord/config-public:ro
+
+  helen:
+    image: "${helen_repo}:${helen_tag}"
+    ports:
+      - 8080:8080
+    depends_on:
+      - db-server-init2
+      - concord1
+      - concord2
+      - concord3
+      - concord4
+    # Used for sending logs to log intelligence
+    # We don't want this on by default, because logs won't be available locally for debugging
+    # You will need to add the log intelligence in the fluent.conf file for it to work.
+    # logging:
+    #   driver: "fluentd"
+    #   options:
+    #     fluentd-address: 0.0.0.0:24224
+    #     tag: httpd.access
+
+  ui:
+    build:
+      context: ./ui
+    image: "${ui_repo}:${ui_tag}"
+    ports:
+      - 80:80
+    depends_on:
+      - helen
+
+  db-server:
+    image: cockroachdb/cockroach:v2.0.2
+    ports:
+      - 26257:26257
+    volumes:
+      - ./devdata/cockroachDB:/cockroach/cockroach-data
+    command:
+      - start
+      - --insecure
+
+  db-server-init1:
+    image: cockroachdb/cockroach:v2.0.2
+    command: --host db-server user set helen_admin --insecure
+    depends_on:
+      - db-server
+
+  db-server-init2:
+    image: cockroachdb/cockroach:v2.0.2
+    volumes:
+      - ./helen/src/main/resources/database:/cockroach/resources
+    entrypoint: sh -c "./cockroach --host db-server sql --insecure < /cockroach/resources/schema.sql"
+    depends_on:
+      - db-server-init1
+
+  reverse-proxy:
+    image: vmwblockchain/reverse-proxy:latest
+    ports:
+      - "443:443"
+      - "8843:8843"
+    volumes:
+      - ./concord/docker/data/nginx/docker-compose.conf.d:/etc/nginx/conf.d
+    depends_on:
+      - helen
+
+  fluentd:
+    build:
+      context: ./concord/docker/fluentd
+    image: "${fluentd_repo}:${fluentd_tag}"
+    container_name: fluentd
+    ports:
+      - "24224:24224"
+      - "24224:24224/udp"
+    environment:
+      - FLUENTD_CONF=fluentd.conf
+    volumes:
+      - ./concord/docker/fluentd:/fluentd/etc

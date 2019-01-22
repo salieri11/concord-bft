@@ -13,7 +13,8 @@ describe('EthApiService', () => {
     TestBed.configureTestingModule({
       imports: [HttpClientTestingModule],
       providers: [
-        { provide: ETHEREUM_API_PREFIX, useValue: 'api/concord/eth' }, EthApiService
+        { provide: ETHEREUM_API_PREFIX, useValue: 'api/concord/eth' },
+        EthApiService
       ]
     });
   });

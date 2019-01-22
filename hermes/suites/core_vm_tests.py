@@ -46,7 +46,7 @@ class CoreVMTests(test_suite.TestSuite):
          log.debug("Running in ethereum mode")
          self._apiServerUrl = "http://localhost:8545"
       else:
-         self._apiServerUrl = "https://localhost/blockchains/local/api/concord/eth/"
+         self._apiServerUrl = passedArgs.baseUrl + "/api/concord/eth/"
 
    def getName(self):
       return "CoreVMTests"
@@ -105,7 +105,7 @@ class CoreVMTests(test_suite.TestSuite):
             self.writeResult(testName, result, info)
       log.info("Tests are done.")
 
-      if self._productMode and not self._noLaunch and not self._repeatSuiteRun:
+      if self._shouldStop():
             p.stopProduct()
 
       return self._resultFile

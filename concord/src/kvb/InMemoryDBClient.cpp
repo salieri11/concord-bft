@@ -30,7 +30,7 @@ using namespace Blockchain;
  * Does nothing.
  * @return Status OK.
  */
-Status InMemoryDBClient::init()
+Status InMemoryDBClient::init(bool readOnly)
 {
    //TODO Can be used for constructor calls, etc.
    return Status::OK();

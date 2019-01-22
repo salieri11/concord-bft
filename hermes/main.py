@@ -3,6 +3,7 @@
 #########################################################################
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
+
 import argparse
 import datetime
 import logging
@@ -10,13 +11,16 @@ import os
 import tempfile
 from time import strftime, localtime
 
-from suites import core_vm_tests, helen_api_tests, ext_rpc_tests, \
-   kv_blockchain_tests, performance_tests, regression_tests, beerwars_tests
+from suites import (core_vm_tests, helen_api_tests, ext_rpc_tests,
+                    kv_blockchain_tests, performance_tests, regression_tests,
+                    simple_st_test, ui_tests, beerwars_tests)
+
 from util import html, json_helper
 
 log = None
 suites = ["CoreVMTests", "ExtendedRPCTests", "HelenAPITests",
-          "PerformanceTests", "KVBlockchainTests", "RegressionTests", "BeerWarsTests"]
+          "PerformanceTests", "KVBlockchainTests", "RegressionTests",
+          "SimpleStateTransferTest", "UiTests", "BeerWarsTests", ]
 
 def main():
    startTime = datetime.datetime.now()
@@ -46,13 +50,21 @@ def main():
                        help="REQUIRES SUDO. Accepts a docker compose file " \
                        "which starts concord and helen.  The product will " \
                        "be launched in docker images instead of on the " \
-                       "command line.",
-                       default="../concord/docker/docker-compose.yml")
+                       "command line.  May be a space-separated list of files, " \
+                       "in the order in which the files should be applied.",
+                       default=["../concord/docker/docker-compose.yml"],
+                       nargs="*")
    parser.add_argument("--noLaunch",
                        default=False,
                        action='store_true',
                        help="Will not launch the product, assuming it is "
                             "already running")
+   parser.add_argument("--productLaunchAttempts",
+                       help="Number of times to attempt to launch the product " \
+                       "before failing.  Used to work around intermittent bugs " \
+                       "with product startup.",
+                       default=1,
+                       type=int)
    parser.add_argument("--keepconcordDB",
                        help="Keep and re-use the existing concord database files.",
                        default=False,
@@ -67,6 +79,10 @@ def main():
                        help="User name for BeerWars tests")
    parser.add_argument("--password",
                        help="Password for BeerWars tests")
+   parser.add_argument("--baseUrl",
+                       default="https://localhost/blockchains/local",
+                       help="API sever base URL")
+
    args = parser.parse_args()
    parent_results_dir = args.resultsDir
 
@@ -139,6 +155,10 @@ def createTestSuite(args):
       return regression_tests.RegressionTests(args)
    elif (args.suite == "BeerWarsTests"):
       return beerwars_tests.BeerWarsTests(args)
+   elif (args.suite == "SimpleStateTransferTest"):
+      return simple_st_test.SimpleStateTransferTest(args)
+   elif (args.suite == "UiTests"):
+      return ui_tests.UiTests(args)
 
 def createResultsDir(suiteName, parent_results_dir=tempfile.gettempdir()):
    prefix = suiteName + "_" + strftime("%Y%m%d_%H%M%S", localtime())

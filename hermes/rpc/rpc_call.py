@@ -172,16 +172,17 @@ class RPC():
       else:
          return response
 
-   def addUser(self, url="https://localhost/blockchains/local/api/auth/login"):
+   def addUser(self, url):
       '''
       TEMPORARY, this will soon be replaced by CSP and VIDM
       Create first user so basic auth works for API calls.
       '''
+
       curlCmd = ["curl",
                  "-X", "POST",
                  "-H", "Content-Type: application/json",
                  "--data", json.dumps({}),
-                 url,
+                 url + "/api/auth/login",
                  "--verbose",
                  "--insecure",]
 

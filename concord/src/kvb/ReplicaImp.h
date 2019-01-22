@@ -20,7 +20,6 @@
 #include "ICommunication.hpp"
 #include "CommFactory.hpp"
 #include "StatusInfo.h"
-#include "byzst.hpp"
 
 using namespace Blockchain::Utils;
 
@@ -93,14 +92,6 @@ namespace Blockchain {
       //IBlocksAppender
       virtual Status addBlock(const SetOfKeyValuePairs &updates,
                               BlockId &outBlockId) override;
-
-      /// TODO(IG): these methods are made public since they are needed for
-      /// the old state transfer and once the new one will be ready we should
-      /// refactor this code
-      /// this is to replace the existing static functions
-      int get_block(int n, char **page);
-      void put_blocks(int count, int *sizes, int *indices, char **pages);
-      bool check_nond(char *buffer);
    protected:
 
       // CTOR & DTOR
@@ -260,6 +251,38 @@ namespace Blockchain {
          virtual Status freeInternalIterator();
       };
 
+      class BlockchainAppState :
+          public bftEngine::SimpleBlockchainStateTransfer::IAppState {
+       public:
+         BlockchainAppState(ReplicaImp *const parent);
+
+        virtual bool hasBlock(uint64_t blockId) override;
+        virtual bool getBlock(uint64_t blockId,
+                      char *outBlock,
+                      uint32_t *outBlockSize) override;
+        virtual bool getPrevDigestFromBlock(
+            uint64_t blockId,
+            bftEngine::SimpleBlockchainStateTransfer::
+               StateTransferDigest *outPrevBlockDigest) override;
+        virtual bool putBlock(uint64_t blockId,
+                      char *block,
+                      uint32_t blockSize) override;
+        virtual uint64_t getLastReachableBlockNum() override;
+        virtual uint64_t getLastBlockNum() override;
+       private:
+        ReplicaImp  *const m_ptrReplicaImpl = nullptr;
+        log4cplus::Logger m_logger;
+
+        // from IAppState. represents maximal block number n such that all
+        // blocks 1 <= i <= n exist
+        std::atomic<BlockId> m_lastReachableBlock{0};
+
+        friend class ReplicaImp;
+        friend IReplica*
+        createReplica(Blockchain::CommConfig &commConfig,
+                                  ReplicaConsensusConfig &config,
+                                  IDBClient* db);
+      };
 
       // DATA
 
@@ -277,11 +300,14 @@ namespace Blockchain {
       bftEngine::Replica *m_replicaPtr = nullptr;
       ICommandsHandler *m_cmdHandler = nullptr;
       bftEngine::IStateTransfer *m_stateTransfer = nullptr;
+      BlockchainAppState *m_appState = nullptr;
 
       // static methods
       static Sliver createBlockFromUpdates(
          const SetOfKeyValuePairs& updates,
-         SetOfKeyValuePairs& outUpdatesInNewBlock);
+         SetOfKeyValuePairs& outUpdatesInNewBlock,
+         bftEngine::SimpleBlockchainStateTransfer::StateTransferDigest
+         &parentDigest);
       static SetOfKeyValuePairs fetchBlockData(Sliver block);
 
 

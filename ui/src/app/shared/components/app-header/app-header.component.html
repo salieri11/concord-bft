@@ -36,24 +36,11 @@
         <a [routerLink]="['/docs/api']" clrDropdownItem>
           {{'nav.exploreAPIs' | translate}}
         </a>
+        <div class="dropdown-divider"></div>
+        <concord-version clrDropdownItem></concord-version>
+
       </clr-dropdown-menu>
     </clr-dropdown>
-    <!-- Don't want to remove this just yet, this is useful for testing. -->
-    <!--       <clr-dropdown class="persona-selector">
-            <button type="button" class="nav-link nav-icon" clrDropdownTrigger>
-              <clr-icon shape="cog"></clr-icon>
-            </button>
-            <clr-dropdown-menu *clrIfOpen clrPosition="bottom-left">
-              <h4 class="dropdown-header">{{ 'nav.personaSelector.title' | translate }}</h4>
-              <button type="button"
-                      (click)="onPersonaChange(persona.value)"
-                      *ngFor="let persona of personaOptions"
-                      [ngClass]="{'active': persona.value === personaService.currentPersona}"
-                      clrDropdownItem>
-                {{ persona.name | translate }}
-              </button>
-            </clr-dropdown-menu>
-          </clr-dropdown> -->
     <concord-theme-switch-button></concord-theme-switch-button>
     <clr-dropdown #userProfileMenu>
       <button id="profileMenu" class="nav-text" clrDropdownTrigger tourAnchor="onboardingTour.userSettings">
