@@ -28,9 +28,9 @@ export class LogApiService {
     return this.logQueryTask(logQuery);
   }
 
-  postToTasksCount(start: number, end: number): Observable<LogTaskResponse> {
+  postToTasksCount(start: number, end: number, interval: number): Observable<LogTaskResponse> {
     const logQuery = {
-      logQuery: `SELECT COUNT(*), timestamp FROM logs GROUP BY bucket(timestamp, 3600000, ${start}, ${end}) ORDER BY timestamp DESC`,
+      logQuery: `SELECT COUNT(*), timestamp FROM logs GROUP BY bucket(timestamp, ${interval}, ${start}, ${end}) ORDER BY timestamp DESC`,
       start: start,
       end: end
     };

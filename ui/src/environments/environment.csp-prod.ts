@@ -1,8 +1,8 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2019 VMware, all rights reserved.
  */
 
 export const environment = {
   production: true,
-  csp: false
+  csp: true,
 };

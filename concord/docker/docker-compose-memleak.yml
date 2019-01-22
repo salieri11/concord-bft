@@ -8,5 +8,5 @@ services:
     command:
       - java
       - -jar
-      - helen-1.0-SNAPSHOT.jar
+      - blockchain-helen.jar
       - --ConcordAuthorities=concord1:5458

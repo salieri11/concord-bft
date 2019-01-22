@@ -35,3 +35,9 @@ body.dark {
     }
   }
 }
+
+body nav.subnav .theme-select {
+  text-align: left;
+  margin-right: 0 !important;
+  width: inherit !important;
+}

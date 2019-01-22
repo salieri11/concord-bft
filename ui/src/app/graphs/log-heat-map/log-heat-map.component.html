@@ -1,5 +1,6 @@
 <div class="chart-container">
   <ngx-charts-heat-map
+    #heatMap
     [legend]="legend"
     [scheme]="colorScheme"
     [gradient]="false"
@@ -7,5 +8,8 @@
     [yAxis]="true"
     [tooltipText]="tooltipText"
     [results]="graphData">
+    <ng-template #tooltipTemplate let-model="model">
+      <span>{{model.value | number}}</span>
+    </ng-template>
   </ngx-charts-heat-map>
 </div>
