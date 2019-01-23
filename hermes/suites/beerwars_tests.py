@@ -154,7 +154,9 @@ class BeerWarsTests(test_suite.TestSuite):
 
    def _test_beerwars(self, fileRoot):
       ''' Tests if BeerWars can be deployed using the docker container '''
-      out, err = self._executeInContainer("docker run --rm --name beerwars-test --network docker_default -td vmwblockchain/beer-wars:1.0.4")
+      ### (TODO: Transfer the container image to VMware DockerHub and update here)
+      # out, err = self._executeInContainer("docker run --rm --name beerwars-test --network docker_default -td vmwblockchain/beer-wars:1.0.4")
+      out, err = self._executeInContainer("docker run --rm --name beerwars-test --network docker_default -td mmukundram/beerwars:1.0.4")
       if err != None:
          return (False, err)
 
