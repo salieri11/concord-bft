@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.vmware.blockchain.common.NoSuchConsortiumException;
 
 import javassist.NotFoundException;
@@ -38,7 +39,14 @@ public class BlockchainController {
         private UUID consortiumId;
         private String ipList;
         private String rpcUrls;
+    }
 
+    @Getter
+    @Setter
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static class BlockchainPatch {
+        private String ipList;
+        private String rpcUrls;
     }
 
     @Getter
@@ -88,7 +96,7 @@ public class BlockchainController {
     }
 
     /**
-     * Create a new blockchain in the given cosortium, with the specified nodes.
+     * Create a new blockchain in the given consortium, with the specified nodes.
      */
     @RequestMapping(path = "/api/blockchain", method = RequestMethod.POST)
     public ResponseEntity<Blockchain> createBlockchain(@RequestBody BlockchainPost body) {
@@ -98,5 +106,26 @@ public class BlockchainController {
         }
         Blockchain b = manager.create(oConsortium.get(), body.ipList, body.rpcUrls);
         return new ResponseEntity<>(b, HttpStatus.OK);
+    }
+
+    /**
+     * Update the given blockchain.
+     */
+    @RequestMapping(path = "/api/blockchain/{id}", method = RequestMethod.PATCH)
+    public ResponseEntity<Blockchain> updateBlockchain(@PathVariable UUID id, @RequestBody BlockchainPatch body)
+            throws NotFoundException {
+        Optional<Blockchain> oBlockchain = manager.get(id);
+        if (oBlockchain.isEmpty()) {
+            throw new NotFoundException(id + " was not found");
+        }
+        Blockchain b = oBlockchain.get();
+        if (body.getIpList() != null) {
+            b.setIpList(body.getIpList());
+        }
+
+        if (body.getRpcUrls() != null) {
+            b.setRpcUrls(b.getRpcUrls());
+        }
+        return new ResponseEntity<>(manager.update(b), HttpStatus.OK);
     }
 }

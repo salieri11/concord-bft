@@ -746,7 +746,75 @@
       				}
       			}
       		}
-      	}
+      	},
+      	"patch": {
+	        "summary": "Update an existing blockchain",
+	        "operationId": "blockchainPatch",
+            "parameters": [
+          	  {
+          		  "name": "bid",
+          		  "in": "path",
+          		  "description": "Blockchain ID",
+          		  "schema": {
+  	                  "type": "string",
+  	                  "format": "uuid"
+          		  }
+          	  }
+            ],
+	        "requestBody": {
+	          "description": "Blockchain items to patch",
+	          "content": {
+	            "application/json": {
+	              "schema": {
+	                "type": "object",
+	                "properties": {
+	                  "ip_list": {
+	                    "type": "string",
+	                    "description": "comma separated list of addresses of blockchain nodes"
+	                  },
+	                  "rpc_urls": {
+	                    "type": "string",
+	                    "description": "string represent url map, comma separated list of hostname=url"
+	                  }
+	                }
+	              }
+	            }
+	          },
+	          "required": true
+	        },
+	  		"responses": {
+	  			"200": {
+	  				"description": "Returns the specified blockchain",
+	  				"content": {
+	  					"application/json": {
+	  						"schema": {
+			                        "type": "object",
+			                        "properties": {
+			                          "id": {
+			                            "type": "string",
+			                            "format": "uuid",
+			                            "description": "Blockchain ID"
+			                          },
+			                          "consortium_id": {
+			                        	  "type": "string",
+			                        	  "format": "uuid",
+			                        	  "description": "ID of owning consortium"
+			                          },
+			                          "ip_list": {
+			                            "type": "string",
+			                            "description": "Addresses of nodes in this blockchain"
+			                          },
+			                          "rpc_urls": {
+			                            "type": "string",
+			                            "description": "List of addreses with node names"
+			                          }
+			                        }
+	  						}
+	  					}
+	  				}
+	  			}
+	  		}
+	  	}
     },
     "/blockchain/{bid}/concord/members": {
         "summary": "Blockchain Consensus Membership List",
