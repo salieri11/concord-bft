@@ -61,7 +61,8 @@ public final class MemberList extends ConcordServlet {
      * responding to the client.
      *
      */
-    @RequestMapping(method = RequestMethod.GET, path = "/api/concord/members")
+    @RequestMapping(method = RequestMethod.GET,
+            path = {"/api/concord/members", "/api/blockchains/{id}/concord/members"})
     public ResponseEntity<JSONAware> doGet(
         @PathVariable(name = "id", required = false) Optional<UUID> id,
         @RequestParam(name = "certs", defaultValue = "false") String includeRpcCerts) {

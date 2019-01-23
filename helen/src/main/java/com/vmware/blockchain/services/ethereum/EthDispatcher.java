@@ -168,7 +168,7 @@ public final class EthDispatcher extends ConcordServlet {
      * dispatch function. Builds the response for sending to client.
      */
     @SuppressWarnings("unchecked")
-    @RequestMapping(path = "/api/concord/eth", method = RequestMethod.POST)
+    @RequestMapping(path = {"/api/concord/eth", "/api/blockchain/{id}concord/eth"}, method = RequestMethod.POST)
     public ResponseEntity<JSONAware> doPost(@PathVariable(name = "id", required = false) Optional<UUID> id,
             @RequestBody String paramString) {
         // Retrieve the request fields

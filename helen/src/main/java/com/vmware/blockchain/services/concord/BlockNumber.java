@@ -50,7 +50,8 @@ public class BlockNumber extends ConcordServlet {
      *
      * @param block The block number or block hash
      */
-    @RequestMapping(method = RequestMethod.GET, path = "/api/concord/blocks/{block}")
+    @RequestMapping(method = RequestMethod.GET,
+            path = {"/api/concord/blocks/{block}", "/api/blockchain/{id}/concord/blocks/{block}"})
     public ResponseEntity<JSONAware> getBlock(@PathVariable(name = "id", required = false) Optional<UUID> id,
             @PathVariable("block") String block) {
         ConcordControllerHelper helper = getHelper(id);

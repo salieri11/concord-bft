@@ -52,7 +52,7 @@ public class BlockList extends ConcordServlet {
      * @param count Number of blocks expected
      */
     // ** - tells spring to match anything in path
-    @RequestMapping(method = RequestMethod.GET, path = "/api/concord/blocks")
+    @RequestMapping(method = RequestMethod.GET, path = {"/api/concord/blocks", "/api/blockchain/{id}/concord/blocks"})
     public ResponseEntity<JSONAware> getBlockList(
             @PathVariable(name = "id", required = false) Optional<UUID> id,
             @RequestParam(name = "latest", defaultValue = "-1", required = false) long latest,
