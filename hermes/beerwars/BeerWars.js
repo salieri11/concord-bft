@@ -89,4 +89,3 @@ async function when_defined(variable, property){
   }
 
 module.exports = helper_methods;
-

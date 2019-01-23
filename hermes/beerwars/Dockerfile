@@ -1,5 +1,4 @@
 FROM ubuntu:16.04
-LABEL maintainer="mmuraliram@vmware.com"
 WORKDIR /source
 COPY . /source
 RUN apt-get -y update
