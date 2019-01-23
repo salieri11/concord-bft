@@ -98,27 +98,30 @@ class UiTests(test_suite.TestSuite):
 
         with open(logFilePath, "wb+") as logFile:
             proc_output = subprocess.run(cmd,
-                                         stdout=logFile,
+                                         stdout=logFile and subprocess.PIPE,
                                          stderr=subprocess.STDOUT,
                                          cwd=self.ui_path, )
 
         if proc_output.returncode == 1:
-            return False, "UI Unit tests failed, please see {}".format(logFilePath)
+            log.info(proc_output.stdout.decode('UTF-8'))
+            return False, "UI Unit tests failed, please see {}".format(
+                logFilePath)
 
         return True, "UI unit tests passed"
 
     def _test_ui_e2e(self):
         cmd = ["npm", "run", "e2e:build", ]
         logFilePath = os.path.join(self._testCaseDir, "e2e.log")
-
         with open(logFilePath, "wb+") as logFile:
             proc_output = subprocess.run(cmd,
-                                         stdout=logFile,
+                                         stdout=logFile and subprocess.PIPE,
                                          stderr=subprocess.STDOUT,
                                          cwd=self.ui_path, )
 
         if proc_output.returncode == 1:
-            return False, "UI E2E tests failed, please see {}".format(logFilePath)
+            log.info(proc_output.stdout.decode('UTF-8'))
+            return False, "UI E2E tests failed, please see {}".format(
+                logFilePath)
 
         return True, "UI E2E passed"
 
@@ -128,11 +131,13 @@ class UiTests(test_suite.TestSuite):
 
         with open(logFilePath, "wb+") as logFile:
             proc_output = subprocess.run(cmd,
-                                         stdout=logFile,
+                                         stdout=logFile and subprocess.PIPE,
                                          stderr=subprocess.STDOUT,
                                          cwd=self.ui_path, )
 
         if proc_output.returncode == 1:
-            return False, "UI E2E tests failed, please see {}".format(logFilePath)
+            log.info(proc_output.stdout.decode('UTF-8'))
+            return False, "UI E2E tests failed, please see {}".format(
+                logFilePath)
 
         return True, "UI linter passed"
