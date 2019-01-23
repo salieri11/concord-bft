@@ -28,6 +28,24 @@ def call(){
             if (params.deploy && (!params.version_param || !params.version_param.trim())){
               throw new Exception (errString + "A version number must be entered when the 'deploy' checkbox is checked.")
             }
+
+            // https://wiki.jenkins.io/display/JENKINS/Building+a+software+project#Buildingasoftwareproject-JenkinsSetEnvironmentVariables
+            // Seeing what these output.
+            // JOB_NAME should be the name of the job, but when run on the "Blockchain Master" job, Jenkins
+            //   evaluates 'if (JOB_NAME == "Blockchain Master")' to false.  It works fine on other
+            //   pipeline builds, though.
+            // GIT_BRANCH should be the name of the branch, but may only available in multibranch pipelines.
+            try{
+              echo("JOB_NAME: '" + JOB_NAME + "'")
+            }catch(Exception ex){
+              echo("Exception looking for JOB_NAME: " + ex)
+            }
+
+            try{
+              echo("GIT_BRANCH: '" + GIT_BRANCH + "'")
+            }catch(Exception ex){
+              echo("Exception looking for GIT_BRANCH: " + ex)
+            }
           }
         }
       }
