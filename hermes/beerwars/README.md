@@ -52,7 +52,7 @@ image. The following command starts the container in interactive mode,
 so that you can use the files and utilities it contains:
 
 ```
-$ docker run -ti vmwblockchain/beerwars:1.0.4
+$ docker run -ti mmukundram/beerwars:1.0.4
 root@b8136d3deacf:/source#
 ```
 
@@ -64,7 +64,7 @@ and some other support files:
 ```
 # ls
 BeerWars.js   Dockerfile    package-lock.json   
-BeerWars.sol  node_modules
+BeerWars.sol  node_modules  test
 ```
 
 ### Stopping and starting the container (OPTIONAL)
@@ -105,7 +105,7 @@ This will generate .abi and .bin files which can be verified :
 ```
 # ls
 BeerWars.abi  BeerWars.js   Dockerfile    package-lock.json
-BeerWars.bin  BeerWars.sol  node_modules
+BeerWars.bin  BeerWars.sol  node_modules  test
 ```
 
 ### Deploying the smart contract
@@ -249,4 +249,3 @@ Welcome 'delta' to the party and check the number of beers:
 '0x5ed34678dfa629ba5f6ad087b6ead4412773ce19817ea987600e98af5defbc3b'
 > helper.getNumberOfBeers(contract_instance, 'alpha')
 Error: Error while calling contract
-```
