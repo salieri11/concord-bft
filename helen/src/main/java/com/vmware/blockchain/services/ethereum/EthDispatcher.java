@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.services.ethereum;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -21,16 +22,17 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
-import com.vmware.blockchain.services.BaseServlet;
+import com.vmware.blockchain.connections.ConnectionPoolManager;
+import com.vmware.blockchain.services.ConcordServlet;
 import com.vmware.blockchain.services.contracts.ContractRegistryManager;
-
+import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.ProfilesRegistryManager;
 import com.vmware.concord.Concord;
 import com.vmware.concord.Concord.ConcordResponse;
@@ -55,7 +57,7 @@ import com.vmware.concord.IConcordConnection;
  * </p>
  */
 @Controller
-public final class EthDispatcher extends BaseServlet {
+public final class EthDispatcher extends ConcordServlet {
     private static final long serialVersionUID = 1L;
     public static long netVersion;
     public static boolean netVersionSet;
@@ -64,13 +66,11 @@ public final class EthDispatcher extends BaseServlet {
     private String jsonRpc;
     private ContractRegistryManager registryManager;
     private ProfilesRegistryManager profilesRegistryManager;
-    private ConcordProperties config;
 
     @Autowired
-    public EthDispatcher(ContractRegistryManager registryManager, ProfilesRegistryManager profilesRegistryManager,
-                         ConcordProperties config, ConcordConnectionPool connectionPool) throws ParseException {
-        super(config, connectionPool);
-        this.config = config;
+    public EthDispatcher(ContractRegistryManager registryManager, ConnectionPoolManager connectionPoolManager,
+            ProfilesRegistryManager profilesRegistryManager, DefaultProfiles defaultProfiles) throws ParseException {
+        super(connectionPoolManager, defaultProfiles);
         JSONParser p = new JSONParser();
         this.registryManager = registryManager;
         this.profilesRegistryManager = profilesRegistryManager;
@@ -156,11 +156,11 @@ public final class EthDispatcher extends BaseServlet {
         MDC.put("method", "GET");
         if (rpcList == null) {
             logger.error("Configurations not read.");
-            return new ResponseEntity<>(new JSONArray(), standardHeaders, HttpStatus.SERVICE_UNAVAILABLE);
+            return new ResponseEntity<>(new JSONArray(), HttpStatus.SERVICE_UNAVAILABLE);
         }
         logger.info("Request Eth RPC API list");
         MDC.clear();
-        return new ResponseEntity<>(rpcList, standardHeaders, HttpStatus.OK);
+        return new ResponseEntity<>(rpcList, HttpStatus.OK);
     }
 
     /**
@@ -169,7 +169,8 @@ public final class EthDispatcher extends BaseServlet {
      */
     @SuppressWarnings("unchecked")
     @RequestMapping(path = "/api/concord/eth", method = RequestMethod.POST)
-    public ResponseEntity<JSONAware> doPost(@RequestBody String paramString) {
+    public ResponseEntity<JSONAware> doPost(@PathVariable(name = "id", required = false) Optional<UUID> id,
+            @RequestBody String paramString) {
         // Retrieve the request fields
         JSONArray batchRequest = null;
         JSONArray batchResponse = new JSONArray();
@@ -206,7 +207,7 @@ public final class EthDispatcher extends BaseServlet {
                 JSONObject requestParams = (JSONObject) params;
 
                 // Dispatch requests to the corresponding handlers
-                batchResponse.add(dispatch(requestParams));
+                batchResponse.add(dispatch(id, requestParams));
             }
             if (isBatch) {
                 responseBody = batchResponse;
@@ -223,7 +224,7 @@ public final class EthDispatcher extends BaseServlet {
             MDC.clear();
         }
         logger.debug("Response: " + responseBody.toJSONString());
-        return new ResponseEntity<>(responseBody, standardHeaders, HttpStatus.OK);
+        return new ResponseEntity<>(responseBody, HttpStatus.OK);
     }
 
 
@@ -234,7 +235,7 @@ public final class EthDispatcher extends BaseServlet {
      * @param requestJson Request parameters
      * @return Response for user
      */
-    public JSONObject dispatch(JSONObject requestJson) throws Exception {
+    public JSONObject dispatch(Optional<UUID> blockchain, JSONObject requestJson) throws Exception {
         // Default initialize variables, so that if exception is thrown
         // while initializing the variables error message can be constructed
         // with default values.
@@ -244,6 +245,7 @@ public final class EthDispatcher extends BaseServlet {
         boolean isLocal = false;
         JSONObject responseObject;
         ConcordResponse concordResponse;
+        ConcordConnectionPool concordConnectionPool = getConnectionPool(blockchain);
         // Create object of the suitable handler based on the method specified in
         // the request
         try {
@@ -257,11 +259,11 @@ public final class EthDispatcher extends BaseServlet {
                 case Constants.CALL_NAME:
                     if (requestJson.containsKey("isInternalContract")) {
                         requestJson.remove("isInternalContract");
-                        handler = new EthSendTxHandler(config, concordConnectionPool, registryManager,
-                                                       profilesRegistryManager, true);
+                        handler = new EthSendTxHandler(connectionPoolManager, defaultProfiles,
+                                profilesRegistryManager, blockchain, registryManager, true);
                     } else {
-                        handler = new EthSendTxHandler(config, concordConnectionPool, registryManager,
-                                                       profilesRegistryManager, false);
+                        handler = new EthSendTxHandler(connectionPoolManager, defaultProfiles, profilesRegistryManager,
+                                blockchain, registryManager, false);
                     }
                     break;
 
@@ -332,7 +334,7 @@ public final class EthDispatcher extends BaseServlet {
             if (!isLocal) {
                 Concord.ConcordRequest.Builder concordRequestBuilder = Concord.ConcordRequest.newBuilder();
                 if (handler.buildRequest(concordRequestBuilder, requestJson)) {
-                    concordResponse = communicateWithConcord(concordRequestBuilder.build());
+                    concordResponse = communicateWithConcord(concordConnectionPool, concordRequestBuilder.build());
                     // If there is an error reported by Concord
                     if (concordResponse.getErrorResponseCount() > 0) {
                         ErrorResponse errResponse = concordResponse.getErrorResponse(0);
@@ -371,7 +373,8 @@ public final class EthDispatcher extends BaseServlet {
      * @param req ConcordRequest object
      * @return Response received from Concord
      */
-    private ConcordResponse communicateWithConcord(Concord.ConcordRequest req) throws Exception {
+    private ConcordResponse communicateWithConcord(ConcordConnectionPool concordConnectionPool,
+            Concord.ConcordRequest req) throws Exception {
         IConcordConnection conn = null;
         Concord.ConcordResponse concordResponse = null;
         try {
@@ -404,7 +407,7 @@ public final class EthDispatcher extends BaseServlet {
      * Not required for this Servlet as each handler builds its response object separately.
      */
     @Override
-    protected JSONAware parseToJson(ConcordResponse concordResponse) {
+    public JSONAware parseToJson(ConcordResponse concordResponse) {
         throw new UnsupportedOperationException("parseToJSON method is not " + "supported in EthDispatcher Servlet");
     }
 }

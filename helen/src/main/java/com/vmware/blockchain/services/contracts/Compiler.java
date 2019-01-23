@@ -252,6 +252,9 @@ public class Compiler {
 
         } catch (IOException | InterruptedException e) {
             logger.warn("Error in compilation:" + e);
+        } catch (Exception e) {
+            logger.warn("Other than IO error", e);
+            throw e;
         } finally {
             // Delete the created source files
             deleteDirectoryTree(sourceFile.getParent());

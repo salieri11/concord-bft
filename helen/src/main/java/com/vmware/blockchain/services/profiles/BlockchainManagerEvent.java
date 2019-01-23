@@ -25,16 +25,18 @@ public class BlockchainManagerEvent extends ApplicationEvent {
     private static final long serialVersionUID = 1L;
     private Blockchain blockchain;
     private Action action;
-    private String node;
+    private String host;
+    private String ip;
 
     /**
      * A new BlockchainManagerEvent.  This is triggered by adding/deleting a node to/from a blockchain.
      */
-    public BlockchainManagerEvent(Object source, Blockchain blockchain, Action action, String node) {
+    public BlockchainManagerEvent(Object source, Blockchain blockchain, Action action, String host, String ip) {
         super(source);
         this.blockchain = blockchain;
         this.action = action;
-        this.node = node;
+        this.host = host;
+        this.ip = ip;
     }
 
 }
