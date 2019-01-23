@@ -1,5 +1,6 @@
 {
   "title": "VMware Blockchain",
+  "subTitle": "Blockchain as a Service",
   "common": {
     "all": "All",
     "close": "Close",
@@ -102,7 +103,7 @@
     "next": "Next",
     "errorMessage": "Invalid user name or password",
     "changePassword": "Change Password",
-    "passwordReq": "Password must be 6 to 35 characters and contains at least one numeric digit, one uppercase letter, one lowercase letter and one special character."
+    "passwordReq": "Password must be 6 to 35 characters and contain at least one numeric digit, one uppercase letter, one lowercase letter and one special character."
   },
   "grid": {
     "search": {
@@ -615,7 +616,8 @@
   },
   "logging": {
     "heatMap": {
-      "title": "Methods by time of day",
+      "dailyTitle": "Calls by time of day",
+      "hourlyTitle": "Calls by the hour",
       "days": {
         "0": "Sun",
         "1": "Mon",
@@ -624,16 +626,41 @@
         "4": "Thu",
         "5": "Fri",
         "6": "Sat"
-      }
+      },
+      "axisLabels": {
+        "minute": "Minute",
+        "hour": "Hour",
+        "day": "Day"
+      },
+      "notEnoughData": "Not enough data available"
+    },
+    "timePeriods": {
+      "oneMinute": "1 Minute",
+      "fiveMinutes": "5 Minutes",
+      "fifteenMinutes": "15 Minutes",
+      "oneHour": "1 Hour",
+      "sixHours": "6 Hours",
+      "twelveHours": "12 Hours",
+      "oneDay": "1 Day",
+      "sevenDays": "7 Days",
+      "thirtyDays": "30 Days"
     },
     "logTable": {
-      "title": "Logs"
+      "title": "Logs",
+      "noLogsFound": "No logs found for the selected time period."
     },
     "actions": {
-      "nextPage": "Next Page"
+      "loadMore": "Load More"
     },
     "bar": {
-      "title": "Total Method Calls"
+      "title": "Ethereum RPC Method Calls",
+      "xCalls": "{{num}} Calls",
+      "toDate": "To: {{toDate}}",
+      "fromDate": "From: {{fromDate}}"
+    },
+    "counts": {
+      "loadingTotalCount": "Getting total count...",
+      "totalCount": "{{total}} Total"
     }
   },
   "personas": {

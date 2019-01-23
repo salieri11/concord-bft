@@ -5,6 +5,8 @@
 package com.vmware.blockchain.services.concord;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -19,25 +21,26 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.connections.ConcordConnectionPool;
-import com.vmware.blockchain.services.BaseServlet;
+import com.vmware.blockchain.connections.ConnectionPoolManager;
+import com.vmware.blockchain.services.ConcordControllerHelper;
+import com.vmware.blockchain.services.ConcordServlet;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
+import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.concord.Concord;
 
 /**
  * Servlet class.
  */
 @Controller
-public class BlockNumber extends BaseServlet {
+public class BlockNumber extends ConcordServlet {
     private static final long serialVersionUID = 1L;
     private Logger logger = LogManager.getLogger(BlockNumber.class);
 
 
     @Autowired
-    public BlockNumber(ConcordProperties config, ConcordConnectionPool concordConnectionPool) {
-        super(config, concordConnectionPool);
+    public BlockNumber(ConnectionPoolManager connectionPoolManager, DefaultProfiles defaultProfiles) {
+        super(connectionPoolManager, defaultProfiles);
     }
 
     /**
@@ -48,7 +51,9 @@ public class BlockNumber extends BaseServlet {
      * @param block The block number or block hash
      */
     @RequestMapping(method = RequestMethod.GET, path = "/api/concord/blocks/{block}")
-    public ResponseEntity<JSONAware> getBlock(@PathVariable("block") String block) {
+    public ResponseEntity<JSONAware> getBlock(@PathVariable(name = "id", required = false) Optional<UUID> id,
+            @PathVariable("block") String block) {
+        ConcordControllerHelper helper = getHelper(id);
         // Block can either be a block number or block hash
         // Read the requested block number from the uri
         try {
@@ -65,11 +70,11 @@ public class BlockNumber extends BaseServlet {
             // Envelope the blockRequest object into an concord object.
             final Concord.ConcordRequest concordRequestObj =
                     Concord.ConcordRequest.newBuilder().setBlockRequest(blockRequestObj).build();
-            return sendToConcordAndBuildHelenResponse(concordRequestObj);
+            return helper.sendToConcordAndBuildHelenResponse(concordRequestObj);
 
         } catch (Exception e) {
             logger.error("Invalid block number or hash");
-            return new ResponseEntity<>(ApiHelper.errorJson("Invalid block number or hash"), standardHeaders,
+            return new ResponseEntity<>(ApiHelper.errorJson("Invalid block number or hash"),
                     HttpStatus.BAD_REQUEST);
         }
     }
@@ -80,9 +85,7 @@ public class BlockNumber extends BaseServlet {
      * @param concordResponse Protocol Buffer object containing Concord's reponse
      * @return Response in JSON format
      */
-    @SuppressWarnings("unchecked")
-    @Override
-    protected JSONObject parseToJson(Concord.ConcordResponse concordResponse) {
+    public JSONObject parseToJson(Concord.ConcordResponse concordResponse) {
 
         // Extract the blocknumber response
         // from the concord reponse envelope.

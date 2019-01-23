@@ -7,6 +7,7 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { TourService as NgxTourService } from 'ngx-tour-ngx-popper';
+import { CspApiService } from '@vmw/csp-ngx-components';
 
 import { AppHeaderComponent } from './app-header.component';
 import { MockSharedModule } from '../../shared.module';
@@ -32,7 +33,11 @@ describe('AppHeaderComponent', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      imports: [ RouterTestingModule, MockSharedModule, HttpClientTestingModule ],
+      imports: [
+        RouterTestingModule,
+        MockSharedModule,
+        HttpClientTestingModule
+      ],
       declarations: [
         AppHeaderComponent,
         CanViewDirective,
@@ -40,7 +45,12 @@ describe('AppHeaderComponent', () => {
         TestWrapperClassComponent,
         VersionComponent,
       ],
-      providers: [ TourService, NgxTourService, VmwClarityThemeService ]
+      providers: [
+        TourService,
+        NgxTourService,
+        VmwClarityThemeService,
+        CspApiService
+      ]
     })
     .compileComponents();
   }));

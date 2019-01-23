@@ -1,56 +1,47 @@
 /*
- * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.services;
 
+import java.util.UUID;
+
 import org.apache.logging.log4j.LogManager;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 
 import com.vmware.blockchain.common.ConcordConnectionException;
-import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
-
 import com.vmware.concord.Concord;
 import com.vmware.concord.ConcordHelper;
 import com.vmware.concord.IConcordConnection;
 
+import lombok.Getter;
+
 /**
- * Base for all Helen Controllers.
+ * Concord Communication Helper.  Given a connection and a ParseToJson object, send to the concord instance.
  */
-@Controller
-public abstract class BaseServlet {
-    protected static final long serialVersionUID = 1L;
+public class ConcordControllerHelper {
 
-    protected HttpHeaders standardHeaders;
-    protected ConcordConnectionPool concordConnectionPool;
-    protected ConcordProperties config;
-
-    @Autowired
-    protected BaseServlet(ConcordProperties config, ConcordConnectionPool concordConnectionPool) {
-        this.concordConnectionPool = concordConnectionPool;
-        this.config = config;
-        standardHeaders = new HttpHeaders();
-        standardHeaders.setContentType(MediaType.APPLICATION_JSON_UTF8);
-        standardHeaders.set("Content-Transfer-Encoding", "8BIT");
-    }
-
-    protected abstract JSONAware parseToJson(Concord.ConcordResponse concordResponse);
+    @Getter
+    private UUID blockchain;
+    private ConcordConnectionPool concordConnectionPool;
+    private IParseToJson parseToJson;
 
     /**
-     * Process get request.
-     *
-     * @param req - Concord request object
+     * Helper functions to talk to concord.
      */
-    protected Concord.ConcordResponse forwardToConcord(Concord.ConcordRequest req) throws ConcordConnectionException {
+    public ConcordControllerHelper(UUID blockchain, ConcordConnectionPool concordConnectionPool,
+            IParseToJson parseToJson) {
+        this.blockchain = blockchain;
+        this.concordConnectionPool = concordConnectionPool;
+        this.parseToJson = parseToJson;
+    }
+
+    private Concord.ConcordResponse forwardToConcord(Concord.ConcordRequest req) throws ConcordConnectionException {
         IConcordConnection conn = null;
         Concord.ConcordResponse concordResponse;
         try {
@@ -77,11 +68,11 @@ public abstract class BaseServlet {
         }
     }
 
-    protected ResponseEntity<JSONAware> buildHelenResponse(Concord.ConcordResponse concordResponse) {
+    private ResponseEntity<JSONAware> buildHelenResponse(Concord.ConcordResponse concordResponse) {
         JSONAware respObject;
         HttpStatus status;
         if (concordResponse.getErrorResponseCount() == 0) {
-            respObject = parseToJson(concordResponse);
+            respObject = parseToJson.parseToJson(blockchain, concordResponse);
             status = respObject == null ? HttpStatus.INTERNAL_SERVER_ERROR : HttpStatus.OK;
         } else {
             Concord.ErrorResponse errorResp = concordResponse.getErrorResponse(0);
@@ -104,17 +95,20 @@ public abstract class BaseServlet {
                 status = HttpStatus.INTERNAL_SERVER_ERROR;
             }
         }
-        return new ResponseEntity<>(respObject, standardHeaders, status);
+        return new ResponseEntity<>(respObject, status);
     }
 
-    protected ResponseEntity<JSONAware> sendToConcordAndBuildHelenResponse(Concord.ConcordRequest concordRequest) {
+    /**
+     * Send the request to concord, and process the response for helen.
+     */
+    public ResponseEntity<JSONAware> sendToConcordAndBuildHelenResponse(Concord.ConcordRequest concordRequest) {
         try {
             Concord.ConcordResponse concordResponse = forwardToConcord(concordRequest);
             return buildHelenResponse(concordResponse);
         } catch (ConcordConnectionException ace) {
-            LogManager.getLogger(BaseServlet.class).warn("Concord Exception: ", ace);
-            return new ResponseEntity<>(ApiHelper.errorJson(ace.getMessage()), standardHeaders,
-                    HttpStatus.INTERNAL_SERVER_ERROR);
+            LogManager.getLogger(ConcordServlet.class).warn("Concord Exception: ", ace);
+            return new ResponseEntity<>(ApiHelper.errorJson(ace.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
 }

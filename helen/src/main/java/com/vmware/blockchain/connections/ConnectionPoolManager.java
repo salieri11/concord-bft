@@ -5,6 +5,7 @@
 package com.vmware.blockchain.connections;
 
 import java.io.IOException;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -23,7 +24,7 @@ import com.vmware.blockchain.services.profiles.BlockchainManagerEvent;
  */
 @Component
 public class ConnectionPoolManager {
-    private ConcurrentMap<Blockchain, ConcordConnectionPool> pools;
+    private ConcurrentMap<UUID, ConcordConnectionPool> pools;
     // This field is really just for testing.  In unit tests, this will be set to Mock
     private ConnectionType type = ConnectionType.TCP;
     private ConcordProperties config;
@@ -41,18 +42,18 @@ public class ConnectionPoolManager {
     public ConcordConnectionPool createPool(Blockchain blockchain) throws IOException {
         ConcordConnectionPool newPool = new ConcordConnectionPool(blockchain, type);
         // set the pool.  If it already was there, pool != null
-        ConcordConnectionPool pool = pools.putIfAbsent(blockchain, newPool);
+        ConcordConnectionPool pool = pools.putIfAbsent(blockchain.getId(), newPool);
         if (pool == null) {
             return newPool.initialize(config);
         }
         return pool;
     }
 
-    public ConcordConnectionPool getPool(Blockchain blockchain) {
+    public ConcordConnectionPool getPool(UUID blockchain) {
         return pools.get(blockchain);
     }
 
-    public void deletePool(Blockchain blockchain) {
+    public void deletePool(UUID blockchain) {
         ConcordConnectionPool pool = pools.remove(blockchain);
         pool.closeAll();
     }

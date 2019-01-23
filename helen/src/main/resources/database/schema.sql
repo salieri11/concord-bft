@@ -47,7 +47,7 @@ key (organization_organizationid) references organizations);
 
 -- Blockchain entity
 create table if not exists blockchains (id UUID not null unique, 
-consortium_consortiumid UUID not null, ip_list varchar,
+consortium_consortiumid UUID not null, ip_list varchar,  rpc_urls varchar,
 foreign key (consortium_consortiumid) references consortiums,
 primary key (id));
 
@@ -145,3 +145,12 @@ do nothing;
 create table if not exists keystores (address varchar(40) not null,
 wallet string not null, user_userid UUID, foreign key (user_userid) references users,
 primary key (address));
+
+-- contracts --
+create sequence if not exists contract_sequence start with 1 increment 1;
+
+create table if not exists contracts (id UUID not null, contract_id text not null, version_name text not null, 
+address text, sourcecode text, bytecode text, metadata text, owner text, 
+sequence_number integer default nextval('contract_sequence'),
+blockchain_id UUID not null,
+primary key (id));

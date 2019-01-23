@@ -5,10 +5,9 @@
 package com.vmware.blockchain.services.profiles;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
+import java.util.Map;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -21,20 +20,23 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import com.vmware.blockchain.common.EntityModificationException;
-import com.vmware.blockchain.services.profiles.BlockchainManagerEvent.Action;
+import com.google.common.collect.ImmutableMap;
+import com.vmware.blockchain.connections.ConnectionPoolManager;
 
 /**
  * Test the blockchain manager.
  * Need mock beans for BlockchainRepository and for the ApplicationPublisher.
  */
 @ExtendWith(SpringExtension.class)
-class BlockchainManagerTest {
+public class BlockchainManagerTest {
     @MockBean
     private BlockchainRepository repo;
 
     @MockBean
     private ApplicationEventPublisher publisher;
+
+    @MockBean
+    private ConnectionPoolManager connectionPoolManager;
 
     private BlockchainManager manager;
 
@@ -47,7 +49,7 @@ class BlockchainManagerTest {
     @BeforeEach
     void init() {
         // Trying to autowire pulls in too many things
-        manager = new BlockchainManager(repo, publisher);
+        manager = new BlockchainManager(repo, publisher, connectionPoolManager);
         when(repo.save(any(Blockchain.class))).thenAnswer(invocation -> {
             Blockchain b = invocation.getArgument(0);
             if (b.getId() == null) {
@@ -59,53 +61,21 @@ class BlockchainManagerTest {
 
     @Test
     void testCreateAndUpdate() {
-        Blockchain b = manager.create("ip4:20,ip2:30, ip3:40,ip1:50");
-        // make sure the list comes back sorted
-        Assertions.assertEquals("ip1:50,ip2:30,ip3:40,ip4:20", b.getIpList());
+        Blockchain b = manager.create(new Consortium(), "ip4:20,ip2:30,ip3:40,ip1:50",
+                "a=ip4:20,b=ip2:30, c=ip3:40,d = ip1:50");
+
+        Map<String, String> expected = new ImmutableMap.Builder<String, String>()
+                .put("a", "ip4:20").put("b", "ip2:30").put("c", "ip3:40").put("d", "ip1:50")
+                .build();
+        Assertions.assertEquals(expected, b.getUrlsAsMap());
         b.setIpList("ip1:50,ip2:30,ip3:40,ip4:20,ip0:30");
+        b.setRpcUrls("d=ip1:50,b=ip2:30 , c=ip3:40,a = ip4:20,e=ip0:30");
         Blockchain nb = manager.update(b);
-        Assertions.assertEquals("ip0:30,ip1:50,ip2:30,ip3:40,ip4:20", nb.getIpList());
+        expected = new ImmutableMap.Builder<String, String>()
+                .put("a", "ip4:20").put("b", "ip2:30").put("c", "ip3:40").put("d", "ip1:50").put("e", "ip0:30")
+                .build();
+        Assertions.assertEquals(expected, nb.getUrlsAsMap());
     }
 
-    @Test
-    void testAddNode() {
-        Blockchain b = new Blockchain(UUID.fromString("dcc19799-8972-43f3-8f76-8e4736a8a9f9"),
-                null, "ip4:20,ip2:30, ip3:40,ip1:50");
-        when(repo.findById(UUID.fromString("dcc19799-8972-43f3-8f76-8e4736a8a9f9")))
-            .thenAnswer(invocation -> Optional.of(b));
-        Blockchain nb = manager.addNode(UUID.fromString("dcc19799-8972-43f3-8f76-8e4736a8a9f9"), "ip0:40");
-        Assertions.assertEquals("ip0:40,ip1:50,ip2:30,ip3:40,ip4:20", nb.getIpList());
-        verify(publisher).publishEvent(eventCaptor.capture());
-        BlockchainManagerEvent event = eventCaptor.getValue();
-        Assertions.assertEquals("ip0:40", event.getNode());
-        Assertions.assertEquals(b, event.getBlockchain());
-        Assertions.assertEquals(Action.ADD_NODE, event.getAction());
-    }
-
-    @Test
-    void testDeleteNode() {
-        Blockchain b = new Blockchain(UUID.fromString("dcc19799-8972-43f3-8f76-8e4736a8a9f9"),
-                null, "ip4:20,ip2:30, ip3:40,ip1:50");
-        when(repo.findById(UUID.fromString("dcc19799-8972-43f3-8f76-8e4736a8a9f9")))
-            .thenAnswer(invocation -> Optional.of(b));
-        Blockchain nb = manager.deleteNode(UUID.fromString("dcc19799-8972-43f3-8f76-8e4736a8a9f9"), "ip1:50");
-        Assertions.assertEquals("ip2:30,ip3:40,ip4:20", nb.getIpList());
-        verify(publisher).publishEvent(eventCaptor.capture());
-        BlockchainManagerEvent event = eventCaptor.getValue();
-        Assertions.assertEquals("ip1:50", event.getNode());
-        Assertions.assertEquals(b, event.getBlockchain());
-        Assertions.assertEquals(Action.DELETE_NODE, event.getAction());
-    }
-
-    @Test
-    void testBadDeleteNode() {
-        Blockchain b = new Blockchain(UUID.fromString("dcc19799-8972-43f3-8f76-8e4736a8a9f9"),
-                null, "ip4:20,ip2:30, ip3:40,ip1:50");
-        when(repo.findById(UUID.fromString("dcc19799-8972-43f3-8f76-8e4736a8a9f9")))
-            .thenAnswer(invocation -> Optional.of(b));
-        Assertions.assertThrows(
-            EntityModificationException.class,
-            () -> manager.deleteNode(UUID.fromString("dcc19799-8972-43f3-8f76-8e4736a8a9f9"), "ip0:50"));
-    }
 
 }

@@ -4,6 +4,9 @@
 
 package com.vmware.blockchain.services.ethereum;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
@@ -11,10 +14,10 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
 import com.google.protobuf.ByteString;
-import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.connections.ConcordConnectionPool;
+import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.services.contracts.ContractRegistryManager;
+import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.ProfilesRegistryManager;
 import com.vmware.concord.Concord;
 import com.vmware.concord.Concord.EthRequest;
@@ -30,24 +33,26 @@ import com.vmware.concord.Concord.EthResponse;
 public class EthSendTxHandler extends AbstractEthRpcHandler {
 
     private static Logger logger = LogManager.getLogger(EthSendTxHandler.class);
-    private static boolean isInternalContract;
+    private boolean isInternalContract;
     private ContractRegistryManager registryManager;
+    private ConnectionPoolManager connectionPoolManager;
+    private DefaultProfiles defaultProfiles;
     private ProfilesRegistryManager profilesRegistryManager;
-    private ConcordConnectionPool connectionPool;
-    private ConcordProperties config;
+    private Optional<UUID> blockchain;
 
     /**
      * Send transaction constructor.
      */
-    public EthSendTxHandler(ConcordProperties config, ConcordConnectionPool connectionPool,
-            ContractRegistryManager registryManager, ProfilesRegistryManager profilesRegistryManager,
-                            boolean isInternalContract) {
+    public EthSendTxHandler(ConnectionPoolManager connectionPoolManager, DefaultProfiles defaultProfiles,
+            ProfilesRegistryManager profilesRegistryManager,
+            Optional<UUID> blockchain, ContractRegistryManager registryManager, boolean isInternalContract) {
         // If isInternalContract is true, the handler is processing a contract created from the Helen UI.
         this.isInternalContract = isInternalContract;
         this.registryManager = registryManager;
+        this.connectionPoolManager = connectionPoolManager;
         this.profilesRegistryManager = profilesRegistryManager;
-        this.connectionPool = connectionPool;
-        this.config = config;
+        this.defaultProfiles = defaultProfiles;
+        this.blockchain = blockchain;
     }
 
     /**
@@ -257,8 +262,9 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
         ethRequest.put("method", "eth_getTransactionReceipt");
         paramsArray.add(transactionHash);
         ethRequest.put("params", paramsArray);
-        String responseString = new EthDispatcher(registryManager, profilesRegistryManager, config, connectionPool)
-                .dispatch(ethRequest).toJSONString();
+        String responseString =
+                new EthDispatcher(registryManager, connectionPoolManager, profilesRegistryManager, defaultProfiles)
+                        .dispatch(blockchain, ethRequest).toJSONString();
         try {
             JSONObject txReceipt = (JSONObject) new JSONParser().parse(responseString);
             JSONObject result = (JSONObject) txReceipt.get("result");
@@ -267,8 +273,9 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
                 String contractAddress = (String) result.get("contractAddress");
                 String metaData = "";
                 String solidityCode = "";
+                UUID bid = blockchain.orElse(defaultProfiles.getBlockchain().getId());
                 boolean success = registryManager.addNewContractVersion(contractAddress, from, contractVersion,
-                        contractAddress, metaData, byteCode, solidityCode);
+                        contractAddress, metaData, byteCode, solidityCode, bid);
             }
         } catch (Exception e) {
             logger.error("Error parsing transaction receipt response", e);

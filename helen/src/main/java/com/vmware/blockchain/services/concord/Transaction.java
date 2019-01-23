@@ -4,6 +4,9 @@
 
 package com.vmware.blockchain.services.concord;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONAware;
@@ -17,24 +20,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.google.protobuf.ByteString;
-import com.vmware.blockchain.common.ConcordProperties;
-import com.vmware.blockchain.connections.ConcordConnectionPool;
-import com.vmware.blockchain.services.BaseServlet;
+import com.vmware.blockchain.connections.ConnectionPoolManager;
+import com.vmware.blockchain.services.ConcordServlet;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
+import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.concord.Concord;
 
 /**
  * Servlet class.
  */
 @Controller
-public final class Transaction extends BaseServlet {
+public final class Transaction extends ConcordServlet {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LogManager.getLogger(Transaction.class);
 
     @Autowired
-    public Transaction(ConcordProperties config, ConcordConnectionPool concordConnectionPool) {
-        super(config, concordConnectionPool);
-        // TODO Auto-generated constructor stub
+    public Transaction(ConnectionPoolManager connectionPoolManager, DefaultProfiles defaultProfiles) {
+        super(connectionPoolManager, defaultProfiles);
     }
 
     protected static JSONObject buildTransactionResponseJson(Concord.TransactionResponse tr) {
@@ -75,19 +77,20 @@ public final class Transaction extends BaseServlet {
      * @param response The response object used to respond to the client
      */
     @RequestMapping(path = "/api/concord/transactions/{hash}", method = RequestMethod.GET)
-    protected ResponseEntity<JSONAware> doGet(@PathVariable(value = "hash", required = true) String hash) {
+    protected ResponseEntity<JSONAware> doGet(@PathVariable(name = "id", required = false) Optional<UUID> id,
+            @PathVariable(value = "hash", required = true) String hash) {
         ResponseEntity<JSONAware> responseEntity;
         ByteString hashBytes = null;
         try {
             hashBytes = ApiHelper.hexStringToBinary(hash);
         } catch (Exception e) {
             logger.error("Invalid Hash");
-            return new ResponseEntity<>(new JSONObject(), standardHeaders, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(new JSONObject(), HttpStatus.BAD_REQUEST);
         }
 
         if (hashBytes == null) {
             logger.error("Invalid hash in request");
-            return new ResponseEntity<>(new JSONObject(), standardHeaders, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(new JSONObject(), HttpStatus.BAD_REQUEST);
         }
 
         // Construct a transaction request object.
@@ -98,7 +101,7 @@ public final class Transaction extends BaseServlet {
         final Concord.ConcordRequest concordrequestObj =
                 Concord.ConcordRequest.newBuilder().setTransactionRequest(txRequestObj).build();
 
-        return sendToConcordAndBuildHelenResponse(concordrequestObj);
+        return getHelper(id).sendToConcordAndBuildHelenResponse(concordrequestObj);
     }
 
     /**
@@ -109,7 +112,7 @@ public final class Transaction extends BaseServlet {
      */
     @SuppressWarnings("unchecked")
     @Override
-    protected JSONObject parseToJson(Concord.ConcordResponse concordResponse) {
+    public JSONObject parseToJson(Concord.ConcordResponse concordResponse) {
 
         // Extract the transaction response from
         // the concord reponse envelope.

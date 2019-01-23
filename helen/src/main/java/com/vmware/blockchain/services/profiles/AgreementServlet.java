@@ -19,17 +19,13 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import com.vmware.blockchain.common.ConcordProperties;
-import com.vmware.blockchain.connections.ConcordConnectionPool;
-import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
-import com.vmware.concord.Concord;
 
 /**
  * A Controller that manages all GET/POST/PATCH requests related to user management API of helen.
  */
 @Controller
-public class AgreementServlet extends BaseServlet {
+public class AgreementServlet  {
 
     private static final Logger logger = LogManager.getLogger(AgreementServlet.class);
 
@@ -37,9 +33,7 @@ public class AgreementServlet extends BaseServlet {
     private AgreementsRegistryManager arm;
 
     @Autowired
-    public AgreementServlet(AgreementsRegistryManager arm, ConcordProperties config,
-            ConcordConnectionPool connectionPool) {
-        super(config, connectionPool);
+    public AgreementServlet(AgreementsRegistryManager arm) {
         this.arm = arm;
     }
 
@@ -53,9 +47,9 @@ public class AgreementServlet extends BaseServlet {
         JSONObject result = arm.getAgreementWithId(id);
         if (result.isEmpty()) {
             result.put("error", "Agreement not found");
-            return new ResponseEntity<>(result, standardHeaders, HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(result, HttpStatus.NOT_FOUND);
         } else {
-            return new ResponseEntity<>(result, standardHeaders, HttpStatus.OK);
+            return new ResponseEntity<>(result, HttpStatus.OK);
         }
     }
 
@@ -83,11 +77,7 @@ public class AgreementServlet extends BaseServlet {
             responseStatus = HttpStatus.BAD_REQUEST;
         }
 
-        return new ResponseEntity<>(responseJson, standardHeaders, responseStatus);
+        return new ResponseEntity<>(responseJson, responseStatus);
     }
 
-    @Override
-    protected JSONAware parseToJson(Concord.ConcordResponse concordResponse) {
-        throw new UnsupportedOperationException("parseToJSON method is not " + "supported in ProfileManager class");
-    }
 }

@@ -35,6 +35,12 @@ blockchain$ docker build . -f helen/Dockerfile -t helen:latest
 
 ### Building Concord
 
+*Note*: If you did not include `--recursive` or `--recurse-submodules`
+in your original git-clone instruction, you will need to run
+`git submodule init && git submodule update` before building concord.
+If you do not, the build will fail with an error about
+`/concord/submodules/concord-bft` not containing a CMakeLists.txt file.
+
 Concord can be built directly in a docker container (note the command
 is run from the same directory as this README, and *not* from the
 `concord` subdirectory):

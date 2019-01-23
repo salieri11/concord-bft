@@ -4,7 +4,6 @@
 
 package com.vmware.blockchain.services.profiles;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -18,58 +17,30 @@ import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
 /**
  * A Spring Data JPA (or Hibernate) Entity class representing an organization in the system.
  */
 @Table(name = "ORGANIZATIONS")
 @Entity
+@Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Organization {
     @OneToMany(mappedBy = "organization", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
     protected Set<User> users = new HashSet<>();
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "organizationid")
+    @EqualsAndHashCode.Include
     private UUID organizationId;
     private String organizationName;
 
     protected Organization() {}
 
-    public UUID getOrganizationId() {
-        return organizationId;
-    }
-
-    protected void setOrganizationId(UUID organizationId) {
-        this.organizationId = organizationId;
-    }
-
-    public String getOrganizationName() {
-        return organizationName;
-    }
-
-    protected void setOrganizationName(String organizationName) {
-        this.organizationName = organizationName;
-    }
-
-    public Set<User> getUsers() {
-        return Collections.unmodifiableSet(users);
-    }
-
     protected void addUser(User u) {
         users.add(u);
     }
-
-    @Override
-    public int hashCode() {
-        return organizationId.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || !(o instanceof Organization)) {
-            return false;
-        }
-        Organization org = (Organization) o;
-        return org.getOrganizationId().equals(organizationId);
-    }
-
 }
