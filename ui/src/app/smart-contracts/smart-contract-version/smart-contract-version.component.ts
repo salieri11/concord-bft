@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2019 VMware, all rights reserved.
  */
 
 import { FormControl, FormGroup, Validators } from '@angular/forms';
@@ -21,6 +21,7 @@ import * as Web3Utils from 'web3-utils';
 
 import { EthApiService } from '../../shared/eth-api.service';
 import { isHexAddress } from '../shared/custom-validators';
+import { generateDownload } from '../../shared/download-helpers';
 import { ContractPayloadPreviewFormComponent } from '../contract-payload-preview-form/contract-payload-preview-form.component';
 import { TourService } from '../../shared/tour.service';
 
@@ -95,15 +96,15 @@ export class SmartContractVersionComponent implements OnChanges, OnInit {
   }
 
   onSourceCodeDownload() {
-    this.onDownload(this.version.sourcecode, `${this.generateFileName()}_source_code.sol`);
+    generateDownload(`${this.generateFileName()}_source_code.sol`, this.version.sourcecode);
   }
 
   onByteCodeDownload() {
-    this.onDownload(this.version.bytecode, `${this.generateFileName()}_bytecode.bin`);
+    generateDownload(`${this.generateFileName()}_bytecode.bin`, this.version.bytecode);
   }
 
   onMetadataDownload() {
-    this.onDownload(JSON.stringify(this.version.metadata, null, 4), `${this.generateFileName()}_metadata.json`);
+    generateDownload(`${this.generateFileName()}_metadata.json`, JSON.stringify(this.version.metadata, null, 4));
   }
 
   onPreview() {
@@ -179,19 +180,6 @@ export class SmartContractVersionComponent implements OnChanges, OnInit {
 
   private highlightCode() {
     this.metadataString = JSON.stringify(this.version.metadata, null, 4);
-  }
-
-  private onDownload(source, file) {
-    const a: HTMLAnchorElement = document.createElement('a');
-    document.body.appendChild(a);
-    a.style.display = 'none';
-
-    const blob = new Blob([source], {type: 'octet/stream'});
-    const url = window.URL.createObjectURL(blob);
-    a.href = url;
-    a.download = file;
-    a.click();
-    window.URL.revokeObjectURL(url);
   }
 
   private onVersionChange(version: SimpleChange) {

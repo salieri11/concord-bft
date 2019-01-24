@@ -1,12 +1,14 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2019 VMware, all rights reserved.
  */
 
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 
 import { LogApiService } from '../shared/log-api.service';
 import { LogTaskCompletedResponse, LogListEntry, LogCountEntry } from '../shared/logging.model';
+import { ExportLogEventsModalComponent } from '../export-log-events-modal/export-log-events-modal.component';
+import { ExportChartDataModalComponent } from '../export-chart-data-modal/export-chart-data-modal.component';
 
 // Time constants in milliseconds
 const ONE_SECOND = 1000;
@@ -28,14 +30,19 @@ const THIRTY_DAYS = ONE_DAY * 30;
   styleUrls: ['./logging.component.scss']
 })
 export class LoggingComponent implements OnInit {
+  @ViewChild('exportLogEventsModal') exportLogEventsModal: ExportLogEventsModalComponent;
+  @ViewChild('exportChartDataModal') exportChartDataModal: ExportChartDataModalComponent;
   logs: LogListEntry[] = [];
   logCounts: LogCountEntry[] = [];
   totalCount: number = null;
   listLoading: boolean = true;
   countLoading: boolean = true;
+  startTime: number = null;
+  endTime: number = null;
   graphData: { name: string, series: { name: Date, value: number }[] }[];
   heatMapData: { name: string, series: { name: string, value: number }[] }[];
   nextPageLink: string = null;
+  documentSelfLink: string = null;
   timePeriods: {title: string, value: number, interval: number, xAxisLabel?: string, yAxisLabel?: string}[] = [
     {
       title: this.translate.instant('logging.timePeriods.oneMinute'),
@@ -103,17 +110,18 @@ export class LoggingComponent implements OnInit {
     this.onSelectTimePeriod(this.timePeriods[7]);
   }
 
-  fetchLogs(start: number, end: number) {
+  fetchLogs() {
     this.listLoading = true;
-    this.logApiService.postToTasks(start, end).subscribe((resp) => {
+    this.logApiService.postToTasks(this.startTime, this.endTime).subscribe((resp) => {
+      this.documentSelfLink = resp.documentSelfLink;
       this.pollLogStatus(resp.documentSelfLink, 'logs', this.onFetchLogsComplete.bind(this));
     });
   }
 
-  fetchLogCounts(start: number, end: number) {
+  fetchLogCounts() {
     this.countLoading = true;
     this.heatMapData = [];
-    this.logApiService.postToTasksCount(start, end, this.selectedTimePeriod.interval).subscribe((resp) => {
+    this.logApiService.postToTasksCount(this.startTime, this.endTime, this.selectedTimePeriod.interval).subscribe((resp) => {
       this.pollLogStatus(resp.documentSelfLink, 'logCounts', (logResp) => {
         this.logCounts = logResp.logQueryResults;
         this.totalCount = logResp.totalRecordCount;
@@ -121,6 +129,14 @@ export class LoggingComponent implements OnInit {
         this.countLoading = false;
       });
     });
+  }
+
+  onClickExportLogEvents() {
+    this.exportLogEventsModal.open();
+  }
+
+  onClickExportChartData() {
+    this.exportChartDataModal.open();
   }
 
   onFetchNextPage() {
@@ -137,11 +153,11 @@ export class LoggingComponent implements OnInit {
 
     this.selectedTimePeriod = timePeriod;
     // fetch logs again with new parameters
-    const end = new Date().getTime();
-    const start = end - this.selectedTimePeriod.value;
+    this.endTime = new Date().getTime();
+    this.startTime = this.endTime - this.selectedTimePeriod.value;
     this.logs = [];
-    this.fetchLogs(start, end);
-    this.fetchLogCounts(start, end);
+    this.fetchLogs();
+    this.fetchLogCounts();
   }
 
   xAxisTickFormatting(date) {

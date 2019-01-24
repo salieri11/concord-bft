@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2019 VMware, all rights reserved.
  */
 
 import { Inject, Injectable } from '@angular/core';
@@ -18,12 +18,12 @@ export class LogApiService {
 
   constructor(@Inject(LOG_API_PREFIX) private logApiPrefix: string, private httpClient: HttpClient, private cspApi: CspApiService) {}
 
-  postToTasks(start: number, end: number): Observable<LogTaskResponse> {
+  postToTasks(start: number, end: number, rows: number = 20): Observable<LogTaskResponse> {
     const logQuery = {
       logQuery: 'SELECT * FROM logs ORDER BY ingest_timestamp DESC',
       start: start,
       end: end,
-      rows: 20
+      rows: rows
     };
     return this.logQueryTask(logQuery);
   }
@@ -31,6 +31,15 @@ export class LogApiService {
   postToTasksCount(start: number, end: number, interval: number): Observable<LogTaskResponse> {
     const logQuery = {
       logQuery: `SELECT COUNT(*), timestamp FROM logs GROUP BY bucket(timestamp, ${interval}, ${start}, ${end}) ORDER BY timestamp DESC`,
+      start: start,
+      end: end
+    };
+    return this.logQueryTask(logQuery);
+  }
+
+  postToPureCount(start: number, end: number): Observable<LogTaskResponse> {
+    const logQuery = {
+      logQuery: 'SELECT COUNT(*) FROM logs',
       start: start,
       end: end
     };

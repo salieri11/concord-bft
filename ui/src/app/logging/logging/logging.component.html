@@ -4,10 +4,30 @@
       <h2 class="page-title">{{ 'logging.bar.title' | translate }}</h2>
     </div>
     <div class="col-xs-6">
-      <div class="text-right button-container-margin">
+      <div class="text-right">
         <clr-dropdown>
           <button type="button"
                   class="btn btn-outline-primary"
+                  style="margin-right: 10px;"
+                  clrDropdownTrigger
+                  [disabled]="countLoading || listLoading">
+            {{'logging.exports.title' | translate}}
+            <clr-icon shape="caret down"></clr-icon>
+          </button>
+          <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
+            <button type="button" (click)="onClickExportChartData()" clrDropdownItem>
+              <clr-icon shape="download"></clr-icon>
+              {{'logging.exports.exportChartData.title' | translate}}
+            </button>
+            <button type="button" (click)="onClickExportLogEvents()" clrDropdownItem>
+              <clr-icon shape="download"></clr-icon>
+              {{'logging.exports.exportLogEvents.title' | translate}}
+            </button>
+          </clr-dropdown-menu>
+        </clr-dropdown>
+        <clr-dropdown>
+          <button type="button"
+                  class="btn btn-outline-primary time-selector"
                   clrDropdownTrigger
                   [disabled]="countLoading || listLoading">
             {{selectedTimePeriod.title}}
@@ -46,6 +66,7 @@
         <span class="total-count-loading-text">{{'logging.counts.loadingTotalCount' | translate}}</span>
       </div>
       <div *ngIf="!countLoading"
+           class="total-count-text"
            [innerHTML]="'logging.counts.totalCount' | translate:{total: (totalCount | number)}">
       </div>
     </div>
@@ -89,7 +110,7 @@
             <concord-log-heat-map [graphData]="heatMapData"
                                   [xAxisLabel]="selectedTimePeriod.xAxisLabel"
                                   [yAxisLabel]="selectedTimePeriod.yAxisLabel"></concord-log-heat-map>
-            <div class="heat-map-label text-center">{{selectedTimePeriod.xAxisLabel}}</div>
+            <div class="heat-map-label heat-map-x-axis-label text-center">{{selectedTimePeriod.xAxisLabel}}</div>
           </div>
           <div *ngIf="isSmallSeries">
             <clr-alert [clrAlertClosable]="false">
@@ -104,4 +125,14 @@
       </div>
     </div>
   </div>
+  <concord-export-log-events-modal
+    #exportLogEventsModal
+    [startTime]="startTime"
+    [endTime]="endTime"
+    [totalCount]="totalCount"></concord-export-log-events-modal>
+  <concord-export-chart-data-modal
+    #exportChartDataModal
+    [chartData]="logCounts"
+    [startTime]="startTime"
+    [endTime]="endTime"></concord-export-chart-data-modal>
 </div>

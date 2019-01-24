@@ -6,7 +6,10 @@ const { SpecReporter } = require('jasmine-spec-reporter');
 exports.config = {
   allScriptsTimeout: 11000,
   specs: [
-    './e2e/**/*.e2e-spec.ts'
+    './e2e/onboarding/onboarding.e2e-spec.ts',
+    './e2e/smart-contracts/smart-contracts.e2e-spec.ts',
+    './e2e/swagger/swagger.e2e-spec.ts',
+    './e2e/logging/logging.e2e-spec.ts'
   ],
   capabilities: {
     'browserName': 'chrome'
