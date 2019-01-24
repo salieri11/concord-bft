@@ -57,10 +57,12 @@ public class ConnectionPoolManagerTest {
         ReflectionTestUtils.setField(manager, "type", ConnectionType.Mock);
         chain1 = new Blockchain(UUID.fromString("9b22ea6f-5a2f-4159-b2f0-f10a1d751649"), null,
                 "ip1:5458,ip2:5458,ip3:5458,ip4:5458",
-                "a=ip1:5458,b=ip2:5458,c=ip3:5458,d=ip4:5458");
+                "a=ip1:5458,b=ip2:5458,c=ip3:5458,d=ip4:5458",
+                "a=thisisacert,b=thisisbcert,c=thisisccert,d=thisisdcert");
         chain2 = new Blockchain(UUID.fromString("f6b18a1e-53fa-4716-863c-2b99891ab0b5"), null,
                 "vip1:5458,vip2:5458,vip3:5458,vip4:5458",
-                "aa=vip1:5458,bb=vip2:5458,cc=vip3:5458,dd=vip4:5458");
+                "aa=vip1:5458,bb=vip2:5458,cc=vip3:5458,dd=vip4:5458",
+                "a=thisisaacert,b=thisisbbcert,c=thisiscccert,d=thisisddcert");
         pool1 = manager.createPool(chain1);
         pool2 = manager.createPool(chain2);
     }

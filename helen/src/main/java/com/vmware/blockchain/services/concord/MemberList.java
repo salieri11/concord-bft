@@ -4,6 +4,9 @@
 
 package com.vmware.blockchain.services.concord;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -21,6 +24,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.vmware.blockchain.common.HelenException;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
@@ -39,6 +43,10 @@ public final class MemberList extends ConcordServlet {
     private static final Logger logger = LogManager.getLogger(MemberList.class);
     private BlockchainManager blockchainManger;
 
+    // This is a hack to allow us to pass request details though the sendToconcordAndBuildHelenResponse flow, without
+    // including them in the communication with concord.
+    private ThreadLocal<Boolean> includeRpcCerts = new ThreadLocal<Boolean>();
+
     @Autowired
     public MemberList(ConnectionPoolManager connectionPoolManager, DefaultProfiles defaultProfiles,
             BlockchainManager blockchainManager) {
@@ -54,7 +62,12 @@ public final class MemberList extends ConcordServlet {
      *
      */
     @RequestMapping(method = RequestMethod.GET, path = "/api/concord/members")
-    public ResponseEntity<JSONAware> doGet(@PathVariable(name = "id", required = false) Optional<UUID> id) {
+    public ResponseEntity<JSONAware> doGet(
+        @PathVariable(name = "id", required = false) Optional<UUID> id,
+        @RequestParam(name = "certs", defaultValue = "false") String includeRpcCerts) {
+        // stash the certs param for use during response construction
+        this.includeRpcCerts.set(Boolean.valueOf(includeRpcCerts));
+
         // Construct a peer request object. Set its return_peers field.
         final Concord.PeerRequest peerRequestObj = Concord.PeerRequest.newBuilder().setReturnPeers(true).build();
 
@@ -85,6 +98,7 @@ public final class MemberList extends ConcordServlet {
         }
 
         Map<String, String> rpcUrls = obc.get().getUrlsAsMap();
+        Map<String, String> rpcCerts = obc.get().getCertsAsMap();
 
         // Iterate through each peer and construct
         // a corresponding JSON object
@@ -97,11 +111,33 @@ public final class MemberList extends ConcordServlet {
             peerJson.put("millis_since_last_message", peer.getMillisSinceLastMessage());
             peerJson.put("millis_since_last_message_threshold", peer.getMillisSinceLastMessageThreshold());
             peerJson.put("rpc_url", rpcUrls.getOrDefault(hostname, ""));
+            if (includeRpcCerts.get()) {
+                peerJson.put("rpc_cert", readCertFile(rpcCerts.get(hostname)));
+            }
 
             // Store into a JSON array of all peers.
             peerArr.add(peerJson);
         }
 
         return peerArr;
+    }
+
+    /**
+     * Read the certificate file, for inclusion in the JSON response. If the argument is null, or any error occurs,
+     * return an empty string.
+     */
+    private String readCertFile(String filename) {
+        if (filename == null) {
+            return "";
+        }
+
+        try {
+            // TODO: caching
+            byte[] certBytes = Files.readAllBytes(FileSystems.getDefault().getPath(filename));
+            return new String(certBytes, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            logger.warn("Problem reading cert file '" + filename + "'", e);
+            return "";
+        }
     }
 }

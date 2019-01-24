@@ -61,7 +61,8 @@ public class ConnectionPoolTest {
 
         blockchain = new Blockchain(UUID.fromString("33b26eed-d173-47bf-ab3a-184479a1fde0"),
                 consortium, "ip1:5458,ip2:5458,ip3:5458,ip4:5458",
-                "a=ip1:5458,b=ip2:5458,c=ip3:5458,d=ip4:5458");
+                "a=ip1:5458,b=ip2:5458,c=ip3:5458,d=ip4:5458",
+                "a=thisisacert,b=thisisbcert,c=thisisccert,d=thisisdcert");
         pool = new ConcordConnectionPool(blockchain, ConnectionType.Mock).initialize(config);
     }
 

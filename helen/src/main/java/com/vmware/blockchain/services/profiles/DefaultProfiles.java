@@ -49,6 +49,8 @@ public class DefaultProfiles {
 
     private String blockchainRpcUrls;
 
+    private String blockchainRpcCerts;
+
     @Autowired
     public DefaultProfiles(
             UserRepository userRepository,
@@ -57,7 +59,8 @@ public class DefaultProfiles {
             PasswordEncoder passwordEncoder,
             BlockchainManager blockchainManager,
             @Value("${ConcordAuthorities}") String blockchainIpList,
-            @Value("${ConcordRpcUrls}") String blockchainRpcUrls) {
+            @Value("${ConcordRpcUrls}") String blockchainRpcUrls,
+            @Value("${ConcordRpcCerts}") String blockchainRpcCerts) {
         this.userRepository = userRepository;
         this.organizationRepository = organizationRepository;
         this.consortiumRepository = consortiumRepository;
@@ -65,6 +68,7 @@ public class DefaultProfiles {
         this.blockchainManager = blockchainManager;
         this.blockchainIpList = blockchainIpList;
         this.blockchainRpcUrls = blockchainRpcUrls;
+        this.blockchainRpcCerts = blockchainRpcCerts;
     }
 
     // TODO: These next few methords are just testing convenience methods and should be removed
@@ -141,7 +145,7 @@ public class DefaultProfiles {
     private Blockchain createBlockchainIfNotExist() {
         List<Blockchain> bList = blockchainManager.list();
         if (bList.isEmpty()) {
-            return blockchainManager.create(consortium, blockchainIpList, blockchainRpcUrls);
+            return blockchainManager.create(consortium, blockchainIpList, blockchainRpcUrls, blockchainRpcCerts);
         } else {
             return bList.get(0);
         }

@@ -57,6 +57,11 @@ public class Blockchain {
     private String rpcUrls;
 
     /**
+     * rpcCerts.  a map host=Cert.
+     */
+    private String rpcCerts;
+
+    /**
      * Return the ipList string as a list of strings.
      * @return List of IP addresses.
      */
@@ -75,8 +80,8 @@ public class Blockchain {
     }
 
     /**
-     * Return the ipList string as a list of strings.
-     * @return List of IP addresses.
+     * Return the rpcUrls string as a map of host strings to url strings.
+     * @return Map of URLs
      */
     public Map<String, String> getUrlsAsMap() {
         // removes leading and trailing whitespace, and any whitespace in between
@@ -84,14 +89,32 @@ public class Blockchain {
     }
 
     /**
-     * Save the list of IPs into the ipList string, a csv.
-     * @param ips String list ist of ip addresses of nodes
+     * Save the list of RPC URLSs into the rpcUrls string, a csv.
+     * @param urls Map of RPC URLs of nodes
      */
-    public void setUrlsAsMap(Map<String, String> ips) {
-        List<String> hosts = ips.entrySet().stream().map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
+    public void setUrlsAsMap(Map<String, String> urls) {
+        List<String> hosts = urls.entrySet().stream().map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
                 .collect(Collectors.toList());
         setRpcUrls(String.join(",", hosts));
     }
 
+    /**
+     * Return the rpcCerts string as a map of host strings to cert strings.
+     * @return Map of certificates
+     */
+    public Map<String, String> getCertsAsMap() {
+        // removes leading and trailing whitespace, and any whitespace in between
+        return Splitter.on(",").withKeyValueSeparator("=").split(getRpcCerts());
+    }
+
+    /**
+     * Save the list of certs into the rpcCerts string, a csv.
+     * @param certs Map of certificates of nodes
+     */
+    public void setCertsAsMap(Map<String, String> certs) {
+        List<String> hosts = certs.entrySet().stream().map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
+        setRpcCerts(String.join(",", hosts));
+    }
 
 }

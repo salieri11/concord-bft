@@ -49,11 +49,12 @@ public class BlockchainManager {
      * @param ipList List of IPs for the concord nodes
      * @return Blockchain entity
      */
-    public Blockchain create(Consortium consortium, String ipList, String rpcUrls) {
+    public Blockchain create(Consortium consortium, String ipList, String rpcUrls, String rpcCerts) {
         Blockchain b = new Blockchain();
         b.setConsortium(consortium);
         b.setIpList(ipList);
         b.setRpcUrls(cleanupIpMap(rpcUrls));
+        b.setRpcCerts(cleanupIpMap(rpcCerts));
         b = blockchainRepo.save(b);
         try {
             connectionPoolManager.createPool(b);
@@ -70,6 +71,7 @@ public class BlockchainManager {
     public Blockchain update(Blockchain newBlockchain) {
         newBlockchain.setIpList(newBlockchain.getIpList());
         newBlockchain.setRpcUrls(cleanupIpMap(newBlockchain.getRpcUrls()));
+        newBlockchain.setRpcCerts(cleanupIpMap(newBlockchain.getRpcCerts()));
         return blockchainRepo.save(newBlockchain);
     }
 
