@@ -677,7 +677,6 @@ class ExtendedRPCTests(test_suite.TestSuite):
       address = web3.personal.newAccount(password)
       wallet = request.getWallet(user_id, address[2:].lower())
       private_key = web3.eth.account.decrypt(wallet, password)
-      test_result = True
 
       # Default VMware Blockchain ID is 1
       # By passing chain ID as 2, this transaction must fail
@@ -695,7 +694,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
          txResult = web3.eth.sendRawTransaction(signed.rawTransaction)
          return (False, "Transaction with incorrect chain ID was replayed")
       except:
-         test_result = True
+         pass
 
       try:
          transaction = {
