@@ -1131,7 +1131,7 @@
                   },
                   "params": {
                     "type": "array",
-                    "items": ""
+                    "items": "object"
                   }
                 }
               }
