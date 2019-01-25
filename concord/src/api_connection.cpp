@@ -393,7 +393,7 @@ api_connection::handle_eth_request(int i)
         if (chainID_ != 1) {
             ErrorResponse *e = concordResponse_.add_error_response();
             std::string errorDescription = "Request uses conventional signature \
-               and chainID is not 1 (" + chainID_ + ")";
+               and chainID is not 1 (" + std::to_string(chainID_) + ")";
             e->mutable_description()->assign(errorDescription);
         }
       } else {
@@ -404,8 +404,8 @@ api_connection::handle_eth_request(int i)
          }
          if (chainID != chainID_) {
             ErrorResponse *e = concordResponse_.add_error_response();
-            std::string errorDescription = "Request's chainID (" + chainID + \
-               ") does not conform with VMware Blockchain ID (" + chainID_ + ")";
+            std::string errorDescription = "Request's chainID (" + std::to_string(chainID) + \
+               ") does not conform with VMware Blockchain ID (" + std::to_string(chainID_) + ")";
             e->mutable_description()->assign(errorDescription);
          }
       }
