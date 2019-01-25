@@ -23,6 +23,7 @@ from util.debug import pp as pp
 from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
 from util.product import Product
 import util.json_helper
+from requests.auth import HTTPBasicAuth
 
 import web3
 from web3 import Web3, HTTPProvider
@@ -667,8 +668,11 @@ class ExtendedRPCTests(test_suite.TestSuite):
       can't be replayed on blockchain
       '''
       user_id = request.getUsers()[0]['user_id']
-      web3 = Web3(HTTPProvider(
-         'http://admin@blockchain.local:Admin!23@127.0.0.1:8080/api/concord/eth'))
+      user = self._userConfig.get('product').get('db_users')[0]
+      web3 = Web3(HTTPProvider(self._apiServerUrl, \
+	          request_kwargs= \
+	          {'auth': HTTPBasicAuth(user['username'], user['password']), \
+	          'verify': False}))
       password = "123456"
       address = web3.personal.newAccount(password)
       wallet = request.getWallet(user_id, address[2:].lower())
