@@ -88,6 +88,9 @@ class UserAuthenticatorTest {
     @MockBean
     private BlockchainManager blockchainManager;
 
+    @MockBean
+    private ConsortiumRepository consortiumRepository;
+
     private User testUser;
 
     /**

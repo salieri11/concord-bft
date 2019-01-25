@@ -83,7 +83,7 @@ class BlockchainJpaTest {
 
     @Test
     void updateListTest() {
-        Map<String, String> expected = ImmutableMap.of("a", "1", "b", "2", "c", "3");
+        Map<String, String> expected = ImmutableMap.of("a", "1", "b", "2", "c", "3", "d", "4");
         blockchain.setUrlsAsMap(expected);
         Blockchain bc = bcRepo.save(blockchain);
         Assertions.assertEquals(expected, bc.getUrlsAsMap());

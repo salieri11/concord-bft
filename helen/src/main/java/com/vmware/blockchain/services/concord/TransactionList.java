@@ -49,7 +49,8 @@ public class TransactionList extends ConcordServlet {
      * json for responding to the client.
      *
      */
-    @RequestMapping(path = "/api/concord/transactions", method = RequestMethod.GET)
+    @RequestMapping(path = {"/api/concord/transactions", "/api/blockchains/{id}/concord/transactions"},
+            method = RequestMethod.GET)
     public ResponseEntity<JSONAware> doGet(
             @PathVariable(name = "id", required = false) Optional<UUID> id,
             @RequestParam(name = "latest", defaultValue = "", required = false) String latestHash,
