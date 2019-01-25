@@ -47,18 +47,14 @@ describe('concord-ui Logging', () => {
     expect(loggingPage.getLoadMoreButton().isEnabled()).toBe(false);
     // Once the button is enabled again, the count should be 40
     browser
-      .wait(until.elementToBeClickable(loggingPage.getLoadMoreButton()), 10000)
-      .then(() => {
-        expect(loggingPage.getLogItemRowCount()).toBe(40);
-      });
+      .wait(until.elementToBeClickable(loggingPage.getLoadMoreButton()), 10000);
+    expect(loggingPage.getLogItemRowCount()).toBe(40);
   });
 
   it('should load a different time series on selection', () => {
     // total count will be present after initial load
-    browser.sleep(8000);
-    expect(loggingPage.getTotalCount().isPresent()).toBe(true);
+    browser.wait(until.presenceOf(loggingPage.getTotalCount()), 10000);
     // expect x and y axis labels to be day and hour
-    browser.sleep(8000);
     expect(loggingPage.getHeatMapXAxisLabelText()).toBe('Day');
     expect(loggingPage.getHeatMapYAxisLabelText()).toBe('Hour');
     loggingPage.getTimeSelectionButton().click();
@@ -66,7 +62,7 @@ describe('concord-ui Logging', () => {
     expect(loggingPage.getSixHourTimeButton().isPresent()).toBe(true);
     loggingPage.getSixHourTimeButton().click();
     // after load, expect x and y axis labels to be hour and minute
-    expect(loggingPage.getTotalCount().isPresent()).toBe(true);
+    browser.wait(until.presenceOf(loggingPage.getTotalCount()), 10000);
     browser.sleep(5000);
     expect(loggingPage.getHeatMapXAxisLabelText()).toBe('Hour');
     expect(loggingPage.getHeatMapYAxisLabelText()).toBe('Minute');
