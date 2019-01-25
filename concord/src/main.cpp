@@ -125,7 +125,7 @@ Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
 
    std::map<evm_address, uint64_t> genesis_acts = params.get_initial_accounts();
    uint64_t nonce = 0;
-   uint64_t chainID = params.get_chainID()
+   uint64_t chainID = params.get_chainID();
    for (std::map<evm_address,uint64_t>::iterator it = genesis_acts.begin();
 	it != genesis_acts.end();
 	++it) {
@@ -147,7 +147,7 @@ Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
          std::vector<EthLog>(),  // logs
          zero_hash,              // sig_r (no signature for genesis)
          zero_hash,              // sig_s (no signature for genesis)
-         chainID * 2 + 35        // sig_v
+         (chainID * 2 + 35)      // sig_v
       };
       evm_uint256be txhash = tx.hash();
       LOG4CPLUS_INFO(logger, "Created genesis transaction " << txhash <<
