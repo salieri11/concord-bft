@@ -263,9 +263,10 @@
                       },
                       "params": {
                         "type": "array",
-                        "items": null
-                      },
-                      "returns": null
+                        "items": {
+                            "type": "object"
+                        }
+                      }
                     }
                   }
                 }
@@ -305,7 +306,9 @@
                   },
                   "params": {
                     "type": "array",
-                    "items": null
+                    "items": {
+                        "type": "object"
+                    }
                   }
                 }
               }
@@ -588,280 +591,169 @@
         }
       }
     },
-    "/blockchain": {
-    	"summary": "Blockchain",
-    	"get": {
-    		"summary": "List all blockchains",
-    		"operationId": "getBlockchains",
-    		"responses": {
-    			"200": {
-    				"description": "Returns a list of all blockchains",
-    				"content": {
-    					"application/json": {
-    						"schema": {
-    							"type": "array",
-    		                    "items": {
-    		                        "type": "object",
-    		                        "properties": {
-    		                          "id": {
-    		                            "type": "string",
-    		                            "format": "uuid",
-    		                            "description": "Blockchain ID"
-    		                          },
-			                          "consortium_id": {
-			                        	  "type": "string",
-			                        	  "format": "uuid",
-			                        	  "description": "ID of owning consortium"
-			                          },
-    		                          "ip_list": {
-    		                            "type": "string",
-    		                            "description": "Addresses of nodes in this blockchain"
-    		                          },
-    		                          "rpc_urls": {
-    		                            "type": "string",
-    		                            "description": "List of addreses with node names"
-    		                          }
-    		                        }
-    		                      }
-    						}
-    					}
-    				}
-    			}
-    		}
-    	},
-    		
-	  	"post": {
-	        "summary": "Create a new blockchain",
-	        "operationId": "blockchainPost",
-	        "requestBody": {
-	          "description": "New blockchain POST request body",
-	          "content": {
-	            "application/json": {
-	              "schema": {
-	                "type": "object",
-	                "required": [
-	                  "concortium_id",
-	                  "ip_list",
-	                  "rpc_urls"
-	                ],
-	                "properties": {
-	                  "consortium_id": {
-	                    "type": "string",
-	                    "format": "uuid",
-	                    "description": "ID of owning consortium"
-	                  },
-	                  "ip_list": {
-	                    "type": "string",
-	                    "description": "comma separated list of addresses of blockchain nodes"
-	                  },
-	                  "rpc_urls": {
-	                    "type": "string",
-	                    "description": "string represent url map, comma separated list of hostname=url"
-	                  }
-	                }
-	              }
-	            }
-	          },
-	          "required": true
-	        },
-	  		"responses": {
-	  			"200": {
-	  				"description": "Returns the specified blockchain",
-	  				"content": {
-	  					"application/json": {
-	  						"schema": {
-			                        "type": "object",
-			                        "properties": {
-			                          "id": {
-			                            "type": "string",
-			                            "format": "uuid",
-			                            "description": "Blockchain ID"
-			                          },
-			                          "consortium_id": {
-			                        	  "type": "string",
-			                        	  "format": "uuid",
-			                        	  "description": "ID of owning consortium"
-			                          },
-			                          "ip_list": {
-			                            "type": "string",
-			                            "description": "Addresses of nodes in this blockchain"
-			                          },
-			                          "rpc_urls": {
-			                            "type": "string",
-			                            "description": "List of addreses with node names"
-			                          }
-			                        }
-	  						}
-	  					}
-	  				}
-	  			}
-	  		}
-	  	}
+    "/blockchains": {
+      "summary": "Blockchain",
+      "get": {
+        "summary": "List all blockchains",
+        "operationId": "getBlockchains",
+        "responses": {
+          "200": {
+            "description": "Returns a list of all blockchains",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Blockchain ID"
+                      },
+                      "consortium_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "ID of owning consortium"
+                      },
+                      "ip_list": {
+                        "type": "string",
+                        "description": "Addresses of nodes in this blockchain"
+                      },
+                      "rpc_urls": {
+                        "type": "string",
+                        "description": "List Eth RPC urls"
+                      },
+                      "rpc_certs": {
+                        "type": "string",
+                        "description": "Eth RPC SSL Certificates"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       },
-      "/blockchain/{bid}": {
-      	"summary": "Blockchain",
-      	"get": {
-      		"summary": "Get Blockchain information",
-      		"operationId": "getBlockchain",
-            "parameters": [
-          	  {
-          		  "name": "bid",
-          		  "in": "path",
-          		  "description": "Blockchain ID",
-          		  "schema": {
-  	                  "type": "string",
-  	                  "format": "uuid"
-          		  }
-          	  }
-            ],
-      		"responses": {
-      			"200": {
-      				"description": "Returns the specified blockchain",
-      				"content": {
-      					"application/json": {
-      						"schema": {
-  		                        "type": "object",
-  		                        "properties": {
-  		                          "id": {
-  		                            "type": "string",
-  		                            "format": "uuid",
-  		                            "description": "Blockchain ID"
-  		                          },
-  		                          "consortium_id": {
-  		                        	  "type": "string",
-  		                        	  "format": "uuid",
-  		                        	  "description": "ID of owning consortium"
-  		                          },
-  		                          "ip_list": {
-  		                            "type": "string",
-  		                            "description": "Addresses of nodes in this blockchain"
-  		                          },
-  		                          "rpc_urls": {
-  		                            "type": "string",
-  		                            "description": "List of addreses with node names"
-  		                          }
-  		                        }
-      						}
-      					}
-      				}
-      			}
-      		}
-      	},
-      	"patch": {
-	        "summary": "Update an existing blockchain",
-	        "operationId": "blockchainPatch",
-            "parameters": [
-          	  {
-          		  "name": "bid",
-          		  "in": "path",
-          		  "description": "Blockchain ID",
-          		  "schema": {
-  	                  "type": "string",
-  	                  "format": "uuid"
-          		  }
-          	  }
-            ],
-	        "requestBody": {
-	          "description": "Blockchain items to patch",
-	          "content": {
-	            "application/json": {
-	              "schema": {
-	                "type": "object",
-	                "properties": {
-	                  "ip_list": {
-	                    "type": "string",
-	                    "description": "comma separated list of addresses of blockchain nodes"
-	                  },
-	                  "rpc_urls": {
-	                    "type": "string",
-	                    "description": "string represent url map, comma separated list of hostname=url"
-	                  }
-	                }
-	              }
-	            }
-	          },
-	          "required": true
-	        },
-	  		"responses": {
-	  			"200": {
-	  				"description": "Returns the specified blockchain",
-	  				"content": {
-	  					"application/json": {
-	  						"schema": {
-			                        "type": "object",
-			                        "properties": {
-			                          "id": {
-			                            "type": "string",
-			                            "format": "uuid",
-			                            "description": "Blockchain ID"
-			                          },
-			                          "consortium_id": {
-			                        	  "type": "string",
-			                        	  "format": "uuid",
-			                        	  "description": "ID of owning consortium"
-			                          },
-			                          "ip_list": {
-			                            "type": "string",
-			                            "description": "Addresses of nodes in this blockchain"
-			                          },
-			                          "rpc_urls": {
-			                            "type": "string",
-			                            "description": "List of addreses with node names"
-			                          }
-			                        }
-	  						}
-	  					}
-	  				}
-	  			}
-	  		}
-	  	}
+      "post": {
+        "summary": "Create a new blockchain",
+        "operationId": "blockchainPost",
+        "requestBody": {
+          "description": "New blockchain POST request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "concortium_id",
+                  "ip_list",
+                  "rpc_urls"
+                ],
+                "properties": {
+                  "consortium_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "ID of owning consortium"
+                  },
+                  "ip_list": {
+                    "type": "string",
+                    "description": "comma separated list of addresses of blockchain nodes"
+                  },
+                  "rpc_urls": {
+                    "type": "string",
+                    "description": "string represent url map of Eth RPC endpoints, comma separated list of hostname=url"
+                  },
+                  "rpc_certs": {
+                    "type": "string",
+                    "description": "SSL certificates for Eth RPC"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Returns the specified blockchain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "Blockchain ID"
+                    },
+                    "consortium_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "ID of owning consortium"
+                    },
+                    "ip_list": {
+                      "type": "string",
+                      "description": "Addresses of nodes in this blockchain"
+                    },
+                    "rpc_urls": {
+                      "type": "string",
+                      "description": "List of addreses with node names"
+                    },
+                      "rpc_certs": {
+                        "type": "string",
+                        "description": "Eth RPC SSL Certificates"
+                      }
+                    
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     },
-    "/blockchain/{bid}/concord/members": {
-        "summary": "Blockchain Consensus Membership List",
-        "get": {
-          "summary": "List nodes that are members",
-          "operationId": "memberListGet",
-          "parameters": [
-        	  {
-        		  "name": "bid",
-        		  "in": "path",
-        		  "description": "Blockchain ID",
-        		  "schema": {
-	                  "type": "string",
-	                  "format": "uuid"
-        		  }
-        	  }
-          ],
-          "responses": {
-            "200": {
-              "description": "Members",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "hostname": {
-                          "type": "string"
-                        },
-                        "address": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string"
-                        },
-                        "millis_since_last_message": {
-                          "type": "integer"
-                        },
-                        "millis_since_last_message_threshold": {
-                          "type": "integer"
-                        },
-                        "rpc_url": {
-                          "type": "string",
-                          "format": "url"
-                        }
-                      }
+    "/blockchains/{bid}": {
+      "summary": "Blockchain",
+      "get": {
+        "summary": "Get Blockchain information",
+        "operationId": "getBlockchain",
+        "parameters": [
+          {
+            "name": "bid",
+            "in": "path",
+            "description": "Blockchain ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns the specified blockchain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "Blockchain ID"
+                    },
+                    "consortium_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "ID of owning consortium"
+                    },
+                    "ip_list": {
+                      "type": "string",
+                      "description": "Addresses of nodes in this blockchain"
+                    },
+                    "rpc_urls": {
+                      "type": "string",
+                      "description": "List of addreses with node names"
                     }
                   }
                 }
@@ -870,70 +762,66 @@
           }
         }
       },
-      "/blockchain/{bid}/concord/blocks": {
-        "summary": "Blockchain Blocks",
-        "get": {
-          "summary": "List blocks in the chain, most recent first",
-          "operationId": "blockListGet",
-          "parameters": [
-        	  {
-        		  "name": "bid",
-        		  "in": "path",
-        		  "description": "Blockchain ID",
-        		  "schema": {
-	                  "type": "string",
-	                  "format": "uuid"
-        		  }
-        	  },
-            {
-              "name": "latest",
-              "in": "query",
-              "description": "most recent block to start with",
-              "required": false,
+      "patch": {
+        "summary": "Update an existing blockchain",
+        "operationId": "blockchainPatch",
+        "parameters": [
+          {
+            "name": "bid",
+            "in": "path",
+            "description": "Blockchain ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Blockchain items to patch",
+          "content": {
+            "application/json": {
               "schema": {
-                "type": "integer",
-                "format": "string"
-              }
-            },
-            {
-              "name": "count",
-              "in": "query",
-              "description": "number of blocks to return",
-              "required": false,
-              "schema": {
-                "type": "integer",
-                "format": "string"
+                "type": "object",
+                "properties": {
+                  "ip_list": {
+                    "type": "string",
+                    "description": "comma separated list of addresses of blockchain nodes"
+                  },
+                  "rpc_urls": {
+                    "type": "string",
+                    "description": "string represent url map, comma separated list of hostname=url"
+                  }
+                }
               }
             }
-          ],
-          "responses": {
-            "200": {
-              "description": "Blocks",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "blocks": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "number": {
-                              "type": "integer"
-                            },
-                            "hash": {
-                              "type": "string"
-                            },
-                            "url": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      },
-                      "next": {
-                        "type": "string"
-                      }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Returns the specified blockchain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "Blockchain ID"
+                    },
+                    "consortium_id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "description": "ID of owning consortium"
+                    },
+                    "ip_list": {
+                      "type": "string",
+                      "description": "Addresses of nodes in this blockchain"
+                    },
+                    "rpc_urls": {
+                      "type": "string",
+                      "description": "List of addreses with node names"
                     }
                   }
                 }
@@ -941,141 +829,52 @@
             }
           }
         }
-      },
-      "/blockchain/{bid}/concord/blocks/{index}": {
-        "summary": "Specific Blockchain Block",
-        "get": {
-          "summary": "Get a specific block, by its number in the chain",
-          "operationId": "blockGet",
-          "parameters": [
-        	  {
-        		  "name": "bid",
-        		  "in": "path",
-        		  "description": "Blockchain ID",
-        		  "schema": {
-	                  "type": "string",
-	                  "format": "uuid"
-        		  }
-        	  },
-            {
-              "name": "index",
-              "in": "path",
-              "description": "the index of the block to get",
-              "required": "false",
-              "schema": {
-                "type": "integer",
-                "format": "string"
-              },
-              "style": "simple"
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "Block",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "number": {
-                        "type": "integer"
-                      },
-                      "hash": {
-                        "type": "string"
-                      },
-                      "parentHash": {
-                        "type": "string"
-                      },
-                      "nonce": {
-                        "type": "string"
-                      },
-                      "size": {
-                        "type": "integer"
-                      },
-                      "timestamp": {
-                        "type": "integer",
-                        "description": "The proposing node's local system time. (In seconds since the UNIX epoch.)"
-                      },
-                      "transactions": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
+      }
+    },
+    "/blockchains/{bid}/concord/members": {
+      "summary": "Blockchain Consensus Membership List",
+      "get": {
+        "summary": "List nodes that are members",
+        "operationId": "memberListGet",
+        "parameters": [
+          {
+            "name": "bid",
+            "in": "path",
+            "description": "Blockchain ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
-        }
-      },
-      "/blockchain/{bid}/concord/transactions/{hash}": {
-        "summary": "Specific Blockchain Block",
-        "get": {
-          "summary": "Get a specific transaction, by its hash",
-          "operationId": "txGet",
-          "parameters": [
-            {
-          	  {
-        		  "name": "bid",
-        		  "in": "path",
-        		  "description": "Blockchain ID",
-        		  "schema": {
-	                  "type": "string",
-	                  "format": "uuid"
-        		  }
-        	  },
-              "name": "hash",
-              "in": "path",
-              "description": "the hash of the index to get",
-              "required": "false",
-              "schema": {
-                "type": "string"
-              },
-              "style": "simple"
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "Transaction",
-              "content": {
-                "application/json": {
-                  "schema": {
+        ],
+        "responses": {
+          "200": {
+            "description": "Members",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
                     "type": "object",
                     "properties": {
-                      "hash": {
+                      "hostname": {
                         "type": "string"
                       },
-                      "from": {
+                      "address": {
                         "type": "string"
-                      },
-                      "to": {
-                        "type": "string"
-                      },
-                      "contract_address": {
-                        "type": "string"
-                      },
-                      "value": {
-                        "type": "integer"
-                      },
-                      "input": {
-                        "type": "string"
-                      },
-                      "block_hash": {
-                        "type": "string"
-                      },
-                      "block_number": {
-                        "type": "integer"
-                      },
-                      "transaction_index": {
-                        "type": "integer"
-                      },
-                      "nonce": {
-                        "type": "integer"
                       },
                       "status": {
+                        "type": "string"
+                      },
+                      "millis_since_last_message": {
                         "type": "integer"
+                      },
+                      "millis_since_last_message_threshold": {
+                        "type": "integer"
+                      },
+                      "rpc_url": {
+                        "type": "string",
+                        "format": "url"
                       }
                     }
                   }
@@ -1084,27 +883,272 @@
             }
           }
         }
-      },
-      "/blockchain/{bid}/concord/eth": {
-        "summary": "Ethereum JSON RPC API",
-        "post": {
-          "summary": "Call the named procedure",
-          "externalDocs": {
-            "description": "Ethereum JSON RPC Docs",
-            "url": "https://ethereum.gitbooks.io/frontier-guide/content/rpc.html"
+      }
+    },
+    "/blockchains/{bid}/concord/blocks": {
+      "summary": "Blockchain Blocks",
+      "get": {
+        "summary": "List blocks in the chain, most recent first",
+        "operationId": "blockListGet",
+        "parameters": [
+          {
+            "name": "bid",
+            "in": "path",
+            "description": "Blockchain ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
-          "operationId": "ethJsonRpcPost",
-          "requestBody": {
-            "description": "RPC Request",
+          {
+            "name": "latest",
+            "in": "query",
+            "description": "most recent block to start with",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "string"
+            }
+          },
+          {
+            "name": "count",
+            "in": "query",
+            "description": "number of blocks to return",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Blocks",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "blocks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "number": {
+                            "type": "integer"
+                          },
+                          "hash": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "next": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blockchains/{bid}/concord/blocks/{index}": {
+      "summary": "Specific Blockchain Block",
+      "get": {
+        "summary": "Get a specific block, by its number in the chain",
+        "operationId": "blockGet",
+        "parameters": [
+          {
+            "name": "bid",
+            "in": "path",
+            "description": "Blockchain ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "index",
+            "in": "path",
+            "description": "the index of the block to get",
+            "required": "false",
+            "schema": {
+              "type": "integer",
+              "format": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Block",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "number": {
+                      "type": "integer"
+                    },
+                    "hash": {
+                      "type": "string"
+                    },
+                    "parentHash": {
+                      "type": "string"
+                    },
+                    "nonce": {
+                      "type": "string"
+                    },
+                    "size": {
+                      "type": "integer"
+                    },
+                    "timestamp": {
+                      "type": "integer",
+                      "description": "The proposing node's local system time. (In seconds since the UNIX epoch.)"
+                    },
+                    "transactions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blockchains/{bid}/concord/transactions/{hash}": {
+      "summary": "Specific Blockchain Block",
+      "get": {
+        "summary": "Get a specific transaction, by its hash",
+        "operationId": "txGet",
+        "parameters": [
+          {
+            "name": "bid",
+            "in": "path",
+            "description": "Blockchain ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "hash",
+            "in": "path",
+            "description": "the hash of the index to get",
+            "required": "false",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "hash": {
+                      "type": "string"
+                    },
+                    "from": {
+                      "type": "string"
+                    },
+                    "to": {
+                      "type": "string"
+                    },
+                    "contract_address": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "integer"
+                    },
+                    "input": {
+                      "type": "string"
+                    },
+                    "block_hash": {
+                      "type": "string"
+                    },
+                    "block_number": {
+                      "type": "integer"
+                    },
+                    "transaction_index": {
+                      "type": "integer"
+                    },
+                    "nonce": {
+                      "type": "integer"
+                    },
+                    "status": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blockchains/{bid}/concord/eth": {
+      "summary": "Ethereum JSON RPC API",
+      "post": {
+        "summary": "Call the named procedure",
+        "externalDocs": {
+          "description": "Ethereum JSON RPC Docs",
+          "url": "https://ethereum.gitbooks.io/frontier-guide/content/rpc.html"
+        },
+        "operationId": "ethJsonRpcPost",
+        "requestBody": {
+          "description": "RPC Request",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "jsonrpc",
+                  "method",
+                  "params"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "integer"
+                  },
+                  "jsonrpc": {
+                    "type": "string"
+                  },
+                  "method": {
+                    "type": "string"
+                  },
+                  "params": {
+                    "type": "array",
+                    "items": ""
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "RPC Result",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "required": [
                     "id",
-                    "jsonrpc",
-                    "method",
-                    "params"
+                    "jsonrpc"
                   ],
                   "properties": {
                     "id": {
@@ -1113,43 +1157,11 @@
                     "jsonrpc": {
                       "type": "string"
                     },
-                    "method": {
-                      "type": "string"
+                    "result": {
+                      "type": null
                     },
-                    "params": {
-                      "type": "array",
-                      "items": null
-                    }
-                  }
-                }
-              }
-            },
-            "required": true
-          },
-          "responses": {
-            "200": {
-              "description": "RPC Result",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "required": [
-                      "id",
-                      "jsonrpc"
-                    ],
-                    "properties": {
-                      "id": {
-                        "type": "integer"
-                      },
-                      "jsonrpc": {
-                        "type": "string"
-                      },
-                      "result": {
-                        "type": null
-                      },
-                      "error": {
-                        "type": "string"
-                      }
+                    "error": {
+                      "type": "string"
                     }
                   }
                 }
@@ -1157,157 +1169,32 @@
             }
           }
         }
-      },
-      "/blockchain/{bid}/concord/contracts": {
-        "summary": "Blockchain contracts",
-        "get": {
-          "summary": "List all deployed contracts",
-          "operationId": "contractsGet",
-          "parameters": [
-        	  {
-        		  "name": "bid",
-        		  "in": "path",
-        		  "description": "Blockchain ID",
-        		  "schema": {
-	                  "type": "string",
-	                  "format": "uuid"
-        		  }
-        	  }
-          ],
-          "responses": {
-            "200": {
-              "description": "Returns a list of all contracts deployed to concord",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "contract_id": {
-                          "type": "string",
-                          "description": "string representing id of this contract"
-                        },
-                        "owner": {
-                          "type": "string",
-                          "description": "string representing address of the owner of this contract"
-                        },
-                        "url": {
-                          "type": "string",
-                          "description": "The URI representing this specific contract"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
+      }
+    },
+    "/blockchains/{bid}/concord/contracts": {
+      "summary": "Blockchain contracts",
+      "get": {
+        "summary": "List all deployed contracts",
+        "operationId": "contractsGet",
+        "parameters": [
+          {
+            "name": "bid",
+            "in": "path",
+            "description": "Blockchain ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
-        },
-        "post": {
-          "summary": "Deploy and new contract to concord",
-          "operationId": "contractsPost",
-          "requestBody": {
-            "description": "New contract POST request body",
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns a list of all contracts deployed to concord",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "required": [
-                    "contract_id",
-                    "version",
-                    "from",
-                    "sourcecode"
-                  ],
-                  "properties": {
-                    "contract_id": {
-                      "type": "string",
-                      "description": "string representing contract id"
-                    },
-                    "version": {
-                      "type": "string",
-                      "description": "string representing version number of this contract"
-                    },
-                    "from": {
-                      "type": "string",
-                      "description": "string representing owners address"
-                    },
-                    "sourcecode": {
-                      "type": "string",
-                      "description": "string representing solidity source code of this version"
-                    }
-                  }
-                }
-              }
-            },
-            "required": true
-          },
-          "responses": {
-            "200": {
-              "description": "description of deployed contract",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "array",
-                    "items": {
-                      "properties": {
-                        "contract_id": {
-                          "type": "string",
-                          "description": "string representing id of this contract"
-                        },
-                        "version": {
-                          "type": "string",
-                          "description": "string representing name of this version"
-                        },
-                        "url": {
-                          "type": "string",
-                          "description": "The URI representing this specific version"
-                        },
-                        "error": {
-                          "type": "string",
-                          "description": "Error message if any error occured during deployment, null otherwise"
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "/blockchain/{bid}/concord/contracts/{contract_id}": {
-        "get": {
-          "summary": "Get a contract with id `contract_id`",
-          "operationId": "GetContractById",
-          "parameters": [
-        	  {
-        		  "name": "bid",
-        		  "in": "path",
-        		  "description": "Blockchain ID",
-        		  "schema": {
-	                  "type": "string",
-	                  "format": "uuid"
-        		  }
-        	  },
-            {
-              "name": "contract_id",
-              "in": "path",
-              "description": "the id of the contract to get",
-              "required": "true",
-              "schema": {
-                "type": "string",
-                "format": "string"
-              },
-              "style": "simple"
-            }
-          ],
-          "responses": {
-            "200": {
-              "description": "Details of the particular contract",
-              "content": {
-                "application/json": {
-                  "schema": {
+                  "type": "array",
+                  "items": {
                     "type": "object",
                     "properties": {
                       "contract_id": {
@@ -1318,26 +1205,151 @@
                         "type": "string",
                         "description": "string representing address of the owner of this contract"
                       },
-                      "versions": {
-                        "type": "array",
-                        "items": {
-                          "properties": {
-                            "address": {
-                              "type": "string",
-                              "description": "string representing address at which this version is deployed"
-                            },
-                            "metadata": {
-                              "type": "object",
-                              "description": "A metadata JSON object about source code of this version generated by solidity compiler"
-                            },
-                            "version": {
-                              "type": "string",
-                              "description": "string representing name of this version"
-                            },
-                            "url": {
-                              "type": "string",
-                              "description": "The URI representing this specific version"
-                            }
+                      "url": {
+                        "type": "string",
+                        "description": "The URI representing this specific contract"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Deploy and new contract to concord",
+        "operationId": "contractsPost",
+        "requestBody": {
+          "description": "New contract POST request body",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "contract_id",
+                  "version",
+                  "from",
+                  "sourcecode"
+                ],
+                "properties": {
+                  "contract_id": {
+                    "type": "string",
+                    "description": "string representing contract id"
+                  },
+                  "version": {
+                    "type": "string",
+                    "description": "string representing version number of this contract"
+                  },
+                  "from": {
+                    "type": "string",
+                    "description": "string representing owners address"
+                  },
+                  "sourcecode": {
+                    "type": "string",
+                    "description": "string representing solidity source code of this version"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "description of deployed contract",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "properties": {
+                      "contract_id": {
+                        "type": "string",
+                        "description": "string representing id of this contract"
+                      },
+                      "version": {
+                        "type": "string",
+                        "description": "string representing name of this version"
+                      },
+                      "url": {
+                        "type": "string",
+                        "description": "The URI representing this specific version"
+                      },
+                      "error": {
+                        "type": "string",
+                        "description": "Error message if any error occured during deployment, null otherwise"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/blockchains/{bid}/concord/contracts/{contract_id}": {
+      "get": {
+        "summary": "Get a contract with id `contract_id`",
+        "operationId": "GetContractById",
+        "parameters": [
+          {
+            "name": "bid",
+            "in": "path",
+            "description": "Blockchain ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "contract_id",
+            "in": "path",
+            "description": "the id of the contract to get",
+            "required": "true",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Details of the particular contract",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "contract_id": {
+                      "type": "string",
+                      "description": "string representing id of this contract"
+                    },
+                    "owner": {
+                      "type": "string",
+                      "description": "string representing address of the owner of this contract"
+                    },
+                    "versions": {
+                      "type": "array",
+                      "items": {
+                        "properties": {
+                          "address": {
+                            "type": "string",
+                            "description": "string representing address at which this version is deployed"
+                          },
+                          "metadata": {
+                            "type": "object",
+                            "description": "A metadata JSON object about source code of this version generated by solidity compiler"
+                          },
+                          "version": {
+                            "type": "string",
+                            "description": "string representing name of this version"
+                          },
+                          "url": {
+                            "type": "string",
+                            "description": "The URI representing this specific version"
                           }
                         }
                       }
@@ -1348,80 +1360,80 @@
             }
           }
         }
-      },
-      "/blockchain/{bid}/concord/contracts/{contract_id}/versions/{version_name}": {
-        "get": {
-          "summary": "Get a contract identified by given `contract_id` and `version_name`",
-          "operationId": "GetContractByIdAndVersion",
-          "parameters": [
-        	  {
-        		  "name": "bid",
-        		  "in": "path",
-        		  "description": "Blockchain ID",
-        		  "schema": {
-	                  "type": "string",
-	                  "format": "uuid"
-        		  }
-        	  },
-            {
-              "name": "contract_id",
-              "in": "path",
-              "description": "the id of the contract to get",
-              "required": "true",
-              "schema": {
-                "type": "string",
-                "format": "string"
-              },
-              "style": "simple"
-            },
-            {
-              "name": "version_name",
-              "in": "path",
-              "description": "name of the version of contract to get",
-              "required": "true",
-              "schema": {
-                "type": "string",
-                "format": "string"
-              },
-              "style": "simple"
+      }
+    },
+    "/blockchains/{bid}/concord/contracts/{contract_id}/versions/{version_name}": {
+      "get": {
+        "summary": "Get a contract identified by given `contract_id` and `version_name`",
+        "operationId": "GetContractByIdAndVersion",
+        "parameters": [
+          {
+            "name": "bid",
+            "in": "path",
+            "description": "Blockchain ID",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
-          ],
-          "responses": {
-            "200": {
-              "description": "All details of a particular version of this particular contract ",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "contract_id": {
-                        "type": "string",
-                        "description": "string representing id of this contract"
-                      },
-                      "owner": {
-                        "type": "string",
-                        "description": "string representing address of the owner of this contract"
-                      },
-                      "version": {
-                        "type": "string",
-                        "description": "string representing name of this version"
-                      },
-                      "metadata": {
-                        "type": "object",
-                        "description": "A metadata JSON object about source code of this version generated by solidity compiler"
-                      },
-                      "address": {
-                        "type": "string",
-                        "description": "string representing address at which this version is deployed"
-                      },
-                      "bytecode": {
-                        "type": "string",
-                        "description": "string representing compiled bytecode of this version"
-                      },
-                      "sourcecode": {
-                        "type": "string",
-                        "description": "string representing the actual source code of this version"
-                      }
+          },
+          {
+            "name": "contract_id",
+            "in": "path",
+            "description": "the id of the contract to get",
+            "required": "true",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            },
+            "style": "simple"
+          },
+          {
+            "name": "version_name",
+            "in": "path",
+            "description": "name of the version of contract to get",
+            "required": "true",
+            "schema": {
+              "type": "string",
+              "format": "string"
+            },
+            "style": "simple"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All details of a particular version of this particular contract ",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "contract_id": {
+                      "type": "string",
+                      "description": "string representing id of this contract"
+                    },
+                    "owner": {
+                      "type": "string",
+                      "description": "string representing address of the owner of this contract"
+                    },
+                    "version": {
+                      "type": "string",
+                      "description": "string representing name of this version"
+                    },
+                    "metadata": {
+                      "type": "object",
+                      "description": "A metadata JSON object about source code of this version generated by solidity compiler"
+                    },
+                    "address": {
+                      "type": "string",
+                      "description": "string representing address at which this version is deployed"
+                    },
+                    "bytecode": {
+                      "type": "string",
+                      "description": "string representing compiled bytecode of this version"
+                    },
+                    "sourcecode": {
+                      "type": "string",
+                      "description": "string representing the actual source code of this version"
                     }
                   }
                 }
@@ -1429,7 +1441,8 @@
             }
           }
         }
-      },
+      }
+    },
     "/users": {
       "summary": "Helen User management",
       "get": {
@@ -1442,7 +1455,7 @@
             "description": "ID of the consortium",
             "required": true,
             "schema": {
-            	"type":"string"
+              "type": "string"
             }
           },
           {
@@ -1451,7 +1464,7 @@
             "description": "ID of the organization",
             "required": true,
             "schema": {
-                "type":"string"
+              "type": "string"
             }
           }
         ],
@@ -1782,7 +1795,9 @@
               "application/json": {
                 "schema": {
                   "type": "object",
-                  "properties": {}
+                  "properties": {
+                    
+                  }
                 }
               }
             }

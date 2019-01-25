@@ -39,7 +39,7 @@ public class BlockchainManager {
 
     // Clean up the string.  Remove leading and trailing spaces,
     // remove leading and trailing spaces around "=" and ","
-    private String cleanupIpMap(String ipList) {
+    private String cleanupIpString(String ipList) {
         // split on comma, remove leading and trailing whitespace.
         return ipList.trim().replaceAll("\\s*,\\s*", ",").replaceAll("\\s*=\\s*", "=");
     }
@@ -52,9 +52,9 @@ public class BlockchainManager {
     public Blockchain create(Consortium consortium, String ipList, String rpcUrls, String rpcCerts) {
         Blockchain b = new Blockchain();
         b.setConsortium(consortium);
-        b.setIpList(ipList);
-        b.setRpcUrls(cleanupIpMap(rpcUrls));
-        b.setRpcCerts(cleanupIpMap(rpcCerts));
+        b.setIpList(cleanupIpString(ipList));
+        b.setRpcUrls(cleanupIpString(rpcUrls));
+        b.setRpcCerts(cleanupIpString(rpcCerts));
         b = blockchainRepo.save(b);
         try {
             connectionPoolManager.createPool(b);
@@ -69,9 +69,9 @@ public class BlockchainManager {
      * Create a new blockchain from an old one.  Copy the urls and iplist.
      */
     public Blockchain update(Blockchain newBlockchain) {
-        newBlockchain.setIpList(newBlockchain.getIpList());
-        newBlockchain.setRpcUrls(cleanupIpMap(newBlockchain.getRpcUrls()));
-        newBlockchain.setRpcCerts(cleanupIpMap(newBlockchain.getRpcCerts()));
+        newBlockchain.setIpList(cleanupIpString(newBlockchain.getIpList()));
+        newBlockchain.setRpcUrls(cleanupIpString(newBlockchain.getRpcUrls()));
+        newBlockchain.setRpcCerts(cleanupIpString(newBlockchain.getRpcCerts()));
         return blockchainRepo.save(newBlockchain);
     }
 

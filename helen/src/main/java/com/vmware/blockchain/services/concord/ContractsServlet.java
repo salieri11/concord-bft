@@ -109,7 +109,7 @@ public class ContractsServlet extends ConcordServlet {
      * @return the RESTResult object which contains response of this request.
      */
     @RequestMapping(method = RequestMethod.GET,
-            path = {"/api/concord/contracts", "/api/blockchain/{id}/concord/contracts"})
+            path = {"/api/concord/contracts", "/api/blockchains/{id}/concord/contracts"})
     public ResponseEntity<JSONAware> handleGetContracts(
             @PathVariable(name = "id", required = false) Optional<UUID> id) {
 
@@ -167,7 +167,7 @@ public class ContractsServlet extends ConcordServlet {
      * @return The RESTResult object containing result of this request
      */
     @RequestMapping(method = RequestMethod.GET,
-            path = {"/api/concord/contracts/{contract_id}", "/api/blockchain/{id}/concord/contracts/{contract_id}"})
+            path = {"/api/concord/contracts/{contract_id}", "/api/blockchains/{id}/concord/contracts/{contract_id}"})
     public ResponseEntity<JSONAware> handleGetContract(@PathVariable(name = "id", required = false) Optional<UUID> id,
             @PathVariable("contract_id") String contractId) {
 
@@ -221,7 +221,7 @@ public class ContractsServlet extends ConcordServlet {
      * @return The RESTResult object containing result of this request
      */
     @RequestMapping(method = RequestMethod.GET, path = {"/api/concord/contracts/{contract_id}/versions/{version_id}",
-            "/api/blockchain/{id}/concord/contracts/{contract_id}/versions/{version_id}"})
+            "/api/blockchains/{id}/concord/contracts/{contract_id}/versions/{version_id}"})
     public ResponseEntity<JSONAware> handleGetVersion(@PathVariable(name = "id", required = false) Optional<UUID> id,
             @PathVariable("contract_id") String contractId,
             @PathVariable("version_id") String contractVersion) {
@@ -310,7 +310,7 @@ public class ContractsServlet extends ConcordServlet {
      * @return The RESTResult object containing result of this request
      */
     @RequestMapping(method = RequestMethod.PUT, path = {"/api/concord/contracts/{contract_id}/versions/{version_id}",
-            "/api/blockchain/{id}/concord/contracts/{contract_id}/versions/{version_id}"})
+            "/api/blockchains/{id}/concord/contracts/{contract_id}/versions/{version_id}"})
     public ResponseEntity<JSONAware> handleUpdateVersion(@RequestBody String paramString,
             @PathVariable(name = "id", required = false) Optional<UUID> id,
             @PathVariable("contract_id") String existingContractId,
@@ -524,7 +524,7 @@ public class ContractsServlet extends ConcordServlet {
      *
      * @return The RESTResult object containing result of this request
      */
-    @RequestMapping(path = {"/api/concord/contracts", "/api/blockchain/{id}/concord/contracts"},
+    @RequestMapping(path = {"/api/concord/contracts", "/api/blockchains/{id}/concord/contracts"},
             method = RequestMethod.POST)
     public ResponseEntity<JSONAware> handlePost(@PathVariable(name = "id", required = false) Optional<UUID> id,
             @RequestBody String paramString) {

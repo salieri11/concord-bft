@@ -39,6 +39,7 @@ public class BlockchainController {
         private UUID consortiumId;
         private String ipList;
         private String rpcUrls;
+        private String rpcCerts;
     }
 
     @Getter
@@ -47,6 +48,7 @@ public class BlockchainController {
     private static class BlockchainPatch {
         private String ipList;
         private String rpcUrls;
+        private String rpcCerts;
     }
 
     @Getter
@@ -58,7 +60,7 @@ public class BlockchainController {
         private UUID consortiumId;
         private String ipList;
         private String rpcUrls;
-
+        private String rpcCerts;
     }
 
     private BlockchainManager manager;
@@ -73,23 +75,24 @@ public class BlockchainController {
     /**
      * Get the list of all blockchains.
      */
-    @RequestMapping(path = "/api/blockchain", method = RequestMethod.GET)
+    @RequestMapping(path = "/api/blockchains", method = RequestMethod.GET)
     ResponseEntity<List<BlockchainResponse>> list() {
         List<BlockchainResponse> idList = manager.list().stream().map(b -> new BlockchainResponse(b.getId(),
-                b.getConsortium().getConsortiumId(), b.getIpList(), b.getRpcUrls())).collect(Collectors.toList());
+                b.getConsortium().getConsortiumId(), b.getIpList(), b.getRpcUrls(), b.getRpcCerts()))
+                .collect(Collectors.toList());
         return new ResponseEntity<>(idList, HttpStatus.OK);
     }
 
     /**
      * Get the list of all blockchains.
      */
-    @RequestMapping(path = "/api/blockchain/{id}", method = RequestMethod.GET)
+    @RequestMapping(path = "/api/blockchains/{id}", method = RequestMethod.GET)
     ResponseEntity<BlockchainResponse> get(@PathVariable UUID id) throws NotFoundException {
         Optional<Blockchain> oBlockchain = manager.get(id);
         if (oBlockchain.isPresent()) {
             Blockchain b = oBlockchain.get();
             return new ResponseEntity<>(new BlockchainResponse(b.getId(), b.getConsortium().getConsortiumId(),
-                    b.getIpList(), b.getRpcUrls()), HttpStatus.OK);
+                    b.getIpList(), b.getRpcUrls(), b.getRpcCerts()), HttpStatus.OK);
         } else {
             throw new NotFoundException(id + " does not exist");
         }
@@ -98,20 +101,20 @@ public class BlockchainController {
     /**
      * Create a new blockchain in the given consortium, with the specified nodes.
      */
-    @RequestMapping(path = "/api/blockchain", method = RequestMethod.POST)
+    @RequestMapping(path = "/api/blockchains", method = RequestMethod.POST)
     public ResponseEntity<Blockchain> createBlockchain(@RequestBody BlockchainPost body) {
         Optional<Consortium> oConsortium = cnRepo.findById(body.consortiumId);
         if (oConsortium.isEmpty()) {
             throw new NoSuchConsortiumException(body.consortiumId + " does not exist");
         }
-        Blockchain b = manager.create(oConsortium.get(), body.ipList, body.rpcUrls);
+        Blockchain b = manager.create(oConsortium.get(), body.getIpList(), body.getRpcUrls(), body.getRpcCerts());
         return new ResponseEntity<>(b, HttpStatus.OK);
     }
 
     /**
      * Update the given blockchain.
      */
-    @RequestMapping(path = "/api/blockchain/{id}", method = RequestMethod.PATCH)
+    @RequestMapping(path = "/api/blockchains/{id}", method = RequestMethod.PATCH)
     public ResponseEntity<Blockchain> updateBlockchain(@PathVariable UUID id, @RequestBody BlockchainPatch body)
             throws NotFoundException {
         Optional<Blockchain> oBlockchain = manager.get(id);
@@ -125,6 +128,10 @@ public class BlockchainController {
 
         if (body.getRpcUrls() != null) {
             b.setRpcUrls(b.getRpcUrls());
+        }
+
+        if (body.getRpcCerts() != null) {
+            b.setRpcCerts(body.getRpcCerts());
         }
         return new ResponseEntity<>(manager.update(b), HttpStatus.OK);
     }

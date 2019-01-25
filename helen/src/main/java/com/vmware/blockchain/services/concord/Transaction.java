@@ -76,7 +76,7 @@ public final class Transaction extends ConcordServlet {
      * @param request The request received by the servlet
      * @param response The response object used to respond to the client
      */
-    @RequestMapping(path = {"/api/concord/transactions/{hash}", "/api/blockchain/{id}/concord/transactions/{hash}"},
+    @RequestMapping(path = {"/api/concord/transactions/{hash}", "/api/blockchains/{id}/concord/transactions/{hash}"},
             method = RequestMethod.GET)
     protected ResponseEntity<JSONAware> doGet(@PathVariable(name = "id", required = false) Optional<UUID> id,
             @PathVariable(value = "hash", required = true) String hash) {

@@ -61,7 +61,7 @@ public class BlockchainManagerTest {
 
     @Test
     void testCreateAndUpdate() {
-        Blockchain b = manager.create(new Consortium(), "ip4:20,ip2:30,ip3:40,ip1:50",
+        Blockchain b = manager.create(new Consortium(), "ip4:20 , ip2:30  ,ip3:40 ,ip1:50",
                                       "a=ip4:20,b=ip2:30, c=ip3:40,d = ip1:50",
                                       "a=acert,b=bcert, c=ccert,d = dcert");
 
@@ -71,9 +71,10 @@ public class BlockchainManagerTest {
         Map<String, String> expectedCerts = new ImmutableMap.Builder<String, String>()
                 .put("a", "acert").put("b", "bcert").put("c", "ccert").put("d", "dcert")
                 .build();
+        Assertions.assertEquals("ip4:20,ip2:30,ip3:40,ip1:50", b.getIpList());
         Assertions.assertEquals(expectedUrls, b.getUrlsAsMap());
         Assertions.assertEquals(expectedCerts, b.getCertsAsMap());
-        b.setIpList("ip1:50,ip2:30,ip3:40,ip4:20,ip0:30");
+        b.setIpList("ip1:50 , ip2:30  ,ip3:40, ip4:20 \t,ip0:30");
         b.setRpcUrls("d=ip1:50,b=ip2:30 , c=ip3:40,a = ip4:20,e=ip0:30");
         b.setRpcCerts("d=dcert,b=bcert , c=cert,a = acert,e=ecert");
         Blockchain nb = manager.update(b);
@@ -83,6 +84,7 @@ public class BlockchainManagerTest {
         expectedCerts = new ImmutableMap.Builder<String, String>()
                 .put("a", "acert").put("b", "bcert").put("c", "cert").put("d", "dcert").put("e", "ecert")
                 .build();
+        Assertions.assertEquals("ip1:50,ip2:30,ip3:40,ip4:20,ip0:30", nb.getIpList());
         Assertions.assertEquals(expectedUrls, nb.getUrlsAsMap());
         Assertions.assertEquals(expectedCerts, nb.getCertsAsMap());
     }
