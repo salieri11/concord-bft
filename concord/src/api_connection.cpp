@@ -387,8 +387,15 @@ api_connection::handle_eth_request(int i)
    if (request.has_sig_v()) {
       sigV = request.sig_v();
       if (sigV == 27 || sigV == 28) {
-         LOG4CPLUS_INFO(logger_, "Request uses conventional signature");
-         LOG4CPLUS_INFO(logger_, "Visit https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md#specification");
+        LOG4CPLUS_DEBUG(logger_, "Request uses conventional signature");
+        // No support for conventioanl signature's without replay protection
+        // The only way this can be done is if the chainID is 1
+        if (chainID_ != 1) {
+            ErrorResponse *e = concordResponse_.add_error_response();
+            std::string errorDescription = "Request uses conventional signature \
+               and chainID is not 1 (" + chainID_ + ")";
+            e->mutable_description()->assign(errorDescription);
+        }
       } else {
          if (sigV % 2 == 0) {
             chainID = (sigV - 36)/2;
@@ -396,10 +403,10 @@ api_connection::handle_eth_request(int i)
             chainID = (sigV - 35)/2;
          }
          if (chainID != chainID_) {
-            LOG4CPLUS_ERROR(logger_, "Request's chainID does not conform with VMware Blockchain ID.");
-            LOG4CPLUS_ERROR(logger_, "Visit https://github.com/ethereum/EIPs/blob/master/EIPS/eip-155.md#specification");
             ErrorResponse *e = concordResponse_.add_error_response();
-            e->mutable_description()->assign("Request's chainID does not conform with VMware Blockchain ID.");
+            std::string errorDescription = "Request's chainID (" + chainID + \
+               ") does not conform with VMware Blockchain ID (" + chainID_ + ")";
+            e->mutable_description()->assign(errorDescription);
          }
       }
    }
