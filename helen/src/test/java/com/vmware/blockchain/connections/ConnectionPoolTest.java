@@ -59,8 +59,10 @@ public class ConnectionPoolTest {
         when(consortium.getConsortiumId()).thenReturn(UUID.fromString("277858b5-b962-4aa5-850e-c992c84cfdcb"));
         when(consortium.getConsortiumName()).thenReturn("Test Name");
 
-        blockchain = new Blockchain(UUID.fromString("33b26eed-d173-47bf-ab3a-184479a1fde0"), consortium,
-                "ip1:5458,ip2:5458,ip3:5458,ip4:5458");
+        blockchain = new Blockchain(UUID.fromString("33b26eed-d173-47bf-ab3a-184479a1fde0"),
+                consortium, "ip1:5458,ip2:5458,ip3:5458,ip4:5458",
+                "a=ip1:5458,b=ip2:5458,c=ip3:5458,d=ip4:5458",
+                "a=thisisacert,b=thisisbcert,c=thisisccert,d=thisisdcert");
         pool = new ConcordConnectionPool(blockchain, ConnectionType.Mock).initialize(config);
     }
 
@@ -86,7 +88,7 @@ public class ConnectionPoolTest {
     public void testConnectionCheck() throws IOException, InterruptedException {
         MockConnection conn = (MockConnection) pool.getConnection();
         Assertions.assertNotNull(conn);
-        Assertions.assertTrue(blockchain.getIpAsList().contains(conn.getIpStr()));
+        Assertions.assertTrue(blockchain.getUrlsAsMap().containsValue(conn.getIpStr()));
         if (conn != null) {
             pool.putConnection(conn);
         }

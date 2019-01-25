@@ -49,10 +49,7 @@ is run from the same directory as this README, and *not* from the
 blockchain$ docker build -f concord/Dockerfile . -t concord:latest
 ```
 
-### Building EthRPC (Optional)
-
-The EthRPC component is not yet in use, but if you're testing it, or
-Jenkins is failing to build it, this is how to build it yourself.
+### Building EthRPC
 
 EthRPC can be built directly in a docker container (note the command
 is run from the same directory as this README, and *not* from the
@@ -104,7 +101,7 @@ This step just performs the equivalent sub-steps in the default build
 steps (i.e. non-alternative) to create the relevant docker images.
 
 ```
-blockchain$ docker build ethrpc -f ethrpc/packaging.Dockerfile -t ethrpc:latest 
+blockchain$ docker build ethrpc -f ethrpc/packaging.Dockerfile -t ethrpc:latest
 blockchain$ docker build helen -f helen/packaging.Dockerfile -t helen:latest
 ```
 

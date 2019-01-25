@@ -25,5 +25,21 @@
     "pathRewrite": {
       "^/assets/static": "/static"
     }
+  },
+  "/csp/api": {
+    "target": "https://console.cloud.vmware.com/csp/gateway/am/api/auth/api-tokens/authorize",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/csp/api": ""
+    }
+  },
+  "/logging/api": {
+    "target": "https://api.mgmt.cloud.vmware.com",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": {
+      "^/logging/api": ""
+    }
   }
 }

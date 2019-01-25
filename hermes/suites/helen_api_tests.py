@@ -99,6 +99,7 @@ class HelenAPITests(test_suite.TestSuite):
 
    def _getTests(self):
       return [("getMembers", self._test_getMembers), \
+              ("getCerts", self._test_getCerts), \
               ("blockList", self._test_getBlockList), \
               ("block", self._test_getBlocks), \
               ("transaction", self._test_getTransactions), \
@@ -156,8 +157,35 @@ class HelenAPITests(test_suite.TestSuite):
             return (False, "'rpc_url' field in member entry is not a string")
          if m["rpc_url"] == "":
             return (False, "'rpc_url' field in member entry is empty string")
+         if "rpc_cert" in m:
+            return (False, "'rpc_cert' field should not be included if certs=true is not passed")
 
       return (True, None)
+
+   def _test_getCerts(self, request):
+      '''
+      Test that if we pass "?certs=true" to the Members endpoint, we get at
+      least one non-empty rpc_cert in the response.
+      '''
+      result = request.getMemberList(certs=True)
+
+      if not type(result) is list:
+         return (False, "Response was not a list")
+      if len(result) < 1:
+         return (False, "No members returned")
+
+      foundACert = False
+      for m in result:
+         # rpc_cert must be present
+         if not isinstance(m["rpc_cert"], str):
+            return (False, "'rpc_cert' field in member entry is not a string")
+         if m["rpc_cert"] != "":
+            foundACert = True
+
+      if foundACert:
+         return (True, None)
+      else:
+         return (False, "no non-empty rpc_cert found in response")
 
    def _test_getBlockList(self, request, latestBlock=None, nextUrl=None):
       result = request.getBlockList(nextUrl)

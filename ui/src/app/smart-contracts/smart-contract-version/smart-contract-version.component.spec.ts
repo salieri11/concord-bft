@@ -21,6 +21,7 @@ import { TransactionDetailsComponent } from '../../transactions/transaction-deta
 import { SmartContractVersion } from '../shared/smart-contracts.model';
 import { VmwCopyToClipboardButtonComponent } from '../../shared/components/copy-to-clipboard-button/copy-to-clipboard-button.component';
 import { CodeHighlighterComponent } from '../../shared/components/code-highlighter/code-highlighter.component';
+import * as DownloadHelpers from '../../shared/download-helpers';
 
 const initialVersion = {
   contract_id: 'id',
@@ -168,27 +169,27 @@ describe('SmartContractVersionComponent', () => {
   describe('Download functions', () => {
     it('generates the source code file name properly', () => {
       const expectedFileName = `${initialVersion.contract_id}_${initialVersion.version}_source_code.sol`;
-      spyOn((component.versionComponent as any), 'onDownload');
+      spyOn(DownloadHelpers, 'generateDownload');
       component.versionComponent.onSourceCodeDownload();
 
-      expect((component.versionComponent as any).onDownload)
-        .toHaveBeenCalledWith(initialVersion.sourcecode, expectedFileName);
+      expect(DownloadHelpers.generateDownload)
+        .toHaveBeenCalledWith(expectedFileName, initialVersion.sourcecode);
     });
     it('generates the byte code file name properly', () => {
       const expectedFileName = `${initialVersion.contract_id}_${initialVersion.version}_bytecode.bin`;
-      spyOn((component.versionComponent as any), 'onDownload');
+      spyOn(DownloadHelpers, 'generateDownload');
       component.versionComponent.onByteCodeDownload();
 
-      expect((component.versionComponent as any).onDownload)
-        .toHaveBeenCalledWith(initialVersion.bytecode, expectedFileName);
+      expect(DownloadHelpers.generateDownload)
+        .toHaveBeenCalledWith(expectedFileName, initialVersion.bytecode);
     });
     it('generates the metadata file name properly', () => {
       const expectedFileName = `${initialVersion.contract_id}_${initialVersion.version}_metadata.json`;
-      spyOn((component.versionComponent as any), 'onDownload');
+      spyOn(DownloadHelpers, 'generateDownload');
       component.versionComponent.onMetadataDownload();
 
-      expect((component.versionComponent as any).onDownload)
-        .toHaveBeenCalledWith(JSON.stringify(initialVersion.metadata, null, 4), expectedFileName);
+      expect(DownloadHelpers.generateDownload)
+        .toHaveBeenCalledWith(expectedFileName, JSON.stringify(initialVersion.metadata, null, 4));
     });
     it('generates a source code download link', () => {
       const createUrlSpy = spyOn(window.URL, 'createObjectURL').and.callThrough();

@@ -135,12 +135,15 @@ class Request():
       self._responseFile = fileRoot + ".json"
       self._outputFile = fileRoot + ".log"
 
-   def getMemberList(self):
+   def getMemberList(self, certs=False):
       '''
       Get the list of nodes in the concord cluster
       '''
       self._subPath = "/api/concord/members"
-      self._params = ""
+      if certs:
+         self._params = "?certs=true"
+      else:
+         self._params = ""
       self._endpointName = "members"
 
       return self._send()
@@ -219,9 +222,9 @@ class Request():
        self._subPath = '/api/users'
        self._params = ""
        self._endpointName = "users"
-       
+
        return self._send()
-   
+
    def getWallet(self, userId, address):
       '''
       Get the wallet of the user & address

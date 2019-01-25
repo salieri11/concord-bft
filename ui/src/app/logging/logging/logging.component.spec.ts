@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2019 VMware, all rights reserved.
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
@@ -10,6 +10,9 @@ import { MockSharedModule } from '../../shared/shared.module';
 import { LoggingComponent } from './logging.component';
 import { GraphsModule } from '../../graphs/graphs.module';
 import { LogDetailsComponent } from '../log-details/log-details.component';
+import { ExportChartDataModalComponent } from '../export-chart-data-modal/export-chart-data-modal.component';
+import { ExportLogEventsModalComponent } from '../export-log-events-modal/export-log-events-modal.component';
+import { ErrorAlertService } from '../../shared/global-error-handler.service';
 
 describe('LoggingComponent', () => {
   let component: LoggingComponent;
@@ -18,7 +21,13 @@ describe('LoggingComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [ MockSharedModule, GraphsModule, HttpClientTestingModule, NoopAnimationsModule ],
-      declarations: [ LoggingComponent, LogDetailsComponent ]
+      declarations: [
+        LoggingComponent,
+        LogDetailsComponent,
+        ExportChartDataModalComponent,
+        ExportLogEventsModalComponent
+      ],
+      providers: [ ErrorAlertService ]
     })
     .compileComponents();
   }));

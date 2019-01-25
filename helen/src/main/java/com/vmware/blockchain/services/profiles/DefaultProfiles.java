@@ -10,8 +10,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.event.ApplicationStartedEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -45,10 +43,13 @@ public class DefaultProfiles {
 
     private PasswordEncoder passwordEncoder;
 
-    private BlockchainRepository blockchainRepository;
+    private BlockchainManager blockchainManager;
 
-    private String blockchainNodes;
+    private String blockchainIpList;
 
+    private String blockchainRpcUrls;
+
+    private String blockchainRpcCerts;
 
     @Autowired
     public DefaultProfiles(
@@ -56,14 +57,18 @@ public class DefaultProfiles {
             OrganizationRepository organizationRepository,
             ConsortiumRepository consortiumRepository,
             PasswordEncoder passwordEncoder,
-            BlockchainRepository blockchainRepository,
-            @Value("${ConcordAuthorities}") String blockchainNodes) {
+            BlockchainManager blockchainManager,
+            @Value("${ConcordAuthorities}") String blockchainIpList,
+            @Value("${ConcordRpcUrls}") String blockchainRpcUrls,
+            @Value("${ConcordRpcCerts}") String blockchainRpcCerts) {
         this.userRepository = userRepository;
         this.organizationRepository = organizationRepository;
         this.consortiumRepository = consortiumRepository;
         this.passwordEncoder = passwordEncoder;
-        this.blockchainRepository = blockchainRepository;
-        this.blockchainNodes = blockchainNodes;
+        this.blockchainManager = blockchainManager;
+        this.blockchainIpList = blockchainIpList;
+        this.blockchainRpcUrls = blockchainRpcUrls;
+        this.blockchainRpcCerts = blockchainRpcCerts;
     }
 
     // TODO: These next few methords are just testing convenience methods and should be removed
@@ -71,9 +76,8 @@ public class DefaultProfiles {
     // available
 
     /**
-     * Create the default profiles if they don't exist.  Do this when the application goes ready.
+     * Create the default profiles if they don't exist.
      */
-    @EventListener(classes = ApplicationStartedEvent.class)
     public void initialize() {
         // the order of these creates matters.
         // consortium must exist before blockchain.
@@ -83,7 +87,7 @@ public class DefaultProfiles {
         blockchain = createBlockchainIfNotExist();
         user = createUserIfNotExist();
         logger.info("Profiles -- Org {}, Cons: {}, BC: {}, User: {}", organization.getOrganizationName(),
-                consortium.getConsortiumName(), blockchain.getIpAsList(), user.getEmail());
+                consortium.getConsortiumName(), blockchain.getUrlsAsMap(), user.getEmail());
     }
 
     private User createUserIfNotExist() {
@@ -139,13 +143,9 @@ public class DefaultProfiles {
     }
 
     private Blockchain createBlockchainIfNotExist() {
-        List<Blockchain> bList = blockchainRepository.findAll();
+        List<Blockchain> bList = blockchainManager.list();
         if (bList.isEmpty()) {
-            Blockchain b = new Blockchain();
-            b.setConsortium(consortium);
-            b.setIpList(blockchainNodes);
-            b = blockchainRepository.save(b);
-            return b;
+            return blockchainManager.create(consortium, blockchainIpList, blockchainRpcUrls, blockchainRpcCerts);
         } else {
             return bList.get(0);
         }

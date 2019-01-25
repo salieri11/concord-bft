@@ -31,18 +31,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.EntityModificationException;
-import com.vmware.blockchain.connections.ConcordConnectionPool;
-import com.vmware.blockchain.services.BaseServlet;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
-import com.vmware.concord.Concord;
 
 /**
  * A servlet which manages all GET/POST/PATCH requests related to user management API of helen.
  */
 @Controller
-public class ProfileManager extends BaseServlet {
+public class ProfileManager {
 
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LogManager.getLogger(ProfileManager.class);
@@ -51,9 +47,7 @@ public class ProfileManager extends BaseServlet {
     private DefaultProfiles profiles;
 
     @Autowired
-    public ProfileManager(ProfilesRegistryManager prm, DefaultProfiles profiles, ConcordProperties config,
-            ConcordConnectionPool concordConnectionPool) {
-        super(config, concordConnectionPool);
+    public ProfileManager(ProfilesRegistryManager prm, DefaultProfiles profiles) {
         this.prm = prm;
         this.profiles = profiles;
     }
@@ -63,7 +57,7 @@ public class ProfileManager extends BaseServlet {
     public ResponseEntity<JSONAware> getUsers(@RequestParam(name = "consortium", required = false) String consortium,
             @RequestParam(name = "organization", required = false) String organization) {
         JSONArray result = prm.getUsers(Optional.ofNullable(consortium), Optional.ofNullable(organization));
-        return new ResponseEntity<>(result, standardHeaders, HttpStatus.OK);
+        return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
     /**
@@ -75,9 +69,9 @@ public class ProfileManager extends BaseServlet {
     public ResponseEntity<JSONAware> getUserFromId(@PathVariable("user_id") String userId) {
         JSONObject result = prm.getUserWithId(userId);
         if (result.isEmpty()) {
-            return new ResponseEntity<>(new JSONObject(), standardHeaders, HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(new JSONObject(), HttpStatus.NOT_FOUND);
         } else {
-            return new ResponseEntity<>(result, standardHeaders, HttpStatus.OK);
+            return new ResponseEntity<>(result, HttpStatus.OK);
         }
     }
 
@@ -145,7 +139,7 @@ public class ProfileManager extends BaseServlet {
             responseStatus = HttpStatus.BAD_REQUEST;
         }
 
-        return new ResponseEntity<>(responseJson, standardHeaders, responseStatus);
+        return new ResponseEntity<>(responseJson, responseStatus);
     }
 
     private void validatePatchRequest(UserPatchRequest upr) throws EntityModificationException {
@@ -194,11 +188,7 @@ public class ProfileManager extends BaseServlet {
             responseStatus = HttpStatus.BAD_REQUEST;
         }
 
-        return new ResponseEntity<>(responseJson, standardHeaders, responseStatus);
+        return new ResponseEntity<>(responseJson, responseStatus);
     }
 
-    @Override
-    protected JSONAware parseToJson(Concord.ConcordResponse concordResponse) {
-        throw new UnsupportedOperationException("parseToJSON method is not " + "supported in ProfileManager class");
-    }
 }

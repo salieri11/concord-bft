@@ -15,18 +15,22 @@ services:
       - ./config-concord1:/concord/config-local
       - ./config-public:/concord/config-public:ro
 
-# This is an example of what ConcordRpcUrls in helen's
-# application.properties refers to. If you have an ethrpc image
-# available, you can uncomment this block to use it.
-#  ethrpc1:
-#    image: "${ethrpc_repo}:${ethrpc_tag}"
-#    ports:
-#      - 8545:8545
-#    command:
-#      - java
-#      - -jar
-#      - concord-ethrpc-1.0-SNAPSHOT.jar
-#      - --ConcordAuthorities=concord1:5458
+  ethrpc1:
+    image: "${ethrpc_repo}:${ethrpc_tag}"
+    ports:
+      - 8545:8545
+    volumes:
+      - ./config-ethrpc1:/config:ro
+    command:
+      - java
+      - -jar
+      - concord-ethrpc.jar
+      - --ConcordAuthorities=concord1:5458
+      - --security.require-ssl=true
+      - --server.ssl.key-store-type=PKCS12
+      - --server.ssl.key-store=/config/keystore.p12
+      - '--server.ssl.key-store-password=Ethrpc!23'
+      - --server.ssl.key-alias=ethrpc
 
   concord2:
     image: "${concord_repo}:${concord_tag}"
@@ -79,6 +83,8 @@ services:
       - 8080:8080
     depends_on:
       - db-server
+    volumes:
+      - ./config-helen:/config:ro
     # Used for sending logs to log intelligence
     # We don't want this on by default, because logs won't be available locally for debugging
     # You will need to add the log intelligence in the fluent.conf file for it to work.

@@ -53,10 +53,10 @@ public final class ConcordTcpConnection implements IConcordConnection {
             socket.setSoTimeout(receiveTimeoutMs);
         } catch (UnknownHostException e) {
             logger.error("Error creating TCP connection with Concord. Host= " + host + ", port= " + port);
-            throw new UnknownHostException();
+            throw e;
         } catch (IOException e) {
             logger.error("Error creating input/output stream with Concord. Host= " + host + ", port= " + port);
-            throw new IOException();
+            throw e;
         }
 
         logger.debug("Socket connection with Concord created");

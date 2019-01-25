@@ -6,23 +6,25 @@ package com.vmware.blockchain.services.profiles;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
-import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
-import javax.persistence.OneToOne;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+
+import com.google.common.base.Splitter;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
 
 /**
  * JPA class representing Blockchains.
@@ -31,7 +33,6 @@ import lombok.ToString;
 @Entity
 @Data
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@ToString
 @AllArgsConstructor
 @NoArgsConstructor
 public class Blockchain {
@@ -41,16 +42,24 @@ public class Blockchain {
     @EqualsAndHashCode.Include
     private UUID id;
 
-    @OneToOne(optional = false, fetch = FetchType.LAZY)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
     @JoinColumn(nullable = false)
     private Consortium consortium;
 
     /**
-     * Comma separated list of IP addresses for each node in the chain.  On insert,
-     * we normalize this list.  No two blockchains can share the same list of nodes.
+     * IP List. host:port
      */
-    @Column(nullable = false, unique = true)
     private String ipList;
+
+    /**
+     * rpcUrls.  a map host=URL.
+     */
+    private String rpcUrls;
+
+    /**
+     * rpcCerts.  a map host=Cert.
+     */
+    private String rpcCerts;
 
     /**
      * Return the ipList string as a list of strings.
@@ -70,5 +79,42 @@ public class Blockchain {
         setIpList(String.join(",", ips));
     }
 
+    /**
+     * Return the rpcUrls string as a map of host strings to url strings.
+     * @return Map of URLs
+     */
+    public Map<String, String> getUrlsAsMap() {
+        // removes leading and trailing whitespace, and any whitespace in between
+        return Splitter.on(",").withKeyValueSeparator("=").split(getRpcUrls());
+    }
+
+    /**
+     * Save the list of RPC URLSs into the rpcUrls string, a csv.
+     * @param urls Map of RPC URLs of nodes
+     */
+    public void setUrlsAsMap(Map<String, String> urls) {
+        List<String> hosts = urls.entrySet().stream().map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
+        setRpcUrls(String.join(",", hosts));
+    }
+
+    /**
+     * Return the rpcCerts string as a map of host strings to cert strings.
+     * @return Map of certificates
+     */
+    public Map<String, String> getCertsAsMap() {
+        // removes leading and trailing whitespace, and any whitespace in between
+        return Splitter.on(",").withKeyValueSeparator("=").split(getRpcCerts());
+    }
+
+    /**
+     * Save the list of certs into the rpcCerts string, a csv.
+     * @param certs Map of certificates of nodes
+     */
+    public void setCertsAsMap(Map<String, String> certs) {
+        List<String> hosts = certs.entrySet().stream().map(e -> String.format("%s=%s", e.getKey(), e.getValue()))
+                .collect(Collectors.toList());
+        setRpcCerts(String.join(",", hosts));
+    }
 
 }

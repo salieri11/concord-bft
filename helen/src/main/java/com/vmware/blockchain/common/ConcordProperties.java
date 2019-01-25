@@ -43,7 +43,11 @@ public class ConcordProperties {
     @Value("${ConcordRpcUrls}")
     String concordRpcUrls;
     // parsed concordRpcUrls
-    Map<String, String> hostMap;
+    Map<String, String> concordRpcUrlsMap;
+    @Value("${ConcordRpcCerts}")
+    String concordRpcCerts;
+    // parsed concordRpcCerts
+    Map<String, String> concordRpcCertsMap;
 
     /**
      * Create a copy of the default ConcordProperties.
@@ -61,18 +65,39 @@ public class ConcordProperties {
      * This function splits such a string into a map of hostname to url.
      */
     public Map<String, String> getRpcUrlsAsMap() {
-        if (hostMap == null) {
+        if (concordRpcUrlsMap == null) {
             try {
-                hostMap = Splitter.on(",").withKeyValueSeparator("=").split(concordRpcUrls);
+                concordRpcUrlsMap = Splitter.on(",").withKeyValueSeparator("=").split(concordRpcUrls);
             } catch (IllegalArgumentException e) {
                 // swallow this exception: if the format was invalid, just don't expose URLs
                 Logger log = LoggerFactory.getLogger(ConcordProperties.class);
                 log.warn("Unable to parse concordRpcUrls", e);
 
-                // also set hostMap so we don't waste cycles re-evaluating this string
-                hostMap = new HashMap<String, String>();
+                // also set concordRpcUrlsMap so we don't waste cycles re-evaluating this string
+                concordRpcUrlsMap = new HashMap<String, String>();
             }
         }
-        return hostMap;
+        return concordRpcUrlsMap;
+    }
+
+    /**
+     * ConcordRpcCerts should be of the format:
+     *     hostname1=url1,hostname2=url2,...
+     * This function splits such a string into a map of hostname to url.
+     */
+    public Map<String, String> getRpcCertsAsMap() {
+        if (concordRpcCertsMap == null) {
+            try {
+                concordRpcCertsMap = Splitter.on(",").withKeyValueSeparator("=").split(concordRpcCerts);
+            } catch (IllegalArgumentException e) {
+                // swallow this exception: if the format was invalid, just don't expose URLs
+                Logger log = LoggerFactory.getLogger(ConcordProperties.class);
+                log.warn("Unable to parse concordRpcCerts", e);
+
+                // also set concordRpcCertsMap so we don't waste cycles re-evaluating this string
+                concordRpcCertsMap = new HashMap<String, String>();
+            }
+        }
+        return concordRpcCertsMap;
     }
 }

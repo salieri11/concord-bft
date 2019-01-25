@@ -4,6 +4,9 @@
 
 package com.vmware.blockchain.services.concord;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
@@ -13,30 +16,31 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.connections.ConcordConnectionPool;
-import com.vmware.blockchain.services.BaseServlet;
+import com.vmware.blockchain.connections.ConnectionPoolManager;
+import com.vmware.blockchain.services.ConcordServlet;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
+import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.concord.Concord;
 
 /**
  * Controller to get transaction lists.
  */
 @Controller
-public class TransactionList extends BaseServlet {
+public class TransactionList extends ConcordServlet {
 
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LogManager.getLogger(TransactionList.class);
     private final String transactionListEndpoint = Constants.TRANSACTION_LIST_ENDPOINT;
 
     @Autowired
-    public TransactionList(ConcordProperties config, ConcordConnectionPool concordConnectionPool) {
-        super(config, concordConnectionPool);
+    public TransactionList(ConnectionPoolManager connectionPoolManager, DefaultProfiles defaultProfiles) {
+        super(connectionPoolManager, defaultProfiles);
     }
 
     /**
@@ -45,8 +49,10 @@ public class TransactionList extends BaseServlet {
      * json for responding to the client.
      *
      */
-    @RequestMapping(path = "/api/concord/transactions", method = RequestMethod.GET)
+    @RequestMapping(path = {"/api/concord/transactions", "/api/blockchains/{id}/concord/transactions"},
+            method = RequestMethod.GET)
     public ResponseEntity<JSONAware> doGet(
+            @PathVariable(name = "id", required = false) Optional<UUID> id,
             @RequestParam(name = "latest", defaultValue = "", required = false) String latestHash,
             @RequestParam(name = "count", required = false, defaultValue = "-1") long count) {
         if (count == -1) {
@@ -66,11 +72,11 @@ public class TransactionList extends BaseServlet {
             concordRequest =
                     Concord.ConcordRequest.newBuilder().setTransactionListRequest(txListReqBuilder.build()).build();
 
-            return sendToConcordAndBuildHelenResponse(concordRequest);
+            return getHelper(id).sendToConcordAndBuildHelenResponse(concordRequest);
 
         } catch (Exception e) {
             logger.warn("Exception in transaction list", e);
-            return new ResponseEntity<>(ApiHelper.errorJson(e.getMessage()), standardHeaders, HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(ApiHelper.errorJson(e.getMessage()), HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -82,7 +88,7 @@ public class TransactionList extends BaseServlet {
      */
     @SuppressWarnings("unchecked")
     @Override
-    protected JSONAware parseToJson(Concord.ConcordResponse concordResponse) {
+    public JSONAware parseToJson(Concord.ConcordResponse concordResponse) {
         // Extract the transaction response from
         // the concord reponse envelope.
         Concord.TransactionListResponse txListResponse = concordResponse.getTransactionListResponse();

@@ -4,8 +4,8 @@
 # For example, if you want to bring up all of the system except for helen use
 # ./start_except.sh helen
 dont_start=${1}
-if [[  ! "$dont_start" =~ ^(concord|db|helen|ui|aux)$ ]]; then
-    echo "Usage: one of concord, db, helen, ui, aux"
+if [[  ! "$dont_start" =~ ^(concord|db|ethrpc|helen|ui|aux)$ ]]; then
+    echo "Usage: one of concord, db, ethrpc, helen, ui, aux"
     exit 1
 fi
 if [ $dont_start != "concord" ]; then
@@ -16,6 +16,11 @@ fi
 if [ $dont_start != "db" ]; then
 	echo "Starting db"
 	docker-compose -f docker-compose-db.yml up -d
+fi
+
+if [ $dont_start != "ethrpc" ]; then
+	echo "Starting ethrpc"
+	docker-compose -f docker-compose-ethrpc.yml up -d
 fi
 
 if [ $dont_start != "helen" ]; then

@@ -6,6 +6,8 @@ package com.vmware.blockchain.services.concord;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,28 +17,30 @@ import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.Constants;
-import com.vmware.blockchain.connections.ConcordConnectionPool;
-import com.vmware.blockchain.services.BaseServlet;
+import com.vmware.blockchain.connections.ConnectionPoolManager;
+import com.vmware.blockchain.services.ConcordControllerHelper;
+import com.vmware.blockchain.services.ConcordServlet;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
+import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.concord.Concord;
 
 /**
  * Servlet class.
  */
 @Controller
-public class BlockList extends BaseServlet {
+public class BlockList extends ConcordServlet {
     private static final long serialVersionUID = 1L;
     private Logger logger = LogManager.getLogger(BlockList.class);
 
     @Autowired
-    public BlockList(ConcordProperties config, ConcordConnectionPool concordConnectionPool) {
-        super(config, concordConnectionPool);
+    public BlockList(ConnectionPoolManager connectionPoolManager, DefaultProfiles defaultProfiles) {
+        super(connectionPoolManager, defaultProfiles);
     }
 
     /**
@@ -48,10 +52,14 @@ public class BlockList extends BaseServlet {
      * @param count Number of blocks expected
      */
     // ** - tells spring to match anything in path
-    @RequestMapping(method = RequestMethod.GET, path = "/api/concord/blocks")
+    @RequestMapping(method = RequestMethod.GET, path = {"/api/concord/blocks", "/api/blockchains/{id}/concord/blocks"})
     public ResponseEntity<JSONAware> getBlockList(
+            @PathVariable(name = "id", required = false) Optional<UUID> id,
             @RequestParam(name = "latest", defaultValue = "-1", required = false) long latest,
             @RequestParam(name = "count", required = false, defaultValue = "-1") long count) {
+
+        // get the helper
+        final ConcordControllerHelper helper = getHelper(id);
         // Construct a blocksListRequest object.
         Concord.BlockListRequest.Builder b = Concord.BlockListRequest.newBuilder();
         // If end is null, Concord assumes end is the latest block
@@ -71,7 +79,7 @@ public class BlockList extends BaseServlet {
         final Concord.ConcordRequest concordrequestObj =
                 Concord.ConcordRequest.newBuilder().setBlockListRequest(blocksListRequestObj).build();
 
-        return sendToConcordAndBuildHelenResponse(concordrequestObj);
+        return helper.sendToConcordAndBuildHelenResponse(concordrequestObj);
     }
 
     /**
@@ -80,9 +88,7 @@ public class BlockList extends BaseServlet {
      * @param concordResponse Protocol Buffer object containing Concord's reponse
      * @return Response in JSON format
      */
-    @SuppressWarnings("unchecked")
-    @Override
-    protected JSONAware parseToJson(Concord.ConcordResponse concordResponse) {
+    public JSONAware parseToJson(Concord.ConcordResponse concordResponse) {
         try {
             // Extract the blocklist response
             // from the concord reponse envelope.

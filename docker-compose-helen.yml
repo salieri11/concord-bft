@@ -4,3 +4,5 @@ services:
     image: "${helen_repo}:${helen_tag}"
     ports:
       - 8080:8080
+    volumes:
+      - ./concord/docker/config-helen:/config:ro

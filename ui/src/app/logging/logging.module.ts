@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2019 VMware, all rights reserved.
  */
 
 import { NgModule } from '@angular/core';
@@ -9,6 +9,8 @@ import { LoggingComponent } from './logging/logging.component';
 import { SharedModule } from '../shared/shared.module';
 import { LogDetailsComponent } from './log-details/log-details.component';
 import { GraphsModule } from '../graphs/graphs.module';
+import { ExportChartDataModalComponent } from './export-chart-data-modal/export-chart-data-modal.component';
+import { ExportLogEventsModalComponent } from './export-log-events-modal/export-log-events-modal.component';
 
 @NgModule({
   imports: [
@@ -16,7 +18,7 @@ import { GraphsModule } from '../graphs/graphs.module';
     SharedModule,
     GraphsModule
   ],
-  declarations: [LoggingComponent, LogDetailsComponent]
+  declarations: [LoggingComponent, LogDetailsComponent, ExportChartDataModalComponent, ExportLogEventsModalComponent]
 })
 export class LoggingModule { }
 

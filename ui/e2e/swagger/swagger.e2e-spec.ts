@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2019 VMware, all rights reserved.
  */
 
 import { browser } from 'protractor';
@@ -8,7 +8,7 @@ import { SwaggerPage } from './swagger.po';
 import { AuthHelper } from '../helpers/auth';
 import { LoginPage } from '../login/login.po';
 
-describe('concord-ui Smart Contracts', () => {
+describe('concord-ui Swagger Docs', () => {
   let authHelper: AuthHelper;
   let loginPage: LoginPage;
   let swaggerPage: SwaggerPage;
