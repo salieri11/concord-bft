@@ -7,6 +7,7 @@ services:
   helen:
     command:
       - java
+      - -Dspring.profiles.active=test
       - -jar
       - blockchain-helen.jar
       - --ConcordAuthorities=concord1:5458
