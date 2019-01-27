@@ -70,7 +70,7 @@ int main(int argc, char **argv) {
   const int16_t id = 4;
 
   // The number of operations to send during this run.
-  const int numOfOperations = 2800;
+  const int numOfOperations = 180000;
 
   // How often to read the latest value of the register (every `readMod` ops).
   const int readMod = 7;

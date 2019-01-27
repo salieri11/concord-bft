@@ -57,6 +57,8 @@ namespace bftEngine
 		protected:
 			ClientRequestMsgHeader* b() const
 			{
+				assert(msgBody_);
+				assert(msgSize_ < 30000);
 				return ((ClientRequestMsgHeader*)msgBody_);
 			}
 		};
