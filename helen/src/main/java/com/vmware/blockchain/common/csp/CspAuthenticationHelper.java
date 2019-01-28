@@ -76,7 +76,9 @@ public class CspAuthenticationHelper {
         // from CSP, and goes away on retry.
         SimpleRetryPolicy retryPolicy = new SimpleRetryPolicy(3);
         ExponentialBackOffPolicy backOffPolicy = new ExponentialBackOffPolicy();
-        backOffPolicy.setMaxInterval(TimeUnit.SECONDS.toMillis(61));
+        // Start with a two second timeout
+        backOffPolicy.setInitialInterval(TimeUnit.SECONDS.toMillis(2));
+        backOffPolicy.setMaxInterval(TimeUnit.SECONDS.toMillis(15));
         DefaultHttpRequestRetryInterceptor retry = new DefaultHttpRequestRetryInterceptor(retryPolicy, backOffPolicy,
                 Arrays.stream(HttpStatus.values()).filter(s -> !s.is5xxServerError()).collect(Collectors.toList()),
                 Collections.singletonList(HttpMethod.POST));
