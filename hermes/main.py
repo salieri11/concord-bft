@@ -13,14 +13,14 @@ from time import strftime, localtime
 
 from suites import (core_vm_tests, helen_api_tests, ext_rpc_tests,
                     kv_blockchain_tests, performance_tests, regression_tests,
-                    simple_st_test, ui_tests)
+                    simple_st_test, ui_tests, beerwars_tests)
 
 from util import html, json_helper
 
 log = None
 suites = ["CoreVMTests", "ExtendedRPCTests", "HelenAPITests",
           "PerformanceTests", "KVBlockchainTests", "RegressionTests",
-          "SimpleStateTransferTest", "UiTests",]
+          "SimpleStateTransferTest", "UiTests", "BeerWarsTests", ]
 
 def main():
    startTime = datetime.datetime.now()
@@ -73,6 +73,12 @@ def main():
                        default=1,
                        type=int,
                        help="Number of times to repeat test runs")
+   parser.add_argument("--endpoint",
+                       help="Endpoint for BeerWars tests")
+   parser.add_argument("--user",
+                       help="User name for BeerWars tests")
+   parser.add_argument("--password",
+                       help="Password for BeerWars tests")
    parser.add_argument("--baseUrl",
                        default="https://localhost/blockchains/local",
                        help="API sever base URL")
@@ -147,6 +153,8 @@ def createTestSuite(args):
       return performance_tests.PerformanceTests(args)
    elif (args.suite == "RegressionTests"):
       return regression_tests.RegressionTests(args)
+   elif (args.suite == "BeerWarsTests"):
+      return beerwars_tests.BeerWarsTests(args)
    elif (args.suite == "SimpleStateTransferTest"):
       return simple_st_test.SimpleStateTransferTest(args)
    elif (args.suite == "UiTests"):

@@ -6,12 +6,12 @@ package com.vmware.concord.ethrpc;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.HttpHeaders;
@@ -28,7 +28,6 @@ import com.vmware.concord.Concord.ConcordResponse;
 import com.vmware.concord.Concord.ErrorResponse;
 import com.vmware.concord.ConcordHelper;
 import com.vmware.concord.IConcordConnection;
-
 import com.vmware.concord.connections.ConcordConnectionPool;
 
 /**
@@ -138,17 +137,17 @@ public final class EthDispatcher {
      */
     @RequestMapping(path = "/", method = RequestMethod.GET)
     public ResponseEntity<JSONAware> doGet() {
-        MDC.put("organization_id", "1234");
-        MDC.put("consortium_id", "1234");
-        MDC.put("uri", "/");
-        MDC.put("source", "rpcList");
-        MDC.put("method", "GET");
+        ThreadContext.put("organization_id", "1234");
+        ThreadContext.put("consortium_id", "1234");
+        ThreadContext.put("uri", "/");
+        ThreadContext.put("source", "rpcList");
+        ThreadContext.put("method", "GET");
         if (rpcList == null) {
             logger.error("Configurations not read.");
             return new ResponseEntity<>(new JSONArray(), standardHeaders, HttpStatus.SERVICE_UNAVAILABLE);
         }
         logger.info("Request Eth RPC API list");
-        MDC.clear();
+        ThreadContext.clearAll();
         return new ResponseEntity<>(rpcList, standardHeaders, HttpStatus.OK);
     }
 
@@ -167,10 +166,10 @@ public final class EthDispatcher {
         boolean isBatch = false;
         ResponseEntity<JSONAware> responseEntity;
         // TODO change the organization_id and consortium_id to real ones in future
-        MDC.put("organization_id", "1234");
-        MDC.put("consortium_id", "1234");
-        MDC.put("method", "POST");
-        MDC.put("uri", "/");
+        ThreadContext.put("organization_id", "1234");
+        ThreadContext.put("consortium_id", "1234");
+        ThreadContext.put("method", "POST");
+        ThreadContext.put("uri", "/");
         try {
             logger.debug("Request Parameters: " + paramString);
 
@@ -205,7 +204,7 @@ public final class EthDispatcher {
             logger.error(ApiHelper.exceptionToString(e));
             responseBody = errorMessage(e.getMessage(), -1, jsonRpc);
         } finally {
-            MDC.clear();
+            ThreadContext.clearAll();
         }
         logger.debug("Response: " + responseBody.toJSONString());
         return new ResponseEntity<>(responseBody, standardHeaders, HttpStatus.OK);
@@ -233,9 +232,9 @@ public final class EthDispatcher {
         // the request
         try {
             ethMethodName = getEthMethodName(requestJson);
-            MDC.put("source", ethMethodName);
+            ThreadContext.put("source", ethMethodName);
             id = getEthRequestId(requestJson);
-            MDC.put("id", String.valueOf(id));
+            ThreadContext.put("id", String.valueOf(id));
             switch (ethMethodName) {
                 case Constants.SEND_TRANSACTION_NAME:
                 case Constants.SEND_RAWTRANSACTION_NAME:
