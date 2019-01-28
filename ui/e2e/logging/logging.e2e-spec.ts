@@ -7,6 +7,7 @@ import { browser, protractor, ProtractorExpectedConditions } from 'protractor';
 import { LoggingPage } from './logging.po';
 import { AuthHelper } from '../helpers/auth';
 import { LoginPage } from '../login/login.po';
+import { BROWSER_WAIT_TIME } from '../helpers/constants';
 
 describe('concord-ui Logging', () => {
   let authHelper: AuthHelper;
@@ -43,17 +44,15 @@ describe('concord-ui Logging', () => {
     // click the next page button
     expect(loggingPage.getLoadMoreButton().isEnabled()).toBe(true);
     loggingPage.getLoadMoreButton().click();
-    // expect the button to be disabled
-    expect(loggingPage.getLoadMoreButton().isEnabled()).toBe(false);
     // Once the button is enabled again, the count should be 40
     browser
-      .wait(until.elementToBeClickable(loggingPage.getLoadMoreButton()), 10000);
+      .wait(until.elementToBeClickable(loggingPage.getLoadMoreButton()), BROWSER_WAIT_TIME);
     expect(loggingPage.getLogItemRowCount()).toBe(40);
   });
 
   it('should load a different time series on selection', () => {
     // total count will be present after initial load
-    browser.wait(until.presenceOf(loggingPage.getTotalCount()), 10000);
+    browser.wait(until.presenceOf(loggingPage.getTotalCount()), BROWSER_WAIT_TIME);
     // expect x and y axis labels to be day and hour
     expect(loggingPage.getHeatMapXAxisLabelText()).toBe('Day');
     expect(loggingPage.getHeatMapYAxisLabelText()).toBe('Hour');
@@ -62,7 +61,7 @@ describe('concord-ui Logging', () => {
     expect(loggingPage.getSixHourTimeButton().isPresent()).toBe(true);
     loggingPage.getSixHourTimeButton().click();
     // after load, expect x and y axis labels to be hour and minute
-    browser.wait(until.presenceOf(loggingPage.getTotalCount()), 10000);
+    browser.wait(until.presenceOf(loggingPage.getTotalCount()), BROWSER_WAIT_TIME);
     browser.sleep(5000);
     expect(loggingPage.getHeatMapXAxisLabelText()).toBe('Hour');
     expect(loggingPage.getHeatMapYAxisLabelText()).toBe('Minute');

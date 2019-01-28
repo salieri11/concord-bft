@@ -40,4 +40,5 @@ export class LoggingPage {
   getTotalCount() {
     return element(by.css('.total-count-text'));
   }
+
 }
