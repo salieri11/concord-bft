@@ -9,12 +9,12 @@ import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.ThreadContext;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -149,17 +149,17 @@ public final class EthDispatcher extends ConcordServlet {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         UUID organizationId = profilesRegistryManager.getUserOrganizationIdWithEmail(userDetails.getUsername());
         UUID consortiumId = profilesRegistryManager.getUserConsortiumIdWithEmail(userDetails.getUsername());
-        MDC.put("organization_id", organizationId.toString());
-        MDC.put("consortium_id", consortiumId.toString());
-        MDC.put("uri", "/api/concord/eth");
-        MDC.put("source", "rpcList");
-        MDC.put("method", "GET");
+        ThreadContext.put("organization_id", organizationId.toString());
+        ThreadContext.put("consortium_id", consortiumId.toString());
+        ThreadContext.put("uri", "/api/concord/eth");
+        ThreadContext.put("source", "rpcList");
+        ThreadContext.put("method", "GET");
         if (rpcList == null) {
             logger.error("Configurations not read.");
             return new ResponseEntity<>(new JSONArray(), HttpStatus.SERVICE_UNAVAILABLE);
         }
         logger.info("Request Eth RPC API list");
-        MDC.clear();
+        ThreadContext.clearAll();
         return new ResponseEntity<>(rpcList, HttpStatus.OK);
     }
 
@@ -183,10 +183,10 @@ public final class EthDispatcher extends ConcordServlet {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         UUID organizationId = profilesRegistryManager.getUserOrganizationIdWithEmail(userDetails.getUsername());
         UUID consortiumId = profilesRegistryManager.getUserConsortiumIdWithEmail(userDetails.getUsername());
-        MDC.put("organization_id", organizationId.toString());
-        MDC.put("consortium_id", consortiumId.toString());
-        MDC.put("method", "POST");
-        MDC.put("uri", "/api/concord/eth");
+        ThreadContext.put("organization_id", organizationId.toString());
+        ThreadContext.put("consortium_id", consortiumId.toString());
+        ThreadContext.put("method", "POST");
+        ThreadContext.put("uri", "/api/concord/eth");
         try {
             logger.debug("Request Parameters: " + paramString);
 
@@ -221,7 +221,7 @@ public final class EthDispatcher extends ConcordServlet {
             logger.error(ApiHelper.exceptionToString(e));
             responseBody = errorMessage(e.getMessage(), -1, jsonRpc);
         } finally {
-            MDC.clear();
+            ThreadContext.clearAll();
         }
         logger.debug("Response: " + responseBody.toJSONString());
         return new ResponseEntity<>(responseBody, HttpStatus.OK);
@@ -250,9 +250,9 @@ public final class EthDispatcher extends ConcordServlet {
         // the request
         try {
             ethMethodName = getEthMethodName(requestJson);
-            MDC.put("source", ethMethodName);
+            ThreadContext.put("source", ethMethodName);
             id = getEthRequestId(requestJson);
-            MDC.put("id", String.valueOf(id));
+            ThreadContext.put("id", String.valueOf(id));
             switch (ethMethodName) {
                 case Constants.SEND_TRANSACTION_NAME:
                 case Constants.SEND_RAWTRANSACTION_NAME:
