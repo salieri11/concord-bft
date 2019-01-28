@@ -19,6 +19,7 @@
 #include <chrono>
 #include <mutex>
 #include <regex>
+#include <cassert>
 
 #include "boost/bind.hpp"
 #include <boost/asio.hpp>
@@ -88,6 +89,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
   IReceiver *_receiver = nullptr;
   function<void(NodeNum)> _fOnError = nullptr;
   function<void(NodeNum, ASYNC_CONN_PTR)> _fOnTlsReady = nullptr;
+  NodeNum _expectedDestId = AsyncTlsConnection::UNKNOWN_NODE_ID;
   NodeNum _destId = AsyncTlsConnection::UNKNOWN_NODE_ID;
   NodeNum _selfId;
   string _ip;
@@ -123,7 +125,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
       _maxMessageLength(bufferLength + MSG_HEADER_SIZE + 1),
       _fOnError(onError),
       _fOnTlsReady(onAuthenticated),
-      _destId(destId),
+      _expectedDestId(destId),
       _selfId(selfId),
       _connectTimer(*service),
       _connType(type),
@@ -183,7 +185,6 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
 
   void set_tls() {
     assert(_connType != ConnType::NotDefined);
-    _sslContext.set_verify_depth(0);
 
     if (ConnType::Incoming == _connType)
       set_tls_server();
@@ -243,7 +244,7 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
         fs::path(to_string(_selfId)) /
         "client";
     auto serverPath = fs::path(_certificatesRootFolder) /
-        fs::path(to_string(_destId)) /
+        fs::path(to_string(_expectedDestId)) /
         "server";
 
     _sslContext.set_verify_callback(
@@ -262,15 +263,10 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
 
   bool verify_certificate_server(bool preverified,
                                  boost::asio::ssl::verify_context &ctx) {
-    // here we dont need to check preverified value since it will be always
-    // false - we dont provide client's verification file in the ctx
-    // creation since we dont know which clients will connect to this node
-
     char subject[512];
     X509 *cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
     if (!cert) {
       LOG_ERROR(_logger, "no certificate from client");
-      //set_authenticated(false);
       return false;
     } else {
       X509_NAME_oneline(X509_get_subject_name(cert), subject, 512);
@@ -283,7 +279,6 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
           << ", authenticated: " << res);
       return res;
     }
-    //return is_authenticated();
   }
 
   bool verify_certificate_client(bool preverified,
@@ -292,22 +287,19 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
     X509 *cert = X509_STORE_CTX_get_current_cert(ctx.native_handle());
     if (!cert) {
       LOG_ERROR(_logger, "no certificate from server");
-      //set_authenticated(false);
       return false;
     } else {
       X509_NAME_oneline(X509_get_subject_name(cert), subject, 256);
       LOG_DEBUG(_logger,
                 "Verifying server: " << subject << ", " << preverified);
-//      set_authenticated(check_sertificate(
-//          cert, "server", string(subject), _destId));
-      bool res = check_sertificate(cert, "server", string(subject), _destId);
+
+      bool res = check_sertificate(
+        cert, "server", string(subject), _expectedDestId);
       LOG_DEBUG(_logger,
                 "Manual verifying server: " << subject
                 << ", authenticated: " << res);
       return res;
     }
-
-    //return is_authenticated();
   }
 
   /**
@@ -383,8 +375,13 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
 
     // this is actual comparison, compares hash of 2 certs
     int res = X509_cmp(receivedCert, localCert);
-    if(res == 0)
+    if(res == 0) {
+      if(_destId == AsyncTlsConnection::UNKNOWN_NODE_ID)
+        LOG_INFO(_logger, "connection authenticated, type: " << _connType
+          << "peer: " << remotePeerId);
+
       _destId = remotePeerId;
+    }
 
     X509_free(localCert);
     fclose(fp);
@@ -490,6 +487,8 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
     _socket.reset(new SSL_SOCKET(*_service, _sslContext));
 
     setTimeOut();
+    if(_fOnError)
+      _fOnError(_destId);
     connect(_ip, _port, _destIsReplica);
 
     LOG_TRACE(_logger,
@@ -797,10 +796,9 @@ class AsyncTlsConnection : public enable_shared_from_this<AsyncTlsConnection> {
     get_socket().set_option(o);
     _connected = true;
     _socket->async_handshake(boost::asio::ssl::stream_base::server,
-                             boost::bind(
-                                 &AsyncTlsConnection::on_handshake_complete_inbound,
-                                 this,
-                                 boost::asio::placeholders::error));
+      boost::bind(&AsyncTlsConnection::on_handshake_complete_inbound,
+                    this,
+                    boost::asio::placeholders::error));
   }
 
   void send(const char *data, uint32_t length) {
@@ -921,12 +919,12 @@ class TlsTCPCommunication::TlsTcpImpl {
   recursive_mutex _connectionsGuard;
 
   void on_async_connection_error(NodeNum peerId) {
-    LOG_ERROR(_logger, "on_async_connection_error, peerId: " << peerId);
+    LOG_DEBUG(_logger, "on_async_connection_error, peerId: " << peerId);
     lock_guard<recursive_mutex> lock(_connectionsGuard);
     if(_connections.find(peerId) != _connections.end())
       _connections.erase(peerId);
     else
-      LOG_ERROR(_logger, "on_async_connection_error, no key, peerId: " << peerId);
+      LOG_DEBUG(_logger, "on_async_connection_error, no key, peerId: " << peerId);
   }
 
   void on_connection_authenticated(NodeNum id, ASYNC_CONN_PTR conn) {
@@ -938,12 +936,12 @@ class TlsTCPCommunication::TlsTcpImpl {
     lock_guard<recursive_mutex> lock(_connectionsGuard);
     // probably bad replica?? TODO: think how to handle it in a better way
     // for now, just throw away both existing and a new one
-//    if(_connections.find(id) != _connections.end()) {
-//      LOG_ERROR(_logger, "new incoming connection with peer id that already "
-//                         "exists, destroying both, peer: " << id);
-//      _connections.erase(id);
-//      return;
-//    }
+    if(_connections.find(id) != _connections.end()) {
+      LOG_ERROR(_logger, "new incoming connection with peer id that already "
+                         "exists, destroying both, peer: " << id);
+      _connections.erase(id);
+      return;
+    }
 
     conn->setReceiver(id, _pReceiver);
     _connections.insert(make_pair(id, conn));
@@ -1053,7 +1051,6 @@ class TlsTCPCommunication::TlsTcpImpl {
                 _statusCallback,
                 nodes);
 
-        _connections.insert(make_pair(it->first, conn));
         string peerIp = it->second.ip;
         uint16_t peerPort = it->second.port;
         conn->connect(peerIp, peerPort, it->second.isReplica);
