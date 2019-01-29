@@ -115,7 +115,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
               ("block_filter_independence", self._test_block_filter_independence),
               ("block_filter_uninstall", self._test_block_filter_uninstall),
               ("eth_personal_newAccount", self._test_personal_newAccount),
-              ("eth_replay_protection", self._test_replay_protection)]
+              ("eth_replay_protection", self._test_replay_protection),
+              ("eth_fallback_function", self._test_fallback)]
 
    def _runRpcTest(self, testName, testFun, testLogDir):
       ''' Runs one test. '''
@@ -339,57 +340,85 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
    def _test_eth_sendRawContract(self, rpc, request):
       '''
-      Check that a raw transaction can create a contract
+      Check that a raw transaction can create a contract. For the contract in use,
+      please refer resources/contracts/Counter.sol for the detail.
       '''
 
-      # TODO: lookup current account nonce, and sign transaction with
-      # correct nonce. This currently uses a static nonce, and that
-      # means the test has to be run against an empty blockchain (or
-      # at least once that hasn't seen nonce 1 for this account
-      # before).
+      # Compiled abi & bin from contract resources/contracts/Counter.sol
+      contract_interface = {
+         "abi": "[{\"constant\":false,\"inputs\":[{\"name\":\"x\",\"type\":\"int256\"}],\"name\":\"decrementCounter\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"x\",\"type\":\"int256\"}],\"name\":\"incrementCounter\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"getCount\",\"outputs\":[{\"name\":\"\",\"type\":\"int256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"constructor\"},{\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"fallback\"}]",
+         "bin": "60806040526000805560e7806100166000396000f30060806040526004361060525763ffffffff7c0100000000000000000000000000000000000000000000000000000000600035041663645962108114605a5780639867b4aa146071578063a87d942c14607a575b6103e8600055005b348015606557600080fd5b50606f600435609e565b005b606f60043560aa565b348015608557600080fd5b50608c60b5565b60408051918252519081900360200190f35b60008054919091039055565b600080549091019055565b600054905600a165627a7a72305820388f79153f456193bb5fb284fa52a73de823a1add68bbf8bf11023fc527ad60d0029"
+      }
 
-      # Simple contract that returns 0x42 when called
-      rawTransaction = "0xf860800101800197600b80600c6000396000f300604260005260206000f30025a0b9f688baaf66a51d4965a526803499fb1688d6b6720086270e64fcd67cde2921a02cecc55e0200c831f01b00d46865fe7a89e8891ae5906821eb86609b022f44b2"
-      expectedHash = "0xa596153062e4d5bd7d51b797e0390b0caa310fd0af5c6f188981e7d98c4e2b63"
-      expectedFrom = "0xaf4be85b32868c5b7c121115ad8cd93e0ad4f14e"
-      expectedTo = "0xc2ddc84b30c43c090db2bd3a55a0fb0d8f0af208"
-      expectedValue = "1"
+      wallet = {
+         "address": "0000a12b3f3d6c9b0d3f126a83ec2dd3dad15f39",
+         "id": "30e15474-1056-4316-b3d9-d2942a1397d6",
+         "version": 3,
+         "crypto": {
+            "cipher": "aes-128-ctr",
+            "ciphertext": "47a0f60dab255972bf5bf7f6c57ad119e6e0018df05a997b277b54335736ac21",
+            "cipherparams": {"iv": "da55653a91e84b10043860bc3e995c47"},
+            "kdf": "scrypt",
+            "kdfparams": {"dklen": 32, "n": 262144, "p": 1, "r": 8,
+                          "salt": "5aeee57524423766d08c643fca8d23da655614465895d352c57b506130a05ac9"},
+            "mac": "4afa549ab91d0a3328df6b28ab62f723f30c699fa40848b1d75a15579b44aebc"
+         }
+      }
+      # Password to decrypt the wallet
+      password = "Test123456"
+      # will invoke incrementCounter founction, which will increase the counter to 1234
+      expectedCount = 1234
+      # 10wei (creating) + 10wei(function call)
+      expectedBalance = 20
 
-      txResult = rpc.sendRawTransaction(rawTransaction)
+      user = self._userConfig.get('product').get('db_users')[0]
+      web3 = Web3(HTTPProvider(self._apiServerUrl,
+                               request_kwargs={'auth': HTTPBasicAuth(user['username'], user['password']),
+                                               'verify': False}))
+
+      Counter = web3.eth.contract(abi=contract_interface['abi'], bytecode=contract_interface['bin'])
+      private_key = web3.eth.account.decrypt(wallet, password)
+      account = web3.eth.account.privateKeyToAccount(private_key)
+
+      # Currently, we can feed a contract when creating it
+      contract_tx = Counter.constructor().buildTransaction({
+         'from': account.address,
+         'nonce': web3.eth.getTransactionCount(account.address),
+         'gas': 2000000,
+         'gasPrice': web3.eth.gasPrice,
+         'value': 10
+      })
+      signed = web3.eth.account.signTransaction(contract_tx, private_key)
+      txResult = web3.eth.sendRawTransaction(signed.rawTransaction)
       if not txResult:
          return (False, "Transaction was not accepted")
-
-      # if this test is re-run on a cluster, we'll see a different
-      # hash (or an error once nonce tracking works); don't consider
-      # it an error for now
-      if not txResult == expectedHash:
-         log.warn("Receipt hash != expected hash. Was this run on an empty cluster?")
 
       if not self._productMode:
          log.warn("No verification done in ethereum mode")
       else:
-         tx = request.getTransaction(txResult)
+         hexstring = txResult.hex()
+         tx = web3.eth.getTransactionReceipt(hexstring)
          if not tx:
             return (False, "No transaction receipt found")
 
-         # This is the important one: it tells whether signature address
-         # recovery works.
-         if not tx["from"] == expectedFrom:
-            return (False, "Found from does not match expected from")
+         if not "contractAddress" in tx:
+            return (False, "Contract deployment failed.")
 
-         # The rest of these are just checking parsing.
-         if not "contract_address" in tx:
-            return (False, "No contract_address found. Was this run on an empty cluster?")
-         if not tx["contract_address"] == expectedTo:
-            return (False, "Found contract_address does not match expected contract_address")
-         if not tx["value"] == expectedValue:
-            return (False, "Found value does not match expected value")
+         # Test function in the contract, as incrementCounter is payable,
+         # we could pass ether to it
+         counter = web3.eth.contract(address=tx.contractAddress, abi=contract_interface["abi"])
+         counter.functions.incrementCounter(1234).transact({
+            'from': account.address,
+            'value': 10
+         })
 
-         callResult = rpc.callContract(tx["contract_address"])
+         count = counter.functions.getCount().call()
+         if not count == expectedCount:
+            return (False, "incrementCounter does not work, which means contract did not get deployed properly")
 
-         if not callResult == "0x0000000000000000000000000000000000000000000000000000000000000042":
-            return (False, "Contract did not return expected value")
-
+         balance = web3.eth.getBalance(tx.contractAddress)
+         if not balance == expectedBalance:
+            return (False, "Ether balance is incorrect, which means contract did not get deployed properly")
       return (True, None)
 
    def _test_eth_getBlockByNumber(self, rpc, request):
@@ -719,8 +748,10 @@ class ExtendedRPCTests(test_suite.TestSuite):
       :return:
       '''
       user_id = request.getUsers()[0]['user_id']
-      web3 = Web3(HTTPProvider(
-         'http://admin@blockchain.local:Admin!23@127.0.0.1:8080/api/concord/eth'))
+      user = self._userConfig.get('product').get('db_users')[0]
+      web3 = Web3(HTTPProvider(self._apiServerUrl,
+                               request_kwargs={'auth': HTTPBasicAuth(user['username'], user['password']),
+                                               'verify': False}))
       password = "123456"
       address = web3.personal.newAccount(password)
       wallet = request.getWallet(user_id, address[2:].lower())
@@ -741,7 +772,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if not self._productMode:
          log.warn("No verification done in ethereum mode")
       else:
-         hexstring = txResult.hex();
+         hexstring = txResult.hex()
          tx = request.getTransaction(hexstring)
          if not tx:
             return (False, "No transaction receipt found")
@@ -749,5 +780,91 @@ class ExtendedRPCTests(test_suite.TestSuite):
          # Note that the there is no leading '0x' for address in wallet
          if not tx["from"][2:] == wallet['address']:
             return (False, "Found from does not match expected from")
+
+      return (True, None)
+
+   def _test_fallback(self, rpc, request):
+      '''
+      Check that a contract's fallback function is called if the data passed in a transaction
+      does not match any of the other functions in the contract. For the contract in use,
+      please refer resources/contracts/Counter.sol for the detail.
+      '''
+
+      contract_interface = {
+         "abi": "[{\"constant\":false,\"inputs\":[{\"name\":\"x\",\"type\":\"int256\"}],\"name\":\"decrementCounter\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"name\":\"x\",\"type\":\"int256\"}],\"name\":\"incrementCounter\",\"outputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"function\"},{\"constant\":true,\"inputs\":[],\"name\":\"getCount\",\"outputs\":[{\"name\":\"\",\"type\":\"int256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"constructor\"},{\"payable\":true,\"stateMutability\":\"payable\",\"type\":\"fallback\"}]",
+         "bin": "60806040526000805560e7806100166000396000f30060806040526004361060525763ffffffff7c0100000000000000000000000000000000000000000000000000000000600035041663645962108114605a5780639867b4aa146071578063a87d942c14607a575b6103e8600055005b348015606557600080fd5b50606f600435609e565b005b606f60043560aa565b348015608557600080fd5b50608c60b5565b60408051918252519081900360200190f35b60008054919091039055565b600080549091019055565b600054905600a165627a7a72305820388f79153f456193bb5fb284fa52a73de823a1add68bbf8bf11023fc527ad60d0029"
+      }
+
+      wallet = {
+         "address": "0000a12b3f3d6c9b0d3f126a83ec2dd3dad15f39",
+         "id": "30e15474-1056-4316-b3d9-d2942a1397d6",
+         "version": 3,
+         "crypto": {
+            "cipher": "aes-128-ctr",
+            "ciphertext": "47a0f60dab255972bf5bf7f6c57ad119e6e0018df05a997b277b54335736ac21",
+            "cipherparams": {"iv": "da55653a91e84b10043860bc3e995c47"},
+            "kdf": "scrypt",
+            "kdfparams": {"dklen": 32, "n": 262144, "p": 1, "r": 8,
+                          "salt": "5aeee57524423766d08c643fca8d23da655614465895d352c57b506130a05ac9"},
+            "mac": "4afa549ab91d0a3328df6b28ab62f723f30c699fa40848b1d75a15579b44aebc"
+         }
+      }
+      # Password to decrypt the wallet
+      password = "Test123456"
+      # will trigger fallback function in this test, the fallback function will set the counter to 1000,
+      # please refer resouces/contracts/Counter.sol for detail
+      expectedCount = 1000
+
+      user = self._userConfig.get('product').get('db_users')[0]
+      web3 = Web3(HTTPProvider(self._apiServerUrl,
+                               request_kwargs={'auth': HTTPBasicAuth(user['username'], user['password']),
+                                               'verify': False}))
+
+      Counter = web3.eth.contract(abi=contract_interface['abi'], bytecode=contract_interface['bin'])
+      private_key = web3.eth.account.decrypt(wallet, password)
+      account = web3.eth.account.privateKeyToAccount(private_key)
+      contract_tx = Counter.constructor().buildTransaction({
+         'from': account.address,
+         'nonce': web3.eth.getTransactionCount(account.address),
+         'gas': 2000000,
+         'gasPrice': web3.eth.gasPrice,
+         'value': 10
+      })
+      signed = web3.eth.account.signTransaction(contract_tx, private_key)
+      txResult = web3.eth.sendRawTransaction(signed.rawTransaction)
+      if not txResult:
+         return (False, "Transaction was not accepted")
+
+
+      if not self._productMode:
+         log.warn("No verification done in ethereum mode")
+      else:
+         hexstring = txResult.hex()
+         tx = web3.eth.getTransactionReceipt(hexstring)
+         if not tx:
+            return (False, "No transaction receipt found")
+
+         if not "contractAddress" in tx:
+            return (False, "Contract deployment failed.")
+
+         # Trigger the fallback function, the passed 'data' does not match any
+         # function in the contract
+         counter = web3.eth.contract(address=tx.contractAddress, abi=contract_interface["abi"])
+         transaction = {
+            'from': account.address,
+            'to': tx.contractAddress,
+            'value': 0,
+            'gas': 2000000,
+            'gasPrice': web3.eth.gasPrice,
+            'nonce':  web3.eth.getTransactionCount(account.address),
+            'data': '0xff'}
+         signed = web3.eth.account.signTransaction(transaction, private_key)
+         txResult = web3.eth.sendRawTransaction(signed.rawTransaction)
+         if not txResult:
+            return (False, "Transaction was not accepted")
+
+         count = counter.functions.getCount().call()
+         if not count == expectedCount:
+            return (False, "Did not trigger fallback function")
 
       return (True, None)

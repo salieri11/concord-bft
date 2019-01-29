@@ -778,7 +778,7 @@ void com::vmware::concord::KVBCommandsHandler::recover_from(
          // trying not to decode the value, just to recode it, but if it's small
          // enough, we have to have special handling
          const std::string& value = request.value();
-         if (value.size() == 1 && value[0] <= 0x7f) {
+         if (value.size() == 1 && value[0] >= 0x00 && value[0] <= 0x7f) {
             // small value is represented by itself
             rlpb.add(value[0]);
          } else {

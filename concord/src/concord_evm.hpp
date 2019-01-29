@@ -105,6 +105,9 @@ public:
    ~EVM();
 
    /* Concord API */
+   void transfer_fund(evm_message &message,
+                 KVBStorage &kvbStorage,
+                 evm_result &result);
    evm_result run(evm_message &message,
                   uint64_t timestamp,
                   KVBStorage &kvbStorage,

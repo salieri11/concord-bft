@@ -11,6 +11,9 @@
     },
     "5bb088f57365907b1840e45984cae028a82af934": {
       "balance": "0xabcdef"
+    },
+    "0000a12b3f3d6c9b0d3f126a83ec2dd3dad15f39": {
+      "balance": "0x7fffffffffffffff"
     }
   },
   "nonce": "0x000000000000000",

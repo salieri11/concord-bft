@@ -57,6 +57,45 @@ com::vmware::concord::EVM::~EVM()
    LOG4CPLUS_INFO(logger, "EVM stopped");
 }
 
+void com::vmware::concord::EVM::transfer_fund(evm_message &message,
+                                    KVBStorage &kvbStorage,
+                                    evm_result &result)
+{
+   uint64_t transfer_val = from_evm_uint256be(&message.value);
+
+   try {
+      uint64_t sender_balance = kvbStorage.get_balance(message.sender);
+      uint64_t destination_balance =
+              kvbStorage.get_balance(message.destination);
+
+      if (!kvbStorage.account_exists(message.sender)) {
+         // Don't allow if source account does not exist.
+         result.status_code = EVM_FAILURE;
+         LOG4CPLUS_INFO(logger, "Source account with address "
+                 << message.sender << ", does not exist.");
+      } else if (sender_balance < transfer_val) {
+         // Don't allow if source account has insufficient balance.
+         result.status_code = EVM_FAILURE;
+         LOG4CPLUS_INFO(logger, "Account with address " << message.sender
+         << ", does not have sufficient funds (" << sender_balance << ").");
+      } else {
+         kvbStorage.set_balance(message.destination,
+                                destination_balance += transfer_val);
+         kvbStorage.set_balance(message.sender,
+                                sender_balance -= transfer_val);
+         result.status_code = EVM_SUCCESS;
+         LOG4CPLUS_INFO(logger, "Transferred  " << transfer_val <<
+         " units to: " << message.destination <<
+         " (" << destination_balance << ")" <<
+         " from: " << message.sender <<
+         " (" << sender_balance << ")");
+      }
+   } catch (...) {
+      LOG4CPLUS_DEBUG(logger, "Failed to decode balances");
+      result.status_code = EVM_FAILURE;
+   }
+}
+
 /**
  * Run a contract, or just transfer value if the destination is not a
  * contract. Calling a contract can either be done with 'call' method or with
@@ -86,6 +125,12 @@ evm_result com::vmware::concord::EVM::run(evm_message &message,
 
       try {
          result = execute(message, timestamp, kvbStorage, evmLogs, code);
+         if (result.status_code == EVM_SUCCESS) {
+            uint64_t transfer_val = from_evm_uint256be(&message.value);
+            if (transfer_val > 0) {
+               transfer_fund(message, kvbStorage, result);
+            }
+         }
       } catch (EVMException e) {
          LOG4CPLUS_ERROR(logger,
                          "EVM execution exception: '" << e.what() << "'. "
@@ -97,43 +142,7 @@ evm_result com::vmware::concord::EVM::run(evm_message &message,
       memset(&result, 0, sizeof(result));
 
       if (!kvbStorage.is_read_only()) {
-         uint64_t transfer_val = from_evm_uint256be(&message.value);
-
-         try {
-            uint64_t sender_balance = kvbStorage.get_balance(message.sender);
-            uint64_t destination_balance =
-               kvbStorage.get_balance(message.destination);
-
-            // Don't allow if source account does not exist.
-            if (!kvbStorage.account_exists(message.sender)) {
-               result.status_code = EVM_FAILURE;
-               LOG4CPLUS_INFO(logger, "Source account with address "
-                              << message.sender << ", does not exist.");
-            }
-
-            // Don't allow if source account has insufficient balance.
-            else if (sender_balance < transfer_val) {
-               result.status_code = EVM_FAILURE;
-               LOG4CPLUS_INFO(logger,
-                              "Account with address " << message.sender <<
-                              ", does not have sufficient funds (" <<
-                              sender_balance << ").");
-            }
-
-            else {
-               kvbStorage.set_balance(message.destination,
-                                      destination_balance += transfer_val);
-               kvbStorage.set_balance(message.sender,
-                                      sender_balance -= transfer_val);
-               result.status_code = EVM_SUCCESS;
-               LOG4CPLUS_DEBUG(logger, "Transferred  " << transfer_val <<
-                               " units to: " << message.destination <<
-                               " from: " << message.sender);
-            }
-         } catch (...) {
-            LOG4CPLUS_DEBUG(logger, "Failed to decode balances");
-            result.status_code = EVM_FAILURE;
-         }
+         transfer_fund(message, kvbStorage, result);
       } else {
          LOG4CPLUS_DEBUG(logger,
                          "Balance transfer attempted in read-only mode.");
@@ -188,6 +197,12 @@ evm_result com::vmware::concord::EVM::create(evm_address &contract_address,
                              result.output_data,
                              result.output_size);
 
+         // users could transfer ether to the new created contract if the value
+         // is specified.
+         uint64_t transfer_val = from_evm_uint256be(&message.value);
+         if (transfer_val > 0) {
+            transfer_fund(message, kvbStorage, result);
+         }
 
          // There is a bug (either in evmjit or in our usage of evm) which
          // causes nested contract creation calls to give segmentation
