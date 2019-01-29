@@ -16,9 +16,26 @@ public class HelenException extends RuntimeException {
     private final String message;
     private final HttpStatus httpStatus;
 
+    /**
+     * Create a new Helen Exception.
+     */
     public HelenException(String message, HttpStatus httpStatus) {
+        super(message);
         this.message = message;
         this.httpStatus = httpStatus;
+    }
+
+    public HelenException(String message) {
+        this(message, HttpStatus.valueOf(500));
+    }
+
+    /**
+     * Create a Helen Exception, and not the original cause.
+     */
+    public HelenException(String message, Throwable cause) {
+        super(message, cause);
+        this.message = message;
+        this.httpStatus = HttpStatus.valueOf(500);
     }
 
     @Override

@@ -4,13 +4,15 @@
 
 package com.vmware.blockchain.common.restclient;
 
+import com.vmware.blockchain.common.HelenException;
+
 import lombok.Getter;
 
 /**
  * Base exception class for Oauth2 common utility exceptions.
  * This class is for external - and requires an errorCode as a string.
  */
-public class RestClientException extends RuntimeException {
+public class RestClientException extends HelenException {
 
     private static final long serialVersionUID = 1L;
 
@@ -27,7 +29,9 @@ public class RestClientException extends RuntimeException {
      */
     public RestClientException(String errorCodeValue, String... args) {
         // Set the parsed error message (if possible) or at least the error code.
+        super(errorCodeValue);
         this.errorCodeValue = errorCodeValue;
+        this.errorParams = args;
     }
 
     /**

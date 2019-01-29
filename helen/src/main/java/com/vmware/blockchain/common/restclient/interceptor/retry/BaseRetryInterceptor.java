@@ -67,7 +67,7 @@ public abstract class BaseRetryInterceptor implements ClientHttpRequestIntercept
                 logger.info("failure on {} status {}", cleanQueryParams(request.getURI()), ex.getMessage());
                 throw new RestClientException("An internal error has occurred. Please retry again later");
             }
-            if (isSuccessFul(response)) {
+            if (isSuccessful(response)) {
                 // Log only if the call succeeded after retries.
                 if (context.getRetryCount() > 0) {
                     logger.info("{} on endpoint {} succeeded after {} retries", request.getMethod(),
@@ -92,7 +92,7 @@ public abstract class BaseRetryInterceptor implements ClientHttpRequestIntercept
 
     protected abstract boolean shouldRetry(HttpRequest request);
 
-    protected abstract boolean isSuccessFul(ClientHttpResponse response) throws IOException;
+    protected abstract boolean isSuccessful(ClientHttpResponse response) throws IOException;
 
     /**
      * Sanitizes the url and removes all query params. For example if the following url

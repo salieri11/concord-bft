@@ -93,7 +93,7 @@ public class DefaultHttpRequestRetryInterceptor extends BaseRetryInterceptor {
     }
 
     @Override
-    protected boolean isSuccessFul(ClientHttpResponse response) throws IOException {
+    protected boolean isSuccessful(ClientHttpResponse response) throws IOException {
         return this.successStatuses.contains(response.getStatusCode());
     }
 
