@@ -47,6 +47,23 @@ services:
       - ./config-concord2:/concord/config-local
       - ./config-public:/concord/config-public:ro
 
+  ethrpc2:
+    image: "${ethrpc_repo}:${ethrpc_tag}"
+    ports:
+      - 8546:8545
+    volumes:
+      - ./config-ethrpc2:/config:ro
+    command:
+      - java
+      - -jar
+      - concord-ethrpc.jar
+      - --ConcordAuthorities=concord2:5458
+      - --security.require-ssl=true
+      - --server.ssl.key-store-type=PKCS12
+      - --server.ssl.key-store=/config/keystore.p12
+      - '--server.ssl.key-store-password=Ethrpc!23'
+      - --server.ssl.key-alias=ethrpc
+
   concord3:
     image: "${concord_repo}:${concord_tag}"
     expose:
@@ -62,6 +79,23 @@ services:
       - ./config-concord3:/concord/config-local
       - ./config-public:/concord/config-public:ro
 
+  ethrpc3:
+    image: "${ethrpc_repo}:${ethrpc_tag}"
+    ports:
+      - 8547:8545
+    volumes:
+      - ./config-ethrpc3:/config:ro
+    command:
+      - java
+      - -jar
+      - concord-ethrpc.jar
+      - --ConcordAuthorities=concord3:5458
+      - --security.require-ssl=true
+      - --server.ssl.key-store-type=PKCS12
+      - --server.ssl.key-store=/config/keystore.p12
+      - '--server.ssl.key-store-password=Ethrpc!23'
+      - --server.ssl.key-alias=ethrpc
+
   concord4:
     image: "${concord_repo}:${concord_tag}"
     expose:
@@ -76,6 +110,23 @@ services:
       - ./log4:/concord/log
       - ./config-concord4:/concord/config-local
       - ./config-public:/concord/config-public:ro
+
+  ethrpc4:
+    image: "${ethrpc_repo}:${ethrpc_tag}"
+    ports:
+      - 8548:8545
+    volumes:
+      - ./config-ethrpc4:/config:ro
+    command:
+      - java
+      - -jar
+      - concord-ethrpc.jar
+      - --ConcordAuthorities=concord4:5458
+      - --security.require-ssl=true
+      - --server.ssl.key-store-type=PKCS12
+      - --server.ssl.key-store=/config/keystore.p12
+      - '--server.ssl.key-store-password=Ethrpc!23'
+      - --server.ssl.key-alias=ethrpc
 
   helen:
     image: "${helen_repo}:${helen_tag}"
