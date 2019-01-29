@@ -50,7 +50,7 @@ services:
   ethrpc2:
     image: "${ethrpc_repo}:${ethrpc_tag}"
     ports:
-      - 8546:8546
+      - 8546:8545
     volumes:
       - ./config-ethrpc2:/config:ro
     command:
@@ -82,7 +82,7 @@ services:
   ethrpc3:
     image: "${ethrpc_repo}:${ethrpc_tag}"
     ports:
-      - 8547:8547
+      - 8547:8545
     volumes:
       - ./config-ethrpc3:/config:ro
     command:
@@ -114,7 +114,7 @@ services:
   ethrpc4:
     image: "${ethrpc_repo}:${ethrpc_tag}"
     ports:
-      - 8548:8548
+      - 8548:8545
     volumes:
       - ./config-ethrpc4:/config:ro
     command:
