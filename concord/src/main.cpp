@@ -125,6 +125,7 @@ Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
 
    std::map<evm_address, uint64_t> genesis_acts = params.get_initial_accounts();
    uint64_t nonce = 0;
+   uint64_t chainID = params.get_chainID();
    for (std::map<evm_address,uint64_t>::iterator it = genesis_acts.begin();
 	it != genesis_acts.end();
 	++it) {
@@ -146,7 +147,7 @@ Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
          std::vector<EthLog>(),  // logs
          zero_hash,              // sig_r (no signature for genesis)
          zero_hash,              // sig_s (no signature for genesis)
-         0                       // sig_v TODO: chain ID?
+         (chainID * 2 + 35)      // sig_v
       };
       evm_uint256be txhash = tx.hash();
       LOG4CPLUS_INFO(logger, "Created genesis transaction " << txhash <<
@@ -192,6 +193,7 @@ int
 run_service(variables_map &opts, Logger logger)
 {
    EVMInitParams params;
+   uint64_t chainID;
 
    try {
       // If genesis block option was provided then read that so
@@ -201,6 +203,7 @@ run_service(variables_map &opts, Logger logger)
          LOG4CPLUS_INFO(logger, "Reading genesis block from " <<
                         genesis_file_path);
          params = EVMInitParams(genesis_file_path);
+         chainID = params.get_chainID();
       } else {
          LOG4CPLUS_WARN(logger, "No genesis block provided");
       }
@@ -288,7 +291,8 @@ run_service(variables_map &opts, Logger logger)
                             endpoint,
                             pool,
                             sag,
-                            gasLimit);
+                            gasLimit,
+                            chainID);
 
       signal(SIGINT, signalHandler);
 
