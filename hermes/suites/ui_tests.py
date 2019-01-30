@@ -98,14 +98,12 @@ class UiTests(test_suite.TestSuite):
 
         with open(logFilePath, "wb+") as logFile:
             proc_output = subprocess.run(cmd,
-                                         stdout=logFile and subprocess.PIPE,
+                                         stdout=logFile,
                                          stderr=subprocess.STDOUT,
                                          cwd=self.ui_path, )
 
-        if proc_output.returncode == 1:
-            log.info(proc_output.stdout.decode('UTF-8'))
-            return False, "UI Unit tests failed, please see {}".format(
-                logFilePath)
+        if proc_output.returncode != 0:
+            return False, "UI Unit tests failed, please see {}".format(logFilePath)
 
         return True, "UI unit tests passed"
 
@@ -114,14 +112,12 @@ class UiTests(test_suite.TestSuite):
         logFilePath = os.path.join(self._testCaseDir, "e2e.log")
         with open(logFilePath, "wb+") as logFile:
             proc_output = subprocess.run(cmd,
-                                         stdout=logFile and subprocess.PIPE,
+                                         stdout=logFile,
                                          stderr=subprocess.STDOUT,
                                          cwd=self.ui_path, )
 
-        if proc_output.returncode == 1:
-            log.info(proc_output.stdout.decode('UTF-8'))
-            return False, "UI E2E tests failed, please see {}".format(
-                logFilePath)
+        if proc_output.returncode != 0:
+            return False, "UI E2E tests failed, please see {}".format(logFilePath)
 
         return True, "UI E2E passed"
 
@@ -131,13 +127,11 @@ class UiTests(test_suite.TestSuite):
 
         with open(logFilePath, "wb+") as logFile:
             proc_output = subprocess.run(cmd,
-                                         stdout=logFile and subprocess.PIPE,
+                                         stdout=logFile,
                                          stderr=subprocess.STDOUT,
                                          cwd=self.ui_path, )
 
-        if proc_output.returncode == 1:
-            log.info(proc_output.stdout.decode('UTF-8'))
-            return False, "UI E2E tests failed, please see {}".format(
-                logFilePath)
+        if proc_output.returncode != 0:
+            return False, "UI linter failed, please see {}".format(logFilePath)
 
         return True, "UI linter passed"
