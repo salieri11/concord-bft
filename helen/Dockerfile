@@ -31,6 +31,7 @@ LABEL description="Blockchain Management Service (Helen)"
 
 WORKDIR /helen
 COPY ./helen/src/main/resources/application.properties ./application.properties
+COPY ./helen/src/main/resources/database/schema.sql ./db-schema.sql
 COPY --from=0 ./helen/target/blockchain-helen*.jar ./blockchain-helen.jar
 
 # prepare for docker-compose, where concord is available from a virtual
