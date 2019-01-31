@@ -304,6 +304,7 @@ EOF
               script {
                 env.test_log_root = new File(env.WORKSPACE, "testLogs").toString()
                 env.ui_test_logs = new File(env.test_log_root, "UI").toString()
+                env.beerwars_test_logs = new File(env.test_log_root, "BeerWars").toString()
                 env.core_vm_test_logs = new File(env.test_log_root, "CoreVM").toString()
                 env.helen_api_test_logs = new File(env.test_log_root, "HelenAPI").toString()
                 env.extended_rpc_test_logs = new File(env.test_log_root, "ExtendedRPC").toString()
@@ -319,6 +320,7 @@ EOF
                 echo "${PASSWORD}" | sudo -S rm -rf ../concord/docker/cockroachDB
                 ./main.py UiTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${ui_test_logs}"
 
+                echo "${PASSWORD}" | sudo -S ./main.py BeerWarsTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${beerwars_test_logs}"
                 echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${core_vm_test_logs}"
                 echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${helen_api_test_logs}"
                 echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"
