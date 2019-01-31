@@ -1,34 +1,44 @@
 # Ethereum RPC Handler (ethrpc)
 
-This Athena sub-project is a service to translate Ethereum JSON RPC
+This Blockchain sub-project is a service to translate Ethereum JSON RPC
 requests into Concord requests. It is referred to in various places as
 "the RPC Stub".
 
 ## Building
 
+Please see [../README.md](README.md) in the parent directory for how
+to build docker images. The rest of this section explains how to build
+EthRPC natively, which can be useful for debugging.
+
 Ethrpc depends on the communication module, so you should have built
-[../communication] before this.
+(../communication) before this.
 
 Ethrpc is built using mvn:
 
 ```
-mvn clean install
-```
-
-After that, bundle it into a docker image:
-
-```
-# in the ethrpc directory
-docker build . -t ethrpc:latest
+mvn clean package
 ```
 
 ## Running
 
-One "ethrpc1" service is attached to concord1 in
-[../concord/docker/docker-compose.yml]. Use `docker-compose up` in
-[../concord/docker], or use the `../start-except.sh` script to bring
-it up. Note that the required SSL settings (discussed in the next
-section) are configured via the service command in docker-compose.yml.
+Please see [../README.md](README.md) for instructions on using
+docker-compose to launch EthRPC in tandem with concord nodes. The rest
+of this section explains how to launch EthRPC directly for debugging
+purposes.
+
+An EthRPC process connects to exactly one Concord node. Launch EthRPC
+to connect to your chosen Concord node by specifying that node as the
+`ConcordAuthorities` property. For example, to connect to Concord on
+`localhost` and port `5458`, use:
+
+```
+java -jar target/concord-ethrpc*.jar --ConcordAuthorities=localhost:5458
+```
+
+Without the SSL properties found in
+(../concord/docker/docker-compose.yml), EthRPC will expose its API
+over unencrypted HTTP. See the examples in the docker-compose
+definition for how to launch EthRPC with its API exposed over HTTPS.
 
 ## SSL
 

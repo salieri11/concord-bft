@@ -56,9 +56,9 @@
               "--log-file=/tmp/valgrind_concord1.log",
               "src/concord",
               "--logger_config",
-              "./resources/log4cplus.properties",
+              "./test/resources/log4cplus.properties",
               "-c",
-              "resources/concord1.config"
+              "test/resources/concord1.config"
             ]
           }
         }
@@ -70,9 +70,9 @@
             "launchCommand": "src/concord",
             "parameters": [
               "--logger_config",
-              "./resources/log4cplus.properties",
+              "./test/resources/log4cplus.properties",
               "-c",
-              "resources/concord2.config"
+              "test/resources/concord2.config"
             ]
           }
         }
@@ -84,9 +84,9 @@
             "launchCommand": "src/concord",
             "parameters": [
               "--logger_config",
-              "./resources/log4cplus.properties",
+              "./test/resources/log4cplus.properties",
               "-c",
-              "resources/concord3.config"
+              "test/resources/concord3.config"
             ]
           }
         }
@@ -98,9 +98,9 @@
             "launchCommand": "src/concord",
             "parameters": [
               "--logger_config",
-              "./resources/log4cplus.properties",
+              "./test/resources/log4cplus.properties",
               "-c",
-              "resources/concord4.config"
+              "test/resources/concord4.config"
             ]
           }
         }

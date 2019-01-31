@@ -1,5 +1,5 @@
 # hermes
-Hermes is the repository for the VMware Athena project's testing framework.
+Hermes is the testing framework for VMW Blockchain.
 
 ## Goals:
 - Tests are run from the hermes project.
@@ -56,7 +56,7 @@ Hermes is the repository for the VMware Athena project's testing framework.
   Then adjust the path to it in resources/user_config.json.
 
 ## Running a test suite:
-- Build the product into docker images. See the readme files for the appropriate components.
+- Build the product into docker images. See (../README.md) for instructions.
 - Run `./main.py CoreVMTests`
 - Hermes will use docker-compose to launch the product. The default tag it tries to look for is
   \<component\>:latest.

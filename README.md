@@ -4,10 +4,20 @@ This is the code for the VMware blockchain. It is broken into a few
 components:
 
  * Concord: the blockchain replica node
- * Helen: the UI and API server
+ * EthRPC: a translator from Web3 JSON RPC to Concord protobuf
+ * Helen: the API server
  * Hermes: the integration test framework
+ * UI: the browser-based UI for interacting with Helen
 
-## Building
+## Skipping the Build
+
+If you want to experiment with VMW Blockchain without building the
+components yourself, please use the instructions found on (the Docker
+page of the Blockchain Confluence
+site)[https://confluence.eng.vmware.com/display/BLOC/Docker] to use
+pre-built images produced by our CI/CD pipeline.
+
+## Building via Docker
 
 The easiest way to use this system is via docker. Please install the
 (community edition)[https://www.docker.com/community-edition]. If you
@@ -15,25 +25,7 @@ are running linux, you will also need to install
 (docker-compose)[https://docs.docker.com/compose/install/]. If you're
 running Mac OS or Windows, docker-compose was installed with docker.
 
-You will need to build images for both helen and concord.
-
-> Note:
-> For all Java and Maven-related build steps, it is possible to
-> utilize Docker to build without installing any toolchain apriori.
-> For more details see: *Alternative Build Steps for Maven-built
-> Components*.
-
-### Building Helen
-
-Helen can be built directly in a docker container (note the command
-is run from the same directory as this README, and *not* from the
-`helen` subdirectory):
-
-```
-blockchain$ docker build . -f helen/Dockerfile -t helen:latest
-```
-
-### Building Concord
+### Building Concord via Docker
 
 *Note*: If you did not include `--recursive` or `--recurse-submodules`
 in your original git-clone instruction, you will need to run
@@ -49,7 +41,7 @@ is run from the same directory as this README, and *not* from the
 blockchain$ docker build -f concord/Dockerfile . -t concord:latest
 ```
 
-### Building EthRPC
+### Building EthRPC via Docker
 
 EthRPC can be built directly in a docker container (note the command
 is run from the same directory as this README, and *not* from the
@@ -59,7 +51,40 @@ is run from the same directory as this README, and *not* from the
 blockchain$ docker build . -f ethrpc/Dockerfile -t ethrpc:latest
 ```
 
-### Alternative Build Steps for Maven-build Components
+### Building Helen via Docker
+
+Helen can be built directly in a docker container (note the command
+is run from the same directory as this README, and *not* from the
+`helen` subdirectory):
+
+```
+blockchain$ docker build . -f helen/Dockerfile -t helen:latest
+```
+
+### Building Hermes via Docker
+
+Hermes does not need to be built before being used. See notes later
+for how to use Hermes to test your images.
+
+### Building UI via Docker
+
+UI can be built directly in a docker container (note the command is
+run from the same directory as this README, and *not* from the `ui`
+subdirectory):
+
+```bash
+docker build ui -f ui/Dockerfile -t ui:latest
+```
+
+### Building Natively
+
+Each component can also be built outside of Docker. For instructions
+on how to do this, please see the README file in each project
+subdirectory. For the Java-based subprojects, the following
+"Alternative" instructions for using a dockerized Maven can also be
+helpful.
+
+#### Alternative Build Steps for Maven-build Components
 
 The easiest way to build all Maven-build components (currently
 `communication`, `ethrpc`, and `helen`) without installing any

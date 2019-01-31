@@ -1,29 +1,33 @@
-# VMware Project Concord UI and API
+# VMware Blockchain SaaS API
 
-Helen is Concord's inter*face to launch a thousand* requests. This
-repository will be the home of the API server for Project
-Concord. Helen is a Java Undertow server which invokes different
-servlets for different apis. Note : Helen will run on port 8080 of
-localhost by default.
+Helen is VMW Blockchain's SaaS interface. It exposes APIs for managing
+blockchain deployments.
+
+## Building
+
+Please see [../README.md](README.md) in the parent directory for how
+to build docker images, which is the normal way to build Helen. The
+rest of this section explains how to build Helen natively, which can
+be useful for debugging.
 
 ### Prerequisites
 
-[Java 8](http://www.oracle.com/technetwork/java/javase/downloads/jre8-downloads-2133155.html)
+[Java 11](https://www.oracle.com/technetwork/java/javase/downloads/jdk11-downloads-5066655.html)
 
 [Maven](https://www.rosehosting.com/blog/how-to-install-maven-on-ubuntu-16-04/)
 
-[Concord](https://github.com/vmwathena/athena)
-
-[Solidity compiler](http://solidity.readthedocs.io/en/v0.4.24/installing-solidity.html)
-Install solidity compiler (`solc`) with version >= 0.4.20
+[Solidity compiler](https://solidity.readthedocs.io/en/v0.5.2/installing-solidity.html)
+Install solidity compiler (`solc`) with version >= 0.5.2
 
 [CockroachDB](https://www.cockroachlabs.com/docs/stable/install-cockroachdb.html)
-Install cockroachDB on the same machine as helen. A simple configuration guide for CockroachDB is provided in `cockroachdb_setup.md`.
+Install cockroachDB on the same machine as helen. A simple
+configuration guide for CockroachDB is provided in
+`cockroachdb_setup.md`.
 
 [Protocol Buffers v2.x](https://developers.google.com/protocol-buffers/docs/proto)
 
 
-### macOS Setup
+#### macOS Setup
 
 Install Java from the link above in the prerequisites, but maven can
 be installed via brew.
@@ -39,93 +43,37 @@ export DYLD_LIBRARY_PATH=/usr/local/Cellar/boost/1.66.0/lib:$DYLD_LIBRARY_PATH
 export DYLD_LIBRARY_PATH=/usr/local/Cellar/protobuf@2.5/2.5.0/lib:$DYLD_LIBRARY_PATH
 ```
 
-### Buiding and running the UI
+#### Communication
 
-You will need Node installed to build the UI. The project targets the
-current LTS version of Node (8.9.x). You can install Node directly, or
-by using NVM.
-
-If you are not utilizing NVM, please skip any commands that reference it.
-
-Before completing any of the following commands, make sure you are in
-the webapp/ directory and have the correct version of Node activated:
-
-```
-cd webapp/
-nvm use
-```
-
-Also required is the Angular CLI, which currently handles asset
-compilation, component generation, and provides a local development
-server. Install using the following commands:
-
-```
-npm install -g @angular/cli
-```
-
-Install all dependencies through NPM.
-
-```
-npm install
-```
-
-Build and copy the UI in development mode to the src/main/resources/static
-directory
-for use on a locally running server:
-
-```
-npm run build:local:dev
-```
-
-Build and copy the UI in production mode to the src/main/resources/static directory
-for use on a locally running server:
-
-```
-npm run build:local:prod
-```
-
-Start the UI in watch mode, typically used for local development. This will:
-
-    Start a server listening on http://localhost:4200 to deliver the UI assets.
-
-    Proxy all API requests to an existing Helen server. Edit webapp/proxy.conf.json and make sure target matches your desired server and port.
-
-    Watch for file changes under the webapp/ and compile automatically.
-
-```
-npm start
-```
+Helen depends on the the communication module, so you should have built
+(../communication) before this.
 
 ### Building and Running Helen
 
- * [Run Concord](https://github.com/vmwathena/athena).
+ * [Run Concord](../concord).
+
+ * Setup CockroachDB
+
+```
+cockroach user set helen_admin --insecure
+cockroach sql --insecure < src/main/resources/database/schema.sql
+```
 
  * Install dependencies and build using maven.
 
    To build only with unit tests (No Concord instance is needed) :
-```
-mvn clean install
-```
 
-   To build with unit and integration tests : (Concord must be running for this)
 ```
-mvn clean install -DskipIntegrationTests=false
-```
-
-   To build without rebuilding the UI :
-```
-mvn clean install -Dskip.npm
+mvn clean package
 ```
 
  * Run the server
 
 ```
-java -jar helen-1.0-SNAPSHOT-jar-with-dependencies.jar
+java -jar blockchain-helen*.jar
 ```
 
 ### API
-
- * `/assets/*` - Used to serve static content from src/main/resources/static/assets
 
  * `/api/` - Used to return a list of all other APIs serviced
 
@@ -133,58 +81,3 @@ java -jar helen-1.0-SNAPSHOT-jar-with-dependencies.jar
    [swagger](https://github.com/vmwathena/helen/blob/master/webapp/src/static/swagger/swagger.json))
 
  * `/*` - Used to serve content from src/main/resources/static/index.html
-
-### Using the UI
-
- * Point your browser to localhost:8080 to load the dashboard.
-
- * Point your browser to localhost:8080/docs/api to load the
-   swagger UI.
-
-### Configurations
-
-Server and servlet configurations are stored in a key-value format in
-[config.properties](https://github.com/vmwathena/helen/blob/master/config.properties).
-Note : Helen needs to be restarted if any changes are made to the
-config.properties file.
-
-### Latency
-
-The latency of the ecosystem (Helen + Concord) can be tested by using a
-tool called
-[ApacheBench](https://httpd.apache.org/docs/2.4/programs/ab.html).
-
- * Install using steps found
-   [here](https://kuntalchandra.wordpress.com/2015/10/10/install-apache-bench-ubuntu-14-04/).
-
- * To fire GET requests, use the command `ab -t 60 -n 10000000 -c 10
-   {request url}`.  This command fires the specified GET request for
-   60 seconds (`-t` flag) or 10000000 times (`-n` flag) (whichever
-   comes first). The `-c` flag is used to set the number of concurrent
-   requests being fired at all times.
-
- * To fire POST requests, use the command `ab -p {filename}.txt -T
-   application/json -t 60 -n 10000000 {request url}` In addition to
-   the parameters in the GET request, this requires a `-p` flag. A
-   filename must be provided which contains the parameters of the POST
-   request.
-
-   Sample file contents :
-
-```
-   {"jsonrpc":"2.0","method":"eth_sendTransaction","params":[{
-   "from": "0xb60e8dd61c5d32be8058bb8eb970870f07233155",
-   "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567",
-   "gas": "0x76c0",
-   "gasPrice": "0x9184e72a000",
-   "value": "0x9184e72a",
-   "data": "0xd46e8dd67c5d32be8d46e8dd67c5d32be8058bb8eb970870f072445675058bb8eb970870f072445675"
-   }],"id":1}
-```
-
-### Components
-
-A previous version of Helen was written in Erlang. It is archived on
-the [bwf-erlang
-branch](https://github.com/vmwathena/helen/tree/bwf-erlang) in case
-there were mistakes in the transition.

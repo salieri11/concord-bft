@@ -1,23 +1,18 @@
-# VMware Project Concord
+# VMware Blockchain Replica
 
-Project Concord's goal is to provide an easy-to-deploy blockchain
-solution, with stronger guarantees than longest-chain consensus
-systems like "proof of work" or "proof of stake", and better
-performance than classic Byzantine fault tolerant algorithms like
-PBFT.
-
-The project is composed of three components:
-
- * [Concord-BFT](https://github.com/vmware/concord-bft) is the consensus engine for
-   concord.
-
- * concord (this subdirectory) provides a key-value
-   abstraction atop SBFT, and an Etherium VM compatibility layer on
-   top of that KV storage
-
- * [helen](../helen) is the home of Concord's UI and external API
+Concord is the actual blockchain node in this system. It ties the
+[Concord-BFT](https://github.com/vmware/concord-bft) consensus system
+to the [EVMJit](https://github.com/ethereum/evmjit) execution
+environment.
 
 ## Building
+
+Please see [../README.md](README.md) in the parent directory for how
+to build docker images, which is the normal way to build Concord. The
+rest of this section explains how to build Concord natively, which can
+be useful for debugging. If you run into trouble with the following
+steps, compare them to the steps in (./DockerfilePrereqs) and
+(./Dockerfile), which are used to build concord for deployment.
 
 ### Dependencies
 
@@ -98,23 +93,25 @@ version that ubuntu 16.04 supports.
 make
 sudo make install
 ```
-configuring with given flags is important. If log4cplus is build without `c++11` then concord will
-give linker errors while building.
+
+configuring with given flags is important. If log4cplus is build
+without `c++11` then concord will give linker errors while building.
 
 This will install all library files and header files into
-'/usr/local'. (You may need to add `/usr/local/lib` to your
-`LD_LIBRARY_PATH` to run Concord.)
-You may also need to export CPLUS_INCLUDE_PATH variable set to /usr/local/include for the header files
+'/usr/local'. You may need to add `/usr/local/lib` to your
+`LD_LIBRARY_PATH` to run Concord. You may also need to export
+CPLUS_INCLUDE_PATH variable set to /usr/local/include for the header
+files
 
 #### Evmjit
 
-concord uses the [Evmjit](https://github.com/ethereum/evmjit) VM to
+Concord uses the [Evmjit](https://github.com/ethereum/evmjit) VM to
 execute Ethereum code. While we're figuring out dependency management,
 please clone evmjit to the same directory you cloned concord (i.e. one
 directory up from this README file), and build it.
 
-*Important*: Make sure you have LLVM 5.0 installed (as noted in the pre-built section above), or your build will take a
-*long* time!
+*Important*: Make sure you have LLVM 5.0 installed (as noted in the
+*pre-built section above), or your build will take a long* time!
 
 Clone and build Evmjit (note the path to LLVM cmake files):
 
@@ -166,7 +163,12 @@ sudo make install
 ```
 
 #### Google Test
-Concord uses GoogleTest framework for unit testsing. We also need that during the build process of concord. please clone google test to the same directory you cloned concord (i.e. one directory up from this README file), and build it
+
+Concord uses GoogleTest framework for unit testsing. We also need that
+during the build process of concord. please clone google test to the
+same directory you cloned concord (i.e. one directory up from this
+README file), and build it
+
 ```
 git clone git@github.com:google/googletest.git
 cd googletest
@@ -177,21 +179,19 @@ cmake -DCMAKE_CXX_FLAGS="-std=c++11" ..
 make
 
 ```
-Note: the build directory starts with and underscore (_) it is required to use the exact same name
 
-### Persistence
+Note: the build directory starts with and underscore (`_`) it is
+required to use the exact same name
 
-Concord can also be run using persistent storage for the blockchain data.
-The persistent storage used currently is [RocksDB](https://rocksdb.org/).
+### RocksDB
 
-Build and install RocksDB dependencies:
+Concord uses [RocksDB](https://rocksdb.org/) for persistence across
+restarts.
+
+First install RocksDB dependencies:
 
 ```shell
-sudo apt-get install libsnappy-dev
-sudo apt-get install zlib1g-dev
-sudo apt-get install libbz2-dev
-sudo apt-get install liblz4-dev
-sudo apt-get install libzstd-dev
+sudo apt-get install libsnappy-dev zlib1g-dev libbz2-dev liblz4-dev libzstd-dev
 ```
 
 Build and install RocksDB:
@@ -204,24 +204,6 @@ cd rocksdb-5.7.3
 make shared_lib
 sudo make install-shared
 ```
-
-Tell CMakeLists that you want to use RocksDB:
-
-```shell
-concord$ emacs CMakeLists.txt &
-```
-
-Set Use_RocksDB to True
-
-Also, provide a path to the location where you want the database files to be stored:
-
-```shell
-concord$ emacs resources/concord.config &
-```
-
-If not present, add a key `blockchain_db_impl` and set its value to `rocksdb`.
-If not present, add a key `blockchain_db_path` and set its value to the path of the
-location where storage is desired.
 
 ### Concord
 
@@ -250,38 +232,39 @@ concord/build$ cmake ..
 concord/build$ make
 ```
 
-This should produce an `concord` executable.
-
-At this stage, you may provide the path to a genesis file if you have one.
-
-```shell
-concord$ emacs resources/concord.config &
-```
-
-Modify the value of the `genesis_block` key with the absolute path to your genesis file.
+This should produce a `concord` executable.
 
 Run the executable to start concord:
 
 ```shell
-concord/build$ ./src/concord -c resources/concord1.config
-2018-03-28T17:35:10.712 [140229951600448] INFO  concord.main %% VMware Project Concord starting [/home/bfink/vmwathena/concord/src/main.cpp:84]
-2018-03-28T17:35:10.713 [140229951600448] INFO  concord.evm %% EVM started [/home/bfink/vmwathena/concord/src/concord_evm.cpp:43]
-2018-03-28T17:35:10.713 [140229951600448] INFO  concord.main %% Listening on 0.0.0.0:5458 [/home/bfink/vmwathena/concord/src/main.cpp:54]
+concord/build$ ./src/concord -c test/resources/concord1.config
+2019-01-29T22:52:38.742 [140149696604672] INFO  concord.main %% VMware Project concord starting [/home/bfink/vmwathena/blockchain/concord/src/main.cpp:353]
+2019-01-29T22:52:38.742 [140149696604672] INFO  concord.main %% Reading genesis block from ./test/resources/genesis.json [/home/bfink/vmwathena/blockchain/concord/src/main.cpp:204]
+...
+2019-01-29T22:52:38.798 [140149696604672] INFO  concord.main %% Listening on 0.0.0.0:5459 [/home/bfink/vmwathena/blockchain/concord/src/main.cpp:299]
+...
 ```
 
 You will need to start an additional two replicas in other terminals
 to actually make progress in handling commands:
 
 ```shell
-concord/build$ ./src/concord -c resources/concord2.config
+concord/build$ ./src/concord -c test/resources/concord2.config
 ```
 
 ```shell
-concord/build$ ./src/concord -c resources/concord3.config
+concord/build$ ./src/concord -c test/resources/concord3.config
 ```
 
-With Concord running, you probably want to go set up
-[Helen](https://github.com/vmwathena/helen) to talk to it.
+The test config specifies four replicas total, so also start the final
+one, if you want a full healthy network running:
+
+```shell
+concord/build$ ./src/concord -c test/resources/concord4.config
+```
+
+With Concord running, you probably want to set up [Helen](../helen) or
+[EthRPC](../ethrpc) to talk to it.
 
 ## What is here:
 
@@ -293,11 +276,11 @@ With Concord running, you probably want to go set up
 
  * src/concord_evm.*: wrapper around Evmjit
 
- * proto/concord.proto: Google Protocol Buffers messages that Helen uses
-   to talk to Concord
+ * ../communication/src/main/proto/concord.proto: Google Protocol
+   Buffers messages that Helen uses to talk to Concord
 
- * tools/ath_sendtx.cpp: a utility that allows you to send
+ * tools/conc_sendtx.cpp: a utility that allows you to send
    transactions to concord without needing to build and start helen
 
- * tools/ath_gettxrcpt.cpp: a utility that allows you to fetch a
+ * tools/conc_gettxrcpt.cpp: a utility that allows you to fetch a
    transaction receipt without needing to build and start helen

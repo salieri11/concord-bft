@@ -27,13 +27,13 @@ find_package(Boost 1.64 COMPONENTS system program_options thread REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 #find_package(Log4Cplus REQUIRED)
-configure_file(resources/log4cplus.properties resources/log4cplus.properties COPYONLY)
-configure_file(resources/concord1.config resources/concord1.config COPYONLY)
-configure_file(resources/concord2.config resources/concord2.config COPYONLY)
-configure_file(resources/concord3.config resources/concord3.config COPYONLY)
-configure_file(resources/concord4.config resources/concord4.config COPYONLY)
-file(COPY resources/sbft
-     DESTINATION resources/)
+configure_file(test/resources/log4cplus.properties test/resources/log4cplus.properties COPYONLY)
+configure_file(test/resources/concord1.config test/resources/concord1.config COPYONLY)
+configure_file(test/resources/concord2.config test/resources/concord2.config COPYONLY)
+configure_file(test/resources/concord3.config test/resources/concord3.config COPYONLY)
+configure_file(test/resources/concord4.config test/resources/concord4.config COPYONLY)
+file(COPY test/resources/sbft
+     DESTINATION test/resources/)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 if(DEFINED USE_HERA)
