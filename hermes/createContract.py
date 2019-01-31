@@ -118,14 +118,13 @@ class BytecodeContractCreator(test_suite.TestSuite):
       Creates a contract containing some bytecode which can be invoked
       again later.
       '''
-      if self._productMode and not self._noLaunch:
-         try:
-            p = self.launchProduct(self._args,
-                                   self._apiServerUrl,
-                                   self._userConfig)
-         except Exception as e:
-            log.error(traceback.format_exc())
-            return self._resultFile
+      try:
+         self.launchProduct(self._args,
+                            self._apiServerUrl,
+                            self._userConfig)
+      except Exception as e:
+         log.error(traceback.format_exc())
+         return self._resultFile
 
       self._createBytecodeContract()
 

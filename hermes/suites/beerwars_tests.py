@@ -78,14 +78,13 @@ class BeerWarsTests(test_suite.TestSuite):
 
    def run(self):
       ''' Runs all of the tests. '''
-      if self._productMode and not self._noLaunch:
-         try:
-            p = self.launchProduct(self._args,
-                                   "https://localhost/blockchains/local/api/concord/eth",
-                                   self._userConfig)
-         except Exception as e:
-            log.error(traceback.format_exc())
-            return self._resultFile
+      try:
+         self.launchProduct(self._args,
+                            "https://localhost/blockchains/local/api/concord/eth",
+                            self._userConfig)
+      except Exception as e:
+         log.error(traceback.format_exc())
+         return self._resultFile
 
       self._cleanUp()
       tests = self._getTests()

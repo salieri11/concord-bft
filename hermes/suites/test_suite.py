@@ -8,6 +8,7 @@ import collections
 import json
 import logging
 import os
+import random
 from util.bytecode import getPushInstruction, addBytePadding
 import util.json_helper
 from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
@@ -38,6 +39,7 @@ class TestSuite(ABC):
       self._productMode = not self._ethereumMode
       self._noLaunch = self._args.noLaunch
       self._baseUrl = passedArgs.baseUrl
+      self.ethRpcNodes = None
 
       if self._ethereumMode:
          log.debug("Running in ethereum mode")
@@ -140,15 +142,45 @@ class TestSuite(ABC):
 
       os.rename(tempFile, realFile)
 
-   def launchProduct(self, cmdlineArgs, url, userConfig):
-      try:
-         p = Product(cmdlineArgs, url, userConfig, self._baseUrl)
-         p.launchProduct()
-         return p
-      except Exception as e:
-         log.error(str(e))
-         self.writeResult("All Tests", None, "The product did not start.")
-         raise(e)
+   def launchProduct(self, cmdlineArgs, url, userConfig, force=False):
+      '''
+      Creates the test suite's Product object and, if appropriate,
+      launches the product.  Passing in force=True means the
+      product will always be launched.
+      '''
+      self.product = Product(cmdlineArgs, url, userConfig, self._baseUrl)
+
+      if force or (self._productMode and not self._noLaunch):
+         try:
+            self.product.launchProduct()
+         except Exception as e:
+            log.error(str(e))
+            self.writeResult("All Tests", None, "The product did not start.")
+            raise(e)
+
+   def setEthRpcNode(self):
+      '''
+      Changes the ethRpcNode that a test suite uses.  Expected usage
+      is that this function gets called at the beginning of every
+      test case to pick a fresh node.
+      '''
+      ethRpcNodeUrl = self._getEthRpcNode()
+      self._apiServerUrl = ethRpcNodeUrl
+
+   def _getEthRpcNode(self):
+      '''
+      Fetches a random ethRpc node.  This uses the Product class
+      which gets the nodes by using Helen's getMembers API.
+      '''
+      if not self.ethRpcNodes:
+         self.ethRpcNodes = self.product.getEthRpcNodes()
+
+      if self.ethRpcNodes:
+         node = random.choice(self.ethRpcNodes)
+         url = self.product.getUrlFromEthRpcNode(node)
+         return url
+      else:
+         raise Exception("Error: No ethrpc nodes were reported by Helen.")
 
    def _getAUser(self):
       '''

@@ -24,7 +24,6 @@ class UiTests(test_suite.TestSuite):
     _resultFile = None
     _xvfb_present = False
     _testCaseDir = None
-    p = None
 
     def __init__(self, passedArgs):
         super(UiTests, self).__init__(passedArgs)
@@ -38,14 +37,13 @@ class UiTests(test_suite.TestSuite):
         self.ui_path = '/'.join(repo_path)
         self._start_vdisplay()
 
-        if self._productMode and not self._noLaunch:
-            try:
-                p = self.launchProduct(self._args,
-                                       self._apiServerUrl,
-                                       self._userConfig,)
-            except Exception as e:
-                log.error(traceback.format_exc())
-                return self._resultFile
+        try:
+           self.launchProduct(self._args,
+                              self._apiServerUrl,
+                              self._userConfig,)
+        except Exception as e:
+           log.error(traceback.format_exc())
+           return self._resultFile
 
         tests = self._get_tests()
         for (testName, testFun) in tests:
@@ -72,7 +70,7 @@ class UiTests(test_suite.TestSuite):
                                                     self._testLogDir)
 
         if self._shouldStop():
-            p.stopProduct()
+            self.product.stopProduct()
 
         return self._resultFile
 

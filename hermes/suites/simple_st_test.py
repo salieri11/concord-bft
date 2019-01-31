@@ -53,7 +53,6 @@ class SimpleStateTransferTest(test_suite.TestSuite):
    _to = "0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019" #from genesis file
    _funcPref = "0xe4b421f2000000000000000000000000000000000000000000000000000000000000"
    _gas = "100000000"
-   _product = None
 
    def __init__(self, passedArgs):
       super(SimpleStateTransferTest, self).__init__(passedArgs)
@@ -159,12 +158,12 @@ class SimpleStateTransferTest(test_suite.TestSuite):
 
       self._send_async(transactions, contractAddress, 1)
 
-      res = self._product.kill_concord_replica(2)
+      res = self.product.kill_concord_replica(2)
       if not res:
          return (False, "Failed to kill replica 2")
 
-      path = self._product.cleanConcordDb(2)
-      res = self._product.start_concord_replica(2)
+      path = self.product.cleanConcordDb(2)
+      res = self.product.start_concord_replica(2)
       if not res:
          return (False, "Failed to start replica 2")
 
@@ -184,37 +183,37 @@ class SimpleStateTransferTest(test_suite.TestSuite):
    def _run_pause_replica_test(self):
       global path
 
-      res = self._product.kill_concord_replica(1)
+      res = self.product.kill_concord_replica(1)
       if not res:
          return (False, "Failed to kill replica 1")
-      res = self._product.kill_concord_replica(2)
+      res = self.product.kill_concord_replica(2)
       if not res:
          return (False, "Failed to kill replica 2")
-      res = self._product.kill_concord_replica(3)
+      res = self.product.kill_concord_replica(3)
       if not res:
          return (False, "Failed to kill replica 3")
-      res = self._product.kill_concord_replica(4)
+      res = self.product.kill_concord_replica(4)
       if not res:
          return (False, "Failed to kill replica 4")
 
-      p1 = self._product.cleanConcordDb(1)
-      p2 = self._product.cleanConcordDb(2)
-      p3 = self._product.cleanConcordDb(3)
-      p4 = self._product.cleanConcordDb(4)
+      p1 = self.product.cleanConcordDb(1)
+      p2 = self.product.cleanConcordDb(2)
+      p3 = self.product.cleanConcordDb(3)
+      p4 = self.product.cleanConcordDb(4)
       if not p1 or not p2 or not p3 or not p4:
          return (False, "Failed to clean RocksDb")
       path = p1
 
-      res = self._product.start_concord_replica(1)
+      res = self.product.start_concord_replica(1)
       if not res:
          return (False, "Failed to start replica 1")
-      res = self._product.start_concord_replica(2)
+      res = self.product.start_concord_replica(2)
       if not res:
          return (False, "Failed to start replica 2")
-      res = self._product.start_concord_replica(3)
+      res = self.product.start_concord_replica(3)
       if not res:
          return (False, "Failed to start replica 3")
-      res = self._product.start_concord_replica(4)
+      res = self.product.start_concord_replica(4)
       if not res:
          return (False, "Failed to start replica 4")
 
@@ -228,7 +227,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       transactions_1 = 1000
       self._send_async(transactions_1, contractAddress, 1)
 
-      res = self._product.pause_concord_replica(3)
+      res = self.product.pause_concord_replica(3)
       if not res:
          return (False, "Failed to suspend replica")
 
@@ -236,7 +235,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       #this batch will go slower since only 3 replicas are up
       self._send_async(transactions_2, contractAddress, 3)
 
-      res = self._product.resume_concord_replica(3)
+      res = self.product.resume_concord_replica(3)
       if not res:
          return (False, "Failed to resume replica")
 
@@ -259,26 +258,26 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       ("pause_replica", self._run_pause_replica_test)]
 
    def run(self):
-      if self._productMode and not self._noLaunch:
-         try:
-            self._product = self.launchProduct(self._args,
-                         self._apiServerUrl,
-                         self._userConfig)
-         except Exception as e:
-            log.error(traceback.format_exc())
-            return self._resultFile
+      try:
+         self.launchProduct(self._args,
+                            self._apiServerUrl,
+                            self._userConfig)
+      except Exception as e:
+         log.error(traceback.format_exc())
+         return self._resultFile
 
       log.info("Starting tests")
 
       tests = self._get_tests()
       for (testName, testFunc) in tests:
          log.info("Starting test " + testName)
+         self.setEthRpcNode()
          res,info = testFunc()
          self.writeResult(testName, res, info)
 
       log.info("Tests are done")
 
       if self._productMode and not self._noLaunch:
-         self._product.stopProduct()
+         self.product.stopProduct()
 
       return self._resultFile

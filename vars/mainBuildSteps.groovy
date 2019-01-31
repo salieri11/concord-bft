@@ -202,6 +202,8 @@ EOF
 
       stage('Build products') {
         stages {
+          // Note that the SimpleStateTransferTest relies on a local Concord build
+          // for a test file (blockchain/concord/build/tools/conc_rocksdb_adp).
           stage('Build Concord') {
             steps {
               dir('blockchain/concord') {

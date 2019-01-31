@@ -56,18 +56,18 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
    def run(self):
       ''' Runs all of the tests. '''
-      if self._productMode and not self._noLaunch:
-         try:
-            p = self.launchProduct(self._args,
-                                   self._apiServerUrl,
-                                   self._userConfig)
-         except Exception as e:
-            log.error(traceback.format_exc())
-            return self._resultFile
+      try:
+         self.launchProduct(self._args,
+                            self._apiServerUrl,
+                            self._userConfig)
+      except Exception as e:
+         log.error(traceback.format_exc())
+         return self._resultFile
 
       tests = self._getTests()
 
       for (testName, testFun) in tests:
+         self.setEthRpcNode()
          testLogDir = os.path.join(self._testLogDir, testName)
 
          try:
@@ -92,7 +92,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       log.info("Tests are done.")
 
       if self._shouldStop():
-         p.stopProduct()
+         self.product.stopProduct()
 
       return self._resultFile
 
@@ -258,40 +258,29 @@ class ExtendedRPCTests(test_suite.TestSuite):
       '''
       Check that transaction count is updated.
       '''
-      newAccount = None
-      for i in range(0,10):
-         try:
-            newAccount = rpc.newAccount("gettxcount{}".format(i))
-            if newAccount:
-               break
-         except:
-            pass
-
-      if not newAccount:
-         return (False, "Unable to create new account")
-
+      caller = self.product.userProductConfig["users"][0]["hash"]
       previousBlockNumber = rpc.getBlockNumber()
 
-      txResult = rpc.sendTransaction(newAccount,
+      txResult = rpc.sendTransaction(caller,
                                      data = "0x00",
                                      gas = "0x01")
 
-      startNonce = rpc.getTransactionCount(newAccount, previousBlockNumber)
+      startNonce = rpc.getTransactionCount(caller, previousBlockNumber)
+
       if not startNonce:
          return (False, "Unable to get starting nonce")
-
-      if not startNonce == "0x0":
-         return (False, "Start nonce was not zero (was {})".format(startNonce))
 
       if not txResult:
          return (False, "Transaction was not accepted")
 
-      endNonce = rpc.getTransactionCount(newAccount)
+      endNonce = rpc.getTransactionCount(caller)
+
       if not endNonce:
          return (False, "Unable to get ending nonce")
 
-      if not endNonce == "0x1":
-         return (False, "End nonce was not 1 (was {})".format(endNonce))
+      if not int(endNonce, 16) - int(startNonce, 16) == 1:
+         return (False, "End nonce '{}' should be exactly one greater than start "
+                 "nonce {})".format(endNonce, startNonce))
 
       return (True, None)
 
@@ -698,7 +687,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       '''
       user_id = request.getUsers()[0]['user_id']
       user = self._userConfig.get('product').get('db_users')[0]
-      web3 = Web3(HTTPProvider(self._apiServerUrl, \
+      web3 = Web3(HTTPProvider(self._apiBaseServerUrl+"/api/concord/eth/", \
 	          request_kwargs= \
 	          {'auth': HTTPBasicAuth(user['username'], user['password']), \
 	          'verify': False}))
@@ -721,6 +710,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
          }
          signed = web3.eth.account.signTransaction(transaction, private_key)
          txResult = web3.eth.sendRawTransaction(signed.rawTransaction)
+         log.debug("**** txResult: {}".format(txResult))
          return (False, "Transaction with incorrect chain ID was replayed")
       except:
          pass
@@ -749,7 +739,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       '''
       user_id = request.getUsers()[0]['user_id']
       user = self._userConfig.get('product').get('db_users')[0]
-      web3 = Web3(HTTPProvider(self._apiServerUrl,
+      web3 = Web3(HTTPProvider(self._apiBaseServerUrl+"/api/concord/eth/",
                                request_kwargs={'auth': HTTPBasicAuth(user['username'], user['password']),
                                                'verify': False}))
       password = "123456"
