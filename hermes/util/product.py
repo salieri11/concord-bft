@@ -8,6 +8,7 @@ import logging
 import os
 import os.path
 import pathlib
+from rest.request import Request
 from rpc.rpc_call import RPC
 import shutil
 import socket
@@ -21,19 +22,19 @@ PRODUCT_LOGS_DIR = "product_logs"
 log = logging.getLogger(__name__)
 
 class ConcordInstsanceMetaData():
-    _processIndex = None
-    _processCmd = None
-    _logFile = None
-    _instanceId = None
-    _path = None
-    _containerName = None
+   _processIndex = None
+   _processCmd = None
+   _logFile = None
+   _instanceId = None
+   _path = None
+   _containerName = None
 
-    def __init__(self, pIndex, pCmd, logFile, id, path):
-        self._processIndex = pIndex
-        self._processCmd = pCmd
-        self._logFile = logFile
-        self._instanceId = id
-        self._path = path
+   def __init__(self, pIndex, pCmd, logFile, id, path):
+      self._processIndex = pIndex
+      self._processCmd = pCmd
+      self._logFile = logFile
+      self._instanceId = id
+      self._path = path
 
 class Product():
    '''
@@ -44,7 +45,7 @@ class Product():
    _logs = []
    _processes = []
    _concordProcessesMetaData = []
-   _userProductConfig = None
+   userProductConfig = None
    _cmdlineArgs = None
    _baseUrl = None
 
@@ -52,8 +53,10 @@ class Product():
       self._cmdlineArgs = cmdlineArgs
       self._apiServerUrl = apiServerUrl
       self._userConfig = userConfig
-      self._userProductConfig = userConfig["product"]
+      self.userProductConfig = userConfig["product"]
       self._baseUrl = baseUrl
+      self._productLogsDir = os.path.join(self._cmdlineArgs.resultsDir, PRODUCT_LOGS_DIR)
+      pathlib.Path(self._productLogsDir).mkdir(parents=True, exist_ok=True)
 
    def launchProduct(self):
       '''
@@ -61,8 +64,6 @@ class Product():
       Raises an exception if it cannot start.
       '''
       atexit.register(self.stopProduct)
-      productLogsDir = os.path.join(self._cmdlineArgs.resultsDir, PRODUCT_LOGS_DIR)
-      os.makedirs(productLogsDir, exist_ok=True)
 
       # Workaround for intermittent product launch issues.
       numAttempts = 0
@@ -71,9 +72,9 @@ class Product():
       while (not launched) and (numAttempts < self._cmdlineArgs.productLaunchAttempts):
          try:
             if self._cmdlineArgs.dockerComposeFile:
-               self._launchViaDocker(productLogsDir)
+               self._launchViaDocker()
             else:
-               self._launchViaCmdLine(productLogsDir)
+               self._launchViaCmdLine()
 
             launched = True
          except Exception as e:
@@ -113,7 +114,7 @@ class Product():
             orig[newK] = newV
 
 
-   def _launchViaDocker(self, productLogsDir):
+   def _launchViaDocker(self):
       dockerCfg = {}
 
       if self.validatePaths(self._cmdlineArgs.dockerComposeFile):
@@ -135,7 +136,7 @@ class Product():
 
          cmd += ["up"]
 
-         logFile = open(os.path.join(productLogsDir, "concord.log"),
+         logFile = open(os.path.join(self._productLogsDir, "concord.log"),
                     "wb+")
          self._logs.append(logFile)
          log.debug("Launching via docker-compose with {}".format(cmd))
@@ -151,6 +152,32 @@ class Product():
          raise Exception("The docker compose file list contains an invalid value.")
 
 
+   def getUrlFromEthRpcNode(self, node):
+      return node["rpc_url"]
+
+
+   def getEthRpcNodes(self):
+      members = []
+      request = Request(self._productLogsDir,
+                        "getMembers",
+                        self._baseUrl,
+                        self._userConfig)
+      result = request.getMemberList()
+
+      for m in result:
+         if m["rpc_url"]:
+            members.append(m)
+
+      log.info("EthRpc members reported by Helen:")
+      if members:
+         for m in members:
+           log.info("  {}: {}".format(m["hostname"],m["rpc_url"]))
+      else:
+         log.info("  None were found.")
+
+      return members
+
+
    def copyEnvFile(self):
       # This file contains variables fed to docker-compose.yml.  It is picked up from the
       # location of the process which invokes docker compose.
@@ -159,12 +186,12 @@ class Product():
          shutil.copyfile("../concord/docker/.env", "./.env")
 
 
-   def _launchViaCmdLine(self, productLogsDir):
+   def _launchViaCmdLine(self):
       # Since we change directories while launching products, save cwd here
       # and chdir to that once all launches are done
       original_cwd = os.getcwd()
 
-      for launchElement in self._userProductConfig["launch"]:
+      for launchElement in self.userProductConfig["launch"]:
          for project in launchElement:
             projectSection = launchElement[project]
             buildRoot = projectSection["buildRoot"]
@@ -201,8 +228,7 @@ class Product():
                      cmd.append(os.path.expanduser(param))
                      previousParam = param
 
-                  pathlib.Path(productLogsDir).mkdir(parents=True, exist_ok=True)
-                  logFile = open(os.path.join(productLogsDir, executable + ".log"),
+                  logFile = open(os.path.join(self._productLogsDir, executable + ".log"),
                              "wb+")
                   self._logs.append(logFile)
 
@@ -580,20 +606,16 @@ class Product():
 
    def _waitForProductStartup(self):
       '''
-      Issues a test transaction to see if the product has started up.
-      Retries a few times.
-      Returns whether the product started up.
-
-      Note: For now, simply sends an empty contract:
+      Issue a request for Helen to return a list of ethrpc nodes, then sends an
+      empty contract.  The contract:
 
       pragma solidity ^0.4.19;
 
       contract x {
       }
 
-      If the account unlocking API becomes available, performing that unlock may
-      be better, as it will also confirm that the user(s) we were given are valid
-      and unlock them.
+      Retries a few times.
+      Returns whether the product started up.
       '''
       # Waiting for 10 seconds for 5 times is enough
       retries = 10
@@ -602,28 +624,50 @@ class Product():
       sleepTime = 10
       startupLogDir = os.path.join(self._cmdlineArgs.resultsDir, PRODUCT_LOGS_DIR,
                                    "waitForStartup")
+      nodes = None
+
+      while attempts < retries:
+         # Note that Helen will eventually have a health check API.  That will
+         # be a better way to determine when it is up.
+         try:
+            nodes = self.getEthRpcNodes()
+         except Exception as e:
+            log.info("Caught an exception, probably because Helen is still starting up: {}".format(e))
+
+         if nodes:
+            self._apiServerUrl = self.getUrlFromEthRpcNode(nodes[0])
+            break
+         else:
+            attempts += 1
+
+            if attempts < retries:
+               time.sleep(sleepTime)
+               log.info("Waiting for Helen to become responsive...")
+
       rpc = RPC(startupLogDir,
                 "waitForStartup",
                 self._apiServerUrl,
                 self._userConfig)
-      caller = self._userProductConfig["users"][0]["hash"]
+      caller = self.userProductConfig["users"][0]["hash"]
       data = ("0x60606040523415600e57600080fd5b603580601b6000396000f3006060604"
               "052600080fd00a165627a7a723058202909725de95a67cf9907b67867deb3f7"
               "7096fdd38a55e7ac790117d50be1b3830029")
       txHash = None
+      attempts = 0
 
       while attempts < retries and not txHash:
-         if attempts != 0:
-            time.sleep(sleepTime)
-
-         attempts += 1
-
          try:
+            log.info("Adding an API user via Helen...")
             rpc.addUser(self._baseUrl)
+            log.info("\nRunning a test transaction via ethRpc...")
             txHash = rpc.sendTransaction(caller, data)
          except Exception as e:
-            log.debug("Waiting for product startup...")
-            log.debug(e)
+            attempts += 1
+
+            if attempts < retries:
+               log.debug("Exception, probably because ethrpc nodes are still starting up: {}".format(str(e)))
+               time.sleep(sleepTime)
+
       return txHash != None
 
    def cleanConcordDb(self, instanceId):
@@ -634,7 +678,7 @@ class Product():
                res= self.clearDBsForDockerLaunch(dockerCfg, "concord{}".format(instanceId))
                return res
       else:
-        for launchElement in self._userProductConfig["launch"]:
+        for launchElement in self.userProductConfig["launch"]:
            for project in launchElement:
               projectSection = launchElement[project]
               buildRoot = projectSection["buildRoot"]

@@ -10,7 +10,6 @@ import collections
 import json
 import logging
 import os
-import pprint
 import tempfile
 import traceback
 import time
@@ -53,21 +52,23 @@ class CoreVMTests(test_suite.TestSuite):
 
    def run(self):
       ''' Runs all of the tests. '''
-      if self._productMode and not self._noLaunch:
-         try:
-            log.info("Launching product...")
-            p = self.launchProduct(self._args,
-                                   self._apiServerUrl,
-                                   self._userConfig)
-         except Exception as e:
-            log.error(traceback.format_exc())
-            return self._resultFile
+      try:
+         log.info("Launching product...")
+         self.launchProduct(self._args,
+                            self._apiServerUrl,
+                            self._userConfig)
+
+      except Exception as e:
+         log.error(traceback.format_exc())
+         return self._resultFile
 
       tests = self._getTests()
 
       log.info("Launching tests...")
       time.sleep(5)
       for test in tests:
+         self.setEthRpcNode()
+
          if not self._isSourceCodeTestFile(test):
             testCompiled = self._loadCompiledTest(test)
 
@@ -106,7 +107,7 @@ class CoreVMTests(test_suite.TestSuite):
       log.info("Tests are done.")
 
       if self._shouldStop():
-            p.stopProduct()
+            self.product.stopProduct()
 
       return self._resultFile
 

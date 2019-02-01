@@ -97,6 +97,8 @@ class Request():
                     "--verbose",
                     "--insecure"]
 
+      log.debug("REST COMMAND: {}".format(" ".join(curlCmd)))
+
       with open (self._outputFile, "a") as f:
          # Make people's lives easier by printing a copy/pastable command.
          f.write("Command: \n'" + "' '".join(curlCmd) + "'\n\n")

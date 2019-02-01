@@ -42,14 +42,13 @@ class HelenAPITests(test_suite.TestSuite):
 
    def run(self):
       ''' Runs all of the tests. '''
-      if self._productMode and not self._noLaunch:
-         try:
-            p = self.launchProduct(self._args,
-                                   self._apiBaseServerUrl + "/api/concord/eth/",
-                                   self._userConfig)
-         except Exception as e:
-            log.error(traceback.format_exc())
-            return self._resultFile
+      try:
+         p = self.launchProduct(self._args,
+                                self._apiBaseServerUrl + "/api/concord/eth/",
+                                self._userConfig)
+      except Exception as e:
+         log.error(traceback.format_exc())
+         return self._resultFile
 
       if self._ethereumMode:
          info = "HelenAPITests are not applicable to ethereumMode."
@@ -60,6 +59,7 @@ class HelenAPITests(test_suite.TestSuite):
       tests = self._getTests()
 
       for (testName, testFun) in tests:
+         self.setEthRpcNode()
          testLogDir = os.path.join(self._testLogDir, testName)
 
          try:
@@ -85,7 +85,7 @@ class HelenAPITests(test_suite.TestSuite):
       log.info("Tests are done.")
 
       if self._shouldStop():
-         p.stopProduct()
+         self.product.stopProduct()
 
       return self._resultFile
 
@@ -433,6 +433,9 @@ class HelenAPITests(test_suite.TestSuite):
       contractId, contractVersion = self.upload_mock_contract(request)
       result = request.callContractAPI('/api/concord/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
+      # Note that REST calls use self._apiBaseServerUrl, while here we pass
+      # in self._apiServerUrl.  Need to make this more intuitive.  e.g.
+      # self.helenUrl and self.ethRpcUrl or something like that.
       rpc = RPC(request._logDir,
                 self.getName(),
                 self._apiServerUrl,

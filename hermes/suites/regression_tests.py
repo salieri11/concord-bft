@@ -36,7 +36,6 @@ class RegressionTests(test_suite.TestSuite):
    _resultFile = None
    _unintentionallySkippedFile = None
    _userUnlocked = False
-   p = None
 
    def __init__(self, passedArgs):
       super(RegressionTests, self).__init__(passedArgs)
@@ -52,19 +51,18 @@ class RegressionTests(test_suite.TestSuite):
 
    def run(self):
       ''' Runs all of the tests. '''
-      if self._productMode and not self._noLaunch:
-         global p
-         try:
-            p = self.launchProduct(self._args,
-                                   self._apiServerUrl,
-                                   self._userConfig)
-         except Exception as e:
-            log.error(traceback.format_exc())
-            return self._resultFile
+      try:
+         self.launchProduct(self._args,
+                            self._apiServerUrl,
+                            self._userConfig)
+      except Exception as e:
+         log.error(traceback.format_exc())
+         return self._resultFile
 
       tests = self._getTests()
 
       for (testName, testFun) in tests:
+         self.setEthRpcNode()
          testLogDir = os.path.join(self._testLogDir, testName)
 
          try:
@@ -89,7 +87,7 @@ class RegressionTests(test_suite.TestSuite):
       log.info("Tests are done.")
 
       if self._shouldStop():
-         p.stopProduct()
+         self.product.stopProduct()
 
       return self._resultFile
 
