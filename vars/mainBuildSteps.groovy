@@ -1,8 +1,20 @@
 import groovy.json.*
 
 def call(){
+  def agentLabel = "genericVM"
+  def genericTests = "true"
+  def memory_leak_job = "BlockchainMemoryLeakTesting"
+
+   if (env.JOB_NAME == memory_leak_job) {
+    echo "Jenkins job for Memory Leak Test Run"
+    agentLabel = "MemoryLeakTesting"
+    genericTests = "false"
+  }  else {
+    echo "Jenkins job for Generic Test Run"
+  }
+
   pipeline {
-    agent any
+    agent { label agentLabel }
     tools {
         nodejs 'Node 8.9.1'
     }
@@ -25,6 +37,7 @@ def call(){
           sh '''
             set +x
             echo Jenkins node information:
+            echo "NODE_NAME = ${env.NODE_NAME}"
             ifconfig | grep -A 2 "ens"
             set -x
           '''
@@ -58,6 +71,17 @@ def call(){
                 script {
                   env.commit = getRepoCode("git@github.com:vmwathena/blockchain.git", params.blockchain_branch_or_commit)
                 }
+              }
+            }
+          }
+          stage('Fetch VMware blockchain hermes-data source') {
+            steps {
+              sh 'mkdir hermes-data'
+              dir('hermes-data') {
+                script {
+                  env.actual_hermes_data_fetched = getRepoCode("git@github.com:vmwathena/hermes-data","master")
+                }
+                sh 'git checkout master'
               }
             }
           }
@@ -262,6 +286,10 @@ EOF
                   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                     sh '''
                       docker build .. -f Dockerfile -t "${internal_concord_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
+                      memleak_util="valgrind"
+                      memleak_util_cmd="valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --log-file=/tmp/valgrind_concord1.log"
+                      docker build .. -f Dockerfile -t "${internal_concord_repo}:${docker_tag}"_memleak --build-arg "memleak_util=${memleak_util}" --build-arg "memleak_util_cmd=${memleak_util_cmd}"
+
                     '''
                   }
                 }
@@ -312,23 +340,32 @@ EOF
                 env.extended_rpc_test_logs = new File(env.test_log_root, "ExtendedRPC").toString()
                 env.regression_test_logs = new File(env.test_log_root, "Regression").toString()
                 env.statetransfer_test_logs = new File(env.test_log_root, "StateTransfer").toString()
+                env.mem_leak_test_logs = new File(env.test_log_root, "MemoryLeak").toString()
+
+                if (genericTests == "true") {
+                  sh '''
+                    # We need to delete the database files before running UI tests because
+                    # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
+                    # needs to be run with sudo is so it can delete any existing DB files.)
+                    echo "${PASSWORD}" | sudo -S rm -rf ../docker/rocksdbdata*
+                    echo "${PASSWORD}" | sudo -S rm -rf ../docker/cockroachDB
+                    ./main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}"
+
+                    echo "${PASSWORD}" | sudo -S ./main.py BeerWarsTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${beerwars_test_logs}"
+                    echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}"
+                    echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}"
+                    echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"
+                    echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}"
+                    echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
+
+                    chmod 777 suites/memory_leak_test.sh
+                    cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs}
+                  '''
+                }
+                if (env.JOB_NAME == memory_leak_job) {
+                  echo "Placeholder for Memory Leak Complete Suite Run"
+                }
               }
-
-              sh '''
-                # We need to delete the database files before running UI tests because
-                # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
-                # needs to be run with sudo is so it can delete any existing DB files.)
-                echo "${PASSWORD}" | sudo -S rm -rf ../docker/rocksdbdata*
-                echo "${PASSWORD}" | sudo -S rm -rf ../docker/cockroachDB
-                ./main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}"
-
-                echo "${PASSWORD}" | sudo -S ./main.py BeerWarsTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${beerwars_test_logs}"
-                echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}"
-                echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}"
-                echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"
-                echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}"
-                echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
-              '''
             }
           }
         }
