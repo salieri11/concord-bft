@@ -161,7 +161,7 @@ check_for_spiked_mem_leak() {
 
             echo "Creating log file for Alert Notification: ${MEMORY_LEAK_ALERT_FILE}"
         else
-            echo "\tDifference falls within permitted buffer ($leak_diff bytes)"
+            echo "\tDifference falls within permitted buffer ($LEAK_SPIKE_BUFFER bytes)"
         fi
     else
         echo "WARNING: No Memory LEAK data found from previous runs"

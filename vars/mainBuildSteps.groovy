@@ -2,13 +2,13 @@ import groovy.json.*
 
 def call(){
   def agentLabel = "genericVM"
-  def genericTests = "true"
+  def genericTests = true
   def memory_leak_job = "BlockchainMemoryLeakTesting"
 
    if (env.JOB_NAME == memory_leak_job) {
     echo "Jenkins job for Memory Leak Test Run"
     agentLabel = "MemoryLeakTesting"
-    genericTests = "false"
+    genericTests = false
   }  else {
     echo "Jenkins job for Generic Test Run"
   }
@@ -341,7 +341,7 @@ EOF
                 env.statetransfer_test_logs = new File(env.test_log_root, "StateTransfer").toString()
                 env.mem_leak_test_logs = new File(env.test_log_root, "MemoryLeak").toString()
 
-                if (genericTests == "true") {
+                if (genericTests) {
                   sh '''
                     # We need to delete the database files before running UI tests because
                     # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
@@ -357,7 +357,6 @@ EOF
                     echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}"
                     echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
 
-                    chmod 777 suites/memory_leak_test.sh
                     cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs}
                   '''
                 }
