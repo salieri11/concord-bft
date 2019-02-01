@@ -6,6 +6,7 @@
 import argparse
 import logging
 import pprint
+import tempfile
 import util.json_helper
 from util.product import Product
 import yaml
@@ -21,6 +22,9 @@ def main():
                        help="Set the log level.  Valid values:"
                        "'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'",
                        default="INFO")
+   parser.add_argument("--resultsDir",
+                       default=tempfile.gettempdir(),
+                       help="Results directory")
 
    args = parser.parse_args()
    setUpLogging(args)
