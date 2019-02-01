@@ -5,7 +5,6 @@
 package com.vmware.blockchain.services.lint;
 
 import java.io.IOException;
-import java.net.URI;
 import java.sql.SQLSyntaxErrorException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -75,11 +74,12 @@ public class LintProxyController {
         // Start with a two second timeout
         backOffPolicy.setInitialInterval(TimeUnit.SECONDS.toMillis(2));
         backOffPolicy.setMaxInterval(TimeUnit.SECONDS.toMillis(15));
+        // We are proxying a string that is already json, so we don't want a mapper on this template
         this.restTemplate = new RestClientBuilder()
                                 .withBaseUrl(lintUrl)
                                 .withRetryPolicy(retryPolicy)
                                 .withBackoffPolicy(backOffPolicy)
-                                .withObjectMapper(new ObjectMapper())
+                                .withNoObjectMapper()
                                 .build();
     }
 
@@ -138,8 +138,10 @@ public class LintProxyController {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set(HttpHeaders.AUTHORIZATION, "Bearer " + getAuthToken());
 
-        // rewrite the body to handle consortium filter
-        body = rewriteBody(body, function);
+        // If this is a post, rewrite the body to handle consortium filter
+        if (method == HttpMethod.POST) {
+            body = rewriteBody(body, function);
+        }
 
         // If there was a function query param, we need to remove it
         MultiValueMap<String, String> queryMap = new LinkedMultiValueMap<>();
@@ -151,10 +153,10 @@ public class LintProxyController {
         }
 
         // Now build the URI to make the lint call.  The lint url is handled by the restTemplate.
-        URI uri = UriComponentsBuilder.newInstance()
+        String uri = UriComponentsBuilder.newInstance()
                     .path(lintPath)
                     .queryParams(queryMap)
-                    .build().toUri();
+                    .build().toUriString();
         try {
             ResponseEntity<String> result =
                     restTemplate.exchange(uri, method, new HttpEntity<>(body, headers), String.class);

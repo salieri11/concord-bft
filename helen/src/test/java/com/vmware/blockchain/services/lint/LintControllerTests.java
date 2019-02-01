@@ -8,6 +8,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -67,7 +68,7 @@ public class LintControllerTests {
     LintProxyController lintProxyController;
 
     @Captor
-    ArgumentCaptor<URI> uriCapcha;
+    ArgumentCaptor<String> uriCapcha;
 
     @Captor
     ArgumentCaptor<HttpEntity<String>> httpCapcha;
@@ -295,4 +296,20 @@ public class LintControllerTests {
     }
 
 
+    @Test
+    void getTest() throws Exception {
+        mockMvc.perform(get("/api/lint/log"))
+                .andExpect(status().isOk());
+        // capture the values handed in to restTemplate.exchange
+        verify(restTemplate).exchange(uriCapcha.capture(), methodCapcha.capture(), httpCapcha.capture(),
+                classCapcha.capture());
+
+        final HttpEntity<String> entity = httpCapcha.getValue();
+
+        Assertions.assertEquals("/log", uriCapcha.getValue().toString());
+        Assertions.assertEquals(HttpMethod.GET, methodCapcha.getValue());
+        Assertions.assertEquals("Bearer anAuthToken", entity.getHeaders().getFirst("Authorization"));
+        Assertions.assertEquals(String.class, classCapcha.getValue());
+
+    }
 }
