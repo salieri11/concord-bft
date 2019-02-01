@@ -146,8 +146,6 @@ services:
     #     tag: httpd.access
 
   ui:
-    build:
-      context: ../../ui
     image: "${ui_repo}:${ui_tag}"
     ports:
       - 80:80
@@ -175,8 +173,6 @@ services:
       - helen
 
   fluentd:
-    build:
-      context: ./fluentd
     image: "${fluentd_repo}:${fluentd_tag}"
     container_name: fluentd
     ports:

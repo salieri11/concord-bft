@@ -270,10 +270,10 @@ EOF
           stage('Build fluentd docker image') {
             steps {
               script {
-                dir('blockchain/concord/docker') {
+                dir('blockchain') {
                   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                     sh '''
-                      docker-compose build fluentd
+                      docker build concord/docker/fluentd -f concord/docker/fluentd/Dockerfile -t "${internal_fluentd_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
                   }
                 }
@@ -284,10 +284,10 @@ EOF
           stage('Build ui docker image') {
             steps {
               script {
-                dir('blockchain/concord/docker') {
+                dir('blockchain') {
                   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                     sh '''
-                      docker-compose build ui
+                      docker build ui -f ui/Dockerfile -t "${internal_ui_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
                   }
                 }

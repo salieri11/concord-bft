@@ -38,7 +38,7 @@ is run from the same directory as this README, and *not* from the
 `concord` subdirectory):
 
 ```
-blockchain$ docker build -f concord/Dockerfile . -t concord:latest
+blockchain$ docker build -f concord/Dockerfile . -t concord-core:latest
 ```
 
 ### Building EthRPC via Docker
@@ -68,12 +68,22 @@ for how to use Hermes to test your images.
 
 ### Building UI via Docker
 
-UI can be built directly in a docker container (note the command is
-run from the same directory as this README, and *not* from the `ui`
+The UI is built directly in a docker container (note the command is
+run from the same directory as this README, and not from the `ui`
 subdirectory):
 
-```bash
-docker build ui -f ui/Dockerfile -t ui:latest
+```
+blockchain$ docker build ui -f ui/Dockerfile -t ui:latest
+```
+
+### Building Fluentd
+
+Fluentd is build directly in a docker container (note the command is
+run from the same directory as this README, and not from
+`concord/docker/fluentd`:
+
+```
+blockchain$ docker build concord/docker/fluentd -f concord/docker/fluentd/Dockerfile -t fluentd:latest
 ```
 
 ### Building Natively

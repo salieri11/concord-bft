@@ -1,15 +1,11 @@
 # VMware Blockchain UI
 
 ## Build
-Two ways of building go to the ui dir
+
+Build using docker in the ui directory:
 
 ```bash
-docker build . -t ui
-```
-or build in concord/docker
-
-```bash
-docker-compose build ui
+docker build . -t ui:latest
 ```
 
 ## Development
@@ -48,5 +44,3 @@ Two ways of running tests
 
 ### File Structure and Coding Style
 Try your best to follow the recommended [file structure](https://angular.io/guide/styleguide#overall-structural-guidelines) and general [style guide](https://angular.io/guide/styleguide) in the angular documentation.
-
-
