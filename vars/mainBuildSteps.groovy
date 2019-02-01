@@ -37,7 +37,6 @@ def call(){
           sh '''
             set +x
             echo Jenkins node information:
-            echo "NODE_NAME = ${env.NODE_NAME}"
             ifconfig | grep -A 2 "ens"
             set -x
           '''
