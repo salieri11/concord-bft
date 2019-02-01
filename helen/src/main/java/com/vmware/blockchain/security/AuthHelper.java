@@ -35,7 +35,7 @@ public class AuthHelper {
         return details == null ? null : details.getUsername();
     }
 
-    public String getOrgId() {
+    public String getConsortiumId() {
         HelenUserDetails details = getDetails();
         return details == null ? null : details.getOrgId();
     }
