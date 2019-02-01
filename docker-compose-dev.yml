@@ -14,8 +14,8 @@ services:
     volumes:
       - ./devdata/rocksdbdata1:/concord/rocksdbdata
       - ./devdata/log1:/concord/log
-      - ./concord/docker/config-concord1:/concord/config-local
-      - ./concord/docker/config-public:/concord/config-public:ro
+      - ./docker/config-concord1:/concord/config-local
+      - ./docker/config-public:/concord/config-public:ro
 
   concord2:
     image: "${concord_repo}:${concord_tag}"
@@ -31,8 +31,8 @@ services:
     volumes:
       - ./devdata/rocksdbdata2:/concord/rocksdbdata
       - ./devdata/log2:/concord/log
-      - ./concord/docker/config-concord2:/concord/config-local
-      - ./concord/docker/config-public:/concord/config-public:ro
+      - ./docker/config-concord2:/concord/config-local
+      - ./docker/config-public:/concord/config-public:ro
 
   concord3:
     image: "${concord_repo}:${concord_tag}"
@@ -48,8 +48,8 @@ services:
     volumes:
       - ./devdata/rocksdbdata3:/concord/rocksdbdata
       - ./devdata/log3:/concord/log
-      - ./concord/docker/config-concord3:/concord/config-local
-      - ./concord/docker/config-public:/concord/config-public:ro
+      - ./docker/config-concord3:/concord/config-local
+      - ./docker/config-public:/concord/config-public:ro
 
   concord4:
     image: "${concord_repo}:${concord_tag}"
@@ -65,8 +65,8 @@ services:
     volumes:
       - ./devdata/rocksdbdata4:/concord/rocksdbdata
       - ./devdata/log4:/concord/log
-      - ./concord/docker/config-concord4:/concord/config-local
-      - ./concord/docker/config-public:/concord/config-public:ro
+      - ./docker/config-concord4:/concord/config-local
+      - ./docker/config-public:/concord/config-public:ro
 
   helen:
     image: "${helen_repo}:${helen_tag}"
@@ -126,13 +126,13 @@ services:
       - "443:443"
       - "8843:8843"
     volumes:
-      - ./concord/docker/data/nginx/docker-compose.conf.d:/etc/nginx/conf.d
+      - ./docker/data/nginx/docker-compose.conf.d:/etc/nginx/conf.d
     depends_on:
       - helen
 
   fluentd:
     build:
-      context: ./concord/docker/fluentd
+      context: ./docker/fluentd
     image: "${fluentd_repo}:${fluentd_tag}"
     container_name: fluentd
     ports:
@@ -141,4 +141,4 @@ services:
     environment:
       - FLUENTD_CONF=fluentd.conf
     volumes:
-      - ./concord/docker/fluentd:/fluentd/etc
+      - ./docker/fluentd:/fluentd/etc

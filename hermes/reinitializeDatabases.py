@@ -16,7 +16,7 @@ def main():
    parser = argparse.ArgumentParser()
    parser.add_argument("--dockerComposeFile",
                        help="Accepts a docker compose file to start the DB.",
-                       default=["../concord/docker/docker-compose.yml"])
+                       default=["../docker/docker-compose.yml"])
    parser.add_argument("--logLevel",
                        help="Set the log level.  Valid values:"
                        "'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'",

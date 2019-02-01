@@ -52,7 +52,7 @@ def main():
                        "be launched in docker images instead of on the " \
                        "command line.  May be a space-separated list of files, " \
                        "in the order in which the files should be applied.",
-                       default=["../concord/docker/docker-compose.yml"],
+                       default=["../docker/docker-compose.yml"],
                        nargs="*")
    parser.add_argument("--noLaunch",
                        default=False,

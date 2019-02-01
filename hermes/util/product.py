@@ -182,8 +182,8 @@ class Product():
       # This file contains variables fed to docker-compose.yml.  It is picked up from the
       # location of the process which invokes docker compose.
       if not os.path.isfile(".env"):
-         log.debug("Copying .env file from Concord.")
-         shutil.copyfile("../concord/docker/.env", "./.env")
+         log.debug("Copying .env file from docker example.")
+         shutil.copyfile("../docker/.env", "./.env")
 
 
    def _launchViaCmdLine(self):

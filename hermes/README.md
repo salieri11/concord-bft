@@ -62,7 +62,7 @@ Hermes is the testing framework for VMW Blockchain.
   \<component\>:latest.
 - The docker tag is defined in a file called .env.  To use a differently tagged docker image,
   edit the .env file in the hermes directory.  If it is not present there, edit the one in
-  the concord/docker directory.  (Hermes simply copies the one from concord/docker to hermes
+  the ../docker directory.  (Hermes simply copies the one from ../docker to hermes
   if it is not found in the hermes directory.)
 
 ## Running a test suite in Python Virtual Environment

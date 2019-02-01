@@ -35,20 +35,20 @@ to connect to your chosen Concord node by specifying that node as the
 java -jar target/concord-ethrpc*.jar --ConcordAuthorities=localhost:5458
 ```
 
-Without the SSL properties found in
-(../concord/docker/docker-compose.yml), EthRPC will expose its API
-over unencrypted HTTP. See the examples in the docker-compose
-definition for how to launch EthRPC with its API exposed over HTTPS.
+Without the SSL properties found in (../docker/docker-compose.yml),
+EthRPC will expose its API over unencrypted HTTP. See the examples in
+the docker-compose definition for how to launch EthRPC with its API
+exposed over HTTPS.
 
 ## SSL
 
 Ethrpc connections use HTTPS. For now, we're using self-signed
 certificates. An example certificate that will allow access via
 localhost or 127.0.0.1 URLs is included in
-[../concord/docker/config-ethrpc1].
+[../docker/config-ethrpc1].
 
 A matching `.pem` file that a client can use to trust the self-signed
-certificate is included in [../concord/docker/config-helen]. This file
+certificate is included in [../docker/config-helen]. This file
 is referenced from Helen's `application.properties`, and will be
 served along with the RPC URL from Helen's `/api/concord/members`
 endpoint.
@@ -68,7 +68,7 @@ URLs to access the ethrpc service.
 
 2. The password you use must match that given in
 [src/main/resources/application.properties] or
-[../concord/docker/docker-compose.yml].
+[../docker/docker-compose.yml].
 
 3. Use the fully-qualified domain name you will use in URLs as the
 answer to "What is your full name?". If testing locally, this is

@@ -3,7 +3,7 @@
     "launch": [
       {
         "reverseProxy": {
-          "buildRoot": "../concord/docker",
+          "buildRoot": "../docker",
           "helen1": {
             "launchCommand": "docker",
             "parameters": [

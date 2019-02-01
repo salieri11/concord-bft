@@ -80,10 +80,10 @@ blockchain$ docker build ui -f ui/Dockerfile -t ui:latest
 
 Fluentd is build directly in a docker container (note the command is
 run from the same directory as this README, and not from
-`concord/docker/fluentd`:
+`docker/fluentd`:
 
 ```
-blockchain$ docker build concord/docker/fluentd -f concord/docker/fluentd/Dockerfile -t fluentd:latest
+blockchain$ docker build docker/fluentd -f docker/fluentd/Dockerfile -t fluentd:latest
 ```
 
 ### Building Natively

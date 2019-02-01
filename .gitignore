@@ -4,6 +4,10 @@
 bin/
 tmp/
 logs/
+docker/config-concord*/s_f1c0_config.pub
+docker/log*
+docker/rocksdbdata*
+docker/cockroachDB
 
 # Concord Specific
 build/
@@ -13,10 +17,6 @@ cmake-build-debug/
 .project
 .settings/
 .vscode/
-concord/docker/config-concord*/s_f1c0_config.pub
-concord/docker/log*
-concord/docker/rocksdbdata*
-concord/docker/cockroachDB
 
 # Helen Specific
 target/

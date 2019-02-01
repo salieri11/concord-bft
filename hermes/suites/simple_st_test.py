@@ -90,7 +90,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       blocksData = []
       blocksDataLength = []
 
-      toolPath = os.path.abspath(os.path.join("..","build","tools", "conc_rocksdb_adp"))
+      toolPath = os.path.abspath(os.path.join("..","concord","build","tools", "conc_rocksdb_adp"))
       cmd = [toolPath]
       for replicaId in range(1,5):
          pathParam = "-path={0}{1}".format(os.path.join(path,"rocksdbdata"), replicaId)

@@ -176,7 +176,7 @@ def call(){
           withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
             sh '''
               echo "${PASSWORD}" | sudo -S ls
-              sudo cat >blockchain/concord/docker/.env <<EOF
+              sudo cat >blockchain/docker/.env <<EOF
 concord_repo=${internal_concord_repo}
 concord_tag=${docker_tag}
 helen_repo=${internal_helen_repo}
@@ -188,7 +188,7 @@ fluentd_tag=${docker_tag}
 ui_repo=${internal_ui_repo}
 ui_tag=${docker_tag}
 EOF
-              cp blockchain/concord/docker/.env blockchain/hermes/
+              cp blockchain/docker/.env blockchain/hermes/
             '''
           }
 
@@ -275,7 +275,7 @@ EOF
                 dir('blockchain') {
                   withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
                     sh '''
-                      docker build concord/docker/fluentd -f concord/docker/fluentd/Dockerfile -t "${internal_fluentd_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
+                      docker build docker/fluentd -f docker/fluentd/Dockerfile -t "${internal_fluentd_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
                   }
                 }
@@ -318,16 +318,16 @@ EOF
                 # We need to delete the database files before running UI tests because
                 # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
                 # needs to be run with sudo is so it can delete any existing DB files.)
-                echo "${PASSWORD}" | sudo -S rm -rf ../concord/docker/rocksdbdata*
-                echo "${PASSWORD}" | sudo -S rm -rf ../concord/docker/cockroachDB
-                ./main.py UiTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${ui_test_logs}"
+                echo "${PASSWORD}" | sudo -S rm -rf ../docker/rocksdbdata*
+                echo "${PASSWORD}" | sudo -S rm -rf ../docker/cockroachDB
+                ./main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}"
 
-                echo "${PASSWORD}" | sudo -S ./main.py BeerWarsTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${beerwars_test_logs}"
-                echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${core_vm_test_logs}"
-                echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${helen_api_test_logs}"
-                echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"
-                echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${regression_test_logs}"
-                echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../concord/docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
+                echo "${PASSWORD}" | sudo -S ./main.py BeerWarsTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${beerwars_test_logs}"
+                echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}"
+                echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}"
+                echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"
+                echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}"
+                echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
               '''
             }
           }
