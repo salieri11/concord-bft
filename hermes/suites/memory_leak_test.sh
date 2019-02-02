@@ -198,3 +198,4 @@ rm -f "${HERMES_PID_FILE}"
 
 echo "Exit status: $retVal"
 exit $retVal
+
