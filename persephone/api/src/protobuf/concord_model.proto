@@ -1,0 +1,66 @@
+/* [START declaration] */
+syntax = "proto3";
+package com.vmware.blockchain.deployment.model;
+/* [END declaration] */
+
+/* [START java_declaration] */
+option java_package = "com.vmware.blockchain.deployment.model.jvm";
+option java_multiple_files = true;
+/* [END java_declaration] */
+
+/* [START messages] */
+/**
+ * Model definition of a component within a deployment of Concord instance.
+ *
+ * @property[type]
+ *   type of the component.
+ * @property[name]
+ *   name of the component.
+ */
+message ConcordComponent {
+    /**
+     * Denote the types of components that can be installed in a Concord deployment instance.
+     */
+    enum Type {
+        INVALID = 0;
+        DOCKER_IMAGE = 1;
+    }
+
+    Type type = 1;
+    string name = 2;
+}
+
+/**
+ * Identifier of a [ConcordModel].
+ *
+ * @property[low]
+ *   lower order bits of a 128-bit identifier;
+ * @property[high]
+ *   higher order bits of a 128-bit identifier;
+ */
+message ConcordModelIdentifier {
+    uint64 low = 1;
+    uint64 high = 2;
+}
+
+/**
+ * Model definition of a versioned Concord node template specification.
+ *
+ * @property[version]
+ *   version of the model.
+ * @property[template]
+ *   name of the template base entity to use as housing.
+ *
+ *   Note: Deployment target (e.g. denoted instance of [OrchestrationSite]) is expected to
+ *   translate this value into template entity to be used internally for deployment workflow.
+ * @property[components]
+ *   Positionally ordered list of components to be deployed within a deployment unit.
+ *
+ *   Note: Orchestration engine may utilize the sequence order during deployment workflow.
+ */
+message ConcordModelSpecification {
+    string version = 1;
+    string template = 2;
+    repeated ConcordComponent components = 3 [packed=false];
+}
+/* [END messages] */

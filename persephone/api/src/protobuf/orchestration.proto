@@ -1,0 +1,24 @@
+/* [START declaration] */
+syntax = "proto3";
+package com.vmware.blockchain.deployment.model;
+/* [END declaration] */
+
+/* [START java_declaration] */
+option java_package = "com.vmware.blockchain.deployment.model.jvm";
+option java_multiple_files = true;
+/* [END java_declaration] */
+
+/* [START messages] */
+/**
+ * Denote the identifier of an [OrchestrationSite].
+ *
+ * @property[low]
+ *   lower order bits of a 128-bit identifier;
+ * @property[high]
+ *   higher order bits of a 128-bit identifier;
+ */
+message OrchestrationSiteIdentifier {
+    uint64 low = 1;
+    uint64 high = 2;
+}
+/* [END messages] */

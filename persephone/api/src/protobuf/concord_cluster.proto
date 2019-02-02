@@ -1,0 +1,106 @@
+/* [START declaration] */
+syntax = "proto3";
+package com.vmware.blockchain.deployment.model;
+
+import "concord_model.proto";
+import "core.proto";
+import "orchestration.proto";
+/* [END declaration] */
+
+/* [START java_declaration] */
+option java_package = "com.vmware.blockchain.deployment.model.jvm";
+option java_multiple_files = true;
+/* [END java_declaration] */
+
+/* [START messages] */
+/**
+ * Identifier of a [ConcordNode].
+ *
+ * @property[low]
+ *   lower order bits of a 128-bit identifier;
+ * @property[high]
+ *   higher order bits of a 128-bit identifier;
+ */
+message ConcordNodeIdentifier {
+    uint64 low = 1;
+    uint64 high = 2;
+}
+
+/**
+ * Model definition of information pertaining to a [ConcordNode].
+ *
+ * @property[model]
+ *   identifier of the Concord model specification deployed.
+ * @property[public_key]
+ *   node instance's public key.
+ * @property[ipv4_addresses]
+ *   list of network addresses as perceived by the node instance.
+ */
+message ConcordNodeInfo {
+    ConcordModelIdentifier model = 1;
+    PublicKey public_key = 2;
+    repeated fixed32 ipv4_addresses = 3;
+}
+
+/**
+ * Model definition of information on the host environment of a [ConcordNode].
+ *
+ * @property[site]
+ *   identifier of the orchestration site hosting the member.
+ * @property[ipv4_address_map]
+ *   map of IPv4 public address to node's network address.
+ */
+message ConcordNodeHostInfo {
+    OrchestrationSiteIdentifier site = 1;
+    map<fixed32, fixed32> ipv4_address_map = 10;
+}
+
+/**
+ * Model definition of information pertaining to [ConcordNode]'s configuration.
+ *
+ * @property[s3_storage]
+ *   URL endpoint to S3-compatible storage.
+ */
+message ConcordNodeConfiguration {
+    string s3_storage = 1;
+}
+
+/**
+ * Model definition of a deployed Concord node instance.
+ *
+ * @property[id]
+ *   identifier of the Concord node.
+ * @property[info]
+ *   information pertaining to the Concord node instance.
+ * @property[host_info]
+ *   information pertaining to the Concord node instance's host environment.
+ */
+message ConcordNode {
+    ConcordNodeIdentifier id = 1;
+    ConcordNodeInfo info = 2;
+    ConcordNodeHostInfo host_info = 3;
+}
+
+/**
+ * Identifier of an [ConcordCluster].
+ *
+ * @property[low]
+ *   lower order bits of a 128-bit identifier;
+ * @property[high]
+ *   higher order bits of a 128-bit identifier;
+ */
+message ConcordClusterIdentifier {
+    uint64 low = 1;
+    uint64 high = 2;
+}
+
+/**
+ * Model definition of information pertaining to a [ConcordCluster].
+ *
+ * @property[nodes]
+ *   list of Concord node members in the cluster.
+ */
+message ConcordClusterInfo {
+    repeated ConcordNode members = 1 [packed = false];
+}
+/* [END messages] */

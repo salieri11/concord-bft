@@ -1,0 +1,30 @@
+/* [START declaration] */
+syntax = "proto3";
+package com.vmware.blockchain.deployment.model;
+/* [END declaration] */
+
+/* [START java_declaration] */
+option java_package = "com.vmware.blockchain.deployment.model.jvm";
+option java_multiple_files = true;
+/* [END java_declaration] */
+
+/**
+ * Common message header for RPC request / response messages.
+ *
+ * (Reserved for future use.)
+ */
+message MessageHeader {
+}
+
+/**
+ * Model definition of a public key.
+ *
+ * @property[algorithm]
+ *   algorithm used for the key.
+ * @property[base64_encoding]
+ *   value of the key in base64 encoding.
+ */
+message PublicKey {
+    string algorithm = 1;
+    string base64_encoding = 2;
+}
