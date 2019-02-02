@@ -35,7 +35,8 @@ public class AuthHelper {
         return details == null ? null : details.getUsername();
     }
 
-    public String getOrgId() {
+    // Switching to consortiumId, since internally we're still calling it that
+    public String getConsortiumId() {
         HelenUserDetails details = getDetails();
         return details == null ? null : details.getOrgId();
     }

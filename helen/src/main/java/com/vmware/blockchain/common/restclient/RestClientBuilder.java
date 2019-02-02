@@ -51,9 +51,12 @@ public class RestClientBuilder {
     private String baseUrl;
     private RequestAuthenticationInterceptor authenticationInterceptor;
     private ClientHttpRequestFactory requestFactory;
+    // Do we include an object mapper or not
+    private boolean useMapper;
 
     public RestClientBuilder() {
         this.requestInterceptors = new ArrayList<>();
+        useMapper = true;
     }
 
     /**
@@ -134,7 +137,6 @@ public class RestClientBuilder {
         return this;
     }
 
-
     /**
      * Attach an error handler.
      *
@@ -169,6 +171,11 @@ public class RestClientBuilder {
         return this;
     }
 
+    public RestClientBuilder withNoObjectMapper() {
+        this.useMapper = false;
+        return this;
+    }
+
     public RestClientBuilder withRequestFactory(ClientHttpRequestFactory requestFactory) {
         this.requestFactory = requestFactory;
         return this;
@@ -184,11 +191,13 @@ public class RestClientBuilder {
         // The apache request factory is needed to support PATCH operation.
         RestTemplate restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
         // Set the ObjectMapper in the RestTemplate.
-        MappingJackson2HttpMessageConverter jacksonMessageConverter = new MappingJackson2HttpMessageConverter();
-        jacksonMessageConverter.setObjectMapper(objectMapper);
-        restTemplate.getMessageConverters()
-                .removeIf(m -> m.getClass().equals(MappingJackson2HttpMessageConverter.class));
-        restTemplate.getMessageConverters().add(0, jacksonMessageConverter);
+        if (useMapper) {
+            MappingJackson2HttpMessageConverter jacksonMessageConverter = new MappingJackson2HttpMessageConverter();
+            jacksonMessageConverter.setObjectMapper(objectMapper);
+            restTemplate.getMessageConverters()
+                    .removeIf(m -> m.getClass().equals(MappingJackson2HttpMessageConverter.class));
+            restTemplate.getMessageConverters().add(0, jacksonMessageConverter);
+        }
         // Add interceptors.
 
         // Add auth.

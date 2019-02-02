@@ -96,7 +96,7 @@ public class CspAuthenticationHelper {
      * Check whether authToken is valid for at least requireTtlMillis.
      * N.B. This does NOT validate token - just parses it and looks at expiration time.
      */
-    public static boolean isTokenValidFor(String authToken, long requiredTtlMillis) {
+    public boolean isTokenValidFor(String authToken, long requiredTtlMillis) {
 
         if (authToken == null) {
             return false;
