@@ -30,9 +30,7 @@ def main():
    setUpLogging(args)
    userConfig = util.json_helper.readJsonFile("resources/user_config.json")
    p = Product(args,
-               None,
-               userConfig,
-               None)
+               userConfig)
 
    with open(args.dockerComposeFile[0], "r") as f:
       dockerCfg = yaml.load(f)

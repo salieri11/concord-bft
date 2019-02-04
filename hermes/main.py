@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 #########################################################################
-# Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 
 import argparse
@@ -79,9 +79,21 @@ def main():
                        help="User name for BeerWars tests")
    parser.add_argument("--password",
                        help="Password for BeerWars tests")
-   parser.add_argument("--baseUrl",
+   parser.add_argument("--reverseProxyApiBaseUrl",
                        default="https://localhost/blockchains/local",
-                       help="API sever base URL")
+                       help="Base URL for Helen REST API calls. Test cases drill "
+                            "down further into the API with values such as '/api/users', "
+                            "'/api/concord/blocks', '/api/concord/eth', etc...).")
+   parser.add_argument("--inDockerReverseProxyApiBaseUrl",
+                       default="https://reverse-proxy/blockchains/local",
+                       help="Base URL for accessing the reverse proxy server from within "
+                            "the docker environment.")
+   parser.add_argument("--ethrpcApiUrl",
+                       default=None,
+                       help="By default, Helen's getMembers API is used to fetch ethrpc nodes, "
+                            "and test cases randomly select nodes from that pool.  To force use "
+                            "of one node, or to use an official Ethereum setup, specify its "
+                            "url here.  e.g. 'http://localhost:8545'")
 
    args = parser.parse_args()
    parent_results_dir = args.resultsDir

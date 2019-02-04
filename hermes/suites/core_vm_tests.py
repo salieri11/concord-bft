@@ -1,5 +1,5 @@
 #########################################################################
-# Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # Tasks:
 # - Launch geth when running in ethereumMode. (Low priority...dev mode)
@@ -41,12 +41,6 @@ class CoreVMTests(test_suite.TestSuite):
          self._userConfig["ethereum"]["testRoot"] = \
             os.path.expanduser(self._userConfig["ethereum"]["testRoot"])
 
-      if self._ethereumMode:
-         log.debug("Running in ethereum mode")
-         self._apiServerUrl = "http://localhost:8545"
-      else:
-         self._apiServerUrl = passedArgs.baseUrl + "/api/concord/eth/"
-
    def getName(self):
       return "CoreVMTests"
 
@@ -55,7 +49,6 @@ class CoreVMTests(test_suite.TestSuite):
       try:
          log.info("Launching product...")
          self.launchProduct(self._args,
-                            self._apiServerUrl,
                             self._userConfig)
 
       except Exception as e:
@@ -67,7 +60,7 @@ class CoreVMTests(test_suite.TestSuite):
       log.info("Launching tests...")
       time.sleep(5)
       for test in tests:
-         self.setEthRpcNode()
+         self.setEthrpcNode()
 
          if not self._isSourceCodeTestFile(test):
             testCompiled = self._loadCompiledTest(test)
@@ -213,7 +206,7 @@ class CoreVMTests(test_suite.TestSuite):
       expectedAddress = testCompiled[testName]["exec"]["address"]
       rpc = RPC(testLogDir,
                 testName,
-                self._apiServerUrl,
+                self.ethrpcApiUrl,
                 self._userConfig)
       gas = self._getGas()
       testData = testCompiled[testName]["exec"]["data"]

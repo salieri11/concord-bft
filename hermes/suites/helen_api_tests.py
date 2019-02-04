@@ -1,5 +1,5 @@
 #########################################################################
-# Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # Tests covering Helen's non-ethereum ReST API.
 # (i.e. everything under /api/, excluding /api/concord/eth)
@@ -27,7 +27,6 @@ log = logging.getLogger(__name__)
 
 class HelenAPITests(test_suite.TestSuite):
    _args = None
-   _apiBaseServerUrl = None
    _userConfig = None
    _ethereumMode = False
    _productMode = True
@@ -35,7 +34,6 @@ class HelenAPITests(test_suite.TestSuite):
 
    def __init__(self, passedArgs):
       super(HelenAPITests, self).__init__(passedArgs)
-      self._apiBaseServerUrl = passedArgs.baseUrl
 
    def getName(self):
       return "HelenAPITests"
@@ -44,7 +42,6 @@ class HelenAPITests(test_suite.TestSuite):
       ''' Runs all of the tests. '''
       try:
          p = self.launchProduct(self._args,
-                                self._apiBaseServerUrl + "/api/concord/eth/",
                                 self._userConfig)
       except Exception as e:
          log.error(traceback.format_exc())
@@ -59,7 +56,7 @@ class HelenAPITests(test_suite.TestSuite):
       tests = self._getTests()
 
       for (testName, testFun) in tests:
-         self.setEthRpcNode()
+         self.setEthrpcNode()
          testLogDir = os.path.join(self._testLogDir, testName)
 
          try:
@@ -93,7 +90,7 @@ class HelenAPITests(test_suite.TestSuite):
       log.info("Starting test '{}'".format(testName))
       request = Request(testLogDir,
                         testName,
-                        self._apiBaseServerUrl,
+                        self.reverseProxyApiBaseUrl,
                         self._userConfig)
       return testFun(request)
 
@@ -124,7 +121,8 @@ class HelenAPITests(test_suite.TestSuite):
               ("create_user", self._test_createUser), \
               ("get_non_existing_user", self._test_get_non_existing_user), \
               ("user_login", self._test_user_login), \
-              ("user_patch", self._test_patch_user)]
+              ("user_patch", self._test_patch_user)
+      ]
 
 
    # Tests: expect one argument, a Request, and produce a 2-tuple
@@ -433,12 +431,9 @@ class HelenAPITests(test_suite.TestSuite):
       contractId, contractVersion = self.upload_mock_contract(request)
       result = request.callContractAPI('/api/concord/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
-      # Note that REST calls use self._apiBaseServerUrl, while here we pass
-      # in self._apiServerUrl.  Need to make this more intuitive.  e.g.
-      # self.helenUrl and self.ethRpcUrl or something like that.
       rpc = RPC(request._logDir,
                 self.getName(),
-                self._apiServerUrl,
+                self.ethrpcApiUrl,
                 self._userConfig)
       txres = rpc.sendTransaction("0x1111111111111111111111111111111111111111",
                                   "0x19ff1d21", # HelloWorld.sol's hello function
@@ -459,7 +454,7 @@ class HelenAPITests(test_suite.TestSuite):
                                        + '/versions/' + contractVersion, "")
       rpc = RPC(request._logDir,
                 self.getName(),
-                self._apiServerUrl,
+                self.ethrpcApiUrl,
                 self._userConfig)
       txres = rpc.callContract(result["address"],
                                "0x19ff1d21") # HelloWorld.sol's hello function
@@ -538,7 +533,7 @@ class HelenAPITests(test_suite.TestSuite):
    def _mock_transaction(self, request, data = "0x00"):
       rpc = RPC(request._logDir,
                 self.getName(),
-                self._apiServerUrl,
+                self.ethrpcApiUrl,
                 self._userConfig)
       # do a transaction so that we have some block
       caller = "0x1111111111111111111111111111111111111111"

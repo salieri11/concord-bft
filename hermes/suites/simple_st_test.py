@@ -1,5 +1,5 @@
 #########################################################################
-# Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2018-2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # State transfer suite. Checks the ability of replica to fetch missing data.
 # Since current Concord-bft implementation doesn't persist its metadata,the only
@@ -47,17 +47,13 @@ def wait():
     input('Press enter to continue...')
 
 class SimpleStateTransferTest(test_suite.TestSuite):
-   _apiServerUrl = None
    _helenApiTestInstance = None
-   _baseUrl = None
    _to = "0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019" #from genesis file
    _funcPref = "0xe4b421f2000000000000000000000000000000000000000000000000000000000000"
    _gas = "100000000"
 
    def __init__(self, passedArgs):
       super(SimpleStateTransferTest, self).__init__(passedArgs)
-      self._baseUrl = passedArgs.baseUrl
-      self._apiServerUrl = passedArgs.baseUrl + "/api/concord/eth/"
       self._helenApiTestInstance = helen_api_tests.HelenAPITests(passedArgs)
       self.existing_transactions = 2
 
@@ -67,7 +63,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
    def send_data(self, count, contractAddress, maxRetries):
       rpc = RPC(self._testLogDir,
                self.getName(),
-               self._apiServerUrl,
+               self.ethrpcApiUrl,
                self._userConfig)
       retries = 0
       i = 0
@@ -121,7 +117,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
    def deploy_test_contract(self):
       request = Request(self._testLogDir,
                self.getName(),
-               self._baseUrl,
+               self.reverseProxyApiBaseUrl,
                self._userConfig)
       cCode = open("resources/contracts/LargeBlockStorage.sol", 'r').read()
       cVersion = self._helenApiTestInstance.random_string_generator()
@@ -260,7 +256,6 @@ class SimpleStateTransferTest(test_suite.TestSuite):
    def run(self):
       try:
          self.launchProduct(self._args,
-                            self._apiServerUrl,
                             self._userConfig)
       except Exception as e:
          log.error(traceback.format_exc())
@@ -271,7 +266,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       tests = self._get_tests()
       for (testName, testFunc) in tests:
          log.info("Starting test " + testName)
-         self.setEthRpcNode()
+         self.setEthrpcNode()
          res,info = testFunc()
          self.writeResult(testName, res, info)
 

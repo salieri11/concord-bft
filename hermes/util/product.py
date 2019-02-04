@@ -1,5 +1,5 @@
 #########################################################################
-# Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 import atexit
 import collections
@@ -41,20 +41,17 @@ class Product():
    Represents an instance of the product.  That includes all of the processes
    needed to have "the product" running.
    '''
-   _apiServerUrl = None
+   _ethrpcApiUrl = None
    _logs = []
    _processes = []
    _concordProcessesMetaData = []
-   userProductConfig = None
    _cmdlineArgs = None
-   _baseUrl = None
+   userProductConfig = None
 
-   def __init__(self, cmdlineArgs, apiServerUrl, userConfig, baseUrl):
+   def __init__(self, cmdlineArgs, userConfig):
       self._cmdlineArgs = cmdlineArgs
-      self._apiServerUrl = apiServerUrl
       self._userConfig = userConfig
       self.userProductConfig = userConfig["product"]
-      self._baseUrl = baseUrl
       self._productLogsDir = os.path.join(self._cmdlineArgs.resultsDir, PRODUCT_LOGS_DIR)
       pathlib.Path(self._productLogsDir).mkdir(parents=True, exist_ok=True)
 
@@ -152,15 +149,15 @@ class Product():
          raise Exception("The docker compose file list contains an invalid value.")
 
 
-   def getUrlFromEthRpcNode(self, node):
+   def getUrlFromEthrpcNode(self, node):
       return node["rpc_url"]
 
 
-   def getEthRpcNodes(self):
+   def getEthrpcNodes(self):
       members = []
       request = Request(self._productLogsDir,
                         "getMembers",
-                        self._baseUrl,
+                        self._cmdlineArgs.reverseProxyApiBaseUrl,
                         self._userConfig)
       result = request.getMemberList()
 
@@ -168,7 +165,7 @@ class Product():
          if m["rpc_url"]:
             members.append(m)
 
-      log.info("EthRpc members reported by Helen:")
+      log.info("Ethrpc members reported by Helen:")
       if members:
          for m in members:
            log.info("  {}: {}".format(m["hostname"],m["rpc_url"]))
@@ -627,26 +624,35 @@ class Product():
       nodes = None
 
       while attempts < retries:
-         # Note that Helen will eventually have a health check API.  That will
-         # be a better way to determine when it is up.
          try:
-            nodes = self.getEthRpcNodes()
+            nodes = self.getEthrpcNodes()
          except Exception as e:
             log.info("Caught an exception, probably because Helen is still starting up: {}".format(e))
 
+         # We check for nodes even if we were passed one to use on the command line
+         # because checking for nodes is also our way of knowing whether Helen is up.
+         # Helen will eventually have a health check API, which will be a better way
+         # to determine when it is up.
          if nodes:
-            self._apiServerUrl = self.getUrlFromEthRpcNode(nodes[0])
-            break
+            if self._cmdlineArgs.ethrpcApiUrl:
+               self._ethrpcApiUrl = self._cmdlineArgs.ethrpcApiUrl
+            else:
+               self._ethrpcApiUrl = self.getUrlFromEthrpcNode(nodes[0])
+
+            if self._ethrpcApiUrl:
+               break
          else:
             attempts += 1
 
             if attempts < retries:
                time.sleep(sleepTime)
                log.info("Waiting for Helen to become responsive...")
+            else:
+               raise Exception("Helen never returned ethrpc nodes.")
 
       rpc = RPC(startupLogDir,
                 "waitForStartup",
-                self._apiServerUrl,
+                self._ethrpcApiUrl,
                 self._userConfig)
       caller = self.userProductConfig["users"][0]["hash"]
       data = ("0x60606040523415600e57600080fd5b603580601b6000396000f3006060604"
@@ -658,8 +664,8 @@ class Product():
       while attempts < retries and not txHash:
          try:
             log.info("Adding an API user via Helen...")
-            rpc.addUser(self._baseUrl)
-            log.info("\nRunning a test transaction via ethRpc...")
+            rpc.addUser(self._cmdlineArgs.reverseProxyApiBaseUrl)
+            log.info("\nRunning a test transaction via ethrpc...")
             txHash = rpc.sendTransaction(caller, data)
          except Exception as e:
             attempts += 1

@@ -1,5 +1,5 @@
 #########################################################################
-# Copyright 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # Utility to test the performance of the Helen+concord ecosystem
 #########################################################################
@@ -18,7 +18,6 @@ log = logging.getLogger(__name__)
 
 class UiTests(test_suite.TestSuite):
     _args = None
-    _apiBaseServerUrl = "https://localhost/blockchains/local"
     _userConfig = None
     _productMode = True
     _resultFile = None
@@ -39,7 +38,6 @@ class UiTests(test_suite.TestSuite):
 
         try:
            self.launchProduct(self._args,
-                              self._apiServerUrl,
                               self._userConfig,)
         except Exception as e:
            log.error(traceback.format_exc())
