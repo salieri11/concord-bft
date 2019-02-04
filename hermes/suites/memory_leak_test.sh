@@ -66,7 +66,7 @@ launch_memory_test() {
     echo ${HERMES_PID} > "${HERMES_PID_FILE}"
     echo "Hermes process ID ${HERMES_PID} written to ${HERMES_PID_FILE}"
 
-    cd $CWD
+    cd "$CWD"
     while true
     do
         is_process_still_running=`ps -ef | grep "${HERMES_START_FILE}" | grep ${HERMES_PID}`
@@ -90,7 +90,7 @@ launch_memory_test() {
         used_memory=`echo "${memory_info}" | grep "Mem:" | tr -s " " | cut -d" " -f3`
         free_memory=`echo "${memory_info}" | grep "Mem:" | tr -s " " | cut -d" " -f7`
         echo "Updating ${MEMORY_INFO_CSV_FILE} with Memory Info: ${memory_info}"
-        echo "`date +%m/%d/%Y\ %T`,${total_memory},${used_memory},${free_memory}" >> ${MEMORY_INFO_CSV_FILE}
+        echo "`date +%m/%d/%Y\ %T`,${total_memory},${used_memory},${free_memory}" >> "${MEMORY_INFO_CSV_FILE}"
         sleep ${SLEEP_TIME_IN_SEC}
     done
 }
@@ -126,7 +126,7 @@ fetch_leak_summary() {
         if [ "${WORKSPACE}" != "" ]
         then
             echo "Copying Memory leak summary file to ${WORKSPACE} for graph"
-            cp ${MEMORY_LEAK_SUMMARY_FILE} ${WORKSPACE}
+            cp "${MEMORY_LEAK_SUMMARY_FILE}" "${WORKSPACE}"
         fi
 
         # Check if Memory LEAK has spiked up
@@ -182,7 +182,7 @@ then
     rm -f "${MEMORY_LEAK_ALERT_FILE}"
 fi
 
-launch_memory_test 2>&1 | tee ${MEMORY_INFO_LOG_FILE}
+launch_memory_test 2>&1 | tee "${MEMORY_INFO_LOG_FILE}"
 
 if [ -f "${MEMORY_LEAK_PASS_FILE}" ]
 then
