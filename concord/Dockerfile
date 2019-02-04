@@ -40,6 +40,7 @@ RUN apt-get -y install ${memleak_util} \
     libsnappy1v5 \
     libzstd1 \
     llvm-5.0 \
+    dnsutils \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=0 /usr/local/lib/libcryptopp* /usr/local/lib/
@@ -55,17 +56,23 @@ COPY --from=0 /concord/build/src/concord /concord/concord
 COPY --from=0 /concord/build/tools/conc_* /concord/
 COPY --from=0 /concord/build/tools/ec* /concord/
 
+# Ethereum RPC port.
+EXPOSE 5458
+
+# SBFT ports.
+EXPOSE 3501/udp
+EXPOSE 3502/udp
+EXPOSE 3503/udp
+EXPOSE 3504/udp
+EXPOSE 3505/udp
+
+# Mountable volumes.
+VOLUME [ "/concord/config", "/concord/rocksdbdata", "/concord/log" ]
+
+# Set working directory and start.
 WORKDIR /concord
 CMD export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
     cp /concord/config-public/*.pub /concord/config-local && \
     /concord/config-public/find-docker-instances.sh && \
     ${memleak_util_cmd} \
     /concord/concord -c /concord/config-local/concord.config
-# concord<->helen
-EXPOSE 5458
-# SBFT
-EXPOSE 3501/udp
-EXPOSE 3502/udp
-EXPOSE 3503/udp
-EXPOSE 3504/udp
-EXPOSE 3505/udp

@@ -1,0 +1,137 @@
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: default
+  name: concord-example-node1-ethrpc
+spec:
+  type: NodePort
+  ports:
+  - port: 8545
+    protocol: TCP
+    name: ethrpc
+  selector:
+    ethrpc: example-node1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: default
+  name: concord-example-node1
+spec:
+  clusterIP: None
+  ports:
+  - port: 3501
+    protocol: UDP
+    name: sbft1
+  - port: 3502
+    protocol: UDP
+    name: sbft2
+  - port: 3503
+    protocol: UDP
+    name: sbft3
+  - port: 3504
+    protocol: UDP
+    name: sbft4
+  - port: 3505
+    protocol: UDP
+    name: sbft5
+  selector:
+    app: example-node1
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: default
+  name: concord-example-node1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: example-node1
+  template:
+    metadata:
+      labels:
+        app: example-node1
+        ethrpc: example-node1
+    spec:
+      hostname: node1
+      subdomain: concord-example-node1
+      initContainers:
+      - name: copy-config
+        image: busybox
+        command:
+        - "/bin/sh"
+        - "-c"
+        - "cp /concord/config/s_f1c0_config.pub /concord/config/local/"
+        volumeMounts:
+        - mountPath: /concord/config
+          name: config
+          readOnly: true
+        - mountPath: /concord/config/local
+          name: config-local
+      containers:
+      - name: concord-replica
+        image: concord:k8s
+        command:
+        - "/bin/sh"
+        - "-c"
+        - >
+          export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib &&
+          /concord/config/network-settings.sh /concord/config/local/s_f1c0_config.pub concord1 concord-example-node1 &&
+          /concord/config/network-settings.sh /concord/config/local/s_f1c0_config.pub concord2 concord-example-node2 &&
+          /concord/config/network-settings.sh /concord/config/local/s_f1c0_config.pub concord3 concord-example-node3 &&
+          /concord/config/network-settings.sh /concord/config/local/s_f1c0_config.pub concord4 concord-example-node4 &&
+          /concord/concord -c /concord/config/concord.config
+        ports:
+        - containerPort: 5458
+        - containerPort: 3501
+        - containerPort: 3502
+        - containerPort: 3503
+        - containerPort: 3504
+        - containerPort: 3505
+        volumeMounts:
+        - mountPath: /concord/config
+          name: config
+          readOnly: true
+        - mountPath: /concord/config/local
+          name: config-local
+        - mountPath: /concord/rocksdbdata
+          name: data
+        - mountPath: /concord/log
+          name: log
+      - name: concord-ethrpc
+        image: ethrpc:k8s
+        ports:
+        - containerPort: 8545
+      volumes:
+      - name: config
+        configMap:
+          name: concord-example-config
+          items:
+          - key: concord1.config
+            path: concord.config
+          - key: genesis.json
+            path: genesis.json
+          - key: log4cplus.properties
+            path: log4cplus.properties
+          - key: network-settings.sh
+            path: network-settings.sh
+            mode: 0755
+          - key: s_f1c0_config.pub
+            path: s_f1c0_config.pub
+          - key: s_f1c0_rep01.priv
+            path: s_f1c0_rep01.priv
+          - key: s_f1c0_cli01.priv
+            path: s_f1c0_cli01.priv
+          - key: s_f1c0_cli05.priv
+            path: s_f1c0_cli05.priv
+          - key: s_f1c0_cli09.priv
+            path: s_f1c0_cli09.priv
+          - key: s_f1c0_cli13.priv
+            path: s_f1c0_cli13.priv
+      - name: config-local
+        emptyDir: {}
+      - name: data
+        emptyDir: {}
+      - name: log
+        emptyDir: {}
