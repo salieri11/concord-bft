@@ -27,10 +27,10 @@ TIME_STAMP=`date +%m%d%Y_%H%M%S`
 BASE_LOG_DIR=/var/log/vmwblockchain
 if [ -z "${RESULTS_DIR}" ]
 then
-    RESULTS_DIR=${BASE_LOG_DIR}/memory_leak_testrun_${TIME_STAMP}
+    RESULTS_DIR="${BASE_LOG_DIR}/memory_leak_testrun_${TIME_STAMP}"
 fi
-MEMORY_INFO_LOG_FILE=${RESULTS_DIR}/memory_info_${TIME_STAMP}.log
-MEMORY_INFO_CSV_FILE=${RESULTS_DIR}/memory_info_${TIME_STAMP}.csv
+MEMORY_INFO_LOG_FILE="${RESULTS_DIR}"/memory_info_${TIME_STAMP}.log
+MEMORY_INFO_CSV_FILE="${RESULTS_DIR}"/memory_info_${TIME_STAMP}.csv
 SLEEP_TIME_IN_SEC=60
 MEMORY_LEAK_PASS_FILE="${RESULTS_DIR}/test_status.pass"
 VALGRIND_LOG_FILENAME="valgrind_concord1.log"
@@ -53,14 +53,14 @@ check_usage() {
 }
 
 launch_memory_test() {
-    CWD=$(pwd)
+    CWD="$(pwd)"
     cd ..
     if [ ! "x${TESTS}" = "x" ]
     then
         SPECIFIC_TESTS="--tests ${TESTS}"
     fi
 
-    "${HERMES_START_FILE}" "${TEST_SUITE}" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir ${RESULTS_DIR} ${SPECIFIC_TESTS} --productLaunchAttempts 10 --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-memleak.yml &
+    "${HERMES_START_FILE}" "${TEST_SUITE}" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir "${RESULTS_DIR}" ${SPECIFIC_TESTS} --productLaunchAttempts 10 --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-memleak.yml &
     HERMES_PID=$!
     rm -f "${HERMES_PID_FILE}"
     echo ${HERMES_PID} > "${HERMES_PID_FILE}"
@@ -161,7 +161,7 @@ check_for_spiked_mem_leak() {
 
             echo "Creating log file for Alert Notification: ${MEMORY_LEAK_ALERT_FILE}"
         else
-            echo "\tDifference falls within permitted buffer ($leak_diff bytes)"
+            echo "\tDifference falls within permitted buffer ($LEAK_SPIKE_BUFFER bytes)"
         fi
     else
         echo "WARNING: No Memory LEAK data found from previous runs"
@@ -174,7 +174,7 @@ check_usage
 
 if [ ! -d "${RESULTS_DIR}" ]
 then
-    mkdir -p ${RESULTS_DIR}
+    mkdir -p "${RESULTS_DIR}"
 fi
 
 if [ -f "${MEMORY_LEAK_ALERT_FILE}" ]
@@ -198,3 +198,4 @@ rm -f "${HERMES_PID_FILE}"
 
 echo "Exit status: $retVal"
 exit $retVal
+
