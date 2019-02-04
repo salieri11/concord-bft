@@ -3,7 +3,8 @@ import groovy.json.*
 def call(){
   def agentLabel = "genericVM"
   def genericTests = true
-  def memory_leak_job = "BlockchainMemoryLeakTesting"
+  // def memory_leak_job = "BlockchainMemoryLeakTesting"
+  def memory_leak_job = "Blockchain Manual Run With Parameters"
 
    if (env.JOB_NAME == memory_leak_job) {
     echo "Jenkins job for Memory Leak Test Run"
@@ -361,9 +362,53 @@ EOF
                   '''
                 }
                 if (env.JOB_NAME == memory_leak_job) {
-                  echo "Placeholder for Memory Leak Complete Suite Run"
+                  echo "Running Entire Testsuite: Memory Leak..."
+                  cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs}
                 }
               }
+            }
+          }
+        }
+      }
+
+      stage ("Post Memory Leak Testrun") {
+        when {
+          expression { env.JOB_NAME == memory_leak_job }
+        }
+        stages {
+          stage('Push memory leak summary into repo') {
+            steps {
+              dir('hermes-data/memory_leak_test') {
+                  echo "About to run pushMemoryLeakSummary"
+                  // pushMemoryLeakSummary()
+                  echo "Finished pushMemoryLeakSummary"
+              }
+            }
+          }
+          stage ('Send Leak Alert email') {
+            steps {
+                dir('hermes-data/memory_leak_test') {
+                    script {
+                        memory_leak_spiked_log = new File(env.mem_leak_test_logs, "memory_leak_spiked.log").toString()
+                        if (fileExists(memory_leak_spiked_log)) {
+                            echo 'ALERT: Memory Leak spiked up'
+    
+                            memory_leak_alert_notification_address_file = "memory_leak_alert_recipients.txt"
+                            if (fileExists(memory_leak_alert_notification_address_file)) {
+                                memory_leak_alert_notification_recipients = readFile(memory_leak_alert_notification_address_file).replaceAll("\n", " ")
+                                echo 'Sending ALERT email notification...'
+                                emailext body: "Memory Leak Spiked up in build: ${env.BUILD_NUMBER}\n\n More info at: ${env.BUILD_URL}\nDownload Valgrind Log file (could be > 10 MB): ${env.BUILD_URL}artifact/testLogs/MemoryLeak/valgrind_concord1.log\n\nGraph: ${JOB_URL}plot",
+                                to: memory_leak_alert_notification_recipients,
+                                subject: "ALERT: Memory Leak Spiked up in build ${env.BUILD_NUMBER}"
+                            }
+                        }
+                    }
+                }
+            }
+          }
+          stage ('Graph') {
+            steps {
+                echo "inside graph stage"
             }
           }
         }
