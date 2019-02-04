@@ -62,4 +62,15 @@ message RepeatFieldAndMapMessage {
     map<string, ScalarsMessage> string_to_scalars_map = 5;
     map<int32, NestedMessage.InnerMessage> int32_to_inner_message_map = 6;
 }
+
+message OneOfMessage {
+    oneof oneof_field {
+        int64 int64_field = 1;
+        string string_field = 2;
+        TopLevelEnum top_level_enum = 3;
+        EnumMessage.InnerEnum nested_enum = 4;
+        ScalarsMessage scalars_message = 5;
+        NestedMessage nested_message = 6;
+    }
+}
 // [END messages]

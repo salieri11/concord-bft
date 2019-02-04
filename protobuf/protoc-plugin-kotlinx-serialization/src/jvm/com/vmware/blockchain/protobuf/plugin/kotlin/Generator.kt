@@ -7,6 +7,7 @@ import com.google.protobuf.DescriptorProtos
 import com.google.protobuf.compiler.PluginProtos
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.KModifier
@@ -210,7 +211,7 @@ private fun DescriptorProtos.FieldDescriptorProto.toParameterSpec(
     val fieldType = getFieldType(this, mapEntryTypes)
     return ParameterSpec.builder(getFieldName(this), fieldType)
             .addAnnotation(AnnotationSpec.builder(SerialId::class).addMember("%L", number).build())
-            .defaultValue("%L", getFieldDefaultValue(this, fieldType))
+            .defaultValue(getFieldDefaultValue(this, fieldType))
             .also { spec ->
                 if (label == DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL ||
                     label == DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED) {
@@ -358,45 +359,49 @@ private fun resolveMapEntryType(entry: DescriptorProtos.DescriptorProto): TypeNa
  *   resolved Kotlin type for the field descriptor.
  *
  * @return
- *   the default value for the type described by the field descriptor, as a [String] literal.
+ *   the default value for the type described by the field descriptor, as a [CodeBlock].
  */
 private fun getFieldDefaultValue(
     field: DescriptorProtos.FieldDescriptorProto,
     resolvedType: TypeName
-): String {
+): CodeBlock {
     val typeName = field.typeName.removePrefix(".")
 
     // List collection's default value is just an empty list (non-null).
     return if (field.label == DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED) {
-        (resolvedType as? ParameterizedTypeName)
-                ?.rawType
-                ?.takeIf { it == Map::class.asClassName() }
-                ?.let { "emptyMap()" }
-                ?: "emptyList()"
+        CodeBlock.of(
+                "%L",
+                (resolvedType as? ParameterizedTypeName)
+                        ?.rawType
+                        ?.takeIf { it == Map::class.asClassName() }
+                        ?.let { "emptyMap()" }
+                        ?: "emptyList()"
+        )
     } else {
         // Currently, the resolved Kotlin type does not factor in to resolving default value.
         when (field.type) {
-            DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32 -> "0"
-            DescriptorProtos.FieldDescriptorProto.Type.TYPE_SINT32 -> "0"
-            DescriptorProtos.FieldDescriptorProto.Type.TYPE_SFIXED32 -> "0"
-            DescriptorProtos.FieldDescriptorProto.Type.TYPE_UINT32 -> "0"
-            DescriptorProtos.FieldDescriptorProto.Type.TYPE_FIXED32 -> "0"
-            DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64 -> "0L"
-            DescriptorProtos.FieldDescriptorProto.Type.TYPE_SINT64 -> "0L"
-            DescriptorProtos.FieldDescriptorProto.Type.TYPE_SFIXED64 -> "0L"
-            DescriptorProtos.FieldDescriptorProto.Type.TYPE_UINT64 -> "0L"
-            DescriptorProtos.FieldDescriptorProto.Type.TYPE_FIXED64 -> "0L"
-            DescriptorProtos.FieldDescriptorProto.Type.TYPE_FLOAT -> "0.0F"
-            DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE -> "0.0"
-            DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL -> "false"
-            DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING -> "\"\""
+            DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT32 -> CodeBlock.of("%L", "0")
+            DescriptorProtos.FieldDescriptorProto.Type.TYPE_SINT32 -> CodeBlock.of("%L", "0")
+            DescriptorProtos.FieldDescriptorProto.Type.TYPE_SFIXED32 -> CodeBlock.of("%L", "0")
+            DescriptorProtos.FieldDescriptorProto.Type.TYPE_UINT32 -> CodeBlock.of("%L", "0")
+            DescriptorProtos.FieldDescriptorProto.Type.TYPE_FIXED32 -> CodeBlock.of("%L", "0")
+            DescriptorProtos.FieldDescriptorProto.Type.TYPE_INT64 -> CodeBlock.of("%L", "0L")
+            DescriptorProtos.FieldDescriptorProto.Type.TYPE_SINT64 -> CodeBlock.of("%L", "0L")
+            DescriptorProtos.FieldDescriptorProto.Type.TYPE_SFIXED64 -> CodeBlock.of("%L", "0L")
+            DescriptorProtos.FieldDescriptorProto.Type.TYPE_UINT64 -> CodeBlock.of("%L", "0L")
+            DescriptorProtos.FieldDescriptorProto.Type.TYPE_FIXED64 -> CodeBlock.of("%L", "0L")
+            DescriptorProtos.FieldDescriptorProto.Type.TYPE_FLOAT -> CodeBlock.of("%L", "0.0F")
+            DescriptorProtos.FieldDescriptorProto.Type.TYPE_DOUBLE -> CodeBlock.of("%L", "0.0")
+            DescriptorProtos.FieldDescriptorProto.Type.TYPE_BOOL -> CodeBlock.of("%L", "false")
+            DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING -> CodeBlock.of("%L","\"\"")
             DescriptorProtos.FieldDescriptorProto.Type.TYPE_ENUM ->
-                "${ClassName.bestGuess(typeName).simpleName}.defaultValue"
-            DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES -> "0.toByte()"
-            DescriptorProtos.FieldDescriptorProto.Type.TYPE_GROUP -> "null"
+                CodeBlock.of("%T.%L", ClassName.bestGuess(typeName), "defaultValue")
+            DescriptorProtos.FieldDescriptorProto.Type.TYPE_BYTES ->
+                CodeBlock.of("%L", "0.toByte()")
+            DescriptorProtos.FieldDescriptorProto.Type.TYPE_GROUP -> CodeBlock.of("%L", "null")
             DescriptorProtos.FieldDescriptorProto.Type.TYPE_MESSAGE ->
-                "${ClassName.bestGuess(typeName).simpleName}.defaultValue"
-            else -> "$field.defaultValue"
+                CodeBlock.of("%T.%L", ClassName.bestGuess(typeName), "defaultValue")
+            else -> CodeBlock.of("%L", "$field.defaultValue")
         }
     }
 }
