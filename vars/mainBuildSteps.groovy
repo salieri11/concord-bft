@@ -364,7 +364,7 @@ EOF
                 if (env.JOB_NAME == memory_leak_job) {
                   sh '''
                     echo "Running Entire Testsuite: Memory Leak..."
-                    cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs}
+                    cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 5 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs}
                   '''
                 }
               }
@@ -381,13 +381,11 @@ EOF
           stage('Push memory leak summary into repo') {
             steps {
               dir('hermes-data/memory_leak_test') {
-                  echo "About to run pushMemoryLeakSummary"
-                  // pushMemoryLeakSummary()
-                  echo "Finished pushMemoryLeakSummary"
+                  pushMemoryLeakSummary()
               }
             }
           }
-          stage ('Send Leak Alert email') {
+          stage ('Send Memory Leak Alert Notification') {
             steps {
                 dir('hermes-data/memory_leak_test') {
                     script {
@@ -410,7 +408,24 @@ EOF
           }
           stage ('Graph') {
             steps {
-                echo "inside graph stage"
+              plot csvFileName: 'plot-leaksummary.csv',
+                csvSeries: [[
+                            file: 'memory_leak_summary.csv',
+                            exclusionValues: '',
+                            displayTableFlag: false,
+                            inclusionFlag: 'OFF',
+                            url: '']],
+              group: 'Memory Leak',
+              title: 'Memory Leak Summary',
+              style: 'line',
+              exclZero: false,
+              keepRecords: false,
+              logarithmic: false,
+              numBuilds: '',
+              useDescr: false,
+              yaxis: 'Leak Summary (bytes)',
+              yaxisMaximum: '',
+              yaxisMinimum: ''
             }
           }
         }
@@ -600,4 +615,23 @@ void createVersionInfo(version, commit){
   versionObject.version = version
   versionObject.commit = commit
   return new JsonOutput().toJson(versionObject)
+}
+
+void pushMemoryLeakSummary(){
+  echo "git add"
+  sh (
+    script: "git add memory_leak_summary.csv",
+    returnStdout: false
+  )
+  echo "git commit"
+  sh (
+    script: "git commit -m 'Update memory leak summary data'",
+    returnStdout: false
+  )
+
+  echo "git push"
+  sh (
+    script: "git push origin master",
+    returnStdout: false
+  )
 }
