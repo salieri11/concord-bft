@@ -2,13 +2,10 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { Inject, Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { mergeMap } from 'rxjs/operators';
 
-import { LOG_API_PREFIX } from '../../shared/shared.config';
-import { CspApiService } from '../../shared/csp-api.service';
 import { LogTaskResponse, LogTaskCompletedResponse, LogTaskParams, LogTimePeriod, LogCountEntry } from './logging.model';
 import { ONE_MINUTE, FIFTEEN_MINUTES } from './logging.constants';
 
@@ -17,7 +14,7 @@ import { ONE_MINUTE, FIFTEEN_MINUTES } from './logging.constants';
 })
 export class LogApiService {
 
-  constructor(@Inject(LOG_API_PREFIX) private logApiPrefix: string, private httpClient: HttpClient, private cspApi: CspApiService) {}
+  constructor(private httpClient: HttpClient) { }
 
   postToTasks(start: number, end: number, rows: number = 20): Observable<LogTaskResponse> {
     const logQuery = {
@@ -48,12 +45,7 @@ export class LogApiService {
   }
 
   fetchLogStatus(path: string): Observable<LogTaskCompletedResponse> {
-    return this.cspApi.fetchToken().pipe(mergeMap(((tokenResp: any) => {
-      return this.httpClient.get<LogTaskCompletedResponse>(`${this.logApiPrefix}${path}`, {
-        headers: new HttpHeaders()
-          .set('Authorization', `Bearer ${tokenResp.access_token}`)
-      });
-    })));
+    return this.httpClient.get<LogTaskCompletedResponse>(`/api/lint${path}`);
   }
 
   padHeatMapData(heatMapObj: {[hour: number]: number}): void {
@@ -105,12 +97,10 @@ export class LogApiService {
   }
 
   private logQueryTask(logQuery: LogTaskParams): Observable<LogTaskResponse> {
-    return this.cspApi.fetchToken().pipe(mergeMap(((tokenResp: any) => {
-      return this.httpClient.post<LogTaskResponse>(`${this.logApiPrefix}/ops/query/log-query-tasks`, logQuery, {
-        headers: new HttpHeaders()
-          .set('Authorization', `Bearer ${tokenResp.access_token}`)
-      });
-    })));
+    return this.httpClient.post<LogTaskResponse>(
+      `/api/lint/ops/query/log-query-tasks/`,
+      logQuery
+    );
   }
 }
 

@@ -614,6 +614,7 @@
     }
   },
   "logging": {
+    "refresh": "Refresh",
     "heatMap": {
       "dailyTitle": "Calls by time of day",
       "hourlyTitle": "Calls by the hour",
@@ -1042,7 +1043,9 @@
     "col": {
       "ingestTimestamp": "ingest_timestamp",
       "logTimestamp": "log_timestamp",
-      "appName": "appname",
+      "function": "function",
+      "message": "message",
+      "ethRequestId": "eth_request_id",
       "organizationId": "organization_id",
       "source": "source",
       "id": "id",

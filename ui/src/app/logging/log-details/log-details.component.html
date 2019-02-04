@@ -9,13 +9,17 @@
       <th>{{ 'logDetails.col.logTimestamp' | translate }}</th>
       <td>{{log.log_timestamp}}</td>
     </tr>
-    <tr *ngIf="log?.appname">
-      <th>{{ 'logDetails.col.appName' | translate }}</th>
-      <td>{{log.appname}}</td>
+    <tr *ngIf="log?.function">
+      <th>{{ 'logDetails.col.function' | translate }}</th>
+      <td>{{log.function}}</td>
     </tr>
-    <tr *ngIf="log?.organization_id">
-      <th>{{ 'logDetails.col.organizationId' | translate }}</th>
-      <td>{{log.organization_id}}</td>
+    <tr *ngIf="log?.message">
+      <th>{{ 'logDetails.col.message' | translate }}</th>
+      <td>{{log.message}}</td>
+    </tr>
+    <tr *ngIf="log?.eth_request_id">
+      <th>{{ 'logDetails.col.ethRequestId' | translate }}</th>
+      <td>{{log.eth_request_id}}</td>
     </tr>
     <tr *ngIf="log?.source">
       <th>{{ 'logDetails.col.source' | translate }}</th>

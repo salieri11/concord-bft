@@ -5,10 +5,36 @@
     </div>
     <div class="col-xs-6">
       <div class="text-right">
+        <button type="button"
+                class="btn btn-link"
+                style="margin-right: 10px;"
+                (click)="refresh()"
+                [disabled]="countLoading || listLoading">
+          <clr-icon shape="refresh"></clr-icon>
+          {{'logging.refresh' | translate}}
+        </button>
+        <clr-dropdown>
+          <button type="button"
+                  class="btn btn-outline-primary time-selector"
+                  style="margin-right: 10px;"
+                  clrDropdownTrigger
+                  [disabled]="countLoading || listLoading">
+            {{selectedTimePeriod.title}}
+            <clr-icon shape="caret down"></clr-icon>
+          </button>
+          <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
+            <button type="button"
+                    *ngFor="let period of timePeriods"
+                    [ngClass]="{'active': period.value === selectedTimePeriod.value}"
+                    (click)="onSelectTimePeriod(period)"
+                    clrDropdownItem>
+              {{period.title}}
+            </button>
+          </clr-dropdown-menu>
+        </clr-dropdown>
         <clr-dropdown>
           <button type="button"
                   class="btn btn-outline-primary"
-                  style="margin-right: 10px;"
                   clrDropdownTrigger
                   [disabled]="countLoading || listLoading">
             {{'logging.exports.title' | translate}}
@@ -22,24 +48,6 @@
             <button type="button" (click)="onClickExportLogEvents()" clrDropdownItem>
               <clr-icon shape="download"></clr-icon>
               {{'logging.exports.exportLogEvents.title' | translate}}
-            </button>
-          </clr-dropdown-menu>
-        </clr-dropdown>
-        <clr-dropdown>
-          <button type="button"
-                  class="btn btn-outline-primary time-selector"
-                  clrDropdownTrigger
-                  [disabled]="countLoading || listLoading">
-            {{selectedTimePeriod.title}}
-            <clr-icon shape="caret down"></clr-icon>
-          </button>
-          <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
-            <button type="button"
-                    *ngFor="let period of timePeriods"
-                    [ngClass]="{'active': period.value === selectedTimePeriod.value}"
-                    (click)="onSelectTimePeriod(period)"
-                    clrDropdownItem>
-              {{period.title}}
             </button>
           </clr-dropdown-menu>
         </clr-dropdown>
@@ -86,12 +94,13 @@
           </clr-dg-row-detail>
         </clr-dg-row>
       </clr-datagrid>
-      <div class="text-right">
+      <div class="button-footer">
         <button *ngIf="nextPageLink"
                 (click)="onFetchNextPage()"
-                [attr.disabled]="listLoading ? '' : null"
+                [clrLoading]="listLoading"
+                [disabled]="listLoading ? '' : null"
                 type="button"
-                class="btn btn-outline-primary next-page">
+                class="btn btn-outline-primary next-page btn-block">
           {{ 'logging.actions.loadMore' | translate }}
         </button>
       </div>

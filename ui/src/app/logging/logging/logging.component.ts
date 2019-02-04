@@ -160,8 +160,12 @@ export class LoggingComponent implements OnInit {
     if (this.selectedTimePeriod !== null && timePeriod.value === this.selectedTimePeriod.value) {
       return;
     }
-
     this.selectedTimePeriod = timePeriod;
+
+    this.refresh();
+  }
+
+  refresh() {
     // fetch logs again with new parameters
     this.endTime = new Date().getTime();
     this.startTime = this.endTime - this.selectedTimePeriod.value;
