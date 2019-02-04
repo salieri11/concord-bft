@@ -362,8 +362,10 @@ EOF
                   '''
                 }
                 if (env.JOB_NAME == memory_leak_job) {
-                  echo "Running Entire Testsuite: Memory Leak..."
-                  cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs}
+                  sh '''
+                    echo "Running Entire Testsuite: Memory Leak..."
+                    cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs}
+                  '''
                 }
               }
             }
