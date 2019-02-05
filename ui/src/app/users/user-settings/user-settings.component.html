@@ -1,70 +1,70 @@
-<div class="p-2">
+<div class="pt-2 pl-2 pr-2">
   <div class="flex-items-xs-middle">
     <h2 class="page-title">
       {{'users.settings.title' | translate}}
     </h2>
-    <button class="btn btn-sm float-sm-right" (click)="editSettings()">{{ 'users.settings.editSettings.title' |
-      translate}}
+    <button class="btn btn-sm float-sm-right"
+            (click)="walletForm.open()"
+            [disabled]="hasWallet">
+      {{'users.settings.wallet.createWallet' | translate}}
     </button>
   </div>
-  <div class="row mb-1 mt-1">
-    <div class="col-xs-2">
+  <div class="row mb-1 mt-1" *ngIf="user">
+    <div class="col-xs-4">
       <div>
-        <small class="text-muted">{{ 'users.settings.firstName' | translate}}</small>
+        <small class="text-muted">{{'users.settings.name' | translate}}</small>
       </div>
-      <div class="large-font">Jon</div>
-    </div>
-    <div class="col-xs-2">
-      <div>
-        <small class="text-muted">{{ 'users.settings.lastName' | translate}}</small>
-      </div>
-      <div class="large-font">Doe</div>
+      <div class="large-font">{{user.name}}</div>
     </div>
     <div class="col-xs-4">
       <div>
         <small class="text-muted">{{ 'users.settings.email' | translate}}</small>
       </div>
-      <div class="large-font">jdoe@chinabank.com</div>
+      <div class="large-font">{{user.email}}</div>
     </div>
     <div class="col-xs-4">
       <div>
         <small class="text-muted">{{ 'users.settings.role' | translate}}</small>
       </div>
-      <div class="large-font">System Admin</div>
+      <div class="large-font">{{user.role}}</div>
+    </div>
+  </div>
+</div>
+<div class="p-2" *ngIf="hasWallet">
+  <div class="row">
+    <div class="col-xs-12">
+      <h2 class="page-title">
+        {{'users.settings.wallet.myWallet' | translate}}
+      </h2>
+    </div>
+    <div class="col-xs-12">
+      <table class="mt-0 table table-vertical wallet-table">
+        <tbody>
+        <tr>
+          <th>{{'users.settings.wallet.address' | translate}}</th>
+          <td>
+            {{'0x' + userWallet.address}}
+            <concord-copy-to-clipboard-button
+              classList="ctc-btn-inline"
+              [tooltip]="'common.copyToClip' | translate"
+              tooltipDirection="top-right"
+              [value]="'0x' + userWallet?.address"
+              [size]="12">
+            </concord-copy-to-clipboard-button>
+          </td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="col-xs-12">
+      <button class="btn btn-primary-outline btn-sm" type="button" (click)="walletForm.open()">{{'users.settings.wallet.showPrivateKey' | translate}}</button>
+      <button class="btn btn-primary-outline btn-sm" type="button" (click)="onDownloadWallet()">{{'users.settings.wallet.download' | translate}}</button>
     </div>
   </div>
 </div>
 
-<div class="m-2 row">
-  <div class="col-xs-12">
-    <h4 class="page-title">
-      {{'users.settings.orgTitle' | translate}}
-    </h4>
-  </div>
-</div>
-<div class="m-2 row" *ngFor="let org of organizations let i = index">
-  <div class="col-xs-4">
-    <div>
-      <small class="text-muted">{{'users.settings.organization.title' | translate}}</small>
-    </div>
-    <div class="large-font">{{org}}</div>
-  </div>
-  <div class="col-xs-6">
-    <div>
-      <small class="text-muted">{{'users.settings.credentials' | translate}}</small>
-    </div>
-    <button *ngIf="i === 0" class="btn btn-sm"
-            (click)="openDownloadCertificationWizard()"
-            tourAnchor="onboardingTour.downloadCertificate">
-      <span><clr-icon shape="download"></clr-icon></span>
-      {{'users.settings.downloadCertificate.title' | translate}}
-    </button>
-    <button *ngIf="i > 0" class="btn btn-sm"
-            (click)="openDownloadCertificationWizard()">
-      <span><clr-icon shape="download"></clr-icon></span>
-      {{'users.settings.downloadCertificate.title' | translate}}
-    </button>
-  </div>
-</div>
+<concord-wallet-form #walletForm [user]="user"
+                     (createdWallet)="onCreatedWallet($event)"
+                     [userWallet]="userWallet"
+                     [hasWallet]="hasWallet"></concord-wallet-form>
 
-<concord-credential-form #authenticationForm [isOpen]="isOpen" (closed)="downloadWizardClosed($event)"></concord-credential-form>

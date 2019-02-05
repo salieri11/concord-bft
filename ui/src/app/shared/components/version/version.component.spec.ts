@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';

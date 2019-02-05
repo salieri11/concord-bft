@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { Inject, Injectable } from '@angular/core';

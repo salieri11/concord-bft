@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 export function generateDownload(fileName: string, content: string) {

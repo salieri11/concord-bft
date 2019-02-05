@@ -1,11 +1,11 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { Personas } from '../../shared/persona.service';
 
 export interface User {
-  user_id?: number;
+  user_id?: string;
   name?: string;
   email: string;
   password?: string;
@@ -17,6 +17,7 @@ export interface User {
   last_login?: number;
   role?: Personas;
   token?: string;
+  wallet_address?: string;
   details?: {
     first_name: string,
     last_name: string

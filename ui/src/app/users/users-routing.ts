@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { Routes } from '@angular/router';
@@ -9,5 +9,8 @@ import { UserSettingsComponent } from './user-settings/user-settings.component';
 
 export const usersRoutes: Routes = [
   { path: '', component: UsersComponent },
-  { path: 'settings', component: UserSettingsComponent }
+  {
+    path: 'settings',
+    component: UserSettingsComponent
+  }
 ];

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
@@ -25,15 +25,6 @@ import { TransactionDetailsComponent } from '../../transactions/transaction-deta
 import { SmartContractsService } from '../shared/smart-contracts.service';
 import { TourService } from '../../shared/tour.service';
 import { CodeHighlighterComponent } from '../../shared/components/code-highlighter/code-highlighter.component';
-
-
-class MockActivatedRoute extends ActivatedRoute {
-  constructor() {
-    super();
-    this.params = observableOf({ contractId: '2', version: '1' });
-    this.fragment = observableOf('');
-  }
-}
 
 describe('SmartContractComponent', () => {
   let component: SmartContractComponent;
@@ -62,7 +53,13 @@ describe('SmartContractComponent', () => {
         SmartContractsService,
         TourService,
         NgxTourService,
-        { provide: ActivatedRoute, useClass: MockActivatedRoute }
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            params: observableOf({ contractId: '2', version: '1' }),
+            fragment: observableOf('')
+          }
+        }
       ]
     })
       .compileComponents();

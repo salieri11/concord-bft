@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { Injectable } from '@angular/core';
@@ -16,7 +16,6 @@ export class AuthenticationService {
   private userSubject: BehaviorSubject<User>;
   readonly user: Observable<User>;
   agreement: any = { accepted: false };
-  currentUser: User;
   redirectUrl: string;
   constructor(
     private personaService: PersonaService,
@@ -25,16 +24,26 @@ export class AuthenticationService {
   ) {
     this.userSubject = new BehaviorSubject<User>({
       email: localStorage['helen.email'],
-      persona: localStorage['helen.persona']
+      persona: localStorage['helen.persona'],
+      user_id: localStorage['helen.user_id'],
+      wallet_address: localStorage['helen.wallet_address']
     });
     this.user = this.userSubject.asObservable();
     this.personaService.currentPersona = localStorage['helen.persona'];
   }
 
   isAuthenticated() {
-    return localStorage['helen.email'] !== undefined;
+    return localStorage['helen.user_id'] !== undefined;
   }
 
+  get currentUser() {
+    return {
+      email: localStorage['helen.email'],
+      persona: localStorage['helen.persona'],
+      user_id: localStorage['helen.user_id'],
+      wallet_address: localStorage['helen.wallet_address']
+    };
+  }
 
   refreshToken(): Observable<any> {
     const url = 'api/auth/token';
@@ -78,9 +87,16 @@ export class AuthenticationService {
     localStorage.removeItem('jwtTokenExpiresAt');
     localStorage.removeItem('jwtRefreshTokenExpiresAt');
     localStorage.removeItem('helen.persona');
+    localStorage.removeItem('helen.user_id');
+    localStorage.removeItem('helen.wallet_address');
 
     this.personaService.currentPersona = undefined;
-    this.userSubject.next({ email: localStorage['helen.email'], persona: localStorage['helen.persona'] });
+    this.userSubject.next({
+      email: localStorage['helen.email'],
+      persona: localStorage['helen.persona'],
+      user_id: localStorage['helen.user_id'],
+      wallet_address: localStorage['helen.wallet_address']
+    });
     this.setRedirectPath();
     this.router.navigate(['auth/login']);
   }
@@ -109,13 +125,17 @@ export class AuthenticationService {
   }
 
   handleLogin(response: User, persona: Personas) {
-    this.currentUser = response;
+    const walletAddress = response.wallet_address ? `0x${response.wallet_address}` : '';
+    localStorage.setItem('helen.user_id', response.user_id);
     localStorage.setItem('helen.email', response.email);
+    localStorage.setItem('helen.wallet_address', walletAddress);
     this.setToken(response);
     this.personaService.currentPersona = persona;
     this.userSubject.next({
       email: response.email,
-      persona: persona
+      persona: persona,
+      user_id: response.user_id,
+      wallet_address: walletAddress
     });
   }
 

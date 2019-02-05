@@ -1,8 +1,9 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { async, fakeAsync, tick, ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
 import { ClarityModule } from '@clr/angular';
 import { ClrFormsNextModule } from '@clr/angular';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
@@ -17,7 +18,6 @@ import { SmartContractsService } from '../shared/smart-contracts.service';
 import {
   SmartContractsSolidityFunctionInputsComponent
 } from '../smart-contracts-solidity-function-inputs/smart-contracts-solidity-function-inputs.component';
-
 
 describe('ContractFormComponent', () => {
   let component: ContractFormComponent;
@@ -79,7 +79,8 @@ describe('ContractFormComponent', () => {
         MockSharedModule,
         BrowserAnimationsModule,
         FormsModule,
-        ClrFormsNextModule
+        ClrFormsNextModule,
+        RouterTestingModule
       ],
       declarations: [ContractFormComponent, SmartContractsSolidityFunctionInputsComponent],
       providers: [

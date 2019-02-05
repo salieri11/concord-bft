@@ -6,6 +6,7 @@ package com.vmware.blockchain.services.profiles;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
@@ -33,6 +34,31 @@ public class WalletServlet {
     public WalletServlet(ProfilesRegistryManager prm, KeystoresRegistryManager krm) {
         this.krm = krm;
         this.prm = prm;
+    }
+
+    /**
+     * Get all wallet addresses for a specific user.
+     * @param userId User Id
+     * @return the list of wallet addresses
+     */
+    @RequestMapping(path = "/api/users/{user_id}/wallet", method = RequestMethod.GET)
+    public ResponseEntity<JSONAware> getWalletsForUser(@PathVariable("user_id") String userId) {
+        JSONObject user = prm.getUserWithId(userId);
+        if (user.isEmpty()) {
+            return new ResponseEntity<>(new JSONArray(), HttpStatus.NOT_FOUND);
+        } else {
+            HttpStatus responseStatus;
+            JSONArray responseJson;
+            try {
+                responseJson = krm.getWalletsForUser(userId);
+                responseStatus = HttpStatus.OK;
+            } catch (ParseException e) {
+                logger.warn("Error while retrieving client wallets", e);
+                responseJson = new JSONArray();
+                responseStatus = HttpStatus.NOT_FOUND;
+            }
+            return new ResponseEntity<>(responseJson, responseStatus);
+        }
     }
 
     /**

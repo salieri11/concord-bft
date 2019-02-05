@@ -1,9 +1,10 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { of as observableOf } from 'rxjs';
 import { ClrFormsNextModule } from '@clr/angular';
 import { MockSharedModule } from '../../shared/shared.module';
@@ -44,7 +45,15 @@ describe('SmartContractsComponent', () => {
         ConnectWithTruffleComponent,
         CodeHighlighterComponent
       ],
-      providers: [ TourService ]
+      providers: [
+        TourService,
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            fragment: observableOf('')
+          }
+        }
+      ]
     })
     .compileComponents();
   }));

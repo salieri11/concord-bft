@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { Component, OnInit, ViewChild } from '@angular/core';
@@ -24,7 +24,7 @@ export class SmartContractsComponent implements OnInit {
 
   constructor (
     private smartContractsService: SmartContractsService,
-    private router: Router
+    private router: Router,
   ) { }
 
   ngOnInit() {

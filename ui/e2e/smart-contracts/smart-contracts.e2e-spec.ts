@@ -1,13 +1,14 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { browser } from 'protractor';
+import { browser, protractor, ProtractorExpectedConditions } from 'protractor';
 
 import { SmartContractsPage } from './smart-contracts.po';
 import { SmartContractPage } from './smart-contract.po';
 import { AuthHelper } from '../helpers/auth';
 import { LoginPage } from '../login/login.po';
+import { BROWSER_WAIT_TIME } from '../helpers/constants';
 
 declare var require: any;
 
@@ -22,8 +23,10 @@ describe('concord-ui Smart Contracts', () => {
   let contractId: string;
   let version: string;
   let file: string;
+  let until: ProtractorExpectedConditions;
 
   beforeAll(() => {
+    until = protractor.ExpectedConditions;
     loginPage = new LoginPage();
     authHelper = new AuthHelper();
     loginPage.navigateTo();
@@ -54,12 +57,14 @@ describe('concord-ui Smart Contracts', () => {
     smartContractsPage.clickWizardNextButton();
     smartContractsPage.addProprosals();
     smartContractsPage.clickWizardFinishButton();
+    browser.wait(until.presenceOf(smartContractPage.getPageTitle()), BROWSER_WAIT_TIME);
     expect(smartContractPage.getContractId()).toBe(contractId);
   });
 
   it('should navigate to the smart contract page with the latest version selected', () => {
     const expectedLinkText = `${contractId}`;
     smartContractsPage.getTableLinkElement(expectedLinkText).click();
+    browser.wait(until.presenceOf(smartContractPage.getPageTitle()), BROWSER_WAIT_TIME);
     expect(smartContractPage.getContractId()).toBe(contractId);
 
     expect(smartContractPage.getVersionName()).toBe(version);

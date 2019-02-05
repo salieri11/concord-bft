@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { async, fakeAsync, tick, ComponentFixture, TestBed } from '@angular/core/testing';

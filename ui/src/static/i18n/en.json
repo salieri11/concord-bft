@@ -806,11 +806,32 @@
       "orgTitle": "My Organizations and Certificates",
       "firstName": "First Name",
       "lastName": "Last Name",
+      "name": "Name",
       "email": "Email",
       "role": "Role",
       "consortiums": "Consortiums",
       "organization": {
         "title": "Organization"
+      },
+      "wallet": {
+        "myWallet": "My Wallet",
+        "address": "Address",
+        "showPrivateKey": "Show Private Key",
+        "download": "Download",
+        "createWallet": "Create Wallet"
+      },
+      "walletForm": {
+        "showPrivateKey": "Show Private Key",
+        "createWallet": "Create Wallet",
+        "enterPassword": "Enter Password",
+        "passwordWarning": "Please use a key management solution like 1Password or LastPass to store the passwords, because passwords are not changeable or recoverable.",
+        "password": "Password",
+        "requiredText": "This is a required field",
+        "walletDetails": "Wallet Details",
+        "privateKeyWarning": "Never disclose private key.  Anyone with access to your private key can make transactions on your behalf",
+        "address": "Address",
+        "privateKey": "Private Key",
+        "concealedPrivateKey": "************"
       },
       "credentials": "Credentials",
       "downloadCertificate": {
@@ -843,6 +864,10 @@
       "editSettings": {
         "title": "Edit Settings",
         "alertMessage": "Redirect to CSP for editing the settings."
+      },
+      "errors": {
+        "fetchUserError": "Failed to get user, please try again. If error persists contact blockchain-support@vmware.com.",
+        "fetchWalletError": "Failed to get wallet, please try again. If error persists contact blockchain-support@vmware.com."
       }
     }
   },
