@@ -129,10 +129,10 @@ class MessageGenerator(private val descriptor: DescriptorProtos.DescriptorProto)
                 .build()
         return TypeSpec.classBuilder(selfTypeName)
                 .addAnnotation(AnnotationSpec.builder(Serializable::class).build())
-                .also {
+                .apply {
                     /* Data class must have at least 1 field declared. */
                     if (descriptor.fieldCount > 0) {
-                        it.addModifiers(KModifier.DATA)
+                        addModifiers(KModifier.DATA)
                     }
                 }
                 .primaryConstructor(constructor)
@@ -170,9 +170,9 @@ class EnumGenerator(private val descriptor: DescriptorProtos.EnumDescriptorProto
                                      .initializer("value")
                                      .build())
                 .addType(companion)
-                .also { spec ->
+                .apply {
                     for (constant in descriptor.valueList) {
-                        spec.addEnumConstant(
+                        addEnumConstant(
                                 constant.name,
                                 TypeSpec.anonymousClassBuilder()
                                         .addSuperclassConstructorParameter("%L", constant.number)
@@ -212,30 +212,30 @@ private fun DescriptorProtos.FieldDescriptorProto.toParameterSpec(
     return ParameterSpec.builder(getFieldName(this), fieldType)
             .addAnnotation(AnnotationSpec.builder(SerialId::class).addMember("%L", number).build())
             .defaultValue(getFieldDefaultValue(this, fieldType))
-            .also { spec ->
+            .apply {
                 if (label == DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL ||
                     label == DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED) {
-                    spec.addAnnotation(AnnotationSpec.builder(Optional::class).build())
+                    addAnnotation(AnnotationSpec.builder(Optional::class).build())
                 }
             }
-            .also { spec ->
+            .apply {
                 val fixed = AnnotationSpec.builder(ProtoType::class)
                         .addMember("%T.%L", ProtoNumberType::class, ProtoNumberType.FIXED)
                 val signed = AnnotationSpec.builder(ProtoType::class)
                         .addMember("%T.%L", ProtoNumberType::class, ProtoNumberType.SIGNED)
                 when (type) {
                     DescriptorProtos.FieldDescriptorProto.Type.TYPE_FIXED32 ->
-                        spec.addAnnotation(fixed.build())
+                        addAnnotation(fixed.build())
                     DescriptorProtos.FieldDescriptorProto.Type.TYPE_FIXED64 ->
-                        spec.addAnnotation(fixed.build())
+                        addAnnotation(fixed.build())
                     DescriptorProtos.FieldDescriptorProto.Type.TYPE_SFIXED32 ->
-                        spec.addAnnotation(fixed.build())
+                        addAnnotation(fixed.build())
                     DescriptorProtos.FieldDescriptorProto.Type.TYPE_SFIXED64 ->
-                        spec.addAnnotation(fixed.build())
+                        addAnnotation(fixed.build())
                     DescriptorProtos.FieldDescriptorProto.Type.TYPE_SINT32 ->
-                        spec.addAnnotation(signed.build())
+                        addAnnotation(signed.build())
                     DescriptorProtos.FieldDescriptorProto.Type.TYPE_SINT64 ->
-                        spec.addAnnotation(signed.build())
+                        addAnnotation(signed.build())
                     else -> Unit
                 }
             }
