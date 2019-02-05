@@ -361,9 +361,70 @@ EOF
                   '''
                 }
                 if (env.JOB_NAME == memory_leak_job) {
-                  echo "Placeholder for Memory Leak Complete Suite Run"
+                  sh '''
+                    echo "Running Entire Testsuite: Memory Leak..."
+                    cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 5 --resultsDir ${mem_leak_test_logs}
+                  '''
                 }
               }
+            }
+          }
+        }
+      }
+
+      stage ("Post Memory Leak Testrun") {
+        when {
+          expression { env.JOB_NAME == memory_leak_job }
+        }
+        stages {
+          stage('Push memory leak summary into repo') {
+            steps {
+              dir('hermes-data/memory_leak_test') {
+                  pushMemoryLeakSummary()
+              }
+            }
+          }
+          stage ('Send Memory Leak Alert Notification') {
+            steps {
+                dir('hermes-data/memory_leak_test') {
+                    script {
+                        memory_leak_spiked_log = new File(env.mem_leak_test_logs, "memory_leak_spiked.log").toString()
+                        if (fileExists(memory_leak_spiked_log)) {
+                            echo 'ALERT: Memory Leak spiked up'
+    
+                            memory_leak_alert_notification_address_file = "memory_leak_alert_recipients.txt"
+                            if (fileExists(memory_leak_alert_notification_address_file)) {
+                                memory_leak_alert_notification_recipients = readFile(memory_leak_alert_notification_address_file).replaceAll("\n", " ")
+                                echo 'Sending ALERT email notification...'
+                                emailext body: "Memory Leak Spiked up in build: ${env.BUILD_NUMBER}\n\n More info at: ${env.BUILD_URL}\nDownload Valgrind Log file (could be > 10 MB): ${env.BUILD_URL}artifact/testLogs/MemoryLeak/valgrind_concord1.log\n\nGraph: ${JOB_URL}plot",
+                                to: memory_leak_alert_notification_recipients,
+                                subject: "ALERT: Memory Leak Spiked up in build ${env.BUILD_NUMBER}"
+                            }
+                        }
+                    }
+                }
+            }
+          }
+          stage ('Graph') {
+            steps {
+              plot csvFileName: 'plot-leaksummary.csv',
+                csvSeries: [[
+                            file: 'memory_leak_summary.csv',
+                            exclusionValues: '',
+                            displayTableFlag: false,
+                            inclusionFlag: 'OFF',
+                            url: '']],
+              group: 'Memory Leak',
+              title: 'Memory Leak Summary',
+              style: 'line',
+              exclZero: false,
+              keepRecords: false,
+              logarithmic: false,
+              numBuilds: '',
+              useDescr: false,
+              yaxis: 'Leak Summary (bytes)',
+              yaxisMaximum: '',
+              yaxisMinimum: ''
             }
           }
         }
@@ -553,4 +614,23 @@ void createVersionInfo(version, commit){
   versionObject.version = version
   versionObject.commit = commit
   return new JsonOutput().toJson(versionObject)
+}
+
+void pushMemoryLeakSummary(){
+  echo "git add"
+  sh (
+    script: "git add memory_leak_summary.csv",
+    returnStdout: false
+  )
+  echo "git commit"
+  sh (
+    script: "git commit -m 'Update memory leak summary data'",
+    returnStdout: false
+  )
+
+  echo "git push"
+  sh (
+    script: "git push origin master",
+    returnStdout: false
+  )
 }
