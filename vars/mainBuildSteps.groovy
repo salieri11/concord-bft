@@ -3,8 +3,7 @@ import groovy.json.*
 def call(){
   def agentLabel = "genericVM"
   def genericTests = true
-  // def memory_leak_job = "BlockchainMemoryLeakTesting"
-  def memory_leak_job = "Blockchain Manual Run With Parameters"
+  def memory_leak_job = "BlockchainMemoryLeakTesting"
 
    if (env.JOB_NAME == memory_leak_job) {
     echo "Jenkins job for Memory Leak Test Run"
@@ -364,7 +363,7 @@ EOF
                 if (env.JOB_NAME == memory_leak_job) {
                   sh '''
                     echo "Running Entire Testsuite: Memory Leak..."
-                    cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 5 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs}
+                    cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 5 --resultsDir ${mem_leak_test_logs}
                   '''
                 }
               }
