@@ -91,3 +91,6 @@ cockroachdb_test_local.sh
 .vscode/*
 /hermes/NORMALIZED_COMMANDS.txt.gz
 hermes/.env
+
+# Log files created by the build process
+*.log
