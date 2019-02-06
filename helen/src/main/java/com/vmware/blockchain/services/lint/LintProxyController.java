@@ -63,7 +63,7 @@ public class LintProxyController {
 
     @Autowired
     public LintProxyController(AuthHelper authHelper, @Value("${csp.url}") String cspUrl,
-            @Value("${lint.apitoken}") String lintApiToken, @Value("${lint.url}") String lintUrl) {
+            @Value("${lint.apitoken:#null}") String lintApiToken, @Value("${lint.url}") String lintUrl) {
         this.authHelper = authHelper;
         this.cspAuthHelper = new CspAuthenticationHelper(cspUrl);
         this.lintApiToken = lintApiToken;
