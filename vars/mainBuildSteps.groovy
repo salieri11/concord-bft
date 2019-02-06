@@ -207,7 +207,11 @@ def call(){
 
           // Docker-compose picks up values from the .env file in the directory from which
           // docker-compose is run.
-          withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+          withCredentials([
+            string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
+            string(credentialsId: 'LINT_API_KEY', variable: 'LINT_API_KEY'),
+            string(credentialsId: 'FLUENTD_AUTHORIZATION_BEARER', variable: 'FLUENTD_AUTHORIZATION_BEARER')
+            ]) {
             sh '''
               echo "${PASSWORD}" | sudo -S ls
               sudo cat >blockchain/docker/.env <<EOF
@@ -226,8 +230,12 @@ asset_transfer_tag=${docker_tag}
 agent_repo=${internal_agent_repo}
 agent_tag=${docker_tag}
 commit_hash=${commit}
+LINT_API_KEY=${LINT_API_KEY}
 EOF
               cp blockchain/docker/.env blockchain/hermes/
+
+              # Need to the fluentd authorization bearer, I couldn't get this method to update the conf https://docs.fluentd.org/v0.12/articles/faq#how-can-i-use-environment-variables-to-configure-parameters-dynamically?
+              sed -i -e 's/'"<ADD-LOGINTELLIGENCE-KEY-HERE>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/docker/fluentd/fluentd.conf
             '''
           }
         }

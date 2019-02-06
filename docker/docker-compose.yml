@@ -138,14 +138,16 @@ services:
       - db-server
     volumes:
       - ./config-helen:/config:ro
+    environment:
+      - "LINT_API_TOKEN=${LINT_API_KEY}"
     # Used for sending logs to log intelligence
     # We don't want this on by default, because logs won't be available locally for debugging
     # You will need to add the log intelligence in the fluent.conf file for it to work.
-    # logging:
-    #   driver: "fluentd"
-    #   options:
-    #     fluentd-address: 0.0.0.0:24224
-    #     tag: httpd.access
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: httpd.access
 
   ui:
     image: "${ui_repo}:${ui_tag}"
@@ -195,6 +197,7 @@ services:
       - "24224:24224"
       - "24224:24224/udp"
     environment:
+      - "LINT_FLUENTD_API_KEY=${LINT_FLUENTD_API_KEY}"
       - FLUENTD_CONF=fluentd.conf
     volumes:
       - ./fluentd:/fluentd/etc

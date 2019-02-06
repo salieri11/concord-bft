@@ -28,11 +28,18 @@ Dev server with CSP flavor
 npm run start:csp
 ```
 ### Running Tests
-Two ways of running tests
+Two ways of running tests.
 
 **Hermes**
 1. Install chrome and xvfb `sudo apt-get install xvfb chromium-browser`
 1. Make sure everything is running with `docker-compose up -d`
+1. Export your VMC api key, found here (found here)[https://console.cloud.vmware.com/csp/gateway/portal/#/user/tokens] `export LINT_API_KEY=XXXXXXXXX`
+1. Add your fluentd api key to the `docker/fluentd/fluentd.conf` file and change the below line.
+
+```shell
+Authorization Bearer <ADD-LOGINTELLIGENCE-KEY-HERE>
+```
+
 1. Instantiate a new instance `python3 reinitializeDatabases.py`
 1. Then `python3 main.py UiTests --noLaunch`
 1. If tests are failing you may need to relaunch with docker-compose
