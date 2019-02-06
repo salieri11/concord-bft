@@ -347,15 +347,13 @@ class Product():
       numTries = 0
       dbRunning = False
       dbPort = int(dockerCfg["services"]["db-server"]["ports"][0].split(":")[0])
-      sock = socket.socket()
 
       while numTries < maxTries and not dbRunning:
+         sock = socket.socket()
+         log.debug("Attempting to connect to the Helen DB server on port {}.".format(dbPort))
+
          try:
-            log.debug("Attempting to connect to the Helen DB server on port {}.".format(dbPort))
             sock.connect(("localhost", dbPort)) # Product may have a remote DB someday.
-            log.debug("Helen DB is up.")
-            sock.close()
-            dbRunning = True
          except Exception as e:
             log.debug("Waiting for the Helen DB server: '{}'".format(e))
 
@@ -363,6 +361,11 @@ class Product():
                numTries += 1
                log.debug("Will try again in {} seconds.".format(sleepTime))
                time.sleep(sleepTime)
+         else:
+            log.debug("Helen DB is up.")
+            dbRunning = True
+         finally:
+            sock.close()
 
       return dbRunning
 
