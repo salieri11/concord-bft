@@ -10,8 +10,8 @@ services:
       - 3504/udp
       - 3505/udp
     volumes:
-      - ./rocksdbdata1:/concord/rocksdbdata
-      - ./log1:/concord/log
+      - ./devdata/rocksdbdata1:/concord/rocksdbdata
+      - ./devdata/log1:/concord/log
       - ./config-concord1:/concord/config-local
       - ./config-public:/concord/config-public:ro
 
@@ -42,8 +42,8 @@ services:
       - 3504/udp
       - 3505/udp
     volumes:
-      - ./rocksdbdata2:/concord/rocksdbdata
-      - ./log2:/concord/log
+      - ./devdata/rocksdbdata2:/concord/rocksdbdata
+      - ./devdata/log2:/concord/log
       - ./config-concord2:/concord/config-local
       - ./config-public:/concord/config-public:ro
 
@@ -74,8 +74,8 @@ services:
       - 3504/udp
       - 3505/udp
     volumes:
-      - ./rocksdbdata3:/concord/rocksdbdata
-      - ./log3:/concord/log
+      - ./devdata/rocksdbdata3:/concord/rocksdbdata
+      - ./devdata/log3:/concord/log
       - ./config-concord3:/concord/config-local
       - ./config-public:/concord/config-public:ro
 
@@ -106,8 +106,8 @@ services:
       - 3504/udp
       - 3505/udp
     volumes:
-      - ./rocksdbdata4:/concord/rocksdbdata
-      - ./log4:/concord/log
+      - ./devdata/rocksdbdata4:/concord/rocksdbdata
+      - ./devdata/log4:/concord/log
       - ./config-concord4:/concord/config-local
       - ./config-public:/concord/config-public:ro
 
@@ -132,6 +132,8 @@ services:
     image: "${helen_repo}:${helen_tag}"
     ports:
       - 8080:8080
+    environment:
+      - LINT_API_TOKEN=${LINT_API_TOKEN}
     depends_on:
       - db-server
     volumes:
@@ -157,10 +159,24 @@ services:
     ports:
       - 26257:26257
     volumes:
-      - ./cockroachDB:/cockroach/cockroach-data
+      - ./devdata/cockroachDB:/cockroach/cockroach-data
     command:
       - start
       - --insecure
+
+  db-server-init1:
+    image: cockroachdb/cockroach:v2.0.2
+    command: --host db-server user set helen_admin --insecure
+    depends_on:
+      - db-server
+
+  db-server-init2:
+    image: cockroachdb/cockroach:v2.0.2
+    volumes:
+      - ./helen/src/main/resources/database:/cockroach/resources:ro
+    entrypoint: sh -c "./cockroach --host db-server sql --insecure < /cockroach/resources/schema.sql"
+    depends_on:
+      - db-server-init1
 
   reverse-proxy:
     image: athena-docker-local.artifactory.eng.vmware.com/reverse-proxy:0.1.2
