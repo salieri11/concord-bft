@@ -2,11 +2,11 @@
 
 // [START declaration]
 syntax = "proto3";
-package com.vmware.blockchain.protobuf.plugin;
+package com.vmware.blockchain.protobuf.plugin.proto3;
 // [END declaration]
 
 // [START java_declaration]
-option java_package = "com.vmware.blockchain.protobuf.plugin.java";
+option java_package = "com.vmware.blockchain.protobuf.plugin.proto3.java";
 option java_multiple_files = true;
 // [END java_declaration]
 

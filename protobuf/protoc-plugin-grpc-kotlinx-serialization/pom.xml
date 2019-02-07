@@ -10,9 +10,9 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>protoc-plugin-kotlinx-serialization</artifactId>
+    <artifactId>protoc-plugin-grpc-kotlinx-serialization</artifactId>
     <packaging>jar</packaging>
-    <name>Compiler Plugin (kotlinx.serializaton)</name>
+    <name>Compiler Plugin for GRPC (kotlinx.serializaton)</name>
 
     <dependencies>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -21,6 +21,15 @@
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-stdlib-jdk8</artifactId>
+        </dependency>
+        <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        ~ Internal dependencies.                                    ~
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
+        <dependency>
+            <!-- Compile-time dependency for code-generation. -->
+            <groupId>com.vmware.blockchain.protobuf</groupId>
+            <artifactId>grpc-runtime-kotlinx-serialization</artifactId>
+            <scope>compile</scope>
         </dependency>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ~ External dependencies.                                    ~
@@ -32,6 +41,18 @@
         <dependency>
             <groupId>com.squareup</groupId>
             <artifactId>kotlinpoet</artifactId>
+        </dependency>
+        <dependency>
+            <!-- Compile-time dependency for code-generation. -->
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-core</artifactId>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <!-- Compile-time dependency for code-generation. -->
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-stub</artifactId>
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <!-- Compile-time dependency for code-generation. -->

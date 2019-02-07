@@ -1,15 +1,15 @@
 /* **********************************************************************
  * Copyright 2019 VMware, Inc.  All rights reserved. VMware Confidential
  * *********************************************************************/
-package com.vmware.blockchain.protobuf.plugin
+package com.vmware.blockchain.protobuf.plugin.proto3
 
 import com.google.protobuf.Message
 import com.google.protobuf.Parser
-import com.vmware.blockchain.protobuf.plugin.java.EnumMessage as EnumMessageJava
-import com.vmware.blockchain.protobuf.plugin.java.NestedMessage as NestedMessageJava
-import com.vmware.blockchain.protobuf.plugin.java.RepeatFieldAndMapMessage as RepeatFieldAndMapMessageJava
-import com.vmware.blockchain.protobuf.plugin.java.ScalarsMessage as ScalarsMessageJava
-import com.vmware.blockchain.protobuf.plugin.java.TopLevelEnum as TopLevelEnumJava
+import com.vmware.blockchain.protobuf.plugin.proto3.java.EnumMessage as EnumMessageJava
+import com.vmware.blockchain.protobuf.plugin.proto3.java.NestedMessage as NestedMessageJava
+import com.vmware.blockchain.protobuf.plugin.proto3.java.RepeatFieldAndMapMessage as RepeatFieldAndMapMessageJava
+import com.vmware.blockchain.protobuf.plugin.proto3.java.ScalarsMessage as ScalarsMessageJava
+import com.vmware.blockchain.protobuf.plugin.proto3.java.TopLevelEnum as TopLevelEnumJava
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.protobuf.ProtoBuf
 import org.assertj.core.api.Assertions
