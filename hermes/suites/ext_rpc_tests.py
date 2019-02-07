@@ -1,5 +1,5 @@
 #########################################################################
-# Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # Test the parts of the Ethereum JSON RPC API beyond what the
 # CoreVMTests cover. This checks things like web3_sha3,
@@ -32,8 +32,6 @@ log = logging.getLogger(__name__)
 
 class ExtendedRPCTests(test_suite.TestSuite):
    _args = None
-   _apiBaseServerUrl = None
-   _apiServerUrl = None
    _userConfig = None
    _ethereumMode = False
    _productMode = True
@@ -44,13 +42,6 @@ class ExtendedRPCTests(test_suite.TestSuite):
    def __init__(self, passedArgs):
       super(ExtendedRPCTests, self).__init__(passedArgs)
 
-      if self._ethereumMode:
-         log.debug("Running in ethereum mode")
-         self._apiServerUrl = "http://localhost:8545"
-      else:
-         self._apiBaseServerUrl = passedArgs.baseUrl
-         self._apiServerUrl = self._apiBaseServerUrl+"/api/concord/eth/"
-
    def getName(self):
       return "ExtendedRPCTests"
 
@@ -58,7 +49,6 @@ class ExtendedRPCTests(test_suite.TestSuite):
       ''' Runs all of the tests. '''
       try:
          self.launchProduct(self._args,
-                            self._apiServerUrl,
                             self._userConfig)
       except Exception as e:
          log.error(traceback.format_exc())
@@ -67,7 +57,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       tests = self._getTests()
 
       for (testName, testFun) in tests:
-         self.setEthRpcNode()
+         self.setEthrpcNode()
          testLogDir = os.path.join(self._testLogDir, testName)
 
          try:
@@ -116,18 +106,19 @@ class ExtendedRPCTests(test_suite.TestSuite):
               ("block_filter_uninstall", self._test_block_filter_uninstall),
               ("eth_personal_newAccount", self._test_personal_newAccount),
               ("eth_replay_protection", self._test_replay_protection),
-              ("eth_fallback_function", self._test_fallback)]
+              ("eth_fallback_function", self._test_fallback)
+      ]
 
    def _runRpcTest(self, testName, testFun, testLogDir):
       ''' Runs one test. '''
       log.info("Starting test '{}'".format(testName))
       rpc = RPC(testLogDir,
                 testName,
-                self._apiServerUrl,
+                self.ethrpcApiUrl,
                 self._userConfig)
       request = Request(testLogDir,
                         testName,
-                        self._apiBaseServerUrl,
+                        self.reverseProxyApiBaseUrl,
                         self._userConfig)
       return testFun(rpc, request)
 
@@ -361,7 +352,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       expectedBalance = 20
 
       user = self._userConfig.get('product').get('db_users')[0]
-      web3 = Web3(HTTPProvider(self._apiServerUrl,
+      web3 = Web3(HTTPProvider(self.ethrpcApiUrl,
                                request_kwargs={'auth': HTTPBasicAuth(user['username'], user['password']),
                                                'verify': False}))
 
@@ -687,7 +678,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       '''
       user_id = request.getUsers()[0]['user_id']
       user = self._userConfig.get('product').get('db_users')[0]
-      web3 = Web3(HTTPProvider(self._apiBaseServerUrl+"/api/concord/eth/", \
+      web3 = Web3(HTTPProvider(self.reverseProxyApiBaseUrl + "/api/concord/eth/", \
 	          request_kwargs= \
 	          {'auth': HTTPBasicAuth(user['username'], user['password']), \
 	          'verify': False}))
@@ -739,7 +730,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       '''
       user_id = request.getUsers()[0]['user_id']
       user = self._userConfig.get('product').get('db_users')[0]
-      web3 = Web3(HTTPProvider(self._apiBaseServerUrl+"/api/concord/eth/",
+      web3 = Web3(HTTPProvider(self.reverseProxyApiBaseUrl + "/api/concord/eth/",
                                request_kwargs={'auth': HTTPBasicAuth(user['username'], user['password']),
                                                'verify': False}))
       password = "123456"
@@ -806,7 +797,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       expectedCount = 1000
 
       user = self._userConfig.get('product').get('db_users')[0]
-      web3 = Web3(HTTPProvider(self._apiServerUrl,
+      web3 = Web3(HTTPProvider(self.ethrpcApiUrl,
                                request_kwargs={'auth': HTTPBasicAuth(user['username'], user['password']),
                                                'verify': False}))
 

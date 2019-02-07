@@ -1,5 +1,5 @@
 #########################################################################
-# Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # Tests the special corner case scenarios which where discovered while
 # running ethereum transactions on concord
@@ -29,7 +29,6 @@ log = logging.getLogger(__name__)
 
 class RegressionTests(test_suite.TestSuite):
    _args = None
-   _apiServerUrl = None
    _userConfig = None
    _ethereumMode = False
    _productMode = True
@@ -40,12 +39,6 @@ class RegressionTests(test_suite.TestSuite):
    def __init__(self, passedArgs):
       super(RegressionTests, self).__init__(passedArgs)
 
-      if self._ethereumMode:
-         log.debug("Running in ethereum mode")
-         self._apiServerUrl = "http://localhost:8545"
-      else:
-         self._apiServerUrl = passedArgs.baseUrl + "/api/concord/eth/"
-
    def getName(self):
       return "RegressionTests"
 
@@ -53,7 +46,6 @@ class RegressionTests(test_suite.TestSuite):
       ''' Runs all of the tests. '''
       try:
          self.launchProduct(self._args,
-                            self._apiServerUrl,
                             self._userConfig)
       except Exception as e:
          log.error(traceback.format_exc())
@@ -62,7 +54,7 @@ class RegressionTests(test_suite.TestSuite):
       tests = self._getTests()
 
       for (testName, testFun) in tests:
-         self.setEthRpcNode()
+         self.setEthrpcNode()
          testLogDir = os.path.join(self._testLogDir, testName)
 
          try:
@@ -101,7 +93,7 @@ class RegressionTests(test_suite.TestSuite):
       log.info("Starting test '{}'".format(testName))
       rpc = RPC(testLogDir,
                 testName,
-                self._apiServerUrl,
+                self.ethrpcApiUrl,
                 self._userConfig)
       return testFun(rpc)
 

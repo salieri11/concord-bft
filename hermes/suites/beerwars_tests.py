@@ -1,5 +1,5 @@
 #########################################################################
-# Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
 # Tests covering BeerWars DApp compatibility.
 #########################################################################
@@ -27,8 +27,10 @@ from . import test_suite
 log = logging.getLogger(__name__)
 
 class BeerWarsTests(test_suite.TestSuite):
+   # Set in init based on whether an endpoint was passed in.
+   _apiServerUrl = None
+
    _args = None
-   _apiBaseServerUrl = "https://reverse-proxy/blockchains/local"
    _subPath = "/api/concord/eth"
    _userConfig = None
    _ethereumMode = False
@@ -60,7 +62,7 @@ class BeerWarsTests(test_suite.TestSuite):
          self._apiServerUrl = self._args.endpoint
          self._noLaunch = True
       else:
-         self._apiServerUrl = self._apiBaseServerUrl + self._subPath
+         self._apiServerUrl = self.inDockerReverseProxyApiBaseUrl + self._subPath
 
       if self._ethereumMode:
          self._noLaunch = True
@@ -80,7 +82,6 @@ class BeerWarsTests(test_suite.TestSuite):
       ''' Runs all of the tests. '''
       try:
          self.launchProduct(self._args,
-                            "https://localhost/blockchains/local/api/concord/eth",
                             self._userConfig)
       except Exception as e:
          log.error(traceback.format_exc())

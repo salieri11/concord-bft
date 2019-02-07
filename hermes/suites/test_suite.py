@@ -1,5 +1,5 @@
 #########################################################################
-# Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2018-2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 from abc import ABC
 from abc import abstractmethod
@@ -38,14 +38,9 @@ class TestSuite(ABC):
       self._ethereumMode = self._args.ethereumMode
       self._productMode = not self._ethereumMode
       self._noLaunch = self._args.noLaunch
-      self._baseUrl = passedArgs.baseUrl
-      self.ethRpcNodes = None
-
-      if self._ethereumMode:
-         log.debug("Running in ethereum mode")
-         self._apiServerUrl = "http://localhost:8545"
-      else:
-         self._apiServerUrl = passedArgs.baseUrl + "/api/concord/eth/"
+      self.ethrpcNodes = None
+      self.reverseProxyApiBaseUrl = passedArgs.reverseProxyApiBaseUrl
+      self.inDockerReverseProxyApiBaseUrl = passedArgs.inDockerReverseProxyApiBaseUrl
 
       self._results = {
          self.getName(): {
@@ -142,13 +137,13 @@ class TestSuite(ABC):
 
       os.rename(tempFile, realFile)
 
-   def launchProduct(self, cmdlineArgs, url, userConfig, force=False):
+   def launchProduct(self, cmdlineArgs, userConfig, force=False):
       '''
       Creates the test suite's Product object and, if appropriate,
       launches the product.  Passing in force=True means the
       product will always be launched.
       '''
-      self.product = Product(cmdlineArgs, url, userConfig, self._baseUrl)
+      self.product = Product(cmdlineArgs, userConfig)
 
       if force or (self._productMode and not self._noLaunch):
          try:
@@ -158,26 +153,28 @@ class TestSuite(ABC):
             self.writeResult("All Tests", None, "The product did not start.")
             raise(e)
 
-   def setEthRpcNode(self):
+   def setEthrpcNode(self):
       '''
       Changes the ethRpcNode that a test suite uses.  Expected usage
       is that this function gets called at the beginning of every
       test case to pick a fresh node.
       '''
-      ethRpcNodeUrl = self._getEthRpcNode()
-      self._apiServerUrl = ethRpcNodeUrl
+      if self._args.ethrpcApiUrl:
+         self.ethrpcApiUrl = self._args.ethrpcApiUrl
+      else:
+         self.ethrpcApiUrl = self._getEthrpcApiUrl()
 
-   def _getEthRpcNode(self):
+   def _getEthrpcApiUrl(self):
       '''
       Fetches a random ethRpc node.  This uses the Product class
       which gets the nodes by using Helen's getMembers API.
       '''
-      if not self.ethRpcNodes:
-         self.ethRpcNodes = self.product.getEthRpcNodes()
+      if not self.ethrpcNodes:
+         self.ethrpcNodes = self.product.getEthrpcNodes()
 
-      if self.ethRpcNodes:
-         node = random.choice(self.ethRpcNodes)
-         url = self.product.getUrlFromEthRpcNode(node)
+      if self.ethrpcNodes:
+         node = random.choice(self.ethrpcNodes)
+         url = self.product.getUrlFromEthrpcNode(node)
          return url
       else:
          raise Exception("Error: No ethrpc nodes were reported by Helen.")

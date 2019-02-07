@@ -1,5 +1,5 @@
 #########################################################################
-# Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
+# Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
 import json
 import logging
@@ -172,17 +172,16 @@ class RPC():
       else:
          return response
 
-   def addUser(self, url):
+   def addUser(self, reverseProxyApiBaseUrl):
       '''
       TEMPORARY, this will soon be replaced by CSP and VIDM
       Create first user so basic auth works for API calls.
       '''
-
       curlCmd = ["curl",
                  "-X", "POST",
                  "-H", "Content-Type: application/json",
                  "--data", json.dumps({}),
-                 url + "/api/auth/login",
+                 reverseProxyApiBaseUrl + "/api/auth/login",
                  "--verbose",
                  "--insecure",]
 
