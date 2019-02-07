@@ -4,7 +4,10 @@
 
 package com.vmware.blockchain.security;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -17,6 +20,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import com.vmware.blockchain.common.HelenException;
+import com.vmware.blockchain.services.profiles.BlockchainManager;
+import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.User;
 import com.vmware.blockchain.services.profiles.UserRepository;
 
@@ -30,6 +35,9 @@ public class HelenUserDetailsService implements UserDetailsService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private BlockchainManager blockchainManager;
+
     @Override
     @Cacheable("UserCache")
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -42,8 +50,12 @@ public class HelenUserDetailsService implements UserDetailsService {
 
         User u = user.get();
         HelenUserDetails details = new HelenUserDetails(email, u.getPassword(), true, true, true, true, u.getRoles());
-        details.setOrgId(u.getConsortium().getConsortiumId().toString());
+        Consortium c = u.getConsortium();
+        details.setOrgId(c.getConsortiumId().toString());
         details.setAuthToken("");
+        List<UUID> ids =
+                blockchainManager.listByConsortium(c).stream().map(b -> b.getId()).collect(Collectors.toList());
+        details.setPermittedChains(ids);
         return details;
     }
 

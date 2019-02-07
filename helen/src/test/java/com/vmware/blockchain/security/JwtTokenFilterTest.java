@@ -4,13 +4,17 @@
 
 package com.vmware.blockchain.security;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Optional;
+import java.util.UUID;
 
 import javax.servlet.Filter;
 
@@ -29,6 +33,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import com.vmware.blockchain.WebSecurityConfig;
+import com.vmware.blockchain.services.profiles.Blockchain;
+import com.vmware.blockchain.services.profiles.BlockchainManager;
+import com.vmware.blockchain.services.profiles.Consortium;
+import com.vmware.blockchain.services.profiles.ConsortiumRepository;
 import com.vmware.blockchain.services.profiles.Roles;
 import com.vmware.blockchain.services.profiles.User;
 import com.vmware.blockchain.services.profiles.UserRepository;
@@ -40,6 +48,8 @@ import com.vmware.blockchain.services.profiles.UserRepository;
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = {WebSecurityConfig.class, JwtTestContoller.class, AuthHelper.class})
 public class JwtTokenFilterTest {
+    static final UUID BC_ID = UUID.fromString("437d97b2-76df-4596-b0d8-3d8a9412ff2f");
+
     @Autowired
     public JwtTokenProvider jwtTokenProvider;
 
@@ -50,6 +60,12 @@ public class JwtTokenFilterTest {
 
     @MockBean
     private UserRepository userRepository;
+
+    @MockBean
+    private BlockchainManager blockchainManager;
+
+    @MockBean
+    private ConsortiumRepository consortiumRepository;
 
     private MockMvc mockMvc;
 
@@ -82,7 +98,12 @@ public class JwtTokenFilterTest {
     @BeforeEach
     public void init() {
         user = SecurityTestUtils.createMockUser();
+        Consortium c = user.getConsortium();
         when(userRepository.findUserByEmail(user.getEmail())).thenReturn(Optional.of(user));
+        when(consortiumRepository.findById(any((UUID.class)))).thenReturn(Optional.of(c));
+        Blockchain b = mock(Blockchain.class);
+        when(b.getId()).thenReturn(BC_ID);
+        when(blockchainManager.listByConsortium(c)).thenReturn(Collections.singletonList(b));
         token = jwtTokenProvider.createToken(user);
 
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
@@ -126,7 +147,44 @@ public class JwtTokenFilterTest {
 
     @Test
     public void testAccessToPermitedResourceWithoutToken() throws Exception {
-        this.mockMvc.perform(get("/api/auth/login")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/auth/login")).andExpect(status().isOk());
+    }
+
+    // Testing hasAnyAutority
+    @Test
+    void testOperatorAsUser() throws Exception {
+        mockMvc.perform(get("/api/operator").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+            .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void testOperatorAsOperator() throws Exception {
+        when(user.getRoles()).thenReturn(Arrays.asList(Roles.SYSTEM_ADMIN));
+        mockMvc.perform(
+                get("/api/operator").header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.createToken(user)))
+                .andExpect(status().isOk());
+    }
+
+    // Test access via a blockchain id.
+    @Test
+    void testBlockchainOk() throws Exception {
+        mockMvc.perform(get("/api/blockchain/" + BC_ID.toString()).header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    void testBlockchainForbiddent() throws Exception {
+        mockMvc.perform(get("/api/blockchain/3181fe0e-0e29-427e-a542-fdb9139aee71")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void testBlockchainOperator() throws Exception {
+        when(user.getRoles()).thenReturn(Arrays.asList(Roles.CONSORTIUM_ADMIN));
+        mockMvc.perform(get("/api/blockchain/3181fe0e-0e29-427e-a542-fdb9139aee71")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtTokenProvider.createToken(user)))
+                .andExpect(status().isOk());
     }
 
     @Test

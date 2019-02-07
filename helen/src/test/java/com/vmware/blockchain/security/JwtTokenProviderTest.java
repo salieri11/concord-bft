@@ -21,6 +21,8 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.vmware.blockchain.services.profiles.BlockchainManager;
+import com.vmware.blockchain.services.profiles.ConsortiumRepository;
 import com.vmware.blockchain.services.profiles.User;
 
 import io.jsonwebtoken.Claims;
@@ -41,6 +43,12 @@ public class JwtTokenProviderTest {
 
     @MockBean
     private HelenUserDetailsService myUserDetails;
+
+    @MockBean
+    private ConsortiumRepository consortiumRepo;
+
+    @MockBean
+    private BlockchainManager blockManager;
 
     private String secretKey;
 

@@ -37,6 +37,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
+import com.vmware.blockchain.security.AuthHelper;
 import com.vmware.blockchain.security.HelenUserDetails;
 import com.vmware.blockchain.security.JwtTokenProvider;
 
@@ -90,6 +91,9 @@ class UserAuthenticatorTest {
 
     @MockBean
     private ConsortiumRepository consortiumRepository;
+
+    @MockBean
+    AuthHelper authHelper;
 
     private User testUser;
 

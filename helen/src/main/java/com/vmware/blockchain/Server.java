@@ -70,6 +70,14 @@ public class Server {
         net.sf.ehcache.config.Configuration config = new net.sf.ehcache.config.Configuration();
         config.addCache(cacheConfiguration);
 
+        CacheConfiguration tokenConfiguration = new CacheConfiguration();
+        tokenConfiguration.setName("TokenCache");
+        tokenConfiguration.setMemoryStoreEvictionPolicy("LRU");
+        tokenConfiguration.setMaxEntriesLocalHeap(500);
+        tokenConfiguration.timeToIdleSeconds(TimeUnit.MINUTES.toSeconds(5));
+        tokenConfiguration.timeToLiveSeconds(TimeUnit.MINUTES.toSeconds(5));
+        config.addCache(tokenConfiguration);
+
         return net.sf.ehcache.CacheManager.newInstance(config);
     }
 

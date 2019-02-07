@@ -5,6 +5,8 @@
 package com.vmware.blockchain.security;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
@@ -25,6 +27,10 @@ public class HelenUserDetails extends User {
     @Getter
     @Setter
     private String orgId;
+
+    @Getter
+    @Setter
+    private List<UUID> permittedChains;
 
     /**
      * Create a new instance of HelenUserDetails.
