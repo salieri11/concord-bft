@@ -45,7 +45,7 @@ export class LogApiService {
   }
 
   fetchLogStatus(path: string): Observable<LogTaskCompletedResponse> {
-    return this.httpClient.get<LogTaskCompletedResponse>(`/api/lint${path}`);
+    return this.httpClient.get<LogTaskCompletedResponse>(`api/lint${path}`);
   }
 
   padHeatMapData(heatMapObj: {[hour: number]: number}): void {
@@ -98,7 +98,7 @@ export class LogApiService {
 
   private logQueryTask(logQuery: LogTaskParams): Observable<LogTaskResponse> {
     return this.httpClient.post<LogTaskResponse>(
-      `/api/lint/ops/query/log-query-tasks/`,
+      `api/lint/ops/query/log-query-tasks/`,
       logQuery
     );
   }

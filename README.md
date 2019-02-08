@@ -175,17 +175,3 @@ positional arguments:
                         'PerformanceTests', 'KVBlockchainTests',
                         'RegressionTests']
 ```
-
-## Launch with docker-compose
-
-After building all of your images you can now launch with docker-compose, but you will need to first export your LINT_API_KEY to connect with VMC services, which can be (found here)[https://console.cloud.vmware.com/csp/gateway/portal/#/user/tokens]
-
-```shell
-export LINT_API_KEY=XXXXXXXXX
-```
-
-Then go to the `docker` directory and launch.
-
-```shell
-docker-compose up -d
-```

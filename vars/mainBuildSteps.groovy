@@ -234,7 +234,8 @@ LINT_API_KEY=${LINT_API_KEY}
 EOF
               cp blockchain/docker/.env blockchain/hermes/
 
-              # Need to the fluentd authorization bearer, I couldn't get this method to update the conf https://docs.fluentd.org/v0.12/articles/faq#how-can-i-use-environment-variables-to-configure-parameters-dynamically?
+              # Need to add the fluentd authorization bearer.
+              # I couldn't get this env method to update the conf https://docs.fluentd.org/v0.12/articles/faq#how-can-i-use-environment-variables-to-configure-parameters-dynamically
               sed -i -e 's/'"<ADD-LOGINTELLIGENCE-KEY-HERE>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/docker/fluentd/fluentd.conf
             '''
           }
@@ -303,7 +304,7 @@ EOF
                     # needs to be run with sudo is so it can delete any existing DB files.)
                     echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
                     echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
-                    ./main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}"
+                    ./main.py UiTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-fluentd.yml --resultsDir "${ui_test_logs}"
                   '''
                 }
                 if (env.JOB_NAME == memory_leak_job_name) {
