@@ -44,17 +44,17 @@ var helper_methods = {
       throw err;
     }
   },
-  transferBeer: function(contractInstance, fromUserID, toUserID) {
-      return contractInstance.transferBeer(fromUserID, toUserID, {from: '0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019'}).toString();
+  transferAsset: function(contractInstance, fromUserID, toUserID) {
+      return contractInstance.transferAsset(fromUserID, toUserID, {from: '0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019'}).toString();
   },
-  buyBeer: function(contractInstance, userID) {
-      return contractInstance.buyBeer(userID, {from: '0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019'}).toString();
+  buyAsset: function(contractInstance, userID) {
+      return contractInstance.buyAsset(userID, {from: '0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019'}).toString();
   },
-  drinkBeer: function(contractInstance, userID) {
-      return contractInstance.drinkBeer(userID, {from: '0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019'}).toString();
+  useAsset: function(contractInstance, userID) {
+      return contractInstance.useAsset(userID, {from: '0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019'}).toString();
   },
-  getNumberOfBeers: function(contractInstance, userID) {
-    return contractInstance.getNumberOfBeers(userID, {from: '0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019'}).toString();
+  getNumberOfAssets: function(contractInstance, userID) {
+    return contractInstance.getNumberOfAssets(userID, {from: '0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019'}).toString();
   },
   addName: function(contractInstance, newUserID) {
       return contractInstance.addName(newUserID, {from: '0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019'}).toString();

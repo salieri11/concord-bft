@@ -13,14 +13,14 @@ from time import strftime, localtime
 
 from suites import (core_vm_tests, ext_rpc_tests, helen_api_tests,
                     regression_tests, simple_st_test,
-                    ui_tests, beerwars_tests)
+                    ui_tests, asset_transfer_tests)
 
 from util import html, json_helper
 
 log = None
 suites = ["CoreVMTests", "ExtendedRPCTests", "HelenAPITests",
           "RegressionTests", "SimpleStateTransferTest",
-          "UiTests", "BeerWarsTests", ]
+          "UiTests", "AssetTransferTests", ]
 
 def main():
    startTime = datetime.datetime.now()
@@ -74,11 +74,11 @@ def main():
                        type=int,
                        help="Number of times to repeat test runs")
    parser.add_argument("--endpoint",
-                       help="Endpoint for BeerWars tests")
+                       help="Endpoint for AssetTransfer tests")
    parser.add_argument("--user",
-                       help="User name for BeerWars tests")
+                       help="User name for AssetTransfer tests")
    parser.add_argument("--password",
-                       help="Password for BeerWars tests")
+                       help="Password for AssetTransfer tests")
    parser.add_argument("--reverseProxyApiBaseUrl",
                        default="https://localhost/blockchains/local",
                        help="Base URL for Helen REST API calls. Test cases drill "
@@ -165,8 +165,8 @@ def createTestSuite(args):
       return performance_tests.PerformanceTests(args)
    elif (args.suite == "RegressionTests"):
       return regression_tests.RegressionTests(args)
-   elif (args.suite == "BeerWarsTests"):
-      return beerwars_tests.BeerWarsTests(args)
+   elif (args.suite == "AssetTransferTests"):
+      return asset_transfer_tests.AssetTransferTests(args)
    elif (args.suite == "SimpleStateTransferTest"):
       return simple_st_test.SimpleStateTransferTest(args)
    elif (args.suite == "UiTests"):
