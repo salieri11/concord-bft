@@ -249,3 +249,4 @@ Welcome 'delta' to the party and check the number of assets:
 '0x5ed34678dfa629ba5f6ad087b6ead4412773ce19817ea987600e98af5defbc3b'
 > helper.getNumberOfAssets(contract_instance, 'alpha')
 Error: Error while calling contract
+
