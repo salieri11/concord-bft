@@ -127,8 +127,8 @@ $ cmake -DLLVM_DIR=/usr/lib/llvm-5.0/lib/cmake/llvm ..
 $ cmake --build . --config RelWithDebInfo
 ```
 
-Note: On OSX, in addition, you might need to build the standalone
-version with an extra step.
+Note: On OSX, in addition, you might need to build the standalone version with
+an extra step.
 
 ```shell
 $ make evmjit-standalone
