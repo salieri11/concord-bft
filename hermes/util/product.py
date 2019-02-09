@@ -47,7 +47,6 @@ class Product():
    _concordProcessesMetaData = []
    _cmdlineArgs = None
    userProductConfig = None
-   hermes_env_file = ".env"
 
    def __init__(self, cmdlineArgs, userConfig):
       self._cmdlineArgs = cmdlineArgs

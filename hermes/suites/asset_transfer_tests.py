@@ -150,8 +150,6 @@ class AssetTransferTests(test_suite.TestSuite):
       log.info("Cleaning up")
       self._concatenatedExecuteInContainer("docker stop","docker ps | grep asset_transfer | sed 's/|/ /' | awk '{print $1}'")
       self._concatenatedExecuteInContainer("docker rm -f", "docker ps -a | grep asset_transfer | sed 's/|/ /' | awk '{print $1}'")
-      # self._concatenatedExecuteInContainer("docker rmi -f", "docker images | grep asset_transfer | sed 's/|/ /' | awk '{print $3}'")
-
 
    def _test_asset_transfer(self, fileRoot):
       ''' Tests if AssetTransfer can be deployed using the docker container '''
