@@ -212,8 +212,8 @@ fluentd_repo=${internal_fluentd_repo}
 fluentd_tag=${docker_tag}
 ui_repo=${internal_ui_repo}
 ui_tag=${docker_tag}
-asset_transfer_repo={internal_asset_transfer_repo}
-asset_transfer_tag={docker_tag}
+asset_transfer_repo=${internal_asset_transfer_repo}
+asset_transfer_tag=${docker_tag}
 EOF
               cp blockchain/docker/.env blockchain/hermes/
             '''
