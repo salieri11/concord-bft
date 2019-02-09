@@ -330,10 +330,10 @@ EOF
           stage("Build Asset Transfer docker image") {
             steps {
               script {
-                dir('blockchain/asset-transfer') {
+                dir('blockchain') {
                   withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
                     sh '''
-                      docker build .. -f Dockerfile -t "${internal_asset_transfer_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
+                      docker build asset-transfer -f asset-transfer/Dockerfile -t "${internal_asset_transfer_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
                     '''
                   }
                 }

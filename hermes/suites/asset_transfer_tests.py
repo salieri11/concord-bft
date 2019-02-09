@@ -185,7 +185,7 @@ class AssetTransferTests(test_suite.TestSuite):
 
       # Run the test script(s)
       out, err = self._executeInContainer("docker exec asset_transfer-test mocha")
-      if err != None:
+      if err != None or out == "":
          return (False, err)
 
       log.info(out)
