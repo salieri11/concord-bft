@@ -6,6 +6,7 @@
 #ifndef BLOCKCHAINDBADAPTER_H
 #define BLOCKCHAINDBADAPTER_H
 
+#include <cstdint>
 #include <log4cplus/loggingmacros.h>
 
 #include "DatabaseInterface.h"
@@ -15,16 +16,13 @@
 namespace Blockchain {
 
    // TODO(BWF): are there more types coming here?
-   enum class _EDBKeyType
+   enum class EDBKeyType : std::uint8_t
    {
       E_DB_KEY_TYPE_FIRST = 1,
-         E_DB_KEY_TYPE_BLOCK = E_DB_KEY_TYPE_FIRST,
-         E_DB_KEY_TYPE_KEY,
-         E_DB_KEY_TYPE_LAST
-         };
-
-   // TODO(BWF): What's the point of this redefinition?
-   typedef _EDBKeyType EDBKeyType;
+      E_DB_KEY_TYPE_BLOCK = E_DB_KEY_TYPE_FIRST,
+      E_DB_KEY_TYPE_KEY,
+      E_DB_KEY_TYPE_LAST
+   };
 
    class BlockchainDBAdapter
    {
