@@ -1,12 +1,12 @@
 pragma solidity ^0.5.0;
 
-contract BeerWars {
-  mapping (bytes32 => uint8) public nameToBeers;
+contract AssetTransfer {
+  mapping (bytes32 => uint8) public nameToAssets;
   bytes32[] nameList;
   address sender;
 
   /*
-  ** Initializes the name list; number of beers for each person is by default 0 
+  ** Initializes the name list; number of assets for each person is by default 0 
   */
   constructor (bytes32[] memory _nameList) public {
     nameList = _nameList;
@@ -14,41 +14,41 @@ contract BeerWars {
   }
 
   /*
-  ** Tranfer a beer 'from' one person 'to' another person
+  ** Tranfer an asset 'from' one person 'to' another person
   */
-  function transferBeer(bytes32 from, bytes32 to) public {
+  function transferAsset(bytes32 from, bytes32 to) public {
     require(validName(from) && validName(to));
     require(validToSell(from));
   
-    nameToBeers[from] -= 1;
-    nameToBeers[to] += 1;
+    nameToAssets[from] -= 1;
+    nameToAssets[to] += 1;
   }
 
   /*
-  ** Add a beer for 'who'
+  ** Add an asset for 'who'
   */
-  function buyBeer(bytes32 who) public {
+  function buyAsset(bytes32 who) public {
     require(validName(who));
   
-    nameToBeers[who] += 1;
+    nameToAssets[who] += 1;
   }
 
   /*
-  ** Remove a beer for 'who'
+  ** Remove an asset for 'who'
   */
-  function drinkBeer(bytes32 who) public {
+  function useAsset(bytes32 who) public {
     require(validName(who));
     require(validToSell(who));
 
-    nameToBeers[who] -= 1;
+    nameToAssets[who] -= 1;
   }
 
   /*
-  ** Return number of beers with 'who'
+  ** Return number of assets with 'who'
   */
-  function getNumberOfBeers(bytes32 who) view public returns (uint8) { 
+  function getNumberOfAssets(bytes32 who) view public returns (uint8) { 
     require(validName(who));
-    return nameToBeers[who];
+    return nameToAssets[who];
   }
 
   /*
@@ -89,10 +89,10 @@ contract BeerWars {
   }
 
   /*
-  ** Verify if 'who' is valid to sell (at least has one beer)
+  ** Verify if 'who' is valid to sell (at least has one asset)
   */
   function validToSell(bytes32 who) view public returns (bool) {
-    if(nameToBeers[who] > 0) {
+    if(nameToAssets[who] > 0) {
       return true;
     }
     return false;

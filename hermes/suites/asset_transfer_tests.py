@@ -1,18 +1,18 @@
 #########################################################################
 # Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
 #
-# Tests covering BeerWars DApp compatibility.
+# Tests covering AssetTransfer DApp compatibility.
 #########################################################################
 
 
 #########################################################################
 # Example executions
 # 1) Passing an endpoint runs tests in --noLaunch mode
-# ./main.py BeerWarsTests --endpoint='https://mgmt.blockchain.vmware.com/
+# ./main.py AssetTransferTests --endpoint='https://mgmt.blockchain.vmware.com/
 # blockchains/c3e4c911-9f9d-4899-9c92-6ced72d3ded3/api/concord/eth'
 # --user='admin@blockchain.local' --password='Passw0rd!'
 # 2) Passing no endpoint launches the product
-# ./main.py BeerWarsTests
+# ./main.py AssetTransferTests
 # 3) You can also pass username and/or password, skipping the endpoint;
 # this runs tests on the locally launched product
 #########################################################################
@@ -26,7 +26,7 @@ from . import test_suite
 
 log = logging.getLogger(__name__)
 
-class BeerWarsTests(test_suite.TestSuite):
+class AssetTransferTests(test_suite.TestSuite):
    # Set in init based on whether an endpoint was passed in.
    _apiServerUrl = None
 
@@ -40,7 +40,7 @@ class BeerWarsTests(test_suite.TestSuite):
    _password = None
 
    def __init__(self, passedArgs):
-      super(BeerWarsTests, self).__init__(passedArgs)
+      super(AssetTransferTests, self).__init__(passedArgs)
       self._args = passedArgs
 
       user = self._userConfig.get('product').get('db_users')[0]
@@ -69,7 +69,7 @@ class BeerWarsTests(test_suite.TestSuite):
 
 
    def getName(self):
-      return "BeerWarsTests"
+      return "AssetTransferTests"
 
 
    def _runTest(self, testName, testFun, testLogDir):
@@ -81,6 +81,7 @@ class BeerWarsTests(test_suite.TestSuite):
    def run(self):
       ''' Runs all of the tests. '''
       try:
+         log.info("Launching product...")
          self.launchProduct(self._args,
                             self._userConfig)
       except Exception as e:
@@ -118,7 +119,7 @@ class BeerWarsTests(test_suite.TestSuite):
 
 
    def _getTests(self):
-      return [("beerwars", self._test_beerwars)]
+      return [("asset_transfer", self._test_asset_transfer)]
 
    def _executeInContainer(self, command):
       '''
@@ -147,16 +148,21 @@ class BeerWarsTests(test_suite.TestSuite):
    def _cleanUp(self):
       ''' Cleaning up the Docker changes the test(s) caused '''
       log.info("Cleaning up")
-      self._concatenatedExecuteInContainer("docker stop","docker ps | grep beerwars | sed 's/|/ /' | awk '{print $1}'")
-      self._concatenatedExecuteInContainer("docker rm -f", "docker ps -a | grep beerwars | sed 's/|/ /' | awk '{print $1}'")
-      self._concatenatedExecuteInContainer("docker rmi -f", "docker images | grep beerwars | sed 's/|/ /' | awk '{print $3}'")
+      self._concatenatedExecuteInContainer("docker stop","docker ps | grep asset_transfer | sed 's/|/ /' | awk '{print $1}'")
+      self._concatenatedExecuteInContainer("docker rm -f", "docker ps -a | grep asset_transfer | sed 's/|/ /' | awk '{print $1}'")
 
+   def _test_asset_transfer(self, fileRoot):
+      ''' Tests if AssetTransfer can be deployed using the docker container '''
+      env = {}
+      with open(self.product._docker_env_file) as myfile:
+         for line in myfile:
+            key, val = line.partition("=")[::2]
+            env[key.strip()] = val.strip()
 
-   def _test_beerwars(self, fileRoot):
-      ''' Tests if BeerWars can be deployed using the docker container '''
-      ### (TODO: Transfer the container image to VMware DockerHub and update here)
-      # out, err = self._executeInContainer("docker run --rm --name beerwars-test --network docker_default -td vmwblockchain/beer-wars:1.0.4")
-      out, err = self._executeInContainer("docker run --rm --name beerwars-test --network docker_default -td mmukundram/beerwars:1.0.4")
+      asset_transfer_repo = env["asset_transfer_repo"]
+      asset_transfer_tag = env["asset_transfer_tag"]
+      cmd = "docker run --rm --name asset_transfer-test --network docker_default -td {0}:{1}".format(asset_transfer_repo, asset_transfer_tag)
+      out, err = self._executeInContainer(cmd)
       if err != None:
          return (False, err)
 
@@ -164,22 +170,22 @@ class BeerWarsTests(test_suite.TestSuite):
          pass_endpoint = self._apiServerUrl.replace('/','\/');
 
          # Edit placeholders with actual values inside the container
-         comm = 'docker exec beerwars-test sed -i -e \'s/ADDRESS_PLACEHOLDER/' + pass_endpoint + '/g\' test/test_BeerWars.js'
+         comm = 'docker exec asset_transfer-test sed -i -e \'s/ADDRESS_PLACEHOLDER/' + pass_endpoint + '/g\' test/test_AssetTransfer.js'
          out1, err1 = self._executeInContainer(comm)
          if err1 != None:
             return (False, err1)
 
-         out2, err2 = self._executeInContainer("docker exec beerwars-test sed -i -e 's/USER_PLACEHOLDER/" + self._user + "/g' test/test_BeerWars.js")
+         out2, err2 = self._executeInContainer("docker exec asset_transfer-test sed -i -e 's/USER_PLACEHOLDER/" + self._user + "/g' test/test_AssetTransfer.js")
          if err2 != None:
             return (False, err2)
 
-         out3, err3 = self._executeInContainer("docker exec beerwars-test sed -i -e 's/PASSWORD_PLACEHOLDER/" + self._password + "/g' test/test_BeerWars.js")
+         out3, err3 = self._executeInContainer("docker exec asset_transfer-test sed -i -e 's/PASSWORD_PLACEHOLDER/" + self._password + "/g' test/test_AssetTransfer.js")
          if err3 != None:
             return (False, err3)
 
       # Run the test script(s)
-      out, err = self._executeInContainer("docker exec beerwars-test mocha")
-      if err != None:
+      out, err = self._executeInContainer("docker exec asset_transfer-test mocha")
+      if err != None or out == "":
          return (False, err)
 
       log.info(out)

@@ -1,9 +1,9 @@
-# BeerWars - a blockchain demonstration - v1.0.4
+# AssetTransfer - a blockchain demonstration - v1.0.5
 
-Welcome to BeerWars, a demonstration of how to develop a "Dapp" (or
+Welcome to AssetTransfer, a demonstration of how to develop a "Dapp" (or
 blockchain smart contract "distributed application") on VMware's
 blockchain. This app simulates an exchange where people are able to
-"buy", "trade", and "consume" products (say beer). The app tracks the stock 
+"buy", "trade", and "consume" products (asset). The app tracks the stock 
 of each person as they perform each action.
 
 ## Prerequisites
@@ -19,7 +19,7 @@ need the deployment address of the blockchain.
 
 ### Getting the demo code
 
-The BeerWars demo is provided as a docker image, which includes the
+The AssetTransfer demo is provided as a docker image, which includes the
 smart contract code, and the necessary libraries for deploying and
 interacting with the contract on the blockchain.
 
@@ -52,7 +52,7 @@ image. The following command starts the container in interactive mode,
 so that you can use the files and utilities it contains:
 
 ```
-$ docker run -ti mmukundram/beerwars:1.0.4
+$ docker run -ti vmwblockchain/asset_transfer:latest
 root@b8136d3deacf:/source#
 ```
 
@@ -63,26 +63,26 @@ and some other support files:
 
 ```
 # ls
-BeerWars.js   Dockerfile    package-lock.json   
-BeerWars.sol  node_modules  test
+AssetTransfer.js   Dockerfile    package-lock.json   
+AssetTransfer.sol  node_modules  test
 ```
 
 ### Stopping and starting the container (OPTIONAL)
 
 To stop and disconnect from this container, type control-d. If you
 want to restart this container and pick up where you left off, use the
-following command, replacing `BEERWARS_HASH` with the hash found
+following command, replacing `ASSET_TRANSFER_HASH` with the hash found
 between the `@` and the `:` in the docker prompt that was displayed while you
 were connected. This was `b8136d3deacf` in the example above:
 
 ```
-$ docker start -i BEERWARS_HASH
+$ docker start -i ASSET_TRANSFER_HASH
 ```
 
 You can also start over with a fresh container by executing the
 `docker run` command again.
 
-## Using the BeerWars demo
+## Using the AssetTransfer demo
 
 You must have the deployment address for an instance of VMware's blockchain.
 This is referred to as `DEPLOYED_ADDRESS` in this document.
@@ -98,14 +98,14 @@ using the following command:
 mentioned below are created, you are good to continue)
 
 ```
-# solc BeerWars.sol --abi --bin --optimize -o ./
+# solc AssetTransfer.sol --abi --bin --optimize -o ./
 ```
 
 This will generate .abi and .bin files which can be verified :
 ```
 # ls
-BeerWars.abi  BeerWars.js   Dockerfile    package-lock.json
-BeerWars.bin  BeerWars.sol  node_modules  test
+AssetTransfer.abi  AssetTransfer.js   Dockerfile    package-lock.json
+AssetTransfer.bin  AssetTransfer.sol  node_modules  test
 ```
 
 ### Deploying the smart contract
@@ -113,7 +113,7 @@ BeerWars.bin  BeerWars.sol  node_modules  test
 Open Node.js and import the contract setup script. 
 ```
 # node
-> helper = require('./BeerWars')
+> helper = require('./AssetTransfer')
 ```
 
 The console might print 'undefined' when a variable is defined; this
@@ -122,10 +122,10 @@ into the variable, just type the name of the variable and hit ENTER.
 ```
 > helper
 { setupContract: [Function: setupContract],
-  transferBeer: [Function: transferBeer],
-  buyBeer: [Function: buyBeer],
-  drinkBeer: [Function: drinkBeer],
-  getNumberOfBeers: [Function: getNumberOfBeers],
+  transferAsset: [Function: transferAsset],
+  buyAsset: [Function: buyAsset],
+  useAsset: [Function: useAsset],
+  getNumberOfAssets: [Function: getNumberOfAssets],
   addName: [Function: addName],
   removeName: [Function: removeName] }
 ```
@@ -144,7 +144,7 @@ in the end. Replace USER_NAME and PASSWORD with your credentials.
 Remember that all these 3 fields are strings are to be enclosed within '')
 
 ```
-> helper.setupContract('BeerWars', ['alpha','bravo','charlie'], 'DEPLOYED_ADDRESS', 'USER_NAME', 'PASSWORD').then(add => {contract_address=add;})
+> helper.setupContract('AssetTransfer', ['alpha','bravo','charlie'], 'DEPLOYED_ADDRESS', 'USER_NAME', 'PASSWORD').then(add => {contract_address=add;})
 Endpoint defined as https://mgmt.blockchain.vmware.com/blockchains/80bf7abc-c1ec-4609-90ed-ff68f07d8f64/api/concord/eth
 Loading contract
 Deploying contract
@@ -173,7 +173,7 @@ promise does NOT imply failure.)
 Obtain the contract instance (used to interact with the smart contract) 
 using the following:
 ```
-> var contract_instance = web3.eth.contract(JSON.parse(fs.readFileSync('BeerWars.abi').toString())).at(contract_address)
+> var contract_instance = web3.eth.contract(JSON.parse(fs.readFileSync('AssetTransfer.abi').toString())).at(contract_address)
 ```
 (NOTE - Remember that the console printing 'undefined' is expected behavior 
 after initialization. Type the variable name, i.e. contract_instance, 
@@ -183,63 +183,63 @@ and hit ENTER to check its contents.)
 
 The following are example invocations of the smart contract method.
 For ease of use, we have wrapped the smart contract methods with
-helper methods (in BeerWars.js).
+helper methods (in AssetTransfer.js).
 
 
-Check the number of beers with a person (say 'alpha'):
+Check the number of assets with a person (say 'alpha'):
 ```
-> helper.getNumberOfBeers(contract_instance, 'alpha')
+> helper.getNumberOfAssets(contract_instance, 'alpha')
 '0'
 ```
 
-'bravo' decides to buy a beer:
+'bravo' decides to buy an asset:
 (NOTE - Here, since we are making changes to the state, 
 a transaction address is returned)
 ```
-> helper.buyBeer(contract_instance, 'bravo')
+> helper.buyAsset(contract_instance, 'bravo')
 '0xbedc4c61a0485cd4c8ad4599b1a3411664de994b547cf5d13bbaf064a5614ad4'
 ```
 
-Now, checking the number of beers for 'bravo' should return '1':
+Now, checking the number of assets for 'bravo' should return '1':
 ```
-> helper.getNumberOfBeers(contract_instance, 'bravo')
+> helper.getNumberOfAssets(contract_instance, 'bravo')
 '1'
 ```
 
-'bravo' decides to give his beer to 'charlie':
+'bravo' decides to give his asset to 'charlie':
 ```
-> helper.transferBeer(contract_instance, 'bravo', 'charlie')
+> helper.transferAsset(contract_instance, 'bravo', 'charlie')
 '0x65f32c55d394ea1d307df0d2d1349af84e83cae57d8075fc3dc7d4cc0581339f'
 ```
 
-Now, 'charlie' must have the beer originally bought by 'bravo':
+Now, 'charlie' must have the asset originally bought by 'bravo':
 ```
-> helper.getNumberOfBeers(contract_instance, 'bravo')
+> helper.getNumberOfAssets(contract_instance, 'bravo')
 '0'
-> helper.getNumberOfBeers(contract_instance, 'charlie')
+> helper.getNumberOfAssets(contract_instance, 'charlie')
 '1'
 ```
 
-Let 'charlie' drink the beer. But, did 'charlie' really drink the beer?
+Let 'charlie' use the asset. But, did 'charlie' really use the asset?
 ```
-> helper.drinkBeer(contract_instance, 'charlie')
+> helper.useAsset(contract_instance, 'charlie')
 '0x5ef44c6b78225ef362a302c8439de3f84e83cae57d8075fc3dc7d4cc0581339f'
-> helper.getNumberOfBeers(contract_instance, 'charlie')
+> helper.getNumberOfAssets(contract_instance, 'charlie')
 '0'
 ```
 
 
 Invoking a method on an invalid person will result in an error:
 ```
-> helper.getNumberOfBeers(contract_instance, 'delta')
+> helper.getNumberOfAssets(contract_instance, 'delta')
 Error: Error while calling contract
 ```
 
-Welcome 'delta' to the party and check the number of beers:
+Welcome 'delta' to the party and check the number of assets:
 ```
 > helper.addName(contract_instance, 'delta')
 '0x5ef44c6b78225ef362a302c8439de3b4867e1b9c0fd2617dd6cc76a5dbdbc688'
-> helper.getNumberOfBeers(contract_instance, 'delta')
+> helper.getNumberOfAssets(contract_instance, 'delta')
 '0'
 ```
 
@@ -247,5 +247,6 @@ Welcome 'delta' to the party and check the number of beers:
 ```
 > helper.removeName(contract_instance, 'alpha')
 '0x5ed34678dfa629ba5f6ad087b6ead4412773ce19817ea987600e98af5defbc3b'
-> helper.getNumberOfBeers(contract_instance, 'alpha')
+> helper.getNumberOfAssets(contract_instance, 'alpha')
 Error: Error while calling contract
+

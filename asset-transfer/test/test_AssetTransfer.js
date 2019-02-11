@@ -1,7 +1,7 @@
 const args = process.argv;
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
 var assert = require('assert');
-var helper = require('../BeerWars.js');
+var helper = require('../AssetTransfer.js');
 deployment_address = 'ADDRESS_PLACEHOLDER';
 username = 'USER_PLACEHOLDER';
 pass = 'PASSWORD_PLACEHOLDER';
@@ -30,8 +30,8 @@ const exec = require('child_process').exec;
 describe('Contract compilation', function() {
   this.timeout(20000);
   it('.bin and .abi files have been created', (done) => {
-    exec('rm BeerWars.abi BeerWars.bin');
-    exec('solc BeerWars.sol --abi --bin --optimize -o ./', function(error, data) {
+    exec('rm AssetTransfer.abi AssetTransfer.bin');
+    exec('solc AssetTransfer.sol --abi --bin --optimize -o ./', function(error, data) {
       if(error != null) {
         throw error;
       }
@@ -40,7 +40,7 @@ describe('Contract compilation', function() {
           throw error;
         }
         else if(stdout.indexOf('.abi') < 0 || stdout.indexOf('.bin') < 0) {
-          throw ('BeerWars.abi or BeerWars.bin not found');
+          throw ('AssetTransfer.abi or AssetTransfer.bin not found');
         }
         done();
       });
@@ -52,7 +52,7 @@ describe('Contract deployment', function() {
   this.timeout(20000);
   it('Contract has been deployed', (done) => {
     try{
-      helper.setupContract('BeerWars', ['alpha','bravo','charlie'], deployment_address, username, pass).then(function(data){
+      helper.setupContract('AssetTransfer', ['alpha','bravo','charlie'], deployment_address, username, pass).then(function(data){
         if(data === null) {
           console.log('Address is null');
         }
@@ -71,7 +71,7 @@ describe('Load contract instance', function() {
   this.timeout(20000);
   it('Contract instance loaded', (done) => {
     try{
-      contract_instance = web3.eth.contract(JSON.parse(fs.readFileSync('BeerWars.abi').toString())).at(contract_address);
+      contract_instance = web3.eth.contract(JSON.parse(fs.readFileSync('AssetTransfer.abi').toString())).at(contract_address);
       done();
     }
     catch(e){

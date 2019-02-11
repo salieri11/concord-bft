@@ -54,6 +54,7 @@ class Product():
       self.userProductConfig = userConfig["product"]
       self._productLogsDir = os.path.join(self._cmdlineArgs.resultsDir, PRODUCT_LOGS_DIR)
       pathlib.Path(self._productLogsDir).mkdir(parents=True, exist_ok=True)
+      self._docker_env_file = ".env"
 
    def launchProduct(self):
       '''
@@ -178,9 +179,9 @@ class Product():
    def copyEnvFile(self):
       # This file contains variables fed to docker-compose.yml.  It is picked up from the
       # location of the process which invokes docker compose.
-      if not os.path.isfile(".env"):
-         log.debug("Copying .env file from docker example.")
-         shutil.copyfile("../docker/.env", "./.env")
+      if not os.path.isfile(self._docker_env_file):
+         log.debug("Copying {} file from docker/".format(self._docker_env_file))
+         shutil.copyfile(os.path.join("../docker/", self._docker_env_file), self._docker_env_file)
 
 
    def _launchViaCmdLine(self):

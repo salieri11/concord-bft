@@ -184,6 +184,7 @@ def call(){
             env.release_ethrpc_repo = env.release_repo + "/ethrpc"
             env.release_fluentd_repo = env.release_repo + "/fluentd"
             env.release_ui_repo = env.release_repo + "/ui"
+            env.release_asset_transfer_repo = env.release_repo + "/asset-transfer"
 
             // These are constants which mirror the internal artifactory repos.  We put all merges
             // to master in the internal VMware artifactory.
@@ -192,6 +193,7 @@ def call(){
             env.internal_ethrpc_repo = env.release_ethrpc_repo.replace(env.release_repo, env.internal_repo)
             env.internal_fluentd_repo = env.release_fluentd_repo.replace(env.release_repo, env.internal_repo)
             env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
+            env.internal_asset_transfer_repo = env.release_asset_transfer_repo.replace(env.release_repo, env.internal_repo)
           }
 
           // Docker-compose picks up values from the .env file in the directory from which
@@ -210,6 +212,8 @@ fluentd_repo=${internal_fluentd_repo}
 fluentd_tag=${docker_tag}
 ui_repo=${internal_ui_repo}
 ui_tag=${docker_tag}
+asset_transfer_repo=${internal_asset_transfer_repo}
+asset_transfer_tag=${docker_tag}
 EOF
               cp blockchain/docker/.env blockchain/hermes/
             '''
@@ -323,6 +327,19 @@ EOF
               }
             }
           }
+          stage("Build Asset Transfer docker image") {
+            steps {
+              script {
+                dir('blockchain') {
+                  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+                    sh '''
+                      docker build asset-transfer -f asset-transfer/Dockerfile -t "${internal_asset_transfer_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
+                    '''
+                  }
+                }
+              }
+            }
+          }
         }
       }
 
@@ -333,7 +350,7 @@ EOF
               script {
                 env.test_log_root = new File(env.WORKSPACE, "testLogs").toString()
                 env.ui_test_logs = new File(env.test_log_root, "UI").toString()
-                env.beerwars_test_logs = new File(env.test_log_root, "BeerWars").toString()
+                env.asset_transfer_test_logs = new File(env.test_log_root, "AssetTransfer").toString()
                 env.core_vm_test_logs = new File(env.test_log_root, "CoreVM").toString()
                 env.helen_api_test_logs = new File(env.test_log_root, "HelenAPI").toString()
                 env.extended_rpc_test_logs = new File(env.test_log_root, "ExtendedRPC").toString()
@@ -350,7 +367,7 @@ EOF
                     echo "${PASSWORD}" | sudo -S rm -rf ../docker/cockroachDB
                     ./main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}"
 
-                    echo "${PASSWORD}" | sudo -S ./main.py BeerWarsTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${beerwars_test_logs}"
+                    echo "${PASSWORD}" | sudo -S ./main.py AssetTransferTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${asset_transfer_test_logs}"
                     echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}"
                     echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}"
                     echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"
