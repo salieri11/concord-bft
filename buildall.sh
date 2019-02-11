@@ -86,7 +86,7 @@ dieOnFailure(){
   if [ ${EXIT_CODE} -ne 0 ]
   then
     echo ERROR: Failure executing "${NAME}".  Exit code: ${EXIT_CODE}
-    killAllProcs      
+    killAllProcs
     exit 1
   fi
 }
@@ -120,30 +120,60 @@ buildMavenTargets(){
   dieOnFailure "Maven" ${MVN_BUILD}
 }
 
+# Note that the SimpleStateTransferTest relies on a local Concord build
+# for a test file (blockchain/concord/build/tools/conc_rocksdb_adp).
+# If we can make that test work entirely in a container, this can be removed.
+startNativeConcordBuild(){
+    pushd .
+    cd concord
+    sed -i\'\' "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord1.config
+    sed -i\'\' "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord2.config
+    sed -i\'\' "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord3.config
+    sed -i\'\' "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord4.config
+
+    git submodule init
+    git submodule update --recursive
+    mkdir -p build
+    cd build
+    cmake .. > concord_native_cmake.log 2>&1
+    make > concord_native_make.log 2>&1 &
+    addToProcList "Concord (native)" $!
+    popd
+}
+
 declare -A BUILD_PROCS
 
 echo Loading repos/tags for docker images from docker/.env
 . docker/.env
+version_label="com.vmware.blockchain.version"
+commit_label="com.vmware.blockchain.commit"
 
 verifyDocker
 
 echo "Building..."
-docker build . --file concord/Dockerfile -t ${concord_repo}:${concord_tag} > concord_build.log 2>&1 &
+docker build . --file concord/Dockerfile -t ${concord_repo}:${concord_tag} --label ${version_label}=${concord_tag} --label ${commit_label}=${commit_hash} > concord_build.log 2>&1 &
 addToProcList "Concord" $!
 
-docker build ui --file ui/Dockerfile -t ${ui_repo}:${ui_tag} > ui_build.log 2>&1 &
+memleak_util="valgrind"
+memleak_util_cmd="valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --log-file=/tmp/valgrind_concord1.log"
+docker build . --file concord/Dockerfile -t "${concord_repo}:${concord_tag}"_memleak --build-arg "memleak_util=${memleak_util}" --build-arg "memleak_util_cmd=${memleak_util_cmd}" > concord_memleak_build.log 2>&1 &
+addToProcList "Concord for memleak" $!
+
+startNativeConcordBuild
+
+docker build ui --file ui/Dockerfile -t ${ui_repo}:${ui_tag} --label ${version_label}=${ui_tag} --label ${commit_label}=${commit_hash} > ui_build.log 2>&1 &
 addToProcList "UI" $!
 
-docker build docker/fluentd --file docker/fluentd/Dockerfile -t ${fluentd_repo}:${fluentd_tag} > fluentd_build.log 2>&1 &
+docker build docker/fluentd --file docker/fluentd/Dockerfile -t ${fluentd_repo}:${fluentd_tag} --label ${version_label}=${fluentd_tag} --label ${commit_label}=${commit_hash} > fluentd_build.log 2>&1 &
 addToProcList "Fluentd" $!
 
 # Includes helen, ethrpc, and communication.
 buildMavenTargets
 
-docker build ethrpc -f ethrpc/packaging.Dockerfile -t ${ethrpc_repo}:${ethrpc_tag} > ethrpc_build_docker.log 2>&1 &
+docker build ethrpc -f ethrpc/packaging.Dockerfile -t ${ethrpc_repo}:${ethrpc_tag} --label ${version_label}=${ethrpc_tag} --label ${commit_label}=${commit_hash} > ethrpc_build_docker.log 2>&1 &
 addToProcList "Ethrpc docker image" $!
 
-docker build helen -f helen/packaging.Dockerfile -t ${helen_repo}:${helen_tag} > helen_build.log 2>&1 &
+docker build helen -f helen/packaging.Dockerfile -t ${helen_repo}:${helen_tag} --label ${version_label}=${helen_tag} --label ${commit_label}=${commit_hash} > helen_build.log 2>&1 &
 addToProcList "Helen docker image" $!
 
 docker pull cockroachdb/cockroach:v2.0.2 &
@@ -151,5 +181,8 @@ addToProcList "Cockroach DB" $!
 
 docker pull athena-docker-local.artifactory.eng.vmware.com/reverse-proxy:0.1.2 &
 addToProcList "Reverse proxy" $!
+
+docker build asset-transfer -f asset-transfer/Dockerfile -t "${asset_transfer_repo}:${asset_transfer_tag}" --label ${version_label}=${asset_transfer_tag} --label ${commit_label}=${commit_hash} &
+addToProcList "Asset Transfer sample image" $!
 
 waitForProcesses

@@ -214,131 +214,20 @@ ui_repo=${internal_ui_repo}
 ui_tag=${docker_tag}
 asset_transfer_repo=${internal_asset_transfer_repo}
 asset_transfer_tag=${docker_tag}
+commit_hash=${commit}
 EOF
               cp blockchain/docker/.env blockchain/hermes/
             '''
           }
-
-          // These are constants related to labelling Docker images.
-          script {
-            env.version_label = 'com.vmware.blockchain.version'
-            env.commit_label = 'com.vmware.blockchain.commit'
-          }
         }
       }
 
-      stage('Build products') {
-        stages {
-          // Note that the SimpleStateTransferTest relies on a local Concord build
-          // for a test file (blockchain/concord/build/tools/conc_rocksdb_adp).
-          stage('Build Concord') {
-            steps {
-              dir('blockchain/concord') {
-                sh '''currentDir=`pwd`
-                sed -i\'\' "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord1.config
-                sed -i\'\' "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord2.config
-                sed -i\'\' "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord3.config
-                sed -i\'\' "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord4.config
-
-                git submodule init
-                git submodule update --recursive
-                mkdir -p build
-                cd build
-                cmake ..
-                make'''
-              }
-            }
-          }
-        }
-      }
-
-      stage("Build docker images") {
-        parallel {
-          stage("Build helen docker image") {
-            steps {
-              script {
-                dir('blockchain/helen') {
-                  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-                    sh '''
-                      docker build .. -f Dockerfile -t "${internal_helen_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
-                    '''
-                  }
-                }
-              }
-            }
-          }
-
-          stage("Build ethrpc docker image") {
-            steps {
-              script {
-                dir('blockchain/ethrpc') {
-                  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-                    sh '''
-                      docker build .. -f Dockerfile -t "${internal_ethrpc_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
-                    '''
-                    }
-                }
-              }
-            }
-          }
-
-          stage('Build concord docker image') {
-            steps {
-              script {
-                dir('blockchain/concord') {
-                  withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
-                    sh '''
-                      docker build .. -f Dockerfile -t "${internal_concord_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
-                      memleak_util="valgrind"
-                      memleak_util_cmd="valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --log-file=/tmp/valgrind_concord1.log"
-                      docker build .. -f Dockerfile -t "${internal_concord_repo}:${docker_tag}"_memleak --build-arg "memleak_util=${memleak_util}" --build-arg "memleak_util_cmd=${memleak_util_cmd}"
-
-                    '''
-                  }
-                }
-              }
-            }
-          }
-
-          stage('Build fluentd docker image') {
-            steps {
-              script {
-                dir('blockchain') {
-                  withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
-                    sh '''
-                      docker build docker/fluentd -f docker/fluentd/Dockerfile -t "${internal_fluentd_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
-                    '''
-                  }
-                }
-              }
-            }
-          }
-
-          stage('Build ui docker image') {
-            steps {
-              script {
-                dir('blockchain') {
-                  withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
-                    sh '''
-                      docker build ui -f ui/Dockerfile -t "${internal_ui_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
-                    '''
-                  }
-                }
-              }
-            }
-          }
-          stage("Build Asset Transfer docker image") {
-            steps {
-              script {
-                dir('blockchain') {
-                  withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-                    sh '''
-                      docker build asset-transfer -f asset-transfer/Dockerfile -t "${internal_asset_transfer_repo}:${docker_tag}" --label ${version_label}=${docker_tag} --label ${commit_label}=${actual_blockchain_fetched}
-                    '''
-                  }
-                }
-              }
-            }
+      stage("Build") {
+        steps {
+          dir('blockchain') {
+            sh '''
+              ./buildall.sh
+            '''
           }
         }
       }
@@ -360,12 +249,8 @@ EOF
 
                 if (genericTests) {
                   sh '''
-                    # We need to delete the database files before running UI tests because
-                    # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
-                    # needs to be run with sudo is so it can delete any existing DB files.)
-                    echo "${PASSWORD}" | sudo -S rm -rf ../docker/rocksdbdata*
-                    echo "${PASSWORD}" | sudo -S rm -rf ../docker/cockroachDB
-                    ./main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}"
+                    # So test suites not using sudo can write to test_logs.
+                    mkdir "${test_log_root}"
 
                     echo "${PASSWORD}" | sudo -S ./main.py AssetTransferTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${asset_transfer_test_logs}"
                     echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}"
@@ -375,6 +260,14 @@ EOF
                     echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
 
                     cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs}
+                    cd ..
+
+                    # We need to delete the database files before running UI tests because
+                    # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
+                    # needs to be run with sudo is so it can delete any existing DB files.)
+                    echo "${PASSWORD}" | sudo -S rm -rf ../docker/rocksdbdata*
+                    echo "${PASSWORD}" | sudo -S rm -rf ../docker/cockroachDB
+                    ./main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}"
                   '''
                 }
                 if (env.JOB_NAME == memory_leak_job) {
