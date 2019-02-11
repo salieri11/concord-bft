@@ -15,7 +15,7 @@ import com.squareup.kotlinpoet.ParameterSpec
 import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asTypeName
-import com.vmware.blockchain.grpc.GrpcSupport
+import com.vmware.blockchain.grpc.kotlinx.serialization.GrpcSupport
 import io.grpc.BindableService
 import io.grpc.CallOptions
 import io.grpc.Channel

@@ -1,7 +1,7 @@
 /* **********************************************************************
  * Copyright 2019 VMware, Inc.  All rights reserved. VMware Confidential
  * *********************************************************************/
-package com.vmware.blockchain.grpc
+package com.vmware.blockchain.grpc.kotlinx.serialization
 
 import io.grpc.MethodDescriptor
 import io.grpc.stub.ServerCalls
