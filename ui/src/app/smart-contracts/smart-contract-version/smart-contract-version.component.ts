@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { FormControl, FormGroup, Validators } from '@angular/forms';
@@ -19,6 +19,7 @@ import { SmartContractVersion } from '../shared/smart-contracts.model';
 import * as Web3EthAbi from 'web3-eth-abi';
 import * as Web3Utils from 'web3-utils';
 
+import { AuthenticationService } from '../../shared/authentication.service';
 import { EthApiService } from '../../shared/eth-api.service';
 import { isHexAddress } from '../shared/custom-validators';
 import { generateDownload } from '../../shared/download-helpers';
@@ -44,9 +45,11 @@ export class SmartContractVersionComponent implements OnChanges, OnInit {
   metadataString: string;
   callReturnValue: string;
   rawCallReturnValue: string;
+  walletAddress: string;
   functionDefinition;
 
   constructor(
+    private authenticationService: AuthenticationService,
     private ethApiService: EthApiService,
     private translate: TranslateService,
     private route: ActivatedRoute,
@@ -59,6 +62,7 @@ export class SmartContractVersionComponent implements OnChanges, OnInit {
         functionInputs: new FormGroup({})
       })
     });
+    this.walletAddress = this.authenticationService.currentUser.wallet_address;
   }
 
   ngOnInit() {
@@ -83,7 +87,7 @@ export class SmartContractVersionComponent implements OnChanges, OnInit {
 
   getFunctionDetails() {
     (this.versionForm.get('contractForm') as FormGroup).setControl('functionInputs', new FormGroup({}));
-    this.versionForm.get('contractForm').reset();
+    this.versionForm.get('contractForm').reset({from: this.walletAddress});
     const result = this.functions.filter(func => func.name === this.versionForm.value.functionName);
     if (result.length > 0) {
       this.inputs = result[0].inputs;

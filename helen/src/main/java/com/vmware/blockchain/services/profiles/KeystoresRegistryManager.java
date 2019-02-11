@@ -4,10 +4,15 @@
 
 package com.vmware.blockchain.services.profiles;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import javax.transaction.Transactional;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -20,7 +25,7 @@ import org.springframework.stereotype.Component;
 @Component
 @Transactional
 public class KeystoresRegistryManager {
-
+    private static final Logger logger = LogManager.getLogger(ProfileManager.class);
     @Autowired
     private KeystoreRepository keystoreRepository;
 
@@ -50,6 +55,26 @@ public class KeystoresRegistryManager {
         oUser.get().addKeystore(keystore);
         userRepository.save(oUser.get());
         return true;
+    }
+
+    /**
+     * retrieve wallets for user.
+     * @param id user ID
+     * @return wallet
+     * @throws ParseException bad wallet format
+     */
+    public JSONArray getWalletsForUser(String id) throws ParseException {
+        JSONArray addresses = new JSONArray();
+        Optional<User> oUser = userRepository.findById(UUID.fromString(id));
+        if (!oUser.isPresent()) {
+            return addresses;
+        } else {
+            logger.info("user found");
+            List<Keystore> keystores = keystoreRepository.findKeystoresByUser(oUser.get());
+            keystores.stream().forEach(k -> addresses.add(k.getAddress()));
+            logger.info(addresses.toString());
+            return addresses;
+        }
     }
 
     /**

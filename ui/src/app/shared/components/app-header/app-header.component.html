@@ -80,6 +80,9 @@
           <clr-icon shape="caret down"></clr-icon>
         </button>
         <clr-dropdown-menu *clrIfOpen clrPosition="bottom-right">
+          <a clrDropdownItem [routerLink]="['/users/settings']">
+            {{'nav.settings' | translate}}
+          </a>
           <a id="logOutButton" clrDropdownItem (click)="onLogOut()">{{'nav.logOut' | translate}}</a>
         </clr-dropdown-menu>
       </clr-dropdown>

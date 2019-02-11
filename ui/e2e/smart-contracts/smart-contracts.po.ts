@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { browser, by, element } from 'protractor';
@@ -7,6 +7,10 @@ import { browser, by, element } from 'protractor';
 export class SmartContractsPage {
   navigateTo() {
     return browser.get('/smart-contracts');
+  }
+
+  getPageTitle() {
+    element(by.css('.page-title'));
   }
 
   openCreateModal() {

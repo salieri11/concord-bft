@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { NgModule } from '@angular/core';
@@ -11,8 +11,8 @@ import { UsersService } from './shared/users.service';
 import { UserListComponent } from './user-list/user-list.component';
 import { UserFormComponent } from './user-form/user-form.component';
 import { UserSettingsComponent } from './user-settings/user-settings.component';
-import { CredentialFormComponent } from './credential-form/credential-form.component';
 import { SharedModule } from '../shared/shared.module';
+import { WalletFormComponent } from './wallet-form/wallet-form.component';
 
 @NgModule({
   imports: [
@@ -25,7 +25,7 @@ import { SharedModule } from '../shared/shared.module';
     UserListComponent,
     UserFormComponent,
     UserSettingsComponent,
-    CredentialFormComponent
+    WalletFormComponent
   ],
   providers: [UsersService]
 })

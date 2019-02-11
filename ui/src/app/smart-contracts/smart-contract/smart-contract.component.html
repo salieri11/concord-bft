@@ -48,8 +48,10 @@
       </div>
     </div>
   </clr-alert>
-  <concord-smart-contract-version *ngIf="version" [version]="version"></concord-smart-contract-version>
+  <concord-smart-contract-version *ngIf="version"
+                                  [version]="version"></concord-smart-contract-version>
 </div>
 
-<concord-contract-form #contractFormModal (contractCreated)="afterUpdateContract($event)"></concord-contract-form>
+<concord-contract-form #contractFormModal
+                       (contractCreated)="afterUpdateContract($event)"></concord-contract-form>
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 export interface EthSendCallParams {
@@ -20,11 +20,14 @@ export interface EthSendTransactionParams {
 
 export type EthGetTransactionReceiptParams = string;
 
+export type PersonalNewAccountParams = string;
+
 export interface EthRequest {
   id: number;
   method: string;
   jsonrpc: string;
-  params: [EthSendTransactionParams | EthGetTransactionReceiptParams | EthSendCallParams] | [EthSendCallParams, string];
+  params: [EthSendTransactionParams | EthGetTransactionReceiptParams | EthSendCallParams | PersonalNewAccountParams]
+    | [EthSendCallParams, string];
 }
 
 export interface EthSendCallResponse {
@@ -54,4 +57,34 @@ export interface EthGetTransactionReceiptResponse {
     contractAddress: string;
     blockHash: string;
   };
+}
+
+export interface PersonalNewAccountResponse {
+  id: number;
+  jsonrpc: string;
+  result: string;
+}
+
+export interface EthWallet {
+  address: string;
+  id: string;
+  version: number;
+  crypto: EthWalletCrypto;
+}
+
+export interface EthWalletCrypto {
+  cipher: string;
+  cipherText: string;
+  kdfparams: {
+    p: number;
+    r: number;
+    salt: string;
+    dklen: number;
+    n: number;
+  };
+  cipherparams: {
+    iv: string;
+  };
+  kdf: string;
+  mac: string;
 }

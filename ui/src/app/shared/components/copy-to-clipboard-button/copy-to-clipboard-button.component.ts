@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { ElementRef, HostBinding, Output, EventEmitter, Component, OnInit, Input } from '@angular/core';

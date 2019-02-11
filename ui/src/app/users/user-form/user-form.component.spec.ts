@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
@@ -31,7 +31,7 @@ const addUser = {
 const selected: User[] = [
   {
     role: Personas.SystemsAdmin,
-    user_id: 9,
+    user_id: '111-111-111',
     last_login: 1534534154662,
     consortium:
       {
@@ -53,7 +53,7 @@ const selected: User[] = [
   },
   {
     role: Personas.SystemsAdmin,
-    user_id: 10,
+    user_id: '222-222-222',
     last_login: 1534534154662,
     consortium:
       {

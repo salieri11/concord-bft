@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { AfterViewInit, Component, Input, OnInit, ViewChild } from '@angular/core';

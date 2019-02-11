@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { Component, ElementRef, OnInit, Input, Output, EventEmitter, ChangeDetectorRef, ViewChild } from '@angular/core';
@@ -10,6 +10,7 @@ import { ClrWizard } from '@clr/angular';
 import * as Web3EthAbi from 'web3-eth-abi';
 import * as Web3Utils from 'web3-utils';
 
+import { AuthenticationService } from '../../shared/authentication.service';
 import { ADDRESS_LENGTH, ADDRESS_PATTERN } from '../../shared/shared.config';
 import { SmartContractsService } from '../shared/smart-contracts.service';
 import {
@@ -52,10 +53,12 @@ export class ContractFormComponent implements OnInit {
   multiContractResponse: SmartContractCompileResult[];
   version: SmartContractVersion;
   constructorAbi: any;
+  walletAddress: string;
 
   readonly modalState: ModalState;
 
   constructor(
+    private authenticationService: AuthenticationService,
     private formBuilder: FormBuilder,
     private changeDetectorRef: ChangeDetectorRef,
     private smartContractsService: SmartContractsService,
@@ -82,6 +85,8 @@ export class ContractFormComponent implements OnInit {
       error: false,
       loading: false
     };
+
+    this.walletAddress = this.authenticationService.currentUser.wallet_address;
   }
 
   ngOnInit() {
@@ -210,7 +215,7 @@ export class ContractFormComponent implements OnInit {
 
   private createAddContractForm() {
     this.smartContractForm = this.formBuilder.group({
-      from: ['', [Validators.required, ...addressValidators]],
+      from: [this.walletAddress, [Validators.required, ...addressValidators]],
       contractId: ['', [Validators.required]],
       version: ['', [Validators.required, Validators.maxLength(16)]],
       file: [null, Validators.required],
@@ -229,7 +234,7 @@ export class ContractFormComponent implements OnInit {
   private createUpdateContractForm(smartContract: SmartContract, version: SmartContractVersion) {
     const existingVersions = smartContract.versions.map(x => x.version);
     this.smartContractForm = this.formBuilder.group({
-      from: ['', [Validators.required, ...addressValidators]],
+      from: [this.walletAddress, [Validators.required, ...addressValidators]],
       contractId: [smartContract.contract_id, [Validators.required]],
       version: [version.version, [Validators.required, newVersionValue(existingVersions), Validators.maxLength(16)]],
       file: [null, [Validators.required]]

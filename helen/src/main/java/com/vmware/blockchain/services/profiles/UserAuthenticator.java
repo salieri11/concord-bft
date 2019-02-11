@@ -7,6 +7,7 @@ package com.vmware.blockchain.services.profiles;
 import static com.vmware.blockchain.services.profiles.UsersApiMessage.EMAIL_LABEL;
 import static com.vmware.blockchain.services.profiles.UsersApiMessage.PASSWORD_LABEL;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -49,11 +50,15 @@ public class UserAuthenticator {
 
     private UserRepository userRepository;
 
+    private KeystoreRepository keystoreRepository;
+
     private ProfilesRegistryManager prm;
 
     private PasswordEncoder passwordEncoder;
 
     private JwtTokenProvider jwtTokenProvider;
+
+    private KeystoresRegistryManager krm;
 
     @Getter
     @Setter
@@ -85,6 +90,7 @@ public class UserAuthenticator {
         private String token;
         private String refreshToken;
         private Long tokenExpires;
+        private String walletAddress;
         private String error;
 
         // Convenience function for dealing with the user fields
@@ -106,9 +112,12 @@ public class UserAuthenticator {
 
     @Autowired
     public UserAuthenticator(UserRepository userRepository, ProfilesRegistryManager prm,
-            PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider) {
+            PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider,
+            KeystoresRegistryManager krm, KeystoreRepository keystoreRepository) {
         this.userRepository = userRepository;
+        this.keystoreRepository = keystoreRepository;
         this.prm = prm;
+        this.krm = krm;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
     }
@@ -130,6 +139,12 @@ public class UserAuthenticator {
 
             if (u != null && passwordEncoder.matches(password, u.getPassword())) {
                 // need to get another image of user
+                List<Keystore> keystores = keystoreRepository.findKeystoresByUser(u);
+                if (keystores.size() > 0) {
+                    loginResponse.setWalletAddress(keystores.get(0).getAddress());
+                } else {
+                    loginResponse.setWalletAddress("");
+                }
                 responseStatus = HttpStatus.OK;
                 loginResponse.setUser(u);
                 loginResponse.setAuthenticated(true);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 VMware, all rights reserved.
+ * Copyright 2018-2019 VMware, all rights reserved.
  */
 
 import { Component, OnInit, ViewChild } from '@angular/core';
@@ -19,15 +19,16 @@ import { TourService } from '../../shared/tour.service';
 export class SmartContractComponent implements OnInit {
 
   @ViewChild('contractFormModal') contractFormModal: ContractFormComponent;
+
   smartContract: SmartContract;
   version: SmartContractVersion;
   versionSelected;
 
   constructor(
     private smartContractsService: SmartContractsService,
+    private tourService: TourService,
     private route: ActivatedRoute,
     private router: Router,
-    private tourService: TourService,
   ) {}
 
   ngOnInit() {
