@@ -1,6 +1,6 @@
-// Copyright 2018 VMware, all rights reserved
+// Copyright 2018 - 2019 VMware, all rights reserved
 //
-// External interface definition.
+// Concord's external interface definition.
 
 syntax = "proto2";
 
@@ -36,7 +36,7 @@ message ConcordResponse {
 }
 
 // ----------------------------------------------------------------------------
-// Note: All message definitions below this comment are sent/received within a
+// All message definitions below this comment are sent/received within a
 // ConcordRequest/ConcordResponse message as defined above.
 //
 // The following list of message definitions is ordered alphabetically.
