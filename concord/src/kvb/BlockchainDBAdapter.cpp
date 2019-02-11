@@ -93,10 +93,7 @@ Sliver genDataDbKey(Sliver _key, BlockId _blockId)
  */
 char extractTypeFromKey(Sliver _key)
 {
-   // TODO(BWF): Agreed that we only need one byte to represent the type, but
-   // sizeOf(EDBKeyType) is 4, not 1 on my machine. Extracting it this way only
-   // works on little-endian machines, and leads to silently ignoring three
-   // bytes in the key.
+   static_assert(sizeof(EDBKeyType) == 1, "Let's avoid byte-order problems.");
    return _key.data()[0];
 }
 
