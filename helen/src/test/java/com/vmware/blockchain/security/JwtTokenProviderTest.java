@@ -65,7 +65,7 @@ public class JwtTokenProviderTest {
         Assertions.assertEquals(CONSORTIUM_ID.toString(), claims.get("context_name", String.class));
         // Make sure this isn't our old "secret key"
         Assertions.assertNotEquals(SecurityTestUtils.SECRET_KEY, secretKey);
-        byte[] z = new byte[20];
+        byte[] z = new byte[JwtTokenProvider.KEY_LENGTH];
         // also make sure we don't have an array of zeros
         Assertions.assertNotEquals(Base64.getEncoder().encodeToString(z), secretKey);
     }

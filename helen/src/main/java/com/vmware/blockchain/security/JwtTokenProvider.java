@@ -38,6 +38,9 @@ import io.jsonwebtoken.SignatureAlgorithm;
  */
 @Component
 public class JwtTokenProvider {
+    // Key length in bytes.  Recommendation for HS256 is 256 bits (32 bytes)
+    static final int KEY_LENGTH = 32;
+
     private String secretKey;
 
     @Value("${security.jwt.token.expire-length:1800000}")
@@ -52,7 +55,7 @@ public class JwtTokenProvider {
     @PostConstruct
     protected void init() {
         // Generate a random secret key 256 bits long
-        byte[] secret = new byte[32];
+        byte[] secret = new byte[KEY_LENGTH];
         try {
             SecureRandom.getInstanceStrong().nextBytes(secret);
         } catch (NoSuchAlgorithmException e) {
