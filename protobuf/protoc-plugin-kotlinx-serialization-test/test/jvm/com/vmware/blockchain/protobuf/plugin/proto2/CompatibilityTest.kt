@@ -5,6 +5,7 @@ package com.vmware.blockchain.protobuf.plugin.proto2
 
 import com.google.protobuf.Message
 import com.google.protobuf.Parser
+import com.vmware.blockchain.protobuf.kotlinx.serialization.ProtoBuf
 import com.vmware.blockchain.protobuf.plugin.proto2.java.EnumMessage as EnumMessageJava
 import com.vmware.blockchain.protobuf.plugin.proto2.java.NestedMessage as NestedMessageJava
 import com.vmware.blockchain.protobuf.plugin.proto2.java.RepeatFieldAndMapMessage as RepeatFieldAndMapMessageJava
@@ -14,7 +15,6 @@ import com.vmware.blockchain.protobuf.plugin.proto2.java.RequiredScalarsMessage 
 import com.vmware.blockchain.protobuf.plugin.proto2.java.ScalarsMessage as ScalarsMessageJava
 import com.vmware.blockchain.protobuf.plugin.proto2.java.TopLevelEnum as TopLevelEnumJava
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.protobuf.ProtoBuf
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.api.Test
 
@@ -55,7 +55,7 @@ class CompatibilityTest {
         serializer: KSerializer<T>,
         parser: Parser<R>
     ): T {
-        val encodedWithKotlin = kotlinx.serialization.protobuf.ProtoBuf.dump(serializer, message)
+        val encodedWithKotlin = ProtoBuf.dump(serializer, message)
         val decodedWithJava = parser.parseFrom(encodedWithKotlin)
         val encodedWithJava = decodedWithJava.toByteArray()
 
