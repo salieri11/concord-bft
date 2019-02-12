@@ -184,7 +184,7 @@ def call(){
             env.release_ethrpc_repo = env.release_repo + "/ethrpc"
             env.release_fluentd_repo = env.release_repo + "/fluentd"
             env.release_ui_repo = env.release_repo + "/ui"
-            env.release_asset_transfer_repo = env.release_repo + "/asset-transfer"
+            env.release_asset_transfer_repo = env.release_repo + "/test/asset-transfer"
 
             // These are constants which mirror the internal artifactory repos.  We put all merges
             // to master in the internal VMware artifactory.
@@ -252,22 +252,21 @@ EOF
                     # So test suites not using sudo can write to test_logs.
                     mkdir "${test_log_root}"
 
-                    echo "${PASSWORD}" | sudo -S ./main.py AssetTransferTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${asset_transfer_test_logs}"
-                    echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}"
-                    echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}"
-                    echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"
-                    echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}"
-                    echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
+                    # echo "${PASSWORD}" | sudo -S ./main.py AssetTransferTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${asset_transfer_test_logs}"
+                    # echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}"
+                    # echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}"
+                    # echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"
+                    # echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}"
+                    # echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
 
-                    cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs}
-                    cd ..
+                    # cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs} ; cd ..
 
                     # We need to delete the database files before running UI tests because
                     # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
                     # needs to be run with sudo is so it can delete any existing DB files.)
                     echo "${PASSWORD}" | sudo -S rm -rf ../docker/rocksdbdata*
                     echo "${PASSWORD}" | sudo -S rm -rf ../docker/cockroachDB
-                    ./main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}"
+                    # ./main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}"
                   '''
                 }
                 if (env.JOB_NAME == memory_leak_job) {
@@ -361,6 +360,7 @@ EOF
             pushDockerImage(env.internal_ethrpc_repo, env.docker_tag, false)
             pushDockerImage(env.internal_fluentd_repo, env.docker_tag, false)
             pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
+            pushDockerImage(env.internal_asset_transfer_repo, env.docker_tag, false)
           }
 
           sh '''
@@ -392,12 +392,14 @@ EOF
               docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
               docker tag ${internal_fluentd_repo}:${docker_tag} ${release_fluentd_repo}:${docker_tag}
               docker tag ${internal_ui_repo}:${docker_tag} ${release_ui_repo}:${docker_tag}
+              # docker tag ${internal_asset_transfer_repo}:${docker_tag} ${release_asset_transfer_repo}:${docker_tag}
             '''
             pushDockerImage(env.release_concord_repo, env.docker_tag, true)
             pushDockerImage(env.release_helen_repo, env.docker_tag, true)
             pushDockerImage(env.release_ethrpc_repo, env.docker_tag, true)
             pushDockerImage(env.release_fluentd_repo, env.docker_tag, true)
             pushDockerImage(env.release_ui_repo, env.docker_tag, true)
+            // pushDockerImage(env.release_asset_transfer_repo, env.docker_tag, true)
           }
 
           sh '''
