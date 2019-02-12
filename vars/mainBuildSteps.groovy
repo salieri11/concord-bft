@@ -370,9 +370,9 @@ EOF
       }
 
       stage("Release") {
-        // when {
-        //   environment name: 'deploy', value: 'true'
-        // }
+        when {
+          environment name: 'deploy', value: 'true'
+        }
         steps {
           dir('blockchain') {
             createAndPushGitTag(env.version_param)
