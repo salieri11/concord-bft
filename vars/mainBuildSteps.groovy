@@ -184,7 +184,7 @@ def call(){
             env.release_ethrpc_repo = env.release_repo + "/ethrpc"
             env.release_fluentd_repo = env.release_repo + "/fluentd"
             env.release_ui_repo = env.release_repo + "/ui"
-            env.release_asset_transfer_repo = env.release_repo + "/test/asset-transfer"
+            env.release_asset_transfer_repo = env.release_repo + "/asset-transfer"
 
             // These are constants which mirror the internal artifactory repos.  We put all merges
             // to master in the internal VMware artifactory.
@@ -340,11 +340,11 @@ EOF
       }
 
       stage("Save to artifactory"){
-        // when {
-        //   expression {
-        //     return JOB_NAME == "Blockchain Master/master"
-        //   }
-        // }
+        when {
+          expression {
+            return JOB_NAME == "Blockchain Master/master"
+          }
+        }
         steps{
           withCredentials([string(credentialsId: 'ATHENA_DEPLOYER_ARTIFACTORY_PASSWORD', variable: 'ARTIFACTORY_PASSWORD')]) {
             sh '''
@@ -370,9 +370,9 @@ EOF
       }
 
       stage("Release") {
-        when {
-          environment name: 'deploy', value: 'true'
-        }
+        // when {
+        //   environment name: 'deploy', value: 'true'
+        // }
         steps {
           dir('blockchain') {
             createAndPushGitTag(env.version_param)
@@ -387,19 +387,19 @@ EOF
 
           script {
             sh '''
-              docker tag ${internal_concord_repo}:${docker_tag} ${release_concord_repo}:${docker_tag}
-              docker tag ${internal_helen_repo}:${docker_tag} ${release_helen_repo}:${docker_tag}
-              docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
-              docker tag ${internal_fluentd_repo}:${docker_tag} ${release_fluentd_repo}:${docker_tag}
-              docker tag ${internal_ui_repo}:${docker_tag} ${release_ui_repo}:${docker_tag}
-              # docker tag ${internal_asset_transfer_repo}:${docker_tag} ${release_asset_transfer_repo}:${docker_tag}
+              # docker tag ${internal_concord_repo}:${docker_tag} ${release_concord_repo}:${docker_tag}
+              # docker tag ${internal_helen_repo}:${docker_tag} ${release_helen_repo}:${docker_tag}
+              # docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
+              # docker tag ${internal_fluentd_repo}:${docker_tag} ${release_fluentd_repo}:${docker_tag}
+              # docker tag ${internal_ui_repo}:${docker_tag} ${release_ui_repo}:${docker_tag}
+              docker tag ${internal_asset_transfer_repo}:${docker_tag} ${release_asset_transfer_repo}:${docker_tag}
             '''
-            pushDockerImage(env.release_concord_repo, env.docker_tag, true)
-            pushDockerImage(env.release_helen_repo, env.docker_tag, true)
-            pushDockerImage(env.release_ethrpc_repo, env.docker_tag, true)
-            pushDockerImage(env.release_fluentd_repo, env.docker_tag, true)
-            pushDockerImage(env.release_ui_repo, env.docker_tag, true)
-            // pushDockerImage(env.release_asset_transfer_repo, env.docker_tag, true)
+            // pushDockerImage(env.release_concord_repo, env.docker_tag, true)
+            // pushDockerImage(env.release_helen_repo, env.docker_tag, true)
+            // pushDockerImage(env.release_ethrpc_repo, env.docker_tag, true)
+            // pushDockerImage(env.release_fluentd_repo, env.docker_tag, true)
+            // pushDockerImage(env.release_ui_repo, env.docker_tag, true)
+            pushDockerImage(env.release_asset_transfer_repo, env.docker_tag, true)
           }
 
           sh '''
