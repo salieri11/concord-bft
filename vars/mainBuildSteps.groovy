@@ -340,11 +340,11 @@ EOF
       }
 
       stage("Save to artifactory"){
-        when {
-          expression {
-            return JOB_NAME == "Blockchain Master/master"
-          }
-        }
+        // when {
+        //   expression {
+        //     return JOB_NAME == "Blockchain Master/master"
+        //   }
+        // }
         steps{
           withCredentials([string(credentialsId: 'ATHENA_DEPLOYER_ARTIFACTORY_PASSWORD', variable: 'ARTIFACTORY_PASSWORD')]) {
             sh '''
