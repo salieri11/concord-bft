@@ -13,6 +13,7 @@
 
     <modules>
         <module>api</module>
+        <module>persistence</module>
     </modules>
 
     <repositories>
@@ -47,13 +48,15 @@
 
         <!-- Dependency-related properties. -->
         <assertj.version>3.11.1</assertj.version>
+        <atomicfu.version>0.12.2</atomicfu.version>
         <grpc.runtime.java.version>1.18.0</grpc.runtime.java.version>
         <grpc.runtime.kotlinx.serialization.version>1.0.0-SNAPSHOT</grpc.runtime.kotlinx.serialization.version>
         <jackson.version>2.9.7</jackson.version>
-        <junit.jupiter.version>5.2.0</junit.jupiter.version>
-        <junit.platform.version>1.2.0</junit.platform.version>
+        <jqwik.version>1.1.0</jqwik.version>
+        <junit.jupiter.version>5.4.0</junit.jupiter.version>
         <kotlinpoet.version>1.0.1</kotlinpoet.version>
         <protobuf.runtime.java.version>3.6.1</protobuf.runtime.java.version>
+        <reactive.stream.version>1.0.2</reactive.stream.version>
         <slf4j.version>1.7.25</slf4j.version>
     </properties>
 
@@ -79,12 +82,12 @@
             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
             <dependency>
                 <groupId>com.vmware.blockchain</groupId>
-                <artifactId>persephone-deployer</artifactId>
+                <artifactId>persephone-api</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.vmware.blockchain</groupId>
-                <artifactId>persephone-model</artifactId>
+                <artifactId>persephone-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -118,9 +121,19 @@
                 <version>${ktor.version}</version>
             </dependency>
             <dependency>
+                <groupId>net.jqwik</groupId>
+                <artifactId>jqwik</artifactId>
+                <version>${jqwik.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
                 <version>${assertj.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jetbrains.kotlinx</groupId>
+                <artifactId>atomicfu</artifactId>
+                <version>${atomicfu.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.jetbrains.kotlinx</groupId>
@@ -151,6 +164,11 @@
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter-engine</artifactId>
                 <version>${junit.jupiter.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.reactivestreams</groupId>
+                <artifactId>reactive-streams</artifactId>
+                <version>${reactive.stream.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>
@@ -199,6 +217,7 @@
                             <!-- Remove wrapper object abstraction cost. -->
                             <!--<arg>-XXLanguage:+InlineClasses</arg>-->
                             <arg>-Xuse-experimental=kotlin.ExperimentalUnsignedTypes</arg>
+                            <arg>-Xuse-experimental=kotlinx.coroutines.ExperimentalCoroutinesApi</arg>
                         </args>
                         <compilerPlugins>
                             <plugin>kotlinx-serialization</plugin>
@@ -225,10 +244,12 @@
                                     <sourceDir>${project.basedir}/target/generated-sources/protobuf/common</sourceDir>
                                     <sourceDir>${project.basedir}/target/generated-sources/protobuf/jvm</sourceDir>
                                 </sourceDirs>
+                                <output>${project.build.directory}/classes-atomicfu</output>
                             </configuration>
                         </execution>
                         <execution>
                             <id>kotlin-test-compile</id>
+                            <phase>test-compile</phase>
                             <goals>
                                 <goal>test-compile</goal>
                             </goals>
@@ -239,6 +260,22 @@
                                     <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/common</sourceDir>
                                     <sourceDir>${project.basedir}/target/generated-sources/test-protobuf/jvm</sourceDir>
                                 </sourceDirs>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+                <plugin>
+                    <groupId>org.jetbrains.kotlinx</groupId>
+                    <artifactId>atomicfu-maven-plugin</artifactId>
+                    <version>${atomicfu.version}</version>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>transform</goal>
+                            </goals>
+                            <configuration>
+                                <input>${project.build.directory}/classes-atomicfu</input>
+                                <variant>FU</variant>
                             </configuration>
                         </execution>
                     </executions>
@@ -310,13 +347,6 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven.plugin.surefire}</version>
-                    <dependencies>
-                        <dependency>
-                            <groupId>org.junit.platform</groupId>
-                            <artifactId>junit-platform-surefire-provider</artifactId>
-                            <version>${junit.platform.version}</version>
-                        </dependency>
-                    </dependencies>
                     <configuration>
                         <includes>
                             <include>**/*Test.java</include>
