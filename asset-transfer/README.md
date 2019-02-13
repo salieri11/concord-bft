@@ -52,7 +52,7 @@ image. The following command starts the container in interactive mode,
 so that you can use the files and utilities it contains:
 
 ```
-$ docker run -ti vmwblockchain/asset_transfer:latest
+$ docker run -it vmwblockchain/asset-transfer:latest
 root@b8136d3deacf:/source#
 ```
 

@@ -176,7 +176,8 @@ def call(){
           script {
             env.docker_tag = env.version_param ? env.version_param : env.commit
             env.release_repo = "vmwblockchain"
-            env.internal_repo = "athena-docker-local.artifactory.eng.vmware.com"
+            env.internal_repo_name = "athena-docker-local"
+            env.internal_repo = env.internal_repo_name + ".artifactory.eng.vmware.com"
 
             // These are constants which mirror the DockerHub repos.  DockerHub is only used for publishing releases.
             env.release_concord_repo = env.release_repo + "/concord-core"
@@ -300,7 +301,7 @@ EOF
                         memory_leak_spiked_log = new File(env.mem_leak_test_logs, "memory_leak_spiked.log").toString()
                         if (fileExists(memory_leak_spiked_log)) {
                             echo 'ALERT: Memory Leak spiked up'
-    
+
                             memory_leak_alert_notification_address_file = "memory_leak_alert_recipients.txt"
                             if (fileExists(memory_leak_alert_notification_address_file)) {
                                 memory_leak_alert_notification_recipients = readFile(memory_leak_alert_notification_address_file).replaceAll("\n", " ")
@@ -353,14 +354,16 @@ EOF
           }
 
           script {
-            // Pass in false for whether to tag as latest because VMware's
-            // artifactory does not allow re-using a tag.
-            pushDockerImage(env.internal_concord_repo, env.docker_tag, false)
-            pushDockerImage(env.internal_helen_repo, env.docker_tag, false)
-            pushDockerImage(env.internal_ethrpc_repo, env.docker_tag, false)
-            pushDockerImage(env.internal_fluentd_repo, env.docker_tag, false)
-            pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
-            pushDockerImage(env.internal_asset_transfer_repo, env.docker_tag, false)
+            withCredentials([string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')]) {
+              // Pass in false for whether to tag as latest because VMware's
+              // artifactory does not allow re-using a tag.
+              pushDockerImage(env.internal_concord_repo, env.docker_tag, false)
+              pushDockerImage(env.internal_helen_repo, env.docker_tag, false)
+              pushDockerImage(env.internal_ethrpc_repo, env.docker_tag, false)
+              pushDockerImage(env.internal_fluentd_repo, env.docker_tag, false)
+              pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
+              pushDockerImage(env.internal_asset_transfer_repo, env.docker_tag, false)
+            }
           }
 
           sh '''
@@ -486,14 +489,20 @@ void checkoutRepo(repo_url, branch_or_commit){
 // is set to true, that image will be re-tagged as latest and pushed
 // again.
 void pushDockerImage(repo, tag, tagAsLatest){
-  result = sh (
-    script: "docker push ${repo}:${tag}",
-  )
+  // Get the component (everything after eng.vmware.com).  e.g. "test/concord-core"
+  component = repo.split("eng.vmware.com")[1]
+  apiLookupString = env.internal_repo_name + component + "/" + tag
 
-  if(tagAsLatest){
-    sh(
-      script: "docker tag ${repo}:${tag} ${repo}:latest && docker push ${repo}:latest",
+  if(!existsInArtifactory(apiLookupString)){
+    result = sh (
+      script: "docker push ${repo}:${tag}",
     )
+
+    if(tagAsLatest){
+      sh(
+        script: "docker tag ${repo}:${tag} ${repo}:latest && docker push ${repo}:latest",
+      )
+    }
   }
 }
 
@@ -545,4 +554,44 @@ void pushMemoryLeakSummary(){
     script: "git push origin master",
     returnStdout: false
   )
+}
+
+// Uses the artifactory REST API to return whether the passed in object
+// exists in the VMware artifactory. The passed in object is the path
+// seen in the Artifactory GUI.  e.g.
+// athena-docker-local/test/concord-core/2ef3010
+Boolean existsInArtifactory(String path){
+  echo "Checking for existence of '" + path + "' in the VMware artifactory"
+  found = false
+  baseUrl = "https://build-artifactory.eng.vmware.com/artifactory/api/storage/"
+  curlCommand = "curl -s -H 'X-JFrog-Art-Api: " + env.ARTIFACTORY_API_KEY + "' " + baseUrl + path
+
+  resultJson = sh(
+    script: curlCommand,
+    returnStdout: true
+  )
+
+  // If it is there, we get a structure like this:
+  // {
+  //   "repo" : "athena-docker-local",
+  //   "path" : "/test/concord-core/2ef3010",
+  //   ...
+  //
+  // If not, we get:
+  // {
+  //   "errors" : [ {
+  //     "status" : 404,
+  //     "message" : "Unable to find item"
+  //   } ]
+  // }
+
+  resultObj = new JsonSlurperClassic().parseText(resultJson)
+  
+  if (resultObj.path){
+    echo "Found " + path
+    return true
+  }else{
+    echo "Did not find " + path
+    return false
+  }
 }
