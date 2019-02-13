@@ -22,13 +22,14 @@ public class Constants {
             + "{\"name\": \"eth_call\",\"params\": [],\"returns\": \"string\"},"
             + "{\"name\": \"eth_coinbase\",\"params\": [],\"returns\": \"string\"},"
             + "{\"name\": \"eth_gasPrice\",\"params\": [],\"returns\": \"string\"},"
+            + "{\"name\": \"eth_getBalance\",\"params\": [],\"returns\": \"string\"},"
             + "{\"name\": \"eth_getBlockByHash\",\"params\": [],\"returns\": \"string\"},"
             + "{\"name\": \"eth_getBlockByNumber\",\"params\": [],\"returns\": \"string\"},"
             + "{\"name\": \"eth_getCode\",\"params\": [],\"returns\": \"string\"},"
             + "{\"name\": \"eth_getFilterChanges\",\"params\": [],\"returns\": \"array\"},"
             + "{\"name\": \"eth_getStorageAt\",\"params\": [],\"returns\": \"string\"},"
             + "{\"name\": \"eth_getTransactionCount\",\"params\": [],\"returns\": \"string\"},"
-            + "{\"name\": \"eth_getBalance\",\"params\": [],\"returns\": \"string\"},"
+            + "{\"name\": \"eth_getTransactionByHash\",\"params\": [],\"returns\": \"object\"},"
             + "{\"name\": \"eth_getTransactionReceipt\",\"params\": [],\"returns\": \"object\"},"
             + "{\"name\": \"eth_mining\",\"params\": [],\"returns\": \"bool\"},"
             + "{\"name\": \"eth_newFilter\",\"params\": [],\"returns\": \"string\"},"
@@ -59,6 +60,7 @@ public class Constants {
     public static final String SEND_TRANSACTION_NAME = "eth_sendTransaction";
     public static final String SEND_RAWTRANSACTION_NAME = "eth_sendRawTransaction";
     public static final String GET_TRANSACTIONRECEIPT_NAME = "eth_getTransactionReceipt";
+    public static final String GET_TRANSACTIONBYHASH_NAME = "eth_getTransactionByHash";
     public static final String GET_STORAGEAT_NAME = "eth_getStorageAt";
     public static final String WEB3_SHA3_NAME = "web3_sha3";
     public static final String RPC_MODULES_NAME = "rpc_modules";
