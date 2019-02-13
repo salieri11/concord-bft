@@ -159,9 +159,10 @@ def call(){
           }
 
           withCredentials([string(credentialsId: 'ATHENA_DEPLOYER_ARTIFACTORY_PASSWORD', variable: 'ARTIFACTORY_PASSWORD')]) {
-            sh '''
-              docker login -u athena-deployer -p "${ARTIFACTORY_PASSWORD}" athena-docker-local.artifactory.eng.vmware.com
-            '''
+            script{
+              command = "docker login -u athena-deployer -p \"" + env.ARTIFACTORY_PASSWORD + "\" athena-docker-local.artifactory.eng.vmware.com"
+              retryCommand(command, true)
+            }
           }
 
           // To invoke "git tag" and commit that change, git wants to know who we are.
@@ -347,12 +348,6 @@ EOF
           }
         }
         steps{
-          withCredentials([string(credentialsId: 'ATHENA_DEPLOYER_ARTIFACTORY_PASSWORD', variable: 'ARTIFACTORY_PASSWORD')]) {
-            sh '''
-              docker login -u athena-deployer -p "${ARTIFACTORY_PASSWORD}" athena-docker-local.artifactory.eng.vmware.com
-            '''
-          }
-
           script {
             withCredentials([string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')]) {
               // Pass in false for whether to tag as latest because VMware's
@@ -365,10 +360,6 @@ EOF
               pushDockerImage(env.internal_asset_transfer_repo, env.docker_tag, false)
             }
           }
-
-          sh '''
-            docker logout
-          '''
         }
       }
 
@@ -383,7 +374,6 @@ EOF
 
           withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
             sh '''
-              docker logout
               docker login -u blockchainrepositorywriter -p "${DOCKERHUB_PASSWORD}"
             '''
           }
@@ -405,10 +395,6 @@ EOF
             pushDockerImage(env.release_asset_transfer_repo, env.docker_tag, true)
           }
 
-          sh '''
-            docker logout
-          '''
-
           dir('blockchain/vars') {
             script {
               release_notification_address_file = "release_notification_recipients.txt"
@@ -427,6 +413,14 @@ EOF
 
     post {
       always {
+        script{
+          command = "docker logout"
+          retryCommand(command, false)
+
+          command = "docker logout athena-docker-local.artifactory.eng.vmware.com"
+          retryCommand(command, false)
+        }
+
         // Files created by the docker run belong to root because they were created by the docker process.
         // That will make the subsequent run unable to clean the workspace.  Just make the entire workspace dir
         // belong to builder to catch any future files.
@@ -489,20 +483,21 @@ void checkoutRepo(repo_url, branch_or_commit){
 // is set to true, that image will be re-tagged as latest and pushed
 // again.
 void pushDockerImage(repo, tag, tagAsLatest){
-  // Get the component (everything after eng.vmware.com).  e.g. "test/concord-core"
-  component = repo.split("eng.vmware.com")[1]
-  apiLookupString = env.internal_repo_name + component + "/" + tag
+  if (repo.contains(env.internal_repo_name)){
+    // Re-pushing to artifactory will trigger an error.
+    component = repo.split("eng.vmware.com")[1]
+    apiLookupString = env.internal_repo_name + component + "/" + tag
 
-  if(!existsInArtifactory(apiLookupString)){
-    result = sh (
-      script: "docker push ${repo}:${tag}",
-    )
-
-    if(tagAsLatest){
-      sh(
-        script: "docker tag ${repo}:${tag} ${repo}:latest && docker push ${repo}:latest",
-      )
+    if (existsInArtifactory(apiLookupString)){
+      return
     }
+  }
+
+  retryCommand("docker push ${repo}:${tag}", true)
+
+  if(tagAsLatest){
+    command = "docker tag ${repo}:${tag} ${repo}:latest && docker push ${repo}:latest"
+    retryCommand(command, true)
   }
 }
 
@@ -586,12 +581,57 @@ Boolean existsInArtifactory(String path){
   // }
 
   resultObj = new JsonSlurperClassic().parseText(resultJson)
-  
+
   if (resultObj.path){
     echo "Found " + path
     return true
   }else{
     echo "Did not find " + path
     return false
+  }
+}
+
+// Given a command, execute it, retrying a few
+// times if there is an error. Returns true if
+// the command succeeds.  If the command fails:
+//   - Raises an exception if failOnError is true.
+//   - Returns false if failOnError is false.
+// DO NOT USE THIS FOR CURL, as curl exits with 0
+// for cases we would want to retry.
+Boolean retryCommand(command, failOnError){
+  tries = 0
+  maxTries = 10
+  sleepTime = 10
+  success = false
+
+  assert (command.split(" ")[0] != "curl")
+
+  while (!success && tries < maxTries){
+    tries += 1
+
+    status = sh(
+      script: command,
+      returnStatus: true
+    )
+
+    if (status == 0){
+      return true
+    }else{
+      echo "Command '" + command + "' failed."
+
+      if (tries < maxTries){
+        echo "Retrying in " + sleepTime + " seconds."
+        sleep(sleepTime)
+      }else{
+        msg = "Failed to run the command '" + command + "'."
+
+        if(failOnError){
+          error(msg)
+        }else{
+          echo(msg)
+          return false
+        }
+      }
+    }
   }
 }
