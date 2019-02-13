@@ -11,10 +11,11 @@ import json
 import logging
 import os
 import pprint
+import random
+import re
 import tempfile
 import time
 import traceback
-import re
 
 from . import test_suite
 from rpc.rpc_call import RPC
@@ -87,26 +88,28 @@ class ExtendedRPCTests(test_suite.TestSuite):
       return self._resultFile
 
    def _getTests(self):
-      return [("web3_sha3", self._test_web3_sha3), \
-              ("web3_clientVersion", self._test_web3_clientVersion), \
-              ("eth_mining", self._test_eth_mining), \
-              ("rpc_modules", self._test_rpc_modules), \
-              ("eth_gasPrice", self._test_eth_gasPrice), \
-              ("eth_estimateGas", self._test_eth_estimateGas), \
-              ("eth_syncing", self._test_eth_syncing), \
-              ("eth_getTransactionCount", self._test_eth_getTransactionCount), \
-              ("eth_sendRawTransaction", self._test_eth_sendRawTransaction), \
-              ("eth_sendRawContract", self._test_eth_sendRawContract), \
-              ("eth_getBlockByNumber", self._test_eth_getBlockByNumber),
-              ("eth_getBalance", self._test_eth_getBalance),
-              ("eth_getStorageAt", self._test_eth_getStorageAt),
-              ("eth_getCode", self._test_eth_getCode),
-              ("block_filter", self._test_block_filter),
-              ("block_filter_independence", self._test_block_filter_independence),
-              ("block_filter_uninstall", self._test_block_filter_uninstall),
-              ("eth_personal_newAccount", self._test_personal_newAccount),
-              ("eth_replay_protection", self._test_replay_protection),
-              ("eth_fallback_function", self._test_fallback)
+      return [
+         ("block_filter", self._test_block_filter),
+         ("block_filter_independence", self._test_block_filter_independence),
+         ("block_filter_uninstall", self._test_block_filter_uninstall),
+         ("eth_estimateGas", self._test_eth_estimateGas),
+         ("eth_fallback_function", self._test_fallback),
+         ("eth_getBalance", self._test_eth_getBalance),
+         ("eth_getBlockByNumber", self._test_eth_getBlockByNumber),
+         ("eth_getCode", self._test_eth_getCode),
+         ("eth_gasPrice", self._test_eth_gasPrice),
+         ("eth_getStorageAt", self._test_eth_getStorageAt),
+         ("eth_getTransactionByHash", self._test_eth_getTransactionByHash),
+         ("eth_getTransactionCount", self._test_eth_getTransactionCount),
+         ("eth_mining", self._test_eth_mining),
+         ("eth_personal_newAccount", self._test_personal_newAccount),
+         ("eth_replay_protection", self._test_replay_protection),
+         ("eth_sendRawTransaction", self._test_eth_sendRawTransaction),
+         ("eth_sendRawContract", self._test_eth_sendRawContract),
+         ("eth_syncing", self._test_eth_syncing),
+         ("rpc_modules", self._test_rpc_modules),
+         ("web3_sha3", self._test_web3_sha3),
+         ("web3_clientVersion", self._test_web3_clientVersion),
       ]
 
    def _runRpcTest(self, testName, testFun, testLogDir):
@@ -242,6 +245,31 @@ class ExtendedRPCTests(test_suite.TestSuite):
       # TODO: non-false result is also allowed, and indicates that the
       # node knows that it is behind. We don't expect nodes to be
       # running behind in this test right now.
+
+      return (True, None)
+
+   def _test_eth_getTransactionByHash(self, rpc, request):
+      '''
+      Make sure the API is available and all expected fields are present.
+      A proper semantic test should be done in a larger e2e test.
+      '''
+      block = rpc.getBlockByNumber("latest")
+      txHash = random.choice(block["transactions"])
+
+      tx = rpc.getTransactionByHash(txHash)
+      if tx is None:
+         return (False, "Failed to get transaction {}".format(txHash))
+
+      expectedFields = [
+         "blockHash", "blockNumber", "from", "gas", "gasPrice", "hash", "input",
+         "nonce", "to", "transactionIndex", "value", "v", "r", "s",
+      ]
+      for f in expectedFields:
+         if not f in tx:
+            return (False, "Field '{}' not found in getTransactionByHash")
+
+      if block["hash"] != tx["blockHash"]:
+         return (False, "Block hash is wrong in getTransactionByHash")
 
       return (True, None)
 

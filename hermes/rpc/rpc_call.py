@@ -207,6 +207,15 @@ class RPC():
          log.debug("Unable to find 'result' in response '{}'".format(response))
          return None
 
+   def getTransactionByHash(self, hash):
+      '''
+      Return the transaction addressed by the given hash.
+      '''
+      self._rpcData["method"] = "eth_getTransactionByHash"
+      self._rpcData["params"] = [hash]
+      response = self._call()
+      return self.getResultFromResponse(response)
+
    def getTransactionCount(self, address, blockNumber = None):
       '''
       Get the number of transactions that the account named by `address`
