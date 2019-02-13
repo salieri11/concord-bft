@@ -41,6 +41,7 @@ public class JwtTokenProvider {
     // Key length in bytes.  Recommendation for HS256 is 256 bits (32 bytes)
     static final int KEY_LENGTH = 32;
 
+    @Value("${security.jwt.token.secretkey:#null")
     private String secretKey;
 
     @Value("${security.jwt.token.expire-length:1800000}")
@@ -54,15 +55,17 @@ public class JwtTokenProvider {
 
     @PostConstruct
     protected void init() {
-        // Generate a random secret key 256 bits long
-        byte[] secret = new byte[KEY_LENGTH];
-        try {
-            SecureRandom.getInstanceStrong().nextBytes(secret);
-        } catch (NoSuchAlgorithmException e) {
-            // Not as strong, but will be fine for our purposes.
-            new Random().nextBytes(secret);
+        if (secretKey == null) {
+            // Generate a random secret key 256 bits long
+            byte[] secret = new byte[KEY_LENGTH];
+            try {
+                SecureRandom.getInstanceStrong().nextBytes(secret);
+            } catch (NoSuchAlgorithmException e) {
+                // Not as strong, but will be fine for our purposes.
+                new Random().nextBytes(secret);
+            }
+            secretKey = Base64.getEncoder().encodeToString(secret);
         }
-        secretKey = Base64.getEncoder().encodeToString(secret);
     }
 
     /**
