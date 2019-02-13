@@ -63,8 +63,8 @@ and some other support files:
 
 ```
 # ls
-AssetTransfer.js   Dockerfile    package-lock.json   
-AssetTransfer.sol  node_modules  test
+AssetTransfer.js  AssetTransfer.sol  Dockerfile  README.md  
+node_modules  package-lock.json  test  versions.txt
 ```
 
 ### Stopping and starting the container (OPTIONAL)
@@ -104,8 +104,8 @@ mentioned below are created, you are good to continue)
 This will generate .abi and .bin files which can be verified :
 ```
 # ls
-AssetTransfer.abi  AssetTransfer.js   Dockerfile    package-lock.json
-AssetTransfer.bin  AssetTransfer.sol  node_modules  test
+AssetTransfer.abi  AssetTransfer.bin  AssetTransfer.js  AssetTransfer.sol  Dockerfile
+README.md  node_modules  package-lock.json  test  versions.txt
 ```
 
 ### Deploying the smart contract
