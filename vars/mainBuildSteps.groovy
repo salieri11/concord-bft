@@ -260,8 +260,7 @@ EOF
                     echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}"
                     echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
 
-                    cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs}
-                    cd ..
+                    cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs} ; cd ..
 
                     # We need to delete the database files before running UI tests because
                     # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
@@ -363,6 +362,7 @@ EOF
               pushDockerImage(env.internal_ethrpc_repo, env.docker_tag, false)
               pushDockerImage(env.internal_fluentd_repo, env.docker_tag, false)
               pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
+              pushDockerImage(env.internal_asset_transfer_repo, env.docker_tag, false)
             }
           }
 
@@ -395,12 +395,14 @@ EOF
               docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
               docker tag ${internal_fluentd_repo}:${docker_tag} ${release_fluentd_repo}:${docker_tag}
               docker tag ${internal_ui_repo}:${docker_tag} ${release_ui_repo}:${docker_tag}
+              docker tag ${internal_asset_transfer_repo}:${docker_tag} ${release_asset_transfer_repo}:${docker_tag}
             '''
             pushDockerImage(env.release_concord_repo, env.docker_tag, true)
             pushDockerImage(env.release_helen_repo, env.docker_tag, true)
             pushDockerImage(env.release_ethrpc_repo, env.docker_tag, true)
             pushDockerImage(env.release_fluentd_repo, env.docker_tag, true)
             pushDockerImage(env.release_ui_repo, env.docker_tag, true)
+            pushDockerImage(env.release_asset_transfer_repo, env.docker_tag, true)
           }
 
           sh '''
