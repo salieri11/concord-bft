@@ -57,22 +57,22 @@ public class EthGetTransactionByHashHandler extends AbstractEthRpcHandler {
         JSONObject respObject = new JSONObject();
         JSONObject result = new JSONObject();
         try {
-            Concord.TransactionResponse transactionResponse = concordResponse.getTransactionResponse();
+            Concord.TransactionResponse tx = concordResponse.getTransactionResponse();
 
-            result.put("blockHash", ApiHelper.binaryStringToHex(transactionResponse.getBlockHash()));
-            result.put("blockNumber", transactionResponse.getBlockNumber());
-            result.put("from", ApiHelper.binaryStringToHex(transactionResponse.getFrom()));
-            result.put("gas", transactionResponse.getGas());
-            result.put("gasPrice", transactionResponse.getGasPrice());
-            result.put("hash", ApiHelper.binaryStringToHex(transactionResponse.getHash()));
-            result.put("input", ApiHelper.binaryStringToHex(transactionResponse.getInput()));
-            result.put("nonce", transactionResponse.getNonce());
-            result.put("to", ApiHelper.binaryStringToHex(transactionResponse.getTo()));
-            result.put("transactionIndex", transactionResponse.getTransactionIndex());
-            result.put("value", transactionResponse.getValue());
-            result.put("v", transactionResponse.getSigV());
-            result.put("r", ApiHelper.binaryStringToHex(transactionResponse.getSigR()));
-            result.put("s", ApiHelper.binaryStringToHex(transactionResponse.getSigS()));
+            result.put("blockHash", ApiHelper.binaryStringToHex(tx.getBlockHash()));
+            result.put("blockNumber", "0x" + Long.toHexString(tx.getBlockNumber()));
+            result.put("from", ApiHelper.binaryStringToHex(tx.getFrom()));
+            result.put("gas", "0x" + Long.toHexString(tx.getGas()));
+            result.put("gasPrice", "0x" + Long.toHexString(tx.getGasPrice()));
+            result.put("hash", ApiHelper.binaryStringToHex(tx.getHash()));
+            result.put("input", ApiHelper.binaryStringToHex(tx.getInput()));
+            result.put("nonce", "0x" + Long.toHexString(tx.getNonce()));
+            result.put("to", ApiHelper.binaryStringToHex(tx.getTo()));
+            result.put("transactionIndex", "0x" + Long.toHexString(tx.getTransactionIndex()));
+            result.put("value", "0x" + Long.toHexString(tx.getValue()));
+            result.put("v", "0x" + Long.toHexString(tx.getSigV()));
+            result.put("r", ApiHelper.binaryStringToHex(tx.getSigR()));
+            result.put("s", ApiHelper.binaryStringToHex(tx.getSigS()));
 
             respObject.put("id", EthDispatcher.getEthRequestId(requestJson));
             respObject.put("jsonrpc", Constants.JSONRPC);
