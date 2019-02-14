@@ -355,7 +355,6 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if not isinstance(tx["logs"], list):
          return (False, 'Array expected for field "logs"')
 
-
       return (True, None)
 
    def _test_eth_sendRawTransaction(self, rpc, request):
