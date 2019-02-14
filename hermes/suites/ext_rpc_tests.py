@@ -260,16 +260,32 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if tx is None:
          return (False, "Failed to get transaction {}".format(txHash))
 
-      expectedFields = [
-         "blockHash", "blockNumber", "from", "gas", "gasPrice", "hash", "input",
-         "nonce", "to", "transactionIndex", "value", "v", "r", "s",
-      ]
-      for f in expectedFields:
-         if not f in tx:
-            return (False, "Field '{}' not found in getTransactionByHash")
+      dataFields = ["blockHash", "from", "hash", "input", "to", "r", "s"]
+      quantityFields = ["blockNumber", "gas", "gasPrice", "nonce",
+                        "transactionIndex", "value", "v"]
+      expectedFields = dataFields + quantityFields
 
+      (success, field) = self.requireFields(tx, expectedFields)
+      if not success:
+         return (False, 'Field "{}" not found in getTransactionByHash'
+                        .format(field))
+
+      (success, field) = self.requireDATAFields(tx, dataFields)
+      if not success:
+         return (False, 'DATA expected for field "{}"'.format(field))
+
+      (success, field) = self.requireQUANTITYFields(tx, quantityFields)
+      if not success:
+         return (False, 'QUANTITY expected for field "{}"'.format(field))
+
+      # TODO: Better end-to-end test for semantic evaluation of transactions
       if block["hash"] != tx["blockHash"]:
-         return (False, "Block hash is wrong in getTransactionByHash")
+         return (False, "Block hash is wrong in getTransactionByHash: {}:{}"
+                        .format(block["hash"], tx["blockHash"]))
+
+      if txHash != tx["hash"]:
+         return (False, "Transaction hash is wrong in getTransactionByHash: {}:{}"
+                        .format(txHash, tx["hash"]))
 
       return (True, None)
 

@@ -396,3 +396,44 @@ class TestSuite(ABC):
          if not f in ob:
             return (False, f)
       return (True, None)
+
+   def _isDATA(self, value):
+      # Hex-encoded string
+      if not isinstance(value, str):
+         return False
+      # Leading 0x
+      if not value.startswith("0x"):
+         return False
+      # Even number of chars because it represents bytes
+      if (len(value) % 2) != 0:
+         return False
+      return True
+
+   def requireDATAFields(self, ob, fieldList):
+      for f in fieldList:
+         if not self._isDATA(ob[f]):
+            return (False, f)
+      return (True, None)
+
+   def _isQUANTITY(self, value):
+      # Hex-encoded string
+      if not isinstance(value, str):
+         return False
+      # Leading 0x
+      if not value.startswith("0x"):
+         return False
+      # Valid number (will flag "0x")
+      try:
+         int(value, 16)
+      except ValueError as e:
+         return False
+      # No leading 0s
+      if len(value) > 3 and value[2] == "0":
+         return False
+      return True
+
+   def requireQUANTITYFields(self, ob, fieldList):
+      for f in fieldList:
+         if not self._isQUANTITY(ob[f]):
+            return (False, f)
+      return (True, None)
