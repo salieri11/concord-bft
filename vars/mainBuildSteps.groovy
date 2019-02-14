@@ -559,12 +559,10 @@ Boolean existsInArtifactory(String path){
   echo "Checking for existence of '" + path + "' in the VMware artifactory"
   found = false
   baseUrl = "https://build-artifactory.eng.vmware.com/artifactory/api/storage/"
+  resultJsonFile = "artifactoryResult.json"
   curlCommand = "curl -s -H 'X-JFrog-Art-Api: " + env.ARTIFACTORY_API_KEY + "' " + baseUrl + path
-
-  resultJson = sh(
-    script: curlCommand,
-    returnStdout: true
-  )
+  curlCommand += " -o " + resultJsonFile
+  retryCurl(curlCommand, true)
 
   // If it is there, we get a structure like this:
   // {
@@ -580,6 +578,7 @@ Boolean existsInArtifactory(String path){
   //   } ]
   // }
 
+  resultJson = readFile(resultJsonFile)
   resultObj = new JsonSlurperClassic().parseText(resultJson)
 
   if (resultObj.path){
@@ -647,7 +646,7 @@ Boolean retryCurl(command, failOnError){
   headerFile = "header.txt"
   command += " --dump-header " + headerFile
 
-  sh(script: "rm " + headerFile)
+  sh(script: "rm -f " + headerFile)
 
   while (tries < maxTries){
     tries += 1
