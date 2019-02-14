@@ -602,11 +602,10 @@ Boolean retryCommand(command, failOnError){
   tries = 0
   maxTries = 10
   sleepTime = 10
-  success = false
 
   assert (command.split(" ")[0] != "curl")
 
-  while (!success && tries < maxTries){
+  while (tries < maxTries){
     tries += 1
 
     status = sh(
@@ -622,16 +621,68 @@ Boolean retryCommand(command, failOnError){
       if (tries < maxTries){
         echo "Retrying in " + sleepTime + " seconds."
         sleep(sleepTime)
-      }else{
-        msg = "Failed to run the command '" + command + "'."
+      }
+    }
+  }
 
-        if(failOnError){
-          error(msg)
-        }else{
-          echo(msg)
-          return false
+  msg = "Failed to run the command '" + command + "'."
+
+  if(failOnError){
+    error(msg)
+  }else{
+    echo(msg)
+    return false
+  }
+}
+
+// Given a curl command (without the --dump-header parameter),
+// run it, and retry if the header indicates a problem.
+// Returns true if the command succeeds.  If the command fails:
+//   - Raises an exception if failOnError is true.
+//   - Returns false if failOnError is false.
+Boolean retryCurl(command, failOnError){
+  tries = 0
+  maxTries = 10
+  sleepTime = 10
+  headerFile = "header.txt"
+  command += " --dump-header " + headerFile
+
+  sh(script: "rm " + headerFile)
+
+  while (tries < maxTries){
+    tries += 1
+
+    // The retryCommand function will repeat until we get
+    // a nonzero exit code, which covers things like a typo
+    // in the protocol or the server not responding at all.
+    commandResult = retryCommand(command, failOnError)
+
+    if(!commandResult){
+      return false
+    }else{
+      headers = readFile(headerFile)
+      statusHeader = headers.readLines()[0]
+      statusCode = statusHeader.split(" ")[1]
+
+      if(statusCode == "200"){
+        return true
+      }else{
+        echo "Error with '" + command + "', returned status: '" + statusHeader + "'"
+
+        if(tries < maxTries){
+          echo "Retrying in " + sleepTime + " seconds"
+          sleep(sleepTime)
         }
       }
     }
+  }
+
+  msg = "Failed to run '" + command + "'."
+
+  if(failOnError){
+    error(msg)
+  }else{
+    echo(msg)
+    return false
   }
 }
