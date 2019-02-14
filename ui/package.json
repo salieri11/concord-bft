@@ -25,7 +25,7 @@
     "setup-db": "npm run clear-data-e2e && npm run create-user-e2e && npm run unaccept-agreement",
     "e2e": "npm run setup-db && ng e2e --port 49152",
     "e2e:build": "npm run webdriver-update && npm run flake-e2e",
-    "webdriver-update": "webdriver-manager update",
+    "webdriver-update": "webdriver-manager update --gecko false",
     "flake-e2e": "protractor-flake --parser standard  --max-attempts=10 -- protractor.conf.js --baseUrl=http://localhost/",
     "clear-data-e2e": "npm run clear-keystores-e2e && npm run clear-contracts-e2e && npm run clear-users-e2e",
     "postinstall": "node patch.js"
