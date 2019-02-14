@@ -366,12 +366,17 @@ void com::vmware::concord::KVBCommandsHandler::build_transaction_response(
    if (tx.input.size()) {
       response->set_input(std::string(tx.input.begin(), tx.input.end()));
    }
-   // send evm status as it is to helen
+
    response->set_status(tx.status);
    response->set_nonce(tx.nonce);
    response->set_value(tx.value);
    response->set_block_hash(tx.block_hash.bytes, sizeof(evm_uint256be));
    response->set_block_number(tx.block_number);
+   response->set_gas(tx.gas_limit);
+   response->set_gas_price(tx.gas_price);
+   response->set_sig_v(tx.sig_v);
+   response->set_sig_r(tx.sig_r.bytes, sizeof(evm_uint256be));
+   response->set_sig_s(tx.sig_s.bytes, sizeof(evm_uint256be));
 
    for (EthLog& log: tx.logs) {
      LogResponse* outlog = response->add_log();

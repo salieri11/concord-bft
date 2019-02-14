@@ -215,8 +215,8 @@ public final class EthDispatcher {
      * Creates the appropriate handler object and calls its functions to construct an ConcordRequest object. Sends this
      * request to Concord and converts its response into a format required by the user.
      *
-     * @param requestJson Request parameters
-     * @return Response for user
+     * @param  requestJson  User input
+     * @return JSONObject   JSON returned to the caller
      */
     public JSONObject dispatch(JSONObject requestJson) throws Exception {
         // Default initialize variables, so that if exception is thrown
@@ -240,6 +240,10 @@ public final class EthDispatcher {
                 case Constants.SEND_RAWTRANSACTION_NAME:
                 case Constants.CALL_NAME:
                     handler = new EthSendTxHandler();
+                    break;
+
+                case Constants.GET_TRANSACTIONBYHASH_NAME:
+                    handler = new EthGetTransactionByHashHandler();
                     break;
 
                 case Constants.GET_TRANSACTIONRECEIPT_NAME:
