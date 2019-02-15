@@ -140,7 +140,7 @@ public class EthGetBlockHandler extends AbstractEthRpcHandler {
                 transaction.put("value", "0x" + Long.toString(tr.getValue()));
                 transaction.put("input", ApiHelper.binaryStringToHex(tr.getInput()));
                 transaction.put("contractAddress", ApiHelper.binaryStringToHex(tr.getContractAddress()));
-                transaction.put("logs", EthGetTxReceiptHandler.buildLogs(tr));
+                transaction.put("logs", EthGetTransactionReceiptHandler.buildLogs(tr));
 
                 transactions.add(transaction);
             }

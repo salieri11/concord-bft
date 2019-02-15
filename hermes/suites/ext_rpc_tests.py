@@ -101,6 +101,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
          ("eth_getStorageAt", self._test_eth_getStorageAt),
          ("eth_getTransactionByHash", self._test_eth_getTransactionByHash),
          ("eth_getTransactionCount", self._test_eth_getTransactionCount),
+         ("eth_getTransactionReceipt", self._test_eth_getTransactionReceipt),
          ("eth_mining", self._test_eth_mining),
          ("eth_personal_newAccount", self._test_personal_newAccount),
          ("eth_replay_protection", self._test_replay_protection),
@@ -316,6 +317,43 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if not int(endNonce, 16) - int(startNonce, 16) == 1:
          return (False, "End nonce '{}' should be exactly one greater than start "
                  "nonce {})".format(endNonce, startNonce))
+
+      return (True, None)
+
+   def _test_eth_getTransactionReceipt(self, rpc, request):
+      '''
+      Make sure the API is available and all expected fields are present.
+      '''
+      block = rpc.getBlockByNumber("latest")
+      txHash = random.choice(block["transactions"])
+
+      tx = rpc.getTransactionReceipt(txHash)
+      if tx is None:
+         return (False, "Failed to get transaction {}".format(txHash))
+
+      dataFields = ["transactionHash", "blockHash", "from", "to",
+                    "contractAddress", "logsBloom"]
+      quantityFields = ["transactionIndex", "blockNumber", "cumulativeGasUsed",
+                        "gasUsed", "status"]
+      expectedFields = dataFields + quantityFields + ["logs"]
+
+      (success, field) = self.requireFields(tx, expectedFields)
+      if not success:
+         return (False, 'Field "{}" not found in getTransactionByHash'
+                        .format(field))
+
+      (success, field) = self.requireDATAFields(tx, dataFields)
+      if not success:
+         # 'null' is allowed if the tx didn't create a contract
+         if field != "contractAddress" or tx["contractAddress"] is not None:
+            return (False, 'DATA expected for field "{}"'.format(field))
+
+      (success, field) = self.requireQUANTITYFields(tx, quantityFields)
+      if not success:
+         return (False, 'QUANTITY expected for field "{}"'.format(field))
+
+      if not isinstance(tx["logs"], list):
+         return (False, 'Array expected for field "logs"')
 
       return (True, None)
 

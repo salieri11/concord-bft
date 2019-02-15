@@ -548,7 +548,7 @@ class HelenAPITests(test_suite.TestSuite):
       blockNumber = txReceipt['blockNumber']
       blockHash = txReceipt['blockHash']
       # query same block with hash and number and compare results
-      block1 = request.getBlock("/api/concord/blocks/{}".format(blockNumber))
+      block1 = request.getBlock("/api/concord/blocks/{}".format(int(blockNumber, 16)))
       block2 = request.getBlock("/api/concord/blocks/{}".format(blockHash))
       if (block1 == block2):
          return (True, None)
