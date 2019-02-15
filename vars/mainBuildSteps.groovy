@@ -265,8 +265,8 @@ EOF
                     # We need to delete the database files before running UI tests because
                     # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
                     # needs to be run with sudo is so it can delete any existing DB files.)
-                    echo "${PASSWORD}" | sudo -S rm -rf ../docker/rocksdbdata*
-                    echo "${PASSWORD}" | sudo -S rm -rf ../docker/cockroachDB
+                    echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
+                    echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
                     ./main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}"
                   '''
                 }
