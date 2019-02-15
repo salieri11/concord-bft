@@ -3,14 +3,18 @@ import groovy.json.*
 def call(){
   def agentLabel = "genericVM"
   def genericTests = true
-  def memory_leak_job = "BlockchainMemoryLeakTesting"
+  def memory_leak_job_name = "BlockchainMemoryLeakTesting"
+  def performance_test_job_name = "Blockchain Performance Test"
 
-   if (env.JOB_NAME == memory_leak_job) {
-    echo "Jenkins job for Memory Leak Test Run"
+  if (env.JOB_NAME == memory_leak_job_name) {
+    echo "**** Jenkins job for Memory Leak Test"
     agentLabel = "MemoryLeakTesting"
     genericTests = false
-  }  else {
-    echo "Jenkins job for Generic Test Run"
+  } else if (env.JOB_NAME == performance_test_job_name) {
+    echo "**** Jenkins job for Performance Test"
+    genericTests = false
+  } else {
+    echo "**** Jenkins job for Generic Test Run"
   }
 
   pipeline {
@@ -234,6 +238,21 @@ EOF
         }
       }
 
+      stage ("Build Performance Sub module") {
+        when {
+          expression { env.JOB_NAME == performance_test_job_name }
+        }     
+        stages {
+          stage('Maven build... mvn_performance_build.log') {
+            steps {
+              dir('blockchain/performance') {
+                  sh 'mvn clean install assembly:single > mvn_performance_build.log 2>&1'
+              }     
+            }           
+          }
+        }
+      }
+
       stage("Run tests in containers") {
         steps {
           dir('blockchain/hermes'){
@@ -248,6 +267,7 @@ EOF
                 env.regression_test_logs = new File(env.test_log_root, "Regression").toString()
                 env.statetransfer_test_logs = new File(env.test_log_root, "StateTransfer").toString()
                 env.mem_leak_test_logs = new File(env.test_log_root, "MemoryLeak").toString()
+                env.performance_test_logs = new File(env.test_log_root, "PerformanceTest").toString()
 
                 if (genericTests) {
                   sh '''
@@ -271,10 +291,16 @@ EOF
                     ./main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}"
                   '''
                 }
-                if (env.JOB_NAME == memory_leak_job) {
+                if (env.JOB_NAME == memory_leak_job_name) {
                   sh '''
                     echo "Running Entire Testsuite: Memory Leak..."
                     cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 5 --resultsDir ${mem_leak_test_logs}
+                  '''
+                }
+                if (env.JOB_NAME == performance_test_job_name) {
+                  sh '''
+                    echo "Running Entire Testsuite: Performance..."
+                    echo "${PASSWORD}" | sudo -S ./main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${performance_test_logs}"
                   '''
                 }
               }
@@ -285,7 +311,7 @@ EOF
 
       stage ("Post Memory Leak Testrun") {
         when {
-          expression { env.JOB_NAME == memory_leak_job }
+          expression { env.JOB_NAME == memory_leak_job_name }
         }
         stages {
           stage('Push memory leak summary into repo') {

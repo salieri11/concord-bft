@@ -1,0 +1,7 @@
+#!/bin/bash
+
+rm  ~/Downloads/web3j-3.5.0/bin/Ballot.*
+
+solc contracts/Ballot.sol --bin --abi --optimize -o ~/Downloads/web3j-3.5.0/bin/
+
+~/Downloads/web3j-3.5.0/bin/web3j solidity generate ~/Downloads/web3j-3.5.0/bin/Ballot.bin ~/Downloads/web3j-3.5.0/bin/Ballot.abi -o src/main/java/ -p com.vmware.blockchain.samples

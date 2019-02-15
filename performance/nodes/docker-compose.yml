@@ -1,0 +1,17 @@
+version: "2"
+services:
+  athena:
+    image: athena:latest
+    network_mode: "host"
+    ports:
+      - 5458:5458
+      - 3501:3501/udp
+      - 3502:3502/udp
+      - 3503:3503/udp
+      - 3504:3504/udp
+      - 3505:3505/udp
+    volumes:
+      - ./rocksdbdata:/athena/rocksdbdata
+      - ./log:/athena/log
+      - ./config-athena:/athena/config-local
+      - ./config-public:/athena/config-public:ro

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+rm ../data/voter_keystores/*
+rm ../data/deployer_keystore/*
