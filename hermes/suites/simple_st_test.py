@@ -89,7 +89,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       toolPath = os.path.abspath(os.path.join("..","concord","build","tools", "conc_rocksdb_adp"))
       cmd = [toolPath]
       for replicaId in range(1,5):
-         pathParam = "-path={0}{1}".format(os.path.join(path,"rocksdbdata"), replicaId)
+         pathParam = "-path={0}{1}".format(os.path.join(path,"devdata/rocksdbdata"), replicaId)
          opParam = "-op=getDigest"
          pParam = "-p={0}:{1}".format(blockToStart,blockToStart + blocksCount)
          cmd.append(pathParam)
