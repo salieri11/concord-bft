@@ -4,10 +4,13 @@
 
 package com.vmware.blockchain.security;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -35,11 +38,10 @@ import io.jsonwebtoken.SignatureAlgorithm;
  */
 @Component
 public class JwtTokenProvider {
-    /**
-     * THIS IS NOT A SECURE PRACTICE! For simplicity, we are storing a static key here. Ideally, in a microservices
-     * environment, this key would be kept on a config-server.
-     */
-    @Value("${security.jwt.token.secret-key:secret-key}")
+    // Key length in bytes.  Recommendation for HS256 is 256 bits (32 bytes)
+    static final int KEY_LENGTH = 32;
+
+    @Value("${security.jwt.token.secretkey:#null")
     private String secretKey;
 
     @Value("${security.jwt.token.expire-length:1800000}")
@@ -53,7 +55,17 @@ public class JwtTokenProvider {
 
     @PostConstruct
     protected void init() {
-        secretKey = Base64.getEncoder().encodeToString(secretKey.getBytes());
+        if (secretKey == null) {
+            // Generate a random secret key 256 bits long
+            byte[] secret = new byte[KEY_LENGTH];
+            try {
+                SecureRandom.getInstanceStrong().nextBytes(secret);
+            } catch (NoSuchAlgorithmException e) {
+                // Not as strong, but will be fine for our purposes.
+                new Random().nextBytes(secret);
+            }
+            secretKey = Base64.getEncoder().encodeToString(secret);
+        }
     }
 
     /**
