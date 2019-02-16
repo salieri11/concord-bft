@@ -173,7 +173,7 @@ services:
   db-server-init2:
     image: cockroachdb/cockroach:v2.0.2
     volumes:
-      - ./helen/src/main/resources/database:/cockroach/resources:ro
+      - ../helen/src/main/resources/database:/cockroach/resources:ro
     entrypoint: sh -c "./cockroach --host db-server sql --insecure < /cockroach/resources/schema.sql"
     depends_on:
       - db-server-init1
