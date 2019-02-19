@@ -679,6 +679,10 @@
         "export": "Export",
         "close": "Close"
       }
+    },
+    "errors": {
+      "logsQueryError": "An error occurred while getting logs. Please try again. If this error persists, please contact blockchain-support@vmware.com",
+      "logsCountError": "An error occurred while getting counts. Please try again. If this error persists, please contact blockchain-support@vmware.com"
     }
   },
   "personas": {

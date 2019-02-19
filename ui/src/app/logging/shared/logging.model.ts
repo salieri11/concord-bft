@@ -59,3 +59,11 @@ export interface LogListEntry {
   timestamp: string;
   ver: string;
 }
+
+export interface LogTimePeriod {
+  title: string;
+  value: number;
+  interval: number;
+  xAxisLabel?: string;
+  yAxisLabel?: string;
+}
