@@ -126,10 +126,10 @@ buildMavenTargets(){
 startNativeConcordBuild(){
     pushd .
     cd concord
-    sed -i\'\' "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord1.config
-    sed -i\'\' "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord2.config
-    sed -i\'\' "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord3.config
-    sed -i\'\' "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord4.config
+    sed -i "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord1.config
+    sed -i "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord2.config
+    sed -i "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord3.config
+    sed -i "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord4.config
 
     git submodule init
     git submodule update --recursive
