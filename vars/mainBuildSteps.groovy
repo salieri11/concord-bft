@@ -595,14 +595,12 @@ Boolean existsInArtifactory(String path){
 // the command succeeds.  If the command fails:
 //   - Raises an exception if failOnError is true.
 //   - Returns false if failOnError is false.
-// DO NOT USE THIS FOR CURL, as curl exits with 0
+// DO NOT USE THIS DIRECTLY FOR CURL, as curl exits with 0
 // for cases we would want to retry.
 Boolean retryCommand(command, failOnError){
   tries = 0
   maxTries = 10
   sleepTime = 10
-
-  assert (command.split(" ")[0] != "curl")
 
   while (tries < maxTries){
     tries += 1
