@@ -8,6 +8,8 @@
 #include <log4cplus/loggingmacros.h>
 #include <secp256k1.h>
 
+#include "evm.h"
+
 namespace com {
 namespace vmware {
 namespace concord {

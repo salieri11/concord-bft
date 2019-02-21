@@ -5,6 +5,8 @@
 #ifndef CONCMDFMT_HPP
 #define CONCMDFMT_HPP
 
+#include <string>
+
 void dehex0x(const std::string &str, std::string &bin /* out */);
 void hex0x(const std::string &in, std::string &out /* out */);
 
