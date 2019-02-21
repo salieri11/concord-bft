@@ -1,3 +1,7 @@
+.header .header-nav {
+  position: relative;
+}
+
 .header-nav:after, .header-nav:before, form.search:after {
   position: absolute;
   content: "";
