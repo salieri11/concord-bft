@@ -1,33 +1,24 @@
-/* **********************************************************************
- * Copyright 2018 VMware, Inc.  All rights reserved. VMware Confidential
- * *********************************************************************/
+/* **************************************************************************
+ * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
+ * *************************************************************************/
 package com.vmware.blockchain.deployment.commandline
 
 import com.vmware.blockchain.deployment.logging.Logger
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
+import com.vmware.blockchain.deployment.model.OrchestrationSite
+import com.vmware.blockchain.deployment.model.VmcOrchestrationSite
+import com.vmware.blockchain.deployment.model.core.BearerTokenCredential
+import com.vmware.blockchain.deployment.model.core.Credential
+import com.vmware.blockchain.deployment.model.core.Endpoint
+import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.vmc.Orchestrator
-import com.vmware.blockchain.model.core.BearerTokenCredential
-import com.vmware.blockchain.model.core.Credential
-import com.vmware.blockchain.model.core.Endpoint
-import com.vmware.blockchain.model.core.URI
-import com.vmware.blockchain.model.core.URISerializer
-import com.vmware.blockchain.model.core.UUID
-import com.vmware.blockchain.model.core.UUIDSerializer
-import com.vmware.blockchain.model.deployment.ConcordComponent
-import com.vmware.blockchain.model.deployment.ConcordComponentType
-import com.vmware.blockchain.model.deployment.ConcordModel
-import com.vmware.blockchain.model.deployment.OrchestrationSite
-import com.vmware.blockchain.model.deployment.VmcOrchestrationSite
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.context.SimpleModule
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.list
 import kotlin.random.Random
 
 /**
@@ -38,7 +29,7 @@ import kotlin.random.Random
  * now this is simply a scratch pad offering convenient location to tweak/test against live service
  * deployments, as well as an example of a deployment workflow.
  */
-fun main(args: Array<String>) {
+fun main() {
     val log: Logger = logger(Orchestrator::class)
     val token = BearerTokenCredential("change-me-token")
     val site = OrchestrationSite(

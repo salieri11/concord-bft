@@ -1,6 +1,6 @@
-/* **********************************************************************
- * Copyright 2019 VMware, Inc.  All rights reserved. VMware Confidential
- * *********************************************************************/
+/* **************************************************************************
+ * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
+ * *************************************************************************/
 package com.vmware.blockchain.deployment.vm
 
 import java.nio.charset.StandardCharsets

@@ -1,15 +1,15 @@
-/* **********************************************************************
- * Copyright 2018 VMware, Inc.  All rights reserved. VMware Confidential
- * *********************************************************************/
+/* **************************************************************************
+ * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
+ * *************************************************************************/
 package com.vmware.blockchain.deployment.http
 
 import com.vmware.blockchain.deployment.logging.Logger
 import com.vmware.blockchain.deployment.logging.error
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
+import com.vmware.blockchain.deployment.model.core.Credential
+import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.serialization.JsonSerializer
-import com.vmware.blockchain.model.core.Credential
-import com.vmware.blockchain.model.core.URI
 import kotlinx.coroutines.future.await
 import java.io.IOException
 import java.net.Authenticator
@@ -195,13 +195,14 @@ actual abstract class AccessTokenAwareHttpClient(
      * @return
      *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
      */
-    internal actual suspend inline fun <reified T> patch(
+    internal actual suspend inline fun <reified R, reified T> patch(
         path: String,
         contentType: String,
         headers: List<Pair<String, String>>,
-        body: Any?
+        body: R?
     ): HttpResponse<T?> {
         val bodyPublisher = body
+                // Note: Serializer may throw exception, which is not going to be caught here.
                 ?.let { serializer.toJson(body) }
                 ?.let { JdkHttpRequest.BodyPublishers.ofString(it) }
                 ?: JdkHttpRequest.BodyPublishers.noBody()
@@ -231,13 +232,14 @@ actual abstract class AccessTokenAwareHttpClient(
      * @return
      *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
      */
-    internal actual suspend inline fun <reified T> post(
+    internal actual suspend inline fun <reified R, reified T> post(
         path: String,
         contentType: String,
         headers: List<Pair<String, String>>,
-        body: Any?
+        body: R?
     ): HttpResponse<T?> {
         val bodyPublisher = body
+                // Note: Serializer may throw exception, which is not going to be caught here.
                 ?.let { serializer.toJson(body) }
                 ?.let { JdkHttpRequest.BodyPublishers.ofString(it) }
                 ?: JdkHttpRequest.BodyPublishers.noBody()

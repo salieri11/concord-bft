@@ -27,11 +27,11 @@
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
         <dependency>
             <groupId>com.vmware.blockchain</groupId>
-            <artifactId>persephone-deployer</artifactId>
+            <artifactId>persephone-api</artifactId>
         </dependency>
         <dependency>
             <groupId>com.vmware.blockchain</groupId>
-            <artifactId>persephone-model</artifactId>
+            <artifactId>persephone-deployer</artifactId>
         </dependency>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ~ External dependencies.                                    ~
@@ -49,6 +49,10 @@
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.jetbrains.kotlinx</groupId>
+                <artifactId>atomicfu-maven-plugin</artifactId>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

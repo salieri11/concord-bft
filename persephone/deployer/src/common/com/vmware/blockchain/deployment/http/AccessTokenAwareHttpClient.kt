@@ -1,10 +1,10 @@
-/* **********************************************************************
- * Copyright 2018 VMware, Inc.  All rights reserved. VMware Confidential
- * *********************************************************************/
+/* **************************************************************************
+ * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
+ * *************************************************************************/
 package com.vmware.blockchain.deployment.http
 
-import com.vmware.blockchain.model.core.Credential
-import com.vmware.blockchain.model.core.URI
+import com.vmware.blockchain.deployment.model.core.Credential
+import com.vmware.blockchain.deployment.model.core.URI
 
 /**
  * An abstract contract implementation of an HTTP client that is access-token aware.
@@ -79,11 +79,11 @@ expect abstract class AccessTokenAwareHttpClient {
      * @return
      *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
      */
-    internal suspend inline fun <reified T> patch(
+    internal suspend inline fun <reified R, reified T> patch(
         path: String,
         contentType: String,
         headers: List<Pair<String, String>>,
-        body: Any?
+        body: R?
     ): HttpResponse<T?>
 
     /**
@@ -102,11 +102,11 @@ expect abstract class AccessTokenAwareHttpClient {
      * @return
      *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
      */
-    internal suspend inline fun <reified T> post(
+    internal suspend inline fun <reified R, reified T> post(
         path: String,
         contentType: String,
         headers: List<Pair<String, String>>,
-        body: Any?
+        body: R?
     ): HttpResponse<T?>
 
     /**

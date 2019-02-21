@@ -1,15 +1,15 @@
-/* **********************************************************************
- * Copyright 2018 VMware, Inc.  All rights reserved. VMware Confidential
- * *********************************************************************/
+/* **************************************************************************
+ * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
+ * *************************************************************************/
 package com.vmware.blockchain.deployment.vmc
 
 import com.vmware.blockchain.deployment.http.AccessTokenAwareHttpClient
 import com.vmware.blockchain.deployment.http.HttpResponse
+import com.vmware.blockchain.deployment.model.core.BearerTokenCredential
+import com.vmware.blockchain.deployment.model.core.Credential
+import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.serialization.JsonSerializer
-import com.vmware.blockchain.model.core.BearerTokenCredential
-import com.vmware.blockchain.model.core.Credential
-import com.vmware.blockchain.model.core.URI
-import com.vmware.blockchain.model.vmc.VmcAuthenticationResponse
+import com.vmware.blockchain.deployment.model.vmc.VmcAuthenticationResponse
 
 /**
  * An HTTP REST client for issuing API to a VMware Cloud endpoint.

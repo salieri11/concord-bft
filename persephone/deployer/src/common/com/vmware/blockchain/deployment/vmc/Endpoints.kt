@@ -1,9 +1,9 @@
-/* **********************************************************************
- * Copyright 2018 VMware, Inc.  All rights reserved. VMware Confidential
- * *********************************************************************/
+/* **************************************************************************
+ * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
+ * *************************************************************************/
 package com.vmware.blockchain.deployment.vmc
 
-import com.vmware.blockchain.model.core.URI
+import com.vmware.blockchain.deployment.model.core.URI
 
 /**
  * Enumeration of URI endpoint with expected parameter names.

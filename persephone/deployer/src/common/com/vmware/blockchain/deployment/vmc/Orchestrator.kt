@@ -1,33 +1,33 @@
-/* **********************************************************************
- * Copyright 2018 VMware, Inc.  All rights reserved. VMware Confidential
- * *********************************************************************/
+/* **************************************************************************
+ * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
+ * *************************************************************************/
 package com.vmware.blockchain.deployment.vmc
 
 import com.vmware.blockchain.deployment.serialization.JsonSerializer
 import com.vmware.blockchain.deployment.vm.InitScript
-import com.vmware.blockchain.model.core.URI
-import com.vmware.blockchain.model.deployment.OrchestrationSite
-import com.vmware.blockchain.model.nsx.Segment
-import com.vmware.blockchain.model.nsx.SegmentSubnet
-import com.vmware.blockchain.model.sddc.GetDatastoreResponse
-import com.vmware.blockchain.model.sddc.GetFolderResponse
-import com.vmware.blockchain.model.sddc.GetNetworkResponse
-import com.vmware.blockchain.model.sddc.GetResourcePoolResponse
-import com.vmware.blockchain.model.sddc.LibraryItemDeployRequest
-import com.vmware.blockchain.model.sddc.LibraryItemDeployResponse
-import com.vmware.blockchain.model.sddc.LibraryItemDeploymentSpec
-import com.vmware.blockchain.model.sddc.LibraryItemDeploymentTarget
-import com.vmware.blockchain.model.sddc.NetworkMapping
-import com.vmware.blockchain.model.sddc.OvfParameter
-import com.vmware.blockchain.model.sddc.OvfParameterTypes
-import com.vmware.blockchain.model.sddc.OvfProperty
-import com.vmware.blockchain.model.vmc.AddressGroup
-import com.vmware.blockchain.model.vmc.DhcpConfig
-import com.vmware.blockchain.model.vmc.DhcpIpPool
-import com.vmware.blockchain.model.vmc.GetLogicalNetworkResponse
-import com.vmware.blockchain.model.vmc.LogicalNetwork
-import com.vmware.blockchain.model.vmc.Sddc
-import com.vmware.blockchain.model.vmc.Subnets
+import com.vmware.blockchain.deployment.model.core.URI
+import com.vmware.blockchain.deployment.model.OrchestrationSite
+import com.vmware.blockchain.deployment.model.nsx.Segment
+import com.vmware.blockchain.deployment.model.nsx.SegmentSubnet
+import com.vmware.blockchain.deployment.model.vsphere.GetDatastoreResponse
+import com.vmware.blockchain.deployment.model.vsphere.GetFolderResponse
+import com.vmware.blockchain.deployment.model.vsphere.GetNetworkResponse
+import com.vmware.blockchain.deployment.model.vsphere.GetResourcePoolResponse
+import com.vmware.blockchain.deployment.model.vsphere.LibraryItemDeployRequest
+import com.vmware.blockchain.deployment.model.vsphere.LibraryItemDeployResponse
+import com.vmware.blockchain.deployment.model.vsphere.LibraryItemDeploymentSpec
+import com.vmware.blockchain.deployment.model.vsphere.LibraryItemDeploymentTarget
+import com.vmware.blockchain.deployment.model.vsphere.NetworkMapping
+import com.vmware.blockchain.deployment.model.vsphere.OvfParameter
+import com.vmware.blockchain.deployment.model.vsphere.OvfParameterTypes
+import com.vmware.blockchain.deployment.model.vsphere.OvfProperty
+import com.vmware.blockchain.deployment.model.vmc.AddressGroup
+import com.vmware.blockchain.deployment.model.vmc.DhcpConfig
+import com.vmware.blockchain.deployment.model.vmc.DhcpIpPool
+import com.vmware.blockchain.deployment.model.vmc.GetLogicalNetworkResponse
+import com.vmware.blockchain.deployment.model.vmc.LogicalNetwork
+import com.vmware.blockchain.deployment.model.vmc.Sddc
+import com.vmware.blockchain.deployment.model.vmc.Subnets
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -302,7 +302,7 @@ class Orchestrator private constructor(
         val segment = Segment(subnets = listOf(segmentSubnet))
 
         val response = nsx
-                .patch<Segment>(
+                .patch<Segment, Segment>(
                         Endpoints.NSX_NETWORK_SEGMENT
                                 .interpolate(pathVariables = listOf(Pair("{tier1}", tier1),
                                                                     Pair("{segment}", name))),
@@ -474,7 +474,7 @@ class Orchestrator private constructor(
         )
 
         val response = vmc
-                .post<String>(
+                .post<LogicalNetwork, String>(
                     path = Endpoints.VMC_LOGICAL_NETWORKS
                             .interpolate(pathVariables = listOf(
                                     Pair("{org}", vmc.context.organization),
@@ -577,7 +577,7 @@ class Orchestrator private constructor(
         )
 
         val response = vSphere
-                .post<LibraryItemDeployResponse>(
+                .post<LibraryItemDeployRequest, LibraryItemDeployResponse>(
                     path = Endpoints.VSPHERE_OVF_LIBRARY_ITEM
                             .interpolate(
                                      pathVariables = listOf(Pair("{library_item}", libraryItem)),
