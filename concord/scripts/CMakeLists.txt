@@ -16,7 +16,7 @@ if(CLANG_FORMAT_EXE)
       COMMENT "Running ${FORMAT_CODE_SCRIPT}"
       COMMAND ${FORMAT_CODE_SCRIPT} ${CMAKE_CURRENT_SOURCE_DIR}/..)
   else()
-    message("Couldn't find clang-format")
+    message("Couldn't find format-code.sh")
   endif()
 else()
   message("Couldn't find clang-format")
