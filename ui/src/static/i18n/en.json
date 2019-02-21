@@ -381,10 +381,9 @@
     },
     "truffle": {
       "title": "How to connect with truffle",
-      "first": "Install and setup truffle.",
-      "second": "In your truffle project do an npm init, if you haven't done so already, and install web3@0.19.0",
+      "first": "Install and setup truffle v4, v5 is not yet supported.",
+      "second": "In your truffle project do an npm init, if you haven't done so already, and install web3@0.20.7",
       "third": "Edit your truffle.js file so that it is similar to below, make sure to change your password, your email is your username.",
-      "option": "You may need to modify the web3 basic auth like below, depending on your version of web3.",
       "fourth": "Now you should be able to deploy using truffle."
     }
   },
