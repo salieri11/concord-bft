@@ -56,19 +56,16 @@ class Sliver {
 
   // Delete new and delete, to force the Sliver to be allocated on the stack, so
   // that it is cleaned up properly via RAII scoping.
-  static void *operator new(size_t) = delete;
-  static void *operator new[] (size_t) = delete;
-  static void operator delete (void*) = delete;
+  static void* operator new(size_t) = delete;
+  static void* operator new[](size_t) = delete;
+  static void operator delete(void*) = delete;
   static void operator delete[](void*) = delete;
 };
 
 std::ostream& operator<<(std::ostream& s, const Blockchain::Sliver& sliver);
 
-bool copyToAndAdvance(uint8_t *_buf,
-                      size_t *_offset,
-                      size_t _maxOffset,
-                      uint8_t *_src,
-                      size_t _srcSize);
-}
+bool copyToAndAdvance(uint8_t* _buf, size_t* _offset, size_t _maxOffset,
+                      uint8_t* _src, size_t _srcSize);
+}  // namespace Blockchain
 
 #endif  // SLIVER_HPP

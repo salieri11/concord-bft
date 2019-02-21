@@ -4,6 +4,7 @@
 
 #include "status.hpp"
 
-std::ostream& Blockchain::operator<<(std::ostream& s, Blockchain::Status const& status) {
+std::ostream& Blockchain::operator<<(std::ostream& s,
+                                     Blockchain::Status const& status) {
   return status.operator<<(s);
 }

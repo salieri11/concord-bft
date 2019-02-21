@@ -21,16 +21,16 @@
  *  and inserted into a composite key.
  */
 
+#include <BlockchainDBAdapter.h>
+#include <unistd.h>
 #include <iostream>
 #include <map>
-#include <unistd.h>
-#include "RocksDBClient.h"
-#include <BlockchainDBAdapter.h>
+#include "../HexTools.h"
 #include "Comparators.h"
 #include "InMemoryDBClient.h"
-#include "../HexTools.h"
+#include "RocksDBClient.h"
 
-#define PATH_MAX 4096 //Max path length
+#define PATH_MAX 4096  // Max path length
 
 /**
  * Keys must be at least 12 bytes in length:
@@ -41,61 +41,55 @@
  * The type goes in the first bytes, and the block id goes in the last bytes,
  * with whatever key you want to generate in the middle.
  */
-#define KV_LEN 17 //4 bytes of type + 5 bytes of key + 8 bytes of block id
-#define MAX_KEYS 100000 //Max unique keys (99999 = 5 bytes)
-#define MAX_VALUE 100000 //Max unique values
-#define NUMBER_OF_TESTS 5000 //Total number of random operations
+#define KV_LEN 17  // 4 bytes of type + 5 bytes of key + 8 bytes of block id
+#define MAX_KEYS 100000       // Max unique keys (99999 = 5 bytes)
+#define MAX_VALUE 100000      // Max unique values
+#define NUMBER_OF_TESTS 5000  // Total number of random operations
 
 using namespace Blockchain;
 using namespace std;
 
-struct SimpleKey
-{
-   char key[KV_LEN];
+struct SimpleKey {
+  char key[KV_LEN];
 
-   /**@brief Custom comparator.
-    * Required for local map.
-    * @param rhs Other key to be compared.
-    * @return True if current key is smaller than other key.
-    */
-   bool operator<(const SimpleKey &rhs) const
-   {
-      Slice aKey = extractKeyFromKeyComposedWithBlockId(
-         Slice(this->key, KV_LEN));
-      Slice bKey = extractKeyFromKeyComposedWithBlockId(
-         Slice(rhs.key, KV_LEN));
-      int keyComp = aKey.compare(bKey);
-      return keyComp < 0;
-   }
+  /**@brief Custom comparator.
+   * Required for local map.
+   * @param rhs Other key to be compared.
+   * @return True if current key is smaller than other key.
+   */
+  bool operator<(const SimpleKey &rhs) const {
+    Slice aKey = extractKeyFromKeyComposedWithBlockId(Slice(this->key, KV_LEN));
+    Slice bKey = extractKeyFromKeyComposedWithBlockId(Slice(rhs.key, KV_LEN));
+    int keyComp = aKey.compare(bKey);
+    return keyComp < 0;
+  }
 };
 
-struct SimpleVal
-{
-   char val[KV_LEN];
+struct SimpleVal {
+  char val[KV_LEN];
 };
 
-static map<SimpleKey, SimpleVal> m_map; //Local map.
-static int writeCount; //Counts number of write requests handled.
-static int writeNewCount; //Counts number of new keys inserted.
-static int readCount; //Counts number of explicit read requests handled.
-static int deleteCount; //Counts number of delete requests handled.
-static int writeExistingCount; //Counts number of rewrite attempts.
-static int keyCount; //Counts Number of keys in database.
-static int testCount; //Counts number of tests executed.
+static map<SimpleKey, SimpleVal> m_map;  // Local map.
+static int writeCount;     // Counts number of write requests handled.
+static int writeNewCount;  // Counts number of new keys inserted.
+static int readCount;      // Counts number of explicit read requests handled.
+static int deleteCount;    // Counts number of delete requests handled.
+static int writeExistingCount;  // Counts number of rewrite attempts.
+static int keyCount;            // Counts Number of keys in database.
+static int testCount;           // Counts number of tests executed.
 
 /**
  * @brief Initializes static variables.
  */
-void initializeStaticVariables()
-{
-   testCount = 0;
-   keyCount = 0;
-   writeCount = 0;
-   writeNewCount = 0;
-   readCount = 0;
-   deleteCount = 0;
-   writeExistingCount = 0;
-   m_map.clear();
+void initializeStaticVariables() {
+  testCount = 0;
+  keyCount = 0;
+  writeCount = 0;
+  writeNewCount = 0;
+  readCount = 0;
+  deleteCount = 0;
+  writeExistingCount = 0;
+  m_map.clear();
 }
 
 /**
@@ -103,11 +97,10 @@ void initializeStaticVariables()
  *
  * @param it Iterator.
  */
-void moveIteratorToRandomKey(map<SimpleKey, SimpleVal>::iterator *it)
-{
-   //Move iterator to random test key.
-   *it = m_map.begin(); //Move iterator to start of local map.
-   advance(*it, (rand() % m_map.size())); //Advance iterator randomly.
+void moveIteratorToRandomKey(map<SimpleKey, SimpleVal>::iterator *it) {
+  // Move iterator to random test key.
+  *it = m_map.begin();  // Move iterator to start of local map.
+  advance(*it, (rand() % m_map.size()));  // Advance iterator randomly.
 }
 
 /**
@@ -117,25 +110,24 @@ void moveIteratorToRandomKey(map<SimpleKey, SimpleVal>::iterator *it)
  *
  * @param db Database handle.
  */
-void testGetOnEmptyDatabase(IDBClient *db)
-{
-   cout << "Testing get on an empty database" << endl;
+void testGetOnEmptyDatabase(IDBClient *db) {
+  cout << "Testing get on an empty database" << endl;
 
-   int randomKey = rand() % MAX_KEYS;
-   string key = to_string(randomKey);
-   SimpleKey randomKeyObj;
-   strcpy(randomKeyObj.key, key.c_str());
+  int randomKey = rand() % MAX_KEYS;
+  string key = to_string(randomKey);
+  SimpleKey randomKeyObj;
+  strcpy(randomKeyObj.key, key.c_str());
 
-   Slice randomKeySlice = Slice(randomKeyObj.key, sizeof(randomKey));
-   Slice *responseSlice = new Slice();
+  Slice randomKeySlice = Slice(randomKeyObj.key, sizeof(randomKey));
+  Slice *responseSlice = new Slice();
 
-   cout << "Trying to read " << sliceToString(randomKeySlice) << endl;
+  cout << "Trying to read " << sliceToString(randomKeySlice) << endl;
 
-   //Read from database with this key.
-   Status s2 = db->get(randomKeySlice, *responseSlice);
-   assert(s2.IsNotFound());
+  // Read from database with this key.
+  Status s2 = db->get(randomKeySlice, *responseSlice);
+  assert(s2.IsNotFound());
 
-   cout << "Key not found. Test passed!" << endl;
+  cout << "Key not found. Test passed!" << endl;
 }
 
 /**
@@ -147,48 +139,47 @@ void testGetOnEmptyDatabase(IDBClient *db)
  * @param it Iterator.
  * @param db Database handle.
  */
-void testGet(map<SimpleKey, SimpleVal>::iterator &it, IDBClient *db)
-{
-   cout << "Test read" << endl;
-   readCount++;
-   int size = m_map.size();
+void testGet(map<SimpleKey, SimpleVal>::iterator &it, IDBClient *db) {
+  cout << "Test read" << endl;
+  readCount++;
+  int size = m_map.size();
 
-   if (size == 0) {
-      assert(keyCount == 0);
-      cout << "Nothing written yet" << endl;
-      return;
-   }
+  if (size == 0) {
+    assert(keyCount == 0);
+    cout << "Nothing written yet" << endl;
+    return;
+  }
 
-   //Move the iterator to a random key in the local map.
-   moveIteratorToRandomKey(&it);
+  // Move the iterator to a random key in the local map.
+  moveIteratorToRandomKey(&it);
 
-   SimpleKey randomKey = it->first;
-   SimpleVal expectedVal = it->second;
+  SimpleKey randomKey = it->first;
+  SimpleVal expectedVal = it->second;
 
-   Slice randomKeySlice = Slice(randomKey.key, sizeof(randomKey));
-   Slice *responseSlice = new Slice();
+  Slice randomKeySlice = Slice(randomKey.key, sizeof(randomKey));
+  Slice *responseSlice = new Slice();
 
-   cout << "Trying to read " << sliceToString(randomKeySlice) << endl;
+  cout << "Trying to read " << sliceToString(randomKeySlice) << endl;
 
-   //Read from database with this key.
-   Status s2 = db->get(randomKeySlice, *responseSlice);
-   assert(s2.ok());
+  // Read from database with this key.
+  Status s2 = db->get(randomKeySlice, *responseSlice);
+  assert(s2.ok());
 
-   //Check whether the response slice is of the correct size
-   assert(responseSlice->size() == sizeof(SimpleVal));
+  // Check whether the response slice is of the correct size
+  assert(responseSlice->size() == sizeof(SimpleVal));
 
-   //Compare the values
-   if (memcmp(responseSlice->data(), expectedVal.val,
-              responseSlice->size()) != 0) {
-      cout << "Data not correct. Expected: " <<
-         sliceToString(Slice(expectedVal.val, KV_LEN)) << " Actual: " <<
-         sliceToString(*responseSlice) << endl;
-   }
-   assert(memcmp(responseSlice->data(), expectedVal.val,
-                 responseSlice->size()) == 0);
+  // Compare the values
+  if (memcmp(responseSlice->data(), expectedVal.val, responseSlice->size()) !=
+      0) {
+    cout << "Data not correct. Expected: "
+         << sliceToString(Slice(expectedVal.val, KV_LEN))
+         << " Actual: " << sliceToString(*responseSlice) << endl;
+  }
+  assert(memcmp(responseSlice->data(), expectedVal.val,
+                responseSlice->size()) == 0);
 
-   cout << "Data read correctly : " << sliceToString(*responseSlice) << endl;
-   delete (responseSlice);
+  cout << "Data read correctly : " << sliceToString(*responseSlice) << endl;
+  delete (responseSlice);
 }
 
 /**
@@ -199,71 +190,70 @@ void testGet(map<SimpleKey, SimpleVal>::iterator &it, IDBClient *db)
  *
  * @param db Database handle.
  */
-void testPut(IDBClient *db)
-{
-   cout << "Test write" << endl;
-   //Generate a random key and value to be inserted.
-   int randomWriteKey = rand() % MAX_KEYS;
-   int randomWriteValue = rand() % MAX_VALUE;
-   SimpleKey randomWriteKeyObj;
-   SimpleVal randomWriteValObj;
+void testPut(IDBClient *db) {
+  cout << "Test write" << endl;
+  // Generate a random key and value to be inserted.
+  int randomWriteKey = rand() % MAX_KEYS;
+  int randomWriteValue = rand() % MAX_VALUE;
+  SimpleKey randomWriteKeyObj;
+  SimpleVal randomWriteValObj;
 
-   memset(randomWriteKeyObj.key, 0, KV_LEN);
-   EDBKeyType _type = EDBKeyType::E_DB_KEY_TYPE_KEY;
-   memcpy(randomWriteKeyObj.key, &_type, sizeof(EDBKeyType));
-   string key = to_string(randomWriteKey);
-   strcpy(randomWriteKeyObj.key+sizeof(EDBKeyType), key.c_str());
-   //leave blockID at 0
+  memset(randomWriteKeyObj.key, 0, KV_LEN);
+  EDBKeyType _type = EDBKeyType::E_DB_KEY_TYPE_KEY;
+  memcpy(randomWriteKeyObj.key, &_type, sizeof(EDBKeyType));
+  string key = to_string(randomWriteKey);
+  strcpy(randomWriteKeyObj.key + sizeof(EDBKeyType), key.c_str());
+  // leave blockID at 0
 
-   memset(randomWriteValObj.val, 0, KV_LEN);
-   string value = to_string(randomWriteValue);
-   strcpy(randomWriteValObj.val, value.c_str());
+  memset(randomWriteValObj.val, 0, KV_LEN);
+  string value = to_string(randomWriteValue);
+  strcpy(randomWriteValObj.val, value.c_str());
 
-   Slice keySlice(randomWriteKeyObj.key, sizeof(SimpleKey));
-   Slice valueSlice(randomWriteValObj.val, sizeof(SimpleVal));
+  Slice keySlice(randomWriteKeyObj.key, sizeof(SimpleKey));
+  Slice valueSlice(randomWriteValObj.val, sizeof(SimpleVal));
 
-   cout << "Writing " << sliceToString(keySlice) << " : " <<
-      sliceToString(valueSlice) << endl;
+  cout << "Writing " << sliceToString(keySlice) << " : "
+       << sliceToString(valueSlice) << endl;
 
-   //If key already exists.
-   if (m_map.find(randomWriteKeyObj) != m_map.end()) {
-      /*
-       * Note : Test for puts to existing keys handled in the function
-       * testPutExistingKey
-       */
-      cout << "Key already exists" << endl;
-      testCount--;
-   } else {
-      writeCount++;
+  // If key already exists.
+  if (m_map.find(randomWriteKeyObj) != m_map.end()) {
+    /*
+     * Note : Test for puts to existing keys handled in the function
+     * testPutExistingKey
+     */
+    cout << "Key already exists" << endl;
+    testCount--;
+  } else {
+    writeCount++;
 
-      //Write to database.
-      Status s1 = db->put(keySlice, valueSlice);
+    // Write to database.
+    Status s1 = db->put(keySlice, valueSlice);
 
-      assert(s1.ok());
+    assert(s1.ok());
 
-      //Add new key value pair to local map.
-      m_map.insert(pair<SimpleKey, SimpleVal>(randomWriteKeyObj,
-                                              randomWriteValObj));
-      cout << "Data written" << endl;
-      keyCount++;
-      writeNewCount++;
+    // Add new key value pair to local map.
+    m_map.insert(
+        pair<SimpleKey, SimpleVal>(randomWriteKeyObj, randomWriteValObj));
+    cout << "Data written" << endl;
+    keyCount++;
+    writeNewCount++;
 
-      //Check the write
-      Slice *responseSlice = new Slice();
-      Status s2 = db->get(Slice(randomWriteKeyObj.key, sizeof(SimpleKey)),
-                          *responseSlice);
-      assert(s2.ok());
+    // Check the write
+    Slice *responseSlice = new Slice();
+    Status s2 = db->get(Slice(randomWriteKeyObj.key, sizeof(SimpleKey)),
+                        *responseSlice);
+    assert(s2.ok());
 
-      //Check whether the response slice is of the correct size
-      assert(responseSlice->size() == sizeof(SimpleVal));
+    // Check whether the response slice is of the correct size
+    assert(responseSlice->size() == sizeof(SimpleVal));
 
-      //Compare written value with randomly generated value
-      assert(memcmp(responseSlice->data(), randomWriteValObj.val,
-                    responseSlice->size()) == 0);
+    // Compare written value with randomly generated value
+    assert(memcmp(responseSlice->data(), randomWriteValObj.val,
+                  responseSlice->size()) == 0);
 
-      cout << "Data written correctly" << endl;
-      delete (responseSlice);
-   }
+    cout << "Data written correctly" << endl;
+    delete (responseSlice);
+  }
 }
 
 /**
@@ -275,56 +265,55 @@ void testPut(IDBClient *db)
  * @param it Iterator.
  * @param db Database handle.
  */
-void testPutExistingKey(map<SimpleKey, SimpleVal>::iterator &it, IDBClient *db)
-{
-   cout << "Test write with existing key" << endl;
-   writeCount++;
-   writeExistingCount++;
+void testPutExistingKey(map<SimpleKey, SimpleVal>::iterator &it,
+                        IDBClient *db) {
+  cout << "Test write with existing key" << endl;
+  writeCount++;
+  writeExistingCount++;
 
-   int size = m_map.size();
-   if (size == 0) {
-      assert(keyCount == 0);
-      cout << "Nothing written yet" << endl;
-      return;
-   }
+  int size = m_map.size();
+  if (size == 0) {
+    assert(keyCount == 0);
+    cout << "Nothing written yet" << endl;
+    return;
+  }
 
-   //Move the iterator to a random test key in the local map.
-   moveIteratorToRandomKey(&it);
+  // Move the iterator to a random test key in the local map.
+  moveIteratorToRandomKey(&it);
 
-   SimpleKey randomExistingKey = it->first;
-   int randomValue = rand() % MAX_VALUE;
-   string value = to_string(randomValue);
-   SimpleVal randomValObj;
-   strcpy(randomValObj.val, value.c_str());
-   Slice keySlice(randomExistingKey.key, sizeof(SimpleKey));
+  SimpleKey randomExistingKey = it->first;
+  int randomValue = rand() % MAX_VALUE;
+  string value = to_string(randomValue);
+  SimpleVal randomValObj;
+  strcpy(randomValObj.val, value.c_str());
+  Slice keySlice(randomExistingKey.key, sizeof(SimpleKey));
 
-   cout << "Attempting to rewrite " << sliceToString(keySlice) << " with "
-        << randomValue << endl;
+  cout << "Attempting to rewrite " << sliceToString(keySlice) << " with "
+       << randomValue << endl;
 
-   //Attempt to write to database with the same key.
-   Status s3 = db->put(keySlice,
-                       (Slice(randomValObj.val, sizeof(SimpleVal))));
-   assert(s3.ok());
+  // Attempt to write to database with the same key.
+  Status s3 = db->put(keySlice, (Slice(randomValObj.val, sizeof(SimpleVal))));
+  assert(s3.ok());
 
-   Slice *responseSlice = new Slice();
+  Slice *responseSlice = new Slice();
 
-   //Check if new value is correctly updated in the database.
-   Status s4 = db->get(Slice(randomExistingKey.key, sizeof(SimpleKey)),
-                       *responseSlice);
-   assert(s4.ok());
+  // Check if new value is correctly updated in the database.
+  Status s4 =
+      db->get(Slice(randomExistingKey.key, sizeof(SimpleKey)), *responseSlice);
+  assert(s4.ok());
 
-   //Check whether the response slice is of the correct size
-   assert(responseSlice->size() == sizeof(SimpleVal));
+  // Check whether the response slice is of the correct size
+  assert(responseSlice->size() == sizeof(SimpleVal));
 
-   //Compare written value with randomly generated value.
-   assert(memcmp(responseSlice->data(), randomValObj.val,
-                 responseSlice->size()) == 0);
+  // Compare written value with randomly generated value.
+  assert(memcmp(responseSlice->data(), randomValObj.val,
+                responseSlice->size()) == 0);
 
-   //Update local map.
-   it->second = randomValObj;
-   cout << "Write with existing key handled properly." << endl;
+  // Update local map.
+  it->second = randomValObj;
+  cout << "Write with existing key handled properly." << endl;
 
-   delete (responseSlice);
+  delete (responseSlice);
 }
 
 /**
@@ -336,42 +325,41 @@ void testPutExistingKey(map<SimpleKey, SimpleVal>::iterator &it, IDBClient *db)
  * @param it Iterator.
  * @param db Database handle.
  */
-void testDel(map<SimpleKey, SimpleVal>::iterator &it, IDBClient *db)
-{
-   //Test deletes
-   cout << "Test delete" << endl;
-   deleteCount++;
-   int size = m_map.size();
+void testDel(map<SimpleKey, SimpleVal>::iterator &it, IDBClient *db) {
+  // Test deletes
+  cout << "Test delete" << endl;
+  deleteCount++;
+  int size = m_map.size();
 
-   if (size == 0) {
-      assert(keyCount == 0);
-      cout << "Nothing written yet" << endl;
-      return;
-   }
+  if (size == 0) {
+    assert(keyCount == 0);
+    cout << "Nothing written yet" << endl;
+    return;
+  }
 
-   //Move the iterator to a random test key in the local map.
-   moveIteratorToRandomKey(&it);
+  // Move the iterator to a random test key in the local map.
+  moveIteratorToRandomKey(&it);
 
-   SimpleKey randomKey = it->first;
-   Slice randomKeySlice = Slice(randomKey.key, sizeof(randomKey));
+  SimpleKey randomKey = it->first;
+  Slice randomKeySlice = Slice(randomKey.key, sizeof(randomKey));
 
-   cout << "Trying to delete " << sliceToString(randomKeySlice) << endl;
+  cout << "Trying to delete " << sliceToString(randomKeySlice) << endl;
 
-   //Delete this key from the database.
-   Status s3 = db->del(randomKeySlice);
-   assert(s3.ok());
+  // Delete this key from the database.
+  Status s3 = db->del(randomKeySlice);
+  assert(s3.ok());
 
-   //Try reading this key again to check whether it has been deleted correctly.
-   Slice *responseSlice = new Slice();
-   Status s4 = db->get(randomKeySlice, *responseSlice);
-   assert(!s4.ok());
+  // Try reading this key again to check whether it has been deleted correctly.
+  Slice *responseSlice = new Slice();
+  Status s4 = db->get(randomKeySlice, *responseSlice);
+  assert(!s4.ok());
 
-   //Remove entry from local map.
-   m_map.erase(it);
-   keyCount--;
-   cout << "Data deleted correctly" << endl;
+  // Remove entry from local map.
+  m_map.erase(it);
+  keyCount--;
+  cout << "Data deleted correctly" << endl;
 
-   delete (responseSlice);
+  delete (responseSlice);
 }
 
 /**
@@ -384,115 +372,124 @@ void testDel(map<SimpleKey, SimpleVal>::iterator &it, IDBClient *db)
  * @param db_path Directory path where database is created. (Needed only for
  *                RocksDB)
  */
-void testDB(char *db_path)
-{
-   bool isRocksDB = false;
-   IDBClient *db = NULL;
-   string databaseName;
-   RocksKeyComparator *cmp = NULL;
+void testDB(char *db_path) {
+  bool isRocksDB = false;
+  IDBClient *db = NULL;
+  string databaseName;
+  RocksKeyComparator *cmp = NULL;
 
-   if (db_path != NULL) {
-      isRocksDB = true;
-   }
+  if (db_path != NULL) {
+    isRocksDB = true;
+  }
 
-   if (isRocksDB) {
-      cout << "Creating RocksDB database" << endl;
-      cmp = new RocksKeyComparator();
-      db = new RocksDBClient(db_path, cmp);
-      databaseName = "RocksDB";
-   } else {
-      cout << "Creating In Memory Database" << endl;
-      db = new InMemoryDBClient((IDBClient::KeyComparator) &InMemKeyComp);
-      databaseName = "InMemory";
-   }
+  if (isRocksDB) {
+    cout << "Creating RocksDB database" << endl;
+    cmp = new RocksKeyComparator();
+    db = new RocksDBClient(db_path, cmp);
+    databaseName = "RocksDB";
+  } else {
+    cout << "Creating In Memory Database" << endl;
+    db = new InMemoryDBClient((IDBClient::KeyComparator)&InMemKeyComp);
+    databaseName = "InMemory";
+  }
 
-   //Test the init method.
-   Status s1 = db->init();
-   assert(s1.ok());
-   cout << databaseName << " Database created successfully" << endl;
-   cout << endl;
+  // Test the init method.
+  Status s1 = db->init();
+  assert(s1.ok());
+  cout << databaseName << " Database created successfully" << endl;
+  cout << endl;
 
-   testGetOnEmptyDatabase(db);
+  testGetOnEmptyDatabase(db);
 
-   initializeStaticVariables();
+  initializeStaticVariables();
 
-   auto it = m_map.begin();
+  auto it = m_map.begin();
 
-   cout << "*******" << databaseName << " : Testing random reads and "
-      "writes*******" << endl;
-   cout << endl;
+  cout << "*******" << databaseName
+       << " : Testing random reads and "
+          "writes*******"
+       << endl;
+  cout << endl;
 
-   while (testCount < NUMBER_OF_TESTS) {
-      int test = rand() % 4;
+  while (testCount < NUMBER_OF_TESTS) {
+    int test = rand() % 4;
 
-      if (test == 0) {
-         //Test reads
-         testGet(it, db);
-      } else if (test == 1) {
-         //Test writes
-         testPut(db);
-      } else if (test == 2) {
-         //Test deletes
-         testDel(it, db);
-      } else {
-         //Test writing with existing key
-         testPutExistingKey(it, db);
-      }
-      testCount++;
-      cout << databaseName << " : Test no. " << testCount << " successful"
-           << endl;
-      cout << endl;
-   }
+    if (test == 0) {
+      // Test reads
+      testGet(it, db);
+    } else if (test == 1) {
+      // Test writes
+      testPut(db);
+    } else if (test == 2) {
+      // Test deletes
+      testDel(it, db);
+    } else {
+      // Test writing with existing key
+      testPutExistingKey(it, db);
+    }
+    testCount++;
+    cout << databaseName << " : Test no. " << testCount << " successful"
+         << endl;
+    cout << endl;
+  }
 
-   cout << "*************" << databaseName << " : Random reads and writes "
-      "successful*****************" << endl;
-   cout << endl;
+  cout << "*************" << databaseName
+       << " : Random reads and writes "
+          "successful*****************"
+       << endl;
+  cout << endl;
 
-   cout << "*******************" << databaseName << " : Testing null "
-      "read*******************" << endl;
-   Slice *nullReadKeySlice = new Slice();
-   Slice *nullReadValueSlice = new Slice();
-   Status nullReadStatus = db->get(*nullReadKeySlice, *nullReadValueSlice);
+  cout << "*******************" << databaseName
+       << " : Testing null "
+          "read*******************"
+       << endl;
+  Slice *nullReadKeySlice = new Slice();
+  Slice *nullReadValueSlice = new Slice();
+  Status nullReadStatus = db->get(*nullReadKeySlice, *nullReadValueSlice);
 
-   assert(!nullReadStatus.ok());
-   cout << "Success!" << endl;
-   cout << endl;
+  assert(!nullReadStatus.ok());
+  cout << "Success!" << endl;
+  cout << endl;
 
-   cout << "*******************" << databaseName << " : Testing null "
-      "write*******************" << endl;
-   Slice *nullWriteKeySlice = new Slice();
-   Slice *nullWriteValueSlice = new Slice();
-   Status nullWriteStatus = db->put(*nullWriteKeySlice, *nullWriteValueSlice);
+  cout << "*******************" << databaseName
+       << " : Testing null "
+          "write*******************"
+       << endl;
+  Slice *nullWriteKeySlice = new Slice();
+  Slice *nullWriteValueSlice = new Slice();
+  Status nullWriteStatus = db->put(*nullWriteKeySlice, *nullWriteValueSlice);
 
-   //TODO : Null reads return !Status.Ok() but null writes don't.
-   assert(nullWriteStatus.ok());
-   cout << "Success!" << endl;
-   cout << endl;
+  // TODO : Null reads return !Status.Ok() but null writes don't.
+  assert(nullWriteStatus.ok());
+  cout << "Success!" << endl;
+  cout << endl;
 
-   //Test the close method.
-   cout << "Closing " << databaseName << " database" << endl;
-   cout << endl;
-   Status s10 = db->close();
-   assert(s10.ok());
+  // Test the close method.
+  cout << "Closing " << databaseName << " database" << endl;
+  cout << endl;
+  Status s10 = db->close();
+  assert(s10.ok());
 
-   cout << "**********ALL " << databaseName << " TESTS PASSED "
-      "SUCCESSFULLY!*********" << endl;
-   cout << "Total no. of write requests : " << writeCount << endl;
-   cout << "Total no. of (explicit) read requests : " << readCount << endl;
-   cout << "Total no. of delete requests : " << deleteCount << endl;
-   cout << "Total no. of new keys inserted : " << writeNewCount << endl;
-   cout << "Total no. of rewrite requests : " << writeExistingCount << endl;
-   cout << endl;
+  cout << "**********ALL " << databaseName
+       << " TESTS PASSED "
+          "SUCCESSFULLY!*********"
+       << endl;
+  cout << "Total no. of write requests : " << writeCount << endl;
+  cout << "Total no. of (explicit) read requests : " << readCount << endl;
+  cout << "Total no. of delete requests : " << deleteCount << endl;
+  cout << "Total no. of new keys inserted : " << writeNewCount << endl;
+  cout << "Total no. of rewrite requests : " << writeExistingCount << endl;
+  cout << endl;
 
-   //Deallocate memory
-   if (isRocksDB) {
-      delete (cmp);
-   }
-   delete (db);
-   delete (nullReadKeySlice);
-   delete (nullReadValueSlice);
-   delete (nullWriteKeySlice);
-   delete (nullWriteValueSlice);
+  // Deallocate memory
+  if (isRocksDB) {
+    delete (cmp);
+  }
+  delete (db);
+  delete (nullReadKeySlice);
+  delete (nullReadValueSlice);
+  delete (nullWriteKeySlice);
+  delete (nullWriteValueSlice);
 }
 
 /**
@@ -506,60 +503,57 @@ void testDB(char *db_path)
  * @param argv Command line argument.
  * @return Status.
  */
-int main(int argc, char **argv)
-{
-   int opt;
-   char db_path[PATH_MAX];
-   time_t timeVal = time(NULL);
+int main(int argc, char **argv) {
+  int opt;
+  char db_path[PATH_MAX];
+  time_t timeVal = time(NULL);
 
-   // 1 : Only RocksDB; 2 : Only InMemory; 3 : Both
-   int test_mode;
+  // 1 : Only RocksDB; 2 : Only InMemory; 3 : Both
+  int test_mode;
 
-   while ((opt = getopt(argc, argv, "d:m:s:")) != EOF) {
-      switch (opt) {
+  while ((opt = getopt(argc, argv, "d:m:s:")) != EOF) {
+    switch (opt) {
       case 'd':
-         if (optarg)
-            strncpy(db_path, optarg, PATH_MAX);
-         break;
+        if (optarg) strncpy(db_path, optarg, PATH_MAX);
+        break;
       case 'm':
-         if (optarg)
-            test_mode = stoi(optarg);
-         break;
+        if (optarg) test_mode = stoi(optarg);
+        break;
       case 's':
-         if (optarg)
-            timeVal = stoi(optarg);
-         break;
+        if (optarg) timeVal = stoi(optarg);
+        break;
       default:
-         fprintf(stderr, "%s [-d db_path] [-m test_mode] [-s seed]\n", argv[0]);
-         exit(-1);
-      }
-   }
+        fprintf(stderr, "%s [-d db_path] [-m test_mode] [-s seed]\n", argv[0]);
+        exit(-1);
+    }
+  }
 
-   if (test_mode < 1 || test_mode > 3) {
-      cout << "Incorrect test mode (-m) selected. Please choose 1 for "
-         "RocksDB, 2 for InMemoryDB or 3 for both" << endl;
-      exit(-1);
-   }
+  if (test_mode < 1 || test_mode > 3) {
+    cout << "Incorrect test mode (-m) selected. Please choose 1 for "
+            "RocksDB, 2 for InMemoryDB or 3 for both"
+         << endl;
+    exit(-1);
+  }
 
-   //Seed pseudo random number generator.
-   srand(timeVal);
+  // Seed pseudo random number generator.
+  srand(timeVal);
 
-   cout << "Note : Random number generator was seeded with " << timeVal << endl;
-   cout << endl;
+  cout << "Note : Random number generator was seeded with " << timeVal << endl;
+  cout << endl;
 
-   if (test_mode == 1) {
-      testDB(db_path);
-   } else if (test_mode == 2) {
-      testDB(NULL);
-   } else {
-      testDB(db_path);
-      testDB(NULL);
-      cout << "ALL ROCKSDB AND INMEMORYDB TESTS PASSED SUCCESSFULLY!" << endl;
-      cout << endl;
-   }
+  if (test_mode == 1) {
+    testDB(db_path);
+  } else if (test_mode == 2) {
+    testDB(NULL);
+  } else {
+    testDB(db_path);
+    testDB(NULL);
+    cout << "ALL ROCKSDB AND INMEMORYDB TESTS PASSED SUCCESSFULLY!" << endl;
+    cout << endl;
+  }
 
-   cout << "ALL TESTS PASSED SUCCESSFULLY!" << endl;
-   cout << "Note : Random number generator was seeded with " << timeVal << endl;
-   cout << endl;
-   return 0;
+  cout << "ALL TESTS PASSED SUCCESSFULLY!" << endl;
+  cout << "Note : Random number generator was seeded with " << timeVal << endl;
+  cout << endl;
+  return 0;
 }

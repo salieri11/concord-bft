@@ -13,26 +13,23 @@ namespace vmware {
 namespace concord {
 
 class EthSign {
-public:
-   EthSign();
-   ~EthSign();
+ public:
+  EthSign();
+  ~EthSign();
 
-   std::vector<uint8_t> sign(const evm_uint256be hash,
-                             const evm_uint256be key) const;
+  std::vector<uint8_t> sign(const evm_uint256be hash,
+                            const evm_uint256be key) const;
 
-   evm_address ecrecover(const evm_uint256be hash,
-                         const uint8_t version,
-                         const evm_uint256be r,
-                         const evm_uint256be s) const;
+  evm_address ecrecover(const evm_uint256be hash, const uint8_t version,
+                        const evm_uint256be r, const evm_uint256be s) const;
 
-private:
-   log4cplus::Logger logger;
-   secp256k1_context *ctx;
+ private:
+  log4cplus::Logger logger;
+  secp256k1_context *ctx;
 };
 
-}
-}
-}
-
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com
 
 #endif

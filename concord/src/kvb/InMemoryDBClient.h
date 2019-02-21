@@ -22,77 +22,62 @@
 
 #include <log4cplus/loggingmacros.h>
 
-#include "DatabaseInterface.h"
 #include <map>
+#include "DatabaseInterface.h"
 
-namespace Blockchain
-{
-   class InMemoryDBClient;
+namespace Blockchain {
+class InMemoryDBClient;
 
-   typedef std::map<Sliver, Sliver, IDBClient::KeyComparator> TKVStore;
+typedef std::map<Sliver, Sliver, IDBClient::KeyComparator> TKVStore;
 
-   class InMemoryDBClientIterator: public IDBClient::IDBClientIterator
-   {
-      friend class InMemoryDBClient;
+class InMemoryDBClientIterator : public IDBClient::IDBClientIterator {
+  friend class InMemoryDBClient;
 
-   public:
-   InMemoryDBClientIterator(InMemoryDBClient *_parentClient) :
-      logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")),
-         m_parentClient(_parentClient) {}
-      virtual ~InMemoryDBClientIterator() { }
+ public:
+  InMemoryDBClientIterator(InMemoryDBClient *_parentClient)
+      : logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")),
+        m_parentClient(_parentClient) {}
+  virtual ~InMemoryDBClientIterator() {}
 
-      // Inherited via IDBClientIterator
-      virtual KeyValuePair first() override;
-      virtual KeyValuePair seekAtLeast(Sliver _searchKey) override;
-      virtual KeyValuePair previous() override;
-      virtual KeyValuePair next() override;
-      virtual KeyValuePair getCurrent() override;
-      virtual bool isEnd() override;
-      virtual Status getStatus() override;
+  // Inherited via IDBClientIterator
+  virtual KeyValuePair first() override;
+  virtual KeyValuePair seekAtLeast(Sliver _searchKey) override;
+  virtual KeyValuePair previous() override;
+  virtual KeyValuePair next() override;
+  virtual KeyValuePair getCurrent() override;
+  virtual bool isEnd() override;
+  virtual Status getStatus() override;
 
-   private:
-      log4cplus::Logger logger;
+ private:
+  log4cplus::Logger logger;
 
-      // Pointer to the InMemoryDBClient.
-      InMemoryDBClient *m_parentClient;
+  // Pointer to the InMemoryDBClient.
+  InMemoryDBClient *m_parentClient;
 
-      // Current iterator inside the map.
-      TKVStore::const_iterator m_current;
-   };
+  // Current iterator inside the map.
+  TKVStore::const_iterator m_current;
+};
 
-   class InMemoryDBClient: public IDBClient
-   {
-   public:
-      InMemoryDBClient(KeyComparator comp)
-      {
-         setComparator(comp);
-      }
+class InMemoryDBClient : public IDBClient {
+ public:
+  InMemoryDBClient(KeyComparator comp) { setComparator(comp); }
 
-      virtual Status init(bool readOnly) override;
-      virtual Status get(Sliver _key, OUT Sliver &_outValue) const override;
-      virtual IDBClientIterator *getIterator() const override;
-      virtual Status freeIterator(IDBClientIterator *_iter) const override;
-      virtual Status put(Sliver _key, Sliver _value) override;
-      virtual Status close() override
-      {
-         return Status::OK();
-      };
-      virtual Status del(Sliver _key) override;
-      virtual void monitor() const override {};
+  virtual Status init(bool readOnly) override;
+  virtual Status get(Sliver _key, OUT Sliver &_outValue) const override;
+  virtual IDBClientIterator *getIterator() const override;
+  virtual Status freeIterator(IDBClientIterator *_iter) const override;
+  virtual Status put(Sliver _key, Sliver _value) override;
+  virtual Status close() override { return Status::OK(); };
+  virtual Status del(Sliver _key) override;
+  virtual void monitor() const override{};
 
-      TKVStore& getMap()
-      {
-         return map;
-      }
-      void setComparator(KeyComparator comp)
-      {
-         map = TKVStore(comp);
-      }
+  TKVStore &getMap() { return map; }
+  void setComparator(KeyComparator comp) { map = TKVStore(comp); }
 
-   private:
-      // map that stores the in memory database.
-      TKVStore map;
-   };
-}
+ private:
+  // map that stores the in memory database.
+  TKVStore map;
+};
+}  // namespace Blockchain
 
 #endif

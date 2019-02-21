@@ -22,172 +22,159 @@
 // ensure that the lifetime of the builder is at least as long as the lifetime
 // of the encoded vector.
 
-#include <algorithm>
-#include <assert.h>
-#include <memory>
-#include <vector>
-#include <string>
 #include "rlp.hpp"
+#include <assert.h>
+#include <algorithm>
+#include <memory>
+#include <string>
+#include <vector>
 
 void com::vmware::concord::RLPBuilder::add_size(size_t size,
-                                               uint8_t type_byte_short,
-                                               uint8_t type_byte_long)
-{
-   if (size < 56) {
-      buffer.push_back(type_byte_short + size);
-   } else {
-      // Long lists require a byte indicating the length of the length
-      uint8_t field_length_count = 0;
-      do {
-         ++field_length_count;
-         buffer.push_back(size & 0xff);
-         size >>= 8;
-      } while (size > 0);
-      buffer.push_back(type_byte_long + field_length_count);
-   }
+                                                uint8_t type_byte_short,
+                                                uint8_t type_byte_long) {
+  if (size < 56) {
+    buffer.push_back(type_byte_short + size);
+  } else {
+    // Long lists require a byte indicating the length of the length
+    uint8_t field_length_count = 0;
+    do {
+      ++field_length_count;
+      buffer.push_back(size & 0xff);
+      size >>= 8;
+    } while (size > 0);
+    buffer.push_back(type_byte_long + field_length_count);
+  }
 }
 
 void com::vmware::concord::RLPBuilder::add_string_size(size_t size) {
-   add_size(size, 0x80, 0xb7);
+  add_size(size, 0x80, 0xb7);
 }
 
 void com::vmware::concord::RLPBuilder::add_list_size(size_t size) {
-   add_size(size, 0xc0, 0xf7);
+  add_size(size, 0xc0, 0xf7);
 }
 
-void com::vmware::concord::RLPBuilder::add(const std::vector<uint8_t> &vec)
-{
-   assert(!finished);
-   std::reverse_copy(vec.begin(), vec.end(), std::back_inserter(buffer));
-   add_string_size(vec.size());
+void com::vmware::concord::RLPBuilder::add(const std::vector<uint8_t> &vec) {
+  assert(!finished);
+  std::reverse_copy(vec.begin(), vec.end(), std::back_inserter(buffer));
+  add_string_size(vec.size());
 }
 
-void com::vmware::concord::RLPBuilder::add(const uint8_t *data, size_t size)
-{
-   assert(!finished);
-   std::reverse_copy(data, data+size, std::back_inserter(buffer));
-   add_string_size(size);
+void com::vmware::concord::RLPBuilder::add(const uint8_t *data, size_t size) {
+  assert(!finished);
+  std::reverse_copy(data, data + size, std::back_inserter(buffer));
+  add_string_size(size);
 }
 
-void com::vmware::concord::RLPBuilder::add(const std::string &str)
-{
-   assert(!finished);
-   std::reverse_copy(str.begin(), str.end(), std::back_inserter(buffer));
-   add_string_size(str.size());
+void com::vmware::concord::RLPBuilder::add(const std::string &str) {
+  assert(!finished);
+  std::reverse_copy(str.begin(), str.end(), std::back_inserter(buffer));
+  add_string_size(str.size());
 }
 
-void com::vmware::concord::RLPBuilder::add(const evm_address &address)
-{
-   assert(!finished);
-   add(address.bytes, sizeof(evm_address));
+void com::vmware::concord::RLPBuilder::add(const evm_address &address) {
+  assert(!finished);
+  add(address.bytes, sizeof(evm_address));
 }
 
-void com::vmware::concord::RLPBuilder::add(const evm_uint256be &uibe)
-{
-   assert(!finished);
-   add(uibe.bytes, sizeof(evm_uint256be));
+void com::vmware::concord::RLPBuilder::add(const evm_uint256be &uibe) {
+  assert(!finished);
+  add(uibe.bytes, sizeof(evm_uint256be));
 }
 
-void com::vmware::concord::RLPBuilder::add(uint64_t number)
-{
-   assert(!finished);
-   if (number == 0) {
-      // "0" is encoded as "empty string" here, not "integer zero"
-      std::vector<uint8_t> empty_value;
-      add(empty_value);
-   } else {
-      if (number <= 0x7f) {
-         buffer.push_back((uint8_t)number);
-      } else {
-         uint8_t length = 0;
-         do {
-            ++length;
-            buffer.push_back(number & 0xff);
-            number >>= 8;
-         } while (number > 0);
-         add_string_size(length);
-      }
-   }
+void com::vmware::concord::RLPBuilder::add(uint64_t number) {
+  assert(!finished);
+  if (number == 0) {
+    // "0" is encoded as "empty string" here, not "integer zero"
+    std::vector<uint8_t> empty_value;
+    add(empty_value);
+  } else {
+    if (number <= 0x7f) {
+      buffer.push_back((uint8_t)number);
+    } else {
+      uint8_t length = 0;
+      do {
+        ++length;
+        buffer.push_back(number & 0xff);
+        number >>= 8;
+      } while (number > 0);
+      add_string_size(length);
+    }
+  }
 }
 
 void com::vmware::concord::RLPBuilder::start_list() {
-   assert(!finished);
-   assert(list_depth < MAX_LIST_DEPTH-1);
-   list_start[++list_depth] = buffer.size();
+  assert(!finished);
+  assert(list_depth < MAX_LIST_DEPTH - 1);
+  list_start[++list_depth] = buffer.size();
 }
 
 void com::vmware::concord::RLPBuilder::end_list() {
-   assert(!finished);
-   assert(list_depth >= 0);
-   add_list_size(buffer.size()-list_start[list_depth]);
-   --list_depth;
+  assert(!finished);
+  assert(list_depth >= 0);
+  add_list_size(buffer.size() - list_start[list_depth]);
+  --list_depth;
 }
 
 // Closes any open lists, then reverses and returns the buffer.
-std::vector<uint8_t>&& com::vmware::concord::RLPBuilder::build() {
-   assert(!finished);
-   while (list_depth >= 0) {
-      end_list();
-   }
-   std::reverse(buffer.begin(), buffer.end());
-   finished = true;
-   return std::move(buffer);
+std::vector<uint8_t> &&com::vmware::concord::RLPBuilder::build() {
+  assert(!finished);
+  while (list_depth >= 0) {
+    end_list();
+  }
+  std::reverse(buffer.begin(), buffer.end());
+  finished = true;
+  return std::move(buffer);
 }
 
-bool com::vmware::concord::RLPParser::at_end()
-{
-   return offset == rlp_.size();
+bool com::vmware::concord::RLPParser::at_end() { return offset == rlp_.size(); }
+
+std::vector<uint8_t> com::vmware::concord::RLPParser::next() {
+  if (rlp_[offset] < 0x80) {
+    std::vector<uint8_t> simple;
+    simple.push_back(rlp_[offset]);
+    offset++;
+    return simple;
+  } else if (rlp_[offset] < 0xb8) {
+    size_t length = rlp_[offset] - 0x80;
+    offset++;
+    return short_run(length);
+  } else if (rlp_[offset] < 0xc0) {
+    size_t length_length = rlp_[offset] - 0xb7;
+    offset++;
+    return long_run(length_length);
+  } else if (rlp_[offset] < 0xf8) {
+    size_t length = rlp_[offset] - 0xc0;
+    offset++;
+    return short_run(length);
+  } else {
+    size_t length_length = rlp_[offset] - 0xf7;
+    offset++;
+    return long_run(length_length);
+  }
 }
 
-std::vector<uint8_t> com::vmware::concord::RLPParser::next()
-{
-   if (rlp_[offset] < 0x80) {
-      std::vector<uint8_t> simple;
-      simple.push_back(rlp_[offset]);
-      offset++;
-      return simple;
-   } else if (rlp_[offset] < 0xb8) {
-      size_t length = rlp_[offset] - 0x80;
-      offset++;
-      return short_run(length);
-   } else if (rlp_[offset] < 0xc0) {
-      size_t length_length = rlp_[offset]-0xb7;
-      offset++;
-      return long_run(length_length);
-   } else if (rlp_[offset] < 0xf8) {
-      size_t length = rlp_[offset] - 0xc0;
-      offset++;
-      return short_run(length);
-   } else {
-      size_t length_length = rlp_[offset]-0xf7;
-      offset++;
-      return long_run(length_length);
-   }
-}
-
-std::vector<uint8_t> com::vmware::concord::RLPParser::short_run(size_t length)
-{
-   std::vector<uint8_t> short_string;
-   if (length > 0) {
-      std::copy(rlp_.begin()+offset, rlp_.begin()+offset+length,
-                std::back_inserter(short_string));
-      offset += length;
-   }
-   return short_string;
+std::vector<uint8_t> com::vmware::concord::RLPParser::short_run(size_t length) {
+  std::vector<uint8_t> short_string;
+  if (length > 0) {
+    std::copy(rlp_.begin() + offset, rlp_.begin() + offset + length,
+              std::back_inserter(short_string));
+    offset += length;
+  }
+  return short_string;
 }
 
 std::vector<uint8_t> com::vmware::concord::RLPParser::long_run(
-   size_t length_length)
-{
-   size_t length = 0;
-   for (size_t i = 0; i < length_length; i++) {
-      length = length << 8;
-      length += rlp_[offset];
-      offset++;
-   }
-   std::vector<uint8_t> long_string;
-   std::copy(rlp_.begin()+offset, rlp_.begin()+offset+length,
-             std::back_inserter(long_string));
-   offset += length;
-   return long_string;
+    size_t length_length) {
+  size_t length = 0;
+  for (size_t i = 0; i < length_length; i++) {
+    length = length << 8;
+    length += rlp_[offset];
+    offset++;
+  }
+  std::vector<uint8_t> long_string;
+  std::copy(rlp_.begin() + offset, rlp_.begin() + offset + length,
+            std::back_inserter(long_string));
+  offset += length;
+  return long_string;
 }

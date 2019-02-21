@@ -16,10 +16,9 @@ namespace EthHash {
 evm_uint256be keccak_hash(const std::vector<uint8_t> &data);
 evm_uint256be keccak_hash(const uint8_t *data, size_t size);
 
-}
-}
-}
-}
-
+}  // namespace EthHash
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com
 
 #endif

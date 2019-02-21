@@ -12,30 +12,29 @@
 #include "sliver.hpp"
 
 namespace Blockchain {
-   /*
-    * Basic comparator. Decomposes storage key into parts (type, version,
-    * application key).
-    */
-   int composedKeyComparison(const Sliver& _a, const Sliver& _b);
+/*
+ * Basic comparator. Decomposes storage key into parts (type, version,
+ * application key).
+ */
+int composedKeyComparison(const Sliver& _a, const Sliver& _b);
 
-   /* RocksDB */
+/* RocksDB */
 #ifdef USE_ROCKSDB
-   class RocksKeyComparator : public rocksdb::Comparator
-   {
-   public:
-      int Compare(const rocksdb::Slice& _a, const rocksdb::Slice& _b) const;
+class RocksKeyComparator : public rocksdb::Comparator {
+ public:
+  int Compare(const rocksdb::Slice& _a, const rocksdb::Slice& _b) const;
 
-      // GG: Ignore the following methods for now:
-      const char* Name() const { return "RocksKeyComparator"; }
-      void FindShortestSeparator(std::string*, const rocksdb::Slice&) const { }
-      void FindShortSuccessor(std::string*) const { }
-   };
+  // GG: Ignore the following methods for now:
+  const char* Name() const { return "RocksKeyComparator"; }
+  void FindShortestSeparator(std::string*, const rocksdb::Slice&) const {}
+  void FindShortSuccessor(std::string*) const {}
+};
 #endif
 
-   /* In memory */
-   bool InMemKeyComp(const Sliver& _a, const Sliver& _b);
+/* In memory */
+bool InMemKeyComp(const Sliver& _a, const Sliver& _b);
 
-}
+}  // namespace Blockchain
 /* Comparators end */
 
 #endif

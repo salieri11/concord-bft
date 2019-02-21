@@ -13,9 +13,9 @@
  * to navigate through the map.
  */
 
+#include <log4cplus/loggingmacros.h>
 #include <chrono>
 #include <cstring>
-#include <log4cplus/loggingmacros.h>
 
 #include "HexTools.h"
 #include "InMemoryDBClient.h"
@@ -30,10 +30,9 @@ using namespace Blockchain;
  * Does nothing.
  * @return Status OK.
  */
-Status InMemoryDBClient::init(bool readOnly)
-{
-   //TODO Can be used for constructor calls, etc.
-   return Status::OK();
+Status InMemoryDBClient::init(bool readOnly) {
+  // TODO Can be used for constructor calls, etc.
+  return Status::OK();
 }
 
 /**
@@ -45,15 +44,14 @@ Status InMemoryDBClient::init(bool readOnly)
  *                  successful.
  * @return Status NotFound if no mapping is found, else, Status OK.
  */
-Status InMemoryDBClient::get(Sliver _key, OUT Sliver & _outValue) const
-{
-   try {
-      _outValue = map.at(_key);
-   } catch (const std::out_of_range& oor) {
-      return Status::NotFound(oor.what());
-   }
+Status InMemoryDBClient::get(Sliver _key, OUT Sliver& _outValue) const {
+  try {
+    _outValue = map.at(_key);
+  } catch (const std::out_of_range& oor) {
+    return Status::NotFound(oor.what());
+  }
 
-   return Status::OK();
+  return Status::OK();
 }
 
 /**
@@ -61,9 +59,8 @@ Status InMemoryDBClient::get(Sliver _key, OUT Sliver & _outValue) const
  *
  * @return A pointer to IDBClientIterator object.
  */
-IDBClient::IDBClientIterator * InMemoryDBClient::getIterator() const
-{
-   return new InMemoryDBClientIterator((InMemoryDBClient*) this);
+IDBClient::IDBClientIterator* InMemoryDBClient::getIterator() const {
+  return new InMemoryDBClientIterator((InMemoryDBClient*)this);
 }
 
 /**
@@ -73,14 +70,13 @@ IDBClient::IDBClientIterator * InMemoryDBClient::getIterator() const
  *              freed.
  * @return Status InvalidArgument if iterator is null pointer, else, Status OK.
  */
-Status InMemoryDBClient::freeIterator(IDBClientIterator* _iter) const
-{
-   if (_iter == NULL) {
-      return Status::InvalidArgument("Invalid iterator");
-   }
+Status InMemoryDBClient::freeIterator(IDBClientIterator* _iter) const {
+  if (_iter == NULL) {
+    return Status::InvalidArgument("Invalid iterator");
+  }
 
-   delete (InMemoryDBClientIterator*) _iter;
-   return Status::OK();
+  delete (InMemoryDBClientIterator*)_iter;
+  return Status::OK();
 }
 
 /**
@@ -94,31 +90,30 @@ Status InMemoryDBClient::freeIterator(IDBClientIterator* _iter) const
  * @param _value Value of the mapping.
  * @return Status OK.
  */
-Status InMemoryDBClient::put(Sliver _key, Sliver _value)
-{
-   // Copy the key and the value
-   bool keyExists = false;
-   if (map.find(_key) != map.end()) {
-      keyExists = true;
-   }
+Status InMemoryDBClient::put(Sliver _key, Sliver _value) {
+  // Copy the key and the value
+  bool keyExists = false;
+  if (map.find(_key) != map.end()) {
+    keyExists = true;
+  }
 
-   Sliver key;
-   if (!keyExists) {
-      uint8_t *keyBytes = new uint8_t[_key.length()];
-      memcpy(keyBytes, _key.data(), _key.length());
-      key = Sliver(keyBytes, _key.length());
-   } else {
-      key = _key;
-   }
+  Sliver key;
+  if (!keyExists) {
+    uint8_t* keyBytes = new uint8_t[_key.length()];
+    memcpy(keyBytes, _key.data(), _key.length());
+    key = Sliver(keyBytes, _key.length());
+  } else {
+    key = _key;
+  }
 
-   Sliver value;
-   uint8_t *valueBytes = new uint8_t[_value.length()];
-   memcpy(valueBytes, _value.data(), _value.length());
-   value = Sliver(valueBytes, _value.length());
+  Sliver value;
+  uint8_t* valueBytes = new uint8_t[_value.length()];
+  memcpy(valueBytes, _value.data(), _value.length());
+  value = Sliver(valueBytes, _value.length());
 
-   map[key] = value;
+  map[key] = value;
 
-   return Status::OK();
+  return Status::OK();
 }
 
 /**
@@ -129,20 +124,19 @@ Status InMemoryDBClient::put(Sliver _key, Sliver _value)
  * @param _key Reference to the key of the mapping.
  * @return Status OK.
  */
-Status InMemoryDBClient::del(Sliver _key)
-{
-   bool keyExists = false;
-   if (map.find(_key) != map.end()) {
-      keyExists = true;
-   }
+Status InMemoryDBClient::del(Sliver _key) {
+  bool keyExists = false;
+  if (map.find(_key) != map.end()) {
+    keyExists = true;
+  }
 
-   if (keyExists) {
-      Sliver value = map[_key];
-      map.erase(_key);
-   }
-   // Else: Error to delete non-existing key?
+  if (keyExists) {
+    Sliver value = map[_key];
+    map.erase(_key);
+  }
+  // Else: Error to delete non-existing key?
 
-   return Status::OK();
+  return Status::OK();
 }
 
 /**
@@ -151,14 +145,13 @@ Status InMemoryDBClient::del(Sliver _key)
  * @return Moves the iterator to the start of the map and returns the first key
  * value pair of the map.
  */
-KeyValuePair InMemoryDBClientIterator::first()
-{
-   m_current = m_parentClient->getMap().begin();
-   if (m_current == m_parentClient->getMap().end()) {
-      return KeyValuePair();
-   }
+KeyValuePair InMemoryDBClientIterator::first() {
+  m_current = m_parentClient->getMap().begin();
+  if (m_current == m_parentClient->getMap().end()) {
+    return KeyValuePair();
+  }
 
-   return KeyValuePair(m_current->first, m_current->second);
+  return KeyValuePair(m_current->first, m_current->second);
 }
 
 /**
@@ -172,16 +165,14 @@ KeyValuePair InMemoryDBClientIterator::first()
  *  @return Key value pair of the key which is greater than or equal to
  *  _searchKey.
  */
-KeyValuePair InMemoryDBClientIterator::seekAtLeast(Sliver _searchKey)
-{
-   m_current = m_parentClient->getMap().lower_bound(_searchKey);
-   if (m_current == m_parentClient->getMap().end())
-   {
-      LOG4CPLUS_WARN(logger, "Key " << _searchKey << " not found");
-      return KeyValuePair();
-   }
+KeyValuePair InMemoryDBClientIterator::seekAtLeast(Sliver _searchKey) {
+  m_current = m_parentClient->getMap().lower_bound(_searchKey);
+  if (m_current == m_parentClient->getMap().end()) {
+    LOG4CPLUS_WARN(logger, "Key " << _searchKey << " not found");
+    return KeyValuePair();
+  }
 
-   return KeyValuePair(m_current->first, m_current->second);
+  return KeyValuePair(m_current->first, m_current->second);
 }
 
 /**
@@ -191,14 +182,13 @@ KeyValuePair InMemoryDBClientIterator::seekAtLeast(Sliver _searchKey)
  *
  * @return The previous key value pair.
  */
-KeyValuePair InMemoryDBClientIterator::previous()
-{
-   if(m_current == m_parentClient->getMap().begin()) {
-      LOG4CPLUS_WARN(logger, "Iterator already at first key");
-      return KeyValuePair();
-   }
-   --m_current;
-   return KeyValuePair(m_current->first, m_current->second);
+KeyValuePair InMemoryDBClientIterator::previous() {
+  if (m_current == m_parentClient->getMap().begin()) {
+    LOG4CPLUS_WARN(logger, "Iterator already at first key");
+    return KeyValuePair();
+  }
+  --m_current;
+  return KeyValuePair(m_current->first, m_current->second);
 }
 
 /**
@@ -208,14 +198,13 @@ KeyValuePair InMemoryDBClientIterator::previous()
  *
  * @return The next key value pair.
  */
-KeyValuePair InMemoryDBClientIterator::next()
-{
-   ++m_current;
-   if (m_current == m_parentClient->getMap().end()) {
-      return KeyValuePair();
-   }
+KeyValuePair InMemoryDBClientIterator::next() {
+  ++m_current;
+  if (m_current == m_parentClient->getMap().end()) {
+    return KeyValuePair();
+  }
 
-   return KeyValuePair(m_current->first, m_current->second);
+  return KeyValuePair(m_current->first, m_current->second);
 }
 
 /**
@@ -223,13 +212,12 @@ KeyValuePair InMemoryDBClientIterator::next()
  *
  * @return Current key value pair.
  */
-KeyValuePair InMemoryDBClientIterator::getCurrent()
-{
-   if (m_current == m_parentClient->getMap().end()) {
-      return KeyValuePair();
-   }
+KeyValuePair InMemoryDBClientIterator::getCurrent() {
+  if (m_current == m_parentClient->getMap().end()) {
+    return KeyValuePair();
+  }
 
-   return KeyValuePair(m_current->first, m_current->second);
+  return KeyValuePair(m_current->first, m_current->second);
 }
 
 /**
@@ -237,9 +225,8 @@ KeyValuePair InMemoryDBClientIterator::getCurrent()
  *
  * @return True if iterator is at the end of the map, else False.
  */
-bool InMemoryDBClientIterator::isEnd()
-{
-   return m_current == m_parentClient->getMap().end();
+bool InMemoryDBClientIterator::isEnd() {
+  return m_current == m_parentClient->getMap().end();
 }
 
 /**
@@ -247,8 +234,7 @@ bool InMemoryDBClientIterator::isEnd()
  *
  * @return Status OK.
  */
-Status InMemoryDBClientIterator::getStatus()
-{
-   //TODO Should be used for sanity checks.
-   return Status::OK();
+Status InMemoryDBClientIterator::getStatus() {
+  // TODO Should be used for sanity checks.
+  return Status::OK();
 }

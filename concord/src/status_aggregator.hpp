@@ -5,10 +5,10 @@
 #ifndef CONCORD_STATUS_AGGREGATOR_HPP
 #define CONCORD_STATUS_AGGREGATOR_HPP
 
-#include <vector>
 #include <functional>
-#include <string>
 #include <memory>
+#include <string>
+#include <vector>
 #include "StatusInfo.h"
 #include "common/utils.hpp"
 
@@ -16,35 +16,32 @@ namespace com {
 namespace vmware {
 namespace concord {
 
-   struct UiPeerInfo
-   {
-      std::string hostname;
-      std::string address;
-      std::int64_t millisSinceLastMessage;
-      std::int32_t millisSinceLastMessageThreshold;
-      std::string state;
-   };
+struct UiPeerInfo {
+  std::string hostname;
+  std::string address;
+  std::int64_t millisSinceLastMessage;
+  std::int32_t millisSinceLastMessageThreshold;
+  std::string state;
+};
 
-   class StatusAggregator
-   {
+class StatusAggregator {
+ public:
+  StatusAggregator();
 
-   public:
-      StatusAggregator();
+  std::vector<UiPeerInfo> get_peers_info();
 
-      std::vector<UiPeerInfo>
-      get_peers_info();
+  /**
+   * this function returns actual method that will be called by low level
+   */
+  UPDATE_CONNECTIVITY_FN
+  get_update_connectivity_fn();
 
-      /**
-       * this function returns actual method that will be called by low level
-      */
-      UPDATE_CONNECTIVITY_FN
-      get_update_connectivity_fn();
-   private:
-      class Impl;
-      std::shared_ptr<Impl> _pImpl;
-   };
-}
-}
-}
+ private:
+  class Impl;
+  std::shared_ptr<Impl> _pImpl;
+};
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com
 
-#endif //CONCORD_STATUS_AGGREGATOR_HPP
+#endif  // CONCORD_STATUS_AGGREGATOR_HPP

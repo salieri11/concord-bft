@@ -14,9 +14,15 @@ class Status {
  public:
   static Status OK() { return Status(ok, ""); }
   static Status NotFound(std::string msg) { return Status(notFound, msg); }
-  static Status InvalidArgument(std::string msg) { return Status(invalidArgument, msg); }
-  static Status IllegalOperation(std::string msg) { return Status(illegalOperation, msg); }
-  static Status GeneralError(std::string msg) { return Status(generalError, msg); }
+  static Status InvalidArgument(std::string msg) {
+    return Status(invalidArgument, msg);
+  }
+  static Status IllegalOperation(std::string msg) {
+    return Status(illegalOperation, msg);
+  }
+  static Status GeneralError(std::string msg) {
+    return Status(generalError, msg);
+  }
 
   bool isOK() const { return type == ok; }
   bool isNotFound() const { return type == notFound; }
@@ -44,16 +50,22 @@ class Status {
   statusType type;
   std::string message;
 
-  Status(statusType t, std::string msg): type(t), message(msg) { }
+  Status(statusType t, std::string msg) : type(t), message(msg) {}
 
   std::string messagePrefix() const {
     switch (type) {
-    case ok: return "OK";
-    case notFound: return "Not Found: ";
-    case invalidArgument: return "Invalid Argument: ";
-    case illegalOperation: return "Illegal Operation: ";
-    case generalError: return "General Error: ";
-    default: return "Unknown Error Type: ";
+      case ok:
+        return "OK";
+      case notFound:
+        return "Not Found: ";
+      case invalidArgument:
+        return "Invalid Argument: ";
+      case illegalOperation:
+        return "Illegal Operation: ";
+      case generalError:
+        return "General Error: ";
+      default:
+        return "Unknown Error Type: ";
     }
   }
 };

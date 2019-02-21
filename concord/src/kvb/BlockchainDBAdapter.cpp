@@ -19,16 +19,15 @@
 
 #include <log4cplus/loggingmacros.h>
 
+#include <chrono>
+#include <limits>
 #include "BlockchainDBAdapter.h"
 #include "BlockchainInterfaces.h"
 #include "HexTools.h"
-#include <chrono>
-#include <limits>
 
 using log4cplus::Logger;
 
-namespace Blockchain
-{
+namespace Blockchain {
 
 /**
  * @brief Generates a Composite Database Key from a Sliver object.
@@ -44,15 +43,14 @@ namespace Blockchain
  * @param _blockId BlockId object.
  * @return Sliver object of the generated composite database key.
  */
-Sliver genDbKey(EDBKeyType _type, Sliver _key, BlockId _blockId)
-{
-   size_t sz = sizeof(EDBKeyType) + sizeof(BlockId) + _key.length();
-   uint8_t *out = new uint8_t[sz];
-   size_t offset = 0;
-   copyToAndAdvance(out, &offset, sz, (uint8_t*) &_type, sizeof(EDBKeyType));
-   copyToAndAdvance(out, &offset, sz, (uint8_t*) _key.data(), _key.length());
-   copyToAndAdvance(out, &offset, sz, (uint8_t*) &_blockId, sizeof(BlockId));
-   return Sliver(out, sz);
+Sliver genDbKey(EDBKeyType _type, Sliver _key, BlockId _blockId) {
+  size_t sz = sizeof(EDBKeyType) + sizeof(BlockId) + _key.length();
+  uint8_t *out = new uint8_t[sz];
+  size_t offset = 0;
+  copyToAndAdvance(out, &offset, sz, (uint8_t *)&_type, sizeof(EDBKeyType));
+  copyToAndAdvance(out, &offset, sz, (uint8_t *)_key.data(), _key.length());
+  copyToAndAdvance(out, &offset, sz, (uint8_t *)&_blockId, sizeof(BlockId));
+  return Sliver(out, sz);
 }
 
 /**
@@ -64,9 +62,8 @@ Sliver genDbKey(EDBKeyType _type, Sliver _key, BlockId _blockId)
  *                 incorporated into the composite database key.
  * @return Sliver object of the generated composite database key.
  */
-Sliver genBlockDbKey(BlockId _blockId)
-{
-   return genDbKey(EDBKeyType::E_DB_KEY_TYPE_BLOCK, Sliver(), _blockId);
+Sliver genBlockDbKey(BlockId _blockId) {
+  return genDbKey(EDBKeyType::E_DB_KEY_TYPE_BLOCK, Sliver(), _blockId);
 }
 
 /**
@@ -77,9 +74,8 @@ Sliver genBlockDbKey(BlockId _blockId)
  *                 into the composite database Key.
  * @return Sliver object of the generated composite database key.
  */
-Sliver genDataDbKey(Sliver _key, BlockId _blockId)
-{
-   return genDbKey(EDBKeyType::E_DB_KEY_TYPE_KEY, _key, _blockId);
+Sliver genDataDbKey(Sliver _key, BlockId _blockId) {
+  return genDbKey(EDBKeyType::E_DB_KEY_TYPE_KEY, _key, _blockId);
 }
 
 /**
@@ -91,10 +87,9 @@ Sliver genDataDbKey(Sliver _key, BlockId _blockId)
  *             returned.
  * @return The type of the composite database key.
  */
-char extractTypeFromKey(Sliver _key)
-{
-   static_assert(sizeof(EDBKeyType) == 1, "Let's avoid byte-order problems.");
-   return _key.data()[0];
+char extractTypeFromKey(Sliver _key) {
+  static_assert(sizeof(EDBKeyType) == 1, "Let's avoid byte-order problems.");
+  return _key.data()[0];
 }
 
 /**
@@ -106,15 +101,14 @@ char extractTypeFromKey(Sliver _key)
  *             gets returned.
  * @return The block id of the composite database key.
  */
-BlockId extractBlockIdFromKey(Sliver _key)
-{
-   size_t offset = _key.length() - sizeof(BlockId);
-   BlockId id = *(BlockId*) (_key.data() + offset);
+BlockId extractBlockIdFromKey(Sliver _key) {
+  size_t offset = _key.length() - sizeof(BlockId);
+  BlockId id = *(BlockId *)(_key.data() + offset);
 
-   Logger logger(Logger::getInstance("com.vmware.concord.kvb"));
-   LOG4CPLUS_DEBUG(logger, "Got block ID " << id << " from key " <<
-                   _key << ", offset " << offset);
-   return id;
+  Logger logger(Logger::getInstance("com.vmware.concord.kvb"));
+  LOG4CPLUS_DEBUG(logger, "Got block ID " << id << " from key " << _key
+                                          << ", offset " << offset);
+  return id;
 }
 
 /**
@@ -123,15 +117,14 @@ BlockId extractBlockIdFromKey(Sliver _key)
  * @param _composedKey Sliver object of the composite database key.
  * @return Sliver object of the key extracted from the composite database key.
  */
-Sliver extractKeyFromKeyComposedWithBlockId(Sliver _composedKey)
-{
-   size_t sz = _composedKey.length() - sizeof(BlockId) - sizeof(EDBKeyType);
-   Sliver out = Sliver(_composedKey, sizeof(EDBKeyType), sz);
+Sliver extractKeyFromKeyComposedWithBlockId(Sliver _composedKey) {
+  size_t sz = _composedKey.length() - sizeof(BlockId) - sizeof(EDBKeyType);
+  Sliver out = Sliver(_composedKey, sizeof(EDBKeyType), sz);
 
-   Logger logger(Logger::getInstance("com.vmware.concord.kvb"));
-   LOG4CPLUS_DEBUG(logger,  "Got key " << out <<
-                   " from composed key " << _composedKey);
-   return out;
+  Logger logger(Logger::getInstance("com.vmware.concord.kvb"));
+  LOG4CPLUS_DEBUG(logger,
+                  "Got key " << out << " from composed key " << _composedKey);
+  return out;
 }
 
 /**
@@ -142,14 +135,13 @@ Sliver extractKeyFromKeyComposedWithBlockId(Sliver _composedKey)
  * @param _p Key value pair consisting of a composite database key
  * @return Key value pair consisting of a simple key.
  */
-KeyValuePair composedToSimple(KeyValuePair _p)
-{
-   if (_p.first.length() == 0) {
-      return _p;
-   }
+KeyValuePair composedToSimple(KeyValuePair _p) {
+  if (_p.first.length() == 0) {
+    return _p;
+  }
 
-   Key key = extractKeyFromKeyComposedWithBlockId(_p.first);
-   return KeyValuePair(key, _p.second);
+  Key key = extractKeyFromKeyComposedWithBlockId(_p.first);
+  return KeyValuePair(key, _p.second);
 }
 
 /**
@@ -164,11 +156,10 @@ KeyValuePair composedToSimple(KeyValuePair _p)
  *                  the composite database key.
  * @return Status of the put operation.
  */
-Status BlockchainDBAdapter::addBlock(BlockId _blockId, Sliver _blockRaw)
-{
-   Sliver dbKey = genBlockDbKey(_blockId);
-   Status s = m_db->put(dbKey, _blockRaw);
-   return s;
+Status BlockchainDBAdapter::addBlock(BlockId _blockId, Sliver _blockRaw) {
+  Sliver dbKey = genBlockDbKey(_blockId);
+  Status s = m_db->put(dbKey, _blockRaw);
+  return s;
 }
 
 /**
@@ -183,16 +174,15 @@ Status BlockchainDBAdapter::addBlock(BlockId _blockId, Sliver _blockRaw)
  * @param _value The value that needs to be added to the database.
  * @return Status of the put operation.
  */
-Status BlockchainDBAdapter::updateKey(Key _key, BlockId _block, Value _value)
-{
-   Sliver composedKey = genDataDbKey(_key, _block);
+Status BlockchainDBAdapter::updateKey(Key _key, BlockId _block, Value _value) {
+  Sliver composedKey = genDataDbKey(_key, _block);
 
-   LOG4CPLUS_DEBUG(logger, "Updating composed key "
-                   << composedKey << " with value "
-                   << _value << " in block " << _block);
+  LOG4CPLUS_DEBUG(logger, "Updating composed key " << composedKey
+                                                   << " with value " << _value
+                                                   << " in block " << _block);
 
-   Status s = m_db->put(composedKey, _value);
-   return s;
+  Status s = m_db->put(composedKey, _value);
+  return s;
 }
 
 /**
@@ -206,15 +196,13 @@ Status BlockchainDBAdapter::updateKey(Key _key, BlockId _block, Value _value)
  * @param _blockId The block id (version) of the key to delete.
  * @return Status of the operation.
  */
-Status BlockchainDBAdapter::delKey(Sliver _key, BlockId _blockId)
-{
-   Sliver composedKey = genDataDbKey(_key, _blockId);
+Status BlockchainDBAdapter::delKey(Sliver _key, BlockId _blockId) {
+  Sliver composedKey = genDataDbKey(_key, _blockId);
 
-   LOG4CPLUS_DEBUG(logger, "Deleting key " << _key <<
-                   " block id " << _blockId);
+  LOG4CPLUS_DEBUG(logger, "Deleting key " << _key << " block id " << _blockId);
 
-   Status s = m_db->del(composedKey);
-   return s;
+  Status s = m_db->del(composedKey);
+  return s;
 }
 
 /**
@@ -227,11 +215,10 @@ Status BlockchainDBAdapter::delKey(Sliver _key, BlockId _blockId)
  * @param _blockId The ID of the block to be deleted.
  * @return Status of the operation.
  */
-Status BlockchainDBAdapter::delBlock(BlockId _blockId)
-{
-   Sliver dbKey = genBlockDbKey(_blockId);
-   Status s = m_db->del(dbKey);
-   return s;
+Status BlockchainDBAdapter::delBlock(BlockId _blockId) {
+  Sliver dbKey = genBlockDbKey(_blockId);
+  Status s = m_db->del(dbKey);
+  return s;
 }
 
 /**
@@ -248,44 +235,42 @@ Status BlockchainDBAdapter::delBlock(BlockId _blockId)
  *                         stored.
  * @return Status OK
  */
-Status BlockchainDBAdapter::getKeyByReadVersion(BlockId readVersion,
-                                                Sliver key,
+Status BlockchainDBAdapter::getKeyByReadVersion(BlockId readVersion, Sliver key,
                                                 Sliver &outValue,
-                                                BlockId &outBlock) const
-{
-   LOG4CPLUS_DEBUG(logger, "Getting value of key " << key <<
-                   " for read version " << readVersion);
+                                                BlockId &outBlock) const {
+  LOG4CPLUS_DEBUG(logger, "Getting value of key " << key << " for read version "
+                                                  << readVersion);
 
-   IDBClient::IDBClientIterator *iter = m_db->getIterator();
-   Sliver foundKey, foundValue;
-   Sliver searchKey = genDataDbKey(key, readVersion);
-   KeyValuePair p = iter->seekAtLeast(searchKey);
-   foundKey = composedToSimple(p).first;
-   foundValue = p.second;
+  IDBClient::IDBClientIterator *iter = m_db->getIterator();
+  Sliver foundKey, foundValue;
+  Sliver searchKey = genDataDbKey(key, readVersion);
+  KeyValuePair p = iter->seekAtLeast(searchKey);
+  foundKey = composedToSimple(p).first;
+  foundValue = p.second;
 
-   LOG4CPLUS_DEBUG(logger, "Found key " << foundKey <<
-                   " and value " << foundValue);
+  LOG4CPLUS_DEBUG(logger,
+                  "Found key " << foundKey << " and value " << foundValue);
 
-   if (!iter->isEnd()) {
-      BlockId currentReadVersion = extractBlockIdFromKey(p.first);
+  if (!iter->isEnd()) {
+    BlockId currentReadVersion = extractBlockIdFromKey(p.first);
 
-      //TODO(JGC): Ask about reason for version comparison logic
-      if (currentReadVersion <= readVersion && foundKey == key) {
-         outValue = foundValue;
-         outBlock = currentReadVersion;
-      } else {
-         outValue = Sliver();
-         outBlock = 0;
-      }
-   } else {
+    // TODO(JGC): Ask about reason for version comparison logic
+    if (currentReadVersion <= readVersion && foundKey == key) {
+      outValue = foundValue;
+      outBlock = currentReadVersion;
+    } else {
       outValue = Sliver();
       outBlock = 0;
-   }
+    }
+  } else {
+    outValue = Sliver();
+    outBlock = 0;
+  }
 
-   m_db->freeIterator(iter);
+  m_db->freeIterator(iter);
 
-   //TODO(GG): maybe return status of the operation?
-   return Status::OK();
+  // TODO(GG): maybe return status of the operation?
+  return Status::OK();
 }
 
 /**
@@ -298,34 +283,30 @@ Status BlockchainDBAdapter::getKeyByReadVersion(BlockId readVersion,
  * @param _found true if lookup successful, else false.
  * @return Status of the operation.
  */
-Status BlockchainDBAdapter::getBlockById(BlockId _blockId,
-                                         Sliver &_blockRaw,
-                                         bool &_found) const
-{
-   Sliver key = genBlockDbKey(_blockId);
-   Status s = m_db->get(key, _blockRaw);
-   if (s.isNotFound())
-   {
-      _found = false;
-      return Status::OK();
-   }
+Status BlockchainDBAdapter::getBlockById(BlockId _blockId, Sliver &_blockRaw,
+                                         bool &_found) const {
+  Sliver key = genBlockDbKey(_blockId);
+  Status s = m_db->get(key, _blockRaw);
+  if (s.isNotFound()) {
+    _found = false;
+    return Status::OK();
+  }
 
-   _found = true;
-   return s;
+  _found = true;
+  return s;
 }
 
-//TODO(BWF): is this still needed?
+// TODO(BWF): is this still needed?
 /**
  * @brief Makes a copy of a Sliver object.
  *
  * @param _src Sliver object that needs to be copied.
  * @param _trg Sliver object that contains the result.
  */
-inline void CopyKey(Sliver _src, Sliver &_trg)
-{
-   uint8_t *c = new uint8_t[_src.length()];
-   memcpy(c, _src.data(), _src.length());
-   _trg = Sliver(c, _src.length());
+inline void CopyKey(Sliver _src, Sliver &_trg) {
+  uint8_t *c = new uint8_t[_src.length()];
+  memcpy(c, _src.data(), _src.length());
+  _trg = Sliver(c, _src.length());
 }
 
 // TODO(SG): Add status checks with getStatus() on iterator.
@@ -348,70 +329,67 @@ inline void CopyKey(Sliver _src, Sliver &_trg)
  */
 Status BlockchainDBAdapter::first(IDBClient::IDBClientIterator *iter,
                                   BlockId readVersion,
-                                  OUT BlockId &actualVersion,
-                                  OUT bool &isEnd,
-                                  OUT Sliver &_key,
-                                  OUT Sliver &_value)
-{
-   Key firstKey;
-   KeyValuePair p = composedToSimple(iter->first());
-   if (iter->isEnd()) {
-      m_isEnd = true;
-      isEnd = true;
-      return Status::NotFound("No keys");
-   } else {
-      CopyKey(p.first, firstKey);
-   }
+                                  OUT BlockId &actualVersion, OUT bool &isEnd,
+                                  OUT Sliver &_key, OUT Sliver &_value) {
+  Key firstKey;
+  KeyValuePair p = composedToSimple(iter->first());
+  if (iter->isEnd()) {
+    m_isEnd = true;
+    isEnd = true;
+    return Status::NotFound("No keys");
+  } else {
+    CopyKey(p.first, firstKey);
+  }
 
-   bool foundKey = false;
-   Sliver value;
-   BlockId actualBlock;
-   while (!iter->isEnd() && p.first == firstKey) {
-      BlockId currentBlock = extractBlockIdFromKey(iter->getCurrent().first);
-      if (currentBlock <= readVersion) {
-         value = p.second;
-         actualBlock = currentBlock;
-         foundKey = true;
-         p = composedToSimple(iter->next());
+  bool foundKey = false;
+  Sliver value;
+  BlockId actualBlock;
+  while (!iter->isEnd() && p.first == firstKey) {
+    BlockId currentBlock = extractBlockIdFromKey(iter->getCurrent().first);
+    if (currentBlock <= readVersion) {
+      value = p.second;
+      actualBlock = currentBlock;
+      foundKey = true;
+      p = composedToSimple(iter->next());
+    } else {
+      if (!foundKey) {
+        // If not found a key with actual block version < readVersion, then we
+        // consider the next key as the first key candidate.
+
+        // Start by exhausting the current key with all the newer blocks
+        // records:
+        while (!iter->isEnd() && p.first == firstKey) {
+          p = composedToSimple(iter->next());
+        }
+
+        if (iter->isEnd()) {
+          break;
+        }
+
+        CopyKey(p.first, firstKey);
       } else {
-         if (!foundKey) {
-            // If not found a key with actual block version < readVersion, then we
-            // consider the next key as the first key candidate.
-
-            // Start by exhausting the current key with all the newer blocks
-            // records:
-            while (!iter->isEnd() && p.first == firstKey) {
-               p = composedToSimple(iter->next());
-            }
-
-            if (iter->isEnd()) {
-               break;
-            }
-
-            CopyKey(p.first, firstKey);
-         } else {
-            // If we already found a suitable first key, we break when we find
-            // the maximal
-            break;
-         }
+        // If we already found a suitable first key, we break when we find
+        // the maximal
+        break;
       }
-   }
+    }
+  }
 
-   // It is possible all keys have actualBlock > readVersion (Actually, this
-   // sounds like data is corrupted in this case - unless we allow empty blocks)
-   if (iter->isEnd() && !foundKey) {
-      m_isEnd = true;
-      isEnd = true;
-      return Status::OK();
-   }
+  // It is possible all keys have actualBlock > readVersion (Actually, this
+  // sounds like data is corrupted in this case - unless we allow empty blocks)
+  if (iter->isEnd() && !foundKey) {
+    m_isEnd = true;
+    isEnd = true;
+    return Status::OK();
+  }
 
-   m_isEnd = false;
-   isEnd = false;
-   actualVersion = actualBlock;
-   _key = firstKey;
-   _value = value;
-   m_current = KeyValuePair(_key, _value);
-   return Status::OK();
+  m_isEnd = false;
+  isEnd = false;
+  actualVersion = actualBlock;
+  _key = firstKey;
+  _value = value;
+  m_current = KeyValuePair(_key, _value);
+  return Status::OK();
 }
 
 /**
@@ -434,90 +412,89 @@ Status BlockchainDBAdapter::first(IDBClient::IDBClientIterator *iter,
 // Only for data fields, i.e. E_DB_KEY_TYPE_KEY. It makes more sense to put data
 // second, and blocks first. Stupid optimization nevertheless
 Status BlockchainDBAdapter::seekAtLeast(IDBClient::IDBClientIterator *iter,
-                                        Sliver _searchKey,
-                                        BlockId _readVersion,
+                                        Sliver _searchKey, BlockId _readVersion,
                                         OUT BlockId &_actualVersion,
-                                        OUT Sliver &_key,
-                                        OUT Sliver &_value,
-                                        OUT bool &_isEnd)
-{
-   Key searchKey = _searchKey;
-   BlockId actualBlock;
-   Value value;
-   bool foundKey = false;
-   Sliver rocksKey = genDataDbKey(searchKey, _readVersion);
-   KeyValuePair p = composedToSimple(iter->seekAtLeast(rocksKey));
+                                        OUT Sliver &_key, OUT Sliver &_value,
+                                        OUT bool &_isEnd) {
+  Key searchKey = _searchKey;
+  BlockId actualBlock;
+  Value value;
+  bool foundKey = false;
+  Sliver rocksKey = genDataDbKey(searchKey, _readVersion);
+  KeyValuePair p = composedToSimple(iter->seekAtLeast(rocksKey));
 
-   if (!iter->isEnd()) {
-      // p.first is src, searchKey is target
-      CopyKey(p.first, searchKey);
-   }
+  if (!iter->isEnd()) {
+    // p.first is src, searchKey is target
+    CopyKey(p.first, searchKey);
+  }
 
-   LOG4CPLUS_DEBUG(logger, "Searching " << _searchKey <<
-                   " and currently iterator returned " <<
-                   searchKey << " for rocks key " << rocksKey);
+  LOG4CPLUS_DEBUG(
+      logger, "Searching " << _searchKey << " and currently iterator returned "
+                           << searchKey << " for rocks key " << rocksKey);
 
-   while (!iter->isEnd() && p.first == searchKey) {
-      BlockId currentBlockId = extractBlockIdFromKey(iter->getCurrent().first);
+  while (!iter->isEnd() && p.first == searchKey) {
+    BlockId currentBlockId = extractBlockIdFromKey(iter->getCurrent().first);
 
-      LOG4CPLUS_DEBUG(logger, "Considering key " << p.first <<
-                      " with block ID " << currentBlockId);
+    LOG4CPLUS_DEBUG(logger, "Considering key " << p.first << " with block ID "
+                                               << currentBlockId);
 
-      if (currentBlockId <= _readVersion) {
-         LOG4CPLUS_DEBUG(logger, "Found with Block Id " << currentBlockId <<
-                         " and value " << p.second);
-         value = p.second;
-         actualBlock = currentBlockId;
-         foundKey = true;
-         break;
+    if (currentBlockId <= _readVersion) {
+      LOG4CPLUS_DEBUG(logger, "Found with Block Id " << currentBlockId
+                                                     << " and value "
+                                                     << p.second);
+      value = p.second;
+      actualBlock = currentBlockId;
+      foundKey = true;
+      break;
+    } else {
+      LOG4CPLUS_DEBUG(
+          logger, "Read version " << currentBlockId << " > " << _readVersion);
+      if (!foundKey) {
+        // If not found a key with actual block version < readVersion, then
+        // we consider the next key as the key candidate.
+        LOG4CPLUS_DEBUG(logger, "Find next key");
+
+        // Start by exhausting the current key with all the newer blocks
+        // records:
+        while (!iter->isEnd() && p.first == searchKey) {
+          p = composedToSimple(iter->next());
+        }
+
+        if (iter->isEnd()) {
+          break;
+        }
+
+        CopyKey(p.first, searchKey);
+
+        LOG4CPLUS_DEBUG(logger, "Found new search key " << searchKey);
       } else {
-         LOG4CPLUS_DEBUG(logger, "Read version " << currentBlockId << " > " <<
-                         _readVersion);
-         if (!foundKey) {
-            // If not found a key with actual block version < readVersion, then
-            // we consider the next key as the key candidate.
-            LOG4CPLUS_DEBUG(logger, "Find next key");
-
-            // Start by exhausting the current key with all the newer blocks
-            // records:
-            while (!iter->isEnd() && p.first == searchKey) {
-               p = composedToSimple(iter->next());
-            }
-
-            if (iter->isEnd()) {
-               break;
-            }
-
-            CopyKey(p.first, searchKey);
-
-            LOG4CPLUS_DEBUG(logger, "Found new search key " <<
-                            searchKey);
-         } else {
-            // If we already found a suitable key, we break when we find the
-            // maximal
-            break;
-         }
+        // If we already found a suitable key, we break when we find the
+        // maximal
+        break;
       }
-   }
+    }
+  }
 
-   if (iter->isEnd() && !foundKey) {
-      LOG4CPLUS_DEBUG(logger, "Reached end of map without finding lower bound "
-                      "key with suitable read version");
-      m_isEnd = true;
-      _isEnd = true;
-      return Status::NotFound("Did not find key with suitable read version");
-   }
+  if (iter->isEnd() && !foundKey) {
+    LOG4CPLUS_DEBUG(logger,
+                    "Reached end of map without finding lower bound "
+                    "key with suitable read version");
+    m_isEnd = true;
+    _isEnd = true;
+    return Status::NotFound("Did not find key with suitable read version");
+  }
 
-   m_isEnd = false;
-   _isEnd = false;
-   _actualVersion = actualBlock;
-   _key = searchKey;
-   _value = value;
-   LOG4CPLUS_DEBUG(logger, "Returnign key " << _key <<
-                   " value " << _value << " in actual block " <<
-                   _actualVersion << ", read version " << _readVersion);
-   m_current = KeyValuePair(_key, _value);
-   return Status::OK();
+  m_isEnd = false;
+  _isEnd = false;
+  _actualVersion = actualBlock;
+  _key = searchKey;
+  _value = value;
+  LOG4CPLUS_DEBUG(logger, "Returnign key "
+                              << _key << " value " << _value
+                              << " in actual block " << _actualVersion
+                              << ", read version " << _readVersion);
+  m_current = KeyValuePair(_key, _value);
+  return Status::OK();
 }
 
 /**
@@ -537,73 +514,70 @@ Status BlockchainDBAdapter::seekAtLeast(IDBClient::IDBClientIterator *iter,
  * @return Status OK.
  */
 Status BlockchainDBAdapter::next(IDBClient::IDBClientIterator *iter,
-                                 BlockId _readVersion,
-                                 OUT Sliver &_key,
+                                 BlockId _readVersion, OUT Sliver &_key,
                                  OUT Sliver &_value,
                                  OUT BlockId &_actualVersion,
-                                 OUT bool &_isEnd)
-{
-   KeyValuePair p = composedToSimple(iter->getCurrent());
-   Key currentKey = p.first;
+                                 OUT bool &_isEnd) {
+  KeyValuePair p = composedToSimple(iter->getCurrent());
+  Key currentKey = p.first;
 
-   // Exhaust all entries for this key
-   while (!iter->isEnd() && p.first == currentKey) {
+  // Exhaust all entries for this key
+  while (!iter->isEnd() && p.first == currentKey) {
+    p = composedToSimple(iter->next());
+  }
+
+  if (iter->isEnd()) {
+    m_isEnd = true;
+    _isEnd = true;
+    return Status::OK();
+  }
+
+  // Find most updated value for next key (with block version < readVersion)
+  Value value;
+  BlockId actualBlock;
+  Key nextKey;
+  CopyKey(p.first, nextKey);
+  bool foundKey = false;
+  // Find max version
+  while (!iter->isEnd() && p.first == nextKey) {
+    BlockId currentBlockId = extractBlockIdFromKey(iter->getCurrent().first);
+    if (currentBlockId <= _readVersion) {
+      value = p.second;
+      actualBlock = currentBlockId;
       p = composedToSimple(iter->next());
-   }
+    } else {
+      if (!foundKey) {
+        // If not found a key with actual block version < readVersion, then
+        // we consider the next key as the key candidate.
 
-   if (iter->isEnd())
-   {
-      m_isEnd = true;
-      _isEnd = true;
-      return Status::OK();
-   }
+        // Start by exhausting the current key with all the newer blocks
+        // records:
+        while (!iter->isEnd() && p.first == nextKey) {
+          p = composedToSimple(iter->next());
+        }
 
-   // Find most updated value for next key (with block version < readVersion)
-   Value value;
-   BlockId actualBlock;
-   Key nextKey;
-   CopyKey(p.first, nextKey);
-   bool foundKey = false;
-   // Find max version
-   while (!iter->isEnd() && p.first == nextKey) {
-      BlockId currentBlockId = extractBlockIdFromKey(iter->getCurrent().first);
-      if (currentBlockId <= _readVersion) {
-         value = p.second;
-         actualBlock = currentBlockId;
-         p = composedToSimple(iter->next());
+        if (iter->isEnd()) {
+          break;
+        }
+
+        CopyKey(p.first, nextKey);
       } else {
-         if (!foundKey) {
-            // If not found a key with actual block version < readVersion, then
-            // we consider the next key as the key candidate.
-
-            // Start by exhausting the current key with all the newer blocks
-            // records:
-            while (!iter->isEnd() && p.first == nextKey) {
-               p = composedToSimple(iter->next());
-            }
-
-            if (iter->isEnd()) {
-               break;
-            }
-
-            CopyKey(p.first, nextKey);
-         } else {
-            // If we already found a suitable key, we break when we find the
-            // maximal
-            break;
-         }
+        // If we already found a suitable key, we break when we find the
+        // maximal
+        break;
       }
-   }
+    }
+  }
 
-   m_isEnd = false;
-   _isEnd = false;
-   _actualVersion = actualBlock;
-   _key = nextKey;
-   _value = value;
-   m_current = KeyValuePair(_key, _value);
+  m_isEnd = false;
+  _isEnd = false;
+  _actualVersion = actualBlock;
+  _key = nextKey;
+  _value = value;
+  m_current = KeyValuePair(_key, _value);
 
-   //TODO return appropriate status?
-   return Status::OK();
+  // TODO return appropriate status?
+  return Status::OK();
 }
 
 /**
@@ -617,15 +591,13 @@ Status BlockchainDBAdapter::next(IDBClient::IDBClientIterator *iter,
  * @return Status OK.
  */
 Status BlockchainDBAdapter::getCurrent(IDBClient::IDBClientIterator *iter,
-                                       OUT Sliver &_key,
-                                       OUT Sliver &_value)
-{
-   // Not calling to underlying DB iterator, because it may have next()'d during
-   // seekAtLeast
-   _key = m_current.first;
-   _value = m_current.second;
+                                       OUT Sliver &_key, OUT Sliver &_value) {
+  // Not calling to underlying DB iterator, because it may have next()'d during
+  // seekAtLeast
+  _key = m_current.first;
+  _value = m_current.second;
 
-   return Status::OK();
+  return Status::OK();
 }
 
 /**
@@ -636,22 +608,18 @@ Status BlockchainDBAdapter::getCurrent(IDBClient::IDBClientIterator *iter,
  * @return Status OK.
  */
 Status BlockchainDBAdapter::isEnd(IDBClient::IDBClientIterator *iter,
-                                  OUT bool &_isEnd)
-{
-   // Not calling to underlying DB iterator, because it may have next()'d during
-   // seekAtLeast
-   LOG4CPLUS_DEBUG(logger, "Called is end, returning " << m_isEnd);
-   _isEnd = m_isEnd;
-   return Status::OK();
+                                  OUT bool &_isEnd) {
+  // Not calling to underlying DB iterator, because it may have next()'d during
+  // seekAtLeast
+  LOG4CPLUS_DEBUG(logger, "Called is end, returning " << m_isEnd);
+  _isEnd = m_isEnd;
+  return Status::OK();
 }
 
 /**
  * @brief Used to monitor the database.
  */
-void BlockchainDBAdapter::monitor() const
-{
-   m_db->monitor();
-}
+void BlockchainDBAdapter::monitor() const { m_db->monitor(); }
 
 /**
  * @brief Used to retrieve the latest block.
@@ -660,36 +628,34 @@ void BlockchainDBAdapter::monitor() const
  *
  * @return Block ID of the latest block.
  */
-BlockId BlockchainDBAdapter::getLatestBlock()
-{
-   //Note: RocksDB stores keys in a sorted fashion as per the logic
-   //provided in a custom comparator (for our case, refer to
-   //Comparators.cpp). In short, keys of type 'block' are stored
-   //first followed by keys of type 'key'. All keys of type 'block'
-   //are sorted in ascending order of block ids.
+BlockId BlockchainDBAdapter::getLatestBlock() {
+  // Note: RocksDB stores keys in a sorted fashion as per the logic
+  // provided in a custom comparator (for our case, refer to
+  // Comparators.cpp). In short, keys of type 'block' are stored
+  // first followed by keys of type 'key'. All keys of type 'block'
+  // are sorted in ascending order of block ids.
 
-   //Generate maximal key for type 'block'
-   Sliver maxKey = genDbKey(EDBKeyType::E_DB_KEY_TYPE_BLOCK, Sliver(),
+  // Generate maximal key for type 'block'
+  Sliver maxKey = genDbKey(EDBKeyType::E_DB_KEY_TYPE_BLOCK, Sliver(),
                            std::numeric_limits<uint64_t>::max());
-   IDBClient::IDBClientIterator *iter = m_db->getIterator();
+  IDBClient::IDBClientIterator *iter = m_db->getIterator();
 
-   //Since we use the maximal key, SeekAtLeast will take the iterator
-   //to one position beyond the key corresponding to the largest block id.
-   KeyValuePair x = iter->seekAtLeast(maxKey);
+  // Since we use the maximal key, SeekAtLeast will take the iterator
+  // to one position beyond the key corresponding to the largest block id.
+  KeyValuePair x = iter->seekAtLeast(maxKey);
 
-   //Read the previous key
-   x = iter->previous();
+  // Read the previous key
+  x = iter->previous();
 
-   m_db->freeIterator(iter);
+  m_db->freeIterator(iter);
 
-   if((x.first).length() == 0) { //no blocks
-      return 0;
-   }
+  if ((x.first).length() == 0) {  // no blocks
+    return 0;
+  }
 
-   LOG4CPLUS_DEBUG(logger, "Latest block ID " <<
-                   extractBlockIdFromKey(x.first));
+  LOG4CPLUS_DEBUG(logger, "Latest block ID " << extractBlockIdFromKey(x.first));
 
-   return extractBlockIdFromKey(x.first);
+  return extractBlockIdFromKey(x.first);
 }
 
 /**
@@ -702,31 +668,29 @@ BlockId BlockchainDBAdapter::getLatestBlock()
  *
  * @return Block ID of the last reachable block.
  */
-BlockId BlockchainDBAdapter::getLastReachableBlock()
-{
-   IDBClient::IDBClientIterator *iter = m_db->getIterator();
+BlockId BlockchainDBAdapter::getLastReachableBlock() {
+  IDBClient::IDBClientIterator *iter = m_db->getIterator();
 
-   BlockId lastReachableId = 0;
-   Sliver blockKey = genBlockDbKey(1);
-   KeyValuePair kvp = iter->seekAtLeast(blockKey);
-   if (kvp.first.length() == 0) {
-      return 0;
-   }
+  BlockId lastReachableId = 0;
+  Sliver blockKey = genBlockDbKey(1);
+  KeyValuePair kvp = iter->seekAtLeast(blockKey);
+  if (kvp.first.length() == 0) {
+    return 0;
+  }
 
-   while (!iter->isEnd()
-      && (extractTypeFromKey(kvp.first) ==
-         (char) EDBKeyType::E_DB_KEY_TYPE_BLOCK)) {
-      BlockId id = extractBlockIdFromKey(kvp.first);
-      if(id == lastReachableId + 1) {
-         lastReachableId++;
-         kvp = iter->next();
-      } else {
-         break;
-      }
-   }
+  while (!iter->isEnd() && (extractTypeFromKey(kvp.first) ==
+                            (char)EDBKeyType::E_DB_KEY_TYPE_BLOCK)) {
+    BlockId id = extractBlockIdFromKey(kvp.first);
+    if (id == lastReachableId + 1) {
+      lastReachableId++;
+      kvp = iter->next();
+    } else {
+      break;
+    }
+  }
 
-   m_db->freeIterator(iter);
-   return lastReachableId;
+  m_db->freeIterator(iter);
+  return lastReachableId;
 }
 
-}
+}  // namespace Blockchain

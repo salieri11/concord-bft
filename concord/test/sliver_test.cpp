@@ -7,8 +7,8 @@
  * leaks/double-frees/etc. `valgrind --leak-check=full test/SliverTests`
  */
 
-#include "gtest/gtest.h"
 #include "kvb/sliver.hpp"
+#include "gtest/gtest.h"
 
 using namespace std;
 using Blockchain::Sliver;
@@ -31,8 +31,7 @@ uint8_t* new_test_memory(size_t length) {
   return buffer;
 }
 
-bool is_match(const uint8_t* expected,
-              const size_t expected_length,
+bool is_match(const uint8_t* expected, const size_t expected_length,
               const Sliver& actual) {
   if (expected_length != actual.length()) {
     return false;
@@ -80,8 +79,8 @@ TEST(sliver_test, offsets) {
 
   Sliver base(expected, test_size);
   for (size_t offset = 1; offset < test_size; offset += 5) {
-    Sliver subsliver(base, offset, test_size-offset);
-    ASSERT_TRUE(is_match(expected+offset, test_size-offset, subsliver));
+    Sliver subsliver(base, offset, test_size - offset);
+    ASSERT_TRUE(is_match(expected + offset, test_size - offset, subsliver));
   }
 }
 
@@ -94,12 +93,11 @@ TEST(sliver_test, lengths) {
 
   Sliver base(expected, test_size);
   const size_t step = 7;
-  for (size_t length = test_size-1; length > step; length -= step) {
+  for (size_t length = test_size - 1; length > step; length -= step) {
     Sliver subsliver(base, 0, length);
     ASSERT_TRUE(is_match(expected, length, subsliver));
   }
 }
-
 
 /**
  * Test that nested offsetting and lengths works.
@@ -112,16 +110,14 @@ TEST(sliver_test, nested) {
   const size_t offset_step = 3;
   const size_t length_step = 4;
   for (size_t offset = offset_step,
-         length = test_size-(offset_step+length_step);
-       length > (offset_step+length_step);
-       offset += offset_step,
-         length -= (length_step+offset_step)) {
-    Sliver subsliver(base,
-                     offset_step,
-                     base.length()-(offset_step+length_step));
-    ASSERT_TRUE(is_match(expected+offset, length, subsliver))
-      << " Expected length: " << length << std::endl
-      << "   Actual length: " << subsliver.length();
+              length = test_size - (offset_step + length_step);
+       length > (offset_step + length_step);
+       offset += offset_step, length -= (length_step + offset_step)) {
+    Sliver subsliver(base, offset_step,
+                     base.length() - (offset_step + length_step));
+    ASSERT_TRUE(is_match(expected + offset, length, subsliver))
+        << " Expected length: " << length << std::endl
+        << "   Actual length: " << subsliver.length();
     base = subsliver;
   }
 }
@@ -130,7 +126,8 @@ TEST(sliver_test, nested) {
  * Create a base sliver, and then return a subsliver. Used to test that the
  * shared pointer is handled properly.
  */
-Sliver copied_subsliver(size_t base_size, size_t sub_offset, size_t sub_length) {
+Sliver copied_subsliver(size_t base_size, size_t sub_offset,
+                        size_t sub_length) {
   uint8_t* data = new_test_memory(base_size);
   Sliver base(data, base_size);
   Sliver sub(base, sub_offset, sub_length);
@@ -155,8 +152,8 @@ TEST(sliver_test, copying) {
   const size_t test_length2 = 20;
   Sliver actual2 = copied_subsliver(test_size, test_offset2, test_length2);
 
-  ASSERT_TRUE(is_match(expected+test_offset1, test_length1, actual1));
-  ASSERT_TRUE(is_match(expected+test_offset2, test_length2, actual2));
+  ASSERT_TRUE(is_match(expected + test_offset1, test_length1, actual1));
+  ASSERT_TRUE(is_match(expected + test_offset2, test_length2, actual2));
 
   // we didn't wrap the expected buffer this time, so we need to free it
   // ourselves, instead of letting the Sliver do it
@@ -165,7 +162,7 @@ TEST(sliver_test, copying) {
 
 }  // end namespace
 
-int main(int argc, char **argv) {
-   ::testing::InitGoogleTest(&argc, argv);
-   return RUN_ALL_TESTS();
+int main(int argc, char** argv) {
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }

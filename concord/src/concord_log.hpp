@@ -16,7 +16,7 @@ namespace vmware {
 namespace concord {
 
 struct HexPrintVector {
-   std::vector<uint8_t> const& vec;
+  std::vector<uint8_t> const& vec;
 };
 
 struct HexPrintBytes {
@@ -26,12 +26,12 @@ struct HexPrintBytes {
 
 std::ostream& operator<<(std::ostream& s, HexPrintVector v);
 std::ostream& operator<<(std::ostream& s, HexPrintBytes p);
-std::ostream& operator<<(std::ostream& s, const evm_uint256be &u);
-std::ostream& operator<<(std::ostream& s, const evm_address &u);
+std::ostream& operator<<(std::ostream& s, const evm_uint256be& u);
+std::ostream& operator<<(std::ostream& s, const evm_address& u);
 std::ostream& operator<<(std::ostream& s, struct evm_message msg);
 std::ostream& operator<<(std::ostream& s, evm_call_kind kind);
-}
-}
-}
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com
 
-#endif //CONCORD_LOG_HPP
+#endif  // CONCORD_LOG_HPP

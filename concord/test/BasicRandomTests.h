@@ -9,11 +9,10 @@
 
 using namespace Blockchain;
 
-namespace BasicRandomTests
-{
-   void run(IClient* client, const size_t numOfOperations);
+namespace BasicRandomTests {
+void run(IClient* client, const size_t numOfOperations);
 
-   ICommandsHandler* commandsHandler();
-}
+ICommandsHandler* commandsHandler();
+}  // namespace BasicRandomTests
 
 #endif
