@@ -11,16 +11,16 @@ import os
 import tempfile
 from time import strftime, localtime
 
-from suites import (core_vm_tests, ext_rpc_tests, helen_api_tests,
-                    regression_tests, simple_st_test,
-                    ui_tests, asset_transfer_tests)
+from suites import (asset_transfer_tests, core_vm_tests, ext_rpc_tests,
+                    helen_api_tests, performance_tests, regression_tests,
+                    simple_st_test, ui_tests)
 
 from util import html, json_helper
 
 log = None
-suites = ["CoreVMTests", "ExtendedRPCTests", "HelenAPITests",
-          "RegressionTests", "SimpleStateTransferTest",
-          "UiTests", "AssetTransferTests", ]
+suites = ["AssetTransferTests", "CoreVMTests", "ExtendedRPCTests",
+          "HelenAPITests", "PerformanceTests", "RegressionTests",
+          "SimpleStateTransferTest", "UiTests"]
 
 def main():
    startTime = datetime.datetime.now()

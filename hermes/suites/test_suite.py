@@ -60,6 +60,7 @@ class TestSuite(ABC):
          self._repeatSuiteRun = True
       else:
          self._repeatSuiteRun = False
+      self._hermes_home = self._args.hermes_dir
 
    def loadConfigFile(self):
       '''

@@ -103,21 +103,37 @@ Hermes is the testing framework for VMW Blockchain.
 All set! Run hermes as usual.
 
 ## Running the Performance Test suite:
-- The performance test utility assumes the format specified [here](https://vmwblockchain.atlassian.net/browse/ATH-4?filter=-5)
-  for the test file.
-- A sample test file can be downloaded from [here](http://pa-dbc1122.eng.vmware.com/bfink/vmwathena/test-data/NORMALIZED_COMMANDS.txt.gz)
-- Note: The test file should be a *.txt.gz file and it should be present in the same location as main.py.
-- The name of the file may be specified in resources/user_config.json under performance->filename.
-- Install dependencies:
+- The performance test sub-module is under blockchain/performance, majorly written in Java
+- To run the test from hermes, the sub-module has to be maven built
 ```
-sudo apt-get install python3-matplotlib
-sudo pip3 install numpy
+blockchain/performance$ mvn clean install assembly:single
 ```
 - Usage:
 ```
-./main.py PerformanceTests
+herme$ ./main.py PerformanceTests
 ```
-- To terminate the test early use command-C. This will stop the test and will only parse results attained up until that point.
+- Result:
+```
+Starting test 'performance_test'
+[main] INFO com.vmware.blockchain.performance.BallotDApp - Authentication Enabled: true
+[main] INFO com.vmware.blockchain.performance.BallotDApp - Connected to Ethereum client version: Helen/v1.1.0/linux/java1.8.0
+[main] INFO com.vmware.blockchain.performance.BallotDApp - Smart contract deployed to address 0x06ca9f6b9d4f010af085004f1a750c8da75be1a3
+[main] INFO com.vmware.blockchain.performance.BallotDApp - Transaction info about deploying contract:
+TransactionReceipt{transactionHash='0x7adade17e7db68373062d1581b139b74c67722a9cf622ab89ad32cea108a0c2a', transactionIndex='0', blockHash='0xe6bc52f7663e69f8f323d7d912e9d2f4806c765cb0db8e738a8460de2bc1bd7e', blockNumber='2', cumulativeGasUsed='null', gasUsed='null', contractAddress='0x06ca9f6b9d4f010af085004f1a750c8da75be1a3', root='null', status='0x1', from='null', to='null', logs=[], logsBloom='null'}
+[main] INFO com.vmware.blockchain.performance.BallotDApp - Total Time for Granting Right is 1324749481 nano seconds
+[main] INFO com.vmware.blockchain.performance.BallotDApp - Concurrency Start Time is: 94065573556276
+[main] INFO com.vmware.blockchain.performance.BallotDApp - Concurrency End time is: 94065588616412
+[main] INFO com.vmware.blockchain.performance.BallotDApp - Concurrency Total Time is: 15060136
+[main] INFO com.vmware.blockchain.performance.BallotDApp - Average time response time: 1.854121627E8
+[main] INFO com.vmware.blockchain.performance.BallotDApp - Start time of processing Voting: 94065581834528
+[main] INFO com.vmware.blockchain.performance.BallotDApp - End time of processing Voting: 94065857089154
+[main] INFO com.vmware.blockchain.performance.BallotDApp - Total time for process: 275254626 nano seconds
+[main] INFO com.vmware.blockchain.performance.BallotDApp - Transaction Rate: 36.329997956146975
+
+PASS
+Tests are done.
+
+```
 
 ## Launching geth:
 - If running the test suite against geth as a reference implementation, you need
@@ -280,3 +296,23 @@ Storage at contract '0xB35B8B030A4BC592EA8CCF3684512CE083F108DC' after contract 
 Data returned by the contract (32 bytes at a time):
    0: 0x0000000000000000000000000000000000000000000000000000000000000004  <--- The bytecode was able to return a value.
 ```
+
+## Old Performance Test suite:
+THIS BLOCK SHOULD BE TESTED AND THEN MOVED TO THE TOP SECTION OF THIS PAGE
+
+- The performance test utility assumes the format specified [here](https://vmwblockchain.atlassian.net/browse/ATH-4?filter=-5)
+  for the test file.
+- A sample test file can be downloaded from [here](http://pa-dbc1122.eng.vmware.com/bfink/vmwathena/test-data/NORMALIZED_COMMANDS.txt.gz)
+- Note: The test file should be a *.txt.gz file and it should be present in the same location as main.py.
+- The name of the file may be specified in resources/user_config.json under performance->filename.
+- Install dependencies:
+```
+sudo apt-get install python3-matplotlib
+sudo pip3 install numpy
+```
+- Usage:
+```
+./main.py PerformanceTests
+```
+- To terminate the test early use command-C. This will stop the test and will only parse results attained up until that point.
+

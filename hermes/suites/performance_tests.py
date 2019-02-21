@@ -1,0 +1,109 @@
+#########################################################################
+# Copyright 2018 - 2019 VMware, Inc.  All rights reserved. -- VMware Confidential
+#
+# Tests covering Performance.
+#########################################################################
+
+
+#########################################################################
+# Example executions
+# ./main.py PerformanceTests
+#########################################################################
+
+import logging
+import os
+import traceback
+import subprocess
+
+from . import test_suite
+
+log = logging.getLogger(__name__)
+
+class PerformanceTests(test_suite.TestSuite):
+   _args = None
+   _userConfig = None
+   _resultFile = None
+
+   def __init__(self, passedArgs):
+      super(PerformanceTests, self).__init__(passedArgs)
+      self._performance_submodule = os.path.join(self._hermes_home,
+                                            '..', 'performance')
+
+   def getName(self):
+      return "PerformanceTests"
+
+   def _runTest(self, testName, testFun, testLogDir):
+      log.info("Starting test '{}'".format(testName))
+      fileRoot = os.path.join(self._testLogDir, testName);
+      os.makedirs(fileRoot, exist_ok=True)
+      return testFun(fileRoot)
+
+
+   def run(self):
+      ''' Runs all of the tests. '''
+      try:
+         log.info("Launching product...")
+         self.launchProduct(self._args,
+                            self._userConfig)
+      except Exception as e:
+         log.error(traceback.format_exc())
+         return self._resultFile
+
+      tests = self._getTests()
+
+      for (testName, testFun) in tests:
+         testLogDir = os.path.join(self._testLogDir, testName)
+         try:
+            result, info = self._runTest(testName,
+                                         testFun,
+                                         testLogDir)
+         except Exception as e:
+            result = False
+            info = str(e)
+            traceback.print_tb(e.__traceback__)
+            log.error("Exception running test: '{}'".format(info))
+
+         if info:
+            info += "  "
+         else:
+            info = ""
+
+         relativeLogDir = self.makeRelativeTestPath(testLogDir)
+         info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
+                                                     testLogDir)
+         self.writeResult(testName, result, info)
+
+      log.info("Tests are done.")
+      return self._resultFile
+
+
+   def _getTests(self):
+      return [("performance_test", self._test_performance)]
+
+   def _test_performance(self, fileRoot):
+      if not os.path.isdir(self._performance_submodule):
+         return (False, "Performance repo {} does not Exist"
+                 .format(self._performance_submodule))
+
+      performance_jar = os.path.join(
+                self._performance_submodule,
+                "target/performance-1.0-SNAPSHOT-jar-with-dependencies.jar")
+      if not os.path.isfile(performance_jar):
+         return (False, "Performance jar file {} does not Exist".
+                 format(performance_jar))
+
+      concurrent_votes = "10"
+      proposals = os.path.join(self._performance_submodule, 'data', 'proposals')
+      results = os.path.join(self._performance_submodule, fileRoot)
+
+      cmd = ["java", "-Xmx1g", "-jar", performance_jar,
+             "localhost", concurrent_votes, proposals, results]
+      completedProcess = subprocess.run(cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT)
+      psOutput = completedProcess.stdout.decode("UTF-8")
+      log.info(psOutput)
+      if 'Transaction Rate: ' not in psOutput:
+         return (False, "Failed to run Performance Test")
+
+      return (True, None)
