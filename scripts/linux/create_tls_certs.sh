@@ -21,9 +21,8 @@ while [ $i -lt $1 ]; do
    clientDir=$dir/$i/client
    serverDir=$dir/$i/server
 
-   mkdir $dir/$i
-   mkdir $clientDir
-   mkdir $serverDir
+   mkdir -p $clientDir
+   mkdir -p $serverDir
 
    openssl ecparam -name secp384r1 -genkey -noout -out \
 $serverDir/pk.pem
