@@ -687,15 +687,16 @@ Boolean retryCurl(command, failOnError){
       statusHeader = headers.readLines()[0]
       statusCode = statusHeader.split(" ")[1]
 
-      if(statusCode == "200"){
-        return true
-      }else{
-        echo "Error with '" + command + "', returned status: '" + statusHeader + "'"
+      if(statusCode == "500" || statusCode == "503"){
+        echo "Attempt " + tries + " of command '" + command + "', returned status: '" + statusHeader + "'"
 
         if(tries < maxTries){
           echo "Retrying in " + sleepTime + " seconds"
           sleep(sleepTime)
         }
+      }
+      else{
+        return true
       }
     }
   }
