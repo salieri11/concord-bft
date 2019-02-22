@@ -11,6 +11,7 @@ import {
   platformBrowserDynamicTesting
 } from '@angular/platform-browser-dynamic/testing';
 
+const TIMEOUT_INTERVAL = 30000; // 30 seconds
 declare const require: any;
 
 // First, initialize the Angular testing environment.
@@ -18,6 +19,8 @@ getTestBed().initTestEnvironment(
   BrowserDynamicTestingModule,
   platformBrowserDynamicTesting()
 );
+// Extend the global jasmine timeout interval
+jasmine.DEFAULT_TIMEOUT_INTERVAL = TIMEOUT_INTERVAL;
 // Then we find all the tests.
 const context = require.context('./', true, /\.spec\.ts$/);
 // And load the modules.
