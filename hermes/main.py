@@ -13,14 +13,14 @@ from time import strftime, localtime
 
 from suites import (asset_transfer_tests, core_vm_tests, ext_rpc_tests,
                     helen_api_tests, performance_tests, regression_tests,
-                    simple_st_test, ui_tests)
+                    simple_st_test, truffle_tests, ui_tests)
 
 from util import html, json_helper
 
 log = None
 suites = ["AssetTransferTests", "CoreVMTests", "ExtendedRPCTests",
           "HelenAPITests", "PerformanceTests", "RegressionTests",
-          "SimpleStateTransferTest", "UiTests"]
+          "SimpleStateTransferTest", "TruffleTests", "UiTests"]
 
 def main():
    startTime = datetime.datetime.now()
@@ -153,7 +153,9 @@ def setUpLogging(args):
       exit(1)
 
 def createTestSuite(args):
-   if (args.suite == "CoreVMTests"):
+   if (args.suite == "AssetTransferTests"):
+      return asset_transfer_tests.AssetTransferTests(args)
+   elif (args.suite == "CoreVMTests"):
       return core_vm_tests.CoreVMTests(args)
    elif (args.suite == "HelenAPITests"):
       return helen_api_tests.HelenAPITests(args)
@@ -165,10 +167,10 @@ def createTestSuite(args):
       return performance_tests.PerformanceTests(args)
    elif (args.suite == "RegressionTests"):
       return regression_tests.RegressionTests(args)
-   elif (args.suite == "AssetTransferTests"):
-      return asset_transfer_tests.AssetTransferTests(args)
    elif (args.suite == "SimpleStateTransferTest"):
       return simple_st_test.SimpleStateTransferTest(args)
+   elif (args.suite == "TruffleTests"):
+      return truffle_tests.TruffleTests(args)
    elif (args.suite == "UiTests"):
       return ui_tests.UiTests(args)
 
