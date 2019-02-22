@@ -214,6 +214,9 @@ sudo make install-shared
 
 ### Concord
 
+At build-time, concord takes advantage of clang-format (v6.0) to check code
+formatting. Make sure you have it installed as well.
+
 Once dependencies are installed, make sure you have initialized the
 submodules. The first time you build, this is done by:
 
@@ -239,7 +242,14 @@ concord/build$ cmake ..
 concord/build$ make
 ```
 
-This should produce a `concord` executable.
+If the build fails because of formatting issues then you can run the following
+command for auto-correction:
+
+```shell
+concord/build$ make format
+```
+
+On a successful build you have a `concord` executable.
 
 Run the executable to start concord:
 
