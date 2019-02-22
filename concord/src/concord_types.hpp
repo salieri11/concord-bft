@@ -26,44 +26,44 @@ typedef struct EthLog {
 } EthLog;
 
 typedef struct EthTransaction {
-   uint64_t nonce;
-   evm_uint256be block_hash;
-   uint64_t block_number;
-   evm_address from;
-   evm_address to;
-   evm_address contract_address;
-   std::vector<uint8_t> input;
-   evm_status_code status;
-   uint64_t value;
-   uint64_t gas_price;
-   uint64_t gas_limit;
-   std::vector<EthLog> logs;
-   evm_uint256be sig_r;
-   evm_uint256be sig_s;
-   uint64_t sig_v;
+  uint64_t nonce;
+  evm_uint256be block_hash;
+  uint64_t block_number;
+  evm_address from;
+  evm_address to;
+  evm_address contract_address;
+  std::vector<uint8_t> input;
+  evm_status_code status;
+  uint64_t value;
+  uint64_t gas_price;
+  uint64_t gas_limit;
+  std::vector<EthLog> logs;
+  evm_uint256be sig_r;
+  evm_uint256be sig_s;
+  uint64_t sig_v;
 
-   std::vector<uint8_t> rlp() const;
-   evm_uint256be hash() const;
-   size_t serialize(uint8_t** out);
-   static struct EthTransaction deserialize(Blockchain::Sliver &input);
+  std::vector<uint8_t> rlp() const;
+  evm_uint256be hash() const;
+  size_t serialize(uint8_t **out);
+  static struct EthTransaction deserialize(Blockchain::Sliver &input);
 } EthTransaction;
 
 typedef struct EthBlock {
-   uint64_t number;
-   uint64_t timestamp;
-   evm_uint256be hash;
-   evm_uint256be parent_hash;
-   uint64_t gas_limit;
-   std::vector<evm_uint256be> transactions;
+  uint64_t number;
+  uint64_t timestamp;
+  evm_uint256be hash;
+  evm_uint256be parent_hash;
+  uint64_t gas_limit;
+  std::vector<evm_uint256be> transactions;
 
-   evm_uint256be get_hash() const;
-   size_t serialize(uint8_t** out);
-   static struct EthBlock deserialize(Blockchain::Sliver &input);
+  evm_uint256be get_hash() const;
+  size_t serialize(uint8_t **out);
+  static struct EthBlock deserialize(Blockchain::Sliver &input);
 } EthBlock;
 
-}
-}
-}
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com
 
 // Byte-wise comparators for evm_uint256be and evm_address. This allows us to
 // use these types as keys in a std::map. Must be in the global namespace.
@@ -74,4 +74,4 @@ bool operator<(const evm_address &a, const evm_address &b);
 bool operator!=(const evm_address &a, const evm_address &b);
 bool operator==(const evm_address &a, const evm_address &b);
 
-#endif //CONCORD_TYPES_HPP
+#endif  // CONCORD_TYPES_HPP

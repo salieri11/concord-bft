@@ -5,12 +5,12 @@
 #ifndef CONCORD_UTILS_HPP
 #define CONCORD_UTILS_HPP
 
+#include <evmjit.h>
 #include <log4cplus/loggingmacros.h>
+#include <chrono>
 #include <fstream>
 #include <iostream>
-#include <evmjit.h>
 #include "json.hpp"
-#include <chrono>
 
 namespace com {
 namespace vmware {
@@ -24,10 +24,10 @@ uint64_t from_evm_uint256be(const evm_uint256be *val);
 
 int64_t get_epoch_millis();
 
-std::ostream& hexPrint(std::ostream &s, const uint8_t *data, size_t size);
+std::ostream &hexPrint(std::ostream &s, const uint8_t *data, size_t size);
 
-}
-}
-}
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com
 
-#endif //CONCORD_UTILS_HPP
+#endif  // CONCORD_UTILS_HPP

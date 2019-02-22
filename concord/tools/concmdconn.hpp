@@ -9,7 +9,7 @@
 #include "concord.pb.h"
 
 bool call_concord(boost::program_options::variables_map &opts,
-                 com::vmware::concord::ConcordRequest &request,
-                 com::vmware::concord::ConcordResponse &response /* out */);
+                  com::vmware::concord::ConcordRequest &request,
+                  com::vmware::concord::ConcordResponse &response /* out */);
 
 #endif

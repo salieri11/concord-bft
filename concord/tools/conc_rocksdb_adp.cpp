@@ -6,34 +6,28 @@
 // string format and getDigest - returns hash of the block which is short.
 // The -p parameter maybe single block number or range in to:from format
 #define USE_ROCKSDB 1
-#include <iostream>
-#include <iomanip>
-#include <string>
-#include "kvb/RocksDBClient.h"
-#include "kvb/Comparators.h"
-#include "kvb/BlockchainDBAdapter.h"
 #include <keccak.h>
 #include <log4cplus/configurator.h>
+#include <iomanip>
+#include <iostream>
+#include <string>
+#include "kvb/BlockchainDBAdapter.h"
+#include "kvb/Comparators.h"
+#include "kvb/RocksDBClient.h"
 
 using namespace std;
 using namespace Blockchain;
 
-enum class OpType
-{
-  GetBlockRaw,
-  GetBlockDigest
-};
+enum class OpType { GetBlockRaw, GetBlockDigest };
 
-unordered_map<string, OpType> opTypes =
-{
+unordered_map<string, OpType> opTypes = {
     {"getRaw", OpType::GetBlockRaw},
     {"getDigest", OpType::GetBlockDigest},
 };
 
-string get_arg_value(string arg)
-{
+string get_arg_value(string arg) {
   int idx = arg.find("=");
-  return arg.substr(idx + 1, arg.length() - idx -1);
+  return arg.substr(idx + 1, arg.length() - idx - 1);
 }
 
 bool get_block(BlockId id, BlockchainDBAdapter adapter, Sliver &res) {
@@ -43,9 +37,9 @@ bool get_block(BlockId id, BlockchainDBAdapter adapter, Sliver &res) {
 }
 
 std::vector<Sliver> get_data(BlockId from, BlockId to,
-    BlockchainDBAdapter adapter) {
+                             BlockchainDBAdapter adapter) {
   std::vector<Sliver> result;
-  for(BlockId i = from; i <= to; i++) {
+  for (BlockId i = from; i <= to; i++) {
     Sliver res;
     bool found = get_block(i, adapter, res);
     if (found) {
@@ -56,9 +50,8 @@ std::vector<Sliver> get_data(BlockId from, BlockId to,
   return result;
 }
 
-void compute_digest(
-    uint8_t *data, size_t length, uint8_t *output, size_t outputLenght,
-      size_t &actualOutputLength) {
+void compute_digest(uint8_t *data, size_t length, uint8_t *output,
+                    size_t outputLenght, size_t &actualOutputLength) {
   assert(output);
   assert(outputLenght >= CryptoPP::Keccak_256::DIGESTSIZE);
   CryptoPP::Keccak_256 keccak;
@@ -67,21 +60,22 @@ void compute_digest(
 }
 
 void print_result(vector<Sliver> &results,
-    void(*transform)(uint8_t*, size_t, uint8_t*, size_t, size_t &) = nullptr) {
+                  void (*transform)(uint8_t *, size_t, uint8_t *, size_t,
+                                    size_t &) = nullptr) {
   if (results.size() == 0) {
     cout << "Not found" << endl << "Total size :0" << endl;
   } else {
     int totalSize = 0;
     for (auto &data : results) {
       totalSize += data.length();
-      cout << endl << "------- start, data size " << data.length() <<
-           "---------";
+      cout << endl
+           << "------- start, data size " << data.length() << "---------";
       cout << endl;
 
       uint8_t printData[1024];
       uint8_t *printPtr = nullptr;
       size_t printLength = 0;
-      if(transform) {
+      if (transform) {
         printPtr = printData;
         transform(data.data(), data.length(), printData, 1024, printLength);
       } else {
@@ -89,41 +83,40 @@ void print_result(vector<Sliver> &results,
         printLength = data.length();
       }
       for (size_t i = 0; i < printLength; i++) {
-        cout << hex << setfill('0') << setw(2) << (int)printPtr[i]
-             << " ";
+        cout << hex << setfill('0') << setw(2) << (int)printPtr[i] << " ";
       }
 
       cout << dec;
-      cout << endl << "------- end, data size " << data.length() <<
-           "---------";
+      cout << endl << "------- end, data size " << data.length() << "---------";
       cout << endl;
     }
     cout << "Total size :" << totalSize << endl;
   }
 }
 
-int main(int argc, char** argv)
-{
+int main(int argc, char **argv) {
   using namespace log4cplus;
   initialize();
   BasicConfigurator config;
   config.configure();
   log4cplus::Logger::getRoot().setLogLevel(OFF_LOG_LEVEL);
 
-  if(argc < 2) {
+  if (argc < 2) {
     cout << "Usage: conc_rocksdb_adp"
-    << " -path={RocksDbFolder}" << " -op={getRaw|getDigest} -p={blockNum|fromBlockNum:toBlockNum}" <<  endl;
+         << " -path={RocksDbFolder}"
+         << " -op={getRaw|getDigest} -p={blockNum|fromBlockNum:toBlockNum}"
+         << endl;
     return 0;
   }
 
   string path = get_arg_value(string(argv[1]));
   string op = get_arg_value(string(argv[2]));
   string p = get_arg_value(string(argv[3]));
-  BlockId from,to;
+  BlockId from, to;
   auto idx = p.find(":");
-  if(idx != string::npos) {
+  if (idx != string::npos) {
     from = stoul(p.substr(0, idx));
-    to = stoul(p.substr(idx + 1, p.length() - idx -1));
+    to = stoul(p.substr(idx + 1, p.length() - idx - 1));
   } else {
     from = to = stoul(p);
   }
@@ -136,20 +129,19 @@ int main(int argc, char** argv)
   auto client = RocksDBClient(path, comp);
   auto adapter = BlockchainDBAdapter(&client);
 
-  if(opTypes.find(op) == opTypes.end()) {
+  if (opTypes.find(op) == opTypes.end()) {
     cout << "Error, operation not supported" << endl;
     goto exit;
   }
 
-  if(opTypes[op] == OpType::GetBlockRaw ||
+  if (opTypes[op] == OpType::GetBlockRaw ||
       opTypes[op] == OpType::GetBlockDigest) {
     client.init(true);
   } else {
     client.init();
   }
 
-  switch(opTypes[op])
-  {
+  switch (opTypes[op]) {
     case OpType::GetBlockDigest: {
       std::vector<Sliver> results = get_data(from, to, adapter);
       print_result(results, compute_digest);

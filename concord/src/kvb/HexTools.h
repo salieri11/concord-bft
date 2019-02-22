@@ -6,6 +6,6 @@
 #include <stdio.h>
 #include <string>
 
-std::ostream& hexPrint(std::ostream &s, const uint8_t *data, size_t size);
+std::ostream &hexPrint(std::ostream &s, const uint8_t *data, size_t size);
 
 #endif
