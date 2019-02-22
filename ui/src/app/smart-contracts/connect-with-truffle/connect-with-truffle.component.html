@@ -2,15 +2,12 @@
   <h3 class="modal-title">{{ 'smartContracts.truffle.title' | translate }}</h3>
   <div class="modal-body">
     <p>1. <a href="https://truffleframework.com/docs/truffle/getting-started/installation" target="_blank">{{ 'smartContracts.truffle.first' | translate }}</a></p>
-    <concord-code-highlighter [textToHighlight]="'npm install -g truffle'"
+    <concord-code-highlighter [textToHighlight]="'npm install -g truffle@4.1.15'"
                              [language]="'json'"></concord-code-highlighter>
     <p>2. {{ 'smartContracts.truffle.second' | translate }}</p>
     <concord-code-highlighter [textToHighlight]="truffleSetup"
                              [language]="'json'"></concord-code-highlighter>
     <p>3. {{ 'smartContracts.truffle.third' | translate }}</p>
-    <concord-code-highlighter [textToHighlight]="truffleExample1"
-                             [language]="'javascript'"></concord-code-highlighter>
-    <p>{{ 'smartContracts.truffle.option' | translate }}</p>
     <concord-code-highlighter [textToHighlight]="truffleExample2"
                              [language]="'javascript'"></concord-code-highlighter>
     <p>4. {{ 'smartContracts.truffle.fourth' | translate }} </p>
