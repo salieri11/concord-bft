@@ -21,6 +21,7 @@ import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Versioned;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.reactivestreams.Subscription;
 
 /**
  * Basic functionality test of {@link KeyValueStore} operations, in Java.
@@ -75,7 +76,10 @@ class KeyValueStoreJavaInteropTest {
      *
      * @return  a new {@link BaseSubscriber} instance.
      */
-    private <T> BaseSubscriber<T> newObservingSubscriber(List<T> observation, Runnable onComplete) {
+    private <T> BaseSubscriber<T> newObservingSubscriber(
+            List<T> observation,
+            Runnable onComplete
+    ) {
         return ReactiveStream.newBaseSubscriber(
                 subscription -> subscription.request(Long.MAX_VALUE),
                 observation::add,
@@ -135,11 +139,14 @@ class KeyValueStoreJavaInteropTest {
             V value,
             T initialVersion
     ) throws InterruptedException {
+        // Setup potential observations to be appended to.
+        var potentialObservations = new ArrayList<Event<K, V, T>>();
+
         // Setup the event sink.
         var eventSink = server.subscribe(32);
-        var eventsDone = new CountDownLatch(1);
+        var eventingDone = new CountDownLatch(1);
         var observations = new ArrayList<Event<K, V, T>>();
-        var eventSinkSubscriber = newObservingSubscriber(observations, eventsDone::countDown);
+        var eventSinkSubscriber = newObservingSubscriber(observations, eventingDone::countDown);
         eventSink.subscribe(eventSinkSubscriber);
 
         // Create a new key-value entry.
@@ -148,7 +155,11 @@ class KeyValueStoreJavaInteropTest {
         var createFinished = new CountDownLatch(1);
         var createSubscriber = this.<Versioned<V, T>>newResultSubscriber(
                 element -> createResult.compareAndSet(null, element),
-                createFinished::countDown
+                () -> {
+                    potentialObservations
+                            .add(new Event.ChangeEvent<>(key, value, initialVersion.next()));
+                    createFinished.countDown();
+                }
         );
         createPublisher.subscribe(createSubscriber);
         Assertions.assertThat(createFinished.await(100, TimeUnit.MILLISECONDS)).isTrue();
@@ -175,25 +186,25 @@ class KeyValueStoreJavaInteropTest {
         var deleteFinished = new CountDownLatch(1);
         var deleteSubscriber = this.<Versioned<V, T>>newResultSubscriber(
                 element -> deleteResult.compareAndSet(null, element),
-                deleteFinished::countDown
+                () -> {
+                    potentialObservations.add(new Event.DeleteEvent<>(key, getVersion));
+                    deleteFinished.countDown();
+                }
         );
         deletePublisher.subscribe(deleteSubscriber);
         Assertions.assertThat(deleteFinished.await(100, TimeUnit.MILLISECONDS)).isTrue();
         var deleteVersioned = deleteResult.get();
         Assertions.assertThat(deleteVersioned).isInstanceOf(Versioned.Just.class);
-        var deleteVersion = ((Versioned.Just<Value, MonotonicInt>)deleteVersioned).getVersion();
+        @SuppressWarnings("unchecked")
+        var deleteVersion = ((Versioned.Just<Value, MonotonicInt>) deleteVersioned).getVersion();
         Assertions.assertThat(deleteVersion).isEqualTo(getVersion);
-
-        // Verify the observations on event sinks.
-        Assertions.assertThat(observations)
-                .containsExactly(
-                        new Event.ChangeEvent<>(key, value, getVersion),
-                        new Event.DeleteEvent<>(key, getVersion)
-                );
 
         // Orderly close the publisher.
         server.unsubscribe(eventSink);
-        Assertions.assertThat(eventsDone.await(100, TimeUnit.MILLISECONDS)).isTrue();
+        Assertions.assertThat(eventingDone.await(100, TimeUnit.MILLISECONDS)).isTrue();
+
+        // Verify the observations on event sinks.
+        Assertions.assertThat(potentialObservations).containsSequence(observations);
     }
 
     /**
@@ -219,11 +230,14 @@ class KeyValueStoreJavaInteropTest {
             Value value,
             T initialVersion
     ) throws InterruptedException {
+        // Setup potential observations to be appended to.
+        var potentialObservations = new ArrayList<Event<Value, Value, T>>();
+
         // Setup the event sink.
         var eventSink = server.subscribe(32);
-        var eventsDone = new CountDownLatch(1);
+        var eventingDone = new CountDownLatch(1);
         var observations = new ArrayList<Event<Value, Value, T>>();
-        var eventSinkSubscriber = newObservingSubscriber(observations, eventsDone::countDown);
+        var eventSinkSubscriber = newObservingSubscriber(observations, eventingDone::countDown);
         eventSink.subscribe(eventSinkSubscriber);
 
         // Create a new key-value entry.
@@ -232,7 +246,11 @@ class KeyValueStoreJavaInteropTest {
         var createFinished = new CountDownLatch(1);
         var createSubscriber = this.<Versioned<Value, T>>newResultSubscriber(
                 element -> createResult.compareAndSet(null, element),
-                createFinished::countDown
+                () -> {
+                    potentialObservations
+                            .add(new Event.ChangeEvent<>(key, value, initialVersion.next()));
+                    createFinished.countDown();
+                }
         );
         createPublisher.subscribe(createSubscriber);
         Assertions.assertThat(createFinished.await(100, TimeUnit.MILLISECONDS)).isTrue();
@@ -259,7 +277,10 @@ class KeyValueStoreJavaInteropTest {
         var deleteFinished = new CountDownLatch(1);
         var deleteSubscriber = this.<Versioned<Value, T>>newResultSubscriber(
                 element -> deleteResult.compareAndSet(null, element),
-                deleteFinished::countDown
+                () -> {
+                    potentialObservations.add(new Event.DeleteEvent<>(key, getVersion));
+                    deleteFinished.countDown();
+                }
         );
         deletePublisher.subscribe(deleteSubscriber);
         Assertions.assertThat(deleteFinished.await(100, TimeUnit.MILLISECONDS)).isTrue();
@@ -268,16 +289,12 @@ class KeyValueStoreJavaInteropTest {
         var deleteVersion = ((Versioned.Just<Value, T>)deleteVersioned).getVersion();
         Assertions.assertThat(deleteVersion).isEqualTo(getVersion);
 
-        // Verify the observations on event sinks.
-        Assertions.assertThat(observations)
-                .containsExactly(
-                        new Event.ChangeEvent<>(key, value, getVersion),
-                        new Event.DeleteEvent<>(key, getVersion)
-                );
-
         // Orderly close the publisher.
         server.unsubscribe(eventSink);
-        Assertions.assertThat(eventsDone.await(100, TimeUnit.MILLISECONDS)).isTrue();
+        Assertions.assertThat(eventingDone.await(100, TimeUnit.MILLISECONDS)).isTrue();
+
+        // Verify the observations on event sinks.
+        Assertions.assertThat(potentialObservations).containsSequence(observations);
     }
 
     /**

@@ -26,6 +26,16 @@ class InMemoryUntypedKeyValueStoreTest {
 
     /**
      * Test CRUD functionality with event-sourcing.
+     *
+     * TODO(jameschang - 20190223)
+     * The event-sourcing verification of this test is not strictly conforming to an invariant.
+     * Specifically, there is no general guarantee of any happens-before relationship between
+     * the emitted signals (including the initial onSubscribe()) with respect to any resolution of
+     * the commands sent to the key-value store. So technically the only invariant that can be
+     * verified with respect to emitted event signals after a subscribe(), is the fact that the
+     * emitted signals are a strict ordered sub-sequence of all potential events emitted as a result
+     * of state-mutation on the key-value store due to other command requests. Using
+     * `containsExactly()` may lead to false-positives of incorrect assertion failure.
      */
     @Test
     fun crud() {
@@ -78,6 +88,16 @@ class InMemoryUntypedKeyValueStoreTest {
             Assertions.assertThat(it is Versioned.None).isTrue()
         }
 
+        // Setup a second event sink (that cannot have observed the first update event).
+        val eventSink2 = server.subscribe(32)
+        val eventsDone2 = CountDownLatch(1)
+        val observations2 = mutableListOf<Event<Value, Value, MonotonicInt>>()
+        BaseSubscriber<Event<Value, Value, MonotonicInt>>(
+                onNext = { observations2 += it },
+                onComplete = { eventsDone2.countDown() },
+                onError = { throw it }
+        ).also { eventSink2.subscribe(it) }
+
         // Retrieve the created entry by its key.
         val getPublisher = server.get(key)
         var getResult = failResult
@@ -95,16 +115,6 @@ class InMemoryUntypedKeyValueStoreTest {
                     .isEqualTo(initialVersion.next()) // First version is initial's next().
         }
         val getVersion = (getResult.getOrThrow() as Versioned.Just<*, MonotonicInt>).version
-
-        // Setup a second event sink (that cannot have observed the first update event).
-        val eventSink2 = server.subscribe(32)
-        val eventsDone2 = CountDownLatch(1)
-        val observations2 = mutableListOf<Event<Value, Value, MonotonicInt>>()
-        BaseSubscriber<Event<Value, Value, MonotonicInt>>(
-                onNext = { observations2 += it },
-                onComplete = { eventsDone2.countDown() },
-                onError = { throw it }
-        ).also { eventSink2.subscribe(it) }
 
         // Update the created entry with a new value.
         val value2 = StringValue("value-2")
@@ -175,6 +185,10 @@ class InMemoryUntypedKeyValueStoreTest {
             Assertions.assertThat(it is Versioned.None).isTrue()
         }
 
+        // Orderly close the first publisher.
+        server.unsubscribe(eventSink1)
+        Assertions.assertThat(eventsDone1.await(10000, TimeUnit.MILLISECONDS)).isTrue()
+
         // Verify the observations on event sinks.
         Assertions.assertThat(observations1)
                 .containsExactly(
@@ -182,21 +196,19 @@ class InMemoryUntypedKeyValueStoreTest {
                         Event.ChangeEvent(key, value2, reGetVersion),
                         Event.DeleteEvent(key, reGetVersion)
                 )
-        Assertions.assertThat(observations2)
-                .containsExactly(
-                        Event.ChangeEvent(key, value2, reGetVersion),
-                        Event.DeleteEvent(key, reGetVersion)
-                )
-
-        // Orderly close the first publisher.
-        server.unsubscribe(eventSink1)
-        Assertions.assertThat(eventsDone1.await(10000, TimeUnit.MILLISECONDS)).isTrue()
 
         // Cleanup.
         server.close()
 
         // Check that even if second publisher does not unsubscribe, it gets served onComplete().
         Assertions.assertThat(eventsDone2.await(100, TimeUnit.MILLISECONDS)).isTrue()
+
+        // Verify the observations on event sinks.
+        Assertions.assertThat(observations2)
+                .containsExactly(
+                        Event.ChangeEvent(key, value2, reGetVersion),
+                        Event.DeleteEvent(key, reGetVersion)
+                )
 
         // Check that a late subscriber after server close does not wait indefinitely.
         val eventsDone3 = CountDownLatch(1)

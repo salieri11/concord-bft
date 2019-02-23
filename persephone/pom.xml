@@ -13,6 +13,7 @@
 
     <modules>
         <module>api</module>
+        <module>core</module>
         <module>persistence</module>
     </modules>
 
@@ -83,6 +84,11 @@
             <dependency>
                 <groupId>com.vmware.blockchain</groupId>
                 <artifactId>persephone-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.vmware.blockchain</groupId>
+                <artifactId>persephone-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -290,6 +296,9 @@
                         <includes>
                             <include>**/*.java</include>
                         </includes>
+                        <compilerArgs>
+                            <arg>-Xlint:all</arg>
+                        </compilerArgs>
                         <generatedSourcesDirectory>${project.build.directory}/generated-sources/annotations</generatedSourcesDirectory>
                         <generatedTestSourcesDirectory>${project.build.directory}/generated-sources/test-annotations</generatedTestSourcesDirectory>
                     </configuration>
