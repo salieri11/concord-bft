@@ -138,6 +138,12 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
             // it is processing a state transfer, but for now, all nodes believe
             // they are always up to date.
             localData = false;
+        } else if (ethMethodName.equals(Constants.ACCOUNTS_NAME)) {
+            // HACK: Atm, Helen has all the account information but if Ethrpc is queried directly we at least want to
+            // return something. This is used to connect `truffle console` to Ethrpc directly.
+            JSONArray accs = new JSONArray();
+            accs.add(0);
+            localData = accs;
         }
 
         result.put("result", localData);
