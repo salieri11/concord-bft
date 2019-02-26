@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # creates simple self signed certificates to use with TCP TLS module
+# by default, it will create "certs" folder in the current folder
 
 if [ "$#" -eq 0 ] || [ -z "$1" ]; then
    echo "usage: create_certs.sh {num of replicas} {optional - output folder}"
@@ -9,10 +10,6 @@ fi
 dir=$2
 if [ -z $dir ]; then
    dir="certs"
-fi
-
-if [ ! -d $dir ]; then
-   mkdir $dir
 fi
 
 i=0
