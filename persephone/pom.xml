@@ -14,6 +14,8 @@
     <modules>
         <module>api</module>
         <module>core</module>
+        <module>fleet-service</module>
+        <module>metadata-service</module>
         <module>persistence</module>
     </modules>
 
@@ -50,6 +52,7 @@
         <!-- Dependency-related properties. -->
         <assertj.version>3.11.1</assertj.version>
         <atomicfu.version>0.12.2</atomicfu.version>
+        <dagger.version>2.21</dagger.version>
         <grpc.runtime.java.version>1.18.0</grpc.runtime.java.version>
         <grpc.runtime.kotlinx.serialization.version>1.0.0-SNAPSHOT</grpc.runtime.kotlinx.serialization.version>
         <jackson.version>2.9.7</jackson.version>
@@ -107,6 +110,11 @@
                 <type>pom</type>
             </dependency>
             <dependency>
+                <groupId>com.google.dagger</groupId>
+                <artifactId>dagger</artifactId>
+                <version>${dagger.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.vmware.blockchain.protobuf</groupId>
                 <artifactId>grpc-runtime-kotlinx-serialization</artifactId>
                 <version>${grpc.runtime.kotlinx.serialization.version}</version>
@@ -114,6 +122,11 @@
             <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-core</artifactId>
+                <version>${grpc.runtime.java.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-netty-shaded</artifactId>
                 <version>${grpc.runtime.java.version}</version>
             </dependency>
             <dependency>
@@ -298,14 +311,21 @@
                     <configuration>
                         <source>${java.version}</source>
                         <target>${java.version}</target>
+                        <generatedSourcesDirectory>${project.build.directory}/generated-sources/annotations</generatedSourcesDirectory>
+                        <generatedTestSourcesDirectory>${project.build.directory}/generated-sources/test-annotations</generatedTestSourcesDirectory>
                         <includes>
                             <include>**/*.java</include>
                         </includes>
                         <compilerArgs>
                             <arg>-Xlint:all</arg>
                         </compilerArgs>
-                        <generatedSourcesDirectory>${project.build.directory}/generated-sources/annotations</generatedSourcesDirectory>
-                        <generatedTestSourcesDirectory>${project.build.directory}/generated-sources/test-annotations</generatedTestSourcesDirectory>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>com.google.dagger</groupId>
+                                <artifactId>dagger-compiler</artifactId>
+                                <version>${dagger.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
                     </configuration>
                     <executions>
                         <!-- Disable default-compile (treated specially by Maven). -->
@@ -370,4 +390,30 @@
             </plugins>
         </pluginManagement>
     </build>
+    <dependencies>
+        <dependency>
+            <!--
+              This is ABSOLUTELY a hack and not supposed to be necessary.
+              The issue is that the bytecode transformer swaps out the class artifacts placeholders
+              in atomicfu for JDK's native atomic field updaters.
+              But in an IDE setting like IntelliJ IDEA or Eclipse, a "plug-in" would be necessary
+              for IDE native build to perform a similar bytecode transformation, or the placeholder
+              target for the classes becomes actual dependencies to be depended upon.
+              Even without transformation, the placehodlers that are in atomicfu is CORRECT albeit
+              less efficient. But that's not really the problem as the problem is that there should
+              not have been any runtime dependencies to begin with if bytecode-transformation were
+              done.
+              The workaround here is to place a phantom "provided" scope artifact to be included
+              for every project. The actual Maven-produced artifacts won't be utilizing this at all
+              as all atomicfu placeholders are erased. The workaround here is for IDEs that don't
+              use Maven workflows. "provided" scope dependencies are not transitive and would
+              require the running application container to actually supply the dependency, which
+              can be easily done in IDEs by specifying additional library dependencies on the
+              classpath.
+            -->
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>atomicfu</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
 </project>
