@@ -27,6 +27,7 @@
 
 using bftEngine::PlainUdpConfig;
 using bftEngine::PlainTcpConfig;
+using bftEngine::TlsTcpConfig;
 using bftEngine::ReplicaConfig;
 using BLS::Relic::BlsThresholdFactory;
 using std::pair;
@@ -173,4 +174,19 @@ PlainTcpConfig TestCommConfig::GetTCPConfig(
 
   PlainTcpConfig ret_val(ip, port, buf_length_, nodes, num_of_replicas - 1, node_id);
   return ret_val;
+}
+
+TlsTcpConfig TestCommConfig::getTlsTCPConfig(
+    bool is_replica, uint16_t id, uint16_t& num_of_clients,
+    uint16_t& num_of_replicas, const std::string& config_file_name) {
+  string   ip;
+  uint16_t port;
+
+  std::unordered_map <NodeNum, NodeInfo> nodes =
+      SetUpNodes(is_replica, id, ip, port, num_of_clients, num_of_replicas,
+                 config_file_name);
+
+  TlsTcpConfig retVal(ip, port, buf_length_, nodes,
+                      num_of_replicas -1, id, "certs");
+  return retVal;
 }

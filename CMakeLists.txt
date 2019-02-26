@@ -40,7 +40,7 @@ else()
 endif()
 
 if(NOT BUILD_COMM_TCP_TLS)
-    set(BUILD_COMM_TCP_TLS TRUE)
+    set(BUILD_COMM_TCP_TLS FALSE)
 else()
     math(EXPR COMM_MODULES "${COMM_MODULES}+1")
 endif()
