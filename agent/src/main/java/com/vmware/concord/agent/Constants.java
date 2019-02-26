@@ -5,7 +5,7 @@
 package com.vmware.concord.agent;
 
 /**
- * Etherum RPC method names and other constants.
+ * Agent service related constants.
  */
 public class Constants {
     //API Endpoints
