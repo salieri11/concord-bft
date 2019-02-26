@@ -3,7 +3,9 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.reactive
 
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BroadcastChannel
@@ -39,9 +41,16 @@ class BroadcastingPublisher<T>(
     /** Internal state tracking whether the instance is already closed. */
     private val active = kotlinx.atomicfu.atomic<Boolean>(true)
 
+    private val subscribed = CompletableDeferred<Unit>()
+
     /** Internal [Publisher] instance for all [Subscriber]s. */
     private val publisher: Publisher<T> = publish(coroutineContext) {
         val receiveChannel = broadcastChannel.openSubscription()
+
+        // Signal that publisher is now HOT.
+        subscribed.complete(Unit)
+
+        // Loop over incoming signals until upstream closes.
         for (element in receiveChannel) {
             send(element)
         }
@@ -55,6 +64,18 @@ class BroadcastingPublisher<T>(
         }
 
         publisher.subscribe(subscriber)
+    }
+
+    /**
+     * Return a [Deferred] handle to wait on the condition when this [Publisher] instance turns
+     * hot due to incoming subscription.
+     *
+     * @return
+     *   a [Deferred] instance that returns `true` for [Deferred.isCompleted] when this publisher
+     *   instance is subscribed to.
+     */
+    fun waitForSubscription(): Deferred<Unit> {
+        return subscribed
     }
 
     /**

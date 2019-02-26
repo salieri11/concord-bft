@@ -76,7 +76,7 @@ abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
         job.cancel()
     }
 
-    override fun get(key: Value): Publisher<Versioned<Value, T>> {
+    override operator fun get(key: Value): Publisher<Versioned<Value, T>> {
         return try {
             // Setup request with a response channel buffer of 1 (expecting only 1 message back).
             val request = Channel<UntypedKeyValueStore.Response<T>>(Channel.CONFLATED)
@@ -106,11 +106,11 @@ abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
         }
     }
 
-    override fun put(key: Value, value: Value, expected: Version<T>): Publisher<Versioned<Value, T>> {
+    override fun set(key: Value, expected: Version<T>, value: Value): Publisher<Versioned<Value, T>> {
         return try {
             // Setup request with a response channel buffer of 1 (expecting only 1 message back).
             val request = Channel<UntypedKeyValueStore.Response<T>>(Channel.CONFLATED)
-                    .let { UntypedKeyValueStore.Request.Put(it, key, value, expected) }
+                    .let { UntypedKeyValueStore.Request.Set(it, key, value, expected) }
 
             // Send the request and block-receive in a suspendable coroutine.
             val response = async {
@@ -121,11 +121,11 @@ abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
             // Setup a publisher such that every incoming subscriber awaits for the response.
             publish(coroutineContext) {
                 when (val message = response.await()) {
-                    is UntypedKeyValueStore.Response.Put -> send(message.versioned)
+                    is UntypedKeyValueStore.Response.Set -> send(message.versioned)
                     is UntypedKeyValueStore.Response.Error -> throw message.throwable
                     else ->
                         throw UnexpectedResponseException(
-                                UntypedKeyValueStore.Response.Put::class,
+                                UntypedKeyValueStore.Response.Set::class,
                                 message
                         )
                 }
@@ -155,7 +155,7 @@ abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
                     is UntypedKeyValueStore.Response.Error -> throw message.throwable
                     else ->
                         throw UnexpectedResponseException(
-                                UntypedKeyValueStore.Response.Put::class,
+                                UntypedKeyValueStore.Response.Set::class,
                                 message
                         )
                 }
@@ -166,22 +166,26 @@ abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
         }
     }
 
-    override fun subscribe(capacity: Int): Publisher<Event<Value, Value, T>> {
+    override fun subscribe(capacity: Int, state: Boolean): Publisher<Event<Value, Value, T>> {
         return try {
-            val request = Channel<UntypedKeyValueStore.Response<T>>(Channel.CONFLATED)
-                    .let { UntypedKeyValueStore.Request.Subscribe(it) }
-
-            // Send the request and block-receive in a suspendable coroutine.
-            val response = async {
-                requestChannel.send(request)
-                request.response.receive()
-            }
-
-            // Pipeline the incoming into a local broadcast channel.
+            // Pipeline the incoming into a broadcast channel, hosted by a client-side coroutine.
             val publishContext = coroutineContext + EventSinkContext()
             val publisher = BroadcastingPublisher<Event<Value, Value, T>>(capacity, publishContext)
             launch(publishContext) {
-                when (val message = response.await()) {
+                // Start the whole workflow lazily until the first subscriber connects.
+                // This helps to not burn server resources until client is actually "interested"
+                // (i.e. hot workflow). The trade-off here is initial latency on client-side between
+                // Publisher.subscribe() and the first signal of Subscriber.onSubscribe().
+                publisher.waitForSubscription().await()
+
+                val request = Channel<UntypedKeyValueStore.Response<T>>(Channel.CONFLATED)
+                        .let { UntypedKeyValueStore.Request.Subscribe(it, state) }
+
+                // Send the request and block-receive in a suspendable coroutine.
+                requestChannel.send(request)
+                val message = request.response.receive()
+
+                when (message) {
                     is UntypedKeyValueStore.Response.Subscribe -> {
                         val upstreamChannel = message.subscription
 
@@ -194,7 +198,6 @@ abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
                         //
                         // Note: To avoid any weird non-debuggable concurrency bugs, only set the
                         // context's channel if it wasn't already set, to avoid overwrite behavior.
-                        // this.coroutineContext[EventSinkContext]
                         publishContext[EventSinkContext]?.apply {
                             channel.compareAndSet(null, upstreamChannel)
                         }

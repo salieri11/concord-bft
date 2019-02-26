@@ -50,7 +50,7 @@ class InMemoryUntypedKeyValueStore<T : Version<T>>(
                         // Send the response back.
                         message.response.send(responseMessage)
                     }
-                    is UntypedKeyValueStore.Request.Put<T> -> {
+                    is UntypedKeyValueStore.Request.Set<T> -> {
                         val existing = storage[message.key]
                         val responseMessage: UntypedKeyValueStore.Response<T> = when {
                             existing == null -> {
@@ -58,14 +58,14 @@ class InMemoryUntypedKeyValueStore<T : Version<T>>(
                                         .apply { storage[message.key] = this }
                                         .let { Event.ChangeEvent(message.key, it.value, it.version) }
                                         .apply { offerEvent(eventSinks, this) }
-                                UntypedKeyValueStore.Response.Put(Versioned.None)
+                                UntypedKeyValueStore.Response.Set(Versioned.None)
                             }
                             existing.version == message.expected -> {
                                 Versioned.Just(message.value, message.expected.next())
                                         .apply { storage[message.key] = this }
                                         .let { Event.ChangeEvent(message.key, it.value, it.version) }
                                         .apply { offerEvent(eventSinks, this) }
-                                UntypedKeyValueStore.Response.Put(existing)
+                                UntypedKeyValueStore.Response.Set(existing)
                             }
                             else -> UntypedKeyValueStore.Response.Error(
                                     VersionMismatchException(message.expected, existing.version)
@@ -78,7 +78,7 @@ class InMemoryUntypedKeyValueStore<T : Version<T>>(
                     is UntypedKeyValueStore.Request.Delete<T> -> {
                         val existing = storage[message.key]
                         val responseMessage: UntypedKeyValueStore.Response<T> = when {
-                            existing == null -> UntypedKeyValueStore.Response.Put(Versioned.None)
+                            existing == null -> UntypedKeyValueStore.Response.Set(Versioned.None)
                             existing.version == message.expected -> {
                                 storage.remove(message.key, existing)
                                 Event.DeleteEvent<Value, Value, T>(message.key, existing.version)
@@ -94,11 +94,31 @@ class InMemoryUntypedKeyValueStore<T : Version<T>>(
                         message.response.send(responseMessage)
                     }
                     is UntypedKeyValueStore.Request.Subscribe<T> -> {
-                        val responseMessage = Channel<Event<Value, Value, T>>(Channel.UNLIMITED)
-                                .apply { eventSinks += this }
-                                .let { UntypedKeyValueStore.Response.Subscribe(it) }
+                        val eventSink = Channel<Event<Value, Value, T>>(Channel.UNLIMITED)
+                                .apply {
+                                    // If history was requested, stream back current state as a
+                                    // reconstructed series of mutation events.
+                                    //
+                                    // Note: In the general case for off-heap storage, event
+                                    // reconstruction is not necessarily possible or even correct,
+                                    // depending on the underlying data representation in the data
+                                    // store.
+                                    if (message.state) {
+                                        for (entry in storage) {
+                                            val event = Event.ChangeEvent(
+                                                    entry.key,
+                                                    entry.value.value,
+                                                    entry.value.version
+                                            )
+
+                                            offer(event)
+                                        }
+                                    }
+                                }
+                                .also { eventSinks += it }
 
                         // Send the response back.
+                        val responseMessage = UntypedKeyValueStore.Response.Subscribe(eventSink)
                         message.response.send(responseMessage)
                     }
                     is UntypedKeyValueStore.Request.Unsubscribe<T> -> {
@@ -122,6 +142,8 @@ class InMemoryUntypedKeyValueStore<T : Version<T>>(
         sinks: Iterable<SendChannel<Event<Value, Value, T>>>,
         event: Event<Value, Value, T>
     ) {
-        sinks.forEach { it.offer(event) }
+        for (sink in sinks) {
+            sink.offer(event)
+        }
     }
 }

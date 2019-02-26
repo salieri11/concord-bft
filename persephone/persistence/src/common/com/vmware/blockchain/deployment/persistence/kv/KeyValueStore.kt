@@ -71,7 +71,7 @@ interface KeyValueStore<K, V, T : KeyValueStore.Version<T>> {
      *   a [Publisher] that publishes the current value with its version if the key exists,
      *   otherwise publishes [Versioned.None] if the key was not found.
      */
-    fun get(key: K): Publisher<Versioned<V, T>>
+    operator fun get(key: K): Publisher<Versioned<V, T>>
 
     /**
      * Associate the [value] with the given [key], provided that the [expected] version
@@ -79,17 +79,17 @@ interface KeyValueStore<K, V, T : KeyValueStore.Version<T>> {
      *
      * @param[key]
      *   key to store the associated value.
-     * @param[value]
-     *   value to be stored.
      * @param[expected]
      *   expected current / latest version in the store.
+     * @param[value]
+     *   value to be stored.
      *
      * @return
      *   a [Publisher] that publishes the previous value with its version if update was successful,
      *   or publishes [Versioned.None] if there was no previous value associated, or publishes an
      *   [IllegalStateException] if update fails due to version mismatch.
      */
-    fun put(key: K, value: V, expected: Version<T>): Publisher<Versioned<V, T>>
+    fun set(key: K, expected: Version<T>, value: V): Publisher<Versioned<V, T>>
 
     /**
      * Retrieve the key-value association for a given [key].
@@ -109,11 +109,14 @@ interface KeyValueStore<K, V, T : KeyValueStore.Version<T>> {
      *
      * @param[capacity]
      *   number of events that the channel can buffer before becoming full.
+     * @param[state]
+     *   whether current state expressed as subset of prior mutation events should also be emitted
+     *   as a prefix stream of events.
      *
      * @return
      *   a [Publisher] that publishes all state-mutation events to the key-value store.
      */
-    fun subscribe(capacity: Int): Publisher<Event<K, V, T>>
+    fun subscribe(capacity: Int, state: Boolean): Publisher<Event<K, V, T>>
 
     /**
      * Unsubscribe an instance of event-sourced [Publisher] if the instance was previously returned

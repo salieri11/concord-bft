@@ -5,17 +5,44 @@ package com.vmware.blockchain.deployment.persistence.kv
 
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Event
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Value
+import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Version
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Versioned
 import com.vmware.blockchain.deployment.reactive.BaseSubscriber
+import com.vmware.blockchain.deployment.reactive.Publisher
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asCoroutineDispatcher
+import java.util.concurrent.Executors
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.stream.Stream
 import org.assertj.core.api.Assertions
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.MethodSource
 
 /**
  * Basic functionality test of [InMemoryUntypedKeyValueStore] operations.
  */
 class InMemoryUntypedKeyValueStoreTest {
+
+    companion object {
+        /**
+         * Create an enumeration of different new instantiations of [UntypedKeyValueStore] backed by
+         * different threading model.
+         */
+        @JvmStatic
+        private fun servers(): Stream<UntypedKeyValueStore<MonotonicInt>> {
+            var counter = -1
+            return Stream.generate<UntypedKeyValueStore<MonotonicInt>> {
+                when(counter++.rem(3)) {
+                    0 -> InMemoryUntypedKeyValueStore(Dispatchers.Default)
+                    1 -> InMemoryUntypedKeyValueStore(Dispatchers.Unconfined)
+                    else -> InMemoryUntypedKeyValueStore(
+                            Executors.newSingleThreadExecutor().asCoroutineDispatcher()
+                    )
+                }
+            }.limit(100)
+        }
+    }
 
     /**
      * Implementation of [Value] that wraps a [String] value.
@@ -25,25 +52,40 @@ class InMemoryUntypedKeyValueStoreTest {
     }
 
     /**
-     * Test CRUD functionality with event-sourcing.
+     * Subscribe to a given [Publisher] and retrieve the last element signal as the return value.
      *
-     * TODO(jameschang - 20190223)
-     * The event-sourcing verification of this test is not strictly conforming to an invariant.
-     * Specifically, there is no general guarantee of any happens-before relationship between
-     * the emitted signals (including the initial onSubscribe()) with respect to any resolution of
-     * the commands sent to the key-value store. So technically the only invariant that can be
-     * verified with respect to emitted event signals after a subscribe(), is the fact that the
-     * emitted signals are a strict ordered sub-sequence of all potential events emitted as a result
-     * of state-mutation on the key-value store due to other command requests. Using
-     * `containsExactly()` may lead to false-positives of incorrect assertion failure.
+     * @param[publisher]
+     *   publisher to retrieve the last emitted signal from.
+     *
+     * @return
+     *   the last `onNext` signal emitted from the subscription.
      */
-    @Test
-    fun crud() {
-        // Setup.
-        val server = InMemoryUntypedKeyValueStore<MonotonicInt>()
+    private fun <T : Version<T>> resultFrom(
+        publisher: Publisher<Versioned<Value, T>>
+    ): Versioned<Value, T> {
+        var result = AssertionError("Result is not set.")
+                .let { Result.failure<Versioned<Value, T>>(it) }
+        val finished = CountDownLatch(1)
+        BaseSubscriber<Versioned<Value, T>>(
+                onNext = { result = Result.success(it) },
+                onComplete = { finished.countDown() },
+                onError = { result = Result.failure(it); finished.countDown() }
+        ).also { publisher.subscribe(it) }
 
+        Assertions.assertThat(finished.await(100, TimeUnit.MILLISECONDS)).isTrue()
+        Assertions.assertThat(result.isSuccess).isTrue()
+
+        return result.getOrThrow()
+    }
+
+    /**
+     * Test CRUD functionality with event-sourcing.
+     */
+    @ParameterizedTest
+    @MethodSource("servers")
+    fun crud(server: UntypedKeyValueStore<MonotonicInt>) {
         // Setup the event sink.
-        val eventSink1 = server.subscribe(32)
+        val eventSink1 = server.subscribe(32, false)
         val eventsDone1 = CountDownLatch(1)
         val observations1 = mutableListOf<Event<Value, Value, MonotonicInt>>()
         BaseSubscriber<Event<Value, Value, MonotonicInt>>(
@@ -52,44 +94,18 @@ class InMemoryUntypedKeyValueStoreTest {
                 onError = { throw it }
         ).also { eventSink1.subscribe(it) }
 
-        val key = StringValue("key-1")
-        val failResult = AssertionError("Result is not set.")
-                .let { Result.failure<Versioned<Value, MonotonicInt>>(it) }
-
         // Retrieve the created entry by no-yet-existent key.
-        val emptyGetPublisher = server.get(key)
-        var emptyGetResult = failResult
-        val emptyGetFinished = CountDownLatch(1)
-        BaseSubscriber<Versioned<Value, MonotonicInt>>(
-                onNext = { emptyGetResult = Result.success(it) },
-                onComplete = { emptyGetFinished.countDown() },
-                onError = { throw it }
-        ).also { emptyGetPublisher.subscribe(it) }
-        Assertions.assertThat(emptyGetFinished.await(100, TimeUnit.MILLISECONDS)).isTrue()
-        Assertions.assertThat(emptyGetResult.isSuccess).isTrue()
-        emptyGetResult.onSuccess {
-            Assertions.assertThat(it is Versioned.None).isTrue()
-        }
+        val key = StringValue("key-1")
+        Assertions.assertThat(resultFrom(server[key])).isEqualTo(Versioned.None)
 
         // Create a new key-value entry.
         val value1 = StringValue("value-1")
         val initialVersion = MonotonicInt()
-        val createPublisher = server.put(key, value1, initialVersion)
-        var createResult = failResult
-        val createFinished = CountDownLatch(1)
-        BaseSubscriber<Versioned<Value, MonotonicInt>>(
-                onNext = { createResult = Result.success(it) },
-                onComplete = { createFinished.countDown() },
-                onError = { throw it }
-        ).also { createPublisher.subscribe(it) }
-        Assertions.assertThat(createFinished.await(100, TimeUnit.MILLISECONDS)).isTrue()
-        Assertions.assertThat(createResult.isSuccess).isTrue()
-        createResult.onSuccess {
-            Assertions.assertThat(it is Versioned.None).isTrue()
-        }
+        Assertions.assertThat(resultFrom(server.set(key, initialVersion, value1)))
+                .isEqualTo(Versioned.None)
 
         // Setup a second event sink (that cannot have observed the first update event).
-        val eventSink2 = server.subscribe(32)
+        val eventSink2 = server.subscribe(32, false)
         val eventsDone2 = CountDownLatch(1)
         val observations2 = mutableListOf<Event<Value, Value, MonotonicInt>>()
         BaseSubscriber<Event<Value, Value, MonotonicInt>>(
@@ -99,103 +115,48 @@ class InMemoryUntypedKeyValueStoreTest {
         ).also { eventSink2.subscribe(it) }
 
         // Retrieve the created entry by its key.
-        val getPublisher = server.get(key)
-        var getResult = failResult
-        val getFinished = CountDownLatch(1)
-        BaseSubscriber<Versioned<Value, MonotonicInt>>(
-                onNext = { getResult = Result.success(it) },
-                onComplete = { getFinished.countDown() },
-                onError = { throw it }
-        ).also { getPublisher.subscribe(it) }
-        Assertions.assertThat(getFinished.await(100, TimeUnit.MILLISECONDS)).isTrue()
-        Assertions.assertThat(getResult.isSuccess).isTrue()
-        getResult.onSuccess {
-            Assertions.assertThat(it is Versioned.Just).isTrue()
-            Assertions.assertThat((it as Versioned.Just).version)
-                    .isEqualTo(initialVersion.next()) // First version is initial's next().
-        }
-        val getVersion = (getResult.getOrThrow() as Versioned.Just<*, MonotonicInt>).version
+        Assertions.assertThat(resultFrom(server[key]))
+                .matches { it is Versioned.Just }
+                .matches { (it as Versioned.Just).version == initialVersion.next() }
+        val getVersion = initialVersion.next()
 
         // Update the created entry with a new value.
         val value2 = StringValue("value-2")
-        val updatePublisher = server.put(key, value2, getVersion)
-        var updateResult = failResult
-        val updateFinished = CountDownLatch(1)
-        BaseSubscriber<Versioned<Value, MonotonicInt>>(
-                onNext = { updateResult = Result.success(it) },
-                onComplete = { updateFinished.countDown() },
-                onError = { throw it }
-        ).also { updatePublisher.subscribe(it) }
-        Assertions.assertThat(updateFinished.await(100, TimeUnit.MILLISECONDS)).isTrue()
-        Assertions.assertThat(updateResult.isSuccess).isTrue()
-        updateResult.onSuccess {
-            Assertions.assertThat(it is Versioned.Just).isTrue()
-            Assertions.assertThat((it as Versioned.Just).version).isEqualTo(getVersion)
-        }
+        Assertions.assertThat(resultFrom(server.set(key, getVersion, value2)))
+                .matches { it is Versioned.Just }
+                .matches { (it as Versioned.Just).version == getVersion }
 
         // Retrieve the updated entry by its key.
-        val reGetPublisher = server.get(key)
-        var reGetResult = failResult
-        val reGetFinished = CountDownLatch(1)
-        BaseSubscriber<Versioned<Value, MonotonicInt>>(
-                onNext = { reGetResult = Result.success(it) },
-                onComplete = { reGetFinished.countDown() },
-                onError = { throw it }
-        ).also { reGetPublisher.subscribe(it) }
-        Assertions.assertThat(reGetFinished.await(100, TimeUnit.MILLISECONDS)).isTrue()
-        Assertions.assertThat(reGetResult.isSuccess).isTrue()
-        reGetResult.onSuccess {
-            Assertions.assertThat(it is Versioned.Just).isTrue()
-            // Updated version is first get()'s next().
-            Assertions.assertThat((it as Versioned.Just).version).isEqualTo(getVersion.next())
-        }
-        val reGetVersion = (reGetResult.getOrThrow() as Versioned.Just<*, MonotonicInt>).version
+        Assertions.assertThat(resultFrom(server[key]))
+                .matches { it is Versioned.Just }
+                .matches { (it as Versioned.Just).version == getVersion.next() }
+        val reGetVersion = getVersion.next()
 
         // Setup a third event sink that does not have any subscribers immediately.
-        val eventSink3 = server.subscribe(32)
+        val eventSink3 = server.subscribe(32, false)
 
         // Delete the entry by its key.
-        val deletePublisher = server.delete(key, reGetVersion)
-        var deleteResult = failResult
-        val deleteFinished = CountDownLatch(1)
-        BaseSubscriber<Versioned<Value, MonotonicInt>>(
-                onNext = { deleteResult = Result.success(it) },
-                onComplete = { deleteFinished.countDown() },
-                onError = { throw it }
-        ).also { deletePublisher.subscribe(it) }
-        Assertions.assertThat(deleteFinished.await(100, TimeUnit.MILLISECONDS)).isTrue()
-        Assertions.assertThat(deleteResult.isSuccess).isTrue()
-        deleteResult.onSuccess {
-            Assertions.assertThat(it is Versioned.Just).isTrue()
-            Assertions.assertThat((it as Versioned.Just).version).isEqualTo(reGetVersion)
-        }
+        Assertions.assertThat(resultFrom(server.delete(key, reGetVersion)))
+                .matches { it is Versioned.Just }
+                .matches { (it as Versioned.Just).version == reGetVersion }
 
-        // Retrieve the created entry by no-yet-existent key.
-        val deletedGetPublisher = server.get(key)
-        var deletedGetResult = failResult
-        val deletedGetFinished = CountDownLatch(1)
-        BaseSubscriber<Versioned<Value, MonotonicInt>>(
-                onNext = { deletedGetResult = Result.success(it) },
-                onComplete = { deletedGetFinished.countDown() },
-                onError = { throw it }
-        ).also { deletedGetPublisher.subscribe(it) }
-        Assertions.assertThat(deletedGetFinished.await(100, TimeUnit.MILLISECONDS)).isTrue()
-        Assertions.assertThat(deletedGetResult.isSuccess).isTrue()
-        deletedGetResult.onSuccess {
-            Assertions.assertThat(it is Versioned.None).isTrue()
-        }
+        // Retrieve the created entry by now-non-existent key.
+        Assertions.assertThat(resultFrom(server[key]))
+                .isEqualTo(Versioned.None)
 
         // Orderly close the first publisher.
         server.unsubscribe(eventSink1)
-        Assertions.assertThat(eventsDone1.await(10000, TimeUnit.MILLISECONDS)).isTrue()
+        Assertions.assertThat(eventsDone1.await(100, TimeUnit.MILLISECONDS)).isTrue()
 
         // Verify the observations on event sinks.
-        Assertions.assertThat(observations1)
-                .containsExactly(
-                        Event.ChangeEvent(key, value1, getVersion),
-                        Event.ChangeEvent(key, value2, reGetVersion),
-                        Event.DeleteEvent(key, reGetVersion)
-                )
+        val potentialObservations1 = listOf<Event<Value, Value, MonotonicInt>>(
+                Event.ChangeEvent(key, value1, getVersion),
+                Event.ChangeEvent(key, value2, reGetVersion),
+                Event.DeleteEvent(key, reGetVersion)
+        )
+        if (!observations1.isEmpty()) {
+            Assertions.assertThat(potentialObservations1).containsSequence(observations1)
+        }
 
         // Cleanup.
         server.close()
@@ -204,11 +165,13 @@ class InMemoryUntypedKeyValueStoreTest {
         Assertions.assertThat(eventsDone2.await(100, TimeUnit.MILLISECONDS)).isTrue()
 
         // Verify the observations on event sinks.
-        Assertions.assertThat(observations2)
-                .containsExactly(
-                        Event.ChangeEvent(key, value2, reGetVersion),
-                        Event.DeleteEvent(key, reGetVersion)
-                )
+        val potentialObservations2 = listOf<Event<Value, Value, MonotonicInt>>(
+                Event.ChangeEvent(key, value2, reGetVersion),
+                Event.DeleteEvent(key, reGetVersion)
+        )
+        if (!observations2.isEmpty()) {
+            Assertions.assertThat(potentialObservations2).containsSequence(observations2)
+        }
 
         // Check that a late subscriber after server close does not wait indefinitely.
         val eventsDone3 = CountDownLatch(1)
@@ -222,7 +185,7 @@ class InMemoryUntypedKeyValueStoreTest {
         Assertions.assertThat(observations3).isEmpty()
 
         // Check that event subscription after server close does not result in event emissions.
-        val eventSink4 = server.subscribe(32)
+        val eventSink4 = server.subscribe(32, false)
         val eventsDone4 = CountDownLatch(1)
         val observations4 = mutableListOf<Event<Value, Value, MonotonicInt>>()
         BaseSubscriber<Event<Value, Value, MonotonicInt>>(
@@ -232,5 +195,88 @@ class InMemoryUntypedKeyValueStoreTest {
         ).also { eventSink4.subscribe(it) }
         Assertions.assertThat(eventsDone4.await(100, TimeUnit.MILLISECONDS)).isTrue()
         Assertions.assertThat(observations4).isEmpty()
+    }
+
+    /**
+     * Test that new subscribers requesting prior state can recall a settled state barring
+     * additional mutations to the store.
+     */
+    @ParameterizedTest
+    @MethodSource("servers")
+    fun eventSourceWithPriorState(server: UntypedKeyValueStore<MonotonicInt>) {
+        // Setup.
+        val expectedEntrySize = 100
+
+        // Setup the event sink.
+        val eventSink1 = server.subscribe(32, false)
+        val eventsDone1 = CountDownLatch(1)
+        val expectedSizeReached1 = CountDownLatch(1)
+        val inputKeys = mutableListOf<StringValue>()
+        BaseSubscriber<Event<Value, Value, MonotonicInt>>(
+                onNext = {
+                    when (it) {
+                        is Event.ChangeEvent<Value, Value, MonotonicInt> ->
+                            if (it.key == inputKeys.last()) {
+                                expectedSizeReached1.countDown()
+                            }
+                        else -> { }
+                    }
+                },
+                onComplete = { eventsDone1.countDown() },
+                onError = { throw it }
+        ).also { eventSink1.subscribe(it) }
+
+        // Populate the store with a set of entries.
+        val expectedStoreState = mutableMapOf<Value, Value>()
+        (1..expectedEntrySize).forEach {
+            val key = StringValue("key-$it").apply { inputKeys += this }
+            val value = StringValue("value-$it")
+            val version = MonotonicInt()
+
+            // Insert the entry.
+            Assertions.assertThat(resultFrom(server.set(key, version, value)))
+                    .isEqualTo(Versioned.None)
+
+            // Update the expectation result.
+            expectedStoreState[key] = value
+        }
+        Assertions.assertThat(expectedSizeReached1.await(1000, TimeUnit.MILLISECONDS)).isTrue()
+
+        // Setup the second event sink that obtains state history.
+        // Note: The capacity of the buffer is set to be the number of items in the store since
+        // the server adapter as of now has no concept of back pressure and will burst to client.
+        val eventSink2 = server.subscribe(expectedEntrySize, true)
+        val eventsDone2 = CountDownLatch(1)
+        val expectedSizeReached2 = CountDownLatch(1)
+        val observedStoreState = mutableMapOf<Value, Value>()
+        val observations = mutableListOf<Event<Value, Value, MonotonicInt>>()
+        BaseSubscriber<Event<Value, Value, MonotonicInt>>(
+                onNext = {
+                    observations += it
+                    when (it) {
+                        is Event.ChangeEvent<Value, Value, MonotonicInt> ->
+                            observedStoreState[it.key] = it.value
+                        is Event.DeleteEvent<Value, Value, MonotonicInt> ->
+                            observedStoreState.remove(it.key)
+                    }
+
+                    if (observedStoreState.size == expectedEntrySize) {
+                        expectedSizeReached2.countDown()
+                    }
+                },
+                onComplete = { eventsDone2.countDown() },
+                onError = { throw it }
+        ).also { eventSink2.subscribe(it) }
+        Assertions.assertThat(expectedSizeReached2.await(1000, TimeUnit.MILLISECONDS)).isTrue()
+
+        // Cleanup.
+        server.close()
+
+        // Verify that event streams terminate.
+        Assertions.assertThat(eventsDone1.await(100, TimeUnit.MILLISECONDS)).isTrue()
+        Assertions.assertThat(eventsDone2.await(100, TimeUnit.MILLISECONDS)).isTrue()
+
+        // Verify that snapshot state is fully received.
+        Assertions.assertThat(observedStoreState).isEqualTo(expectedStoreState)
     }
 }

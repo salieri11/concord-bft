@@ -14,7 +14,7 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.protobuf.ProtoBuf
 
 /**
- * In-memory implementation of [KeyValueStore] interface.
+ * A strongly-typed implementation of [KeyValueStore] interface.
  *
  * Note: This implementation is necessarily less-efficient than its untyped counterpart due to the
  * fact that typed entities are always indiscriminately serialized on input request and deserialized
@@ -28,7 +28,7 @@ import kotlinx.serialization.protobuf.ProtoBuf
  * @param[T]
  *   subtype of [Version] to use to version the key-value entries.
  */
-class InMemoryTypedKeyValueStore<K, V, T : Version<T>>(
+class TypedKeyValueStore<K, V, T : Version<T>>(
     private val keySerializer: KSerializer<K>,
     private val valueSerializer: KSerializer<V>,
     private val keyValueStore: UntypedKeyValueStore<T> = InMemoryUntypedKeyValueStore()
@@ -73,10 +73,10 @@ class InMemoryTypedKeyValueStore<K, V, T : Version<T>>(
         keyValueStore.close()
     }
 
-    override fun get(key: K): Publisher<Versioned<V, T>> {
+    override operator fun get(key: K): Publisher<Versioned<V, T>> {
         return try {
             val keyBytes = ProtocolBuffer(key, keySerializer)
-            MappingPublisher(keyValueStore.get(keyBytes)) { element ->
+            MappingPublisher(keyValueStore[keyBytes]) { element ->
                 when (element) {
                     is Versioned.Just ->
                         Versioned.Just(
@@ -92,11 +92,11 @@ class InMemoryTypedKeyValueStore<K, V, T : Version<T>>(
         }
     }
 
-    override fun put(key: K, value: V, expected: Version<T>): Publisher<Versioned<V, T>> {
+    override fun set(key: K, expected: Version<T>, value: V): Publisher<Versioned<V, T>> {
         return try {
             val keyBytes = ProtocolBuffer(key, keySerializer)
             val valueBytes = ProtocolBuffer(value, valueSerializer)
-            MappingPublisher(keyValueStore.put(keyBytes, valueBytes, expected)) { element ->
+            MappingPublisher(keyValueStore.set(keyBytes, expected, valueBytes)) { element ->
                 when (element) {
                     is Versioned.Just ->
                         Versioned.Just(
@@ -131,9 +131,9 @@ class InMemoryTypedKeyValueStore<K, V, T : Version<T>>(
         }
     }
 
-    override fun subscribe(capacity: Int): Publisher<Event<K, V, T>> {
+    override fun subscribe(capacity: Int, state: Boolean): Publisher<Event<K, V, T>> {
         return try {
-            MappingPublisher(keyValueStore.subscribe(capacity)) { element ->
+            MappingPublisher(keyValueStore.subscribe(capacity, state)) { element ->
                 when (element) {
                     is Event.ChangeEvent ->
                         Event.ChangeEvent(

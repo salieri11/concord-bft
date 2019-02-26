@@ -21,7 +21,6 @@ import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Versioned;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.reactivestreams.Subscription;
 
 /**
  * Basic functionality test of {@link KeyValueStore} operations, in Java.
@@ -68,17 +67,15 @@ class KeyValueStoreJavaInteropTest {
      * served with the associated {@link org.reactivestreams.Subscriber#onComplete} signals.
      *
      * @param observation
-     *          mutable list to store signals to
+     *          mutable list to store signals to.
      * @param onComplete
-     *          callback to be invoked on {@link org.reactivestreams.Subscriber#onComplete()} signal.
+     *          callback to be invoked on {@link org.reactivestreams.Subscriber#onComplete} signal.
      * @param <T>
      *          type of element received on the subscribe.
      *
      * @return  a new {@link BaseSubscriber} instance.
      */
-    private <T> BaseSubscriber<T> newObservingSubscriber(
-            List<T> observation,
-            Runnable onComplete
+    private <T> BaseSubscriber<T> newObservingSubscriber(List<T> observation, Runnable onComplete
     ) {
         return ReactiveStream.newBaseSubscriber(
                 subscription -> subscription.request(Long.MAX_VALUE),
@@ -96,7 +93,7 @@ class KeyValueStoreJavaInteropTest {
      * @param onNext
      *          callback to be invoked on {@link org.reactivestreams.Subscriber#onNext} signal.
      * @param onComplete
-     *          callback to be invoked on {@link org.reactivestreams.Subscriber#onComplete()} signal.
+     *          callback to be invoked on {@link org.reactivestreams.Subscriber#onComplete} signal.
      * @param <T>
      *          type of element received on the subscribe.
      *
@@ -143,14 +140,14 @@ class KeyValueStoreJavaInteropTest {
         var potentialObservations = new ArrayList<Event<K, V, T>>();
 
         // Setup the event sink.
-        var eventSink = server.subscribe(32);
+        var eventSink = server.subscribe(32, false);
         var eventingDone = new CountDownLatch(1);
         var observations = new ArrayList<Event<K, V, T>>();
         var eventSinkSubscriber = newObservingSubscriber(observations, eventingDone::countDown);
         eventSink.subscribe(eventSinkSubscriber);
 
         // Create a new key-value entry.
-        var createPublisher = server.put(key, value, initialVersion);
+        var createPublisher = server.set(key, initialVersion, value);
         var createResult = new AtomicReference<Versioned<V, T>>(null);
         var createFinished = new CountDownLatch(1);
         var createSubscriber = this.<Versioned<V, T>>newResultSubscriber(
@@ -195,16 +192,17 @@ class KeyValueStoreJavaInteropTest {
         Assertions.assertThat(deleteFinished.await(100, TimeUnit.MILLISECONDS)).isTrue();
         var deleteVersioned = deleteResult.get();
         Assertions.assertThat(deleteVersioned).isInstanceOf(Versioned.Just.class);
-        @SuppressWarnings("unchecked")
-        var deleteVersion = ((Versioned.Just<Value, MonotonicInt>) deleteVersioned).getVersion();
+        var deleteVersion = ((Versioned.Just<V, T>) deleteVersioned).getVersion();
         Assertions.assertThat(deleteVersion).isEqualTo(getVersion);
 
         // Orderly close the publisher.
         server.unsubscribe(eventSink);
-        Assertions.assertThat(eventingDone.await(100, TimeUnit.MILLISECONDS)).isTrue();
+        Assertions.assertThat(eventingDone.await(1000, TimeUnit.MILLISECONDS)).isTrue();
 
         // Verify the observations on event sinks.
-        Assertions.assertThat(potentialObservations).containsSequence(observations);
+        if (!observations.isEmpty()) {
+            Assertions.assertThat(potentialObservations).containsSequence(observations);
+        }
     }
 
     /**
@@ -234,14 +232,14 @@ class KeyValueStoreJavaInteropTest {
         var potentialObservations = new ArrayList<Event<Value, Value, T>>();
 
         // Setup the event sink.
-        var eventSink = server.subscribe(32);
+        var eventSink = server.subscribe(32, false);
         var eventingDone = new CountDownLatch(1);
         var observations = new ArrayList<Event<Value, Value, T>>();
         var eventSinkSubscriber = newObservingSubscriber(observations, eventingDone::countDown);
         eventSink.subscribe(eventSinkSubscriber);
 
         // Create a new key-value entry.
-        var createPublisher = server.put(key, value, initialVersion);
+        var createPublisher = server.set(key, initialVersion, value);
         var createResult = new AtomicReference<Versioned<Value, T>>(null);
         var createFinished = new CountDownLatch(1);
         var createSubscriber = this.<Versioned<Value, T>>newResultSubscriber(
@@ -291,10 +289,12 @@ class KeyValueStoreJavaInteropTest {
 
         // Orderly close the publisher.
         server.unsubscribe(eventSink);
-        Assertions.assertThat(eventingDone.await(100, TimeUnit.MILLISECONDS)).isTrue();
+        Assertions.assertThat(eventingDone.await(1000, TimeUnit.MILLISECONDS)).isTrue();
 
         // Verify the observations on event sinks.
-        Assertions.assertThat(potentialObservations).containsSequence(observations);
+        if (!observations.isEmpty()) {
+            Assertions.assertThat(potentialObservations).containsSequence(observations);
+        }
     }
 
     /**
@@ -308,7 +308,7 @@ class KeyValueStoreJavaInteropTest {
         var value = new PBSerializable("value-1", 2, 2);
         var valueSerializer = PBSerializable.getSerializer();
 
-        var server = new InMemoryTypedKeyValueStore<PBSerializable, PBSerializable, MonotonicInt>(
+        var server = new TypedKeyValueStore<PBSerializable, PBSerializable, MonotonicInt>(
                 keySerializer,
                 valueSerializer,
                 new InMemoryUntypedKeyValueStore<>()

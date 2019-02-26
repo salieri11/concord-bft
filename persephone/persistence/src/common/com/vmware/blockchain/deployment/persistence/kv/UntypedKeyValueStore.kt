@@ -23,7 +23,7 @@ interface UntypedKeyValueStore<T : Version<T>> : KeyValueStore<Value, Value, T> 
      */
     sealed class Request<out T> {
         data class Get<T>(val response: Channel<Response<T>>, val key: Value) : Request<T>()
-        data class Put<T>(
+        data class Set<T>(
             val response: Channel<Response<T>>,
             val key: Value,
             val value: Value,
@@ -34,7 +34,10 @@ interface UntypedKeyValueStore<T : Version<T>> : KeyValueStore<Value, Value, T> 
             val key: Value,
             val expected: Version<T>
         ) : Request<T>()
-        data class Subscribe<T>(val response: Channel<Response<T>>) : Request<T>()
+        data class Subscribe<T>(
+            val response: Channel<Response<T>>,
+            val state: Boolean
+        ) : Request<T>()
         data class Unsubscribe<T>(val subscription: Channel<*>) : Request<T>()
     }
 
@@ -44,19 +47,19 @@ interface UntypedKeyValueStore<T : Version<T>> : KeyValueStore<Value, Value, T> 
      */
     sealed class Response<out T> {
         data class Get<T>(val versioned: Versioned<Value, T>) : Response<T>()
-        data class Put<T>(val versioned: Versioned<Value, T>) : Response<T>()
+        data class Set<T>(val versioned: Versioned<Value, T>) : Response<T>()
         data class Delete<T>(val versioned: Versioned<Value, T>): Response<T>()
         data class Subscribe<T>(val subscription: Channel<Event<Value, Value, T>>) : Response<T>()
         data class Error<T>(val throwable: Throwable) : Response<T>()
     }
 
-    override fun get(key: Value): Publisher<Versioned<Value, T>>
+    override operator fun get(key: Value): Publisher<Versioned<Value, T>>
 
-    override fun put(key: Value, value: Value, expected: Version<T>): Publisher<Versioned<Value, T>>
+    override fun set(key: Value, expected: Version<T>, value: Value): Publisher<Versioned<Value, T>>
 
     override fun delete(key: Value, expected: Version<T>): Publisher<Versioned<Value, T>>
 
-    override fun subscribe(capacity: Int): Publisher<Event<Value, Value, T>>
+    override fun subscribe(capacity: Int, state: Boolean): Publisher<Event<Value, Value, T>>
 
     override fun unsubscribe(eventSink: Publisher<Event<Value, Value, T>>)
 }
