@@ -1,9 +1,9 @@
 #!/usr/bin/env sh
 
-BCC="blockchain/concord"
+CNCRD="concord"
 
 if [ -z "$1" ]; then
-  >&2 echo "ERROR: Path to ${BCC} directory required"
+  >&2 echo "ERROR: Path to ${CNCRD} directory required"
   return 1
 fi
 
@@ -14,10 +14,10 @@ ABS_CONCORD_PATH=$(
 unset TMP_CONCORD_DIR
 
 # Overly cautious saftey check
-IS_EXPECTED_NAME=$(echo ${ABS_CONCORD_PATH} | grep "${BCC}$")
+IS_EXPECTED_NAME=$(echo ${ABS_CONCORD_PATH} | grep "${CNCRD}$")
 
 if [ ! -d ${ABS_CONCORD_PATH} ] || [ -z ${IS_EXPECTED_NAME} ]; then
-  >&2 echo "ERROR: Couldn't find ${BCC} directory \"${ABS_CONCORD_PATH}\""
+  >&2 echo "ERROR: Couldn't find ${CNCRD} directory \"${ABS_CONCORD_PATH}\""
   return 1;
 fi
 
