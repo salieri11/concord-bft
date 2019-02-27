@@ -130,9 +130,16 @@ def call(){
               }
             }
           }
-          stage("Install node package dependencies") {
+          stage("Install node package dependencies for the UI") {
             steps() {
               dir('blockchain/ui') {
+                sh 'npm install'
+              }
+            }
+          }
+          stage("Install node package dependencies for the Contract Compiler") {
+            steps() {
+              dir('blockchain/contract-compiler') {
                 sh 'npm install'
               }
             }
@@ -206,6 +213,7 @@ def call(){
             env.release_helen_repo = env.release_repo + "/concord-ui"
             env.release_persephone_repo = env.release_repo + "/fleet-management"
             env.release_ui_repo = env.release_repo + "/ui"
+            env.release_contract_compiler_repo = env.release_repo + "/contract-compiler"
 
             // These are constants which mirror the internal artifactory repos.  We put all merges
             // to master in the internal VMware artifactory.
@@ -217,6 +225,7 @@ def call(){
             env.internal_helen_repo = env.internal_repo + "/helen"
             env.internal_persephone_repo = env.release_persephone_repo.replace(env.release_repo, env.internal_repo)
             env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
+            env.internal_contract_compiler_repo = env.release_contract_compiler_repo.replace(env.release_repo, env.internal_repo)
           }
 
           // Docker-compose picks up values from the .env file in the directory from which
@@ -245,6 +254,8 @@ persephone_repo=${internal_persephone_repo}
 persephone_tag=${docker_tag}
 ui_repo=${internal_ui_repo}
 ui_tag=${docker_tag}
+contract_compiler_repo=${internal_contract_compiler_repo}
+contract_compiler_tag=${docker_tag}
 commit_hash=${commit}
 LINT_API_KEY=${LINT_API_KEY}
 EOF
@@ -300,6 +311,7 @@ EOF
                 env.mem_leak_test_logs = new File(env.test_log_root, "MemoryLeak").toString()
                 env.performance_test_logs = new File(env.test_log_root, "PerformanceTest").toString()
                 env.lint_test_logs = new File(env.test_log_root, "LintTest").toString()
+                env.contract_compiler_test_logs = new File(env.test_log_root, "ContractCompilerTests").toString()
 
                 if (genericTests) {
                   sh '''
@@ -313,6 +325,7 @@ EOF
                     echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}"
                     echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
                     echo "${PASSWORD}" | sudo -S ./main.py TruffleTests --logLevel debug --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${truffle_test_logs}"
+                    echo "${PASSWORD}" | sudo -S ./main.py ContractCompilerTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${contract_compiler_test_logs}"
 
                     cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs} ; cd ..
 
@@ -474,6 +487,7 @@ EOF
               pushDockerImage(env.internal_helen_repo, env.docker_tag, false)
               pushDockerImage(env.internal_persephone_repo, env.docker_tag, false)
               pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
+              pushDockerImage(env.internal_contract_compiler_repo, env.docker_tag, false)
             }
           }
         }
@@ -504,6 +518,7 @@ EOF
               docker tag ${internal_helen_repo}:${docker_tag} ${release_helen_repo}:${docker_tag}
               docker tag ${internal_persephone_repo}:${docker_tag} ${release_persephone_repo}:${docker_tag}
               docker tag ${internal_ui_repo}:${docker_tag} ${release_ui_repo}:${docker_tag}
+              docker tag ${internal_contract_compiler_repo}:${docker_tag} ${release_contract_compiler_repo}:${docker_tag}
             '''
             pushDockerImage(env.release_agent_repo, env.docker_tag, true)
             pushDockerImage(env.release_asset_transfer_repo, env.docker_tag, true)
@@ -513,6 +528,7 @@ EOF
             pushDockerImage(env.release_helen_repo, env.docker_tag, true)
             // pushDockerImage(env.release_persephone_repo, env.docker_tag, true)
             pushDockerImage(env.release_ui_repo, env.docker_tag, true)
+            pushDockerImage(env.release_contract_compiler_repo, env.docker_tag, true)
           }
 
           dir('blockchain/vars') {

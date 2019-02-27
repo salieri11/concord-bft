@@ -11,16 +11,16 @@ import os
 import tempfile
 from time import strftime, localtime
 
-from suites import (asset_transfer_tests, core_vm_tests, ext_rpc_tests,
-                    helen_api_tests, lint_e2e_tests, performance_tests, regression_tests,
-                    simple_st_test, truffle_tests, ui_tests)
+from suites import (asset_transfer_tests, contract_compiler_tests, core_vm_tests,
+                    ext_rpc_tests, lint_e2e_tests, helen_api_tests, performance_tests,
+                    regression_tests, simple_st_test, truffle_tests, ui_tests)
 
 from util import html, json_helper
 
 log = None
-suites = ["AssetTransferTests", "CoreVMTests", "ExtendedRPCTests",
-          "HelenAPITests", "LintTests", "PerformanceTests", "RegressionTests",
-          "SimpleStateTransferTest", "TruffleTests", "UiTests"]
+suites = ["AssetTransferTests", "ContractCompilerTests", "CoreVMTests",
+          "LintTests", "ExtendedRPCTests", "HelenAPITests", "PerformanceTests",
+          "RegressionTests", "SimpleStateTransferTest", "TruffleTests", "UiTests"]
 
 def main():
    startTime = datetime.datetime.now()
@@ -94,6 +94,9 @@ def main():
                             "and test cases randomly select nodes from that pool.  To force use "
                             "of one node, or to use an official Ethereum setup, specify its "
                             "url here.  e.g. 'http://localhost:8545'")
+   parser.add_argument("--contractCompilerApiBaseUrl",
+                       default="http://localhost:3000/api/v1",
+                       help="Base URL for the contract compiler microservice")
 
    args = parser.parse_args()
    parent_results_dir = args.resultsDir
@@ -155,6 +158,8 @@ def setUpLogging(args):
 def createTestSuite(args):
    if (args.suite == "AssetTransferTests"):
       return asset_transfer_tests.AssetTransferTests(args)
+   elif (args.suite == "ContractCompilerTests"):
+       return contract_compiler_tests.ContractCompilerTests(args)
    elif (args.suite == "CoreVMTests"):
       return core_vm_tests.CoreVMTests(args)
    elif (args.suite == "HelenAPITests"):

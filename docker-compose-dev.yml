@@ -78,6 +78,7 @@ services:
       - concord2
       - concord3
       - concord4
+      - contract-compiler
     # Used for sending logs to log intelligence
     # We don't want this on by default, because logs won't be available locally for debugging
     # You will need to add the log intelligence in the fluent.conf file for it to work.
@@ -95,6 +96,13 @@ services:
       - 80:80
     depends_on:
       - helen
+
+  contract-compiler:
+    build:
+      context: ./contract-compiler
+    image: "${contract_compiler_repo}:${contract_compiler_tag}"
+    ports:
+      - 3000:3000
 
   db-server:
     image: cockroachdb/cockroach:v2.0.2
