@@ -24,7 +24,14 @@ RUN apt-get update && apt-get -y install \
     protobuf-compiler \
     python2.7 \
     wget \
+    clang-format-6.0 \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
+
+RUN ln -s /usr/bin/clang-format-6.0 /usr/bin/clang-format
+RUN ln -s /usr/bin/clang-format-diff-6.0 /usr/bin/clang-format-diff
+
+RUN pip3 install cpplint
 
 WORKDIR /
 RUN git clone https://github.com/google/googletest.git
