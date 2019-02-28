@@ -22,13 +22,10 @@ def call(){
     tools {
         nodejs 'Node 8.9.1'
     }
-    options{
-      gitLabConnection('TheGitlabConnection')
-    }
     parameters {
       booleanParam defaultValue: false, description: "Whether to deploy the docker images for production. REQUIRES A VERSION NUMBER IN THE 'version_param' FIELD.", name: "deploy"
       string defaultValue: "",
-             description: "The version number for releases. Used as a tag in DockerHub and Git.  REQUIRED IF THE 'deploy' CHECKBOX IS CHECKED.",
+             description: "The version number for releases. Used as a tag in DockerHub and GitHub.  REQUIRED IF THE 'deploy' CHECKBOX IS CHECKED.",
              name: "version_param"
 
       string defaultValue: "",
@@ -39,35 +36,32 @@ def call(){
              name: "shared_lib_branch"
     }
     stages {
-      stage("Setup"){
+      stage("Display node info"){
         steps{
-          startStage()
+          sh '''
+            set +x
+            echo Jenkins node information:
+            ifconfig | grep -A 2 "ens"
+            set -x
+          '''
+        }
+      }
+
+      stage("Check parameters"){
+        steps{
           script{
-            try{
-              // Outut node info
-              sh '''
-                set +x
-                echo Jenkins node information:
-                ifconfig | grep -A 2 "ens"
-                set -x
-              '''
+            errString = "Parameter check error: "
 
-              // Check parameters
-              script{
-                errString = "Parameter check error: "
-
-                if (params.deploy && (!params.version_param || !params.version_param.trim())){
-                  throw new Exception (errString + "A version number must be entered when the 'deploy' checkbox is checked.")
-                }
-              }
-
-              cleanWs()
-            }catch(Exception ex){
-              failStage()
-              throw ex
+            if (params.deploy && (!params.version_param || !params.version_param.trim())){
+              throw new Exception (errString + "A version number must be entered when the 'deploy' checkbox is checked.")
             }
-            passStage()
           }
+        }
+      }
+
+      stage("Clean") {
+        steps {
+          cleanWs()
         }
       }
 
@@ -75,45 +69,22 @@ def call(){
         parallel {
           stage("Fetch blockchain repo source") {
             steps {
-              startStage()
-              script{
-                try{
-                  sh 'mkdir blockchain'
-                  dir('blockchain') {
-                    script {
-                      env.commit = getRepoCode("git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git", params.blockchain_branch_or_commit)
-                    }
-                  }
-                }catch(Exception ex){
-                  failStage()
-                  throw ex
+              sh 'mkdir blockchain'
+              dir('blockchain') {
+                script {
+                  env.commit = getRepoCode("git@github.com:vmwathena/blockchain.git", params.blockchain_branch_or_commit)
                 }
               }
-              passStage()
             }
           }
-
           stage('Fetch VMware blockchain hermes-data source') {
-            when {
-              expression { env.JOB_NAME == memory_leak_job_name }
-            }
             steps {
-              script{
-                startStage()
-                try{
-                  sh 'mkdir hermes-data'
-                  dir('hermes-data') {
-                    script {
-                      // GITLAB: Need to update after mirroring is set up for hermes-data.
-                      env.actual_hermes_data_fetched = getRepoCode("git@gitlab.eng.vmware.com:blockchain/hermes-data","master")
-                    }
-                    sh 'git checkout master'
-                  }
-                }catch(Exception ex){
-                  failStage()
-                  throw ex
+              sh 'mkdir hermes-data'
+              dir('hermes-data') {
+                script {
+                  env.actual_hermes_data_fetched = getRepoCode("git@github.com:vmwathena/hermes-data","master")
                 }
-                passStage()
+                sh 'git checkout master'
               }
             }
           }
@@ -124,68 +95,32 @@ def call(){
         parallel {
           stage("Copy googletest") {
             steps() {
-              script{
-               startStage()
-                try{
-                  sh 'mkdir googletest'
-                  dir('googletest') {
-                    sh 'cp -ar /var/jenkins/workspace/googletest/* .'
-                  }
-                }catch(Exception ex){
-                  failStage()
-                  throw ex
-                }
-                passStage()
+              sh 'mkdir googletest'
+              dir('googletest') {
+                sh 'cp -ar /var/jenkins/workspace/googletest/* .'
               }
             }
           }
           stage("Copy evmjit") {
             steps() {
-              script{
-                startStage()
-                try{
-                  sh 'mkdir evmjit'
-                  dir('evmjit') {
-                    sh 'cp -ar /var/jenkins/workspace/evmjit/* .'
-                  }
-                }catch(Exception ex){
-                  failStage()
-                  throw ex
-                }
-                passStage()
+              sh 'mkdir evmjit'
+              dir('evmjit') {
+                sh 'cp -ar /var/jenkins/workspace/evmjit/* .'
               }
             }
           }
           stage("Copy etherium tests") {
             steps() {
-              script{
-                startStage()
-                try{
-                  sh 'mkdir ethereum_tests'
-                  dir('ethereum_tests') {
-                    sh 'cp -ar /var/jenkins/workspace/ethereum_tests/* .'
-                  }
-                }catch(Exception ex){
-                  failStage()
-                  throw ex
-                }
-                passStage()
+              sh 'mkdir ethereum_tests'
+              dir('ethereum_tests') {
+                sh 'cp -ar /var/jenkins/workspace/ethereum_tests/* .'
               }
             }
           }
           stage("Install node package dependencies") {
             steps() {
-              script{
-                startStage()
-                try{
-                  dir('blockchain/ui') {
-                    sh 'npm install'
-                  }
-                }catch(Exception ex){
-                  failStage()
-                  throw ex
-                }
-                passStage()
+              dir('blockchain/ui') {
+                sh 'npm install'
               }
             }
           }
@@ -194,97 +129,85 @@ def call(){
 
       stage('Write version for GUI') {
         steps() {
-          script{
-            startStage()
-            try{
-              dir('blockchain') {
-                script {
-                  version = env.version_param ? env.version_param : env.commit
-                  env.version_json = createVersionInfo(version, env.commit)
-                }
-                // The groovy calls to create directories and files fail, only in Jenkins,
-                // so do those in a shell block.  Jenkins has some quirky ideas of security?
-                sh '''
-                  dir=ui/src/static/data
-                  mkdir -p ${dir}
-                  echo ${version_json} > ${dir}/version.json
-                '''
-              }
-            }catch(Exception ex){
-              failStage()
-              throw ex
+          dir('blockchain') {
+            script {
+              version = env.version_param ? env.version_param : env.commit
+              env.version_json = createVersionInfo(version, env.commit)
             }
-            passStage()
+            // The groovy calls to create directories and files fail, only in Jenkins,
+            // so do those in a shell block.  Jenkins has some quirky ideas of security?
+            sh '''
+              dir=ui/src/static/data
+              mkdir -p ${dir}
+              echo ${version_json} > ${dir}/version.json
+            '''
           }
         }
       }
 
       stage("Configure docker and git") {
         steps {
-          script{
-            startStage()
-            try{
-              // Docker will fail to launch unless we fix up this DNS stuff.  It will try to use Google's
-              // DNS servers by default, and here in VMware's network, we can't do that.
-              // Also, since this will run on a VM which may have been deployed anywhere in the world,
-              // do not hard code the DNS values.  Always probe the current environment and write
-              // this file.
-              // Reference: https://development.robinwinslow.uk/2016/06/23/fix-docker-networking-dns/
-              withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-                sh '''
-                  DNS_JSON_STRING=$(echo {\\"dns\\": [\\"`nmcli dev show | grep 'IP4.DNS' | cut --delimiter=':' --fields=2 | xargs | sed 's/\\s/", "/g'`\\"]})
-                  echo "${PASSWORD}" | sudo -S ls > /dev/null
-                  echo $DNS_JSON_STRING | sudo tee -a /etc/docker/daemon.json
-                  sudo service docker restart
-                '''
-              }
+          // Docker will fail to launch unless we fix up this DNS stuff.  It will try to use Google's
+          // DNS servers by default, and here in VMware's network, we can't do that.
+          // Also, since this will run on a VM which may have been deployed anywhere in the world,
+          // do not hard code the DNS values.  Always probe the current environment and write
+          // this file.
+          // Reference: https://development.robinwinslow.uk/2016/06/23/fix-docker-networking-dns/
+          withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+            sh '''
+              DNS_JSON_STRING=$(echo {\\"dns\\": [\\"`nmcli dev show | grep 'IP4.DNS' | cut --delimiter=':' --fields=2 | xargs | sed 's/\\s/", "/g'`\\"]})
+              echo "${PASSWORD}" | sudo -S ls > /dev/null
+              echo $DNS_JSON_STRING | sudo tee -a /etc/docker/daemon.json
+              sudo service docker restart
+            '''
+          }
 
-              withCredentials([string(credentialsId: 'ATHENA_DEPLOYER_ARTIFACTORY_PASSWORD', variable: 'ARTIFACTORY_PASSWORD')]) {
-                script{
-                  command = "docker login -u athena-deployer -p \"" + env.ARTIFACTORY_PASSWORD + "\" athena-docker-local.artifactory.eng.vmware.com"
-                  retryCommand(command, true)
-                }
-              }
+          withCredentials([string(credentialsId: 'ATHENA_DEPLOYER_ARTIFACTORY_PASSWORD', variable: 'ARTIFACTORY_PASSWORD')]) {
+            script{
+              command = "docker login -u athena-deployer -p \"" + env.ARTIFACTORY_PASSWORD + "\" athena-docker-local.artifactory.eng.vmware.com"
+              retryCommand(command, true)
+            }
+          }
 
-              // To invoke "git tag" and commit that change, git wants to know who we are.
-              // This will be set up in template VM version 5, at which point these commands can
-              // be removed.
-              sh '''
-                git config --global user.email "vmwathenabot@vmware.com"
-                git config --global user.name "build system"
-              '''
+          // To invoke "git tag" and commit that change, git wants to know who we are.
+          // This will be set up in template VM version 5, at which point these commands can
+          // be removed.
+          sh '''
+            git config --global user.email "vmwathenabot@vmware.com"
+            git config --global user.name "build system"
+          '''
 
-              // Set up repo variables.
-              script {
-                env.docker_tag = env.version_param ? env.version_param : env.commit
-                env.release_repo = "vmwblockchain"
-                env.internal_repo_name = "athena-docker-local"
-                env.internal_repo = env.internal_repo_name + ".artifactory.eng.vmware.com"
+          // Set up repo variables.
+          script {
+            env.docker_tag = env.version_param ? env.version_param : env.commit
+            env.release_repo = "vmwblockchain"
+            env.internal_repo_name = "athena-docker-local"
+            env.internal_repo = env.internal_repo_name + ".artifactory.eng.vmware.com"
 
-                // These are constants which mirror the DockerHub repos.  DockerHub is only used for publishing releases.
-                env.release_concord_repo = env.release_repo + "/concord-core"
-                env.release_helen_repo = env.release_repo + "/concord-ui"
-                env.release_ethrpc_repo = env.release_repo + "/ethrpc"
-                env.release_fluentd_repo = env.release_repo + "/fluentd"
-                env.release_ui_repo = env.release_repo + "/ui"
-                env.release_asset_transfer_repo = env.release_repo + "/asset-transfer"
+            // These are constants which mirror the DockerHub repos.  DockerHub is only used for publishing releases.
+            env.release_concord_repo = env.release_repo + "/concord-core"
+            env.release_helen_repo = env.release_repo + "/concord-ui"
+            env.release_ethrpc_repo = env.release_repo + "/ethrpc"
+            env.release_fluentd_repo = env.release_repo + "/fluentd"
+            env.release_ui_repo = env.release_repo + "/ui"
+            env.release_asset_transfer_repo = env.release_repo + "/asset-transfer"
 
-                // These are constants which mirror the internal artifactory repos.  We put all merges
-                // to master in the internal VMware artifactory.
-                env.internal_concord_repo = env.release_concord_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_helen_repo = env.internal_repo + "/helen"
-                env.internal_ethrpc_repo = env.release_ethrpc_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_fluentd_repo = env.release_fluentd_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_asset_transfer_repo = env.release_asset_transfer_repo.replace(env.release_repo, env.internal_repo)
-              }
+            // These are constants which mirror the internal artifactory repos.  We put all merges
+            // to master in the internal VMware artifactory.
+            env.internal_concord_repo = env.release_concord_repo.replace(env.release_repo, env.internal_repo)
+            env.internal_helen_repo = env.internal_repo + "/helen"
+            env.internal_ethrpc_repo = env.release_ethrpc_repo.replace(env.release_repo, env.internal_repo)
+            env.internal_fluentd_repo = env.release_fluentd_repo.replace(env.release_repo, env.internal_repo)
+            env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
+            env.internal_asset_transfer_repo = env.release_asset_transfer_repo.replace(env.release_repo, env.internal_repo)
+          }
 
-              // Docker-compose picks up values from the .env file in the directory from which
-              // docker-compose is run.
-              withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-                sh '''
-                  echo "${PASSWORD}" | sudo -S ls
-                  sudo cat >blockchain/docker/.env <<EOF
+          // Docker-compose picks up values from the .env file in the directory from which
+          // docker-compose is run.
+          withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+            sh '''
+              echo "${PASSWORD}" | sudo -S ls
+              sudo cat >blockchain/docker/.env <<EOF
 concord_repo=${internal_concord_repo}
 concord_tag=${docker_tag}
 helen_repo=${internal_helen_repo}
@@ -299,33 +222,18 @@ asset_transfer_repo=${internal_asset_transfer_repo}
 asset_transfer_tag=${docker_tag}
 commit_hash=${commit}
 EOF
-                  cp blockchain/docker/.env blockchain/hermes/
-                '''
-              }
-            }catch(Exception ex){
-              failStage()
-              throw ex
-            }
-            passStage()
+              cp blockchain/docker/.env blockchain/hermes/
+            '''
           }
         }
       }
 
       stage("Build") {
         steps {
-          script{
-            startStage()
-            try{
-              dir('blockchain') {
-                sh '''
-                  ./buildall.sh
-                '''
-              }
-            }catch(Exception ex){
-              failStage()
-              throw ex
-            }
-            passStage()
+          dir('blockchain') {
+            sh '''
+              ./buildall.sh
+            '''
           }
         }
       }
@@ -333,86 +241,70 @@ EOF
       stage ("Build Performance Sub module") {
         when {
           expression { env.JOB_NAME == performance_test_job_name }
-        }
-        steps{
-          script{
-            startStage()
-            try{
-              steps {
-                dir('blockchain/performance') {
-                    sh 'mvn clean install assembly:single > mvn_performance_build.log 2>&1'
-                }
-              }
-            }catch(Exception ex){
-              failStage()
-              throw ex
-            }
-            passStage()
+        }     
+        stages {
+          stage('Maven build... mvn_performance_build.log') {
+            steps {
+              dir('blockchain/performance') {
+                  sh 'mvn clean install assembly:single > mvn_performance_build.log 2>&1'
+              }     
+            }           
           }
         }
       }
 
       stage("Run tests in containers") {
         steps {
-          script{
-            startStage()
-            try{
-              dir('blockchain/hermes'){
-                withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
-                  script {
-                    env.test_log_root = new File(env.WORKSPACE, "testLogs").toString()
-                    env.ui_test_logs = new File(env.test_log_root, "UI").toString()
-                    env.asset_transfer_test_logs = new File(env.test_log_root, "AssetTransfer").toString()
-                    env.core_vm_test_logs = new File(env.test_log_root, "CoreVM").toString()
-                    env.helen_api_test_logs = new File(env.test_log_root, "HelenAPI").toString()
-                    env.extended_rpc_test_logs = new File(env.test_log_root, "ExtendedRPC").toString()
-                    env.regression_test_logs = new File(env.test_log_root, "Regression").toString()
-                    env.statetransfer_test_logs = new File(env.test_log_root, "StateTransfer").toString()
-                    env.mem_leak_test_logs = new File(env.test_log_root, "MemoryLeak").toString()
-                    env.performance_test_logs = new File(env.test_log_root, "PerformanceTest").toString()
+          dir('blockchain/hermes'){
+            withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+              script {
+                env.test_log_root = new File(env.WORKSPACE, "testLogs").toString()
+                env.ui_test_logs = new File(env.test_log_root, "UI").toString()
+                env.asset_transfer_test_logs = new File(env.test_log_root, "AssetTransfer").toString()
+                env.core_vm_test_logs = new File(env.test_log_root, "CoreVM").toString()
+                env.helen_api_test_logs = new File(env.test_log_root, "HelenAPI").toString()
+                env.extended_rpc_test_logs = new File(env.test_log_root, "ExtendedRPC").toString()
+                env.regression_test_logs = new File(env.test_log_root, "Regression").toString()
+                env.statetransfer_test_logs = new File(env.test_log_root, "StateTransfer").toString()
+                env.mem_leak_test_logs = new File(env.test_log_root, "MemoryLeak").toString()
+                env.performance_test_logs = new File(env.test_log_root, "PerformanceTest").toString()
 
-                    if (genericTests) {
-                      sh '''
-                        # So test suites not using sudo can write to test_logs.
-                        mkdir "${test_log_root}"
+                if (genericTests) {
+                  sh '''
+                    # So test suites not using sudo can write to test_logs.
+                    mkdir "${test_log_root}"
 
-                        echo "${PASSWORD}" | sudo -S ./main.py AssetTransferTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${asset_transfer_test_logs}"
-                        echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}"
-                        echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}"
-                        echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"
-                        echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}"
-                        echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
+                    echo "${PASSWORD}" | sudo -S ./main.py AssetTransferTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${asset_transfer_test_logs}"
+                    echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}"
+                    echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}"
+                    echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"
+                    echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}"
+                    echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
 
-                        cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs} ; cd ..
+                    cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs} ; cd ..
 
-                        # We need to delete the database files before running UI tests because
-                        # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
-                        # needs to be run with sudo is so it can delete any existing DB files.)
-                        echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
-                        echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
-                        ./main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}"
-                      '''
-                    }
-                    if (env.JOB_NAME == memory_leak_job_name) {
-                      sh '''
-                        echo "Running Entire Testsuite: Memory Leak..."
-                        cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 5 --resultsDir ${mem_leak_test_logs}
-                      '''
-                    }
-                    if (env.JOB_NAME == performance_test_job_name) {
-                      sh '''
-                        echo "Running Entire Testsuite: Performance..."
-                        echo "${PASSWORD}" | sudo -S ./main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${performance_test_logs}"
-                      '''
-                    }
-                  }
+                    # We need to delete the database files before running UI tests because
+                    # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
+                    # needs to be run with sudo is so it can delete any existing DB files.)
+                    echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
+                    echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
+                    ./main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}"
+                  '''
+                }
+                if (env.JOB_NAME == memory_leak_job_name) {
+                  sh '''
+                    echo "Running Entire Testsuite: Memory Leak..."
+                    cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 5 --resultsDir ${mem_leak_test_logs}
+                  '''
+                }
+                if (env.JOB_NAME == performance_test_job_name) {
+                  sh '''
+                    echo "Running Entire Testsuite: Performance..."
+                    echo "${PASSWORD}" | sudo -S ./main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${performance_test_logs}"
+                  '''
                 }
               }
-            }catch(Exception ex){
-              failStage()
-              throw ex
             }
-            passStage()
           }
         }
       }
@@ -421,32 +313,37 @@ EOF
         when {
           expression { env.JOB_NAME == memory_leak_job_name }
         }
-        steps{
-          script{
-            startStage()
-            try{
+        stages {
+          stage('Push memory leak summary into repo') {
+            steps {
               dir('hermes-data/memory_leak_test') {
-                pushMemoryLeakSummary()
+                  pushMemoryLeakSummary()
               }
+            }
+          }
+          stage ('Send Memory Leak Alert Notification') {
+            steps {
+                dir('hermes-data/memory_leak_test') {
+                    script {
+                        memory_leak_spiked_log = new File(env.mem_leak_test_logs, "memory_leak_spiked.log").toString()
+                        if (fileExists(memory_leak_spiked_log)) {
+                            echo 'ALERT: Memory Leak spiked up'
 
-              dir('hermes-data/memory_leak_test') {
-                script {
-                  memory_leak_spiked_log = new File(env.mem_leak_test_logs, "memory_leak_spiked.log").toString()
-                  if (fileExists(memory_leak_spiked_log)) {
-                    echo 'ALERT: Memory Leak spiked up'
-
-                    memory_leak_alert_notification_address_file = "memory_leak_alert_recipients.txt"
-                    if (fileExists(memory_leak_alert_notification_address_file)) {
-                      memory_leak_alert_notification_recipients = readFile(memory_leak_alert_notification_address_file).replaceAll("\n", " ")
-                      echo 'Sending ALERT email notification...'
-                      emailext body: "Memory Leak Spiked up in build: ${env.BUILD_NUMBER}\n\n More info at: ${env.BUILD_URL}\nDownload Valgrind Log file (could be > 10 MB): ${env.BUILD_URL}artifact/testLogs/MemoryLeak/valgrind_concord1.log\n\nGraph: ${JOB_URL}plot",
-                      to: memory_leak_alert_notification_recipients,
-                      subject: "ALERT: Memory Leak Spiked up in build ${env.BUILD_NUMBER}"
+                            memory_leak_alert_notification_address_file = "memory_leak_alert_recipients.txt"
+                            if (fileExists(memory_leak_alert_notification_address_file)) {
+                                memory_leak_alert_notification_recipients = readFile(memory_leak_alert_notification_address_file).replaceAll("\n", " ")
+                                echo 'Sending ALERT email notification...'
+                                emailext body: "Memory Leak Spiked up in build: ${env.BUILD_NUMBER}\n\n More info at: ${env.BUILD_URL}\nDownload Valgrind Log file (could be > 10 MB): ${env.BUILD_URL}artifact/testLogs/MemoryLeak/valgrind_concord1.log\n\nGraph: ${JOB_URL}plot",
+                                to: memory_leak_alert_notification_recipients,
+                                subject: "ALERT: Memory Leak Spiked up in build ${env.BUILD_NUMBER}"
+                            }
+                        }
                     }
-                  }
                 }
-              }
-
+            }
+          }
+          stage ('Graph') {
+            steps {
               plot csvFileName: 'plot-leaksummary.csv',
                 csvSeries: [[
                             file: 'memory_leak_summary.csv',
@@ -465,11 +362,7 @@ EOF
               yaxis: 'Leak Summary (bytes)',
               yaxisMaximum: '',
               yaxisMinimum: ''
-            }catch(Exception ex){
-              failStage()
-              throw ex
             }
-            passStage()
           }
         }
       }
@@ -482,23 +375,16 @@ EOF
         }
         steps{
           script {
-            startStage()
-            try{
-              withCredentials([string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')]) {
-                // Pass in false for whether to tag as latest because VMware's
-                // artifactory does not allow re-using a tag.
-                pushDockerImage(env.internal_concord_repo, env.docker_tag, false)
-                pushDockerImage(env.internal_helen_repo, env.docker_tag, false)
-                pushDockerImage(env.internal_ethrpc_repo, env.docker_tag, false)
-                pushDockerImage(env.internal_fluentd_repo, env.docker_tag, false)
-                pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
-                pushDockerImage(env.internal_asset_transfer_repo, env.docker_tag, false)
-              }
-            }catch(Exception ex){
-              failStage()
-              throw ex
+            withCredentials([string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')]) {
+              // Pass in false for whether to tag as latest because VMware's
+              // artifactory does not allow re-using a tag.
+              pushDockerImage(env.internal_concord_repo, env.docker_tag, false)
+              pushDockerImage(env.internal_helen_repo, env.docker_tag, false)
+              pushDockerImage(env.internal_ethrpc_repo, env.docker_tag, false)
+              pushDockerImage(env.internal_fluentd_repo, env.docker_tag, false)
+              pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
+              pushDockerImage(env.internal_asset_transfer_repo, env.docker_tag, false)
             }
-            passStage()
           }
         }
       }
@@ -508,53 +394,44 @@ EOF
           environment name: 'deploy', value: 'true'
         }
         steps {
-          script{
-            startStage()
-            try{
-              dir('blockchain') {
-                createAndPushGitTag(env.version_param)
-              }
+          dir('blockchain') {
+            createAndPushGitTag(env.version_param)
+          }
 
-              withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
-                sh '''
-                  docker login -u blockchainrepositorywriter -p "${DOCKERHUB_PASSWORD}"
-                '''
-              }
+          withCredentials([string(credentialsId: 'BLOCKCHAIN_REPOSITORY_WRITER_PWD', variable: 'DOCKERHUB_PASSWORD')]) {
+            sh '''
+              docker login -u blockchainrepositorywriter -p "${DOCKERHUB_PASSWORD}"
+            '''
+          }
 
-              script {
-                sh '''
-                  docker tag ${internal_concord_repo}:${docker_tag} ${release_concord_repo}:${docker_tag}
-                  docker tag ${internal_helen_repo}:${docker_tag} ${release_helen_repo}:${docker_tag}
-                  docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
-                  docker tag ${internal_fluentd_repo}:${docker_tag} ${release_fluentd_repo}:${docker_tag}
-                  docker tag ${internal_ui_repo}:${docker_tag} ${release_ui_repo}:${docker_tag}
-                  docker tag ${internal_asset_transfer_repo}:${docker_tag} ${release_asset_transfer_repo}:${docker_tag}
-                '''
-                pushDockerImage(env.release_concord_repo, env.docker_tag, true)
-                pushDockerImage(env.release_helen_repo, env.docker_tag, true)
-                pushDockerImage(env.release_ethrpc_repo, env.docker_tag, true)
-                pushDockerImage(env.release_fluentd_repo, env.docker_tag, true)
-                pushDockerImage(env.release_ui_repo, env.docker_tag, true)
-                pushDockerImage(env.release_asset_transfer_repo, env.docker_tag, true)
-              }
+          script {
+            sh '''
+              docker tag ${internal_concord_repo}:${docker_tag} ${release_concord_repo}:${docker_tag}
+              docker tag ${internal_helen_repo}:${docker_tag} ${release_helen_repo}:${docker_tag}
+              docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
+              docker tag ${internal_fluentd_repo}:${docker_tag} ${release_fluentd_repo}:${docker_tag}
+              docker tag ${internal_ui_repo}:${docker_tag} ${release_ui_repo}:${docker_tag}
+              docker tag ${internal_asset_transfer_repo}:${docker_tag} ${release_asset_transfer_repo}:${docker_tag}
+            '''
+            pushDockerImage(env.release_concord_repo, env.docker_tag, true)
+            pushDockerImage(env.release_helen_repo, env.docker_tag, true)
+            pushDockerImage(env.release_ethrpc_repo, env.docker_tag, true)
+            pushDockerImage(env.release_fluentd_repo, env.docker_tag, true)
+            pushDockerImage(env.release_ui_repo, env.docker_tag, true)
+            pushDockerImage(env.release_asset_transfer_repo, env.docker_tag, true)
+          }
 
-              dir('blockchain/vars') {
-                script {
-                  release_notification_address_file = "release_notification_recipients.txt"
+          dir('blockchain/vars') {
+            script {
+              release_notification_address_file = "release_notification_recipients.txt"
 
-                  if (fileExists(release_notification_address_file)) {
-                    release_notification_recipients = readFile(release_notification_address_file).replaceAll("\n", " ")
-                    emailext body: "Changes: \n" + getChangesSinceLastTag(),
-                         to: release_notification_recipients,
-                         subject: "[Build] Concord version " + env.version_param + " has been pushed to DockerHub."
-                  }
-                }
+              if (fileExists(release_notification_address_file)) {
+                release_notification_recipients = readFile(release_notification_address_file).replaceAll("\n", " ")
+                emailext body: "Changes: \n" + getChangesSinceLastTag(),
+                     to: release_notification_recipients,
+                     subject: "[Build] Concord version " + env.version_param + " has been pushed to DockerHub."
               }
-            }catch(Exception ex){
-              failStage()
-              throw ex
             }
-            passStage()
           }
         }
       }
@@ -624,7 +501,7 @@ String getRepoCode(repo_url, branch_or_commit){
 
 // All that varies for each repo is the branch, so wrap this very large call.
 void checkoutRepo(repo_url, branch_or_commit){
-  checkout([$class: 'GitSCM', branches: [[name: branch_or_commit]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'GITLAB_LDAP_CREDENTIALS', url: repo_url]]])
+  checkout([$class: 'GitSCM', branches: [[name: branch_or_commit]], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: '27bbd815-703c-4647-909b-836919db98ef', url: repo_url]]])
 }
 
 // Given a repo and tag, pushes a docker image to whatever repo we
@@ -832,19 +709,4 @@ Boolean retryCurl(command, failOnError){
     echo(msg)
     return false
   }
-}
-
-// Called by a stage when it begins.
-void startStage(){
-  updateGitlabCommitStatus(name: env.STAGE_NAME, state: "running")
-}
-
-// Called by a stage when it is successful.
-void passStage(){
-  updateGitlabCommitStatus(name: env.STAGE_NAME, state: "success")
-}
-
-// Called by a stage when it fails.
-void failStage(){
-  updateGitlabCommitStatus(name: env.STAGE_NAME, state: "failed")
 }
