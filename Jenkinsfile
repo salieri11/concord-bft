@@ -4,18 +4,31 @@ node {
     // the current branch is, and @Library requires that it be hard coded.
     def builder
     def buildLib
+    def libName
+
+    scmUrl = scm.userRemoteConfigs[0].url
+    usingGitlab = scmUrl.contains("gitlab")
+
+    // libName matches one of the entries in Jenkins > Manage Jenkins >
+    // Configure System > Global Pipeline Libraries.
+    if (usingGitlab){
+      libName = "JenkinsLibOnGitlab"
+    }else{
+      // Github, going away
+      libName = "BlockchainSharedJenkinsLib"
+    }
 
     if (params.shared_lib_branch && params.shared_lib_branch.trim()) {
       echo "Shared lib load: Explicitly given ${params.shared_lib_branch}."
-      buildLib = library("BlockchainSharedJenkinsLib@${params.shared_lib_branch}").org.vmware
+      buildLib = library(libName + "@${params.shared_lib_branch}").org.vmware
     } else if (env.BRANCH_NAME && env.BRANCH_NAME.trim()) {
       echo "Shared lib load: Using branch ${env.BRANCH_NAME}."
-      buildLib = library("BlockchainSharedJenkinsLib@${env.BRANCH_NAME}").org.vmware
+      buildLib = library(libName + "@${env.BRANCH_NAME}").org.vmware
     } else {
       echo "Shared lib load: Using master."
-      buildLib = library("BlockchainSharedJenkinsLib@master").org.vmware
+      buildLib = library(libName + "@master").org.vmware
     }
 
-    builder = buildLib.Builder.new(this)
+    builder = buildLib.Builder.new(this, usingGitlab)
     builder.startBuild()
 }
