@@ -38,6 +38,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import lombok.Getter;
 
 /**
  * Bean to provide JWT tokens.  Creates, refreshes and signs tokens.
@@ -47,13 +48,14 @@ public class JwtTokenProvider {
     // Key length in bytes.  Recommendation for HS256 is 256 bits (32 bytes)
     static final int KEY_LENGTH = 32;
 
-    @Value("${security.jwt.token.secretkey:#null")
+    @Value("${security.jwt.token.secretkey:#null}")
     private String secretKey;
 
+    @Getter
     @Value("${security.jwt.token.expire-length:1800000}")
-    public long validityInMilliseconds = 1800000; // 30 minutes
+    private long validityInMilliseconds = 1800000; // 30 minutes
 
-    @Value("${security.jwt.token.expire-length:3600000}")
+    @Value("${security.jwt.token.refresh.expire-length:3600000}")
     private long refreshTokenValidityInMilliseconds = 3600000; // 1 hour
 
     @Autowired

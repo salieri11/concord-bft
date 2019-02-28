@@ -129,7 +129,6 @@ class UserAuthenticatorTest {
         when(passwordEncoder.matches("1234", "1234")).thenReturn(true);
         when(passwordEncoder.encode(anyString())).then(a -> a.getArguments().toString());
 
-        jwtTokenProvider.validityInMilliseconds = 1800000;
         HelenUserDetails details = new HelenUserDetails("user@test.com", "1234", true, true,
                 true, true, Arrays.asList(new SimpleGrantedAuthority("SYSTEM_ADMIN")));
 
@@ -137,6 +136,7 @@ class UserAuthenticatorTest {
         when(jwtTokenProvider.createRefreshToken(any(User.class))).thenReturn("refresh_token");
         when(jwtTokenProvider.getAuthentication("token"))
             .thenReturn(new TestingAuthenticationToken(details, null));
+        when(jwtTokenProvider.getValidityInMilliseconds()).thenReturn(1800000L);
 
         doAnswer(invocation -> {
             User u = invocation.getArgument(0);

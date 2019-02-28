@@ -150,7 +150,7 @@ public class UserAuthenticator {
                 loginResponse.setAuthenticated(true);
                 loginResponse.setToken(jwtTokenProvider.createToken(u));
                 loginResponse.setRefreshToken(jwtTokenProvider.createRefreshToken(u));
-                loginResponse.setTokenExpires(jwtTokenProvider.validityInMilliseconds);
+                loginResponse.setTokenExpires(jwtTokenProvider.getValidityInMilliseconds());
                 // This needs to be after we have copied the old user data
                 prm.loginUser(u);
             } else {
@@ -192,7 +192,7 @@ public class UserAuthenticator {
                 String refreshToken = jwtTokenProvider.createRefreshToken(u);
                 loginResponse.setToken(newToken);
                 loginResponse.setRefreshToken(refreshToken);
-                loginResponse.setTokenExpires(jwtTokenProvider.validityInMilliseconds);
+                loginResponse.setTokenExpires(jwtTokenProvider.getValidityInMilliseconds());
             } else {
                 responseStatus = HttpStatus.BAD_REQUEST;
                 loginResponse.setError("Bad Token");
