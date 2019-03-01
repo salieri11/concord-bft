@@ -20,7 +20,8 @@ def call(){
   pipeline {
     agent { label agentLabel }
     tools {
-        nodejs 'Node 8.9.1'
+        // 8.9.4 is the minimum for Truffle.
+        nodejs 'Node 8.9.4'
     }
     parameters {
       booleanParam defaultValue: false, description: "Whether to deploy the docker images for production. REQUIRES A VERSION NUMBER IN THE 'version_param' FIELD.", name: "deploy"
@@ -241,14 +242,14 @@ EOF
       stage ("Build Performance Sub module") {
         when {
           expression { env.JOB_NAME == performance_test_job_name }
-        }     
+        }
         stages {
           stage('Maven build... mvn_performance_build.log') {
             steps {
               dir('blockchain/performance') {
                   sh 'mvn clean install assembly:single > mvn_performance_build.log 2>&1'
-              }     
-            }           
+              }
+            }
           }
         }
       }
@@ -266,6 +267,7 @@ EOF
                 env.extended_rpc_test_logs = new File(env.test_log_root, "ExtendedRPC").toString()
                 env.regression_test_logs = new File(env.test_log_root, "Regression").toString()
                 env.statetransfer_test_logs = new File(env.test_log_root, "StateTransfer").toString()
+                env.truffle_test_logs = new File(env.test_log_root, "Truffle").toString()
                 env.mem_leak_test_logs = new File(env.test_log_root, "MemoryLeak").toString()
                 env.performance_test_logs = new File(env.test_log_root, "PerformanceTest").toString()
 
@@ -280,6 +282,7 @@ EOF
                     echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"
                     echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}"
                     echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
+                    echo "${PASSWORD}" | sudo -S ./main.py TruffleTests --logLevel debug --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${truffle_test_logs}"
 
                     cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs} ; cd ..
 
