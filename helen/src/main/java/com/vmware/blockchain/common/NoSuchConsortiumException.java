@@ -13,6 +13,6 @@ public class NoSuchConsortiumException extends HelenException {
     private static final long serialVersionUID = 1L;
 
     public NoSuchConsortiumException(String message) {
-        super(message, HttpStatus.BAD_REQUEST);
+        super(message, HttpStatus.NOT_FOUND);
     }
 }

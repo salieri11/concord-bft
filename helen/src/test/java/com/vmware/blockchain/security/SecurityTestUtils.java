@@ -23,12 +23,15 @@ import com.vmware.blockchain.services.profiles.User;
  */
 public class SecurityTestUtils {
     // Just some random UUIDs
-    static final UUID USER_ID = UUID.fromString("f1c1aa4f-4958-4e93-8a51-930d595fb65b");
-    static final UUID ORG_ID = UUID.fromString("82634974-88cf-4944-a99d-6b92664bb765");
-    static final UUID CONSORTIUM_ID = UUID.fromString("5c7cd0e9-57ad-44af-902f-74af2f3dd8fe");
-    static final String SECRET_KEY = Base64.getEncoder().encodeToString("secret-key".getBytes());
+    public static final UUID USER_ID = UUID.fromString("f1c1aa4f-4958-4e93-8a51-930d595fb65b");
+    public static final UUID ORG_ID = UUID.fromString("82634974-88cf-4944-a99d-6b92664bb765");
+    public static final UUID CONSORTIUM_ID = UUID.fromString("5c7cd0e9-57ad-44af-902f-74af2f3dd8fe");
+    public static final String SECRET_KEY = Base64.getEncoder().encodeToString("secret-key".getBytes());
 
-    static User createMockUser() {
+    /**
+     * Create a user mock with default values.
+     */
+    public static User createMockUser() {
         User user = mock(User.class);
         Organization organization = mock(Organization.class);
         Consortium consortium = mock(Consortium.class);

@@ -10,7 +10,9 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -18,6 +20,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -26,12 +29,16 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.common.HelenException;
+import com.vmware.blockchain.services.profiles.BlockchainManager;
+import com.vmware.blockchain.services.profiles.Consortium;
+import com.vmware.blockchain.services.profiles.ConsortiumRepository;
 import com.vmware.blockchain.services.profiles.User;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import lombok.Getter;
 
 /**
  * Bean to provide JWT tokens.  Creates, refreshes and signs tokens.
@@ -41,17 +48,24 @@ public class JwtTokenProvider {
     // Key length in bytes.  Recommendation for HS256 is 256 bits (32 bytes)
     static final int KEY_LENGTH = 32;
 
-    @Value("${security.jwt.token.secretkey:#null")
+    @Value("${security.jwt.token.secretkey:#null}")
     private String secretKey;
 
+    @Getter
     @Value("${security.jwt.token.expire-length:1800000}")
-    public long validityInMilliseconds = 1800000; // 30 minutes
+    private long validityInMilliseconds = 1800000; // 30 minutes
 
-    @Value("${security.jwt.token.expire-length:3600000}")
+    @Value("${security.jwt.token.refresh.expire-length:3600000}")
     private long refreshTokenValidityInMilliseconds = 3600000; // 1 hour
 
     @Autowired
     private HelenUserDetailsService helenUserDetailsService;
+
+    @Autowired
+    private ConsortiumRepository consortiumRepository;
+
+    @Autowired
+    private BlockchainManager blockchainManager;
 
     @PostConstruct
     protected void init() {
@@ -101,6 +115,7 @@ public class JwtTokenProvider {
      * Return an Authentication for the give token.  Note that this always returns a value.
      * Throws HelenException if anything is wrong.
      */
+    @Cacheable("TokenCache")
     public Authentication getAuthentication(String token) {
         // throws exception if token not valid
         Claims claims = validateToken(token);
@@ -108,12 +123,19 @@ public class JwtTokenProvider {
         String orgId = claims.get("context_name", String.class);
         @SuppressWarnings("unchecked")
         List<String> roles = claims.get("perms", List.class);
-        List<GrantedAuthority> authorities =
+        final List<GrantedAuthority> authorities =
                 roles.stream().map(r -> new SimpleGrantedAuthority(r)).collect(Collectors.toList());
         // throws exception if user not found.
         HelenUserDetails userDetails = (HelenUserDetails) helenUserDetailsService.loadUserByUsername(email);
+        Optional<Consortium> c = consortiumRepository.findById(UUID.fromString(orgId));
+        if (c.isEmpty()) {
+            throw new HelenException("Invalid Consortium", HttpStatus.UNAUTHORIZED);
+        }
         userDetails.setAuthToken(token);
         userDetails.setOrgId(orgId);
+        List<UUID> ids =
+                blockchainManager.listByConsortium(c.get()).stream().map(b -> b.getId()).collect(Collectors.toList());
+        userDetails.setPermittedChains(ids);
 
         return new UsernamePasswordAuthenticationToken(userDetails, "", authorities);
     }

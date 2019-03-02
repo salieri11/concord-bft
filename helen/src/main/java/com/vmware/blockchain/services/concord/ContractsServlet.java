@@ -31,7 +31,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.vmware.blockchain.common.Constants;
+import com.vmware.blockchain.common.HelenException;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
+import com.vmware.blockchain.security.AuthHelper;
 import com.vmware.blockchain.services.ConcordControllerHelper;
 import com.vmware.blockchain.services.ConcordServlet;
 import com.vmware.blockchain.services.contracts.BriefContractInfo;
@@ -42,6 +44,7 @@ import com.vmware.blockchain.services.contracts.ContractRetrievalException;
 import com.vmware.blockchain.services.contracts.FullVersionInfo;
 import com.vmware.blockchain.services.ethereum.EthDispatcher;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
+import com.vmware.blockchain.services.profiles.Roles;
 import com.vmware.concord.Concord.ConcordResponse;
 
 /**
@@ -57,15 +60,18 @@ public class ContractsServlet extends ConcordServlet {
     private ContractRegistryManager registryManager;
     private Random random = new Random();
     private EthDispatcher ethDispatcher;
+    private AuthHelper authHelper;
 
     @Autowired
     public ContractsServlet(ContractRegistryManager registryManger, EthDispatcher ethDispatcher,
-            ConnectionPoolManager connectionPoolManager, DefaultProfiles defaultProfiles) {
+            ConnectionPoolManager connectionPoolManager, DefaultProfiles defaultProfiles,
+            AuthHelper authHelper) {
         super(connectionPoolManager, defaultProfiles);
         this.registryManager = registryManger;
         this.jsonRpc = Constants.JSONRPC;
         this.contractEndpoint = Constants.CONTRACTS_ENDPOINT;
         this.ethDispatcher = ethDispatcher;
+        this.authHelper = authHelper;
     }
 
 
@@ -117,6 +123,11 @@ public class ContractsServlet extends ConcordServlet {
         if (registryManager == null) {
             return new ResponseEntity<>(errorJson("Service unavailable."),
                     HttpStatus.SERVICE_UNAVAILABLE);
+        }
+        // Make sure we can access this
+        if (!authHelper.hasAnyAuthority(Roles.operatorRoles())
+                && !authHelper.getPermittedChains().contains(getBlockchainId(id))) {
+            throw new HelenException("Not allowed", HttpStatus.FORBIDDEN);
         }
 
         return new ResponseEntity<>(buildContractsJson(getBlockchainId(id)), HttpStatus.OK);
@@ -177,6 +188,11 @@ public class ContractsServlet extends ConcordServlet {
                     HttpStatus.SERVICE_UNAVAILABLE);
         }
 
+        if (!authHelper.hasAnyAuthority(Roles.operatorRoles())
+                && !authHelper.getPermittedChains().contains(getBlockchainId(id))) {
+            throw new HelenException("Not allowed", HttpStatus.FORBIDDEN);
+        }
+
         if (registryManager.hasContract(contractId, getBlockchainId(id))) {
             return new ResponseEntity<>(
                     buildContractJson(registryManager.getAllBriefVersionInfo(contractId, getBlockchainId(id))),
@@ -230,6 +246,11 @@ public class ContractsServlet extends ConcordServlet {
         if (registryManager == null) {
             return new ResponseEntity<>(errorJson("Service unavailable."),
                     HttpStatus.SERVICE_UNAVAILABLE);
+        }
+
+        if (!authHelper.hasAnyAuthority(Roles.operatorRoles())
+                && !authHelper.getPermittedChains().contains(getBlockchainId(id))) {
+            throw new HelenException("Not allowed", HttpStatus.FORBIDDEN);
         }
 
         try {
@@ -320,6 +341,11 @@ public class ContractsServlet extends ConcordServlet {
         if (registryManager == null) {
             return new ResponseEntity<>(errorJson("Service unavailable."),
                     HttpStatus.SERVICE_UNAVAILABLE);
+        }
+
+        if (!authHelper.hasAnyAuthority(Roles.operatorRoles())
+                && !authHelper.getPermittedChains().contains(getBlockchainId(id))) {
+            throw new HelenException("Not allowed", HttpStatus.FORBIDDEN);
         }
 
         ResponseEntity<JSONAware> responseEntity;
@@ -533,6 +559,11 @@ public class ContractsServlet extends ConcordServlet {
         if (registryManager == null) {
             return new ResponseEntity<>(errorJson("Service unavailable."),
                     HttpStatus.SERVICE_UNAVAILABLE);
+        }
+
+        if (!authHelper.hasAnyAuthority(Roles.operatorRoles())
+                && !authHelper.getPermittedChains().contains(getBlockchainId(id))) {
+            throw new HelenException("Not allowed", HttpStatus.FORBIDDEN);
         }
 
         final ConcordControllerHelper helper = getHelper(id);

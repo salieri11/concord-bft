@@ -75,4 +75,10 @@ public enum Roles implements GrantedAuthority {
         return lookup.get(name);
     }
 
+    // String list of operator role names.
+    public static String[] operatorRoles() {
+        String[] r = {ORG_ADMIN.name, CONSORTIUM_ADMIN.name, SYSTEM_ADMIN.name};
+        return r;
+    }
+
 }
