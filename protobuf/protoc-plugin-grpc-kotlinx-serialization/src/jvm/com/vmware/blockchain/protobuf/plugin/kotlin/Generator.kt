@@ -286,7 +286,7 @@ private fun DescriptorProtos.MethodDescriptorProto.toMethodDescriptorPropertySpe
             .unindent().unindent()
             .build()
 
-    return PropertySpec.builder("${name}Descriptor", type).initializer(value).build()
+    return PropertySpec.builder("${name.decapitalize()}Descriptor", type).initializer(value).build()
 }
 
 /**
@@ -302,6 +302,7 @@ private fun DescriptorProtos.MethodDescriptorProto.toMethodDescriptorPropertySpe
 private fun DescriptorProtos.MethodDescriptorProto.toServerStubMethodSpec(
     service: ClassName
 ): FunSpec {
+    val normalized = name.decapitalize()
     val response = StreamObserver::class.asTypeName()
             .parameterizedBy(ClassName.bestGuess(outputType.removePrefix(".")))
             .let { ParameterSpec.builder("responseObserver", it).build() }
@@ -319,7 +320,7 @@ private fun DescriptorProtos.MethodDescriptorProto.toServerStubMethodSpec(
             "return %T.asyncUnimplementedStreamingCall(%T.%LDescriptor,·%L)"
     }
 
-    return FunSpec.builder(name)
+    return FunSpec.builder(normalized)
             .addModifiers(KModifier.OPEN)
             .apply {
                 if (clientStreaming) {
@@ -329,7 +330,7 @@ private fun DescriptorProtos.MethodDescriptorProto.toServerStubMethodSpec(
                 }
             }
             .addParameter(response)
-            .addCode("$format\n", ServerCalls::class.asTypeName(), service, name, response.name)
+            .addCode("$format\n", ServerCalls::class.asTypeName(), service, normalized, response.name)
             .build()
 }
 
@@ -347,6 +348,7 @@ private fun DescriptorProtos.MethodDescriptorProto.toServerStubMethodSpec(
 private fun DescriptorProtos.MethodDescriptorProto.toServerStubBindMethodCodeBlock(
     service: ClassName
 ): CodeBlock {
+    val normalized = name.decapitalize()
     val format = when {
         !clientStreaming && !serverStreaming ->
             "%T.asyncUnaryCall(%T.newUnaryMethod(::%N))"
@@ -361,10 +363,10 @@ private fun DescriptorProtos.MethodDescriptorProto.toServerStubBindMethodCodeBlo
     return CodeBlock.builder()
             .add(" .addMethod(%T.%LDescriptor,·$format)",
                  service,
-                 name,
+                 normalized,
                  ServerCalls::class.asTypeName(),
                  GrpcSupport::class.asTypeName(),
-                 name
+                 normalized
             )
             .build()
 }
@@ -392,6 +394,7 @@ private fun DescriptorProtos.MethodDescriptorProto.toAsyncClientStubMethodSpec(
     val requestType = ClassName.bestGuess(inputType.removePrefix("."))
     val request = ParameterSpec.builder("request", requestType).build()
 
+    val normalized = name.decapitalize()
     val codeBlock = when {
         !clientStreaming && !serverStreaming ->
             "%type:T.asyncUnaryCall(%channel:N.newCall(%service:T.%method:N,·%options:N),·%request:N,·%response:N)"
@@ -407,7 +410,7 @@ private fun DescriptorProtos.MethodDescriptorProto.toAsyncClientStubMethodSpec(
                         "type" to ClientCalls::class,
                         "channel" to channel.name,
                         "service" to ClassName.bestGuess(service.canonicalName),
-                        "method" to "${name}Descriptor",
+                        "method" to "${normalized}Descriptor",
                         "options" to callOptions.name,
                         "request" to request.name,
                         "response" to response.name
@@ -416,7 +419,7 @@ private fun DescriptorProtos.MethodDescriptorProto.toAsyncClientStubMethodSpec(
                 .build()
     }
 
-    return FunSpec.builder(name)
+    return FunSpec.builder(normalized)
             .apply {
                 if (clientStreaming) {
                     returns(StreamObserver::class.asTypeName().parameterizedBy(requestType))

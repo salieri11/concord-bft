@@ -19,6 +19,7 @@ import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Optional
 import kotlinx.serialization.SerialId
 import kotlinx.serialization.Serializable
@@ -122,10 +123,16 @@ class MessageGenerator(private val descriptor: DescriptorProtos.DescriptorProto)
                 .map { it.toParameterSpec(mapEntry) }
                 .let { FunSpec.constructorBuilder().addParameters(it).build() }
         val selfTypeName = ClassName.bestGuess(descriptor.name)
+        val serializer = FunSpec.builder("getSerializer")
+                .addAnnotation(AnnotationSpec.builder(JvmStatic::class).build())
+                .returns(KSerializer::class.asTypeName().parameterizedBy(selfTypeName))
+                .addCode(CodeBlock.of("return %T.serializer()\n", selfTypeName))
+                .build()
         val companion = TypeSpec.companionObjectBuilder()
                 .addProperty(PropertySpec.builder("defaultValue", selfTypeName)
                                      .initializer("%T()", selfTypeName)
                                      .build())
+                .addFunction(serializer)
                 .build()
         return TypeSpec.classBuilder(selfTypeName)
                 .addAnnotation(AnnotationSpec.builder(Serializable::class).build())
