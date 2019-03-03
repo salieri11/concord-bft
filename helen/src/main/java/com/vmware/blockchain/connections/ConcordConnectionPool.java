@@ -17,7 +17,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.ConcordProperties;
+import com.vmware.blockchain.common.ServiceUnavailableException;
 import com.vmware.blockchain.services.profiles.Blockchain;
 import com.vmware.concord.ConcordTcpConnection;
 import com.vmware.concord.IConcordConnection;
@@ -96,7 +98,7 @@ public class ConcordConnectionPool {
             case Mock:
                 return new MockConnection(ip.getHost(), ip.getPort());
             default:
-                throw new UnsupportedOperationException("type not supported" + connectionType);
+                throw new BadRequestException("Type not supported {0}", connectionType);
         }
     }
 
@@ -156,11 +158,11 @@ public class ConcordConnectionPool {
     /**
      * Removes a connection from the connection pool data structure, checks it, and returns it.
      */
-    public IConcordConnection getConnection() throws IOException, IllegalStateException, InterruptedException {
+    public IConcordConnection getConnection() throws IOException, InterruptedException {
         log.trace("getConnection enter");
 
         if (!initialized.get()) {
-            throw new IllegalStateException("getConnection, pool not initialized");
+            throw new ServiceUnavailableException("getConnection, pool not initialized");
         }
 
         boolean first = true;
@@ -219,7 +221,7 @@ public class ConcordConnectionPool {
         log.trace("putConnection enter");
 
         if (!initialized.get()) {
-            throw new IllegalStateException("returnConnection, pool not initialized");
+            throw new ServiceUnavailableException("returnConnection, pool not initialized");
         }
 
         // cannot be null in normal flow
@@ -278,7 +280,7 @@ public class ConcordConnectionPool {
      */
     public int getTotalConnections() {
         if (!initialized.get()) {
-            throw new IllegalStateException("returnConnection, pool not initialized");
+            throw new ServiceUnavailableException("returnConnection, pool not initialized");
         }
         return connectionCount.get();
     }

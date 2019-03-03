@@ -13,13 +13,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import com.vmware.blockchain.common.HelenException;
+import com.vmware.blockchain.common.UnauthorizedException;
 import com.vmware.blockchain.services.profiles.BlockchainManager;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.User;
@@ -45,7 +44,7 @@ public class HelenUserDetailsService implements UserDetailsService {
         final Optional<User> user = userRepository.findUserByEmail(email);
 
         if (!user.isPresent()) {
-            throw new HelenException("Invalid email/password", HttpStatus.UNAUTHORIZED);
+            throw new UnauthorizedException("Invalid email/password");
         }
 
         User u = user.get();

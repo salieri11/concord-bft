@@ -14,6 +14,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
+import com.vmware.blockchain.common.ConflictException;
+import com.vmware.blockchain.common.NotFoundException;
+
 /**
  * A class which provides functions for doing contract management queries over the database.
  */
@@ -59,8 +62,7 @@ public class ContractRegistryManager {
      * @throws ContractRetrievalException In case contract was not found or some other database exception occurs then
      *         throws this exception.
      */
-    public FullVersionInfo getContractVersion(String contractId, String versionName, UUID blockchain)
-            throws ContractRetrievalException {
+    public FullVersionInfo getContractVersion(String contractId, String versionName, UUID blockchain) {
         List<Contract> contracts = contractReopository
                 .findByNameAndVersionNameAndBlockchainId(contractId, versionName, blockchain);
 
@@ -72,8 +74,8 @@ public class ContractRegistryManager {
                     c.getBytecode(), c.getSourcecode());
             return cv;
         } else {
-            throw new ContractRetrievalException("Contract with contract ID: " + contractId + " and version: "
-                    + versionName + " not " + "found.");
+            throw new NotFoundException("Contract with contract ID: {0} and version {1} not found", contractId,
+                    versionName);
         }
     }
 
@@ -81,12 +83,12 @@ public class ContractRegistryManager {
      * Creates a new contractVersion with given details.
      *
      * @return True if a contract with given version was added successfully, False otherwise.
-     * @throws DuplicateContractException If there already exists another contract with same contractId and versionName,
+     * @throws ConflictException If there already exists another contract with same contractId and versionName,
      *         then this method throws this exception.
      */
     public boolean addNewContractVersion(String contractId, String ownerAddress, String versionName, String address,
             String metaData, String byteCode, String sourceCode, UUID blockchain)
-            throws DuplicateContractException {
+            throws ConflictException {
         try {
             Contract c = new Contract.ContractBuilder()
                     .name(contractId)
@@ -99,8 +101,8 @@ public class ContractRegistryManager {
                     .blockchainId(blockchain).build();
             contractReopository.save(c);
         } catch (DataIntegrityViolationException e) {
-            throw new DuplicateContractException(
-                    "ContractVersion with id " + contractId + " and version: " + versionName + " already exists.");
+            throw new ConflictException(
+                    "ContractVersion with id {0} and version {1} already exists", contractId, versionName);
         }
         return true;
     }
@@ -109,24 +111,23 @@ public class ContractRegistryManager {
      * Updates an existing contractVersion with given details.
      *
      * @return True if a contract with given version was updated successfully, False otherwise.
-     * @throws DuplicateContractException If there already exists another contract with same contractId and versionName,
+     * @throws ConflictException If there already exists another contract with same contractId and versionName,
      *         then this method throws this exception.
      */
     public boolean updateExistingContractVersion(String existingContractId, String existingVersionName,
             String contractId, String ownerAddress, String versionName, String metaData, String sourceCode,
-            UUID blockchain)
-            throws DuplicateContractException, ContractRetrievalException {
+            UUID blockchain) {
         {
             if (hasContractVersion(contractId, versionName, blockchain)) {
-                throw new DuplicateContractException(
-                    "ContractVersion with id " + contractId + " and version: " + versionName + " already exists.");
+                throw new ConflictException(
+                        "ContractVersion with id {0} and version {1} already exists", contractId, versionName);
             } else {
                 List<Contract> contracts =
                         contractReopository.findByNameAndVersionNameAndBlockchainIdOrderBySeqDesc(
                                 existingContractId, existingVersionName, blockchain);
                 if (contracts.isEmpty()) {
-                    throw new ContractRetrievalException(String.format("No contract with id %s and version %s",
-                            existingContractId, existingVersionName));
+                    throw new NotFoundException("No contract with id {0} and version {2}",
+                            existingContractId, existingVersionName);
                 }
                 Contract c = contracts.get(0);
                 c.setName(contractId);
@@ -147,11 +148,10 @@ public class ContractRegistryManager {
      * @return The BriefInfo object
      * @throws ContractRetrievalException This exception is thrown when a contract with given contractId is not found.
      */
-    public BriefContractInfo getBriefContractInfo(String contractId, UUID blockchain)
-            throws ContractRetrievalException {
+    public BriefContractInfo getBriefContractInfo(String contractId, UUID blockchain) {
         List<Contract> contracts = contractReopository.findByNameAndBlockchainIdOrderBySeqDesc(contractId, blockchain);
         if (contracts.isEmpty()) {
-            throw new ContractRetrievalException(String.format("No contract with id %s", contractId));
+            throw new NotFoundException("No contract with id {0}", contractId);
         }
         Contract c = contracts.get(0);
         BriefContractInfo bcInfo = new ContractVersion.ContractVersionBuilder()

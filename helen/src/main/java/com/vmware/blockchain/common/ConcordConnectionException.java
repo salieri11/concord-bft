@@ -12,7 +12,7 @@ import org.springframework.http.HttpStatus;
 public class ConcordConnectionException extends HelenException {
     private static final long serialVersionUID = 1L;
 
-    public ConcordConnectionException(String message) {
-        super(message, HttpStatus.INTERNAL_SERVER_ERROR);
+    public ConcordConnectionException(String message, Object... args) {
+        super(HttpStatus.INTERNAL_SERVER_ERROR, message, args);
     }
 }

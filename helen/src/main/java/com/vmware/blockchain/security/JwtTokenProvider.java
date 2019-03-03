@@ -21,14 +21,13 @@ import javax.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
-import com.vmware.blockchain.common.HelenException;
+import com.vmware.blockchain.common.UnauthorizedException;
 import com.vmware.blockchain.services.profiles.BlockchainManager;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumRepository;
@@ -129,7 +128,7 @@ public class JwtTokenProvider {
         HelenUserDetails userDetails = (HelenUserDetails) helenUserDetailsService.loadUserByUsername(email);
         Optional<Consortium> c = consortiumRepository.findById(UUID.fromString(orgId));
         if (c.isEmpty()) {
-            throw new HelenException("Invalid Consortium", HttpStatus.UNAUTHORIZED);
+            throw new UnauthorizedException("Invalid Consortium");
         }
         userDetails.setAuthToken(token);
         userDetails.setOrgId(orgId);
@@ -158,7 +157,7 @@ public class JwtTokenProvider {
         try {
             return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody();
         } catch (JwtException | IllegalArgumentException e) {
-            throw new HelenException("Expired or invalid JWT token", HttpStatus.UNAUTHORIZED);
+            throw new UnauthorizedException("Expired or invalid JWT token");
         }
     }
 

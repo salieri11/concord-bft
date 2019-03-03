@@ -5,7 +5,6 @@
 package com.vmware.blockchain.services.lint;
 
 import java.io.IOException;
-import java.sql.SQLSyntaxErrorException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -110,7 +109,7 @@ public class LintProxyController {
                 map.put("logQuery", sql.toSql());
                 return mapper.writeValueAsString(map);
             }
-        } catch (SQLSyntaxErrorException | IOException | ClassCastException e) {
+        } catch (IOException | ClassCastException e) {
             // If anything goes wrong, we simply use the original body
         }
         return body;

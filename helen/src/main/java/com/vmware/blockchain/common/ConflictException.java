@@ -7,12 +7,15 @@ package com.vmware.blockchain.common;
 import org.springframework.http.HttpStatus;
 
 /**
- * There was an error trying to create the wallet for user.
+ * <p>
+ * Copyright 2018 VMware, all rights reserved.
+ * </p>
+ *
  */
-public class WalletException extends HelenException {
+public class ConflictException extends HelenException {
     private static final long serialVersionUID = 1L;
 
-    public WalletException(String message, Object... args) {
-        super(HttpStatus.BAD_REQUEST, message, args);
+    public ConflictException(String message, Object... args) {
+        super(HttpStatus.CONFLICT, message, args);
     }
 }
