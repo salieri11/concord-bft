@@ -41,13 +41,18 @@ public class AuthHelper {
         return auth == null ? null : (HelenUserDetails) auth.getPrincipal();
     }
 
+    public UUID getUserId() {
+        HelenUserDetails details = getDetails();
+        return details == null ? null : details.getUserId();
+    }
+
     public String getEmail() {
         HelenUserDetails details = getDetails();
         return details == null ? null : details.getUsername();
     }
 
     // Switching to consortiumId, since internally we're still calling it that
-    public String getConsortiumId() {
+    public UUID getConsortiumId() {
         HelenUserDetails details = getDetails();
         return details == null ? null : details.getOrgId();
     }

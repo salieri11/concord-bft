@@ -43,7 +43,7 @@ public class JwtTestContoller {
         HelenUserDetails auth = authHelper.getDetails();
         Assert.assertNotNull(auth);
         Assert.assertEquals("user@test.com", authHelper.getEmail());
-        Assert.assertEquals(CONSORTIUM_ID.toString(), authHelper.getConsortiumId());
+        Assert.assertEquals(CONSORTIUM_ID, authHelper.getConsortiumId());
         List<Roles> expected = Arrays.asList(Roles.ORG_USER);
         Assert.assertTrue(expected.containsAll(authHelper.getAuthorities()));
         Assert.assertEquals(expected.size(), authHelper.getAuthorities().size());

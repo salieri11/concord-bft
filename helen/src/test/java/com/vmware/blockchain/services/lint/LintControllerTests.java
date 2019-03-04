@@ -13,6 +13,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.net.URI;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,7 +84,7 @@ public class LintControllerTests {
     @BeforeEach
     void init() {
         when(cspAuthHelper.fetchAuthTokenFromRefreshToken(anyString())).thenReturn("anAuthToken");
-        when(authHelper.getConsortiumId()).thenReturn(CON_ID);
+        when(authHelper.getConsortiumId()).thenReturn(UUID.fromString(CON_ID));
         when(restTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class), any(Class.class)))
             .thenReturn(new ResponseEntity<String>("the answer", HttpStatus.OK));
         ReflectionTestUtils.setField(lintProxyController, "restTemplate", restTemplate);

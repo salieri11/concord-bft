@@ -96,7 +96,7 @@ public class BlockchainController {
             chains = manager.list();
         } else {
             // Otherwise, we can only see our consortium.
-            Optional<Consortium> c = cnRepo.findById(UUID.fromString(authHelper.getConsortiumId()));
+            Optional<Consortium> c = cnRepo.findById(authHelper.getConsortiumId());
             if (c.isPresent()) {
                 chains = manager.listByConsortium(c.get());
             }
@@ -161,7 +161,7 @@ public class BlockchainController {
         }
 
         if (body.getRpcUrls() != null) {
-            b.setRpcUrls(b.getRpcUrls());
+            b.setRpcUrls(body.getRpcUrls());
         }
 
         if (body.getRpcCerts() != null) {

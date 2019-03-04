@@ -48,9 +48,10 @@ public class HelenUserDetailsService implements UserDetailsService {
         }
 
         User u = user.get();
-        HelenUserDetails details = new HelenUserDetails(email, u.getPassword(), true, true, true, true, u.getRoles());
+        HelenUserDetails details =
+                new HelenUserDetails(u.getUserId(), email, u.getPassword(), true, true, true, true, u.getRoles());
         Consortium c = u.getConsortium();
-        details.setOrgId(c.getConsortiumId().toString());
+        details.setOrgId(c.getConsortiumId());
         details.setAuthToken("");
         List<UUID> ids =
                 blockchainManager.listByConsortium(c).stream().map(b -> b.getId()).collect(Collectors.toList());

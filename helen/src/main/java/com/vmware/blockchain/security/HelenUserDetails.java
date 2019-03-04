@@ -26,16 +26,20 @@ public class HelenUserDetails extends User {
 
     @Getter
     @Setter
-    private String orgId;
+    private UUID orgId;
 
     @Getter
     @Setter
     private List<UUID> permittedChains;
 
+    @Getter
+    @Setter
+    private UUID userId;
+
     /**
      * Create a new instance of HelenUserDetails.
      */
-    public HelenUserDetails(String username, String password, boolean enabled, boolean accountNonExpired,
+    public HelenUserDetails(UUID userId, String username, String password, boolean enabled, boolean accountNonExpired,
             boolean credentialsNonExpired, boolean accountNonLocked,
             Collection<? extends GrantedAuthority> authorities) {
         super(username, password, enabled, accountNonExpired, credentialsNonExpired, accountNonLocked, authorities);
