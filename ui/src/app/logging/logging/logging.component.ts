@@ -226,6 +226,8 @@ export class LoggingComponent implements OnInit {
     this.logApiService.fetchLogStatus(link).subscribe((logResponse) => {
       if (logResponse.taskInfo.stage === 'FINISHED') {
         callback(logResponse);
+      } else if (logResponse.failureMessage) {
+        callback(logResponse);
       } else {
         setTimeout(() => {
           this.pollLogStatus(link, type, callback);

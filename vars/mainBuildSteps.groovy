@@ -5,6 +5,7 @@ def call(){
   def genericTests = true
   def memory_leak_job_name = "BlockchainMemoryLeakTesting"
   def performance_test_job_name = "Blockchain Performance Test"
+  def lint_test_job_name = "Blockchain LINT Tests"
 
   if (env.JOB_NAME == memory_leak_job_name) {
     echo "**** Jenkins job for Memory Leak Test"
@@ -12,6 +13,9 @@ def call(){
     genericTests = false
   } else if (env.JOB_NAME == performance_test_job_name) {
     echo "**** Jenkins job for Performance Test"
+    genericTests = false
+  } else if (env.JOB_NAME == lint_test_job_name) {
+    echo "**** Jenkins job for LINT Tests"
     genericTests = false
   } else {
     echo "**** Jenkins job for Generic Test Run"
@@ -283,6 +287,7 @@ EOF
                 env.truffle_test_logs = new File(env.test_log_root, "Truffle").toString()
                 env.mem_leak_test_logs = new File(env.test_log_root, "MemoryLeak").toString()
                 env.performance_test_logs = new File(env.test_log_root, "PerformanceTest").toString()
+                env.lint_test_logs = new File(env.test_log_root, "LintTest").toString()
 
                 if (genericTests) {
                   sh '''
@@ -304,7 +309,7 @@ EOF
                     # needs to be run with sudo is so it can delete any existing DB files.)
                     echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
                     echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
-                    ./main.py UiTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-fluentd.yml --resultsDir "${ui_test_logs}"
+                    ./main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}"
                   '''
                 }
                 if (env.JOB_NAME == memory_leak_job_name) {
@@ -317,6 +322,19 @@ EOF
                   sh '''
                     echo "Running Entire Testsuite: Performance..."
                     echo "${PASSWORD}" | sudo -S ./main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${performance_test_logs}"
+                  '''
+                }
+                if (env.JOB_NAME == lint_test_job_name) {
+                  sh '''
+                    echo "Running Entire Testsuite: Lint E2E..."
+
+                    # We need to delete the database files before running UI tests because
+                    # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
+                    # needs to be run with sudo is so it can delete any existing DB files.)
+                    echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
+                    echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
+
+                    ./main.py LintTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-fluentd.yml --resultsDir "${lint_test_logs}"
                   '''
                 }
               }

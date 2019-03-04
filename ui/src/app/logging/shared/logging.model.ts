@@ -10,6 +10,7 @@ export interface LogTaskResponse {
   start: number;
   taskInfo: { stage: 'STARTED' | 'FINISHED', isDirect: boolean };
   tenantLinks: string[];
+  failureMessage?: string;
 }
 
 export interface LogTaskCompletedResponse extends LogTaskResponse {
