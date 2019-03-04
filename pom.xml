@@ -14,5 +14,6 @@
         <module>communication</module>
         <module>ethrpc</module>
         <module>helen</module>
+        <module>agent</module>
     </modules>
 </project>

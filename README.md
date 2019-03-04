@@ -86,6 +86,17 @@ run from the same directory as this README, and not from
 blockchain$ docker build docker/fluentd -f docker/fluentd/Dockerfile -t fluentd:latest
 ```
 
+### Building Agent via Docker
+
+concord-agent can be built directly in a docker container (note the command
+is run from the same directory as this README, and *not* from the
+`agent` subdirectory):
+
+```
+blockchain$ docker build . -f agent/Dockerfile -t ethrpc:latest
+```
+
+
 ### Building Natively
 
 Each component can also be built outside of Docker. For instructions

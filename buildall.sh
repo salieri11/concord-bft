@@ -185,4 +185,7 @@ addToProcList "Reverse proxy" $!
 docker build asset-transfer -f asset-transfer/Dockerfile -t "${asset_transfer_repo}:${asset_transfer_tag}" --label ${version_label}=${asset_transfer_tag} --label ${commit_label}=${commit_hash} &
 addToProcList "Asset Transfer sample image" $!
 
+docker build agent -f agent/packaging.Dockerfile -t ${agent_repo}:${agent_tag} --label ${version_label}=${agent_tag} --label ${commit_label}=${commit_hash} > agent_build.log 2>&1 &
+addToProcList "Agent docker image" $!
+
 waitForProcesses

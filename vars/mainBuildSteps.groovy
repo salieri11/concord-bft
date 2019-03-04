@@ -192,6 +192,7 @@ def call(){
             env.release_fluentd_repo = env.release_repo + "/fluentd"
             env.release_ui_repo = env.release_repo + "/ui"
             env.release_asset_transfer_repo = env.release_repo + "/asset-transfer"
+            env.release_agent_repo = env.release_repo + "/agent"
 
             // These are constants which mirror the internal artifactory repos.  We put all merges
             // to master in the internal VMware artifactory.
@@ -201,6 +202,7 @@ def call(){
             env.internal_fluentd_repo = env.release_fluentd_repo.replace(env.release_repo, env.internal_repo)
             env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
             env.internal_asset_transfer_repo = env.release_asset_transfer_repo.replace(env.release_repo, env.internal_repo)
+            env.internal_agent_repo = env.release_agent_repo.replace(env.release_repo, env.internal_repo)
           }
 
           // Docker-compose picks up values from the .env file in the directory from which
@@ -221,6 +223,8 @@ ui_repo=${internal_ui_repo}
 ui_tag=${docker_tag}
 asset_transfer_repo=${internal_asset_transfer_repo}
 asset_transfer_tag=${docker_tag}
+agent_repo=${internal_agent_repo}
+agent_tag=${docker_tag}
 commit_hash=${commit}
 EOF
               cp blockchain/docker/.env blockchain/hermes/
@@ -387,6 +391,7 @@ EOF
               pushDockerImage(env.internal_fluentd_repo, env.docker_tag, false)
               pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
               pushDockerImage(env.internal_asset_transfer_repo, env.docker_tag, false)
+              pushDockerImage(env.internal_agent_repo, env.docker_tag, false)
             }
           }
         }
@@ -415,6 +420,7 @@ EOF
               docker tag ${internal_fluentd_repo}:${docker_tag} ${release_fluentd_repo}:${docker_tag}
               docker tag ${internal_ui_repo}:${docker_tag} ${release_ui_repo}:${docker_tag}
               docker tag ${internal_asset_transfer_repo}:${docker_tag} ${release_asset_transfer_repo}:${docker_tag}
+              docker tag ${internal_agent_repo}:${docker_tag} ${release_agent_repo}:${docker_tag}
             '''
             pushDockerImage(env.release_concord_repo, env.docker_tag, true)
             pushDockerImage(env.release_helen_repo, env.docker_tag, true)
@@ -422,6 +428,7 @@ EOF
             pushDockerImage(env.release_fluentd_repo, env.docker_tag, true)
             pushDockerImage(env.release_ui_repo, env.docker_tag, true)
             pushDockerImage(env.release_asset_transfer_repo, env.docker_tag, true)
+            pushDockerImage(env.release_agent_repo, env.docker_tag, true)
           }
 
           dir('blockchain/vars') {

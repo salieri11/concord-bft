@@ -19,11 +19,11 @@ RUN mvn -f agent/pom.xml dependency:go-offline -B
 
 # Build agent module.
 COPY ./agent/src ./agent/src
-RUN mvn -f agent/pom.xml package
+RUN mvn -f agent/pom.xml install
 
 ## Runtime image.
-#FROM athena-docker-local.artifactory.eng.vmware.com/helen:prereqs-v2
-#LABEL description="Concord-Agent API"
+FROM athena-docker-local.artifactory.eng.vmware.com/helen:prereqs-v2
+LABEL description="Concord-Agent API"
 
 WORKDIR /agent
 COPY ./agent/src/main/resources/application.properties ./application.properties
