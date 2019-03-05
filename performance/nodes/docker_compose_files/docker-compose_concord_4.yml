@@ -1,0 +1,36 @@
+version: '3'
+services:
+  concord4:
+    image: "vmwblockchain/concord-core:latest"
+    network_mode: "host"
+    expose:
+      - 5458
+      - 3501/udp
+      - 3502/udp
+      - 3503/udp
+      - 3504/udp
+      - 3505/udp
+    volumes:
+      - ./devdata/rocksdbdata4:/concord/rocksdbdata
+      - ./devdata/log4:/concord/log
+      - ./config-concord4:/concord/config-local
+      - ./config-public:/concord/config-public:ro
+
+  ethrpc4:
+    image: "vmwblockchain/ethrpc:latest"
+    network_mode: "host"
+    ports:
+      - 8545:8545
+    volumes:
+      - ./config-ethrpc4:/config:ro
+    command:
+      - java
+      - -jar
+      - concord-ethrpc.jar
+      - --ConcordAuthorities=concord4:5458
+      - --security.require-ssl=true
+      - --server.ssl.key-store-type=PKCS12
+      - --server.ssl.key-store=/config/keystore.p12
+      - '--server.ssl.key-store-password=Ethrpc!23'
+      - --server.ssl.key-alias=ethrpc
+
