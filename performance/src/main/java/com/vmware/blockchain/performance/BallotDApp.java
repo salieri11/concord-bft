@@ -33,7 +33,7 @@ public class BallotDApp {
     public static String RESULT_PATH = "result";
     public static String DEPLOYER_KEY_PATH = "data/deployer_keystore";
     private static final String VOTER_KEY_STORES = RESULT_PATH + "/voter_keystores";
-    private static String PERFORMANCE_DATA = RESULT_PATH + "/performance";
+    private static String PERFORMANCE_DATA = RESULT_PATH + "/performance_result.log";
     private static  String CONTRACT_DATA_PATH = RESULT_PATH + "/contract";
     public static int NUMBER = 1000;
     private static double response;
@@ -57,7 +57,7 @@ public class BallotDApp {
                 keystorePath.mkdirs();
             }
             CONTRACT_DATA_PATH = resultPath + "/contract";
-            PERFORMANCE_DATA = resultPath + "/performance";
+            PERFORMANCE_DATA = resultPath + "/performance_result.log";
 
             int i=0;
             while (i < args.length ) {
