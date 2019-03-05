@@ -177,6 +177,9 @@ addToProcList "Ethrpc_docker_image" $!
 docker build helen -f helen/packaging.Dockerfile -t ${helen_repo}:${helen_tag} --label ${version_label}=${helen_tag} --label ${commit_label}=${commit_hash} > helen_build.log 2>&1 &
 addToProcList "Helen_docker_image" $!
 
+docker build . -f persephone/metadata-service/Dockerfile -t ${persephone_repo}:${persephone_tag}  --label ${version_label}=${persephone_tag} --label ${commit_label}=${commit_hash} > persephone_build.log 2>&1 &
+addToProcList "Fleet Management docker image" $!
+
 docker pull cockroachdb/cockroach:v2.0.2 &
 addToProcList "Cockroach_DB" $!
 

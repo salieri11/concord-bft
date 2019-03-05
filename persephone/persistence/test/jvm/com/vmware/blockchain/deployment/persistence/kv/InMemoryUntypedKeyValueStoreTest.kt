@@ -18,6 +18,7 @@ import java.util.stream.Stream
 import org.assertj.core.api.Assertions
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.MethodSource
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Basic functionality test of [InMemoryUntypedKeyValueStore] operations.
@@ -25,6 +26,9 @@ import org.junit.jupiter.params.provider.MethodSource
 class InMemoryUntypedKeyValueStoreTest {
 
     companion object {
+        /** Default await-time value in milliseconds. */
+        const val awaitTime: Long = 5000
+
         /**
          * Create an enumeration of different new instantiations of [UntypedKeyValueStore] backed by
          * different threading model.
@@ -72,7 +76,7 @@ class InMemoryUntypedKeyValueStoreTest {
                 onError = { result = Result.failure(it); finished.countDown() }
         ).also { publisher.subscribe(it) }
 
-        Assertions.assertThat(finished.await(100, TimeUnit.MILLISECONDS)).isTrue()
+        Assertions.assertThat(finished.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue()
         Assertions.assertThat(result.isSuccess).isTrue()
 
         return result.getOrThrow()
@@ -87,11 +91,13 @@ class InMemoryUntypedKeyValueStoreTest {
         // Setup the event sink.
         val eventSink1 = server.subscribe(32, false)
         val eventsDone1 = CountDownLatch(1)
+        val lastSeen = AtomicReference<Any>(null)
         val observations1 = mutableListOf<Event<Value, Value, MonotonicInt>>()
         BaseSubscriber<Event<Value, Value, MonotonicInt>>(
-                onNext = { observations1 += it },
+                onSubscribe = { it.apply { request(Long.MAX_VALUE) }.run { lastSeen.set(this) } },
+                onNext = { it.apply { observations1 += this }.run { lastSeen.set(this) } },
                 onComplete = { eventsDone1.countDown() },
-                onError = { throw it }
+                onError = { lastSeen.set(it) }
         ).also { eventSink1.subscribe(it) }
 
         // Retrieve the created entry by no-yet-existent key.
@@ -146,7 +152,9 @@ class InMemoryUntypedKeyValueStoreTest {
 
         // Orderly close the first publisher.
         server.unsubscribe(eventSink1)
-        Assertions.assertThat(eventsDone1.await(100, TimeUnit.MILLISECONDS)).isTrue()
+        Assertions.assertThat(eventsDone1.await(awaitTime, TimeUnit.MILLISECONDS))
+                .describedAs("Event stream did not complete, last signal seen(%s)", lastSeen.get())
+                .isTrue()
 
         // Verify the observations on event sinks.
         val potentialObservations1 = listOf<Event<Value, Value, MonotonicInt>>(
@@ -162,7 +170,7 @@ class InMemoryUntypedKeyValueStoreTest {
         server.close()
 
         // Check that even if second publisher does not unsubscribe, it gets served onComplete().
-        Assertions.assertThat(eventsDone2.await(100, TimeUnit.MILLISECONDS)).isTrue()
+        Assertions.assertThat(eventsDone2.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue()
 
         // Verify the observations on event sinks.
         val potentialObservations2 = listOf<Event<Value, Value, MonotonicInt>>(
@@ -181,7 +189,7 @@ class InMemoryUntypedKeyValueStoreTest {
                 onComplete = { eventsDone3.countDown() },
                 onError = { throw it }
         ).also { eventSink3.subscribe(it) }
-        Assertions.assertThat(eventsDone3.await(100, TimeUnit.MILLISECONDS)).isTrue()
+        Assertions.assertThat(eventsDone3.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue()
         Assertions.assertThat(observations3).isEmpty()
 
         // Check that event subscription after server close does not result in event emissions.
@@ -193,7 +201,7 @@ class InMemoryUntypedKeyValueStoreTest {
                 onComplete = { throw AssertionError("Should not receive onComplete() signal.") },
                 onError = { eventsDone4.countDown() }
         ).also { eventSink4.subscribe(it) }
-        Assertions.assertThat(eventsDone4.await(100, TimeUnit.MILLISECONDS)).isTrue()
+        Assertions.assertThat(eventsDone4.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue()
         Assertions.assertThat(observations4).isEmpty()
     }
 
@@ -206,31 +214,13 @@ class InMemoryUntypedKeyValueStoreTest {
     fun eventSourceWithPriorState(server: UntypedKeyValueStore<MonotonicInt>) {
         // Setup.
         val expectedEntrySize = 100
-
-        // Setup the event sink.
-        val eventSink1 = server.subscribe(32, false)
-        val eventsDone1 = CountDownLatch(1)
-        val expectedSizeReached1 = CountDownLatch(1)
-        val inputKeys = mutableListOf<StringValue>()
-        BaseSubscriber<Event<Value, Value, MonotonicInt>>(
-                onNext = {
-                    when (it) {
-                        is Event.ChangeEvent<Value, Value, MonotonicInt> ->
-                            if (it.key == inputKeys.last()) {
-                                expectedSizeReached1.countDown()
-                            }
-                        else -> { }
-                    }
-                },
-                onComplete = { eventsDone1.countDown() },
-                onError = { throw it }
-        ).also { eventSink1.subscribe(it) }
+        val inputs = (1..expectedEntrySize)
+                .map { StringValue("key-$it") to StringValue("value-$it") }
 
         // Populate the store with a set of entries.
         val expectedStoreState = mutableMapOf<Value, Value>()
-        (1..expectedEntrySize).forEach {
-            val key = StringValue("key-$it").apply { inputKeys += this }
-            val value = StringValue("value-$it")
+        (0 until expectedEntrySize).forEach {
+            val (key, value) = inputs[it]
             val version = MonotonicInt()
 
             // Insert the entry.
@@ -240,14 +230,13 @@ class InMemoryUntypedKeyValueStoreTest {
             // Update the expectation result.
             expectedStoreState[key] = value
         }
-        Assertions.assertThat(expectedSizeReached1.await(1000, TimeUnit.MILLISECONDS)).isTrue()
 
         // Setup the second event sink that obtains state history.
         // Note: The capacity of the buffer is set to be the number of items in the store since
         // the server adapter as of now has no concept of back pressure and will burst to client.
-        val eventSink2 = server.subscribe(expectedEntrySize, true)
-        val eventsDone2 = CountDownLatch(1)
-        val expectedSizeReached2 = CountDownLatch(1)
+        val eventSink = server.subscribe(expectedEntrySize, true)
+        val eventsDone = CountDownLatch(1)
+        val expectedSizeReached = CountDownLatch(1)
         val observedStoreState = mutableMapOf<Value, Value>()
         val observations = mutableListOf<Event<Value, Value, MonotonicInt>>()
         BaseSubscriber<Event<Value, Value, MonotonicInt>>(
@@ -261,20 +250,19 @@ class InMemoryUntypedKeyValueStoreTest {
                     }
 
                     if (observedStoreState.size == expectedEntrySize) {
-                        expectedSizeReached2.countDown()
+                        expectedSizeReached.countDown()
                     }
                 },
-                onComplete = { eventsDone2.countDown() },
+                onComplete = { eventsDone.countDown() },
                 onError = { throw it }
-        ).also { eventSink2.subscribe(it) }
-        Assertions.assertThat(expectedSizeReached2.await(1000, TimeUnit.MILLISECONDS)).isTrue()
+        ).also { eventSink.subscribe(it) }
+        Assertions.assertThat(expectedSizeReached.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue()
 
         // Cleanup.
         server.close()
 
         // Verify that event streams terminate.
-        Assertions.assertThat(eventsDone1.await(100, TimeUnit.MILLISECONDS)).isTrue()
-        Assertions.assertThat(eventsDone2.await(100, TimeUnit.MILLISECONDS)).isTrue()
+        Assertions.assertThat(eventsDone.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue()
 
         // Verify that snapshot state is fully received.
         Assertions.assertThat(observedStoreState).isEqualTo(expectedStoreState)

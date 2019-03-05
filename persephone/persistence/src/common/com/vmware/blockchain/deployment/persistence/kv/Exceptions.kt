@@ -46,6 +46,11 @@ data class UnexpectedResponseException(
 ) : RuntimeException("Unexpected response(${response::class} != $expected)")
 
 /**
+ * Error denoting the condition that a server instance is unable to continue a given event stream.
+ */
+object InterruptedEventStreamException: RuntimeException("Server stream is interrupted")
+
+/**
  * Error denoting the condition when a request is made to a server instance that is closing or
  * already closed (shut down).
  */

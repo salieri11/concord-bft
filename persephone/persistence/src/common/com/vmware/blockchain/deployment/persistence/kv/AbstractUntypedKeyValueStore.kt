@@ -262,6 +262,9 @@ abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
                                 launch(coroutineContext) { requestChannel.send(it) }
                             }
                 }
+
+                // Regardless of the outcome on server side, close shops on client side.
+                eventSink.close()
             }
         }
     }

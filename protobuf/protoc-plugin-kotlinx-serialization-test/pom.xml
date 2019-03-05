@@ -58,7 +58,7 @@
             <!-- For @javax.annotation.Generated, which itself has compile-time retention scope. -->
             <groupId>javax.annotation</groupId>
             <artifactId>javax.annotation-api</artifactId>
-            <scope>compile</scope>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.assertj</groupId>

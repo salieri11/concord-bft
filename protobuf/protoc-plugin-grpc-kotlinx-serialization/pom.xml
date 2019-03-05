@@ -26,10 +26,9 @@
         ~ Internal dependencies.                                    ~
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
         <dependency>
-            <!-- Compile-time dependency for code-generation. -->
+            <!-- Runtime-time dependency for code-generation. -->
             <groupId>com.vmware.blockchain.protobuf</groupId>
             <artifactId>grpc-runtime-kotlinx-serialization</artifactId>
-            <scope>compile</scope>
         </dependency>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ~ External dependencies.                                    ~
@@ -43,22 +42,19 @@
             <artifactId>kotlinpoet</artifactId>
         </dependency>
         <dependency>
-            <!-- Compile-time dependency for code-generation. -->
+            <!-- Runtime-time dependency for code-generation. -->
             <groupId>io.grpc</groupId>
             <artifactId>grpc-core</artifactId>
-            <scope>compile</scope>
         </dependency>
         <dependency>
-            <!-- Compile-time dependency for code-generation. -->
+            <!-- Runtime-time dependency for code-generation. -->
             <groupId>io.grpc</groupId>
             <artifactId>grpc-stub</artifactId>
-            <scope>compile</scope>
         </dependency>
         <dependency>
-            <!-- Compile-time dependency for code-generation. -->
+            <!-- Runtime-time dependency for code-generation. -->
             <groupId>org.jetbrains.kotlinx</groupId>
             <artifactId>kotlinx-serialization-runtime</artifactId>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
     <build>

@@ -41,12 +41,28 @@
             <artifactId>dagger</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.vmware.blockchain.protobuf</groupId>
+            <artifactId>grpc-runtime-kotlinx-serialization</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-core</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty-shaded</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.grpc</groupId>
+            <artifactId>grpc-stub</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.reactivestreams</groupId>
             <artifactId>reactive-streams</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>kotlinx-serialization-runtime</artifactId>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>

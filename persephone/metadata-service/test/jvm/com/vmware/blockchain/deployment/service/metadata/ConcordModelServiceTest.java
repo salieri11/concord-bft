@@ -34,6 +34,9 @@ import org.junit.jupiter.api.Test;
  */
 class ConcordModelServiceTest {
 
+    /** Default await-time value in milliseconds. */
+    private static long awaitTime = 10000;
+
     /**
      * Create a new {@link ConcordModelService}.
      *
@@ -138,7 +141,7 @@ class ConcordModelServiceTest {
         var name = "recallableModel";
         var service = newConcordModelService();
         var initialized = service.initialize();
-        initialized.get(500, TimeUnit.MILLISECONDS);
+        initialized.get(awaitTime, TimeUnit.MILLISECONDS);
         Assertions.assertThat(initialized).isCompleted();
 
         // Create server instance.
@@ -156,17 +159,17 @@ class ConcordModelServiceTest {
         var promise = new CompletableFuture<AddModelResponse>();
         var request = new AddModelRequest();
         client.addModel(request, newResultObserver(promise));
-        promise.get(100, TimeUnit.MILLISECONDS);
+        promise.get(awaitTime, TimeUnit.MILLISECONDS);
         Assertions.assertThat(promise).isCompleted();
 
         // Cleanup.
         var shutdown = service.shutdown();
-        shutdown.get(500, TimeUnit.MILLISECONDS);
+        shutdown.get(awaitTime, TimeUnit.MILLISECONDS);
         Assertions.assertThat(shutdown).isCompleted();
         channel.shutdown();
-        Assertions.assertThat(channel.awaitTermination(500, TimeUnit.MILLISECONDS)).isTrue();
+        Assertions.assertThat(channel.awaitTermination(awaitTime, TimeUnit.MILLISECONDS)).isTrue();
         server.shutdown();
-        Assertions.assertThat(server.awaitTermination(500, TimeUnit.MILLISECONDS)).isTrue();
+        Assertions.assertThat(server.awaitTermination(awaitTime, TimeUnit.MILLISECONDS)).isTrue();
     }
 
     /**
@@ -180,7 +183,7 @@ class ConcordModelServiceTest {
     void recallableModel() throws Exception {
         var service = newConcordModelService();
         var initialized = service.initialize();
-        initialized.get(500, TimeUnit.MILLISECONDS);
+        initialized.get(awaitTime, TimeUnit.MILLISECONDS);
         Assertions.assertThat(initialized).isCompleted();
 
         // Add a number of models.
@@ -195,7 +198,7 @@ class ConcordModelServiceTest {
             var request = new AddModelRequest(new MessageHeader(), model);
             var promise = new CompletableFuture<AddModelResponse>();
             service.addModel(request, newResultObserver(promise));
-            var response = promise.get(100, TimeUnit.MILLISECONDS);
+            var response = promise.get(awaitTime, TimeUnit.MILLISECONDS);
             Assertions.assertThat(response.getId()).isNotNull();
             expected.put(response.getId(), model);
         }
@@ -209,7 +212,7 @@ class ConcordModelServiceTest {
         var listPromise = new CompletableFuture<Collection<ListModelsResponseEvent>>();
         service.listModels(listRequest, newCollectingObserver(listPromise));
 
-        var actual = listPromise.get(100, TimeUnit.MILLISECONDS).stream()
+        var actual = listPromise.get(awaitTime, TimeUnit.MILLISECONDS).stream()
                 .collect(Collectors.toMap(
                         ListModelsResponseEvent::getId,
                         ListModelsResponseEvent::getSpecification)
@@ -221,7 +224,7 @@ class ConcordModelServiceTest {
 
         // Clean up.
         var shutdown = service.shutdown();
-        shutdown.get(500, TimeUnit.MILLISECONDS);
+        shutdown.get(awaitTime, TimeUnit.MILLISECONDS);
         Assertions.assertThat(shutdown).isCompleted();
     }
 
@@ -250,40 +253,40 @@ class ConcordModelServiceTest {
         var promise1 = new CompletableFuture<AddModelResponse>();
         service.addModel(request, newResultObserver(promise1));
         Assertions.assertThatExceptionOfType(ExecutionException.class)
-                .isThrownBy(() -> promise1.get(100, TimeUnit.MILLISECONDS))
+                .isThrownBy(() -> promise1.get(awaitTime, TimeUnit.MILLISECONDS))
                 .withCauseInstanceOf(IllegalStateException.class);
 
         // Attempt to initialize twice sequentially.
         var initialized1 = service.initialize();
-        initialized1.get(500, TimeUnit.MILLISECONDS);
+        initialized1.get(awaitTime, TimeUnit.MILLISECONDS);
         Assertions.assertThat(initialized1).isCompleted();
 
         var initialized2 = service.initialize();
         Assertions.assertThatExceptionOfType(ExecutionException.class)
-                .isThrownBy(() -> initialized2.get(500, TimeUnit.MILLISECONDS))
+                .isThrownBy(() -> initialized2.get(awaitTime, TimeUnit.MILLISECONDS))
                 .withCauseInstanceOf(IllegalStateException.class);
 
         // Check that the same API can be serviced normally after service initialization.
         var promise2 = new CompletableFuture<AddModelResponse>();
         service.addModel(request, newResultObserver(promise2));
-        promise2.get(100, TimeUnit.MILLISECONDS);
+        promise2.get(awaitTime, TimeUnit.MILLISECONDS);
         Assertions.assertThat(promise2).isCompleted();
 
         // Attempt to shutdown twice sequentially.
         var shutdown1 = service.shutdown();
-        shutdown1.get(500, TimeUnit.MILLISECONDS);
+        shutdown1.get(awaitTime, TimeUnit.MILLISECONDS);
         Assertions.assertThat(shutdown1).isCompleted();
 
         var shutdown2 = service.shutdown();
         Assertions.assertThatExceptionOfType(ExecutionException.class)
-                .isThrownBy(() -> shutdown2.get(500, TimeUnit.MILLISECONDS))
+                .isThrownBy(() -> shutdown2.get(awaitTime, TimeUnit.MILLISECONDS))
                 .withCauseInstanceOf(IllegalStateException.class);
 
         // Attempt to call API after service is shutdown.
         var promise3 = new CompletableFuture<AddModelResponse>();
         service.addModel(request, newResultObserver(promise3));
         Assertions.assertThatExceptionOfType(ExecutionException.class)
-                .isThrownBy(() -> promise3.get(100, TimeUnit.MILLISECONDS))
+                .isThrownBy(() -> promise3.get(awaitTime, TimeUnit.MILLISECONDS))
                 .withCauseInstanceOf(IllegalStateException.class);
     }
 }

@@ -111,7 +111,7 @@ class InMemoryUntypedKeyValueStore<T : Version<T>>(
                                                     entry.value.version
                                             )
 
-                                            offer(event)
+                                            offerEvent(this, event)
                                         }
                                     }
                                 }
@@ -143,7 +143,20 @@ class InMemoryUntypedKeyValueStore<T : Version<T>>(
         event: Event<Value, Value, T>
     ) {
         for (sink in sinks) {
-            sink.offer(event)
+            offerEvent(sink, event)
+        }
+    }
+
+    private fun offerEvent(
+        sink: SendChannel<Event<Value, Value, T>>,
+        event: Event<Value, Value, T>
+    ) {
+        if (!sink.offer(event)) {
+            // The event stream requires continuity once started, failing to send an element would
+            // constitute a lossy stream.
+            // For now, terminating the send channel would ensure the assumption on consumption side
+            // is still upheld.
+            sink.close(InterruptedEventStreamException)
         }
     }
 }

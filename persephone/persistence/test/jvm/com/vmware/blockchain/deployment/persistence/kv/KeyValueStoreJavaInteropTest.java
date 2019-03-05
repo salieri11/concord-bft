@@ -27,6 +27,9 @@ import org.junit.jupiter.api.Test;
  */
 class KeyValueStoreJavaInteropTest {
 
+    /** Default await-time value in milliseconds. */
+    private static long awaitTime = 5000;
+
     /**
      * Implementation of {@link Value} that wraps a {@code byte[]}.
      */
@@ -159,7 +162,7 @@ class KeyValueStoreJavaInteropTest {
                 }
         );
         createPublisher.subscribe(createSubscriber);
-        Assertions.assertThat(createFinished.await(100, TimeUnit.MILLISECONDS)).isTrue();
+        Assertions.assertThat(createFinished.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue();
         Assertions.assertThat(createResult.get()).isInstanceOf(Versioned.None.class);
 
         // Retrieve the created entry by its key.
@@ -171,7 +174,7 @@ class KeyValueStoreJavaInteropTest {
                 getFinished::countDown
         );
         getPublisher.subscribe(getSubscriber);
-        Assertions.assertThat(getFinished.await(100, TimeUnit.MILLISECONDS)).isTrue();
+        Assertions.assertThat(getFinished.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue();
         var getVersioned = getResult.get();
         Assertions.assertThat(getVersioned).isInstanceOf(Versioned.Just.class);
         var getVersion = ((Versioned.Just<V, T>)getVersioned).getVersion();
@@ -189,7 +192,7 @@ class KeyValueStoreJavaInteropTest {
                 }
         );
         deletePublisher.subscribe(deleteSubscriber);
-        Assertions.assertThat(deleteFinished.await(100, TimeUnit.MILLISECONDS)).isTrue();
+        Assertions.assertThat(deleteFinished.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue();
         var deleteVersioned = deleteResult.get();
         Assertions.assertThat(deleteVersioned).isInstanceOf(Versioned.Just.class);
         var deleteVersion = ((Versioned.Just<V, T>) deleteVersioned).getVersion();
@@ -197,7 +200,7 @@ class KeyValueStoreJavaInteropTest {
 
         // Orderly close the publisher.
         server.unsubscribe(eventSink);
-        Assertions.assertThat(eventingDone.await(1000, TimeUnit.MILLISECONDS)).isTrue();
+        Assertions.assertThat(eventingDone.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue();
 
         // Verify the observations on event sinks.
         if (!observations.isEmpty()) {
@@ -251,7 +254,7 @@ class KeyValueStoreJavaInteropTest {
                 }
         );
         createPublisher.subscribe(createSubscriber);
-        Assertions.assertThat(createFinished.await(100, TimeUnit.MILLISECONDS)).isTrue();
+        Assertions.assertThat(createFinished.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue();
         Assertions.assertThat(createResult.get()).isInstanceOf(Versioned.None.class);
 
         // Retrieve the created entry by its key.
@@ -263,7 +266,7 @@ class KeyValueStoreJavaInteropTest {
                 getFinished::countDown
         );
         getPublisher.subscribe(getSubscriber);
-        Assertions.assertThat(getFinished.await(100, TimeUnit.MILLISECONDS)).isTrue();
+        Assertions.assertThat(getFinished.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue();
         var getVersioned = getResult.get();
         Assertions.assertThat(getVersioned).isInstanceOf(Versioned.Just.class);
         var getVersion = ((Versioned.Just<Value, T>)getVersioned).getVersion();
@@ -281,7 +284,7 @@ class KeyValueStoreJavaInteropTest {
                 }
         );
         deletePublisher.subscribe(deleteSubscriber);
-        Assertions.assertThat(deleteFinished.await(100, TimeUnit.MILLISECONDS)).isTrue();
+        Assertions.assertThat(deleteFinished.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue();
         var deleteVersioned = deleteResult.get();
         Assertions.assertThat(deleteVersioned).isInstanceOf(Versioned.Just.class);
         var deleteVersion = ((Versioned.Just<Value, T>)deleteVersioned).getVersion();
@@ -289,7 +292,7 @@ class KeyValueStoreJavaInteropTest {
 
         // Orderly close the publisher.
         server.unsubscribe(eventSink);
-        Assertions.assertThat(eventingDone.await(1000, TimeUnit.MILLISECONDS)).isTrue();
+        Assertions.assertThat(eventingDone.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue();
 
         // Verify the observations on event sinks.
         if (!observations.isEmpty()) {
