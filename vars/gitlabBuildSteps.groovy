@@ -44,7 +44,7 @@ def call(){
           startStage()
           script{
             try{
-              // Outut node info
+              // Output node info
               sh '''
                 set +x
                 echo Jenkins node information:
@@ -61,7 +61,11 @@ def call(){
                 }
               }
 
+              // Clean the workspace
               cleanWs()
+
+              // Add the VMware GitLab ssh key to known_hosts.
+              handleKnownHosts("gitlab.eng.vmware.com")
             }catch(Exception ex){
               failStage()
               throw ex
@@ -847,4 +851,32 @@ void passStage(){
 // Called by a stage when it fails.
 void failStage(){
   updateGitlabCommitStatus(name: env.STAGE_NAME, state: "failed")
+}
+
+// Given a host to connect to, use ssh-keygen to see if we have
+// its ssh key in known_hosts. If not, use ssh-keyscan to fetch it,
+// then verify with ssh-keygen.
+void handleKnownHosts(host){
+  // By setting returnStatus, we will get an exit code instead of
+  // having the entire Jenkins run fail.
+  status = sh (
+    script: "ssh-keygen -F " + host,
+    returnStatus: true
+  )
+
+  if(status != 0){
+    // ssh-keyscan throws a nice error; let it bubble up.
+    sh (
+      script: "ssh-keyscan -H " + host + " >> ~/.ssh/known_hosts",
+    )
+
+    status = sh (
+      script: "ssh-keygen -F " + host,
+      returnStatus: true
+    )
+
+    if(status != 0){
+      error("Unable to retrieve the ssh key for " + host)
+    }
+  }
 }
