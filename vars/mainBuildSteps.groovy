@@ -66,6 +66,14 @@ def call(){
         }
       }
 
+      stage("SSHKeys"){
+        steps{
+          script{
+            handleKnownHosts("gitlab.eng.vmware.com")
+          }
+        }
+      }
+
       stage('Fetch source code') {
         parallel {
           stage("Fetch blockchain repo source") {
@@ -718,5 +726,33 @@ Boolean retryCurl(command, failOnError){
   }else{
     echo(msg)
     return false
+  }
+}
+
+// Given a host to connect to, use ssh-keygen to see if we have
+// its ssh key in known_hosts. If not, use ssh-keyscan to fetch it,
+// then verify with ssh-keygen.
+void handleKnownHosts(host){
+  // By setting returnStatus, we will get an exit code instead of
+  // having the entire Jenkins run fail.
+  status = sh (
+    script: "ssh-keygen -F " + host,
+    returnStatus: true
+  )
+
+  if(status != 0){
+    // ssh-keyscan throws a nice error; let it bubble up.
+    sh (
+      script: "ssh-keyscan -H " + host + " >> ~/.ssh/known_hosts",
+    )
+
+    status = sh (
+      script: "ssh-keygen -F " + host,
+      returnStatus: true
+    )
+
+    if(status != 0){
+      error("Unable to retrieve the ssh key for " + host)
+    }
   }
 }
