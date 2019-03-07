@@ -105,7 +105,7 @@ class RlpParser {
 
     public static class RlpEmptyException extends HelenException {
         public RlpEmptyException() {
-            super("No more bytes in RLP string", HttpStatus.INTERNAL_SERVER_ERROR);
+            super(HttpStatus.INTERNAL_SERVER_ERROR, "No more bytes in RLP string");
         }
     }
 }

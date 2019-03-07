@@ -18,7 +18,6 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONAware;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.vmware.blockchain.common.HelenException;
+import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.services.ConcordServlet;
 import com.vmware.blockchain.services.profiles.Blockchain;
@@ -95,7 +94,7 @@ public final class MemberList extends ConcordServlet {
         JSONArray peerArr = new JSONArray();
         Optional<Blockchain> obc = blockchainManger.get(blockchain);
         if (!obc.isPresent()) {
-            throw new HelenException("Not Found", HttpStatus.NOT_FOUND);
+            throw new NotFoundException("Not Found");
         }
 
         Map<String, String> rpcUrls = obc.get().getUrlsAsMap();

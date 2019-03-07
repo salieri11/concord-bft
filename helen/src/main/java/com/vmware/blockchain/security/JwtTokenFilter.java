@@ -14,12 +14,12 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.GenericFilterBean;
 
 import com.vmware.blockchain.common.HelenException;
+import com.vmware.blockchain.common.UnauthorizedException;
 
 /**
  * Security filter to check that the JWT token is valid.
@@ -45,7 +45,7 @@ public class JwtTokenFilter extends GenericFilterBean {
             } else {
                 String authHeader = httpReq.getHeader(HttpHeaders.AUTHORIZATION);
                 if (authHeader == null || !authHeader.startsWith("Basic")) {
-                    throw new HelenException("No Authorization", HttpStatus.UNAUTHORIZED);
+                    throw new UnauthorizedException("No Authorization");
                 }
             }
         } catch (HelenException ex) {

@@ -222,8 +222,8 @@ public class ApiHelper {
      * Exception during parsing.
      */
     public static class HexParseException extends HelenException {
-        public HexParseException(String message) {
-            super(message, HttpStatus.INTERNAL_SERVER_ERROR);
+        public HexParseException(String message, Object... args) {
+            super(HttpStatus.INTERNAL_SERVER_ERROR, message, args);
         }
     }
 

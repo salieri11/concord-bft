@@ -20,8 +20,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.vmware.blockchain.common.AccessForbiddenException;
-import com.vmware.blockchain.common.NoSuchConsortiumException;
+import com.vmware.blockchain.common.ForbiddenException;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.security.AuthHelper;
 
@@ -114,7 +113,7 @@ public class BlockchainController {
     @RequestMapping(path = "/api/blockchains/{id}", method = RequestMethod.GET)
     ResponseEntity<BlockchainResponse> get(@PathVariable UUID id) throws NotFoundException {
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles()) && !authHelper.getPermittedChains().contains(id)) {
-            throw new AccessForbiddenException(id + " Forbidden");
+            throw new ForbiddenException(id + " Forbidden");
         }
         Optional<Blockchain> oBlockchain = manager.get(id);
         if (oBlockchain.isPresent()) {
@@ -133,11 +132,11 @@ public class BlockchainController {
     @RequestMapping(path = "/api/blockchains", method = RequestMethod.POST)
     public ResponseEntity<BlockchainResponse> createBlockchain(@RequestBody BlockchainPost body) {
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles())) {
-            throw new AccessForbiddenException("Action Forbidden");
+            throw new ForbiddenException("Action Forbidden");
         }
         Optional<Consortium> oConsortium = cnRepo.findById(body.consortiumId);
         if (oConsortium.isEmpty()) {
-            throw new NoSuchConsortiumException(body.consortiumId + " does not exist");
+            throw new NotFoundException("Consortium {0} does not exist", body.consortiumId);
         }
         Blockchain b = manager.create(oConsortium.get(), body.getIpList(), body.getRpcUrls(), body.getRpcCerts());
         return new ResponseEntity<>(new BlockchainResponse(b), HttpStatus.OK);
@@ -150,7 +149,7 @@ public class BlockchainController {
     public ResponseEntity<BlockchainResponse> updateBlockchain(@PathVariable UUID id, @RequestBody BlockchainPatch body)
             throws NotFoundException {
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles()) && !authHelper.getPermittedChains().contains(id)) {
-            throw new AccessForbiddenException(id + " Forbidden");
+            throw new ForbiddenException(id + " Forbidden");
         }
         Optional<Blockchain> oBlockchain = manager.get(id);
         if (oBlockchain.isEmpty()) {

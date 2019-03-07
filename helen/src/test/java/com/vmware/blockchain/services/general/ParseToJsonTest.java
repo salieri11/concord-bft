@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.services.IParseToJson;
 import com.vmware.concord.Concord;
 import com.vmware.concord.Concord.ConcordResponse;
@@ -74,7 +75,7 @@ public class ParseToJsonTest {
     @Test
     void testRecursion() {
         NoDefault nd = new NoDefault();
-        Assertions.assertThrows(UnsupportedOperationException.class, () -> nd.callit());
+        Assertions.assertThrows(BadRequestException.class, () -> nd.callit());
     }
 
     @Test

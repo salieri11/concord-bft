@@ -12,7 +12,7 @@ import org.springframework.http.HttpStatus;
 public class EntityModificationException extends HelenException {
     private static final long serialVersionUID = 1L;
 
-    public EntityModificationException(String message) {
-        super(message, HttpStatus.BAD_REQUEST);
+    public EntityModificationException(String message, Object... args) {
+        super(HttpStatus.BAD_REQUEST, message, args);
     }
 }

@@ -27,6 +27,8 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.vmware.blockchain.common.BadRequestException;
+
 /**
  * A compiler class which allows compiling solidity contract source codes.
  */
@@ -129,7 +131,7 @@ public class Compiler {
      * @param file Path of the bytecode or metadata file
      * @return Name of the contract
      */
-    private static String extractContractName(Path file) throws IllegalArgumentException {
+    private static String extractContractName(Path file) {
         // If its a bytecode file then its name will be of the form
         // <ContractName>.bin. If its a metadata file then its name will be of
         // the form <ContractName>_meta.json
@@ -139,7 +141,7 @@ public class Compiler {
         } else if (isMetadataFile(file)) {
             return fileName.substring(0, fileName.lastIndexOf("_meta.json"));
         } else {
-            throw new IllegalArgumentException("Only bytecode or metadata file " + "Path are supported");
+            throw new BadRequestException("Only bytecode or metadata file path are supported");
         }
     }
 

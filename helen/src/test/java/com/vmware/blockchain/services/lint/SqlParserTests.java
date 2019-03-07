@@ -4,12 +4,12 @@
 
 package com.vmware.blockchain.services.lint;
 
-import java.sql.SQLSyntaxErrorException;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import com.vmware.blockchain.common.BadRequestException;
 
 /**
  * Test the SimpleSqlParser.
@@ -50,7 +50,7 @@ public class SqlParserTests {
 
     @Test
     void testBadSql() throws Exception {
-        Assertions.assertThrows(SQLSyntaxErrorException.class, () -> new SimpleSqlParser("Argle Bargle"));
+        Assertions.assertThrows(BadRequestException.class, () -> new SimpleSqlParser("Argle Bargle"));
     }
 
     @Test

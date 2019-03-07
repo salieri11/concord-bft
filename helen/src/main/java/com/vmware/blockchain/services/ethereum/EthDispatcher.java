@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
@@ -196,7 +197,7 @@ public final class EthDispatcher extends ConcordServlet {
                 isBatch = true;
                 batchRequest = (JSONArray) parser.parse(paramString);
                 if (batchRequest == null || batchRequest.size() == 0) {
-                    throw new Exception("Invalid request");
+                    throw new BadRequestException("Invalid request");
                 }
             } else {
                 batchRequest = new JSONArray();
@@ -328,7 +329,7 @@ public final class EthDispatcher extends ConcordServlet {
                     break;
 
                 default:
-                    throw new Exception("Invalid method name.");
+                    throw new BadRequestException("Invalid method name.");
             }
 
             if (!isLocal) {
@@ -380,18 +381,18 @@ public final class EthDispatcher extends ConcordServlet {
         try {
             conn = concordConnectionPool.getConnection();
             if (conn == null) {
-                throw new Exception("Error communicating with concord");
+                throw new BadRequestException("Error communicating with concord");
             }
 
             boolean res = ConcordHelper.sendToConcord(req, conn);
             if (!res) {
-                throw new Exception("Error communicating with concord");
+                throw new BadRequestException("Error communicating with concord");
             }
 
             // receive response from Concord
             concordResponse = ConcordHelper.receiveFromConcord(conn);
             if (concordResponse == null) {
-                throw new Exception("Error communicating with concord");
+                throw new BadRequestException("Error communicating with concord");
             }
         } catch (Exception e) {
             logger.error("General exception communicating with concord: ", e);
@@ -408,6 +409,6 @@ public final class EthDispatcher extends ConcordServlet {
      */
     @Override
     public JSONAware parseToJson(ConcordResponse concordResponse) {
-        throw new UnsupportedOperationException("parseToJSON method is not " + "supported in EthDispatcher Servlet");
+        throw new BadRequestException("parseToJSON method is not supported in EthDispatcher Servlet");
     }
 }

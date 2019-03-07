@@ -7,13 +7,13 @@ package com.vmware.blockchain.common;
 import org.springframework.http.HttpStatus;
 
 /**
- * Return access forbidden, 403.
+ * Call has no authorization (status 401).
  */
-public class AccessForbiddenException extends HelenException {
+public class UnauthorizedException extends HelenException {
 
     private static final long serialVersionUID = 1L;
 
-    public AccessForbiddenException(String message) {
-        super(message, HttpStatus.FORBIDDEN);
+    public UnauthorizedException(String message, Object... args) {
+        super(HttpStatus.UNAUTHORIZED, message, args);
     }
 }

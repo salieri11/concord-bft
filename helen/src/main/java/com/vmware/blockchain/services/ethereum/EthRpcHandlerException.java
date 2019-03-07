@@ -14,7 +14,7 @@ import com.vmware.blockchain.common.HelenException;
 public class EthRpcHandlerException extends HelenException {
     private static final long serialVersionUID = 1L;
 
-    public EthRpcHandlerException(String message) {
-        super(message, HttpStatus.INTERNAL_SERVER_ERROR);
+    public EthRpcHandlerException(String message, Object... args) {
+        super(HttpStatus.INTERNAL_SERVER_ERROR, message, args);
     }
 }

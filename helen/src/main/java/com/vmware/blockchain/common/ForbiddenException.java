@@ -7,13 +7,14 @@ package com.vmware.blockchain.common;
 import org.springframework.http.HttpStatus;
 
 /**
- * Return not found, 404.
+ * Forbidden access (403).
  */
-public class NotFoundException extends HelenException {
+public class ForbiddenException extends HelenException {
 
     private static final long serialVersionUID = 1L;
 
-    public NotFoundException(String message, Object... args) {
-        super(HttpStatus.NOT_FOUND, message, args);
+    public ForbiddenException(String message, Object... args) {
+        super(HttpStatus.FORBIDDEN, message, args);
     }
+
 }
