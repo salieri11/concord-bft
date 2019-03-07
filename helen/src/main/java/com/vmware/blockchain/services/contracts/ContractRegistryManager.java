@@ -59,7 +59,7 @@ public class ContractRegistryManager {
      * @param contractId The contractId to look for
      * @param versionName The versionName to look for in contract with ID as contractId
      * @return A FullVersionInfo object which can be queries to get information about this contract version.
-     * @throws ContractRetrievalException In case contract was not found or some other database exception occurs then
+     * @throws NotFoundException In case contract was not found or some other database exception occurs then
      *         throws this exception.
      */
     public FullVersionInfo getContractVersion(String contractId, String versionName, UUID blockchain) {
@@ -146,7 +146,7 @@ public class ContractRegistryManager {
      *
      * @param contractId Contract Id
      * @return The BriefInfo object
-     * @throws ContractRetrievalException This exception is thrown when a contract with given contractId is not found.
+     * @throws NotFoundException This exception is thrown when a contract with given contractId is not found.
      */
     public BriefContractInfo getBriefContractInfo(String contractId, UUID blockchain) {
         List<Contract> contracts = contractReopository.findByNameAndBlockchainIdOrderBySeqDesc(contractId, blockchain);
