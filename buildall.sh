@@ -126,10 +126,11 @@ buildMavenTargets(){
 startNativeConcordBuild(){
     pushd .
     cd concord
-    sed -i "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord1.config
-    sed -i "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord2.config
-    sed -i "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord3.config
-    sed -i "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord4.config
+    #echo "sed -i \"s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g\" test/resources/concord1.config"
+    #sed -i "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord1.config
+    #sed -i "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord2.config
+    #sed -i "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord3.config
+    #sed -i "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord4.config
 
     git submodule init
     git submodule update --recursive
@@ -137,7 +138,7 @@ startNativeConcordBuild(){
     cd build
     cmake .. > concord_native_cmake.log 2>&1
     make > concord_native_make.log 2>&1 &
-    addToProcList "Concord (native)" $!
+    addToProcList "Concord_native" $!
     popd
 }
 
@@ -157,7 +158,7 @@ addToProcList "Concord" $!
 memleak_util="valgrind"
 memleak_util_cmd="valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --log-file=/tmp/valgrind_concord1.log"
 docker build . --file concord/Dockerfile -t "${concord_repo}:${concord_tag}"_memleak --build-arg "memleak_util=${memleak_util}" --build-arg "memleak_util_cmd=${memleak_util_cmd}" > concord_memleak_build.log 2>&1 &
-addToProcList "Concord for memleak" $!
+addToProcList "Concord_for_memleak" $!
 
 startNativeConcordBuild
 
@@ -171,21 +172,21 @@ addToProcList "Fluentd" $!
 buildMavenTargets
 
 docker build ethrpc -f ethrpc/packaging.Dockerfile -t ${ethrpc_repo}:${ethrpc_tag} --label ${version_label}=${ethrpc_tag} --label ${commit_label}=${commit_hash} > ethrpc_build_docker.log 2>&1 &
-addToProcList "Ethrpc docker image" $!
+addToProcList "Ethrpc_docker_image" $!
 
 docker build helen -f helen/packaging.Dockerfile -t ${helen_repo}:${helen_tag} --label ${version_label}=${helen_tag} --label ${commit_label}=${commit_hash} > helen_build.log 2>&1 &
-addToProcList "Helen docker image" $!
+addToProcList "Helen_docker_image" $!
 
 docker pull cockroachdb/cockroach:v2.0.2 &
-addToProcList "Cockroach DB" $!
+addToProcList "Cockroach_DB" $!
 
 docker pull athena-docker-local.artifactory.eng.vmware.com/reverse-proxy:0.1.2 &
-addToProcList "Reverse proxy" $!
+addToProcList "Reverse_proxy" $!
 
 docker build asset-transfer -f asset-transfer/Dockerfile -t "${asset_transfer_repo}:${asset_transfer_tag}" --label ${version_label}=${asset_transfer_tag} --label ${commit_label}=${commit_hash} &
-addToProcList "Asset Transfer sample image" $!
+addToProcList "Asset_Transfer_sample_image" $!
 
 docker build agent -f agent/packaging.Dockerfile -t ${agent_repo}:${agent_tag} --label ${version_label}=${agent_tag} --label ${commit_label}=${commit_hash} > agent_build.log 2>&1 &
-addToProcList "Agent docker image" $!
+addToProcList "Agent_docker_image" $!
 
 waitForProcesses
