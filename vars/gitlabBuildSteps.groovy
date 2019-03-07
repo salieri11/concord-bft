@@ -20,7 +20,8 @@ def call(){
   pipeline {
     agent { label agentLabel }
     tools {
-        nodejs 'Node 8.9.1'
+      // 8.9.4 is the minimum for Truffle.
+      nodejs 'Node 8.9.4'
     }
     options{
       gitLabConnection('TheGitlabConnection')
@@ -272,6 +273,7 @@ def call(){
                 env.release_fluentd_repo = env.release_repo + "/fluentd"
                 env.release_ui_repo = env.release_repo + "/ui"
                 env.release_asset_transfer_repo = env.release_repo + "/asset-transfer"
+                env.release_agent_repo = env.release_repo + "/agent"
 
                 // These are constants which mirror the internal artifactory repos.  We put all merges
                 // to master in the internal VMware artifactory.
@@ -281,6 +283,7 @@ def call(){
                 env.internal_fluentd_repo = env.release_fluentd_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_asset_transfer_repo = env.release_asset_transfer_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_agent_repo = env.release_agent_repo.replace(env.release_repo, env.internal_repo)
               }
 
               // Docker-compose picks up values from the .env file in the directory from which
@@ -301,6 +304,8 @@ ui_repo=${internal_ui_repo}
 ui_tag=${docker_tag}
 asset_transfer_repo=${internal_asset_transfer_repo}
 asset_transfer_tag=${docker_tag}
+agent_repo=${internal_agent_repo}
+agent_tag=${docker_tag}
 commit_hash=${commit}
 EOF
                   cp blockchain/docker/.env blockchain/hermes/
@@ -386,6 +391,7 @@ EOF
                         echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"
                         echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}"
                         echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
+                        echo "${PASSWORD}" | sudo -S ./main.py TruffleTests --logLevel debug --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${truffle_test_logs}"
 
                         cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs} ; cd ..
 
@@ -481,7 +487,7 @@ EOF
       stage("Save to artifactory"){
         when {
           expression {
-            return JOB_NAME == "Blockchain Master/master"
+            return JOB_NAME == "Blockchain Master (GitLab)/master"
           }
         }
         steps{
@@ -489,14 +495,16 @@ EOF
             startStage()
             try{
               withCredentials([string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')]) {
+                echo("Would push to artifactory.  Not doing so because we are not on GitLab yet")
                 // Pass in false for whether to tag as latest because VMware's
                 // artifactory does not allow re-using a tag.
-                pushDockerImage(env.internal_concord_repo, env.docker_tag, false)
-                pushDockerImage(env.internal_helen_repo, env.docker_tag, false)
-                pushDockerImage(env.internal_ethrpc_repo, env.docker_tag, false)
-                pushDockerImage(env.internal_fluentd_repo, env.docker_tag, false)
-                pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
-                pushDockerImage(env.internal_asset_transfer_repo, env.docker_tag, false)
+                // pushDockerImage(env.internal_concord_repo, env.docker_tag, false)
+                // pushDockerImage(env.internal_helen_repo, env.docker_tag, false)
+                // pushDockerImage(env.internal_ethrpc_repo, env.docker_tag, false)
+                // pushDockerImage(env.internal_fluentd_repo, env.docker_tag, false)
+                // pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
+                // pushDockerImage(env.internal_asset_transfer_repo, env.docker_tag, false)
+                // pushDockerImage(env.internal_agent_repo, env.docker_tag, false)
               }
             }catch(Exception ex){
               failStage()
@@ -533,6 +541,8 @@ EOF
                   docker tag ${internal_fluentd_repo}:${docker_tag} ${release_fluentd_repo}:${docker_tag}
                   docker tag ${internal_ui_repo}:${docker_tag} ${release_ui_repo}:${docker_tag}
                   docker tag ${internal_asset_transfer_repo}:${docker_tag} ${release_asset_transfer_repo}:${docker_tag}
+                  docker tag ${internal_agent_repo}:${docker_tag} ${release_agent_repo}:${docker_tag}
+
                 '''
                 pushDockerImage(env.release_concord_repo, env.docker_tag, true)
                 pushDockerImage(env.release_helen_repo, env.docker_tag, true)
@@ -540,6 +550,7 @@ EOF
                 pushDockerImage(env.release_fluentd_repo, env.docker_tag, true)
                 pushDockerImage(env.release_ui_repo, env.docker_tag, true)
                 pushDockerImage(env.release_asset_transfer_repo, env.docker_tag, true)
+                pushDockerImage(env.release_agent_repo, env.docker_tag, true)
               }
 
               dir('blockchain/vars') {
