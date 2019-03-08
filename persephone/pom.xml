@@ -9,14 +9,15 @@
     <artifactId>persephone</artifactId>
     <version>1.0.0-SNAPSHOT</version>
     <packaging>pom</packaging>
-    <name>Blockchain - Deployment</name>
+    <name>Blockchain - Fleet Management</name>
 
     <modules>
         <module>api</module>
         <module>core</module>
         <module>cli</module>
-        <module>deployer</module>
         <module>metadata-service</module>
+        <module>orchestration</module>
+        <module>orchestration-vmc</module>
         <module>persistence</module>
     </modules>
 
@@ -40,7 +41,7 @@
         <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
         <kotlin.compiler.jvmTarget>1.8</kotlin.compiler.jvmTarget>
         <maven.plugin.assembly>3.1.0</maven.plugin.assembly>
-        <maven.plugin.compiler>3.7.0</maven.plugin.compiler>
+        <maven.plugin.compiler>3.8.0</maven.plugin.compiler>
         <maven.plugin.jar>3.1.1</maven.plugin.jar>
         <maven.plugin.javadoc>3.0.0</maven.plugin.javadoc>
         <maven.plugin.os>1.3.0.Final</maven.plugin.os>
@@ -95,7 +96,12 @@
             </dependency>
             <dependency>
                 <groupId>com.vmware.blockchain</groupId>
-                <artifactId>persephone-deployer</artifactId>
+                <artifactId>persephone-orchestration</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.vmware.blockchain</groupId>
+                <artifactId>persephone-orchestration-vmc</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -303,6 +309,7 @@
                     <configuration>
                         <source>${java.version}</source>
                         <target>${java.version}</target>
+                        <release>${java.version}</release>
                         <generatedSourcesDirectory>${project.build.directory}/generated-sources/annotations</generatedSourcesDirectory>
                         <generatedTestSourcesDirectory>${project.build.directory}/generated-sources/test-annotations</generatedTestSourcesDirectory>
                         <includes>
@@ -382,30 +389,37 @@
             </plugins>
         </pluginManagement>
     </build>
-    <dependencies>
-        <dependency>
-            <!--
-              This is ABSOLUTELY a hack and not supposed to be necessary.
-              The issue is that the bytecode transformer swaps out the class artifacts placeholders
-              in atomicfu for JDK's native atomic field updaters.
-              But in an IDE setting like IntelliJ IDEA or Eclipse, a "plug-in" would be necessary
-              for IDE native build to perform a similar bytecode transformation, or the placeholder
-              target for the classes becomes actual dependencies to be depended upon.
-              Even without transformation, the placehodlers that are in atomicfu is CORRECT albeit
-              less efficient. But that's not really the problem as the problem is that there should
-              not have been any runtime dependencies to begin with if bytecode-transformation were
-              done.
-              The workaround here is to place a phantom "provided" scope artifact to be included
-              for every project. The actual Maven-produced artifacts won't be utilizing this at all
-              as all atomicfu placeholders are erased. The workaround here is for IDEs that don't
-              use Maven workflows. "provided" scope dependencies are not transitive and would
-              require the running application container to actually supply the dependency, which
-              can be easily done in IDEs by specifying additional library dependencies on the
-              classpath.
-            -->
-            <groupId>org.jetbrains.kotlinx</groupId>
-            <artifactId>atomicfu</artifactId>
-            <scope>provided</scope>
-        </dependency>
-    </dependencies>
+
+    <profiles>
+        <profile>
+            <id>ide</id>
+            <dependencies>
+                <dependency>
+                    <!--
+                      This is ABSOLUTELY a hack and not supposed to be necessary.
+                      The issue is that the bytecode transformer swaps out the class artifacts
+                      placeholders in atomicfu for JDK's native atomic field updaters.
+                      But in an IDE setting like IntelliJ IDEA or Eclipse, a "plug-in" would be
+                      necessary for IDE native build to perform a similar bytecode transformation,
+                      or the placeholder target for the classes becomes actual dependencies to be
+                      depended upon.
+                      Even without transformation, the placeholders that are in atomicfu is CORRECT
+                      albeit less efficient. But that's not really the problem as the problem is
+                      that there should not have been any runtime dependencies to begin with if
+                      bytecode-transformation were done.
+                      The workaround here is to place a phantom "provided" scope artifact to be
+                      included for every project. The actual Maven-produced artifacts won't be
+                      utilizing this at all as all atomicfu placeholders are erased. The workaround
+                      here is for IDEs that don't use Maven workflows. "provided" scope dependencies
+                      are not transitive and would require the running application container to
+                      actually supply the dependency, which can be easily done in IDEs by specifying
+                      additional library dependencies on the classpath.
+                    -->
+                    <groupId>org.jetbrains.kotlinx</groupId>
+                    <artifactId>atomicfu</artifactId>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
 </project>

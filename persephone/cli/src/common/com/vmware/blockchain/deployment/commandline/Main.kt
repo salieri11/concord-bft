@@ -6,31 +6,35 @@ package com.vmware.blockchain.deployment.commandline
 import com.vmware.blockchain.deployment.logging.Logger
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
-import com.vmware.blockchain.deployment.model.OrchestrationSite
-import com.vmware.blockchain.deployment.model.VmcOrchestrationSite
+import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
+import com.vmware.blockchain.deployment.model.ConcordModelSpecification
+import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier
 import com.vmware.blockchain.deployment.model.core.BearerTokenCredential
 import com.vmware.blockchain.deployment.model.core.Credential
 import com.vmware.blockchain.deployment.model.core.Endpoint
 import com.vmware.blockchain.deployment.model.core.URI
-import com.vmware.blockchain.deployment.vmc.Orchestrator
+import com.vmware.blockchain.deployment.model.core.UUID
+import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSite
+import com.vmware.blockchain.deployment.model.orchestration.VmcOrchestrationSite
+import com.vmware.blockchain.deployment.orchestration.Orchestrator
+import com.vmware.blockchain.deployment.reactive.BaseSubscriber
+import com.vmware.blockchain.deployment.vmc.VmcOrchestrator
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlin.random.Random
 
 /**
  * Command-line entry-point for deployment service.
  *
- * TODO(jameschang):
+ * TODO:
  * This file servers as placeholder for what a command-line utility will eventually utilize. Right
  * now this is simply a scratch pad offering convenient location to tweak/test against live service
  * deployments, as well as an example of a deployment workflow.
  */
 fun main() {
-    val log: Logger = logger(Orchestrator::class)
+    val log: Logger = logger(VmcOrchestrator::class)
     val token = BearerTokenCredential("change-me-token")
     val site = OrchestrationSite(
             OrchestrationSite.Type.VMC,
@@ -47,53 +51,47 @@ fun main() {
             )
     )
 
-    val blockchainId = "testchain"
     runBlocking(Dispatchers.IO + CoroutineName("ProvisioningDispatcher")) {
         coroutineScope {
-            val provisioner = requireNotNull(Orchestrator.newOrchestrator(site, coroutineContext).await())
+            val orchestrator = requireNotNull(
+                    VmcOrchestrator.newOrchestrator(site, coroutineContext).await()
+            )
 
-            val getFolder = async { provisioner.getFolder() }
-            val getDatastore = async { provisioner.getDatastore() }
-            val getResourcePool = async { provisioner.getResourcePool() }
-            val createControlNetwork = async {
-                provisioner.ensureLogicalNetwork("cgw", "sddc-cgw-vpn", 0x0AC00000, 24)
-            }
-            val createReplicaNetwork = async {
-                provisioner.ensureLogicalNetwork("cgw", "$blockchainId-data", 0x0AC00000, 24)
-            }
-            val getLibraryItem = async { provisioner.getLibraryItem("photon-2.0") }
+            val request = Orchestrator.DeploymentRequest(
+                    UUID.randomUUID().let {
+                        DeploymentSessionIdentifier(it.mostSignificantBits, it.leastSignificantBits)
+                    },
+                    UUID.randomUUID().let {
+                        ConcordClusterIdentifier(it.mostSignificantBits, it.leastSignificantBits)
+                    },
+                    ConcordModelSpecification(
+                            version = "123",
+                            template = "photon-2.0"
+                    )
+            )
 
-            provisioner.getNetworkSegment("cgw", "sddc-cgw-vpn").also { log.info { "Logical ControlNetwork: $it" }}
-            provisioner.getNetworkSegment("cgw", "$blockchainId-data").also { log.info { "Logical DataNetwork: $it" }}
+            val deferred = CompletableDeferred<URI>()
+            val resultSubscriber = BaseSubscriber<Orchestrator.DeploymentEvent>(
+                    onNext = {
+                        when (it) {
+                            is Orchestrator.DeploymentEvent.Created -> it.resourceIdentifier
+                        }.apply { deferred.complete(this) }
+                    },
+                    onError = { deferred.completeExceptionally(it) }
+            )
+            orchestrator.createDeployment(request).subscribe(resultSubscriber)
 
-            // Collect all information and deploy.
-            launch {
-                val folder = getFolder.await().also { log.info { "Folder: $it" } }
-                val datastore = getDatastore.await().also { log.info { "Datastore: $it" } }
-                val resourcePool = getResourcePool.await().also { log.info { "ResourcePool: $it" } }
-                val controlNetwork = createControlNetwork.await().also { log.info { "ControlNetwork: $it" }}
-                val dataNetwork = createReplicaNetwork.await().also { log.info { "DataNetwork: $it" }}
-                val libraryItem = getLibraryItem.await().also { log.info { "LibraryItem: $it" }}
-                val instance = provisioner.createInstance(
-                        instanceName = "$blockchainId-replica${Random.nextInt(0, 100)}",
-                        libraryItem = requireNotNull(libraryItem),
-                        datastore = requireNotNull(datastore),
-                        resourcePool = requireNotNull(resourcePool),
-                        folder = requireNotNull(folder),
-                        controlNetwork = controlNetwork,
-                        dataNetwork = dataNetwork)
-                log.info { "Created instance: $instance" }
-            }
+            log.info { "Created instance: ${deferred.await()}" }
 
             // Teardown.
-//                launch {
-//                    log.info { "Deleting Control Networks" }
-//                    provisioner.deleteLogicalNetwork(createControlNetwork.await())
-//                }
-//                launch {
-//                    log.info { "Deleting Replica Networks" }
-//                    provisioner.deleteLogicalNetwork(createReplicaNetwork.await())
-//                }
+            //    launch {
+            //        log.info { "Deleting Control Networks" }
+            //        provisioner.deleteLogicalNetwork(createControlNetwork.await())
+            //    }
+            //    launch {
+            //        log.info { "Deleting Replica Networks" }
+            //        provisioner.deleteLogicalNetwork(createReplicaNetwork.await())
+            //    }
         }
     }
 
