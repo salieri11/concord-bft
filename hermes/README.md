@@ -54,6 +54,18 @@ Hermes is the testing framework for VMW Blockchain.
 - To run the "CoreVMTests" suite, fetch the ethereum/tests project from Github:
   https://github.com/ethereum/tests
   Then adjust the path to it in resources/user_config.json.
+- For the UITests to pass you need to export your LINT_API_KEY and FLUENTD key, which can be (found here)[https://console.cloud.vmware.com/csp/gateway/portal/#/user/tokens]
+
+```shell
+export LINT_API_KEY=XXXXXXXXX
+```
+
+Update Fluentd Key in `docker/fluentd/fluentd.conf` here
+
+```shell
+Authorization Bearer <ADD-LOGINTELLIGENCE-KEY-HERE>
+```
+
 
 ## Running a test suite:
 - Build the product into docker images. See (../README.md) for instructions.

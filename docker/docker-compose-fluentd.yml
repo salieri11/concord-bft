@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+
+  helen:
+    logging:
+      driver: "fluentd"
+      options:
+        fluentd-address: 0.0.0.0:24224
+        tag: httpd.access

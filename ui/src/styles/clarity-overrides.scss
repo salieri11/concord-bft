@@ -41,3 +41,15 @@ body nav.subnav .theme-select {
   margin-right: 0 !important;
   width: inherit !important;
 }
+
+.chart-container{
+
+  .chart-legend .scale-legend-wrap {
+    width:10px;
+    border-radius: 2px;
+    margin-left: 20px;
+  }
+  .chart-legend .scale-legend-label {
+    margin-left: 17px;
+  }
+}

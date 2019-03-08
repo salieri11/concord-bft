@@ -138,14 +138,8 @@ services:
       - db-server
     volumes:
       - ./config-helen:/config:ro
-    # Used for sending logs to log intelligence
-    # We don't want this on by default, because logs won't be available locally for debugging
-    # You will need to add the log intelligence in the fluent.conf file for it to work.
-    # logging:
-    #   driver: "fluentd"
-    #   options:
-    #     fluentd-address: 0.0.0.0:24224
-    #     tag: httpd.access
+    environment:
+      - "LINT_API_TOKEN=${LINT_API_KEY}"
 
   ui:
     image: "${ui_repo}:${ui_tag}"

@@ -57,11 +57,7 @@ export class RequestInterceptor implements HttpInterceptor {
   }
 
   private addTokenToRequest(request: HttpRequest<any>, token: any): HttpRequest<any> {
-    if (request.url.indexOf('log-query-tasks') === -1) {
-      return request.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
-    } else {
-      return request;
-    }
+    return request.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
   }
 
   private handle401Error(request: HttpRequest<any>, next: HttpHandler) {

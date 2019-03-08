@@ -17,10 +17,10 @@ export class LogHeatMapComponent implements OnInit, AfterViewInit {
   @Input('yAxisLabel') yAxisLabel: string;
 
   // graph options
-  legend = false;
+  legend = true;
   showGridLines = true;
   colorScheme = {
-    domain: ['#ffffff', '#2a7400']
+    domain: ['#eeeeee', '#60B515']
   };
   constructor() { }
 
