@@ -267,23 +267,25 @@ def call(){
                 env.internal_repo = env.internal_repo_name + ".artifactory.eng.vmware.com"
 
                 // These are constants which mirror the DockerHub repos.  DockerHub is only used for publishing releases.
+                env.release_agent_repo = env.release_repo + "/agent"
+                env.release_asset_transfer_repo = env.release_repo + "/asset-transfer"
                 env.release_concord_repo = env.release_repo + "/concord-core"
-                env.release_helen_repo = env.release_repo + "/concord-ui"
                 env.release_ethrpc_repo = env.release_repo + "/ethrpc"
                 env.release_fluentd_repo = env.release_repo + "/fluentd"
+                env.release_helen_repo = env.release_repo + "/concord-ui"
+                env.release_persephone_repo = env.release_repo + "/fleet-management"
                 env.release_ui_repo = env.release_repo + "/ui"
-                env.release_asset_transfer_repo = env.release_repo + "/asset-transfer"
-                env.release_agent_repo = env.release_repo + "/agent"
 
                 // These are constants which mirror the internal artifactory repos.  We put all merges
                 // to master in the internal VMware artifactory.
+                env.internal_agent_repo = env.release_agent_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_asset_transfer_repo = env.release_asset_transfer_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_concord_repo = env.release_concord_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_helen_repo = env.internal_repo + "/helen"
                 env.internal_ethrpc_repo = env.release_ethrpc_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_fluentd_repo = env.release_fluentd_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_helen_repo = env.internal_repo + "/helen"
+                env.internal_persephone_repo = env.release_persephone_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_asset_transfer_repo = env.release_asset_transfer_repo.replace(env.release_repo, env.internal_repo)
-                env.internal_agent_repo = env.release_agent_repo.replace(env.release_repo, env.internal_repo)
               }
 
               // Docker-compose picks up values from the .env file in the directory from which
@@ -292,21 +294,24 @@ def call(){
                 sh '''
                   echo "${PASSWORD}" | sudo -S ls
                   sudo cat >blockchain/docker/.env <<EOF
+agent_repo=${internal_agent_repo}
+agent_tag=${docker_tag}
+asset_transfer_repo=${internal_asset_transfer_repo}
+asset_transfer_tag=${docker_tag}
 concord_repo=${internal_concord_repo}
 concord_tag=${docker_tag}
-helen_repo=${internal_helen_repo}
-helen_tag=${docker_tag}
 ethrpc_repo=${internal_ethrpc_repo}
 ethrpc_tag=${docker_tag}
 fluentd_repo=${internal_fluentd_repo}
 fluentd_tag=${docker_tag}
+helen_repo=${internal_helen_repo}
+helen_tag=${docker_tag}
+persephone_repo=${internal_persephone_repo}
+persephone_tag=${docker_tag}
 ui_repo=${internal_ui_repo}
 ui_tag=${docker_tag}
-asset_transfer_repo=${internal_asset_transfer_repo}
-asset_transfer_tag=${docker_tag}
-agent_repo=${internal_agent_repo}
-agent_tag=${docker_tag}
 commit_hash=${commit}
+LINT_API_KEY=${LINT_API_KEY}
 EOF
                   cp blockchain/docker/.env blockchain/hermes/
                 '''
@@ -498,13 +503,14 @@ EOF
                 echo("Would push to artifactory.  Not doing so because we are not on GitLab yet")
                 // Pass in false for whether to tag as latest because VMware's
                 // artifactory does not allow re-using a tag.
+                // pushDockerImage(env.internal_agent_repo, env.docker_tag, false)
+                // pushDockerImage(env.internal_asset_transfer_repo, env.docker_tag, false)
                 // pushDockerImage(env.internal_concord_repo, env.docker_tag, false)
-                // pushDockerImage(env.internal_helen_repo, env.docker_tag, false)
                 // pushDockerImage(env.internal_ethrpc_repo, env.docker_tag, false)
                 // pushDockerImage(env.internal_fluentd_repo, env.docker_tag, false)
+                // pushDockerImage(env.internal_helen_repo, env.docker_tag, false)
+                // pushDockerImage(env.internal_persephone_repo, env.docker_tag, false)
                 // pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
-                // pushDockerImage(env.internal_asset_transfer_repo, env.docker_tag, false)
-                // pushDockerImage(env.internal_agent_repo, env.docker_tag, false)
               }
             }catch(Exception ex){
               failStage()
@@ -535,22 +541,24 @@ EOF
 
               script {
                 sh '''
+                  docker tag ${internal_agent_repo}:${docker_tag} ${release_agent_repo}:${docker_tag}
+                  docker tag ${internal_asset_transfer_repo}:${docker_tag} ${release_asset_transfer_repo}:${docker_tag}
                   docker tag ${internal_concord_repo}:${docker_tag} ${release_concord_repo}:${docker_tag}
-                  docker tag ${internal_helen_repo}:${docker_tag} ${release_helen_repo}:${docker_tag}
                   docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
                   docker tag ${internal_fluentd_repo}:${docker_tag} ${release_fluentd_repo}:${docker_tag}
+                  docker tag ${internal_helen_repo}:${docker_tag} ${release_helen_repo}:${docker_tag}
+                  docker tag ${internal_persephone_repo}:${docker_tag} ${release_persephone_repo}:${docker_tag}
                   docker tag ${internal_ui_repo}:${docker_tag} ${release_ui_repo}:${docker_tag}
-                  docker tag ${internal_asset_transfer_repo}:${docker_tag} ${release_asset_transfer_repo}:${docker_tag}
-                  docker tag ${internal_agent_repo}:${docker_tag} ${release_agent_repo}:${docker_tag}
 
                 '''
+                pushDockerImage(env.release_agent_repo, env.docker_tag, true)
+                pushDockerImage(env.release_asset_transfer_repo, env.docker_tag, true)
                 pushDockerImage(env.release_concord_repo, env.docker_tag, true)
-                pushDockerImage(env.release_helen_repo, env.docker_tag, true)
                 pushDockerImage(env.release_ethrpc_repo, env.docker_tag, true)
                 pushDockerImage(env.release_fluentd_repo, env.docker_tag, true)
+                pushDockerImage(env.release_helen_repo, env.docker_tag, true)
+                // pushDockerImage(env.release_persephone_repo, env.docker_tag, true)
                 pushDockerImage(env.release_ui_repo, env.docker_tag, true)
-                pushDockerImage(env.release_asset_transfer_repo, env.docker_tag, true)
-                pushDockerImage(env.release_agent_repo, env.docker_tag, true)
               }
 
               dir('blockchain/vars') {
