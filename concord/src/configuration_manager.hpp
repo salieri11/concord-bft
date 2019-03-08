@@ -1,4 +1,4 @@
-// Copyright 2018, 2019 VMware, all rights reserved
+// Copyright 2018-2019 VMware, all rights reserved
 //
 // Definitions used by configuration management system.
 // The most central component of this system is the ConcordConfiguration class,
@@ -34,13 +34,29 @@ namespace com {
 namespace vmware {
 namespace concord {
 
+// Exception type for any exceptions thrown by the configuration system that do
+// not fit into standard exception types such as std::invalid_argument. More
+// specific types of configuration-specific exceptions should be subtypes of
+// this exception class and, generally configuration system implementations
+// should strongly prefer throwing exceptions of those subtypes of this class
+// over constructing exceptions of this class directly.
+class ConfigurationException : public std::exception {
+ public:
+  explicit ConfigurationException(const std::string& what) : message(what) {}
+  virtual const char* what() const noexcept override { return message.c_str(); }
+
+ private:
+  std::string message;
+};
+
 // Exception type possibly thrown by iterators over configuration structures in
 // the event an iterator has become invalid. The primary cause of such an
 // iterator invalidation is modification of the underlying object that the
 // iterator does not handle.
-class InvalidIteratorException : public std::exception {
+class InvalidIteratorException : public ConfigurationException {
  public:
-  explicit InvalidIteratorException(const std::string& what) : message(what) {}
+  explicit InvalidIteratorException(const std::string& what)
+      : ConfigurationException(what), message(what) {}
   virtual const char* what() const noexcept override { return message.c_str(); }
 
  private:
@@ -51,10 +67,10 @@ class InvalidIteratorException : public std::exception {
 // within the configuration it manages that conflict with existing definitions,
 // for example, declaration of a configuration parameter with a name that is
 // already in use.
-class ConfigurationRedefinitionException : public std::exception {
+class ConfigurationRedefinitionException : public ConfigurationException {
  public:
   explicit ConfigurationRedefinitionException(const std::string& what)
-      : message(what) {}
+      : ConfigurationException(what), message(what) {}
   virtual const char* what() const noexcept override { return message.c_str(); }
 
  private:
@@ -65,10 +81,10 @@ class ConfigurationRedefinitionException : public std::exception {
 // references something that does not exist or cannot be found. For example,
 // this includes attempts to read the value for a configuration parameter that
 // does not currently have a value loaded.
-class ConfigurationResourceNotFoundException : public std::exception {
+class ConfigurationResourceNotFoundException : public ConfigurationException {
  public:
   explicit ConfigurationResourceNotFoundException(const std::string& what)
-      : message(what) {}
+      : ConfigurationException(what), message(what) {}
   virtual const char* what() const noexcept override { return message.c_str(); }
 
  private:
@@ -258,16 +274,21 @@ class ConcordConfiguration {
   // INSUFFICIENT_INFORMATION if it lacks the information to definitively
   // confirm the parameter's validity. When a ConcordConfiguration calls a
   // parameter validator, it gives the following arguments:
-  //   const std::string& : The value to assess the validity of.
-  //   const ConcordConfiguration& : The ConcordConfiguration calling this
-  //   function. const ConfigurationPath& : The path to the parameter within
-  //   this configuration for which this value is to be validated. void* : An
-  //   arbitrary pointer provided at the time this validator was added to the
-  //   configuration. It is anticipated this will be used if this validator
-  //   requires additional state.
-  typedef ParameterStatus (*Validator)(const std::string&,
-                                       const ConcordConfiguration&,
-                                       const ConfigurationPath&, void*);
+  //   - value: The value to assess the validity of.
+  //   - config: The ConcordConfiguration calling this function.
+  //   - path: The path to the parameter within this configuration for which
+  //   this value is to be validated.
+  //   - failureMessage: If the validator does not find value to be valid, it
+  //   may choose to write back a message to failureMessage reporting the reason
+  //   it did not find value to be valid.
+  //   - state: An arbitrary pointer provided at the time this validator was
+  //   added to the configuration. It is anticipated this will be used if this
+  //   validator requires additional state.
+  typedef ParameterStatus (*Validator)(const std::string& value,
+                                       const ConcordConfiguration& config,
+                                       const ConfigurationPath& path,
+                                       std::string* failureMessage,
+                                       void* state);
 
   // Type for parameter generation functions.
   // A parameter generator should return VALID if it was able to successfully
@@ -276,20 +297,17 @@ class ConcordConfiguration {
   // is not possible to generate a valid value under the current state or the
   // generator otherwise fails. When a ConcordConfiguration calls a parameter
   // generator, it gives the following arguments:
-  //   - const ConcordConfiguration& : The ConcordConfiguration calling this
-  //   function.
-  //   - const ConfigurationPath& : Path to the parameter for which a value
-  //   should be generated.
-  //   - std::string& : String reference to output the generated value to if
-  //   generation is successful (Note any value written to this reference will
-  //   be ignored by the ConcordConfiguration if the generator does not return
-  //   VALID).
-  //   - void* : An arbitrary pointer provided at the time this generator was
+  //   - config: The ConcordConfiguration calling this function.
+  //   - path: Path to the parameter for which a value should be generated.
+  //   - output: String pointer to output the generated value to if generation
+  //   is successful (Note any value written to this pointer will be ignored by
+  //   the ConcordConfiguration if the generator does not return VALID).
+  //   - state: An arbitrary pointer provided at the time this generator was
   //   added to the configuration. It is anticipated this will be used if the
   //   generator requires additional state.
-  typedef ParameterStatus (*Generator)(const ConcordConfiguration&,
-                                       const ConfigurationPath&, std::string&,
-                                       void*);
+  typedef ParameterStatus (*Generator)(const ConcordConfiguration& config,
+                                       const ConfigurationPath& path,
+                                       std::string* output, void* state);
 
   // Type for a scope sizer function. A scope sizer function is called by the
   // ConcordConfiguration when instantiation of a scope is requested to
@@ -300,19 +318,17 @@ class ConcordConfiguration {
   // possible to get a valid size for this scope under the current state or if
   // the sizer otherwise fails. When a ConcordConfiguration calls a scope sizer,
   // it gives the following arguments:
-  //   - const ConcordConfiguration& : The ConcordConfiguration calling this
-  //   function.
-  //   - const ConfigurationPath& : Path to the scope for which a size is being
-  //   requested.
-  //   - size_t& : size_t reference to which to output the appropriate size for
+  //   - config: The ConcordConfiguration calling this function.
+  //   - path: Path to the scope for which a size is being requested.
+  //   - output: size_t pointer to which to output the appropriate size for
   //   the requested scope (Note the ConcordConfiguration will ignore any value
   //   written here if the sizer does not return VALID).
-  //   - void* : An arbitrary pointer provided at the time the scope being sized
+  //   - state: An arbitrary pointer provided at the time the scope being sized
   //   was declared. It is anticipated this pointer will be used if the scope
   //   sizer requires any additional state.
-  typedef ParameterStatus (*ScopeSizer)(const ConcordConfiguration&,
-                                        const ConfigurationPath&, size_t&,
-                                        void*);
+  typedef ParameterStatus (*ScopeSizer)(const ConcordConfiguration& config,
+                                        const ConfigurationPath& path,
+                                        size_t* output, void* state);
 
  private:
   struct ConfigurationScope {
@@ -335,9 +351,8 @@ class ConcordConfiguration {
     bool initialized;
     std::string value;
     std::unordered_set<std::string> tags;
-    std::vector<Validator> validators;
-    std::vector<void*> validatorStates;
-    std::vector<std::string> validatorFailureMessages;
+    Validator validator;
+    void* validatorState;
     Generator generator;
     void* generatorState;
 
@@ -356,13 +371,7 @@ class ConcordConfiguration {
   std::unordered_map<std::string, ConfigurationScope> scopes;
   std::unordered_map<std::string, ConfigurationParameter> parameters;
 
-  // Iterator invalidation functions that need to be called in the event
-  // this ConcordConfiguration is modified.
-  std::unordered_map<void*, void (*)(void*)> invalidators;
-
   // Private helper functions.
-  void registerIteratorInvalidator(void (*invalidator)(void*), void* data);
-  void deregisterIteratorInvalidator(void (*invalidator)(void*), void* data);
   void invalidateIterators();
   ConfigurationPath* getCompletePath(const ConfigurationPath& localPath) const;
   std::string printCompletePath(const ConfigurationPath& localPath) const;
@@ -372,11 +381,6 @@ class ConcordConfiguration {
                                        const std::string& failureMessage);
   const ConfigurationParameter& getParameter(
       const std::string& parameter, const std::string& failureMessage) const;
-
-  ParameterStatus runValidators(const ConfigurationParameter& parameter,
-                                const ConfigurationPath& path,
-                                const std::string& value,
-                                bool reportInvalid = false) const;
 
  public:
   // Complete definition of the iterator type for iterating through a
@@ -406,13 +410,7 @@ class ConcordConfiguration {
     std::unordered_map<std::string, ConfigurationParameter>::iterator
         currentParam;
     std::unordered_map<std::string, ConfigurationParameter>::iterator endParams;
-
     bool invalid;
-
-    // Invalidation callback for ConfigurationIterators that will be given to
-    // the ConcordConfiguration they iterate so it can invalidate them in the
-    // event of concurrent modification.
-    static void invalidate(void* iterator);
 
     void updateRetVal();
 
@@ -420,8 +418,8 @@ class ConcordConfiguration {
     ConfigurationIterator();
     ConfigurationIterator(ConcordConfiguration& configuration,
                           bool recursive = true, bool scopes = true,
-                          bool parameters = true, bool excludeInstances = false,
-                          bool excludeTemplates = false, bool end = false);
+                          bool parameters = true, bool instances = true,
+                          bool templates = true, bool end = false);
     ConfigurationIterator(const ConfigurationIterator& original);
     ~ConfigurationIterator();
 
@@ -431,8 +429,19 @@ class ConcordConfiguration {
     const ConfigurationPath& operator*() const;
     ConfigurationIterator& operator++();
     ConfigurationIterator operator++(int);
+
+    void invalidate();
   };
 
+ private:
+  // Iterators that need to be invalidated in the event this
+  // ConcordConfiguration is modified.
+  std::unordered_set<ConfigurationIterator*> iterators;
+
+  void registerIterator(ConfigurationIterator* iterator);
+  void deregisterIterator(ConfigurationIterator* iterator);
+
+ public:
   // Type for iterators over this ConcordConfiguration returned by the begin and
   // end functions below. These iterators return a series of const
   // ConfigurationPath references pointing to each of the objects (scopes or
@@ -445,6 +454,13 @@ class ConcordConfiguration {
   //   - Support for operator * to get the value at the iterator's current
   //   position.
   //   - Support for prefix and postfix operator ++ to advance the iterator.
+  // Note ConcordConfiguration::Iterators currently do not guarantee that the
+  // ConfigurationPath references they return will still refer to the same
+  // ConfigurationPath as they returned once the iterator has been advanced past
+  // the point where the reference was obtained; code using
+  // ConcordConfiguration::Iterators should make its own copy of the value
+  // stored by the reference the iterator returns if it needs the value past
+  // advancing the iterator.
   typedef ConfigurationIterator Iterator;
 
   ConcordConfiguration();
@@ -472,9 +488,11 @@ class ConcordConfiguration {
   // Adds a new instantiable scope to this configuration. The scope begins empty
   // and uninstantiated.
   // Arguments:
-  //   - scope:  name for the new scope being declared. A
-  //   ConfigurationRedefinitionException will be thrown if a scope with this
-  //   name already exists or if the name is already in use by a parameter.
+  //   - scope:  name for the new scope being declared. The empty string is not
+  //   a valid scope name, and an std::invalid_argument will be thrown if scope
+  //   is the empty string. A ConfigurationRedefinitionException will be thrown
+  //   if a scope with this name already exists or if the name is already in use
+  //   by a parameter.
   //   - description: a description for this scope.
   //   - size: pointer to a scope sizer function to be used to get the
   //   appropriate size for this scope when it is instantiated. An
@@ -542,7 +560,7 @@ class ConcordConfiguration {
   // that scope has been instantiated and false otherwise. Note a scope may be
   // considered instantiated even if it has 0 instances in the event the scope
   // sizer returned 0 at instantiation time.
-  bool hasScopeInstances(const std::string& name) const;
+  bool scopeIsInstantiated(const std::string& name) const;
 
   // Returns the size (number of instances) that the scope named by the
   // parameter is currently instantiated to. Throws a
@@ -553,14 +571,18 @@ class ConcordConfiguration {
   // Declares a new parameter in this configuration with the given name and
   // description and with no default value. Throws a
   // ConfigurationRedefinitionException if a parameter already exists with the
-  // given name or if that name is already used by a scope.
+  // given name or if that name is already used by a scope. Furthermore, the
+  // empty string is disallowed as a parameter name and an std::invalid_argument
+  // will be thrown if it is given as such.
   void declareParameter(const std::string& name,
                         const std::string& description);
 
   // Declares a new parameter in this configuration with the given name,
   // description, and default value. Throws a ConfigurationRedifinitionException
   // if a parameter already exists with the given name or if that name is
-  // already used by a scope.
+  // already used by a scope. Furthermore, the empty string is disallowed as a
+  // parameter name and an std::invalid_argument will be thrown if it is given
+  // as such.
   void declareParameter(const std::string& name, const std::string& description,
                         const std::string& defaultValue);
 
@@ -584,9 +606,9 @@ class ConcordConfiguration {
   std::string getDescription(const std::string& name) const;
 
   // Adds a validation function to a configuration parameter in this
-  // ConcordConfiguration. Note that, by calling this function multiple times
-  // with the same parameter name, it is possible to add an arbitrary number of
-  // validation functions to a single parameter. Arguments:
+  // ConcordConfiguration. Note that we allow only one validation function per
+  // parameter. Calling this function for a parameter that already has a
+  // validator will cause the existing validator to be replaced. Arguments:
   //   - name: The name of the parameter to add the validator to. Throws a
   //   ConfigurationResourceNotFoundException if no parameter exists in this
   //   ConcordConfiguration with this name.
@@ -595,10 +617,8 @@ class ConcordConfiguration {
   //   - validatorState: Arbitrary pointer to pass to the validator each time it
   //   is called; it is expected this pointer will be used if the validator
   //   requires any additional state.
-  //   - failureMessage: A failure message to be given at times when this
-  //   validator fails and a failure message is appropriate.
   void addValidator(const std::string& name, Validator validator,
-                    void* validatorState, const std::string& failureMessage);
+                    void* validatorState);
 
   // Adds a generation function to a configuration parameter in this
   // ConcordConfiguration. Note that a parameter can only have a single
@@ -650,25 +670,27 @@ class ConcordConfiguration {
   std::string getValue(const ConfigurationPath& path) const;
 
   // Loads a value to a parameter in this ConcordConfiguration. This function
-  // will return without loading the requested value if any validator for the
-  // requested parameter returns an INVALID status for the requested value.
+  // will return without loading the requested value if the parameter's
+  // validator (if any) returns an INVALID status for the requested value.
   // Arguments:
   //   - name: The name of the parameter to which to load the value. Throws a
   //   ConfigurationResourceNotFoundException if no parameter exists with this
   //   name.
   //   - value: Value to attempt to load to this parameter.
+  //   - failureMessage: If a non-null pointer is given for failureMessage, the
+  //   named parameter has a validator, and that validator returns a status
+  //   other than valid for value, then any failure message the validator
+  //   provides will be written back to failureMessage.
   //   - overwrite: If the requested parameter already has a value loaded,
   //   loadValue will not overwrite it unless true is given for this parameter.
   //   - prevValue: If loadValue successfully overwrites an existing value and
   //   prevValue is non-null, the existing value that was overwritten will be
   //   written to prevValue.
-  // Returns: the result of running the validator(s) for this parameter for the
-  // requested value. If the parameter has no validators, VALID will be
-  // returned. If the parameter has multiple validators, the "least valid"
-  // result obtained will be returned. That is, VALID will only be returned if
-  // all validators return VALID and INVALID will be returned over
-  // INSUFFICIENT_INFORMATION if any validator returns INVALID.
+  // Returns: the result of running the validator (if any) for this parameter
+  // for the requested value. If the parameter has no validator, VALID will be
+  // returned.
   ParameterStatus loadValue(const std::string& name, const std::string& value,
+                            std::string* failureMessage = nullptr,
                             bool overwrite = true,
                             std::string* prevValue = nullptr);
 
@@ -686,24 +708,28 @@ class ConcordConfiguration {
   void eraseAllValues();
 
   // Loads the default value for a given parameter. The value will not be loaded
-  // if any validator for the parameter returns an INVALID status for the
-  // default value. Arguments:
+  // if the validator for the parameter (if any) returns an INVALID status for
+  // the default value. Arguments:
   //   - name: The name of the parameter for which to load the default value.
   //   Throws a ConfigurationResourceNotFoundException if no parameter exists
   //   with this name, or if the named parameter has no default value.
+  //   - failureMessage: If a non-null pointer is given for failureMessage, the
+  //   named parameter has a validator, and that validator returns a status
+  //   other than valid for the default value of the named parameter, then any
+  //   failure message the validator provides will be written back to
+  //   failureMessage.
   //   - overwrite: If the selected parameter already has a value loaded, that
   //   value will only be overwritten if true is given for the overwrite
   //   parameter.
   //   - prevValue: If a non-null pointer is given for prevValue and loadDefault
   //   does successfully overwrite an existing value, the existing value will be
   //   written back to prevValue.
-  // Returns: the result of running the validator(s) for the default value for
-  // this parameter. If the parameter has no validators, VALID will be returned.
-  // If the parameter has multiple validators, the "least valid" result obtained
-  // will be returned. That is, VALID will only be returned if all validators
-  // return VALID and INVALID will be returned over INSUFFICIENT_INFORMATION if
-  // any validator returns INVALID.
-  ParameterStatus loadDefault(const std::string& name, bool overwrite = false,
+  // Returns: the result of running the validator (if any) for the default value
+  // for this parameter. If the parameter has no validators, VALID will be
+  // returned.
+  ParameterStatus loadDefault(const std::string& name,
+                              std::string* failureMessage = nullptr,
+                              bool overwrite = false,
                               std::string* prevValue = nullptr);
 
   // Load the default values for all parameters within this
@@ -721,19 +747,20 @@ class ConcordConfiguration {
   ParameterStatus loadAllDefaults(bool overwrite = false,
                                   bool includeTemplates = false);
 
-  // Runs the validator(s) for the currently loaded value of the named parameter
-  // and return their result. Throws a ConfigurationResourceNotFoundException if
-  // no parameter exists with the given name. If the requested parameter exists
-  // but has no value loaded, validate will return INSUFFICIENT_INFORMATION. If
-  // the named parameter exists, has a value loaded, and has no validators,
-  // VALID will be returned. In aggregating the results of multiple validators,
-  // the "least valid" result obtained will be returned. That is, VALID will
-  // only be returned if every validator run returns VALID, and INVALID will be
-  // returned over INSUFFICIENT_INFORMATION if any validator returns INVALID.
-  ParameterStatus validate(const std::string& name) const;
+  // Runs the validator (if any) for the currently loaded value of the named
+  // parameter and return its result. Throws a
+  // ConfigurationResourceNotFoundException if no parameter exists with the
+  // given name. If the requested parameter exists but has no value loaded,
+  // validate will return INSUFFICIENT_INFORMATION. If the named parameter
+  // exists, has a value loaded, and has no validators, VALID will be returned.
+  // If a non-null pointer is given for failureMessage, the named parameter has
+  // a validator, and the result is not VALID, then any failure message provided
+  // by the validator will be written back to failureMessage.
+  ParameterStatus validate(const std::string& name,
+                           std::string* failureMessage = nullptr) const;
 
-  // Runs the validator(s) for the currently loaded values in all parameers in
-  // this ConcordConfiguration, including in any subscopes, and return their
+  // Runs the validator(s) for the currently loaded value(s) in all parameter(s)
+  // in this ConcordConfiguration, including in any subscopes, and returns their
   // result. If this results in no validators being run, then VALID will be
   // returned. In aggregating the results of multiple validators, the "least
   // valid" result obtained will be returned. That is, VALID will only be
@@ -747,14 +774,19 @@ class ConcordConfiguration {
   ParameterStatus validateAll(bool ignoreUninitializedParameters = true,
                               bool inclueTemplates = false);
 
-  // Runs a parameter's generation function and load the result. generate will
+  // Runs a parameter's generation function and loads the result. generate will
   // not attempt to load the generated value unless the generation function
-  // returns VALID. generate also will not load any generated value for which a
-  // validator of the selected parameter returns INVALID. Parameters:
+  // returns VALID. Generate also will not load any generated value for which
+  // the validator of the selected parameter returns INVALID. Parameters:
   //   - name: Name of the parameter for which to generate a value. A
   //   ConfigurationResourceNotFoundException will be thrown if no parameter
   //   exists with the given name or if the named parameter has no generation
   //   funciton.
+  //   - failureMessage: If a non-null pointer is given for failure message, the
+  //   named parameter has both a generator and validator, and the geneerator
+  //   returns the status VALID but the validator returns a non-VALID status for
+  //   the generated value, then any failure message provided by the validator
+  //   will be written back to failureMessage.
   //   - overwrite: If the requested parameter is already initialized, the
   //   existing value will only be overwritten if true is given for overwrite.
   //   - prevValue: If generate does successfully overwrite an existing value
@@ -763,60 +795,106 @@ class ConcordConfiguration {
   // Returns:
   // If the parameter's generation function returns a value other than VALID,
   // then that value will be returned; otherwise, generate returns the result of
-  // running all validators the selected parameter has on its generated values.
-  // If the parameter has no validators, VALID will be returned. If it has
-  // validators, the "lest valid" result obtained by running them will be
-  // returned, that is, VALID will be returned only if all validators return
-  // valid, and INVALID will be returned over INSUFFICIENT_INFORMATION if any
-  // validator returns INVALID.
-  ParameterStatus generate(const std::string& name, bool overwrite = false,
+  // running the parameter's validator (if any) on its generated values. If the
+  // generator reutnred VALID but the parameter has no validators, VALID will be
+  // returned.
+  ParameterStatus generate(const std::string& name,
+                           std::string* failureMessage = nullptr,
+                           bool overwrite = false,
                            std::string* prevValue = nullptr);
 
-  // Run the generation functions for any and all parameters in this
-  // ConcordConfiguration that have generation functions and load the generated
+  // Runs the generation functions for any and all parameters in this
+  // ConcordConfiguration that have generation functions and loads the generated
   // values. A value produced by a generator will not be loaded unless the
-  // generator returned VALID. Furthermore, a value will not be loaded if any
-  // validator function for the parameter it would be loaded to returns INVALID.
-  // generateAll will only overwrite existing values of initialized parameters
-  // if true is given for overwrite. generateAll will ignore scope templates if
-  // false is given for includeTemplates. Returns: The "least valid" result from
-  // the generation of any parameter that is not skipped (tamplates are skipped
-  // if false is given for includeTemplates, and parameters without generation
-  // functions are always skipped). That is, VALID will not be returned unless
-  // the result for every non-skipped parameter is VALID, and INVALID will be
-  // returned over INSUFFICIENT_INFORMATION if INVALID is obtained for any
-  // parameter. The result for each non-skipped parameter individually in this
-  // aggregation process will be considered to be the same as the result the
-  // generate function would return for generation of just that parameter.
+  // generator returned VALID. Furthermore, a value will not be loaded if the
+  // parameter it would be loaded to has a validator function and that validator
+  // returns INVALID. generateAll will only overwrite existing values of
+  // initialized parameters if true is given for overwrite. generateAll will
+  // ignore scope templates if false is given for includeTemplates. Returns: The
+  // "least valid" result from the generation of any parameter that is not
+  // skipped (templates are skipped if false is given for includeTemplates, and
+  // parameters without generation functions are always skipped). That is, VALID
+  // will not be returned unless the result for every non-skipped parameter is
+  // VALID, and INVALID will be returned over INSUFFICIENT_INFORMATION if
+  // INVALID is obtained for any parameter. The result for each non-skipped
+  // parameter individually in this aggregation process will be considered to be
+  // the same as the result the generate function would return for generation of
+  // just that parameter.
   ParameterStatus generateAll(bool overwrite = false,
                               bool includeTemplates = false);
 
+  // ConcordConfiguration::begin and ConcordConfiguration::end, which both
+  // should be declared immediately below these constant definitions; both
+  // essentially require enough boolean parameters that having them all as
+  // individual parameters in their function signatures would be somewhat
+  // unsightly. To make calls to these functions more intuitive and legible, we
+  // encode these five booleans in a bitmask. The following constants give the
+  // bits used in this bitmasks and a number of complete bitmasks for common
+  // selections of features. At the time of this comment's writing, there are
+  // five distinct feature bits used in selecting the features of a
+  // ConcordConfiguration::Iterator, specifically:
+  // - kTraverseParameters: If this bit is set to 0, the iterator will not
+  // return any paths to parameters.
+  // - kTraverseScopes: If this bit is set to 0, the iterator will not return
+  // any paths to scopes.
+  // - kTraverseTemplates: If this bit is set to 0, the iterator will ignore
+  // scope templates entirely.
+  // - kTraverseInstances: If this bit is set to 0, the iterator will ignore
+  // scope instances entirely.
+  // - kTraverseRecursively: If this bit is set to 0, the iterator will not
+  // recursively traverse subscopes of the ConcordConfiguration this iterator is
+  // constructed for. That is, it may return parameters directly in this
+  // configuration objectand single-step paths to scope templates and/or
+  // instances that lie directly within this configuration object, but it will
+  // not return any paths with more than one step which would require entering
+  // subscopes.
+  typedef uint8_t IteratorFeatureSelection;
+
+  const static IteratorFeatureSelection kTraverseParameters = (0x01 << 0);
+  const static IteratorFeatureSelection kTraverseScopes = (0x01 << 1);
+  const static IteratorFeatureSelection kTraverseTemplates = (0x01 << 2);
+  const static IteratorFeatureSelection kTraverseInstances = (0x01 << 3);
+  const static IteratorFeatureSelection kTraverseRecursively = (0x01 << 4);
+
+  const static IteratorFeatureSelection kIterateTopLevelParameters =
+      kTraverseParameters;
+  const static IteratorFeatureSelection kIterateTopLevelScopeTemplates =
+      kTraverseScopes | kTraverseTemplates;
+  const static IteratorFeatureSelection kIterateTopLevelScopeInstances =
+      kTraverseScopes | kTraverseInstances;
+  const static IteratorFeatureSelection kIterateAllTemplateParameters =
+      kTraverseParameters | kTraverseTemplates | kTraverseRecursively;
+  const static IteratorFeatureSelection kIterateAllInstanceParameters =
+      kTraverseParameters | kTraverseInstances | kTraverseRecursively;
+  const static IteratorFeatureSelection kIterateAllParameters =
+      kTraverseParameters | kTraverseTemplates | kTraverseInstances |
+      kTraverseRecursively;
+  const static IteratorFeatureSelection kIterateAll =
+      kTraverseParameters | kTraverseScopes | kTraverseTemplates |
+      kTraverseInstances | kTraverseRecursively;
+
   // Obtains an iterator to the beginning of this ConcordConfiguration. The
   // iterator returns the selected contents of this configuration as a series of
-  // const ConfigurationPath references. Parameters:
-  //   - parameters: If true, this iterator will return paths to parameters
-  //   within this ConcordConfiguration, otherwise it will exclude them.
-  //   - scopes: If true, this iterator will return paths to scopes within this
-  //   ConcordConfiguration, otherwise it will exclude them.
-  //   - templates: If false, this iterator will skip all scope templates and
-  //   their contents.
-  //   - instances: If false, this iterator will skip all scope instances and
-  //   their contents.
-  //   - recursive: If false, this iterator will not act recursively and will
-  //   only return paths to parameters, scope templates, and scope instances
-  //   directly contained in this ConcordConfiguration; it will not traverse any
-  //   subscope to return the scoped contents.
-  Iterator begin(bool parameters = true, bool scopes = false,
-                 bool templates = false, bool instances = true,
-                 bool recursive = true);
+  // const ConfigurationPath references.
+  // begin accepts one parameter, features, which is a bitmask for feature
+  // selection. Definition and documentation of constants for the bits in this
+  // bitmask and some common feature selections combining them should be
+  // immediately above this declaration. Note ConcordConfiguration::Iterators
+  // currently do not guarantee that the ConfigurationPath references they
+  // return will still refer to the same ConfigurationPath as they returned once
+  // the iterator has been advanced past the point where the reference was
+  // obtained; code using ConcordConfiguration::Iterators should make its own
+  // copy of the value stored by the reference the iterator returns if it needs
+  // the value past advancing the iterator.
+  Iterator begin(
+      IteratorFeatureSelection features = kIterateAllInstanceParameters);
 
   // Obtains an iterator to the end of this ConcordConfiguration. The iterator
   // will match the state of an iterator obtained with the begin function
-  // immediately above, given the same parameters, once that iterator has
-  // exhausted all its contents.
-  Iterator end(bool parameters = true, bool scopes = false,
-               bool templates = false, bool instances = true,
-               bool recursive = true);
+  // immediately above, given the same feature selection bitmask, once that
+  // iterator has exhausted all its contents.
+  Iterator end(
+      IteratorFeatureSelection features = kIterateAllInstanceParameters);
 };
 
 // A ParameterSelection object is intended to wrap a function that picks
@@ -833,17 +911,17 @@ class ParameterSelection {
  public:
   // Type for parameter selector functions that this ParameterSelection wraps. a
   // ParameterSelector is to accept the following parameters:
-  //   - const ConcordConfiguration&: The ConcordConfiguration to which the
-  //   parameter assessed belongs.
-  //   - const ConfigurationPath&: Path to a parameter within the provided
-  //   conviguration to be evaluated. The ParameterSelector should return true
-  //   if the specified parameter is within this selection and false otherwise.
-  //   - void*: An arbitrary pointer provided at the time the ParameterSelection
+  //   - config: The ConcordConfiguration to which the parameter assessed
+  //   belongs.
+  //   - path: Path to a parameter within the provided conviguration to be
+  //   evaluated. The ParameterSelector should return true if the specified
+  //   parameter is within this selection and false otherwise.
+  //   - state: An arbitrary pointer provided at the time the ParameterSelection
   //   was constructed with this ParameterSelector. It is anticipated this
   //   pointer will be used if the ParameterSelector requires any additional
   //   state.
-  typedef bool (*ParameterSelector)(const ConcordConfiguration&,
-                                    const ConfigurationPath&, void*);
+  typedef bool (*ParameterSelector)(const ConcordConfiguration& config,
+                                    const ConfigurationPath& path, void* state);
 
  private:
   class ParameterSelectionIterator

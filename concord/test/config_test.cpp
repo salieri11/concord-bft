@@ -321,19 +321,19 @@ TEST(config_test, configuration_state) {
 static size_t mockScopeSizerResult = 0;
 static ConcordConfiguration::ParameterStatus mockScopeSizer(
     const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t& output, void* state) {
+    size_t* output, void* state) {
   if (state) {
     bool* wasCalled = static_cast<bool*>(state);
     *wasCalled = true;
   }
-  output = mockScopeSizerResult;
+  *output = mockScopeSizerResult;
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
 static ConcordConfiguration::ParameterStatus mockScopeSizerThatNeverWorks(
     const ConcordConfiguration& config, const ConfigurationPath& path,
-    size_t& output, void* state) {
-  output = 144;
+    size_t* output, void* state) {
+  *output = 144;
   return ConcordConfiguration::ParameterStatus::INVALID;
 }
 
@@ -386,7 +386,7 @@ TEST(config_test, configuration_scope_creation) {
   EXPECT_TRUE(mockScopeSizerCalled)
       << "ConcordConfiguration::instantiateScope"
          " failed to correctly call the appropriate scope sizer.";
-  EXPECT_TRUE(config.hasScopeInstances("new_scope") &&
+  EXPECT_TRUE(config.scopeIsInstantiated("new_scope") &&
               (config.scopeSize("new_scope") == mockScopeSizerResult))
       << "ConcordConfiguration::instantiateScope failed to instantiate a scope"
          " to the correct size.";
@@ -404,7 +404,7 @@ TEST(config_test, configuration_scope_creation) {
   newScope.declareParameter("parameter_c", "A newer parameter.", "C");
   mockScopeSizerResult = 4;
   config.instantiateScope("new_scope");
-  EXPECT_TRUE(config.hasScopeInstances("new_scope") &&
+  EXPECT_TRUE(config.scopeIsInstantiated("new_scope") &&
               (config.scopeSize("new_scope") == mockScopeSizerResult))
       << "ConcordConfiguration::instantiateScope failed to correctly"
          " re-instantiate a scope that has already been instantiated.";
@@ -434,7 +434,7 @@ TEST(config_test, configuration_scope_creation) {
   EXPECT_EQ(sizeStatus, ConcordConfiguration::ParameterStatus::INVALID)
       << "ConcordConfiguration::instantiateScope fails to return the parameter"
          " status returned by the sizer function it has been given.";
-  EXPECT_FALSE(config.hasScopeInstances("unsizable_scope"))
+  EXPECT_FALSE(config.scopeIsInstantiated("unsizable_scope"))
       << "ConcordConfiguration::instantiateScope instantiated a scope despite"
          " the fact its scopeSizer returned a non-valid status.";
   try {
@@ -583,14 +583,14 @@ TEST(config_test, configuration_scope_access) {
       << "ConcordConfiguration::containsScope fails to reognize that a scope"
          " instance is out of range.";
 
-  EXPECT_TRUE(scopeB.hasScopeInstances("scope_ba"))
-      << "ConcordConfiguration::hasScopeInstances fails to recognize a "
+  EXPECT_TRUE(scopeB.scopeIsInstantiated("scope_ba"))
+      << "ConcordConfiguration::scopeIsInstantiated fails to recognize a "
          "subscope that does have instances.";
-  EXPECT_FALSE(config.hasScopeInstances("scope_a"))
-      << "ConcordConfiguration::hasScopeInstances fails to recognize that a "
+  EXPECT_FALSE(config.scopeIsInstantiated("scope_a"))
+      << "ConcordConfiguration::scopeIsInstantiated fails to recognize that a "
          "scope has not been instantiated.";
-  EXPECT_FALSE(config.hasScopeInstances("scope_c"))
-      << "Concordconfiguration::hasScopeInstances fails to recognize that a "
+  EXPECT_FALSE(config.scopeIsInstantiated("scope_c"))
+      << "Concordconfiguration::scopeIsInstantiated fails to recognize that a "
          "scope that has not been defined must have no instances.";
 
   EXPECT_EQ(scopeB.scopeSize("scope_ba"), 4)
@@ -613,8 +613,8 @@ TEST(config_test, configuration_scope_access) {
                       nullptr);
   mockScopeSizerResult = 0;
   config.instantiateScope("instanceless_scope");
-  EXPECT_TRUE(config.hasScopeInstances("instanceless_scope"))
-      << "ConcordConfiguration::hasScopeInstances fails to recognize that a "
+  EXPECT_TRUE(config.scopeIsInstantiated("instanceless_scope"))
+      << "ConcordConfiguration::scopeIsInstantiated fails to recognize that a "
          "scope instantiated to 0 instances was instantiated.";
   EXPECT_EQ(config.scopeSize("instanceless_scope"), 0)
       << "ConcordConfiguration::scopeSize fails to correctly report the size "
@@ -854,31 +854,29 @@ TEST(config_test, configuration_parameter_access) {
   } catch (ConfigurationResourceNotFoundException e) {
   }
 
-  config.loadValue("parameter_b", "A new value.", false);
+  config.loadValue("parameter_b", "A new value.", nullptr, false);
   EXPECT_EQ(config.getValue("parameter_b"), "A value.")
       << "ConcordConfiguration::loadValue overwrites existing value even when "
          "overwrite is not requested.";
-  config.loadValue("parameter_b", "A new value.", true);
+  config.loadValue("parameter_b", "A new value.", nullptr, true);
   EXPECT_EQ(config.getValue("parameter_b"), "A new value.")
       << "ConcordConfiguration::loadValue fails to overwrite existing value "
          "even when overwrite is requested.";
   std::string prevValue;
-  config.loadValue("parameter_b", "An even newer value.", true, &prevValue);
+  config.loadValue("parameter_b", "An even newer value.", nullptr, true,
+                   &prevValue);
   EXPECT_EQ(prevValue, "A new value.")
       << "ConcordConfiguration::loadValue fails to write back the overwritten "
          "value when a pointer to receive it is given.";
   prevValue = "prevValue";
-  config.loadValue("parameter_b", "A still newer value.", false, &prevValue);
+  config.loadValue("parameter_b", "A still newer value.", nullptr, false,
+                   &prevValue);
   EXPECT_EQ(prevValue, "prevValue")
       << "ConcordConfiguration::loadValue writes back an overwritten value "
          "even when it does not overwrite a value.";
 
   config.eraseValue("parameter_a");
   EXPECT_FALSE(config.hasValue("parameter_a"))
-      << "ConcordConfiguration reports it still has a value for a parameter "
-         "after erasing the value for that parameter.";
-  config.eraseValue("parameter_b");
-  EXPECT_FALSE(config.hasValue("parameter_b"))
       << "ConcordConfiguration reports it still has a value for a parameter "
          "after erasing the value for that parameter.";
   try {
@@ -901,8 +899,8 @@ TEST(config_test, configuration_parameter_access) {
 
   config.loadValue("parameter_b", "A replacement value.");
   config.eraseAllValues();
-  auto iterator = config.begin(true, false, true, true, true);
-  auto end = config.end(true, false, true, true, true);
+  auto iterator = config.begin(ConcordConfiguration::kIterateAllParameters);
+  auto end = config.end(ConcordConfiguration::kIterateAllParameters);
   while (iterator != end) {
     EXPECT_FALSE(config.hasValue(*iterator))
         << "ConcordConfiguration::eraseAllValues fails to erase all values "
@@ -915,22 +913,31 @@ TEST(config_test, configuration_parameter_access) {
 }
 
 static ConcordConfiguration::ParameterStatus mockValidatorResult;
+static std::string mockValidatorFailureMessage;
 static ConcordConfiguration::ParameterStatus mockValidator(
     const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, void* state) {
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
   if (state) {
     bool* wasCalled = static_cast<bool*>(state);
     *wasCalled = true;
+  }
+  if (failureMessage &&
+      (mockValidatorResult != ConcordConfiguration::ParameterStatus::VALID)) {
+    *failureMessage = mockValidatorFailureMessage;
   }
   return mockValidatorResult;
 }
 
 static ConcordConfiguration::ParameterStatus mockValidatorRequireNoSpaces(
     const std::string& value, const ConcordConfiguration& config,
-    const ConfigurationPath& path, void* state) {
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
   if (value.find(" ") == std::string::npos) {
     return ConcordConfiguration::ParameterStatus::VALID;
   } else {
+    if (failureMessage) {
+      *failureMessage =
+          "Spaces are not allowed in parameter " + path.toString() + ".";
+    }
     return ConcordConfiguration::ParameterStatus::INVALID;
   }
 }
@@ -939,12 +946,12 @@ static ConcordConfiguration::ParameterStatus mockGeneratorStatus;
 static std::string mockGeneratorOutput;
 static ConcordConfiguration::ParameterStatus mockGenerator(
     const ConcordConfiguration& config, const ConfigurationPath& path,
-    std::string& output, void* state) {
+    std::string* output, void* state) {
   if (state) {
     bool* wasCalled = static_cast<bool*>(state);
     *wasCalled = true;
   }
-  output = mockGeneratorOutput;
+  *output = mockGeneratorOutput;
   return mockGeneratorStatus;
 }
 
@@ -952,8 +959,7 @@ TEST(config_test, configuration_parameter_validation) {
   ConcordConfiguration config;
 
   config.declareParameter("parameter_a", "A description.");
-  config.addValidator("parameter_a", mockValidatorRequireNoSpaces, nullptr,
-                      "Values for parameter_a may not contain spaces.");
+  config.addValidator("parameter_a", mockValidatorRequireNoSpaces, nullptr);
   EXPECT_EQ(config.loadValue("parameter_a", "has spaces"),
             ConcordConfiguration::ParameterStatus::INVALID)
       << "ConcordConfiguration fails to correctly use a parameter's validator "
@@ -974,56 +980,25 @@ TEST(config_test, configuration_parameter_validation) {
          "parameter.";
 
   bool mockValidatorCalled = false;
-  config.addValidator("parameter_a", mockValidator, &mockValidatorCalled,
-                      "Mock validator reported finding a parameter invalid.");
-  mockValidatorResult = ConcordConfiguration::ParameterStatus::INVALID;
-  EXPECT_EQ(
-      config.loadValue("parameter_a", "hasn't_spaces_and_is_a_longer_string"),
-      ConcordConfiguration::ParameterStatus::INVALID)
-      << "ConcordConfiguration fails to correctly handle multiple validators "
-         "for a parameter.";
-  EXPECT_EQ(config.getValue("parameter_a"), "hasn't_spaces")
-      << "ConcordConfiguration fails to correctly enforce multiple validators "
-         "for a parameter.";
-  EXPECT_TRUE(mockValidatorCalled)
-      << "ConcordConfiguration fails to correctly handle multiple validators "
-         "for a parameter.";
-  mockValidatorCalled = false;
-  EXPECT_EQ(config.validate("parameter_a"),
-            ConcordConfiguration::ParameterStatus::INVALID)
-      << "ConcordConfiguration::validate fails to correctly handle multiple "
-         "validators for a parameter.";
-  EXPECT_TRUE(mockValidatorCalled)
-      << "ConcordConfiguration::validate fails to correctly handle multiple "
-         "validators for a parameter.";
-
-  bool secondMockValidatorCalled = false;
-  config.addValidator("parameter_a", mockValidator, &secondMockValidatorCalled,
-                      "Mock validator reported finding a parameter invalid.");
+  config.addValidator("parameter_a", mockValidator, &mockValidatorCalled);
   mockValidatorResult = ConcordConfiguration::ParameterStatus::VALID;
   EXPECT_EQ(config.loadValue("parameter_a", "has spaces"),
-            ConcordConfiguration::ParameterStatus::INVALID)
-      << "ConcordConfiguration fails to correctly aggregate the results of "
-         "multiple parameter validators.";
-  mockValidatorResult =
-      ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  EXPECT_EQ(config.loadValue("parameter_a", "has spaces"),
-            ConcordConfiguration::ParameterStatus::INVALID)
-      << "ConcordConfiguration fails to correctly aggregate the results of "
-         "multiple parameter validators.";
-  EXPECT_EQ(
-      config.loadValue("parameter_a", "hasn't_spaces_and_is_a_longer_string"),
-      ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION)
-      << "ConcordConfiguration fails to correctly aggregate the results of "
-         "multiple parameter validators.";
-  EXPECT_EQ(config.getValue("parameter_a"),
-            "hasn't_spaces_and_is_a_longer_string")
-      << "ConcordConfiguration fails to correctly enforce the results of a "
-         "parameter's validators.";
+            ConcordConfiguration::ParameterStatus::VALID)
+      << "ConcordConfiguration fails to correctly replace the validtor for a "
+         "parameter with an existing validator.";
+  EXPECT_EQ(config.getValue("parameter_a"), "has spaces")
+      << "ConcordConfiguration fails to correctly replace the validator for a "
+         "parameter with an existing validator.";
+  EXPECT_TRUE(mockValidatorCalled) << "ConcordConfiguration fails to correctly "
+                                      "call a parameter's validation function.";
+  mockValidatorCalled = false;
   EXPECT_EQ(config.validate("parameter_a"),
-            ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION)
-      << "ConcordConfiguration::validate fails to correctly aggregate the "
-         "results of multiple validators.";
+            ConcordConfiguration::ParameterStatus::VALID)
+      << "ConcordConfiguration::validate fails to correctly replace the "
+         "validator for a parameter with an existing validator.";
+  EXPECT_TRUE(mockValidatorCalled)
+      << "ConcordConfiguration::validate fails to correctly call a parameter's "
+         "validation function.";
 
   config.declareParameter("parameter_b", "A description.");
   config.eraseValue("parameter_a");
@@ -1040,14 +1015,45 @@ TEST(config_test, configuration_parameter_validation) {
       << "ConcordConfiguration::validate fails to correctly handle a parameter "
          "with no validators.";
 
+  config.eraseValue("parameter_a");
+  mockValidatorResult = ConcordConfiguration::ParameterStatus::VALID;
+  mockValidatorFailureMessage = "Mock validator failed.";
+  std::string failureMessage = "Hasn't failed.";
+  config.loadValue("parameter_a", "A value.", &failureMessage);
+  EXPECT_EQ(failureMessage, "Hasn't failed.")
+      << "ConcordConfiguration::loadParameter writes a failure message even "
+         "when validation does not fail.";
+  config.eraseValue("parameter_a");
+  mockValidatorResult = ConcordConfiguration::ParameterStatus::INVALID;
+  config.loadValue("parameter_a", "A value.", &failureMessage);
+  EXPECT_EQ(failureMessage, "Mock validator failed.")
+      << "ConcordConfiguration::loadParameter fails to write the failure "
+         "message provided by the validator when the validator fails.";
+
+  config.eraseValue("parameter_a");
+  mockValidatorResult = ConcordConfiguration::ParameterStatus::VALID;
+  mockValidatorFailureMessage = "Mock validator failed.";
+  failureMessage = "Hasn't failed.";
+  config.loadValue("parameter_a", "A value.");
+  config.validate("parameter_a", &failureMessage);
+  EXPECT_EQ(failureMessage, "Hasn't failed.")
+      << "ConcordConfiguration::validate writes a failure message even when "
+         "the validator does not fail.";
+  mockValidatorResult = ConcordConfiguration::ParameterStatus::INVALID;
+  config.loadValue("parameter_a", "A different value.");
+  config.validate("parameter_a", &failureMessage);
+  EXPECT_EQ(failureMessage, "Mock validator failed.")
+      << "ConcordConfiguration::validate fails to write the validator's "
+         "failureMessage when the validator fails.";
+
   try {
-    config.addValidator("parameter_c", mockValidator, nullptr, "A message.");
+    config.addValidator("parameter_c", mockValidator, nullptr);
     FAIL() << "ConcordConfiguration::addValidator fails to reject a request to "
               "add a validator to a parameter which is not defined.";
   } catch (ConfigurationResourceNotFoundException e) {
   }
   try {
-    config.addValidator("parameter_a", nullptr, nullptr, "A message.");
+    config.addValidator("parameter_a", nullptr, nullptr);
     FAIL() << "ConcordConfiguration::addValidator fails to reject a request to "
               "add a null validator to a parameter.";
   } catch (std::invalid_argument e) {
@@ -1065,11 +1071,9 @@ TEST(config_test, configuration_parameter_validation) {
   ConcordConfiguration& scopeA = config.subscope("scope_a");
   scopeA.declareParameter("parameter_aa", "A description.");
   scopeA.declareParameter("parameter_ab", "A description.");
-  scopeA.addValidator("parameter_aa", mockValidator, nullptr,
-                      "Mock validator reported finding a parameter invalid.");
+  scopeA.addValidator("parameter_aa", mockValidator, nullptr);
   scopeA.loadValue("parameter_ab", "hasn spaces");
-  scopeA.addValidator("parameter_ab", mockValidatorRequireNoSpaces, nullptr,
-                      "Values for parameter_ab may not contain spaces.");
+  scopeA.addValidator("parameter_ab", mockValidatorRequireNoSpaces, nullptr);
   mockScopeSizerResult = 1;
   config.instantiateScope("scope_a");
   ConcordConfiguration& scopeA0 = config.subscope("scope_a", 0);
@@ -1099,8 +1103,7 @@ TEST(config_test, configuration_parameter_validation) {
          "parameters even when this is not requested.";
   config.loadValue("parameter_a", "hasn't_spaces");
   scopeA.loadValue("parameter_aa", "has spaces");
-  scopeA.addValidator("parameter_aa", mockValidatorRequireNoSpaces, nullptr,
-                      "Values for parameter_aa may not contain spaces.");
+  scopeA.addValidator("parameter_aa", mockValidatorRequireNoSpaces, nullptr);
   EXPECT_EQ(config.validateAll(true, false),
             ConcordConfiguration::ParameterStatus::VALID)
       << "ConcordConfiguration::validateAll validates instance templates even "
@@ -1145,31 +1148,30 @@ TEST(config_test, configuration_parameter_defaults) {
   }
 
   config.loadValue("parameter_a", "a value");
-  config.loadDefault("parameter_a", false);
+  config.loadDefault("parameter_a", nullptr, false);
   EXPECT_EQ(config.getValue("parameter_a"), "a value")
       << "ConcordConfiguration::loadDefault overwrites a value even when "
          "overwrite is not specified.";
-  config.loadDefault("parameter_a", true);
+  config.loadDefault("parameter_a", nullptr, true);
   EXPECT_EQ(config.getValue("parameter_a"), "default_value")
       << "ConcordConfiguration::loadDefault fails to overwrite existing value "
          "even when overwrite is specified.";
 
   std::string prevValue = "prevValue";
   config.loadValue("parameter_a", "a value");
-  config.loadDefault("parameter_a", false, &prevValue);
+  config.loadDefault("parameter_a", nullptr, false, &prevValue);
   EXPECT_EQ(prevValue, "prevValue")
       << "ConcordConfiguration::loadDefault writes an overwritten value back "
          "even if it does not overwrite a value.";
-  config.loadDefault("parameter_a", true, &prevValue);
+  config.loadDefault("parameter_a", nullptr, true, &prevValue);
   EXPECT_EQ(prevValue, "a value")
       << "ConcordConfiguration::loadDefault fails to correctly write back the "
          "value it overwrote when appropriate.";
 
   config.loadValue("parameter_a", "a value");
-  config.addValidator("parameter_a", mockValidator, nullptr,
-                      "Mock validator reported finding a parameter invalid.");
+  config.addValidator("parameter_a", mockValidator, nullptr);
   mockValidatorResult = ConcordConfiguration::ParameterStatus::INVALID;
-  EXPECT_EQ(config.loadDefault("parameter_a", true),
+  EXPECT_EQ(config.loadDefault("parameter_a", nullptr, true),
             ConcordConfiguration::ParameterStatus::INVALID)
       << "ConcordConfiguration::loadDefault fails to enforce validators on "
          "default values.";
@@ -1177,17 +1179,29 @@ TEST(config_test, configuration_parameter_defaults) {
       << "ConcordConfiguration::loadDefault fails to leave the existing value "
          "of a parameter intact if the default value fails validation.";
 
-  config.addValidator("parameter_a", mockValidatorRequireNoSpaces, nullptr,
-                      "Values for parameter_a may not contain spaces.");
   mockValidatorResult =
       ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
-  EXPECT_EQ(config.loadDefault("parameter_a", true),
+  EXPECT_EQ(config.loadDefault("parameter_a", nullptr, true),
             ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION)
-      << "ConcordConfiguration::loadDefault fails to correctly aggregate "
+      << "ConcordConfiguration::loadDefault fails to correctly report "
          "validator results.";
   EXPECT_EQ(config.getValue("parameter_a"), "default_value")
       << "ConcordConfiguration::loadDefault fails to correctly enforce "
          "validator results.";
+
+  config.eraseValue("parameter_a");
+  mockValidatorResult = ConcordConfiguration::ParameterStatus::VALID;
+  mockValidatorFailureMessage = "Mock validator failed.";
+  std::string failureMessage = "Hasn't failed.";
+  config.loadDefault("parameter_a", &failureMessage);
+  EXPECT_EQ(failureMessage, "Hasn't failed.")
+      << "ConcordConfiguration::loadDefault writes a failure message even when "
+         "the validator does not fail.";
+  mockValidatorResult = ConcordConfiguration::ParameterStatus::INVALID;
+  config.loadDefault("parameter_a", &failureMessage);
+  EXPECT_EQ(failureMessage, "Mock validator failed.")
+      << "ConcordConfiguration::loadDefault fails to write the validator's "
+         "failureMessage when the validator fails.";
 
   config.clear();
   config.declareParameter("parameter_a", "A description.", "default_value");
@@ -1276,31 +1290,30 @@ TEST(config_test, configuration_parameter_generation) {
   mockGeneratorStatus = ConcordConfiguration::ParameterStatus::VALID;
   mockGeneratorOutput = "generated value";
   config.loadValue("parameter_a", "a value");
-  config.generate("parameter_a", false);
+  config.generate("parameter_a", nullptr, false);
   EXPECT_EQ(config.getValue("parameter_a"), "a value")
       << "ConcordConfiguration::generate overwrites existing value even when "
          "this is not requested.";
-  config.generate("parameter_a", true);
+  config.generate("parameter_a", nullptr, true);
   EXPECT_EQ(config.getValue("parameter_a"), "generated value")
       << "ConcordConfiguration::generate fails to overwrite existing value "
          "even when this is requested.";
 
   std::string prevValue = "prevValue";
   config.loadValue("parameter_a", "a value");
-  config.generate("parameter_a", true, &prevValue);
+  config.generate("parameter_a", nullptr, true, &prevValue);
   EXPECT_EQ(prevValue, "a value")
       << "ConcordConfiguration::generate fails to write back the overwritten "
          "value even when a pointer is provided to do so.";
   prevValue = "prevValue";
   config.loadValue("parameter_a", "a value");
-  config.generate("parameter_a", false, &prevValue);
+  config.generate("parameter_a", nullptr, false, &prevValue);
   EXPECT_EQ(prevValue, "prevValue")
       << "ConcordConfiguration::generate writes back a value to the "
          "overwritten value pointer even when it does not overwrite a value.";
 
   config.eraseValue("parameter_a");
-  config.addValidator("parameter_a", mockValidator, nullptr,
-                      "Mock validator reported finding a parameter invalid.");
+  config.addValidator("parameter_a", mockValidator, nullptr);
   mockValidatorResult = ConcordConfiguration::ParameterStatus::VALID;
   mockGeneratorOutput = "generated value";
   mockGeneratorStatus = ConcordConfiguration::ParameterStatus::INVALID;
@@ -1348,6 +1361,20 @@ TEST(config_test, configuration_parameter_generation) {
   EXPECT_FALSE(config.hasValue("parameter_a"))
       << "ConcordConfiguration::generate appears to load generated values that "
          "fail validation.";
+
+  config.eraseValue("parameter_a");
+  mockValidatorResult = ConcordConfiguration::ParameterStatus::VALID;
+  mockValidatorFailureMessage = "Mock validator failed.";
+  std::string failureMessage = "Hasn't failed.";
+  config.generate("parameter_a", &failureMessage);
+  EXPECT_EQ(failureMessage, "Hasn't failed.")
+      << "ConcordConfiguration::generate writes a failure message even when "
+         "the validator does not fail.";
+  mockValidatorResult = ConcordConfiguration::ParameterStatus::INVALID;
+  config.generate("parameter_a", &failureMessage);
+  EXPECT_EQ(failureMessage, "Mock validator failed.")
+      << "ConcordConfiguration::generate fails to write the validator's "
+         "failureMessage when the validator fails.";
 
   try {
     config.addGenerator("parameter_c", mockGenerator, nullptr);
@@ -1612,14 +1639,25 @@ TEST(config_test, configuration_iteration) {
   ConfigurationPath pathParameterC2B(pathScopeC2);
   pathParameterC2B.subpath.reset(new ConfigurationPath("parameter_cb", false));
 
-  EXPECT_EQ(config.begin(false, false, true, true, true),
-            config.end(false, false, true, true, true))
+  ConcordConfiguration::IteratorFeatureSelection
+      iterateNeitherParametersNorScopes =
+          ConcordConfiguration::kIterateAll &
+          (~ConcordConfiguration::kTraverseParameters) &
+          (~ConcordConfiguration::kTraverseScopes);
+  EXPECT_EQ(config.begin(iterateNeitherParametersNorScopes),
+            config.end(iterateNeitherParametersNorScopes))
       << "When requesting iterators that return neither parameters nor scopes, "
          "ConcordConifugration iterators to the beginning and end of a "
          "configuration are not equal, even though such iterators should have "
          "nothing to return.";
-  EXPECT_EQ(config.begin(false, true, false, false, true),
-            config.end(false, true, false, false, true))
+  ConcordConfiguration::IteratorFeatureSelection
+      iterateNeitherParametersNorTemplatesNorInstances =
+          ConcordConfiguration::kIterateAll &
+          (~ConcordConfiguration::kTraverseParameters) &
+          (~ConcordConfiguration::kTraverseTemplates) &
+          (~ConcordConfiguration::kTraverseInstances);
+  EXPECT_EQ(config.begin(iterateNeitherParametersNorTemplatesNorInstances),
+            config.end(iterateNeitherParametersNorTemplatesNorInstances))
       << "When requesting iterators that return neither parameters nor the "
          "contents of scope templates or scope instances, ConcordConfiguration "
          "iterators to the beginning and end of a configuration are not equal, "
@@ -1627,8 +1665,9 @@ TEST(config_test, configuration_iteration) {
 
   std::unordered_set<ConfigurationPath> expected(
       {pathParameterA, pathParameterB, pathParameterC});
-  auto iterator = config.begin(true, false, false, false, false);
-  auto end = config.end(true, false, false, false, false);
+  auto iterator =
+      config.begin(ConcordConfiguration::kIterateTopLevelParameters);
+  auto end = config.end(ConcordConfiguration::kIterateTopLevelParameters);
   while (iterator != end) {
     EXPECT_GT(expected.count(*iterator), 0)
         << "Non-recursive ConcordConfiguration iterator over parameters "
@@ -1642,8 +1681,8 @@ TEST(config_test, configuration_iteration) {
 
   expected = std::unordered_set<ConfigurationPath>(
       {pathScopeA, pathScopeB, pathScopeC});
-  iterator = config.begin(false, true, true, false, false);
-  end = config.end(false, true, true, false, false);
+  iterator = config.begin(ConcordConfiguration::kIterateTopLevelScopeTemplates);
+  end = config.end(ConcordConfiguration::kIterateTopLevelScopeTemplates);
   while (iterator != end) {
     EXPECT_GT(expected.count(*iterator), 0)
         << "Non-recursive ConcordConfiguration iterator over scope templates "
@@ -1657,8 +1696,8 @@ TEST(config_test, configuration_iteration) {
 
   expected = std::unordered_set<ConfigurationPath>(
       {pathScopeA0, pathScopeA1, pathScopeC0, pathScopeC1, pathScopeC2});
-  iterator = config.begin(false, true, false, true, false);
-  end = config.end(false, true, false, true, false);
+  iterator = config.begin(ConcordConfiguration::kIterateTopLevelScopeInstances);
+  end = config.end(ConcordConfiguration::kIterateTopLevelScopeInstances);
   while (iterator != end) {
     EXPECT_GT(expected.count(*iterator), 0)
         << "Non-recursive ConcordConfiguration iterator over scope instances "
@@ -1674,8 +1713,8 @@ TEST(config_test, configuration_iteration) {
       {pathParameterA, pathParameterB, pathParameterC, pathParameterAA,
        pathParameterAB, pathParameterAAA, pathParameterAAB, pathParameterABA,
        pathParameterBA, pathParameterBB, pathParameterBC});
-  iterator = config.begin(true, false, true, false, true);
-  end = config.end(true, false, true, false, true);
+  iterator = config.begin(ConcordConfiguration::kIterateAllTemplateParameters);
+  end = config.end(ConcordConfiguration::kIterateAllTemplateParameters);
   while (iterator != end) {
     EXPECT_GT(expected.count(*iterator), 0)
         << "ConcordConfiguration iterator over the template contents of a "
@@ -1693,8 +1732,8 @@ TEST(config_test, configuration_iteration) {
        pathParameterA0B1A, pathParameterA1B0A, pathParameterA1B1A,
        pathParameterC1A, pathParameterC1B0A, pathParameterC1B0B,
        pathParameterC1B1A, pathParameterC2A, pathParameterC2B});
-  iterator = config.begin(true, false, false, true, true);
-  end = config.end(true, false, false, true, true);
+  iterator = config.begin(ConcordConfiguration::kIterateAllInstanceParameters);
+  end = config.end(ConcordConfiguration::kIterateAllInstanceParameters);
   while (iterator != end) {
     EXPECT_GT(expected.count(*iterator), 0)
         << "ConcordConfiguration iterator over the instance contents of a "
@@ -1727,8 +1766,8 @@ TEST(config_test, configuration_iteration) {
        pathParameterC1B0A, pathParameterC1B0B, pathScopeC1B1,
        pathParameterC1B1A, pathScopeC1B2,      pathParameterC2A,
        pathParameterC2B});
-  iterator = config.begin(true, true, true, true, true);
-  end = config.end(true, true, true, true, true);
+  iterator = config.begin(ConcordConfiguration::kIterateAll);
+  end = config.end(ConcordConfiguration::kIterateAll);
   while (iterator != end) {
     EXPECT_GT(expected.count(*iterator), 0)
         << "ConcordConfiguration iterator over the entire contents of a "
@@ -1863,8 +1902,8 @@ TEST(config_test, parameter_selection) {
   ParameterSelection selection(config, relevantParameterSelector,
                                &selectorCalled);
 
-  auto iterator = config.begin(true, false, true, true, true);
-  auto end = config.end(true, false, true, true, true);
+  auto iterator = config.begin(ConcordConfiguration::kIterateAllParameters);
+  auto end = config.end(ConcordConfiguration::kIterateAllParameters);
   std::unordered_set<ConfigurationPath> expectedSelection;
   while (iterator != end) {
     ConfigurationPath path = *iterator;
