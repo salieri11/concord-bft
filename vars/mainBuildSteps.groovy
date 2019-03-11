@@ -334,7 +334,7 @@ EOF
                 if (env.JOB_NAME == performance_test_job_name) {
                   sh '''
                     echo "Running Entire Testsuite: Performance..."
-                    echo "${PASSWORD}" | sudo -S ./main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${performance_test_logs}"
+                    echo "${PASSWORD}" | sudo -SE ./main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${performance_test_logs}"
                   '''
                 }
                 if (env.JOB_NAME == lint_test_job_name) {
@@ -364,29 +364,15 @@ EOF
           stage('Push memory leak summary into repo') {
             steps {
               dir('hermes-data/memory_leak_test') {
-                  pushMemoryLeakSummary()
+                  pushHermesDataFile('memory_leak_summary.csv')
               }
             }
           }
           stage ('Send Memory Leak Alert Notification') {
             steps {
-                dir('hermes-data/memory_leak_test') {
-                    script {
-                        memory_leak_spiked_log = new File(env.mem_leak_test_logs, "memory_leak_spiked.log").toString()
-                        if (fileExists(memory_leak_spiked_log)) {
-                            echo 'ALERT: Memory Leak spiked up'
-
-                            memory_leak_alert_notification_address_file = "memory_leak_alert_recipients.txt"
-                            if (fileExists(memory_leak_alert_notification_address_file)) {
-                                memory_leak_alert_notification_recipients = readFile(memory_leak_alert_notification_address_file).replaceAll("\n", " ")
-                                echo 'Sending ALERT email notification...'
-                                emailext body: "Memory Leak Spiked up in build: ${env.BUILD_NUMBER}\n\n More info at: ${env.BUILD_URL}\nDownload Valgrind Log file (could be > 10 MB): ${env.BUILD_URL}artifact/testLogs/MemoryLeak/valgrind_concord1.log\n\nGraph: ${JOB_URL}plot",
-                                to: memory_leak_alert_notification_recipients,
-                                subject: "ALERT: Memory Leak Spiked up in build ${env.BUILD_NUMBER}"
-                            }
-                        }
-                    }
-                }
+              dir('hermes-data/memory_leak_test') {
+                sendAlertNotification('memory_leak')
+              }
             }
           }
           stage ('Graph') {
@@ -407,6 +393,62 @@ EOF
               numBuilds: '',
               useDescr: false,
               yaxis: 'Leak Summary (bytes)',
+              yaxisMaximum: '',
+              yaxisMinimum: ''
+            }
+          }
+        }
+      }
+
+      stage ("Post Performance Testrun") {
+        when {
+          expression { env.JOB_NAME == performance_test_job_name }
+        } 
+        stages {
+          stage('Collect Performance Transaction Rate') {
+            steps {
+              dir('blockchain/hermes/suites') {
+                withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+                  sh '''
+                    echo "Collect Transaction Rate from this run..."
+                    echo "${PASSWORD}" | sudo -SE ./update_performance_result.sh --resultsDir "${performance_test_logs}"
+                  '''
+                }
+              }
+            }
+          }
+          stage('Push performance transaction rate into repo') {
+            steps {
+              dir('hermes-data/performance_test') {
+                  pushHermesDataFile('perf_testrun_summary.csv')
+              }
+            }
+          } 
+          stage ('Send Performance Test Alert Notification') {
+            steps {
+              dir('hermes-data/performance_test') {
+                sendAlertNotification('performance')
+              }
+            }
+          }
+          stage ('Graph') {
+            steps {
+              plot csvFileName: 'plot-summary.csv',
+                csvSeries: [[
+                            file: 'perf_testrun_summary.csv',
+                            exclusionValues: '',
+                            displayTableFlag: false,
+                            inclusionFlag: 'OFF',
+                            url: '']],
+              group: 'Performance Test Transaction Rate',
+              title: 'Performance Test Transaction Rate',
+              style: 'line',
+              exclZero: false,
+              keepRecords: false,
+              logarithmic: false,
+              numBuilds: '',
+              useDescr: false,
+              yaxis: 'Performance Test Transaction Rate',
               yaxisMaximum: '',
               yaxisMinimum: ''
             }
@@ -611,15 +653,15 @@ void createVersionInfo(version, commit){
   return new JsonOutput().toJson(versionObject)
 }
 
-void pushMemoryLeakSummary(){
+void pushHermesDataFile(fileToPush){
   echo "git add"
   sh (
-    script: "git add memory_leak_summary.csv",
+    script: "git add ${fileToPush}",
     returnStdout: false
   )
   echo "git commit"
   sh (
-    script: "git commit -m 'Update memory leak summary data'",
+    script: "git commit -m 'Update summary file'",
     returnStdout: false
   )
 
@@ -628,6 +670,40 @@ void pushMemoryLeakSummary(){
     script: "git push origin master",
     returnStdout: false
   )
+}
+
+void sendAlertNotification(test_name) {
+  if (test_name == 'memory_leak') {
+    memory_leak_spiked_log = new File(env.mem_leak_test_logs, "memory_leak_spiked.log").toString()
+    if (fileExists(memory_leak_spiked_log)) {
+      echo 'ALERT: Memory Leak spiked up'
+        
+      memory_leak_alert_notification_address_file = "memory_leak_alert_recipients.txt"
+      if (fileExists(memory_leak_alert_notification_address_file)) {
+        memory_leak_alert_notification_recipients = readFile(memory_leak_alert_notification_address_file).replaceAll("\n", " ")
+        echo 'Sending ALERT email notification...'
+        emailext body: "Memory Leak Spiked up in build: ${env.BUILD_NUMBER}\n\n More info at: ${env.BUILD_URL}\nDownload Valgrind Log file (could be > 10 MB): ${env.BUILD_URL}artifact/testLogs/MemoryLeak/valgrind_concord1.log\n\nGraph: ${JOB_URL}plot",
+        to: memory_leak_alert_notification_recipients,
+        subject: "ALERT: Memory Leak Spiked up in build ${env.BUILD_NUMBER}"
+      }               
+    }
+  }
+
+  if (test_name == 'performance') {
+    performance_test_spiked_log = new File(env.performance_test_logs, "performance_transaction_rate_spiked.log").toString()
+    if (fileExists(performance_test_spiked_log)) {
+      echo 'ALERT: Performance Transaction Rate spiked up in this run'
+      
+      performance_test_alert_notification_address_file = "performance_test_alert_recipients.txt"
+      if (fileExists(performance_test_alert_notification_address_file)) {
+        performance_test_alert_notification_recipients = readFile(performance_test_alert_notification_address_file).replaceAll("\n", " ")
+        echo 'Sending ALERT email notification...'
+        emailext body: "Performance Transaction Rate Spiked up in build: ${env.BUILD_NUMBER}\n\n More info at: ${env.BUILD_URL}\nPerformance Result Log file: ${env.BUILD_URL}artifact/testLogs/PerformanceTest/performance_result.log\n\nGraph: ${JOB_URL}plot",
+        to: performance_test_alert_notification_recipients,
+        subject: "ALERT: Performance Transaction Rate Spiked up in build ${env.BUILD_NUMBER}"
+      }
+    }
+  }
 }
 
 // Uses the artifactory REST API to return whether the passed in object
