@@ -40,3 +40,15 @@ target_link_libraries(SliverTests
   kvblockchain
   gtest
   gtest_main)
+
+add_executable(ConfigTests
+  config_test.cpp
+  "../src/configuration_manager.cpp")
+
+target_link_libraries(ConfigTests
+  ${Boost_LIBRARIES}
+  ${GTEST_LIBRARIES}
+  concord_utils
+  kvblockchain
+  gtest
+  gtest_main)
