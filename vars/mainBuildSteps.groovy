@@ -306,8 +306,7 @@ EOF
                     # So test suites not using sudo can write to test_logs.
                     mkdir "${test_log_root}"
 
-                    # RV, March 9, 2019: AssetTransfer hanging, not due to product change.  Commenting out.
-                    # echo "${PASSWORD}" | sudo -S ./main.py AssetTransferTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${asset_transfer_test_logs}"
+                    echo "${PASSWORD}" | sudo -S ./main.py AssetTransferTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${asset_transfer_test_logs}"
                     echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}"
                     echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}"
                     echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"

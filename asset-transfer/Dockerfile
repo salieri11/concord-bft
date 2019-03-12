@@ -1,8 +1,7 @@
-FROM ubuntu:16.04
+FROM athena-docker-local.artifactory.eng.vmware.com/helen:prereqs-v2
 WORKDIR /source
 COPY . /source
 RUN apt-get -y update
-RUN apt-get -y upgrade
 RUN apt-get install -y git
 RUN apt-get update -yq \
     && apt-get install curl gnupg -yq \
@@ -11,7 +10,6 @@ RUN apt-get update -yq \
 RUN apt-get install -y software-properties-common
 RUN echo | add-apt-repository ppa:ethereum/ethereum
 RUN apt-get update -y
-RUN apt-get install -y solc
 RUN echo | npm install web3@0.20.1
 RUN npm install --save httpheaderprovider
 RUN npm install --global mocha
