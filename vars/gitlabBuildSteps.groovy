@@ -621,8 +621,7 @@ EOF
 // The user's parameter is top priority, and if it fails, let an exception be thrown.
 // First, tries to fetch at branch_or_commit.
 // Next, get master.
-// Next, try to get BRANCH_NAME.  If getting BRANCH_NAME fails, we are probably testing
-// a branch that is in only in one or two of the repos.  That's fine.
+// Next, try to get the branch.
 // Returns the short form commit hash.
 String getRepoCode(repo_url, branch_or_commit){
   refPrefix = "refs/heads/"
@@ -630,10 +629,10 @@ String getRepoCode(repo_url, branch_or_commit){
   if (branch_or_commit && branch_or_commit.trim()){
     // We don't know if this was a branch or a commit, so don't add the refPrefix.
     checkoutRepo(repo_url, branch_or_commit)
-  }else if (env.BRANCH_NAME && env.BRANCH_NAME.trim()){
-    // When launched via the multibranch pipeline plugin, there is a BRANCH_NAME
+  }else if (env.gitlabSourceBranch && env.gitlabSourceBranch.trim()){
+    // When launched via gitlab triggering the pipeline plugin, there is a gitlabSourceBranch
     // environment variable.
-    checkoutRepo(repo_url, refPrefix + env.BRANCH_NAME)
+    checkoutRepo(repo_url, refPrefix + env.gitlabSourceBranch)
   }else{
     // This was launched some other way. Just get latest.
     checkoutRepo(repo_url, "master")
