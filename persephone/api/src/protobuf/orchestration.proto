@@ -10,7 +10,7 @@ option java_multiple_files = true;
 
 /* [START messages] */
 /**
- * Denote the identifier of an [OrchestrationSite].
+ * Denote the identifier of an orchestration site.
  *
  * @property[low]
  *   lower order bits of a 128-bit identifier;
@@ -18,6 +18,19 @@ option java_multiple_files = true;
  *   higher order bits of a 128-bit identifier;
  */
 message OrchestrationSiteIdentifier {
+    uint64 low = 1;
+    uint64 high = 2;
+}
+
+/**
+ * Denote the identifier of a deployment session.
+ *
+ * @property[low]
+ *   lower order bits of a 128-bit identifier;
+ * @property[high]
+ *   higher order bits of a 128-bit identifier;
+ */
+message DeploymentSessionIdentifier {
     uint64 low = 1;
     uint64 high = 2;
 }
