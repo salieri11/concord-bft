@@ -492,7 +492,7 @@ EOF
       stage("Save to artifactory"){
         when {
           expression {
-            return JOB_NAME == "Blockchain Master (GitLab)/master"
+            return JOB_NAME == "Master Branch Blockchain Run on GitLab/master"
           }
         }
         steps{
