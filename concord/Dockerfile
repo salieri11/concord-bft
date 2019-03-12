@@ -9,7 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v4
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v5
 
 ## Remember context is the parent of this directory
 COPY ./communication /communication
@@ -41,6 +41,7 @@ RUN apt-get -y install ${memleak_util} \
     libzstd1 \
     llvm-5.0 \
     dnsutils \
+    libyaml-cpp0.5v5 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=0 /usr/local/lib/libcryptopp* /usr/local/lib/

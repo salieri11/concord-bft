@@ -833,6 +833,16 @@ void ConcordConfiguration::declareScope(const std::string& scope,
         "Unable to create configuration scope: the empty string is not a valid "
         "name for a configuration scope.");
   }
+  assert(kYAMLScopeTemplateSuffix.length() > 0);
+  if ((scope.length() >= kYAMLScopeTemplateSuffix.length()) &&
+      ((scope.substr(scope.length() - kYAMLScopeTemplateSuffix.length())) ==
+       kYAMLScopeTemplateSuffix)) {
+    throw std::invalid_argument("Cannot declare scope " + scope +
+                                ": to facilitate configuration serialization, "
+                                "scope names ending in \"" +
+                                kYAMLScopeTemplateSuffix +
+                                "\" are disallowed.");
+  }
   if (containsScope(scope)) {
     throw ConfigurationRedefinitionException(
         "Unable to create configuration scope " +
@@ -1021,6 +1031,16 @@ void ConcordConfiguration::declareParameter(const std::string& name,
     throw std::invalid_argument(
         "Cannot declare parameter: the empty string is not a valid name for a "
         "configuration parameter.");
+  }
+  assert(kYAMLScopeTemplateSuffix.length() > 0);
+  if ((name.length() >= kYAMLScopeTemplateSuffix.length()) &&
+      ((name.substr(name.length() - kYAMLScopeTemplateSuffix.length())) ==
+       kYAMLScopeTemplateSuffix)) {
+    throw std::invalid_argument("Cannot declare parameter " + name +
+                                ": to facilitate configuration serialization, "
+                                "parameter names ending in \"" +
+                                kYAMLScopeTemplateSuffix +
+                                "\" are disallowed.");
   }
   if (contains(name)) {
     ConfigurationPath path(name, false);
@@ -1607,3 +1627,112 @@ ParameterSelection::Iterator ParameterSelection::begin() {
 ParameterSelection::Iterator ParameterSelection::end() {
   return ParameterSelectionIterator(this, true);
 }
+
+void YAMLConfigurationInput::loadParameter(ConcordConfiguration& config,
+                                           const ConfigurationPath& path,
+                                           const YAML::Node& obj,
+                                           std::ostream* errorOut,
+                                           bool overwrite) {
+  // Note cases in this function where we return without either writing a value
+  // to the configuration or making a recursive call indicate we have concluded
+  // that the parameter indicated by path is not given in the input.
+  if (!obj.IsMap()) {
+    return;
+  }
+
+  if (path.isScope && path.subpath) {
+    YAML::Node subObj;
+    if (path.useInstance) {
+      if (!obj[path.name]) {
+        return;
+      }
+      subObj.reset(obj[path.name]);
+      if (!subObj.IsSequence() || (path.index >= subObj.size())) {
+        return;
+      }
+      subObj.reset(subObj[path.index]);
+    } else {
+      std::string templateName = path.name + kYAMLScopeTemplateSuffix;
+      if (!obj[templateName]) {
+        return;
+      }
+      subObj.reset(obj[templateName]);
+    }
+    ConfigurationPath subscope(path);
+    subscope.subpath.reset();
+    loadParameter(config.subscope(subscope), *(path.subpath), subObj, errorOut,
+                  overwrite);
+
+  } else {
+    if (!obj[path.name] || !obj[path.name].IsScalar()) {
+      return;
+    }
+
+    std::string failureMessage;
+    ConcordConfiguration::ParameterStatus status = config.loadValue(
+        path.name, obj[path.name].Scalar(), &failureMessage, overwrite);
+    if (errorOut &&
+        (status == ConcordConfiguration::ParameterStatus::INVALID)) {
+      (*errorOut) << "Cannot load value for parameter " << path.name << ": "
+                  << failureMessage << std::endl;
+    }
+  }
+}
+
+YAMLConfigurationInput::YAMLConfigurationInput(std::istream& input)
+    : yaml(), success(false) {
+  try {
+    yaml.reset(YAML::Load(input));
+    success = true;
+  } catch (const std::exception& e) {
+    success = false;
+  }
+}
+
+YAMLConfigurationInput::~YAMLConfigurationInput() {}
+
+void YAMLConfigurationOutput::addParameterToYAML(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    YAML::Node& yaml) {
+  // Note this helper function expects that it has already been validated or
+  // otherwise guaranteed that path is a valid path to a declared parameter in
+  // config and yaml is an associative array.
+  if (!config.contains(path) || !config.hasValue(path) || !yaml.IsMap()) {
+    return;
+  }
+
+  if (path.isScope && path.subpath) {
+    YAML::Node subscope;
+    std::string pathName;
+    if (path.useInstance) {
+      pathName = path.name;
+      if (!yaml[pathName]) {
+        yaml[pathName] = YAML::Node(YAML::NodeType::Sequence);
+      }
+      subscope.reset(yaml[pathName]);
+      assert(subscope.IsSequence());
+      while (path.index >= subscope.size()) {
+        subscope.push_back(YAML::Node(YAML::NodeType::Map));
+      }
+      subscope.reset(subscope[path.index]);
+    } else {
+      pathName = path.name + kYAMLScopeTemplateSuffix;
+      if (!yaml[pathName]) {
+        yaml[pathName] = YAML::Node(YAML::NodeType::Map);
+      }
+      subscope.reset(yaml[pathName]);
+      assert(subscope.IsMap());
+    }
+    ConfigurationPath subscopePath(path);
+    subscopePath.subpath.reset();
+    addParameterToYAML(config.subscope(subscopePath), *(path.subpath),
+                       subscope);
+  } else {
+    yaml[path.name] = config.getValue(path.name);
+  }
+}
+
+YAMLConfigurationOutput::YAMLConfigurationOutput(std::ostream& output)
+    : output(&output), yaml() {}
+
+YAMLConfigurationOutput::~YAMLConfigurationOutput() {}

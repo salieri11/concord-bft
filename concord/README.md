@@ -18,10 +18,10 @@ steps, compare them to the steps in (./DockerfilePrereqs) and
 
 #### Pre-built libraries and tools
 
-You will need cmake, clang, and g++, gmp, GNU Parallel, autoconf, automake, and LLVM 5.0:
+You will need cmake, clang, and g++, gmp, GNU Parallel, autoconf, automake, LLVM 5.0, and libyaml-cpp:
 
 ```
-sudo apt-get install cmake clang g++ parallel autoconf automake llvm-5.0 llvm-5.0-dev
+sudo apt-get install cmake clang g++ parallel autoconf automake llvm-5.0 llvm-5.0-dev libyaml-cpp0.5v5 libyaml-cpp-dev
 ```
 
 #### Relic

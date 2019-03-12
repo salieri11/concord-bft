@@ -26,6 +26,8 @@ RUN apt-get update && apt-get -y install \
     wget \
     clang-format-6.0 \
     python3-pip \
+    libyaml-cpp0.5v5 \
+    libyaml-cpp-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN ln -s /usr/bin/clang-format-6.0 /usr/bin/clang-format

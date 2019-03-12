@@ -27,6 +27,7 @@ target_link_libraries(concord
   log4cplus
   ${EVM_LIBRARIES}
   ${Cryptopp_LIBRARIES}
+  ${yaml-cpp_LIBRARIES}
   LLVMSupport
   concord_utils
   kvblockchain
