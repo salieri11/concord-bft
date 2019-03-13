@@ -40,9 +40,14 @@ def call(){
              name: "shared_lib_branch"
     }
     stages {
+      stage("Notify GitLab"){
+        steps{
+          startRun()
+        }
+      }
+
       stage("Setup"){
         steps{
-          startStage()
           script{
             try{
               // Output node info
@@ -68,10 +73,9 @@ def call(){
               // Add the VMware GitLab ssh key to known_hosts.
               handleKnownHosts("gitlab.eng.vmware.com")
             }catch(Exception ex){
-              failStage()
+              failRun()
               throw ex
             }
-            passStage()
           }
         }
       }
@@ -80,7 +84,6 @@ def call(){
         parallel {
           stage("Fetch blockchain repo source") {
             steps {
-              startStage()
               script{
                 try{
                   sh 'mkdir blockchain'
@@ -90,11 +93,10 @@ def call(){
                     }
                   }
                 }catch(Exception ex){
-                  failStage()
+                  failRun()
                   throw ex
                 }
               }
-              passStage()
             }
           }
 
@@ -104,7 +106,6 @@ def call(){
             }
             steps {
               script{
-                startStage()
                 try{
                   sh 'mkdir hermes-data'
                   dir('hermes-data') {
@@ -115,10 +116,9 @@ def call(){
                     sh 'git checkout master'
                   }
                 }catch(Exception ex){
-                  failStage()
+                  failRun()
                   throw ex
                 }
-                passStage()
               }
             }
           }
@@ -130,67 +130,59 @@ def call(){
           stage("Copy googletest") {
             steps() {
               script{
-               startStage()
                 try{
                   sh 'mkdir googletest'
                   dir('googletest') {
                     sh 'cp -ar /var/jenkins/workspace/googletest/* .'
                   }
                 }catch(Exception ex){
-                  failStage()
+                  failRun()
                   throw ex
                 }
-                passStage()
               }
             }
           }
           stage("Copy evmjit") {
             steps() {
               script{
-                startStage()
                 try{
                   sh 'mkdir evmjit'
                   dir('evmjit') {
                     sh 'cp -ar /var/jenkins/workspace/evmjit/* .'
                   }
                 }catch(Exception ex){
-                  failStage()
+                  failRun()
                   throw ex
                 }
-                passStage()
               }
             }
           }
           stage("Copy etherium tests") {
             steps() {
               script{
-                startStage()
                 try{
                   sh 'mkdir ethereum_tests'
                   dir('ethereum_tests') {
                     sh 'cp -ar /var/jenkins/workspace/ethereum_tests/* .'
                   }
                 }catch(Exception ex){
-                  failStage()
+                  failRun()
                   throw ex
                 }
-                passStage()
               }
             }
           }
           stage("Install node package dependencies") {
             steps() {
               script{
-                startStage()
                 try{
                   dir('blockchain/ui') {
                     sh 'npm install'
                   }
                 }catch(Exception ex){
-                  failStage()
+                  failRun()
                   throw ex
                 }
-                passStage()
               }
             }
           }
@@ -200,7 +192,6 @@ def call(){
       stage('Write version for GUI') {
         steps() {
           script{
-            startStage()
             try{
               dir('blockchain') {
                 script {
@@ -216,10 +207,9 @@ def call(){
                 '''
               }
             }catch(Exception ex){
-              failStage()
+              failRun()
               throw ex
             }
-            passStage()
           }
         }
       }
@@ -227,7 +217,6 @@ def call(){
       stage("Configure docker and git") {
         steps {
           script{
-            startStage()
             try{
               // Docker will fail to launch unless we fix up this DNS stuff.  It will try to use Google's
               // DNS servers by default, and here in VMware's network, we can't do that.
@@ -317,10 +306,9 @@ EOF
                 '''
               }
             }catch(Exception ex){
-              failStage()
+              failRun()
               throw ex
             }
-            passStage()
           }
         }
       }
@@ -328,7 +316,6 @@ EOF
       stage("Build") {
         steps {
           script{
-            startStage()
             try{
               dir('blockchain') {
                 sh '''
@@ -336,10 +323,9 @@ EOF
                 '''
               }
             }catch(Exception ex){
-              failStage()
+              failRun()
               throw ex
             }
-            passStage()
           }
         }
       }
@@ -350,7 +336,6 @@ EOF
         }
         steps{
           script{
-            startStage()
             try{
               steps {
                 dir('blockchain/performance') {
@@ -358,10 +343,9 @@ EOF
                 }
               }
             }catch(Exception ex){
-              failStage()
+              failRun()
               throw ex
             }
-            passStage()
           }
         }
       }
@@ -369,7 +353,6 @@ EOF
       stage("Run tests in containers") {
         steps {
           script{
-            startStage()
             try{
               dir('blockchain/hermes'){
                 withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
@@ -424,10 +407,9 @@ EOF
                 }
               }
             }catch(Exception ex){
-              failStage()
+              failRun()
               throw ex
             }
-            passStage()
           }
         }
       }
@@ -438,7 +420,6 @@ EOF
         }
         steps{
           script{
-            startStage()
             try{
               dir('hermes-data/memory_leak_test') {
                 pushMemoryLeakSummary()
@@ -481,10 +462,9 @@ EOF
               yaxisMaximum: '',
               yaxisMinimum: ''
             }catch(Exception ex){
-              failStage()
+              failRun()
               throw ex
             }
-            passStage()
           }
         }
       }
@@ -497,7 +477,6 @@ EOF
         }
         steps{
           script {
-            startStage()
             try{
               withCredentials([string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')]) {
                 echo("Would push to artifactory.  Not doing so because we are not on GitLab yet")
@@ -513,10 +492,9 @@ EOF
                 // pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
               }
             }catch(Exception ex){
-              failStage()
+              failRun()
               throw ex
             }
-            passStage()
           }
         }
       }
@@ -527,7 +505,6 @@ EOF
         }
         steps {
           script{
-            startStage()
             try{
               dir('blockchain') {
                 createAndPushGitTag(env.version_param)
@@ -574,10 +551,17 @@ EOF
                 }
               }
             }catch(Exception ex){
-              failStage()
+              failRun()
               throw ex
             }
-            passStage()
+          }
+        }
+      }
+
+      stage("Success") {
+        steps {
+          script{
+            passRun()
           }
         }
       }
@@ -856,19 +840,20 @@ Boolean retryCurl(command, failOnError){
   }
 }
 
-// Called by a stage when it begins.
-void startStage(){
-  updateGitlabCommitStatus(name: env.STAGE_NAME, state: "running")
+// Called when it begins.
+// Don't call for individual stages.
+void startRun(){
+  updateGitlabCommitStatus(name: "Jenkins Run", state: "running")
 }
 
-// Called by a stage when it is successful.
-void passStage(){
-  updateGitlabCommitStatus(name: env.STAGE_NAME, state: "success")
+// Called when it is successful.
+void passRun(){
+  updateGitlabCommitStatus(name: "Jenkins Run", state: "success")
 }
 
-// Called by a stage when it fails.
-void failStage(){
-  updateGitlabCommitStatus(name: env.STAGE_NAME, state: "failed")
+// Called when it fails.
+void failRun(){
+  updateGitlabCommitStatus(name: "Jenkins Run", state: "failed")
 }
 
 // Given a host to connect to, use ssh-keygen to see if we have
