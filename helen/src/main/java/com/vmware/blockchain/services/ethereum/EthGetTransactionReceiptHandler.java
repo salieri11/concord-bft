@@ -125,7 +125,7 @@ public class EthGetTransactionReceiptHandler extends AbstractEthRpcHandler {
             if (log.hasData()) {
                 logJson.put("data", ApiHelper.binaryStringToHex(log.getData()));
             } else {
-                logJson.put("data", "0x0");
+                logJson.put("data", "0x");
             }
 
             logJson.put("blockHash", ApiHelper.binaryStringToHex(tx.getBlockHash()));
