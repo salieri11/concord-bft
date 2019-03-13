@@ -20,8 +20,16 @@ pre-built images produced by our CI/CD pipeline.
 ## Building via Docker
 
 The easiest way to use this system is via docker. Please install the
-(community edition)[https://www.docker.com/community-edition]. If you
-are running linux, you will also need to install
+(community edition)[https://www.docker.com/community-edition].
+
+> Note: The build instructions listed here was verified with Docker
+> 18.09+. There are known issues with the current set of build
+> instructions with Docker on Linux at version 18.06 and possibly
+> other prior versions as well. Please update Docker to 18.09+ before
+> proceeding, regardless of the host platform, to minimize potential
+> incompatibilities.
+
+If you are running linux, you will also need to install
 (docker-compose)[https://docs.docker.com/compose/install/]. If you're
 running Mac OS or Windows, docker-compose was installed with docker.
 
