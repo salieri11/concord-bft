@@ -6,6 +6,7 @@ def call(){
   def memory_leak_job_name = "BlockchainMemoryLeakTesting"
   def performance_test_job_name = "Blockchain Performance Test"
   def lint_test_job_name = "Blockchain LINT Tests"
+  def additional_components_to_build = ""
 
   if (env.JOB_NAME == memory_leak_job_name) {
     echo "**** Jenkins job for Memory Leak Test"
@@ -14,6 +15,7 @@ def call(){
   } else if (env.JOB_NAME == performance_test_job_name) {
     echo "**** Jenkins job for Performance Test"
     genericTests = false
+    additional_components_to_build = additional_components_to_build + "PerformanceTests,"
   } else if (env.JOB_NAME == lint_test_job_name) {
     echo "**** Jenkins job for LINT Tests"
     genericTests = false
@@ -261,23 +263,11 @@ EOF
       stage("Build") {
         steps {
           dir('blockchain') {
-            sh '''
-              ./buildall.sh
-            '''
-          }
-        }
-      }
-
-      stage ("Build Performance Sub module") {
-        when {
-          expression { env.JOB_NAME == performance_test_job_name }
-        }
-        stages {
-          stage('Maven build... mvn_performance_build.log') {
-            steps {
-              dir('blockchain/performance') {
-                  sh 'mvn clean install assembly:single > mvn_performance_build.log 2>&1'
-              }
+            script {
+              env.additional_components_to_build = additional_components_to_build
+              sh '''
+                ./buildall.sh --additionalBuilds ${additional_components_to_build}
+              '''
             }
           }
         }

@@ -142,7 +142,22 @@ startNativeConcordBuild(){
     popd
 }
 
+PerformanceTests() {
+    cd performance
+    mvn clean install assembly:single > performance__test_mvn_build.log 2>&1
+}
+
 declare -A BUILD_PROCS
+
+while [ "$1" != "" ] ; do
+   case $1 in
+      "--additionalBuilds")
+         shift
+         ADDITIONAL_BUILDS="$1"
+         ;;
+   esac
+   shift
+done
 
 echo Loading repos/tags for docker images from docker/.env
 . docker/.env
@@ -191,5 +206,15 @@ addToProcList "Asset_Transfer_sample_image" $!
 
 docker build agent -f agent/packaging.Dockerfile -t ${agent_repo}:${agent_tag} --label ${version_label}=${agent_tag} --label ${commit_label}=${commit_hash} > agent_build.log 2>&1 &
 addToProcList "Agent_docker_image" $!
+
+if [ ! -z "${ADDITIONAL_BUILDS}" ]
+then
+    for additional_build in `echo "${ADDITIONAL_BUILDS}" | tr ',' ' '`
+    do
+        echo "Building custom component: $additional_build"
+        $additional_build &
+        addToProcList "$additional_build" $!
+    done
+fi
 
 waitForProcesses
