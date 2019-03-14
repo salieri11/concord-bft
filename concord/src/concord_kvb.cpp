@@ -884,9 +884,10 @@ evm_result com::vmware::concord::KVBCommandsHandler::run_evm(
       txhash = zero_hash;
       return result;
     }
-    memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
+    memcpy(message.destination.bytes, request.addr_to().c_str(),
+           sizeof(message.destination));
 
-    result = athevm_.run(message, timestamp, kvbStorage, logs);
+    result = athevm_.run(message, timestamp, kvbStorage, logs, message.sender);
   } else {
     message.kind = EVM_CREATE;
 
@@ -895,8 +896,8 @@ evm_result com::vmware::concord::KVBCommandsHandler::run_evm(
     evm_address contract_address =
         athevm_.contract_destination(message.sender, nonce);
 
-    result =
-        athevm_.create(contract_address, message, timestamp, kvbStorage, logs);
+    result = athevm_.create(contract_address, message, timestamp, kvbStorage,
+                            logs, message.sender);
   }
 
   LOG4CPLUS_INFO(logger, "Execution result -"

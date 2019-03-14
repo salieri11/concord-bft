@@ -105,7 +105,8 @@ void com::vmware::concord::EVM::transfer_fund(evm_message& message,
 evm_result com::vmware::concord::EVM::run(evm_message& message,
                                           uint64_t timestamp,
                                           KVBStorage& kvbStorage,
-                                          std::vector<EthLog>& evmLogs) {
+                                          std::vector<EthLog>& evmLogs,
+                                          const evm_address& origin) {
   assert(message.kind != EVM_CREATE);
 
   std::vector<uint8_t> code;
@@ -120,7 +121,7 @@ evm_result com::vmware::concord::EVM::run(evm_message& message,
     message.code_hash = hash;
 
     try {
-      result = execute(message, timestamp, kvbStorage, evmLogs, code);
+      result = execute(message, timestamp, kvbStorage, evmLogs, code, origin);
       if (result.status_code == EVM_SUCCESS) {
         uint64_t transfer_val = from_evm_uint256be(&message.value);
         if (transfer_val > 0) {
@@ -162,7 +163,8 @@ evm_result com::vmware::concord::EVM::create(evm_address& contract_address,
                                              evm_message& message,
                                              uint64_t timestamp,
                                              KVBStorage& kvbStorage,
-                                             std::vector<EthLog>& evmLogs) {
+                                             std::vector<EthLog>& evmLogs,
+                                             const evm_address& origin) {
   assert(message.kind == EVM_CREATE);
   assert(message.input_size > 0);
 
@@ -180,7 +182,8 @@ evm_result com::vmware::concord::EVM::create(evm_address& contract_address,
     // something random
     message.code_hash = EthHash::keccak_hash(create_code);
 
-    result = execute(message, timestamp, kvbStorage, evmLogs, create_code);
+    result =
+        execute(message, timestamp, kvbStorage, evmLogs, create_code, origin);
 
     // TODO: check if the new contract is zero bytes in length;
     //       return error, not success in that case
@@ -271,12 +274,16 @@ evm_address com::vmware::concord::EVM::contract_destination(
   return address;
 }
 
-evm_result com::vmware::concord::EVM::execute(
-    evm_message& message, uint64_t timestamp, KVBStorage& kvbStorage,
-    std::vector<EthLog>& evmLogs, const std::vector<uint8_t>& code) {
+evm_result com::vmware::concord::EVM::execute(evm_message& message,
+                                              uint64_t timestamp,
+                                              KVBStorage& kvbStorage,
+                                              std::vector<EthLog>& evmLogs,
+                                              const std::vector<uint8_t>& code,
+                                              const evm_address& origin) {
   // wrap an evm context in an concord context
   concord_context athctx = {
-      {&concord_fn_table}, this, &kvbStorage, &evmLogs, &logger, timestamp};
+      {&concord_fn_table}, this,  &kvbStorage, &evmLogs, &logger,
+      timestamp,           origin};
 
   return evminst->execute(evminst, &athctx.evmctx, EVM_BYZANTIUM, &message,
                           &code[0], code.size());
@@ -431,11 +438,12 @@ void ath_call(struct evm_result* result, struct evm_context* evmctx,
 
     *result = ath_object(evmctx)->create(
         contract_address, call_msg, ath_context(evmctx)->timestamp, *kvbStorage,
-        *(ath_context(evmctx)->evmLogs));
+        *(ath_context(evmctx)->evmLogs), ath_context(evmctx)->origin);
   } else {
     *result = ath_object(evmctx)->run(call_msg, ath_context(evmctx)->timestamp,
                                       *(ath_context(evmctx)->kvbStorage),
-                                      *(ath_context(evmctx)->evmLogs));
+                                      *(ath_context(evmctx)->evmLogs),
+                                      ath_context(evmctx)->origin);
   }
 }
 
@@ -469,5 +477,7 @@ void ath_get_tx_context(struct evm_tx_context* result,
   // TODO: fill in the rest of the context for the currently-executing block
 
   result->block_timestamp = ath_context(evmctx)->timestamp;
+  memcpy(result->tx_origin.bytes, ath_context(evmctx)->origin.bytes,
+         sizeof(result->tx_origin));
 }
 }
