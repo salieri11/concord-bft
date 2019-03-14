@@ -112,6 +112,17 @@ public class EthGetTransactionReceiptHandler extends AbstractEthRpcHandler {
             } else {
                 logJson.put("data", "0x");
             }
+
+            logJson.put("blockHash", ApiHelper.binaryStringToHex(tx.getBlockHash()));
+            logJson.put("blockNumber", "0x" + Long.toHexString(tx.getBlockNumber()));
+            logJson.put("transactionHash", ApiHelper.binaryStringToHex(tx.getHash()));
+            logJson.put("transactionIndex", "0x" + Long.toHexString(tx.getTransactionIndex()));
+            logJson.put("transactionLogIndex", "0x" + Long.toHexString(i));
+
+            // At the moment we mine one block per transaction. Therefore, the
+            // transaction log index becomes the block log index.
+            logJson.put("logIndex", "0x" + Long.toHexString(i));
+
             logs.add(logJson);
         }
         return logs;

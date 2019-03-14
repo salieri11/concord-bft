@@ -269,7 +269,7 @@ public final class EthDispatcher extends ConcordServlet {
                     break;
 
                 case Constants.GET_TRANSACTIONRECEIPT_NAME:
-                    handler = new EthGetTxReceiptHandler();
+                    handler = new EthGetTransactionReceiptHandler();
                     break;
 
                 case Constants.GET_STORAGEAT_NAME:
