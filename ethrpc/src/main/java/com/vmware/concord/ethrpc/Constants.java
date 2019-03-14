@@ -86,4 +86,5 @@ public class Constants {
     public static final String GAS_PRICE_NAME = "eth_gasPrice";
     public static final String ESTIMATE_GAS_NAME = "eth_estimateGas";
     public static final String SYNCING_NAME = "eth_syncing";
+    public static final String GET_LOGS_NAME = "eth_getLogs";
 }

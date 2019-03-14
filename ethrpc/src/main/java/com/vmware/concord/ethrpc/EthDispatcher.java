@@ -305,6 +305,10 @@ public final class EthDispatcher {
                     handler = new EthBlockNumberHandler();
                     break;
 
+                case Constants.GET_LOGS_NAME:
+                    handler = new EthGetLogsHandler();
+                    break;
+
                 default:
                     throw new Exception("Invalid method name.");
             }
