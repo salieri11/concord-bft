@@ -33,6 +33,7 @@ class BlockchainDBAdapter {
 
   Status addBlock(BlockId _blockId, Sliver _blockRaw);
   Status updateKey(Key _key, BlockId _block, Value _value);
+  Status updateMultiKey(const SetOfKeyValuePairs &_kvMap, BlockId _block);
   Status getKeyByReadVersion(BlockId readVersion, Sliver key, Sliver &outValue,
                              BlockId &outBlock) const;
   Status getBlockById(BlockId _blockId, Sliver &_blockRaw, bool &_found) const;

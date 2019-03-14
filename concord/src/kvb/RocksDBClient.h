@@ -20,10 +20,7 @@
 
 #ifdef USE_ROCKSDB
 
-#include <log4cplus/loggingmacros.h>
-
 #include "DatabaseInterface.h"
-#include "rocksdb/comparator.h"
 #include "rocksdb/db.h"
 
 namespace Blockchain {
@@ -73,8 +70,16 @@ class RocksDBClient : public IDBClient {
   virtual Status put(Sliver _key, Sliver _value) override;
   virtual Status close() override;
   virtual Status del(Sliver _key) override;
+  Status multiGet(const KeysVector &_keysVec,
+                  OUT ValuesVector &_valuesVec) override;
+  Status multiPut(const SetOfKeyValuePairs &_keyValueMap) override;
+  Status multiDel(const KeysVector &_keysVec) override;
   virtual rocksdb::Iterator *getNewRocksDbIterator() const;
   virtual void monitor() const override;
+
+ private:
+  Status launchBatchJob(rocksdb::WriteBatch &_batchJob,
+                        const KeysVector &_keysVec);
 
  private:
   log4cplus::Logger logger;

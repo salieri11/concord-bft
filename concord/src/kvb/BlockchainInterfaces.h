@@ -27,19 +27,6 @@ using std::unordered_map;
 
 namespace Blockchain {
 
-// PRIMITIVE TYPES
-
-// Id of a block
-typedef uint64_t BlockId;
-
-// Key and value
-typedef Sliver Key;
-typedef Sliver Value;
-typedef pair<Key, Value> KeyValuePair;
-// TODO(GG): unordered_map may be inefficient (as a small map), consider to
-// write a specialized map
-typedef unordered_map<Sliver, Sliver> SetOfKeyValuePairs;
-
 // forward declarations
 class ILocalKeyValueStorageReadOnlyIterator;
 class ILocalKeyValueStorageReadOnly;

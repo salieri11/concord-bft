@@ -296,23 +296,13 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs &updates,
     return s;
   }
 
-  for (SetOfKeyValuePairs::iterator it = updatesInNewBlock.begin();
-       it != updatesInNewBlock.end(); ++it) {
-    const KeyValuePair &kvPair = *it;
-
-    LOG4CPLUS_DEBUG(logger, "Adding for " << kvPair.first << " the value "
-                                          << kvPair.second);
-
-    Status s = m_bcDbAdapter->updateKey(kvPair.first, block, kvPair.second);
-    if (!s.isOK()) {
-      LOG4CPLUS_ERROR(logger, "Failed to update key " << kvPair.first
-                                                      << ", block " << block);
-      return s;
-    }
+  s = m_bcDbAdapter->updateMultiKey(updatesInNewBlock, block);
+  if (!s.isOK()) {
+    LOG4CPLUS_ERROR(logger, "Failed to update keys for block " << block);
+    return s;
   }
 
   outBlockId = block;
-
   return Status::OK();
 }
 

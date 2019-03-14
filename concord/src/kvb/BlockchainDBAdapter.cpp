@@ -23,7 +23,7 @@
 #include <limits>
 #include "BlockchainDBAdapter.h"
 #include "BlockchainInterfaces.h"
-#include "HexTools.h"
+#include "HashDefs.h"
 
 using log4cplus::Logger;
 
@@ -183,6 +183,19 @@ Status BlockchainDBAdapter::updateKey(Key _key, BlockId _block, Value _value) {
 
   Status s = m_db->put(composedKey, _value);
   return s;
+}
+
+Status BlockchainDBAdapter::updateMultiKey(const SetOfKeyValuePairs &_kvMap,
+                                           BlockId _block) {
+  SetOfKeyValuePairs updatedKVMap;
+  for (auto &it : _kvMap) {
+    Sliver composedKey = genDataDbKey(it.first, _block);
+    LOG4CPLUS_DEBUG(logger, "Updating composed key "
+                                << composedKey << " with value " << it.second
+                                << " in block " << _block);
+    updatedKVMap[composedKey] = it.second;
+  }
+  return m_db->multiPut(updatedKVMap);
 }
 
 /**

@@ -58,6 +58,7 @@ class InMemoryDBClientIterator : public IDBClient::IDBClientIterator {
   TKVStore::const_iterator m_current;
 };
 
+// In-memory IO operations below are not thread-safe.
 class InMemoryDBClient : public IDBClient {
  public:
   InMemoryDBClient(KeyComparator comp) { setComparator(comp); }
@@ -69,6 +70,10 @@ class InMemoryDBClient : public IDBClient {
   virtual Status put(Sliver _key, Sliver _value) override;
   virtual Status close() override { return Status::OK(); };
   virtual Status del(Sliver _key) override;
+  Status multiGet(const KeysVector &_keysVec,
+                  OUT ValuesVector &_valuesVec) override;
+  Status multiPut(const SetOfKeyValuePairs &_keyValueMap) override;
+  Status multiDel(const KeysVector &_keysVec) override;
   virtual void monitor() const override{};
 
   TKVStore &getMap() { return map; }
