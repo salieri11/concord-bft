@@ -148,6 +148,11 @@ services:
     depends_on:
       - helen
 
+  contract-compiler:
+    image: "${contract_compiler_repo}:${contract_compiler_tag}"
+    ports:
+      - 3000:3000
+
   db-server:
     image: cockroachdb/cockroach:v2.0.2
     ports:

@@ -41,6 +41,7 @@ class TestSuite(ABC):
       self.ethrpcNodes = None
       self.reverseProxyApiBaseUrl = passedArgs.reverseProxyApiBaseUrl
       self.inDockerReverseProxyApiBaseUrl = passedArgs.inDockerReverseProxyApiBaseUrl
+      self.contractCompilerApiBaseUrl = passedArgs.contractCompilerApiBaseUrl
 
       self._results = {
          self.getName(): {

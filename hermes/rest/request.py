@@ -277,3 +277,25 @@ class Request():
       if params:
          self._params = params
       return self._send(verb)
+
+   def compileContract(self, data):
+      '''
+      Does a compile contract POST request
+      '''
+      self._subPath = '/contracts/compile'
+      self._params = ""
+      self._endpointName = "microserviceCompileContract"
+      self._data = data
+
+      return self._send()
+
+   def verifyContract(self, data):
+      '''
+      Does a verify contract POST request
+      '''
+      self._subPath = '/contracts/verify'
+      self._params = ""
+      self._endpointName = "microserviceVerifyContract"
+      self._data = data
+
+      return self._send()

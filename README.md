@@ -84,6 +84,16 @@ subdirectory):
 blockchain$ docker build ui -f ui/Dockerfile -t ui:latest
 ```
 
+### Building Contract Compiler via Docker
+
+The Contract Compiler is built directly in a docker container (note the command is
+run from the same directory as this README, and not from the `contract-compiler`
+subdirectory):
+
+```
+blockchain$ docker build contract-compiler -f contract-compiler/Dockerfile -t contract-compiler:latest
+```
+
 ### Building Fluentd
 
 Fluentd is build directly in a docker container (note the command is
@@ -181,5 +191,5 @@ positional arguments:
   suite                 Test suite name. Available suites: ['CoreVMTests',
                         'ExtendedRPCTests', 'HelenAPITests',
                         'PerformanceTests', 'KVBlockchainTests',
-                        'RegressionTests']
+                        'RegressionTests', 'ContractCompilerTests']
 ```

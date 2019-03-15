@@ -192,4 +192,7 @@ addToProcList "Asset_Transfer_sample_image" $!
 docker build agent -f agent/packaging.Dockerfile -t ${agent_repo}:${agent_tag} --label ${version_label}=${agent_tag} --label ${commit_label}=${commit_hash} > agent_build.log 2>&1 &
 addToProcList "Agent_docker_image" $!
 
+docker build contract-compiler --file contract-compiler/Dockerfile -t ${contract_compiler_repo}:${contract_compiler_tag} --label ${version_label}=${contract_compiler_tag} --label ${commit_label}=${commit_hash} > contract_compiler_build.log 2>&1 &
+addToProcList "Contract Compiler Microservice" $!
+
 waitForProcesses
