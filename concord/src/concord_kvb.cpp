@@ -329,7 +329,7 @@ void com::vmware::concord::KVBCommandsHandler::build_transaction_response(
 
   response->set_status(tx.status);
   response->set_nonce(tx.nonce);
-  response->set_value(tx.value);
+  response->set_value(tx.value.bytes, sizeof(evm_uint256be));
   response->set_block_hash(tx.block_hash.bytes, sizeof(evm_uint256be));
   response->set_block_number(tx.block_number);
   response->set_gas(tx.gas_limit);
@@ -753,22 +753,11 @@ bool com::vmware::concord::KVBCommandsHandler::handle_eth_getBalance(
   std::copy(request.addr_to().begin(), request.addr_to().end(), account.bytes);
 
   uint64_t block_number = parse_block_parameter(request, kvbStorage);
-  uint64_t balance = kvbStorage.get_balance(account, block_number);
-  evm_uint256be bigbalance;
-  memset(bigbalance.bytes, 0, sizeof(bigbalance));
-#ifdef BOOST_LITTLE_ENDIAN
-  std::reverse_copy(reinterpret_cast<uint8_t *>(&balance),
-                    reinterpret_cast<uint8_t *>(&balance) + sizeof(balance),
-                    bigbalance.bytes + (sizeof(bigbalance) - sizeof(balance)));
-#else
-  std::copy(reinterpret_cast<uint8_t *>(&balance),
-            reinterpret_cast<uint8_t *>(&balance) + sizeof(balance),
-            bigbalance.bytes + (sizeof(bigbalance) - sizeof(balance)));
-#endif
+  evm_uint256be balance = kvbStorage.get_balance(account, block_number);
 
   EthResponse *response = athresp.add_eth_response();
   response->set_id(request.id());
-  response->set_data(bigbalance.bytes, sizeof(bigbalance));
+  response->set_data(balance.bytes, sizeof(balance));
 
   return true;
 }
@@ -1055,7 +1044,6 @@ evm_uint256be com::vmware::concord::KVBCommandsHandler::record_transaction(
     sig_v = 0;
   }
 
-  uint64_t transfer_val = from_evm_uint256be(&message.value);
   uint64_t gas_limit = static_cast<uint64_t>(request.gas());
   EthTransaction tx = {
       nonce,
@@ -1067,7 +1055,7 @@ evm_uint256be com::vmware::concord::KVBCommandsHandler::record_transaction(
       std::vector<uint8_t>(message.input_data,
                            message.input_data + message.input_size),
       result.status_code,
-      transfer_val,  // value
+      message.value,  // value
       gas_price,
       gas_limit,  // TODO: also record gas used?
       logs,

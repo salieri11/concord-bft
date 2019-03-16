@@ -373,7 +373,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       expectedHash = "0x6ab11d26df13bc3b2cb1c09c4d274bfce325906c617d2bc744b45fa39b7f8c68"
       expectedFrom = "0x42c4f19a097955ff2a013ef8f014977f4e8516c3"
       expectedTo = "0xf6c3fff0b77efe806fcc10176b8cbf71c6dfe3be"
-      expectedValue = "300000000000000000"
+      expectedValue = "0x429d069189e0000" # 300000000000000000 Wei
 
       txResult = rpc.sendRawTransaction(rawTransaction)
       if not txResult:
@@ -702,20 +702,20 @@ class ExtendedRPCTests(test_suite.TestSuite):
    def _test_eth_getBalance(self, rpc, request):
       addrFrom = "0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019"
       addrTo = "0x5bb088f57365907b1840e45984cae028a82af934"
-      transferAmount = "1"
+      transferAmount = 1
 
       previousBlockNumber = rpc.getBlockNumber()
       # data has to be set as None for transferring-fund kind of transaction
       txResult = rpc.sendTransaction(addrFrom,
                                      data=None,
                                      to=addrTo,
-                                     value=transferAmount)
+                                     value=hex(transferAmount))
 
       currentBlockNumber = rpc.getBlockNumber()
       addrFromBalance = int(rpc.getBalance(addrFrom, previousBlockNumber), 16)
       addrToBalance = int(rpc.getBalance(addrTo, previousBlockNumber), 16)
-      expectedAddrFromBalance = addrFromBalance - int(transferAmount)
-      expectedAddrToBalance = addrToBalance + int(transferAmount)
+      expectedAddrFromBalance = addrFromBalance - transferAmount
+      expectedAddrToBalance = addrToBalance + transferAmount
 
       if not txResult:
          return (False, "Transaction was not accepted")
@@ -735,7 +735,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
          # The rest of these are just checking parsing.
          if not tx["to"] == addrTo:
             return (False, "Found to does not match expectd to")
-         if not tx["value"] == transferAmount:
+         if not tx["value"] == hex(transferAmount):
             return (False, "Found value does not match expected value")
          if not expectedAddrFromBalance == int(
                rpc.getBalance(addrFrom, currentBlockNumber), 16):

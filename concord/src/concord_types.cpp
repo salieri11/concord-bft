@@ -70,7 +70,16 @@ std::vector<uint8_t> com::vmware::concord::EthTransaction::rlp() const {
   rlpb.add(this->sig_r);
   rlpb.add(this->sig_v);
   rlpb.add(this->input);
-  rlpb.add(this->value);
+
+  // `value` is a QUANTITY and hence doesn't allow leading zeroes.
+  // Note: This is a big endian type which means that value.bytes[0] is the MSB
+  size_t i = 0;
+  for (; i < sizeof(evm_uint256be); ++i) {
+    if (this->value.bytes[i] != 0x00) {
+      break;
+    }
+  }
+  rlpb.add(&this->value.bytes[i], sizeof(evm_uint256be) - i);
 
   if (this->to == zero_address) {
     // when deploying a contract, the 'to' addresss is empty, hence to insert
@@ -118,7 +127,7 @@ size_t com::vmware::concord::EthTransaction::serialize(uint8_t **serialized) {
   }
 
   out.set_status(this->status);
-  out.set_value(this->value);
+  out.set_value(this->value.bytes, sizeof(evm_uint256be));
   out.set_gas_price(this->gas_price);
   out.set_gas_limit(this->gas_limit);
   out.set_sig_v(this->sig_v);
@@ -184,7 +193,7 @@ com::vmware::concord::EthTransaction::deserialize(Blockchain::Sliver &input) {
     }
 
     outtx.status = static_cast<evm_status_code>(intx.status());
-    outtx.value = intx.value();
+    std::copy(intx.value().begin(), intx.value().end(), outtx.value.bytes);
 
     if (intx.has_gas_price()) {
       outtx.gas_price = intx.gas_price();

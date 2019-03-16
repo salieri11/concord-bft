@@ -117,11 +117,11 @@ Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
     return Blockchain::Status::OK();
   }
 
-  std::map<evm_address, uint64_t> genesis_acts = params.get_initial_accounts();
+  std::map<evm_address, evm_uint256be> genesis_acts =
+      params.get_initial_accounts();
   uint64_t nonce = 0;
   uint64_t chainID = params.get_chainID();
-  for (std::map<evm_address, uint64_t>::iterator it = genesis_acts.begin();
-       it != genesis_acts.end(); ++it) {
+  for (auto it = genesis_acts.begin(); it != genesis_acts.end(); ++it) {
     // store a transaction for each initial balance in the genesis block
     // defintition
     EthTransaction tx = {

@@ -77,8 +77,8 @@ class KVBStorage {
   EthBlock get_block(const evm_uint256be &hash);
   EthBlock get_block(uint64_t number);
   EthTransaction get_transaction(const evm_uint256be &hash);
-  uint64_t get_balance(const evm_address &addr);
-  uint64_t get_balance(const evm_address &addr, uint64_t &block_number);
+  evm_uint256be get_balance(const evm_address &addr);
+  evm_uint256be get_balance(const evm_address &addr, uint64_t &block_number);
   uint64_t get_nonce(const evm_address &addr);
   uint64_t get_nonce(const evm_address &addr, uint64_t &block_number);
   bool account_exists(const evm_address &addr);
@@ -95,7 +95,7 @@ class KVBStorage {
   Blockchain::Status write_block(uint64_t timestamp, uint64_t gas_limit);
   void reset();
   void add_transaction(EthTransaction &tx);
-  void set_balance(const evm_address &addr, uint64_t balance);
+  void set_balance(const evm_address &addr, evm_uint256be balance);
   void set_nonce(const evm_address &addr, uint64_t nonce);
   void set_code(const evm_address &addr, const uint8_t *code, size_t code_size);
   void set_storage(const evm_address &addr, const evm_uint256be &location,

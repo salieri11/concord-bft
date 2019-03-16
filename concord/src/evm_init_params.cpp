@@ -3,12 +3,16 @@
 // Concord Ethereum VM management.
 
 #include "evm_init_params.hpp"
+
 #include <iostream>
+#include "common/utils.hpp"
 #include "concord_log.hpp"
 
 using namespace com::vmware::concord;
 using log4cplus::Logger;
 using json = nlohmann::json;
+using boost::multiprecision::uint256_t;
+using boost::multiprecision::uint512_t;
 
 com::vmware::concord::EVMInitParams::EVMInitParams()
     : logger(Logger::getInstance("com.vmware.concord.evm_init_params")) {}
@@ -37,26 +41,14 @@ com::vmware::concord::EVMInitParams::EVMInitParams(
       std::copy(address_v.begin(), address_v.end(), address.bytes);
 
       std::string balance_str = it.value()["balance"];
-      // The second argument to stoull is not used (hence nullptr) '0' for
-      // third parameter suggests that interpret base from string Note:
-      // std::stoull tries to interpret base from string. However, if string
-      // is a vaild number (within uint64_t range) but starts with '0' (it
-      // means its a octal number) and has digit '9' then std::stoull won't
-      // throw any error instead it will return 0 as balance value.
-      uint64_t balance = 0;
-      try {
-        balance = std::stoull(balance_str, nullptr, 0);
-      } catch (std::invalid_argument &ex) {
-        LOG4CPLUS_ERROR(
-            logger, "Invalid format for account balance value: " << ex.what());
-        throw EVMInitParamException("Invalid 'alloc' section in genesis file");
-      } catch (std::out_of_range &ex) {
-        LOG4CPLUS_ERROR(logger, "Account balance value out of range "
-                                    << " (should fit in uint64_t): "
-                                    << ex.what());
-        throw EVMInitParamException("Invalid 'alloc' section in genesis file");
+      uint256_t balance{balance_str};
+
+      // Make sure the balance is within the 256bit boundary
+      uint512_t balance_512{balance_str};
+      if (balance != balance_512) {
+        throw EVMInitParamException("Invalid 'balance' in genesis file");
       }
-      initial_accounts[address] = balance;
+      initial_accounts[address] = from_uint256_t(&balance);
       LOG4CPLUS_TRACE(logger,
                       "New initial account added with balance: " << balance);
     }
@@ -120,7 +112,7 @@ uint64_t com::vmware::concord::EVMInitParams::parse_number(
   return val;
 }
 
-const std::map<evm_address, uint64_t>
+const std::map<evm_address, evm_uint256be>
     &com::vmware::concord::EVMInitParams::get_initial_accounts() const {
   return initial_accounts;
 }

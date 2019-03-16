@@ -69,7 +69,7 @@ public class EthGetTransactionByHashHandler extends AbstractEthRpcHandler {
             result.put("nonce", "0x" + Long.toHexString(tx.getNonce()));
             result.put("to", ApiHelper.binaryStringToHex(tx.getTo()));
             result.put("transactionIndex", "0x" + Long.toHexString(tx.getTransactionIndex()));
-            result.put("value", "0x" + Long.toHexString(tx.getValue()));
+            result.put("value", ApiHelper.binaryStringToHex(tx.getValue(), true));
             result.put("v", "0x" + Long.toHexString(tx.getSigV()));
             result.put("r", ApiHelper.binaryStringToHex(tx.getSigR()));
             result.put("s", ApiHelper.binaryStringToHex(tx.getSigS()));

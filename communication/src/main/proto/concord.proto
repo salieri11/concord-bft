@@ -203,7 +203,7 @@ message TransactionResponse {
    optional bytes hash = 1;
    optional bytes from = 2;
    optional bytes to = 3;
-   optional int64 value = 4;
+   optional bytes value = 4;
    optional bytes input = 5;
    optional bytes block_hash = 6;
    optional int64 block_number = 7;

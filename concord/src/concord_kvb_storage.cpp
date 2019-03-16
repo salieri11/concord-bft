@@ -292,10 +292,10 @@ void com::vmware::concord::KVBStorage::add_transaction(EthTransaction &tx) {
 }
 
 void com::vmware::concord::KVBStorage::set_balance(const evm_address &addr,
-                                                   uint64_t balance) {
+                                                   evm_uint256be balance) {
   concord::kvb::Balance proto;
   proto.set_version(balance_storage_version);
-  proto.set_balance(balance);
+  proto.set_balance(balance.bytes, sizeof(evm_uint256be));
   size_t sersize = proto.ByteSize();
   uint8_t *ser = new uint8_t[sersize];
   proto.SerializeToArray(ser, sersize);
@@ -458,39 +458,45 @@ EthTransaction com::vmware::concord::KVBStorage::get_transaction(
   throw TransactionNotFoundException();
 }
 
-uint64_t com::vmware::concord::KVBStorage::get_balance(
+evm_uint256be com::vmware::concord::KVBStorage::get_balance(
     const evm_address &addr) {
   uint64_t block_number = current_block_number();
   return get_balance(addr, block_number);
 }
 
-uint64_t com::vmware::concord::KVBStorage::get_balance(const evm_address &addr,
-                                                       uint64_t &block_number) {
+evm_uint256be com::vmware::concord::KVBStorage::get_balance(
+    const evm_address &addr, uint64_t &block_number) {
   Sliver kvbkey = balance_key(addr);
   Sliver value;
   BlockId outBlock;
   Status status = get(block_number, kvbkey, value, outBlock);
 
-  LOG4CPLUS_DEBUG(logger, "Getting nonce "
+  LOG4CPLUS_DEBUG(logger, "Getting balance "
                               << addr
                               << " lookup block starting at: " << block_number
                               << " status: " << status << " key: " << kvbkey
                               << " value.length: " << value.length()
                               << " out block at: " << outBlock);
 
+  evm_uint256be out;
   if (status.isOK() && value.length() > 0) {
     kvb::Balance balance;
     if (balance.ParseFromArray(value.data(), value.length())) {
       if (balance.version() == balance_storage_version) {
-        return balance.balance();
+        std::copy(balance.balance().begin(), balance.balance().end(),
+                  out.bytes);
+        return out;
       } else {
         throw EVMException("Unknown balance storage version");
       }
+    } else {
+      LOG4CPLUS_ERROR(logger, "Unable to decode balance for addr " << addr);
+      throw EVMException("Corrupt balance storage");
     }
   }
 
   // untouched accounts have a balance of 0
-  return 0;
+  return evm_uint256be{0};
 }
 
 uint64_t com::vmware::concord::KVBStorage::get_nonce(const evm_address &addr) {

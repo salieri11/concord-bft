@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
+ */
+
 #include "common/utils.hpp"
 #include "common/json.hpp"
 #include "common/rlp.hpp"
@@ -6,6 +10,7 @@
 using namespace std;
 namespace concord = com::vmware::concord;
 using json = nlohmann::json;
+using boost::multiprecision::uint256_t;
 
 namespace {
 TEST(utils_test, parses_genesis_block) {
@@ -140,6 +145,29 @@ TEST(utils_test, from_evm_uint256be_test) {
   val.bytes[30] = 0x12;
   val.bytes[31] = 0x34;
   EXPECT_EQ(expected, concord::from_evm_uint256be(&val));
+}
+
+TEST(utils_test, to_uint256_t_test) {
+  evm_uint256be input{0};
+  input.bytes[31] = 0xef;
+  input.bytes[30] = 0xbe;
+  input.bytes[29] = 0xad;
+  input.bytes[28] = 0xde;
+
+  uint256_t expected{"0xdeadbeef"};
+  EXPECT_EQ(expected, concord::to_uint256_t(&input));
+}
+
+TEST(utils_test, from_uint256_t_test) {
+  uint256_t input{"0xdeadbeef"};
+
+  evm_uint256be expected{0};
+  expected.bytes[31] = 0xef;
+  expected.bytes[30] = 0xbe;
+  expected.bytes[29] = 0xad;
+  expected.bytes[28] = 0xde;
+  evm_uint256be out = concord::from_uint256_t(&input);
+  EXPECT_EQ(0, memcmp(expected.bytes, out.bytes, sizeof(evm_uint256be)));
 }
 
 }  // namespace
