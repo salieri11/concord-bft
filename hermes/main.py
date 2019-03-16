@@ -209,6 +209,26 @@ def processResults(resultsFile):
 
    log.info("Results written to '{}'".format(fileLocation))
 
+   suiteName = list(results.keys())[0]
+   red = "\033[1;31m"
+   green = "\033[1;32m"
+   yellow = "\033[1;33m"
+   reset = "\033[0m"
+
+   msg = "{color}{symbol} " + suiteName + " {tests}" + reset
+
+   if failCount > 0:
+      msg = msg.format(color=red, symbol="\u2717",
+                       tests="{} tests failed".format(failCount))
+   else:
+      msg = msg.format(color=green, symbol="\u2714",
+                       tests="{} tests succeeded".format(passCount))
+
+   if skippedCount > 0:
+      msg += " {}{} skipped{}".format(yellow, skippedCount, reset)
+
+   log.info(msg)
+
    return failCount == 0 and skippedCount == 0
 
 def tallyResults(results):
