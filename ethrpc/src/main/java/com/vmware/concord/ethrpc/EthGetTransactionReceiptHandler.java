@@ -99,7 +99,7 @@ public class EthGetTransactionReceiptHandler extends AbstractEthRpcHandler {
         for (int i = 0; i < tx.getLogCount(); i++) {
             Concord.LogResponse log = tx.getLog(i);
             JSONObject logJson = new JSONObject();
-            logJson.put("address", ApiHelper.binaryStringToHex(log.getAddress()));
+            logJson.put("address", ApiHelper.binaryStringToHex(log.getContractAddress()));
 
             JSONArray topics = new JSONArray();
             for (int j = 0; j < log.getTopicCount(); j++) {

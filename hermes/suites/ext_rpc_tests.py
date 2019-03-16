@@ -97,6 +97,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
          ("eth_getBalance", self._test_eth_getBalance),
          ("eth_getBlockByNumber", self._test_eth_getBlockByNumber),
          ("eth_getCode", self._test_eth_getCode),
+         ("eth_getLogs", self._test_eth_getLogs),
          ("eth_gasPrice", self._test_eth_gasPrice),
          ("eth_getStorageAt", self._test_eth_getStorageAt),
          ("eth_getTransactionByHash", self._test_eth_getTransactionByHash),
@@ -596,6 +597,34 @@ class ExtendedRPCTests(test_suite.TestSuite):
          return (False, "code does not match expected")
 
       return (True, None)
+
+   def _test_eth_getLogs(self, rpc, request):
+      w3 = self.getWeb3Instance()
+      abi, bin = self.loadContract("SimpleEvent")
+      contract = w3.eth.contract(abi=abi, bytecode=bin)
+      tx_args = {"from":"0x09b86aa450c61A6ed96824021beFfD32680B8B64"}
+
+      # Deploy contract
+      contract_tx = contract.constructor().transact(tx_args)
+      contract_txr = w3.eth.waitForTransactionReceipt(contract_tx)
+
+      contract = w3.eth.contract(
+         address=contract_txr.contractAddress, abi=abi)
+
+      # Invoke function that generates an event which should be logged
+      func = contract.get_function_by_name("foo")
+      func_tx = func(w3.toInt(hexstr="0xdeadbeef")).transact(tx_args)
+      func_txr = w3.eth.waitForTransactionReceipt(func_tx)
+
+      # Get the logs from the transaction we just submitted
+      logs = rpc.getLogs(func_txr.blockHash.hex())
+      for l in logs:
+         # The first element is the event signature
+         # The second is the first argument of the event
+         if int(l["topics"][1], 16) == 0xdeadbeef:
+            return (True, None)
+
+      return (False, "Couldn't find log in block #" + str(func_txr.blockNumber))
 
    def _test_eth_getBalance(self, rpc, request):
       addrFrom = "0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019"

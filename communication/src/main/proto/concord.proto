@@ -14,6 +14,7 @@ message ConcordRequest {
    optional BlockRequest block_request = 5;
    optional TransactionRequest transaction_request = 6;
    optional TransactionListRequest transaction_list_request = 7;
+   optional LogsRequest logs_request = 8;
 
    // 8-2045 open for definition
    // Likely: metrics/stats, non-eth blockchain, other admin
@@ -29,6 +30,7 @@ message ConcordResponse {
    optional BlockResponse block_response = 5;
    optional TransactionResponse transaction_response = 6;
    optional TransactionListResponse transaction_list_response = 7;
+   optional LogsResponse logs_response = 8;
 
    // 8-2045 open for definition
    optional TestResponse test_response = 2046;
@@ -121,9 +123,27 @@ message EthResponse {
 }
 
 message LogResponse {
-   optional bytes address = 1;
+   optional bytes contract_address = 1;
    repeated bytes topic = 2;
    optional bytes data = 3;
+   optional bytes block_hash = 4;
+   optional int64 block_number = 5;
+   optional uint64 log_index = 6;
+   optional bytes transaction_hash = 7;
+   optional uint64 transaction_index = 8;
+   optional uint64 transaction_log_index = 9;
+}
+
+message LogsRequest {
+   optional int64 from_block = 1;
+   optional int64 to_block = 2;
+   optional bytes contract_address = 3;
+   repeated bytes topic = 4;
+   optional bytes block_hash = 5;
+}
+
+message LogsResponse {
+   repeated LogResponse log = 1;
 }
 
 message Peer {

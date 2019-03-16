@@ -328,6 +328,10 @@ public final class EthDispatcher extends ConcordServlet {
                     handler = new EthBlockNumberHandler();
                     break;
 
+                case Constants.GET_LOGS_NAME:
+                    handler = new EthGetLogsHandler();
+                    break;
+
                 default:
                     throw new BadRequestException("Invalid method name.");
             }
