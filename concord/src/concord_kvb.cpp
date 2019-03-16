@@ -386,9 +386,9 @@ bool com::vmware::concord::KVBCommandsHandler::handle_logs_request(
       log->set_block_hash(block.hash.bytes, sizeof(evm_uint256be));
       log->set_block_number(block.number);
       log->set_transaction_hash(tx.hash().bytes, sizeof(evm_uint256be));
-      log->set_transaction_index(0);
 
       // So far we only have one transaction per block
+      log->set_transaction_index(0);
       log->set_log_index(tx_log_idx);
       log->set_transaction_log_index(tx_log_idx);
       tx_log_idx++;

@@ -31,26 +31,26 @@ public class EthGetLogsHandler extends AbstractEthRpcHandler {
             JSONArray params = extractRequestParams(requestJson);
 
             if (params.size() > 1) {
-                throw new Exception("Too many parameters. Either none or a JSON object.");
+                throw new EthRpcHandlerException("Too many parameters. Either none or a JSON object.");
             }
 
             Concord.LogsRequest.Builder logsReq = Concord.LogsRequest.newBuilder();
 
             if (params.size() == 0) {
                 // Default - request all logs from the latest block
-                throw new Exception("all logs not supported yet.");
+                throw new EthRpcHandlerException("all logs not supported yet.");
             } else {
                 // Evaluate filter options
                 JSONObject filter = (JSONObject) params.get(0);
 
                 if (filter.containsKey("fromBlock") || filter.containsKey("toBlock")) {
-                    throw new Exception("block filter not supported yet.");
+                    throw new EthRpcHandlerException("block filter not supported yet.");
                 }
                 if (filter.containsKey("address")) {
-                    throw new Exception("'address' filter not supported yet.");
+                    throw new EthRpcHandlerException("'address' filter not supported yet.");
                 }
                 if (filter.containsKey("topics")) {
-                    throw new Exception("'topics' filter not supported yet.");
+                    throw new EthRpcHandlerException("'topics' filter not supported yet.");
                 }
                 if (filter.containsKey("blockHash")) {
                     logsReq.setBlockHash(ApiHelper.hexStringToBinary((String) filter.get("blockHash")));

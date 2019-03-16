@@ -27,6 +27,7 @@ public class Constants {
             + "{\"name\": \"eth_getBlockByNumber\",\"params\": [],\"returns\": \"string\"},"
             + "{\"name\": \"eth_getCode\",\"params\": [],\"returns\": \"string\"},"
             + "{\"name\": \"eth_getFilterChanges\",\"params\": [],\"returns\": \"array\"},"
+            + "{\"name\": \"eth_getLogs\",\"params\": [],\"returns\": \"array\"},"
             + "{\"name\": \"eth_getStorageAt\",\"params\": [],\"returns\": \"string\"},"
             + "{\"name\": \"eth_getTransactionCount\",\"params\": [],\"returns\": \"string\"},"
             + "{\"name\": \"eth_getTransactionByHash\",\"params\": [],\"returns\": \"object\"},"
