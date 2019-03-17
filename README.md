@@ -232,8 +232,11 @@ useful for building concord-bft:
  * `CMAKE_BUILD_TYPE`     - Debug | Release | RelWithDebInfo | MinSizeRel (DEFAULT Debug)
  * `BUILD_TESTING`        - OFF | ON  (DEFAULT ON)
  * `BUILD_COMM_TCP_PLAIN` - TRUE | FALSE (DEFAULT FALSE - UDP is used)
+ * `BUILD_COMM_TCP_TLS` - TRUE | FALSE (DEFAULT FALSE - UDP is used)
  * `USE_LOG4CPP`          - TRUE | FALSE (DEFAULT FALSE)
  * `CONCORD_LOGGER_NAME`  - STRING (DEFAULT "concord")
+
+ Note: You can't set both BUILD_COMM_TCP_PLAIN and BUILD_COMM_TCP_TLS to TRUE.
 
 Run examples
 ----

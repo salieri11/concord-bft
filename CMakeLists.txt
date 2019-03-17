@@ -24,24 +24,30 @@ set(SLEEP_FOR_DBG FALSE)
 # Release builds can be enabled by running cmake with -DCMAKE_BUILD_TYPE=Release
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Enable debug or release builds" FORCE)
+endif()
 
-set(BUILD_COMM_TCP_TLS TRUE)
+set(BUILD_COMM_TCP_TLS FALSE)
 
 #if not set to TRUE by the app, set from here
 if(NOT USE_LOG4CPP)
     set(USE_LOG4CPP FALSE)
 endif()
 
+# Default USE_LOG4CPP to FALSE
+option(USE_LOG4CPP "Enable LOG4CPP" FALSE)
+
+# Default BUILD_COMM_TCP_PLAIN to FALSE
+option(BUILD_COMM_TCP_PLAIN "Enable TCP communication" FALSE)
+
+# Default BUILD_COMM_TCP_TLS to FALSE
+option(BUILD_COMM_TCP_TLS "Enable TCP TLS communication" FALSE)
+
 set(COMM_MODULES 0)
-if(NOT BUILD_COMM_TCP_PLAIN)
-    set(BUILD_COMM_TCP_PLAIN FALSE)
-else()
+if(BUILD_COMM_TCP_PLAIN)
     math(EXPR COMM_MODULES "${COMM_MODULES}+1")
 endif()
 
-if(NOT BUILD_COMM_TCP_TLS)
-    set(BUILD_COMM_TCP_TLS FALSE)
-else()
+if(BUILD_COMM_TCP_TLS)
     math(EXPR COMM_MODULES "${COMM_MODULES}+1")
 endif()
 
@@ -50,12 +56,6 @@ endif()
 if(${COMM_MODULES} GREATER 1)
     message(FATAL_ERROR "Only one comm module can be chosen")
 endif()
-
-# Default USE_LOG4CPP to FALSE
-option(USE_LOG4CPP "Enable LOG4CPP" FALSE)
-
-# Default BUILD_COMM_TCP_PLAIN to FALSE
-option(BUILD_COMM_TCP_PLAIN "Enable TCP communication" FALSE)
 
 # Default CONCORD_LOGGER_NAME to "concord"
 if(NOT CONCORD_LOGGER_NAME)
