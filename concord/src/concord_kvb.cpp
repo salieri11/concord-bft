@@ -367,10 +367,8 @@ bool com::vmware::concord::KVBCommandsHandler::handle_logs_request(
 
   try {
     if (request.has_from_block()) {
-      if (request.from_block() < 0) {
-        // "latest" or "pending"
-        block = kvbStorage.get_block(kvbStorage.current_block_number());
-      }
+      // "latest" or "pending" supported for now
+      block = kvbStorage.get_block(kvbStorage.current_block_number());
     } else if (request.has_block_hash()) {
       evm_uint256be block_hash;
       std::copy(request.block_hash().begin(), request.block_hash().end(),

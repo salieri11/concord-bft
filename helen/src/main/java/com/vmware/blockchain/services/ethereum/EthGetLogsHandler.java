@@ -38,7 +38,7 @@ public class EthGetLogsHandler extends AbstractEthRpcHandler {
 
             if (params.size() == 0) {
                 // Default - request all logs from the latest block
-                logsReq.setFromBlock(ApiHelper.parseBlockNumber(new String("latest")));
+                logsReq.setFromBlock(ApiHelper.parseBlockNumber("latest"));
             } else {
                 // Evaluate filter options
                 JSONObject filter = (JSONObject) params.get(0);
