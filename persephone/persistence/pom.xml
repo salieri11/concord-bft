@@ -12,7 +12,7 @@
 
     <artifactId>persephone-persistence</artifactId>
     <packaging>jar</packaging>
-    <name>Blockchain - Deployment Service Persistence</name>
+    <name>Blockchain - Fleet Management Persistence Library</name>
 
     <dependencies>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -21,6 +21,10 @@
         <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-stdlib-jdk8</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-reflect</artifactId>
         </dependency>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ~ Internal dependencies.                                    ~

@@ -57,6 +57,8 @@ class api_connection : public boost::enable_shared_from_this<api_connection> {
 
   void handle_transaction_list_request();
 
+  void handle_logs_request();
+
   void handle_test_request();
 
   bool send_request(ConcordRequest &req, bool isReadOnly,

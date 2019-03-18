@@ -12,7 +12,7 @@
 
     <artifactId>persephone-metadata-service</artifactId>
     <packaging>jar</packaging>
-    <name>Blockchain - Deployment Metadata Service</name>
+    <name>Blockchain - Fleet Management Metadata Service</name>
 
     <dependencies>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

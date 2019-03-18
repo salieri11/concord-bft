@@ -14,11 +14,20 @@ import util.json_helper
 from util.numbers_strings import trimHexIndicator, decToEvenHexNo0x
 from util.product import Product
 
+import web3
+from web3 import Web3, HTTPProvider
+from requests.auth import HTTPBasicAuth
+
+# Suppress security warnings
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 log = logging.getLogger(__name__)
 
 # The config file contains information aobut how to run things, as opposed to
 # command line parameters, which are about running tests.
 CONFIG_JSON = "resources/user_config.json"
+CONTRACTS_DIR = "resources/contracts"
 TEST_LOG_DIR = "test_logs"
 HIGH_GAS = "0x47e7c4"
 
@@ -41,6 +50,7 @@ class TestSuite(ABC):
       self.ethrpcNodes = None
       self.reverseProxyApiBaseUrl = passedArgs.reverseProxyApiBaseUrl
       self.inDockerReverseProxyApiBaseUrl = passedArgs.inDockerReverseProxyApiBaseUrl
+      self.contractCompilerApiBaseUrl = passedArgs.contractCompilerApiBaseUrl
 
       self._results = {
          self.getName(): {
@@ -153,6 +163,40 @@ class TestSuite(ABC):
             log.error(str(e))
             self.writeResult("All Tests", None, "The product did not start.")
             raise(e)
+
+   def getWeb3Instance(self):
+      '''
+      Connect the web3 framework to an ethrpc node
+      '''
+      user = self._userConfig.get('product').get('db_users')[0]
+      args = {'auth': HTTPBasicAuth(user['username'], user['password']),'verify': False}
+      return Web3(HTTPProvider(self.ethrpcApiUrl, request_kwargs=args))
+
+   def loadContract(self, name):
+      '''
+      Return contract object to deploy and run queries on.
+
+      Note: We assume that there is only one contract per file.
+
+      Technically, the solidity file isn't required but should be there anyways
+      for documentation.
+      '''
+      sol_path = "{}.sol".format(os.path.join(CONTRACTS_DIR, name))
+      abi_path = "{}.abi".format(os.path.join(CONTRACTS_DIR, name))
+      hex_path = "{}.hex".format(os.path.join(CONTRACTS_DIR, name))
+
+      assert os.path.isfile(sol_path)
+      assert os.path.isfile(abi_path)
+      assert os.path.isfile(hex_path)
+
+      with open(abi_path, "r") as f:
+         abi = f.read()
+
+      with open(hex_path, "r") as f:
+         hex_str = f.read()
+
+      return (abi.strip(), hex_str.strip())
+
 
    def setEthrpcNode(self):
       '''

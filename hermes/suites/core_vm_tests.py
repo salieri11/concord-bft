@@ -199,7 +199,10 @@ class CoreVMTests(test_suite.TestSuite):
       testName = list(testSource.keys())[0]
       testExecutionCode = testCompiled[testName]["exec"]["code"]
       expectTxSuccess = self._getExpectTxSuccess(testCompiled)
-      user = self._getAUser()
+      if testCompiled[testName]["exec"]["origin"]:
+         user = {"hash": testCompiled[testName]["exec"]["origin"]}
+      else:
+         user = self._getAUser()
       expectedStorage = self._getExpectedStorageResults(testSource, testCompiled)
       expectedOut = self._getExpectedOutResults(testCompiled)
       expectedLogs = self._getExpectedLogsResults(testCompiled)
@@ -219,7 +222,8 @@ class CoreVMTests(test_suite.TestSuite):
 
          if txReceipt:
             contractAddress = RPC.searchResponse(txReceipt, ["contractAddress"])
-            success, info = self._checkResult(rpc,
+            success, info = self._checkResult(user,
+                                              rpc,
                                               contractAddress,
                                               testData,
                                               txReceipt,
@@ -382,6 +386,7 @@ class CoreVMTests(test_suite.TestSuite):
       return storageSection
 
    def _checkResult(self,
+                    user,
                     rpc,
                     contractAddress,
                     testData,
@@ -399,7 +404,8 @@ class CoreVMTests(test_suite.TestSuite):
       '''
       success = None
       info = None
-      callerReceipt = self._callContractFromContract(rpc,
+      callerReceipt = self._callContractFromContract(user,
+                                                     rpc,
                                                      contractAddress,
                                                      testData,
                                                      expectedOut)
@@ -444,7 +450,7 @@ class CoreVMTests(test_suite.TestSuite):
 
       return success, info
 
-   def _callContractFromContract(self, rpc, contractAddress, testData,
+   def _callContractFromContract(self, user, rpc, contractAddress, testData,
                                  fullExpectedOut):
       '''
       Creates a new contract from which the contract under test is called.
@@ -460,7 +466,7 @@ class CoreVMTests(test_suite.TestSuite):
                                                     numBytesOut, testData)
       log.debug("CALL bytecode: {}".format(invokeCallBytecode))
       log.debug("Creating the contract which will invoke the test contract.")
-      txHash = rpc.sendTransaction(self._getAUser()["hash"],
+      txHash = rpc.sendTransaction(user["hash"],
                                    invokeCallBytecode,
                                    self._getGas())
       if txHash:

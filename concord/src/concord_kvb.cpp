@@ -82,6 +82,8 @@ bool com::vmware::concord::KVBCommandsHandler::executeReadOnlyCommand(
       result = handle_transaction_request(command, kvbStorage, athresp);
     } else if (command.has_transaction_list_request()) {
       result = handle_transaction_list_request(command, kvbStorage, athresp);
+    } else if (command.has_logs_request()) {
+      result = handle_logs_request(command, kvbStorage, athresp);
     } else if (command.has_block_list_request()) {
       result = handle_block_list_request(command, kvbStorage, athresp);
     } else if (command.has_block_request()) {
@@ -338,7 +340,7 @@ void com::vmware::concord::KVBCommandsHandler::build_transaction_response(
 
   for (EthLog &log : tx.logs) {
     LogResponse *outlog = response->add_log();
-    outlog->set_address(log.address.bytes, sizeof(evm_address));
+    outlog->set_contract_address(log.address.bytes, sizeof(evm_address));
     for (evm_uint256be topic : log.topics) {
       outlog->add_topic(topic.bytes, sizeof(evm_uint256be));
     }
@@ -346,6 +348,54 @@ void com::vmware::concord::KVBCommandsHandler::build_transaction_response(
       outlog->set_data(std::string(log.data.begin(), log.data.end()));
     }
   }
+}
+
+/**
+ * Get logs from the blockchain
+ */
+bool com::vmware::concord::KVBCommandsHandler::handle_logs_request(
+    ConcordRequest &athreq, KVBStorage &kvbStorage,
+    ConcordResponse &athresp) const {
+  const LogsRequest request = athreq.logs_request();
+  LogsResponse *response = athresp.mutable_logs_response();
+  std::vector<evm_uint256be>::iterator it;
+  EthBlock block;
+  EthTransaction tx;
+  uint64_t tx_log_idx;
+
+  assert(request.has_block_hash());
+
+  evm_uint256be block_hash;
+  std::copy(request.block_hash().begin(), request.block_hash().end(),
+            block_hash.bytes);
+
+  block = kvbStorage.get_block(block_hash);
+
+  tx_log_idx = 0;
+  for (auto &tx_hash : block.transactions) {
+    tx = kvbStorage.get_transaction(tx_hash);
+    for (auto &tx_log : tx.logs) {
+      LogResponse *log = response->add_log();
+      log->set_contract_address(tx_log.address.bytes, sizeof(evm_address));
+      for (evm_uint256be topic : tx_log.topics) {
+        log->add_topic(topic.bytes, sizeof(evm_uint256be));
+      }
+      if (tx_log.data.size() > 0) {
+        log->set_data(std::string(tx_log.data.begin(), tx_log.data.end()));
+      }
+      log->set_block_hash(block.hash.bytes, sizeof(evm_uint256be));
+      log->set_block_number(block.number);
+      log->set_transaction_hash(tx.hash().bytes, sizeof(evm_uint256be));
+
+      // So far we only have one transaction per block
+      log->set_transaction_index(0);
+      log->set_log_index(tx_log_idx);
+      log->set_transaction_log_index(tx_log_idx);
+      tx_log_idx++;
+    }
+  }
+
+  return true;
 }
 
 /**
@@ -884,9 +934,10 @@ evm_result com::vmware::concord::KVBCommandsHandler::run_evm(
       txhash = zero_hash;
       return result;
     }
-    memcpy(message.destination.bytes, request.addr_to().c_str(), 20);
+    memcpy(message.destination.bytes, request.addr_to().c_str(),
+           sizeof(message.destination));
 
-    result = athevm_.run(message, timestamp, kvbStorage, logs);
+    result = athevm_.run(message, timestamp, kvbStorage, logs, message.sender);
   } else {
     message.kind = EVM_CREATE;
 
@@ -895,8 +946,8 @@ evm_result com::vmware::concord::KVBCommandsHandler::run_evm(
     evm_address contract_address =
         athevm_.contract_destination(message.sender, nonce);
 
-    result =
-        athevm_.create(contract_address, message, timestamp, kvbStorage, logs);
+    result = athevm_.create(contract_address, message, timestamp, kvbStorage,
+                            logs, message.sender);
   }
 
   LOG4CPLUS_INFO(logger, "Execution result -"

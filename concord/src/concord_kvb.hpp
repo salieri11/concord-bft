@@ -57,6 +57,8 @@ class KVBCommandsHandler : public Blockchain::ICommandsHandler {
   bool handle_transaction_list_request(ConcordRequest &athreq,
                                        KVBStorage &kvbStorage,
                                        ConcordResponse &athresp) const;
+  bool handle_logs_request(ConcordRequest &athreq, KVBStorage &kvbStorage,
+                           ConcordResponse &athresp) const;
   bool handle_block_list_request(ConcordRequest &athreq, KVBStorage &kvbStorage,
                                  ConcordResponse &athresp) const;
   bool handle_block_request(ConcordRequest &athreq, KVBStorage &kvbStorage,

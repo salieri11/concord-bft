@@ -261,6 +261,9 @@ void api_connection::dispatch() {
   if (concordRequest_.has_transaction_list_request()) {
     handle_transaction_list_request();
   }
+  if (concordRequest_.has_logs_request()) {
+    handle_logs_request();
+  }
   if (concordRequest_.has_test_request()) {
     handle_test_request();
   }
@@ -551,6 +554,23 @@ void api_connection::handle_transaction_list_request() {
   TransactionListRequest *txListReq =
       internalRequest.mutable_transaction_list_request();
   txListReq->CopyFrom(request);
+
+  ConcordResponse internalResponse;
+  if (clientPool_.send_request_sync(internalRequest, true, internalResponse)) {
+    concordResponse_.MergeFrom(internalResponse);
+  } else {
+    LOG4CPLUS_ERROR(logger_, "Error parsing read-only response");
+    ErrorResponse *resp = concordResponse_.add_error_response();
+    resp->set_description("Internal concord Error");
+  }
+}
+
+void api_connection::handle_logs_request() {
+  const LogsRequest request = concordRequest_.logs_request();
+
+  ConcordRequest internalRequest;
+  LogsRequest *logsReq = internalRequest.mutable_logs_request();
+  logsReq->CopyFrom(request);
 
   ConcordResponse internalResponse;
   if (clientPool_.send_request_sync(internalRequest, true, internalResponse)) {

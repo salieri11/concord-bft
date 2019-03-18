@@ -13,14 +13,15 @@ import com.google.protobuf.ByteString;
 import com.vmware.concord.Concord;
 
 /**
- * This Handler is used for handling all `eth_getTransactionReceipt` types of requests. EthGetTxReceiptHandler is little
- * different than other handlers because It leverages already existing `TransactionReceipt` ConcordRequest to handle
- * `eth_getTransactionReceipt` requests (see Transaction.java file which implements this API). Hence, in this handler we
- * actually put a `TransactionRequest` inside ConcordRequest and read a TransactionResponse from ConcordResponse.
+ * This Handler is used for handling all `eth_getTransactionReceipt` types of requests. EthGetTransactionReceiptHandler
+ * is little different than other handlers because It leverages already existing `TransactionReceipt` ConcordRequest to
+ * handle `eth_getTransactionReceipt` requests (see Transaction.java file which implements this API). Hence, in this
+ * handler we actually put a `TransactionRequest` inside ConcordRequest and read a TransactionResponse from
+ * ConcordResponse.
  */
-public class EthGetTxReceiptHandler extends AbstractEthRpcHandler {
+public class EthGetTransactionReceiptHandler extends AbstractEthRpcHandler {
 
-    Logger logger = LogManager.getLogger(EthGetTxReceiptHandler.class);
+    Logger logger = LogManager.getLogger(EthGetTransactionReceiptHandler.class);
 
     /**
      * Builds a TransactionRequest object from given requestJson and inserts it into ConcordRequest Object.
@@ -108,12 +109,12 @@ public class EthGetTxReceiptHandler extends AbstractEthRpcHandler {
     /**
      * Build the loggin JSON.
      */
-    public static JSONArray buildLogs(Concord.TransactionResponse transactionResponse) {
+    public static JSONArray buildLogs(Concord.TransactionResponse tx) {
         JSONArray logs = new JSONArray();
-        for (int i = 0; i < transactionResponse.getLogCount(); i++) {
-            Concord.LogResponse log = transactionResponse.getLog(i);
+        for (int i = 0; i < tx.getLogCount(); i++) {
+            Concord.LogResponse log = tx.getLog(i);
             JSONObject logJson = new JSONObject();
-            logJson.put("address", ApiHelper.binaryStringToHex(log.getAddress()));
+            logJson.put("address", ApiHelper.binaryStringToHex(log.getContractAddress()));
 
             JSONArray topics = new JSONArray();
             for (int j = 0; j < log.getTopicCount(); j++) {
@@ -126,6 +127,17 @@ public class EthGetTxReceiptHandler extends AbstractEthRpcHandler {
             } else {
                 logJson.put("data", "0x");
             }
+
+            logJson.put("blockHash", ApiHelper.binaryStringToHex(tx.getBlockHash()));
+            logJson.put("blockNumber", "0x" + Long.toHexString(tx.getBlockNumber()));
+            logJson.put("transactionHash", ApiHelper.binaryStringToHex(tx.getHash()));
+            logJson.put("transactionIndex", "0x" + Long.toHexString(tx.getTransactionIndex()));
+            logJson.put("transactionLogIndex", "0x" + Long.toHexString(i));
+
+            // At the moment we mine one block per transaction. Therefore, the
+            // transaction log index becomes the block log index.
+            logJson.put("logIndex", "0x" + Long.toHexString(i));
+
             logs.add(logJson);
         }
         return logs;

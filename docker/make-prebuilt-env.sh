@@ -50,7 +50,8 @@ do
         # Ex: concord_repo=concord-core
         #     ^-----^      ^----------^
         #     SERVICE      IMAGE_BASE_NAME
-        SERVICE=`echo ${LINE} | cut -d "_" -f 1 -`
+        SERVICE_REPO=`echo ${LINE} | cut -d "=" -f 1 -`
+        SERVICE=${SERVICE_REPO%_repo}
         IMAGE_BASE_NAME=`echo ${LINE} | cut -d "=" -f 2 -`
 
         # try not to double-up artifactory prefixes if someone runs this twice

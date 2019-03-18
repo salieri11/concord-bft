@@ -99,7 +99,7 @@ public class EthGetTransactionReceiptHandler extends AbstractEthRpcHandler {
         for (int i = 0; i < tx.getLogCount(); i++) {
             Concord.LogResponse log = tx.getLog(i);
             JSONObject logJson = new JSONObject();
-            logJson.put("address", ApiHelper.binaryStringToHex(log.getAddress()));
+            logJson.put("address", ApiHelper.binaryStringToHex(log.getContractAddress()));
 
             JSONArray topics = new JSONArray();
             for (int j = 0; j < log.getTopicCount(); j++) {
@@ -112,6 +112,17 @@ public class EthGetTransactionReceiptHandler extends AbstractEthRpcHandler {
             } else {
                 logJson.put("data", "0x");
             }
+
+            logJson.put("blockHash", ApiHelper.binaryStringToHex(tx.getBlockHash()));
+            logJson.put("blockNumber", "0x" + Long.toHexString(tx.getBlockNumber()));
+            logJson.put("transactionHash", ApiHelper.binaryStringToHex(tx.getHash()));
+            logJson.put("transactionIndex", "0x" + Long.toHexString(tx.getTransactionIndex()));
+            logJson.put("transactionLogIndex", "0x" + Long.toHexString(i));
+
+            // At the moment we mine one block per transaction. Therefore, the
+            // transaction log index becomes the block log index.
+            logJson.put("logIndex", "0x" + Long.toHexString(i));
+
             logs.add(logJson);
         }
         return logs;

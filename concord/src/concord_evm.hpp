@@ -40,6 +40,11 @@ typedef struct concord_context {
   std::vector<EthLog>* evmLogs;
   log4cplus::Logger* logger;
   uint64_t timestamp;
+
+  // Stash to answer ORIGIN opcode. This starts with the same value as
+  // evm_message.sender, but sender changes as contracts call other contracts,
+  // while origin always points to the same address.
+  struct evm_address origin;
 } concord_context;
 
 EVM* ath_object(const struct evm_context* evmctx);
@@ -91,10 +96,11 @@ class EVM {
   void transfer_fund(evm_message& message, KVBStorage& kvbStorage,
                      evm_result& result);
   evm_result run(evm_message& message, uint64_t timestamp,
-                 KVBStorage& kvbStorage, std::vector<EthLog>& evmLogs);
+                 KVBStorage& kvbStorage, std::vector<EthLog>& evmLogs,
+                 const evm_address& origin);
   evm_result create(evm_address& contract_address, evm_message& message,
                     uint64_t timestamp, KVBStorage& kvbStorage,
-                    std::vector<EthLog>& evmLogs);
+                    std::vector<EthLog>& evmLogs, const evm_address& origin);
   evm_address contract_destination(evm_address& sender, uint64_t nonce) const;
 
  private:
@@ -106,7 +112,8 @@ class EVM {
 
   evm_result execute(evm_message& message, uint64_t timestamp,
                      KVBStorage& kvbStorage, std::vector<EthLog>& evmLogs,
-                     const std::vector<uint8_t>& code);
+                     const std::vector<uint8_t>& code,
+                     const evm_address& origin);
 };
 
 }  // namespace concord

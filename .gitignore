@@ -8,6 +8,9 @@ docker/config-concord*/s_f1c0_config.pub
 docker/log*
 docker/rocksdbdata*
 docker/cockroachDB
+docker/devdata/log*
+docker/devdata/rocksdbdata*
+docker/devdata/cockroachDB
 
 # Concord Specific
 build/
@@ -94,3 +97,6 @@ hermes/.env
 
 # Log files created by the build process
 *.log
+
+# Microservice specific
+!/contract-compiler/bin

@@ -12,7 +12,7 @@
 
     <artifactId>persephone-api</artifactId>
     <packaging>jar</packaging>
-    <name>Blockchain - Deployment Service API</name>
+    <name>Blockchain - Fleet Management API Models</name>
 
     <properties>
         <javax.annotation.version>1.3.2</javax.annotation.version>
