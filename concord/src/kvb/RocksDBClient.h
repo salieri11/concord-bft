@@ -65,6 +65,8 @@ class RocksDBClient : public IDBClient {
 
   virtual Status init(bool readOnly = false) override;
   virtual Status get(Sliver _key, OUT Sliver &_outValue) const override;
+  Status get(Sliver _key, OUT char *&buf, uint32_t bufSize,
+             OUT uint32_t &_realSize) const override;
   virtual IDBClientIterator *getIterator() const override;
   virtual Status freeIterator(IDBClientIterator *_iter) const override;
   virtual Status put(Sliver _key, Sliver _value) override;
@@ -80,6 +82,8 @@ class RocksDBClient : public IDBClient {
  private:
   Status launchBatchJob(rocksdb::WriteBatch &_batchJob,
                         const KeysVector &_keysVec);
+  std::ostringstream collectKeysForPrint(const KeysVector &_keysVec);
+  Status get(Sliver _key, OUT std::string &_value) const;
 
  private:
   log4cplus::Logger logger;

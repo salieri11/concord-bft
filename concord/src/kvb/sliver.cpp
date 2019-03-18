@@ -35,6 +35,15 @@ Blockchain::Sliver::Sliver(uint8_t* data, const size_t length)
   assert(data);
 }
 
+Blockchain::Sliver::Sliver(char* data, const size_t length)
+    : m_data(reinterpret_cast<uint8_t*>(data),
+             std::default_delete<uint8_t[]>()),
+      m_offset(0),
+      m_length(length) {
+  // Data must be non-null.
+  assert(data);
+}
+
 /**
  * Create a sub-sliver that references a region of a base sliver.
  */
@@ -116,29 +125,4 @@ int Blockchain::Sliver::compare(const Sliver& other) const {
     }
   }
   return comp;
-}
-
-bool Blockchain::copyToAndAdvance(uint8_t* _buf, size_t* _offset,
-                                  size_t _maxOffset, uint8_t* _src,
-                                  size_t _srcSize) {
-  if (!_buf) {
-    return false;
-  }
-
-  if (!_offset) {
-    return false;
-  }
-
-  if (!_src) {
-    return false;
-  }
-
-  if (*_offset >= _maxOffset && _srcSize > 0) {
-    return false;
-  }
-
-  memcpy(_buf + *_offset, _src, _srcSize);
-  *_offset += _srcSize;
-
-  return true;
 }

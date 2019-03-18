@@ -34,6 +34,7 @@ class Sliver {
  public:
   Sliver();
   Sliver(uint8_t* data, const size_t length);
+  Sliver(char* data, const size_t length);
   Sliver(const Sliver& base, const size_t offset, const size_t length);
 
   uint8_t operator[](const size_t offset) const;

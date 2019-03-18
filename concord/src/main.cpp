@@ -66,7 +66,8 @@ Blockchain::IDBClient *open_database(variables_map &opts, Logger logger) {
   if (db_impl_name == "memory") {
     LOG4CPLUS_INFO(logger, "Using memory blockchain database");
     return new Blockchain::InMemoryDBClient(
-        (Blockchain::IDBClient::KeyComparator)&Blockchain::InMemKeyComp);
+        (Blockchain::IDBClient::KeyComparator)&Blockchain::RocksKeyComparator::
+            InMemKeyComp);
 #ifdef USE_ROCKSDB
   } else if (db_impl_name == "rocksdb") {
     LOG4CPLUS_INFO(logger, "Using rocksdb blockchain database");

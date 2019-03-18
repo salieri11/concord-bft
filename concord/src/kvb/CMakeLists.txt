@@ -1,14 +1,16 @@
 set(kvblockchain_sources
   BlockchainDBAdapter.cpp BlockchainDBAdapter.h
+  BlockchainDBHelpers.cpp
   BlockchainInterfaces.h
   ClientImp.cpp ClientImp.h
   Comparators.cpp Comparators.h
   DatabaseInterface.h
-        HashDefs.h
+  HashDefs.h
   HexTools.cpp HexTools.h
   InMemoryDBClient.cpp InMemoryDBClient.h
   ReplicaImp.cpp ReplicaImp.h
   RocksDBClient.cpp RocksDBClient.h
+  RocksDBMetadataStorage.cpp
   SimpleThreadPool.h
   status.cpp status.hpp
   sliver.cpp sliver.hpp

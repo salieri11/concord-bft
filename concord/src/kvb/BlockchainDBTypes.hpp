@@ -1,0 +1,43 @@
+// Concord
+//
+// Copyright (c) 2018 VMware, Inc. All Rights Reserved.
+//
+// This product is licensed to you under the Apache 2.0 license (the
+// "License").  You may not use this product except in compliance with the
+// Apache 2.0 License.
+//
+// This product may include a number of subcomponents with separate copyright
+// notices and license terms. Your use of these subcomponents is subject to the
+// terms and conditions of the subcomponent's license, as noted in the LICENSE
+// file.
+
+#ifndef BLOCKCHAIN_DB_TYPES_H
+#define BLOCKCHAIN_DB_TYPES_H
+
+#include <cstdint>
+#include <unordered_map>
+#include <vector>
+#include "sliver.hpp"
+
+namespace Blockchain {
+
+enum class EDBKeyType : std::uint8_t {
+  E_DB_KEY_TYPE_FIRST = 1,
+  E_DB_KEY_TYPE_BLOCK = E_DB_KEY_TYPE_FIRST,
+  E_DB_KEY_TYPE_KEY,
+  E_DB_KEY_TYPE_METADATA_KEY,
+  E_DB_KEY_TYPE_LAST
+};
+
+typedef uint64_t BlockId;
+typedef uint16_t ObjectId;
+typedef Sliver Key;
+typedef Sliver Value;
+typedef std::pair<Key, Value> KeyValuePair;
+typedef std::unordered_map<Key, Value> SetOfKeyValuePairs;
+typedef std::vector<Key> KeysVector;
+typedef KeysVector ValuesVector;
+
+}  // namespace Blockchain
+
+#endif

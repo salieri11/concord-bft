@@ -25,6 +25,8 @@ using namespace Blockchain::Utils;
 
 namespace Blockchain {
 
+class RocksDBMetadataStorage;
+
 class ReplicaInitException : public std::exception {
  public:
   explicit ReplicaInitException(const std::string &what) : msg(what){};
@@ -268,6 +270,7 @@ class ReplicaImp : public IReplica,
   ICommandsHandler *m_cmdHandler = nullptr;
   bftEngine::IStateTransfer *m_stateTransfer = nullptr;
   BlockchainAppState *m_appState = nullptr;
+  RocksDBMetadataStorage *m_metadataStorage = nullptr;
 
   // static methods
   static Sliver createBlockFromUpdates(

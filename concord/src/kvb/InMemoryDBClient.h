@@ -68,6 +68,8 @@ class InMemoryDBClient : public IDBClient {
 
   virtual Status init(bool readOnly) override;
   virtual Status get(Sliver _key, OUT Sliver &_outValue) const override;
+  Status get(Sliver _key, OUT char *&buf, uint32_t bufSize,
+             OUT uint32_t &_size) const override;
   virtual IDBClientIterator *getIterator() const override;
   virtual Status freeIterator(IDBClientIterator *_iter) const override;
   virtual Status put(Sliver _key, Sliver _value) override;
