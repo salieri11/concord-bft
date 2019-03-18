@@ -48,7 +48,7 @@ set(corebft_source_files
 	src/bcstatetransfer/BCStateTran.cpp
 	src/bcstatetransfer/InMemoryDataStore.cpp
 	src/bcstatetransfer/STDigest.cpp
-	src/simplestatetransfer/SimpleStateTran.cpp	
+	src/simplestatetransfer/SimpleStateTran.cpp
 )
 #
 # pthread dependency

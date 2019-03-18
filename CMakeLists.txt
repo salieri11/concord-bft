@@ -40,7 +40,7 @@ option(USE_LOG4CPP "Enable LOG4CPP" FALSE)
 option(BUILD_COMM_TCP_PLAIN "Enable TCP communication" FALSE)
 
 # Default BUILD_COMM_TCP_TLS to FALSE
-option(BUILD_COMM_TCP_TLS "Enable TCP TLS communication" FALSE)
+option(BUILD_COMM_TCP_TLS "Enable TCP TLS communication" TRUE)
 
 set(COMM_MODULES 0)
 if(BUILD_COMM_TCP_PLAIN)

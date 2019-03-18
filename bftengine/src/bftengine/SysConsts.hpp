@@ -87,17 +87,17 @@ constexpr int retransmissionsTimerMilli = 40;
 // View Change
 ///////////////////////////////////////////////////////////////////////////////
 
-constexpr bool forceViewChangeProtocolEnabled = false;
+constexpr bool forceViewChangeProtocolEnabled = true;
 constexpr bool forceViewChangeProtocolDisabled = false;
 static_assert(!forceViewChangeProtocolEnabled || !forceViewChangeProtocolDisabled, "");
 
-constexpr int viewChangeTimeoutMilli = 0; //  80 * 1000; // 1 * 60 *
+constexpr int viewChangeTimeoutMilli = 80000; //  80 * 1000; // 1 * 60 *
 // 1000; // 20 * 1000; // if 0, this value is taken from config
 
 
 constexpr bool autoIncViewChangeTimer = true;
 
-constexpr bool autoPrimaryUpdateEnabled = false;
+constexpr bool autoPrimaryUpdateEnabled = true;
 constexpr int autoPrimaryUpdateMilli =  40 * 1000; // 3 * 60 * 1000;
 
 ///////////////////////////////////////////////////////////////////////////////

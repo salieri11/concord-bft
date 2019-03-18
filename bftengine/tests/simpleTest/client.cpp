@@ -63,7 +63,7 @@ concordlogger::Logger clientLogger =
 LOG_FATAL(clientLogger, "assert fail with message: " << message); assert(false);}}
 
 struct ClientParams {
-  uint32_t numOfOperations = 2800;
+  uint32_t numOfOperations = 180000;
   uint16_t clientId = 4;
   uint16_t numOfReplicas = 4;
   uint16_t numOfClients = 1;
