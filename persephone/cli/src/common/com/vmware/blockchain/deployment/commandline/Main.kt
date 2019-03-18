@@ -57,7 +57,7 @@ fun main() {
                     VmcOrchestrator.newOrchestrator(site, coroutineContext).await()
             )
 
-            val request = Orchestrator.DeploymentRequest(
+            val request = Orchestrator.CreateDeploymentRequest(
                     UUID.randomUUID().let {
                         DeploymentSessionIdentifier(it.mostSignificantBits, it.leastSignificantBits)
                     },
@@ -74,8 +74,8 @@ fun main() {
             val resultSubscriber = BaseSubscriber<Orchestrator.DeploymentEvent>(
                     onNext = {
                         when (it) {
-                            is Orchestrator.DeploymentEvent.Created -> it.resourceIdentifier
-                        }.apply { deferred.complete(this) }
+                            is Orchestrator.DeploymentEvent.Created -> deferred.complete(it.resourceIdentifier)
+                        }
                     },
                     onError = { deferred.completeExceptionally(it) }
             )
