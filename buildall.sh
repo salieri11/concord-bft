@@ -8,6 +8,10 @@
 #     <command to build foo> &
 #   Add a line to store that background process in the process list:
 #     addToProcList "Foo" $!
+#
+# To build OPTIONAL/ADDITIONAL components (that are not part of the default build),
+#   Execute: ./buildall.sh --additionalBuilds <function_name1,function_name2>
+#   Example: ./buildall.sh --additionalBuilds PerformanceTests,StressTests
 ################################################################################
 
 trap killAllProcs INT
