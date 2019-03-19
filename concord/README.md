@@ -7,16 +7,28 @@ environment.
 
 ## Building
 
-Please see [../README.md](README.md) in the parent directory for how to build docker images, which is the normal way to build Concord. The rest of this section explains how to build Concord natively, which can be useful for debugging. These steps primarily target building Concord on Ubuntu 18.04. If you run into trouble with the following steps, compare them to the steps in (./DockerfilePrereqs) and (./Dockerfile), which are used to build concord for deployment.
+Please see [../README.md](README.md) in the parent directory for how to build
+docker images, which is the normal way to build Concord. The rest of this
+section explains how to build Concord natively, which can be useful for
+debugging. These steps primarily target building Concord on Ubuntu 18.04. If you
+run into trouble with the following steps, compare them to the steps in
+(./DockerfilePrereqs) and (./Dockerfile), which are used to build concord for
+deployment.
 
 ### Dependencies
 
 #### Pre-built libraries and tools
 
-You will need cmake, clang, and g++, gmp, GNU Parallel, autoconf, automake, LLVM 5.0, libgmp3-dev, GMP 3, GNU Libtool, several Boost libraries, and yaml-cpp:
+You will need cmake, clang, and g++, gmp, GNU Parallel, autoconf, automake, LLVM
+5.0, libgmp3-dev, GMP 3, GNU Libtool, several Boost libraries (at the time of
+this writing, we use program-options, system, and thread), and yaml-cpp:
 
 ```
-sudo apt-get install cmake clang g++ parallel autoconf automake llvm-5.0 llvm-5.0-dev libgmp3-dev libtool libboost1.65-dev libboost-program-options1.65-dev libboost-program-options1.65.1 libboost-system1.65-dev libboost-system1.65.1 libboost-thread1.65-dev libboost-thread1.65.1 libyaml-cpp0.5v5 libyaml-cpp-dev
+sudo apt-get install cmake clang g++ parallel autoconf automake llvm-5.0 \
+  llvm-5.0-dev libgmp3-dev libtool libboost1.65-dev \
+  libboost-program-options1.65-dev libboost-program-options1.65.1 \
+  libboost-system1.65-dev libboost-system1.65.1 libboost-thread1.65-dev \
+  libboost-thread1.65.1 libyaml-cpp0.5v5 libyaml-cpp-dev
 ```
 
 #### Relic
@@ -46,7 +58,9 @@ $ sudo apt-get install libprotobuf-dev protobuf-compiler
 
 #### Log4CPlus
 
-This project uses [log4cplus](https://github.com/log4cplus/log4cplus) logging framework. We are currently using version 1.2.1 of this library. Do not use version 2.0 or further as it changes some interfaces and header files
+This project uses [log4cplus](https://github.com/log4cplus/log4cplus) logging
+framework. We are currently using version 1.2.1 of this library. Do not use
+version 2.0 or further as it changes some interfaces and header files
 
 Follow below steps for installing this library.
 
@@ -151,7 +165,10 @@ sudo make install
 
 #### Google Test
 
-Concord uses [GoogleTest](https://github.com/google/googletest) framework for unit testsing. We also need that during the build process of concord. please clone google test to the same directory you cloned blockchain (i.e. two directories up from this README file), and build it:
+Concord uses [GoogleTest](https://github.com/google/googletest) framework for
+unit testsing. We also need that during the build process of concord. please
+clone google test to the same directory you cloned blockchain (i.e. two
+directories up from this README file), and build it:
 
 ```
 git clone git@github.com:google/googletest.git

@@ -473,13 +473,7 @@ ConcordConfiguration::ConfigurationIterator::ConfigurationIterator(
 
     // If the above initializations leave this iterator in a state where it is
     // pointing to a path that it cannot return, then we call ++ to advance it
-    // to the first point where it can actually return something (if any). If
-    // this iterator , then we advance it here with ++, which will set it to the
-    // first thing it actually should return; note the implementation of
-    // ConfigurationIterator::operator ++, at the time of this writing, should
-    // not be sensitive to the fact that the position the iterator starts at
-    // when ++ gets a hold of it is not a position that iterator has been
-    // configured to return.
+    // to the first point where it can actually return something (if any).
     if ((currentParam == endParams) && (currentScope != endScopes) &&
         (!scopes || !templates)) {
       ++(*this);

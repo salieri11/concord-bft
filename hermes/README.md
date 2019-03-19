@@ -49,8 +49,9 @@ Hermes is the testing framework for VMW Blockchain.
 
 ## Requirements:
 - Python 3.7.1.  Installation reference: https://docs.python.org/3/using/
-- Python packages: matplotlib, numpy, pyyaml, and web3. Pip may be fussy if Python was
-  upgraded.  Try: `python3 -m pip install <package>` if having trouble.
+- Python packages: matplotlib, numpy, pyyaml, web3, and xvfbwrapper. Pip may be
+  fussy if Python was upgraded.  Try: `python3 -m pip install <package>` if
+  having trouble.
 - To run the "CoreVMTests" suite, fetch the ethereum/tests project from Github:
   https://github.com/ethereum/tests
   Then adjust the path to it in resources/user_config.json.
