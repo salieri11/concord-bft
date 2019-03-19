@@ -45,6 +45,11 @@ typedef struct concord_context {
   // evm_message.sender, but sender changes as contracts call other contracts,
   // while origin always points to the same address.
   struct evm_address origin;
+
+  // Which contract we're actually using for storage. This is usually the
+  // contract being called, but may be the contract doing the calling during
+  // CALLCODE and DELEGATECALL.
+  struct evm_address storage_contract;
 } concord_context;
 
 EVM* ath_object(const struct evm_context* evmctx);
@@ -97,7 +102,8 @@ class EVM {
                      evm_result& result);
   evm_result run(evm_message& message, uint64_t timestamp,
                  KVBStorage& kvbStorage, std::vector<EthLog>& evmLogs,
-                 const evm_address& origin);
+                 const evm_address& origin,
+                 const evm_address& storage_contract);
   evm_result create(evm_address& contract_address, evm_message& message,
                     uint64_t timestamp, KVBStorage& kvbStorage,
                     std::vector<EthLog>& evmLogs, const evm_address& origin);
@@ -113,7 +119,8 @@ class EVM {
   evm_result execute(evm_message& message, uint64_t timestamp,
                      KVBStorage& kvbStorage, std::vector<EthLog>& evmLogs,
                      const std::vector<uint8_t>& code,
-                     const evm_address& origin);
+                     const evm_address& origin,
+                     const evm_address& storage_contract);
 };
 
 }  // namespace concord

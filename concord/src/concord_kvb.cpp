@@ -947,7 +947,8 @@ evm_result com::vmware::concord::KVBCommandsHandler::run_evm(
     memcpy(message.destination.bytes, request.addr_to().c_str(),
            sizeof(message.destination));
 
-    result = athevm_.run(message, timestamp, kvbStorage, logs, message.sender);
+    result = athevm_.run(message, timestamp, kvbStorage, logs, message.sender,
+                         message.destination);
   } else {
     message.kind = EVM_CREATE;
 

@@ -424,8 +424,12 @@ class CoreVMTests(test_suite.TestSuite):
          testVerified = True
 
       if success and expectedStorage:
+         # Note: since DELEGATECALL is used to make the call, the
+         # storage used is the caller contract, not the callee
+         # contract, so callerAddress is passed instead of
+         # contractAddress here.
          success, info = self._checkExpectedStorage(rpc,
-                                                    contractAddress,
+                                                    callerAddress,
                                                     expectedStorage)
          testVerified = True
 
@@ -462,9 +466,15 @@ class CoreVMTests(test_suite.TestSuite):
       else:
          numBytesOut = 0
 
-      invokeCallBytecode = self._createCALLBytecode(contractAddress,
-                                                    numBytesOut, testData)
-      log.debug("CALL bytecode: {}".format(invokeCallBytecode))
+      # Note: DELEGATECALL is used intead of CALL, because the value
+      # returned by the CALLER opcode must be the address used to send
+      # the transaction. If CALL is used, CALLER returns the address
+      # of the intermediate contract we create by sending this
+      # transaction.
+      invokeCallBytecode = self._createDELEGATECALLBytecode(contractAddress,
+                                                            numBytesOut,
+                                                            testData)
+      log.debug("DELEGATECALL bytecode: {}".format(invokeCallBytecode))
       log.debug("Creating the contract which will invoke the test contract.")
       txHash = rpc.sendTransaction(user["hash"],
                                    invokeCallBytecode,
@@ -490,7 +500,10 @@ class CoreVMTests(test_suite.TestSuite):
       storageSlots = self._countStorageSlotsForBytes(lengthRetBytes)
       expectedOutRemaining = fullExpectedOut
 
-      for storageSlot in range(0, storageSlots):
+      storageStart = self._delegateStorageKey()
+      storageEnd = storageStart + storageSlots
+
+      for storageSlot in range(storageStart, storageEnd):
          actual = rpc.getStorageAt(callerAddress, hex(storageSlot))
          actual = trimHexIndicator(actual)
          expected = None

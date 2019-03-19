@@ -106,7 +106,8 @@ evm_result com::vmware::concord::EVM::run(evm_message& message,
                                           uint64_t timestamp,
                                           KVBStorage& kvbStorage,
                                           std::vector<EthLog>& evmLogs,
-                                          const evm_address& origin) {
+                                          const evm_address& origin,
+                                          const evm_address& storage_contract) {
   assert(message.kind != EVM_CREATE);
 
   std::vector<uint8_t> code;
@@ -121,7 +122,8 @@ evm_result com::vmware::concord::EVM::run(evm_message& message,
     message.code_hash = hash;
 
     try {
-      result = execute(message, timestamp, kvbStorage, evmLogs, code, origin);
+      result = execute(message, timestamp, kvbStorage, evmLogs, code, origin,
+                       storage_contract);
       if (result.status_code == EVM_SUCCESS) {
         uint64_t transfer_val = from_evm_uint256be(&message.value);
         if (transfer_val > 0) {
@@ -182,8 +184,8 @@ evm_result com::vmware::concord::EVM::create(evm_address& contract_address,
     // something random
     message.code_hash = EthHash::keccak_hash(create_code);
 
-    result =
-        execute(message, timestamp, kvbStorage, evmLogs, create_code, origin);
+    result = execute(message, timestamp, kvbStorage, evmLogs, create_code,
+                     origin, contract_address);
 
     // TODO: check if the new contract is zero bytes in length;
     //       return error, not success in that case
@@ -274,16 +276,14 @@ evm_address com::vmware::concord::EVM::contract_destination(
   return address;
 }
 
-evm_result com::vmware::concord::EVM::execute(evm_message& message,
-                                              uint64_t timestamp,
-                                              KVBStorage& kvbStorage,
-                                              std::vector<EthLog>& evmLogs,
-                                              const std::vector<uint8_t>& code,
-                                              const evm_address& origin) {
+evm_result com::vmware::concord::EVM::execute(
+    evm_message& message, uint64_t timestamp, KVBStorage& kvbStorage,
+    std::vector<EthLog>& evmLogs, const std::vector<uint8_t>& code,
+    const evm_address& origin, const evm_address& storage_contract) {
   // wrap an evm context in an concord context
   concord_context athctx = {
-      {&concord_fn_table}, this,  &kvbStorage, &evmLogs, &logger,
-      timestamp,           origin};
+      {&concord_fn_table}, this,   &kvbStorage,     &evmLogs, &logger,
+      timestamp,           origin, storage_contract};
 
   return evminst->execute(evminst, &athctx.evmctx, EVM_BYZANTIUM, &message,
                           &code[0], code.size());
@@ -317,11 +317,14 @@ int ath_account_exists(struct evm_context* evmctx,
 void ath_get_storage(struct evm_uint256be* result, struct evm_context* evmctx,
                      const struct evm_address* address,
                      const struct evm_uint256be* key) {
-  LOG4CPLUS_DEBUG(
-      *(ath_context(evmctx)->logger),
-      "EVM::get_storage called, address: " << *address << " key: " << *key);
+  LOG4CPLUS_DEBUG(*(ath_context(evmctx)->logger),
+                  "EVM::get_storage called, contract address: "
+                      << *address << " storage contract: "
+                      << ath_context(evmctx)->storage_contract
+                      << " key: " << *key);
 
-  *result = ath_context(evmctx)->kvbStorage->get_storage(*address, *key);
+  *result = ath_context(evmctx)->kvbStorage->get_storage(
+      ath_context(evmctx)->storage_contract, *key);
 }
 
 void ath_set_storage(struct evm_context* evmctx,
@@ -329,10 +332,13 @@ void ath_set_storage(struct evm_context* evmctx,
                      const struct evm_uint256be* key,
                      const struct evm_uint256be* value) {
   LOG4CPLUS_DEBUG(*(ath_context(evmctx)->logger),
-                  "EVM::set_storage called, address: "
-                      << *address << " key: " << *key << " value: " << *value);
+                  "EVM::set_storage called, contract address: "
+                      << *address << " storage contract: "
+                      << ath_context(evmctx)->storage_contract
+                      << " key: " << *key << " value: " << *value);
 
-  ath_context(evmctx)->kvbStorage->set_storage(*address, *key, *value);
+  ath_context(evmctx)->kvbStorage->set_storage(
+      ath_context(evmctx)->storage_contract, *key, *value);
 }
 
 void ath_get_balance(struct evm_uint256be* result, struct evm_context* evmctx,
@@ -440,10 +446,18 @@ void ath_call(struct evm_result* result, struct evm_context* evmctx,
         contract_address, call_msg, ath_context(evmctx)->timestamp, *kvbStorage,
         *(ath_context(evmctx)->evmLogs), ath_context(evmctx)->origin);
   } else {
-    *result = ath_object(evmctx)->run(call_msg, ath_context(evmctx)->timestamp,
-                                      *(ath_context(evmctx)->kvbStorage),
-                                      *(ath_context(evmctx)->evmLogs),
-                                      ath_context(evmctx)->origin);
+    // CALLCODE and DELEGATECALL both cause the called contract's code to
+    // operate on the calling contract's storage (i.e. do not change which
+    // storage we were using before the op in that case)
+    const evm_address& storage_contract =
+        (msg->kind == EVM_CALLCODE || msg->kind == EVM_DELEGATECALL)
+            ? ath_context(evmctx)->storage_contract
+            : msg->destination;
+
+    *result = ath_object(evmctx)->run(
+        call_msg, ath_context(evmctx)->timestamp,
+        *(ath_context(evmctx)->kvbStorage), *(ath_context(evmctx)->evmLogs),
+        ath_context(evmctx)->origin, storage_contract);
   }
 }
 
