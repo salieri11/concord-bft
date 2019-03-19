@@ -39,7 +39,7 @@ using std::vector;
 #define REPLICAS_CONFIG "replicas_config"
 
 const char* TestCommConfig::ip_port_delimiter_ = ":";
-const std::string TestCommConfig::default_ip_ = "127.0.0.1";
+const std::string TestCommConfig::default_ip_ = "0.0.0.0";
 
 //////////////////////////////////////////////////////////////////////////////
 // Create a replica config for the replica with index `replicaId`.
@@ -186,7 +186,9 @@ TlsTcpConfig TestCommConfig::getTlsTCPConfig(
       SetUpNodes(is_replica, id, ip, port, num_of_clients, num_of_replicas,
                  config_file_name);
 
+  // need to move the default cipher suite to the config file
   TlsTcpConfig retVal(ip, port, buf_length_, nodes,
-                      num_of_replicas -1, id, "certs");
+                      num_of_replicas -1, id, "certs",
+                      "ECDHE-ECDSA-AES256-GCM-SHA384");
   return retVal;
 }

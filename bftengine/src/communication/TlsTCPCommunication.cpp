@@ -53,8 +53,6 @@ using namespace boost;
 
 namespace bftEngine {
 
-#define ASSERT_(expr,text) if(!(expr)){LOG_ERROR(_logger,text); assert(false);}
-
 class AsyncTlsConnection;
 
 typedef boost::system::error_code B_ERROR_CODE;
@@ -179,6 +177,7 @@ class AsyncTlsConnection : public
                      string certificatesRootFolder,
                      ConnType type,
                      NodeMap nodes,
+                     string cipherSuite,
                      UPDATE_CONNECTIVITY_FN statusCallback = nullptr) :
       _service(service),
       _maxMessageLength(bufferLength + MSG_HEADER_SIZE + 1),
@@ -205,7 +204,7 @@ class AsyncTlsConnection : public
 
     _inBuffer = new char[_bufferLength];
 
-    set_tls();
+    set_tls(cipherSuite);
 
     _socket = B_TLS_SOCKET_PTR(new SSL_SOCKET(*service, _sslContext));
     _connectTimer.expires_at(boost::posix_time::pos_infin);
@@ -376,7 +375,7 @@ class AsyncTlsConnection : public
     }
   }
 
-  void set_tls() {
+  void set_tls(string cipherSuite) {
     assert(_connType != ConnType::NotDefined);
 
     if (ConnType::Incoming == _connType)
@@ -384,8 +383,8 @@ class AsyncTlsConnection : public
     else
       set_tls_client();
 
-    SSL_CTX_set_cipher_list(_sslContext.native_handle(),
-                            "SHA384");
+    // force specific suite/s only. we want to use the strongest cipher suites
+    SSL_CTX_set_cipher_list(_sslContext.native_handle(),cipherSuite.c_str());
   }
 
   void set_tls_server() {
@@ -696,6 +695,13 @@ class AsyncTlsConnection : public
   /// ************ connect functions end ************************** ///
 
   /// ************* read functions ******************* ////
+  /// the read process is as follows:
+  /// 1. read_some of MSG_HEADER_SIZE bytes without starting timer. This
+  /// is async call and the callback can be triggered after partial read
+  /// 2. start async_read of either the rest part of the header (if was
+  /// partial) or the message itself. Start timer for handling the timeout.
+  /// 3. when read completed, cancel the timer
+  /// 4. if timer ticks - the read hasnt completed, close the connection.
 
   void on_read_timer_expired(const B_ERROR_CODE &ec) {
     if(_closed) {
@@ -860,6 +866,15 @@ class AsyncTlsConnection : public
   /// ************* read functions end ******************* ////
 
   /// ************* write functions ******************* ////
+  /// the write process works as follows:
+  /// 1. the send() function copies the data to the outgoing queue and calls
+  /// post() - because the async_write_* should be called from one of the asio's
+  /// worker threads.
+  /// 2. the post callback checks if there is no pending write (queue size is 0
+  /// and if true start asycn_write, with timer enabled
+  /// 3. when write completed, cancels the timer. check if more messages
+  /// are in the out queue - if true, start another async_write with timer.
+  /// 4. if timer ticks - the write hasn't completed, close the connection.
 
   void put_message_header(char *data, uint32_t dataLength) {
     memcpy(data, &dataLength, MSG_LENGTH_FIELD_SIZE);
@@ -1017,7 +1032,7 @@ class AsyncTlsConnection : public
                                  shared_from_this()));
     }
 
-    LOG_INFO(_logger, "from: " << _selfId
+    LOG_DEBUG(_logger, "from: " << _selfId
                                << ", to: " << _destId
                                << ", length: " << length);
 
@@ -1045,7 +1060,8 @@ class AsyncTlsConnection : public
                                string certificatesRootFolder,
                                ConnType type,
                                UPDATE_CONNECTIVITY_FN statusCallback,
-                               NodeMap nodes) {
+                               NodeMap nodes,
+                               string cipherSuite) {
     auto res = ASYNC_CONN_PTR(
         new AsyncTlsConnection(service,
                                onError,
@@ -1056,6 +1072,7 @@ class AsyncTlsConnection : public
                                certificatesRootFolder,
                                type,
                                nodes,
+                               cipherSuite,
                                statusCallback));
     res->init();
     return res;
@@ -1103,6 +1120,7 @@ class TlsTCPCommunication::TlsTcpImpl {
   string _certRootFolder;
   Logger _logger;
   UPDATE_CONNECTIVITY_FN _statusCallback;
+  string _cipherSuite;
 
   recursive_mutex _connectionsGuard;
 
@@ -1192,7 +1210,8 @@ class TlsTCPCommunication::TlsTcpImpl {
             _certRootFolder,
             ConnType::Incoming,
             _statusCallback,
-            _nodes);
+            _nodes,
+            _cipherSuite);
     _pAcceptor->async_accept(conn->get_socket().lowest_layer(),
                              boost::bind(
                                  &TlsTcpImpl::on_accept,
@@ -1213,6 +1232,7 @@ class TlsTCPCommunication::TlsTcpImpl {
              uint32_t maxServerId,
              string listenIp,
              string certRootFolder,
+             string cipherSuite,
              UPDATE_CONNECTIVITY_FN statusCallback = nullptr) :
       _selfId(selfNodeNum),
       _listenPort(listenPort),
@@ -1221,7 +1241,8 @@ class TlsTCPCommunication::TlsTcpImpl {
       _maxServerId(maxServerId),
       _certRootFolder(certRootFolder),
       _logger(Logger::getLogger("concord.tls")),
-      _statusCallback{statusCallback} {
+      _statusCallback{statusCallback},
+      _cipherSuite{cipherSuite} {
     //_service = new io_service();
     for (auto it = nodes.begin(); it != nodes.end(); it++) {
       _nodes.insert({it->first, it->second});
@@ -1270,7 +1291,8 @@ class TlsTCPCommunication::TlsTcpImpl {
             _certRootFolder,
             ConnType::Outgoing,
             _statusCallback,
-            _nodes);
+            _nodes,
+            _cipherSuite);
 
     conn->connect(peerIp, peerPort);
     LOG_DEBUG(_logger, "connect called for node " << _selfId);
@@ -1284,14 +1306,16 @@ class TlsTCPCommunication::TlsTcpImpl {
                             uint16_t listenPort,
                             uint32_t tempHighestNodeForConnecting,
                             string listenIp,
-                            string certRootFolder) {
+                            string certRootFolder,
+                            string cipherSuite) {
     return new TlsTcpImpl(selfNodeId,
                           nodes,
                           bufferLength,
                           listenPort,
                           tempHighestNodeForConnecting,
                           listenIp,
-                          certRootFolder);
+                          certRootFolder,
+                          cipherSuite);
   }
 
   int getMaxMessageSize() {
@@ -1390,7 +1414,8 @@ TlsTCPCommunication::TlsTCPCommunication(const TlsTcpConfig &config) {
                                 config.listenPort,
                                 config.maxServerId,
                                 config.listenIp,
-                                config.certificatesRootPath);
+                                config.certificatesRootPath,
+                                config.cipherSuite);
 }
 
 TlsTCPCommunication *TlsTCPCommunication::create(const TlsTcpConfig &config) {
