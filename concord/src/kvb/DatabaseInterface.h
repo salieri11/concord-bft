@@ -11,15 +11,22 @@
 #ifndef DATABASEINTERFACE_H
 #define DATABASEINTERFACE_H
 
+#include <unordered_map>
+#include <vector>
+
 #include "sliver.hpp"
 #include "status.hpp"
 
 #define OUT
 
-using std::pair;
-
 namespace Blockchain {
-typedef pair<Sliver, Sliver> KeyValuePair;
+typedef uint64_t BlockId;
+typedef Sliver Key;
+typedef Sliver Value;
+typedef std::pair<Key, Value> KeyValuePair;
+typedef std::unordered_map<Key, Value> SetOfKeyValuePairs;
+typedef std::vector<Key> KeysVector;
+typedef KeysVector ValuesVector;
 
 class IDBClient {
  public:
@@ -30,9 +37,11 @@ class IDBClient {
   virtual Status get(Sliver _key, OUT Sliver &_outValue) const = 0;
   virtual Status put(Sliver _key, Sliver _value) = 0;
   virtual Status del(Sliver _key) = 0;
+  virtual Status multiGet(const KeysVector &_keysVec,
+                          OUT ValuesVector &_valuesVec) = 0;
+  virtual Status multiPut(const SetOfKeyValuePairs &_keyValueMap) = 0;
+  virtual Status multiDel(const KeysVector &_keysVec) = 0;
   virtual void monitor() const = 0;
-
-  // TODO(GG): add multi-get , multi-put, and multi-del
 
   class IDBClientIterator {
    public:

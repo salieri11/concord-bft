@@ -52,3 +52,12 @@ target_link_libraries(ConfigTests
   kvblockchain
   gtest
   gtest_main)
+
+add_executable(MultiIOTests
+  multiIO_test.cpp)
+
+target_link_libraries(MultiIOTests
+  ${GTEST_LIBRARIES}
+  kvblockchain
+  gtest
+  gtest_main)

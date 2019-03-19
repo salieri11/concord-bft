@@ -17,10 +17,9 @@
 #include <chrono>
 #include <cstring>
 
-#include "HexTools.h"
+#include "HashDefs.h"
 #include "InMemoryDBClient.h"
 #include "sliver.hpp"
-#include "status.hpp"
 
 using namespace Blockchain;
 
@@ -44,10 +43,10 @@ Status InMemoryDBClient::init(bool readOnly) {
  *                  successful.
  * @return Status NotFound if no mapping is found, else, Status OK.
  */
-Status InMemoryDBClient::get(Sliver _key, OUT Sliver& _outValue) const {
+Status InMemoryDBClient::get(Sliver _key, OUT Sliver &_outValue) const {
   try {
     _outValue = map.at(_key);
-  } catch (const std::out_of_range& oor) {
+  } catch (const std::out_of_range &oor) {
     return Status::NotFound(oor.what());
   }
 
@@ -59,8 +58,8 @@ Status InMemoryDBClient::get(Sliver _key, OUT Sliver& _outValue) const {
  *
  * @return A pointer to IDBClientIterator object.
  */
-IDBClient::IDBClientIterator* InMemoryDBClient::getIterator() const {
-  return new InMemoryDBClientIterator((InMemoryDBClient*)this);
+IDBClient::IDBClientIterator *InMemoryDBClient::getIterator() const {
+  return new InMemoryDBClientIterator((InMemoryDBClient *)this);
 }
 
 /**
@@ -70,12 +69,12 @@ IDBClient::IDBClientIterator* InMemoryDBClient::getIterator() const {
  *              freed.
  * @return Status InvalidArgument if iterator is null pointer, else, Status OK.
  */
-Status InMemoryDBClient::freeIterator(IDBClientIterator* _iter) const {
+Status InMemoryDBClient::freeIterator(IDBClientIterator *_iter) const {
   if (_iter == NULL) {
     return Status::InvalidArgument("Invalid iterator");
   }
 
-  delete (InMemoryDBClientIterator*)_iter;
+  delete (InMemoryDBClientIterator *)_iter;
   return Status::OK();
 }
 
@@ -99,7 +98,7 @@ Status InMemoryDBClient::put(Sliver _key, Sliver _value) {
 
   Sliver key;
   if (!keyExists) {
-    uint8_t* keyBytes = new uint8_t[_key.length()];
+    uint8_t *keyBytes = new uint8_t[_key.length()];
     memcpy(keyBytes, _key.data(), _key.length());
     key = Sliver(keyBytes, _key.length());
   } else {
@@ -107,7 +106,7 @@ Status InMemoryDBClient::put(Sliver _key, Sliver _value) {
   }
 
   Sliver value;
-  uint8_t* valueBytes = new uint8_t[_value.length()];
+  uint8_t *valueBytes = new uint8_t[_value.length()];
   memcpy(valueBytes, _value.data(), _value.length());
   value = Sliver(valueBytes, _value.length());
 
@@ -137,6 +136,36 @@ Status InMemoryDBClient::del(Sliver _key) {
   // Else: Error to delete non-existing key?
 
   return Status::OK();
+}
+
+Status InMemoryDBClient::multiGet(const KeysVector &_keysVec,
+                                  OUT ValuesVector &_valuesVec) {
+  Status status = Status::OK();
+  Sliver sliver;
+  for (auto const &it : _keysVec) {
+    status = get(it, sliver);
+    if (!status.isOK()) return status;
+    _valuesVec.push_back(sliver);
+  }
+  return status;
+}
+
+Status InMemoryDBClient::multiPut(const SetOfKeyValuePairs &_keyValueMap) {
+  Status status = Status::OK();
+  for (const auto &it : _keyValueMap) {
+    status = put(it.first, it.second);
+    if (!status.isOK()) return status;
+  }
+  return status;
+}
+
+Status InMemoryDBClient::multiDel(const KeysVector &_keysVec) {
+  Status status = Status::OK();
+  for (auto const &it : _keysVec) {
+    status = del(it);
+    if (!status.isOK()) return status;
+  }
+  return status;
 }
 
 /**

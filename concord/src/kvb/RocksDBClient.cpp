@@ -15,10 +15,9 @@
 
 #include <log4cplus/loggingmacros.h>
 
-#include "HexTools.h"
+#include "HashDefs.h"
 #include "RocksDBClient.h"
-#include "rocksdb/options.h"
-#include "sliver.hpp"
+#include "rocksdb/comparator.h"
 
 namespace Blockchain {
 // Counter for number of read requests
@@ -32,7 +31,7 @@ static bool g_rocksdb_print_measurements;
  * @return A RocksDB Slice object.
  */
 rocksdb::Slice toRocksdbSlice(Sliver _s) {
-  return rocksdb::Slice(reinterpret_cast<char*>(_s.data()), _s.length());
+  return rocksdb::Slice(reinterpret_cast<char *>(_s.data()), _s.length());
 }
 
 /**
@@ -47,8 +46,8 @@ rocksdb::Slice toRocksdbSlice(Sliver _s) {
  * @return A Sliver object.
  */
 Sliver fromRocksdbSlice(rocksdb::Slice _s) {
-  char* nonConstData = const_cast<char*>(_s.data());
-  return Sliver(reinterpret_cast<uint8_t*>(nonConstData), _s.size());
+  char *nonConstData = const_cast<char *>(_s.data());
+  return Sliver(reinterpret_cast<uint8_t *>(nonConstData), _s.size());
 }
 
 /**
@@ -58,7 +57,7 @@ Sliver fromRocksdbSlice(rocksdb::Slice _s) {
  * @return A Sliver object.
  */
 Sliver copyRocksdbSlice(rocksdb::Slice _s) {
-  uint8_t* copyData = new uint8_t[_s.size()];
+  uint8_t *copyData = new uint8_t[_s.size()];
   std::copy(_s.data(), _s.data() + _s.size(), copyData);
   return Sliver(copyData, _s.size());
 }
@@ -124,7 +123,7 @@ Status RocksDBClient::close() {
  * @return Status NotFound if key is not present, Status GeneralError if error
  *         in Get, else Status OK.
  */
-Status RocksDBClient::get(Sliver _key, OUT Sliver& _outValue) const {
+Status RocksDBClient::get(Sliver _key, OUT Sliver &_outValue) const {
   ++g_rocksdb_called_read;
   if (g_rocksdb_print_measurements) {
     LOG4CPLUS_DEBUG(logger, "Reading count = " << g_rocksdb_called_read
@@ -147,7 +146,7 @@ Status RocksDBClient::get(Sliver _key, OUT Sliver& _outValue) const {
 
   size_t valueSize = value.size();
   // Must copy the string data
-  uint8_t* stringCopy = new uint8_t[valueSize];
+  uint8_t *stringCopy = new uint8_t[valueSize];
   memcpy(stringCopy, value.data(), valueSize);
   _outValue = Sliver(stringCopy, valueSize);
 
@@ -159,7 +158,7 @@ Status RocksDBClient::get(Sliver _key, OUT Sliver& _outValue) const {
  *
  * @return RocksDBClientIterator object.
  */
-IDBClient::IDBClientIterator* RocksDBClient::getIterator() const {
+IDBClient::IDBClientIterator *RocksDBClient::getIterator() const {
   return new RocksDBClientIterator(this);
 }
 
@@ -170,12 +169,12 @@ IDBClient::IDBClientIterator* RocksDBClient::getIterator() const {
  *              that needs to be freed.
  * @return Status InvalidArgument if iterator is null pointer, else, Status OK.
  */
-Status RocksDBClient::freeIterator(IDBClientIterator* _iter) const {
+Status RocksDBClient::freeIterator(IDBClientIterator *_iter) const {
   if (_iter == NULL) {
     return Status::InvalidArgument("Invalid iterator");
   }
 
-  delete (RocksDBClientIterator*)_iter;
+  delete (RocksDBClientIterator *)_iter;
 
   return Status::OK();
 }
@@ -187,7 +186,7 @@ Status RocksDBClient::freeIterator(IDBClientIterator* _iter) const {
  *
  * @return A pointer to RocksDbIterator object.
  */
-rocksdb::Iterator* RocksDBClient::getNewRocksDbIterator() const {
+rocksdb::Iterator *RocksDBClient::getNewRocksDbIterator() const {
   return m_dbInstance->NewIterator(rocksdb::ReadOptions());
 }
 
@@ -207,7 +206,7 @@ void RocksDBClient::monitor() const {
  *
  * Calls the getNewRocksDbIterator function.
  */
-RocksDBClientIterator::RocksDBClientIterator(const RocksDBClient* _parentClient)
+RocksDBClientIterator::RocksDBClientIterator(const RocksDBClient *_parentClient)
     : logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")),
       m_parentClient(_parentClient),
       m_status(Status::OK()) {
@@ -261,6 +260,74 @@ Status RocksDBClient::del(Sliver _key) {
   }
 
   return Status::OK();
+}
+
+Status RocksDBClient::multiGet(const KeysVector &_keysVec,
+                               OUT ValuesVector &_valuesVec) {
+  std::vector<std::string> values;
+  std::vector<rocksdb::Slice> keys;
+  for (auto const &it : _keysVec) keys.push_back(toRocksdbSlice(it));
+
+  std::vector<rocksdb::Status> statuses =
+      m_dbInstance->MultiGet(rocksdb::ReadOptions(), keys, &values);
+
+  for (size_t i = 0; i < values.size(); i++) {
+    if (statuses[i].IsNotFound()) return Status::NotFound("Not found");
+
+    if (!statuses[i].ok()) {
+      LOG4CPLUS_WARN(logger, "Failed to get key " << _keysVec[i] << " due to "
+                                                  << statuses[i].ToString());
+      return Status::GeneralError("Failed to read key");
+    }
+    size_t valueSize = values[i].size();
+    auto valueStr = new uint8_t[valueSize];
+    memcpy(valueStr, values[i].data(), valueSize);
+    _valuesVec.push_back(Sliver(valueStr, valueSize));
+  }
+  return Status::OK();
+}
+
+Status RocksDBClient::launchBatchJob(rocksdb::WriteBatch &_batchJob,
+                                     const KeysVector &_keysVec) {
+  std::ostringstream keys;
+  for (auto const &it : _keysVec) keys << it << ", ";
+  rocksdb::WriteOptions wOptions = rocksdb::WriteOptions();
+  rocksdb::Status status = m_dbInstance->Write(wOptions, &_batchJob);
+  if (!status.ok()) {
+    LOG4CPLUS_ERROR(logger,
+                    "Execution of batch job failed; keys: " << keys.str());
+    return Status::GeneralError("Execution of batch job failed");
+  }
+  LOG4CPLUS_DEBUG(logger,
+                  "Successfully executed a batch job for keys: " << keys.str());
+  return Status::OK();
+}
+
+Status RocksDBClient::multiPut(const SetOfKeyValuePairs &_keyValueMap) {
+  rocksdb::WriteBatch batch;
+  KeysVector keysVec;
+  for (const auto &it : _keyValueMap) {
+    batch.Put(toRocksdbSlice(it.first), toRocksdbSlice(it.second));
+    keysVec.push_back(it.first);
+    LOG4CPLUS_DEBUG(logger, "RocksDB Added entry: key ="
+                                << it.first << ", value= " << it.second
+                                << " to the batch job");
+  }
+  Status status = launchBatchJob(batch, keysVec);
+  if (status.isOK())
+    LOG4CPLUS_DEBUG(logger, "Successfully put all entries to the database");
+  return status;
+}
+
+Status RocksDBClient::multiDel(const KeysVector &_keysVec) {
+  rocksdb::WriteBatch batch;
+  std::ostringstream keys;
+  for (auto const &it : _keysVec) {
+    batch.Delete(toRocksdbSlice(it));
+  }
+  Status status = launchBatchJob(batch, _keysVec);
+  if (status.isOK()) LOG4CPLUS_DEBUG(logger, "Successfully deleted entries");
+  return status;
 }
 
 /**

@@ -38,6 +38,8 @@ class Status {
     return s;
   };
 
+  bool operator==(const Status& status) const { return type == status.type; };
+
  private:
   enum statusType {
     ok,
