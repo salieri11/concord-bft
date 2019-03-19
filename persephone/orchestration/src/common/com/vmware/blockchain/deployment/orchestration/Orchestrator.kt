@@ -18,7 +18,7 @@ import com.vmware.blockchain.deployment.reactive.Publisher
 interface Orchestrator {
 
     /**
-     * Error denoting the condition that a resource creation requestion cannot be satisfied.
+     * Error denoting the condition that a resource creation requisition cannot be satisfied.
      *
      * @param[request]
      *   resource requisition request.
@@ -33,7 +33,7 @@ interface Orchestrator {
      * @param[concordModelSpecification]
      *   metadata specification of versioned Concord model template to deploy.
      */
-    data class CreateDeploymentRequest(
+    data class CreateComputeResourceRequest(
         val sessionIdentifier: DeploymentSessionIdentifier,
         val clusterIdentifier: ConcordClusterIdentifier,
         val concordModelSpecification: ConcordModelSpecification
@@ -45,7 +45,7 @@ interface Orchestrator {
      * @param[resource]
      *   deployment resource to be deleted.
      */
-    data class DeleteDeploymentRequest(val resource: URI)
+    data class DeleteComputeResourceRequest(val resource: URI)
 
     /**
      * Events corresponding to the execution of a deployment session.
@@ -103,7 +103,7 @@ interface Orchestrator {
     fun close()
 
     /**
-     * Create a Concord deployment based on a given [CreateDeploymentRequest].
+     * Create a Concord deployment based on a given [CreateComputeResourceRequest].
      *
      * @param[request]
      *   deployment creation request specification.
@@ -111,10 +111,10 @@ interface Orchestrator {
      * @return
      *   a [Publisher] of [DeploymentEvent] corresponding to side-effects engendered by the request.
      */
-    fun createDeployment(request: CreateDeploymentRequest): Publisher<DeploymentEvent>
+    fun createDeployment(request: CreateComputeResourceRequest): Publisher<DeploymentEvent>
 
     /**
-     * Delete a Concord deployment based on a given [DeleteDeploymentRequest].
+     * Delete a Concord deployment based on a given [DeleteComputeResourceRequest].
      *
      * @param[request]
      *   deployment deletion request specification.
@@ -122,7 +122,7 @@ interface Orchestrator {
      * @return
      *   a [Publisher] of [DeploymentEvent] corresponding to side-effects engendered by the request.
      */
-    fun deleteDeployment(request: DeleteDeploymentRequest): Publisher<DeploymentEvent>
+    fun deleteDeployment(request: DeleteComputeResourceRequest): Publisher<DeploymentEvent>
 
     /**
      * Create a reachable network address based on a given [CreateNetworkResourceRequest].

@@ -21,13 +21,7 @@ import com.vmware.blockchain.deployment.model.vsphere.NetworkMapping
 import com.vmware.blockchain.deployment.model.vsphere.OvfParameter
 import com.vmware.blockchain.deployment.model.vsphere.OvfParameterTypes
 import com.vmware.blockchain.deployment.model.vsphere.OvfProperty
-import com.vmware.blockchain.deployment.model.vmc.AddressGroup
-import com.vmware.blockchain.deployment.model.vmc.DhcpConfig
-import com.vmware.blockchain.deployment.model.vmc.DhcpIpPool
-import com.vmware.blockchain.deployment.model.vmc.GetLogicalNetworkResponse
-import com.vmware.blockchain.deployment.model.vmc.LogicalNetwork
 import com.vmware.blockchain.deployment.model.vmc.Sddc
-import com.vmware.blockchain.deployment.model.vmc.Subnets
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.reactive.Publisher
 import kotlinx.coroutines.CoroutineScope
@@ -198,7 +192,7 @@ class VmcOrchestrator private constructor(
     }
 
     override fun createDeployment(
-        request: Orchestrator.CreateDeploymentRequest
+        request: Orchestrator.CreateComputeResourceRequest
     ): Publisher<Orchestrator.DeploymentEvent> {
         val sessionId = UUID(request.sessionIdentifier.high, request.sessionIdentifier.low)
         val clusterId = UUID(request.clusterIdentifier.high, request.clusterIdentifier.low)
@@ -207,7 +201,7 @@ class VmcOrchestrator private constructor(
             val getDatastore = async { getDatastore() }
             val getResourcePool = async { getResourcePool() }
             val ensureControlNetwork = async {
-                ensureLogicalNetwork("cgw", "sddc-cgw-vpn", 0x0AC00000, 24)
+                ensureLogicalNetwork("cgw", "cgw-blockchain-control", 0x0A000000, 24)
             }
             val ensureReplicaNetwork = async {
                 ensureLogicalNetwork("cgw", "$clusterId-data", 0x0AC00000, 24)
@@ -239,7 +233,7 @@ class VmcOrchestrator private constructor(
     }
 
     override fun deleteDeployment(
-        request: Orchestrator.DeleteDeploymentRequest
+        request: Orchestrator.DeleteComputeResourceRequest
     ): Publisher<Orchestrator.DeploymentEvent> {
         return publish(coroutineContext) {
             TODO("NOT YET IMPLEMENTED")
@@ -429,34 +423,6 @@ class VmcOrchestrator private constructor(
     }
 
     /**
-     * Get ID of a specified NSX logical network based on name.
-     *
-     * @param[name]
-     *   name of the network to look up.
-     *
-     * @return
-     *   ID of the network as a [String], if found.
-     */
-    private suspend fun getLogicalNetwork(name: String): String? {
-        return vmc
-                .get<GetLogicalNetworkResponse>(
-                    path = Endpoints.VMC_LOGICAL_NETWORKS
-                            .interpolate(pathVariables = listOf(
-                                    Pair("{org}", vmc.context.organization),
-                                    Pair("{sddc}", vmc.context.datacenter)
-                            )),
-                    contentType = "application/json",
-                    headers = emptyList()
-                )
-                .takeIf { it.statusCode() == 200 }
-                ?.let { it.body() }
-                ?.takeIf { it.data.isNotEmpty() }
-                ?.let { it.data.asSequence() }
-                ?.firstOrNull { it.name == name }
-                ?.id
-    }
-
-    /**
      * Get ID of a specified logical network port-group based on name.
      *
      * @param[name]
@@ -530,97 +496,6 @@ class VmcOrchestrator private constructor(
     }
 
     /**
-     * Create a logical network based on the specified parameters.
-     *
-     * @param[attachedGateway]
-     *   ID of the gateway / uplink to attach the logical network.
-     * @param[name]
-     *   unique name of the logical network within the target SDDC.
-     * @param[prefix]
-     *   prefix address of the network range to create the sub-network CIDR within.
-     * @param[prefixSubnet]
-     *   prefix subnet (size) of the network range to create the sub-network CIDR within.
-     * @param[subnetSize]
-     *   size of the logical network subnet.
-     *
-     * @return
-     *   ID of the logical network as a [String], if created.
-     */
-    private suspend fun createLogicalNetwork(
-        attachedGateway: String,
-        name: String,
-        prefix: Int,
-        prefixSubnet: Int,
-        subnetSize: Int
-    ): String? {
-        // Generate a network model based on a randomly generated subnet.
-        // Note (current implementation choices):
-        // - Primary address is set to the first address in the subnet.
-        // - DHCP pool can assign addresses from second address to subnet-broadcast (max) - 1.
-        val subnet = randomSubnet(prefix, prefixSubnet, subnetSize)
-        val subnetMax = subnet + (1 shl (Int.SIZE_BITS - subnetSize)) - 1
-        val addressGroup = AddressGroup(toIPv4Address(subnet + 1), subnetSize.toString())
-        val dhcpPool = DhcpIpPool(
-                ipRange = "${toIPv4Address(subnet + 2)}-${toIPv4Address(subnetMax - 1)}",
-                domainName = null
-        )
-        val network = LogicalNetwork(
-                cgwId = attachedGateway,
-                name = name,
-                subnets = Subnets(listOf(addressGroup)),
-                dhcpConfigs = DhcpConfig(listOf(dhcpPool))
-        )
-
-        val response = vmc
-                .post<LogicalNetwork, String>(
-                    path = Endpoints.VMC_LOGICAL_NETWORKS
-                            .interpolate(pathVariables = listOf(
-                                    Pair("{org}", vmc.context.organization),
-                                    Pair("{sddc}", vmc.context.datacenter)
-                            )),
-                    contentType = "application/json",
-                    headers = emptyList(),
-                    body = network
-                )
-        return when (response.statusCode()) {
-            201 -> {
-                // The API does not return the resource ID, so we have to follow up w/ another GET.
-                // We need to be able to retrieve the ID by name. If not found, just return no
-                // result and let caller try again.
-                //
-                // Note: This will likely change once the API client is pointing directly at NSX-T
-                // rather than via VMC networking.
-                getNetwork(name)
-            }
-            else -> null
-        }
-    }
-
-    /**
-     * Delete a logical network based on the specified parameters.
-     *
-     * @param[id]
-     *   ID of the network to delete.
-     *
-     * @return
-     *   `true` if request succeeded, `false` otherwise.
-     */
-    private suspend fun deleteLogicalNetwork(id: String): Boolean {
-        return vmc
-                .delete<Unit>(
-                    path = Endpoints.VMC_LOGICAL_NETWORK
-                            .interpolate(pathVariables = listOf(
-                                    Pair("{org}", vmc.context.organization),
-                                    Pair("{sddc}", vmc.context.datacenter),
-                                    Pair("{network}", id)
-                            )),
-                    contentType = "application/json",
-                    headers = emptyList()
-                )
-                .let { it.statusCode() == 200 }
-    }
-
-    /**
      * Get ID of the specified content library item based on name.
      *
      * @param[name]
@@ -630,7 +505,7 @@ class VmcOrchestrator private constructor(
      *   ID of the library item as a [String], if found.
      */
     private suspend fun getLibraryItem(name: String): String? {
-        // TODO(jameschang) - Finish integration work with Content Library API.
+        // TODO: Finish integration work with Content Library API.
         // return "a1500e02-5cd7-4afd-8429-1695f2fd8d6c"
         return "f4ccb861-6716-4e08-b58d-323977f13aab"
     }

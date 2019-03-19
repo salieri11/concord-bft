@@ -57,7 +57,7 @@ fun main() {
                     VmcOrchestrator.newOrchestrator(site, coroutineContext).await()
             )
 
-            val request = Orchestrator.CreateDeploymentRequest(
+            val request = Orchestrator.CreateComputeResourceRequest(
                     UUID.randomUUID().let {
                         DeploymentSessionIdentifier(it.mostSignificantBits, it.leastSignificantBits)
                     },
@@ -74,7 +74,9 @@ fun main() {
             val resultSubscriber = BaseSubscriber<Orchestrator.DeploymentEvent>(
                     onNext = {
                         when (it) {
-                            is Orchestrator.DeploymentEvent.Created -> deferred.complete(it.resourceIdentifier)
+                            is Orchestrator.DeploymentEvent.Created ->
+                                deferred.complete(it.resourceIdentifier)
+                            else -> Unit
                         }
                     },
                     onError = { deferred.completeExceptionally(it) }
@@ -86,11 +88,11 @@ fun main() {
             // Teardown.
             //    launch {
             //        log.info { "Deleting Control Networks" }
-            //        provisioner.deleteLogicalNetwork(createControlNetwork.await())
+            //        orchestrator.deleteLogicalNetwork(createControlNetwork.await())
             //    }
             //    launch {
             //        log.info { "Deleting Replica Networks" }
-            //        provisioner.deleteLogicalNetwork(createReplicaNetwork.await())
+            //        orchestrator.deleteLogicalNetwork(createReplicaNetwork.await())
             //    }
         }
     }

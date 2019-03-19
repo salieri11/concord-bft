@@ -19,16 +19,6 @@ enum class Endpoints(
             setOf("{tier1}", "{segment}")
     ),
     VMC_AUTHENTICATION("/csp/gateway/am/api/auth/api-tokens/authorize", setOf("refresh_token")),
-    VMC_LOGICAL_NETWORK(
-            "/vmc/api/orgs/{org}/sddcs/{sddc}/networks/4.0/sddc/networks/{network}",
-            emptySet(),
-            setOf("{org}", "{sddc}", "{network}")
-    ),
-    VMC_LOGICAL_NETWORKS(
-            "/vmc/api/orgs/{org}/sddcs/{sddc}/networks/4.0/sddc/networks",
-            emptySet(),
-            setOf("{org}", "{sddc}")
-    ),
     VMC_SDDC(
             "/vmc/api/orgs/{org}/sddcs/{sddc}",
             emptySet(),
