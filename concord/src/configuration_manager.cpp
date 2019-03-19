@@ -406,7 +406,11 @@ ConcordConfiguration::getParameter(const std::string& parameter,
 }
 
 void ConcordConfiguration::ConfigurationIterator::updateRetVal() {
-  if (currentScope != endScopes) {
+  if (currentParam != endParams) {
+    retVal.name = (*currentParam).first;
+    retVal.isScope = false;
+    retVal.subpath.reset();
+  } else if (currentScope != endScopes) {
     retVal.name = (*currentScope).first;
     retVal.isScope = true;
     if (usingInstance) {
@@ -421,10 +425,6 @@ void ConcordConfiguration::ConfigurationIterator::updateRetVal() {
     } else {
       retVal.subpath.reset();
     }
-  } else if (currentParam != endParams) {
-    retVal.name = (*currentParam).first;
-    retVal.isScope = false;
-    retVal.subpath.reset();
   }
 }
 
@@ -471,16 +471,17 @@ ConcordConfiguration::ConfigurationIterator::ConfigurationIterator(
   if (!end && (recursive || scopes)) {
     currentScope = configuration.scopes.begin();
 
-    // The above initializations set this iterator's initial state such that the
-    // item it is initially positioned at is the template for instances of the
-    // first sub-scope in this ConcordConfiguration. If this iterator should not
-    // be returning paths to scope instance templates, then we advance it here
-    // with ++, which will set it to the first thing it actually should return;
-    // note the implementation of ConfigurationIterator::++, at the time of
-    // this writing, should not be sensitive to the fact that the position the
-    // iterator starts at when ++ gets a hold of it is not a position that
-    // iterator has been configured to return.
-    if ((currentScope != endScopes) && (!scopes || !templates)) {
+    // If the above initializations leave this iterator in a state where it is
+    // pointing to a path that it cannot return, then we call ++ to advance it
+    // to the first point where it can actually return something (if any). If
+    // this iterator , then we advance it here with ++, which will set it to the
+    // first thing it actually should return; note the implementation of
+    // ConfigurationIterator::operator ++, at the time of this writing, should
+    // not be sensitive to the fact that the position the iterator starts at
+    // when ++ gets a hold of it is not a position that iterator has been
+    // configured to return.
+    if ((currentParam == endParams) && (currentScope != endScopes) &&
+        (!scopes || !templates)) {
       ++(*this);
     }
   } else {
@@ -647,7 +648,13 @@ ConcordConfiguration::ConfigurationIterator::operator++() {
 
   while (!hasVal &&
          ((currentScope != endScopes) || (currentParam != endParams))) {
-    if (currentScope != endScopes) {
+    // Case where we have parameters we can return in the top-level scope.
+    if (currentParam != endParams) {
+      ++currentParam;
+      hasVal = (currentParam != endParams) ||
+               ((currentScope != endScopes) && (scopes && templates));
+
+    } else if (currentScope != endScopes) {
       // Case where we continue iteration through a sub-scope of the
       // configuration by advancing a sub-iterator.
       if (currentScopeContents && endCurrentScope && recursive &&
@@ -710,8 +717,8 @@ ConcordConfiguration::ConfigurationIterator::operator++() {
         endCurrentScope.reset();
         hasVal = ((*currentScope).second.instances.size() > instance) && scopes;
 
-        // This case should not be reached unless ConfigurationIterator's
-        // implementation is buggy.
+        // The following cases should not be reached unless
+        // ConfigurationIterator's implementation is buggy.
       } else {
         throw InvalidIteratorException(
             "ConcordConfiguration::ConfigurationIterator is implemented "
@@ -719,12 +726,11 @@ ConcordConfiguration::ConfigurationIterator::operator++() {
             "itself.");
       }
 
-      // Case where (possibly recursive) handling of scopes has been completed
-      // and we are handling parameters in this ConcordConfiguration outside of
-      // any sub-scopes.
-    } else {  // Note (currentParam != endParams) if this case is reached.
-      ++currentParam;
-      hasVal = (currentParam != endParams);
+    } else {
+      throw InvalidIteratorException(
+          "ConcordConfiguration::ConfigurationIterator is implemented "
+          "incorrectly: an iterator could not determine how to advance "
+          "itself.");
     }
   }
 
@@ -1481,6 +1487,15 @@ ParameterSelection::ParameterSelectionIterator::ParameterSelectionIterator(
       unfilteredIterator =
           selection->config->begin(ConcordConfiguration::kIterateAllParameters);
     }
+
+    // Advance from the first value to the first value this iterator should
+    // actually return if the first value the unfiltered iterator has is not
+    // actually in the selection.
+    if ((unfilteredIterator != endUnfilteredIterator) &&
+        (!(selection->contains(*unfilteredIterator)))) {
+      ++(*this);
+    }
+
     selection->registerIterator(this);
   }
 }
@@ -1680,13 +1695,11 @@ void YAMLConfigurationInput::loadParameter(ConcordConfiguration& config,
 }
 
 YAMLConfigurationInput::YAMLConfigurationInput(std::istream& input)
-    : yaml(), success(false) {
-  try {
-    yaml.reset(YAML::Load(input));
-    success = true;
-  } catch (const std::exception& e) {
-    success = false;
-  }
+    : input(&input), yaml(), success(false) {}
+
+void YAMLConfigurationInput::parseInput() {
+  yaml.reset(YAML::Load(*input));
+  success = true;
 }
 
 YAMLConfigurationInput::~YAMLConfigurationInput() {}

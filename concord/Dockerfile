@@ -41,11 +41,13 @@ RUN apt-get -y install ${memleak_util} \
     libzstd1 \
     llvm-5.0 \
     dnsutils \
+    libboost-program-options1.65.1 \
+    libboost-system1.65.1 \
+    libboost-thread1.65.1 \
     libyaml-cpp0.5v5 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=0 /usr/local/lib/libcryptopp* /usr/local/lib/
-COPY --from=0 /usr/lib/libboost* /usr/lib/
 COPY --from=0 /usr/local/lib/liblog4cplus* /usr/local/lib/
 # evmjit is statically compiled, so we don't need to copy
 COPY --from=0 /usr/local/lib/librelic* /usr/local/lib/

@@ -16,7 +16,7 @@
 
 #include <fstream>
 #include <iostream>
-#include <unordered_map>
+#include <map>
 #include <unordered_set>
 
 #include <boost/program_options.hpp>
@@ -370,8 +370,8 @@ class ConcordConfiguration {
   ConcordConfiguration* parentScope;
   std::unique_ptr<ConfigurationPath> scopePath;
 
-  std::unordered_map<std::string, ConfigurationScope> scopes;
-  std::unordered_map<std::string, ConfigurationParameter> parameters;
+  std::map<std::string, ConfigurationScope> scopes;
+  std::map<std::string, ConfigurationParameter> parameters;
 
   // Private helper functions.
   void invalidateIterators();
@@ -403,15 +403,14 @@ class ConcordConfiguration {
     ConfigurationPath retVal;
 
     // State of iteration.
-    std::unordered_map<std::string, ConfigurationScope>::iterator currentScope;
-    std::unordered_map<std::string, ConfigurationScope>::iterator endScopes;
+    std::map<std::string, ConfigurationScope>::iterator currentScope;
+    std::map<std::string, ConfigurationScope>::iterator endScopes;
     bool usingInstance;
     size_t instance;
     std::unique_ptr<ConfigurationIterator> currentScopeContents;
     std::unique_ptr<ConfigurationIterator> endCurrentScope;
-    std::unordered_map<std::string, ConfigurationParameter>::iterator
-        currentParam;
-    std::unordered_map<std::string, ConfigurationParameter>::iterator endParams;
+    std::map<std::string, ConfigurationParameter>::iterator currentParam;
+    std::map<std::string, ConfigurationParameter>::iterator endParams;
     bool invalid;
 
     void updateRetVal();
@@ -1044,6 +1043,7 @@ const std::string kYAMLScopeTemplateSuffix = "__TEMPLATE";
 // synchronization.
 class YAMLConfigurationInput {
  private:
+  std::istream* input;
   YAML::Node yaml;
   bool success;
 
@@ -1052,13 +1052,20 @@ class YAMLConfigurationInput {
                      std::ostream* errorOut, bool overwrite);
 
  public:
-  // Constructor for YAMLConfigurationInput. Constructing a
-  // YAMLConfigurationInput causes it to attempt to parse the given input and
-  // cache its parse results; it will catch any failures to parse the given file
-  // and record that it was not able to load the input.
+  // Constructor for YAMLConfigurationInput; it accepts an std::istream. It is
+  // expected that the code using the YAMLConfiguration will call parseInput to
+  // have this YAMLConfigurationInput parse the input from that stream.
   YAMLConfigurationInput(std::istream& input);
 
   ~YAMLConfigurationInput();
+
+  // Parses the input from the std::istream given to this
+  // YAMLConfigurationInputas YAML and records it for later retrieval with
+  // loadConfiguration.
+  //
+  // Throws: Any exception that occurs while attempting to parse this input. It
+  // is anticipated this may include I/O exceptions and YAML parse failures.
+  void parseInput();
 
   // Loads values from the configuration file this YAMLConfigurationInput parsed
   // to the given ConcordConfiguration. Parameters:
@@ -1076,16 +1083,18 @@ class YAMLConfigurationInput {
   // format: "Cannot load value for parameter <PARAMETER NAME>: <FAILURE
   // MESSAGE>".
   // - overwrite: loadConfiguration will only overwrite existing values in
-  // config if true is given for the overwrite parameter. Returns: true if this
-  // YAMLConfigurationInput was able to successfully parse the specified YAML
-  // configuration file and false otherwise. Note YAMLConfigurationInput only
-  // considers exceptions thrown by i/o and/or the YAML library to be causes for
-  // failure; it does not consider it a failure if the YAML parse contains
-  // unexpected extra information or if the parse is missing requested
-  // parameter(s). If false is returned, this function will not have loaded any
-  // values to config. If true is returned, this function will have loaded
-  // values from the configuration file it parsed to config for any parameter
-  // that meets the following requirements:
+  // config if true is given for the overwrite parameter.
+  // Returns: true if this YAMLConfigurationInput was able to successfully parse
+  // the specified YAML configuration file and false otherwise. Note
+  // YAMLConfigurationInput only considers failures to consist of either (a)
+  // parseInput was never called for this YAMLConfiguraitonInput or (b)
+  // parseInput was exited before it returned normally due to an exception
+  // occuring while trying to parse its input; it does not consider it a failure
+  // if the YAML parse contains unexpected extra information or if the parse is
+  // missing requested parameter(s). If false is returned, this function will
+  // not have loaded any values to config. If true is returned, this function
+  // will have loaded values from the configuration file it parsed to config for
+  // any parameter that meets the following requirements:
   // - iterator returned a path to this parameter.
   // - This parameter exists (was declared) in config.
   // - The input configuration file had a value for this parameter.
@@ -1096,7 +1105,18 @@ class YAMLConfigurationInput {
   template <class Iterator>
   bool loadConfiguration(ConcordConfiguration& config, Iterator iterator,
                          Iterator end, std::ostream* errorOut = nullptr,
-                         bool overwrite = true);
+                         bool overwrite = true) {
+    if (!success) {
+      return false;
+    }
+    while (iterator != end) {
+      if (config.contains(*iterator)) {
+        loadParameter(config, *iterator, yaml, errorOut, overwrite);
+      }
+      ++iterator;
+    }
+    return true;
+  }
 };
 
 // This class handles serializing ConcordConfiguration values to a YAML file. It
@@ -1120,66 +1140,32 @@ class YAMLConfigurationOutput {
   ~YAMLConfigurationOutput();
 
   // Writes the selected values from the given configuration to the ostream this
-  // YAMLConfigurationOutput was constructed with. Parameters:
+  // YAMLConfigurationOutput was constructed with. If this function is
+  // successful (i.e. an exception does not occur), it will output YAML for
+  // every parameer returned by iterator that config has a value for.
+  // Parameters:
   // - config: ConcordConfiguration from which to write the selected values.
   // - iterator: Iterator returning ConfigurationPaths or ConfigurationPath
   // references of paths to parameters within config to write the values of.
   // - end: Iterator to the end of the range of ConfigurationPaths requested,
-  // used to tell when iterator has finished iterating. Returns: true if this
-  // YAMLConfigurationOutput was able to output the requested configuraiton
-  // values, false otherwise. Note that YAMLConfigurationOutput only considers
-  // failure cases to include exceptioins from i/o and/or the YAML library; it
-  // is not considered a failure if config does not contain or have values for
-  // an paths returned by iterator. If this function returns true, it will have
-  // output YAML for every parameter returned by iterator that config has a
-  // value for.
+  // used to tell when iterator has finished iterating.
+  // Throws: Any exception that occurs while attempting the requested output
+  // operation. It is anticipated this could include any I/O exceptions that
+  // occur while trying to write to the std::ostrem this YAMLConfigurationOutput
+  // was constructed with.
   template <class Iterator>
-  bool outputConfiguration(ConcordConfiguration& config, Iterator iterator,
-                           Iterator end);
-};
-
-void specifyConfiguration(ConcordConfiguration& config);
-
-// Templates for the implementations of function templates declared above.
-
-template <class Iterator>
-bool YAMLConfigurationInput::loadConfiguration(ConcordConfiguration& config,
-                                               Iterator iterator, Iterator end,
-                                               std::ostream* errorOut,
-                                               bool overwrite) {
-  if (!success) {
-    return false;
-  }
-  while (iterator != end) {
-    if (config.contains(*iterator)) {
-      loadParameter(config, *iterator, yaml, errorOut, overwrite);
+  void outputConfiguration(ConcordConfiguration& config, Iterator iterator,
+                           Iterator end) {
+    yaml.reset(YAML::Node(YAML::NodeType::Map));
+    while (iterator != end) {
+      if (config.hasValue(*iterator)) {
+        addParameterToYAML(config, *iterator, yaml);
+      }
+      ++iterator;
     }
-    ++iterator;
-  }
-  return true;
-}
-
-template <class Iterator>
-bool YAMLConfigurationOutput::outputConfiguration(ConcordConfiguration& config,
-                                                  Iterator iterator,
-                                                  Iterator end) {
-  if (!output) {
-    return false;
-  }
-  yaml.reset(YAML::Node(YAML::NodeType::Map));
-  while (iterator != end) {
-    if (config.hasValue(*iterator)) {
-      addParameterToYAML(config, *iterator, yaml);
-    }
-    ++iterator;
-  }
-  try {
     (*output) << yaml;
-    return true;
-  } catch (const std::exception& e) {
-    return false;
   }
-}
+};
 
 }  // namespace concord
 }  // namespace vmware

@@ -1,5 +1,6 @@
 find_path(yaml-cpp_INCLUDE_DIR yaml.h
           HINTS /usr/include/yaml-cpp
+                /usr/local/include/yaml-cpp
                 ${CMAKE_CURRENT_SOURCE_DIR}/../yaml-cpp)
 
 if(yaml-cpp_INCLUDE_DIR EQUAL yaml-cpp_INCLUDE_DIR-NOTFOUND)
@@ -10,6 +11,7 @@ else()
 
    find_path(yaml-cpp_LIB_DIR libyaml-cpp.a
              HINTS /usr/lib/x86_64-linux-gnu/
+                   /usr/local/lib/
              ${yaml-cpp_INCLUDE_DIR}/build/)
    if(NOT yaml-cpp_LIB_DIR)
       message(SEND_ERROR "yaml-cpp not found")

@@ -1982,6 +1982,7 @@ TEST(config_test, yaml_configuration_io) {
   std::string yamlRaw = "";
   std::istringstream yamlIStream(yamlRaw);
   YAMLConfigurationInput configInput(yamlIStream);
+  configInput.parseInput();
   EXPECT_TRUE(configInput.loadConfiguration(
       config, config.begin(ConcordConfiguration::kIterateAllParameters),
       config.end(ConcordConfiguration::kIterateAllParameters)))
@@ -2005,6 +2006,12 @@ TEST(config_test, yaml_configuration_io) {
   yamlIStream = std::istringstream(yamlRaw);
 
   configInput = YAMLConfigurationInput(yamlIStream);
+  try {
+    configInput.parseInput();
+    FAIL() << "YAMLConfigurationInput::parseInput fails to pass on exceptions "
+              "that occur when parsing its input.";
+  } catch (std::exception e) {
+  }
   EXPECT_FALSE(configInput.loadConfiguration(
       config, config.begin(ConcordConfiguration::kIterateAllParameters),
       config.end(ConcordConfiguration::kIterateAllParameters)))
@@ -2041,6 +2048,7 @@ TEST(config_test, yaml_configuration_io) {
   yamlIStream = std::istringstream(yamlRaw);
 
   configInput = YAMLConfigurationInput(yamlIStream);
+  configInput.parseInput();
 
   EXPECT_TRUE(configInput.loadConfiguration(
       emptyConfig,
@@ -2091,6 +2099,7 @@ TEST(config_test, yaml_configuration_io) {
   std::unordered_set<ConfigurationPath> configSubset(
       {pathParameterB, pathParameterC});
   configInput = YAMLConfigurationInput(yamlIStream);
+  configInput.parseInput();
   EXPECT_TRUE(configInput.loadConfiguration(config, configSubset.begin(),
                                             configSubset.end()))
       << "ConcordConfiguration::loadConfiguration fails to handle loading a "
@@ -2149,11 +2158,9 @@ TEST(config_test, yaml_configuration_io) {
 
   std::ostringstream yamlOStream;
   YAMLConfigurationOutput configOutput(yamlOStream);
-  EXPECT_TRUE(configOutput.outputConfiguration(
+  configOutput.outputConfiguration(
       config, config.begin(ConcordConfiguration::kIterateAllParameters),
-      config.end(ConcordConfiguration::kIterateAllParameters)))
-      << "YAMLConfigurationOutput::outputConfiguration fails to handle an "
-         "empty configuration.";
+      config.end(ConcordConfiguration::kIterateAllParameters));
 
   YAML::Node yamlRoot = YAML::Load(yamlOStream.str());
   EXPECT_EQ(yamlRoot.size(), 0)
@@ -2172,11 +2179,9 @@ TEST(config_test, yaml_configuration_io) {
 
   yamlOStream = std::ostringstream();
   configOutput = YAMLConfigurationOutput(yamlOStream);
-  EXPECT_TRUE(configOutput.outputConfiguration(
+  configOutput.outputConfiguration(
       config, config.begin(ConcordConfiguration::kIterateAllParameters),
-      config.end(ConcordConfiguration::kIterateAllParameters)))
-      << "YAMLConfigurationOutput::outputConfiguration fails to output a "
-         "sample configuration.";
+      config.end(ConcordConfiguration::kIterateAllParameters));
   yamlRoot.reset(YAML::Load(yamlOStream.str()));
 
   EXPECT_EQ(yamlRoot["parameter_a"].Scalar(), "A value.")
@@ -2235,6 +2240,7 @@ TEST(config_test, yaml_configuration_io) {
       config.end(ConcordConfiguration::kIterateAllParameters));
   yamlIStream = std::istringstream(yamlOStream.str());
   configInput = YAMLConfigurationInput(yamlIStream);
+  configInput.parseInput();
   configInput.loadConfiguration(
       copyConfig, copyConfig.begin(ConcordConfiguration::kIterateAllParameters),
       copyConfig.end(ConcordConfiguration::kIterateAllParameters));
