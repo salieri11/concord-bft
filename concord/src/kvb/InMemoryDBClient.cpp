@@ -19,6 +19,7 @@
 
 #include "HashDefs.h"
 #include "InMemoryDBClient.h"
+#include "sliver.hpp"
 
 using namespace Blockchain;
 

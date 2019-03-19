@@ -1,4 +1,4 @@
-// Copyright 2018 VMware, all rights reserved
+// Copyright 2019 VMware, all rights reserved
 /**
  * Test multi* functions for RocksDBClient class.
  */
@@ -6,6 +6,7 @@
 #define USE_ROCKSDB 1
 
 #include <log4cplus/configurator.h>
+#include <log4cplus/hierarchy.h>
 #include <log4cplus/loggingmacros.h>
 #include "gtest/gtest.h"
 #include "kvb/Comparators.h"
@@ -87,7 +88,9 @@ TEST(multiIO_test, multi_del) {
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);
   log4cplus::initialize();
-  log4cplus::BasicConfigurator config;
+  log4cplus::Hierarchy& hierarchy = log4cplus::Logger::getDefaultHierarchy();
+  hierarchy.disableDebug();
+  log4cplus::BasicConfigurator config(hierarchy, false);
   config.configure();
   const string dbPath = "./rocksdb_test";
   dbClient = new RocksDBClient(dbPath, new RocksKeyComparator());

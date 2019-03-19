@@ -275,8 +275,8 @@ Status RocksDBClient::multiGet(const KeysVector &_keysVec,
     if (statuses[i].IsNotFound()) return Status::NotFound("Not found");
 
     if (!statuses[i].ok()) {
-      LOG4CPLUS_DEBUG(logger, "Failed to get key " << _keysVec[i] << " due to "
-                                                   << statuses[i].ToString());
+      LOG4CPLUS_WARN(logger, "Failed to get key " << _keysVec[i] << " due to "
+                                                  << statuses[i].ToString());
       return Status::GeneralError("Failed to read key");
     }
     size_t valueSize = values[i].size();

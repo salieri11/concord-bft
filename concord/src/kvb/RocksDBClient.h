@@ -19,7 +19,7 @@
 #define ROCKSDBCLIENT_H
 
 #ifdef USE_ROCKSDB
-
+#include <log4cplus/loggingmacros.h>
 #include "DatabaseInterface.h"
 #include "rocksdb/db.h"
 

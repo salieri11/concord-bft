@@ -46,18 +46,18 @@ add_executable(ConfigTests
   "../src/configuration_manager.cpp")
 
 target_link_libraries(ConfigTests
-        ${Boost_LIBRARIES}
-        ${GTEST_LIBRARIES}
-        concord_utils
-        kvblockchain
-        gtest
-        gtest_main)
+  ${Boost_LIBRARIES}
+  ${GTEST_LIBRARIES}
+  concord_utils
+  kvblockchain
+  gtest
+  gtest_main)
 
-add_executable(MuliIOTests
+add_executable(MultiIOTests
   multiIO_test.cpp)
 
-target_link_libraries(MuliIOTests
-        ${GTEST_LIBRARIES}
-        kvblockchain
-        gtest
-        gtest_main)
+target_link_libraries(MultiIOTests
+  ${GTEST_LIBRARIES}
+  kvblockchain
+  gtest
+  gtest_main)

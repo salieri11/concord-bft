@@ -59,6 +59,9 @@ class InMemoryDBClientIterator : public IDBClient::IDBClientIterator {
 };
 
 // In-memory IO operations below are not thread-safe.
+// get/put/del/multiGet/multiPut/multiDel operations are not synchronized and
+// not guarded by locks. The caller is expected to use those APIs via a
+// single thread.
 class InMemoryDBClient : public IDBClient {
  public:
   InMemoryDBClient(KeyComparator comp) { setComparator(comp); }
