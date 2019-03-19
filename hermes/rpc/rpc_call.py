@@ -550,12 +550,12 @@ class RPC():
       response = self._call()
       return self.getResultFromResponse(response)
 
-   def getLogs(self, blockHash):
+   def getLogs(self, blockHash=None):
       '''
       Call eth_getLogs
       '''
       self._rpcData["method"] = "eth_getLogs"
-      self._rpcData["params"] = [{"blockHash": blockHash}]
+      self._rpcData["params"] = [{"blockHash": blockHash}] if blockHash else []
 
       response = self._call()
       return self.getResultFromResponse(response)

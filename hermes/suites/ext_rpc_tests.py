@@ -616,8 +616,15 @@ class ExtendedRPCTests(test_suite.TestSuite):
       func_tx = func(w3.toInt(hexstr="0xdeadbeef")).transact(tx_args)
       func_txr = w3.eth.waitForTransactionReceipt(func_tx)
 
-      # Get the logs from the transaction we just submitted
+      # eth_getLogs()
+      logsLatest = rpc.getLogs()
+
+      # eth_getLogs(blockHash)
       logs = rpc.getLogs(func_txr.blockHash.hex())
+
+      if logsLatest != logs:
+         return (False, "getLogs() != getLogs(blockHash)")
+
       for l in logs:
          # The first element is the event signature
          # The second is the first argument of the event

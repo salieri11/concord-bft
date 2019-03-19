@@ -37,7 +37,7 @@ public class EthGetLogsHandler extends AbstractEthRpcHandler {
 
             if (params.size() == 0) {
                 // Default - request all logs from the latest block
-                throw new EthRpcHandlerException("all logs not supported yet.");
+                logsReq.setFromBlock(ApiHelper.parseBlockNumber("latest"));
             } else {
                 // Evaluate filter options
                 JSONObject filter = (JSONObject) params.get(0);
@@ -59,7 +59,7 @@ public class EthGetLogsHandler extends AbstractEthRpcHandler {
             builder.setLogsRequest(logsReq.build());
             return true;
         } catch (Exception e) {
-            logger.error("Exception in tx receipt handler", e);
+            logger.error("Exception in get logs request handler", e);
             throw e;
         }
     }

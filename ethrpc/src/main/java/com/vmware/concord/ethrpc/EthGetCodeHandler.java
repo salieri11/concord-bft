@@ -41,7 +41,7 @@ public class EthGetCodeHandler extends AbstractEthRpcHandler {
             // add "block" parameter, the default block parameter is "latest".
             // if no parameter or its value is negative, concord treat is as default
             if (params.size() == 2) {
-                long blockNumber = ApiHelper.parseBlockNumber(params);
+                long blockNumber = ApiHelper.parseBlockNumber((String) params.get(1));
                 if (blockNumber >= 0) {
                     b.setBlockNumber(blockNumber);
                 }

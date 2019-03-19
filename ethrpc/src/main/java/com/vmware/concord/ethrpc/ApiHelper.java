@@ -13,7 +13,6 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.bouncycastle.jcajce.provider.digest.Keccak;
 import org.bouncycastle.util.encoders.Hex;
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import com.google.protobuf.ByteString;
@@ -228,8 +227,7 @@ public class ApiHelper {
     /**
      * Pull the block number out of JSON.
      */
-    public static long parseBlockNumber(JSONArray params) {
-        String blockNumber = (String) params.get(params.size() - 1);
+    public static long parseBlockNumber(String blockNumber) {
         if (blockNumber.equals("earliest")) {
             return 0;
         } else if (blockNumber.equals("latest") || blockNumber.equals("pending")) {

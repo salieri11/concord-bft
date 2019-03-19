@@ -363,13 +363,23 @@ bool com::vmware::concord::KVBCommandsHandler::handle_logs_request(
   EthTransaction tx;
   uint64_t tx_log_idx;
 
-  assert(request.has_block_hash());
+  assert(request.has_from_block() || request.has_block_hash());
 
-  evm_uint256be block_hash;
-  std::copy(request.block_hash().begin(), request.block_hash().end(),
-            block_hash.bytes);
-
-  block = kvbStorage.get_block(block_hash);
+  try {
+    if (request.has_from_block()) {
+      // "latest" or "pending" supported for now
+      block = kvbStorage.get_block(kvbStorage.current_block_number());
+    } else if (request.has_block_hash()) {
+      evm_uint256be block_hash;
+      std::copy(request.block_hash().begin(), request.block_hash().end(),
+                block_hash.bytes);
+      block = kvbStorage.get_block(block_hash);
+    }
+  } catch (BlockNotFoundException) {
+    ErrorResponse *resp = athresp.add_error_response();
+    resp->set_description("block not found");
+    return true;
+  }
 
   tx_log_idx = 0;
   for (auto &tx_hash : block.transactions) {
