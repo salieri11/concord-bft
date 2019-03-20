@@ -88,7 +88,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       return self._resultFile
 
    def _getTests(self):
-      return [
+      all_tests = [
          ("block_filter", self._test_block_filter),
          ("block_filter_independence", self._test_block_filter_independence),
          ("block_filter_uninstall", self._test_block_filter_uninstall),
@@ -113,6 +113,9 @@ class ExtendedRPCTests(test_suite.TestSuite):
          ("web3_sha3", self._test_web3_sha3),
          ("web3_clientVersion", self._test_web3_clientVersion),
       ]
+      if self._args.tests:
+         return list(filter(lambda x: x[0] in self._args.tests, all_tests))
+      return all_tests
 
    def _runRpcTest(self, testName, testFun, testLogDir):
       ''' Runs one test. '''
