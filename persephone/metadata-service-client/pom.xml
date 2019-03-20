@@ -10,9 +10,9 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>persephone-metadata-service</artifactId>
+    <artifactId>persephone-metadata-service-client</artifactId>
     <packaging>jar</packaging>
-    <name>Blockchain - Fleet Management Metadata Service</name>
+    <name>Blockchain - Fleet Management Metadata Service Client</name>
 
     <dependencies>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -29,17 +29,9 @@
             <groupId>com.vmware.blockchain</groupId>
             <artifactId>persephone-core</artifactId>
         </dependency>
-        <dependency>
-            <groupId>com.vmware.blockchain</groupId>
-            <artifactId>persephone-persistence</artifactId>
-        </dependency>
         <!--~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         ~ External dependencies.                                    ~
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
-        <dependency>
-            <groupId>com.google.dagger</groupId>
-            <artifactId>dagger</artifactId>
-        </dependency>
         <dependency>
             <groupId>com.vmware.blockchain.protobuf</groupId>
             <artifactId>grpc-runtime-kotlinx-serialization</artifactId>
@@ -116,7 +108,7 @@
                         <configuration>
                             <archive>
                                 <manifest>
-                                    <mainClass>com.vmware.blockchain.deployment.service.metadata.MetadataServer</mainClass>
+                                    <mainClass>com.vmware.blockchain.deployment.client.ModelServiceClient</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>

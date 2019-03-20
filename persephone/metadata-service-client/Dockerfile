@@ -24,19 +24,16 @@ COPY ./persephone/persistence/src ./persephone/persistence/src
 COPY ./persephone/persistence/test ./persephone/persistence/test
 
 ## Copy the module sources and POM file.
-COPY ./persephone/metadata-service/src ./persephone/metadata-service/src
-COPY ./persephone/metadata-service/test ./persephone/metadata-service/test
+COPY ./persephone/metadata-service-client/src ./persephone/metadata-service-client/src
 
 ## Build persephone modules.
-RUN mvn -f persephone/pom.xml package -pl metadata-service -am -B
+RUN mvn -f persephone/pom.xml package -pl metadata-service-client -am -B
 
 # Runtime image (Metadata Service).
 FROM athena-docker-local.artifactory.eng.vmware.com/helen:prereqs-v2
-LABEL description="VMware Blockchain Fleet Management Metadata Service"
+LABEL description="VMware Blockchain Fleet Management Metadata Service Client"
 
-WORKDIR /persephone/metadata-service
-COPY --from=0 ./persephone/metadata-service/target/persephone-metadata-service*with-dependencies.jar ./metadata-service.jar
+WORKDIR /persephone/metadata-service-client
+COPY --from=0 ./persephone/metadata-service-client/target/persephone-metadata-service-client*with-dependencies.jar ./metadata-service-client.jar
 
-CMD ["java", "-jar", "metadata-service.jar"]
-
-EXPOSE 9001
+ENTRYPOINT ["java", "-jar", "metadata-service-client.jar"]

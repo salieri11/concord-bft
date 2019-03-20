@@ -4,10 +4,7 @@
 
 package com.vmware.blockchain.deployment.client;
 
-import static java.lang.Integer.*;
-
 import java.util.Collection;
-import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -112,7 +109,7 @@ public class ModelServiceClient {
      * Simple parse user-input.
      */
     private static boolean parseInput(String[] argv) {
-        if (argv == null) {
+        if (argv == null || argv.length == 0) {
             return false;
         }
         if (argv[0].equals (ADD_MODEL)) {
