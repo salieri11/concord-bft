@@ -41,6 +41,8 @@ interface MetadataServer {
                 .addService(metadataServer.concordModelService())
                 .build();
         try {
+            server.start();
+            System.out.println("Started the server\n");
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                 // Use stderr here since the logger may have been reset by its JVM shutdown hook.
                 System.out.println("Shutting down server instance since JVM is shutting down");
