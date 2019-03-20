@@ -249,6 +249,29 @@ command for auto-correction:
 concord/build$ make format
 ```
 
+The build includes several unit-testing programs. You can run them all
+using "make test". Test logs are stored in the `Testing/Temporary/`
+directory inside the build directory. Example run:
+
+```shell
+Running tests...
+Test project /home/bfink/vmwathena/blockchain-alt/concord/build
+    Start 1: UtilsTests
+1/5 Test #1: UtilsTests .......................   Passed    0.01 sec
+    Start 2: SignTests
+2/5 Test #2: SignTests ........................   Passed    0.05 sec
+    Start 3: SliverTests
+3/5 Test #3: SliverTests ......................   Passed    0.00 sec
+    Start 4: ConfigTests
+4/5 Test #4: ConfigTests ......................   Passed    0.01 sec
+    Start 5: MultiIOTests
+5/5 Test #5: MultiIOTests .....................   Passed    0.03 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   0.11 sec
+```
+
 On a successful build you have a `concord` executable.
 
 Run the executable to start concord:

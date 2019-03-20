@@ -6,12 +6,19 @@ include_directories(
 message("test including " ${GTEST_LIBRARY})
 message("test including " ${GTEST_MAIN_LIBRARY})
 
-add_executable(Tests
+enable_testing()
+add_test(NAME UtilsTests COMMAND UtilsTests)
+add_test(NAME SignTests COMMAND SignTests)
+add_test(NAME SliverTests COMMAND SliverTests)
+add_test(NAME ConfigTests COMMAND ConfigTests)
+add_test(NAME MultiIOTests COMMAND MultiIOTests)
+
+add_executable(UtilsTests
   utils_test.cpp)
 
 configure_file(resources/genesis.json resources/genesis.json COPYONLY)
 
-target_link_libraries(Tests
+target_link_libraries(UtilsTests
   ${GTEST_LIBRARIES}
   concord_utils
   gtest
