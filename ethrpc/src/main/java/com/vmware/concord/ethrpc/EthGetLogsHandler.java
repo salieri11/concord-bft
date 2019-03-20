@@ -42,9 +42,28 @@ public class EthGetLogsHandler extends AbstractEthRpcHandler {
                 // Evaluate filter options
                 JSONObject filter = (JSONObject) params.get(0);
 
-                if (filter.containsKey("fromBlock") || filter.containsKey("toBlock")) {
-                    throw new EthRpcHandlerException("block filter not supported yet.");
+                // Block hash or block numbers
+                if (filter.containsKey("blockHash")
+                    && (filter.containsKey("fromBlock") || filter.containsKey("toBlock"))) {
+                    throw new EthRpcHandlerException("Invalid request: Choose block numbers or a block hash");
                 }
+
+                if (filter.containsKey("fromBlock")) {
+                    logsReq.setFromBlock(ApiHelper.parseBlockNumber((String) filter.get("fromBlock")));
+                } else {
+                    logsReq.setFromBlock(ApiHelper.parseBlockNumber("latest"));
+                }
+                if (filter.containsKey("toBlock")) {
+                    logsReq.setToBlock(ApiHelper.parseBlockNumber((String) filter.get("toBlock")));
+                } else {
+                    logsReq.setToBlock(ApiHelper.parseBlockNumber("latest"));
+                }
+
+                // Let's make sure we have a valid range
+                if (logsReq.getToBlock() >= 0 && logsReq.getToBlock() < logsReq.getFromBlock()) {
+                    throw new EthRpcHandlerException("Invalid request: Infinite block range");
+                }
+
                 if (filter.containsKey("address")) {
                     throw new EthRpcHandlerException("'address' filter not supported yet.");
                 }

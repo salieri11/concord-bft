@@ -98,6 +98,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
          ("eth_getBlockByNumber", self._test_eth_getBlockByNumber),
          ("eth_getCode", self._test_eth_getCode),
          ("eth_getLogs", self._test_eth_getLogs),
+         ("eth_getLogs_block_range", self._test_eth_getLogs_block_range),
          ("eth_gasPrice", self._test_eth_gasPrice),
          ("eth_getStorageAt", self._test_eth_getStorageAt),
          ("eth_getTransactionByHash", self._test_eth_getTransactionByHash),
@@ -620,7 +621,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       logsLatest = rpc.getLogs()
 
       # eth_getLogs(blockHash)
-      logs = rpc.getLogs(func_txr.blockHash.hex())
+      logs = rpc.getLogs({"blockHash":func_txr.blockHash.hex()})
 
       if logsLatest != logs:
          return (False, "getLogs() != getLogs(blockHash)")
@@ -632,6 +633,68 @@ class ExtendedRPCTests(test_suite.TestSuite):
             return (True, None)
 
       return (False, "Couldn't find log in block #" + str(func_txr.blockNumber))
+
+   def _test_eth_getLogs_block_range(self, rpc, request):
+      w3 = self.getWeb3Instance()
+      abi, bin = self.loadContract("SimpleEvent")
+      contract = w3.eth.contract(abi=abi, bytecode=bin)
+      tx_args = {"from":"0x09b86aa450c61A6ed96824021beFfD32680B8B64"}
+
+      # Deploy contract
+      contract_tx = contract.constructor().transact(tx_args)
+      contract_txr = w3.eth.waitForTransactionReceipt(contract_tx)
+
+      contract = w3.eth.contract(
+         address=contract_txr.contractAddress, abi=abi)
+
+      # Issue two transactions (which generate two blocks)
+      func = contract.get_function_by_name("foo")
+      func_tx = func(w3.toInt(hexstr="0xdeadbeef")).transact(tx_args)
+      w3.eth.waitForTransactionReceipt(func_tx)
+      func_tx = func(w3.toInt(hexstr="0xc0ffee")).transact(tx_args)
+      w3.eth.waitForTransactionReceipt(func_tx)
+      func_tx = func(w3.toInt(hexstr="0x0ddba11")).transact(tx_args)
+      func_txr = w3.eth.waitForTransactionReceipt(func_tx)
+
+      # Let's get all logs
+      logs_all = rpc.getLogs({"fromBlock":"0x0"})
+      logs_range = rpc.getLogs({"fromBlock":"earliest", "toBlock":"latest"})
+
+      if logs_all != logs_range:
+         # Specifying "toBlock" is optional
+         return (False, "getLogs(0) != getLogs(earliest, latest)")
+
+      expected = [0xdeadbeef, 0xc0ffee, 0x0ddba11]
+      for l in logs_all:
+         # The first element is the event signature
+         # The second is the first argument of the event
+         if len(l["topics"]) == 2:
+            val = int(l["topics"][1], 16)
+            if val in expected:
+               expected.remove(val)
+
+      if expected:
+         return (False, "From all logs: Couldn't find " + str(expected))
+
+      # Let's omit the "0x0ddba11" and don't get everything
+      from_block = int(func_txr["blockNumber"]) - 2
+      to_block = from_block + 1
+      logs = rpc.getLogs({"fromBlock": str(from_block), "toBlock": str(to_block)})
+
+      expected = [0xdeadbeef, 0xc0ffee]
+      for l in logs:
+         if int(l["blockNumber"], 16) != from_block \
+            and int(l["blockNumber"], 16) != to_block:
+            return (False, "Unexpected block")
+         if len(l["topics"]) == 2:
+            val = int(l["topics"][1], 16)
+            if val in expected:
+               expected.remove(val)
+
+      if expected:
+         return (False, "From log range: Couldn't find " + str(expected))
+
+      return (True, None)
 
    def _test_eth_getBalance(self, rpc, request):
       addrFrom = "0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019"

@@ -101,6 +101,9 @@ class KVBCommandsHandler : public Blockchain::ICommandsHandler {
       const evm_message &message, const EthRequest &request,
       const uint64_t nonce, const evm_result &result, const uint64_t timestamp,
       const std::vector<EthLog> &logs, KVBStorage &kvbStorage) const;
+
+  void collect_logs_from_block(const EthBlock &block, KVBStorage &kvbStorage,
+                               LogsResponse *response) const;
 };
 
 }  // namespace concord
