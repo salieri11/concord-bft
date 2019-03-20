@@ -550,12 +550,16 @@ class RPC():
       response = self._call()
       return self.getResultFromResponse(response)
 
-   def getLogs(self, blockHash=None):
+   def getLogs(self, args=None):
       '''
       Call eth_getLogs
+
+      {"fromBlock":"", "toBlock":"", "blockHash":""}
       '''
+      if args is not None:
+         assert isinstance(args, dict)
       self._rpcData["method"] = "eth_getLogs"
-      self._rpcData["params"] = [{"blockHash": blockHash}] if blockHash else []
+      self._rpcData["params"] = [args] if args else []
 
       response = self._call()
       return self.getResultFromResponse(response)

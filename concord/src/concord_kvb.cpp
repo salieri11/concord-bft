@@ -358,22 +358,55 @@ bool com::vmware::concord::KVBCommandsHandler::handle_logs_request(
     ConcordResponse &athresp) const {
   const LogsRequest request = athreq.logs_request();
   LogsResponse *response = athresp.mutable_logs_response();
-  std::vector<evm_uint256be>::iterator it;
   EthBlock block;
-  EthTransaction tx;
-  uint64_t tx_log_idx;
-
-  assert(request.has_from_block() || request.has_block_hash());
 
   try {
-    if (request.has_from_block()) {
-      // "latest" or "pending" supported for now
-      block = kvbStorage.get_block(kvbStorage.current_block_number());
-    } else if (request.has_block_hash()) {
+    if (request.has_block_hash()) {
       evm_uint256be block_hash;
       std::copy(request.block_hash().begin(), request.block_hash().end(),
                 block_hash.bytes);
       block = kvbStorage.get_block(block_hash);
+      collect_logs_from_block(block, kvbStorage, response);
+
+    } else if (request.has_from_block()) {
+      uint64_t current_block_number = kvbStorage.current_block_number();
+      uint64_t block_start;
+      uint64_t block_end;
+
+      if (request.from_block() < 0) {
+        // "latest" and "pending"
+        block_start = current_block_number;
+        block_end = current_block_number;
+      } else {
+        block_start = static_cast<uint64_t>(request.from_block());
+        if (request.has_to_block()) {
+          if (request.to_block() < 0) {
+            block_end = current_block_number;
+          } else {
+            block_end = static_cast<uint64_t>(request.to_block());
+          }
+        } else {
+          block_end = current_block_number;
+        }
+      }
+
+      if (block_start > current_block_number ||
+          block_end > current_block_number) {
+        ErrorResponse *resp = athresp.add_error_response();
+        resp->set_description("block doesn't exist yet");
+        return true;
+      }
+
+      assert(block_end >= block_start);
+
+      for (uint64_t i = block_start; i <= block_end; ++i) {
+        block = kvbStorage.get_block(i);
+        collect_logs_from_block(block, kvbStorage, response);
+      }
+    } else {
+      ErrorResponse *resp = athresp.add_error_response();
+      resp->set_description("Only block filters supported");
+      return true;
     }
   } catch (BlockNotFoundException) {
     ErrorResponse *resp = athresp.add_error_response();
@@ -381,7 +414,18 @@ bool com::vmware::concord::KVBCommandsHandler::handle_logs_request(
     return true;
   }
 
-  tx_log_idx = 0;
+  return true;
+}
+
+/**
+ * Get logs from a single block
+ */
+void com::vmware::concord::KVBCommandsHandler::collect_logs_from_block(
+    const EthBlock &block, KVBStorage &kvbStorage,
+    LogsResponse *response) const {
+  EthTransaction tx;
+  uint64_t tx_log_idx{0};
+
   for (auto &tx_hash : block.transactions) {
     tx = kvbStorage.get_transaction(tx_hash);
     for (auto &tx_log : tx.logs) {
@@ -404,8 +448,6 @@ bool com::vmware::concord::KVBCommandsHandler::handle_logs_request(
       tx_log_idx++;
     }
   }
-
-  return true;
 }
 
 /**
