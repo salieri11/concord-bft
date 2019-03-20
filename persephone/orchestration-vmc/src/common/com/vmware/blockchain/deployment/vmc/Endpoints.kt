@@ -33,7 +33,10 @@ enum class Endpoints(
             setOf("~action"),
             setOf("{library_item}")
     ),
-    VSPHERE_NETWORKS("/rest/vcenter/network", setOf("filter.types", "filter.names"));
+    VSPHERE_NETWORKS("/rest/vcenter/network", setOf("filter.types", "filter.names")),
+    VSPHERE_VM_POWER("/rest/vcenter/vm/{vm}/power", emptySet(), setOf("{vm}")),
+    VSPHERE_VM_POWER_START("/rest/vcenter/vm/{vm}/power/start", emptySet(), setOf("{vm}")),
+    VSPHERE_VM_POWER_STOP("/rest/vcenter/vm/{vm}/power/stop", emptySet(), setOf("{vm}"));
 
     /**
      * Interpolate the expected URL by associating the given set of parameters with values.

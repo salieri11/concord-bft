@@ -26,5 +26,7 @@ enum class VSphereSerializationModule(val module: SimpleModule<*>) {
     OVF_PARAMETER(SimpleModule(OvfParameter::class, OvfParameter.serializer())),
     OVF_PROPERTY(SimpleModule(OvfProperty::class, OvfProperty.serializer())),
     RESOURCE_POOL_SUMMARY(SimpleModule(ResourcePoolSummary::class, ResourcePoolSummary.serializer())),
+    VIRTUAL_MACHINE_POWER_INFO(SimpleModule(VirtualMachinePowerInfo::class, VirtualMachinePowerInfo.serializer())),
+    VIRTUAL_MACHINE_POWER_RESPONSE(SimpleModule(VirtualMachinePowerResponse::class, VirtualMachinePowerResponse.serializer())),
     VSPHERE_AUTHENTICATION_RESPONSE(SimpleModule(VSphereAuthenticationResponse::class, VSphereAuthenticationResponse.serializer()))
 }

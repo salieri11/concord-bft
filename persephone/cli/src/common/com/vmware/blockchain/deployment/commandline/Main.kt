@@ -70,20 +70,24 @@ fun main() {
                     )
             )
 
-            val deferred = CompletableDeferred<URI>()
+            val created = CompletableDeferred<URI>()
+            val started = CompletableDeferred<URI>()
             val resultSubscriber = BaseSubscriber<Orchestrator.DeploymentEvent>(
                     onNext = {
                         when (it) {
                             is Orchestrator.DeploymentEvent.Created ->
-                                deferred.complete(it.resourceIdentifier)
+                                created.complete(it.resourceIdentifier)
+                            is Orchestrator.DeploymentEvent.Started ->
+                                started.complete(it.resourceIdentifier)
                             else -> Unit
                         }
                     },
-                    onError = { deferred.completeExceptionally(it) }
+                    onError = { created.completeExceptionally(it) }
             )
             orchestrator.createDeployment(request).subscribe(resultSubscriber)
 
-            log.info { "Created instance: ${deferred.await()}" }
+            log.info { "Created instance: ${created.await()}" }
+            log.info { "Started instance: ${started.await()}" }
 
             // Teardown.
             //    launch {

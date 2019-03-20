@@ -52,6 +52,7 @@ interface Orchestrator {
      */
     sealed class DeploymentEvent {
         data class Created(val resourceIdentifier: URI) : DeploymentEvent()
+        data class Started(val resourceIdentifier: URI) : DeploymentEvent()
         data class Deleted(val resourceIdentifier: URI) : DeploymentEvent()
     }
 

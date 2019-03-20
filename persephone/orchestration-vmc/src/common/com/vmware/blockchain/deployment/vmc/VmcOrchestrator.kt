@@ -22,6 +22,8 @@ import com.vmware.blockchain.deployment.model.vsphere.OvfParameter
 import com.vmware.blockchain.deployment.model.vsphere.OvfParameterTypes
 import com.vmware.blockchain.deployment.model.vsphere.OvfProperty
 import com.vmware.blockchain.deployment.model.vmc.Sddc
+import com.vmware.blockchain.deployment.model.vsphere.VirtualMachinePowerResponse
+import com.vmware.blockchain.deployment.model.vsphere.VirtualMachinePowerState
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.reactive.Publisher
 import kotlinx.coroutines.CoroutineScope
@@ -196,15 +198,15 @@ class VmcOrchestrator private constructor(
     ): Publisher<Orchestrator.DeploymentEvent> {
         val sessionId = UUID(request.sessionIdentifier.high, request.sessionIdentifier.low)
         val clusterId = UUID(request.clusterIdentifier.high, request.clusterIdentifier.low)
-        return publish<Orchestrator.DeploymentEvent>(coroutineContext) {
+        return publish(coroutineContext) {
             val getFolder = async { getFolder() }
             val getDatastore = async { getDatastore() }
             val getResourcePool = async { getResourcePool() }
             val ensureControlNetwork = async {
-                ensureLogicalNetwork("cgw", "cgw-blockchain-control", 0x0A000000, 24)
+                ensureLogicalNetwork("cgw", "blockchain-control", 0x0A010000, 16, 16)
             }
             val ensureReplicaNetwork = async {
-                ensureLogicalNetwork("cgw", "$clusterId-data", 0x0AC00000, 24)
+                ensureLogicalNetwork("cgw", "blockchain-data-$clusterId", 0x0AFF0000, 16)
             }
             val getLibraryItem = async { getLibraryItem(request.concordModelSpecification.template) }
 
@@ -215,7 +217,7 @@ class VmcOrchestrator private constructor(
             val controlNetwork = ensureControlNetwork.await()
             val dataNetwork = ensureReplicaNetwork.await()
             val libraryItem = getLibraryItem.await()
-            val instance = createInstance(
+            val instance = createVirtualMachine(
                     instanceName = "$clusterId-$sessionId",
                     libraryItem = requireNotNull(libraryItem),
                     datastore = requireNotNull(datastore),
@@ -224,11 +226,15 @@ class VmcOrchestrator private constructor(
                     controlNetwork = controlNetwork,
                     dataNetwork = dataNetwork
             )
-            if (instance != null) {
-                send(Orchestrator.DeploymentEvent.Created(URI(instance)))
-            } else {
-                close(Orchestrator.ResourceCreationFailedException(request))
-            }
+
+            // 1. If instance is created, send the created event signal.
+            // 2. Then start the instance.
+            // 3. If instance is started, send the started event signal.
+            // 4. If anything failed, send error signal with the request as the argument.
+            instance?.apply { send(Orchestrator.DeploymentEvent.Created(URI(this))) }
+                    ?.takeIf { ensureVirtualMachinePowerStart(instance) }
+                    ?.apply { send(Orchestrator.DeploymentEvent.Started(URI(instance))) }
+                    ?: close(Orchestrator.ResourceCreationFailedException(request))
         }
     }
 
@@ -374,6 +380,23 @@ class VmcOrchestrator private constructor(
                 ?.let { it.body() }
     }
 
+    /**
+     * Create a routed NSX logical network segment with the given parameters.
+     *
+     * @param[tier1]
+     *   tier-1 network to create the logical network segment under.
+     * @param[name]
+     *   name of the network segment to create.
+     * @param[prefix]
+     *   network prefix range to create the network segment under.
+     * @param[prefixSubnet]
+     *   subnet size for the network prefix range.
+     * @param[subnetSize]
+     *   subnet size for the network segment itself.
+     *
+     * @return
+     *   ID of the network segment as a [String], if created.
+     */
     private suspend fun createNetworkSegment(
         tier1: String,
         name: String,
@@ -459,7 +482,7 @@ class VmcOrchestrator private constructor(
      * by an invocation of this method.
      *
      * @param[attachedGateway]
-     *   ID of the gateway / uplink to attach the logical network.
+     *   ID of the gateway / up-link to attach the logical network.
      * @param[name]
      *   unique name of the logical network within the target SDDC.
      * @param[prefix]
@@ -513,7 +536,7 @@ class VmcOrchestrator private constructor(
     /**
      * Create a housing instance based on the specified parameters.
      */
-    private suspend fun createInstance(
+    private suspend fun createVirtualMachine(
         instanceName: String,
         libraryItem: String,
         datastore: String,
@@ -537,7 +560,7 @@ class VmcOrchestrator private constructor(
                                         type = OvfParameterTypes.PROPERTY_PARAMS.type,
                                         properties = listOf(
                                                 OvfProperty("instance-id", instanceName),
-                                                OvfProperty("hostname", instanceName),
+                                                OvfProperty("hostname", "replica"),
                                                 OvfProperty("user-data", String(InitScript().base64()))
                                         )
                                 )
@@ -569,5 +592,89 @@ class VmcOrchestrator private constructor(
             }
             else -> null
         }
+    }
+
+    /**
+     * Power on a virtual machine specified by the given parameter.
+     *
+     * @param[name]
+     *   identifier of the virtual machine.
+     *
+     * @return
+     *   `true` if power-on operation is successfully executed for the specified virtual machine,
+     *   `false` otherwise.
+     */
+    private suspend fun powerOnVirtualMachine(name: String): Boolean {
+        return vSphere
+                .post<Unit, Unit>(
+                        path = Endpoints.VSPHERE_VM_POWER_START
+                                .interpolate(pathVariables = listOf(Pair("{vm}", name))),
+                        contentType = "application/json",
+                        headers = emptyList(),
+                        body = null
+                )
+                .let { it.statusCode() == 200 }
+    }
+
+    /**
+     * Get the power state of the virtual machine.
+     *
+     * @param[name]
+     *   identifier of the virtual machine.
+     *
+     * @return
+     *   the power state of the virtual machine expressed as [VirtualMachinePowerState], `null` if
+     *   the operation cannot be executed or if the virtual machine does not exist.
+     */
+    private suspend fun getVirtualMachinePower(name: String): VirtualMachinePowerState? {
+        return vSphere
+                .get<VirtualMachinePowerResponse>(
+                        path = Endpoints.VSPHERE_VM_POWER
+                                .interpolate(pathVariables = listOf(Pair("{vm}", name))),
+                        contentType = "application/json",
+                        headers = emptyList()
+                )
+                .takeIf { it.statusCode() == 200 }
+                ?.let { it.body() }
+                ?.let { it.value }
+                ?.let { it.state }
+    }
+
+    /**
+     * Ensure the power-on state of the virtual machine specified by the given parameter.
+     *
+     * @param[name]
+     *   identifier of the virtual machine.
+     *
+     * @return
+     *   `true` if the power state of the virtual machine is on at some point during the execution
+     *   of the function, `false` otherwise.
+     */
+    private suspend fun ensureVirtualMachinePowerStart(name: String): Boolean {
+        var confirmed = false
+        var iterating = true
+        while (iterating) {
+            // The typical case.
+            powerOnVirtualMachine(name)
+            when (getVirtualMachinePower(name)) {
+                VirtualMachinePowerState.POWERED_OFF, VirtualMachinePowerState.SUSPEND -> {
+                    powerOnVirtualMachine(name)
+
+                    // Do not engage next iteration immediately.
+                    delay(100) // 100ms.
+                }
+                VirtualMachinePowerState.POWERED_ON -> {
+                    iterating = false
+                    confirmed = true
+                }
+                else -> {
+                    // If the VM doesn't exist or power-state cannot be retrieved.
+                    iterating = false
+                    confirmed = false
+                }
+            }
+        }
+
+        return confirmed
     }
 }
