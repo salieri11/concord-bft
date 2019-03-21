@@ -406,7 +406,11 @@ ConcordConfiguration::getParameter(const std::string& parameter,
 }
 
 void ConcordConfiguration::ConfigurationIterator::updateRetVal() {
-  if (currentScope != endScopes) {
+  if (currentParam != endParams) {
+    retVal.name = (*currentParam).first;
+    retVal.isScope = false;
+    retVal.subpath.reset();
+  } else if (currentScope != endScopes) {
     retVal.name = (*currentScope).first;
     retVal.isScope = true;
     if (usingInstance) {
@@ -421,10 +425,6 @@ void ConcordConfiguration::ConfigurationIterator::updateRetVal() {
     } else {
       retVal.subpath.reset();
     }
-  } else if (currentParam != endParams) {
-    retVal.name = (*currentParam).first;
-    retVal.isScope = false;
-    retVal.subpath.reset();
   }
 }
 
@@ -471,16 +471,11 @@ ConcordConfiguration::ConfigurationIterator::ConfigurationIterator(
   if (!end && (recursive || scopes)) {
     currentScope = configuration.scopes.begin();
 
-    // The above initializations set this iterator's initial state such that the
-    // item it is initially positioned at is the template for instances of the
-    // first sub-scope in this ConcordConfiguration. If this iterator should not
-    // be returning paths to scope instance templates, then we advance it here
-    // with ++, which will set it to the first thing it actually should return;
-    // note the implementation of ConfigurationIterator::++, at the time of
-    // this writing, should not be sensitive to the fact that the position the
-    // iterator starts at when ++ gets a hold of it is not a position that
-    // iterator has been configured to return.
-    if ((currentScope != endScopes) && (!scopes || !templates)) {
+    // If the above initializations leave this iterator in a state where it is
+    // pointing to a path that it cannot return, then we call ++ to advance it
+    // to the first point where it can actually return something (if any).
+    if ((currentParam == endParams) && (currentScope != endScopes) &&
+        (!scopes || !templates)) {
       ++(*this);
     }
   } else {
@@ -647,7 +642,13 @@ ConcordConfiguration::ConfigurationIterator::operator++() {
 
   while (!hasVal &&
          ((currentScope != endScopes) || (currentParam != endParams))) {
-    if (currentScope != endScopes) {
+    // Case where we have parameters we can return in the top-level scope.
+    if (currentParam != endParams) {
+      ++currentParam;
+      hasVal = (currentParam != endParams) ||
+               ((currentScope != endScopes) && (scopes && templates));
+
+    } else if (currentScope != endScopes) {
       // Case where we continue iteration through a sub-scope of the
       // configuration by advancing a sub-iterator.
       if (currentScopeContents && endCurrentScope && recursive &&
@@ -710,8 +711,8 @@ ConcordConfiguration::ConfigurationIterator::operator++() {
         endCurrentScope.reset();
         hasVal = ((*currentScope).second.instances.size() > instance) && scopes;
 
-        // This case should not be reached unless ConfigurationIterator's
-        // implementation is buggy.
+        // The following cases should not be reached unless
+        // ConfigurationIterator's implementation is buggy.
       } else {
         throw InvalidIteratorException(
             "ConcordConfiguration::ConfigurationIterator is implemented "
@@ -719,12 +720,11 @@ ConcordConfiguration::ConfigurationIterator::operator++() {
             "itself.");
       }
 
-      // Case where (possibly recursive) handling of scopes has been completed
-      // and we are handling parameters in this ConcordConfiguration outside of
-      // any sub-scopes.
-    } else {  // Note (currentParam != endParams) if this case is reached.
-      ++currentParam;
-      hasVal = (currentParam != endParams);
+    } else {
+      throw InvalidIteratorException(
+          "ConcordConfiguration::ConfigurationIterator is implemented "
+          "incorrectly: an iterator could not determine how to advance "
+          "itself.");
     }
   }
 
@@ -832,6 +832,16 @@ void ConcordConfiguration::declareScope(const std::string& scope,
     throw std::invalid_argument(
         "Unable to create configuration scope: the empty string is not a valid "
         "name for a configuration scope.");
+  }
+  assert(kYAMLScopeTemplateSuffix.length() > 0);
+  if ((scope.length() >= kYAMLScopeTemplateSuffix.length()) &&
+      ((scope.substr(scope.length() - kYAMLScopeTemplateSuffix.length())) ==
+       kYAMLScopeTemplateSuffix)) {
+    throw std::invalid_argument("Cannot declare scope " + scope +
+                                ": to facilitate configuration serialization, "
+                                "scope names ending in \"" +
+                                kYAMLScopeTemplateSuffix +
+                                "\" are disallowed.");
   }
   if (containsScope(scope)) {
     throw ConfigurationRedefinitionException(
@@ -1021,6 +1031,16 @@ void ConcordConfiguration::declareParameter(const std::string& name,
     throw std::invalid_argument(
         "Cannot declare parameter: the empty string is not a valid name for a "
         "configuration parameter.");
+  }
+  assert(kYAMLScopeTemplateSuffix.length() > 0);
+  if ((name.length() >= kYAMLScopeTemplateSuffix.length()) &&
+      ((name.substr(name.length() - kYAMLScopeTemplateSuffix.length())) ==
+       kYAMLScopeTemplateSuffix)) {
+    throw std::invalid_argument("Cannot declare parameter " + name +
+                                ": to facilitate configuration serialization, "
+                                "parameter names ending in \"" +
+                                kYAMLScopeTemplateSuffix +
+                                "\" are disallowed.");
   }
   if (contains(name)) {
     ConfigurationPath path(name, false);
@@ -1461,6 +1481,15 @@ ParameterSelection::ParameterSelectionIterator::ParameterSelectionIterator(
       unfilteredIterator =
           selection->config->begin(ConcordConfiguration::kIterateAllParameters);
     }
+
+    // Advance from the first value to the first value this iterator should
+    // actually return if the first value the unfiltered iterator has is not
+    // actually in the selection.
+    if ((unfilteredIterator != endUnfilteredIterator) &&
+        (!(selection->contains(*unfilteredIterator)))) {
+      ++(*this);
+    }
+
     selection->registerIterator(this);
   }
 }
@@ -1607,3 +1636,110 @@ ParameterSelection::Iterator ParameterSelection::begin() {
 ParameterSelection::Iterator ParameterSelection::end() {
   return ParameterSelectionIterator(this, true);
 }
+
+void YAMLConfigurationInput::loadParameter(ConcordConfiguration& config,
+                                           const ConfigurationPath& path,
+                                           const YAML::Node& obj,
+                                           std::ostream* errorOut,
+                                           bool overwrite) {
+  // Note cases in this function where we return without either writing a value
+  // to the configuration or making a recursive call indicate we have concluded
+  // that the parameter indicated by path is not given in the input.
+  if (!obj.IsMap()) {
+    return;
+  }
+
+  if (path.isScope && path.subpath) {
+    YAML::Node subObj;
+    if (path.useInstance) {
+      if (!obj[path.name]) {
+        return;
+      }
+      subObj.reset(obj[path.name]);
+      if (!subObj.IsSequence() || (path.index >= subObj.size())) {
+        return;
+      }
+      subObj.reset(subObj[path.index]);
+    } else {
+      std::string templateName = path.name + kYAMLScopeTemplateSuffix;
+      if (!obj[templateName]) {
+        return;
+      }
+      subObj.reset(obj[templateName]);
+    }
+    ConfigurationPath subscope(path);
+    subscope.subpath.reset();
+    loadParameter(config.subscope(subscope), *(path.subpath), subObj, errorOut,
+                  overwrite);
+
+  } else {
+    if (!obj[path.name] || !obj[path.name].IsScalar()) {
+      return;
+    }
+
+    std::string failureMessage;
+    ConcordConfiguration::ParameterStatus status = config.loadValue(
+        path.name, obj[path.name].Scalar(), &failureMessage, overwrite);
+    if (errorOut &&
+        (status == ConcordConfiguration::ParameterStatus::INVALID)) {
+      (*errorOut) << "Cannot load value for parameter " << path.name << ": "
+                  << failureMessage << std::endl;
+    }
+  }
+}
+
+YAMLConfigurationInput::YAMLConfigurationInput(std::istream& input)
+    : input(&input), yaml(), success(false) {}
+
+void YAMLConfigurationInput::parseInput() {
+  yaml.reset(YAML::Load(*input));
+  success = true;
+}
+
+YAMLConfigurationInput::~YAMLConfigurationInput() {}
+
+void YAMLConfigurationOutput::addParameterToYAML(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    YAML::Node& yaml) {
+  // Note this helper function expects that it has already been validated or
+  // otherwise guaranteed that path is a valid path to a declared parameter in
+  // config and yaml is an associative array.
+  if (!config.contains(path) || !config.hasValue(path) || !yaml.IsMap()) {
+    return;
+  }
+
+  if (path.isScope && path.subpath) {
+    YAML::Node subscope;
+    std::string pathName;
+    if (path.useInstance) {
+      pathName = path.name;
+      if (!yaml[pathName]) {
+        yaml[pathName] = YAML::Node(YAML::NodeType::Sequence);
+      }
+      subscope.reset(yaml[pathName]);
+      assert(subscope.IsSequence());
+      while (path.index >= subscope.size()) {
+        subscope.push_back(YAML::Node(YAML::NodeType::Map));
+      }
+      subscope.reset(subscope[path.index]);
+    } else {
+      pathName = path.name + kYAMLScopeTemplateSuffix;
+      if (!yaml[pathName]) {
+        yaml[pathName] = YAML::Node(YAML::NodeType::Map);
+      }
+      subscope.reset(yaml[pathName]);
+      assert(subscope.IsMap());
+    }
+    ConfigurationPath subscopePath(path);
+    subscopePath.subpath.reset();
+    addParameterToYAML(config.subscope(subscopePath), *(path.subpath),
+                       subscope);
+  } else {
+    yaml[path.name] = config.getValue(path.name);
+  }
+}
+
+YAMLConfigurationOutput::YAMLConfigurationOutput(std::ostream& output)
+    : output(&output), yaml() {}
+
+YAMLConfigurationOutput::~YAMLConfigurationOutput() {}

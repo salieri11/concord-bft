@@ -16,7 +16,7 @@
 
 #include <fstream>
 #include <iostream>
-#include <unordered_map>
+#include <map>
 #include <unordered_set>
 
 #include <boost/program_options.hpp>
@@ -27,6 +27,8 @@
 #include <csignal>
 #include <fstream>
 #include <iostream>
+
+#include "yaml-cpp/yaml.h"
 
 boost::program_options::variables_map initialize_config(int argc, char** argv);
 
@@ -368,8 +370,8 @@ class ConcordConfiguration {
   ConcordConfiguration* parentScope;
   std::unique_ptr<ConfigurationPath> scopePath;
 
-  std::unordered_map<std::string, ConfigurationScope> scopes;
-  std::unordered_map<std::string, ConfigurationParameter> parameters;
+  std::map<std::string, ConfigurationScope> scopes;
+  std::map<std::string, ConfigurationParameter> parameters;
 
   // Private helper functions.
   void invalidateIterators();
@@ -401,15 +403,14 @@ class ConcordConfiguration {
     ConfigurationPath retVal;
 
     // State of iteration.
-    std::unordered_map<std::string, ConfigurationScope>::iterator currentScope;
-    std::unordered_map<std::string, ConfigurationScope>::iterator endScopes;
+    std::map<std::string, ConfigurationScope>::iterator currentScope;
+    std::map<std::string, ConfigurationScope>::iterator endScopes;
     bool usingInstance;
     size_t instance;
     std::unique_ptr<ConfigurationIterator> currentScopeContents;
     std::unique_ptr<ConfigurationIterator> endCurrentScope;
-    std::unordered_map<std::string, ConfigurationParameter>::iterator
-        currentParam;
-    std::unordered_map<std::string, ConfigurationParameter>::iterator endParams;
+    std::map<std::string, ConfigurationParameter>::iterator currentParam;
+    std::map<std::string, ConfigurationParameter>::iterator endParams;
     bool invalid;
 
     void updateRetVal();
@@ -488,11 +489,13 @@ class ConcordConfiguration {
   // Adds a new instantiable scope to this configuration. The scope begins empty
   // and uninstantiated.
   // Arguments:
-  //   - scope:  name for the new scope being declared. The empty string is not
-  //   a valid scope name, and an std::invalid_argument will be thrown if scope
-  //   is the empty string. A ConfigurationRedefinitionException will be thrown
-  //   if a scope with this name already exists or if the name is already in use
-  //   by a parameter.
+  //   - scope:  name for the new scope being declared. A
+  //   ConfigurationRedefinitionException will be thrown if a scope with this
+  //   name already exists or if the name is already in use by a parameter. The
+  //   empty string is disallowed as a scope name. Furthermore, scope names are
+  //   disallowed from having an ending matching kYAMLScopeTemplateSuffix
+  //   (defined below). This function will throw an std::invalid_argument if
+  //   scope is not a valid scope name.
   //   - description: a description for this scope.
   //   - size: pointer to a scope sizer function to be used to get the
   //   appropriate size for this scope when it is instantiated. An
@@ -571,18 +574,22 @@ class ConcordConfiguration {
   // Declares a new parameter in this configuration with the given name and
   // description and with no default value. Throws a
   // ConfigurationRedefinitionException if a parameter already exists with the
-  // given name or if that name is already used by a scope. Furthermore, the
-  // empty string is disallowed as a parameter name and an std::invalid_argument
-  // will be thrown if it is given as such.
+  // given name or if that name is already used by a scope.
+  // The empty string is disallowed as a parameter name. Furthermore, parameters
+  // are disallowed from having an ending matching kYAMLScopeTemplateSuffix
+  // (defined below). This function will throw an std::invalid_argument if name
+  // is not a valid parameter name.
   void declareParameter(const std::string& name,
                         const std::string& description);
 
   // Declares a new parameter in this configuration with the given name,
   // description, and default value. Throws a ConfigurationRedifinitionException
   // if a parameter already exists with the given name or if that name is
-  // already used by a scope. Furthermore, the empty string is disallowed as a
-  // parameter name and an std::invalid_argument will be thrown if it is given
-  // as such.
+  // already used by a scope.
+  // The empty string is disallowed as a parameter name. Furthermore, parameters
+  // are disallowed from having an ending matching kYAMLScopeTemplateSuffix
+  // (defined below). This function will throw an std::invalid_argument if name
+  // is not a valid parameter name.
   void declareParameter(const std::string& name, const std::string& description,
                         const std::string& defaultValue);
 
@@ -1000,6 +1007,164 @@ class ParameterSelection {
   bool contains(const ConfigurationPath& parameter) const;
   ParameterSelection::Iterator begin();
   ParameterSelection::Iterator end();
+};
+
+// A suffix appended to scope names by YAMLConfigurationInput and
+// YAMLConfigurationOutput to denote values for scope templates in the
+// configuration files. In our current implementations, it is useful to have
+// separate identifiers for scope templates and scope instances because we
+// generally model the contents of a scope as a list of its instances and there
+// is not a particularly natural way to include the contents of the template in
+// the instance list.
+const std::string kYAMLScopeTemplateSuffix = "__TEMPLATE";
+
+// This class handles reading and inputting ConcordConfiguration values
+// serialized to a YAML file. It is intended to be capable of reading
+// configuration files output with the YAMLConfigurationOutput class below. With
+// respect to configuration file format, this class expects a
+// ConcordConfiguration will be serialized in YAML as follows:
+// - A ConcordConfiguration, either the primary/root configuration or any of its
+// subscope instances and/or templates, is represented with a YAML map.
+// - Parameters in a particular scope are serialized in the map representing
+// that ConcordConfiguration as an assignment of the parameter's value to the
+// parameter's name.
+// - A scope templates serialized in this configuration file is represented as a
+// map (containing the template's contents) assiggned as a value to a key equal
+// to the concatenation of the scope's name and kYAMLScopeTemplateSuffix.
+// - Any instantiated scope instnaces serialized in this configuration file
+// should be represented by a list of maps, where each map represents the
+// contents of an instance. Each map entry in this list represents the scope
+// instance with the same index (note scope instances are 0-indexed). This list
+// should itself be mapped as a value to a key equal to the name of the
+// instantiated scope, and this assigment should be in the map for the
+// ConcordConfiguration containing this instantiated scope.
+//
+// This class currently does not provide any synchronization or guarantees of
+// synchronization.
+class YAMLConfigurationInput {
+ private:
+  std::istream* input;
+  YAML::Node yaml;
+  bool success;
+
+  void loadParameter(ConcordConfiguration& config,
+                     const ConfigurationPath& path, const YAML::Node& obj,
+                     std::ostream* errorOut, bool overwrite);
+
+ public:
+  // Constructor for YAMLConfigurationInput; it accepts an std::istream. It is
+  // expected that the code using the YAMLConfiguration will call parseInput to
+  // have this YAMLConfigurationInput parse the input from that stream.
+  YAMLConfigurationInput(std::istream& input);
+
+  ~YAMLConfigurationInput();
+
+  // Parses the input from the std::istream given to this
+  // YAMLConfigurationInputas YAML and records it for later retrieval with
+  // loadConfiguration.
+  //
+  // Throws: Any exception that occurs while attempting to parse this input. It
+  // is anticipated this may include I/O exceptions and YAML parse failures.
+  void parseInput();
+
+  // Loads values from the configuration file this YAMLConfigurationInput parsed
+  // to the given ConcordConfiguration. Parameters:
+  // - config: ConcordConfiguration to load the requested values to, if
+  // possible.
+  // - iterator: Iterator returning ConfigurationPaths or ConfigurationPath
+  // references of paths to parameters within config to attempt to load values
+  // for.
+  // - end: Iterator to the end of the range of ConfigurationPaths requested,
+  // used to tell when iterator has finished iterating.
+  // - errorOut: If a non-null ostream pointer is provided for errorOut, then an
+  // error message will be output to that ostream in any case where
+  // loadConfiguration tries to load a value from its input to config, but
+  // config rejects that value as invalid. These error messages will be of the
+  // format: "Cannot load value for parameter <PARAMETER NAME>: <FAILURE
+  // MESSAGE>".
+  // - overwrite: loadConfiguration will only overwrite existing values in
+  // config if true is given for the overwrite parameter.
+  // Returns: true if this YAMLConfigurationInput was able to successfully parse
+  // the specified YAML configuration file and false otherwise. Note
+  // YAMLConfigurationInput only considers failures to consist of either (a)
+  // parseInput was never called for this YAMLConfiguraitonInput or (b)
+  // parseInput was exited before it returned normally due to an exception
+  // occuring while trying to parse its input; it does not consider it a failure
+  // if the YAML parse contains unexpected extra information or if the parse is
+  // missing requested parameter(s). If false is returned, this function will
+  // not have loaded any values to config. If true is returned, this function
+  // will have loaded values from the configuration file it parsed to config for
+  // any parameter that meets the following requirements:
+  // - iterator returned a path to this parameter.
+  // - This parameter exists (was declared) in config.
+  // - The input configuration file had a value for this parameter.
+  // - config has no value already loaded for this parameter or overwrite is
+  // true.
+  // - config did not reject the loaded value of the parameter due to validator
+  // rejection.
+  template <class Iterator>
+  bool loadConfiguration(ConcordConfiguration& config, Iterator iterator,
+                         Iterator end, std::ostream* errorOut = nullptr,
+                         bool overwrite = true) {
+    if (!success) {
+      return false;
+    }
+    while (iterator != end) {
+      if (config.contains(*iterator)) {
+        loadParameter(config, *iterator, yaml, errorOut, overwrite);
+      }
+      ++iterator;
+    }
+    return true;
+  }
+};
+
+// This class handles serializing ConcordConfiguration values to a YAML file. It
+// is intended to be capable of writing configuration files readable by the
+// YAMLConfigurationInput class above. As such, it represents
+// ConcordConfiguration values in YAML using the same format outlined in the
+// documentation of YAMLConfigurationInput above.
+//
+// This class currently does not provide any synchronization or guarantees of
+// synchronization.
+class YAMLConfigurationOutput {
+ private:
+  std::ostream* output;
+  YAML::Node yaml;
+
+  void addParameterToYAML(const ConcordConfiguration& config,
+                          const ConfigurationPath& path, YAML::Node& yaml);
+
+ public:
+  YAMLConfigurationOutput(std::ostream& output);
+  ~YAMLConfigurationOutput();
+
+  // Writes the selected values from the given configuration to the ostream this
+  // YAMLConfigurationOutput was constructed with. If this function is
+  // successful (i.e. an exception does not occur), it will output YAML for
+  // every parameer returned by iterator that config has a value for.
+  // Parameters:
+  // - config: ConcordConfiguration from which to write the selected values.
+  // - iterator: Iterator returning ConfigurationPaths or ConfigurationPath
+  // references of paths to parameters within config to write the values of.
+  // - end: Iterator to the end of the range of ConfigurationPaths requested,
+  // used to tell when iterator has finished iterating.
+  // Throws: Any exception that occurs while attempting the requested output
+  // operation. It is anticipated this could include any I/O exceptions that
+  // occur while trying to write to the std::ostrem this YAMLConfigurationOutput
+  // was constructed with.
+  template <class Iterator>
+  void outputConfiguration(ConcordConfiguration& config, Iterator iterator,
+                           Iterator end) {
+    yaml.reset(YAML::Node(YAML::NodeType::Map));
+    while (iterator != end) {
+      if (config.hasValue(*iterator)) {
+        addParameterToYAML(config, *iterator, yaml);
+      }
+      ++iterator;
+    }
+    (*output) << yaml;
+  }
 };
 
 }  // namespace concord

@@ -55,6 +55,7 @@ add_executable(ConfigTests
 target_link_libraries(ConfigTests
   ${Boost_LIBRARIES}
   ${GTEST_LIBRARIES}
+  ${yaml-cpp_LIBRARIES}
   concord_utils
   kvblockchain
   gtest

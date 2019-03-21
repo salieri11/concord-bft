@@ -223,7 +223,7 @@ TEST(config_test, path_contains) {
 
   containing.subpath->index = 13;
   EXPECT_FALSE(containing.contains(path))
-      << "ConfiguraitonPath::contains fails"
+      << "ConfigurationPath::contains fails"
          " to account for instance indexes.";
 
   containing.subpath->useInstance = false;
@@ -1942,6 +1942,339 @@ TEST(config_test, parameter_selection) {
   EXPECT_EQ(expectedSelection, observedSelection)
       << "Iteration through a ParameterSelection does not yield the expected "
          "set of parameters.";
+}
+
+TEST(config_test, yaml_configuration_io) {
+  ConcordConfiguration config;
+
+  config.declareParameter("parameter_a", "A description.");
+  config.declareParameter("parameter_b", "A description.");
+  config.declareParameter("parameter_c", "A description.");
+  ConfigurationPath pathParameterB("parameter_b", false);
+  ConfigurationPath pathParameterC("parameter_c", false);
+  config.addValidator("parameter_b", mockValidator, nullptr);
+  mockValidatorResult = ConcordConfiguration::ParameterStatus::VALID;
+
+  config.declareScope("scope_a", "A description.", mockScopeSizer, nullptr);
+  ConcordConfiguration& scopeA = config.subscope("scope_a");
+  scopeA.declareParameter("parameter_aa", "A description.");
+  scopeA.declareParameter("parameter_ab", "A description.");
+
+  config.declareScope("scope_b", "A description.", mockScopeSizer, nullptr);
+  ConcordConfiguration& scopeB = config.subscope("scope_b");
+  scopeB.declareParameter("parameter_ba", "A description.");
+  scopeB.declareParameter("parameter_bb", "A description.");
+  scopeB.declareScope("scope_ba", "A description.", mockScopeSizer, nullptr);
+  ConcordConfiguration& scopeBA = scopeB.subscope("scope_ba");
+  scopeBA.declareParameter("parameter_baa", "A description.");
+  mockScopeSizerResult = 3;
+  config.instantiateScope("scope_b");
+  ConcordConfiguration& scopeB0 = config.subscope("scope_b", 0);
+  ConcordConfiguration& scopeB1 = config.subscope("scope_b", 1);
+  ConcordConfiguration& scopeB1A = scopeB1.subscope("scope_ba");
+  ConcordConfiguration& scopeB2 = config.subscope("scope_b", 2);
+  mockScopeSizerResult = 1;
+  scopeB1.instantiateScope("scope_ba");
+  ConcordConfiguration& scopeB1A0 = scopeB1.subscope("scope_ba", 0);
+
+  ConcordConfiguration emptyConfig;
+
+  std::string yamlRaw = "";
+  std::istringstream yamlIStream(yamlRaw);
+  YAMLConfigurationInput configInput(yamlIStream);
+  configInput.parseInput();
+  EXPECT_TRUE(configInput.loadConfiguration(
+      config, config.begin(ConcordConfiguration::kIterateAllParameters),
+      config.end(ConcordConfiguration::kIterateAllParameters)))
+      << "YAMLConfigurationInput fails to handle an empty configuration file.";
+  for (auto iterator =
+           config.begin(ConcordConfiguration::kIterateAllParameters);
+       iterator != config.end(ConcordConfiguration::kIterateAllParameters);
+       ++iterator) {
+    EXPECT_FALSE(config.hasValue(*iterator))
+        << "YAMLConfigurationInput::loadConfiguration loads a value to the "
+           "given configuration when given empty YAML input.";
+  }
+
+  // This YAML is invalid (note tab characters are forbidden in YAML) and should
+  // trigger an exception when we try to parse it, which we expect
+  // YAMLConfigurationInput to catch and subsequently return false for its
+  // results.
+  yamlRaw =
+      "parameter_a: \"A value.\"\n"
+      "\t\tparameter_b: \"A different value.\"\n";
+  yamlIStream = std::istringstream(yamlRaw);
+
+  configInput = YAMLConfigurationInput(yamlIStream);
+  try {
+    configInput.parseInput();
+    FAIL() << "YAMLConfigurationInput::parseInput fails to pass on exceptions "
+              "that occur when parsing its input.";
+  } catch (std::exception e) {
+  }
+  EXPECT_FALSE(configInput.loadConfiguration(
+      config, config.begin(ConcordConfiguration::kIterateAllParameters),
+      config.end(ConcordConfiguration::kIterateAllParameters)))
+      << "YAMLConfigurationInput fails to reject malformed YAML input.";
+  for (auto iterator =
+           config.begin(ConcordConfiguration::kIterateAllParameters);
+       iterator != config.end(ConcordConfiguration::kIterateAllParameters);
+       ++iterator) {
+    EXPECT_FALSE(config.hasValue(*iterator))
+        << "YAMLConfigurationInput::loadConfiguration loads a value to the "
+           "given configuration when given malformed YAML input.";
+  }
+
+  yamlRaw =
+      "parameter_a: \"A value.\"\n"
+      "scope_a" +
+      kYAMLScopeTemplateSuffix +
+      ":\n"
+      "  parameter_aa: \"A different value.\"\n"
+      "scope_b" +
+      kYAMLScopeTemplateSuffix +
+      ":\n"
+      "  parameter_ba: \"Value.\"\n"
+      "scope_b:\n"
+      "  - parameter_bb: \"Value A.\"\n"
+      "  - parameter_bb: \"Value B.\"\n"
+      "    scope_ba" +
+      kYAMLScopeTemplateSuffix +
+      ":\n"
+      "      parameter_baa: \"Value B.A.\"\n"
+      "    scope_ba:\n"
+      "      - parameter_baa: \"Value B.B.\"\n"
+      "  - parameter_bb: \"Value C.\"";
+  yamlIStream = std::istringstream(yamlRaw);
+
+  configInput = YAMLConfigurationInput(yamlIStream);
+  configInput.parseInput();
+
+  EXPECT_TRUE(configInput.loadConfiguration(
+      emptyConfig,
+      emptyConfig.begin(ConcordConfiguration::kIterateAllParameters),
+      emptyConfig.end(ConcordConfiguration::kIterateAllParameters)))
+      << "YAMLConfigurationInput fails to correctly handle an empty "
+         "ConcordConfiguration.";
+  EXPECT_EQ(emptyConfig.begin(ConcordConfiguration::kIterateAllParameters),
+            emptyConfig.end(ConcordConfiguration::kIterateAllParameters))
+      << "YAMLConfigurationInput::loadConfiguration appears to cause an empty "
+         "ConcordConfiguration to become non-empty.";
+
+  EXPECT_TRUE(configInput.loadConfiguration(
+      config, config.begin(ConcordConfiguration::kIterateAllParameters),
+      config.end(ConcordConfiguration::kIterateAllParameters)))
+      << "YAMLConfigurationInput failed to parse a sample configuration file.";
+  EXPECT_EQ(config.getValue("parameter_a"), "A value.")
+      << "YAMLConfigurationInput::loadConfiguration failed to correctly load a "
+         "value given in its YAML input.";
+  EXPECT_FALSE(config.hasValue("parameter_b"))
+      << "YAMLConfigurationInput::loadConfiguration loads a value for a "
+         "parameter not given in its YAML input.";
+  EXPECT_EQ(scopeB.getValue("parameter_ba"), "Value.")
+      << "YAMLConfigurationInput::loadConfiguration fails to correctly load "
+         "input for scope templates.";
+  EXPECT_FALSE(scopeB0.hasValue("parameter_ba"))
+      << "YAMLConfigurationInput::loadConfiguration loads value given for "
+         "scope template to scope instances.";
+  EXPECT_EQ(scopeB0.getValue("parameter_bb"), "Value A.")
+      << "YAMLConfigurationInput::loadConfiguration fails to correctly load "
+         "input for scope instances.";
+  EXPECT_EQ(scopeB1.getValue("parameter_bb"), "Value B.")
+      << "YAMLConfigurationInput::loadConfiguration fails to correctly load "
+         "input for scope instances.";
+  EXPECT_FALSE(scopeB.hasValue("parameter_bb"))
+      << "YAMLConfigurationInput::loadConfiguration loads value given for "
+         "scope instances to scope template.";
+  EXPECT_EQ(scopeB1A.getValue("parameter_baa"), "Value B.A.")
+      << "YAMLConfigurationInput::loadConfiguration fails to correctly load "
+         "input for parameters in nested scopes.";
+
+  config.eraseAllValues();
+  yamlRaw =
+      "parameter_a: \"Value A.\"\n"
+      "parameter_b: \"Value B.\"\n";
+  yamlIStream = std::istringstream(yamlRaw);
+
+  std::unordered_set<ConfigurationPath> configSubset(
+      {pathParameterB, pathParameterC});
+  configInput = YAMLConfigurationInput(yamlIStream);
+  configInput.parseInput();
+  EXPECT_TRUE(configInput.loadConfiguration(config, configSubset.begin(),
+                                            configSubset.end()))
+      << "ConcordConfiguration::loadConfiguration fails to handle loading a "
+         "subset of the configuration.";
+  EXPECT_FALSE(config.hasValue("parameter_a"))
+      << "YAMLConfigurationInput::loadConfiguration loads values for "
+         "parameters not in the set selected with the iterators it is passed.";
+  EXPECT_EQ(config.getValue("parameter_b"), "Value B.")
+      << "YAMLConfigurationInput::loadConfiguration fails to load the correct "
+         "value for a parameter both included in the input and in the set "
+         "selected with the iterators it is passed.";
+  EXPECT_FALSE(config.hasValue("parameter_c"))
+      << "YAMLConfigurationInput::loadConfiguration loads values for "
+         "parameters not included in the input.";
+
+  config.eraseAllValues();
+  std::ostringstream failureMessage("");
+  configInput.loadConfiguration(config, configSubset.begin(),
+                                configSubset.end(), &failureMessage);
+  EXPECT_EQ(failureMessage.str(), "")
+      << "YAMLConfigurationInput::loadConfiguration writes a message out to "
+         "the error stream it is given even when no validator fails.";
+
+  config.eraseAllValues();
+  mockValidatorResult = ConcordConfiguration::ParameterStatus::INVALID;
+  mockValidatorFailureMessage = "Mock validator failed.";
+  configInput.loadConfiguration(config, configSubset.begin(),
+                                configSubset.end(), &failureMessage);
+  EXPECT_EQ(
+      failureMessage.str(),
+      "Cannot load value for parameter parameter_b: Mock validator failed.\n")
+      << "YAMLConfigurationInput::loadConfiguration fails to correctly write "
+         "back error messages to the error stream it is given.";
+
+  config.eraseAllValues();
+  EXPECT_TRUE(configInput.loadConfiguration(config, configSubset.begin(),
+                                            configSubset.end(), nullptr))
+      << "YAMLConfigurationInput::loadConfiguration fails to correctly handle "
+         "not being given an error stream.";
+  mockValidatorResult = ConcordConfiguration::ParameterStatus::VALID;
+
+  config.eraseAllValues();
+  config.loadValue("parameter_b", "Original value.");
+  configInput.loadConfiguration(config, configSubset.begin(),
+                                configSubset.end(), nullptr, false);
+  EXPECT_EQ(config.getValue("parameter_b"), "Original value.")
+      << "YAMLConfigurationInput::loadConfiguration overwrites existing values "
+         "even when requested otherwise.";
+  configInput.loadConfiguration(config, configSubset.begin(),
+                                configSubset.end(), nullptr, true);
+  EXPECT_EQ(config.getValue("parameter_b"), "Value B.")
+      << "YAMLConfigurationInput::loadConfiguration fails to overwrite "
+         "existing values even when this is requested.";
+
+  config.eraseAllValues();
+
+  std::ostringstream yamlOStream;
+  YAMLConfigurationOutput configOutput(yamlOStream);
+  configOutput.outputConfiguration(
+      config, config.begin(ConcordConfiguration::kIterateAllParameters),
+      config.end(ConcordConfiguration::kIterateAllParameters));
+
+  YAML::Node yamlRoot = YAML::Load(yamlOStream.str());
+  EXPECT_EQ(yamlRoot.size(), 0)
+      << "YAMLConfigurationOutput::outputConfiguration outputs yaml for an "
+         "empty configuration.";
+
+  config.loadValue("parameter_a", "A value.");
+  config.loadValue("parameter_b", "A different value.");
+  scopeA.loadValue("parameter_aa", "A different value.");
+  scopeB.loadValue("parameter_ba", "Value.");
+  scopeB0.loadValue("parameter_bb", "Value A.");
+  scopeB1.loadValue("parameter_bb", "Value B.");
+  scopeB1A.loadValue("parameter_baa", "Value B.A.");
+  scopeB1A0.loadValue("parameter_baa", "Value B.B.");
+  scopeB2.loadValue("parameter_bb", "Value C.");
+
+  yamlOStream = std::ostringstream();
+  configOutput = YAMLConfigurationOutput(yamlOStream);
+  configOutput.outputConfiguration(
+      config, config.begin(ConcordConfiguration::kIterateAllParameters),
+      config.end(ConcordConfiguration::kIterateAllParameters));
+  yamlRoot.reset(YAML::Load(yamlOStream.str()));
+
+  EXPECT_EQ(yamlRoot["parameter_a"].Scalar(), "A value.")
+      << "YAMLConfigurationOutput::outputConfiguration fails to output the "
+         "correct value for a parameter.";
+  EXPECT_FALSE(yamlRoot["parameter_c"])
+      << "YAMLConfigurationOutput::outputConfiguration outputs entries for "
+         "uninitialized parameters.";
+  EXPECT_EQ(
+      yamlRoot["scope_b" + kYAMLScopeTemplateSuffix]["parameter_ba"].Scalar(),
+      "Value.")
+      << "YAMLConfigurationOutput::outputConfiguration fails to correctly "
+         "output contents of scope templates.";
+  EXPECT_FALSE(yamlRoot["scope_b"][0]["parameter_ba"])
+      << "YAMLConfigurationOutput::outputConfiguration outputs "
+         "template-specific contents in scope instances.";
+  EXPECT_EQ(yamlRoot["scope_b"][0]["parameter_bb"].Scalar(), "Value A.")
+      << "YAMLConfigurationOutput::outputConfiguraiton fails to correctly "
+         "output the contents of scope instances.";
+  EXPECT_EQ(yamlRoot["scope_b"][1]["parameter_bb"].Scalar(), "Value B.")
+      << "YAMLConfigurationOutput::outputConfiguration fails to correctly "
+         "output the contents of scope instances.";
+  EXPECT_FALSE(yamlRoot["scope_b" + kYAMLScopeTemplateSuffix]["parameter_bb"])
+      << "YAMLConfigurationOutput::outputConfiguration outputs values given "
+         "for scope instances as scope template values.";
+  EXPECT_EQ(yamlRoot["scope_b"][1]["scope_ba" + kYAMLScopeTemplateSuffix]
+                    ["parameter_baa"]
+                        .Scalar(),
+            "Value B.A.")
+      << "YAMLConfigurationOutput::outputConfiguration fails to correctly "
+         "output values for parameters in nested scopes.";
+
+  yamlOStream = std::ostringstream();
+  configOutput = YAMLConfigurationOutput(yamlOStream);
+  configOutput.outputConfiguration(config, configSubset.begin(),
+                                   configSubset.end());
+  yamlRoot.reset(YAML::Load(yamlOStream.str()));
+
+  EXPECT_FALSE(yamlRoot["parameter_a"])
+      << "YAMLConfiguration::outputConfiguration outputs values for parameters "
+         "not included in the set selected by the iterators it was given.";
+  EXPECT_EQ(yamlRoot["parameter_b"].Scalar(), "A different value.")
+      << "YAMLConfiguration::outputConfiguration fails to output the correct "
+         "value for a parameter both initialized in the configuration and "
+         "selected by the iterators it was given.";
+  EXPECT_FALSE(yamlRoot["parameter_c"])
+      << "YAMLConfiguration::outputConfiguration outputs values for parameters "
+         "not initialized in the configuration.";
+
+  ConcordConfiguration copyConfig(config);
+  copyConfig.eraseAllValues();
+  yamlOStream = std::ostringstream();
+  configOutput = YAMLConfigurationOutput(yamlOStream);
+  configOutput.outputConfiguration(
+      config, config.begin(ConcordConfiguration::kIterateAllParameters),
+      config.end(ConcordConfiguration::kIterateAllParameters));
+  yamlIStream = std::istringstream(yamlOStream.str());
+  configInput = YAMLConfigurationInput(yamlIStream);
+  configInput.parseInput();
+  configInput.loadConfiguration(
+      copyConfig, copyConfig.begin(ConcordConfiguration::kIterateAllParameters),
+      copyConfig.end(ConcordConfiguration::kIterateAllParameters));
+
+  for (auto iterator =
+           config.begin(ConcordConfiguration::kIterateAllParameters);
+       iterator != config.end(ConcordConfiguration::kIterateAllParameters);
+       ++iterator) {
+    if (config.hasValue(*iterator)) {
+      EXPECT_EQ(config.getValue(*iterator), copyConfig.getValue(*iterator))
+          << "Outputting a configuration to YAML and reading it back in does "
+             "not yield a configuration matching the original.";
+    } else {
+      EXPECT_FALSE(copyConfig.hasValue(*iterator))
+          << "Outputting a configuration to YAML and reading it back in does "
+             "not yield a configuration matching the original.";
+    }
+  }
+
+  try {
+    config.declareScope("scope_d" + kYAMLScopeTemplateSuffix, "A description.",
+                        mockScopeSizer, nullptr);
+    FAIL() << "ConcordConfiguration::declareScope fails to reject scope names "
+              "endin in the YAML scope template suffix.";
+  } catch (std::invalid_argument) {
+  }
+
+  try {
+    config.declareParameter("parameter_d" + kYAMLScopeTemplateSuffix,
+                            "A description.");
+    FAIL() << "ConcordConfiguration::declareParameter fails to reject "
+              "parameter names endin in the YAML scope template suffix.";
+  } catch (std::invalid_argument) {
+  }
 }
 
 }  // end namespace

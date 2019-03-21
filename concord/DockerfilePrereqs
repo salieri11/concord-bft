@@ -26,6 +26,15 @@ RUN apt-get update && apt-get -y install \
     wget \
     clang-format-6.0 \
     python3-pip \
+    libboost1.65-dev \
+    libboost-program-options1.65-dev \
+    libboost-program-options1.65.1 \
+    libboost-system1.65-dev \
+    libboost-system1.65.1 \
+    libboost-thread1.65-dev \
+    libboost-thread1.65.1 \
+    libyaml-cpp0.5v5 \
+    libyaml-cpp-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN ln -s /usr/bin/clang-format-6.0 /usr/bin/clang-format
@@ -51,18 +60,10 @@ WORKDIR /cryptopp/build
 RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make && make install
 
 WORKDIR /
-RUN wget https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.gz \
-    && tar -xzf boost_1_64_0.tar.gz \
-    && rm boost_1_64_0.tar.gz
-WORKDIR /boost_1_64_0
-RUN ./bootstrap.sh --with-libraries=system,program_options,thread --prefix=/usr && ./b2 cxxflags="-march=x86-64 -mtune=generic" && ./b2 install
-
-WORKDIR /
 RUN git clone https://github.com/log4cplus/log4cplus.git
 WORKDIR /log4cplus
 RUN git checkout REL_1_2_1
-RUN sed -i -e "s/am__api_version='1.14'/am__api_version='1.15'/g" configure
-RUN ./configure CXXFLAGS="--std=c++11 -march=x86-64 -mtune=generic" && make && make install
+RUN autoconf && ./configure CXXFLAGS="--std=c++11 -march=x86-64 -mtune=generic" && make && make install
 
 WORKDIR /
 RUN git clone https://github.com/ethereum/evmjit.git

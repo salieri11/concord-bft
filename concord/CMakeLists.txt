@@ -54,6 +54,9 @@ endif(DEFINED USE_HERA)
 find_package(Cryptopp REQUIRED)
 include_directories(${Cryptopp_INCLUDE_DIRS})
 
+find_package(yaml-cpp REQUIRED)
+include_directories(${yaml-cpp_INCLUDE_DIRS})
+
 add_subdirectory("submodules")
 add_subdirectory("proto")
 add_subdirectory("src")
