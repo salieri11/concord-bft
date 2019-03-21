@@ -40,14 +40,14 @@ ARTIFACTORY_BASE_IMAGE_PATH="athena-docker-local.artifactory.eng.vmware.com/"
 #   1. curl output is JSON containing https://.../athena-docker-local/<some image>/<TAG>/<maybe more stuff>
 #   2. First grep extracts https://.../<TAG> (dropping /<maybe more stuff>)
 #   3. Second grep extracts <TAG> (droping https://.../)
-LATEST_TAG=$(curl -s -H "X-JFrog-Art-Api: ${ARTIFACTORY_KEY}" ${ARTIFACTORY_BASE_URL}/fleet-management?lastModified |
+LATEST_TAG=$(curl -s -H "X-JFrog-Art-Api: ${ARTIFACTORY_KEY}" ${ARTIFACTORY_BASE_URL}/persephone?lastModified |
                     grep -oe "${ARTIFACTORY_BASE_URL}[^/]\+/[a-f0-9]\+" |
                     grep -oe "[a-f0-9]\+\$")
 
 while IFS= read -r LINE
 do
     if [[ $LINE =~ repo ]]; then
-        # Ex: concord_repo=fleet-management
+        # Ex: concord_repo=persephone
         #     ^-----^      ^----------^
         #     SERVICE      IMAGE_BASE_NAME
         SERVICE_REPO=`echo ${LINE} | cut -d "=" -f 1 -`

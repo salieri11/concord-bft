@@ -273,7 +273,7 @@ def call(){
                 env.release_ethrpc_repo = env.release_repo + "/ethrpc"
                 env.release_fluentd_repo = env.release_repo + "/fluentd"
                 env.release_helen_repo = env.release_repo + "/concord-ui"
-                env.release_persephone_repo = env.release_repo + "/fleet-management"
+                env.release_persephone_repo = env.release_repo + "/persephone"
                 env.release_ui_repo = env.release_repo + "/ui"
                 env.release_contract_compiler_repo = env.release_repo + "/contract-compiler"
 
