@@ -99,6 +99,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
          ("eth_getCode", self._test_eth_getCode),
          ("eth_getLogs", self._test_eth_getLogs),
          ("eth_getLogs_block_range", self._test_eth_getLogs_block_range),
+         ("eth_getLogs_addr", self._test_eth_getLogs_addr),
          ("eth_gasPrice", self._test_eth_gasPrice),
          ("eth_getStorageAt", self._test_eth_getStorageAt),
          ("eth_getTransactionByHash", self._test_eth_getTransactionByHash),
@@ -696,6 +697,61 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
       if expected:
          return (False, "From log range: Couldn't find " + str(expected))
+
+      return (True, None)
+
+   def _test_eth_getLogs_addr(self, rpc, request):
+      w3 = self.getWeb3Instance()
+      abi, bin = self.loadContract("SimpleEvent")
+      contract = w3.eth.contract(abi=abi, bytecode=bin)
+      tx_args = {"from":"0x09b86aa450c61A6ed96824021beFfD32680B8B64"}
+
+      # Deploy the contract twice to get two different contract addresses
+      contract_tx = contract.constructor().transact(tx_args)
+      contract_txr = w3.eth.waitForTransactionReceipt(contract_tx)
+      caddr1 = contract_txr.contractAddress
+      contract1 = w3.eth.contract(address=caddr1, abi=abi)
+
+      contract_tx = contract.constructor().transact(tx_args)
+      contract_txr = w3.eth.waitForTransactionReceipt(contract_tx)
+      caddr2 = contract_txr.contractAddress
+      contract2 = w3.eth.contract(address=caddr2, abi=abi)
+
+      # Invoke both contracts to trigger events and generate logs
+      func = contract1.get_function_by_name("foo")
+      func_tx = func(w3.toInt(hexstr="0x0ff1ce")).transact(tx_args)
+      func_txr = w3.eth.waitForTransactionReceipt(func_tx)
+      assert func_txr.status == 1
+
+      func = contract1.get_function_by_name("foo")
+      func_tx = func(w3.toInt(hexstr="0x0ff1cef001")).transact(tx_args)
+      func_txr = w3.eth.waitForTransactionReceipt(func_tx)
+      assert func_txr.status == 1
+
+      func = contract2.get_function_by_name("foo")
+      func_tx = func(w3.toInt(hexstr="0xba1d0ff1ce")).transact(tx_args)
+      func_txr = w3.eth.waitForTransactionReceipt(func_tx)
+      assert func_txr.status == 1
+
+      # Get all logs for caddr1
+      logs = rpc.getLogs({"fromBlock":"earliest", "address":caddr1})
+      if len(logs) != 2:
+         return (False, "Expected two log entries for addr " + caddr1)
+      filter_out = list(filter(lambda l: w3.toChecksumAddress(l["address"]) == caddr1, logs))
+      if not filter_out:
+         return (False, "Couldn't find logs for addr " + caddr1)
+      if len(filter_out) != len(logs):
+         return (False, "Unexpected logs - only logs from {} expected".format(caddr1))
+
+      # The latest block should contain the log for caddr2
+      logs = rpc.getLogs({"address":caddr2})
+      if len(logs) != 1:
+         return (False, "Expected one log entries for addr " + caddr1)
+      filter_out = list(filter(lambda l: w3.toChecksumAddress(l["address"]) == caddr2, logs))
+      if not filter_out:
+         return (False, "Couldn't find logs for addr " + caddr2)
+      if len(filter_out) != len(logs):
+         return (False, "Unexpected logs - only logs from {} expected".format(caddr2))
 
       return (True, None)
 
