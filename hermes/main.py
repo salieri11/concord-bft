@@ -114,6 +114,10 @@ def main():
                                          parent_results_dir=parent_results_dir)
       log.info("Results directory: {}".format(args.resultsDir))
       suite = createTestSuite(args)
+      if suite is None:
+         log.error("Unknown test suite")
+         exit(3)
+
       log.info("Running suite {}".format(suite.getName()))
       success = processResults(suite.run())
       endTime = datetime.datetime.now()
@@ -180,6 +184,8 @@ def createTestSuite(args):
       return ui_tests.UiTests(args)
    elif (args.suite == "LintTests"):
       return lint_e2e_tests.LintTests(args)
+   else:
+      return None
 
 def createResultsDir(suiteName, parent_results_dir=tempfile.gettempdir()):
    prefix = suiteName + "_" + strftime("%Y%m%d_%H%M%S", localtime())
