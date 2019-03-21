@@ -15,6 +15,7 @@ def call(){
   } else if (env.JOB_NAME == performance_test_job_name) {
     echo "**** Jenkins job for Performance Test"
     genericTests = false
+    additional_components_to_build = additional_components_to_build + "PerformanceTests,"
   } else if (env.JOB_NAME == lint_test_job_name) {
     echo "**** Jenkins job for LINT Tests"
     genericTests = false
@@ -341,31 +342,12 @@ EOF
       stage("Build") {
         steps {
           script{
+            env.additional_components_to_build = additional_components_to_build
             try{
               dir('blockchain') {
                 sh '''
-                  ./buildall.sh
+                  ./buildall.sh --additionalBuilds ${additional_components_to_build}
                 '''
-              }
-            }catch(Exception ex){
-              failRun()
-              throw ex
-            }
-          }
-        }
-      }
-
-      stage ("Build Performance Sub module") {
-        when {
-          expression { env.JOB_NAME == performance_test_job_name }
-        }
-        steps{
-          script{
-            try{
-              steps {
-                dir('blockchain/performance') {
-                    sh 'mvn clean install assembly:single > mvn_performance_build.log 2>&1'
-                }
               }
             }catch(Exception ex){
               failRun()
@@ -428,7 +410,7 @@ EOF
                     if (env.JOB_NAME == performance_test_job_name) {
                       sh '''
                         echo "Running Entire Testsuite: Performance..."
-                        echo "${PASSWORD}" | sudo -S ./main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${performance_test_logs}"
+                        echo "${PASSWORD}" | sudo -SE ./main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${performance_test_logs}"
                       '''
                     }
                     if (env.JOB_NAME == lint_test_job_name) {
