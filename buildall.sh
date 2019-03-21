@@ -179,7 +179,8 @@ memleak_util_cmd="valgrind -v --leak-check=full --show-leak-kinds=all --track-or
 docker build . --file concord/Dockerfile -t "${concord_repo}:${concord_tag}"_memleak --build-arg "memleak_util=${memleak_util}" --build-arg "memleak_util_cmd=${memleak_util_cmd}" > concord_memleak_build.log 2>&1 &
 addToProcList "Concord_for_memleak" $!
 
-startNativeConcordBuild
+# RV: March 21, 2019: This is only needed for the state transfer tests.  Removing.
+# startNativeConcordBuild
 
 docker build ui --file ui/Dockerfile -t ${ui_repo}:${ui_tag} --label ${version_label}=${ui_tag} --label ${commit_label}=${commit_hash} > ui_build.log 2>&1 &
 addToProcList "UI" $!

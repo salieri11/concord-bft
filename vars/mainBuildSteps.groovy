@@ -313,7 +313,11 @@ EOF
                     echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}"
                     echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"
                     echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}"
-                    echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
+
+                    # RV, March 21, 2019: Commenting out this suite because it relies on a native Concord build, which is becoming problematic.
+                    #                     Uncomment when it no longer relies on that.
+                    # echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
+
                     echo "${PASSWORD}" | sudo -S ./main.py TruffleTests --logLevel debug --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${truffle_test_logs}"
                     echo "${PASSWORD}" | sudo -S ./main.py ContractCompilerTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${contract_compiler_test_logs}"
 
@@ -405,7 +409,7 @@ EOF
       stage ("Post Performance Testrun") {
         when {
           expression { env.JOB_NAME == performance_test_job_name }
-        } 
+        }
         stages {
           stage('Collect Performance Transaction Rate') {
             steps {
@@ -425,7 +429,7 @@ EOF
                   pushHermesDataFile('perf_testrun_summary.csv')
               }
             }
-          } 
+          }
           stage ('Send Performance Test Alert Notification') {
             steps {
               dir('hermes-data/performance_test') {
@@ -682,7 +686,7 @@ void sendAlertNotification(test_name) {
     memory_leak_spiked_log = new File(env.mem_leak_test_logs, "memory_leak_spiked.log").toString()
     if (fileExists(memory_leak_spiked_log)) {
       echo 'ALERT: Memory Leak spiked up'
-        
+
       memory_leak_alert_notification_address_file = "memory_leak_alert_recipients.txt"
       if (fileExists(memory_leak_alert_notification_address_file)) {
         memory_leak_alert_notification_recipients = readFile(memory_leak_alert_notification_address_file).replaceAll("\n", " ")
@@ -690,7 +694,7 @@ void sendAlertNotification(test_name) {
         emailext body: "Memory Leak Spiked up in build: ${env.BUILD_NUMBER}\n\n More info at: ${env.BUILD_URL}\nDownload Valgrind Log file (could be > 10 MB): ${env.BUILD_URL}artifact/testLogs/MemoryLeak/valgrind_concord1.log\n\nGraph: ${JOB_URL}plot",
         to: memory_leak_alert_notification_recipients,
         subject: "ALERT: Memory Leak Spiked up in build ${env.BUILD_NUMBER}"
-      }               
+      }
     }
   }
 
@@ -698,7 +702,7 @@ void sendAlertNotification(test_name) {
     performance_test_spiked_log = new File(env.performance_test_logs, "performance_transaction_rate_spiked.log").toString()
     if (fileExists(performance_test_spiked_log)) {
       echo 'ALERT: Performance Transaction Rate spiked up in this run'
-      
+
       performance_test_alert_notification_address_file = "performance_test_alert_recipients.txt"
       if (fileExists(performance_test_alert_notification_address_file)) {
         performance_test_alert_notification_recipients = readFile(performance_test_alert_notification_address_file).replaceAll("\n", " ")
