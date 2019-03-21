@@ -62,8 +62,12 @@ void com::vmware::concord::RLPBuilder::add(const std::vector<uint8_t> &vec) {
 
 void com::vmware::concord::RLPBuilder::add(const uint8_t *data, size_t size) {
   assert(!finished);
-  std::reverse_copy(data, data + size, std::back_inserter(buffer));
-  add_string_size(size);
+  if (size == 1 && data[0] <= 0x7f) {
+    buffer.push_back(data[0]);
+  } else {
+    std::reverse_copy(data, data + size, std::back_inserter(buffer));
+    add_string_size(size);
+  }
 }
 
 void com::vmware::concord::RLPBuilder::add(const std::string &str) {
