@@ -5,6 +5,8 @@ def call(){
   def genericTests = true
   def memory_leak_job_name = "BlockchainMemoryLeakTesting"
   def performance_test_job_name = "Blockchain Performance Test"
+  def lint_test_job_name = "Blockchain LINT Tests"
+  def additional_components_to_build = ""
 
   if (env.JOB_NAME == memory_leak_job_name) {
     echo "**** Jenkins job for Memory Leak Test"
@@ -12,6 +14,9 @@ def call(){
     genericTests = false
   } else if (env.JOB_NAME == performance_test_job_name) {
     echo "**** Jenkins job for Performance Test"
+    genericTests = false
+  } else if (env.JOB_NAME == lint_test_job_name) {
+    echo "**** Jenkins job for LINT Tests"
     genericTests = false
   } else {
     echo "**** Jenkins job for Generic Test Run"
@@ -172,7 +177,7 @@ def call(){
               }
             }
           }
-          stage("Install node package dependencies") {
+          stage("Install node package dependencies for the UI") {
             steps() {
               script{
                 try{
@@ -186,6 +191,14 @@ def call(){
               }
             }
           }
+          stage("Install node package dependencies for the Contract Compiler") {
+            steps() {
+              dir('blockchain/contract-compiler') {
+                sh 'npm install'
+              }
+            }
+          }
+
         }
       }
 
@@ -264,6 +277,7 @@ def call(){
                 env.release_helen_repo = env.release_repo + "/concord-ui"
                 env.release_persephone_repo = env.release_repo + "/fleet-management"
                 env.release_ui_repo = env.release_repo + "/ui"
+                env.release_contract_compiler_repo = env.release_repo + "/contract-compiler"
 
                 // These are constants which mirror the internal artifactory repos.  We put all merges
                 // to master in the internal VMware artifactory.
@@ -275,11 +289,16 @@ def call(){
                 env.internal_helen_repo = env.internal_repo + "/helen"
                 env.internal_persephone_repo = env.release_persephone_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_contract_compiler_repo = env.release_contract_compiler_repo.replace(env.release_repo, env.internal_repo)
               }
 
               // Docker-compose picks up values from the .env file in the directory from which
               // docker-compose is run.
-              withCredentials([string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD')]) {
+              withCredentials([
+                string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
+                string(credentialsId: 'LINT_API_KEY', variable: 'LINT_API_KEY'),
+                string(credentialsId: 'FLUENTD_AUTHORIZATION_BEARER', variable: 'FLUENTD_AUTHORIZATION_BEARER')
+                ]) {
                 sh '''
                   echo "${PASSWORD}" | sudo -S ls
                   sudo cat >blockchain/docker/.env <<EOF
@@ -299,10 +318,16 @@ persephone_repo=${internal_persephone_repo}
 persephone_tag=${docker_tag}
 ui_repo=${internal_ui_repo}
 ui_tag=${docker_tag}
+contract_compiler_repo=${internal_contract_compiler_repo}
+contract_compiler_tag=${docker_tag}
 commit_hash=${commit}
 LINT_API_KEY=${LINT_API_KEY}
 EOF
                   cp blockchain/docker/.env blockchain/hermes/
+
+                  # Need to add the fluentd authorization bearer.
+                  # I couldn't get this env method to update the conf https://docs.fluentd.org/v0.12/articles/faq#how-can-i-use-environment-variables-to-configure-parameters-dynamically
+                  sed -i -e 's/'"<ADD-LOGINTELLIGENCE-KEY-HERE>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/docker/fluentd/fluentd.conf
                 '''
               }
             }catch(Exception ex){
@@ -367,6 +392,8 @@ EOF
                     env.statetransfer_test_logs = new File(env.test_log_root, "StateTransfer").toString()
                     env.mem_leak_test_logs = new File(env.test_log_root, "MemoryLeak").toString()
                     env.performance_test_logs = new File(env.test_log_root, "PerformanceTest").toString()
+                    env.lint_test_logs = new File(env.test_log_root, "LintTest").toString()
+                    env.contract_compiler_test_logs = new File(env.test_log_root, "ContractCompilerTests").toString()
 
                     if (genericTests) {
                       sh '''
@@ -380,6 +407,7 @@ EOF
                         echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}"
                         echo "${PASSWORD}" | sudo -S ./main.py SimpleStateTransferTest --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${statetransfer_test_logs}"
                         echo "${PASSWORD}" | sudo -S ./main.py TruffleTests --logLevel debug --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${truffle_test_logs}"
+                        echo "${PASSWORD}" | sudo -S ./main.py ContractCompilerTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${contract_compiler_test_logs}"
 
                         cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs} ; cd ..
 
@@ -401,6 +429,19 @@ EOF
                       sh '''
                         echo "Running Entire Testsuite: Performance..."
                         echo "${PASSWORD}" | sudo -S ./main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${performance_test_logs}"
+                      '''
+                    }
+                    if (env.JOB_NAME == lint_test_job_name) {
+                      sh '''
+                        echo "Running Entire Testsuite: Lint E2E..."
+
+                        # We need to delete the database files before running UI tests because
+                        # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
+                        # needs to be run with sudo is so it can delete any existing DB files.)
+                        echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/rocksdbdata*
+                        echo "${PASSWORD}" | sudo -S rm -rf ../docker/devdata/cockroachDB
+
+                        ./main.py LintTests --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-fluentd.yml --resultsDir "${lint_test_logs}"
                       '''
                     }
                   }
@@ -490,6 +531,7 @@ EOF
                 // pushDockerImage(env.internal_helen_repo, env.docker_tag, false)
                 // pushDockerImage(env.internal_persephone_repo, env.docker_tag, false)
                 // pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
+                // pushDockerImage(env.internal_contract_compiler_repo, env.docker_tag, false)
               }
             }catch(Exception ex){
               failRun()
@@ -526,7 +568,7 @@ EOF
                   docker tag ${internal_helen_repo}:${docker_tag} ${release_helen_repo}:${docker_tag}
                   docker tag ${internal_persephone_repo}:${docker_tag} ${release_persephone_repo}:${docker_tag}
                   docker tag ${internal_ui_repo}:${docker_tag} ${release_ui_repo}:${docker_tag}
-
+                  docker tag ${internal_contract_compiler_repo}:${docker_tag} ${release_contract_compiler_repo}:${docker_tag}
                 '''
                 pushDockerImage(env.release_agent_repo, env.docker_tag, true)
                 pushDockerImage(env.release_asset_transfer_repo, env.docker_tag, true)
@@ -536,6 +578,7 @@ EOF
                 pushDockerImage(env.release_helen_repo, env.docker_tag, true)
                 // pushDockerImage(env.release_persephone_repo, env.docker_tag, true)
                 pushDockerImage(env.release_ui_repo, env.docker_tag, true)
+                pushDockerImage(env.release_contract_compiler_repo, env.docker_tag, true)
               }
 
               dir('blockchain/vars') {
