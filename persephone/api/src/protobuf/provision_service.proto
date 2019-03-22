@@ -66,7 +66,26 @@ message DeploymentSessionIdentifier {
 }
 
 /**
- * Model definition for events pertaining to a cluster deployment session.
+ * Model definition of a deployment session.
+ *
+ * @property[id]
+ *   identifier for this deployment session.
+ * @property[specification]
+ *   deployment specification used to carry out the operation associated with this session.
+ * @property[complete]
+ *   terminal indicator for the deployment session (whether successful or failure).
+ * @property[events]
+ *   deployment events occurred in this deployment session.
+ */
+message DeploymentSession {
+    DeploymentSessionIdentifier id = 1;
+    DeploymentSpecification specification = 2;
+    bool complete = 3;
+    repeated DeploymentSessionEvent events = 4 [packed=false];
+}
+
+/**
+ * Model definition for events pertaining to a [DeploymentSession].
  *
  * @property[header]
  *   message header.
@@ -81,7 +100,7 @@ message DeploymentSessionIdentifier {
  */
 message DeploymentSessionEvent {
     /**
-     * Type of [DeploymentEvent] emitted.
+     * Type of [DeploymentSessionEvent] emitted.
      */
     enum Type {
         NOOP = 0; // Default value, should not be used.
@@ -92,12 +111,11 @@ message DeploymentSessionEvent {
         COMPLETED = 5; // Session completed (plan associated with [deployment] is marked complete).
     }
 
-    MessageHeader header = 1;
-    Type type = 2;
-    DeploymentSessionIdentifier session = 3;
-    ConcordNode node = 4;
-    ConcordNodeStatus node_status = 5;
-    ConcordCluster cluster = 6;
+    Type type = 1;
+    DeploymentSessionIdentifier session = 2;
+    ConcordNode node = 3;
+    ConcordNodeStatus node_status = 4;
+    ConcordCluster cluster = 5;
 }
 
 /**
