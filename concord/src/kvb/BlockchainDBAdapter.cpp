@@ -121,6 +121,7 @@ BlockId KeyManipulator::extractBlockIdFromKey(const Logger &logger, Key _key) {
  */
 ObjectId KeyManipulator::extractObjectIdFromKey(const Logger &logger,
                                                 Key _key) {
+  assert(_key.length() >= sizeof(ObjectId));
   size_t offset = _key.length() - sizeof(ObjectId);
   ObjectId id = *(ObjectId *)(_key.data() + offset);
 

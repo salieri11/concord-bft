@@ -26,34 +26,6 @@ const uint32_t initialObjDataSize = 80;
 const uint64_t seqNum = 123456789;
 const uint16_t objectsNum = 100;
 
-//
-// void verifyMultiGet(KeysVector &keys, Sliver inValues[blocksNum],
-//                    KeysVector &outValues) {
-//  ASSERT_TRUE(dbClient->multiGet(keys, outValues) == Status::OK());
-//  ASSERT_TRUE(outValues.size() == blocksNum);
-//  for (int i = 0; i < blocksNum; i++) {
-//    ASSERT_TRUE(inValues[i] == outValues[i]);
-//  }
-//}
-//
-// void verifyMultiDel(KeysVector &keys) {
-//  const Status expectedStatus = Status::NotFound("Not Found");
-//  for (const auto &it : keys) {
-//    Sliver outValue;
-//    ASSERT_TRUE(dbClient->get(it, outValue) == expectedStatus);
-//  }
-//}
-//
-// void launchMultiPut(KeysVector &keys, Sliver inValues[blocksNum],
-//                    SetOfKeyValuePairs &keyValueMap) {
-//  for (auto i = 0; i < blocksNum; i++) {
-//    keys[i] = Sliver(createAndFillBuf(keyLen), keyLen);
-//    inValues[i] = Sliver(createAndFillBuf(valueLen), valueLen);
-//    keyValueMap.insert(KeyValuePair(keys[i], inValues[i]));
-//  }
-//  ASSERT_TRUE(dbClient->multiPut(keyValueMap).isOK());
-//}
-
 uint8_t *fillBufByGivenData(const uint8_t *data, const uint32_t &sizeOfData) {
   auto *inBuf = new uint8_t[sizeOfData];
   memcpy(inBuf, data, sizeOfData);
