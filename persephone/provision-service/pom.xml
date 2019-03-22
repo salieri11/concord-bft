@@ -124,7 +124,7 @@
                         <configuration>
                             <archive>
                                 <manifest>
-                                    <mainClass>com.vmware.blockchain.deployment.service.metadata.MetadataServer</mainClass>
+                                    <mainClass>com.vmware.blockchain.deployment.service.provision.ProvisionServer</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>
