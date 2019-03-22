@@ -34,7 +34,7 @@ typedef struct EthTransaction {
   evm_address contract_address;
   std::vector<uint8_t> input;
   evm_status_code status;
-  uint64_t value;
+  evm_uint256be value;
   uint64_t gas_price;
   uint64_t gas_limit;
   std::vector<EthLog> logs;

@@ -1,10 +1,12 @@
 // Copyright 2018 VMware, all rights reserved
 //
 // concord common Utilities.
+#include <stdexcept>
 
 #include "utils.hpp"
 
 using namespace std;
+using boost::multiprecision::uint256_t;
 
 char hexval(char c) {
   if (c >= '0' && c <= '9') {
@@ -14,7 +16,7 @@ char hexval(char c) {
   } else if (c >= 'A' && c <= 'F') {
     return 10 + c - 'A';
   } else {
-    throw "non-hex character";
+    throw invalid_argument("non-hex character");
   }
 }
 
@@ -26,7 +28,7 @@ char hexval(char c) {
 */
 vector<uint8_t> com::vmware::concord::dehex(const std::string &str) {
   if (str.size() % 2 != 0) {
-    throw "nibble missing in string";
+    throw invalid_argument("nibble missing in string");
   }
   // allow people to include "0x" prefix, or not
   size_t adjust = (str[0] == '0' && str[1] == 'x') ? 2 : 0;
@@ -73,4 +75,24 @@ int64_t com::vmware::concord::get_epoch_millis() {
       duration_cast<milliseconds>(system_clock::now().time_since_epoch())
           .count();
   return res;
+}
+
+uint256_t com::vmware::concord::to_uint256_t(const evm_uint256be *val) {
+  uint256_t out{0};
+  assert(val != nullptr);
+  std::vector<uint8_t> val_v(val->bytes, val->bytes + sizeof(evm_uint256be));
+  import_bits(out, val_v.begin(), val_v.end());
+  return out;
+}
+
+evm_uint256be com::vmware::concord::from_uint256_t(const uint256_t *val) {
+  evm_uint256be out{0};
+  std::vector<uint8_t> val_v;
+  assert(val != nullptr);
+  export_bits(*val, std::back_inserter(val_v), 8);
+  while (val_v.size() < sizeof(evm_uint256be)) {
+    val_v.insert(val_v.begin(), 0);
+  }
+  memcpy(out.bytes, val_v.data(), val_v.size());
+  return out;
 }

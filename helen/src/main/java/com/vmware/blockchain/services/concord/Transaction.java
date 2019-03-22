@@ -57,7 +57,7 @@ public final class Transaction extends ConcordServlet {
         }
 
         if (tr.hasValue()) {
-            responseJson.put("value", Long.toString(tr.getValue()));
+            responseJson.put("value", ApiHelper.binaryStringToHex(tr.getValue(), true));
         }
 
         if (tr.hasInput()) {

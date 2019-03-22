@@ -10,6 +10,7 @@
 
 #include "common/concord_eth_hash.hpp"
 #include "common/rlp.hpp"
+#include "common/utils.hpp"
 #include "concord_evm.hpp"
 #include "concord_exception.hpp"
 #include "concord_kvb_storage.hpp"
@@ -26,6 +27,7 @@
 #endif
 
 using namespace com::vmware::concord;
+using boost::multiprecision::uint256_t;
 using log4cplus::Logger;
 
 /**
@@ -58,11 +60,14 @@ com::vmware::concord::EVM::~EVM() {
 void com::vmware::concord::EVM::transfer_fund(evm_message& message,
                                               KVBStorage& kvbStorage,
                                               evm_result& result) {
-  uint64_t transfer_val = from_evm_uint256be(&message.value);
+  uint256_t transfer_val = to_uint256_t(&message.value);
 
   try {
-    uint64_t sender_balance = kvbStorage.get_balance(message.sender);
-    uint64_t destination_balance = kvbStorage.get_balance(message.destination);
+    evm_uint256be src_in = kvbStorage.get_balance(message.sender);
+    evm_uint256be dst_in = kvbStorage.get_balance(message.destination);
+
+    uint256_t sender_balance = to_uint256_t(&src_in);
+    uint256_t destination_balance = to_uint256_t(&dst_in);
 
     if (!kvbStorage.account_exists(message.sender)) {
       // Don't allow if source account does not exist.
@@ -77,9 +82,11 @@ void com::vmware::concord::EVM::transfer_fund(evm_message& message,
                                  << ", does not have sufficient funds ("
                                  << sender_balance << ").");
     } else {
+      destination_balance += transfer_val;
+      sender_balance -= transfer_val;
       kvbStorage.set_balance(message.destination,
-                             destination_balance += transfer_val);
-      kvbStorage.set_balance(message.sender, sender_balance -= transfer_val);
+                             from_uint256_t(&destination_balance));
+      kvbStorage.set_balance(message.sender, from_uint256_t(&sender_balance));
       result.status_code = EVM_SUCCESS;
       LOG4CPLUS_INFO(logger, "Transferred  " << transfer_val << " units to: "
                                              << message.destination << " ("
@@ -346,14 +353,9 @@ void ath_get_balance(struct evm_uint256be* result, struct evm_context* evmctx,
   LOG4CPLUS_INFO(*(ath_context(evmctx)->logger),
                  "EVM::get_balance called, address: " << *address);
 
-  try {
-    to_evm_uint256be(ath_context(evmctx)->kvbStorage->get_balance(*address),
-                     result);
-  } catch (...) {
-    // if the account's balance couldn't be deserialized, it's safest to
-    // return zero from here
-    to_evm_uint256be(0, result);
-  }
+  evm_uint256be balance =
+      ath_context(evmctx)->kvbStorage->get_balance(*address);
+  memcpy(result, &balance, sizeof(evm_uint256be));
 }
 
 size_t ath_get_code_size(struct evm_context* evmctx,
