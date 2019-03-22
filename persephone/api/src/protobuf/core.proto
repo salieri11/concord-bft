@@ -11,9 +11,13 @@ option java_multiple_files = true;
 /**
  * Common message header for RPC request / response messages.
  *
- * (Reserved for future use.)
+ * @property[id]
+ *   message identifier.
+ *   Note: If specified for request, it is the client-supplied token to de-duplicate request(s).
+ *         If specified on response, it is reflecting the token specified on request.
  */
 message MessageHeader {
+    string id = 1;
 }
 
 /**

@@ -82,6 +82,29 @@ message ConcordNode {
 }
 
 /**
+ * Status definition of a deployed Concord node instance.
+ *
+ * @property[id]
+ *   identifier of the Concord node.
+ * @property[status]
+ *   status of the Concord node.
+ */
+message ConcordNodeStatus {
+    /**
+     * Enumeration of potential status of a [ConcordNode].
+     */
+    enum Status {
+        UNKNOWN = 0; // Status is unknown.
+        ACTIVE = 1; // Node is in active state.
+        INACTIVE = 2; // Node is in inactive state.
+        DEPLOYED = 3; // Node instance is deployed but not yet configured.
+    }
+
+    ConcordNodeIdentifier id = 1;
+    Status status = 2;
+}
+
+/**
  * Identifier of an [ConcordCluster].
  *
  * @property[low]
@@ -102,5 +125,18 @@ message ConcordClusterIdentifier {
  */
 message ConcordClusterInfo {
     repeated ConcordNode members = 1 [packed = false];
+}
+
+/**
+ * Model definition of a deployed Concord cluster.
+ *
+ * @property[id]
+ *   identifier of the Concord cluster.
+ * @property[info]
+ *   information pertaining to the Concord cluster.
+ */
+message ConcordCluster {
+    ConcordClusterIdentifier id = 1;
+    ConcordClusterInfo info = 2;
 }
 /* [END messages] */

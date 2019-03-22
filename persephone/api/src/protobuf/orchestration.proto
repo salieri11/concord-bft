@@ -21,17 +21,4 @@ message OrchestrationSiteIdentifier {
     uint64 low = 1;
     uint64 high = 2;
 }
-
-/**
- * Denote the identifier of a deployment session.
- *
- * @property[low]
- *   lower order bits of a 128-bit identifier;
- * @property[high]
- *   higher order bits of a 128-bit identifier;
- */
-message DeploymentSessionIdentifier {
-    uint64 low = 1;
-    uint64 high = 2;
-}
 /* [END messages] */

@@ -16,6 +16,11 @@ option java_multiple_files = true;
 /* [START messages] */
 /**
  * Model definition of Concord cluster placement specification.
+ *
+ * @property[entries]
+ *   list of placement entries mapping replica deployment to orchestration site targets. The
+ *   positional sequence in the collection corresponds to the index of the Concord replica to be
+ *   placed.
  */
 message PlacementSpecification {
     enum Type {
@@ -32,10 +37,8 @@ message PlacementSpecification {
 }
 
 /**
- * Request definition for operation to create a Concord cluster.
+ * Model definition of cluster deployment specification.
  *
- * @property[header]
- *   message header.
  * @property[cluster_size]
  *   size of the cluster to deploy.
  * @property[model]
@@ -43,42 +46,84 @@ message PlacementSpecification {
  * @property[placement]
  *   cluster placement specification.
  */
-message CreateClusterRequest {
-    MessageHeader header = 1;
-    uint32 cluster_size = 2;
-    ConcordModelIdentifier model = 3;
-    PlacementSpecification placement = 4;
+message DeploymentSpecification {
+    uint32 cluster_size = 1;
+    ConcordModelIdentifier model = 2;
+    PlacementSpecification placement = 3;
 }
 
 /**
- * Response definition for operation to create a Concord cluster.
+ * Denote the identifier of a deployment session.
+ *
+ * @property[low]
+ *   lower order bits of a 128-bit identifier;
+ * @property[high]
+ *   higher order bits of a 128-bit identifier;
+ */
+message DeploymentSessionIdentifier {
+    uint64 low = 1;
+    uint64 high = 2;
+}
+
+/**
+ * Model definition for events pertaining to a cluster deployment session.
  *
  * @property[header]
  *   message header.
  * @property[type]
  *   type of event.
- * @property[cluster]
- *   identifier of the cluster.
+ * @property[session]
+ *   identifier for the cluster deployment session.
  * @property[node]
- *   Concord node identifier for node-related events.
+ *   Concord node information for node-related events.
+ * @property[cluster]
+ *   Concord cluster information for the created cluster resource.
  */
-message CreateClusterResponseEvent {
+message DeploymentSessionEvent {
     /**
-     * Type of [CreateClusterResponseEvent] emitted.
+     * Type of [DeploymentEvent] emitted.
      */
     enum Type {
         NOOP = 0; // Default value, should not be used.
-        ACKNOWLEDGED = 1; // Request acknowledged (deployment plan recorded).
+        ACKNOWLEDGED = 1; // Request acknowledged (session associated with [deployment] is recorded).
         NODE_DEPLOYED = 2; // Node specified by [node] is deployed.
-        NODE_ONLINE = 3; // Node specified by [node] is online with lifecycle signal.
-        NODE_ACTIVE = 4; // Node specified by [node] is active.
-        CLUSTER_ACTIVE = 5; // Cluster is ready and active.
+        NODE_STATUS = 3; // Status update for a node specified in [node_status].
+        CLUSTER_DEPLOYED = 4; // Cluster specified by [cluster] is fully deployed.
+        COMPLETED = 5; // Session completed (plan associated with [deployment] is marked complete).
     }
 
     MessageHeader header = 1;
     Type type = 2;
-    ConcordClusterIdentifier cluster = 3;
-    ConcordNodeIdentifier node = 4;
+    DeploymentSessionIdentifier session = 3;
+    ConcordNode node = 4;
+    ConcordNodeStatus node_status = 5;
+    ConcordCluster cluster = 6;
+}
+
+/**
+ * Request definition for operation to create a Concord cluster.
+ *
+ * @property[header]
+ *   message header.
+ * @property[specification]
+ *   cluster deployment specification.
+ */
+message CreateClusterRequest {
+    MessageHeader header = 1;
+    DeploymentSpecification specification = 2;
+}
+
+/**
+ * Request definition for operation to retrieve [DeploymentEvent]s related to a deployment session.
+ *
+ * @property[header]
+ *   message header.
+ * @property[session]
+ *   identifier for the cluster deployment session.
+ */
+message GetClusterDeploymentSessionEventRequest {
+    MessageHeader header = 1;
+    DeploymentSessionIdentifier session = 2;
 }
 /* [END messages] */
 
@@ -90,6 +135,8 @@ service ProvisionService {
     /**
      * Operation to create a cluster based on a [CreateClusterRequest].
      */
-    rpc CreateCluster (CreateClusterRequest) returns (stream CreateClusterResponseEvent) {};
+    rpc CreateCluster (CreateClusterRequest) returns (DeploymentSessionIdentifier) {};
+    rpc GetClusterDeploymentSessionEvents (GetClusterDeploymentSessionEventRequest)
+        returns (stream DeploymentSessionEvent) {};
 }
 /* [END services] */
