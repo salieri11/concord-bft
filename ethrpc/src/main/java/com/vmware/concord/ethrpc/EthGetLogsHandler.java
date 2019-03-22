@@ -38,6 +38,7 @@ public class EthGetLogsHandler extends AbstractEthRpcHandler {
             if (params.size() == 0) {
                 // Default - request all logs from the latest block
                 logsReq.setFromBlock(ApiHelper.parseBlockNumber("latest"));
+                logsReq.setToBlock(ApiHelper.parseBlockNumber("latest"));
             } else {
                 // Evaluate filter options
                 JSONObject filter = (JSONObject) params.get(0);
@@ -65,7 +66,7 @@ public class EthGetLogsHandler extends AbstractEthRpcHandler {
                 }
 
                 if (filter.containsKey("address")) {
-                    throw new EthRpcHandlerException("'address' filter not supported yet.");
+                    logsReq.setContractAddress(ApiHelper.hexStringToBinary((String) filter.get("address")));
                 }
                 if (filter.containsKey("topics")) {
                     throw new EthRpcHandlerException("'topics' filter not supported yet.");

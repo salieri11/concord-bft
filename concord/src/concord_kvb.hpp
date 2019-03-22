@@ -103,6 +103,7 @@ class KVBCommandsHandler : public Blockchain::ICommandsHandler {
       const std::vector<EthLog> &logs, KVBStorage &kvbStorage) const;
 
   void collect_logs_from_block(const EthBlock &block, KVBStorage &kvbStorage,
+                               const LogsRequest &request,
                                LogsResponse *response) const;
 };
 
