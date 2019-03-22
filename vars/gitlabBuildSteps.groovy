@@ -8,15 +8,15 @@ def call(){
   def lint_test_job_name = "Blockchain LINT Tests"
   def additional_components_to_build = ""
 
-  if (env.JOB_NAME == memory_leak_job_name) {
+  if (env.JOB_NAME.contains(memory_leak_job_name)) {
     echo "**** Jenkins job for Memory Leak Test"
     agentLabel = "MemoryLeakTesting"
     genericTests = false
-  } else if (env.JOB_NAME == performance_test_job_name) {
+  } else if (env.JOB_NAME.contains(performance_test_job_name)) {
     echo "**** Jenkins job for Performance Test"
     genericTests = false
     additional_components_to_build = additional_components_to_build + "PerformanceTests,"
-  } else if (env.JOB_NAME == lint_test_job_name) {
+  } else if (env.JOB_NAME.contains(lint_test_job_name)) {
     echo "**** Jenkins job for LINT Tests"
     genericTests = false
   } else {
