@@ -12,6 +12,8 @@ add_test(NAME SignTests COMMAND SignTests)
 add_test(NAME SliverTests COMMAND SliverTests)
 add_test(NAME ConfigTests COMMAND ConfigTests)
 add_test(NAME MultiIOTests COMMAND MultiIOTests)
+add_test(NAME MetadataStorageTests COMMAND MetadataStorageTests)
+
 
 add_executable(UtilsTests
   utils_test.cpp)
@@ -65,6 +67,15 @@ add_executable(MultiIOTests
   multiIO_test.cpp)
 
 target_link_libraries(MultiIOTests
+  ${GTEST_LIBRARIES}
+  kvblockchain
+  gtest
+  gtest_main)
+
+add_executable(MetadataStorageTests
+  metadataStorage_test.cpp)
+
+target_link_libraries(MetadataStorageTests
   ${GTEST_LIBRARIES}
   kvblockchain
   gtest

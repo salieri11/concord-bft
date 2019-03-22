@@ -53,6 +53,13 @@ Status InMemoryDBClient::get(Sliver _key, OUT Sliver &_outValue) const {
   return Status::OK();
 }
 
+Status InMemoryDBClient::get(Sliver _key, OUT char *&buf, uint32_t bufSize,
+                             OUT uint32_t &_size) const {
+  Sliver outValue(buf, bufSize);
+  _size = static_cast<uint32_t>(outValue.length());
+  return get(_key, outValue);
+}
+
 /**
  * @brief Returns reference to a new object of IDBClientIterator.
  *

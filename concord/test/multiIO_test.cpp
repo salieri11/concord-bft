@@ -18,13 +18,13 @@ using namespace Blockchain;
 
 namespace {
 
-RocksDBClient* dbClient = nullptr;
+RocksDBClient *dbClient = nullptr;
 const uint16_t blocksNum = 50;
 const uint16_t keyLen = 120;
 const uint16_t valueLen = 500;
 
-uint8_t* createAndFillBuf(size_t length) {
-  auto* buffer = new uint8_t[length];
+uint8_t *createAndFillBuf(size_t length) {
+  auto *buffer = new uint8_t[length];
   srand(static_cast<uint>(time(nullptr)));
   for (auto i = 0; i < length; i++) {
     buffer[i] = static_cast<uint8_t>(rand() % 256);
@@ -32,19 +32,25 @@ uint8_t* createAndFillBuf(size_t length) {
   return buffer;
 }
 
-void verifyMultiGet(KeysVector& keys, Sliver inValues[blocksNum],
-                    KeysVector& outValues, const Status& expectedStatus) {
-  ASSERT_TRUE(dbClient->multiGet(keys, outValues) == expectedStatus);
-  if (expectedStatus.isOK()) {
-    ASSERT_TRUE(outValues.size() == blocksNum);
-    for (int i = 0; i < blocksNum; i++) {
-      ASSERT_TRUE(inValues[i] == outValues[i]);
-    }
+void verifyMultiGet(KeysVector &keys, Sliver inValues[blocksNum],
+                    KeysVector &outValues) {
+  ASSERT_TRUE(dbClient->multiGet(keys, outValues) == Status::OK());
+  ASSERT_TRUE(outValues.size() == blocksNum);
+  for (int i = 0; i < blocksNum; i++) {
+    ASSERT_TRUE(inValues[i] == outValues[i]);
   }
 }
 
-void launchMultiPut(KeysVector& keys, Sliver inValues[blocksNum],
-                    SetOfKeyValuePairs& keyValueMap) {
+void verifyMultiDel(KeysVector &keys) {
+  const Status expectedStatus = Status::NotFound("Not Found");
+  for (const auto &it : keys) {
+    Sliver outValue;
+    ASSERT_TRUE(dbClient->get(it, outValue) == expectedStatus);
+  }
+}
+
+void launchMultiPut(KeysVector &keys, Sliver inValues[blocksNum],
+                    SetOfKeyValuePairs &keyValueMap) {
   for (auto i = 0; i < blocksNum; i++) {
     keys[i] = Sliver(createAndFillBuf(keyLen), keyLen);
     inValues[i] = Sliver(createAndFillBuf(valueLen), valueLen);
@@ -70,7 +76,7 @@ TEST(multiIO_test, multi_put) {
   SetOfKeyValuePairs keyValueMap;
   KeysVector outValues;
   launchMultiPut(keys, inValues, keyValueMap);
-  verifyMultiGet(keys, inValues, outValues, Status::OK());
+  verifyMultiGet(keys, inValues, outValues);
 }
 
 TEST(multiIO_test, multi_del) {
@@ -80,15 +86,15 @@ TEST(multiIO_test, multi_del) {
   KeysVector outValues;
   launchMultiPut(keys, inValues, keyValueMap);
   ASSERT_TRUE(dbClient->multiDel(keys).isOK());
-  verifyMultiGet(keys, inValues, outValues, Status::NotFound("Not Found"));
+  verifyMultiDel(keys);
 }
 
 }  // end namespace
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
   log4cplus::initialize();
-  log4cplus::Hierarchy& hierarchy = log4cplus::Logger::getDefaultHierarchy();
+  log4cplus::Hierarchy &hierarchy = log4cplus::Logger::getDefaultHierarchy();
   hierarchy.disableDebug();
   log4cplus::BasicConfigurator config(hierarchy, false);
   config.configure();

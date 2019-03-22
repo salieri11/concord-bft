@@ -7,33 +7,27 @@
 #define BLOCKCHAINDBADAPTER_H
 
 #include <log4cplus/loggingmacros.h>
-#include <cstdint>
 
+#include "BlockchainDBTypes.hpp"
 #include "BlockchainInterfaces.h"
 #include "DatabaseInterface.h"
 #include "sliver.hpp"
 
 namespace Blockchain {
 
-// TODO(BWF): are there more types coming here?
-enum class EDBKeyType : std::uint8_t {
-  E_DB_KEY_TYPE_FIRST = 1,
-  E_DB_KEY_TYPE_BLOCK = E_DB_KEY_TYPE_FIRST,
-  E_DB_KEY_TYPE_KEY,
-  E_DB_KEY_TYPE_LAST
-};
-
 class BlockchainDBAdapter {
  public:
-  BlockchainDBAdapter(IDBClient *_db)
+  explicit BlockchainDBAdapter(IDBClient *_db)
       : logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")),
-        m_db(_db) {}
+        m_db(_db),
+        m_isEnd(false) {}
 
   IDBClient *getDb() { return m_db; }
 
   Status addBlock(BlockId _blockId, Sliver _blockRaw);
   Status updateKey(Key _key, BlockId _block, Value _value);
-  Status updateMultiKey(const SetOfKeyValuePairs &_kvMap, BlockId _block);
+  Status addBlockAndUpdateMultiKey(const SetOfKeyValuePairs &_kvMap,
+                                   BlockId _block, Sliver _blockRaw);
   Status getKeyByReadVersion(BlockId readVersion, Sliver key, Sliver &outValue,
                              BlockId &outBlock) const;
   Status getBlockById(BlockId _blockId, Sliver &_blockRaw, bool &_found) const;
@@ -73,13 +67,23 @@ class BlockchainDBAdapter {
   bool m_isEnd;
 };
 
-// TODO(BWF): Why not define a key class?
-Sliver genDbKey(EDBKeyType _type, Sliver _key, BlockId _blockId);
-Sliver genBlockDbKey(BlockId _blockId);
-Sliver genDataDbKey(Sliver _key, BlockId _blockId);
-char extractTypeFromKey(Sliver _key);
-BlockId extractBlockIdFromKey(Sliver _key);
-Sliver extractKeyFromKeyComposedWithBlockId(Sliver _composedKey);
+class KeyManipulator {
+ public:
+  static Sliver genDbKey(EDBKeyType _type, Key _key, BlockId _blockId);
+  static Sliver genBlockDbKey(BlockId _blockId);
+  static Sliver genDataDbKey(Key _key, BlockId _blockId);
+  static char extractTypeFromKey(Key _key);
+  static BlockId extractBlockIdFromKey(const log4cplus::Logger &logger,
+                                       Key _key);
+  static ObjectId extractObjectIdFromKey(const log4cplus::Logger &logger,
+                                         Key _key);
+  static Sliver extractKeyFromKeyComposedWithBlockId(
+      const log4cplus::Logger &logger, Key _composedKey);
+  static KeyValuePair composedToSimple(const log4cplus::Logger &logger,
+                                       KeyValuePair _p);
+  static Sliver generateMetadataKey(ObjectId objectId);
+};
+
 }  // namespace Blockchain
 
 #endif

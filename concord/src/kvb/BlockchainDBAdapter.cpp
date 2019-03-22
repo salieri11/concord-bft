@@ -43,7 +43,7 @@ namespace Blockchain {
  * @param _blockId BlockId object.
  * @return Sliver object of the generated composite database key.
  */
-Sliver genDbKey(EDBKeyType _type, Sliver _key, BlockId _blockId) {
+Sliver KeyManipulator::genDbKey(EDBKeyType _type, Key _key, BlockId _blockId) {
   size_t sz = sizeof(EDBKeyType) + sizeof(BlockId) + _key.length();
   uint8_t *out = new uint8_t[sz];
   size_t offset = 0;
@@ -62,7 +62,7 @@ Sliver genDbKey(EDBKeyType _type, Sliver _key, BlockId _blockId) {
  *                 incorporated into the composite database key.
  * @return Sliver object of the generated composite database key.
  */
-Sliver genBlockDbKey(BlockId _blockId) {
+Sliver KeyManipulator::genBlockDbKey(BlockId _blockId) {
   return genDbKey(EDBKeyType::E_DB_KEY_TYPE_BLOCK, Sliver(), _blockId);
 }
 
@@ -74,7 +74,7 @@ Sliver genBlockDbKey(BlockId _blockId) {
  *                 into the composite database Key.
  * @return Sliver object of the generated composite database key.
  */
-Sliver genDataDbKey(Sliver _key, BlockId _blockId) {
+Sliver KeyManipulator::genDataDbKey(Key _key, BlockId _blockId) {
   return genDbKey(EDBKeyType::E_DB_KEY_TYPE_KEY, _key, _blockId);
 }
 
@@ -87,7 +87,7 @@ Sliver genDataDbKey(Sliver _key, BlockId _blockId) {
  *             returned.
  * @return The type of the composite database key.
  */
-char extractTypeFromKey(Sliver _key) {
+char KeyManipulator::extractTypeFromKey(Key _key) {
   static_assert(sizeof(EDBKeyType) == 1, "Let's avoid byte-order problems.");
   return _key.data()[0];
 }
@@ -101,13 +101,32 @@ char extractTypeFromKey(Sliver _key) {
  *             gets returned.
  * @return The block id of the composite database key.
  */
-BlockId extractBlockIdFromKey(Sliver _key) {
+BlockId KeyManipulator::extractBlockIdFromKey(const Logger &logger, Key _key) {
   size_t offset = _key.length() - sizeof(BlockId);
   BlockId id = *(BlockId *)(_key.data() + offset);
 
-  Logger logger(Logger::getInstance("com.vmware.concord.kvb"));
   LOG4CPLUS_DEBUG(logger, "Got block ID " << id << " from key " << _key
                                           << ", offset " << offset);
+  return id;
+}
+
+/**
+ * @brief Extracts the Metadata Object Id of a composite database key.
+ *
+ * Returns the object id part of the Sliver object passed as a parameter.
+ *
+ * @param _key The Sliver object of the composite database key whose object id
+ *             gets returned.
+ * @return The object id of the composite database key.
+ */
+ObjectId KeyManipulator::extractObjectIdFromKey(const Logger &logger,
+                                                Key _key) {
+  assert(_key.length() >= sizeof(ObjectId));
+  size_t offset = _key.length() - sizeof(ObjectId);
+  ObjectId id = *(ObjectId *)(_key.data() + offset);
+
+  LOG4CPLUS_DEBUG(logger, "Got object ID " << id << " from key " << _key
+                                           << ", offset " << offset);
   return id;
 }
 
@@ -117,11 +136,10 @@ BlockId extractBlockIdFromKey(Sliver _key) {
  * @param _composedKey Sliver object of the composite database key.
  * @return Sliver object of the key extracted from the composite database key.
  */
-Sliver extractKeyFromKeyComposedWithBlockId(Sliver _composedKey) {
+Sliver KeyManipulator::extractKeyFromKeyComposedWithBlockId(
+    const Logger &logger, Key _composedKey) {
   size_t sz = _composedKey.length() - sizeof(BlockId) - sizeof(EDBKeyType);
   Sliver out = Sliver(_composedKey, sizeof(EDBKeyType), sz);
-
-  Logger logger(Logger::getInstance("com.vmware.concord.kvb"));
   LOG4CPLUS_DEBUG(logger,
                   "Got key " << out << " from composed key " << _composedKey);
   return out;
@@ -135,13 +153,37 @@ Sliver extractKeyFromKeyComposedWithBlockId(Sliver _composedKey) {
  * @param _p Key value pair consisting of a composite database key
  * @return Key value pair consisting of a simple key.
  */
-KeyValuePair composedToSimple(KeyValuePair _p) {
+KeyValuePair KeyManipulator::composedToSimple(const Logger &logger,
+                                              KeyValuePair _p) {
   if (_p.first.length() == 0) {
     return _p;
   }
-
-  Key key = extractKeyFromKeyComposedWithBlockId(_p.first);
+  Key key =
+      KeyManipulator::extractKeyFromKeyComposedWithBlockId(logger, _p.first);
   return KeyValuePair(key, _p.second);
+}
+
+/**
+ * @brief Generates a Composite Database Key from objectId.
+ *
+ * Merges the key type and the block id to generate a composite
+ * database key for E_DB_KEY_TYPE_METADATA_KEY.
+ *
+ * Format : Key Type | Object Id
+ *
+ * @return Sliver object of the generated composite database key.
+ */
+
+Sliver KeyManipulator::generateMetadataKey(ObjectId objectId) {
+  size_t keySize = sizeof(EDBKeyType) + sizeof(objectId);
+  auto keyBuf = new uint8_t[keySize];
+  size_t offset = 0;
+  EDBKeyType keyType = EDBKeyType::E_DB_KEY_TYPE_METADATA_KEY;
+  copyToAndAdvance(keyBuf, &offset, keySize, (uint8_t *)&keyType,
+                   sizeof(EDBKeyType));
+  copyToAndAdvance(keyBuf, &offset, keySize, (uint8_t *)&objectId,
+                   sizeof(objectId));
+  return Sliver(keyBuf, keySize);
 }
 
 /**
@@ -157,7 +199,7 @@ KeyValuePair composedToSimple(KeyValuePair _p) {
  * @return Status of the put operation.
  */
 Status BlockchainDBAdapter::addBlock(BlockId _blockId, Sliver _blockRaw) {
-  Sliver dbKey = genBlockDbKey(_blockId);
+  Sliver dbKey = KeyManipulator::genBlockDbKey(_blockId);
   Status s = m_db->put(dbKey, _blockRaw);
   return s;
 }
@@ -175,7 +217,7 @@ Status BlockchainDBAdapter::addBlock(BlockId _blockId, Sliver _blockRaw) {
  * @return Status of the put operation.
  */
 Status BlockchainDBAdapter::updateKey(Key _key, BlockId _block, Value _value) {
-  Sliver composedKey = genDataDbKey(_key, _block);
+  Sliver composedKey = KeyManipulator::genDataDbKey(_key, _block);
 
   LOG4CPLUS_DEBUG(logger, "Updating composed key " << composedKey
                                                    << " with value " << _value
@@ -185,16 +227,17 @@ Status BlockchainDBAdapter::updateKey(Key _key, BlockId _block, Value _value) {
   return s;
 }
 
-Status BlockchainDBAdapter::updateMultiKey(const SetOfKeyValuePairs &_kvMap,
-                                           BlockId _block) {
+Status BlockchainDBAdapter::addBlockAndUpdateMultiKey(
+    const SetOfKeyValuePairs &_kvMap, BlockId _block, Sliver _blockRaw) {
   SetOfKeyValuePairs updatedKVMap;
   for (auto &it : _kvMap) {
-    Sliver composedKey = genDataDbKey(it.first, _block);
+    Sliver composedKey = KeyManipulator::genDataDbKey(it.first, _block);
     LOG4CPLUS_DEBUG(logger, "Updating composed key "
                                 << composedKey << " with value " << it.second
                                 << " in block " << _block);
     updatedKVMap[composedKey] = it.second;
   }
+  updatedKVMap[KeyManipulator::genBlockDbKey(_block)] = _blockRaw;
   return m_db->multiPut(updatedKVMap);
 }
 
@@ -210,10 +253,8 @@ Status BlockchainDBAdapter::updateMultiKey(const SetOfKeyValuePairs &_kvMap,
  * @return Status of the operation.
  */
 Status BlockchainDBAdapter::delKey(Sliver _key, BlockId _blockId) {
-  Sliver composedKey = genDataDbKey(_key, _blockId);
-
+  Sliver composedKey = KeyManipulator::genDataDbKey(_key, _blockId);
   LOG4CPLUS_DEBUG(logger, "Deleting key " << _key << " block id " << _blockId);
-
   Status s = m_db->del(composedKey);
   return s;
 }
@@ -229,7 +270,7 @@ Status BlockchainDBAdapter::delKey(Sliver _key, BlockId _blockId) {
  * @return Status of the operation.
  */
 Status BlockchainDBAdapter::delBlock(BlockId _blockId) {
-  Sliver dbKey = genBlockDbKey(_blockId);
+  Sliver dbKey = KeyManipulator::genBlockDbKey(_blockId);
   Status s = m_db->del(dbKey);
   return s;
 }
@@ -253,19 +294,19 @@ Status BlockchainDBAdapter::getKeyByReadVersion(BlockId readVersion, Sliver key,
                                                 BlockId &outBlock) const {
   LOG4CPLUS_DEBUG(logger, "Getting value of key " << key << " for read version "
                                                   << readVersion);
-
   IDBClient::IDBClientIterator *iter = m_db->getIterator();
   Sliver foundKey, foundValue;
-  Sliver searchKey = genDataDbKey(key, readVersion);
+  Sliver searchKey = KeyManipulator::genDataDbKey(key, readVersion);
   KeyValuePair p = iter->seekAtLeast(searchKey);
-  foundKey = composedToSimple(p).first;
+  foundKey = KeyManipulator::composedToSimple(logger, p).first;
   foundValue = p.second;
 
   LOG4CPLUS_DEBUG(logger,
                   "Found key " << foundKey << " and value " << foundValue);
 
   if (!iter->isEnd()) {
-    BlockId currentReadVersion = extractBlockIdFromKey(p.first);
+    BlockId currentReadVersion =
+        KeyManipulator::extractBlockIdFromKey(logger, p.first);
 
     // TODO(JGC): Ask about reason for version comparison logic
     if (currentReadVersion <= readVersion && foundKey == key) {
@@ -298,7 +339,7 @@ Status BlockchainDBAdapter::getKeyByReadVersion(BlockId readVersion, Sliver key,
  */
 Status BlockchainDBAdapter::getBlockById(BlockId _blockId, Sliver &_blockRaw,
                                          bool &_found) const {
-  Sliver key = genBlockDbKey(_blockId);
+  Sliver key = KeyManipulator::genBlockDbKey(_blockId);
   Status s = m_db->get(key, _blockRaw);
   if (s.isNotFound()) {
     _found = false;
@@ -345,7 +386,7 @@ Status BlockchainDBAdapter::first(IDBClient::IDBClientIterator *iter,
                                   OUT BlockId &actualVersion, OUT bool &isEnd,
                                   OUT Sliver &_key, OUT Sliver &_value) {
   Key firstKey;
-  KeyValuePair p = composedToSimple(iter->first());
+  KeyValuePair p = KeyManipulator::composedToSimple(logger, iter->first());
   if (iter->isEnd()) {
     m_isEnd = true;
     isEnd = true;
@@ -358,12 +399,13 @@ Status BlockchainDBAdapter::first(IDBClient::IDBClientIterator *iter,
   Sliver value;
   BlockId actualBlock;
   while (!iter->isEnd() && p.first == firstKey) {
-    BlockId currentBlock = extractBlockIdFromKey(iter->getCurrent().first);
+    BlockId currentBlock =
+        KeyManipulator::extractBlockIdFromKey(logger, iter->getCurrent().first);
     if (currentBlock <= readVersion) {
       value = p.second;
       actualBlock = currentBlock;
       foundKey = true;
-      p = composedToSimple(iter->next());
+      p = KeyManipulator::composedToSimple(logger, iter->next());
     } else {
       if (!foundKey) {
         // If not found a key with actual block version < readVersion, then we
@@ -372,7 +414,7 @@ Status BlockchainDBAdapter::first(IDBClient::IDBClientIterator *iter,
         // Start by exhausting the current key with all the newer blocks
         // records:
         while (!iter->isEnd() && p.first == firstKey) {
-          p = composedToSimple(iter->next());
+          p = KeyManipulator::composedToSimple(logger, iter->next());
         }
 
         if (iter->isEnd()) {
@@ -433,8 +475,9 @@ Status BlockchainDBAdapter::seekAtLeast(IDBClient::IDBClientIterator *iter,
   BlockId actualBlock;
   Value value;
   bool foundKey = false;
-  Sliver rocksKey = genDataDbKey(searchKey, _readVersion);
-  KeyValuePair p = composedToSimple(iter->seekAtLeast(rocksKey));
+  Sliver rocksKey = KeyManipulator::genDataDbKey(searchKey, _readVersion);
+  KeyValuePair p =
+      KeyManipulator::composedToSimple(logger, iter->seekAtLeast(rocksKey));
 
   if (!iter->isEnd()) {
     // p.first is src, searchKey is target
@@ -446,7 +489,8 @@ Status BlockchainDBAdapter::seekAtLeast(IDBClient::IDBClientIterator *iter,
                            << searchKey << " for rocks key " << rocksKey);
 
   while (!iter->isEnd() && p.first == searchKey) {
-    BlockId currentBlockId = extractBlockIdFromKey(iter->getCurrent().first);
+    BlockId currentBlockId =
+        KeyManipulator::extractBlockIdFromKey(logger, iter->getCurrent().first);
 
     LOG4CPLUS_DEBUG(logger, "Considering key " << p.first << " with block ID "
                                                << currentBlockId);
@@ -470,7 +514,7 @@ Status BlockchainDBAdapter::seekAtLeast(IDBClient::IDBClientIterator *iter,
         // Start by exhausting the current key with all the newer blocks
         // records:
         while (!iter->isEnd() && p.first == searchKey) {
-          p = composedToSimple(iter->next());
+          p = KeyManipulator::composedToSimple(logger, iter->next());
         }
 
         if (iter->isEnd()) {
@@ -531,12 +575,12 @@ Status BlockchainDBAdapter::next(IDBClient::IDBClientIterator *iter,
                                  OUT Sliver &_value,
                                  OUT BlockId &_actualVersion,
                                  OUT bool &_isEnd) {
-  KeyValuePair p = composedToSimple(iter->getCurrent());
+  KeyValuePair p = KeyManipulator::composedToSimple(logger, iter->getCurrent());
   Key currentKey = p.first;
 
   // Exhaust all entries for this key
   while (!iter->isEnd() && p.first == currentKey) {
-    p = composedToSimple(iter->next());
+    p = KeyManipulator::composedToSimple(logger, iter->next());
   }
 
   if (iter->isEnd()) {
@@ -553,11 +597,12 @@ Status BlockchainDBAdapter::next(IDBClient::IDBClientIterator *iter,
   bool foundKey = false;
   // Find max version
   while (!iter->isEnd() && p.first == nextKey) {
-    BlockId currentBlockId = extractBlockIdFromKey(iter->getCurrent().first);
+    BlockId currentBlockId =
+        KeyManipulator::extractBlockIdFromKey(logger, iter->getCurrent().first);
     if (currentBlockId <= _readVersion) {
       value = p.second;
       actualBlock = currentBlockId;
-      p = composedToSimple(iter->next());
+      p = KeyManipulator::composedToSimple(logger, iter->next());
     } else {
       if (!foundKey) {
         // If not found a key with actual block version < readVersion, then
@@ -566,7 +611,7 @@ Status BlockchainDBAdapter::next(IDBClient::IDBClientIterator *iter,
         // Start by exhausting the current key with all the newer blocks
         // records:
         while (!iter->isEnd() && p.first == nextKey) {
-          p = composedToSimple(iter->next());
+          p = KeyManipulator::composedToSimple(logger, iter->next());
         }
 
         if (iter->isEnd()) {
@@ -649,8 +694,9 @@ BlockId BlockchainDBAdapter::getLatestBlock() {
   // are sorted in ascending order of block ids.
 
   // Generate maximal key for type 'block'
-  Sliver maxKey = genDbKey(EDBKeyType::E_DB_KEY_TYPE_BLOCK, Sliver(),
-                           std::numeric_limits<uint64_t>::max());
+  Sliver maxKey =
+      KeyManipulator::genDbKey(EDBKeyType::E_DB_KEY_TYPE_BLOCK, Sliver(),
+                               std::numeric_limits<uint64_t>::max());
   IDBClient::IDBClientIterator *iter = m_db->getIterator();
 
   // Since we use the maximal key, SeekAtLeast will take the iterator
@@ -666,9 +712,11 @@ BlockId BlockchainDBAdapter::getLatestBlock() {
     return 0;
   }
 
-  LOG4CPLUS_DEBUG(logger, "Latest block ID " << extractBlockIdFromKey(x.first));
+  LOG4CPLUS_DEBUG(
+      logger, "Latest block ID "
+                  << KeyManipulator::extractBlockIdFromKey(logger, x.first));
 
-  return extractBlockIdFromKey(x.first);
+  return KeyManipulator::extractBlockIdFromKey(logger, x.first);
 }
 
 /**
@@ -685,15 +733,15 @@ BlockId BlockchainDBAdapter::getLastReachableBlock() {
   IDBClient::IDBClientIterator *iter = m_db->getIterator();
 
   BlockId lastReachableId = 0;
-  Sliver blockKey = genBlockDbKey(1);
+  Sliver blockKey = KeyManipulator::genBlockDbKey(1);
   KeyValuePair kvp = iter->seekAtLeast(blockKey);
   if (kvp.first.length() == 0) {
     return 0;
   }
 
-  while (!iter->isEnd() && (extractTypeFromKey(kvp.first) ==
+  while (!iter->isEnd() && (KeyManipulator::extractTypeFromKey(kvp.first) ==
                             (char)EDBKeyType::E_DB_KEY_TYPE_BLOCK)) {
-    BlockId id = extractBlockIdFromKey(kvp.first);
+    BlockId id = KeyManipulator::extractBlockIdFromKey(logger, kvp.first);
     if (id == lastReachableId + 1) {
       lastReachableId++;
       kvp = iter->next();

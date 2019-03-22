@@ -20,6 +20,7 @@
 #include "Comparators.h"
 #include "HexTools.h"
 #include "ReplicaImp.h"
+#include "RocksDBMetadataStorage.hpp"
 #include "Threading.h"
 #include "sliver.hpp"
 
@@ -50,9 +51,11 @@ Status ReplicaImp::start() {
   }
 
   m_currentRepStatus = RepStatus::Starting;
+  m_metadataStorage = new RocksDBMetadataStorage(m_bcDbAdapter->getDb());
 
   m_replicaPtr = bftEngine::Replica::createNewReplica(
-      &m_replicaConfig, m_cmdHandler, m_stateTransfer, m_ptrComm, nullptr);
+      &m_replicaConfig, m_cmdHandler, m_stateTransfer, m_ptrComm,
+      m_metadataStorage);
 
   m_replicaPtr->start();
   m_currentRepStatus = RepStatus::Running;
@@ -290,15 +293,12 @@ Status ReplicaImp::addBlockInternal(const SetOfKeyValuePairs &updates,
 
   Sliver blockRaw =
       createBlockFromUpdates(updates, updatesInNewBlock, stDigest);
-  Status s = m_bcDbAdapter->addBlock(block, blockRaw);
-  if (!s.isOK()) {
-    LOG4CPLUS_ERROR(logger, "Failed to add block");
-    return s;
-  }
 
-  s = m_bcDbAdapter->updateMultiKey(updatesInNewBlock, block);
+  Status s = m_bcDbAdapter->addBlockAndUpdateMultiKey(updatesInNewBlock, block,
+                                                      blockRaw);
   if (!s.isOK()) {
-    LOG4CPLUS_ERROR(logger, "Failed to update keys for block " << block);
+    LOG4CPLUS_ERROR(logger,
+                    "Failed to add block or update keys for block " << block);
     return s;
   }
 

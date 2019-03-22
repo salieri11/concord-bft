@@ -109,6 +109,28 @@ Status RocksDBClient::close() {
   return Status::OK();
 }
 
+Status RocksDBClient::get(Sliver _key, OUT std::string &_value) const {
+  ++g_rocksdb_called_read;
+  if (g_rocksdb_print_measurements) {
+    LOG4CPLUS_DEBUG(logger, "Reading count = " << g_rocksdb_called_read
+                                               << ", key " << _key);
+  }
+  rocksdb::Status s =
+      m_dbInstance->Get(rocksdb::ReadOptions(), toRocksdbSlice(_key), &_value);
+
+  if (s.IsNotFound()) {
+    return Status::NotFound("Not found");
+  }
+
+  if (!s.ok()) {
+    LOG4CPLUS_DEBUG(logger,
+                    "Failed to get key " << _key << " due to " << s.ToString());
+    return Status::GeneralError("Failed to read key");
+  }
+
+  return Status::OK();
+}
+
 /**
  * @brief Services a read request from the RocksDB database.
  *
@@ -124,25 +146,9 @@ Status RocksDBClient::close() {
  *         in Get, else Status OK.
  */
 Status RocksDBClient::get(Sliver _key, OUT Sliver &_outValue) const {
-  ++g_rocksdb_called_read;
-  if (g_rocksdb_print_measurements) {
-    LOG4CPLUS_DEBUG(logger, "Reading count = " << g_rocksdb_called_read
-                                               << ", key " << _key);
-  }
-
   std::string value;
-  rocksdb::Status s =
-      m_dbInstance->Get(rocksdb::ReadOptions(), toRocksdbSlice(_key), &value);
-
-  if (s.IsNotFound()) {
-    return Status::NotFound("Not found");
-  }
-
-  if (!s.ok()) {
-    LOG4CPLUS_DEBUG(logger,
-                    "Failed to get key " << _key << " due to " << s.ToString());
-    return Status::GeneralError("Failed to read key");
-  }
+  Status ret = get(_key, value);
+  if (!ret.isOK()) return ret;
 
   size_t valueSize = value.size();
   // Must copy the string data
@@ -150,6 +156,24 @@ Status RocksDBClient::get(Sliver _key, OUT Sliver &_outValue) const {
   memcpy(stringCopy, value.data(), valueSize);
   _outValue = Sliver(stringCopy, valueSize);
 
+  return Status::OK();
+}
+
+// A memory for the output buffer is expected to be allocated by a caller.
+Status RocksDBClient::get(Sliver _key, OUT char *&buf, uint32_t bufSize,
+                          OUT uint32_t &_realSize) const {
+  std::string value;
+  Status ret = get(_key, value);
+  if (!ret.isOK()) return ret;
+
+  _realSize = static_cast<uint32_t>(value.length());
+  if (bufSize < _realSize) {
+    LOG4CPLUS_ERROR(logger,
+                    "Object value is bigger than specified buffer bufSize="
+                        << bufSize << ", _realSize=" << _realSize);
+    return Status::GeneralError("Object value is bigger than specified buffer");
+  }
+  memcpy(buf, value.data(), _realSize);
   return Status::OK();
 }
 
@@ -287,19 +311,24 @@ Status RocksDBClient::multiGet(const KeysVector &_keysVec,
   return Status::OK();
 }
 
-Status RocksDBClient::launchBatchJob(rocksdb::WriteBatch &_batchJob,
-                                     const KeysVector &_keysVec) {
+std::ostringstream RocksDBClient::collectKeysForPrint(
+    const KeysVector &_keysVec) {
   std::ostringstream keys;
   for (auto const &it : _keysVec) keys << it << ", ";
+  return keys;
+}
+
+Status RocksDBClient::launchBatchJob(rocksdb::WriteBatch &_batchJob,
+                                     const KeysVector &_keysVec) {
   rocksdb::WriteOptions wOptions = rocksdb::WriteOptions();
   rocksdb::Status status = m_dbInstance->Write(wOptions, &_batchJob);
   if (!status.ok()) {
-    LOG4CPLUS_ERROR(logger,
-                    "Execution of batch job failed; keys: " << keys.str());
+    LOG4CPLUS_ERROR(logger, "Execution of batch job failed; keys: "
+                                << collectKeysForPrint(_keysVec).str());
     return Status::GeneralError("Execution of batch job failed");
   }
-  LOG4CPLUS_DEBUG(logger,
-                  "Successfully executed a batch job for keys: " << keys.str());
+  LOG4CPLUS_DEBUG(logger, "Successfully executed a batch job for keys: "
+                              << collectKeysForPrint(_keysVec).str());
   return Status::OK();
 }
 
