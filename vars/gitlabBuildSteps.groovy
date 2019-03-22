@@ -8,15 +8,15 @@ def call(){
   def lint_test_job_name = "Blockchain LINT Tests"
   def additional_components_to_build = ""
 
-  if (env.JOB_NAME == memory_leak_job_name) {
+  if (env.JOB_NAME.contains(memory_leak_job_name)) {
     echo "**** Jenkins job for Memory Leak Test"
     agentLabel = "MemoryLeakTesting"
     genericTests = false
-  } else if (env.JOB_NAME == performance_test_job_name) {
+  } else if (env.JOB_NAME.contains(performance_test_job_name)) {
     echo "**** Jenkins job for Performance Test"
     genericTests = false
     additional_components_to_build = additional_components_to_build + "PerformanceTests,"
-  } else if (env.JOB_NAME == lint_test_job_name) {
+  } else if (env.JOB_NAME.contains(lint_test_job_name)) {
     echo "**** Jenkins job for LINT Tests"
     genericTests = false
   } else {
@@ -107,16 +107,12 @@ def call(){
           }
 
           stage('Fetch VMware blockchain hermes-data source') {
-            when {
-              expression { env.JOB_NAME == memory_leak_job_name }
-            }
             steps {
               script{
                 try{
                   sh 'mkdir hermes-data'
                   dir('hermes-data') {
                     script {
-                      // GITLAB: Need to update after mirroring is set up for hermes-data.
                       env.actual_hermes_data_fetched = getRepoCode("git@gitlab.eng.vmware.com:blockchain/hermes-data","master")
                     }
                     sh 'git checkout master'
@@ -404,19 +400,19 @@ EOF
                         ./main.py UiTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${ui_test_logs}"
                       '''
                     }
-                    if (env.JOB_NAME == memory_leak_job_name) {
+                    if (env.JOB_NAME.contains(memory_leak_job_name)) {
                       sh '''
                         echo "Running Entire Testsuite: Memory Leak..."
                         cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 5 --resultsDir ${mem_leak_test_logs}
                       '''
                     }
-                    if (env.JOB_NAME == performance_test_job_name) {
+                    if (env.JOB_NAME.contains(performance_test_job_name)) {
                       sh '''
                         echo "Running Entire Testsuite: Performance..."
                         echo "${PASSWORD}" | sudo -SE ./main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${performance_test_logs}"
                       '''
                     }
-                    if (env.JOB_NAME == lint_test_job_name) {
+                    if (env.JOB_NAME.contains(lint_test_job_name)) {
                       sh '''
                         echo "Running Entire Testsuite: Lint E2E..."
 
@@ -442,7 +438,7 @@ EOF
 
       stage ("Post Memory Leak Testrun") {
         when {
-          expression { env.JOB_NAME == memory_leak_job_name }
+          expression { env.JOB_NAME.contains(memory_leak_job_name) }
         }
         stages {
           stage('Push memory leak summary into repo') {
@@ -507,7 +503,7 @@ EOF
 
       stage ("Post Performance Testrun") {
         when {
-          expression { env.JOB_NAME == performance_test_job_name }
+          expression { env.JOB_NAME.contains(performance_test_job_name) }
         }
         stages {
           stage('Collect Performance Transaction Rate') {
