@@ -21,36 +21,41 @@ interface UntypedKeyValueStore<T : Version<T>> : KeyValueStore<Value, Value, T> 
     /**
      * Possible request types to be supported by the underlying storage or storage driver.
      */
-    sealed class Request<out T> {
-        data class Get<T>(val response: Channel<Response<T>>, val key: Value) : Request<T>()
-        data class Set<T>(
+    sealed class Request<out T : Version<out T>> {
+        data class Get<T : Version<T>>(
+            val response: Channel<Response<T>>,
+            val key: Value
+        ) : Request<T>()
+        data class Set<T : Version<T>>(
             val response: Channel<Response<T>>,
             val key: Value,
             val value: Value,
             val expected: Version<T>
         ) : Request<T>()
-        data class Delete<T>(
+        data class Delete<T : Version<T>>(
             val response: Channel<Response<T>>,
             val key: Value,
             val expected: Version<T>
         ) : Request<T>()
-        data class Subscribe<T>(
+        data class Subscribe<T : Version<T>>(
             val response: Channel<Response<T>>,
             val state: Boolean
         ) : Request<T>()
-        data class Unsubscribe<T>(val subscription: Channel<*>) : Request<T>()
+        data class Unsubscribe<T : Version<T>>(val subscription: Channel<*>) : Request<T>()
     }
 
     /**
      * Possible response types to be supported by the underlying storage or storage driver, for
      * [Request]s that expect a response.
      */
-    sealed class Response<out T> {
-        data class Get<T>(val versioned: Versioned<Value, T>) : Response<T>()
-        data class Set<T>(val versioned: Versioned<Value, T>) : Response<T>()
-        data class Delete<T>(val versioned: Versioned<Value, T>): Response<T>()
-        data class Subscribe<T>(val subscription: Channel<Event<Value, Value, T>>) : Response<T>()
-        data class Error<T>(val throwable: Throwable) : Response<T>()
+    sealed class Response<out T : Version<out T>> {
+        data class Get<T : Version<T>>(val versioned: Versioned<Value, T>) : Response<T>()
+        data class Set<T : Version<T>>(val versioned: Versioned<Value, T>) : Response<T>()
+        data class Delete<T : Version<T>>(val versioned: Versioned<Value, T>): Response<T>()
+        data class Subscribe<T : Version<T>>(
+            val subscription: Channel<Event<Value, Value, T>>
+        ) : Response<T>()
+        data class Error<T : Version<T>>(val throwable: Throwable) : Response<T>()
     }
 
     override operator fun get(key: Value): Publisher<Versioned<Value, T>>

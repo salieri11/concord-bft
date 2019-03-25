@@ -36,12 +36,36 @@ interface KeyValueStore<K, V, T : KeyValueStore.Version<T>> {
          * Create a new instance of the same type representing the current instance's logical next
          * value.
          */
-        fun next(): Version<T>
+        fun next(): T
     }
 
-    sealed class Versioned<out V, out T> {
-        data class Just<V, T>(val value: V, val version: Version<T>) : Versioned<V, T>()
+    sealed class Versioned<out V, out T : Version<out T>> {
+        data class Just<V, out T : Version<out T>>(val value: V, val version: T) : Versioned<V, T>()
         object None : Versioned<Nothing, Nothing>()
+
+        fun <U> map(transform: (V) -> U): Versioned<U, T> {
+            return when (this) {
+                is Just<V, T> -> Just(transform(value), version)
+                is None -> None
+            }
+        }
+
+        fun <U, S : Version<S>> map(
+            valueTransform: (V) -> U,
+            versionTransform: (T) -> S
+        ): Versioned<U, S> {
+            return when (this) {
+                is Just<V, T> -> Just(valueTransform(value), versionTransform(version))
+                is None -> None
+            }
+        }
+
+        fun <U, S : Version<S>> flatMap(transform: (V, T) -> Versioned<U, S>): Versioned<U, S> {
+            return when (this) {
+                is Just<V, T> -> transform(value, version)
+                is None -> None
+            }
+        }
     }
 
     sealed class Event<K, V, T> {
