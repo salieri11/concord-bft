@@ -98,8 +98,9 @@ class ExtendedRPCTests(test_suite.TestSuite):
          ("eth_getBlockByNumber", self._test_eth_getBlockByNumber),
          ("eth_getCode", self._test_eth_getCode),
          ("eth_getLogs", self._test_eth_getLogs),
-         ("eth_getLogs_block_range", self._test_eth_getLogs_block_range),
          ("eth_getLogs_addr", self._test_eth_getLogs_addr),
+         ("eth_getLogs_block_range", self._test_eth_getLogs_block_range),
+         ("eth_getLogs_topics", self._test_eth_getLogs_topics),
          ("eth_gasPrice", self._test_eth_gasPrice),
          ("eth_getStorageAt", self._test_eth_getStorageAt),
          ("eth_getTransactionByHash", self._test_eth_getTransactionByHash),
@@ -638,6 +639,61 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
       return (False, "Couldn't find log in block #" + str(func_txr.blockNumber))
 
+   def _test_eth_getLogs_addr(self, rpc, request):
+      w3 = self.getWeb3Instance()
+      abi, bin = self.loadContract("SimpleEvent")
+      contract = w3.eth.contract(abi=abi, bytecode=bin)
+      tx_args = {"from":"0x09b86aa450c61A6ed96824021beFfD32680B8B64"}
+
+      # Deploy the contract twice to get two different contract addresses
+      contract_tx = contract.constructor().transact(tx_args)
+      contract_txr = w3.eth.waitForTransactionReceipt(contract_tx)
+      caddr1 = contract_txr.contractAddress
+      contract1 = w3.eth.contract(address=caddr1, abi=abi)
+
+      contract_tx = contract.constructor().transact(tx_args)
+      contract_txr = w3.eth.waitForTransactionReceipt(contract_tx)
+      caddr2 = contract_txr.contractAddress
+      contract2 = w3.eth.contract(address=caddr2, abi=abi)
+
+      # Invoke both contracts to trigger events and generate logs
+      func = contract1.get_function_by_name("foo")
+      func_tx = func(w3.toInt(hexstr="0x0ff1ce")).transact(tx_args)
+      func_txr = w3.eth.waitForTransactionReceipt(func_tx)
+      assert func_txr.status == 1
+
+      func = contract1.get_function_by_name("foo")
+      func_tx = func(w3.toInt(hexstr="0x0ff1cef001")).transact(tx_args)
+      func_txr = w3.eth.waitForTransactionReceipt(func_tx)
+      assert func_txr.status == 1
+
+      func = contract2.get_function_by_name("foo")
+      func_tx = func(w3.toInt(hexstr="0xba1d0ff1ce")).transact(tx_args)
+      func_txr = w3.eth.waitForTransactionReceipt(func_tx)
+      assert func_txr.status == 1
+
+      # Get all logs for caddr1
+      logs = rpc.getLogs({"fromBlock":"earliest", "address":caddr1})
+      if len(logs) != 2:
+         return (False, "Expected two log entries for addr " + caddr1)
+      filter_out = list(filter(lambda l: w3.toChecksumAddress(l["address"]) == caddr1, logs))
+      if not filter_out:
+         return (False, "Couldn't find logs for addr " + caddr1)
+      if len(filter_out) != len(logs):
+         return (False, "Unexpected logs - only logs from {} expected".format(caddr1))
+
+      # The latest block should contain the log for caddr2
+      logs = rpc.getLogs({"address":caddr2})
+      if len(logs) != 1:
+         return (False, "Expected one log entries for addr " + caddr1)
+      filter_out = list(filter(lambda l: w3.toChecksumAddress(l["address"]) == caddr2, logs))
+      if not filter_out:
+         return (False, "Couldn't find logs for addr " + caddr2)
+      if len(filter_out) != len(logs):
+         return (False, "Unexpected logs - only logs from {} expected".format(caddr2))
+
+      return (True, None)
+
    def _test_eth_getLogs_block_range(self, rpc, request):
       w3 = self.getWeb3Instance()
       abi, bin = self.loadContract("SimpleEvent")
@@ -700,11 +756,13 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
       return (True, None)
 
-   def _test_eth_getLogs_addr(self, rpc, request):
+   def _test_eth_getLogs_topics(self, rpc, request):
       w3 = self.getWeb3Instance()
       abi, bin = self.loadContract("SimpleEvent")
       contract = w3.eth.contract(abi=abi, bytecode=bin)
-      tx_args = {"from":"0x09b86aa450c61A6ed96824021beFfD32680B8B64"}
+      tx_args = {"from":"0x0000A12B3F3d6c9B0d3F126a83Ec2dd3Dad15f39"}
+
+      event_signature = w3.sha3(text="Event(int256)").hex()
 
       # Deploy the contract twice to get two different contract addresses
       contract_tx = contract.constructor().transact(tx_args)
@@ -717,41 +775,28 @@ class ExtendedRPCTests(test_suite.TestSuite):
       caddr2 = contract_txr.contractAddress
       contract2 = w3.eth.contract(address=caddr2, abi=abi)
 
-      # Invoke both contracts to trigger events and generate logs
-      func = contract1.get_function_by_name("foo")
-      func_tx = func(w3.toInt(hexstr="0x0ff1ce")).transact(tx_args)
+      # Invoke "twoEvents" to trigger two logs in one transaction
+      func = contract1.get_function_by_name("twoEvents")
+      func_tx = func(w3.toInt(hexstr="0xc0ffee")).transact(tx_args)
       func_txr = w3.eth.waitForTransactionReceipt(func_tx)
       assert func_txr.status == 1
+      logs = contract1.events.Event().processReceipt(func_txr)
+      assert logs[0].args.value == w3.toInt(hexstr="0xc0ffef")
+      assert logs[1].args.value == w3.toInt(hexstr="0xc0fff0")
 
-      func = contract1.get_function_by_name("foo")
-      func_tx = func(w3.toInt(hexstr="0x0ff1cef001")).transact(tx_args)
-      func_txr = w3.eth.waitForTransactionReceipt(func_tx)
-      assert func_txr.status == 1
+      # The latest block should contain our events
+      logs = rpc.getLogs({"topics":[event_signature]})
+      if len(logs) != 2 \
+         or logs[0]["topics"][0] != event_signature \
+         or logs[1]["topics"][0] != event_signature:
+         return (False, "Expected two logs in the latest block with event sig " + event_signature)
 
-      func = contract2.get_function_by_name("foo")
-      func_tx = func(w3.toInt(hexstr="0xba1d0ff1ce")).transact(tx_args)
-      func_txr = w3.eth.waitForTransactionReceipt(func_tx)
-      assert func_txr.status == 1
-
-      # Get all logs for caddr1
-      logs = rpc.getLogs({"fromBlock":"earliest", "address":caddr1})
-      if len(logs) != 2:
-         return (False, "Expected two log entries for addr " + caddr1)
-      filter_out = list(filter(lambda l: w3.toChecksumAddress(l["address"]) == caddr1, logs))
-      if not filter_out:
-         return (False, "Couldn't find logs for addr " + caddr1)
-      if len(filter_out) != len(logs):
-         return (False, "Unexpected logs - only logs from {} expected".format(caddr1))
-
-      # The latest block should contain the log for caddr2
-      logs = rpc.getLogs({"address":caddr2})
-      if len(logs) != 1:
-         return (False, "Expected one log entries for addr " + caddr1)
-      filter_out = list(filter(lambda l: w3.toChecksumAddress(l["address"]) == caddr2, logs))
-      if not filter_out:
-         return (False, "Couldn't find logs for addr " + caddr2)
-      if len(filter_out) != len(logs):
-         return (False, "Unexpected logs - only logs from {} expected".format(caddr2))
+      # Let's get only one event from the two
+      # The "twoEvents" function emits two events one with x+1 and the other with x+2
+      param = "0x" + 29 * "00" + "c0ffef"
+      logs = rpc.getLogs({"topics":[event_signature, param]})
+      if len(logs) != 1 or logs[0]["topics"][1] != param:
+         return (False, "Expected one log in the latest block with 124")
 
       return (True, None)
 

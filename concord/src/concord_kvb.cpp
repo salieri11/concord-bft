@@ -419,17 +419,40 @@ void com::vmware::concord::KVBCommandsHandler::collect_logs_from_block(
     const EthBlock &block, KVBStorage &kvbStorage, const LogsRequest &request,
     LogsResponse *response) const {
   EthTransaction tx;
-  uint64_t tx_log_idx{0};
+  int64_t tx_log_idx{-1};
 
   for (auto &tx_hash : block.transactions) {
     tx = kvbStorage.get_transaction(tx_hash);
     for (auto &tx_log : tx.logs) {
+      tx_log_idx++;
+
       // Filter address
       if (request.has_contract_address() &&
           request.contract_address().size() > 0 &&
           memcmp(request.contract_address().data(), tx_log.address.bytes,
                  sizeof(evm_address)) != 0) {
         continue;
+      }
+
+      // Filter topics
+      // Note: The order matters, element 0 is the event signature and following
+      // elements are event parameters
+      size_t topic_size = request.topic_size();
+      if (topic_size > 0) {
+        if (topic_size > tx_log.topics.size()) {
+          continue;
+        }
+        bool match = true;
+        for (int i = 0; i < request.topic_size(); ++i) {
+          if (memcmp(request.topic(i).data(), tx_log.topics[i].bytes,
+                     sizeof(evm_uint256be)) != 0) {
+            match = false;
+            break;
+          }
+        }
+        if (!match) {
+          continue;
+        }
       }
 
       LogResponse *log = response->add_log();
@@ -449,7 +472,6 @@ void com::vmware::concord::KVBCommandsHandler::collect_logs_from_block(
       log->set_transaction_index(0);
       log->set_log_index(tx_log_idx);
       log->set_transaction_log_index(tx_log_idx);
-      tx_log_idx++;
     }
   }
 }

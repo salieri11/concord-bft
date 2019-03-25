@@ -6,4 +6,9 @@ contract Simple {
     function foo(int a) public {
         emit Event(a);
     }
+
+    function twoEvents(int a) public {
+        emit Event(a+1);
+        emit Event(a+2);
+    }
 }

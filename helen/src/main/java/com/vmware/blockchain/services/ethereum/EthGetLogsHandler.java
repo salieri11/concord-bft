@@ -70,7 +70,10 @@ public class EthGetLogsHandler extends AbstractEthRpcHandler {
                     logsReq.setContractAddress(ApiHelper.hexStringToBinary((String) filter.get("address")));
                 }
                 if (filter.containsKey("topics")) {
-                    throw new EthRpcHandlerException("'topics' filter not supported yet.");
+                    JSONArray topics = (JSONArray) filter.get("topics");
+                    for (int i = 0; i < topics.size(); ++i) {
+                        logsReq.addTopic(ApiHelper.hexStringToBinary((String) topics.get(i)));
+                    }
                 }
                 if (filter.containsKey("blockHash")) {
                     logsReq.setBlockHash(ApiHelper.hexStringToBinary((String) filter.get("blockHash")));
