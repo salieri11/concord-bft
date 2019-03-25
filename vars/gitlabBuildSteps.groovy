@@ -3,6 +3,7 @@ import groovy.json.*
 def call(){
   def agentLabel = "genericVM"
   def genericTests = true
+  def master_branch_job_name = "Master Branch"
   def memory_leak_job_name = "BlockchainMemoryLeakTesting"
   def performance_test_job_name = "Blockchain Performance Test"
   def lint_test_job_name = "Blockchain LINT Tests"
@@ -581,25 +582,24 @@ EOF
       stage("Save to artifactory"){
         when {
           expression {
-            return JOB_NAME == "Master Branch Blockchain Run on GitLab/master"
+            env.JOB_NAME.contains(master_branch_job_name)
           }
         }
         steps{
           script {
             try{
               withCredentials([string(credentialsId: 'ARTIFACTORY_API_KEY', variable: 'ARTIFACTORY_API_KEY')]) {
-                echo("Would push to artifactory.  Not doing so because we are not on GitLab yet")
                 // Pass in false for whether to tag as latest because VMware's
                 // artifactory does not allow re-using a tag.
-                // pushDockerImage(env.internal_agent_repo, env.docker_tag, false)
-                // pushDockerImage(env.internal_asset_transfer_repo, env.docker_tag, false)
-                // pushDockerImage(env.internal_concord_repo, env.docker_tag, false)
-                // pushDockerImage(env.internal_ethrpc_repo, env.docker_tag, false)
-                // pushDockerImage(env.internal_fluentd_repo, env.docker_tag, false)
-                // pushDockerImage(env.internal_helen_repo, env.docker_tag, false)
-                // pushDockerImage(env.internal_persephone_repo, env.docker_tag, false)
-                // pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
-                // pushDockerImage(env.internal_contract_compiler_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_agent_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_asset_transfer_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_concord_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_ethrpc_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_fluentd_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_helen_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_persephone_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_contract_compiler_repo, env.docker_tag, false)
               }
             }catch(Exception ex){
               failRun()
