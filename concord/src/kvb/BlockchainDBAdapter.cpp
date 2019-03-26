@@ -178,7 +178,7 @@ Sliver KeyManipulator::generateMetadataKey(ObjectId objectId) {
   size_t keySize = sizeof(EDBKeyType) + sizeof(objectId);
   auto keyBuf = new uint8_t[keySize];
   size_t offset = 0;
-  EDBKeyType keyType = EDBKeyType::E_DB_KEY_TYPE_METADATA_KEY;
+  EDBKeyType keyType = EDBKeyType::E_DB_KEY_TYPE_BFT_METADATA_KEY;
   copyToAndAdvance(keyBuf, &offset, keySize, (uint8_t *)&keyType,
                    sizeof(EDBKeyType));
   copyToAndAdvance(keyBuf, &offset, keySize, (uint8_t *)&objectId,

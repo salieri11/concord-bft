@@ -20,22 +20,14 @@ using namespace Blockchain;
 namespace {
 
 RocksDBMetadataStorage *metadataStorage = nullptr;
-const ObjectId seqNumObjectId = RocksDBMetadataStorage::getSeqNumObjectId();
 const ObjectId initialObjectId = 1;
 const uint32_t initialObjDataSize = 80;
-const uint64_t seqNum = 123456789;
 const uint16_t objectsNum = 100;
 
 uint8_t *fillBufByGivenData(const uint8_t *data, const uint32_t &sizeOfData) {
   auto *inBuf = new uint8_t[sizeOfData];
   memcpy(inBuf, data, sizeOfData);
   return inBuf;
-}
-
-void writeSeqNum() {
-  uint8_t *data = fillBufByGivenData((uint8_t *)&seqNum, sizeof(seqNum));
-  metadataStorage->atomicWrite(seqNumObjectId, (char *)data, sizeof(seqNum));
-  delete[] data;
 }
 
 uint8_t *createAndFillBuf(size_t length) {
@@ -66,12 +58,6 @@ bool is_match(const uint8_t *exp, const uint8_t *actual, const size_t len) {
     }
   }
   return true;
-}
-
-TEST(metadataStorage_test, get_seq_num) {
-  writeSeqNum();
-  uint64_t outValue = metadataStorage->getSeqNum();
-  ASSERT_TRUE(seqNum == outValue);
 }
 
 TEST(metadataStorage_test, single_read) {

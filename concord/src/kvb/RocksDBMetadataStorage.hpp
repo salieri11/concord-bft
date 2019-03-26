@@ -41,8 +41,6 @@ class RocksDBMetadataStorage : public bftEngine::MetadataStorage {
   void commitAtomicWriteOnlyTransaction() override;
   uint64_t getSeqNum();
 
-  static uint16_t getSeqNumObjectId() { return seqNumObjectId_; }
-
  private:
   void verifyOperation(uint32_t dataLen, char *buffer) const;
 
@@ -55,7 +53,6 @@ class RocksDBMetadataStorage : public bftEngine::MetadataStorage {
   IDBClient *dbClient_ = nullptr;
   SetOfKeyValuePairs *transaction_ = nullptr;
   std::mutex ioMutex_;
-  static const uint16_t seqNumObjectId_ = 0;
 };
 
 }  // namespace Blockchain
