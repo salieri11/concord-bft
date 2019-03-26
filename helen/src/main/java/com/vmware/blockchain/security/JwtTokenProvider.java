@@ -131,7 +131,7 @@ public class JwtTokenProvider {
             throw new UnauthorizedException("Invalid Consortium");
         }
         userDetails.setAuthToken(token);
-        userDetails.setOrgId(orgId);
+        userDetails.setOrgId(UUID.fromString(orgId));
         List<UUID> ids =
                 blockchainManager.listByConsortium(c.get()).stream().map(b -> b.getId()).collect(Collectors.toList());
         userDetails.setPermittedChains(ids);

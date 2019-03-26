@@ -129,7 +129,7 @@ class UserAuthenticatorTest {
         when(passwordEncoder.matches("1234", "1234")).thenReturn(true);
         when(passwordEncoder.encode(anyString())).then(a -> a.getArguments().toString());
 
-        HelenUserDetails details = new HelenUserDetails("user@test.com", "1234", true, true,
+        HelenUserDetails details = new HelenUserDetails(USER_ID, "user@test.com", "1234", true, true,
                 true, true, Arrays.asList(new SimpleGrantedAuthority("SYSTEM_ADMIN")));
 
         when(jwtTokenProvider.createToken(any(User.class))).thenReturn("token");

@@ -14,24 +14,23 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.jdbc.Sql;
-import org.springframework.test.context.jdbc.Sql.ExecutionPhase;
-import org.springframework.test.context.jdbc.SqlGroup;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.ImmutableMap;
+import com.vmware.blockchain.services.utils.TestJpaConfig;
+
+import io.zonky.test.db.AutoConfigureEmbeddedDatabase;
 
 /**
  * Test the Blockchain JPA.
  */
 @ExtendWith(SpringExtension.class)
-@TestPropertySource(locations = "classpath:db-test.properties")
-@SqlGroup({
-    @Sql(executionPhase = ExecutionPhase.BEFORE_TEST_METHOD, scripts = "classpath:db-test-init.sql"),
-    @Sql(executionPhase = ExecutionPhase.AFTER_TEST_METHOD, scripts = "classpath:db-test-cleanup.sql")
-    })
+@TestPropertySource(locations = "classpath:db-postgres-test.properties")
+@AutoConfigureEmbeddedDatabase
 @DataJpaTest
+@ContextConfiguration(classes = TestJpaConfig.class)
 class BlockchainJpaTest {
 
     @Autowired

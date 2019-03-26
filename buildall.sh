@@ -107,9 +107,11 @@ buildMavenTargets(){
   docker volume create --name mvn-repo
   docker run \
     --rm --name mvn-build \
+    --user $(id -u):$(id -g) \
     -v maven-repo:/root/.m2 \
     -v "$(pwd)":/workspace \
-    -w /workspace maven:3.6.0-jdk-11 \
+    -w /workspace \
+    athena-docker-local.artifactory.eng.vmware.com/build-images/maven-builder:v1 \
     mvn clean install > mvn_build.log 2>&1 &
   MVN_BUILD=$!
 
