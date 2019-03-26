@@ -7,6 +7,7 @@ components:
  * EthRPC: a translator from Web3 JSON RPC to Concord protobuf
  * Helen: the API server
  * Hermes: the integration test framework
+ * Persephone: the deployment engine / fleet management service
  * UI: the browser-based UI for interacting with Helen
 
 ## Skipping the Build
@@ -32,6 +33,100 @@ The easiest way to use this system is via docker. Please install the
 If you are running linux, you will also need to install
 (docker-compose)[https://docs.docker.com/compose/install/]. If you're
 running Mac OS or Windows, docker-compose was installed with docker.
+
+### Sign into Artifactory
+
+We have cached some of the build environments in docker images on
+Artifactory. You will need access to those to run our build
+scripts. So, ensure that you log your docker daemon into Artifactory
+before continuing:
+
+```
+$ docker login -u <your vmware username without @vmware.com> \
+               athena-docker-local.artifactory.eng.vmware.com
+```
+
+### Getting the Code
+
+When you clone the repository, include `--recursive` or
+`--recurse-submodules` to get the submodule dependencies as well:
+
+```
+$ git clone --recursive \
+      git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git
+```
+
+If you cloned without recursing through submodules, you can set them
+up by running the following commands in the root directory of your
+cloned repository:
+
+```
+blockchain$ git submodule init
+blockchain$ git submodule update
+```
+
+### Building everything at once
+
+With docker installed, please run the "buildall.sh" script found in
+the root directory of the repository:
+
+```
+blockchain$ ./buildall.sh
+Loading repos/tags for docker images from docker/.env
+Docker: /usr/bin/docker
+Building...
+Adding build process: Concord=84165
+Adding build process: Concord_for_memleak=84166
+Adding build process: UI=84167
+Adding build process: Fluentd=84168
+mvn-repo
+Adding build process: Maven=84187
+Waiting for maven build of helen/ethrpc/communication...
+Waiting for maven build of helen/ethrpc/communication...
+...
+Adding build process: Ethrpc_docker_image=87731
+Adding build process: Helen_docker_image=87732
+Adding build process: Persephone_docker_image=87733
+Adding build process: Cockroach_DB=87734
+Adding build process: Reverse_proxy=87735
+Adding build process: Asset_Transfer_sample_image=87736
+Adding build process: Agent_docker_image=87737
+Adding build process: Contract Compiler Microservice=87738
+...
+-------- Status --------
+Ethrpc_docker_image: done
+UI: done
+Reverse_proxy: done
+Agent_docker_image: done
+Persephone_docker_image: done
+Contract Compiler Microservice: done
+Helen_docker_image: done
+Fluentd: done
+Concord: done
+Asset_Transfer_sample_image: done
+Concord_for_memleak: done
+Maven: done
+Cockroach_DB: done
+```
+
+This process will build all components, and tag each image with a
+`:latest` tag.
+
+```
+bfink@ubuntu:~/vmwathena/blockchain-alt$ docker image ls | grep latest
+persephone                                                         latest               f22f55ddc180        8 minutes ago       545MB
+helen                                                              latest               f511a4f01c46        13 minutes ago      596MB
+agent                                                              latest               88e8c8d07b29        13 minutes ago      571MB
+ethrpc                                                             latest               10bfd0847e1b        13 minutes ago      556MB
+contract-compiler                                                  latest               5f91b3834d95        13 minutes ago      737MB
+...
+```
+
+If the script completes successfully, you can skip the rest of this
+Building section, and start Testing. If any of the components failed
+to build, or you want to rebuild one of them, please see the following
+subsections for information on how to build each component
+individually.
 
 ### Building Concord via Docker
 
