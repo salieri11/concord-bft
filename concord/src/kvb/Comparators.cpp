@@ -39,7 +39,7 @@ int RocksKeyComparator::ComposedKeyComparison(const Logger& logger,
   }
 
   // In case it is E_DB_KEY_TYPE_METADATA_KEY, compare object IDs.
-  if (aType == (char)EDBKeyType::E_DB_KEY_TYPE_METADATA_KEY) {
+  if (aType == (char)EDBKeyType::E_DB_KEY_TYPE_BFT_METADATA_KEY) {
     BlockId aObjId = KeyManipulator::extractObjectIdFromKey(logger, _a);
     BlockId bObjId = KeyManipulator::extractObjectIdFromKey(logger, _b);
 
