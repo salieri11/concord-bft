@@ -1,3 +1,5 @@
+import re
+
 styles = """<style>
 table {
        border-collapse: collapse;
@@ -62,6 +64,8 @@ def createHtmlRow(testName, result):
       row = "<tr class='skipped'>"
 
    htmlFormattedInfo = result["info"].replace("\n", "<br>")
+   htmlFormattedInfo = htmlFormattedInfo.replace("\\n", "<br>")
+   htmlFormattedInfo = re.sub(r" (?!href=)", "&nbsp;", htmlFormattedInfo)
    row += "<td>{}</td><td>{}</td><td>{}</td></tr>\n".format(testName,
                                                             result["result"],
                                                             htmlFormattedInfo)

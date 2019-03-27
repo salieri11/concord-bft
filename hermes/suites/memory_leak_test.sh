@@ -60,7 +60,7 @@ launch_memory_test() {
         SPECIFIC_TESTS="--tests ${TESTS}"
     fi
 
-    "${HERMES_START_FILE}" "${TEST_SUITE}" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir "${RESULTS_DIR}" ${SPECIFIC_TESTS} --productLaunchAttempts 10 --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-memleak.yml &
+    "${python}" "${HERMES_START_FILE}" "${TEST_SUITE}" --config resources/user_config_valgrind.json --repeatSuiteRun ${NO_OF_RUNS} --resultsDir "${RESULTS_DIR}" ${SPECIFIC_TESTS} --productLaunchAttempts 10 --dockerComposeFile ../docker/docker-compose.yml ../docker/docker-compose-memleak.yml &
     HERMES_PID=$!
     rm -f "${HERMES_PID_FILE}"
     echo ${HERMES_PID} > "${HERMES_PID_FILE}"
