@@ -14,6 +14,14 @@ FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v5
 ## Remember context is the parent of this directory
 COPY ./communication /communication
 
+## Copy the blockchain repo .git directory so submodules can run git commands
+## While this is somewhat dirty it makes the relative path in
+## concord/submodule/concord-bft/.git work. Alternatively, we could change all
+## the paths and copy the entire blockchain dir to /blockchain. However, this
+## works fine, is a one line change, and the docker image is destroyed after
+## build anyway.
+COPY .git /.git
+
 WORKDIR /concord
 COPY ./concord /concord
 WORKDIR /concord/build
