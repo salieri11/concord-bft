@@ -10,41 +10,31 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
-import javax.persistence.Table;
-
 import com.google.common.base.Splitter;
+import com.vmware.blockchain.dao.AbstractEntity;
+import com.vmware.blockchain.dao.EntityColumnName;
+import com.vmware.blockchain.dao.LinkedEntityId;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 /**
- * JPA class representing Blockchains.
+ * Class representing Blockchains.
  */
-@Table(name = "BLOCKCHAINS")
-@Entity
+@EntityColumnName("helen.blockchain")
 @Data
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-@AllArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+@Builder
 @NoArgsConstructor
-public class Blockchain {
+@AllArgsConstructor
+public class Blockchain extends AbstractEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @EqualsAndHashCode.Include
-    private UUID id;
 
-    @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(nullable = false)
-    private Consortium consortium;
+    @LinkedEntityId
+    UUID  consortium;
 
     /**
      * IP List. host:port

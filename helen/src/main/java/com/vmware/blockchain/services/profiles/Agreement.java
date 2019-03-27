@@ -4,98 +4,34 @@
 
 package com.vmware.blockchain.services.profiles;
 
-import java.time.Instant;
+import java.util.Date;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import com.vmware.blockchain.dao.AbstractEntity;
+import com.vmware.blockchain.dao.EntityColumnName;
+
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 /**
  * A Spring Data JPA (or Hibernate) Entity class representing a user in the system.
  */
-@Table(name = "AGREEMENTS")
-@Entity
-public class Agreement {
+@EntityColumnName("helen.agreement")
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class Agreement extends AbstractEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(unique = true)
-    private Long id;
+    private boolean accepted;
 
-    @Column(nullable = false)
-    private Boolean accepted;
-
-    @Column(nullable = false)
     private String type;
 
-    @Column(nullable = false)
     private String content;
 
-    @Column(nullable = true)
     private String firstName;
 
-    @Column(nullable = true)
     private String lastName;
 
-    @Column(nullable = true)
     private String company;
 
-    @Column(nullable = true)
-    private Long acceptedOn;
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getContent() {
-        return content;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public Boolean getAcceptance() {
-        return accepted;
-    }
-
-    public String getFirstName() {
-        return firstName;
-    }
-
-    public String getLastName() {
-        return lastName;
-    }
-
-    public String getCompany() {
-        return company;
-    }
-
-    public Long getAcceptedOn() {
-        return acceptedOn;
-    }
-
-    protected void accepted() {
-        this.accepted = true;
-    }
-
-    protected void setFirstName(String firstName) {
-        this.firstName = firstName;
-    }
-
-    protected void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    protected void setCompany(String company) {
-        this.company = company;
-    }
-
-    protected void setAcceptedOn() {
-        this.acceptedOn = Instant.now().toEpochMilli();
-    }
+    private Date acceptedOn;
 
 }

@@ -59,10 +59,13 @@ public class ConnectionPoolTest {
         when(consortium.getConsortiumId()).thenReturn(UUID.fromString("277858b5-b962-4aa5-850e-c992c84cfdcb"));
         when(consortium.getConsortiumName()).thenReturn("Test Name");
 
-        blockchain = new Blockchain(UUID.fromString("33b26eed-d173-47bf-ab3a-184479a1fde0"),
-                consortium, "ip1:5458,ip2:5458,ip3:5458,ip4:5458",
-                "a=ip1:5458,b=ip2:5458,c=ip3:5458,d=ip4:5458",
-                "a=thisisacert,b=thisisbcert,c=thisisccert,d=thisisdcert");
+        blockchain = Blockchain.builder()
+                .consortium(consortium.getConsortiumId())
+                .ipList("ip1:5458,ip2:5458,ip3:5458,ip4:5458")
+                .rpcUrls("a=ip1:5458,b=ip2:5458,c=ip3:5458,d=ip4:5458")
+                .rpcCerts("a=thisisacert,b=thisisbcert,c=thisisccert,d=thisisdcert")
+                .build();
+        blockchain.setId(UUID.fromString("33b26eed-d173-47bf-ab3a-184479a1fde0"));
         pool = new ConcordConnectionPool(blockchain, ConnectionType.Mock).initialize(config);
     }
 

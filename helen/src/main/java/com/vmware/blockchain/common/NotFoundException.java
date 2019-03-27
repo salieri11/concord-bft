@@ -16,4 +16,8 @@ public class NotFoundException extends HelenException {
     public NotFoundException(String message, Object... args) {
         super(HttpStatus.NOT_FOUND, message, args);
     }
+
+    public NotFoundException(Throwable cause, String message, Object... args) {
+        super(HttpStatus.NOT_FOUND, cause, message, args);
+    }
 }

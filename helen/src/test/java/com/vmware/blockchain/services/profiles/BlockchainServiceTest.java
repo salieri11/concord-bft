@@ -22,15 +22,16 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
+import com.vmware.blockchain.dao.GenericDao;
 
 /**
  * Test the blockchain manager.
  * Need mock beans for BlockchainRepository and for the ApplicationPublisher.
  */
 @ExtendWith(SpringExtension.class)
-public class BlockchainManagerTest {
+public class BlockchainServiceTest {
     @MockBean
-    private BlockchainRepository repo;
+    private GenericDao genericDao;
 
     @MockBean
     private ApplicationEventPublisher publisher;
@@ -38,7 +39,7 @@ public class BlockchainManagerTest {
     @MockBean
     private ConnectionPoolManager connectionPoolManager;
 
-    private BlockchainManager manager;
+    private BlockchainService manager;
 
     @Captor
     private ArgumentCaptor<BlockchainManagerEvent> eventCaptor;
@@ -49,8 +50,8 @@ public class BlockchainManagerTest {
     @BeforeEach
     void init() {
         // Trying to autowire pulls in too many things
-        manager = new BlockchainManager(repo, publisher, connectionPoolManager);
-        when(repo.save(any(Blockchain.class))).thenAnswer(invocation -> {
+        manager = new BlockchainService(genericDao, publisher, connectionPoolManager);
+        when(genericDao.put(any(Blockchain.class), any())).thenAnswer(invocation -> {
             Blockchain b = invocation.getArgument(0);
             if (b.getId() == null) {
                 b.setId(UUID.fromString("1070aacc-6638-4267-8cc9-dbdc07235084"));

@@ -37,9 +37,11 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
+import com.vmware.blockchain.dao.GenericDao;
 import com.vmware.blockchain.security.AuthHelper;
 import com.vmware.blockchain.security.HelenUserDetails;
 import com.vmware.blockchain.security.JwtTokenProvider;
+import com.vmware.blockchain.security.ServiceContext;
 
 /**
  * User Authenticator tests.
@@ -78,22 +80,25 @@ class UserAuthenticatorTest {
     private ConcordConnectionPool connectionPool;
 
     @MockBean
-    private AgreementRepository agreementRepository;
-
-    @MockBean
     private KeystoreRepository keystoreRepository;
 
     @MockBean
     private DefaultProfiles profiles;
 
     @MockBean
-    private BlockchainManager blockchainManager;
+    private BlockchainService blockchainService;
 
     @MockBean
     private ConsortiumRepository consortiumRepository;
 
     @MockBean
+    GenericDao genericDao;
+
+    @MockBean
     AuthHelper authHelper;
+
+    @MockBean
+    private ServiceContext serviceContext;
 
     private User testUser;
 

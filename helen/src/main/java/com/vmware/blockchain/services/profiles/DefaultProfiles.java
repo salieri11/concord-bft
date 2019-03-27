@@ -13,6 +13,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import com.vmware.blockchain.common.NotFoundException;
+import com.vmware.blockchain.security.ServiceContext;
+
 import lombok.Getter;
 
 /**
@@ -35,6 +38,8 @@ public class DefaultProfiles {
     @Getter
     private Blockchain blockchain;
 
+    private AgreementService agreementService;
+
     private UserRepository userRepository;
 
     private OrganizationRepository organizationRepository;
@@ -43,7 +48,9 @@ public class DefaultProfiles {
 
     private PasswordEncoder passwordEncoder;
 
-    private BlockchainManager blockchainManager;
+    private BlockchainService blockchainService;
+
+    private ServiceContext serviceContext;
 
     private String blockchainIpList;
 
@@ -51,13 +58,16 @@ public class DefaultProfiles {
 
     private String blockchainRpcCerts;
 
+
     @Autowired
     public DefaultProfiles(
             UserRepository userRepository,
             OrganizationRepository organizationRepository,
             ConsortiumRepository consortiumRepository,
             PasswordEncoder passwordEncoder,
-            BlockchainManager blockchainManager,
+            BlockchainService blockchainService,
+            AgreementService agreementService,
+            ServiceContext serviceContext,
             @Value("${ConcordAuthorities}") String blockchainIpList,
             @Value("${ConcordRpcUrls}") String blockchainRpcUrls,
             @Value("${ConcordRpcCerts}") String blockchainRpcCerts) {
@@ -65,7 +75,9 @@ public class DefaultProfiles {
         this.organizationRepository = organizationRepository;
         this.consortiumRepository = consortiumRepository;
         this.passwordEncoder = passwordEncoder;
-        this.blockchainManager = blockchainManager;
+        this.blockchainService = blockchainService;
+        this.agreementService = agreementService;
+        this.serviceContext = serviceContext;
         this.blockchainIpList = blockchainIpList;
         this.blockchainRpcUrls = blockchainRpcUrls;
         this.blockchainRpcCerts = blockchainRpcCerts;
@@ -82,10 +94,14 @@ public class DefaultProfiles {
         // the order of these creates matters.
         // consortium must exist before blockchain.
         // both consortium and organization must exist before user.
+        // We need to set the service security context first, in order to create the entities.
+        serviceContext.setSystemContext();
+        createAgreementIfNotExist();
         organization = createOrgIfNotExist();
         consortium = createConsortiumIfNotExist();
         blockchain = createBlockchainIfNotExist();
         user = createUserIfNotExist();
+        serviceContext.clearServiceContext();
         logger.info("Profiles -- Org {}, Cons: {}, BC: {}, User: {}", organization.getOrganizationName(),
                 consortium.getConsortiumName(), blockchain.getUrlsAsMap(), user.getEmail());
     }
@@ -143,11 +159,19 @@ public class DefaultProfiles {
     }
 
     private Blockchain createBlockchainIfNotExist() {
-        List<Blockchain> bList = blockchainManager.list();
+        List<Blockchain> bList = blockchainService.list();
         if (bList.isEmpty()) {
-            return blockchainManager.create(consortium, blockchainIpList, blockchainRpcUrls, blockchainRpcCerts);
+            return blockchainService.create(consortium, blockchainIpList, blockchainRpcUrls, blockchainRpcCerts);
         } else {
             return bList.get(0);
+        }
+    }
+
+    private Agreement createAgreementIfNotExist() {
+        try {
+            return agreementService.getAgreementWithId(null);
+        } catch (NotFoundException e) {
+            return agreementService.createAgreement();
         }
     }
 

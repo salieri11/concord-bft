@@ -32,9 +32,6 @@ public class Consortium {
     @OneToMany(mappedBy = "consortium", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
     protected Set<User> users = new HashSet<>();
 
-    @OneToMany(mappedBy = "consortium", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
-    protected Set<Blockchain> blockchains = new HashSet<>();
-
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "consortiumid")

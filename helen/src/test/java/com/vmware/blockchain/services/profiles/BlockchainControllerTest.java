@@ -39,10 +39,13 @@ import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.HelenExceptionHandler;
+import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
+import com.vmware.blockchain.dao.GenericDao;
 import com.vmware.blockchain.security.AuthHelper;
 import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.security.SecurityTestUtils;
+import com.vmware.blockchain.security.ServiceContext;
 import com.vmware.blockchain.services.profiles.BlockchainController.BlockchainResponse;
 
 /**
@@ -88,22 +91,25 @@ public class BlockchainControllerTest {
     private ConcordConnectionPool connectionPool;
 
     @MockBean
-    private AgreementRepository agreementRepository;
-
-    @MockBean
     private KeystoreRepository keystoreRepository;
 
     @MockBean
     private DefaultProfiles profiles;
 
     @MockBean
-    private BlockchainManager blockchainManager;
+    private BlockchainService blockchainService;
 
     @MockBean
     private ConsortiumRepository consortiumRepository;
 
     @MockBean
     AuthHelper authHelper;
+
+    @MockBean
+    GenericDao genericDao;
+
+    @MockBean
+    ServiceContext serviceContext;
 
     @Autowired
     Jackson2ObjectMapperBuilder jacksonBuilder;
@@ -129,16 +135,33 @@ public class BlockchainControllerTest {
         when(consortiumRepository.findById(c1Id)).thenReturn(Optional.of(consortium));
         when(consortiumRepository.findById(C2_ID)).thenReturn(Optional.of(c2));
         when(consortiumRepository.findById(C3_ID)).thenReturn(Optional.of(c3));
-        Blockchain b = new Blockchain(BC_ID, consortium, "1,2,3",
-                "https://one.https://two,https://three", "");
-        Blockchain b2 = new Blockchain(BC2_ID, c2, "4,5,6", "", "");
-        when(blockchainManager.listByConsortium(consortium)).thenReturn(Collections.singletonList(b));
-        when(blockchainManager.listByConsortium(c3)).thenReturn(Collections.emptyList());
-        when(blockchainManager.list()).thenReturn(ImmutableList.of(b, b2));
-        when(blockchainManager.get(BC_ID)).thenReturn(Optional.of(b));
-        when(blockchainManager.get(BC2_ID)).thenReturn(Optional.of(b2));
-        when(blockchainManager.create(any(Consortium.class), anyString(), anyString(), anyString())).thenAnswer(
-            i -> new Blockchain(BC_NEW, i.getArgument(0), i.getArgument(1), i.getArgument(2), i.getArgument(3)));
+        Blockchain b = new Blockchain.BlockchainBuilder()
+                .consortium(consortium.getConsortiumId())
+                .ipList("1,2,3")
+                .rpcUrls("https://one.https://two,https://three")
+                .rpcCerts("")
+                .build();
+        Blockchain b2 = new Blockchain.BlockchainBuilder()
+                .consortium(c2.getConsortiumId())
+                .ipList("4,5,6")
+                .rpcUrls("")
+                .rpcCerts("")
+                .build();
+
+        when(blockchainService.listByConsortium(consortium)).thenReturn(Collections.singletonList(b));
+        when(blockchainService.listByConsortium(c3)).thenReturn(Collections.emptyList());
+        when(blockchainService.list()).thenReturn(ImmutableList.of(b, b2));
+        when(blockchainService.get(BC_ID)).thenReturn(b);
+        when(blockchainService.get(BC2_ID)).thenReturn(b);
+        when(blockchainService.get(C2_ID)).thenThrow(new NotFoundException("Not found"));
+        when(blockchainService.create(any(Consortium.class), anyString(), anyString(), anyString())).thenAnswer(
+            i -> {
+                Blockchain bn = new Blockchain.BlockchainBuilder()
+                            .consortium(((Consortium) (i.getArgument(0))).getConsortiumId()).ipList(i.getArgument(1))
+                            .rpcUrls(i.getArgument(2)).rpcCerts(i.getArgument(3)).build();
+                bn.setId(BC_NEW);
+                return bn;
+            });
         token = "token";
         // This creates our default object mapper
         objectMapper = jacksonBuilder.build();

@@ -34,7 +34,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import com.vmware.blockchain.WebSecurityConfig;
 import com.vmware.blockchain.services.profiles.Blockchain;
-import com.vmware.blockchain.services.profiles.BlockchainManager;
+import com.vmware.blockchain.services.profiles.BlockchainService;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumRepository;
 import com.vmware.blockchain.services.profiles.Roles;
@@ -62,7 +62,7 @@ public class JwtTokenFilterTest {
     private UserRepository userRepository;
 
     @MockBean
-    private BlockchainManager blockchainManager;
+    private BlockchainService blockchainService;
 
     @MockBean
     private ConsortiumRepository consortiumRepository;
@@ -103,7 +103,7 @@ public class JwtTokenFilterTest {
         when(consortiumRepository.findById(any((UUID.class)))).thenReturn(Optional.of(c));
         Blockchain b = mock(Blockchain.class);
         when(b.getId()).thenReturn(BC_ID);
-        when(blockchainManager.listByConsortium(c)).thenReturn(Collections.singletonList(b));
+        when(blockchainService.listByConsortium(c)).thenReturn(Collections.singletonList(b));
         token = jwtTokenProvider.createToken(user);
 
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)

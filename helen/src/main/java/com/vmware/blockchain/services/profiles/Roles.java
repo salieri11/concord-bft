@@ -14,8 +14,13 @@ import org.springframework.security.core.GrantedAuthority;
  */
 public enum Roles implements GrantedAuthority {
 
-    ORG_USER("ORG_USER"), ORG_DEVELOPER("ORG_DEVELOPER"), ORG_ADMIN("ORG_ADMIN"), CONSORTIUM_ADMIN(
-            "CONSORTIUM_ADMIN"), SYSTEM_ADMIN("SYSTEM_ADMIN");
+    ORG_USER("ORG_USER"),
+    ORG_DEVELOPER("ORG_DEVELOPER"),
+    ORG_ADMIN("ORG_ADMIN"),
+    CONSORTIUM_ADMIN("CONSORTIUM_ADMIN"),
+    SYSTEM_ADMIN("SYSTEM_ADMIN"),
+    SYSTEM("SYSTEM"),
+    ANONYMOUS("ANONYMOUS");
 
     private final String name;
 

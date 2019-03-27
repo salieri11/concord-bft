@@ -28,7 +28,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.common.UnauthorizedException;
-import com.vmware.blockchain.services.profiles.BlockchainManager;
+import com.vmware.blockchain.services.profiles.BlockchainService;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumRepository;
 import com.vmware.blockchain.services.profiles.User;
@@ -64,7 +64,7 @@ public class JwtTokenProvider {
     private ConsortiumRepository consortiumRepository;
 
     @Autowired
-    private BlockchainManager blockchainManager;
+    private BlockchainService blockchainService;
 
     @PostConstruct
     protected void init() {
@@ -133,7 +133,7 @@ public class JwtTokenProvider {
         userDetails.setAuthToken(token);
         userDetails.setOrgId(UUID.fromString(orgId));
         List<UUID> ids =
-                blockchainManager.listByConsortium(c.get()).stream().map(b -> b.getId()).collect(Collectors.toList());
+                blockchainService.listByConsortium(c.get()).stream().map(b -> b.getId()).collect(Collectors.toList());
         userDetails.setPermittedChains(ids);
 
         return new UsernamePasswordAuthenticationToken(userDetails, "", authorities);
