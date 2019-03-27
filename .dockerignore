@@ -1,6 +1,3 @@
 Dockerfile
 concord/build
-.git
-concord/submodules/concord-bft/.git
-concord/submodules/state-transfer/.git
 
