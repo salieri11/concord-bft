@@ -77,7 +77,7 @@ class UiTests(test_suite.TestSuite):
         # If not, we will try to run the tests without a virtual
         # display
         try:
-            self.vdisplay = Xvfb(width=4000, height=4000)
+            self.vdisplay = Xvfb(width=4000, height=6000)
             self.vdisplay.start()
             self._xvfb_present = True
         except Exception as e:

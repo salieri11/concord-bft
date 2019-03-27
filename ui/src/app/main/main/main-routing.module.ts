@@ -17,6 +17,7 @@ import { orgRoutes } from '../../orgs/orgs-routing';
 import { usersRoutes } from '../../users/users-routing';
 import { transactionsRoutes } from '../../transactions/transactions-routing';
 import { loggingRoutes } from '../../logging/logging-routing';
+import { developerRoutes } from '../../developer/developer-routing';
 
 const routes: Routes = [
   {
@@ -34,6 +35,7 @@ const routes: Routes = [
       { path: 'organization', children: orgRoutes },
       { path: 'users', children: usersRoutes },
       { path: 'transactions', children: transactionsRoutes },
+      { path: 'developer', children: developerRoutes },
     ]
   }
 ];

@@ -62,7 +62,7 @@ import { VersionComponent } from './components/version/version.component';
     VmwThemeSwitchButtonComponent,
     CodeHighlighterComponent,
     AppHeaderComponent,
-    VersionComponent
+    VersionComponent,
   ],
   exports: [
     CommonModule,
@@ -83,7 +83,7 @@ import { VersionComponent } from './components/version/version.component';
     VmwThemeSwitchButtonComponent,
     CodeHighlighterComponent,
     AppHeaderComponent,
-    VersionComponent
+    VersionComponent,
   ]
 })
 export class SharedModule {

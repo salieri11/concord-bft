@@ -22,6 +22,7 @@ import { OrgsModule } from '../orgs/orgs.module';
 import { ConsortiumModule } from '../consortium/consortium.module';
 import { UsersModule } from '../users/users.module';
 import { LoggingModule } from '../logging/logging.module';
+import { DeveloperModule } from '../developer/developer.module';
 
 
 @NgModule({
@@ -40,7 +41,8 @@ import { LoggingModule } from '../logging/logging.module';
     SmartContractsModule,
     UsersModule,
     LoggingModule,
-    TourNgxPopperModule
+    TourNgxPopperModule,
+    DeveloperModule
   ],
   declarations: [MainComponent],
   providers: [

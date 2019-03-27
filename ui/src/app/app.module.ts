@@ -18,7 +18,6 @@ import { AppComponent } from './app.component';
 import { MainModule } from './main/main.module';
 import { AppRoutingModule } from './app-routing.module';
 import { MarketingModule } from './marketing/marketing.module';
-import { SwaggerModule } from './swagger/swagger.module';
 import { VmwClarityThemeService } from './shared/theme.provider';
 import { VIPModule } from '@vmw/ngx-vip';
 
@@ -74,7 +73,6 @@ function initLanguage(translate: TranslateService, languages: string[], resolve:
     AppRoutingModule,
     VIPModule,
     MainModule,
-    SwaggerModule,
     ClarityModule,
     RouterModule,
     TourNgxPopperModule.forRoot(),

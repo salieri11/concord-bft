@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+
+  ui:
+    depends_on:
+      - dapp
+
+  dapp:
+    image: "dapp:latest"
+    container_name: dapp
+    ports:
+      - "4000:4000"
+    environment:
+      - ETH_RPC_HOST=${eth_rpc_host}
+      - HELEN_PATH=${helen_path}

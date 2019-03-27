@@ -3,6 +3,13 @@
     "target": "http://0.0.0.0:8080",
     "secure": false
   },
+  "/dapp": {
+    "target": "http://localhost:4000",
+    "secure": false,
+    "pathRewrite": {
+      "^/dapp": ""
+    }
+  },
   "/swagger": {
     "target": "http://localhost:8080",
     "secure": false
