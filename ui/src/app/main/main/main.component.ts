@@ -20,6 +20,7 @@ export class MainComponent implements OnInit, OnDestroy {
   alerts: any = [];
   personas = Personas;
   inactivityTimeout: any;
+  openDeployDapp: boolean;
 
   constructor(
     private authenticationService: AuthenticationService,
@@ -42,6 +43,9 @@ export class MainComponent implements OnInit, OnDestroy {
     this.deregisterWindowListeners();
   }
 
+  deployDapp() {
+    this.openDeployDapp = true;
+  }
 
   private setInactivityTimeout() {
     // If the user is inactive for oneHour we log them

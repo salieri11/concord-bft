@@ -46,7 +46,6 @@
       "title": "Actions",
       "resetTasks": "Reset Tasks"
     },
-    "exploreAPIs": "Explore APIs",
     "dashboard": {
       "title": "Dashboard"
     },
@@ -67,6 +66,11 @@
     },
     "logsAndAnalysis": {
       "title": "Logs And Analysis"
+    },
+    "developer": {
+      "title": "DEVELOPERS",
+      "api": "APIs",
+      "examples": "Samples"
     },
     "sysadmin": {
       "title": "SYSTEM ADMIN"
@@ -874,6 +878,19 @@
         "fetchWalletError": "Failed to get wallet, please try again. If error persists contact blockchain-support@vmware.com."
       }
     }
+  },
+  "examples": {
+    "title": "Samples",
+    "subTitle": "Choose dApp",
+    "deploy": "Deploy",
+    "alert": "This application is already deployed, click links below to either open or redeploy.",
+    "dappName": "Supply Chain",
+    "dappDesc": "This is a sample supply chain application that covers contract permissions, versioning and document storage.",
+    "deploy": "Deploy",
+    "open": "Open",
+    "redeploy": "Redeploy",
+    "loading": "Deploying dApp",
+    "source": "View Source"
   },
   "blockchainWizard": {
     "title": "Deploy",
