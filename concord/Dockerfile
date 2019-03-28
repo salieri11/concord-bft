@@ -38,8 +38,8 @@ ARG memleak_util_cmd=""
 # Get this variable into the docker image for the CMD.
 ENV memleak_util_cmd="${memleak_util_cmd}"
 
-RUN apt-get update
-RUN apt-get -y install ${memleak_util} \
+RUN apt-get update \
+    && apt-get -y install ${memleak_util} \
     bind9-host \
     libbz2-1.0 \
     libgmp10 \
