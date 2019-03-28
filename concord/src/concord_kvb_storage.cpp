@@ -225,7 +225,7 @@ Status com::vmware::concord::KVBStorage::write_block(uint64_t timestamp,
   blk.gas_limit = gas_limit;
 
   // We need hash of all transactions for calculating hash of a block
-  // but we also need block hash inside transaction strcture (not required
+  // but we also need block hash inside transaction structure (not required
   // to calculate hash of that transaction). So first use transaction hash to
   // get block hash and then populate that block hash & block number inside
   // all transactions in that block
@@ -245,13 +245,13 @@ Status com::vmware::concord::KVBStorage::write_block(uint64_t timestamp,
   }
   pending_transactions.clear();
 
-  // Add the block metadata to the key-value pair set
+  // Create serialized versions of the objects and store them in a staging area.
   add_block(blk);
 
-  // Actually write the block
   BlockId outBlockId;
   // Add Block metadata key/value pair to the ready list of updates.
   set_block_metadata();
+  // Actually write the block
   Status status = blockAppender_->addBlock(updates, outBlockId);
   if (status.isOK()) {
     LOG4CPLUS_INFO(logger, "Appended block number " << outBlockId);
@@ -344,7 +344,7 @@ void com::vmware::concord::KVBStorage::set_storage(
 
 void com::vmware::concord::KVBStorage::set_block_metadata() {
   const size_t sizeOfBlockMetadata = sizeof(bftSequenceNum_);
-  uint8_t blockMetadataBuf[sizeOfBlockMetadata];
+  auto blockMetadataBuf = new uint8_t[sizeOfBlockMetadata];
   memcpy(blockMetadataBuf, &bftSequenceNum_, sizeOfBlockMetadata);
   put(kvb_key(TYPE_BLOCK_METADATA, blockMetadataBuf, sizeOfBlockMetadata),
       Sliver(blockMetadataBuf, sizeOfBlockMetadata));
