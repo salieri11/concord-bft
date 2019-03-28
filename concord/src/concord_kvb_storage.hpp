@@ -27,6 +27,8 @@ class KVBStorage {
   Blockchain::SetOfKeyValuePairs updates;
   std::vector<EthTransaction> pending_transactions;
   log4cplus::Logger logger;
+  // BFT sequence number associated with a EVM contract execution.
+  uint64_t bftSequenceNum_ = 0;
 
   /* Value of "type" byte, at the start of each key. */
   const uint8_t TYPE_BLOCK = 0x01;
@@ -35,6 +37,7 @@ class KVBStorage {
   const uint8_t TYPE_CODE = 0x04;
   const uint8_t TYPE_STORAGE = 0x05;
   const uint8_t TYPE_NONCE = 0x06;
+  const uint8_t TYPE_BLOCK_METADATA = 0x07;
 
   Blockchain::Sliver kvb_key(uint8_t type, const uint8_t *bytes,
                              size_t length) const;
@@ -66,7 +69,7 @@ class KVBStorage {
 
   // read-write mode
   KVBStorage(const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-             Blockchain::IBlocksAppender *blockAppender);
+             Blockchain::IBlocksAppender *blockAppender, uint64_t sequenceNum);
 
   ~KVBStorage();
 
@@ -100,6 +103,7 @@ class KVBStorage {
   void set_code(const evm_address &addr, const uint8_t *code, size_t code_size);
   void set_storage(const evm_address &addr, const evm_uint256be &location,
                    const evm_uint256be &data);
+  void set_block_metadata();
 };
 
 }  // namespace concord

@@ -94,10 +94,11 @@ com::vmware::concord::KVBStorage::KVBStorage(
 // read-write mode
 com::vmware::concord::KVBStorage::KVBStorage(
     const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-    Blockchain::IBlocksAppender *blockAppender)
+    Blockchain::IBlocksAppender *blockAppender, uint64_t sequenceNum)
     : roStorage_(roStorage),
       blockAppender_(blockAppender),
-      logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")) {}
+      logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")),
+      bftSequenceNum_(sequenceNum) {}
 
 com::vmware::concord::KVBStorage::~KVBStorage() {
   // Any Slivers in updates will release their memory automatically.
@@ -249,6 +250,8 @@ Status com::vmware::concord::KVBStorage::write_block(uint64_t timestamp,
 
   // Actually write the block
   BlockId outBlockId;
+  // Add Block metadata key/value pair to the ready list of updates.
+  set_block_metadata();
   Status status = blockAppender_->addBlock(updates, outBlockId);
   if (status.isOK()) {
     LOG4CPLUS_INFO(logger, "Appended block number " << outBlockId);
@@ -337,6 +340,14 @@ void com::vmware::concord::KVBStorage::set_storage(
   uint8_t *str = new uint8_t[sizeof(data)];
   std::copy(data.bytes, data.bytes + sizeof(data), str);
   put(storage_key(addr, location), Sliver(str, sizeof(data)));
+}
+
+void com::vmware::concord::KVBStorage::set_block_metadata() {
+  const size_t sizeOfBlockMetadata = sizeof(bftSequenceNum_);
+  uint8_t blockMetadataBuf[sizeOfBlockMetadata];
+  memcpy(blockMetadataBuf, &bftSequenceNum_, sizeOfBlockMetadata);
+  put(kvb_key(TYPE_BLOCK_METADATA, blockMetadataBuf, sizeOfBlockMetadata),
+      Sliver(blockMetadataBuf, sizeOfBlockMetadata));
 }
 
 ////////////////////////////////////////

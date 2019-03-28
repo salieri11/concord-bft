@@ -111,7 +111,7 @@ Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
   const Blockchain::ILocalKeyValueStorageReadOnly &storage =
       replica->getReadOnlyStorage();
   IdleBlockAppender blockAppender(replica);
-  KVBStorage kvbStorage(storage, &blockAppender);
+  KVBStorage kvbStorage(storage, &blockAppender, 0);
 
   if (storage.getLastBlock() > 0) {
     LOG4CPLUS_INFO(logger, "Blocks already loaded, skipping genesis");
