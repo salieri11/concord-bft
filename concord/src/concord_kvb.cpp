@@ -49,8 +49,9 @@ com::vmware::concord::KVBCommandsHandler::~KVBCommandsHandler() {
 }
 
 int com::vmware::concord::KVBCommandsHandler::execute(
-    uint16_t clientId, bool readOnly, uint32_t requestSize, const char *request,
-    uint32_t maxReplySize, char *outReply, uint32_t &outActualReplySize) {
+    uint16_t clientId, uint64_t sequenceNum, bool readOnly,
+    uint32_t requestSize, const char *request, uint32_t maxReplySize,
+    char *outReply, uint32_t &outActualReplySize) {
   bool res;
   if (readOnly) {
     res = executeReadOnlyCommand(requestSize, request, *m_ptrRoStorage,

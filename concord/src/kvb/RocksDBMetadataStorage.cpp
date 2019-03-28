@@ -99,19 +99,4 @@ void RocksDBMetadataStorage::commitAtomicWriteOnlyTransaction() {
   delete transaction_;
 }
 
-uint64_t RocksDBMetadataStorage::getSeqNum() {
-  uint64_t seqNum = 0;
-  const uint32_t sizeOfSeqNum = sizeof(seqNum);
-  char seqNumBuf[sizeOfSeqNum];
-  uint32_t outActualObjectSize = 0;
-  try {
-    read(seqNumObjectId_, sizeOfSeqNum, seqNumBuf, outActualObjectSize);
-  } catch (runtime_error &ex) {
-    LOG4CPLUS_DEBUG(logger_, "Failed to get a sequence number");
-    throw runtime_error("Failed to get a sequence number");
-  }
-  memcpy(&seqNum, seqNumBuf, outActualObjectSize);
-  return seqNum;
-}
-
 }  // namespace Blockchain

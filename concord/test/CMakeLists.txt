@@ -69,6 +69,7 @@ add_executable(MultiIOTests
 target_link_libraries(MultiIOTests
   ${GTEST_LIBRARIES}
   kvblockchain
+  log4cplus
   gtest
   gtest_main)
 
@@ -78,5 +79,6 @@ add_executable(MetadataStorageTests
 target_link_libraries(MetadataStorageTests
   ${GTEST_LIBRARIES}
   kvblockchain
+  log4cplus
   gtest
   gtest_main)

@@ -34,9 +34,9 @@ class KVBCommandsHandler : public Blockchain::ICommandsHandler {
                      Blockchain::IBlocksAppender *appendder);
   ~KVBCommandsHandler();
 
-  int execute(uint16_t clientId, bool readOnly, uint32_t requestSize,
-              const char *request, uint32_t maxReplySize, char *outReply,
-              uint32_t &outActualReplySize) override;
+  int execute(uint16_t clientId, uint64_t sequenceNum, bool readOnly,
+              uint32_t requestSize, const char *request, uint32_t maxReplySize,
+              char *outReply, uint32_t &outActualReplySize) override;
 
  private:
   bool executeCommand(
