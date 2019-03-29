@@ -17,6 +17,9 @@ class InitScript {
             systemctl enable docker
             docker login -u blockchainrepositoryreader -p 'j4jshdh${'$'}@ED2R${'$'}*Trf8'
             docker pull vmwblockchain/concord-core:latest
+            #Create additional user for copying over the config files.
+            sudo useradd vmwuser1 -s /bin/bash -m
+            echo "vmwuser1:c0nc0rd" | sudo chpasswd
             """.trimIndent()
 
     fun base64(): ByteArray = Base64.getEncoder().encode(script.toByteArray(StandardCharsets.UTF_8))
