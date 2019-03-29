@@ -194,7 +194,12 @@ bool com::vmware::concord::KVBCommandsHandler::handle_eth_sendTransaction(
   evm_uint256be txhash{{0}};
   evm_result &&result = run_evm(request, kvbStorage, txhash);
 
-  if (txhash != zero_hash) {
+  if (result.status_code == EVM_REVERT && result.output_data != nullptr) {
+    ErrorResponse *response = athresp.add_error_response();
+    std::string error_msg(result.output_data,
+                          result.output_data + result.output_size);
+    response->set_description(error_msg);
+  } else if (txhash != zero_hash) {
     EthResponse *response = athresp.add_eth_response();
     response->set_id(request.id());
     response->set_data(txhash.bytes, sizeof(evm_uint256be));

@@ -74,8 +74,10 @@ public class Constants {
     public static final String NEWACCOUNT_NAME = "personal_newAccount";
     public static final String NETVERSION_NAME = "net_version";
     public static final String ACCOUNTS_NAME = "eth_accounts";
-    //Temporary workaround for eth_accounts.  Comma-delimited list of users.
-    public static final String USERS = "0xfa1a4c33aa682d34eda15bf772f672edddac13aa";
+    //Temporary workaround for eth_accounts.  Comma-delimited list of users from our genesis.json
+    public static final String USERS = "0x262c0d7ab5ffd4ede2199f6ea793f819e1abb019,"
+                                       + "0x5bb088f57365907b1840e45984cae028a82af934,"
+                                       + "0x0000a12b3f3d6c9b0d3f126a83ec2dd3dad15f39";
     public static final String NEWFILTER_NAME = "eth_newFilter";
     public static final String NEWBLOCKFILTER_NAME = "eth_newBlockFilter";
     public static final String NEWPENDINGTRANSACTIONFILTER_NAME = "eth_newPendingTransactionFilter";
