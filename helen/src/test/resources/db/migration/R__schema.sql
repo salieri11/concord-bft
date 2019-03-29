@@ -27,17 +27,9 @@ null, organization_organizationid UUID not null, primary key (userid),
 foreign key (consortium_consortiumid) references consortiums, foreign
 key (organization_organizationid) references organizations);
 
--- Blockchain entity
-create table if not exists blockchains (id UUID not null unique,
-consortium_consortiumid UUID not null, ip_list varchar,  rpc_urls varchar,
-rpc_certs varchar,
-foreign key (consortium_consortiumid) references consortiums,
-primary key (id));
-
-
 -- keystore entity
 create table if not exists keystores (address varchar(40) not null,
-wallet varchar(255) not null, user_userid UUID, foreign key (user_userid) references users,
+wallet text not null, user_userid UUID, foreign key (user_userid) references users,
 primary key (address));
 
 -- contracts --
