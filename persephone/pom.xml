@@ -20,15 +20,52 @@
         <module>orchestration</module>
         <module>orchestration-vmc</module>
         <module>persistence</module>
+        <module>provision-service</module>
     </modules>
 
+    <distributionManagement>
+        <repository>
+            <id>blockchain-release</id>
+            <url>https://build-artifactory.eng.vmware.com/artifactory/athena-maven-release</url>
+        </repository>
+        <snapshotRepository>
+            <id>blockchain-snapshot</id>
+            <url>https://build-artifactory.eng.vmware.com/artifactory/athena-maven-snapshot</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <repositories>
+        <repository>
+            <id>central</id>
+            <name>maven</name>
+            <url>https://build-artifactory.eng.vmware.com/artifactory/maven</url>
+        </repository>
         <repository>
             <id>bintray-kotlin-kotlinx</id>
             <name>bintray</name>
             <url>https://kotlin.bintray.com/kotlinx</url>
         </repository>
+        <repository>
+            <!-- Use VMware Artifactory for first-party artifacts. -->
+            <id>athena-snapshot</id>
+            <name>athena</name>
+            <url>https://build-artifactory.eng.vmware.com/artifactory/athena-maven-snapshot/</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+            <releases>
+                <checksumPolicy>fail</checksumPolicy>
+            </releases>
+        </repository>
     </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>central</id>
+            <name>plugins-release</name>
+            <url>https://build-artifactory.eng.vmware.com/artifactory/plugins-release</url>
+        </pluginRepository>
+    </pluginRepositories>
 
     <properties>
         <!-- Project properties. -->

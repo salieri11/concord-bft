@@ -77,14 +77,7 @@ class TypedKeyValueStore<K, V, T : Version<T>>(
         return try {
             val keyBytes = ProtocolBuffer(key, keySerializer)
             MappingPublisher(keyValueStore[keyBytes]) { element ->
-                when (element) {
-                    is Versioned.Just ->
-                        Versioned.Just(
-                                element.value.asByteArray().toTypedValue(valueSerializer),
-                                element.version
-                        )
-                    is Versioned.None -> Versioned.None
-                }
+                element.map { it.asByteArray().toTypedValue(valueSerializer) }
             }
         } catch (error: Throwable) {
             // Any execution error results in a short-circuit publisher that publish the error.
@@ -97,14 +90,7 @@ class TypedKeyValueStore<K, V, T : Version<T>>(
             val keyBytes = ProtocolBuffer(key, keySerializer)
             val valueBytes = ProtocolBuffer(value, valueSerializer)
             MappingPublisher(keyValueStore.set(keyBytes, expected, valueBytes)) { element ->
-                when (element) {
-                    is Versioned.Just ->
-                        Versioned.Just(
-                                element.value.asByteArray().toTypedValue(valueSerializer),
-                                element.version
-                        )
-                    is Versioned.None -> Versioned.None
-                }
+                element.map { it.asByteArray().toTypedValue(valueSerializer) }
             }
         } catch (error: Throwable) {
             // Any execution error results in a short-circuit publisher that publish the error.
@@ -116,14 +102,7 @@ class TypedKeyValueStore<K, V, T : Version<T>>(
         return try {
             val keyBytes = ProtocolBuffer(key, keySerializer)
             MappingPublisher(keyValueStore.delete(keyBytes, expected)) { element ->
-                when (element) {
-                    is Versioned.Just ->
-                        Versioned.Just(
-                                element.value.asByteArray().toTypedValue(valueSerializer),
-                                element.version
-                        )
-                    is Versioned.None -> Versioned.None
-                }
+                element.map { it.asByteArray().toTypedValue(valueSerializer) }
             }
         } catch (error: Throwable) {
             // Any execution error results in a short-circuit publisher that publish the error.
