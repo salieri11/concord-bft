@@ -25,11 +25,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.services.ConcordServlet;
 import com.vmware.blockchain.services.profiles.Blockchain;
-import com.vmware.blockchain.services.profiles.BlockchainManager;
+import com.vmware.blockchain.services.profiles.BlockchainService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.concord.Concord;
 
@@ -40,7 +39,7 @@ import com.vmware.concord.Concord;
 public final class MemberList extends ConcordServlet {
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LogManager.getLogger(MemberList.class);
-    private BlockchainManager blockchainManger;
+    private BlockchainService blockchainService;
 
     // This is a hack to allow us to pass request details though the sendToconcordAndBuildHelenResponse flow, without
     // including them in the communication with concord.
@@ -48,9 +47,9 @@ public final class MemberList extends ConcordServlet {
 
     @Autowired
     public MemberList(ConnectionPoolManager connectionPoolManager, DefaultProfiles defaultProfiles,
-            BlockchainManager blockchainManager) {
+            BlockchainService blockchainService) {
         super(connectionPoolManager, defaultProfiles);
-        this.blockchainManger = blockchainManager;
+        this.blockchainService = blockchainService;
 
     }
 
@@ -92,13 +91,10 @@ public final class MemberList extends ConcordServlet {
         // Read list of peer objects from the peer response object.
         List<Concord.Peer> peerList = peerResponse.getPeerList();
         JSONArray peerArr = new JSONArray();
-        Optional<Blockchain> obc = blockchainManger.get(blockchain);
-        if (!obc.isPresent()) {
-            throw new NotFoundException("Not Found");
-        }
+        Blockchain bc = blockchainService.get(blockchain);
 
-        Map<String, String> rpcUrls = obc.get().getUrlsAsMap();
-        Map<String, String> rpcCerts = obc.get().getCertsAsMap();
+        Map<String, String> rpcUrls = bc.getUrlsAsMap();
+        Map<String, String> rpcCerts = bc.getCertsAsMap();
 
         // Iterate through each peer and construct
         // a corresponding JSON object

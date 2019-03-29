@@ -16,7 +16,7 @@ import org.springframework.context.event.EventListener;
 
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.services.profiles.Blockchain;
-import com.vmware.blockchain.services.profiles.BlockchainManager;
+import com.vmware.blockchain.services.profiles.BlockchainService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 
 /**
@@ -28,14 +28,14 @@ public class StartupConfig {
     private static final Logger logger = LogManager.getFormatterLogger(StartupConfig.class);
 
     private DefaultProfiles defaultProfiles;
-    private BlockchainManager blockchainManger;
+    private BlockchainService blockchainService;
     private ConnectionPoolManager connectionPoolManager;
 
     @Autowired
-    public StartupConfig(DefaultProfiles defaultProfiles, BlockchainManager blockchainManager,
+    public StartupConfig(DefaultProfiles defaultProfiles, BlockchainService blockchainService,
             ConnectionPoolManager connectionPoolManager) {
         this.defaultProfiles = defaultProfiles;
-        this.blockchainManger = blockchainManager;
+        this.blockchainService = blockchainService;
         this.connectionPoolManager = connectionPoolManager;
     }
 
@@ -45,7 +45,7 @@ public class StartupConfig {
     @EventListener(classes = ApplicationStartedEvent.class)
     public void applicationStarted() {
         // Create a connection pool for all the blockchains
-        List<Blockchain> blockchains = blockchainManger.list();
+        List<Blockchain> blockchains = blockchainService.list();
         for (Blockchain b : blockchains) {
             try {
                 connectionPoolManager.createPool(b);

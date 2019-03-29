@@ -6,7 +6,6 @@ package com.vmware.blockchain.services.profiles;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
@@ -16,23 +15,24 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.connections.ConnectionPoolManager;
+import com.vmware.blockchain.dao.GenericDao;
 
 
 /**
  * Manage all persistence for Blockchain entities.
  */
 @Component
-public class BlockchainManager {
+public class BlockchainService {
     private static final Logger logger = LogManager.getLogger(Blockchain.class);
 
-    private BlockchainRepository blockchainRepo;
+    private GenericDao genericDao;
     private ApplicationEventPublisher publisher;
     private ConnectionPoolManager connectionPoolManager;
 
     @Autowired
-    public BlockchainManager(BlockchainRepository blockchainRepo, ApplicationEventPublisher publisher,
+    public BlockchainService(GenericDao genericDao, ApplicationEventPublisher publisher,
             ConnectionPoolManager connectionPoolManager) {
-        this.blockchainRepo = blockchainRepo;
+        this.genericDao = genericDao;
         this.publisher = publisher;
         this.connectionPoolManager = connectionPoolManager;
     }
@@ -50,12 +50,13 @@ public class BlockchainManager {
      * @return Blockchain entity
      */
     public Blockchain create(Consortium consortium, String ipList, String rpcUrls, String rpcCerts) {
-        Blockchain b = new Blockchain();
-        b.setConsortium(consortium);
-        b.setIpList(cleanupIpString(ipList));
-        b.setRpcUrls(cleanupIpString(rpcUrls));
-        b.setRpcCerts(cleanupIpString(rpcCerts));
-        b = blockchainRepo.save(b);
+        Blockchain b = new Blockchain.BlockchainBuilder()
+                .consortium(consortium.getConsortiumId())
+                .ipList(cleanupIpString(ipList))
+                .rpcUrls(cleanupIpString(rpcUrls))
+                .rpcCerts(cleanupIpString(rpcCerts))
+                .build();
+        b = genericDao.put(b, null);
         try {
             connectionPoolManager.createPool(b);
         } catch (IOException e) {
@@ -72,19 +73,19 @@ public class BlockchainManager {
         newBlockchain.setIpList(cleanupIpString(newBlockchain.getIpList()));
         newBlockchain.setRpcUrls(cleanupIpString(newBlockchain.getRpcUrls()));
         newBlockchain.setRpcCerts(cleanupIpString(newBlockchain.getRpcCerts()));
-        return blockchainRepo.save(newBlockchain);
+        return genericDao.put(newBlockchain, null);
     }
 
 
     public List<Blockchain> list() {
-        return blockchainRepo.findAll();
+        return genericDao.getAllByType(Blockchain.class);
     }
 
     public List<Blockchain> listByConsortium(Consortium consortium) {
-        return blockchainRepo.findAllByConsortium(consortium);
+        return genericDao.getByParentId(consortium.getConsortiumId(), Blockchain.class);
     }
 
-    public Optional<Blockchain> get(UUID id) {
-        return blockchainRepo.findById(id);
+    public Blockchain get(UUID id) {
+        return genericDao.get(id, Blockchain.class);
     }
 }

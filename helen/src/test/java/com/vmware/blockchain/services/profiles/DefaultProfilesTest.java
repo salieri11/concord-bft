@@ -27,6 +27,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.vmware.blockchain.security.ServiceContext;
 
 /**
  * Tests for the DefaultProfiles component.
@@ -53,7 +54,13 @@ class DefaultProfilesTest {
     PasswordEncoder passwordEncoder;
 
     @MockBean
-    BlockchainManager blockchainManager;
+    BlockchainService blockchainService;
+
+    @MockBean
+    AgreementService agreementService;
+
+    @MockBean
+    ServiceContext serviceContext;
 
     DefaultProfiles profiles;
 
@@ -83,12 +90,12 @@ class DefaultProfilesTest {
         organization.setOrganizationId(ORG_ID);
         organization.setOrganizationName("Test Org");
 
-        blockchain = new Blockchain();
+        blockchain = new Blockchain.BlockchainBuilder()
+                .consortium(consortium.getConsortiumId())
+                .ipList("1,2,3,4 ")
+                .rpcUrls("a=1,b=2,c=3,d=4")
+                .rpcCerts("a=c1,b=c2,c=c3,d=c4").build();
         blockchain.setId(uuid);
-        blockchain.setConsortium(consortium);
-        blockchain.setIpList("1,2,3,4 ");
-        blockchain.setRpcUrls("a=1,b=2,c=3,d=4");
-        blockchain.setRpcCerts("a=c1,b=c2,c=c3,d=c4");
 
         // our test user
         testUser = new User();
@@ -102,7 +109,7 @@ class DefaultProfilesTest {
         testUser.setRole(Roles.SYSTEM_ADMIN);
 
         profiles = new DefaultProfiles(userRepository, organizationRepository, consortiumRepository, passwordEncoder,
-                                       blockchainManager, ipList, rpcUrls, rpcCerts);
+                                       blockchainService, agreementService, serviceContext, ipList, rpcUrls, rpcCerts);
 
         when(passwordEncoder.encode(anyString())).then(a -> a.getArguments().toString());
     }
@@ -110,7 +117,7 @@ class DefaultProfilesTest {
     private void initProfilesExist() {
         when(consortiumRepository.findAll()).thenReturn(Arrays.asList(consortium));
         when(organizationRepository.findAll()).thenReturn(Arrays.asList(organization));
-        when(blockchainManager.list()).thenReturn(Arrays.asList(blockchain));
+        when(blockchainService.list()).thenReturn(Arrays.asList(blockchain));
         when(userRepository.findAll()).thenReturn(Arrays.asList(testUser));
         profiles.initialize();
     }
@@ -128,13 +135,14 @@ class DefaultProfilesTest {
             o.setOrganizationId(ORG_ID);
             return o;
         });
-        when(blockchainManager.list()).thenReturn(Collections.emptyList());
-        when(blockchainManager.create(any(Consortium.class), anyString(), anyString(), anyString())).then(in -> {
-            Blockchain b = new Blockchain();
+        when(blockchainService.list()).thenReturn(Collections.emptyList());
+        when(blockchainService.create(any(Consortium.class), anyString(), anyString(), anyString())).then(in -> {
+            Blockchain b = new Blockchain.BlockchainBuilder()
+                .consortium(((Consortium) in.getArgument(0)).getConsortiumId())
+                .ipList(in.getArgument(1))
+                .rpcUrls(in.getArgument(2))
+                .rpcCerts(in.getArgument(3)).build();
             b.setId(uuid);
-            b.setIpList(ipList);
-            b.setRpcUrls(rpcUrls);
-            b.setRpcCerts(rpcCerts);
             return b;
         });
         when(userRepository.findAll()).thenReturn(Collections.emptyList());
@@ -187,7 +195,7 @@ class DefaultProfilesTest {
         Assertions.assertEquals("ADMIN", profiles.getOrganization().getOrganizationName());
         Assertions.assertEquals(consortium, profiles.getConsortium());
         Assertions.assertEquals("ADMIN", profiles.getConsortium().getConsortiumName());
-        Assertions.assertEquals(blockchain, profiles.getBlockchain());
+        Assertions.assertEquals(blockchain.getConsortium(), profiles.getBlockchain().getConsortium());
         Assertions.assertEquals(urlMap, profiles.getBlockchain().getUrlsAsMap());
         Assertions.assertEquals(certSet, profiles.getBlockchain().getCertsAsMap());
         Assertions.assertEquals("localhost:5458,localhost:5459,localhost:5460,localhost:5461",

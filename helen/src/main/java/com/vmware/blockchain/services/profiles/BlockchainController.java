@@ -66,19 +66,19 @@ public class BlockchainController {
 
         public BlockchainResponse(Blockchain b) {
             this.id = b.getId();
-            this.consortiumId = b.getConsortium().getConsortiumId();
+            this.consortiumId = b.getConsortium();
             this.ipList = b.getIpList();
             this.rpcUrls = b.getRpcUrls();
             this.rpcCerts = b.getRpcCerts();
         }
     }
 
-    private BlockchainManager manager;
+    private BlockchainService manager;
     private ConsortiumRepository cnRepo;
     private AuthHelper authHelper;
 
     @Autowired
-    public BlockchainController(BlockchainManager manager, ConsortiumRepository cnRepo,
+    public BlockchainController(BlockchainService manager, ConsortiumRepository cnRepo,
             AuthHelper authHelper) {
         this.manager = manager;
         this.cnRepo = cnRepo;
@@ -102,7 +102,7 @@ public class BlockchainController {
             }
         }
         List<BlockchainResponse> idList = chains.stream().map(b -> new BlockchainResponse(b.getId(),
-                b.getConsortium().getConsortiumId(), b.getIpList(), b.getRpcUrls(), b.getRpcCerts()))
+                b.getConsortium(), b.getIpList(), b.getRpcUrls(), b.getRpcCerts()))
                 .collect(Collectors.toList());
         return new ResponseEntity<>(idList, HttpStatus.OK);
     }
@@ -115,15 +115,10 @@ public class BlockchainController {
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles()) && !authHelper.getPermittedChains().contains(id)) {
             throw new ForbiddenException(id + " Forbidden");
         }
-        Optional<Blockchain> oBlockchain = manager.get(id);
-        if (oBlockchain.isPresent()) {
-            Blockchain b = oBlockchain.get();
-            BlockchainResponse br = new BlockchainResponse(b.getId(), b.getConsortium().getConsortiumId(),
-                    b.getIpList(), b.getRpcUrls(), b.getRpcCerts());
-            return new ResponseEntity<>(br, HttpStatus.OK);
-        } else {
-            throw new NotFoundException(id + " does not exist");
-        }
+        Blockchain b = manager.get(id);
+        BlockchainResponse br = new BlockchainResponse(b.getId(), b.getConsortium(),
+                b.getIpList(), b.getRpcUrls(), b.getRpcCerts());
+        return new ResponseEntity<>(br, HttpStatus.OK);
     }
 
     /**
@@ -151,11 +146,7 @@ public class BlockchainController {
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles()) && !authHelper.getPermittedChains().contains(id)) {
             throw new ForbiddenException(id + " Forbidden");
         }
-        Optional<Blockchain> oBlockchain = manager.get(id);
-        if (oBlockchain.isEmpty()) {
-            throw new NotFoundException(id + " was not found");
-        }
-        Blockchain b = oBlockchain.get();
+        Blockchain b = manager.get(id);
         if (body.getIpList() != null) {
             b.setIpList(body.getIpList());
         }
