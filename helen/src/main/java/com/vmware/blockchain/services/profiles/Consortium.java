@@ -4,45 +4,33 @@
 
 package com.vmware.blockchain.services.profiles;
 
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
+import com.vmware.blockchain.dao.AbstractEntity;
+import com.vmware.blockchain.dao.EntityColumnName;
+import com.vmware.blockchain.dao.LinkedEntityId;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
 
 /**
- * A Spring Data JPA (or Hibernate) Entity class representing a consortium in the system.
+ * Class representing a consortium in the system.
+ * Note that this class will link also link to organization.
  */
-@Table(name = "CONSORTIUMS")
-@Entity
+@EntityColumnName("helen.consortium")
 @Data
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class Consortium {
+@AllArgsConstructor
+@NoArgsConstructor
+@EqualsAndHashCode(callSuper = true)
+public class Consortium extends AbstractEntity {
 
-    @OneToMany(mappedBy = "consortium", cascade = {CascadeType.PERSIST, CascadeType.REMOVE})
-    protected Set<User> users = new HashSet<>();
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @Column(name = "consortiumid")
-    @EqualsAndHashCode.Include
-    private UUID consortiumId;
     private String consortiumName;
     private String consortiumType;
 
-    protected Consortium() {}
+    // a consortium must belong to at least one organization
+    @LinkedEntityId(biDirectional = true)
+    private UUID organization;
 
-    protected void addUser(User u) {
-        users.add(u);
-    }
 }

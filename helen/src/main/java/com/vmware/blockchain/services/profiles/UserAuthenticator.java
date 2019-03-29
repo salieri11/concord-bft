@@ -4,18 +4,11 @@
 
 package com.vmware.blockchain.services.profiles;
 
-import static com.vmware.blockchain.services.profiles.UsersApiMessage.EMAIL_LABEL;
-import static com.vmware.blockchain.services.profiles.UsersApiMessage.PASSWORD_LABEL;
-
 import java.util.List;
 import java.util.UUID;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.json.simple.JSONAware;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,11 +22,14 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.EntityModificationException;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.HelenException;
+import com.vmware.blockchain.common.NotFoundException;
+import com.vmware.blockchain.common.UnauthorizedException;
 import com.vmware.blockchain.security.HelenUserDetails;
 import com.vmware.blockchain.security.JwtTokenProvider;
-import com.vmware.blockchain.services.ethereum.ApiHelper;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -48,17 +44,16 @@ public class UserAuthenticator {
 
     private static final Logger logger = LogManager.getLogger(UserAuthenticator.class);
 
-    private UserRepository userRepository;
+    private UserService userService;
 
-    private KeystoreRepository keystoreRepository;
+    private KeystoreService keystoreService;
 
-    private ProfilesRegistryManager prm;
+    private ProfilesService prm;
 
     private PasswordEncoder passwordEncoder;
 
     private JwtTokenProvider jwtTokenProvider;
 
-    private KeystoresRegistryManager krm;
 
     @Getter
     @Setter
@@ -81,11 +76,8 @@ public class UserAuthenticator {
         private String email;
         private String role;
         private String password;
-        private Long lastLogin;
-        private String organizationName;
-        private String consortiumName;
+        private long lastLogin;
         private UUID organizationId;
-        private UUID consortiumId;
         private Boolean authenticated;
         private String token;
         private String refreshToken;
@@ -95,29 +87,25 @@ public class UserAuthenticator {
 
         // Convenience function for dealing with the user fields
         public void setUser(User user) {
-            this.userId = user.getUserId();
+            this.userId = user.getId();
             this.userName = user.getName();
             this.firstName = user.getFirstName();
             this.lastName = user.getLastName();
             this.email = user.getEmail();
-            this.role = user.getRole();
-            this.lastLogin = user.getLastLogin();
-            this.organizationId = user.getOrganization().getOrganizationId();
-            this.organizationName = user.getOrganization().getOrganizationName();
-            this.consortiumId = user.getConsortium().getConsortiumId();
-            this.consortiumName = user.getConsortium().getConsortiumName();
+            this.role = user.getRoles().isEmpty() ? null : user.getRoles().get(0).getName();
+            this.lastLogin = user.getLastLogin() ==  null ? 0 : user.getLastLogin().toEpochMilli();
+            this.organizationId = user.getOrganization();
         }
 
     }
 
     @Autowired
-    public UserAuthenticator(UserRepository userRepository, ProfilesRegistryManager prm,
+    public UserAuthenticator(UserService userService, ProfilesService prm,
             PasswordEncoder passwordEncoder, JwtTokenProvider jwtTokenProvider,
-            KeystoresRegistryManager krm, KeystoreRepository keystoreRepository) {
-        this.userRepository = userRepository;
-        this.keystoreRepository = keystoreRepository;
+            KeystoreService keystoreService) {
+        this.userService = userService;
         this.prm = prm;
-        this.krm = krm;
+        this.keystoreService = keystoreService;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
     }
@@ -130,39 +118,39 @@ public class UserAuthenticator {
     // authenticate every user with CSP as soon as possible
     @RequestMapping(method = RequestMethod.POST, path = "/api/auth/login")
     protected ResponseEntity<LoginResponse> doPost(@RequestBody LoginRequest request) {
-        HttpStatus responseStatus;
         LoginResponse loginResponse = new LoginResponse();
         try {
             String password = request.getPassword();
             String email = request.getEmail();
-            User u = userRepository.findUserByEmail(email).orElse(null);
-
-            if (u != null && passwordEncoder.matches(password, u.getPassword())) {
-                // need to get another image of user
-                List<Keystore> keystores = keystoreRepository.findKeystoresByUser(u);
-                if (keystores.size() > 0) {
-                    loginResponse.setWalletAddress(keystores.get(0).getAddress());
-                } else {
-                    loginResponse.setWalletAddress("");
-                }
-                responseStatus = HttpStatus.OK;
-                loginResponse.setUser(u);
-                loginResponse.setAuthenticated(true);
-                loginResponse.setToken(jwtTokenProvider.createToken(u));
-                loginResponse.setRefreshToken(jwtTokenProvider.createRefreshToken(u));
-                loginResponse.setTokenExpires(jwtTokenProvider.getValidityInMilliseconds());
-                // This needs to be after we have copied the old user data
-                prm.loginUser(u);
-            } else {
-                loginResponse.setError("Invalid email/password");
-                responseStatus = HttpStatus.UNAUTHORIZED;
+            User u = userService.getByEmail(email);
+            if (!passwordEncoder.matches(password, u.getPassword())) {
+                throw new UnauthorizedException(ErrorCode.BAD_LOGIN_REQUEST);
             }
+
+            // need to get another image of user
+            List<Keystore> keystores = keystoreService.getWalletsForUser(u.getId());
+            if (keystores.size() > 0) {
+                loginResponse.setWalletAddress(keystores.get(0).getAddress());
+            } else {
+                loginResponse.setWalletAddress("");
+            }
+            loginResponse.setUser(u);
+            loginResponse.setAuthenticated(true);
+            loginResponse.setToken(jwtTokenProvider.createToken(u));
+            loginResponse.setRefreshToken(jwtTokenProvider.createRefreshToken(u));
+            loginResponse.setTokenExpires(jwtTokenProvider.getValidityInMilliseconds());
+            // This needs to be after we have copied the old user data
+            // Needs to set the Security context before we save this login
+            SecurityContextHolder.getContext()
+                    .setAuthentication(jwtTokenProvider.getAuthentication(loginResponse.getToken()));
+            prm.loginUser(u);
+        } catch (NotFoundException e) {
+            throw new UnauthorizedException(ErrorCode.BAD_LOGIN_REQUEST);
         } catch (EntityModificationException e) {
-            loginResponse.setError(e.getMessage());
-            responseStatus = HttpStatus.BAD_REQUEST;
+            throw new BadRequestException(e, ErrorCode.BAD_REQUEST);
         }
 
-        return new ResponseEntity<>(loginResponse, responseStatus);
+        return new ResponseEntity<>(loginResponse, HttpStatus.OK);
     }
 
     @Getter
@@ -174,71 +162,54 @@ public class UserAuthenticator {
 
     @RequestMapping(value = "/api/auth/token", method = RequestMethod.POST)
     protected ResponseEntity<LoginResponse> refreshToken(@RequestBody TokenRequest request) {
-        HttpStatus responseStatus;
         LoginResponse loginResponse = new LoginResponse();
 
         try {
             String token = request.getRefreshToken();
 
-            if (token != null) {
-                responseStatus = HttpStatus.OK;
-                Authentication auth = jwtTokenProvider.getAuthentication(token);
-                SecurityContextHolder.getContext().setAuthentication(auth);
-                HelenUserDetails details = (HelenUserDetails) auth.getPrincipal();
-
-                String email = details.getUsername();
-                User u = userRepository.findUserByEmail(email).get();
-                String newToken = jwtTokenProvider.createToken(u);
-                String refreshToken = jwtTokenProvider.createRefreshToken(u);
-                loginResponse.setToken(newToken);
-                loginResponse.setRefreshToken(refreshToken);
-                loginResponse.setTokenExpires(jwtTokenProvider.getValidityInMilliseconds());
-            } else {
-                responseStatus = HttpStatus.BAD_REQUEST;
-                loginResponse.setError("Bad Token");
+            if (token == null) {
+                throw new BadRequestException(ErrorCode.BAD_TOKEN);
             }
+            Authentication auth = jwtTokenProvider.getAuthentication(token);
+            SecurityContextHolder.getContext().setAuthentication(auth);
+            HelenUserDetails details = (HelenUserDetails) auth.getPrincipal();
+
+            String email = details.getUsername();
+            User u = userService.getByEmail(email);
+            String newToken = jwtTokenProvider.createToken(u);
+            String refreshToken = jwtTokenProvider.createRefreshToken(u);
+            loginResponse.setToken(newToken);
+            loginResponse.setRefreshToken(refreshToken);
+            loginResponse.setTokenExpires(jwtTokenProvider.getValidityInMilliseconds());
         } catch (HelenException e) {
-            responseStatus = HttpStatus.BAD_REQUEST;
-            loginResponse.setError(e.getMessage());
+            throw new BadRequestException(e, ErrorCode.BAD_REQUEST);
         }
 
-        return new ResponseEntity<>(loginResponse, responseStatus);
+        return new ResponseEntity<>(loginResponse, HttpStatus.OK);
 
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "/api/auth/change-password")
-    protected ResponseEntity<JSONAware> doChangePassword(@RequestBody String requestBody) {
-        JSONParser parser = new JSONParser();
-        HttpStatus responseStatus;
-        JSONObject responseJson;
-
+    protected ResponseEntity<UsersGetResponse> doChangePassword(@RequestBody LoginRequest request) {
         try {
-            JSONObject requestJson = (JSONObject) parser.parse(requestBody);
-            if (requestJson.containsKey(EMAIL_LABEL) && requestJson.containsKey(PASSWORD_LABEL)) {
-
-                String email = requestJson.get(EMAIL_LABEL).toString();
-                User u = userRepository.findUserByEmail(email).get();
-                String password = requestJson.get(PASSWORD_LABEL).toString();
-
-                if (passwordEncoder.matches(password, u.getPassword())) {
-                    responseJson = ApiHelper.errorJson("Can't use same password!");
-                    responseStatus = HttpStatus.BAD_REQUEST;
-                } else {
-                    String enPw = passwordEncoder.encode(password);
-                    responseStatus = HttpStatus.OK;
-                    responseJson = prm.changePassword(email, enPw);
-                }
-
-            } else {
-                responseJson = ApiHelper.errorJson("email or password " + "field missing");
-                responseStatus = HttpStatus.BAD_REQUEST;
+            if (request.getEmail() == null || request.getPassword() == null) {
+                throw new BadRequestException(ErrorCode.BAD_LOGIN_REQUEST);
             }
-        } catch (ParseException | EntityModificationException e) {
-            responseStatus = HttpStatus.BAD_REQUEST;
-            responseJson = ApiHelper.errorJson(e.getMessage());
-        }
 
-        return new ResponseEntity<>(responseJson, responseStatus);
+            User u = userService.getByEmail(request.getEmail());
+            String password = request.getPassword();
+
+            if (passwordEncoder.matches(password, u.getPassword())) {
+                throw new BadRequestException(ErrorCode.BAD_PASSWORD_CHANGE);
+            }
+            String enPw = passwordEncoder.encode(password);
+            return new ResponseEntity<>(prm.getReponse(prm.changePassword(u, enPw)), HttpStatus.OK);
+
+        } catch (EntityModificationException e) {
+            throw new BadRequestException(e, ErrorCode.BAD_REQUEST);
+        } catch (NotFoundException e) {
+            throw new BadRequestException(ErrorCode.BAD_LOGIN_REQUEST);
+        }
     }
 }
 

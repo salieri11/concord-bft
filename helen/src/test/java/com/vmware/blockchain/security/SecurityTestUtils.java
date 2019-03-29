@@ -4,11 +4,8 @@
 
 package com.vmware.blockchain.security;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.UUID;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -29,26 +26,36 @@ public class SecurityTestUtils {
     public static final String SECRET_KEY = Base64.getEncoder().encodeToString("secret-key".getBytes());
 
     /**
-     * Create a user mock with default values.
+     * Create a test User.
      */
-    public static User createMockUser() {
-        User user = mock(User.class);
-        Organization organization = mock(Organization.class);
-        Consortium consortium = mock(Consortium.class);
-        when(consortium.getConsortiumId()).thenReturn(CONSORTIUM_ID);
-        when(consortium.getConsortiumName()).thenReturn("Consortium Test");
-        when(consortium.getConsortiumType()).thenReturn("Constorium Type");
-        when(organization.getOrganizationId()).thenReturn(ORG_ID);
-        when(organization.getOrganizationName()).thenReturn("Test Org");
-        when(user.getUserId()).thenReturn(USER_ID);
-        when(user.getEmail()).thenReturn("user@test.com");
-        when(user.getPassword()).thenReturn(new BCryptPasswordEncoder(4).encode("1234"));
-        when(user.getFirstName()).thenReturn("U");
-        when(user.getLastName()).thenReturn("Ser");
-        when(user.getConsortium()).thenReturn(consortium);
-        when(user.getOrganization()).thenReturn(organization);
-        when(user.getRole()).thenReturn(Roles.ORG_USER.toString());
-        when(user.getRoles()).thenReturn(Arrays.asList(Roles.ORG_USER));
+    public static User getUser() {
+        User user = User.builder()
+                .email("user@test.com")
+                .password(new BCryptPasswordEncoder(4).encode("1234"))
+                .firstName("U")
+                .lastName("Ser")
+                .organization(ORG_ID)
+                .roles(Collections.singletonList(Roles.ORG_USER))
+                .build();
+        user.setId(USER_ID);
         return user;
+    }
+
+    /**
+     * Create a test Organization.
+     */
+    public static Organization getOrganization() {
+        Organization org = new Organization("Test Org");
+        org.setId(ORG_ID);
+        return org;
+    }
+
+    /**
+     * Create a test Consortium.
+     */
+    public static Consortium getConsortium() {
+        Consortium c = new Consortium("Test Consortium", "Test", ORG_ID);
+        c.setId(CONSORTIUM_ID);
+        return c;
     }
 }

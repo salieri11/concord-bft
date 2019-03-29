@@ -14,7 +14,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.services.profiles.ApplicationContextHolder;
-import com.vmware.blockchain.services.profiles.KeystoresRegistryManager;
+import com.vmware.blockchain.services.profiles.KeystoreService;
 import com.vmware.concord.Concord;
 
 /**
@@ -145,8 +145,8 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
             String password = (String) params.get(0);
             JSONObject wallet = Wallet.createWallet(password);
             String address = (String) wallet.get("address");
-            KeystoresRegistryManager krm = ApplicationContextHolder.getContext()
-                    .getBean(KeystoresRegistryManager.class);
+            KeystoreService krm = ApplicationContextHolder.getContext()
+                    .getBean(KeystoreService.class);
             UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication()
                     .getPrincipal();
             krm.storeKeystore(userDetails.getUsername(), address, wallet.toJSONString());

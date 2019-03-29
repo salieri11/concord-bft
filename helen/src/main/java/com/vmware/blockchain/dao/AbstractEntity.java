@@ -27,8 +27,8 @@ public abstract class AbstractEntity {
     public static final String PROP_USERNAME = "userName";
     public static final String ENTITY_WRITER_FILTER_NAME = "HelenEntityWriterFilter";
 
-    private UUID userId;
-    private String userName;
+    private UUID createUserId;
+    private String createUserName;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = DateTimeUtils.ISO_8601_DATE_TIME_PATTERN)
     private Date created;

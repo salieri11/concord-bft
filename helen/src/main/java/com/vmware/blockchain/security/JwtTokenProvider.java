@@ -4,13 +4,10 @@
 
 package com.vmware.blockchain.security;
 
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -30,8 +27,9 @@ import org.springframework.stereotype.Component;
 import com.vmware.blockchain.common.UnauthorizedException;
 import com.vmware.blockchain.services.profiles.BlockchainService;
 import com.vmware.blockchain.services.profiles.Consortium;
-import com.vmware.blockchain.services.profiles.ConsortiumRepository;
+import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.User;
+import com.vmware.blockchain.services.profiles.UserService;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -47,7 +45,7 @@ public class JwtTokenProvider {
     // Key length in bytes.  Recommendation for HS256 is 256 bits (32 bytes)
     static final int KEY_LENGTH = 32;
 
-    @Value("${security.jwt.token.secretkey:#null}")
+    @Value("${security.jwt.token.secretkey:#{null}}")
     private String secretKey;
 
     @Getter
@@ -61,7 +59,10 @@ public class JwtTokenProvider {
     private HelenUserDetailsService helenUserDetailsService;
 
     @Autowired
-    private ConsortiumRepository consortiumRepository;
+    private ConsortiumService consortiumService;
+
+    @Autowired
+    private UserService userService;
 
     @Autowired
     private BlockchainService blockchainService;
@@ -71,12 +72,9 @@ public class JwtTokenProvider {
         if (secretKey == null) {
             // Generate a random secret key 256 bits long
             byte[] secret = new byte[KEY_LENGTH];
-            try {
-                SecureRandom.getInstanceStrong().nextBytes(secret);
-            } catch (NoSuchAlgorithmException e) {
-                // Not as strong, but will be fine for our purposes.
-                new Random().nextBytes(secret);
-            }
+            // SecureRandom hangs in normal configuration on unix systems.  This is not as
+            // strong, but will be fine for our purposes.
+            new Random().nextBytes(secret);
             secretKey = Base64.getEncoder().encodeToString(secret);
         }
     }
@@ -101,7 +99,7 @@ public class JwtTokenProvider {
         claims.put("perms", user.getRoles().stream().map(s -> s.getAuthority())
                 .filter(Objects::nonNull).collect(Collectors.toList()));
         // "context_name" is what this field will be when we integrate with CSP
-        claims.put("context_name", user.getConsortium().getConsortiumId());
+        claims.put("context_name", userService.getDefaultConsortium(user).getId());
 
         Date now = new Date();
         Date validity = new Date(now.getTime() + ttl);
@@ -126,14 +124,11 @@ public class JwtTokenProvider {
                 roles.stream().map(r -> new SimpleGrantedAuthority(r)).collect(Collectors.toList());
         // throws exception if user not found.
         HelenUserDetails userDetails = (HelenUserDetails) helenUserDetailsService.loadUserByUsername(email);
-        Optional<Consortium> c = consortiumRepository.findById(UUID.fromString(orgId));
-        if (c.isEmpty()) {
-            throw new UnauthorizedException("Invalid Consortium");
-        }
+        Consortium c = consortiumService.get(UUID.fromString(orgId));
         userDetails.setAuthToken(token);
         userDetails.setOrgId(UUID.fromString(orgId));
         List<UUID> ids =
-                blockchainService.listByConsortium(c.get()).stream().map(b -> b.getId()).collect(Collectors.toList());
+                blockchainService.listByConsortium(c).stream().map(b -> b.getId()).collect(Collectors.toList());
         userDetails.setPermittedChains(ids);
 
         return new UsernamePasswordAuthenticationToken(userDetails, "", authorities);

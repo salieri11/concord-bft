@@ -5,7 +5,6 @@
 package com.vmware.blockchain.security;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -18,11 +17,13 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.common.UnauthorizedException;
 import com.vmware.blockchain.services.profiles.BlockchainService;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.User;
-import com.vmware.blockchain.services.profiles.UserRepository;
+import com.vmware.blockchain.services.profiles.UserService;
 
 /**
  * User details as required by Spring Security.
@@ -32,7 +33,7 @@ public class HelenUserDetailsService implements UserDetailsService {
     static final Logger logger = LogManager.getLogger(HelenUserDetailsService.class);
 
     @Autowired
-    private UserRepository userRepository;
+    private UserService userService;
 
     @Autowired
     private BlockchainService blockchainService;
@@ -41,22 +42,21 @@ public class HelenUserDetailsService implements UserDetailsService {
     @Cacheable("UserCache")
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
 
-        final Optional<User> user = userRepository.findUserByEmail(email);
+        final User u = userService.getByEmail(email);
 
-        if (!user.isPresent()) {
-            throw new UnauthorizedException("Invalid email/password");
+        try {
+            HelenUserDetails details =
+                    new HelenUserDetails(u.getId(), email, u.getPassword(), true, true, true, true, u.getRoles());
+            Consortium c = userService.getDefaultConsortium(u);
+            details.setOrgId(c.getId());
+            details.setAuthToken("");
+            List<UUID> ids =
+                    blockchainService.listByConsortium(c).stream().map(b -> b.getId()).collect(Collectors.toList());
+            details.setPermittedChains(ids);
+            return details;
+        } catch (NotFoundException e) {
+            throw new UnauthorizedException(ErrorCode.BAD_LOGIN_REQUEST);
         }
-
-        User u = user.get();
-        HelenUserDetails details =
-                new HelenUserDetails(u.getUserId(), email, u.getPassword(), true, true, true, true, u.getRoles());
-        Consortium c = u.getConsortium();
-        details.setOrgId(c.getConsortiumId());
-        details.setAuthToken("");
-        List<UUID> ids =
-                blockchainService.listByConsortium(c).stream().map(b -> b.getId()).collect(Collectors.toList());
-        details.setPermittedChains(ids);
-        return details;
     }
 
 }

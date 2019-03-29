@@ -692,7 +692,7 @@ class HelenAPITests(test_suite.TestSuite):
       response = self._create_mock_user(request)
       user_id = response['user_id']
       response = self._get_user(request, str(uuid4()))
-      if not response:
+      if "error_message" in response:
          return (True, None)
       return (False, "Incorrect response for invalid user")
 

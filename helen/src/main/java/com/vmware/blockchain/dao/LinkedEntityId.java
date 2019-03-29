@@ -16,4 +16,9 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.FIELD)
 public @interface LinkedEntityId {
+
+    /**
+     * Whether or not to use bidreictional link.
+     */
+    boolean biDirectional() default false;
 }

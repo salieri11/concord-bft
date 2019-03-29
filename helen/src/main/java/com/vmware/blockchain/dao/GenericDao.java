@@ -202,6 +202,22 @@ public class GenericDao {
                                                   "getByParentId");
     }
 
+    /**
+     * Retrieve entities by parentIds.
+     *
+     * @param parentIds     List of parent Id.
+     * @param entityClass   entity class.
+     * @return              list entities.
+     */
+    public <E extends AbstractEntity> List<E> getByParentList(List<UUID> parentIds, Class<E> entityClass) {
+        return callGenericDaoTransactionWithRetry((m -> m.getByParentList(parentIds, entityClass)),
+                                                  "getByParentList");
+    }
+
+    public <E extends AbstractEntity> List<E> getByJsonQuery(String json, Class<E> entityClass) {
+        return callGenericDaoTransactionWithRetry((m -> m.getByJsonQuery(json, entityClass)),
+                                                  "getByJsonQuery");
+    }
 
     public <E extends AbstractEntity> List<E> getByTenant(Class<E> entityClass) {
         return getByTenant(entityClass, authHelper.getConsortiumId());

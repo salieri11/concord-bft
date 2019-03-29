@@ -34,7 +34,7 @@ import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.services.ConcordServlet;
 import com.vmware.blockchain.services.contracts.ContractRegistryManager;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
-import com.vmware.blockchain.services.profiles.ProfilesRegistryManager;
+import com.vmware.blockchain.services.profiles.ProfilesService;
 import com.vmware.concord.Concord;
 import com.vmware.concord.Concord.ConcordResponse;
 import com.vmware.concord.Concord.ErrorResponse;
@@ -66,11 +66,11 @@ public final class EthDispatcher extends ConcordServlet {
     private JSONArray rpcList;
     private String jsonRpc;
     private ContractRegistryManager registryManager;
-    private ProfilesRegistryManager profilesRegistryManager;
+    private ProfilesService profilesRegistryManager;
 
     @Autowired
     public EthDispatcher(ContractRegistryManager registryManager, ConnectionPoolManager connectionPoolManager,
-            ProfilesRegistryManager profilesRegistryManager, DefaultProfiles defaultProfiles) throws ParseException {
+            ProfilesService profilesRegistryManager, DefaultProfiles defaultProfiles) throws ParseException {
         super(connectionPoolManager, defaultProfiles);
         JSONParser p = new JSONParser();
         this.registryManager = registryManager;

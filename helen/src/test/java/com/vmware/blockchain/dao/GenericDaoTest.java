@@ -21,12 +21,14 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.ObjectUtils;
+import org.json.simple.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,6 +56,8 @@ import com.fasterxml.jackson.databind.ser.FilterProvider;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.ser.ZonedDateTimeSerializer;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.DateTimeUtils;
@@ -226,6 +230,13 @@ public class GenericDaoTest {
     }
 
     @Test
+    void getByParentList() throws Exception {
+        List<UUID> ids = ImmutableList.of(parent1.getId(), parent2.getId());
+        List<TestEntity> l = genericDao.getByParentList(ids, TestEntity.class);
+        Assertions.assertEquals(3, l.size());
+    }
+
+    @Test
     void testInsertThenUpdate() throws Exception {
         EntityMapper mockEntityMapper = mock(EntityMapper.class);
         GenericDaoTransaction mockGenericDaoTransaction = new GenericDaoTransaction(mockEntityMapper,
@@ -302,12 +313,12 @@ public class GenericDaoTest {
             genericDao.put(entity, entity);
             TestEntity updatedEntity = genericDao.get(entity.getId(), TestEntity.class);
             Assertions.assertEquals(entity.getCreated(), updatedEntity.getCreated());
-            Assertions.assertEquals(entity.getUserId(), updatedEntity.getUserId());
-            Assertions.assertEquals(entity.getUserName(), updatedEntity.getUserName());
+            Assertions.assertEquals(entity.getCreateUserId(), updatedEntity.getCreateUserId());
+            Assertions.assertEquals(entity.getCreateUserName(), updatedEntity.getCreateUserName());
 
             Assertions.assertTrue(entity.getUpdated().before(updatedEntity.getUpdated()));
-            Assertions.assertNotEquals(entity.getUserId(), updatedEntity.getUpdatedByUserId());
-            Assertions.assertNotEquals(entity.getUserName(), updatedEntity.getUpdatedByUserName());
+            Assertions.assertNotEquals(entity.getCreateUserId(), updatedEntity.getUpdatedByUserId());
+            Assertions.assertNotEquals(entity.getCreateUserName(), updatedEntity.getUpdatedByUserName());
 
             Assertions.assertEquals(userId, updatedEntity.getUpdatedByUserId());
             Assertions.assertEquals("mockauthuser1", updatedEntity.getUpdatedByUserName());
@@ -871,9 +882,49 @@ public class GenericDaoTest {
     }
 
     @Test
+    void testBiDirectionLinkAnnotation() throws Exception {
+        BiTestEntity bt = new BiTestEntity();
+        bt.setTestEntity(entity1.getId());
+        genericDao.put(bt, null);
+        List<BiTestEntity> l1 = genericDao.getByParentId(entity1.getId(), BiTestEntity.class);
+        List<TestEntity> l2 = genericDao.getByParentId(bt.getId(), TestEntity.class);
+        Assertions.assertEquals(1, l1.size());
+        Assertions.assertEquals(1, l2.size());
+        Assertions.assertEquals(bt.getId(), l1.get(0).getId());
+        Assertions.assertEquals(entity1.getId(), l2.get(0).getId());
+        // now update with the link removed, and make sure it gets deleted
+        bt.setTestEntity(null);
+        bt = genericDao.put(bt, null);
+        l1 = genericDao.getByParentId(entity1.getId(), BiTestEntity.class);
+        l2 = genericDao.getByParentId(bt.getId(), TestEntity.class);
+        Assertions.assertTrue(l1.isEmpty());
+        Assertions.assertTrue(l2.isEmpty());
+    }
+
+
+    @Test
     void testGetAllByType() throws Exception {
         List<TestEntity> entities = genericDao.getAllByType(TestEntity.class);
         Assertions.assertEquals(6, entities.size());
+    }
+
+    @Test
+    void testGetByJsonQuery() throws Exception {
+        String s = JSONObject.toJSONString(Collections.singletonMap("others", "e2"));
+        List<TestEntity> l = genericDao.getByJsonQuery(s, TestEntity.class);
+        Assertions.assertEquals(1, l.size());
+        Assertions.assertEquals(entity2.getId(), l.get(0).getId());
+    }
+
+    @Test
+    void testGetByMultiJsonQuery() throws Exception {
+        String s = JSONObject.toJSONString(ImmutableMap.of("others", "e2", "age", 37));
+        List<TestEntity> l = genericDao.getByJsonQuery(s, TestEntity.class);
+        Assertions.assertEquals(1, l.size());
+        Assertions.assertEquals(entity2.getId(), l.get(0).getId());
+        s = JSONObject.toJSONString(ImmutableMap.of("others", "e2", "age", 42));
+        l = genericDao.getByJsonQuery(s, TestEntity.class);
+        Assertions.assertTrue(l.isEmpty());
     }
 
     @Test

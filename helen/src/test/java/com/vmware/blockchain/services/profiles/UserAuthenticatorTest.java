@@ -6,6 +6,7 @@ package com.vmware.blockchain.services.profiles;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -13,14 +14,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Instant;
 import java.util.Arrays;
-import java.util.Optional;
+import java.util.Collections;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.AdditionalMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -36,6 +39,8 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 
 import com.vmware.blockchain.MvcConfig;
 import com.vmware.blockchain.common.ConcordProperties;
+import com.vmware.blockchain.common.HelenExceptionHandler;
+import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.dao.GenericDao;
 import com.vmware.blockchain.security.AuthHelper;
@@ -50,7 +55,7 @@ import com.vmware.blockchain.security.ServiceContext;
 @ExtendWith(SpringExtension.class)
 @WebMvcTest(secure = false, controllers = UserAuthenticator.class)
 @ContextConfiguration(classes = MvcConfig.class)
-@ComponentScan(basePackageClasses = { UserAuthenticatorTest.class })
+@ComponentScan(basePackageClasses = { UserAuthenticatorTest.class, HelenExceptionHandler.class })
 class UserAuthenticatorTest {
 
     // Just some random UUIDs
@@ -62,10 +67,10 @@ class UserAuthenticatorTest {
     private MockMvc mvc;
 
     @MockBean
-    private UserRepository userRepository;
+    private UserService userService;
 
     @MockBean
-    private ProfilesRegistryManager prm;
+    private ProfilesService prm;
 
     @MockBean
     private PasswordEncoder passwordEncoder;
@@ -80,7 +85,7 @@ class UserAuthenticatorTest {
     private ConcordConnectionPool connectionPool;
 
     @MockBean
-    private KeystoreRepository keystoreRepository;
+    private KeystoreService keystoreSerivce;
 
     @MockBean
     private DefaultProfiles profiles;
@@ -89,7 +94,7 @@ class UserAuthenticatorTest {
     private BlockchainService blockchainService;
 
     @MockBean
-    private ConsortiumRepository consortiumRepository;
+    private ConsortiumService consortiumService;
 
     @MockBean
     GenericDao genericDao;
@@ -108,27 +113,28 @@ class UserAuthenticatorTest {
     @BeforeEach
     void init() {
         Consortium consortium = new Consortium();
-        consortium.setConsortiumId(CONSORTIUM_ID);
+        consortium.setId(CONSORTIUM_ID);
         consortium.setConsortiumName("Consortium Test");
         consortium.setConsortiumType("Test Type");
         Organization organization = new Organization();
-        organization.setOrganizationId(ORG_ID);
+        organization.setId(ORG_ID);
         organization.setOrganizationName("Test Org");
         // our test user
         testUser = new User();
-        testUser.setUserId(USER_ID);
+        testUser.setId(USER_ID);
         testUser.setEmail("user@test.com");
         testUser.setFirstName("Test");
         testUser.setLastName("User");
         testUser.setPassword("1234");
-        testUser.setConsortium(consortium);
-        testUser.setOrganization(organization);
-        testUser.setRole(Roles.SYSTEM_ADMIN);
+        testUser.setOrganization(ORG_ID);
+        testUser.setRoles(Collections.singletonList(Roles.SYSTEM_ADMIN));
 
         // The order of these matters.  When the user is "user@test.com" return the test user,
         // otherwise, return and empty optional.
-        when(userRepository.findUserByEmail(anyString())).thenReturn(Optional.empty());
-        when(userRepository.findUserByEmail("user@test.com")).thenReturn(Optional.of(testUser));
+        when(userService.getByEmail(AdditionalMatchers.not(eq("user@test.com"))))
+                .thenThrow(new NotFoundException("Not found"));
+        when(userService.getByEmail("user@test.com")).thenReturn(testUser);
+        when(keystoreSerivce.getWalletsForUser(any(UUID.class))).thenReturn(Collections.emptyList());
 
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
         when(passwordEncoder.matches("1234", "1234")).thenReturn(true);
@@ -145,7 +151,7 @@ class UserAuthenticatorTest {
 
         doAnswer(invocation -> {
             User u = invocation.getArgument(0);
-            u.setLastLogin(1000L);
+            u.setLastLogin(Instant.now());
             return null;
         }).when(prm).loginUser(any(User.class));
     }
@@ -162,13 +168,13 @@ class UserAuthenticatorTest {
                 .contentType(MediaType.APPLICATION_JSON).content(loginRequest))
                 .andDo(MockMvcResultHandlers.print())
                 .andExpect(status().isOk()).andExpect(content().json(loginResponse));
-        Assertions.assertNotEquals(0, testUser.getLastLogin());
+        Assertions.assertNotEquals(0, testUser.getLastLogin().toEpochMilli());
     }
 
     @Test
     void missingParamTest() throws Exception {
         String loginRequest = "{\"email\": \"user@test.com\"}";
-        String loginResponse = "{\"error\":\"Invalid email/password\"}";
+        String loginResponse = "{\"error_message\":\"Invalid email/password\"}";
         mvc.perform(post("/api/auth/login").with(csrf()).with(csrf())
                 .contentType(MediaType.APPLICATION_JSON).content(loginRequest))
                 .andExpect(status().is(401)).andExpect(content().json(loginResponse));
@@ -177,7 +183,7 @@ class UserAuthenticatorTest {
     @Test
     void badPasswordTest() throws Exception {
         String loginRequest = "{\"email\": \"user@test.com\", \"password\": \"3456\"}";
-        String loginResponse = "{\"error\":\"Invalid email/password\"}";
+        String loginResponse = "{\"error_message\":\"Invalid email/password\"}";
         mvc.perform(post("/api/auth/login").with(csrf())
                 .contentType(MediaType.APPLICATION_JSON).content(loginRequest))
                 .andExpect(status().is(401)).andExpect(content().json(loginResponse));
@@ -186,7 +192,7 @@ class UserAuthenticatorTest {
     @Test
     void noUserTest() throws Exception {
         String loginRequest = "{\"email\": \"baduser@test.com\", \"password\": \"1234\"}";
-        String loginResponse = "{\"error\":\"Invalid email/password\"}";
+        String loginResponse = "{\"error_message\":\"Invalid email/password\"}";
         mvc.perform(post("/api/auth/login").with(csrf())
                 .contentType(MediaType.APPLICATION_JSON).content(loginRequest))
             .andExpect(status().is(401)).andExpect(content().json(loginResponse));

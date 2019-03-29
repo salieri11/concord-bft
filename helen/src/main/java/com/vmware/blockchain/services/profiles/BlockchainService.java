@@ -51,7 +51,7 @@ public class BlockchainService {
      */
     public Blockchain create(Consortium consortium, String ipList, String rpcUrls, String rpcCerts) {
         Blockchain b = new Blockchain.BlockchainBuilder()
-                .consortium(consortium.getConsortiumId())
+                .consortium(consortium.getId())
                 .ipList(cleanupIpString(ipList))
                 .rpcUrls(cleanupIpString(rpcUrls))
                 .rpcCerts(cleanupIpString(rpcCerts))
@@ -82,7 +82,7 @@ public class BlockchainService {
     }
 
     public List<Blockchain> listByConsortium(Consortium consortium) {
-        return genericDao.getByParentId(consortium.getConsortiumId(), Blockchain.class);
+        return genericDao.getByParentId(consortium.getId(), Blockchain.class);
     }
 
     public Blockchain get(UUID id) {
