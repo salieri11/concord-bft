@@ -84,7 +84,7 @@ public class ConcordModelService extends ConcordModelServiceImplBase {
             ExecutorService executor,
             KeyValueStore<ConcordModelIdentifier, ConcordModelSpecification, MonotonicInt> storage
     ) {
-        this.executor = executor;
+        this.executor = Objects.requireNonNull(executor);
         this.storage = Objects.requireNonNull(storage);
     }
 
