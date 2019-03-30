@@ -3,7 +3,6 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.model.core
 
-import kotlinx.serialization.ContextualSerialization
 import kotlinx.serialization.Serializable
 
 /**
@@ -16,6 +15,6 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class Endpoint(
-    @ContextualSerialization val address: URI,
+    @Serializable(with = URISerializer::class) val address: URI,
     val credential: Credential
 )
