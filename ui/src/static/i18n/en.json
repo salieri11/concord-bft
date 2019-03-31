@@ -307,6 +307,7 @@
     "version": {
       "title": "Version",
       "version": "Version",
+      "compilerVersion": "Solidity Compiler Version",
       "placeholder": "1.0",
       "address": "Address",
       "functions": "Functions",

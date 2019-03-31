@@ -123,7 +123,7 @@ class SimpleStateTransferTest(test_suite.TestSuite):
       cVersion = self._helenApiTestInstance.random_string_generator()
       cId = self._helenApiTestInstance.random_string_generator()
       cName = "LargeBlockStorage"
-      res = self._helenApiTestInstance.contract_upload_util_generic(request, cId, cVersion, cCode, self._to, cName, "")
+      res = self._helenApiTestInstance.contract_upload_util_generic(request, cId, cVersion, cCode, self._to, cName, "", "v0.5.2+commit.1df8f40c")
 
       result = request.callContractAPI('/api/concord/contracts/' + cId
                                       + '/versions/' + cVersion, "")

@@ -54,6 +54,7 @@ export class ContractFormComponent implements OnInit {
   version: SmartContractVersion;
   constructorAbi: any;
   walletAddress: string;
+  compilerVersions: string[];
 
   readonly modalState: ModalState;
 
@@ -69,6 +70,7 @@ export class ContractFormComponent implements OnInit {
       from: ['', [Validators.required, ...addressValidators]],
       contractId: ['', [Validators.required]],
       version: ['', [Validators.required]],
+      compilerVersion: ['', [Validators.required]],
       file: [null, Validators.required]
     });
 
@@ -87,6 +89,9 @@ export class ContractFormComponent implements OnInit {
     };
 
     this.walletAddress = this.authenticationService.currentUser.wallet_address;
+
+    this.smartContractsService.getCompilerVersion()
+      .subscribe(response => this.compilerVersions = response);
   }
 
   ngOnInit() {
@@ -152,7 +157,8 @@ export class ContractFormComponent implements OnInit {
     this.modalState.completed = false;
     this.modalState.loading = true;
     this.smartContractsService.postSourceCode({
-      sourcecode: this.smartContractForm.value.file
+      sourcecode: this.smartContractForm.value.file,
+      compilerVersion: this.smartContractForm.value.compilerVersion
     }).subscribe(
       response => this.handleSourceCode(response),
       response => this.handleError(response.error)
@@ -186,7 +192,8 @@ export class ContractFormComponent implements OnInit {
       contractName: this.contractsForm.value.selectedContract,
       constructorParams: encodedConstructorParams,
       existingContractId: this.version.contract_id,
-      existingVersionName: this.version.version
+      existingVersionName: this.version.version,
+      compilerVersion: this.smartContractForm.value.compilerVersion
     }).subscribe(
       response => this.handleSmartContract(response),
       response => this.handleError(response.error)
@@ -206,7 +213,8 @@ export class ContractFormComponent implements OnInit {
       version: this.smartContractForm.value.version,
       sourcecode: this.smartContractForm.value.file,
       contractName: this.contractsForm.value.selectedContract,
-      constructorParams: encodedConstructorParams
+      constructorParams: encodedConstructorParams,
+      compilerVersion: this.smartContractForm.value.compilerVersion
     }).subscribe(
       response => this.handleSmartContract(response),
       response => this.handleError(response.error)
@@ -218,6 +226,7 @@ export class ContractFormComponent implements OnInit {
       from: [this.walletAddress, [Validators.required, ...addressValidators]],
       contractId: ['', [Validators.required]],
       version: ['', [Validators.required, Validators.maxLength(16)]],
+      compilerVersion: ['', [Validators.required]],
       file: [null, Validators.required],
     });
   }
@@ -227,6 +236,7 @@ export class ContractFormComponent implements OnInit {
       from: [smartContract.owner, [Validators.required, ...addressValidators]],
       contractId: [smartContract.contract_id, [Validators.required]],
       version: [version.version, [Validators.required]],
+      compilerVersion: ['', [Validators.required]],
       file: [null, [Validators.required]]
     });
   }
@@ -237,6 +247,7 @@ export class ContractFormComponent implements OnInit {
       from: [this.walletAddress, [Validators.required, ...addressValidators]],
       contractId: [smartContract.contract_id, [Validators.required]],
       version: [version.version, [Validators.required, newVersionValue(existingVersions), Validators.maxLength(16)]],
+      compilerVersion: ['', [Validators.required]],
       file: [null, [Validators.required]]
     });
     setTimeout(() => {

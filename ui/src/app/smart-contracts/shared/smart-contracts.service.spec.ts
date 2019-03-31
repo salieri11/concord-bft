@@ -69,7 +69,8 @@ describe('SmartContractsService', () => {
       version: '1',
       sourcecode: 'sourceCode',
       contractName: 'contract',
-      constructorParams: ''
+      constructorParams: '',
+      compilerVersion: 'v0.5.4+commit.9549d8ff'
     };
 
     service.updateExistingVersion('contractId', 'version', contract);
@@ -79,7 +80,8 @@ describe('SmartContractsService', () => {
   it('should post smart contract source code', () => {
     const httpSpy = spyOn((service as any).httpClient, 'post');
     const payload = {
-      sourcecode: 'source'
+      sourcecode: 'source',
+      compilerVersion: 'v0.5.4+commit.9549d8ff'
     };
 
     service.postSourceCode(payload);

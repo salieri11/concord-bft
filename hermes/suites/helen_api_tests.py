@@ -285,7 +285,7 @@ class HelenAPITests(test_suite.TestSuite):
       return (True, None)
 
    def contract_upload_util_generic(self,request,contractId,
-    contractVersion,sourceCode, fromAddr, contractName, ctorParams):
+    contractVersion,sourceCode, fromAddr, contractName, ctorParams, compilerVersion):
 
       data = {}
       data["from"] = fromAddr
@@ -294,13 +294,14 @@ class HelenAPITests(test_suite.TestSuite):
       data["sourcecode"] = sourceCode
       data["contractName"] = contractName
       data["constructorParams"] = ctorParams
+      data["compilerVersion"] = compilerVersion
       return request.uploadContract(data)
 
    def contract_upload_util(self, request, contractId, contractVersion, sourceCode):
       '''
       A helper method to upload simple hello world contract.
       '''
-      return self.contract_upload_util_generic(request, contractId, contractVersion, sourceCode,"0x1111111111111111111111111111111111111111", "HelloWorld", "")
+      return self.contract_upload_util_generic(request, contractId, contractVersion, sourceCode,"0x1111111111111111111111111111111111111111", "HelloWorld", "", "v0.5.2+commit.1df8f40c")
 
    def random_string_generator(self, size=6, chars=string.ascii_uppercase + string.digits):
       return ''.join(random.choice(chars) for _ in range(size))

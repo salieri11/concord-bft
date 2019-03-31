@@ -1,4 +1,5 @@
 /*
+
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
@@ -17,10 +18,11 @@ export class SmartContractsPage {
     element(by.css('.create-contract')).click();
   }
 
-  fillContractFormStep1(from, contractId, version, filePath) {
+  fillContractFormStep1(from, contractId, version, compilerVersion, filePath) {
     element(by.css('#smartContractFrom')).sendKeys(from);
     element(by.css('#smartContractContractId')).sendKeys(contractId);
     element(by.css('#smartContractVersion')).sendKeys(version);
+    element(by.css('#smartContractCompilerVersion')).sendKeys(compilerVersion);
     element(by.css('#smartContractFile')).sendKeys(filePath);
   }
 

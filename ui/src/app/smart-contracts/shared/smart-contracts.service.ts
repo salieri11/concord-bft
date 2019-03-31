@@ -22,6 +22,10 @@ export class SmartContractsService extends ConcordApiService {
     return 'contracts';
   }
 
+  getCompilerVersion() {
+    return this.httpClient.get<any>(this.resourcePath('compiler_versions'));
+  }
+
   getSmartContracts() {
     return this.httpClient.get<SmartContract[]>(this.resourcePath());
   }
