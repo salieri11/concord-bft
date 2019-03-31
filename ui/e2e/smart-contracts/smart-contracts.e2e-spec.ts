@@ -24,6 +24,7 @@ describe('concord-ui Smart Contracts', () => {
   let version: string;
   let file: string;
   let until: ProtractorExpectedConditions;
+  let compilerVersion: string;
 
   beforeAll(() => {
     until = protractor.ExpectedConditions;
@@ -44,6 +45,7 @@ describe('concord-ui Smart Contracts', () => {
     from = '0x5BB088F57365907B1840E45984CAE028A82AF934';
     contractId = 'contractId';
     version = 'version1';
+    compilerVersion = '0.5.4';
     file = '../files/somefile.sol';
     smartContractsPage.navigateTo();
   });
@@ -52,7 +54,8 @@ describe('concord-ui Smart Contracts', () => {
     const absolutePath = path.resolve(__dirname, file);
     browser.sleep(500);
     smartContractsPage.openCreateModal();
-    smartContractsPage.fillContractFormStep1(from, contractId, version, absolutePath);
+    browser.wait(until.presenceOf(smartContractPage.getPageTitle()), BROWSER_WAIT_TIME);
+    smartContractsPage.fillContractFormStep1(from, contractId, version, compilerVersion, absolutePath);
     smartContractsPage.clickWizardNextButton();
     smartContractsPage.clickWizardNextButton();
     smartContractsPage.addProprosals();

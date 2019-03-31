@@ -22,6 +22,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -61,6 +62,8 @@ public class ContractsServlet extends ConcordServlet {
     private Random random = new Random();
     private EthDispatcher ethDispatcher;
     private AuthHelper authHelper;
+    @Value("${compilerService.url}")
+    private String compilerServiceUrl;
 
     @Autowired
     public ContractsServlet(ContractRegistryManager registryManger, EthDispatcher ethDispatcher,
@@ -353,12 +356,13 @@ public class ContractsServlet extends ConcordServlet {
             String solidityCode = (String) requestObject.get("sourcecode");
             String selectedContract = (String) requestObject.get("contractName");
             String constructorParams = (String) requestObject.get("constructorParams");
+            String compilerVersion = (String) requestObject.get("compilerVersion");
             if (registryManager.hasContractVersion(contractId, contractVersion, getBlockchainId(id))) {
                 responseEntity =
                         new ResponseEntity<>(errorJson("contract with same name and version " + "already exists"),
                                 HttpStatus.CONFLICT);
             } else {
-                Compiler.Result result = Compiler.compile(solidityCode);
+                Compiler.Result result = Compiler.compile(solidityCode, compilerVersion, compilerServiceUrl);
                 if (result.isSuccess()) {
                     String byteCode = result.getByteCodeMap().get(selectedContract) + constructorParams;
 
@@ -487,7 +491,8 @@ public class ContractsServlet extends ConcordServlet {
             JSONObject requestObject = (JSONObject) parser.parse(paramString);
 
             String solidityCode = (String) requestObject.get("sourcecode");
-            Compiler.Result result = Compiler.compile(solidityCode);
+            String compilerVersion = (String) requestObject.get("compilerVersion");
+            Compiler.Result result = Compiler.compile(solidityCode, compilerVersion, compilerServiceUrl);
 
             if (result.isSuccess()) {
                 // respond with the name of each contract and allow the user to customize the contractId that will be
@@ -566,7 +571,7 @@ public class ContractsServlet extends ConcordServlet {
             String solidityCode = (String) requestObject.get("sourcecode");
             String selectedContract = (String) requestObject.get("contractName");
             String constructorParams = (String) requestObject.get("constructorParams");
-
+            String compilerVersion = (String) requestObject.get("compilerVersion");
             // Check if contract with same id already exists, if yes
             // then version number must be different
             if (registryManager.hasContractVersion(contractId, contractVersion, getBlockchainId(id))) {
@@ -581,7 +586,7 @@ public class ContractsServlet extends ConcordServlet {
                         HttpStatus.FORBIDDEN);
             } else {
                 // Compile the given solidity code
-                Compiler.Result result = Compiler.compile(solidityCode);
+                Compiler.Result result = Compiler.compile(solidityCode, compilerVersion, compilerServiceUrl);
                 if (result.isSuccess()) {
                     JSONObject resultObject = deployContracts(helper.getBlockchain(), contractId, contractVersion, from,
                             result, solidityCode, selectedContract, constructorParams);
@@ -609,4 +614,23 @@ public class ContractsServlet extends ConcordServlet {
         throw new BadRequestException("parseToJSON method is not supported in ContractServlet class");
     }
 
+    /**
+     * Processes the `GET api/concord/contracts/compiler_versions` request
+     * and puts the generated result inside @responseObject.
+     *
+     * @return the RESTResult object which contains response of this request.
+     */
+    @RequestMapping(method = RequestMethod.GET,
+                    path = "/api/concord/contracts/compiler_versions")
+    public ResponseEntity<JSONAware> handleGetCompilerVersions() {
+
+        // TODO: This check is not a proper way, find a better approach
+        if (registryManager == null) {
+            return new ResponseEntity<>(errorJson("Service unavailable."),
+                    HttpStatus.SERVICE_UNAVAILABLE);
+        }
+
+        return new ResponseEntity<>(Compiler.getCompilerVersions(compilerServiceUrl),
+                                    HttpStatus.OK);
+    }
 }

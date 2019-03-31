@@ -297,6 +297,7 @@
     "paginationSummary": "合约 {{start}} - {{finish}}/共 {{total}} 个",
     "version": {
       "title": "版本",
+      "compilerVersion": "Solidity 编译器版本",
       "version": "版本",
       "placeholder": "1.0",
       "address": "地址",

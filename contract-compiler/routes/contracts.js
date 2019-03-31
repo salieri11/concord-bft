@@ -9,6 +9,10 @@ const { parseByteCode, parseMinorVersion, parsePatchVersion } = require('../help
 
 const router = Router();
 const tempFile = 'source.sol';
+const fs = require('fs');
+
+/* GET compile version json. */
+router.get('/compiler_versions', compilerVersions);
 
 /* POST compile a .sol file for a given compiler version and return contracts. */
 router.post('/compile', compileWithVersion);
@@ -17,6 +21,14 @@ router.post('/compile', compileWithVersion);
 router.post('/verify', verifyContractWithVersion);
 
 module.exports = router;
+
+function compilerVersions(req, res) {
+  fs.readFile('public/compiler_versions.json', (err, content) => {
+    if (err) throw err;
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(content, 'utf-8');
+  });
+}
 
 function compileWithVersion(req, res, next) {
   // Inputs:

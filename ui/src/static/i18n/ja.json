@@ -298,6 +298,7 @@
     "version": {
       "title": "バージョン",
       "version": "バージョン",
+      "compilerVersion": "Solidity コンパイラ バージョン",
       "placeholder": "1.0",
       "address": "アドレス",
       "functions": "機能",

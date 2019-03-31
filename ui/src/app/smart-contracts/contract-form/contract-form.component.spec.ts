@@ -162,7 +162,8 @@ describe('ContractFormComponent', () => {
       const spy = spyOn((component as any).smartContractsService, 'postSourceCode')
         .and.returnValue(observableOf({data: [{contract_name: 'contractName'}]}));
       const sourceCode = {
-        sourcecode: component.smartContractForm.value.file
+        sourcecode: component.smartContractForm.value.file,
+        compilerVersion: ''
       };
 
       component.onSubmitSourceCode();
@@ -172,7 +173,8 @@ describe('ContractFormComponent', () => {
     it('should show an error if code submission fails', () => {
       const spy = spyOn((component as any).smartContractsService, 'postSourceCode').and.returnValue(throwError({ error: 'error' }));
       const sourceCode = {
-        sourcecode: component.smartContractForm.value.file
+        sourcecode: component.smartContractForm.value.file,
+        compilerVersion: ''
       };
 
       component.onSubmitSourceCode();
@@ -233,7 +235,8 @@ describe('ContractFormComponent', () => {
         contractName: component.contractsForm.value.selectedContract,
         constructorParams: '',
         existingVersionName: testVersion.version,
-        existingContractId: testVersion.contract_id
+        existingContractId: testVersion.contract_id,
+        compilerVersion: ''
       };
       const eventSpy = spyOn(component.contractCreated, 'emit');
       component.onSubmitSmartContract();
@@ -253,7 +256,8 @@ describe('ContractFormComponent', () => {
         contractName: component.contractsForm.value.selectedContract,
         constructorParams: '',
         existingVersionName: testVersion.version,
-        existingContractId: testVersion.contract_id
+        existingContractId: testVersion.contract_id,
+        compilerVersion: ''
       };
 
       component.onSubmitSmartContract();
@@ -270,7 +274,8 @@ describe('ContractFormComponent', () => {
         version: component.smartContractForm.value.version,
         sourcecode: component.smartContractForm.value.file,
         contractName: component.contractsForm.value.selectedContract,
-        constructorParams: ''
+        constructorParams: '',
+        compilerVersion: ''
       };
       const eventSpy = spyOn(component.contractCreated, 'emit');
 
@@ -288,7 +293,8 @@ describe('ContractFormComponent', () => {
         version: component.smartContractForm.value.version,
         sourcecode: component.smartContractForm.value.file,
         contractName: component.contractsForm.value.selectedContract,
-        constructorParams: ''
+        constructorParams: '',
+        compilerVersion: ''
       };
 
       component.onSubmitSmartContract();
@@ -305,7 +311,8 @@ describe('ContractFormComponent', () => {
         version: component.smartContractForm.value.version,
         sourcecode: component.smartContractForm.value.file,
         contractName: component.contractsForm.value.selectedContract,
-        constructorParams: ''
+        constructorParams: '',
+        compilerVersion: ''
       };
 
       component.onSubmitSmartContract();
