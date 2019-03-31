@@ -57,6 +57,11 @@
 //   - Key: TYPE_NONCE+[account address (20 bytes)]
 //   - Value: com::vmware::concord::kvb::Nonce protobuf
 //   - Notes: As with balance, using protobuf solves encoding issues.
+//
+// * Block Metadata
+//   - Key: TYPE_BLOCK_METADATA
+//   - Value: com::vmware::concord::kvb::BlockMetadata protobuf
+//   - Notes: As with balance, using protobuf solves encoding issues.
 
 #include <cstring>
 #include <vector>
@@ -83,6 +88,7 @@ using Blockchain::Sliver;
 const int64_t balance_storage_version = 1;
 const int64_t nonce_storage_version = 1;
 const int64_t code_storage_version = 1;
+const int64_t block_metadata_version = 1;
 
 // read-only mode
 com::vmware::concord::KVBStorage::KVBStorage(
@@ -94,10 +100,11 @@ com::vmware::concord::KVBStorage::KVBStorage(
 // read-write mode
 com::vmware::concord::KVBStorage::KVBStorage(
     const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-    Blockchain::IBlocksAppender *blockAppender)
+    Blockchain::IBlocksAppender *blockAppender, uint64_t sequenceNum)
     : roStorage_(roStorage),
       blockAppender_(blockAppender),
-      logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")) {}
+      logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")),
+      bftSequenceNum_(sequenceNum) {}
 
 com::vmware::concord::KVBStorage::~KVBStorage() {
   // Any Slivers in updates will release their memory automatically.
@@ -224,7 +231,7 @@ Status com::vmware::concord::KVBStorage::write_block(uint64_t timestamp,
   blk.gas_limit = gas_limit;
 
   // We need hash of all transactions for calculating hash of a block
-  // but we also need block hash inside transaction strcture (not required
+  // but we also need block hash inside transaction structure (not required
   // to calculate hash of that transaction). So first use transaction hash to
   // get block hash and then populate that block hash & block number inside
   // all transactions in that block
@@ -244,9 +251,11 @@ Status com::vmware::concord::KVBStorage::write_block(uint64_t timestamp,
   }
   pending_transactions.clear();
 
-  // Add the block metadata to the key-value pair set
+  // Create serialized versions of the objects and store them in a staging area.
   add_block(blk);
 
+  // Add Block metadata key/value pair to the ready list of updates.
+  set_block_metadata();
   // Actually write the block
   BlockId outBlockId;
   Status status = blockAppender_->addBlock(updates, outBlockId);
@@ -329,6 +338,22 @@ void com::vmware::concord::KVBStorage::set_code(const evm_address &addr,
   proto.SerializeToArray(ser, sersize);
 
   put(code_key(addr), Sliver(ser, sersize));
+}
+
+void com::vmware::concord::KVBStorage::set_block_metadata() {
+  concord::kvb::BlockMetadata proto;
+  proto.set_version(block_metadata_version);
+  proto.set_bft_sequence_num(bftSequenceNum_);
+
+  size_t serSize = proto.ByteSize();
+  auto *ser = new uint8_t[serSize];
+  proto.SerializeToArray(ser, serSize);
+
+  const size_t sizeOfBlockMetadata = sizeof(bftSequenceNum_);
+  uint8_t blockMetadataBuf[sizeOfBlockMetadata];
+  memcpy(blockMetadataBuf, &bftSequenceNum_, sizeOfBlockMetadata);
+  put(kvb_key(TYPE_BLOCK_METADATA, blockMetadataBuf, sizeOfBlockMetadata),
+      Sliver(ser, serSize));
 }
 
 void com::vmware::concord::KVBStorage::set_storage(

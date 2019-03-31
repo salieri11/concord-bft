@@ -56,3 +56,8 @@ message Nonce {
    optional int64 version = 1;
    optional int64 nonce = 2;
 }
+
+message BlockMetadata {
+   optional int64 version = 1;
+   optional uint64 bft_sequence_num = 2;
+}

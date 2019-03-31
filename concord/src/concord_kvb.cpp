@@ -57,7 +57,7 @@ int com::vmware::concord::KVBCommandsHandler::execute(
     res = executeReadOnlyCommand(requestSize, request, *m_ptrRoStorage,
                                  maxReplySize, outReply, outActualReplySize);
   } else {
-    res = executeCommand(requestSize, request, *m_ptrRoStorage,
+    res = executeCommand(requestSize, request, sequenceNum, *m_ptrRoStorage,
                          *m_ptrBlockAppender, maxReplySize, outReply,
                          outActualReplySize);
   }
@@ -122,11 +122,11 @@ bool com::vmware::concord::KVBCommandsHandler::executeReadOnlyCommand(
  * EVM). Returns false if the command is illegal or invalid; true otherwise.
  */
 bool com::vmware::concord::KVBCommandsHandler::executeCommand(
-    uint32_t requestSize, const char *request,
+    uint32_t requestSize, const char *request, const uint64_t sequenceNum,
     const ILocalKeyValueStorageReadOnly &roStorage,
     IBlocksAppender &blockAppender, const size_t maxReplySize, char *outReply,
     uint32_t &outReplySize) const {
-  KVBStorage kvbStorage(roStorage, &blockAppender);
+  KVBStorage kvbStorage(roStorage, &blockAppender, sequenceNum);
 
   ConcordRequest command;
   bool result;
