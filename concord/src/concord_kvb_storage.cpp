@@ -57,6 +57,11 @@
 //   - Key: TYPE_NONCE+[account address (20 bytes)]
 //   - Value: com::vmware::concord::kvb::Nonce protobuf
 //   - Notes: As with balance, using protobuf solves encoding issues.
+//
+// * Block Metadata
+//   - Key: TYPE_BLOCK_METADATA
+//   - Value: com::vmware::concord::kvb::BlockMetadata protobuf
+//   - Notes: As with balance, using protobuf solves encoding issues.
 
 #include <cstring>
 #include <vector>
@@ -83,6 +88,7 @@ using Blockchain::Sliver;
 const int64_t balance_storage_version = 1;
 const int64_t nonce_storage_version = 1;
 const int64_t code_storage_version = 1;
+const int64_t block_metadata_version = 1;
 
 // read-only mode
 com::vmware::concord::KVBStorage::KVBStorage(
@@ -248,10 +254,10 @@ Status com::vmware::concord::KVBStorage::write_block(uint64_t timestamp,
   // Create serialized versions of the objects and store them in a staging area.
   add_block(blk);
 
-  BlockId outBlockId;
   // Add Block metadata key/value pair to the ready list of updates.
   set_block_metadata();
   // Actually write the block
+  BlockId outBlockId;
   Status status = blockAppender_->addBlock(updates, outBlockId);
   if (status.isOK()) {
     LOG4CPLUS_INFO(logger, "Appended block number " << outBlockId);
@@ -334,20 +340,28 @@ void com::vmware::concord::KVBStorage::set_code(const evm_address &addr,
   put(code_key(addr), Sliver(ser, sersize));
 }
 
+void com::vmware::concord::KVBStorage::set_block_metadata() {
+  concord::kvb::BlockMetadata proto;
+  proto.set_version(block_metadata_version);
+  proto.set_bft_sequence_num(bftSequenceNum_);
+
+  size_t serSize = proto.ByteSize();
+  auto *ser = new uint8_t[serSize];
+  proto.SerializeToArray(ser, serSize);
+
+  const size_t sizeOfBlockMetadata = sizeof(bftSequenceNum_);
+  uint8_t blockMetadataBuf[sizeOfBlockMetadata];
+  memcpy(blockMetadataBuf, &bftSequenceNum_, sizeOfBlockMetadata);
+  put(kvb_key(TYPE_BLOCK_METADATA, blockMetadataBuf, sizeOfBlockMetadata),
+      Sliver(ser, serSize));
+}
+
 void com::vmware::concord::KVBStorage::set_storage(
     const evm_address &addr, const evm_uint256be &location,
     const evm_uint256be &data) {
   uint8_t *str = new uint8_t[sizeof(data)];
   std::copy(data.bytes, data.bytes + sizeof(data), str);
   put(storage_key(addr, location), Sliver(str, sizeof(data)));
-}
-
-void com::vmware::concord::KVBStorage::set_block_metadata() {
-  const size_t sizeOfBlockMetadata = sizeof(bftSequenceNum_);
-  auto blockMetadataBuf = new uint8_t[sizeOfBlockMetadata];
-  memcpy(blockMetadataBuf, &bftSequenceNum_, sizeOfBlockMetadata);
-  put(kvb_key(TYPE_BLOCK_METADATA, blockMetadataBuf, sizeOfBlockMetadata),
-      Sliver(blockMetadataBuf, sizeOfBlockMetadata));
 }
 
 ////////////////////////////////////////
