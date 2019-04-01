@@ -231,7 +231,7 @@
   },
   "blocks": {
     "title": "Block",
-    "blocks": "Blocks",
+    "blocks": "Current Block",
     "blockActivity": "Block Activity",
     "number": "Block Number",
     "index": "Index",
