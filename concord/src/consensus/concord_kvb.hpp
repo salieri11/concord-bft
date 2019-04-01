@@ -8,10 +8,10 @@
 #include <log4cplus/loggingmacros.h>
 #include <boost/program_options.hpp>
 
-#include "common/concord_eth_sign.hpp"
 #include "concord.pb.h"
-#include "concord_evm.hpp"
-#include "kvb/BlockchainInterfaces.h"
+#include "consensus/kvb/BlockchainInterfaces.h"
+#include "ethereum/concord_evm.hpp"
+#include "utils/concord_eth_sign.hpp"
 
 namespace com {
 namespace vmware {

@@ -3,11 +3,11 @@
  * Tests of the transaction signing and address recovery functions.
  */
 
-#include "common/concord_eth_hash.hpp"
-#include "common/concord_eth_sign.hpp"
-#include "common/json.hpp"
-#include "common/utils.hpp"
 #include "gtest/gtest.h"
+#include "utils/concord_eth_hash.hpp"
+#include "utils/concord_eth_sign.hpp"
+#include "utils/json.hpp"
+#include "utils/utils.hpp"
 
 using namespace std;
 namespace concord = com::vmware::concord;

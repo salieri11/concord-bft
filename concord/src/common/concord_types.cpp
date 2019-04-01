@@ -6,14 +6,14 @@
 #include <log4cplus/loggingmacros.h>
 #include <string.h>
 
-#include "common/concord_eth_hash.hpp"
-#include "common/rlp.hpp"
-#include "concord_exception.hpp"
-#include "concord_log.hpp"
+#include "common/concord_exception.hpp"
+#include "common/concord_log.hpp"
+#include "common/concord_types.hpp"
 #include "concord_storage.pb.h"
-#include "concord_types.hpp"
-#include "kvb/HexTools.h"
-#include "kvb/sliver.hpp"
+#include "consensus/kvb/HexTools.h"
+#include "consensus/kvb/sliver.hpp"
+#include "utils/concord_eth_hash.hpp"
+#include "utils/rlp.hpp"
 
 using namespace com::vmware::concord::kvb;
 

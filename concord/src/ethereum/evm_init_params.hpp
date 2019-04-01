@@ -10,10 +10,10 @@
 #include <map>
 #include <stdexcept>
 #include <vector>
-#include "common/json.hpp"
-#include "common/utils.hpp"
-#include "concord_types.hpp"
+#include "common/concord_types.hpp"
 #include "evm.h"
+#include "utils/json.hpp"
+#include "utils/utils.hpp"
 
 namespace com {
 namespace vmware {

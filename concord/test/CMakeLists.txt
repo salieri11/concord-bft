@@ -52,7 +52,7 @@ target_link_libraries(SliverTests
 
 add_executable(ConfigTests
   config_test.cpp
-  "../src/configuration_manager.cpp")
+  "../src/config/configuration_manager.cpp")
 
 target_link_libraries(ConfigTests
   ${Boost_LIBRARIES}

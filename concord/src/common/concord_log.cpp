@@ -4,9 +4,9 @@
 
 #include <ios>
 
-#include "concord_log.hpp"
+#include "common/concord_log.hpp"
+#include "consensus/kvb/HexTools.h"
 #include "evm.h"
-#include "kvb/HexTools.h"
 
 // Print a vector of bytes as its 0x<hex> representation.
 std::ostream& com::vmware::concord::operator<<(std::ostream& s,

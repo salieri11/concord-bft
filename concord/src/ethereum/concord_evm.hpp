@@ -9,12 +9,12 @@
 #include <map>
 #include <memory>
 #include <vector>
-#include "common/utils.hpp"
-#include "concord_kvb_storage.hpp"
-#include "concord_types.hpp"
+#include "blockchain/concord_kvb_storage.hpp"
+#include "common/concord_types.hpp"
+#include "consensus/kvb/BlockchainInterfaces.h"
 #include "evm.h"
 #include "evm_init_params.hpp"
-#include "kvb/BlockchainInterfaces.h"
+#include "utils/utils.hpp"
 
 namespace com {
 namespace vmware {

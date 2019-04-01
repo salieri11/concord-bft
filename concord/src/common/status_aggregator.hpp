@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 #include "StatusInfo.h"
-#include "common/utils.hpp"
+#include "utils/utils.hpp"
 
 namespace com {
 namespace vmware {

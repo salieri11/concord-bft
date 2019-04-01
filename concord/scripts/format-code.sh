@@ -30,7 +30,7 @@ FILES_TO_FORMAT=$(find ${ABS_CONCORD_PATH} \
     -iname "*.hpp" \) \
   -a -not -path "${ABS_CONCORD_PATH}/submodules/*" \
   -a -not -path "${ABS_CONCORD_PATH}/build/*" \
-  -a -not -wholename "${ABS_CONCORD_PATH}/src/common/json.hpp")
+  -a -not -wholename "${ABS_CONCORD_PATH}/src/utils/json.hpp")
 
 if [ -n "$2" ]; then
   if [ "$2" = "--is-required" ]; then

@@ -8,17 +8,17 @@
 #include <memory>
 #include <stdexcept>
 
-#include "common/concord_eth_hash.hpp"
-#include "common/rlp.hpp"
-#include "common/utils.hpp"
+#include "blockchain/concord_kvb_storage.hpp"
+#include "common/concord_exception.hpp"
+#include "common/concord_log.hpp"
+#include "common/concord_types.hpp"
 #include "concord_evm.hpp"
-#include "concord_exception.hpp"
-#include "concord_kvb_storage.hpp"
-#include "concord_log.hpp"
-#include "concord_types.hpp"
-#include "kvb/BlockchainInterfaces.h"
-#include "kvb/HashDefs.h"
-#include "kvb/HexTools.h"
+#include "consensus/kvb/BlockchainInterfaces.h"
+#include "consensus/kvb/HashDefs.h"
+#include "consensus/kvb/HexTools.h"
+#include "utils/concord_eth_hash.hpp"
+#include "utils/rlp.hpp"
+#include "utils/utils.hpp"
 
 #ifdef USE_HERA
 #include "hera.h"

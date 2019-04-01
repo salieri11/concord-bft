@@ -2,6 +2,9 @@
 //
 // Exceptions used in Concord
 
+#include <exception>
+#include <string>
+
 namespace com {
 namespace vmware {
 namespace concord {

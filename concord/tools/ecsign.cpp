@@ -1,7 +1,9 @@
-#include "common/concord_eth_hash.hpp"
-#include "common/concord_eth_sign.hpp"
-#include "common/rlp.hpp"
-#include "common/utils.hpp"
+// Copyright 2019 VMware, all rights reserved
+
+#include "utils/concord_eth_hash.hpp"
+#include "utils/concord_eth_sign.hpp"
+#include "utils/rlp.hpp"
+#include "utils/utils.hpp"
 
 using namespace std;
 

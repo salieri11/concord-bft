@@ -5,8 +5,8 @@
 #include "evm_init_params.hpp"
 
 #include <iostream>
-#include "common/utils.hpp"
-#include "concord_log.hpp"
+#include "common/concord_log.hpp"
+#include "utils/utils.hpp"
 
 using namespace com::vmware::concord;
 using log4cplus::Logger;
