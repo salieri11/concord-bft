@@ -117,27 +117,20 @@ public class ContractRegistryManager {
     public boolean updateExistingContractVersion(String existingContractId, String existingVersionName,
             String contractId, String ownerAddress, String versionName, String metaData, String sourceCode,
             UUID blockchain) {
-        {
-            if (hasContractVersion(contractId, versionName, blockchain)) {
-                throw new ConflictException(
-                        "ContractVersion with id {0} and version {1} already exists", contractId, versionName);
-            } else {
-                List<Contract> contracts =
-                        contractReopository.findByNameAndVersionNameAndBlockchainIdOrderBySeqDesc(
-                                existingContractId, existingVersionName, blockchain);
-                if (contracts.isEmpty()) {
-                    throw new NotFoundException("No contract with id {0} and version {2}",
-                            existingContractId, existingVersionName);
-                }
-                Contract c = contracts.get(0);
-                c.setName(contractId);
-                c.setVersionName(versionName);
-                c.setOwner(ownerAddress);
-                c.setSourcecode(sourceCode);
-                c.setMetadata(metaData);
-                contractReopository.save(c);
-            }
+        List<Contract> contracts = contractReopository
+                .findByNameAndVersionNameAndBlockchainIdOrderBySeqDesc(
+                        existingContractId, existingVersionName, blockchain);
+        if (contracts.isEmpty()) {
+            throw new NotFoundException("No contract with id {0} and version {2}",
+                    existingContractId, existingVersionName);
         }
+        Contract c = contracts.get(0);
+        c.setName(contractId);
+        c.setVersionName(versionName);
+        c.setOwner(ownerAddress);
+        c.setSourcecode(sourceCode);
+        c.setMetadata(metaData);
+        contractReopository.save(c);
         return true;
     }
 

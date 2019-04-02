@@ -7,7 +7,8 @@
     <clr-wizard-button [type]="'cancel'">{{'common.cancel' | translate}}</clr-wizard-button>
     <clr-wizard-button [type]="'previous'">{{'common.back' | translate}}</clr-wizard-button>
     <clr-wizard-button [type]="'next'">{{'common.next' | translate}}</clr-wizard-button>
-    <clr-wizard-button [type]="'finish'">{{'common.finish' | translate}}</clr-wizard-button>
+    <clr-wizard-button *ngIf="!modalState.isUpdateExternal" [type]="'finish'">{{'common.finish' | translate}}</clr-wizard-button>
+    <clr-wizard-button *ngIf="modalState.isUpdateExternal" [type]="'finish'">{{'common.verify' | translate}}</clr-wizard-button>
     <div *ngIf="modalState.error">
       <clr-alert [clrAlertClosable]="false" clrAlertType="danger">
         <div class="alert-item">
@@ -52,6 +53,7 @@
             <select clrSelect id="smartContractCompilerVersion" name="function" formControlName="compilerVersion">
               <option *ngFor="let element of compilerVersions" [value]="element.commit">{{ element.version }}</option>
             </select>
+            <clr-control-helper *ngIf="modalState.isUpdateExternal">{{'smartContracts.form.verifyHelper' | translate}}</clr-control-helper>
           </clr-select-container>
           <div class="clr-row clr-form-control">
             <label for="smartContractFile" class="clr-control-label required">{{'smartContracts.file' | translate}}</label>

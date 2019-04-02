@@ -283,6 +283,42 @@ public class Compiler {
     }
 
     /**
+     * Verify the given solidity contract code and returns the result of verification.
+     *
+     * @param solidityCode The string containing solidity source code
+     * @param compilerVersion The version of solidity compiler to be verified
+     * @param existingBytecode The string containing existing solidity bytecode
+     * @param selectedContract The name of the solidity contract to be verified
+     *
+     * @return returns true if solidity contract is verified.
+     */
+    public static boolean verify(String solidityCode, String compilerVersion, String compileUrl,
+            String existingBytecode, String selectedContract) {
+        RestTemplate restTemplate = new RestClientBuilder().withBaseUrl(compileUrl)
+                .withNoObjectMapper().build();
+        HttpHeaders headers = new HttpHeaders();
+        Map<String, String> body = new HashMap<String, String>();
+        body.put("compilerVersion", compilerVersion);
+        body.put("sourcecode", solidityCode);
+        body.put("existingBytecode", existingBytecode);
+        body.put("selectedContract", selectedContract);
+        ResponseEntity<String> response = restTemplate.exchange("/verify", HttpMethod.POST,
+                new HttpEntity<>(body, headers), String.class);
+        try {
+            if (response.getStatusCodeValue() == 200) {
+                String responseBody = response.getBody();
+                JSONParser parser = new JSONParser();
+                Map<String, JSONObject> jsonMap = (Map<String, JSONObject>) parser.parse(responseBody);
+                JSONObject result = jsonMap.get("data");
+                return (boolean) result.get("verified");
+            }
+        } catch (ParseException e) {
+            logger.warn("Error in parsed verify response", e);
+        }
+        return false;
+    }
+
+    /**
      * Get solidity compiler versions form the solidity compiler service.
      *
      * @param compileUrl The solidity compiler service url.

@@ -111,7 +111,7 @@ export class ContractFormComponent implements OnInit {
     this.fileInput.nativeElement.value = '';
     if (version && Object.keys(version.metadata).length === 0 && version.sourcecode === '') {
       // Update external mode
-      this.modalTitle = this.translate.instant('smartContracts.updateContract');
+      this.modalTitle = this.translate.instant('smartContracts.verifyContract');
       this.modalState.isUpdateExternal = true;
       this.version = version;
       this.createUpdateExternalContractForm(smartContract, version);
@@ -168,7 +168,9 @@ export class ContractFormComponent implements OnInit {
   onSelectContract() {
     this.constructorParamsForm = new FormGroup({});
     const selectedContract = this.multiContractResponse.find(item => item.contract_name === this.contractsForm.value.selectedContract);
-    this.constructorAbi = selectedContract.metadata.output.abi.find(item => item.type === 'constructor');
+    if (!this.modalState.isUpdateExternal) {
+      this.constructorAbi = selectedContract.metadata.output.abi.find(item => item.type === 'constructor');
+    }
     this.wizard.next();
     this.changeDetectorRef.detectChanges();
   }
@@ -185,9 +187,9 @@ export class ContractFormComponent implements OnInit {
     const encodedConstructorParams = this.encodeConstructorParams();
 
     this.smartContractsService.updateExistingVersion(this.version.contract_id, this.version.version, {
-      from: this.smartContractForm.value.from,
+      from: this.smartContractForm.getRawValue().from,
       contract_id: this.smartContractForm.getRawValue().contractId,
-      version: this.smartContractForm.value.version,
+      version: this.smartContractForm.getRawValue().version,
       sourcecode: this.smartContractForm.value.file,
       contractName: this.contractsForm.value.selectedContract,
       constructorParams: encodedConstructorParams,
@@ -238,6 +240,10 @@ export class ContractFormComponent implements OnInit {
       version: [version.version, [Validators.required]],
       compilerVersion: ['', [Validators.required]],
       file: [null, [Validators.required]]
+    });
+    setTimeout(() => {
+      this.smartContractForm.controls['version'].disable();
+      this.smartContractForm.controls['from'].disable();
     });
   }
 

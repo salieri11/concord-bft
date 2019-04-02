@@ -12,6 +12,7 @@
     "finish": "Finish",
     "edit": "Edit",
     "update": "Update",
+    "verify": "Verify",
     "requiredValidationMessage": "This field is required",
     "copyToClip": "Copy to clipboard",
     "help": "Need Help? Email"
@@ -293,6 +294,7 @@
     "contractOwnerAddress": "Contract Owner Address",
     "createContract": "Deploy Contract",
     "updateContract": "Update Contract",
+    "verifyContract": "Verify Contract",
     "createContractError": "There was an error uploading your contract. Please correct any errors and try again:",
     "viewDetail": "View Details",
     "name": "Name",
@@ -301,8 +303,8 @@
     "file": "File",
     "preview": "Preview",
     "connectWithTruffle": "Connect With Truffle",
-    "externalSourceWarning": "This contract version was deployed from an external source and therefore has no associated sourcecode or metadata.",
-    "externalSourceUpload": "Upload",
+    "externalSourceWarning": "This contract version was deployed from an external source and therefore has no associated sourcecode or metadata.You can verify and publish the contract source code.",
+    "externalSourceUpload": "Verify",
     "paginationSummary": "{{start}} - {{finish}} of {{total}} contracts",
     "version": {
       "title": "Version",
@@ -346,6 +348,7 @@
         "contractAddress": "Contract Address",
         "availableActions": "Available Contract Actions",
         "requiredParameters": "Required Function Parameters",
+        "verified": "Verified smart contract",
         "callHelper": "Call is used for a local invocation, which is a good first step for testing, before clicking send and invoking on the blockchain."
       }
     },
@@ -360,7 +363,8 @@
       "contractSelectionHelper": "Select the contract you'd like to deploy from this file",
       "constructorParametersTitle": "Constructor Parameters",
       "constructorParametersRequiredHelper": "Please provide the parameters for the contract constructor below.",
-      "constructorParametersNotRequiredHelper": "There are no constructor parameters needed to deploy this contract."
+      "constructorParametersNotRequiredHelper": "There are no constructor parameters needed to deploy this contract.",
+      "verifyHelper": "Must select the same solc version you used to deploy the contract."
     },
     "tour": {
       "deployed": {

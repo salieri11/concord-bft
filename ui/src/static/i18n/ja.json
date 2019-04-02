@@ -11,6 +11,7 @@
     "finish": "完了",
     "edit": "編集",
     "update": "更新",
+    "verify": "確認する",
     "requiredValidationMessage": "このフィールドは必須です",
     "copyToClip": "クリップボードにコピー"
   },
@@ -284,6 +285,7 @@
     "contractOwnerAddress": "コントラクト所有者のアドレス",
     "createContract": "コントラクトの展開",
     "updateContract": "コントラクトの更新",
+    "verifyContract": "コントラクトの確認する",
     "createContractError": "コントラクトのアップロード中にエラーが発生しました。エラーを解決して再試行してください。",
     "viewDetail": "詳細の表示",
     "name": "名前",
@@ -292,8 +294,8 @@
     "file": "ファイル",
     "preview": "プレビュー",
     "connectWithTruffle": "Truffle と接続します。",
-    "externalSourceWarning": "このバージョンのコントラクトは外部ソースから展開されたため、関連されるソースコードまたはメタデータはありません。",
-    "externalSourceUpload": "アップロード",
+    "externalSourceWarning": "このバージョンのコントラクトは外部ソースから展開されたため、関連されるソースコードまたはメタデータはありません。契約のソースコードを確認して公開できます。",
+    "externalSourceUpload": "確認する",
     "paginationSummary": "{{total}} 個中 {{start}} ～ {{finish}} のコントラクト",
     "version": {
       "title": "バージョン",
@@ -337,6 +339,7 @@
         "contractAddress": "コントラクトのアドレス",
         "availableActions": "使用可能なコントラクトのアクション",
         "requiredParameters": "必須の関数パラメータ",
+        "verified": "スマート契約は検証済みです",
         "callHelper": "[呼び出し] は、ローカルの呼び出しに使用します。これは、[送信] をクリックしてブロックチェーンで呼び出す前のテストに適しています。"
       }
     },
@@ -351,7 +354,8 @@
       "contractSelectionHelper": "このファイルから展開するコントラクトを選択します",
       "constructorParametersTitle": "コンストラクタのパラメータ",
       "constructorParametersRequiredHelper": "以下のコントラクト コンストラクタのパラメータを指定してください。",
-      "constructorParametersNotRequiredHelper": "このコントラクトの展開に必要なコンストラクタのパラメータがありません。"
+      "constructorParametersNotRequiredHelper": "このコントラクトの展開に必要なコンストラクタのパラメータがありません。",
+      "verifyHelper": "契約の展開に使用したのと同じバージョンのsolcを選択する必要があります。"
     },
     "tour": {
       "deployed": {
