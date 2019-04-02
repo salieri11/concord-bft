@@ -2,8 +2,8 @@
 //
 // Concord Ethereum VM management.
 
-#ifndef CONCORD_EVM_PARAMS_HPP
-#define CONCORD_EVM_PARAMS_HPP
+#ifndef ETHEREUM_EVM_INIT_PARAMS_HPP
+#define ETHEREUM_EVM_INIT_PARAMS_HPP
 
 #include <log4cplus/loggingmacros.h>
 #include <cstdlib>
@@ -12,8 +12,8 @@
 #include <vector>
 #include "common/concord_types.hpp"
 #include "evm.h"
+#include "utils/concord_utils.hpp"
 #include "utils/json.hpp"
-#include "utils/utils.hpp"
 
 namespace com {
 namespace vmware {
@@ -58,4 +58,5 @@ class EVMInitParams {
 }  // namespace concord
 }  // namespace vmware
 }  // namespace com
-#endif  // CONCORD_EVM_PARAMS_HPP
+
+#endif  // ETHEREUM_EVM_INIT_PARAMS_HPP

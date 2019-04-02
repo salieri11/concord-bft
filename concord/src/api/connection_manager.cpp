@@ -4,13 +4,15 @@
 #include "connection_manager.hpp"
 #include <log4cplus/loggingmacros.h>
 
-using namespace com::vmware::concord;
+namespace com {
+namespace vmware {
+namespace concord {
 
 /* statoc logger per class */
 static log4cplus::Logger logger_(
-    log4cplus::Logger::getInstance("com.vmware.concord.connection_manager"));
+    log4cplus::Logger::getInstance("com.vmware.concord.ConnectionManager"));
 
-void connection_manager::start_connection(api_connection::pointer pConn) {
+void ConnectionManager::start_connection(ApiConnection::pointer pConn) {
   LOG4CPLUS_TRACE(logger_, "start_connection enter");
 
   boost::unique_lock<boost::mutex> lock(mutex_);
@@ -23,7 +25,7 @@ void connection_manager::start_connection(api_connection::pointer pConn) {
   LOG4CPLUS_TRACE(logger_, "start_connection exit");
 }
 
-void connection_manager::close_connection(api_connection::pointer pConn) {
+void ConnectionManager::close_connection(ApiConnection::pointer pConn) {
   LOG4CPLUS_TRACE(logger_, "close_connection enter");
 
   boost::unique_lock<boost::mutex> lock(mutex_);
@@ -34,3 +36,7 @@ void connection_manager::close_connection(api_connection::pointer pConn) {
                               << connections_.size());
   LOG4CPLUS_TRACE(logger_, "close_connection exit");
 }
+
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com

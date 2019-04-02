@@ -2,8 +2,8 @@
 
 #include "utils/concord_eth_hash.hpp"
 #include "utils/concord_eth_sign.hpp"
+#include "utils/concord_utils.hpp"
 #include "utils/rlp.hpp"
-#include "utils/utils.hpp"
 
 using namespace std;
 

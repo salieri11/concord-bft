@@ -2,8 +2,8 @@
 //
 // KVBlockchain replica command handler interface for EVM.
 
-#ifndef CONCORD_KVB_HPP
-#define CONCORD_KVB_HPP
+#ifndef CONSENSUS_KVB_COMMANDS_HANDLER_HPP
+#define CONSENSUS_KVB_COMMANDS_HANDLER_HPP
 
 #include <log4cplus/loggingmacros.h>
 #include <boost/program_options.hpp>
@@ -111,4 +111,4 @@ class KVBCommandsHandler : public Blockchain::ICommandsHandler {
 }  // namespace vmware
 }  // namespace com
 
-#endif  // CONCORD_KVB_HPP
+#endif  // CONSENSUS_KVB_COMMANDS_HANDLER_HPP

@@ -1,6 +1,7 @@
 // Copyright 2018 VMware, all rights reserved
 
 #include "status_aggregator.hpp"
+
 #include <boost/asio.hpp>
 #include <boost/thread/thread.hpp>
 #include <memory>
@@ -10,9 +11,12 @@
 #include <unordered_map>
 
 using namespace std;
-using namespace com::vmware::concord;
 using namespace boost;
 using namespace boost::asio;
+
+namespace com {
+namespace vmware {
+namespace concord {
 
 struct EnumHash {
   template <typename T>
@@ -184,3 +188,7 @@ vector<UiPeerInfo> StatusAggregator::get_peers_info() {
   auto res = _pImpl->get_peers_info();
   return res;
 }
+
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com

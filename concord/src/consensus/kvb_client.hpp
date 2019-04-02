@@ -2,9 +2,10 @@
 //
 // Layer between api_connection and Blockchain::IClient
 
-#ifndef CONCORD_KVB_CLIENT_HPP
-#define CONCORD_KVB_CLIENT_HPP
+#ifndef CONSENSUS_KVB_CLIENT_HPP
+#define CONSENSUS_KVB_CLIENT_HPP
 
+#include <log4cplus/loggingmacros.h>
 #include <boost/lockfree/queue.hpp>
 #include <vector>
 
@@ -55,4 +56,4 @@ class KVBClientPool {
 }  // namespace vmware
 }  // namespace com
 
-#endif
+#endif  // CONSENSUS_KVB_CLIENT_HPP

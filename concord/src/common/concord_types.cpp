@@ -2,13 +2,14 @@
 //
 // Common types passed among Concord components.
 
+#include "concord_types.hpp"
+
 #include <keccak.h>
 #include <log4cplus/loggingmacros.h>
 #include <string.h>
 
 #include "common/concord_exception.hpp"
 #include "common/concord_log.hpp"
-#include "common/concord_types.hpp"
 #include "concord_storage.pb.h"
 #include "consensus/kvb/HexTools.h"
 #include "consensus/kvb/sliver.hpp"
@@ -61,7 +62,11 @@ bool operator==(const evm_address &a, const evm_address &b) {
   return memcmp(a.bytes, b.bytes, sizeof(evm_address)) == 0;
 }
 
-std::vector<uint8_t> com::vmware::concord::EthTransaction::rlp() const {
+namespace com {
+namespace vmware {
+namespace concord {
+
+std::vector<uint8_t> EthTransaction::rlp() const {
   RLPBuilder rlpb;
   rlpb.start_list();
 
@@ -100,11 +105,11 @@ std::vector<uint8_t> com::vmware::concord::EthTransaction::rlp() const {
 /**
  * Compute the hash which will be used to reference the transaction.
  */
-evm_uint256be com::vmware::concord::EthTransaction::hash() const {
-  return com::vmware::concord::EthHash::keccak_hash(this->rlp());
+evm_uint256be EthTransaction::hash() const {
+  return EthHash::keccak_hash(this->rlp());
 }
 
-size_t com::vmware::concord::EthTransaction::serialize(uint8_t **serialized) {
+size_t EthTransaction::serialize(uint8_t **serialized) {
   kvb::Transaction out;
 
   out.set_version(tx_storage_version);
@@ -152,8 +157,7 @@ size_t com::vmware::concord::EthTransaction::serialize(uint8_t **serialized) {
   return size;
 }
 
-struct com::vmware::concord::EthTransaction
-com::vmware::concord::EthTransaction::deserialize(Blockchain::Sliver &input) {
+struct EthTransaction EthTransaction::deserialize(Blockchain::Sliver &input) {
   kvb::Transaction intx;
   intx.ParseFromArray(input.data(), input.length());
 
@@ -259,7 +263,7 @@ com::vmware::concord::EthTransaction::deserialize(Blockchain::Sliver &input) {
 /**
  * Compute the hash which will be used to reference the transaction.
  */
-evm_uint256be com::vmware::concord::EthBlock::get_hash() const {
+evm_uint256be EthBlock::get_hash() const {
   /*
    * WARNING: This is not the same as Ethereum's block hash right now,
    * but is instead an approximation, in order to provide something to fill API
@@ -283,10 +287,10 @@ evm_uint256be com::vmware::concord::EthBlock::get_hash() const {
   std::vector<uint8_t> rlp = rlpb.build();
 
   // hash it
-  return com::vmware::concord::EthHash::keccak_hash(rlp);
+  return EthHash::keccak_hash(rlp);
 }
 
-size_t com::vmware::concord::EthBlock::serialize(uint8_t **serialized) {
+size_t EthBlock::serialize(uint8_t **serialized) {
   kvb::Block out;
 
   out.set_version(blk_storage_version);
@@ -308,8 +312,7 @@ size_t com::vmware::concord::EthBlock::serialize(uint8_t **serialized) {
   return size;
 }
 
-struct com::vmware::concord::EthBlock
-com::vmware::concord::EthBlock::deserialize(Blockchain::Sliver &input) {
+struct EthBlock EthBlock::deserialize(Blockchain::Sliver &input) {
   kvb::Block inblk;
   inblk.ParseFromArray(input.data(), input.length());
 
@@ -353,3 +356,7 @@ com::vmware::concord::EthBlock::deserialize(Blockchain::Sliver &input) {
     throw EVMException("Unkown block storage version");
   }
 }
+
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com

@@ -1,8 +1,8 @@
 // Copyright 2018 VMware, all rights reserved
 //
 
-#ifndef CONNECTION_MANAGER_HPP
-#define CONNECTION_MANAGER_HPP
+#ifndef API_CONNECTION_MANAGER_HPP
+#define API_CONNECTION_MANAGER_HPP
 
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
@@ -13,15 +13,15 @@ namespace com {
 namespace vmware {
 namespace concord {
 
-class connection_manager {
+class ConnectionManager {
  public:
-  void start_connection(api_connection::pointer pConn);
+  void start_connection(ApiConnection::pointer pConn);
 
-  void close_connection(api_connection::pointer pConn);
+  void close_connection(ApiConnection::pointer pConn);
 
  private:
   /* Socket being handled. */
-  std::set<com::vmware::concord::api_connection::pointer> connections_;
+  std::set<com::vmware::concord::ApiConnection::pointer> connections_;
   /* Mutex used to protect updates to connections_ set */
   boost::mutex mutex_;
 };

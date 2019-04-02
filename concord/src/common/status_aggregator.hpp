@@ -2,15 +2,15 @@
 //
 // Aggregator for status events. Feeded by various modules
 
-#ifndef CONCORD_STATUS_AGGREGATOR_HPP
-#define CONCORD_STATUS_AGGREGATOR_HPP
+#ifndef COMMON_STATUS_AGGREGATOR_HPP
+#define COMMON_STATUS_AGGREGATOR_HPP
 
 #include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 #include "StatusInfo.h"
-#include "utils/utils.hpp"
+#include "utils/concord_utils.hpp"
 
 namespace com {
 namespace vmware {
@@ -44,4 +44,4 @@ class StatusAggregator {
 }  // namespace vmware
 }  // namespace com
 
-#endif  // CONCORD_STATUS_AGGREGATOR_HPP
+#endif  // COMMON_STATUS_AGGREGATOR_HPP

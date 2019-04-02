@@ -2,6 +2,9 @@
 //
 // Exceptions used in Concord
 
+#ifndef COMMON_CONCORD_EXCEPTION_HPP
+#define COMMON_CONCORD_EXCEPTION_HPP
+
 #include <exception>
 #include <string>
 
@@ -43,3 +46,5 @@ class AccountNotFoundException : public EVMException {
 }  // namespace concord
 }  // namespace vmware
 }  // namespace com
+
+#endif  // COMMON_CONCORD_EXCEPTION_HPP

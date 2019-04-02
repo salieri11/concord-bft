@@ -2,8 +2,8 @@
 //
 // concord common Utilities.
 
-#ifndef CONCORD_UTILS_HPP
-#define CONCORD_UTILS_HPP
+#ifndef UTILS_CONCORD_UTILS_HPP
+#define UTILS_CONCORD_UTILS_HPP
 
 #include <evmjit.h>
 #include <log4cplus/loggingmacros.h>
@@ -35,4 +35,4 @@ std::ostream &hexPrint(std::ostream &s, const uint8_t *data, size_t size);
 }  // namespace vmware
 }  // namespace com
 
-#endif  // CONCORD_UTILS_HPP
+#endif  // UTILS_CONCORD_UTILS_HPP

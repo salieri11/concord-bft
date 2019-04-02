@@ -4,8 +4,8 @@
 // defines the mapping of EVM object to KVB address. It also records updates to
 // be used in minting a block when a transaction finishes.
 
-#ifndef CONCORD_KVB_STORAGE_HPP
-#define CONCORD_KVB_STORAGE_HPP
+#ifndef BLOCKCHAIN_KVB_STORAGE_HPP
+#define BLOCKCHAIN_KVB_STORAGE_HPP
 
 #include <log4cplus/loggingmacros.h>
 #include <vector>
@@ -110,4 +110,4 @@ class KVBStorage {
 }  // namespace vmware
 }  // namespace com
 
-#endif
+#endif  // BLOCKCHAIN_KVB_STORAGE_HPP

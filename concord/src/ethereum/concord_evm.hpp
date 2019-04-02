@@ -2,19 +2,19 @@
 //
 // Concord Ethereum VM management.
 
-#ifndef CONCORD_EVM_HPP
-#define CONCORD_EVM_HPP
+#ifndef ETHEREUM_CONCORD_EVM_HPP
+#define ETHEREUM_CONCORD_EVM_HPP
 
 #include <log4cplus/loggingmacros.h>
 #include <map>
 #include <memory>
 #include <vector>
-#include "blockchain/concord_kvb_storage.hpp"
+#include "blockchain/kvb_storage.hpp"
 #include "common/concord_types.hpp"
 #include "consensus/kvb/BlockchainInterfaces.h"
 #include "evm.h"
 #include "evm_init_params.hpp"
-#include "utils/utils.hpp"
+#include "utils/concord_utils.hpp"
 
 namespace com {
 namespace vmware {
@@ -127,4 +127,4 @@ class EVM {
 }  // namespace vmware
 }  // namespace com
 
-#endif  // CONCORD_EVM_HPP
+#endif  // ETHEREUM_CONCORD_EVM_HPP

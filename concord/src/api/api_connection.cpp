@@ -23,15 +23,16 @@
 // socket. Some verification is done where possible, to avoid send_requesting
 // commands through SBFT if they would just generate errors on the replica side.
 
+#include "api_connection.hpp"
+
 #include <boost/predef/detail/endian_compat.h>
 #include <boost/bind.hpp>
 #include <iostream>
 #include <limits>
 
 #include "api/connection_manager.hpp"
-#include "api_connection.hpp"
 #include "common/concord_log.hpp"
-#include "consensus/concord_kvb_client.hpp"
+#include "consensus/kvb_client.hpp"
 #include "evm.h"
 
 using boost::asio::buffer;
@@ -45,21 +46,24 @@ using boost::system::error_code;
 
 using namespace boost::asio;
 using namespace std;
-using namespace com::vmware::concord;
 
-api_connection::pointer api_connection::create(io_service &io_service,
-                                               connection_manager &connManager,
-                                               KVBClientPool &clientPool,
-                                               StatusAggregator &sag,
-                                               uint64_t gasLimit,
-                                               uint64_t chainID) {
-  return pointer(new api_connection(io_service, connManager, clientPool, sag,
-                                    gasLimit, chainID));
+namespace com {
+namespace vmware {
+namespace concord {
+
+ApiConnection::pointer ApiConnection::create(io_service &io_service,
+                                             ConnectionManager &connManager,
+                                             KVBClientPool &clientPool,
+                                             StatusAggregator &sag,
+                                             uint64_t gasLimit,
+                                             uint64_t chainID) {
+  return pointer(new ApiConnection(io_service, connManager, clientPool, sag,
+                                   gasLimit, chainID));
 }
 
-tcp::socket &api_connection::socket() { return socket_; }
+tcp::socket &ApiConnection::socket() { return socket_; }
 
-void api_connection::start_async() {
+void ApiConnection::start_async() {
   LOG4CPLUS_TRACE(logger_, "start_async enter");
   remotePeer_ = socket_.remote_endpoint();
   LOG4CPLUS_INFO(logger_, "Connection to " << remotePeer_ << " opened by peer");
@@ -69,7 +73,7 @@ void api_connection::start_async() {
   LOG4CPLUS_TRACE(logger_, "start_async exit");
 }
 
-uint16_t api_connection::get_message_length(const char *buffer) {
+uint16_t ApiConnection::get_message_length(const char *buffer) {
   uint16_t msgLen =
       *(static_cast<const uint16_t *>(static_cast<const void *>(buffer)));
 #ifndef BOOST_LITTLE_ENDIAN
@@ -79,7 +83,7 @@ uint16_t api_connection::get_message_length(const char *buffer) {
   return msgLen;
 }
 
-bool api_connection::check_async_error(const boost::system::error_code &ec) {
+bool ApiConnection::check_async_error(const boost::system::error_code &ec) {
   bool res = false;
   if (boost::asio::error::eof == ec) {
     LOG4CPLUS_INFO(logger_, "connection closed by peer");
@@ -91,7 +95,7 @@ bool api_connection::check_async_error(const boost::system::error_code &ec) {
   return res;
 }
 
-void api_connection::on_read_async_header_completed(
+void ApiConnection::on_read_async_header_completed(
     const boost::system::error_code &ec, const size_t bytesRead) {
   LOG4CPLUS_TRACE(logger_, "on_read_async_header_completed enter");
   auto err = check_async_error(ec);
@@ -116,7 +120,7 @@ void api_connection::on_read_async_header_completed(
   LOG4CPLUS_TRACE(logger_, "on_read_async_header_completed exit");
 }
 
-void api_connection::read_async_header() {
+void ApiConnection::read_async_header() {
   LOG4CPLUS_TRACE(logger_, "read_async_header enter");
 
   // clean all previous data
@@ -127,15 +131,15 @@ void api_connection::read_async_header() {
   // async operation will finish when either expectedBytes are read
   // or error occured
   async_read(socket_, boost::asio::buffer(inMsgBuffer_, MSG_LENGTH_BYTES),
-             boost::bind(&api_connection::on_read_async_header_completed,
+             boost::bind(&ApiConnection::on_read_async_header_completed,
                          shared_from_this(), boost::asio::placeholders::error,
                          boost::asio::placeholders::bytes_transferred));
 
   LOG4CPLUS_TRACE(logger_, "read_async exit");
 }
 
-void api_connection::read_async_message(uint16_t offset,
-                                        uint16_t expectedBytes) {
+void ApiConnection::read_async_message(uint16_t offset,
+                                       uint16_t expectedBytes) {
   LOG4CPLUS_TRACE(logger_, "read_async_message enter");
   LOG4CPLUS_DEBUG(logger_,
                   "offset: " << offset << ", expectedBytes: " << expectedBytes);
@@ -143,7 +147,7 @@ void api_connection::read_async_message(uint16_t offset,
   // async operation will finish when either expectedBytes are read
   // or error occured
   async_read(socket_, boost::asio::buffer(inMsgBuffer_ + offset, expectedBytes),
-             boost::bind(&api_connection::on_read_async_message_completed,
+             boost::bind(&ApiConnection::on_read_async_message_completed,
                          shared_from_this(), boost::asio::placeholders::error,
                          boost::asio::placeholders::bytes_transferred));
 
@@ -152,7 +156,7 @@ void api_connection::read_async_message(uint16_t offset,
 
 // this is the handler to async_read, it will be called only if the
 // supplied data buffer for read is full OR error occured
-void api_connection::on_read_async_message_completed(
+void ApiConnection::on_read_async_message_completed(
     const boost::system::error_code &ec, const size_t bytesRead) {
   LOG4CPLUS_TRACE(logger_, "on_read_async_completed enter");
 
@@ -170,7 +174,7 @@ void api_connection::on_read_async_message_completed(
   LOG4CPLUS_TRACE(logger_, "on_read_async_completed exit");
 }
 
-void api_connection::close() {
+void ApiConnection::close() {
   // we should not close socket_ explicitly since we use shared_from_this,
   // so the current api_connetion object and its socket_ object should be
   // destroyed automatically. However, this should be profiled during
@@ -179,7 +183,7 @@ void api_connection::close() {
   connManager_.close_connection(shared_from_this());
 }
 
-void api_connection::on_write_completed(const boost::system::error_code &ec) {
+void ApiConnection::on_write_completed(const boost::system::error_code &ec) {
   if (!ec) {
     LOG4CPLUS_DEBUG(logger_, "sent completed");
   } else {
@@ -191,7 +195,7 @@ void api_connection::on_write_completed(const boost::system::error_code &ec) {
  * Start handling a connection. Read requests from the connection and
  * send back responses until the client disconnects.
  */
-void api_connection::process_incoming() {
+void ApiConnection::process_incoming() {
   std::string pb;
   LOG4CPLUS_TRACE(logger_, "process_incoming enter");
 
@@ -222,7 +226,7 @@ void api_connection::process_incoming() {
   LOG4CPLUS_DEBUG(logger_, "sending back " << to_string(msgLen) << " bytes");
   boost::asio::async_write(
       socket_, boost::asio::buffer(outMsgBuffer_, msgLen + MSG_LENGTH_BYTES),
-      boost::bind(&api_connection::on_write_completed, shared_from_this(),
+      boost::bind(&ApiConnection::on_write_completed, shared_from_this(),
                   boost::asio::placeholders::error));
 
   LOG4CPLUS_DEBUG(logger_, "responded!");
@@ -233,7 +237,7 @@ void api_connection::process_incoming() {
  * Based on what requests are in the message, dispatch to the proper
  * handler.
  */
-void api_connection::dispatch() {
+void ApiConnection::dispatch() {
   // The idea behind checking each request field every time, instead
   // of checking at most one, is that a client could batch
   // requests. We'll see if that's a thing that is reasonable.
@@ -274,7 +278,7 @@ void api_connection::dispatch() {
  * version, and the server responds with its own. A request without a
  * client version might be considered a ping for keep-alive purposes.
  */
-void api_connection::handle_protocol_request() {
+void ApiConnection::handle_protocol_request() {
   LOG4CPLUS_TRACE(logger_, "protocol_request enter");
 
   const ProtocolRequest request = concordRequest_.protocol_request();
@@ -313,7 +317,7 @@ void api_connection::handle_protocol_request() {
  * consensus participants, and maybe also asking to change that list
  * (add/remove members).
  */
-void api_connection::handle_peer_request() {
+void ApiConnection::handle_peer_request() {
   LOG4CPLUS_TRACE(logger_, "handle_peer_request");
 
   const PeerRequest request = concordRequest_.peer_request();
@@ -335,7 +339,7 @@ void api_connection::handle_peer_request() {
 /*
  * Handle an ETH RPC request.
  */
-void api_connection::handle_eth_request(int i) {
+void ApiConnection::handle_eth_request(int i) {
   const EthRequest request = concordRequest_.eth_request(i);
   uint64_t sigV, chainID;
 
@@ -446,7 +450,7 @@ void api_connection::handle_eth_request(int i) {
  * transfer, so it's really only needed if there is no destination account
  * ("to").
  */
-bool api_connection::is_valid_eth_sendTransaction(const EthRequest &request) {
+bool ApiConnection::is_valid_eth_sendTransaction(const EthRequest &request) {
   if (!request.has_addr_from() &&
       !(request.has_sig_v() && request.has_sig_r() && request.has_sig_s())) {
     // We need either "from" or a signature to learn the source of this
@@ -474,7 +478,7 @@ bool api_connection::is_valid_eth_sendTransaction(const EthRequest &request) {
 /**
  * Handle a request for the block list.
  */
-void api_connection::handle_block_list_request() {
+void ApiConnection::handle_block_list_request() {
   const BlockListRequest request = concordRequest_.block_list_request();
 
   ConcordRequest internalAthRequest;
@@ -495,7 +499,7 @@ void api_connection::handle_block_list_request() {
 /**
  * Handle a request for a specific block.
  */
-void api_connection::handle_block_request() {
+void ApiConnection::handle_block_request() {
   const BlockRequest request = concordRequest_.block_request();
 
   if (!(request.has_number() || request.has_hash())) {
@@ -522,7 +526,7 @@ void api_connection::handle_block_request() {
 /**
  * Handle a request for a specific transaction.
  */
-void api_connection::handle_transaction_request() {
+void ApiConnection::handle_transaction_request() {
   const TransactionRequest request = concordRequest_.transaction_request();
 
   if (!request.has_hash()) {
@@ -546,7 +550,7 @@ void api_connection::handle_transaction_request() {
   }
 }
 
-void api_connection::handle_transaction_list_request() {
+void ApiConnection::handle_transaction_list_request() {
   const TransactionListRequest request =
       concordRequest_.transaction_list_request();
 
@@ -565,7 +569,7 @@ void api_connection::handle_transaction_list_request() {
   }
 }
 
-void api_connection::handle_logs_request() {
+void ApiConnection::handle_logs_request() {
   const LogsRequest request = concordRequest_.logs_request();
 
   ConcordRequest internalRequest;
@@ -585,7 +589,7 @@ void api_connection::handle_logs_request() {
 /**
  * Check that an eth_getStorageAt request is valid.
  */
-bool api_connection::is_valid_eth_getStorageAt(const EthRequest &request) {
+bool ApiConnection::is_valid_eth_getStorageAt(const EthRequest &request) {
   if (request.has_addr_to() &&
       request.addr_to().size() == sizeof(evm_address) && request.has_data() &&
       request.data().size() == sizeof(evm_uint256be)) {
@@ -601,7 +605,7 @@ bool api_connection::is_valid_eth_getStorageAt(const EthRequest &request) {
 /**
  * Check that an eth_getCode request is valid.
  */
-bool api_connection::is_valid_eth_getCode(const EthRequest &request) {
+bool ApiConnection::is_valid_eth_getCode(const EthRequest &request) {
   if (request.has_addr_to() &&
       request.addr_to().size() == sizeof(evm_address)) {
     return true;
@@ -615,7 +619,7 @@ bool api_connection::is_valid_eth_getCode(const EthRequest &request) {
 /**
  * Check that an eth_getTransactionCount request is valid.
  */
-bool api_connection::is_valid_eth_getTransactionCount(
+bool ApiConnection::is_valid_eth_getTransactionCount(
     const EthRequest &request) {
   if (request.has_addr_to() &&
       request.addr_to().size() == sizeof(evm_address)) {
@@ -630,7 +634,7 @@ bool api_connection::is_valid_eth_getTransactionCount(
 /**
  * Check that an eth_getBalance request is valid.
  */
-bool api_connection::is_valid_eth_getBalance(const EthRequest &request) {
+bool ApiConnection::is_valid_eth_getBalance(const EthRequest &request) {
   if (request.has_addr_to() &&
       request.addr_to().size() == sizeof(evm_address)) {
     return true;
@@ -646,7 +650,7 @@ bool api_connection::is_valid_eth_getBalance(const EthRequest &request) {
  * likely something we won't include in the final release, but has
  * been useful for testing.
  */
-void api_connection::handle_test_request() {
+void ApiConnection::handle_test_request() {
   const TestRequest request = concordRequest_.test_request();
   if (request.has_echo()) {
     TestResponse *response = concordResponse_.mutable_test_response();
@@ -655,7 +659,7 @@ void api_connection::handle_test_request() {
   }
 }
 
-uint64_t api_connection::current_block_number() {
+uint64_t ApiConnection::current_block_number() {
   ConcordRequest internalReq;
   EthRequest *ethReq = internalReq.add_eth_request();
   ethReq->set_method(EthRequest_EthMethod_BLOCK_NUMBER);
@@ -674,13 +678,12 @@ uint64_t api_connection::current_block_number() {
   return 0;
 }
 
-api_connection::api_connection(io_service &io_service,
-                               connection_manager &manager,
-                               KVBClientPool &clientPool, StatusAggregator &sag,
-                               uint64_t gasLimit, uint64_t chainID)
+ApiConnection::ApiConnection(io_service &io_service, ConnectionManager &manager,
+                             KVBClientPool &clientPool, StatusAggregator &sag,
+                             uint64_t gasLimit, uint64_t chainID)
     : socket_(io_service),
       logger_(
-          log4cplus::Logger::getInstance("com.vmware.concord.api_connection")),
+          log4cplus::Logger::getInstance("com.vmware.concord.ApiConnection")),
       connManager_(manager),
       clientPool_(clientPool),
       sag_(sag),
@@ -688,3 +691,7 @@ api_connection::api_connection(io_service &io_service,
       chainID_(chainID) {
   // nothing to do here yet other than initialize the socket and logger
 }
+
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com

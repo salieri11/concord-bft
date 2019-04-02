@@ -5,13 +5,17 @@
 // This is the end of the client side of Concord. Commands sent from here will
 // end up at KVBCommandsHandler.
 
-#include <log4cplus/loggingmacros.h>
+#include "kvb_client.hpp"
+
 #include <boost/thread.hpp>
 
-#include "concord_kvb_client.hpp"
-#include "kvb/BlockchainInterfaces.h"
+#include "consensus/kvb/BlockchainInterfaces.h"
 
 using namespace com::vmware::concord;
+
+namespace com {
+namespace vmware {
+namespace concord {
 
 /**
  * Send a request to the replicas. Returns true if the response contains
@@ -19,9 +23,8 @@ using namespace com::vmware::concord;
  * message). Returns false if the response is empty (for example, if parsing
  * failed).
  */
-bool com::vmware::concord::KVBClient::send_request_sync(ConcordRequest &req,
-                                                        bool isReadOnly,
-                                                        ConcordResponse &resp) {
+bool KVBClient::send_request_sync(ConcordRequest &req, bool isReadOnly,
+                                  ConcordResponse &resp) {
   std::string command;
   req.SerializeToString(&command);
   memset(m_outBuffer, 0, OUT_BUFFER_SIZE);
@@ -44,8 +47,7 @@ bool com::vmware::concord::KVBClient::send_request_sync(ConcordRequest &req,
   }
 }
 
-com::vmware::concord::KVBClientPool::KVBClientPool(
-    std::vector<KVBClient *> &clients)
+KVBClientPool::KVBClientPool(std::vector<KVBClient *> &clients)
     : logger_(
           log4cplus::Logger::getInstance("com.vmware.concord.KVBClientPool")),
       clients_(clients.size()) {
@@ -54,7 +56,7 @@ com::vmware::concord::KVBClientPool::KVBClientPool(
   }
 }
 
-com::vmware::concord::KVBClientPool::~KVBClientPool() {
+KVBClientPool::~KVBClientPool() {
   while (true) {
     KVBClient *client;
     if (!clients_.pop(client)) {
@@ -67,8 +69,8 @@ com::vmware::concord::KVBClientPool::~KVBClientPool() {
   }
 }
 
-bool com::vmware::concord::KVBClientPool::send_request_sync(
-    ConcordRequest &req, bool isReadOnly, ConcordResponse &resp) {
+bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
+                                      ConcordResponse &resp) {
   while (true) {
     KVBClient *client;
     if (!clients_.pop(client)) {
@@ -81,3 +83,7 @@ bool com::vmware::concord::KVBClientPool::send_request_sync(
     return result;
   }
 }
+
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com

@@ -6,19 +6,21 @@
 
 #include <iostream>
 #include "common/concord_log.hpp"
-#include "utils/utils.hpp"
+#include "utils/concord_utils.hpp"
 
-using namespace com::vmware::concord;
 using log4cplus::Logger;
 using json = nlohmann::json;
 using boost::multiprecision::uint256_t;
 using boost::multiprecision::uint512_t;
 
-com::vmware::concord::EVMInitParams::EVMInitParams()
+namespace com {
+namespace vmware {
+namespace concord {
+
+EVMInitParams::EVMInitParams()
     : logger(Logger::getInstance("com.vmware.concord.evm_init_params")) {}
 
-com::vmware::concord::EVMInitParams::EVMInitParams(
-    const std::string genesis_file_path)
+EVMInitParams::EVMInitParams(const std::string genesis_file_path)
     : logger(Logger::getInstance("com.vmware.concord.evm_init_params")) {
   json genesis_block = parse_genesis_block(genesis_file_path);
 
@@ -70,8 +72,7 @@ com::vmware::concord::EVMInitParams::EVMInitParams(
  * Reads the genesis block json from file @genesis_file_path.
  * This json is parsed and converted into nlohmann::json and returned
  */
-json com::vmware::concord::EVMInitParams::parse_genesis_block(
-    std::string genesis_file_path) {
+json EVMInitParams::parse_genesis_block(std::string genesis_file_path) {
   std::ifstream genesis_stream(genesis_file_path);
   json genesis_block;
   if (genesis_stream.good()) {
@@ -85,8 +86,7 @@ json com::vmware::concord::EVMInitParams::parse_genesis_block(
   return genesis_block;
 }
 
-uint64_t com::vmware::concord::EVMInitParams::parse_number(
-    std::string label, std::string val_str) {
+uint64_t EVMInitParams::parse_number(std::string label, std::string val_str) {
   // Values can have odd nibble counts - pad & retry
   if (val_str.size() % 2 != 0) {
     std::string even_val_str = "0";
@@ -113,18 +113,16 @@ uint64_t com::vmware::concord::EVMInitParams::parse_number(
 }
 
 const std::map<evm_address, evm_uint256be>
-    &com::vmware::concord::EVMInitParams::get_initial_accounts() const {
+    &EVMInitParams::get_initial_accounts() const {
   return initial_accounts;
 }
 
-uint64_t com::vmware::concord::EVMInitParams::get_chainID() const {
-  return chainID;
-}
+uint64_t EVMInitParams::get_chainID() const { return chainID; }
 
-uint64_t com::vmware::concord::EVMInitParams::get_timestamp() const {
-  return timestamp;
-}
+uint64_t EVMInitParams::get_timestamp() const { return timestamp; }
 
-uint64_t com::vmware::concord::EVMInitParams::get_gas_limit() const {
-  return gasLimit;
-}
+uint64_t EVMInitParams::get_gas_limit() const { return gasLimit; }
+
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com

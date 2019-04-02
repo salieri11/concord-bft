@@ -3,6 +3,7 @@
 // Acceptor for connections from the API/UI servers.
 
 #include "api_acceptor.hpp"
+
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
 
@@ -10,15 +11,16 @@ using boost::asio::io_service;
 using boost::asio::ip::tcp;
 using boost::system::error_code;
 
-using namespace com::vmware::concord;
+namespace com {
+namespace vmware {
+namespace concord {
 
-api_acceptor::api_acceptor(io_service &io_service, tcp::endpoint endpoint,
-                           KVBClientPool &clientPool, StatusAggregator &sag,
-                           uint64_t gasLimit, uint64_t chainID)
+ApiAcceptor::ApiAcceptor(io_service &io_service, tcp::endpoint endpoint,
+                         KVBClientPool &clientPool, StatusAggregator &sag,
+                         uint64_t gasLimit, uint64_t chainID)
     : acceptor_(io_service, endpoint),
       clientPool_(clientPool),
-      logger_(
-          log4cplus::Logger::getInstance("com.vmware.concord.api_acceptor")),
+      logger_(log4cplus::Logger::getInstance("com.vmware.concord.ApiAcceptor")),
       sag_(sag),
       gasLimit_(gasLimit),
       chainID_(chainID) {
@@ -28,22 +30,22 @@ api_acceptor::api_acceptor(io_service &io_service, tcp::endpoint endpoint,
   start_accept();
 }
 
-void api_acceptor::start_accept() {
+void ApiAcceptor::start_accept() {
   LOG4CPLUS_TRACE(logger_, "start_accept enter");
 
-  api_connection::pointer new_connection =
-      api_connection::create(acceptor_.get_io_service(), connManager_,
-                             clientPool_, sag_, gasLimit_, chainID_);
+  ApiConnection::pointer new_connection =
+      ApiConnection::create(acceptor_.get_io_service(), connManager_,
+                            clientPool_, sag_, gasLimit_, chainID_);
 
   acceptor_.async_accept(
       new_connection->socket(),
-      boost::bind(&api_acceptor::handle_accept, this, new_connection,
+      boost::bind(&ApiAcceptor::handle_accept, this, new_connection,
                   boost::asio::placeholders::error));
   LOG4CPLUS_TRACE(logger_, "start_accept exit");
 }
 
-void api_acceptor::handle_accept(api_connection::pointer new_connection,
-                                 const boost::system::error_code &error) {
+void ApiAcceptor::handle_accept(ApiConnection::pointer new_connection,
+                                const boost::system::error_code &error) {
   LOG4CPLUS_TRACE(logger_, "handle_accept enter, thread id: "
                                << boost::this_thread::get_id());
   if (!error) {
@@ -56,3 +58,7 @@ void api_acceptor::handle_accept(api_connection::pointer new_connection,
   start_accept();
   LOG4CPLUS_TRACE(logger_, "handle_accept exit");
 }
+
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com

@@ -2,8 +2,8 @@
 //
 // Common types passed among concord components.
 
-#ifndef CONCORD_TYPES_HPP
-#define CONCORD_TYPES_HPP
+#ifndef COMMON_CONCORD_TYPES_HPP
+#define COMMON_CONCORD_TYPES_HPP
 
 #include "concord_log.hpp"
 #include "concord_types.hpp"
@@ -74,4 +74,4 @@ bool operator<(const evm_address &a, const evm_address &b);
 bool operator!=(const evm_address &a, const evm_address &b);
 bool operator==(const evm_address &a, const evm_address &b);
 
-#endif  // CONCORD_TYPES_HPP
+#endif  // COMMON_CONCORD_TYPES_HPP
