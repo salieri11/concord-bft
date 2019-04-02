@@ -4,7 +4,9 @@
 @file:JvmName("ReactiveStream")
 package com.vmware.blockchain.deployment.reactive
 
+import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
+import java.util.function.Supplier
 
 /**
  * Type alias redeclaration of [org.reactivestreams.Publisher] for JVM.
@@ -41,4 +43,57 @@ fun <T> newBaseSubscriber(
             onComplete = { onComplete.run() },
             onCancel = { onCancel.run() }
     )
+}
+
+/**
+ * Convert a [Publisher] to [CompletableFuture] that completes when the first element is observed
+ * via an internal subscriber to the [Publisher] instance, through [Subscriber.onNext(T)].
+ *
+ * @return
+ *   a new instance of [CompletableFuture].
+ */
+fun <T> Publisher<T>.toFuture(): CompletableFuture<T> {
+    val promise = CompletableFuture<T>()
+    var subscription: Subscription? = null
+    subscribe(
+            BaseSubscriber<T>(
+                    onSubscribe = {
+                        it.request(Long.MAX_VALUE)
+                        subscription = it
+                    },
+                    onNext = {
+                        promise.complete(it)
+                        subscription?.cancel()
+                    },
+                    onError = { promise.completeExceptionally(it) }
+            )
+    )
+
+    return promise
+}
+
+/**
+ * Convert a [Publisher] to [CompletableFuture] that completes when [Subscriber.onComplete()] is
+ * observed via an internal subscriber to the [Publisher] instance. All signals observed are
+ * collected into a [MutableCollection] supplied by the input supplier function.
+ *
+ * @param[factory]
+ *   factory to utilize to create an instance of [MutableCollection].
+ * @return
+ *   a new instance of [CompletableFuture].
+ */
+fun <T, C : MutableCollection<T>> Publisher<T>.toFuture(
+    factory: Supplier<C>
+): CompletableFuture<C> {
+    val promise = CompletableFuture<C>()
+    val result = factory.get() // Non-thread-safe is ok due to ReactiveStreams semantics.
+    subscribe(
+            BaseSubscriber<T>(
+                    onNext = { result += it },
+                    onComplete = { promise.complete(result) },
+                    onError = { promise.completeExceptionally(it) }
+            )
+    )
+
+    return promise
 }
