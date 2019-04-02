@@ -5,6 +5,7 @@ LABEL description="Blockchain Management Service (Helen)"
 
 WORKDIR /helen
 COPY ./src/main/resources/application.properties ./application.properties
+COPY ./src/main/resources/database/schema.sql ./db-schema.sql
 COPY ./target/blockchain-helen*.jar ./blockchain-helen.jar
 
 RUN  echo "ConcordAuthorities=concord1:5458,concord2:5458,concord3:5458,concord4:5458" > ./application-test.properties
