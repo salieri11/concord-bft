@@ -34,6 +34,7 @@ class IDBClient {
   virtual Status multiPut(const SetOfKeyValuePairs &_keyValueMap) = 0;
   virtual Status multiDel(const KeysVector &_keysVec) = 0;
   virtual void monitor() const = 0;
+  virtual bool isNew() = 0;
 
   class IDBClientIterator {
    public:

@@ -10,21 +10,22 @@
 #include <iostream>
 #include <string>
 #include <thread>
-#include "api/api_acceptor.hpp"
-#include "common/concord_exception.hpp"
-#include "common/status_aggregator.hpp"
-#include "config/configuration_manager.hpp"
-#include "consensus/kvb/BlockchainDBAdapter.h"
-#include "consensus/kvb/Comparators.h"
-#include "consensus/kvb/DatabaseInterface.h"
-#include "consensus/kvb/InMemoryDBClient.h"
-#include "consensus/kvb/ReplicaImp.h"
-#include "consensus/kvb/bft_configuration.hpp"
-#include "consensus/kvb_commands_handler.hpp"
-#include "ethereum/concord_evm.hpp"
-#include "ethereum/evm_init_params.hpp"
-#include "utils/concord_eth_sign.hpp"
-#include "utils/concord_utils.hpp"
+#include "api_acceptor.hpp"
+#include "common/concord_eth_sign.hpp"
+#include "common/utils.hpp"
+#include "concord_evm.hpp"
+#include "concord_exception.hpp"
+#include "concord_kvb.hpp"
+#include "configuration_manager.hpp"
+#include "consensus/replica_state_sync_imp.hpp"
+#include "evm_init_params.hpp"
+#include "kvb/BlockchainDBAdapter.h"
+#include "kvb/Comparators.h"
+#include "kvb/DatabaseInterface.h"
+#include "kvb/InMemoryDBClient.h"
+#include "kvb/ReplicaImp.h"
+#include "kvb/bft_configuration.hpp"
+#include "status_aggregator.hpp"
 
 #ifdef USE_ROCKSDB
 #include "consensus/kvb/RocksDBClient.h"
@@ -227,6 +228,7 @@ int run_service(variables_map &opts, Logger logger) {
                             opts["SBFT.public"].as<std::string>(), &commConfig,
                             nullptr, &replicaConsensusConfig);
 
+    auto *replicaStateSync = new ReplicaStateSyncImp;
     /* init replica
      * TODO(IG): since ReplicaImpl is used as an implementation of few
      * intefaces, this object will be used for constructing KVBCommandsHandler
@@ -236,7 +238,7 @@ int run_service(variables_map &opts, Logger logger) {
      */
     Blockchain::ReplicaImp *replica =
         dynamic_cast<Blockchain::ReplicaImp *>(Blockchain::createReplica(
-            commConfig, replicaConsensusConfig, dbclient));
+            commConfig, replicaConsensusConfig, dbclient, *replicaStateSync));
 
     // throws an exception if it fails
     EVM athevm(params);
@@ -303,6 +305,7 @@ int run_service(variables_map &opts, Logger logger) {
     replica->stop();
 
     Blockchain::release(replica);
+    delete replicaStateSync;
   } catch (std::exception &ex) {
     LOG4CPLUS_FATAL(logger, ex.what());
     return -1;

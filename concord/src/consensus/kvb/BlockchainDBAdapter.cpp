@@ -275,6 +275,34 @@ Status BlockchainDBAdapter::delBlock(BlockId _blockId) {
   return s;
 }
 
+void BlockchainDBAdapter::deleteBlockAndItsKeys(BlockId blockId) {
+  Sliver blockRaw;
+  bool found = false;
+  Status s = getBlockById(blockId, blockRaw, found);
+  if (!s.isOK()) {
+    LOG4CPLUS_FATAL(logger,
+                    "deleteBlockAndItsKeys: The replica may be "
+                    "corrupted");
+    exit(1);
+  }
+  KeysVector keysVec;
+  if (found && blockRaw.length() > 0) {
+    auto *header = (BlockEntryHeader *)blockRaw.data();
+    for (size_t i = 0; i < header->numberOfElements; i++) {
+      keysVec.push_back(Key(blockRaw, header->entries[i].keyOffset,
+                            header->entries[i].keySize));
+    }
+  }
+  if (found) {
+    keysVec.push_back(KeyManipulator::genBlockDbKey(blockId));
+  }
+  s = m_db->multiDel(keysVec);
+  if (!s.isOK()) {
+    LOG4CPLUS_FATAL(logger, "deleteBlockAndItsKeys: Failed to delete records");
+    exit(1);
+  }
+}
+
 /**
  * @brief Searches for record in the database by the read version.
  *

@@ -32,6 +32,7 @@ class ILocalKeyValueStorageReadOnlyIterator;
 class ILocalKeyValueStorageReadOnly;
 class IBlocksAppender;
 class ICommandsHandler;
+class ReplicaStateSync;
 
 // Communication
 struct CommConfig {
@@ -161,7 +162,8 @@ class IReplica {
 
 // creates a new Replica object
 IReplica* createReplica(Blockchain::CommConfig& commConfig,
-                        ReplicaConsensusConfig& config, IDBClient* db);
+                        ReplicaConsensusConfig& config, IDBClient* db,
+                        ReplicaStateSync& replicaStateSync);
 
 // deletes a Replica object
 void release(IReplica* r);

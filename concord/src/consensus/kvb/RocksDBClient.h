@@ -78,6 +78,7 @@ class RocksDBClient : public IDBClient {
   Status multiDel(const KeysVector &_keysVec) override;
   virtual rocksdb::Iterator *getNewRocksDbIterator() const;
   virtual void monitor() const override;
+  bool isNew() override;
 
  private:
   Status launchBatchJob(rocksdb::WriteBatch &_batchJob,

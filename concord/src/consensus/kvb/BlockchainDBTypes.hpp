@@ -17,9 +17,25 @@
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
+#include "SimpleBCStateTransfer.hpp"
 #include "sliver.hpp"
 
 namespace Blockchain {
+
+struct BlockEntry {
+  uint32_t keyOffset;
+  uint32_t keySize;
+  uint32_t valOffset;
+  uint32_t valSize;
+};
+
+struct BlockEntryHeader {
+  uint32_t numberOfElements;
+  uint32_t parentDigestLength;
+  int8_t
+      parentDigest[bftEngine::SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE];
+  BlockEntry entries[1];  // n>0 entries
+};
 
 enum class EDBKeyType : std::uint8_t {
   E_DB_KEY_TYPE_FIRST = 1,
