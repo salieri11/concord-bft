@@ -48,7 +48,7 @@ message PlacementSpecification {
  */
 message DeploymentSpecification {
     uint32 cluster_size = 1;
-    ConcordModelIdentifier model = 2;
+    ConcordModelSpecification model = 2;
     PlacementSpecification placement = 3;
 }
 
