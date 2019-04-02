@@ -10,9 +10,9 @@
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "common/status_aggregator.hpp"
 #include "concord.pb.h"
-#include "concord_kvb_client.hpp"
-#include "status_aggregator.hpp"
+#include "consensus/concord_kvb_client.hpp"
 
 namespace com {
 namespace vmware {

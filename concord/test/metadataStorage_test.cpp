@@ -8,11 +8,11 @@
 #include <log4cplus/configurator.h>
 #include <log4cplus/hierarchy.h>
 #include <log4cplus/loggingmacros.h>
+#include "consensus/kvb/Comparators.h"
+#include "consensus/kvb/HashDefs.h"
+#include "consensus/kvb/RocksDBClient.h"
+#include "consensus/kvb/RocksDBMetadataStorage.hpp"
 #include "gtest/gtest.h"
-#include "kvb/Comparators.h"
-#include "kvb/HashDefs.h"
-#include "kvb/RocksDBClient.h"
-#include "kvb/RocksDBMetadataStorage.hpp"
 
 using namespace std;
 using namespace Blockchain;

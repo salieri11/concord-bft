@@ -28,10 +28,10 @@
 #include <iostream>
 #include <limits>
 
+#include "api/connection_manager.hpp"
 #include "api_connection.hpp"
-#include "concord_kvb_client.hpp"
-#include "concord_log.hpp"
-#include "connection_manager.hpp"
+#include "common/concord_log.hpp"
+#include "consensus/concord_kvb_client.hpp"
 #include "evm.h"
 
 using boost::asio::buffer;

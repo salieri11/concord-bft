@@ -1,12 +1,19 @@
-file(GLOB concord_src "*.cpp" "*.hpp")
+file(GLOB concord_src "main.cpp"
+  "api/*.cpp"        "api/*.hpp"
+  "blockchain/*.cpp" "blockchain/*.hpp"
+  "common/*.cpp"     "common/*.hpp"
+  "config/*.cpp"     "config/*.hpp"
+  "consensus/*.cpp"  "consensus/*.hpp"
+  "ethereum/*.cpp"   "ethereum/*.hpp"
+)
 
 string(APPEND CMAKE_CXX_FLAGS " -Wall")
 if(NOT APPLE)
 string(APPEND CMAKE_CXX_FLAGS " -Werror")
 endif()
 
-add_subdirectory("common")
-add_subdirectory("kvb")
+add_subdirectory("utils")
+add_subdirectory("consensus/kvb")
 
 add_executable(concord
   ${concord_src}

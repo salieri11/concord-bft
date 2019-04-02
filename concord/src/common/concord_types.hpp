@@ -7,7 +7,7 @@
 
 #include "concord_log.hpp"
 #include "concord_types.hpp"
-#include "kvb/sliver.hpp"
+#include "consensus/kvb/sliver.hpp"
 
 const evm_address zero_address{{0}};
 const evm_uint256be zero_hash{{0}};

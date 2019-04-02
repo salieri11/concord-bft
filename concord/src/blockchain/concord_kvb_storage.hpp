@@ -10,11 +10,11 @@
 #include <log4cplus/loggingmacros.h>
 #include <vector>
 
-#include "concord_types.hpp"
+#include "common/concord_types.hpp"
+#include "consensus/kvb/BlockchainInterfaces.h"
+#include "consensus/kvb/HashDefs.h"
+#include "consensus/kvb/sliver.hpp"
 #include "evm.h"
-#include "kvb/BlockchainInterfaces.h"
-#include "kvb/HashDefs.h"
-#include "kvb/sliver.hpp"
 
 namespace com {
 namespace vmware {

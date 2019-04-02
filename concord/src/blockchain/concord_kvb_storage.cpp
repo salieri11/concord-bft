@@ -66,16 +66,16 @@
 #include <cstring>
 #include <vector>
 
-#include "common/concord_eth_hash.hpp"
-#include "concord_evm.hpp"
-#include "concord_exception.hpp"
+#include "common/concord_exception.hpp"
 #include "concord_kvb_storage.hpp"
 #include "concord_storage.pb.h"
+#include "consensus/kvb/BlockchainInterfaces.h"
+#include "consensus/kvb/HashDefs.h"
+#include "consensus/kvb/HexTools.h"
+#include "consensus/kvb/sliver.hpp"
+#include "ethereum/concord_evm.hpp"
 #include "evm.h"
-#include "kvb/BlockchainInterfaces.h"
-#include "kvb/HashDefs.h"
-#include "kvb/HexTools.h"
-#include "kvb/sliver.hpp"
+#include "utils/concord_eth_hash.hpp"
 
 using namespace Blockchain;
 using namespace com::vmware::concord;

@@ -16,14 +16,14 @@
 #include <google/protobuf/text_format.h>
 #include <iterator>
 #include <vector>
-#include "common/concord_eth_hash.hpp"
-#include "common/concord_eth_sign.hpp"
-#include "common/rlp.hpp"
+#include "common/concord_exception.hpp"
 #include "concord.pb.h"
-#include "concord_evm.hpp"
-#include "concord_exception.hpp"
-#include "kvb/BlockchainInterfaces.h"
-#include "kvb/HexTools.h"
+#include "consensus/kvb/BlockchainInterfaces.h"
+#include "consensus/kvb/HexTools.h"
+#include "ethereum/concord_evm.hpp"
+#include "utils/concord_eth_hash.hpp"
+#include "utils/concord_eth_sign.hpp"
+#include "utils/rlp.hpp"
 
 using Blockchain::IBlocksAppender;
 using Blockchain::ILocalKeyValueStorageReadOnly;

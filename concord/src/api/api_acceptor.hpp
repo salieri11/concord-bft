@@ -8,10 +8,10 @@
 #include <log4cplus/loggingmacros.h>
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
-#include "api_connection.hpp"
-#include "concord_kvb_client.hpp"
-#include "connection_manager.hpp"
-#include "status_aggregator.hpp"
+#include "api/api_connection.hpp"
+#include "api/connection_manager.hpp"
+#include "common/status_aggregator.hpp"
+#include "consensus/concord_kvb_client.hpp"
 
 namespace com {
 namespace vmware {

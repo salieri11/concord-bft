@@ -11,9 +11,9 @@
 #include <iomanip>
 #include <iostream>
 #include <string>
-#include "kvb/BlockchainDBAdapter.h"
-#include "kvb/Comparators.h"
-#include "kvb/RocksDBClient.h"
+#include "consensus/kvb/BlockchainDBAdapter.h"
+#include "consensus/kvb/Comparators.h"
+#include "consensus/kvb/RocksDBClient.h"
 
 using namespace std;
 using namespace Blockchain;
