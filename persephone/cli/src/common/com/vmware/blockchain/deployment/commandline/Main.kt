@@ -8,14 +8,13 @@ import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
 import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification
-import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier
+import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
 import com.vmware.blockchain.deployment.model.core.BearerTokenCredential
 import com.vmware.blockchain.deployment.model.core.Credential
 import com.vmware.blockchain.deployment.model.core.Endpoint
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
-import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSite
-import com.vmware.blockchain.deployment.model.orchestration.VmcOrchestrationSite
+import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.reactive.BaseSubscriber
 import com.vmware.blockchain.deployment.vmc.VmcOrchestrator
@@ -23,6 +22,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -36,33 +36,33 @@ import kotlinx.coroutines.runBlocking
 fun main() {
     val log: Logger = logger(VmcOrchestrator::class)
     val token = BearerTokenCredential("change-me-token")
-    val site = OrchestrationSite(
-            OrchestrationSite.Type.VMC,
-            OrchestrationSite.Info.Vmc(
-                    VmcOrchestrationSite(
-                            authentication = Endpoint(
-                                    URI("https://console.cloud.vmware.com"),
-                                    Credential(Credential.Type.BEARER, tokenCredential = token)
-                            ),
-                            api = Endpoint(URI("https://vmc.vmware.com"), Credential()),
-                            organization = "change-me-org-id",
-                            datacenter = "change-me-dc-id"
-                    )
+    val orgId = "change-me-org-id"
+    val datacenterId = "change-me-dc-id"
+    val site = OrchestrationSiteInfo(
+            OrchestrationSiteInfo.Type.VMC,
+            OrchestrationSiteInfo.Vmc(
+                    authentication = Endpoint(
+                            URI("https://console.cloud.vmware.com"),
+                            Credential(Credential.Type.BEARER, tokenCredential = token)
+                    ),
+                    api = Endpoint(URI("https://vmc.vmware.com"), Credential()),
+                    organization = orgId,
+                    datacenter = datacenterId
             )
     )
 
     runBlocking(Dispatchers.IO + CoroutineName("ProvisioningDispatcher")) {
         coroutineScope {
             val orchestrator = requireNotNull(
-                    VmcOrchestrator.newOrchestrator(site, coroutineContext).await()
+                    VmcOrchestrator.newOrchestrator(site, coroutineContext).awaitSingle()
             )
 
             val request = Orchestrator.CreateComputeResourceRequest(
                     UUID.randomUUID().let {
-                        DeploymentSessionIdentifier(it.mostSignificantBits, it.leastSignificantBits)
+                        ConcordClusterIdentifier(it.mostSignificantBits, it.leastSignificantBits)
                     },
                     UUID.randomUUID().let {
-                        ConcordClusterIdentifier(it.mostSignificantBits, it.leastSignificantBits)
+                        ConcordNodeIdentifier(it.mostSignificantBits, it.leastSignificantBits)
                     },
                     ConcordModelSpecification(
                             version = "123",
@@ -72,13 +72,13 @@ fun main() {
 
             val created = CompletableDeferred<URI>()
             val started = CompletableDeferred<URI>()
-            val resultSubscriber = BaseSubscriber<Orchestrator.DeploymentEvent>(
+            val resultSubscriber = BaseSubscriber<Orchestrator.ComputeResourceEvent>(
                     onNext = {
                         when (it) {
-                            is Orchestrator.DeploymentEvent.Created ->
-                                created.complete(it.resourceIdentifier)
-                            is Orchestrator.DeploymentEvent.Started ->
-                                started.complete(it.resourceIdentifier)
+                            is Orchestrator.ComputeResourceEvent.Created ->
+                                created.complete(it.resource)
+                            is Orchestrator.ComputeResourceEvent.Started ->
+                                started.complete(it.resource)
                             else -> Unit
                         }
                     },
@@ -91,11 +91,11 @@ fun main() {
 
             // Teardown.
             //    launch {
-            //        log.info { "Deleting Control Networks" }
+            //        log.vmc { "Deleting Control Networks" }
             //        orchestrator.deleteLogicalNetwork(createControlNetwork.await())
             //    }
             //    launch {
-            //        log.info { "Deleting Replica Networks" }
+            //        log.vmc { "Deleting Replica Networks" }
             //        orchestrator.deleteLogicalNetwork(createReplicaNetwork.await())
             //    }
         }

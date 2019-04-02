@@ -5,7 +5,7 @@ package com.vmware.blockchain.deployment.orchestration
 
 import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification
-import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier
+import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.reactive.Publisher
 
@@ -30,13 +30,17 @@ interface Orchestrator {
     /**
      * Compute resource deployment creation request specification.
      *
-     * @param[concordModelSpecification]
+     * @param[cluster]
+     *   identifier of the cluster the deployed resource belongs to.
+     * @param[node]
+     *   identifier of the member node.
+     * @param[model]
      *   metadata specification of versioned Concord model template to deploy.
      */
     data class CreateComputeResourceRequest(
-        val sessionIdentifier: DeploymentSessionIdentifier,
-        val clusterIdentifier: ConcordClusterIdentifier,
-        val concordModelSpecification: ConcordModelSpecification
+        val cluster: ConcordClusterIdentifier,
+        val node: ConcordNodeIdentifier,
+        val model: ConcordModelSpecification
     )
 
     /**
@@ -48,12 +52,20 @@ interface Orchestrator {
     data class DeleteComputeResourceRequest(val resource: URI)
 
     /**
+     * Generic interface type denoting a deployment event.
+     */
+    interface OrchestrationEvent
+
+    /**
      * Events corresponding to the execution of a deployment session.
      */
-    sealed class DeploymentEvent {
-        data class Created(val resourceIdentifier: URI) : DeploymentEvent()
-        data class Started(val resourceIdentifier: URI) : DeploymentEvent()
-        data class Deleted(val resourceIdentifier: URI) : DeploymentEvent()
+    sealed class ComputeResourceEvent : OrchestrationEvent {
+        data class Created(
+            val resource: URI,
+            val node: ConcordNodeIdentifier
+        ) : ComputeResourceEvent()
+        data class Started(val resource: URI) : ComputeResourceEvent()
+        data class Deleted(val resource: URI) : ComputeResourceEvent()
     }
 
     /**
@@ -75,27 +87,27 @@ interface Orchestrator {
     /**
      * Events corresponding to the execution of a network address requisition workflow.
      */
-    sealed class NetworkResourceEvent {
-        data class Created(val networkIdentifier: URI) : NetworkResourceEvent()
-        data class Deleted(val networkIdentifier: URI) : NetworkResourceEvent()
+    sealed class NetworkResourceEvent : OrchestrationEvent {
+        data class Created(val resource: URI) : NetworkResourceEvent()
+        data class Deleted(val resource: URI) : NetworkResourceEvent()
     }
 
     /**
      * Allocation request to assign a network resource to a given deployment.
      *
-     * @param[resourceIdentifier]
-     *   deployment unit to assign network resource to.
-     * @param[networkIdentifier]
+     * @param[compute]
+     *   compute resource to allocate network resource to.
+     * @param[network]
      *   network resource to be assigned.
      */
-    data class NetworkAllocationRequest(val resourceIdentifier: URI, val networkIdentifier: URI)
+    data class NetworkAllocationRequest(val compute: URI, val network: URI)
 
     /**
      * Events corresponding to the execution of a network allocation workflow.
      */
-    sealed class NetworkAllocationEvent {
-        object Created : NetworkAllocationEvent()
-        object Deleted : NetworkAllocationEvent()
+    sealed class NetworkAllocationEvent : OrchestrationEvent {
+        data class Created(val compute: URI, val network: URI) : NetworkAllocationEvent()
+        data class Deleted(val compute: URI, val network: URI) : NetworkAllocationEvent()
     }
 
     /**
@@ -110,9 +122,10 @@ interface Orchestrator {
      *   deployment creation request specification.
      *
      * @return
-     *   a [Publisher] of [DeploymentEvent] corresponding to side-effects engendered by the request.
+     *   a [Publisher] of [ComputeResourceEvent] corresponding to side-effects engendered by the
+     *   request.
      */
-    fun createDeployment(request: CreateComputeResourceRequest): Publisher<DeploymentEvent>
+    fun createDeployment(request: CreateComputeResourceRequest): Publisher<ComputeResourceEvent>
 
     /**
      * Delete a Concord deployment based on a given [DeleteComputeResourceRequest].
@@ -121,9 +134,10 @@ interface Orchestrator {
      *   deployment deletion request specification.
      *
      * @return
-     *   a [Publisher] of [DeploymentEvent] corresponding to side-effects engendered by the request.
+     *   a [Publisher] of [ComputeResourceEvent] corresponding to side-effects engendered by the
+     *   request.
      */
-    fun deleteDeployment(request: DeleteComputeResourceRequest): Publisher<DeploymentEvent>
+    fun deleteDeployment(request: DeleteComputeResourceRequest): Publisher<ComputeResourceEvent>
 
     /**
      * Create a reachable network address based on a given [CreateNetworkResourceRequest].

@@ -8,7 +8,7 @@ import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
 import com.vmware.blockchain.deployment.model.nsx.Segment
 import com.vmware.blockchain.deployment.model.nsx.SegmentSubnet
-import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSite
+import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo
 import com.vmware.blockchain.deployment.model.vsphere.GetDatastoreResponse
 import com.vmware.blockchain.deployment.model.vsphere.GetFolderResponse
 import com.vmware.blockchain.deployment.model.vsphere.GetNetworkResponse
@@ -27,17 +27,18 @@ import com.vmware.blockchain.deployment.model.vsphere.VirtualMachinePowerState
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.reactive.Publisher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.reactive.publish
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.random.Random
 
 /**
- * Deployment orchestration driver for VMware Cloud-based [OrchestrationSite].
+ * Deployment orchestration driver for VMware Cloud [orchestration site type]
+ * [OrchestrationSiteInfo.Type.VMC].
  *
  * @param[vmc]
  *   VMware Cloud API client handle.
@@ -51,7 +52,16 @@ class VmcOrchestrator private constructor(
     private val context: CoroutineContext = Dispatchers.Default
 ) : Orchestrator, CoroutineScope {
 
-    companion object {
+    /**
+     * Global singleton companion to [VmcOrchestrator] that also provides a global-scoped process-
+     * wide [CoroutineScope] to launch [VmcOrchestrator]-related coroutines.
+     */
+    companion object : CoroutineScope {
+
+        /** [CoroutineContext] to launch all coroutines associated with this singleton object. */
+        override val coroutineContext: CoroutineContext
+            get() = EmptyCoroutineContext
+
         /**
          * Randomly generate an IPv4 address sub-network constrained within a prefix network range.
          *
@@ -114,7 +124,7 @@ class VmcOrchestrator private constructor(
         }
 
         /**
-         * Create a new [VmcOrchestrator] based on parameter info from a given [OrchestrationSite].
+         * Create a new [VmcOrchestrator] based on parameter vmc from a given [OrchestrationSiteInfo].
          *
          * @param[site]
          *   orchestration information pertaining to a VMC-based orchestration site.
@@ -126,14 +136,13 @@ class VmcOrchestrator private constructor(
          */
         @JvmStatic
         fun newOrchestrator(
-            site: OrchestrationSite,
-            executionContext: CoroutineContext = Dispatchers.IO
-        ): Deferred<VmcOrchestrator?> {
+            site: OrchestrationSiteInfo,
+            executionContext: CoroutineContext = Dispatchers.Default
+        ): Publisher<VmcOrchestrator> {
             // Precondition.
-            require(site.type == OrchestrationSite.Type.VMC)
-            require(site.info is OrchestrationSite.Info.Vmc)
+            require(site.type == OrchestrationSiteInfo.Type.VMC)
 
-            val info = (site.info as OrchestrationSite.Info.Vmc).entries
+            val info = requireNotNull(site.vmc)
             val token = requireNotNull(info.authentication.credential.tokenCredential).token
 
             // Create new VMC client.
@@ -147,37 +156,29 @@ class VmcOrchestrator private constructor(
             val vmc = VmcClient(vmcContext, ModelSerializer)
 
             // Asynchronously create the orchestrator instance based on VMC operation results.
-            return CoroutineScope(executionContext).async {
-                // Use VMC client to obtain vSphere information.
-                getDataCenterInfo(vmc)
-                        ?.let { sddc ->
-                            val nsx = sddc
-                                    .let {
-                                        val base = sddc.resource_config.nsx_api_public_endpoint_url
-                                        val url = "$base/sks-nsxt-manager"
-                                        VmcClient.Context(
-                                                endpoint = URI(url),
-                                                authenticationEndpoint = info.authentication.address,
-                                                refreshToken = token,
-                                                organization = info.organization,
-                                                datacenter = info.datacenter
-                                        )
-                                    }
-                                    .let { VmcClient(it, ModelSerializer) } // Proxied NSX client.
-                            val vsphere = sddc
-                                    .let {
-                                        // Transform SDDC info into vSphere client context.
-                                        VSphereClient.Context(
-                                                endpoint = URI(sddc.resource_config.vc_url),
-                                                username = sddc.resource_config.cloud_username,
-                                                password = sddc.resource_config.cloud_password
-                                        )
-                                    }
-                                    .let { VSphereClient(it, ModelSerializer) } // vSphere client.
+            return publish(executionContext) {
+                // Use VMC client to obtain VMC SDDC information.
+                getDataCenterInfo(vmc)?.apply {
+                    // Use VMC SDDC vmc to create NSX client.
+                    val nsxUrl = "${resource_config.nsx_api_public_endpoint_url}/sks-nsxt-manager"
+                    val nsx = VmcClient.Context(
+                            endpoint = URI(nsxUrl),
+                            authenticationEndpoint = info.authentication.address,
+                            refreshToken = token,
+                            organization = info.organization,
+                            datacenter = info.datacenter
+                    ).let { VmcClient(it, ModelSerializer) } // Proxied NSX client.
 
-                            // New Orchestrator instance.
-                            VmcOrchestrator(vmc, vsphere, nsx, executionContext)
-                        }
+                    // Use VMC SDDC vmc to create vSphere client.
+                    val vsphere = VSphereClient.Context(
+                            endpoint = URI(resource_config.vc_url),
+                            username = resource_config.cloud_username,
+                            password = resource_config.cloud_password
+                    ).let { VSphereClient(it, ModelSerializer) } // vSphere client.
+
+                    // New Orchestrator instance.
+                    send(VmcOrchestrator(vmc, vsphere, nsx, executionContext))
+                }?: close(RuntimeException("Cannot retrieve site authorization information"))
             }
         }
     }
@@ -195,9 +196,9 @@ class VmcOrchestrator private constructor(
 
     override fun createDeployment(
         request: Orchestrator.CreateComputeResourceRequest
-    ): Publisher<Orchestrator.DeploymentEvent> {
-        val sessionId = UUID(request.sessionIdentifier.high, request.sessionIdentifier.low)
-        val clusterId = UUID(request.clusterIdentifier.high, request.clusterIdentifier.low)
+    ): Publisher<Orchestrator.ComputeResourceEvent> {
+        val clusterId = UUID(request.cluster.high, request.cluster.low)
+        val nodeId = UUID(request.node.high, request.node.low)
         return publish(coroutineContext) {
             val getFolder = async { getFolder() }
             val getDatastore = async { getDatastore() }
@@ -208,7 +209,7 @@ class VmcOrchestrator private constructor(
             val ensureReplicaNetwork = async {
                 ensureLogicalNetwork("cgw", "blockchain-data-$clusterId", 0x0AFF0000, 16)
             }
-            val getLibraryItem = async { getLibraryItem(request.concordModelSpecification.template) }
+            val getLibraryItem = async { getLibraryItem(request.model.template) }
 
             // Collect all information and deploy.
             val folder = getFolder.await()
@@ -218,7 +219,7 @@ class VmcOrchestrator private constructor(
             val dataNetwork = ensureReplicaNetwork.await()
             val libraryItem = getLibraryItem.await()
             val instance = createVirtualMachine(
-                    instanceName = "$clusterId-$sessionId",
+                    instanceName = "$clusterId-$nodeId",
                     libraryItem = requireNotNull(libraryItem),
                     datastore = requireNotNull(datastore),
                     resourcePool = requireNotNull(resourcePool),
@@ -231,16 +232,18 @@ class VmcOrchestrator private constructor(
             // 2. Then start the instance.
             // 3. If instance is started, send the started event signal.
             // 4. If anything failed, send error signal with the request as the argument.
-            instance?.apply { send(Orchestrator.DeploymentEvent.Created(URI(this))) }
+            instance?.apply {
+                        send(Orchestrator.ComputeResourceEvent.Created(URI(this), request.node))
+                    }
                     ?.takeIf { ensureVirtualMachinePowerStart(instance) }
-                    ?.apply { send(Orchestrator.DeploymentEvent.Started(URI(instance))) }
+                    ?.apply { send(Orchestrator.ComputeResourceEvent.Started(URI(this))) }
                     ?: close(Orchestrator.ResourceCreationFailedException(request))
         }
     }
 
     override fun deleteDeployment(
         request: Orchestrator.DeleteComputeResourceRequest
-    ): Publisher<Orchestrator.DeploymentEvent> {
+    ): Publisher<Orchestrator.ComputeResourceEvent> {
         return publish(coroutineContext) {
             TODO("NOT YET IMPLEMENTED")
         }
@@ -249,8 +252,8 @@ class VmcOrchestrator private constructor(
     override fun createNetworkAddress(
         request: Orchestrator.CreateNetworkResourceRequest
     ): Publisher<Orchestrator.NetworkResourceEvent> {
-        return publish(coroutineContext) {
-            TODO("NOT YET IMPLEMENTED")
+        return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
+            send(Orchestrator.NetworkResourceEvent.Created(URI("")))
         }
     }
 
@@ -265,8 +268,8 @@ class VmcOrchestrator private constructor(
     override fun createNetworkAllocation(
         request: Orchestrator.NetworkAllocationRequest
     ): Publisher<Orchestrator.NetworkAllocationEvent> {
-        return publish(coroutineContext) {
-            TODO("NOT YET IMPLEMENTED")
+        return publish<Orchestrator.NetworkAllocationEvent>(coroutineContext) {
+            send(Orchestrator.NetworkAllocationEvent.Created(URI(""), URI("")))
         }
     }
 
