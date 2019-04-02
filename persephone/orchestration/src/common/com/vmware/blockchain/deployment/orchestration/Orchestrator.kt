@@ -71,10 +71,17 @@ interface Orchestrator {
     /**
      * Network resource provisioning request specification.
      *
+     * @param[name]
+     *   name of the network resource to create, for [Orchestrator] backends that associate network
+     *   resource with additional naming identifiers or surrogate identifiers to each provisioned
+     *   network resource.
      * @param[public]
      *   whether network resource must be externally reachable outside of the orchestration site.
      */
-    data class CreateNetworkResourceRequest(val public: Boolean)
+    data class CreateNetworkResourceRequest(
+        val name: String,
+        val public: Boolean
+    )
 
     /**
      * Network resource de-provisioning request specification.

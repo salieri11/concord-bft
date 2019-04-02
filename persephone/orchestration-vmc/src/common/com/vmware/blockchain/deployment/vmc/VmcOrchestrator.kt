@@ -6,6 +6,8 @@ package com.vmware.blockchain.deployment.vmc
 import com.vmware.blockchain.deployment.vm.InitScript
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
+import com.vmware.blockchain.deployment.model.nsx.NatRule
+import com.vmware.blockchain.deployment.model.nsx.PublicIP
 import com.vmware.blockchain.deployment.model.nsx.Segment
 import com.vmware.blockchain.deployment.model.nsx.SegmentSubnet
 import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo
@@ -225,7 +227,8 @@ class VmcOrchestrator private constructor(
                     resourcePool = requireNotNull(resourcePool),
                     folder = requireNotNull(folder),
                     controlNetwork = controlNetwork,
-                    dataNetwork = dataNetwork
+                    dataNetwork = dataNetwork,
+                    initScript = InitScript(request.model)
             )
 
             // 1. If instance is created, send the created event signal.
@@ -253,7 +256,12 @@ class VmcOrchestrator private constructor(
         request: Orchestrator.CreateNetworkResourceRequest
     ): Publisher<Orchestrator.NetworkResourceEvent> {
         return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
-            send(Orchestrator.NetworkResourceEvent.Created(URI("")))
+            createPublicIP(request.name)
+                    ?.ip
+                    ?.apply {
+                        send(Orchestrator.NetworkResourceEvent.Created(URI(this)))
+                    }
+                    ?: close(Orchestrator.ResourceCreationFailedException(request))
         }
     }
 
@@ -269,7 +277,7 @@ class VmcOrchestrator private constructor(
         request: Orchestrator.NetworkAllocationRequest
     ): Publisher<Orchestrator.NetworkAllocationEvent> {
         return publish<Orchestrator.NetworkAllocationEvent>(coroutineContext) {
-            send(Orchestrator.NetworkAllocationEvent.Created(URI(""), URI("")))
+            send(Orchestrator.NetworkAllocationEvent.Created(request.compute, request.network))
         }
     }
 
@@ -532,8 +540,8 @@ class VmcOrchestrator private constructor(
      */
     private suspend fun getLibraryItem(name: String): String? {
         // TODO: Finish integration work with Content Library API.
-        // return "a1500e02-5cd7-4afd-8429-1695f2fd8d6c"
-        return "f4ccb861-6716-4e08-b58d-323977f13aab"
+        // return "f4ccb861-6716-4e08-b58d-323977f13aab"
+        return "dad738c1-43d8-4138-8fcc-52a7d86ff52b"
     }
 
     /**
@@ -546,7 +554,8 @@ class VmcOrchestrator private constructor(
         resourcePool: String,
         folder: String,
         controlNetwork: String,
-        dataNetwork: String
+        dataNetwork: String,
+        initScript: InitScript
     ): String? {
         val deployRequest = LibraryItemDeployRequest(
                 LibraryItemDeploymentSpec(
@@ -564,7 +573,7 @@ class VmcOrchestrator private constructor(
                                         properties = listOf(
                                                 OvfProperty("instance-id", instanceName),
                                                 OvfProperty("hostname", "replica"),
-                                                OvfProperty("user-data", String(InitScript().base64()))
+                                                OvfProperty("user-data", String(initScript.base64()))
                                         )
                                 )
                         )
@@ -664,7 +673,7 @@ class VmcOrchestrator private constructor(
                     powerOnVirtualMachine(name)
 
                     // Do not engage next iteration immediately.
-                    delay(100) // 100ms.
+                    delay(500) // 500ms.
                 }
                 VirtualMachinePowerState.POWERED_ON -> {
                     iterating = false
@@ -679,5 +688,79 @@ class VmcOrchestrator private constructor(
         }
 
         return confirmed
+    }
+
+    /**
+     * Allocate a new public IP address for use, with a given name as the identifier.
+     *
+     * @param[name]
+     *   identifier of the IP address resource.
+     *
+     * @return
+     *   allocated IP address resource as a instance of [PublicIP], if created, `null` otherwise.
+     */
+    private suspend fun createPublicIP(name: String): PublicIP? {
+        return nsx
+                .put<PublicIP, PublicIP>(
+                        path = Endpoints.VMC_PUBLIC_IP
+                                .interpolate(pathVariables = listOf("{ip_id}" to name)),
+                        contentType = "application/json",
+                        headers = emptyList(),
+                        body = PublicIP(id = name, display_name = name)
+                )
+                .takeIf { it.statusCode() == 200 }
+                ?.let { it.body() }
+    }
+
+    /**
+     * Create a NAT rule based on the given parameters.
+     *
+     * @param[tier1]
+     *   tier-1 network that the NAT region is under for NAT rule addition.
+     * @param[nat]
+     *   NAT region to add rule to.
+     * @param[name]
+     *   identifier to assign to the NAT rule.
+     * @param[action]
+     *   type of NAT action.
+     * @param[sourceNetwork]
+     *   source address(es) to translate for SNAT and REFLEXIVE rules.
+     * @param[destinationNetwork]
+     *   destination address(es) to translate for DNAT and REFLEXIVE rules.
+     * @param[translatedNetwork]
+     *   network address to apply translation into.
+     * @param[translatedPorts]
+     *   network ports to apply translation.
+     */
+    private suspend fun createNatRule(
+        tier1: String,
+        nat: String,
+        name: String,
+        action: NatRule.Action,
+        sourceNetwork: String,
+        destinationNetwork: String,
+        translatedNetwork: String,
+        translatedPorts: String
+    ): NatRule? {
+        return nsx
+                .patch<NatRule, NatRule>(
+                        path = Endpoints.NSX_NAT_RULE
+                                .interpolate(pathVariables = listOf(
+                                        "{network}" to tier1,
+                                        "{nat}" to nat,
+                                        "{nat_rule}" to name
+                                )),
+                        contentType = "application/json",
+                        headers = emptyList(),
+                        body = NatRule(
+                                action = action,
+                                source_network = sourceNetwork,
+                                destination_network = destinationNetwork,
+                                translated_network = translatedNetwork,
+                                translated_ports = translatedPorts
+                        )
+                )
+                .takeIf { it.statusCode() == 200 }
+                ?.let { it.body()}
     }
 }

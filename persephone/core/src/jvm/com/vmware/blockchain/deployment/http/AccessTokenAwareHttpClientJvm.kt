@@ -191,6 +191,43 @@ actual abstract class AccessTokenAwareHttpClient(
     }
 
     /**
+     * Send a HTTP PUT with content specified by parameter and return the response with response
+     * body mapped to a typed instance if request was successful.
+     *
+     * @param[path]
+     *   path to be resolved against the base [serviceEndpoint].
+     * @param[contentType]
+     *   HTTP content type.
+     * @param[headers]
+     *   list of HTTP headers to be set for the request.
+     * @param[body]
+     *   request body.
+     *
+     * @return
+     *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
+     */
+    actual suspend inline fun <reified R, reified T> put(
+        path: String,
+        contentType: String,
+        headers: List<Pair<String, String>>,
+        body: R?
+    ): HttpResponse<T?> {
+        val bodyPublisher = body
+                // Note: Serializer may throw exception, which is not going to be caught here.
+                ?.let { serializer.toJson(body) }
+                ?.let { JdkHttpRequest.BodyPublishers.ofString(it) }
+                ?: JdkHttpRequest.BodyPublishers.noBody()
+        val httpRequest = JdkHttpRequest.newBuilder()
+                .PUT(bodyPublisher)
+                .uri(serviceEndpoint.resolve(path))
+                .header("Content-Type", contentType)
+                .header(internalAccessTokenHeader(), token())
+                .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
+                .build()
+        return request(httpRequest)
+    }
+
+    /**
      * Send a HTTP PATCH with content specified by parameter and return the response with response
      * body mapped to a typed instance if request was successful.
      *

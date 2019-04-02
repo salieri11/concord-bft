@@ -13,12 +13,22 @@ enum class Endpoints(
     private val parameterMappings: Set<String>,
     private val pathMappings: Set<String> = emptySet()
 ) {
+    NSX_NAT_RULE(
+            "policy/api/v1/infra/networks/{network}/nat/{nat}/nat-rules/{nat_rule}",
+            emptySet(),
+            setOf("{network}", "{nat_id}", "{nat_rule_id}")
+    ),
     NSX_NETWORK_SEGMENT(
             "policy/api/v1/infra/tier-1s/{tier1}/segments/{segment}",
             emptySet(),
             setOf("{tier1}", "{segment}")
     ),
     VMC_AUTHENTICATION("/csp/gateway/am/api/auth/api-tokens/authorize", setOf("refresh_token")),
+    VMC_PUBLIC_IP(
+            "cloud-service/api/v1/infra/public-ips/{ip_id}",
+            emptySet(),
+            setOf("{ip_id}")
+    ),
     VMC_SDDC(
             "/vmc/api/orgs/{org}/sddcs/{sddc}",
             emptySet(),
@@ -34,6 +44,7 @@ enum class Endpoints(
             setOf("{library_item}")
     ),
     VSPHERE_NETWORKS("/rest/vcenter/network", setOf("filter.types", "filter.names")),
+    VSPHERE_VM("/rest/vcenter/vm/{vm}", emptySet(), setOf("{vm}")),
     VSPHERE_VM_POWER("/rest/vcenter/vm/{vm}/power", emptySet(), setOf("{vm}")),
     VSPHERE_VM_POWER_START("/rest/vcenter/vm/{vm}/power/start", emptySet(), setOf("{vm}")),
     VSPHERE_VM_POWER_STOP("/rest/vcenter/vm/{vm}/power/stop", emptySet(), setOf("{vm}"));
