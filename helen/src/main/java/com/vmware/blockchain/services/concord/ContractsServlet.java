@@ -41,7 +41,9 @@ import com.vmware.blockchain.services.ConcordServlet;
 import com.vmware.blockchain.services.contracts.BriefContractInfo;
 import com.vmware.blockchain.services.contracts.BriefVersionInfo;
 import com.vmware.blockchain.services.contracts.Compiler;
+import com.vmware.blockchain.services.contracts.Contract;
 import com.vmware.blockchain.services.contracts.ContractRegistryManager;
+import com.vmware.blockchain.services.contracts.ContractRepository;
 import com.vmware.blockchain.services.contracts.FullVersionInfo;
 import com.vmware.blockchain.services.ethereum.EthDispatcher;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
@@ -64,6 +66,8 @@ public class ContractsServlet extends ConcordServlet {
     private AuthHelper authHelper;
     @Value("${compilerService.url}")
     private String compilerServiceUrl;
+    @Autowired
+    private ContractRepository contractReopository;
 
     @Autowired
     public ContractsServlet(ContractRegistryManager registryManger, EthDispatcher ethDispatcher,
@@ -349,37 +353,41 @@ public class ContractsServlet extends ConcordServlet {
         try {
             JSONParser parser = new JSONParser();
             JSONObject requestObject = (JSONObject) parser.parse(paramString);
-
             String from = (String) requestObject.get("from");
             String contractId = (String) requestObject.get("contract_id");
-            String contractVersion = (String) requestObject.get("version");
             String solidityCode = (String) requestObject.get("sourcecode");
             String selectedContract = (String) requestObject.get("contractName");
             String constructorParams = (String) requestObject.get("constructorParams");
             String compilerVersion = (String) requestObject.get("compilerVersion");
-            if (registryManager.hasContractVersion(contractId, contractVersion, getBlockchainId(id))) {
+            List<Contract> contracts = contractReopository.findByNameAndVersionNameAndBlockchainId(
+                    existingContractId,
+                    existingVersionName, getBlockchainId(id));
+            String existingBytecode = contracts.get(0).getBytecode();
+            if (!registryManager.hasContractVersion(existingContractId, existingVersionName, getBlockchainId(id))) {
                 responseEntity =
-                        new ResponseEntity<>(errorJson("contract with same name and version " + "already exists"),
+                        new ResponseEntity<>(errorJson("contract with same name and version " + "not exist"),
                                 HttpStatus.CONFLICT);
             } else {
                 Compiler.Result result = Compiler.compile(solidityCode, compilerVersion, compilerServiceUrl);
-                if (result.isSuccess()) {
-                    String byteCode = result.getByteCodeMap().get(selectedContract) + constructorParams;
-
+                boolean flag = Compiler.verify(solidityCode, compilerVersion, compilerServiceUrl,
+                        existingBytecode,
+                        selectedContract);
+                if (flag) {
                     boolean success = registryManager.updateExistingContractVersion(existingContractId,
-                            existingVersionName, contractId, from, contractVersion,
+                            existingVersionName, contractId, from, existingVersionName,
                             result.getMetadataMap().get(selectedContract), solidityCode, getBlockchainId(id));
-
                     if (success) {
                         FullVersionInfo fvInfo =
-                                registryManager.getContractVersion(contractId, contractVersion, getBlockchainId(id));
+                            registryManager.getContractVersion(contractId, existingVersionName, getBlockchainId(id));
                         return new ResponseEntity<>(buildVersionJson(fvInfo), HttpStatus.OK);
                     } else {
                         responseEntity = new ResponseEntity<>(errorJson("unable to update contract."),
-                                HttpStatus.INTERNAL_SERVER_ERROR);
+                            HttpStatus.INTERNAL_SERVER_ERROR);
                     }
                 } else {
-                    responseEntity = new ResponseEntity<>(errorJson("Compilation failure:\n" + result.getStderr()),
+                    responseEntity = new ResponseEntity<>(
+                            errorJson("Verification failure:\n"
+                                    + "The uploaded contract does not match this contract."),
                             HttpStatus.BAD_REQUEST);
                 }
             }

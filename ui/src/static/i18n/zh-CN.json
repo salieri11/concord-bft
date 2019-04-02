@@ -11,6 +11,7 @@
     "finish": "完成",
     "edit": "编辑",
     "update": "更新",
+    "verify": "验证",
     "requiredValidationMessage": "此字段为必填字段",
     "copyToClip": "复制到剪贴板"
   },
@@ -284,6 +285,7 @@
     "contractOwnerAddress": "合约所有者地址",
     "createContract": "部署合约",
     "updateContract": "更新合约",
+    "verifyContract": "验证合约",
     "createContractError": "上载合约时出错。请更正任何错误，然后重试:",
     "viewDetail": "查看详细信息",
     "name": "名称",
@@ -292,8 +294,8 @@
     "file": "文件",
     "preview": "预览",
     "connectWithTruffle": "使用 Truffle 连接",
-    "externalSourceWarning": "此合约版本从外部源部署，因此没有关联的源代码或元数据。",
-    "externalSourceUpload": "上载",
+    "externalSourceWarning": "此合约版本从外部源部署，因此没有关联的源代码或元数据。您可以验证并发布合同源代码。",
+    "externalSourceUpload": "验证",
     "paginationSummary": "合约 {{start}} - {{finish}}/共 {{total}} 个",
     "version": {
       "title": "版本",
@@ -337,6 +339,7 @@
         "contractAddress": "合约地址",
         "availableActions": "可用合约操作",
         "requiredParameters": "方法功能参数",
+        "verified": "此合约已经通过验证",
         "callHelper": "可以使用此操作执行本地调用，最好先执行这一步进行测试，之后再单击发送并在区块链上调用。"
       }
     },
@@ -351,7 +354,8 @@
       "contractSelectionHelper": "从此文件中选择要部署的合约",
       "constructorParametersTitle": "构造函数参数",
       "constructorParametersRequiredHelper": "请在下面提供合约构造函数的参数。",
-      "constructorParametersNotRequiredHelper": "部署此合约不需要构造函数参数。"
+      "constructorParametersNotRequiredHelper": "部署此合约不需要构造函数参数。",
+      "verifyHelper": "必须选择用于部署合同的相同solc版本。"
     },
     "tour": {
       "deployed": {
