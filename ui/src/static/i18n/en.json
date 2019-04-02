@@ -755,7 +755,7 @@
         },
         "email": {
           "title": "Email",
-          "placeholder": "emailid@doamin.com"
+          "placeholder": "email@domain.com"
         },
         "role": {
           "title": "Role",

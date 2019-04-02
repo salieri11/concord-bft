@@ -11,7 +11,7 @@ import { Component } from '@angular/core';
 })
 export class ConnectWithTruffleComponent {
   open: boolean = false;
-  truffleSetup: string = `npm install web3@0.19.0 --save`;
+  truffleSetup: string = `npm install web3@0.20.7 --save`;
   truffleExample1: string = `
   Web3 = require('web3');
 
