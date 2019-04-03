@@ -23,6 +23,7 @@
 // of the encoded vector.
 
 #include "rlp.hpp"
+
 #include <assert.h>
 #include <algorithm>
 #include <memory>

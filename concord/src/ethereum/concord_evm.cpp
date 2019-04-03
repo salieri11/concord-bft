@@ -2,23 +2,24 @@
 //
 // Concord Ethereum VM management.
 
+#include "concord_evm.hpp"
+
 #include <log4cplus/loggingmacros.h>
 #include <cstring>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
 
-#include "blockchain/concord_kvb_storage.hpp"
+#include "blockchain/kvb_storage.hpp"
 #include "common/concord_exception.hpp"
 #include "common/concord_log.hpp"
 #include "common/concord_types.hpp"
-#include "concord_evm.hpp"
 #include "consensus/kvb/BlockchainInterfaces.h"
 #include "consensus/kvb/HashDefs.h"
 #include "consensus/kvb/HexTools.h"
 #include "utils/concord_eth_hash.hpp"
+#include "utils/concord_utils.hpp"
 #include "utils/rlp.hpp"
-#include "utils/utils.hpp"
 
 #ifdef USE_HERA
 #include "hera.h"
@@ -26,14 +27,17 @@
 #include "evmjit.h"
 #endif
 
-using namespace com::vmware::concord;
 using boost::multiprecision::uint256_t;
 using log4cplus::Logger;
+
+namespace com {
+namespace vmware {
+namespace concord {
 
 /**
  * Initialize the concord/evm context and start the evm instance.
  */
-com::vmware::concord::EVM::EVM(EVMInitParams params)
+EVM::EVM(EVMInitParams params)
     : logger(Logger::getInstance("com.vmware.concord.evm")),
       chainId(params.get_chainID()) {
 #ifdef USE_HERA
@@ -52,14 +56,13 @@ com::vmware::concord::EVM::EVM(EVMInitParams params)
 /**
  * Shutdown the EVM instance and destroy the concord context.
  */
-com::vmware::concord::EVM::~EVM() {
+EVM::~EVM() {
   evminst->destroy(evminst);
   LOG4CPLUS_INFO(logger, "EVM stopped");
 }
 
-void com::vmware::concord::EVM::transfer_fund(evm_message& message,
-                                              KVBStorage& kvbStorage,
-                                              evm_result& result) {
+void EVM::transfer_fund(evm_message& message, KVBStorage& kvbStorage,
+                        evm_result& result) {
   uint256_t transfer_val = to_uint256_t(&message.value);
 
   try {
@@ -109,12 +112,10 @@ void com::vmware::concord::EVM::transfer_fund(evm_message& message,
  * transaction is recorded. However for 'call' way there is no transaction to
  * record, it is a simple read storage operation.
  */
-evm_result com::vmware::concord::EVM::run(evm_message& message,
-                                          uint64_t timestamp,
-                                          KVBStorage& kvbStorage,
-                                          std::vector<EthLog>& evmLogs,
-                                          const evm_address& origin,
-                                          const evm_address& storage_contract) {
+evm_result EVM::run(evm_message& message, uint64_t timestamp,
+                    KVBStorage& kvbStorage, std::vector<EthLog>& evmLogs,
+                    const evm_address& origin,
+                    const evm_address& storage_contract) {
   assert(message.kind != EVM_CREATE);
 
   std::vector<uint8_t> code;
@@ -168,12 +169,10 @@ evm_result com::vmware::concord::EVM::run(evm_message& message,
 /**
  * Create a contract.
  */
-evm_result com::vmware::concord::EVM::create(evm_address& contract_address,
-                                             evm_message& message,
-                                             uint64_t timestamp,
-                                             KVBStorage& kvbStorage,
-                                             std::vector<EthLog>& evmLogs,
-                                             const evm_address& origin) {
+evm_result EVM::create(evm_address& contract_address, evm_message& message,
+                       uint64_t timestamp, KVBStorage& kvbStorage,
+                       std::vector<EthLog>& evmLogs,
+                       const evm_address& origin) {
   assert(message.kind == EVM_CREATE);
   assert(message.input_size > 0);
 
@@ -255,8 +254,8 @@ evm_result com::vmware::concord::EVM::create(evm_address& contract_address,
  * Contract destination is the low 20 bytes of the SHA3 hash of the RLP encoding
  * of [sender_address, sender_nonce].
  */
-evm_address com::vmware::concord::EVM::contract_destination(
-    evm_address& sender, uint64_t nonce) const {
+evm_address EVM::contract_destination(evm_address& sender,
+                                      uint64_t nonce) const {
   RLPBuilder rlpb;
   rlpb.start_list();
 
@@ -283,10 +282,11 @@ evm_address com::vmware::concord::EVM::contract_destination(
   return address;
 }
 
-evm_result com::vmware::concord::EVM::execute(
-    evm_message& message, uint64_t timestamp, KVBStorage& kvbStorage,
-    std::vector<EthLog>& evmLogs, const std::vector<uint8_t>& code,
-    const evm_address& origin, const evm_address& storage_contract) {
+evm_result EVM::execute(evm_message& message, uint64_t timestamp,
+                        KVBStorage& kvbStorage, std::vector<EthLog>& evmLogs,
+                        const std::vector<uint8_t>& code,
+                        const evm_address& origin,
+                        const evm_address& storage_contract) {
   // wrap an evm context in an concord context
   concord_context athctx = {
       {&concord_fn_table}, this,   &kvbStorage,     &evmLogs, &logger,
@@ -497,3 +497,7 @@ void ath_get_tx_context(struct evm_tx_context* result,
          sizeof(result->tx_origin));
 }
 }
+
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com

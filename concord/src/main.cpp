@@ -14,17 +14,17 @@
 #include "common/concord_exception.hpp"
 #include "common/status_aggregator.hpp"
 #include "config/configuration_manager.hpp"
-#include "consensus/concord_kvb.hpp"
 #include "consensus/kvb/BlockchainDBAdapter.h"
 #include "consensus/kvb/Comparators.h"
 #include "consensus/kvb/DatabaseInterface.h"
 #include "consensus/kvb/InMemoryDBClient.h"
 #include "consensus/kvb/ReplicaImp.h"
 #include "consensus/kvb/bft_configuration.hpp"
+#include "consensus/kvb_commands_handler.hpp"
 #include "ethereum/concord_evm.hpp"
 #include "ethereum/evm_init_params.hpp"
 #include "utils/concord_eth_sign.hpp"
-#include "utils/utils.hpp"
+#include "utils/concord_utils.hpp"
 
 #ifdef USE_ROCKSDB
 #include "consensus/kvb/RocksDBClient.h"
@@ -265,7 +265,7 @@ int run_service(variables_map &opts, Logger logger) {
     api_service = new io_service();
     tcp::endpoint endpoint(address::from_string(ip), port);
     uint64_t gasLimit = opts["gas_limit"].as<uint64_t>();
-    api_acceptor acceptor(*api_service, endpoint, pool, sag, gasLimit, chainID);
+    ApiAcceptor acceptor(*api_service, endpoint, pool, sag, gasLimit, chainID);
 
     signal(SIGINT, signalHandler);
 

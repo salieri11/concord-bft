@@ -2,38 +2,38 @@
 //
 // Logging utilities
 
+#include "concord_log.hpp"
+
 #include <ios>
 
-#include "common/concord_log.hpp"
 #include "consensus/kvb/HexTools.h"
 #include "evm.h"
 
+namespace com {
+namespace vmware {
+namespace concord {
+
 // Print a vector of bytes as its 0x<hex> representation.
-std::ostream& com::vmware::concord::operator<<(std::ostream& s,
-                                               const HexPrintVector v) {
+std::ostream& operator<<(std::ostream& s, const HexPrintVector v) {
   return hexPrint(s, &v.vec[0], v.vec.size());
 };
 
 // Print a char* of bytes as its 0x<hex> representation.
-std::ostream& com::vmware::concord::operator<<(std::ostream& s,
-                                               const HexPrintBytes p) {
+std::ostream& operator<<(std::ostream& s, const HexPrintBytes p) {
   return hexPrint(s, reinterpret_cast<const uint8_t*>(p.bytes), p.size);
 };
 
 // Print an evm_address as its 0x<hex> representation.
-std::ostream& com::vmware::concord::operator<<(std::ostream& s,
-                                               const evm_address& a) {
+std::ostream& operator<<(std::ostream& s, const evm_address& a) {
   return hexPrint(s, a.bytes, sizeof(evm_address));
 };
 
 // Print an evm_uint256be as its 0x<hex> representation.
-std::ostream& com::vmware::concord::operator<<(std::ostream& s,
-                                               const evm_uint256be& u) {
+std::ostream& operator<<(std::ostream& s, const evm_uint256be& u) {
   return hexPrint(s, u.bytes, sizeof(evm_uint256be));
 };
 
-std::ostream& com::vmware::concord::operator<<(std::ostream& s,
-                                               evm_call_kind kind) {
+std::ostream& operator<<(std::ostream& s, evm_call_kind kind) {
   switch (kind) {
     case EVM_CALL:
       s << "EVM_CALL";
@@ -51,8 +51,7 @@ std::ostream& com::vmware::concord::operator<<(std::ostream& s,
   return s;
 }
 
-std::ostream& com::vmware::concord::operator<<(std::ostream& s,
-                                               struct evm_message msg) {
+std::ostream& operator<<(std::ostream& s, struct evm_message msg) {
   s << "\nMessage: {\ndestination: " << msg.destination
     << "\nsender: " << msg.sender << "\nether: " << msg.value
     << "\ncall_kind: " << msg.kind << "\ndepth: " << msg.depth
@@ -60,3 +59,7 @@ std::ostream& com::vmware::concord::operator<<(std::ostream& s,
   s << "\n}\n";
   return s;
 };
+
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com

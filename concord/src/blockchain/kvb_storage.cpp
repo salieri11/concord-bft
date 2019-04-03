@@ -21,32 +21,32 @@
 //
 // KVBlockchain writes a block as a set of key-value pairs. We use the first
 // byte of a key to signify the type of the value (see the `TYPE_*` constants in
-// `concord_kvb_storage.hpp`. Values are mostly Protocol Buffer encodings,
-// defined in `concord_storage.proto`, with the exception being contract data
-// (not code). All protobuf messages include a "version" field, so we can handle
-// upgrades to storage at a later date.
+// `kvb_storage.hpp`. Values are mostly Protocol Buffer encodings, defined in
+// `concord_storage.proto`, with the exception being contract data (not code).
+// All protobuf messages include a "version" field, so we can handle upgrades
+// to storage at a later date.
 //
 // Storage layouts:
 //
 // * Block
 //   - Key: TYPE_BLOCK+[block hash (32 bytes)]
-//   - Value: com::vmware::concord::kvb::Block protobuf
+//   - Value: kvb::Block protobuf
 //   - Notes: Do not confuse this with the KVB block. This is Ethereum-level
 //            block information.
 //
 // * Transaction
 //   - Key: TYPE_TRANSACTION+[transaction hash (32 bytes)]
-//   - Value: com::vmware::concord::kvb::Transaction protobuf
+//   - Value: kvb::Transaction protobuf
 //
 // * Account or Contract Balance
 //   - Key: TYPE_BALANCE+[account/contract address (20 bytes)]
-//   - Value: com::vmware::concord::kvb::Balance protobuf
+//   - Value: kvb::Balance protobuf
 //   - Notes: Yes, it seems a little overkill to wrap a number in a protobuf
 //            encoding, but this saves hassle with endian encoding.
 //
 // * Contract Code
 //   - Key: TYPE_CODE+[contract address (20 bytes)]
-//   - Value: com::vmware::concord::kvb::Code protobuf
+//   - Value: kvb::Code protobuf
 //
 // * Contract Data
 //   - Key: TYPE_STORAGE+[contract address (20 bytes)]+[location (32 bytes)]
@@ -55,19 +55,20 @@
 //
 // * Account Nonce
 //   - Key: TYPE_NONCE+[account address (20 bytes)]
-//   - Value: com::vmware::concord::kvb::Nonce protobuf
+//   - Value: kvb::Nonce protobuf
 //   - Notes: As with balance, using protobuf solves encoding issues.
 //
 // * Block Metadata
 //   - Key: TYPE_BLOCK_METADATA
-//   - Value: com::vmware::concord::kvb::BlockMetadata protobuf
+//   - Value: kvb::BlockMetadata protobuf
 //   - Notes: As with balance, using protobuf solves encoding issues.
+
+#include "kvb_storage.hpp"
 
 #include <cstring>
 #include <vector>
 
 #include "common/concord_exception.hpp"
-#include "concord_kvb_storage.hpp"
 #include "concord_storage.pb.h"
 #include "consensus/kvb/BlockchainInterfaces.h"
 #include "consensus/kvb/HashDefs.h"
@@ -78,8 +79,11 @@
 #include "utils/concord_eth_hash.hpp"
 
 using namespace Blockchain;
-using namespace com::vmware::concord;
 using Blockchain::Sliver;
+
+namespace com {
+namespace vmware {
+namespace concord {
 
 ////////////////////////////////////////
 // GENERAL
@@ -91,14 +95,14 @@ const int64_t code_storage_version = 1;
 const int64_t block_metadata_version = 1;
 
 // read-only mode
-com::vmware::concord::KVBStorage::KVBStorage(
+KVBStorage::KVBStorage(
     const Blockchain::ILocalKeyValueStorageReadOnly &roStorage)
     : roStorage_(roStorage),
       blockAppender_(nullptr),
       logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")) {}
 
 // read-write mode
-com::vmware::concord::KVBStorage::KVBStorage(
+KVBStorage::KVBStorage(
     const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
     Blockchain::IBlocksAppender *blockAppender, uint64_t sequenceNum)
     : roStorage_(roStorage),
@@ -106,13 +110,13 @@ com::vmware::concord::KVBStorage::KVBStorage(
       logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")),
       bftSequenceNum_(sequenceNum) {}
 
-com::vmware::concord::KVBStorage::~KVBStorage() {
+KVBStorage::~KVBStorage() {
   // Any Slivers in updates will release their memory automatically.
 
   // We don't own the blockAppender we're pointing to, so leave it alone.
 }
 
-bool com::vmware::concord::KVBStorage::is_read_only() {
+bool KVBStorage::is_read_only() {
   // if we don't have a blockAppender, we are read-only
   auto res = blockAppender_ == nullptr;
   return res;
@@ -123,7 +127,7 @@ bool com::vmware::concord::KVBStorage::is_read_only() {
  * KVBStorage when convenient.
  */
 const Blockchain::ILocalKeyValueStorageReadOnly &
-com::vmware::concord::KVBStorage::getReadOnlyStorage() {
+KVBStorage::getReadOnlyStorage() {
   return roStorage_;
 }
 
@@ -134,9 +138,8 @@ com::vmware::concord::KVBStorage::getReadOnlyStorage() {
  * Constructs a key: one byte of `type`, concatenated with `length` bytes of
  * `bytes`.
  */
-Sliver com::vmware::concord::KVBStorage::kvb_key(uint8_t type,
-                                                 const uint8_t *bytes,
-                                                 size_t length) const {
+Sliver KVBStorage::kvb_key(uint8_t type, const uint8_t *bytes,
+                           size_t length) const {
   uint8_t *key = new uint8_t[1 + length];
   key[0] = type;
   std::copy(bytes, bytes + length, key + 1);
@@ -146,42 +149,36 @@ Sliver com::vmware::concord::KVBStorage::kvb_key(uint8_t type,
 /**
  * Convenience functions for constructing a key for each object type.
  */
-Sliver com::vmware::concord::KVBStorage::block_key(const EthBlock &blk) const {
+Sliver KVBStorage::block_key(const EthBlock &blk) const {
   return kvb_key(TYPE_BLOCK, blk.get_hash().bytes, sizeof(evm_uint256be));
 }
 
-Sliver com::vmware::concord::KVBStorage::block_key(
-    const evm_uint256be &hash) const {
+Sliver KVBStorage::block_key(const evm_uint256be &hash) const {
   return kvb_key(TYPE_BLOCK, hash.bytes, sizeof(hash));
 }
 
-Sliver com::vmware::concord::KVBStorage::transaction_key(
-    const EthTransaction &tx) const {
+Sliver KVBStorage::transaction_key(const EthTransaction &tx) const {
   return kvb_key(TYPE_TRANSACTION, tx.hash().bytes, sizeof(evm_uint256be));
 }
 
-Sliver com::vmware::concord::KVBStorage::transaction_key(
-    const evm_uint256be &hash) const {
+Sliver KVBStorage::transaction_key(const evm_uint256be &hash) const {
   return kvb_key(TYPE_TRANSACTION, hash.bytes, sizeof(hash));
 }
 
-Sliver com::vmware::concord::KVBStorage::balance_key(
-    const evm_address &addr) const {
+Sliver KVBStorage::balance_key(const evm_address &addr) const {
   return kvb_key(TYPE_BALANCE, addr.bytes, sizeof(addr));
 }
 
-Sliver com::vmware::concord::KVBStorage::nonce_key(
-    const evm_address &addr) const {
+Sliver KVBStorage::nonce_key(const evm_address &addr) const {
   return kvb_key(TYPE_NONCE, addr.bytes, sizeof(addr));
 }
 
-Sliver com::vmware::concord::KVBStorage::code_key(
-    const evm_address &addr) const {
+Sliver KVBStorage::code_key(const evm_address &addr) const {
   return kvb_key(TYPE_CODE, addr.bytes, sizeof(addr));
 }
 
-Sliver com::vmware::concord::KVBStorage::storage_key(
-    const evm_address &addr, const evm_uint256be &location) const {
+Sliver KVBStorage::storage_key(const evm_address &addr,
+                               const evm_uint256be &location) const {
   uint8_t combined[sizeof(addr) + sizeof(location)];
   std::copy(addr.bytes, addr.bytes + sizeof(addr), combined);
   std::copy(location.bytes, location.bytes + sizeof(location),
@@ -196,8 +193,7 @@ Sliver com::vmware::concord::KVBStorage::storage_key(
  * Add a key-value pair to be stored in the block. Throws ReadOnlyModeException
  * if this object is in read-only mode.
  */
-void com::vmware::concord::KVBStorage::put(const Sliver &key,
-                                           const Sliver &value) {
+void KVBStorage::put(const Sliver &key, const Sliver &value) {
   if (!blockAppender_) {
     throw ReadOnlyModeException();
   }
@@ -210,8 +206,7 @@ void com::vmware::concord::KVBStorage::put(const Sliver &key,
  * been prepared. A ReadOnlyModeException will be thrown if this object is in
  * read-only mode.
  */
-Status com::vmware::concord::KVBStorage::write_block(uint64_t timestamp,
-                                                     uint64_t gas_limit) {
+Status KVBStorage::write_block(uint64_t timestamp, uint64_t gas_limit) {
   if (!blockAppender_) {
     throw ReadOnlyModeException();
   }
@@ -273,7 +268,7 @@ Status com::vmware::concord::KVBStorage::write_block(uint64_t timestamp,
 /**
  * Drop all pending updates.
  */
-void com::vmware::concord::KVBStorage::reset() {
+void KVBStorage::reset() {
   // Slivers release their memory automatically.
   updates.clear();
 }
@@ -282,7 +277,7 @@ void com::vmware::concord::KVBStorage::reset() {
  * Preparation functions for each value type in a block. These creates
  * serialized versions of the objects and store them in a staging area.
  */
-void com::vmware::concord::KVBStorage::add_block(EthBlock &blk) {
+void KVBStorage::add_block(EthBlock &blk) {
   Sliver blkaddr = block_key(blk);
   uint8_t *blkser;
   size_t blkser_length = blk.serialize(&blkser);
@@ -290,7 +285,7 @@ void com::vmware::concord::KVBStorage::add_block(EthBlock &blk) {
   put(blkaddr, Sliver(blkser, blkser_length));
 }
 
-void com::vmware::concord::KVBStorage::add_transaction(EthTransaction &tx) {
+void KVBStorage::add_transaction(EthTransaction &tx) {
   // Like other add_* methods we don't serialized the transaction here. The
   // reason is that block hash and block number is not known at this point
   // hence we can not serialize the transaction properly. Instead we put the
@@ -300,8 +295,7 @@ void com::vmware::concord::KVBStorage::add_transaction(EthTransaction &tx) {
   pending_transactions.push_back(tx);
 }
 
-void com::vmware::concord::KVBStorage::set_balance(const evm_address &addr,
-                                                   evm_uint256be balance) {
+void KVBStorage::set_balance(const evm_address &addr, evm_uint256be balance) {
   concord::kvb::Balance proto;
   proto.set_version(balance_storage_version);
   proto.set_balance(balance.bytes, sizeof(evm_uint256be));
@@ -312,8 +306,7 @@ void com::vmware::concord::KVBStorage::set_balance(const evm_address &addr,
   put(balance_key(addr), Sliver(ser, sersize));
 }
 
-void com::vmware::concord::KVBStorage::set_nonce(const evm_address &addr,
-                                                 uint64_t nonce) {
+void KVBStorage::set_nonce(const evm_address &addr, uint64_t nonce) {
   concord::kvb::Nonce proto;
   proto.set_version(nonce_storage_version);
   proto.set_nonce(nonce);
@@ -324,9 +317,8 @@ void com::vmware::concord::KVBStorage::set_nonce(const evm_address &addr,
   put(nonce_key(addr), Sliver(ser, sersize));
 }
 
-void com::vmware::concord::KVBStorage::set_code(const evm_address &addr,
-                                                const uint8_t *code,
-                                                size_t code_size) {
+void KVBStorage::set_code(const evm_address &addr, const uint8_t *code,
+                          size_t code_size) {
   concord::kvb::Code proto;
   proto.set_version(code_storage_version);
   proto.set_code(code, code_size);
@@ -340,7 +332,7 @@ void com::vmware::concord::KVBStorage::set_code(const evm_address &addr,
   put(code_key(addr), Sliver(ser, sersize));
 }
 
-void com::vmware::concord::KVBStorage::set_block_metadata() {
+void KVBStorage::set_block_metadata() {
   concord::kvb::BlockMetadata proto;
   proto.set_version(block_metadata_version);
   proto.set_bft_sequence_num(bftSequenceNum_);
@@ -356,9 +348,9 @@ void com::vmware::concord::KVBStorage::set_block_metadata() {
       Sliver(ser, serSize));
 }
 
-void com::vmware::concord::KVBStorage::set_storage(
-    const evm_address &addr, const evm_uint256be &location,
-    const evm_uint256be &data) {
+void KVBStorage::set_storage(const evm_address &addr,
+                             const evm_uint256be &location,
+                             const evm_uint256be &data) {
   uint8_t *str = new uint8_t[sizeof(data)];
   std::copy(data.bytes, data.bytes + sizeof(data), str);
   put(storage_key(addr, location), Sliver(str, sizeof(data)));
@@ -370,7 +362,7 @@ void com::vmware::concord::KVBStorage::set_storage(
 /**
  * Get the number of the block that will be added when write_block is called.
  */
-uint64_t com::vmware::concord::KVBStorage::next_block_number() {
+uint64_t KVBStorage::next_block_number() {
   // Ethereum block number is 1+KVB block number. So, the most recent KVB block
   // number is actually the next Ethereum block number.
   return roStorage_.getLastBlock();
@@ -379,7 +371,7 @@ uint64_t com::vmware::concord::KVBStorage::next_block_number() {
 /**
  * Get the number of the most recent block that was added.
  */
-uint64_t com::vmware::concord::KVBStorage::current_block_number() {
+uint64_t KVBStorage::current_block_number() {
   // Ethereum block number is 1+KVB block number. So, the most recent Ethereum
   // block is one less than the most recent KVB block.
   return roStorage_.getLastBlock() - 1;
@@ -391,7 +383,7 @@ uint64_t com::vmware::concord::KVBStorage::current_block_number() {
  * in the staging area, its value in the most recent block in which it was
  * written will be returned.
  */
-Status com::vmware::concord::KVBStorage::get(const Sliver &key, Sliver &value) {
+Status KVBStorage::get(const Sliver &key, Sliver &value) {
   uint64_t block_number = current_block_number();
   BlockId out;
   return get(block_number, key, value, out);
@@ -409,9 +401,8 @@ Status com::vmware::concord::KVBStorage::get(const Sliver &key, Sliver &value) {
  * @param outBlock BlockId object where the read version of the result is stored
  * @return
  */
-Status com::vmware::concord::KVBStorage::get(const BlockId readVersion,
-                                             const Sliver &key, Sliver &value,
-                                             BlockId &outBlock) {
+Status KVBStorage::get(const BlockId readVersion, const Sliver &key,
+                       Sliver &value, BlockId &outBlock) {
   // TODO(BWF): this search will be very inefficient for a large set of changes
   for (auto &u : updates) {
     if (u.first == key) {
@@ -426,7 +417,7 @@ Status com::vmware::concord::KVBStorage::get(const BlockId readVersion,
 /**
  * Fetch functions for each value type.
  */
-EthBlock com::vmware::concord::KVBStorage::get_block(uint64_t number) {
+EthBlock KVBStorage::get_block(uint64_t number) {
   SetOfKeyValuePairs outBlockData;
 
   // "1+" == KVBlockchain starts at block 1, but Ethereum starts at 0
@@ -446,8 +437,7 @@ EthBlock com::vmware::concord::KVBStorage::get_block(uint64_t number) {
   throw BlockNotFoundException();
 }
 
-EthBlock com::vmware::concord::KVBStorage::get_block(
-    const evm_uint256be &hash) {
+EthBlock KVBStorage::get_block(const evm_uint256be &hash) {
   Sliver kvbkey = block_key(hash);
   Sliver value;
   Status status = get(kvbkey, value);
@@ -465,8 +455,7 @@ EthBlock com::vmware::concord::KVBStorage::get_block(
   throw BlockNotFoundException();
 }
 
-EthTransaction com::vmware::concord::KVBStorage::get_transaction(
-    const evm_uint256be &hash) {
+EthTransaction KVBStorage::get_transaction(const evm_uint256be &hash) {
   Sliver kvbkey = transaction_key(hash);
   Sliver value;
   Status status = get(kvbkey, value);
@@ -483,14 +472,13 @@ EthTransaction com::vmware::concord::KVBStorage::get_transaction(
   throw TransactionNotFoundException();
 }
 
-evm_uint256be com::vmware::concord::KVBStorage::get_balance(
-    const evm_address &addr) {
+evm_uint256be KVBStorage::get_balance(const evm_address &addr) {
   uint64_t block_number = current_block_number();
   return get_balance(addr, block_number);
 }
 
-evm_uint256be com::vmware::concord::KVBStorage::get_balance(
-    const evm_address &addr, uint64_t &block_number) {
+evm_uint256be KVBStorage::get_balance(const evm_address &addr,
+                                      uint64_t &block_number) {
   Sliver kvbkey = balance_key(addr);
   Sliver value;
   BlockId outBlock;
@@ -524,13 +512,13 @@ evm_uint256be com::vmware::concord::KVBStorage::get_balance(
   return evm_uint256be{0};
 }
 
-uint64_t com::vmware::concord::KVBStorage::get_nonce(const evm_address &addr) {
+uint64_t KVBStorage::get_nonce(const evm_address &addr) {
   uint64_t block_number = current_block_number();
   return get_nonce(addr, block_number);
 }
 
-uint64_t com::vmware::concord::KVBStorage::get_nonce(const evm_address &addr,
-                                                     uint64_t &block_number) {
+uint64_t KVBStorage::get_nonce(const evm_address &addr,
+                               uint64_t &block_number) {
   Sliver kvbkey = nonce_key(addr);
   Sliver value;
   BlockId outBlock;
@@ -558,7 +546,7 @@ uint64_t com::vmware::concord::KVBStorage::get_nonce(const evm_address &addr,
   return 0;
 }
 
-bool com::vmware::concord::KVBStorage::account_exists(const evm_address &addr) {
+bool KVBStorage::account_exists(const evm_address &addr) {
   Sliver kvbkey = balance_key(addr);
   Sliver value;
   Status status = get(kvbkey, value);
@@ -579,9 +567,8 @@ bool com::vmware::concord::KVBStorage::account_exists(const evm_address &addr) {
  * Code and hash will be copied to `out`, if found, and `true` will be
  * returned. If no code is found, `false` is returned.
  */
-bool com::vmware::concord::KVBStorage::get_code(const evm_address &addr,
-                                                std::vector<uint8_t> &out,
-                                                evm_uint256be &hash) {
+bool KVBStorage::get_code(const evm_address &addr, std::vector<uint8_t> &out,
+                          evm_uint256be &hash) {
   uint64_t block_number = current_block_number();
   return get_code(addr, out, hash, block_number);
 }
@@ -596,10 +583,8 @@ bool com::vmware::concord::KVBStorage::get_code(const evm_address &addr,
  *                     'default block parameters'
  * @return
  */
-bool com::vmware::concord::KVBStorage::get_code(const evm_address &addr,
-                                                std::vector<uint8_t> &out,
-                                                evm_uint256be &hash,
-                                                uint64_t &block_number) {
+bool KVBStorage::get_code(const evm_address &addr, std::vector<uint8_t> &out,
+                          evm_uint256be &hash, uint64_t &block_number) {
   Sliver kvbkey = code_key(addr);
   Sliver value;
   BlockId outBlock;
@@ -635,15 +620,15 @@ bool com::vmware::concord::KVBStorage::get_code(const evm_address &addr,
   return false;
 }
 
-evm_uint256be com::vmware::concord::KVBStorage::get_storage(
-    const evm_address &addr, const evm_uint256be &location) {
+evm_uint256be KVBStorage::get_storage(const evm_address &addr,
+                                      const evm_uint256be &location) {
   uint64_t block_number = current_block_number();
   return get_storage(addr, location, block_number);
 }
 
-evm_uint256be com::vmware::concord::KVBStorage::get_storage(
-    const evm_address &addr, const evm_uint256be &location,
-    uint64_t &block_number) {
+evm_uint256be KVBStorage::get_storage(const evm_address &addr,
+                                      const evm_uint256be &location,
+                                      uint64_t &block_number) {
   Sliver kvbkey = storage_key(addr, location);
   Sliver value;
   BlockId outBlock;
@@ -673,3 +658,7 @@ evm_uint256be com::vmware::concord::KVBStorage::get_storage(
   }
   return out;
 }
+
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com

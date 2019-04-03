@@ -2,19 +2,23 @@
 //
 // Ethereum Hashing.
 
+#include "concord_eth_hash.hpp"
+
 #include <keccak.h>
 #include <log4cplus/loggingmacros.h>
 
-#include "concord_eth_hash.hpp"
 #include "evm.h"
 
-evm_uint256be com::vmware::concord::EthHash::keccak_hash(
-    const std::vector<uint8_t> &data) {
+namespace com {
+namespace vmware {
+namespace concord {
+namespace EthHash {
+
+evm_uint256be keccak_hash(const std::vector<uint8_t> &data) {
   return keccak_hash(&data[0], data.size());
 }
 
-evm_uint256be com::vmware::concord::EthHash::keccak_hash(const uint8_t *data,
-                                                         size_t size) {
+evm_uint256be keccak_hash(const uint8_t *data, size_t size) {
   static_assert(sizeof(evm_uint256be) == CryptoPP::Keccak_256::DIGESTSIZE,
                 "hash is not the same size as uint256");
 
@@ -23,3 +27,8 @@ evm_uint256be com::vmware::concord::EthHash::keccak_hash(const uint8_t *data,
   keccak.CalculateDigest(hash.bytes, data, size);
   return hash;
 }
+
+}  // namespace EthHash
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com

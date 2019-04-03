@@ -2,8 +2,8 @@
 //
 // Handler for connections from the API/UI servers.
 
-#ifndef CONCORD_API_CONNECTION_HPP
-#define CONCORD_API_CONNECTION_HPP
+#ifndef API_API_CONNECTION_HPP
+#define API_API_CONNECTION_HPP
 
 #include <log4cplus/loggingmacros.h>
 #include <boost/asio.hpp>
@@ -12,24 +12,25 @@
 
 #include "common/status_aggregator.hpp"
 #include "concord.pb.h"
-#include "consensus/concord_kvb_client.hpp"
+#include "consensus/kvb_client.hpp"
 
 namespace com {
 namespace vmware {
 namespace concord {
-class connection_manager;
 
-class api_connection : public boost::enable_shared_from_this<api_connection> {
+class ConnectionManager;
+
+class ApiConnection : public boost::enable_shared_from_this<ApiConnection> {
  public:
   // Arbitrary big number at this time.
   // Reference for known IDs as of Jan 2018:
   // https://github.com/ethereumbook/ethereumbook/issues/110
   const uint DEFAULT_NETWORK_ID = 5000;
 
-  typedef boost::shared_ptr<api_connection> pointer;
+  typedef boost::shared_ptr<ApiConnection> pointer;
 
   static pointer create(boost::asio::io_service &io_service,
-                        connection_manager &connManager,
+                        ConnectionManager &connManager,
                         KVBClientPool &clientPool, StatusAggregator &sag,
                         uint64_t gasLimit, uint64_t chainID);
 
@@ -75,9 +76,9 @@ class api_connection : public boost::enable_shared_from_this<api_connection> {
   uint64_t current_block_number();
 
   /* Constructor. */
-  api_connection(boost::asio::io_service &io_service,
-                 connection_manager &connManager, KVBClientPool &clientPool,
-                 StatusAggregator &sag, uint64_t gasLimit, uint64_t chainID);
+  ApiConnection(boost::asio::io_service &io_service,
+                ConnectionManager &connManager, KVBClientPool &clientPool,
+                StatusAggregator &sag, uint64_t gasLimit, uint64_t chainID);
 
   uint16_t get_message_length(const char *buffer);
 
@@ -115,7 +116,7 @@ class api_connection : public boost::enable_shared_from_this<api_connection> {
   /* Logger. */
   log4cplus::Logger logger_;
 
-  connection_manager &connManager_;
+  ConnectionManager &connManager_;
 
   KVBClientPool &clientPool_;
 

@@ -2,29 +2,34 @@
 //
 // Ethereum Signature verification.
 
+#include "concord_eth_sign.hpp"
+
 #include <log4cplus/loggingmacros.h>
 #include <secp256k1_recovery.h>
 #include <iostream>
 
 #include "concord_eth_hash.hpp"
-#include "concord_eth_sign.hpp"
+
+namespace com {
+namespace vmware {
+namespace concord {
 
 // TODO: sort out build structure, to pull this from concord_types
 const evm_address zero_address{{0}};
 
-com::vmware::concord::EthSign::EthSign()
+EthSign::EthSign()
     : logger(log4cplus::Logger::getInstance("com.vmware.concord.eth_sign")) {
   ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
                                  SECP256K1_CONTEXT_VERIFY);
 }
 
-com::vmware::concord::EthSign::~EthSign() { secp256k1_context_destroy(ctx); }
+EthSign::~EthSign() { secp256k1_context_destroy(ctx); }
 
 /**
  * Sign hash with private key.
  */
-std::vector<uint8_t> com::vmware::concord::EthSign::sign(
-    const evm_uint256be hash, const evm_uint256be key) const {
+std::vector<uint8_t> EthSign::sign(const evm_uint256be hash,
+                                   const evm_uint256be key) const {
   std::vector<uint8_t> serializedSignature;
   secp256k1_ecdsa_recoverable_signature signature;
 
@@ -49,9 +54,9 @@ std::vector<uint8_t> com::vmware::concord::EthSign::sign(
 /**
  * Recover the "from" address from a transaction signature.
  */
-evm_address com::vmware::concord::EthSign::ecrecover(
-    const evm_uint256be hash, const uint8_t version, const evm_uint256be r,
-    const evm_uint256be s) const {
+evm_address EthSign::ecrecover(const evm_uint256be hash, const uint8_t version,
+                               const evm_uint256be r,
+                               const evm_uint256be s) const {
   // parse_compact supports 0-3, but Ethereum is documented as only using 0 and
   // 1
   if (version > 1) {
@@ -103,3 +108,7 @@ evm_address com::vmware::concord::EthSign::ecrecover(
 //    tx.sig_s); return recoveredAddr != zero_address && recoveredAddr ==
 //    tx.from;
 // }
+
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com

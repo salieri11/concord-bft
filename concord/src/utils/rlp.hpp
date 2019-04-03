@@ -1,8 +1,9 @@
 // Copyright 2018 VMware, all rights reserved
 //
 // RLP Encoding.
-#ifndef RLP_HPP
-#define RLP_HPP
+
+#ifndef UTILS_RLP_HPP
+#define UTILS_RLP_HPP
 
 #include <memory>
 #include <vector>
@@ -56,4 +57,4 @@ class RLPParser {
 }  // namespace vmware
 }  // namespace com
 
-#endif
+#endif  // UTILS_RLP_HPP

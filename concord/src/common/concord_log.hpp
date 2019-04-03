@@ -2,8 +2,8 @@
 //
 // Logging utilities
 
-#ifndef CONCORD_LOG_HPP
-#define CONCORD_LOG_HPP
+#ifndef COMMON_CONCORD_LOG_HPP
+#define COMMON_CONCORD_LOG_HPP
 
 // TODO: We may want "release" versions of these macros that print fewer bytes.
 
@@ -30,8 +30,9 @@ std::ostream& operator<<(std::ostream& s, const evm_uint256be& u);
 std::ostream& operator<<(std::ostream& s, const evm_address& u);
 std::ostream& operator<<(std::ostream& s, struct evm_message msg);
 std::ostream& operator<<(std::ostream& s, evm_call_kind kind);
+
 }  // namespace concord
 }  // namespace vmware
 }  // namespace com
 
-#endif  // CONCORD_LOG_HPP
+#endif  // COMMON_CONCORD_LOG_HPP

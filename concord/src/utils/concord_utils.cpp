@@ -1,14 +1,19 @@
 // Copyright 2018 VMware, all rights reserved
 //
 // concord common Utilities.
-#include <stdexcept>
 
-#include "utils.hpp"
+#include "concord_utils.hpp"
+
+#include <stdexcept>
 
 using namespace std;
 using boost::multiprecision::uint256_t;
 
-char hexval(char c) {
+namespace com {
+namespace vmware {
+namespace concord {
+
+static char hexval(char c) {
   if (c >= '0' && c <= '9') {
     return c - '0';
   } else if (c >= 'a' && c <= 'f') {
@@ -26,7 +31,7 @@ char hexval(char c) {
    hex number and then that is converted into a uint8_t
    For example. `ABCD` will convert to vector {171, 205}
 */
-vector<uint8_t> com::vmware::concord::dehex(const std::string &str) {
+vector<uint8_t> dehex(const std::string &str) {
   if (str.size() % 2 != 0) {
     throw invalid_argument("nibble missing in string");
   }
@@ -46,7 +51,7 @@ vector<uint8_t> com::vmware::concord::dehex(const std::string &str) {
 /** Converts the given uint64_t into a evm_uint256be type
     The top 24 bytes are always going to be 0 in this conversion
 */
-void com::vmware::concord::to_evm_uint256be(uint64_t val, evm_uint256be *ret) {
+void to_evm_uint256be(uint64_t val, evm_uint256be *ret) {
   uint8_t mask = 0xff;
   for (size_t i = 0; i < sizeof(evm_uint256be); i++) {
     uint8_t byte = val & mask;
@@ -59,7 +64,7 @@ void com::vmware::concord::to_evm_uint256be(uint64_t val, evm_uint256be *ret) {
     @val is more than 2^64 then return value will simply contain the
     lower 8 bytes of @val
 */
-uint64_t com::vmware::concord::from_evm_uint256be(const evm_uint256be *val) {
+uint64_t from_evm_uint256be(const evm_uint256be *val) {
   const size_t offset = sizeof(evm_uint256be) - sizeof(uint64_t);
   uint64_t ret = 0;
   for (size_t i = 0; i < sizeof(uint64_t); i++) {
@@ -69,7 +74,7 @@ uint64_t com::vmware::concord::from_evm_uint256be(const evm_uint256be *val) {
   return ret;
 }
 
-int64_t com::vmware::concord::get_epoch_millis() {
+int64_t get_epoch_millis() {
   using namespace std::chrono;
   int64_t res =
       duration_cast<milliseconds>(system_clock::now().time_since_epoch())
@@ -77,7 +82,7 @@ int64_t com::vmware::concord::get_epoch_millis() {
   return res;
 }
 
-uint256_t com::vmware::concord::to_uint256_t(const evm_uint256be *val) {
+uint256_t to_uint256_t(const evm_uint256be *val) {
   uint256_t out{0};
   assert(val != nullptr);
   std::vector<uint8_t> val_v(val->bytes, val->bytes + sizeof(evm_uint256be));
@@ -85,7 +90,7 @@ uint256_t com::vmware::concord::to_uint256_t(const evm_uint256be *val) {
   return out;
 }
 
-evm_uint256be com::vmware::concord::from_uint256_t(const uint256_t *val) {
+evm_uint256be from_uint256_t(const uint256_t *val) {
   evm_uint256be out{0};
   std::vector<uint8_t> val_v;
   assert(val != nullptr);
@@ -96,3 +101,7 @@ evm_uint256be com::vmware::concord::from_uint256_t(const uint256_t *val) {
   memcpy(out.bytes, val_v.data(), val_v.size());
   return out;
 }
+
+}  // namespace concord
+}  // namespace vmware
+}  // namespace com

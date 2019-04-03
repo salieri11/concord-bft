@@ -2,8 +2,8 @@
 //
 // Ethereum Signature verification.
 
-#ifndef CONCORD_ETH_SIGN_HPP
-#define CONCORD_ETH_SIGN_HPP
+#ifndef UTILS_CONCORD_ETH_SIGN_HPP
+#define UTILS_CONCORD_ETH_SIGN_HPP
 
 #include <log4cplus/loggingmacros.h>
 #include <secp256k1.h>
@@ -34,4 +34,4 @@ class EthSign {
 }  // namespace vmware
 }  // namespace com
 
-#endif
+#endif  // UTILS_CONCORD_ETH_SIGN_HPP

@@ -11,8 +11,8 @@
 // - ParameterSelection: a utility class provided to facilitate turning an
 // arbitrary function for picking ConfigurationParameters into an iterable set.
 
-#ifndef CONFIGURATION_MANAGER_HPP
-#define CONFIGURATION_MANAGER_HPP
+#ifndef CONFIG_CONFIGURATION_MANAGER_HPP
+#define CONFIG_CONFIGURATION_MANAGER_HPP
 
 #include <fstream>
 #include <iostream>
@@ -1171,4 +1171,4 @@ class YAMLConfigurationOutput {
 }  // namespace vmware
 }  // namespace com
 
-#endif /* end if CONFIGURATION_MANAGER_HPP defined */
+#endif  // CONFIG_CONFIGURATION_MANAGER_HPP

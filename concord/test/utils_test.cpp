@@ -2,8 +2,8 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-#include "utils/utils.hpp"
 #include "gtest/gtest.h"
+#include "utils/concord_utils.hpp"
 #include "utils/json.hpp"
 #include "utils/rlp.hpp"
 

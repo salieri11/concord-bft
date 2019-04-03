@@ -2,8 +2,8 @@
 //
 // Ethereum Hashing.
 
-#ifndef CONCORD_ETH_HASH_HPP
-#define CONCORD_ETH_HASH_HPP
+#ifndef UTILS_CONCORD_ETH_HASH_HPP
+#define UTILS_CONCORD_ETH_HASH_HPP
 
 #include <log4cplus/loggingmacros.h>
 #include "evm.h"
@@ -21,4 +21,4 @@ evm_uint256be keccak_hash(const uint8_t *data, size_t size);
 }  // namespace vmware
 }  // namespace com
 
-#endif
+#endif  // UTILS_CONCORD_ETH_HASH_HPP
