@@ -175,28 +175,6 @@ def call(){
               }
             }
           }
-          stage("Install node package dependencies for the UI") {
-            steps() {
-              script{
-                try{
-                  dir('blockchain/ui') {
-                    sh 'npm install'
-                  }
-                }catch(Exception ex){
-                  failRun()
-                  throw ex
-                }
-              }
-            }
-          }
-          stage("Install node package dependencies for the Contract Compiler") {
-            steps() {
-              dir('blockchain/contract-compiler') {
-                sh 'npm install'
-              }
-            }
-          }
-
         }
       }
 
