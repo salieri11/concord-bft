@@ -618,8 +618,8 @@ class Product():
       Retries a few times.
       Returns whether the product started up.
       '''
-      # Waiting for 10 seconds for 5 times is enough
-      retries = 10
+      # Wait for 10 seconds and retry
+      retries = 20
       attempts = 0
       # Helen now takes ~7-8 seconds to boot so we should wait for around 10 seconds
       sleepTime = 10
