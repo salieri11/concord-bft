@@ -110,7 +110,7 @@ directories up from this README file), and build it.
 Clone and build Evmjit (note the path to LLVM cmake files):
 
 ```shell
-concord$ cd ..
+blockchain/concord$ cd ../..
 $ git clone git@github.com:ethereum/evmjit.git
 $ cd evmjit
 ### their interface is evolving rapidly, so use this specific hash
@@ -178,7 +178,7 @@ mkdir _build
 cd _build
 cmake -DCMAKE_CXX_FLAGS="-std=c++11" ..
 make
-
+sudo make install
 ```
 
 Note: the build directory starts with and underscore (`_`) it is
