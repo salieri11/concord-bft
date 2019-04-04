@@ -13,7 +13,7 @@
 //
 
 #include "replica_state_sync_imp.hpp"
-#include "concord_kvb_storage.hpp"
+#include "blockchain/kvb_storage.hpp"
 #include "kvb/BlockchainDBAdapter.h"
 
 namespace Blockchain {

@@ -104,4 +104,5 @@ target_link_libraries(ReplicaStateSyncTests
   proto ${PROTOBUF_LIBRARIES}
   ${EVM_LIBRARIES}
   LLVMSupport
+  concord_utils
   kvblockchain)

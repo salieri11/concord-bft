@@ -15,7 +15,7 @@
 #ifndef REPLICA_STATE_SYNC_IMP_H
 #define REPLICA_STATE_SYNC_IMP_H
 
-#include "kvb/ReplicaStateSync.h"
+#include "consensus/kvb/ReplicaStateSync.h"
 
 namespace Blockchain {
 

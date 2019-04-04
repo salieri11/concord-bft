@@ -8,14 +8,14 @@
 #include <log4cplus/configurator.h>
 #include <log4cplus/hierarchy.h>
 #include <log4cplus/loggingmacros.h>
-#include <concord_kvb_storage.hpp>
+#include "blockchain/kvb_storage.hpp"
+#include "consensus/kvb/BlockchainDBAdapter.h"
+#include "consensus/kvb/Comparators.h"
+#include "consensus/kvb/HashDefs.h"
+#include "consensus/kvb/RocksDBClient.h"
 #include "consensus/replica_state_sync_imp.hpp"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "kvb/BlockchainDBAdapter.h"
-#include "kvb/Comparators.h"
-#include "kvb/HashDefs.h"
-#include "kvb/RocksDBClient.h"
 
 using namespace std;
 using namespace Blockchain;

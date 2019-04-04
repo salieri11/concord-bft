@@ -187,12 +187,12 @@ Sliver KVBStorage::code_key(const evm_address &addr) const {
   return kvb_key(TYPE_CODE, addr.bytes, sizeof(addr));
 }
 
-Sliver com::vmware::concord::KVBStorage::build_block_metadata_key() const {
+Sliver KVBStorage::build_block_metadata_key() const {
   return kvb_key(TYPE_BLOCK_METADATA, NULL, 0);
 }
 
-Sliver com::vmware::concord::KVBStorage::storage_key(
-    const evm_address &addr, const evm_uint256be &location) const {
+Sliver KVBStorage::storage_key(const evm_address &addr,
+                               const evm_uint256be &location) const {
   uint8_t combined[sizeof(addr) + sizeof(location)];
   std::copy(addr.bytes, addr.bytes + sizeof(addr), combined);
   std::copy(location.bytes, location.bytes + sizeof(location),
@@ -346,15 +346,16 @@ void KVBStorage::set_code(const evm_address &addr, const uint8_t *code,
   put(code_key(addr), Sliver(ser, sersize));
 }
 
-void set_storage(const evm_address &addr, const evm_uint256be &location,
-                 const evm_uint256be &data) {
+void KVBStorage::set_storage(const evm_address &addr,
+                             const evm_uint256be &location,
+                             const evm_uint256be &data) {
   uint8_t *str = new uint8_t[sizeof(data)];
   std::copy(data.bytes, data.bytes + sizeof(data), str);
   put(storage_key(addr, location), Sliver(str, sizeof(data)));
 }
 
 // Used for UT, as well.
-Sliver set_block_metadata_value(uint64_t bftSequenceNum) {
+Sliver KVBStorage::set_block_metadata_value(uint64_t bftSequenceNum) {
   concord::kvb::BlockMetadata proto;
   proto.set_version(block_metadata_version);
   proto.set_bft_sequence_num(bftSequenceNum);
@@ -364,7 +365,7 @@ Sliver set_block_metadata_value(uint64_t bftSequenceNum) {
   return Sliver(ser, serSize);
 }
 
-void set_block_metadata() {
+void KVBStorage::set_block_metadata() {
   put(build_block_metadata_key(), set_block_metadata_value(bftSequenceNum_));
 }
 
@@ -670,7 +671,7 @@ evm_uint256be KVBStorage::get_storage(const evm_address &addr,
   return out;
 }
 
-uint64_t get_block_metadata(Sliver key) {
+uint64_t KVBStorage::get_block_metadata(Sliver key) {
   Sliver outValue;
   Status status = roStorage_.get(key, outValue);
   uint64_t sequenceNum = 0;
