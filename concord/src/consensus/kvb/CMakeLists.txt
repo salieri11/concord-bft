@@ -11,7 +11,6 @@ set(kvblockchain_sources
   ReplicaImp.cpp ReplicaImp.h
   RocksDBClient.cpp RocksDBClient.h
   RocksDBMetadataStorage.cpp
-  SimpleThreadPool.h
   status.cpp status.hpp
   sliver.cpp sliver.hpp
   bft_configuration.hpp)

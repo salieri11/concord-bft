@@ -10,9 +10,7 @@
 #include "BlockchainInterfaces.h"
 #include "ICommunication.hpp"
 #include "SimpleClient.hpp"
-#include "SimpleThreadPool.h"
 
-using namespace Blockchain::Utils;
 using namespace bftEngine;
 
 namespace Blockchain {

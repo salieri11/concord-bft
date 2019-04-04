@@ -21,7 +21,6 @@
 #include "HexTools.h"
 #include "ReplicaImp.h"
 #include "RocksDBMetadataStorage.hpp"
-#include "Threading.h"
 #include "sliver.hpp"
 
 using log4cplus::Logger;
@@ -74,20 +73,6 @@ Status ReplicaImp::stop() {
   m_bcDbAdapter->getDb()->close();
   m_replicaPtr->stop();
   m_currentRepStatus = RepStatus::Idle;
-  return Status::OK();
-}
-
-/**
- * Wait for replica thread to stop.
- */
-Status ReplicaImp::wait() {
-  if (m_currentRepStatus != RepStatus::Starting &&
-      m_currentRepStatus != RepStatus::Running) {
-    return Status::IllegalOperation("todo");
-  }
-
-  threadJoin(m_thread);
-
   return Status::OK();
 }
 
