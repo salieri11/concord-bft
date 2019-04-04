@@ -17,7 +17,7 @@ import com.vmware.blockchain.deployment.model.CreateClusterRequest;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.model.DeploymentSpecification;
-import com.vmware.blockchain.deployment.model.GetClusterDeploymentSessionEventRequest;
+import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.core.Credential;
@@ -161,7 +161,7 @@ class ProvisionServiceTest {
     }
 
     /**
-     * Test that {@link ProvisionService#createCluster} operation generation a valid deployement
+     * Test that {@link ProvisionService#createCluster} operation generation a valid deployment
      * session with {@link DeploymentSessionEvent}s.
      *
      * @throws Exception
@@ -188,11 +188,14 @@ class ProvisionServiceTest {
         Assertions.assertThat(sessionId.getHigh()).isEqualTo(messageUuid.getMostSignificantBits());
 
         var promise2 = new CompletableFuture<Collection<DeploymentSessionEvent>>();
-        var getSessionEvents = new GetClusterDeploymentSessionEventRequest(
+        var getSessionEvents = new StreamClusterDeploymentSessionEventRequest(
                 new MessageHeader(),
                 sessionId
         );
-        service.getClusterDeploymentSessionEvents(getSessionEvents, newCollectingObserver(promise2));
+        service.streamClusterDeploymentSessionEvents(
+                getSessionEvents,
+                newCollectingObserver(promise2)
+        );
         var events = promise2.get(awaitTime, TimeUnit.MILLISECONDS);
         Assertions.assertThat(events.size()).isEqualTo(2);
 

@@ -31,11 +31,11 @@ import com.vmware.blockchain.deployment.model.DeploymentSession;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.model.DeploymentSpecification;
-import com.vmware.blockchain.deployment.model.GetClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
 import com.vmware.blockchain.deployment.model.ProvisionServiceImplBase;
+import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.OrchestrationEvent;
@@ -239,8 +239,8 @@ public class ProvisionService extends ProvisionServiceImplBase {
     }
 
     @Override
-    public void getClusterDeploymentSessionEvents(
-            GetClusterDeploymentSessionEventRequest message,
+    public void streamClusterDeploymentSessionEvents(
+            StreamClusterDeploymentSessionEventRequest message,
             StreamObserver<DeploymentSessionEvent> observer
     ) {
         var request = Objects.requireNonNull(message);
