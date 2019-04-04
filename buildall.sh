@@ -148,6 +148,27 @@ startNativeConcordBuild(){
     popd
 }
 
+install_node_dependency() {
+  NAME="${1}"
+  COMPONENT_DIR="${2}"
+
+  pushd .
+  cd "$COMPONENT_DIR"
+  npm install > "node_install_${COMPONENT_DIR}.log" 2>&1 &
+  NODE_BUILD_PID=$!
+  addToProcList "${NAME}" $!
+
+  while isRunning ${NODE_BUILD_PID}
+  do
+    echo "Waiting for $NAME..."
+    sleep 10
+  done
+
+  dieOnFailure "${NAME}" ${NODE_BUILD_PID}
+  popd
+
+}
+
 PerformanceTests() {
     cd performance
     mvn clean install assembly:single > performance__test_mvn_build.log 2>&1
@@ -165,12 +186,27 @@ while [ "$1" != "" ] ; do
    shift
 done
 
+DEPENDENCY_EXTERNAL_COMPONENTS="googletest evmjit ethereum_tests"
+for component_name in `echo "${DEPENDENCY_EXTERNAL_COMPONENTS}"`
+do
+    if [ ! -d "../${component_name}" ]
+    then
+        echo "This script requires the following directories to be copied at project level"
+        echo "${DEPENDENCY_EXTERNAL_COMPONENTS}" | tr ' ' '\n'
+        exit 1
+    fi
+done
+
 echo Loading repos/tags for docker images from docker/.env
 . docker/.env
 version_label="com.vmware.blockchain.version"
 commit_label="com.vmware.blockchain.commit"
 
 verifyDocker
+
+echo "Installing node package dependencies..."
+install_node_dependency "node dependency for UI" "ui"
+install_node_dependency "node dependency for contract-compiler" "contract-compiler"
 
 echo "Building..."
 docker build . --file concord/Dockerfile -t ${concord_repo}:${concord_tag} --label ${version_label}=${concord_tag} --label ${commit_label}=${commit_hash} > concord_build.log 2>&1 &
@@ -222,7 +258,9 @@ then
     for additional_build in `echo "${ADDITIONAL_BUILDS}" | tr ',' ' '`
     do
         echo "Building custom component: $additional_build"
+        pushd .
         $additional_build &
+        popd
         addToProcList "$additional_build" $!
     done
 fi
