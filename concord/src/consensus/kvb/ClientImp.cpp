@@ -5,8 +5,6 @@
 #include "ClientImp.h"
 #include "CommFactory.hpp"
 
-using namespace Blockchain::Utils;
-
 namespace Blockchain {
 
 /**

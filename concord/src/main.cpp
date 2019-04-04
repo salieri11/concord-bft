@@ -283,7 +283,6 @@ int run_service(variables_map &opts, Logger logger) {
 
     /// replica
     replica->stop();
-    replica->wait();
 
     Blockchain::release(replica);
   } catch (std::exception &ex) {

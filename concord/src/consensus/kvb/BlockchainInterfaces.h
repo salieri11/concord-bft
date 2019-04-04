@@ -120,8 +120,6 @@ class IReplica {
  public:
   virtual Status start() = 0;
   virtual Status stop() = 0;
-  // TODO(BWF): document what "wait" does
-  virtual Status wait() = 0;
   virtual ~IReplica(){};
 
   // status of the replica

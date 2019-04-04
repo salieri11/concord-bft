@@ -19,9 +19,6 @@
 #include "Replica.hpp"
 #include "ReplicaConfig.hpp"
 #include "StatusInfo.h"
-#include "Threading.h"
-
-using namespace Blockchain::Utils;
 
 namespace Blockchain {
 
@@ -44,7 +41,6 @@ class ReplicaImp : public IReplica,
   // IReplica methods
   virtual Status start() override;
   virtual Status stop() override;
-  virtual Status wait() override;
 
   virtual RepStatus getReplicaStatus() const override;
 
@@ -257,7 +253,6 @@ class ReplicaImp : public IReplica,
 
  private:
   log4cplus::Logger logger;
-  Thread m_thread;
   RepStatus m_currentRepStatus;
   StorageWrapperForIdleMode m_InternalStorageWrapperForIdleMode;
 
