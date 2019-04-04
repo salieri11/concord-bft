@@ -9,9 +9,8 @@
 #include "consensus/kvb/HexTools.h"
 #include "evm.h"
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace common {
 
 // Print a vector of bytes as its 0x<hex> representation.
 std::ostream& operator<<(std::ostream& s, const HexPrintVector v) {
@@ -60,6 +59,5 @@ std::ostream& operator<<(std::ostream& s, struct evm_message msg) {
   return s;
 };
 
+}  // namespace common
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com

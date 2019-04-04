@@ -30,9 +30,11 @@
 #include <string>
 #include <vector>
 
-void com::vmware::concord::RLPBuilder::add_size(size_t size,
-                                                uint8_t type_byte_short,
-                                                uint8_t type_byte_long) {
+namespace concord {
+namespace utils {
+
+void RLPBuilder::add_size(size_t size, uint8_t type_byte_short,
+                          uint8_t type_byte_long) {
   if (size < 56) {
     buffer.push_back(type_byte_short + size);
   } else {
@@ -47,21 +49,17 @@ void com::vmware::concord::RLPBuilder::add_size(size_t size,
   }
 }
 
-void com::vmware::concord::RLPBuilder::add_string_size(size_t size) {
-  add_size(size, 0x80, 0xb7);
-}
+void RLPBuilder::add_string_size(size_t size) { add_size(size, 0x80, 0xb7); }
 
-void com::vmware::concord::RLPBuilder::add_list_size(size_t size) {
-  add_size(size, 0xc0, 0xf7);
-}
+void RLPBuilder::add_list_size(size_t size) { add_size(size, 0xc0, 0xf7); }
 
-void com::vmware::concord::RLPBuilder::add(const std::vector<uint8_t> &vec) {
+void RLPBuilder::add(const std::vector<uint8_t> &vec) {
   assert(!finished);
   std::reverse_copy(vec.begin(), vec.end(), std::back_inserter(buffer));
   add_string_size(vec.size());
 }
 
-void com::vmware::concord::RLPBuilder::add(const uint8_t *data, size_t size) {
+void RLPBuilder::add(const uint8_t *data, size_t size) {
   assert(!finished);
   if (size == 1 && data[0] <= 0x7f) {
     buffer.push_back(data[0]);
@@ -71,23 +69,23 @@ void com::vmware::concord::RLPBuilder::add(const uint8_t *data, size_t size) {
   }
 }
 
-void com::vmware::concord::RLPBuilder::add(const std::string &str) {
+void RLPBuilder::add(const std::string &str) {
   assert(!finished);
   std::reverse_copy(str.begin(), str.end(), std::back_inserter(buffer));
   add_string_size(str.size());
 }
 
-void com::vmware::concord::RLPBuilder::add(const evm_address &address) {
+void RLPBuilder::add(const evm_address &address) {
   assert(!finished);
   add(address.bytes, sizeof(evm_address));
 }
 
-void com::vmware::concord::RLPBuilder::add(const evm_uint256be &uibe) {
+void RLPBuilder::add(const evm_uint256be &uibe) {
   assert(!finished);
   add(uibe.bytes, sizeof(evm_uint256be));
 }
 
-void com::vmware::concord::RLPBuilder::add(uint64_t number) {
+void RLPBuilder::add(uint64_t number) {
   assert(!finished);
   if (number == 0) {
     // "0" is encoded as "empty string" here, not "integer zero"
@@ -108,13 +106,13 @@ void com::vmware::concord::RLPBuilder::add(uint64_t number) {
   }
 }
 
-void com::vmware::concord::RLPBuilder::start_list() {
+void RLPBuilder::start_list() {
   assert(!finished);
   assert(list_depth < MAX_LIST_DEPTH - 1);
   list_start[++list_depth] = buffer.size();
 }
 
-void com::vmware::concord::RLPBuilder::end_list() {
+void RLPBuilder::end_list() {
   assert(!finished);
   assert(list_depth >= 0);
   add_list_size(buffer.size() - list_start[list_depth]);
@@ -122,7 +120,7 @@ void com::vmware::concord::RLPBuilder::end_list() {
 }
 
 // Closes any open lists, then reverses and returns the buffer.
-std::vector<uint8_t> &&com::vmware::concord::RLPBuilder::build() {
+std::vector<uint8_t> &&RLPBuilder::build() {
   assert(!finished);
   while (list_depth >= 0) {
     end_list();
@@ -132,9 +130,9 @@ std::vector<uint8_t> &&com::vmware::concord::RLPBuilder::build() {
   return std::move(buffer);
 }
 
-bool com::vmware::concord::RLPParser::at_end() { return offset == rlp_.size(); }
+bool RLPParser::at_end() { return offset == rlp_.size(); }
 
-std::vector<uint8_t> com::vmware::concord::RLPParser::next() {
+std::vector<uint8_t> RLPParser::next() {
   if (rlp_[offset] < 0x80) {
     std::vector<uint8_t> simple;
     simple.push_back(rlp_[offset]);
@@ -159,7 +157,7 @@ std::vector<uint8_t> com::vmware::concord::RLPParser::next() {
   }
 }
 
-std::vector<uint8_t> com::vmware::concord::RLPParser::short_run(size_t length) {
+std::vector<uint8_t> RLPParser::short_run(size_t length) {
   std::vector<uint8_t> short_string;
   if (length > 0) {
     std::copy(rlp_.begin() + offset, rlp_.begin() + offset + length,
@@ -169,8 +167,7 @@ std::vector<uint8_t> com::vmware::concord::RLPParser::short_run(size_t length) {
   return short_string;
 }
 
-std::vector<uint8_t> com::vmware::concord::RLPParser::long_run(
-    size_t length_length) {
+std::vector<uint8_t> RLPParser::long_run(size_t length_length) {
   size_t length = 0;
   for (size_t i = 0; i < length_length; i++) {
     length = length << 8;
@@ -183,3 +180,6 @@ std::vector<uint8_t> com::vmware::concord::RLPParser::long_run(
   offset += length;
   return long_string;
 }
+
+}  // namespace utils
+}  // namespace concord

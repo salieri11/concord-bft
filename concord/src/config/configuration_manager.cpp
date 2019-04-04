@@ -137,7 +137,8 @@ variables_map initialize_config(int argc, char** argv) {
   return options_map;
 }
 
-using namespace com::vmware::concord;
+namespace concord {
+namespace config {
 
 ConfigurationPath::ConfigurationPath()
     : isScope(false), useInstance(false), name(), index(0), subpath() {}
@@ -263,9 +264,12 @@ ConfigurationPath ConfigurationPath::trimLeaf() const {
   return ret;
 }
 
+}  // namespace config
+}  // namespace concord
+
 // Hash function for ConfigurationPath
-size_t std::hash<com::vmware::concord::ConfigurationPath>::operator()(
-    const com::vmware::concord::ConfigurationPath& path) const {
+size_t std::hash<concord::config::ConfigurationPath>::operator()(
+    const concord::config::ConfigurationPath& path) const {
   std::hash<std::string> stringHash;
   size_t hash = stringHash(path.name);
   if (path.isScope) {
@@ -275,12 +279,15 @@ size_t std::hash<com::vmware::concord::ConfigurationPath>::operator()(
       hash ^= indexHash(path.index);
     }
     if (path.subpath) {
-      std::hash<com::vmware::concord::ConfigurationPath> pathHash;
+      std::hash<concord::config::ConfigurationPath> pathHash;
       hash ^= pathHash(*(path.subpath)) << 1;
     }
   }
   return hash;
 }
+
+namespace concord {
+namespace config {
 
 ConcordConfiguration::ConfigurationScope::ConfigurationScope(
     const ConcordConfiguration::ConfigurationScope& original)
@@ -1743,3 +1750,6 @@ YAMLConfigurationOutput::YAMLConfigurationOutput(std::ostream& output)
     : output(&output), yaml() {}
 
 YAMLConfigurationOutput::~YAMLConfigurationOutput() {}
+
+}  // namespace config
+}  // namespace concord

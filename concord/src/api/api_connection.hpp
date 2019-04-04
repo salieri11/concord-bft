@@ -14,9 +14,8 @@
 #include "concord.pb.h"
 #include "consensus/kvb_client.hpp"
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace api {
 
 class ConnectionManager;
 
@@ -31,7 +30,8 @@ class ApiConnection : public boost::enable_shared_from_this<ApiConnection> {
 
   static pointer create(boost::asio::io_service &io_service,
                         ConnectionManager &connManager,
-                        KVBClientPool &clientPool, StatusAggregator &sag,
+                        concord::consensus::KVBClientPool &clientPool,
+                        concord::common::StatusAggregator &sag,
                         uint64_t gasLimit, uint64_t chainID);
 
   boost::asio::ip::tcp::socket &socket();
@@ -62,23 +62,28 @@ class ApiConnection : public boost::enable_shared_from_this<ApiConnection> {
 
   void handle_test_request();
 
-  bool send_request(ConcordRequest &req, bool isReadOnly,
-                    ConcordResponse &resp);
+  bool send_request(com::vmware::concord::ConcordRequest &req, bool isReadOnly,
+                    com::vmware::concord::ConcordResponse &resp);
 
   /* Specific Ethereum Method handlers. */
-  bool is_valid_eth_getStorageAt(const EthRequest &request);
-  bool is_valid_eth_getCode(const EthRequest &request);
-  bool is_valid_eth_sendTransaction(const EthRequest &request);
-  bool is_valid_eth_getTransactionCount(const EthRequest &request);
-  bool is_valid_eth_getBalance(const EthRequest &request);
+  bool is_valid_eth_getStorageAt(
+      const com::vmware::concord::EthRequest &request);
+  bool is_valid_eth_getCode(const com::vmware::concord::EthRequest &request);
+  bool is_valid_eth_sendTransaction(
+      const com::vmware::concord::EthRequest &request);
+  bool is_valid_eth_getTransactionCount(
+      const com::vmware::concord::EthRequest &request);
+  bool is_valid_eth_getBalance(const com::vmware::concord::EthRequest &request);
 
   /* This serves eth_blockNumber. */
   uint64_t current_block_number();
 
   /* Constructor. */
   ApiConnection(boost::asio::io_service &io_service,
-                ConnectionManager &connManager, KVBClientPool &clientPool,
-                StatusAggregator &sag, uint64_t gasLimit, uint64_t chainID);
+                ConnectionManager &connManager,
+                concord::consensus::KVBClientPool &clientPool,
+                concord::common::StatusAggregator &sag, uint64_t gasLimit,
+                uint64_t chainID);
 
   uint16_t get_message_length(const char *buffer);
 
@@ -118,7 +123,7 @@ class ApiConnection : public boost::enable_shared_from_this<ApiConnection> {
 
   ConnectionManager &connManager_;
 
-  KVBClientPool &clientPool_;
+  concord::consensus::KVBClientPool &clientPool_;
 
   boost::asio::ip::tcp::endpoint remotePeer_;
 
@@ -133,13 +138,12 @@ class ApiConnection : public boost::enable_shared_from_this<ApiConnection> {
 
   const uint8_t MSG_LENGTH_BYTES = 2;
 
-  StatusAggregator sag_;
+  concord::common::StatusAggregator sag_;
   const uint64_t gasLimit_;
   const uint64_t chainID_;
 };
 
+}  // namespace api
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
-#endif
+#endif  // API_API_CONNECTION_HPP

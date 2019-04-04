@@ -6,9 +6,9 @@
 #include "config/configuration_manager.hpp"
 #include "gtest/gtest.h"
 
-namespace {
+using namespace concord::config;
 
-using namespace com::vmware::concord;
+namespace {
 
 TEST(config_test, path_constructors) {
   ConfigurationPath path;
@@ -2277,7 +2277,7 @@ TEST(config_test, yaml_configuration_io) {
   }
 }
 
-}  // end namespace
+}  // namespace
 
 int main(int argc, char** argv) {
   ::testing::InitGoogleTest(&argc, argv);

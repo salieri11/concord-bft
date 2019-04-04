@@ -7,9 +7,12 @@
 
 using namespace std;
 
-namespace concord = com::vmware::concord;
+using concord::utils::dehex;
+using concord::utils::EthSign;
+using concord::utils::RLPBuilder;
+using concord::utils::RLPParser;
 
-std::vector<uint8_t> next_part(concord::RLPParser &parser, const char *label) {
+std::vector<uint8_t> next_part(RLPParser &parser, const char *label) {
   if (parser.at_end()) {
     cerr << "Transaction too short: missing " << label << endl;
     exit(-1);
@@ -49,18 +52,18 @@ int main(int argc, char **argv) {
   }
 
   string tx_s(argv[1]);
-  vector<uint8_t> tx = concord::dehex(tx_s);
+  vector<uint8_t> tx = dehex(tx_s);
 
   // Decode RLP
 
-  concord::RLPParser tx_envelope_p = concord::RLPParser(tx);
+  RLPParser tx_envelope_p = RLPParser(tx);
   std::vector<uint8_t> tx_envelope = tx_envelope_p.next();
 
   if (!tx_envelope_p.at_end()) {
     cerr << "Warning: There are more bytes here than one transaction\n";
   }
 
-  concord::RLPParser tx_parts_p = concord::RLPParser(tx_envelope);
+  RLPParser tx_parts_p = RLPParser(tx_envelope);
 
   std::vector<uint8_t> nonce_v = next_part(tx_parts_p, "nonce");
   std::vector<uint8_t> gasPrice_v = next_part(tx_parts_p, "gas price");
@@ -116,7 +119,7 @@ int main(int argc, char **argv) {
 
   // Re-encode RLP
 
-  concord::RLPBuilder unsignedTX_b;
+  RLPBuilder unsignedTX_b;
   unsignedTX_b.start_list();
 
   std::vector<uint8_t> empty;
@@ -151,8 +154,9 @@ int main(int argc, char **argv) {
 
   // Recover Address
 
-  evm_uint256be unsignedTX_h = concord::EthHash::keccak_hash(unsignedTX);
-  concord::EthSign verifier;
+  evm_uint256be unsignedTX_h =
+      concord::utils::eth_hash::keccak_hash(unsignedTX);
+  EthSign verifier;
   evm_address from = verifier.ecrecover(unsignedTX_h, actualV, r, s);
 
   cout << "Recovered: " << addr_to_string(from) << endl;

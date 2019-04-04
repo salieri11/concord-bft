@@ -11,9 +11,8 @@
 #include <vector>
 #include "evm.h"
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace common {
 
 struct HexPrintVector {
   std::vector<uint8_t> const& vec;
@@ -31,8 +30,7 @@ std::ostream& operator<<(std::ostream& s, const evm_address& u);
 std::ostream& operator<<(std::ostream& s, struct evm_message msg);
 std::ostream& operator<<(std::ostream& s, evm_call_kind kind);
 
+}  // namespace common
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
 #endif  // COMMON_CONCORD_LOG_HPP

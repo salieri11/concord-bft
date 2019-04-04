@@ -14,9 +14,10 @@ using namespace std;
 using namespace boost;
 using namespace boost::asio;
 
-namespace com {
-namespace vmware {
+using concord::utils::get_epoch_millis;
+
 namespace concord {
+namespace common {
 
 struct EnumHash {
   template <typename T>
@@ -189,6 +190,5 @@ vector<UiPeerInfo> StatusAggregator::get_peers_info() {
   return res;
 }
 
+}  // namespace common
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com

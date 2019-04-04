@@ -26,13 +26,32 @@
 #include "utils/concord_eth_sign.hpp"
 #include "utils/rlp.hpp"
 
-using Blockchain::IBlocksAppender;
-using Blockchain::ILocalKeyValueStorageReadOnly;
 using namespace boost::program_options;
 
-namespace com {
-namespace vmware {
+// Protobuf interface
+using namespace com::vmware::concord;
+
+using concord::blockchain::KVBStorage;
+using concord::common::BlockNotFoundException;
+using concord::common::EthBlock;
+using concord::common::EthLog;
+using concord::common::EthTransaction;
+using concord::common::EVMException;
+using concord::common::HexPrintBytes;
+using concord::common::TransactionNotFoundException;
+using concord::common::zero_address;
+using concord::common::zero_hash;
+using concord::ethereum::EVM;
+using concord::utils::EthSign;
+using concord::utils::RLPBuilder;
+using concord::utils::to_evm_uint256be;
+using concord::common::operator<<;
+
+using Blockchain::IBlocksAppender;
+using Blockchain::ILocalKeyValueStorageReadOnly;
+
 namespace concord {
+namespace consensus {
 
 KVBCommandsHandler::KVBCommandsHandler(
     EVM &athevm, EthSign &verifier,
@@ -879,7 +898,7 @@ void KVBCommandsHandler::recover_from(const EthRequest &request,
     }
 
     std::vector<uint8_t> rlp = rlpb.build();
-    evm_uint256be rlp_hash = EthHash::keccak_hash(rlp);
+    evm_uint256be rlp_hash = concord::utils::eth_hash::keccak_hash(rlp);
 
     // Then we can check it against the signature.
 
@@ -1112,6 +1131,5 @@ evm_uint256be KVBCommandsHandler::record_transaction(
   return txhash;
 }
 
+}  // namespace consensus
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com

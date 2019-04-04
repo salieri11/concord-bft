@@ -12,9 +12,8 @@
 #include "concord.pb.h"
 #include "kvb/BlockchainInterfaces.h"
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace consensus {
 
 class KVBClient {
  private:
@@ -52,8 +51,7 @@ class KVBClientPool {
                          com::vmware::concord::ConcordResponse &resp);
 };
 
+}  // namespace consensus
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
 #endif  // CONSENSUS_KVB_CLIENT_HPP

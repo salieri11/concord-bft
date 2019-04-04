@@ -12,9 +12,8 @@
 #include "StatusInfo.h"
 #include "utils/concord_utils.hpp"
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace common {
 
 struct UiPeerInfo {
   std::string hostname;
@@ -40,8 +39,8 @@ class StatusAggregator {
   class Impl;
   std::shared_ptr<Impl> _pImpl;
 };
+
+}  // namespace common
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
 #endif  // COMMON_STATUS_AGGREGATOR_HPP

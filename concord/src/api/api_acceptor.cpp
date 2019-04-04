@@ -11,9 +11,11 @@ using boost::asio::io_service;
 using boost::asio::ip::tcp;
 using boost::system::error_code;
 
-namespace com {
-namespace vmware {
+using concord::common::StatusAggregator;
+using concord::consensus::KVBClientPool;
+
 namespace concord {
+namespace api {
 
 ApiAcceptor::ApiAcceptor(io_service &io_service, tcp::endpoint endpoint,
                          KVBClientPool &clientPool, StatusAggregator &sag,
@@ -59,6 +61,5 @@ void ApiAcceptor::handle_accept(ApiConnection::pointer new_connection,
   LOG4CPLUS_TRACE(logger_, "handle_accept exit");
 }
 
+}  // namespace api
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com

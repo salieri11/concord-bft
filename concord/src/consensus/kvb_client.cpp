@@ -11,11 +11,12 @@
 
 #include "consensus/kvb/BlockchainInterfaces.h"
 
-using namespace com::vmware::concord;
+using com::vmware::concord::ConcordRequest;
+using com::vmware::concord::ConcordResponse;
+using com::vmware::concord::ErrorResponse;
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace consensus {
 
 /**
  * Send a request to the replicas. Returns true if the response contains
@@ -84,6 +85,5 @@ bool KVBClientPool::send_request_sync(ConcordRequest &req, bool isReadOnly,
   }
 }
 
+}  // namespace consensus
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com

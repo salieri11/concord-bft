@@ -31,14 +31,32 @@
 #endif
 
 using namespace boost::program_options;
+using namespace std;
+using namespace Blockchain;
+
 using boost::asio::io_service;
 using boost::asio::ip::address;
 using boost::asio::ip::tcp;
 using log4cplus::Logger;
 
-using namespace com::vmware::concord;
-using namespace std;
-using namespace Blockchain;
+using concord::api::ApiAcceptor;
+using concord::blockchain::KVBStorage;
+using concord::common::EthLog;
+using concord::common::EthTransaction;
+using concord::common::EVMException;
+using concord::common::StatusAggregator;
+using concord::common::zero_address;
+using concord::common::zero_hash;
+using concord::common::operator<<;
+using concord::consensus::KVBClient;
+using concord::consensus::KVBClientPool;
+using concord::consensus::KVBCommandsHandler;
+using concord::ethereum::EVM;
+using concord::ethereum::EVMInitParams;
+using concord::utils::EthSign;
+
+// Parse BFT configuration
+using com::vmware::concord::parse_plain_config_file;
 
 // the Boost service hosting our Helen connections
 static io_service *api_service;
@@ -137,10 +155,10 @@ Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
         it->second,              // value
         0,                       // gas_price
         0,                       // gas_limit
-        std::vector<EthLog>(),   // logs
-        zero_hash,               // sig_r (no signature for genesis)
-        zero_hash,               // sig_s (no signature for genesis)
-        (chainID * 2 + 35)       // sig_v
+        std::vector<concord::common::EthLog>(),  // logs
+        zero_hash,          // sig_r (no signature for genesis)
+        zero_hash,          // sig_s (no signature for genesis)
+        (chainID * 2 + 35)  // sig_v
     };
     evm_uint256be txhash = tx.hash();
     LOG4CPLUS_INFO(logger, "Created genesis transaction "

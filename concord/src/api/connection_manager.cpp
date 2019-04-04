@@ -4,9 +4,8 @@
 #include "connection_manager.hpp"
 #include <log4cplus/loggingmacros.h>
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace api {
 
 /* statoc logger per class */
 static log4cplus::Logger logger_(
@@ -37,6 +36,5 @@ void ConnectionManager::close_connection(ApiConnection::pointer pConn) {
   LOG4CPLUS_TRACE(logger_, "close_connection exit");
 }
 
+}  // namespace api
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com

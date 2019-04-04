@@ -9,9 +9,8 @@
 #include <set>
 #include "api_connection.hpp"
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace api {
 
 class ConnectionManager {
  public:
@@ -21,13 +20,12 @@ class ConnectionManager {
 
  private:
   /* Socket being handled. */
-  std::set<com::vmware::concord::ApiConnection::pointer> connections_;
+  std::set<ApiConnection::pointer> connections_;
   /* Mutex used to protect updates to connections_ set */
   boost::mutex mutex_;
 };
 
+}  // namespace api
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
-#endif
+#endif  // API_CONNECTION_MANAGER_HPP

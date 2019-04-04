@@ -16,16 +16,15 @@
 #include "consensus/kvb/sliver.hpp"
 #include "evm.h"
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace blockchain {
 
 class KVBStorage {
  private:
   const Blockchain::ILocalKeyValueStorageReadOnly &roStorage_;
   Blockchain::IBlocksAppender *blockAppender_;
   Blockchain::SetOfKeyValuePairs updates;
-  std::vector<EthTransaction> pending_transactions;
+  std::vector<concord::common::EthTransaction> pending_transactions;
   log4cplus::Logger logger;
   // BFT sequence number associated with a EVM contract execution.
   uint64_t bftSequenceNum_ = 0;
@@ -42,9 +41,10 @@ class KVBStorage {
   Blockchain::Sliver kvb_key(uint8_t type, const uint8_t *bytes,
                              size_t length) const;
 
-  Blockchain::Sliver block_key(const EthBlock &blk) const;
+  Blockchain::Sliver block_key(const concord::common::EthBlock &blk) const;
   Blockchain::Sliver block_key(const evm_uint256be &hash) const;
-  Blockchain::Sliver transaction_key(const EthTransaction &tx) const;
+  Blockchain::Sliver transaction_key(
+      const concord::common::EthTransaction &tx) const;
   Blockchain::Sliver transaction_key(const evm_uint256be &hash) const;
   Blockchain::Sliver balance_key(const evm_address &addr) const;
   Blockchain::Sliver nonce_key(const evm_address &addr) const;
@@ -61,7 +61,7 @@ class KVBStorage {
   void put(const Blockchain::Sliver &key, const Blockchain::Sliver &value);
 
   uint64_t next_block_number();
-  void add_block(EthBlock &blk);
+  void add_block(concord::common::EthBlock &blk);
 
  public:
   // read-only mode
@@ -77,9 +77,9 @@ class KVBStorage {
   const Blockchain::ILocalKeyValueStorageReadOnly &getReadOnlyStorage();
 
   uint64_t current_block_number();
-  EthBlock get_block(const evm_uint256be &hash);
-  EthBlock get_block(uint64_t number);
-  EthTransaction get_transaction(const evm_uint256be &hash);
+  concord::common::EthBlock get_block(const evm_uint256be &hash);
+  concord::common::EthBlock get_block(uint64_t number);
+  concord::common::EthTransaction get_transaction(const evm_uint256be &hash);
   evm_uint256be get_balance(const evm_address &addr);
   evm_uint256be get_balance(const evm_address &addr, uint64_t &block_number);
   uint64_t get_nonce(const evm_address &addr);
@@ -97,7 +97,7 @@ class KVBStorage {
 
   Blockchain::Status write_block(uint64_t timestamp, uint64_t gas_limit);
   void reset();
-  void add_transaction(EthTransaction &tx);
+  void add_transaction(concord::common::EthTransaction &tx);
   void set_balance(const evm_address &addr, evm_uint256be balance);
   void set_nonce(const evm_address &addr, uint64_t nonce);
   void set_code(const evm_address &addr, const uint8_t *code, size_t code_size);
@@ -106,8 +106,7 @@ class KVBStorage {
   void set_block_metadata();
 };
 
+}  // namespace blockchain
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
 #endif  // BLOCKCHAIN_KVB_STORAGE_HPP

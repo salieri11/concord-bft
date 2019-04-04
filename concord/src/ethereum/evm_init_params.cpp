@@ -13,9 +13,12 @@ using json = nlohmann::json;
 using boost::multiprecision::uint256_t;
 using boost::multiprecision::uint512_t;
 
-namespace com {
-namespace vmware {
+using concord::common::HexPrintVector;
+using concord::utils::dehex;
+using concord::utils::from_uint256_t;
+
 namespace concord {
+namespace ethereum {
 
 EVMInitParams::EVMInitParams()
     : logger(Logger::getInstance("com.vmware.concord.evm_init_params")) {}
@@ -123,6 +126,5 @@ uint64_t EVMInitParams::get_timestamp() const { return timestamp; }
 
 uint64_t EVMInitParams::get_gas_limit() const { return gasLimit; }
 
+}  // namespace ethereum
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com

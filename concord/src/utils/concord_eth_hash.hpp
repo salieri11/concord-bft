@@ -8,17 +8,15 @@
 #include <log4cplus/loggingmacros.h>
 #include "evm.h"
 
-namespace com {
-namespace vmware {
 namespace concord {
-namespace EthHash {
+namespace utils {
+namespace eth_hash {
 
 evm_uint256be keccak_hash(const std::vector<uint8_t> &data);
 evm_uint256be keccak_hash(const uint8_t *data, size_t size);
 
-}  // namespace EthHash
+}  // namespace eth_hash
+}  // namespace utils
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
 #endif  // UTILS_CONCORD_ETH_HASH_HPP

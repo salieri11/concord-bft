@@ -10,20 +10,22 @@
 #include "utils/json.hpp"
 
 using namespace std;
-namespace concord = com::vmware::concord;
 using json = nlohmann::json;
+
+using concord::utils::dehex;
+using concord::utils::EthSign;
 
 namespace {
 
 evm_uint256be uint256_from_string(const string &str) {
-  std::vector<uint8_t> vec = com::vmware::concord::dehex(str);
+  std::vector<uint8_t> vec = dehex(str);
   evm_uint256be hash;
   std::copy(vec.begin(), vec.end(), hash.bytes);
   return hash;
 }
 
 evm_address addr_from_string(const string &str) {
-  std::vector<uint8_t> vec = com::vmware::concord::dehex(str);
+  std::vector<uint8_t> vec = dehex(str);
   evm_address addr;
   std::copy(vec.begin(), vec.end(), addr.bytes);
   return addr;
@@ -114,11 +116,11 @@ TEST(sign_text, known_ecrecover_matches) {
   evm_uint256be testSigS = uint256_from_string(givenSigS_s);
   uint8_t testSigV = (givenSigV % 2) ? 0 : 1;
 
-  vector<uint8_t> unsigned_rlp = com::vmware::concord::dehex(unsignedRLP_s);
+  vector<uint8_t> unsigned_rlp = dehex(unsignedRLP_s);
   evm_uint256be unsigned_rlp_hash =
-      com::vmware::concord::EthHash::keccak_hash(unsigned_rlp);
+      concord::utils::eth_hash::keccak_hash(unsigned_rlp);
 
-  com::vmware::concord::EthSign verifier;
+  EthSign verifier;
   evm_address calc_addr =
       verifier.ecrecover(unsigned_rlp_hash, testSigV, testSigR, testSigS);
 
@@ -136,13 +138,13 @@ TEST(sign_test, known_modified_ecrecover_no_matches) {
   evm_uint256be testSigS = uint256_from_string(givenSigS_s);
   uint8_t testSigV = (givenSigV % 2) ? 0 : 1;
 
-  vector<uint8_t> unsigned_rlp = com::vmware::concord::dehex(unsignedRLP_s);
+  vector<uint8_t> unsigned_rlp = dehex(unsignedRLP_s);
   // modify first byte of transaction
   unsigned_rlp[0] = unsigned_rlp[0] + 1;
   evm_uint256be unsigned_rlp_hash =
-      com::vmware::concord::EthHash::keccak_hash(unsigned_rlp);
+      concord::utils::eth_hash::keccak_hash(unsigned_rlp);
 
-  com::vmware::concord::EthSign verifier;
+  EthSign verifier;
   evm_address calc_addr =
       verifier.ecrecover(unsigned_rlp_hash, testSigV, testSigR, testSigS);
 
@@ -160,16 +162,16 @@ TEST(sign_test, simple_data_sign_and_recover) {
   const string secret_s("sec");
   std::vector<uint8_t> secret;
   std::copy(secret_s.begin(), secret_s.end(), std::back_inserter(secret));
-  const evm_uint256be key = com::vmware::concord::EthHash::keccak_hash(secret);
+  const evm_uint256be key = concord::utils::eth_hash::keccak_hash(secret);
 
   // The known message is just the keccak hash for the string "msg"
   const string msg_s("msg");
   std::vector<uint8_t> msg;
   std::copy(msg_s.begin(), msg_s.end(), std::back_inserter(msg));
-  const evm_uint256be hash = com::vmware::concord::EthHash::keccak_hash(msg);
+  const evm_uint256be hash = concord::utils::eth_hash::keccak_hash(msg);
 
   // Compute the signature
-  com::vmware::concord::EthSign verifier;
+  EthSign verifier;
   std::vector<uint8_t> signature = verifier.sign(hash, key);
 
   // These are the signatures we expect for the known key and message (they
@@ -201,9 +203,9 @@ TEST(sign_test, simple_data_sign_and_recover) {
   const string expectedPub_s(
       "e40930c838d6cca526795596e368d16083f0672f4ab61788277abfa23c3740e1"
       "cc84453b0b24f49086feba0bd978bb4446bae8dff1e79fcc1e9cf482ec2d07c3");
-  std::vector<uint8_t> expectedPub = com::vmware::concord::dehex(expectedPub_s);
+  std::vector<uint8_t> expectedPub = dehex(expectedPub_s);
   const evm_uint256be expectedHash =
-      com::vmware::concord::EthHash::keccak_hash(expectedPub);
+      concord::utils::eth_hash::keccak_hash(expectedPub);
   evm_address expectedAddr;
   std::copy(expectedHash.bytes + (sizeof(evm_uint256be) - sizeof(evm_address)),
             expectedHash.bytes + sizeof(evm_uint256be), expectedAddr.bytes);
@@ -228,10 +230,10 @@ TEST(sign_test, known_hash_recover) {
   const string given_rlpHash_s(
       "0x6a74f15f29c3227c5d1d2e27894da58d417a484ef53bc7aa57ee323b42ded656");
 
-  vector<uint8_t> given_message = com::vmware::concord::dehex(given_message_s);
+  vector<uint8_t> given_message = dehex(given_message_s);
   evm_uint256be given_rlpHash = uint256_from_string(given_rlpHash_s);
   evm_uint256be message_hash =
-      com::vmware::concord::EthHash::keccak_hash(given_message);
+      concord::utils::eth_hash::keccak_hash(given_message);
   std::cout << "Checking RLP Hash" << std::endl;
   expect_match(given_rlpHash, message_hash, true);
 
@@ -244,12 +246,12 @@ TEST(sign_test, known_hash_recover) {
   const string given_from_s("0x53ae893e4b22d707943299a8d0c844df0e3d5557");
 
   // 27 == pre-EIP155 offset
-  uint8_t given_v = concord::dehex(given_v_s)[0] - 27;
+  uint8_t given_v = dehex(given_v_s)[0] - 27;
   evm_uint256be given_r = uint256_from_string(given_r_s);
   evm_uint256be given_s = uint256_from_string(given_s_s);
   evm_address given_from = addr_from_string(given_from_s);
 
-  com::vmware::concord::EthSign verifier;
+  EthSign verifier;
   evm_address from =
       verifier.ecrecover(given_rlpHash, given_v, given_r, given_s);
 
@@ -285,17 +287,16 @@ TEST(sign_test, personal_ecrecover) {
       "0a6b6cb66fdce8df289a4284cb980dd61dae4a588b978d679790efc63f7450e5");
   const string given_from_s("0x59825ed03aa4f65e2b52e1c17dca5eb875196c9b");
 
-  vector<uint8_t> given_unsignedTx =
-      com::vmware::concord::dehex(given_unsignedTx_s);
+  vector<uint8_t> given_unsignedTx = dehex(given_unsignedTx_s);
   evm_uint256be given_r = uint256_from_string(given_r_s);
   evm_uint256be given_s = uint256_from_string(given_s_s);
   // EIP155 V == chainID * 2 + 35 (or 36);
-  vector<uint8_t> given_v_v = concord::dehex(given_v_s);
+  vector<uint8_t> given_v_v = dehex(given_v_s);
   uint8_t given_v = (given_v_v[given_v_v.size() - 1] % 2) ? 0 : 1;
 
   evm_uint256be unsignedRlpHash =
-      com::vmware::concord::EthHash::keccak_hash(given_unsignedTx);
-  com::vmware::concord::EthSign verifier;
+      concord::utils::eth_hash::keccak_hash(given_unsignedTx);
+  EthSign verifier;
   evm_address from =
       verifier.ecrecover(unsignedRlpHash, given_v, given_r, given_s);
 

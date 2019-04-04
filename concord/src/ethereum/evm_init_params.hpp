@@ -15,9 +15,8 @@
 #include "utils/concord_utils.hpp"
 #include "utils/json.hpp"
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace ethereum {
 
 class EVMInitParamException : public std::exception {
  public:
@@ -55,8 +54,7 @@ class EVMInitParams {
   log4cplus::Logger logger;
 };
 
+}  // namespace ethereum
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
 #endif  // ETHEREUM_EVM_INIT_PARAMS_HPP
