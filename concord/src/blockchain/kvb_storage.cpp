@@ -355,7 +355,7 @@ void KVBStorage::set_storage(const evm_address &addr,
 }
 
 // Used for UT, as well.
-Sliver KVBStorage::set_block_metadata_value(uint64_t bftSequenceNum) {
+Sliver KVBStorage::set_block_metadata_value(uint64_t bftSequenceNum) const {
   concord::kvb::BlockMetadata proto;
   proto.set_version(block_metadata_version);
   proto.set_bft_sequence_num(bftSequenceNum);

@@ -100,7 +100,6 @@ target_link_libraries(ReplicaStateSyncTests
   log4cplus
   gtest
   gtest_main
-  gmock
   proto ${PROTOBUF_LIBRARIES}
   ${EVM_LIBRARIES}
   LLVMSupport

@@ -104,7 +104,7 @@ class KVBStorage {
   void set_code(const evm_address &addr, const uint8_t *code, size_t code_size);
   void set_storage(const evm_address &addr, const evm_uint256be &location,
                    const evm_uint256be &data);
-  Blockchain::Sliver set_block_metadata_value(uint64_t bftSequenceNum);
+  Blockchain::Sliver set_block_metadata_value(uint64_t bftSequenceNum) const;
   void set_block_metadata();
 };
 
