@@ -8,21 +8,26 @@
 #include "utils/rlp.hpp"
 
 using namespace std;
-namespace concord = com::vmware::concord;
 using json = nlohmann::json;
 using boost::multiprecision::uint256_t;
+
+using concord::utils::from_evm_uint256be;
+using concord::utils::from_uint256_t;
+using concord::utils::RLPBuilder;
+using concord::utils::to_evm_uint256be;
+using concord::utils::to_uint256_t;
 
 namespace {
 TEST(utils_test, parses_genesis_block) {
   // string genesis_test_file = "resources/genesis.json";
-  // json pj = concord::parse_genesis_block(genesis_test_file);
+  // json pj = parse_genesis_block(genesis_test_file);
   // int chainID = pj["config"]["chainId"];
   // ASSERT_EQ(chainID, 1);
 }
 
 // examples from https://github.com/ethereum/wiki/wiki/RLP
 TEST(rlp_test, example_dog) {
-  concord::RLPBuilder rlpb;
+  RLPBuilder rlpb;
   std::vector<uint8_t> input{'d', 'o', 'g'};
   rlpb.add(input);
   std::vector<uint8_t> expect{0x83, 'd', 'o', 'g'};
@@ -30,7 +35,7 @@ TEST(rlp_test, example_dog) {
 }
 
 TEST(rlp_test, example_cat_dog) {
-  concord::RLPBuilder rlpb;
+  RLPBuilder rlpb;
   rlpb.start_list();
   std::vector<uint8_t> input1{'d', 'o', 'g'};
   rlpb.add(input1);
@@ -41,7 +46,7 @@ TEST(rlp_test, example_cat_dog) {
 }
 
 TEST(rlp_test, example_empty_string) {
-  concord::RLPBuilder rlpb;
+  RLPBuilder rlpb;
   std::vector<uint8_t> input;
   rlpb.add(input);
   std::vector<uint8_t> expect{0x80};
@@ -49,35 +54,35 @@ TEST(rlp_test, example_empty_string) {
 }
 
 TEST(rlp_test, example_empty_list) {
-  concord::RLPBuilder rlpb;
+  RLPBuilder rlpb;
   rlpb.start_list();
   std::vector<uint8_t> expect{0xc0};
   EXPECT_EQ(expect, rlpb.build());
 }
 
 TEST(rlp_test, example_integer_0) {
-  concord::RLPBuilder rlpb;
+  RLPBuilder rlpb;
   rlpb.add(0);
   std::vector<uint8_t> expect{0x80};
   EXPECT_EQ(expect, rlpb.build());
 }
 
 TEST(rlp_test, example_integer_15) {
-  concord::RLPBuilder rlpb;
+  RLPBuilder rlpb;
   rlpb.add(15);
   std::vector<uint8_t> expect{0x0f};
   EXPECT_EQ(expect, rlpb.build());
 }
 
 TEST(rlp_test, example_integer_1024) {
-  concord::RLPBuilder rlpb;
+  RLPBuilder rlpb;
   rlpb.add(1024);
   std::vector<uint8_t> expect{0x82, 0x04, 0x00};
   EXPECT_EQ(expect, rlpb.build());
 }
 
 TEST(rlp_test, example_nexted_list) {
-  concord::RLPBuilder rlpb;
+  RLPBuilder rlpb;
 
   // remember that RLPBuilder expects additions in reverse order, so read the
   // test case backward to understand the code: [ [], [[]], [ [], [[]] ] ]
@@ -112,7 +117,7 @@ TEST(rlp_test, example_nexted_list) {
 }
 
 TEST(rlp_test, example_lipsum) {
-  concord::RLPBuilder rlpb;
+  RLPBuilder rlpb;
   std::string str("Lorem ipsum dolor sit amet, consectetur adipisicing elit");
   std::vector<uint8_t> input(str.begin(), str.end());
   rlpb.add(input);
@@ -124,7 +129,7 @@ TEST(rlp_test, example_lipsum) {
 TEST(utils_test, to_evm_uint256be_test) {
   uint64_t val = 0xabcd1234;
   evm_uint256be expected;
-  concord::to_evm_uint256be(val, &expected);
+  to_evm_uint256be(val, &expected);
   EXPECT_EQ(expected.bytes[31], 0x34);
   EXPECT_EQ(expected.bytes[30], 0x12);
   EXPECT_EQ(expected.bytes[29], 0xcd);
@@ -144,7 +149,7 @@ TEST(utils_test, from_evm_uint256be_test) {
   val.bytes[29] = 0xcd;
   val.bytes[30] = 0x12;
   val.bytes[31] = 0x34;
-  EXPECT_EQ(expected, concord::from_evm_uint256be(&val));
+  EXPECT_EQ(expected, from_evm_uint256be(&val));
 }
 
 TEST(utils_test, to_uint256_t_test) {
@@ -155,7 +160,7 @@ TEST(utils_test, to_uint256_t_test) {
   input.bytes[28] = 0xde;
 
   uint256_t expected{"0xdeadbeef"};
-  EXPECT_EQ(expected, concord::to_uint256_t(&input));
+  EXPECT_EQ(expected, to_uint256_t(&input));
 }
 
 TEST(utils_test, from_uint256_t_test) {
@@ -166,7 +171,7 @@ TEST(utils_test, from_uint256_t_test) {
   expected.bytes[30] = 0xbe;
   expected.bytes[29] = 0xad;
   expected.bytes[28] = 0xde;
-  evm_uint256be out = concord::from_uint256_t(&input);
+  evm_uint256be out = from_uint256_t(&input);
   EXPECT_EQ(0, memcmp(expected.bytes, out.bytes, sizeof(evm_uint256be)));
 }
 

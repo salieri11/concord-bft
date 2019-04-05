@@ -7,9 +7,12 @@
 
 using namespace std;
 
-namespace concord = com::vmware::concord;
+using concord::utils::dehex;
+using concord::utils::EthSign;
+using concord::utils::RLPBuilder;
+using concord::utils::RLPParser;
 
-std::vector<uint8_t> next_part(concord::RLPParser &parser, const char *label) {
+std::vector<uint8_t> next_part(RLPParser &parser, const char *label) {
   if (parser.at_end()) {
     cerr << "Transaction too short: missing " << label << endl;
     exit(-1);
@@ -58,10 +61,10 @@ int main(int argc, char **argv) {
   }
 
   string tx_s(argv[1]);
-  vector<uint8_t> tx = concord::dehex(tx_s);
+  vector<uint8_t> tx = dehex(tx_s);
 
   string key_s(argv[2]);
-  vector<uint8_t> key_v = concord::dehex(key_s);
+  vector<uint8_t> key_v = dehex(key_s);
   if (key_v.size() != sizeof(evm_uint256be)) {
     cerr << "Key hex not long enough (is " << key_v.size() << " bytes, must be "
          << sizeof(evm_uint256be) << " bytes)" << endl;
@@ -74,14 +77,14 @@ int main(int argc, char **argv) {
   // It's kind of annoying that we have to decode and recode, but it's
   // necessary to get the RLP list length correct.
 
-  concord::RLPParser tx_envelope_p = concord::RLPParser(tx);
+  RLPParser tx_envelope_p = RLPParser(tx);
   std::vector<uint8_t> tx_envelope = tx_envelope_p.next();
 
   if (!tx_envelope_p.at_end()) {
     cerr << "Warning: There are more bytes here than one transaction\n";
   }
 
-  concord::RLPParser tx_parts_p = concord::RLPParser(tx_envelope);
+  RLPParser tx_parts_p = RLPParser(tx_envelope);
 
   std::vector<uint8_t> nonce_v = next_part(tx_parts_p, "nonce");
   std::vector<uint8_t> gasPrice_v = next_part(tx_parts_p, "gas price");
@@ -121,7 +124,7 @@ int main(int argc, char **argv) {
   // encode is exactly the same as the unsigned transaction we decoded. The
   // signature won't match if this isn't true.
 
-  concord::RLPBuilder sanity_b;
+  RLPBuilder sanity_b;
   sanity_b.start_list();
 
   std::vector<uint8_t> empty;
@@ -172,8 +175,8 @@ int main(int argc, char **argv) {
 
   // Sign
 
-  evm_uint256be txhash = concord::EthHash::keccak_hash(tx);
-  concord::EthSign verifier;
+  evm_uint256be txhash = concord::utils::eth_hash::keccak_hash(tx);
+  EthSign verifier;
   std::vector<uint8_t> signature = verifier.sign(txhash, key);
 
   if (signature.size() != 1 + 2 * sizeof(evm_uint256be)) {
@@ -201,7 +204,7 @@ int main(int argc, char **argv) {
 
   // Re-encode RLP
 
-  concord::RLPBuilder signedTX_b;
+  RLPBuilder signedTX_b;
   signedTX_b.start_list();
 
   signedTX_b.add(s);

@@ -9,9 +9,8 @@
 using namespace std;
 using boost::multiprecision::uint256_t;
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace utils {
 
 static char hexval(char c) {
   if (c >= '0' && c <= '9') {
@@ -102,6 +101,5 @@ evm_uint256be from_uint256_t(const uint256_t *val) {
   return out;
 }
 
+}  // namespace utils
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com

@@ -30,9 +30,20 @@
 using boost::multiprecision::uint256_t;
 using log4cplus::Logger;
 
-namespace com {
-namespace vmware {
+using concord::blockchain::KVBStorage;
+using concord::common::EthBlock;
+using concord::common::EthLog;
+using concord::common::EVMException;
+using concord::common::zero_address;
+using concord::common::zero_hash;
+using concord::common::operator<<;
+using concord::utils::from_evm_uint256be;
+using concord::utils::from_uint256_t;
+using concord::utils::RLPBuilder;
+using concord::utils::to_uint256_t;
+
 namespace concord {
+namespace ethereum {
 
 /**
  * Initialize the concord/evm context and start the evm instance.
@@ -188,7 +199,7 @@ evm_result EVM::create(evm_address& contract_address, evm_message& message,
 
     // we need a hash for this, or evmjit will cache its compilation under
     // something random
-    message.code_hash = EthHash::keccak_hash(create_code);
+    message.code_hash = concord::utils::eth_hash::keccak_hash(create_code);
 
     result = execute(message, timestamp, kvbStorage, evmLogs, create_code,
                      origin, contract_address);
@@ -273,7 +284,7 @@ evm_address EVM::contract_destination(evm_address& sender,
   std::vector<uint8_t> rlp = rlpb.build();
 
   // hash it
-  evm_uint256be hash = EthHash::keccak_hash(rlp);
+  evm_uint256be hash = concord::utils::eth_hash::keccak_hash(rlp);
 
   // the lower 20 bytes are the address
   evm_address address;
@@ -498,6 +509,5 @@ void ath_get_tx_context(struct evm_tx_context* result,
 }
 }
 
+}  // namespace ethereum
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com

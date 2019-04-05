@@ -13,23 +13,23 @@
 #include "common/status_aggregator.hpp"
 #include "consensus/kvb_client.hpp"
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace api {
 
 class ApiAcceptor {
  public:
   ApiAcceptor(boost::asio::io_service &io_service,
               boost::asio::ip::tcp::endpoint endpoint,
-              KVBClientPool &clientPool, StatusAggregator &sag,
-              uint64_t gasLimit, uint64_t chainID);
+              concord::consensus::KVBClientPool &clientPool,
+              concord::common::StatusAggregator &sag, uint64_t gasLimit,
+              uint64_t chainID);
 
  private:
   boost::asio::ip::tcp::acceptor acceptor_;
-  KVBClientPool &clientPool_;
+  concord::consensus::KVBClientPool &clientPool_;
   log4cplus::Logger logger_;
   ConnectionManager connManager_;
-  StatusAggregator sag_;
+  concord::common::StatusAggregator sag_;
   uint64_t gasLimit_;
   uint64_t chainID_;
 
@@ -39,8 +39,7 @@ class ApiAcceptor {
                      const boost::system::error_code &error);
 };
 
+}  // namespace api
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
-#endif
+#endif  // API_API_ACCEPTOR_HPP

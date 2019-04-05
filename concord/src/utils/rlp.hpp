@@ -9,9 +9,8 @@
 #include <vector>
 #include "evm.h"
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace utils {
 
 class RLPBuilder {
  public:
@@ -53,8 +52,7 @@ class RLPParser {
   std::vector<uint8_t> long_run(size_t length_length);
 };
 
+}  // namespace utils
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
 #endif  // UTILS_RLP_HPP

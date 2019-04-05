@@ -16,9 +16,8 @@
 #include "evm_init_params.hpp"
 #include "utils/concord_utils.hpp"
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace ethereum {
 
 // forward declaration for callbacks.
 class EVM;
@@ -36,8 +35,8 @@ typedef struct concord_context {
   /** evmctx must be first, so we can cast to our wrapper */
   struct evm_context evmctx;
   class EVM* ath_object;
-  class KVBStorage* kvbStorage;
-  std::vector<EthLog>* evmLogs;
+  class concord::blockchain::KVBStorage* kvbStorage;
+  std::vector<::concord::common::EthLog>* evmLogs;
   log4cplus::Logger* logger;
   uint64_t timestamp;
 
@@ -98,15 +97,19 @@ class EVM {
   ~EVM();
 
   /* Concord API */
-  void transfer_fund(evm_message& message, KVBStorage& kvbStorage,
+  void transfer_fund(evm_message& message,
+                     concord::blockchain::KVBStorage& kvbStorage,
                      evm_result& result);
   evm_result run(evm_message& message, uint64_t timestamp,
-                 KVBStorage& kvbStorage, std::vector<EthLog>& evmLogs,
+                 concord::blockchain::KVBStorage& kvbStorage,
+                 std::vector<::concord::common::EthLog>& evmLogs,
                  const evm_address& origin,
                  const evm_address& storage_contract);
   evm_result create(evm_address& contract_address, evm_message& message,
-                    uint64_t timestamp, KVBStorage& kvbStorage,
-                    std::vector<EthLog>& evmLogs, const evm_address& origin);
+                    uint64_t timestamp,
+                    concord::blockchain::KVBStorage& kvbStorage,
+                    std::vector<::concord::common::EthLog>& evmLogs,
+                    const evm_address& origin);
   evm_address contract_destination(evm_address& sender, uint64_t nonce) const;
 
  private:
@@ -117,14 +120,14 @@ class EVM {
   uint64_t chainId;
 
   evm_result execute(evm_message& message, uint64_t timestamp,
-                     KVBStorage& kvbStorage, std::vector<EthLog>& evmLogs,
+                     concord::blockchain::KVBStorage& kvbStorage,
+                     std::vector<::concord::common::EthLog>& evmLogs,
                      const std::vector<uint8_t>& code,
                      const evm_address& origin,
                      const evm_address& storage_contract);
 };
 
+}  // namespace ethereum
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
 #endif  // ETHEREUM_CONCORD_EVM_HPP

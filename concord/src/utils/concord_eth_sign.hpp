@@ -10,9 +10,8 @@
 
 #include "evm.h"
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace utils {
 
 class EthSign {
  public:
@@ -30,8 +29,7 @@ class EthSign {
   secp256k1_context *ctx;
 };
 
+}  // namespace utils
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
 #endif  // UTILS_CONCORD_ETH_SIGN_HPP

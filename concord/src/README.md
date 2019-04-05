@@ -2,6 +2,8 @@
 
 Instruction on how to build, deploy and test Concord can be found [here](../README.md).
 
+## Source structure
+
 ```
 .
 ├── api                      # Gateway for requests coming from Helen or Ethrpc
@@ -17,3 +19,10 @@ Instruction on how to build, deploy and test Concord can be found [here](../READ
 └── utils                    # Shared utility library used by Concord and its tools and tests
     └── CMakeLists.txt
 ```
+
+## Namespaces
+
+There are two namespace hierarchies used within the source code:
+* `concord::` -> Refers to the source structure above (e.g. `concord::ethereum::EVM`)
+  * The exception is `consensus/kvb`. That code is accessible through `com::vmware::concord`
+* `com::vmware::concord::` -> The protobuf interface defined in [concord.proto](../../communication/src/main/proto/concord.proto) and [concord_storage.proto](../proto/concord_storage.proto)

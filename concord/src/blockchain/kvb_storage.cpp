@@ -30,23 +30,23 @@
 //
 // * Block
 //   - Key: TYPE_BLOCK+[block hash (32 bytes)]
-//   - Value: kvb::Block protobuf
+//   - Value: com::vmware::concord::kvb::Block protobuf
 //   - Notes: Do not confuse this with the KVB block. This is Ethereum-level
 //            block information.
 //
 // * Transaction
 //   - Key: TYPE_TRANSACTION+[transaction hash (32 bytes)]
-//   - Value: kvb::Transaction protobuf
+//   - Value: com::vmware::concord::kvb::Transaction protobuf
 //
 // * Account or Contract Balance
 //   - Key: TYPE_BALANCE+[account/contract address (20 bytes)]
-//   - Value: kvb::Balance protobuf
+//   - Value: com::vmware::concord::kvb::Balance protobuf
 //   - Notes: Yes, it seems a little overkill to wrap a number in a protobuf
 //            encoding, but this saves hassle with endian encoding.
 //
 // * Contract Code
 //   - Key: TYPE_CODE+[contract address (20 bytes)]
-//   - Value: kvb::Code protobuf
+//   - Value: com::vmware::concord::kvb::Code protobuf
 //
 // * Contract Data
 //   - Key: TYPE_STORAGE+[contract address (20 bytes)]+[location (32 bytes)]
@@ -55,12 +55,12 @@
 //
 // * Account Nonce
 //   - Key: TYPE_NONCE+[account address (20 bytes)]
-//   - Value: kvb::Nonce protobuf
+//   - Value: com::vmware::concord::kvb::Nonce protobuf
 //   - Notes: As with balance, using protobuf solves encoding issues.
 //
 // * Block Metadata
 //   - Key: TYPE_BLOCK_METADATA
-//   - Value: kvb::BlockMetadata protobuf
+//   - Value: com::vmware::concord::kvb::BlockMetadata protobuf
 //   - Notes: As with balance, using protobuf solves encoding issues.
 
 #include "kvb_storage.hpp"
@@ -81,9 +81,17 @@
 using namespace Blockchain;
 using Blockchain::Sliver;
 
-namespace com {
-namespace vmware {
+using concord::common::BlockNotFoundException;
+using concord::common::EthBlock;
+using concord::common::EthTransaction;
+using concord::common::EVMException;
+using concord::common::ReadOnlyModeException;
+using concord::common::TransactionNotFoundException;
+using concord::common::zero_hash;
+using concord::common::operator<<;
+
 namespace concord {
+namespace blockchain {
 
 ////////////////////////////////////////
 // GENERAL
@@ -296,7 +304,7 @@ void KVBStorage::add_transaction(EthTransaction &tx) {
 }
 
 void KVBStorage::set_balance(const evm_address &addr, evm_uint256be balance) {
-  concord::kvb::Balance proto;
+  com::vmware::concord::kvb::Balance proto;
   proto.set_version(balance_storage_version);
   proto.set_balance(balance.bytes, sizeof(evm_uint256be));
   size_t sersize = proto.ByteSize();
@@ -307,7 +315,7 @@ void KVBStorage::set_balance(const evm_address &addr, evm_uint256be balance) {
 }
 
 void KVBStorage::set_nonce(const evm_address &addr, uint64_t nonce) {
-  concord::kvb::Nonce proto;
+  com::vmware::concord::kvb::Nonce proto;
   proto.set_version(nonce_storage_version);
   proto.set_nonce(nonce);
   size_t sersize = proto.ByteSize();
@@ -319,10 +327,10 @@ void KVBStorage::set_nonce(const evm_address &addr, uint64_t nonce) {
 
 void KVBStorage::set_code(const evm_address &addr, const uint8_t *code,
                           size_t code_size) {
-  concord::kvb::Code proto;
+  com::vmware::concord::kvb::Code proto;
   proto.set_version(code_storage_version);
   proto.set_code(code, code_size);
-  evm_uint256be hash = EthHash::keccak_hash(code, code_size);
+  evm_uint256be hash = concord::utils::eth_hash::keccak_hash(code, code_size);
   proto.set_hash(hash.bytes, sizeof(hash));
 
   size_t sersize = proto.ByteSize();
@@ -333,7 +341,7 @@ void KVBStorage::set_code(const evm_address &addr, const uint8_t *code,
 }
 
 void KVBStorage::set_block_metadata() {
-  concord::kvb::BlockMetadata proto;
+  com::vmware::concord::kvb::BlockMetadata proto;
   proto.set_version(block_metadata_version);
   proto.set_bft_sequence_num(bftSequenceNum_);
 
@@ -493,7 +501,7 @@ evm_uint256be KVBStorage::get_balance(const evm_address &addr,
 
   evm_uint256be out;
   if (status.isOK() && value.length() > 0) {
-    kvb::Balance balance;
+    com::vmware::concord::kvb::Balance balance;
     if (balance.ParseFromArray(value.data(), value.length())) {
       if (balance.version() == balance_storage_version) {
         std::copy(balance.balance().begin(), balance.balance().end(),
@@ -532,7 +540,7 @@ uint64_t KVBStorage::get_nonce(const evm_address &addr,
                               << " out block at: " << outBlock);
 
   if (status.isOK() && value.length() > 0) {
-    kvb::Nonce nonce;
+    com::vmware::concord::kvb::Nonce nonce;
     if (nonce.ParseFromArray(value.data(), value.length())) {
       if (nonce.version() == nonce_storage_version) {
         return nonce.nonce();
@@ -598,7 +606,7 @@ bool KVBStorage::get_code(const evm_address &addr, std::vector<uint8_t> &out,
                               << " out block at: " << outBlock);
 
   if (status.isOK() && value.length() > 0) {
-    kvb::Code code;
+    com::vmware::concord::kvb::Code code;
     if (code.ParseFromArray(value.data(), value.length())) {
       if (code.version() == code_storage_version) {
         std::copy(code.code().begin(), code.code().end(),
@@ -659,6 +667,5 @@ evm_uint256be KVBStorage::get_storage(const evm_address &addr,
   return out;
 }
 
+}  // namespace blockchain
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com

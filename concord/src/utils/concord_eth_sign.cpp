@@ -10,9 +10,8 @@
 
 #include "concord_eth_hash.hpp"
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace utils {
 
 // TODO: sort out build structure, to pull this from concord_types
 const evm_address zero_address{{0}};
@@ -90,7 +89,7 @@ evm_address EthSign::ecrecover(const evm_uint256be hash, const uint8_t version,
   assert(pubkeysize > 1);
   // skip the version byte at [0]
   evm_uint256be pubkeyhash =
-      EthHash::keccak_hash((uint8_t*)(pubkey + 1), pubkeysize - 1);
+      eth_hash::keccak_hash((uint8_t*)(pubkey + 1), pubkeysize - 1);
 
   evm_address address;
   std::copy(pubkeyhash.bytes + (sizeof(evm_uint256be) - sizeof(evm_address)),
@@ -109,6 +108,5 @@ evm_address EthSign::ecrecover(const evm_uint256be hash, const uint8_t version,
 //    tx.from;
 // }
 
+}  // namespace utils
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com

@@ -13,9 +13,8 @@
 #include <iostream>
 #include "json.hpp"
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace utils {
 
 std::vector<uint8_t> dehex(const std::string &str);
 
@@ -31,8 +30,7 @@ int64_t get_epoch_millis();
 
 std::ostream &hexPrint(std::ostream &s, const uint8_t *data, size_t size);
 
+}  // namespace utils
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
 #endif  // UTILS_CONCORD_UTILS_HPP

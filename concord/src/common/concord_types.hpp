@@ -9,15 +9,14 @@
 #include "concord_types.hpp"
 #include "consensus/kvb/sliver.hpp"
 
+namespace concord {
+namespace common {
+
 const evm_address zero_address{{0}};
 const evm_uint256be zero_hash{{0}};
 
 const int64_t tx_storage_version = 1;
 const int64_t blk_storage_version = 1;
-
-namespace com {
-namespace vmware {
-namespace concord {
 
 typedef struct EthLog {
   evm_address address;
@@ -61,9 +60,8 @@ typedef struct EthBlock {
   static struct EthBlock deserialize(Blockchain::Sliver &input);
 } EthBlock;
 
+}  // namespace common
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
 // Byte-wise comparators for evm_uint256be and evm_address. This allows us to
 // use these types as keys in a std::map. Must be in the global namespace.

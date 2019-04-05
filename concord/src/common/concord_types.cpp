@@ -16,7 +16,10 @@
 #include "utils/concord_eth_hash.hpp"
 #include "utils/rlp.hpp"
 
-using namespace com::vmware::concord::kvb;
+using com::vmware::concord::kvb::Block;
+using com::vmware::concord::kvb::Log;
+using com::vmware::concord::kvb::Transaction;
+using concord::utils::RLPBuilder;
 
 // Byte-wise comparator for evm_uint256be. This allows us to use this type as a
 // key in a std::map. Must be in the global namespace.
@@ -62,9 +65,8 @@ bool operator==(const evm_address &a, const evm_address &b) {
   return memcmp(a.bytes, b.bytes, sizeof(evm_address)) == 0;
 }
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace common {
 
 std::vector<uint8_t> EthTransaction::rlp() const {
   RLPBuilder rlpb;
@@ -106,11 +108,11 @@ std::vector<uint8_t> EthTransaction::rlp() const {
  * Compute the hash which will be used to reference the transaction.
  */
 evm_uint256be EthTransaction::hash() const {
-  return EthHash::keccak_hash(this->rlp());
+  return concord::utils::eth_hash::keccak_hash(this->rlp());
 }
 
 size_t EthTransaction::serialize(uint8_t **serialized) {
-  kvb::Transaction out;
+  Transaction out;
 
   out.set_version(tx_storage_version);
   out.set_block_number(this->block_number);
@@ -140,7 +142,7 @@ size_t EthTransaction::serialize(uint8_t **serialized) {
   out.set_sig_s(this->sig_s.bytes, sizeof(this->sig_s));
 
   for (EthLog &log : this->logs) {
-    kvb::Log *outlog = out.add_log();
+    Log *outlog = out.add_log();
     outlog->set_address(log.address.bytes, sizeof(evm_address));
     for (evm_uint256be topic : log.topics) {
       outlog->add_topic(topic.bytes, sizeof(evm_uint256be));
@@ -158,7 +160,7 @@ size_t EthTransaction::serialize(uint8_t **serialized) {
 }
 
 struct EthTransaction EthTransaction::deserialize(Blockchain::Sliver &input) {
-  kvb::Transaction intx;
+  Transaction intx;
   intx.ParseFromArray(input.data(), input.length());
 
   if (intx.version() == tx_storage_version) {
@@ -230,7 +232,7 @@ struct EthTransaction EthTransaction::deserialize(Blockchain::Sliver &input) {
     }
 
     for (int i = 0; i < intx.log_size(); i++) {
-      kvb::Log inlog = intx.log(i);
+      Log inlog = intx.log(i);
 
       evm_address addr;
       std::copy(inlog.address().begin(), inlog.address().end(), addr.bytes);
@@ -287,11 +289,11 @@ evm_uint256be EthBlock::get_hash() const {
   std::vector<uint8_t> rlp = rlpb.build();
 
   // hash it
-  return EthHash::keccak_hash(rlp);
+  return concord::utils::eth_hash::keccak_hash(rlp);
 }
 
 size_t EthBlock::serialize(uint8_t **serialized) {
-  kvb::Block out;
+  Block out;
 
   out.set_version(blk_storage_version);
   out.set_number(this->number);
@@ -313,7 +315,7 @@ size_t EthBlock::serialize(uint8_t **serialized) {
 }
 
 struct EthBlock EthBlock::deserialize(Blockchain::Sliver &input) {
-  kvb::Block inblk;
+  Block inblk;
   inblk.ParseFromArray(input.data(), input.length());
 
   if (inblk.version() == blk_storage_version) {
@@ -357,6 +359,5 @@ struct EthBlock EthBlock::deserialize(Blockchain::Sliver &input) {
   }
 }
 
+}  // namespace common
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com

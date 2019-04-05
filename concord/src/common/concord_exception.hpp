@@ -8,9 +8,8 @@
 #include <exception>
 #include <string>
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace common {
 
 class EVMException : public std::exception {
  public:
@@ -43,8 +42,7 @@ class AccountNotFoundException : public EVMException {
   AccountNotFoundException() : EVMException("Account or contract not found") {}
 };
 
+}  // namespace common
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
 #endif  // COMMON_CONCORD_EXCEPTION_HPP

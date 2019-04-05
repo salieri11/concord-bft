@@ -35,6 +35,12 @@
 #include "consensus/kvb_client.hpp"
 #include "evm.h"
 
+using namespace boost::asio;
+using namespace std;
+
+// Protobuf interface
+using namespace com::vmware::concord;
+
 using boost::asio::buffer;
 using boost::asio::io_service;
 using boost::asio::mutable_buffer;
@@ -44,12 +50,12 @@ using boost::asio::write;
 using boost::asio::ip::tcp;
 using boost::system::error_code;
 
-using namespace boost::asio;
-using namespace std;
+using concord::common::StatusAggregator;
+using concord::consensus::KVBClientPool;
+using concord::utils::from_evm_uint256be;
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace api {
 
 ApiConnection::pointer ApiConnection::create(io_service &io_service,
                                              ConnectionManager &connManager,
@@ -692,6 +698,5 @@ ApiConnection::ApiConnection(io_service &io_service, ConnectionManager &manager,
   // nothing to do here yet other than initialize the socket and logger
 }
 
+}  // namespace api
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com

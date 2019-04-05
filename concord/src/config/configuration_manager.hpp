@@ -32,9 +32,8 @@
 
 boost::program_options::variables_map initialize_config(int argc, char** argv);
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace config {
 
 // Exception type for any exceptions thrown by the configuration system that do
 // not fit into standard exception types such as std::invalid_argument. More
@@ -211,23 +210,21 @@ struct ConfigurationPath {
   ConfigurationPath trimLeaf() const;
 };
 
+}  // namespace config
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
 namespace std {
 
 // Specialization of std::hash<class T> for ConfigurationPath to facilitate
 // storing ConfigurationPaths in hash-based data structures.
 template <>
-struct hash<com::vmware::concord::ConfigurationPath> {
-  size_t operator()(const com::vmware::concord::ConfigurationPath& path) const;
+struct hash<::concord::config::ConfigurationPath> {
+  size_t operator()(const ::concord::config::ConfigurationPath& path) const;
 };
 }  // namespace std
 
-namespace com {
-namespace vmware {
 namespace concord {
+namespace config {
 
 // The ConcordConfiguration class provides a framework for defining the
 // structure and contents of configuration and handles storing and managing that
@@ -1167,8 +1164,7 @@ class YAMLConfigurationOutput {
   }
 };
 
+}  // namespace config
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
 
 #endif  // CONFIG_CONFIGURATION_MANAGER_HPP

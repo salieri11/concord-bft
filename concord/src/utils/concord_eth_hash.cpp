@@ -9,10 +9,9 @@
 
 #include "evm.h"
 
-namespace com {
-namespace vmware {
 namespace concord {
-namespace EthHash {
+namespace utils {
+namespace eth_hash {
 
 evm_uint256be keccak_hash(const std::vector<uint8_t> &data) {
   return keccak_hash(&data[0], data.size());
@@ -28,7 +27,6 @@ evm_uint256be keccak_hash(const uint8_t *data, size_t size) {
   return hash;
 }
 
-}  // namespace EthHash
+}  // namespace eth_hash
+}  // namespace utils
 }  // namespace concord
-}  // namespace vmware
-}  // namespace com
