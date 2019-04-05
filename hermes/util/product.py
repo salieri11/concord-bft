@@ -69,11 +69,7 @@ class Product():
 
       while (not launched) and (numAttempts < self._cmdlineArgs.productLaunchAttempts):
          try:
-            if self._cmdlineArgs.dockerComposeFile:
-               self._launchViaDocker()
-            else:
-               self._launchViaCmdLine()
-
+            self._launchViaDocker()
             launched = True
          except Exception as e:
             numAttempts += 1
@@ -182,74 +178,6 @@ class Product():
       if not os.path.isfile(self._docker_env_file):
          log.debug("Copying {} file from docker/".format(self._docker_env_file))
          shutil.copyfile(os.path.join("../docker/", self._docker_env_file), self._docker_env_file)
-
-
-   def _launchViaCmdLine(self):
-      # Since we change directories while launching products, save cwd here
-      # and chdir to that once all launches are done
-      original_cwd = os.getcwd()
-
-      for launchElement in self.userProductConfig["launch"]:
-         for project in launchElement:
-            projectSection = launchElement[project]
-            buildRoot = projectSection["buildRoot"]
-            buildRoot = os.path.expanduser(buildRoot)
-
-            if not self._cmdlineArgs.keepconcordDB and \
-               project.lower().startswith("concord"):
-               self.clearconcordDBForCmdlineLaunch(launchElement[project])
-
-            for executable in projectSection:
-               if executable == "buildRoot":
-                  os.chdir(buildRoot)
-               else:
-                  executableSection = launchElement \
-                                      [project][executable]
-                  cmd = [os.path.join(executableSection["launchCommand"])]
-
-                  # Add paramters.
-                  # If it is a replica and we see the "-d" parameter, the next
-                  # parameter needs to have the results directory prepended to it.
-                  previousParam = None
-                  for param in executableSection["parameters"]:
-                     if executable.startswith("replica") and previousParam == "-d":
-                        param = os.path.join(self._cmdlineArgs.resultsDir, param)
-                        os.makedirs(param)
-
-                     hermes_home = self._cmdlineArgs.hermes_dir
-                     concord_home = os.path.join(hermes_home, '..', 'concord')
-                     helen_home = os.path.join(hermes_home, '..', 'helen')
-                     param = param.replace('${HERMES_HOME}', hermes_home)
-                     param = param.replace('${CONCORD_HOME}', concord_home)
-                     param = param.replace('${HELEN_HOME}', helen_home)
-
-                     cmd.append(os.path.expanduser(param))
-                     previousParam = param
-
-                  logFile = open(os.path.join(self._productLogsDir, executable + ".log"),
-                             "wb+")
-                  self._logs.append(logFile)
-
-                  log.debug("Launching via command line with {}".format(cmd))
-                  p = subprocess.Popen(cmd,
-                                       stdout=logFile,
-                                       stderr=subprocess.STDOUT)
-                  self._processes.append(p)
-                  if project.lower().startswith("concord"):
-                      cm = ConcordInstsanceMetaData(
-                        len(self._processes) - 1,
-                        cmd,
-                        logFile,
-                        int(project[len("concord"):]),
-                        os.getcwd()
-                      )
-                      self._concordProcessesMetaData.append(cm)
-            # switch back to original cwd
-            os.chdir(original_cwd)
-
-      # All pieces should be launched now.
-      if not self._waitForProductStartup():
-         raise Exception("The product did not start.")
 
 
    def clearconcordDBForCmdlineLaunch(self, concordSection, serviceName=None):
