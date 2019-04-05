@@ -3,10 +3,19 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.vm
 
-import java.nio.charset.StandardCharsets
+import com.vmware.blockchain.deployment.model.ConcordComponent
+import com.vmware.blockchain.deployment.model.ConcordModelSpecification
 import java.util.Base64
 
-class InitScript {
+/**
+ * Initialization script run either on first-boot of a deployed virtual machine.
+ */
+class InitScript(val model: ConcordModelSpecification) {
+
+    private val dockerPullCommand: String = model.components.asSequence()
+            .filter { it.type == ConcordComponent.Type.DOCKER_IMAGE }
+            .map { "docker pull ${it.name}" }
+            .joinToString(separator = "\n", postfix = "\n")
 
     private val script =
             """
@@ -16,11 +25,14 @@ class InitScript {
             systemctl start docker
             systemctl enable docker
             docker login -u blockchainrepositoryreader -p 'j4jshdh${'$'}@ED2R${'$'}*Trf8'
-            docker pull vmwblockchain/concord-core:latest
-            #Create additional user for copying over the config files.
-            sudo useradd vmwuser1 -s /bin/bash -m
-            echo "vmwuser1:c0nc0rd" | sudo chpasswd
-            """.trimIndent()
+            {{dockerPullCommand}}
+            # Create additional user for copying over the config files.
+            useradd vmwuser1 -s /bin/bash -m
+            echo "vmwuser1:c0nc0rd" | chpasswd
+            """.trimIndent().replace("{{dockerPullCommand}}", dockerPullCommand)
 
-    fun base64(): ByteArray = Base64.getEncoder().encode(script.toByteArray(StandardCharsets.UTF_8))
+    /**
+     * Express the content of the [InitScript] instance as a base64-encoded [ByteArray].
+     */
+    fun base64(): ByteArray = Base64.getEncoder().encode(script.toByteArray(Charsets.UTF_8))
 }

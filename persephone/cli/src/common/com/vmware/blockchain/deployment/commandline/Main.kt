@@ -7,6 +7,7 @@ import com.vmware.blockchain.deployment.logging.Logger
 import com.vmware.blockchain.deployment.logging.info
 import com.vmware.blockchain.deployment.logging.logger
 import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
+import com.vmware.blockchain.deployment.model.ConcordComponent
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification
 import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
 import com.vmware.blockchain.deployment.model.core.BearerTokenCredential
@@ -57,7 +58,7 @@ fun main() {
                     VmcOrchestrator.newOrchestrator(site, coroutineContext).awaitSingle()
             )
 
-            val request = Orchestrator.CreateComputeResourceRequest(
+            val compute = Orchestrator.CreateComputeResourceRequest(
                     UUID.randomUUID().let {
                         ConcordClusterIdentifier(it.mostSignificantBits, it.leastSignificantBits)
                     },
@@ -66,28 +67,53 @@ fun main() {
                     },
                     ConcordModelSpecification(
                             version = "123",
-                            template = "photon-2.0"
+                            template = "photon-2.0",
+                            components = listOf(
+                                    ConcordComponent(
+                                            ConcordComponent.Type.DOCKER_IMAGE,
+                                            "vmwblockchain/concord-core:latest"
+                                    ),
+                                    ConcordComponent(
+                                            ConcordComponent.Type.DOCKER_IMAGE,
+                                            "vmwblockchain/ethrpc:latest"
+                                    )
+                            )
                     )
             )
 
-            val created = CompletableDeferred<URI>()
-            val started = CompletableDeferred<URI>()
-            val resultSubscriber = BaseSubscriber<Orchestrator.ComputeResourceEvent>(
+            val computeCreated = CompletableDeferred<URI>()
+            val computeStarted = CompletableDeferred<URI>()
+            val computeSubscriber = BaseSubscriber<Orchestrator.ComputeResourceEvent>(
                     onNext = {
                         when (it) {
                             is Orchestrator.ComputeResourceEvent.Created ->
-                                created.complete(it.resource)
+                                computeCreated.complete(it.resource)
                             is Orchestrator.ComputeResourceEvent.Started ->
-                                started.complete(it.resource)
+                                computeStarted.complete(it.resource)
                             else -> Unit
                         }
                     },
-                    onError = { created.completeExceptionally(it) }
+                    onError = { computeCreated.completeExceptionally(it) }
             )
-            orchestrator.createDeployment(request).subscribe(resultSubscriber)
+            orchestrator.createDeployment(compute).subscribe(computeSubscriber)
 
-            log.info { "Created instance: ${created.await()}" }
-            log.info { "Started instance: ${started.await()}" }
+            val network = Orchestrator.CreateNetworkResourceRequest("test-ip", true)
+            val networkCreated = CompletableDeferred<URI>()
+            val networkSubscriber = BaseSubscriber<Orchestrator.NetworkResourceEvent>(
+                    onNext = {
+                        when (it) {
+                            is Orchestrator.NetworkResourceEvent.Created ->
+                                networkCreated.complete(it.resource)
+                            else -> Unit
+                        }
+                    },
+                    onError = { networkCreated.completeExceptionally(it) }
+            )
+            orchestrator.createNetworkAddress(network).subscribe(networkSubscriber)
+
+            log.info { "Created network address: ${networkCreated.await()}" }
+            log.info { "Created instance: ${computeCreated.await()}" }
+            log.info { "Started instance: ${computeStarted.await()}" }
 
             // Teardown.
             //    launch {
