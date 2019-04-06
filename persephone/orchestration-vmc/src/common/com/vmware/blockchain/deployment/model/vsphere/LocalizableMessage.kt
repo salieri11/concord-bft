@@ -6,4 +6,8 @@ package com.vmware.blockchain.deployment.model.vsphere
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class VirtualMachinePowerResponse(val value: VirtualMachinePowerInfo)
+data class LocalizableMessage(
+    val id: String,
+    val default_message: String,
+    val args: List<String>
+)

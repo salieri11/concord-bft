@@ -6,4 +6,4 @@ package com.vmware.blockchain.deployment.model.vsphere
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class VirtualMachinePowerResponse(val value: VirtualMachinePowerInfo)
+data class VirtualMachineGuestIdentityResponse(val value: VirtualMachineGuestIdentityInfo)

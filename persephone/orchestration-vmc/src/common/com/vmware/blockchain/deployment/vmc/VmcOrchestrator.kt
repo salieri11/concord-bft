@@ -24,6 +24,8 @@ import com.vmware.blockchain.deployment.model.vsphere.OvfParameter
 import com.vmware.blockchain.deployment.model.vsphere.OvfParameterTypes
 import com.vmware.blockchain.deployment.model.vsphere.OvfProperty
 import com.vmware.blockchain.deployment.model.vmc.Sddc
+import com.vmware.blockchain.deployment.model.vsphere.VirtualMachineGuestIdentityInfo
+import com.vmware.blockchain.deployment.model.vsphere.VirtualMachineGuestIdentityResponse
 import com.vmware.blockchain.deployment.model.vsphere.VirtualMachinePowerResponse
 import com.vmware.blockchain.deployment.model.vsphere.VirtualMachinePowerState
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
@@ -33,7 +35,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.reactive.publish
+import kotlinx.coroutines.withTimeout
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.random.Random
@@ -63,6 +67,12 @@ class VmcOrchestrator private constructor(
         /** [CoroutineContext] to launch all coroutines associated with this singleton object. */
         override val coroutineContext: CoroutineContext
             get() = EmptyCoroutineContext
+
+        /** Default internal retry interval for SDDC operations. */
+        const val OPERATION_RETRY_INTERVAL_MILLIS = 500L
+
+        /** Default maximum orchestrator operation timeout value. */
+        const val ORCHESTRATOR_TIMEOUT_MILLIS = 60000L * 4
 
         /**
          * Randomly generate an IPv4 address sub-network constrained within a prefix network range.
@@ -114,10 +124,11 @@ class VmcOrchestrator private constructor(
         private suspend fun getDataCenterInfo(vmc: VmcClient): Sddc? {
             return vmc
                     .get<Sddc>(
-                            Endpoints.VMC_SDDC.interpolate(pathVariables = listOf(
-                                    Pair("{org}", vmc.context.organization),
-                                    Pair("{sddc}", vmc.context.datacenter)
-                            )),
+                            Endpoints.VMC_SDDC
+                                    .interpolate(pathVariables = listOf(
+                                            "{org}" to vmc.context.organization,
+                                            "{sddc}" to vmc.context.datacenter)
+                                    ),
                             contentType = "application/json",
                             headers = emptyList()
                     )
@@ -126,7 +137,7 @@ class VmcOrchestrator private constructor(
         }
 
         /**
-         * Create a new [VmcOrchestrator] based on parameter vmc from a given [OrchestrationSiteInfo].
+         * Create a new [VmcOrchestrator] based on parameters from a given [OrchestrationSiteInfo].
          *
          * @param[site]
          *   orchestration information pertaining to a VMC-based orchestration site.
@@ -161,7 +172,7 @@ class VmcOrchestrator private constructor(
             return publish(executionContext) {
                 // Use VMC client to obtain VMC SDDC information.
                 getDataCenterInfo(vmc)?.apply {
-                    // Use VMC SDDC vmc to create NSX client.
+                    // Use VMC SDDC info to create NSX client.
                     val nsxUrl = "${resource_config.nsx_api_public_endpoint_url}/sks-nsxt-manager"
                     val nsx = VmcClient.Context(
                             endpoint = URI(nsxUrl),
@@ -171,7 +182,7 @@ class VmcOrchestrator private constructor(
                             datacenter = info.datacenter
                     ).let { VmcClient(it, ModelSerializer) } // Proxied NSX client.
 
-                    // Use VMC SDDC vmc to create vSphere client.
+                    // Use VMC SDDC info to create vSphere client.
                     val vsphere = VSphereClient.Context(
                             endpoint = URI(resource_config.vc_url),
                             username = resource_config.cloud_username,
@@ -199,56 +210,92 @@ class VmcOrchestrator private constructor(
     override fun createDeployment(
         request: Orchestrator.CreateComputeResourceRequest
     ): Publisher<Orchestrator.ComputeResourceEvent> {
-        val clusterId = UUID(request.cluster.high, request.cluster.low)
-        val nodeId = UUID(request.node.high, request.node.low)
         return publish(coroutineContext) {
-            val getFolder = async { getFolder() }
-            val getDatastore = async { getDatastore() }
-            val getResourcePool = async { getResourcePool() }
-            val ensureControlNetwork = async {
-                ensureLogicalNetwork("cgw", "blockchain-control", 0x0A010000, 16, 16)
-            }
-            val ensureReplicaNetwork = async {
-                ensureLogicalNetwork("cgw", "blockchain-data-$clusterId", 0x0AFF0000, 16)
-            }
-            val getLibraryItem = async { getLibraryItem(request.model.template) }
+            withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
+                try {
+                    val clusterId = UUID(request.cluster.high, request.cluster.low)
+                    val nodeId = UUID(request.node.high, request.node.low)
 
-            // Collect all information and deploy.
-            val folder = getFolder.await()
-            val datastore = getDatastore.await()
-            val resourcePool = getResourcePool.await()
-            val controlNetwork = ensureControlNetwork.await()
-            val dataNetwork = ensureReplicaNetwork.await()
-            val libraryItem = getLibraryItem.await()
-            val instance = createVirtualMachine(
-                    instanceName = "$clusterId-$nodeId",
-                    libraryItem = requireNotNull(libraryItem),
-                    datastore = requireNotNull(datastore),
-                    resourcePool = requireNotNull(resourcePool),
-                    folder = requireNotNull(folder),
-                    controlNetwork = controlNetwork,
-                    dataNetwork = dataNetwork,
-                    initScript = InitScript(request.model)
-            )
-
-            // 1. If instance is created, send the created event signal.
-            // 2. Then start the instance.
-            // 3. If instance is started, send the started event signal.
-            // 4. If anything failed, send error signal with the request as the argument.
-            instance?.apply {
-                        send(Orchestrator.ComputeResourceEvent.Created(URI(this), request.node))
+                    val getFolder = async { getFolder() }
+                    val getDatastore = async { getDatastore() }
+                    val getResourcePool = async { getResourcePool() }
+                    val ensureControlNetwork = async {
+                        ensureLogicalNetwork("cgw", "blockchain-control", 0x0A010000, 16, 16)
                     }
-                    ?.takeIf { ensureVirtualMachinePowerStart(instance) }
-                    ?.apply { send(Orchestrator.ComputeResourceEvent.Started(URI(this))) }
-                    ?: close(Orchestrator.ResourceCreationFailedException(request))
+                    val ensureReplicaNetwork = async {
+                        ensureLogicalNetwork("cgw", "blockchain-data", 0x0AFF0000, 16)
+                    }
+                    val getLibraryItem = async { getLibraryItem(request.model.template) }
+
+                    // Collect all information and deploy.
+                    val folder = getFolder.await()
+                    val datastore = getDatastore.await()
+                    val resourcePool = getResourcePool.await()
+                    val controlNetwork = ensureControlNetwork.await()
+                    val dataNetwork = ensureReplicaNetwork.await()
+                    val libraryItem = getLibraryItem.await()
+                    val instance = createVirtualMachine(
+                            name = "$clusterId-$nodeId",
+                            libraryItem = requireNotNull(libraryItem),
+                            datastore = requireNotNull(datastore),
+                            resourcePool = requireNotNull(resourcePool),
+                            folder = requireNotNull(folder),
+                            controlNetwork = controlNetwork,
+                            dataNetwork = dataNetwork,
+                            initScript = InitScript(request.model)
+                    )
+
+                    // 1. If instance is created, send the created event signal.
+                    // 2. Then start the instance.
+                    // 3. If instance is started, send the started event signal.
+                    // 4. If anything failed, send error signal with the request as the argument.
+                    instance?.toComputeResource()
+                            ?.apply {
+                                send(Orchestrator.ComputeResourceEvent.Created(this, request.node))
+                            }
+                            ?.takeIf { ensureVirtualMachinePowerStart(instance) }
+                            ?.apply { send(Orchestrator.ComputeResourceEvent.Started(this)) }
+                            ?: close(Orchestrator.ResourceCreationFailedException(request))
+                } finally {
+                    if (!isActive) {
+                        close(Orchestrator.ResourceCreationFailedException(request))
+                    }
+                }
+            }
         }
     }
 
     override fun deleteDeployment(
         request: Orchestrator.DeleteComputeResourceRequest
     ): Publisher<Orchestrator.ComputeResourceEvent> {
-        return publish(coroutineContext) {
-            TODO("NOT YET IMPLEMENTED")
+        return publish<Orchestrator.ComputeResourceEvent>(coroutineContext) {
+            withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
+                try {
+                    // Retrieve only the last portion of the URI to get the VM ID.
+                    val id = request.resource.path.substringAfterLast("/")
+
+                    // Ensure that the VM is powered off.
+                    ensureVirtualMachinePowerStop(id)
+                            .takeIf { it }
+                            ?.run {
+                                // Issue DELETE against the VM resource via its URI.
+                                vSphere.delete<Unit>(
+                                        request.resource.toString(),
+                                        contentType = "application/json",
+                                        headers = emptyList()
+                                )
+                            }
+                            ?.takeIf { it.statusCode() == 200 }
+                            ?.run {
+                                send(Orchestrator.ComputeResourceEvent.Deleted(request.resource))
+                            }
+                            ?: close(Orchestrator.ResourceDeletionFailedException(request))
+                } finally {
+                    if (!isActive) {
+                        close(Orchestrator.ResourceDeletionFailedException(request))
+                    }
+                }
+            }
         }
     }
 
@@ -256,37 +303,168 @@ class VmcOrchestrator private constructor(
         request: Orchestrator.CreateNetworkResourceRequest
     ): Publisher<Orchestrator.NetworkResourceEvent> {
         return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
-            createPublicIP(request.name)
-                    ?.ip
-                    ?.apply {
-                        send(Orchestrator.NetworkResourceEvent.Created(URI(this)))
+            withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
+                try {
+                    createPublicIP(request.name)
+                            ?.takeIf { it.ip != null }
+                            ?.toNetworkResource()
+                            ?.apply {
+                                send(Orchestrator.NetworkResourceEvent.Created(this, request.name))
+                            }
+                            ?: close(Orchestrator.ResourceCreationFailedException(request))
+                } finally {
+                    if (!isActive) {
+                        close(Orchestrator.ResourceCreationFailedException(request))
                     }
-                    ?: close(Orchestrator.ResourceCreationFailedException(request))
+                }
+
+            }
         }
     }
 
     override fun deleteNetworkAddress(
         request: Orchestrator.DeleteNetworkResourceRequest
     ): Publisher<Orchestrator.NetworkResourceEvent> {
-        return publish(coroutineContext) {
-            TODO("NOT YET IMPLEMENTED")
+        return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
+            withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
+                try {
+                    // Issue DELETE against the IP resource via its URI.
+                    val response = nsx.delete<Unit>(
+                            request.resource.toString(),
+                            contentType = "application/json",
+                            headers = emptyList()
+                    )
+                    response.takeIf { it.statusCode() == 200 }
+                            ?.run {
+                                send(Orchestrator.NetworkResourceEvent.Deleted(request.resource))
+                            }
+                            ?: close(Orchestrator.ResourceDeletionFailedException(request))
+                } finally {
+                    if (!isActive) {
+                        close(Orchestrator.ResourceDeletionFailedException(request))
+                    }
+                }
+            }
         }
     }
 
     override fun createNetworkAllocation(
-        request: Orchestrator.NetworkAllocationRequest
+        request: Orchestrator.CreateNetworkAllocationRequest
     ): Publisher<Orchestrator.NetworkAllocationEvent> {
         return publish<Orchestrator.NetworkAllocationEvent>(coroutineContext) {
-            send(Orchestrator.NetworkAllocationEvent.Created(request.compute, request.network))
+            withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
+                try {
+                    // Retrieve only the last portion of the URI to get the VM ID.
+                    val computeId = request.compute.path.substringAfterLast("/")
+
+                    // Obtain current private IP.
+                    // Note: This can take a while as guest needs to boot and start vmware-tools
+                    // service and also have the service pick up and report network stack
+                    // information back to SDDC.
+                    //
+                    // TODO: This is not the eventual workflow with agent in the picture.
+                    // Current workflow involves polling the deployed entities for its current
+                    // status, which does not scale well.
+                    // The scalable approach involves the agent calling back to fleet management,
+                    // which can *then* trigger the createNetworkAllocation workflow.
+                    //
+                    // Longer retry frequency to take into account of potentially long wait.
+                    val retryFrequency = 5000L
+                    var info: VirtualMachineGuestIdentityInfo? = null
+                    while (info == null) {
+                        delay(retryFrequency)
+                        info = getVirtualMachineGuestIdentity(computeId)
+                    }
+                    val privateIP = info.ip_address
+
+                    // Obtain the public IP address from the IP resource.
+                    val publicIP = nsx
+                            .get<PublicIP?>(
+                                    request.network.toString(),
+                                    contentType = "application/json",
+                                    headers = emptyList()
+                            )
+                            .takeIf { it.statusCode() == 200 }
+                            ?.body()
+                            ?.ip
+
+                    // Setup the NAT rule (use the same resource name as the public IP).
+                    val networkId = request.network.path.substringAfterLast("/")
+                    createNatRule(name = networkId,
+                                  action = NatRule.Action.REFLEXIVE,
+                                  sourceNetwork = checkNotNull(privateIP),
+                                  translatedNetwork = checkNotNull(publicIP))
+                            ?.toNetworkAllocationResource()
+                            ?.apply { send(Orchestrator.NetworkAllocationEvent.Created(this)) }
+                            ?: close(Orchestrator.ResourceCreationFailedException(request))
+                } finally {
+                        if (!isActive) {
+                            close(Orchestrator.ResourceCreationFailedException(request))
+                        }
+                }
+            }
         }
     }
 
     override fun deleteNetworkAllocation(
-        request: Orchestrator.NetworkAllocationRequest
+        request: Orchestrator.DeleteNetworkAllocationRequest
     ): Publisher<Orchestrator.NetworkAllocationEvent> {
-        return publish(coroutineContext) {
-            TODO("NOT YET IMPLEMENTED")
+        return publish<Orchestrator.NetworkAllocationEvent>(coroutineContext) {
+            withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
+                try {
+                    // Issue DELETE against the NAT resource via its URI.
+                    val response = nsx.delete<Unit>(
+                            request.resource.toString(),
+                            contentType = "application/json",
+                            headers = emptyList()
+                    )
+                    response.takeIf { it.statusCode() == 200 }
+                            ?.run {
+                                send(Orchestrator.NetworkAllocationEvent.Deleted(request.resource))
+                            }
+                            ?: close(Orchestrator.ResourceDeletionFailedException(request))
+                } finally {
+                    if (!isActive) {
+                        close(Orchestrator.ResourceDeletionFailedException(request))
+                    }
+                }
+            }
         }
+    }
+
+    /**
+     * Represent the [String] as a compute resource, as known by this [Orchestrator].
+     *
+     * @return
+     *   compute resource as a [URI] instance.
+     */
+    private fun String.toComputeResource(): URI {
+        return Endpoints.VSPHERE_VM
+                .resolve(vSphere.context.endpoint, pathVariables = listOf("{vm}" to this))
+    }
+
+    /**
+     * Represent the [PublicIP] as a network resource [URI], as known by this [Orchestrator].
+     *
+     * @return
+     *   network resource as a [URI] instance.
+     */
+    private fun PublicIP.toNetworkResource(): URI {
+        val identifier = checkNotNull(id)
+        return Endpoints.VMC_PUBLIC_IP
+                .resolve(nsx.context.endpoint, pathVariables = listOf("{ip_id}" to identifier))
+    }
+
+    /**
+     * Represent the [NatRule] as an allocation resource [URI], as known by this [Orchestrator].
+     *
+     * @return
+     *   allocation resource as a [URI] instance.
+     */
+    private fun NatRule.toNetworkAllocationResource(): URI {
+        val resource = checkNotNull(path)
+        return Endpoints.NSX_API_ROOT
+                .resolve(nsx.context.endpoint, pathVariables = listOf("{resource}" to resource))
     }
 
     /**
@@ -307,8 +485,8 @@ class VmcOrchestrator private constructor(
         return vSphere
                 .get<GetFolderResponse>(
                     Endpoints.VSPHERE_FOLDERS
-                            .interpolate(parameters = listOf(Pair("filter.type", type),
-                                                             Pair("filter.names", name))),
+                            .interpolate(parameters = listOf("filter.type" to type,
+                                                             "filter.names" to name)),
                     contentType = "application/json",
                     headers = emptyList()
                 )
@@ -332,7 +510,7 @@ class VmcOrchestrator private constructor(
         return vSphere
                 .get<GetResourcePoolResponse>(
                     path = Endpoints.VSPHERE_RESOURCE_POOLS
-                            .interpolate(parameters = listOf(Pair("filter.names", name))),
+                            .interpolate(parameters = listOf("filter.names" to name)),
                     contentType = "application/json",
                     headers = emptyList()
                 )
@@ -356,7 +534,7 @@ class VmcOrchestrator private constructor(
         return vSphere
                 .get<GetDatastoreResponse>(
                     path = Endpoints.VSPHERE_DATASTORES
-                            .interpolate(parameters = listOf(Pair("filter.names", name))),
+                            .interpolate(parameters = listOf("filter.names" to name)),
                     contentType = "application/json",
                     headers = emptyList()
                 )
@@ -378,12 +556,12 @@ class VmcOrchestrator private constructor(
      * @return
      *   information regarding the network as a [Segment], if found.
      */
-    private suspend fun getNetworkSegment(tier1: String, name: String): Segment? {
+    private suspend fun getNetworkSegment(tier1: String = "cgw", name: String): Segment? {
         return nsx
                 .get<Segment>(
                         Endpoints.NSX_NETWORK_SEGMENT
-                                .interpolate(pathVariables = listOf(Pair("{tier1}", tier1),
-                                                                    Pair("{segment}", name))),
+                                .interpolate(pathVariables = listOf("{tier1}" to tier1,
+                                                                    "{segment}" to name)),
                         contentType = "application/json",
                         headers = emptyList()
                 )
@@ -409,7 +587,7 @@ class VmcOrchestrator private constructor(
      *   ID of the network segment as a [String], if created.
      */
     private suspend fun createNetworkSegment(
-        tier1: String,
+        tier1: String = "cgw",
         name: String,
         prefix: Int,
         prefixSubnet: Int,
@@ -430,8 +608,8 @@ class VmcOrchestrator private constructor(
         val response = nsx
                 .patch<Segment, Segment>(
                         Endpoints.NSX_NETWORK_SEGMENT
-                                .interpolate(pathVariables = listOf(Pair("{tier1}", tier1),
-                                                                    Pair("{segment}", name))),
+                                .interpolate(pathVariables = listOf("{tier1}" to tier1,
+                                                                    "{segment}" to name)),
                         contentType = "application/json",
                         headers = emptyList(),
                         body = segment
@@ -471,8 +649,8 @@ class VmcOrchestrator private constructor(
         return vSphere
                 .get<GetNetworkResponse>(
                     path = Endpoints.VSPHERE_NETWORKS
-                            .interpolate(parameters = listOf(Pair("filter.types", type),
-                                                             Pair("filter.names", name))),
+                            .interpolate(parameters = listOf("filter.types" to type,
+                                                             "filter.names" to name)),
                     contentType = "application/json",
                     headers = emptyList()
                 )
@@ -492,7 +670,7 @@ class VmcOrchestrator private constructor(
      * order to properly terminate and reclaim any system resources (background thread) engendered
      * by an invocation of this method.
      *
-     * @param[attachedGateway]
+     * @param[tier1]
      *   ID of the gateway / up-link to attach the logical network.
      * @param[name]
      *   unique name of the logical network within the target SDDC.
@@ -507,7 +685,7 @@ class VmcOrchestrator private constructor(
      *   ID of the logical network as a [String].
      */
     private suspend fun ensureLogicalNetwork(
-        attachedGateway: String,
+        tier1: String = "cgw",
         name: String,
         prefix: Int,
         prefixSubnet: Int,
@@ -519,11 +697,11 @@ class VmcOrchestrator private constructor(
             // the create() call may not immediately yield any result. In such cases, let the loop
             // take care of eventually getting a network segment that matches the desired name.
             result = getNetwork(name)
-                    ?: createNetworkSegment(attachedGateway, name, prefix, prefixSubnet, subnetSize)
+                    ?: createNetworkSegment(tier1, name, prefix, prefixSubnet, subnetSize)
 
             if (result == null) {
                 // Do not engage next iteration immediately.
-                delay(500) // 500ms.
+                delay(OPERATION_RETRY_INTERVAL_MILLIS)
             }
         }
         return result
@@ -548,7 +726,7 @@ class VmcOrchestrator private constructor(
      * Create a housing instance based on the specified parameters.
      */
     private suspend fun createVirtualMachine(
-        instanceName: String,
+        name: String,
         libraryItem: String,
         datastore: String,
         resourcePool: String,
@@ -559,7 +737,7 @@ class VmcOrchestrator private constructor(
     ): String? {
         val deployRequest = LibraryItemDeployRequest(
                 LibraryItemDeploymentSpec(
-                        name = instanceName,
+                        name = name,
                         accept_all_EULA = true,
                         default_datastore_id = datastore,
                         network_mappings = listOf(
@@ -571,25 +749,23 @@ class VmcOrchestrator private constructor(
                                         `@class` = OvfParameterTypes.PROPERTY_PARAMS.classValue,
                                         type = OvfParameterTypes.PROPERTY_PARAMS.type,
                                         properties = listOf(
-                                                OvfProperty("instance-id", instanceName),
+                                                OvfProperty("instance-id", name),
                                                 OvfProperty("hostname", "replica"),
                                                 OvfProperty("user-data", String(initScript.base64()))
                                         )
                                 )
                         )
                 ),
-                LibraryItemDeploymentTarget(
-                        resource_pool_id = resourcePool,
-                        folder_id = folder
-                )
+                LibraryItemDeploymentTarget(resource_pool_id = resourcePool, folder_id = folder)
         )
 
         val response = vSphere
                 .post<LibraryItemDeployRequest, LibraryItemDeployResponse>(
                     path = Endpoints.VSPHERE_OVF_LIBRARY_ITEM
                             .interpolate(
-                                     pathVariables = listOf(Pair("{library_item}", libraryItem)),
-                                     parameters = listOf(Pair("~action", "deploy"))),
+                                     pathVariables = listOf("{library_item}" to libraryItem),
+                                     parameters = listOf("~action" to "deploy")
+                            ),
                     contentType = "application/json",
                     headers = emptyList(),
                     body = deployRequest
@@ -607,20 +783,30 @@ class VmcOrchestrator private constructor(
     }
 
     /**
-     * Power on a virtual machine specified by the given parameter.
+     * Update the power state of a virtual machine specified by the given parameter.
      *
      * @param[name]
      *   identifier of the virtual machine.
+     * @param[state]
+     *   power state to update to.
      *
      * @return
-     *   `true` if power-on operation is successfully executed for the specified virtual machine,
+     *   `true` if power operation is successfully executed for the specified virtual machine,
      *   `false` otherwise.
      */
-    private suspend fun powerOnVirtualMachine(name: String): Boolean {
+    private suspend fun updateVirtualMachinePowerState(
+        name: String,
+        state: VirtualMachinePowerState
+    ): Boolean {
+        val endpoint = when (state) {
+            VirtualMachinePowerState.POWERED_OFF -> Endpoints.VSPHERE_VM_POWER_STOP
+            VirtualMachinePowerState.POWERED_ON -> Endpoints.VSPHERE_VM_POWER_START
+            VirtualMachinePowerState.SUSPEND -> Endpoints.VSPHERE_VM_POWER_SUSPEND
+        }
+
         return vSphere
                 .post<Unit, Unit>(
-                        path = Endpoints.VSPHERE_VM_POWER_START
-                                .interpolate(pathVariables = listOf(Pair("{vm}", name))),
+                        path = endpoint.interpolate(pathVariables = listOf("{vm}" to name)),
                         contentType = "application/json",
                         headers = emptyList(),
                         body = null
@@ -629,7 +815,7 @@ class VmcOrchestrator private constructor(
     }
 
     /**
-     * Get the power state of the virtual machine.
+     * Get the power state of a virtual machine.
      *
      * @param[name]
      *   identifier of the virtual machine.
@@ -642,7 +828,7 @@ class VmcOrchestrator private constructor(
         return vSphere
                 .get<VirtualMachinePowerResponse>(
                         path = Endpoints.VSPHERE_VM_POWER
-                                .interpolate(pathVariables = listOf(Pair("{vm}", name))),
+                                .interpolate(pathVariables = listOf("{vm}" to name)),
                         contentType = "application/json",
                         headers = emptyList()
                 )
@@ -650,6 +836,32 @@ class VmcOrchestrator private constructor(
                 ?.let { it.body() }
                 ?.let { it.value }
                 ?.let { it.state }
+    }
+
+    /**
+     * Update the power state of a virtual machine's guest OS according to the given parameters.
+     *
+     * @param[name]
+     *   identifier of the virtual machine.
+     * @param[action]
+     *   power action to invoke on guest.
+     *
+     * @return
+     *   `true` if power operation is successfully executed for the specified virtual machine guest,
+     *   `false` otherwise.
+     */
+    private suspend fun updateVirtualMachineGuestPower(name: String, action: String): Boolean {
+        return vSphere.post<Unit, Unit>(
+                path = Endpoints.VSPHERE_VM_GUEST_POWER
+                        .interpolate(
+                                parameters = listOf("action" to action),
+                                pathVariables = listOf("{vm}" to name)
+                        ),
+                contentType = "application/json",
+                headers = emptyList(),
+                body = null
+        )
+                .let { it.statusCode() == 200 }
     }
 
     /**
@@ -667,13 +879,13 @@ class VmcOrchestrator private constructor(
         var iterating = true
         while (iterating) {
             // The typical case.
-            powerOnVirtualMachine(name)
+            updateVirtualMachinePowerState(name, VirtualMachinePowerState.POWERED_ON)
             when (getVirtualMachinePower(name)) {
                 VirtualMachinePowerState.POWERED_OFF, VirtualMachinePowerState.SUSPEND -> {
-                    powerOnVirtualMachine(name)
+                    updateVirtualMachinePowerState(name, VirtualMachinePowerState.POWERED_ON)
 
                     // Do not engage next iteration immediately.
-                    delay(500) // 500ms.
+                    delay(OPERATION_RETRY_INTERVAL_MILLIS)
                 }
                 VirtualMachinePowerState.POWERED_ON -> {
                     iterating = false
@@ -688,6 +900,76 @@ class VmcOrchestrator private constructor(
         }
 
         return confirmed
+    }
+
+    /**
+     * Ensure the power-off state of the virtual machine specified by the given parameter.
+     *
+     * @param[name]
+     *   identifier of the virtual machine.
+     *
+     * @return
+     *   `true` if the power state of the virtual machine is off at some point during the execution
+     *   of the function, `false` otherwise.
+     */
+    private suspend fun ensureVirtualMachinePowerStop(name: String): Boolean {
+        var confirmed = false
+        var iterating = true
+        var attempts = 0
+        while (iterating) {
+            // Try guest-friendly power-off.
+            updateVirtualMachineGuestPower(name, "shutdown")
+            when (getVirtualMachinePower(name)) {
+                VirtualMachinePowerState.POWERED_ON, VirtualMachinePowerState.SUSPEND -> {
+                    // Start to force the issue after a while.
+                    if (attempts > 20) {
+                        updateVirtualMachinePowerState(name, VirtualMachinePowerState.POWERED_OFF)
+                    } else {
+                        attempts++
+                    }
+
+                    // Do not engage next iteration immediately.
+                    delay(OPERATION_RETRY_INTERVAL_MILLIS)
+                }
+                VirtualMachinePowerState.POWERED_OFF -> {
+                    iterating = false
+                    confirmed = true
+                }
+                else -> {
+                    // If the VM doesn't exist or power-state cannot be retrieved.
+                    iterating = false
+                    confirmed = false
+                }
+            }
+        }
+
+        return confirmed
+    }
+
+    /**
+     * Get the guest identity information of a virtual machine.
+     *
+     * @param[name]
+     *   identifier of the virtual machine.
+     *
+     * @return
+     *   the guest identity information of the virtual machine expressed as
+     *   [VirtualMachineGuestIdentityInfo], `null` if the operation cannot be executed or if the
+     *   virtual machine does not exist.
+     */
+    private suspend fun getVirtualMachineGuestIdentity(
+        name: String
+    ): VirtualMachineGuestIdentityInfo? {
+        return vSphere
+                .get<VirtualMachineGuestIdentityResponse>(
+                        path = Endpoints.VSPHERE_VM_GUEST_IDENTITY
+                                .interpolate(pathVariables = listOf("{vm}" to name)),
+                        contentType = "application/json",
+                        headers = emptyList()
+                )
+                .takeIf { it.statusCode() == 200 }
+                ?.let { it.body() }
+                ?.let { it.value }
     }
 
     /**
@@ -726,30 +1008,28 @@ class VmcOrchestrator private constructor(
      * @param[sourceNetwork]
      *   source address(es) to translate for SNAT and REFLEXIVE rules.
      * @param[destinationNetwork]
-     *   destination address(es) to translate for DNAT and REFLEXIVE rules.
+     *   destination address(es) to translate for DNAT rules.
      * @param[translatedNetwork]
      *   network address to apply translation into.
      * @param[translatedPorts]
      *   network ports to apply translation.
      */
     private suspend fun createNatRule(
-        tier1: String,
-        nat: String,
+        tier1: String = "cgw",
+        nat: String = "USER",
         name: String,
         action: NatRule.Action,
-        sourceNetwork: String,
-        destinationNetwork: String,
-        translatedNetwork: String,
-        translatedPorts: String
+        sourceNetwork: String? = null,
+        destinationNetwork: String? = null,
+        translatedNetwork: String? = null,
+        translatedPorts: String? = null
     ): NatRule? {
-        return nsx
-                .patch<NatRule, NatRule>(
-                        path = Endpoints.NSX_NAT_RULE
-                                .interpolate(pathVariables = listOf(
-                                        "{network}" to tier1,
-                                        "{nat}" to nat,
-                                        "{nat_rule}" to name
-                                )),
+        val endpoint = Endpoints.NSX_NAT_RULE.interpolate(
+                pathVariables = listOf("{tier1}" to tier1, "{nat}" to nat, "{nat_rule}" to name)
+        )
+        val response = nsx
+                .patch<NatRule, Unit>(
+                        path = endpoint,
                         contentType = "application/json",
                         headers = emptyList(),
                         body = NatRule(
@@ -760,7 +1040,18 @@ class VmcOrchestrator private constructor(
                                 translated_ports = translatedPorts
                         )
                 )
-                .takeIf { it.statusCode() == 200 }
-                ?.let { it.body()}
+
+        // PATCH does not return a body, follow up with another GET to obtain metadata information
+        // that is assigned post-creation (e.g. ID, infra path, etc).
+        return when (response.statusCode()) {
+            200 -> {
+                nsx.get<NatRule>(path = endpoint,
+                                 contentType = "application/json",
+                                 headers = emptyList())
+                        .takeIf { it.statusCode() == 200 }
+                        ?.let { it.body() }
+            }
+            else -> null
+        }
     }
 }

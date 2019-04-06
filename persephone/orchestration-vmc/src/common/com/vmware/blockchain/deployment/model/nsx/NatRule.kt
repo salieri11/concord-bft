@@ -9,6 +9,9 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class NatRule(
     val action: Action,
+    @Optional val id: String? = null,
+    @Optional val display_name: String? = null,
+    @Optional val path: String? = null,
     @Optional val enabled: Boolean = true,
     @Optional val logging: Boolean = false,
     @Optional val source_network: String? = null,
