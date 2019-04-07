@@ -23,7 +23,7 @@ uint64_t ReplicaStateSyncImp::execute(log4cplus::Logger &logger,
                                       ILocalKeyValueStorageReadOnly &kvs,
                                       BlockId lastReachableBlockId,
                                       uint64_t lastExecutedSeqNum) {
-  com::vmware::concord::KVBStorage roKvs(kvs);
+  concord::blockchain::KVBStorage roKvs(kvs);
   BlockId blockId = lastReachableBlockId;
   uint64_t blockSeqNum = 0;
   uint64_t removedBlocksNum = 0;

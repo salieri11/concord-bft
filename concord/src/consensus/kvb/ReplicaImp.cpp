@@ -189,7 +189,6 @@ ReplicaImp::ReplicaImp(Blockchain::CommConfig &commConfig,
                        BlockchainDBAdapter *dbAdapter,
                        ReplicaStateSync &replicaStateSync)
     : logger(log4cplus::Logger::getInstance("com.vmware.concord.kvb")),
-      m_thread(0),
       m_currentRepStatus(RepStatus::Idle),
       m_InternalStorageWrapperForIdleMode(this),
       m_bcDbAdapter(dbAdapter),

@@ -356,7 +356,7 @@ void KVBStorage::set_storage(const evm_address &addr,
 
 // Used for UT, as well.
 Sliver KVBStorage::set_block_metadata_value(uint64_t bftSequenceNum) const {
-  concord::kvb::BlockMetadata proto;
+  com::vmware::concord::kvb::BlockMetadata proto;
   proto.set_version(block_metadata_version);
   proto.set_bft_sequence_num(bftSequenceNum);
   size_t serSize = proto.ByteSize();
@@ -676,7 +676,7 @@ uint64_t KVBStorage::get_block_metadata(Sliver key) {
   Status status = roStorage_.get(key, outValue);
   uint64_t sequenceNum = 0;
   if (status.isOK() && outValue.length() > 0) {
-    kvb::BlockMetadata blockMetadata;
+    com::vmware::concord::kvb::BlockMetadata blockMetadata;
     if (blockMetadata.ParseFromArray(outValue.data(), outValue.length())) {
       if (blockMetadata.version() == block_metadata_version) {
         sequenceNum = blockMetadata.bft_sequence_num();
@@ -699,4 +699,5 @@ uint64_t KVBStorage::get_block_metadata(Sliver key) {
   return sequenceNum;
 }
 
+}  // namespace blockchain
 }  // namespace concord

@@ -18,7 +18,6 @@
 
 using namespace std;
 using namespace Blockchain;
-using namespace com::vmware::concord;
 using namespace log4cplus;
 
 namespace {
@@ -100,7 +99,8 @@ const BlockId prevPrevBlockId = lastBlockId - 2;
 MockILocalKeyValueStorageReadOnly keyValueStorageMock;
 MockIBlocksAppender blocksAppenderMock;
 
-KVBStorage kvbStorage(keyValueStorageMock, &blocksAppenderMock, lastSeqNum);
+concord::blockchain::KVBStorage kvbStorage(keyValueStorageMock,
+                                           &blocksAppenderMock, lastSeqNum);
 
 const Sliver blockMetadataInternalKey = kvbStorage.block_metadata_key();
 
