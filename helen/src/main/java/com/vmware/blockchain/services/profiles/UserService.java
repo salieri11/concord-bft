@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.NotFoundException;
@@ -20,7 +20,7 @@ import com.vmware.blockchain.dao.GenericDao;
 /**
  * User Service.  Business logic for User management.
  */
-@Component
+@Service
 public class UserService {
 
     private GenericDao genericDao;

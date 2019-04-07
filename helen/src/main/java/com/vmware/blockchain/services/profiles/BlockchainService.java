@@ -12,7 +12,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.dao.GenericDao;
@@ -21,7 +21,7 @@ import com.vmware.blockchain.dao.GenericDao;
 /**
  * Manage all persistence for Blockchain entities.
  */
-@Component
+@Service
 public class BlockchainService {
     private static final Logger logger = LogManager.getLogger(Blockchain.class);
 

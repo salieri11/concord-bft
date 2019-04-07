@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
-
 /**
  * A mybatis dynamic sql provider to handle selects from parentList.
  */
@@ -20,14 +18,14 @@ public class ParentListProvider {
             + "e.user_id, e.user_name, e.created_tms "
             + "from entity as e "
             + "join link as l on l.to_row = e.row_key "
-            + "where l.from_row in %s and e.column_name = '%s'";
+            + "where l.from_row in (%s) and e.column_name = '%s'";
 
     /**
      * Returns the query to select from a list of parent ids.
      */
     public String selectParentList(List<UUID> parents, String columnName) {
-        List<String> s = parents.stream().map(p -> String.format("'%s'", p.toString())).collect(Collectors.toList());
-        String parentStr = String.format("(%s)", StringUtils.join(s, ","));
+        String parentStr = parents.stream().map(p -> String.format("'%s'", p.toString()))
+                .collect(Collectors.joining(","));
         return String.format(SQL_GET_BY_PARENT_LIST, parentStr, columnName);
     }
 

@@ -9,11 +9,9 @@ import java.nio.charset.Charset;
 import java.util.List;
 import java.util.UUID;
 
-import javax.transaction.Transactional;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
 
 import com.vmware.blockchain.common.ErrorCode;
@@ -23,8 +21,7 @@ import com.vmware.blockchain.dao.GenericDao;
 /**
  * This class manages all persistence related operations related to Agreement management API.
  */
-@Component
-@Transactional
+@Service
 public class AgreementService {
 
     private GenericDao genericDao;

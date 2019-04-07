@@ -12,15 +12,13 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import javax.transaction.Transactional;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.EntityModificationException;
@@ -32,8 +30,7 @@ import com.vmware.blockchain.common.NotFoundException;
 /**
  * This class manages all persistence related operations related to User management API.
  */
-@Component
-@Transactional
+@Service
 public class ProfilesService {
 
     private static Logger logger = LogManager.getLogger(ProfilesService.class);
@@ -111,6 +108,11 @@ public class ProfilesService {
 
     }
 
+    /**
+     * Get the user with the given ID.
+     * @param userId ID
+     * @return User
+     */
     public User getUserWithId(String userId) {
         UUID uId = uuidToString(userId);
         return userService.get(uId);
@@ -217,9 +219,7 @@ public class ProfilesService {
     }
 
     private <T> void ignoreNull(T obj, Consumer<T> c) {
-        if (obj != null) {
-            c.accept(obj);
-        }
+        Optional.ofNullable(obj).ifPresent(c);
     }
 
     /**

@@ -214,6 +214,12 @@ public class GenericDao {
                                                   "getByParentList");
     }
 
+    /**
+     * Get an entity using with a json query from the entity body.
+     * @param json          A valid json expression
+     * @param entityClass   entity class
+     * @return              list of entities matching the json
+     */
     public <E extends AbstractEntity> List<E> getByJsonQuery(String json, Class<E> entityClass) {
         return callGenericDaoTransactionWithRetry((m -> m.getByJsonQuery(json, entityClass)),
                                                   "getByJsonQuery");

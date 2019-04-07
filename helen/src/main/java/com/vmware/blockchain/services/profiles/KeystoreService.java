@@ -8,13 +8,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import javax.transaction.Transactional;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.dao.GenericDao;
@@ -22,8 +20,7 @@ import com.vmware.blockchain.dao.GenericDao;
 /**
  * This class manages all persistence related operations related to Keystore management API.
  */
-@Component
-@Transactional
+@Service
 public class KeystoreService {
     private static final Logger logger = LogManager.getLogger(ProfileController.class);
     @Autowired
