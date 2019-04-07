@@ -187,8 +187,8 @@ Sliver KVBStorage::code_key(const evm_address &addr) const {
   return kvb_key(TYPE_CODE, addr.bytes, sizeof(addr));
 }
 
-Sliver KVBStorage::build_block_metadata_key() const {
-  return kvb_key(TYPE_BLOCK_METADATA, NULL, 0);
+Sliver KVBStorage::block_metadata_key() const {
+  return kvb_key(TYPE_BLOCK_METADATA, nullptr, 0);
 }
 
 Sliver KVBStorage::storage_key(const evm_address &addr,
@@ -366,7 +366,7 @@ Sliver KVBStorage::set_block_metadata_value(uint64_t bftSequenceNum) const {
 }
 
 void KVBStorage::set_block_metadata() {
-  put(build_block_metadata_key(), set_block_metadata_value(bftSequenceNum_));
+  put(block_metadata_key(), set_block_metadata_value(bftSequenceNum_));
 }
 
 ////////////////////////////////////////

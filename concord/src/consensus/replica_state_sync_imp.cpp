@@ -27,7 +27,7 @@ uint64_t ReplicaStateSyncImp::execute(log4cplus::Logger &logger,
   BlockId blockId = lastReachableBlockId;
   uint64_t blockSeqNum = 0;
   uint64_t removedBlocksNum = 0;
-  Key key = roKvs.build_block_metadata_key();
+  Key key = roKvs.block_metadata_key();
   do {
     Key fullKey = KeyManipulator::genDataDbKey(key, blockId);
     blockSeqNum = roKvs.get_block_metadata(fullKey);

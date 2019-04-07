@@ -67,25 +67,25 @@ class MockIBlocksAppender : public IBlocksAppender {
 void fillBufAndAdvance(uint8_t *&buffer, const void *data,
                        const size_t dataSize) {
   memcpy(buffer, data, dataSize);
-  buffer += sizeof(dataSize);
+  buffer += dataSize;
 }
 
 Sliver setUpBlockContent(Key key, Value blockValue) {
-  BlockEntryHeader blockHeader = {0};
-  BlockEntry entry = {0};
-  size_t sizeOfMetaData = sizeof(blockHeader);
+  BlockHeader blockHeader = {0};
+  blockHeader.numberOfElements = 1;
 
+  BlockEntry entry = {0};
+  size_t sizeOfMetadata = sizeof(blockHeader) + sizeof(entry);
   entry.keySize = key.length();
   entry.valSize = blockValue.length();
-  entry.keyOffset = sizeOfMetaData;
-  entry.valOffset = sizeOfMetaData + key.length();
-  blockHeader.numberOfElements = 1;
-  memcpy(blockHeader.entries, &entry, sizeof(entry));
+  entry.keyOffset = sizeOfMetadata;
+  entry.valOffset = sizeOfMetadata + key.length();
 
-  size_t sizeOfBuf = sizeOfMetaData + key.length() + blockValue.length();
+  size_t sizeOfBuf = sizeOfMetadata + key.length() + blockValue.length();
   auto buf = new uint8_t[sizeOfBuf];
   uint8_t *ptr = buf;
   fillBufAndAdvance(ptr, &blockHeader, sizeof(blockHeader));
+  fillBufAndAdvance(ptr, &entry, sizeof(entry));
   fillBufAndAdvance(ptr, &key, key.length());
   fillBufAndAdvance(ptr, &blockValue, blockValue.length());
 
@@ -102,7 +102,7 @@ MockIBlocksAppender blocksAppenderMock;
 
 KVBStorage kvbStorage(keyValueStorageMock, &blocksAppenderMock, lastSeqNum);
 
-const Sliver blockMetadataInternalKey = kvbStorage.build_block_metadata_key();
+const Sliver blockMetadataInternalKey = kvbStorage.block_metadata_key();
 
 const Key lastBlockFullKey =
     KeyManipulator::genDataDbKey(blockMetadataInternalKey, lastBlockId);

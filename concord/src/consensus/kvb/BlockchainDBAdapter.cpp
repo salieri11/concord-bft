@@ -280,17 +280,16 @@ void BlockchainDBAdapter::deleteBlockAndItsKeys(BlockId blockId) {
   bool found = false;
   Status s = getBlockById(blockId, blockRaw, found);
   if (!s.isOK()) {
-    LOG4CPLUS_FATAL(logger,
-                    "deleteBlockAndItsKeys: The replica may be "
-                    "corrupted");
+    LOG4CPLUS_FATAL(logger, "Failed to read block id: " << blockId);
     exit(1);
   }
   KeysVector keysVec;
   if (found && blockRaw.length() > 0) {
-    auto *header = (BlockEntryHeader *)blockRaw.data();
-    for (size_t i = 0; i < header->numberOfElements; i++) {
-      keysVec.push_back(Key(blockRaw, header->entries[i].keyOffset,
-                            header->entries[i].keySize));
+    uint16_t numOfElements = ((BlockHeader *)blockRaw.data())->numberOfElements;
+    auto *entries = (BlockEntry *)(blockRaw.data() + sizeof(BlockHeader));
+    for (size_t i = 0; i < numOfElements; i++) {
+      keysVec.push_back(
+          Key(blockRaw, entries[i].keyOffset, entries[i].keySize));
     }
   }
   if (found) {
@@ -298,7 +297,7 @@ void BlockchainDBAdapter::deleteBlockAndItsKeys(BlockId blockId) {
   }
   s = m_db->multiDel(keysVec);
   if (!s.isOK()) {
-    LOG4CPLUS_FATAL(logger, "deleteBlockAndItsKeys: Failed to delete records");
+    LOG4CPLUS_FATAL(logger, "Failed to delete block id: " << blockId);
     exit(1);
   }
 }

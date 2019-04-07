@@ -93,7 +93,7 @@ class KVBStorage {
   evm_uint256be get_storage(const evm_address &addr,
                             const evm_uint256be &location,
                             uint64_t &block_number);
-  Blockchain::Sliver build_block_metadata_key() const;
+  Blockchain::Sliver block_metadata_key() const;
   uint64_t get_block_metadata(Blockchain::Sliver key);
 
   Blockchain::Status write_block(uint64_t timestamp, uint64_t gas_limit);

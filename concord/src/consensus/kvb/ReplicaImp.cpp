@@ -357,7 +357,6 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Sliver block) {
               << (blockRaw.length() != block.length()) << ", block data test "
               << (memcmp(blockRaw.data(), block.data(), block.length())));
 
-      // TODO(GG): If new block is empty, just revert block
       m_bcDbAdapter->deleteBlockAndItsKeys(blockId);
 
       // TODO(GG): how do we want to handle this - restart replica?
@@ -366,17 +365,16 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Sliver block) {
     }
   } else {
     if (block.length() > 0) {
-      BlockEntryHeader *header = (BlockEntryHeader *)block.data();
-
-      for (size_t i = 0; i < header->numberOfElements; i++) {
-        const Sliver keySliver(block, header->entries[i].keyOffset,
-                               header->entries[i].keySize);
-        const Sliver valSliver(block, header->entries[i].valOffset,
-                               header->entries[i].valSize);
+      uint16_t numOfElements =
+          ((BlockHeader *)blockRaw.data())->numberOfElements;
+      auto *entries = (BlockEntry *)(blockRaw.data() + sizeof(BlockHeader));
+      for (size_t i = 0; i < numOfElements; i++) {
+        const Sliver keySliver(block, entries[i].keyOffset, entries[i].keySize);
+        const Sliver valSliver(block, entries[i].valOffset, entries[i].valSize);
 
         const KeyIDPair pk(keySliver, blockId);
 
-        Status s = m_bcDbAdapter->updateKey(pk.key, pk.blockId, valSliver);
+        s = m_bcDbAdapter->updateKey(pk.key, pk.blockId, valSliver);
         if (!s.isOK()) {
           // TODO(SG): What to do?
           LOG4CPLUS_FATAL(logger, "Failed to update key");
@@ -384,14 +382,14 @@ void ReplicaImp::insertBlockInternal(BlockId blockId, Sliver block) {
         }
       }
 
-      Status s = m_bcDbAdapter->addBlock(blockId, block);
+      s = m_bcDbAdapter->addBlock(blockId, block);
       if (!s.isOK()) {
         // TODO(SG): What to do?
         printf("Failed to add block");
         exit(1);
       }
     } else {
-      Status s = m_bcDbAdapter->addBlock(blockId, block);
+      s = m_bcDbAdapter->addBlock(blockId, block);
       if (!s.isOK()) {
         // TODO(SG): What to do?
         printf("Failed to add block");
@@ -509,40 +507,38 @@ Sliver ReplicaImp::createBlockFromUpdates(
   assert(outUpdatesInNewBlock.size() == 0);
 
   uint32_t blockBodySize = 0;
-  uint16_t numOfElemens = 0;
-  for (auto it = updates.begin(); it != updates.end(); ++it) {
-    numOfElemens++;
+  uint16_t numOfElements = updates.size();
+  for (const auto &elem : updates) {
     // body is all of the keys and values strung together
-    blockBodySize += (it->first.length() + it->second.length());
+    blockBodySize += (elem.first.length() + elem.second.length());
   }
 
-  const uint32_t headerSize = sizeof(BlockEntryHeader::numberOfElements) +
-                              sizeof(BlockEntryHeader::parentDigestLength) +
-                              SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE +
-                              sizeof(BlockEntryHeader) * (numOfElemens);
+  const uint32_t metadataSize =
+      sizeof(BlockHeader) + sizeof(BlockEntry) * numOfElements;
 
-  const uint32_t blockSize = headerSize + blockBodySize;
+  const uint32_t blockSize = metadataSize + blockBodySize;
 
   try {
     uint8_t *blockBuffer = new uint8_t[blockSize];
     memset(blockBuffer, 0, blockSize);
     Sliver blockSliver(blockBuffer, blockSize);
 
-    BlockEntryHeader *header = (BlockEntryHeader *)blockBuffer;
+    BlockHeader *header = (BlockHeader *)blockBuffer;
     memcpy(header->parentDigest, parentDigest.content,
            SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE);
     header->parentDigestLength =
         SimpleBlockchainStateTransfer::BLOCK_DIGEST_SIZE;
 
     int16_t idx = 0;
-    header->numberOfElements = numOfElemens;
-    int32_t currentOffset = headerSize;
-    for (auto it = updates.begin(); it != updates.end(); ++it) {
-      const KeyValuePair &kvPair = *it;
+    header->numberOfElements = numOfElements;
+    int32_t currentOffset = metadataSize;
+    auto *entries = (BlockEntry *)(blockBuffer + sizeof(BlockHeader));
+    for (const auto &elem : updates) {
+      const KeyValuePair &kvPair = elem;
 
       // key
-      header->entries[idx].keyOffset = currentOffset;
-      header->entries[idx].keySize = kvPair.first.length();
+      entries[idx].keyOffset = currentOffset;
+      entries[idx].keySize = kvPair.first.length();
       memcpy(blockBuffer + currentOffset, kvPair.first.data(),
              kvPair.first.length());
       Sliver newKey(blockSliver, currentOffset, kvPair.first.length());
@@ -550,8 +546,8 @@ Sliver ReplicaImp::createBlockFromUpdates(
       currentOffset += kvPair.first.length();
 
       // value
-      header->entries[idx].valOffset = currentOffset;
-      header->entries[idx].valSize = kvPair.second.length();
+      entries[idx].valOffset = currentOffset;
+      entries[idx].valSize = kvPair.second.length();
       memcpy(blockBuffer + currentOffset, kvPair.second.data(),
              kvPair.second.length());
       Sliver newVal(blockSliver, currentOffset, kvPair.second.length());
@@ -564,7 +560,7 @@ Sliver ReplicaImp::createBlockFromUpdates(
 
       idx++;
     }
-    assert(idx == numOfElemens);
+    assert(idx == numOfElements);
     assert((uint32_t)currentOffset == blockSize);
 
     return blockSliver;
@@ -582,20 +578,16 @@ SetOfKeyValuePairs ReplicaImp::fetchBlockData(Sliver block) {
   SetOfKeyValuePairs retVal;
 
   if (block.length() > 0) {
-    BlockEntryHeader *header = (BlockEntryHeader *)block.data();
-
-    for (size_t i = 0; i < header->numberOfElements; i++) {
-      Sliver keySliver(block, header->entries[i].keyOffset,
-                       header->entries[i].keySize);
-      Sliver valSliver(block, header->entries[i].valOffset,
-                       header->entries[i].valSize);
+    uint16_t numOfElements = ((BlockHeader *)block.data())->numberOfElements;
+    auto *entries = (BlockEntry *)(block.data() + sizeof(BlockHeader));
+    for (size_t i = 0; i < numOfElements; i++) {
+      Sliver keySliver(block, entries[i].keyOffset, entries[i].keySize);
+      Sliver valSliver(block, entries[i].valOffset, entries[i].valSize);
 
       KeyValuePair kv(keySliver, valSliver);
-
       retVal.insert(kv);
     }
   }
-
   return retVal;
 }
 
@@ -797,7 +789,7 @@ bool ReplicaImp::BlockchainAppState::getPrevDigestFromBlock(
     exit(1);
   }
 
-  BlockEntryHeader *bh = reinterpret_cast<BlockEntryHeader *>(result.data());
+  BlockHeader *bh = reinterpret_cast<BlockHeader *>(result.data());
   assert(outPrevBlockDigest);
   memcpy(outPrevBlockDigest, bh->parentDigest, bh->parentDigestLength);
   return true;
