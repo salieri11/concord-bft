@@ -268,6 +268,10 @@ public final class EthDispatcher extends ConcordServlet {
                     }
                     break;
 
+                case Constants.GET_TRANSACTIONBYHASH_NAME:
+                    handler = new EthGetTransactionByHashHandler();
+                    break;
+
                 case Constants.GET_TRANSACTIONRECEIPT_NAME:
                     handler = new EthGetTransactionReceiptHandler();
                     break;
