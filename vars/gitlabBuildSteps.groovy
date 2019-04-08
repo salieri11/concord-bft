@@ -345,6 +345,7 @@ EOF
                     env.core_vm_test_logs = new File(env.test_log_root, "CoreVM").toString()
                     env.helen_api_test_logs = new File(env.test_log_root, "HelenAPI").toString()
                     env.extended_rpc_test_logs = new File(env.test_log_root, "ExtendedRPC").toString()
+                    env.extended_rpc_test_helen_logs = new File(env.test_log_root, "ExtendedRPC-Helen").toString()
                     env.regression_test_logs = new File(env.test_log_root, "Regression").toString()
                     env.statetransfer_test_logs = new File(env.test_log_root, "StateTransfer").toString()
                     env.mem_leak_test_logs = new File(env.test_log_root, "MemoryLeak").toString()
@@ -361,6 +362,7 @@ EOF
                         echo "${PASSWORD}" | sudo -S ./main.py CoreVMTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${core_vm_test_logs}"
                         echo "${PASSWORD}" | sudo -S ./main.py HelenAPITests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${helen_api_test_logs}"
                         echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_logs}"
+                        echo "${PASSWORD}" | sudo -S ./main.py ExtendedRPCTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${extended_rpc_test_helen_logs}" --ethrpcApiUrl https://localhost/blockchains/local/api/concord/eth
                         echo "${PASSWORD}" | sudo -S ./main.py RegressionTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${regression_test_logs}"
 
                         # RV, March 21, 2019: Commenting out this suite because it relies on a native Concord build, which is becoming problematic.
