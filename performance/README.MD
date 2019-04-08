@@ -24,7 +24,7 @@ On the driver node, follow these steps to setup concord/helen nodes
 
 1. Clone the blockchain repository to the driver VM
 ```
-git clone git@github.com:vmwathena/blockchain.git
+git clone git@gitlab.eng.vmware.com:blockchain/vmwathena_blockchain.git blockchain
 ```
 
 2. Change directory to <blockchain repo>/performance and execute `setup_blockchain.sh` passing concord node IPs, helen IP, common username/password for these VMs
