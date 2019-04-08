@@ -10,25 +10,22 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import com.google.protobuf.ByteString;
+import com.vmware.blockchain.common.Constants;
 import com.vmware.concord.Concord;
 
 /**
- * This Handler is used for handling all `eth_getTransactionReceipt` types of requests. EthGetTransactionReceiptHandler
- * is little different than other handlers because It leverages already existing `TransactionReceipt` ConcordRequest to
- * handle `eth_getTransactionReceipt` requests (see Transaction.java file which implements this API). Hence, in this
- * handler we actually put a `TransactionRequest` inside ConcordRequest and read a TransactionResponse from
- * ConcordResponse.
+ * This handler is used for all `eth_getTransactionReceipt` requests.
  */
 public class EthGetTransactionReceiptHandler extends AbstractEthRpcHandler {
 
     Logger logger = LogManager.getLogger(EthGetTransactionReceiptHandler.class);
 
     /**
-     * Builds a TransactionRequest object from given requestJson and inserts it into ConcordRequest Object.
+     * Build a TransactionRequest from the given requestJson.
      *
-     * @param builder Concord Request Builder.
-     * @param requestJson The JSONObject of original RPC request.
-     * @return Always true - send the request;
+     * @param  builder      ConcordRequest Builder
+     * @param  requestJson  JSONObject from the original RPC request
+     * @return true         Always send the request
      */
     public boolean buildRequest(Concord.ConcordRequest.Builder builder, JSONObject requestJson) throws Exception {
         try {
@@ -49,59 +46,48 @@ public class EthGetTransactionReceiptHandler extends AbstractEthRpcHandler {
     }
 
     /**
-     * Since the parents initializeResponseObject method takes EthResponse object as input we override it here to take
-     * in the id directly.
-     */
-    @SuppressWarnings("unchecked")
-    JSONObject initializeResponseObject(long id) {
-        JSONObject respObject = new JSONObject();
-        respObject.put("id", id);
-        respObject.put("jsonrpc", jsonRpc);
-        return respObject;
-    }
-
-    /**
-     * Builds a response JSON object by extracting TransactionResponse object from given ConcordResponse Object.
+     * Build a JSONObject response from the TransactionResponse within the given ConcordResponse.
      *
-     * @param concordResponse The ConcordResponse object
-     * @param requestJson The json object of original RPC request.
-     * @return the response JSONObject.
+     * @param  concordResponse  ConcordResponse object
+     * @param  requestJson      JSONObject from the original RPC request
+     * @return JSONObject
      */
-    @SuppressWarnings("unchecked")
     @Override
     public JSONObject buildResponse(Concord.ConcordResponse concordResponse, JSONObject requestJson) {
 
         JSONObject respObject = new JSONObject();
+        JSONObject result = new JSONObject();
         try {
-            Concord.TransactionResponse transactionResponse = concordResponse.getTransactionResponse();
+            Concord.TransactionResponse tx = concordResponse.getTransactionResponse();
 
-            respObject = initializeResponseObject(EthDispatcher.getEthRequestId(requestJson));
-
-            JSONObject result = new JSONObject();
-
-            result.put("transactionHash", ApiHelper.binaryStringToHex(transactionResponse.getHash()));
-            result.put("transactionIndex", transactionResponse.getTransactionIndex());
-            result.put("blockNumber", transactionResponse.getBlockNumber());
-            result.put("blockHash", ApiHelper.binaryStringToHex(transactionResponse.getBlockHash()));
-            if (transactionResponse.hasContractAddress()) {
-                result.put("contractAddress", ApiHelper.binaryStringToHex(transactionResponse.getContractAddress()));
+            result.put("transactionHash", ApiHelper.binaryStringToHex(tx.getHash()));
+            result.put("transactionIndex", "0x" + Long.toHexString(tx.getTransactionIndex()));
+            result.put("blockHash", ApiHelper.binaryStringToHex(tx.getBlockHash()));
+            result.put("blockNumber", "0x" + Long.toHexString(tx.getBlockNumber()));
+            result.put("from", ApiHelper.binaryStringToHex(tx.getFrom()));
+            result.put("to", ApiHelper.binaryStringToHex(tx.getTo()));
+            // TODO: Sum up all `gasUsed` from previous tx in the same block
+            result.put("cumulativeGasUsed", "0x" + Long.toHexString(tx.getGas()));
+            result.put("gasUsed", "0x" + Long.toHexString(tx.getGas()));
+            if (tx.hasContractAddress()) {
+                result.put("contractAddress", ApiHelper.binaryStringToHex(tx.getContractAddress()));
             } else {
                 result.put("contractAddress", null);
             }
-
+            result.put("logs", buildLogs(tx));
+            // TODO: Attach bloom filter
+            result.put("logsBloom", "0x00");
             // Concord EVM has status code '0' for success and other Positive
             // values to denote error. However, for JSON RPC '1' is success
             // and '0' is failure. Here we need to reverse status value of concord
             // response before returning it.
-            result.put("status", "0x" + Integer.toString(transactionResponse.getStatus() == 0 ? 1 : 0));
+            result.put("status", "0x" + Integer.toString(tx.getStatus() == 0 ? 1 : 0));
 
-            result.put("logs", buildLogs(transactionResponse));
-
+            respObject.put("id", EthDispatcher.getEthRequestId(requestJson));
+            respObject.put("jsonrpc", Constants.JSONRPC);
             respObject.put("result", result);
         } catch (Exception e) {
-            // This should never get triggered as params are already checked while
-            // building the request
-            logger.fatal("'params' not present");
+            logger.fatal("Building JSON response failed.", e);
         }
         return respObject;
     }
