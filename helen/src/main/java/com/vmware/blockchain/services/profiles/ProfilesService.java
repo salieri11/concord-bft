@@ -12,6 +12,8 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import javax.transaction.Transactional;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -152,7 +154,10 @@ public class ProfilesService {
 
     /**
      * Create a new user.
+     * @param request   User Create Request, with all the user fields filled in.
+     * @return          new User
      */
+    @Transactional(rollbackOn = Exception.class)
     public User createUser(UserCreateRequest request) throws EntityModificationException {
 
         // First check if user with same email already exists
@@ -184,7 +189,9 @@ public class ProfilesService {
 
     /**
      * Patch an existing user. Use the same structure as for create.
+     * @param request   User Patch request, with desired changes.
      */
+    @Transactional(rollbackOn = Exception.class)
     public void updateUser(UserPatchRequest request) throws EntityModificationException {
         try {
             User user = userService.get(request.getUserId());
