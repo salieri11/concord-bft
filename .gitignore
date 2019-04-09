@@ -4,7 +4,7 @@
 bin/
 tmp/
 logs/
-docker/config-concord*/s_f1c0_config.pub
+docker/config-concord*/concord.config
 docker/log*
 docker/rocksdbdata*
 docker/cockroachDB

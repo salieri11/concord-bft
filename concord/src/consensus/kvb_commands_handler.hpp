@@ -9,6 +9,7 @@
 #include <boost/program_options.hpp>
 
 #include "concord.pb.h"
+#include "config/configuration_manager.hpp"
 #include "consensus/kvb/BlockchainInterfaces.h"
 #include "ethereum/concord_evm.hpp"
 #include "utils/concord_eth_sign.hpp"
@@ -21,7 +22,7 @@ class KVBCommandsHandler : public Blockchain::ICommandsHandler {
   log4cplus::Logger logger;
   concord::ethereum::EVM &athevm_;
   concord::utils::EthSign &verifier_;
-  boost::program_options::variables_map &config;
+  concord::config::ConcordConfiguration &nodeConfiguration;
 
   Blockchain::ILocalKeyValueStorageReadOnly *m_ptrRoStorage = nullptr;
   Blockchain::IBlocksAppender *m_ptrBlockAppender = nullptr;
@@ -29,7 +30,7 @@ class KVBCommandsHandler : public Blockchain::ICommandsHandler {
  public:
   KVBCommandsHandler(concord::ethereum::EVM &athevm,
                      concord::utils::EthSign &verifier,
-                     boost::program_options::variables_map &config_map,
+                     concord::config::ConcordConfiguration &nodeConfig,
                      Blockchain::ILocalKeyValueStorageReadOnly *roStorage,
                      Blockchain::IBlocksAppender *appendder);
   ~KVBCommandsHandler();

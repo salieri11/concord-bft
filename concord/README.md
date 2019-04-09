@@ -20,8 +20,8 @@ deployment.
 #### Pre-built libraries and tools
 
 You will need cmake, clang, and g++, gmp, GNU Parallel, autoconf, automake, LLVM
-5.0, libgmp3-dev, GMP 3, GNU Libtool, several Boost libraries (at the time of
-this writing, we use program-options, system, and thread), and yaml-cpp:
+5.0, GMP 3, GNU Libtool, several Boost libraries (at the time of this writing,
+we use program-options, system, and thread), and yaml-cpp:
 
 ```
 sudo apt-get install cmake clang g++ parallel autoconf automake llvm-5.0 \
@@ -300,6 +300,125 @@ concord/build$ ./src/concord -c test/resources/concord4.config
 With Concord running, you probably want to set up [Helen](../helen) or
 [EthRPC](../ethrpc) to talk to it.
 
+### Concord Configuration
+
+Concord uses YAML configuration files. A configuration generation utility is 
+provided to generate these configuration files for a given Concord cluster. In a
+completed build, the utility is `conc_genconfig` in the `tools` directory. The
+utility accepts input providing the size of the cluster, networking information,
+and any non-default values you would like to elect for optional parameters. For
+example, the following command can be used to generat a configuration equivalent
+to the current 4-node test configuration (with a fresh set of cryptographic keys
+generated):
+
+```shell
+concord/build$ ./tools/conc_genconfig --configuration-input \
+               test/resources/config_input/nativeConfigurationInput.yaml
+```
+
+This command will output four configuration files to the path it is run from
+named `concord<i>.config` for _i_ in the range (1, 4), inclusive. The base
+filename (in this case "`concord`") can be specified with the `--output-name`
+option to `conc_genconfig`.
+
+Two example configuration input files are provided in
+`test/resources/config_input`: `nativeConfigurationInput.yaml`, which generates
+a 4-node testing configuration to be run natively like the example configuration
+files in `test/resources`, and `dockerConfigurationInput.yaml`, which generates
+a 4-node configuration like the one currently used for Hermes testing and the
+Docker compose file to bring up a Concord cluster in
+`vmwathena_blockchain/docker`.
+
+The basic form of both the configuration input and Concord configuration files
+is a YAML associative array assigning values to configuration parameters
+(`<CONFIGURATION_PARAMETER>: <VALUE>`). For example, at the time of this
+writing, the required parameters to size a 4-node Concord cluster can be
+specified with:
+
+```
+f_val: 1
+c_val: 0
+client_proxies_per_replica: 4
+```
+
+Although some parameters appearing in the configuration files and configuration
+input are global in scope, it should be noted that many configuration parameters
+assign values for specific entities within a Concord cluster. At the time of
+this writing, there are parameters that specify values for individual Concord
+nodes, SBFT replicas, and SBFT client proxies (SBFT replicas and client proxies
+are entities created and used by Concord-BFT, the SBFT consensus implementation
+currently used by Concord; at the time of this writing, each Concord node
+contains 1 SBFT replica and 4 SBFT client proxies). These entity-specific
+parameters are assigned in the configuration files by assignment of lists to
+keys with names representing the type of entity. Each entry in the list
+represents one instance of that entity. For example, the network configuration
+for a 4-node native Concord test cluster is given in
+`nativeConfigurationInput.yaml` with:
+
+```
+node:
+  - service_host: 0.0.0.0
+    service_port: 5458
+    replica:
+      - replica_host: 127.0.0.1
+        replica_port: 3501
+    client_proxy:
+      - client_host: 127.0.0.1
+        client_port: 3505
+      - client_host: 127.0.0.1
+        client_port: 3506
+      - client_host: 127.0.0.1
+        client_port: 3507
+      - client_host: 127.0.0.1
+        client_port: 3508
+  - ... # 3 More entries in the node list structurally equivalent to the first,
+        # but with different values assigned; omitted in this example for
+        # concision; see `nativeConfigurationInput.yaml` for the full list.
+```
+
+Furthermore, a shorthand means of selecting a value for a parameter for all
+instances in one of these entity lists is provided; specifically, an associative
+array assigned to the key `<ENTITY_SCOPE_NAME>__TEMPLATE` in the same
+associative array as the key `<ENTITY_SCOPE_NAME>` indicates that the
+assignments in the associative array assigned to `<ENTITY_SCOPE_NAME>__TEMPLATE`
+should be included in each entry in the list assigned to `<ENTITY_SCOPE_NAME>`.
+For example, `nativeConfigurationInput.yaml` includes the lines:
+
+```
+node__TEMPLATE:
+  genesis_block: ./test/resources/genesis.json
+```
+
+These lines are equivalent to adding the assignment `genesis_block:
+./test/resources/genesis.json` to each list entry in the `node` list. If a node
+configuration file or the configuration input file contains assignments to the
+same key for both one of these template shorthands and for entr(y/ies) in the
+main list, the entry-specific values will take precedence. For example, if the
+configuration input contained these lines:
+
+```
+node__TEMPLATE:
+  service_port: 5458
+node:
+  - ...
+    service_port: 6000
+  ...
+```
+
+Then the first Concord node would have `service_port` 6000, but the remaining
+nodes would have port 5458 (unless they themselves also have their own
+`service_port` assignments in the `node` list).
+
+Internally, the contents of the ConcordConfiguration are defined and managed
+with a class, `ConcordConfiguration`, defined in
+`concord/src/config/configuration_manager.hpp`. A function
+`specifyConfiguraiton` (declared in
+`concord/src/config/configuration_manager.hpp` and implemented in
+`concord/src/configuration_manager.cpp`) is used to fill out a
+`ConcordConfiguration` and is intended as the primary source of truth on what
+the current configuration looks like; it is a good place to start looking if you
+need to add a new configuration parameter to Concord.
+
 ## What is here:
 
  * src/main.cpp: reads program options and starts the application
@@ -318,3 +437,10 @@ With Concord running, you probably want to set up [Helen](../helen) or
 
  * tools/conc_gettxrcpt.cpp: a utility that allows you to fetch a
    transaction receipt without needing to build and start helen
+
+ * tools/conc_genconfig.cpp: Configuration generation utility which, gien input
+   containing cluster size and network configuraiton parameters (plus any
+   non-default values you want to set for optional configuration parameters),
+   outputs a configuration file for each node in a Concord cluster (this utility
+   also handles generation of the cryptographic keys required for each node's
+   configuration file).

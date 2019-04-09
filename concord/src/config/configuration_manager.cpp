@@ -1,119 +1,47 @@
 // Copyright 2018-2019 VMware, all rights reserved
 
+#include <regex>
+
+#include <boost/algorithm/string.hpp>
+
+#include <cryptopp/dll.h>
+
 #include "configuration_manager.hpp"
 
 using namespace boost::program_options;
 
 using namespace std;
 
-// default IP on which to listen for client connections
-static const string default_listen_ip = "0.0.0.0";
-
-// default port on which to listen for client connections
-static const short default_listen_port = 5458;
-
-// default location of logging properties file
-static const string default_log_props = "./resources/log4cplus.properties";
-
-// default location of configuration file
-static const string default_config_file = "./resources/concord.config";
-
-// default period to check for logging properties changes (milliseconds)
-static const int default_log_props_time_ms = 60000;  // 60sec
-
-// default implementation of blockchain storage
-static const string default_blockchain_db_impl = "memory";
-
-// default size of API worker thread pool
-static const int default_api_worker_thread_pool_size = 4;
-
-// default count of maximum transactions returned by transaction list query
-static const int default_transaction_list_max_count = 10;
-
-// default gas limit for transaction execution
-// this high value is a temporary solution until we will find the way
-// to customize docker build to run concord processes with CLI params
-static const int64_t default_gas_limit = 10000000;
-
-variables_map initialize_config(int argc, char** argv) {
-  // A map to hold key-value pairs of all options
+variables_map initialize_config(concord::config::ConcordConfiguration& config,
+                                int argc, char** argv) {
+  // A map to hold key-value pairs of all non-configuration options.
   variables_map options_map;
 
-  // holds the value of configuration file for Concord
-  // this is NOT same as logger configuration file. Logger
-  // configuration file can be specified by command line options or
-  // as a property in configuration file.
-  string config_file;
+  // Holds the file name of path of the configuration file for Concordthis is
+  // NOT same as logger configuration file. Logger configuration file can be
+  // specified as a property in configuration file.
+  string configFile;
 
   // Program options which are generic for most of the programs:
   // These are not available via configuration files
   // only allowed to be passed on command line
   options_description generic{"Generic Options"};
   generic.add_options()("help,h", "Print this help message")(
-      "config,c",
-      value<string>(&config_file)->default_value(default_config_file),
-      "Path for configuration file")("debug",
-                                     "Sleep for 20 seconds to attach debug");
-
-  // The configuration parameters specific to this program
-  // These can be provided in config file as well as on command line
-  // If same parameter is provided in config file as well as on
-  // command line, then command line value will take preference.
-  // Since, we read command line options first all the parameters specified
-  // in command line will be populated in varaiables_map first, if same option
-  // is present in config file it will be read but won't be stored in
-  // variables_map since that 'key' already has some valid 'value' (value
-  // provided on cmdline)
-  options_description config{"Configuration Options"};
-  config.add_options()("ip",
-                       value<std::string>()->default_value(default_listen_ip),
-                       "IP on which to expose the service")(
-      "port,p", value<short>()->default_value(default_listen_port),
-      "Port on which to expose the service")(
-      "logger_config", value<string>()->default_value(default_log_props),
-      "Path to logging properties file")(
-      "logger_reconfig_time",
-      value<int>()->default_value(default_log_props_time_ms),
-      "Interval (in ms) to check for updates to logging properties file")(
-      "genesis_block", value<string>(),
-      "Absolute path of file which contains genesis block json")(
-      "blockchain_db_impl",
-      value<string>()->default_value(default_blockchain_db_impl),
-      "Name of the DB implementation backing the blockchain. "
-      "Legal values: memory, rocksdb")("blockchain_db_path", value<string>(),
-                                       "Path to blockchain database storage")
-      // TOD(BWF): these are required, but this file needs to be rearranged to
-      // make that work
-      ("SBFT.public", value<string>(), "Path to SBFT public config file")(
-          "SBFT.replica", value<string>(),
-          "Path to SBFT private replica config file")(
-          "SBFT.client", value<std::vector<string> >()->multitoken(),
-          "Path to SBFT private client config file")(
-          "api_worker_pool_size",
-          value<int>()->default_value(default_api_worker_thread_pool_size),
-          "Number of threads to create for handling TCP connections")(
-          "transaction_list_max_count",
-          value<int>()->default_value(default_transaction_list_max_count),
-          "Maximum transactions returned for a transaction list query")(
-          "gas_limit", value<uint64_t>()->default_value(default_gas_limit),
-          "Maximum gas a transaction may consume");
-
-  options_description all_options;  // description of all options
-  all_options.add(generic).add(config);
+      "config,c", value<string>(&configFile), "Path for configuration file")(
+      "debug", "Sleep for 20 seconds to attach debug");
 
   // First we parse command line options and see if --help
   // options was provided. In this case we don't need to
   // go for parsing config file. Otherwise call notify
-  // for command line options and move to parsing config file
-  store(command_line_parser(argc, argv).options(all_options).run(),
-        options_map);
+  // for command line options and move to parsing config file.
+  store(command_line_parser(argc, argv).options(generic).run(), options_map);
 
   // If cmdline options specified --help then we don't want
   // to do further processing for command line or
   // config file options
   if (options_map.count("help")) {
     std::cout << "VMware Project Concord" << std::endl;
-    std::cout << all_options << std::endl;
+    std::cout << generic << std::endl;
     return options_map;
   }
 
@@ -122,23 +50,30 @@ variables_map initialize_config(int argc, char** argv) {
   // exception to exit the program if any parameters are invalid)
   notify(options_map);
 
-  // Parse config file and populate map with those parameters
-  // provided in config file.
-  ifstream ifs(config_file.c_str());
-  if (!ifs) {
-    cerr << "Can not open config file: " << config_file << "\n"
-         << " Going ahead with only command line options\n";
-  } else {
-    auto parsed = parse_config_file(ifs, config);
-    store(parsed, options_map);
-    notify(options_map);
+  // Parse configuration file.
+  std::ifstream fileInput(configFile);
+  concord::config::specifyConfiguration(config);
+  concord::config::YAMLConfigurationInput input(fileInput);
+
+  try {
+    input.parseInput();
+  } catch (std::exception& e) {
+    std::cerr
+        << "An exception occurred while trying to read the configuration file "
+        << configFile << ": exception message: " << e.what() << std::endl;
   }
+
+  concord::config::loadNodeConfiguration(config, input);
+  concord::config::loadSBFTCryptosystems(config);
 
   return options_map;
 }
 
 namespace concord {
 namespace config {
+
+// Implementations of member functions for the core configuration library
+// classes declared in concord/src/configuration_manager.hpp.
 
 ConfigurationPath::ConfigurationPath()
     : isScope(false), useInstance(false), name(), index(0), subpath() {}
@@ -380,11 +315,11 @@ std::string ConcordConfiguration::printCompletePath(
 void ConcordConfiguration::updateSubscopePaths() {
   for (auto scope : scopes) {
     ConfigurationPath templatePath(scope.first, true);
-    scope.second.instanceTemplate->scopePath.reset(
+    scopes[scope.first].instanceTemplate->scopePath.reset(
         getCompletePath(templatePath));
-    scope.second.instanceTemplate->updateSubscopePaths();
-
-    std::vector<ConcordConfiguration>& instances = scope.second.instances;
+    scopes[scope.first].instanceTemplate->updateSubscopePaths();
+    std::vector<ConcordConfiguration>& instances =
+        scopes[scope.first].instances;
     for (size_t i = 0; i < instances.size(); ++i) {
       ConfigurationPath instancePath(scope.first, i);
       instances[i].scopePath.reset(getCompletePath(instancePath));
@@ -410,6 +345,125 @@ ConcordConfiguration::getParameter(const std::string& parameter,
         failureMessage + printCompletePath(path) + ": parameter not found.");
   }
   return parameters.at(parameter);
+}
+
+const ConcordConfiguration* ConcordConfiguration::getRootConfig() const {
+  const ConcordConfiguration* rootConfig = this;
+  while (rootConfig->parentScope) {
+    rootConfig = rootConfig->parentScope;
+  }
+  return rootConfig;
+}
+
+template <>
+bool ConcordConfiguration::interpretAs<int>(std::string value,
+                                            int& output) const {
+  try {
+    output = std::stoi(value);
+    return true;
+  } catch (std::invalid_argument& e) {
+    return false;
+  } catch (std::out_of_range& e) {
+    return false;
+  }
+}
+
+template <>
+std::string ConcordConfiguration::getTypeName<int>() const {
+  return "int";
+}
+
+template <>
+bool ConcordConfiguration::interpretAs<short>(std::string value,
+                                              short& output) const {
+  int intVal;
+  try {
+    intVal = std::stoi(value);
+  } catch (std::invalid_argument& e) {
+    return false;
+  } catch (std::out_of_range& e) {
+    return false;
+  }
+  if ((intVal < SHRT_MIN) || (intVal > SHRT_MAX)) {
+    return false;
+  }
+  output = (short)intVal;
+  return true;
+}
+
+template <>
+std::string ConcordConfiguration::getTypeName<short>() const {
+  return "short";
+}
+
+template <>
+bool ConcordConfiguration::interpretAs<std::string>(std::string value,
+                                                    std::string& output) const {
+  output = value;
+  return true;
+}
+
+template <>
+std::string ConcordConfiguration::getTypeName<std::string>() const {
+  return "std::string";
+}
+
+template <>
+bool ConcordConfiguration::interpretAs<uint16_t>(std::string value,
+                                                 uint16_t& output) const {
+  // This check is necessary because stoul/stoull actually have semantics for if
+  // their input is preceded with a '-' other than throwing an exception.
+  if ((value.length() > 0) && value[0] == '-') {
+    return false;
+  }
+
+  unsigned long long intVal;
+  try {
+    intVal = std::stoull(value);
+  } catch (std::invalid_argument& e) {
+    return false;
+  } catch (std::out_of_range& e) {
+    return false;
+  }
+  if (intVal > UINT16_MAX) {
+    return false;
+  }
+  output = (uint16_t)intVal;
+  return true;
+}
+
+template <>
+std::string ConcordConfiguration::getTypeName<uint16_t>() const {
+  return "uint16_t";
+}
+
+template <>
+bool ConcordConfiguration::interpretAs<uint64_t>(std::string value,
+                                                 uint64_t& output) const {
+  // This check is necessary because stoul/stoull actually have semantics for if
+  // their input is preceded with a '-' other than throwing an exception.
+  if ((value.length() > 0) && value[0] == '-') {
+    return false;
+  }
+
+  unsigned long long intVal;
+  try {
+    intVal = std::stoull(value);
+  } catch (std::invalid_argument& e) {
+    return false;
+  } catch (std::out_of_range& e) {
+    return false;
+  }
+  if (intVal > UINT64_MAX) {
+    return false;
+  }
+  output = (uint64_t)intVal;
+  return true;
+}
+
+template <>
+std::string ConcordConfiguration::getTypeName<uint64_t>() const {
+  return "uint64_t";
 }
 
 void ConcordConfiguration::ConfigurationIterator::updateRetVal() {
@@ -762,7 +816,8 @@ void ConcordConfiguration::deregisterIterator(
 }
 
 ConcordConfiguration::ConcordConfiguration()
-    : configurationState(),
+    : auxiliaryState(),
+      configurationState(),
       parentScope(),
       scopePath(),
       scopes(),
@@ -770,24 +825,29 @@ ConcordConfiguration::ConcordConfiguration()
       iterators() {}
 
 ConcordConfiguration::ConcordConfiguration(const ConcordConfiguration& original)
-    : configurationState(original.configurationState),
+    : auxiliaryState(),
+      configurationState(original.configurationState),
       parentScope(original.parentScope),
       scopePath(),
       scopes(original.scopes),
       parameters(original.parameters),
       iterators() {
+  if (original.auxiliaryState) {
+    auxiliaryState.reset(original.auxiliaryState->clone());
+  }
   if (original.scopePath) {
     scopePath.reset(new ConfigurationPath(*(original.scopePath)));
   }
   for (auto scopeEntry : scopes) {
-    scopeEntry.second.instanceTemplate->parentScope = this;
-    for (auto instance : scopeEntry.second.instances) {
+    scopes[scopeEntry.first].instanceTemplate->parentScope = this;
+    for (auto instance : scopes[scopeEntry.first].instances) {
       instance.parentScope = this;
     }
   }
 }
 
 ConcordConfiguration::~ConcordConfiguration() {
+  auxiliaryState.reset();
   invalidateIterators();
   scopes.clear();
   parameters.clear();
@@ -800,6 +860,11 @@ ConcordConfiguration& ConcordConfiguration::operator=(
 
   configurationState = original.configurationState;
   parentScope = original.parentScope;
+  if (original.auxiliaryState) {
+    auxiliaryState.reset(original.auxiliaryState->clone());
+  } else {
+    auxiliaryState.reset();
+  }
   if (original.scopePath) {
     scopePath.reset(new ConfigurationPath(*(original.scopePath)));
   } else {
@@ -809,8 +874,8 @@ ConcordConfiguration& ConcordConfiguration::operator=(
   scopes = original.scopes;
 
   for (auto scopeEntry : scopes) {
-    scopeEntry.second.instanceTemplate->parentScope = this;
-    for (auto instance : scopeEntry.second.instances) {
+    scopes[scopeEntry.first].instanceTemplate->parentScope = this;
+    for (auto instance : scopes[scopeEntry.first].instances) {
       instance.parentScope = this;
     }
   }
@@ -818,16 +883,33 @@ ConcordConfiguration& ConcordConfiguration::operator=(
 }
 
 void ConcordConfiguration::clear() {
+  configurationState = "";
+  auxiliaryState.reset();
   invalidateIterators();
   scopes.clear();
   parameters.clear();
 }
 
-void ConcordConfiguration::setConfigurationState(const std::string& state) {
+void ConcordConfiguration::setAuxiliaryState(
+    ConfigurationAuxiliaryState* auxState) {
+  auxiliaryState.reset(auxState);
+}
+
+ConfigurationAuxiliaryState* ConcordConfiguration::getAuxiliaryState() {
+  return auxiliaryState.get();
+}
+
+const ConfigurationAuxiliaryState* ConcordConfiguration::getAuxiliaryState()
+    const {
+  return auxiliaryState.get();
+}
+
+void ConcordConfiguration::setConfigurationStateLabel(
+    const std::string& state) {
   configurationState = state;
 }
 
-std::string ConcordConfiguration::getConfigurationState() const {
+std::string ConcordConfiguration::getConfigurationStateLabel() const {
   return configurationState;
 }
 
@@ -912,12 +994,14 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::instantiateScope(
   }
   size_t scopeSize;
   std::unique_ptr<ConfigurationPath> fullPath(getCompletePath(relativePath));
-  ParameterStatus result =
-      scopeEntry.size(*this, *fullPath, &scopeSize, scopeEntry.sizerState);
+  ParameterStatus result = scopeEntry.size(*(getRootConfig()), *fullPath,
+                                           &scopeSize, scopeEntry.sizerState);
   if (result != ParameterStatus::VALID) {
     return result;
   }
+
   invalidateIterators();
+  scopeEntry.instantiated = true;
   scopeEntry.instances.clear();
   for (size_t i = 0; i < scopeSize; ++i) {
     scopeEntry.instances.push_back(
@@ -1144,7 +1228,7 @@ bool ConcordConfiguration::contains(const std::string& name) const {
 }
 
 bool ConcordConfiguration::contains(const ConfigurationPath& path) const {
-  if (path.subpath && path.isScope) {
+  if (path.isScope && path.subpath) {
     if (scopes.count(path.name) < 1) {
       return false;
     }
@@ -1163,56 +1247,6 @@ bool ConcordConfiguration::contains(const ConfigurationPath& path) const {
   }
 }
 
-bool ConcordConfiguration::hasValue(const std::string& name) const {
-  return (contains(name)) && (parameters.at(name).initialized);
-}
-
-bool ConcordConfiguration::hasValue(const ConfigurationPath& path) const {
-  // Note we do not give an error message for getParameter to use because
-  // getParameter should not fail if contains(path) is true.
-  if (!contains(path)) {
-    return false;
-  }
-  const ConcordConfiguration* containingScope = this;
-  if (path.isScope && path.subpath) {
-    containingScope = &(subscope(path.trimLeaf()));
-  }
-  return containingScope->hasValue(path.getLeaf().name);
-}
-
-std::string ConcordConfiguration::getValue(const std::string& name) const {
-  const ConfigurationParameter& parameter =
-      getParameter(name, "Could not get value for parameter ");
-  if (!(parameter.initialized)) {
-    throw ConfigurationResourceNotFoundException(
-        "Could not get value for parameter " +
-        printCompletePath(ConfigurationPath(name, false)) +
-        ": parameter is uninitialized.");
-  }
-  return parameter.value;
-}
-
-std::string ConcordConfiguration::getValue(
-    const ConfigurationPath& path) const {
-  if (!contains(path)) {
-    throw ConfigurationResourceNotFoundException(
-        "Could not get value for parameter " + printCompletePath(path) +
-        ": parameter not found.");
-  }
-  const ConcordConfiguration* containingScope = this;
-  if (path.subpath) {
-    containingScope = &(subscope(path.trimLeaf()));
-  }
-  const ConfigurationParameter& parameter = containingScope->getParameter(
-      path.getLeaf().name, "Could not get value for parameter ");
-  if (!(parameter.initialized)) {
-    throw ConfigurationResourceNotFoundException(
-        "Could not get value for parameter " + printCompletePath(path) +
-        ": parameter is uninitialized.");
-  }
-  return parameter.value;
-}
-
 ConcordConfiguration::ParameterStatus ConcordConfiguration::loadValue(
     const std::string& name, const std::string& value,
     std::string* failureMessage, bool overwrite, std::string* prevValue) {
@@ -1223,7 +1257,7 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::loadValue(
   ParameterStatus status = ParameterStatus::VALID;
   std::string message;
   if (parameter.validator) {
-    status = parameter.validator(value, *this, *path, &message,
+    status = parameter.validator(value, *(getRootConfig()), *path, &message,
                                  parameter.validatorState);
   }
   if (failureMessage && (status != ParameterStatus::VALID)) {
@@ -1329,8 +1363,8 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::validate(
   ParameterStatus status = ParameterStatus::VALID;
   std::string message;
   if (parameter.validator) {
-    status = parameter.validator(parameter.value, *this, *path, &message,
-                                 parameter.validatorState);
+    status = parameter.validator(parameter.value, *(getRootConfig()), *path,
+                                 &message, parameter.validatorState);
   }
   if (failureMessage && (status != ParameterStatus::VALID)) {
     *failureMessage = message;
@@ -1392,13 +1426,13 @@ ConcordConfiguration::ParameterStatus ConcordConfiguration::generate(
         ": no generator function has been specified for this parameter.");
   }
   std::string generatedValue;
-  ParameterStatus status = parameter.generator(*this, *path, &generatedValue,
-                                               parameter.generatorState);
+  ParameterStatus status = parameter.generator(
+      *(getRootConfig()), *path, &generatedValue, parameter.generatorState);
   if (status == ParameterStatus::VALID) {
     std::string message;
     if (parameter.validator) {
-      status = parameter.validator(generatedValue, *this, *path, &message,
-                                   parameter.validatorState);
+      status = parameter.validator(generatedValue, *(getRootConfig()), *path,
+                                   &message, parameter.validatorState);
     }
     if (failureMessage && (status != ParameterStatus::VALID)) {
       *failureMessage = message;
@@ -1647,7 +1681,7 @@ ParameterSelection::Iterator ParameterSelection::end() {
 void YAMLConfigurationInput::loadParameter(ConcordConfiguration& config,
                                            const ConfigurationPath& path,
                                            const YAML::Node& obj,
-                                           std::ostream* errorOut,
+                                           log4cplus::Logger* errorOut,
                                            bool overwrite) {
   // Note cases in this function where we return without either writing a value
   // to the configuration or making a recursive call indicate we have concluded
@@ -1689,8 +1723,8 @@ void YAMLConfigurationInput::loadParameter(ConcordConfiguration& config,
         path.name, obj[path.name].Scalar(), &failureMessage, overwrite);
     if (errorOut &&
         (status == ConcordConfiguration::ParameterStatus::INVALID)) {
-      (*errorOut) << "Cannot load value for parameter " << path.name << ": "
-                  << failureMessage << std::endl;
+      LOG4CPLUS_ERROR((*errorOut), "Cannot load value for parameter " +
+                                       path.name + ": " + failureMessage);
     }
   }
 }
@@ -1711,7 +1745,8 @@ void YAMLConfigurationOutput::addParameterToYAML(
   // Note this helper function expects that it has already been validated or
   // otherwise guaranteed that path is a valid path to a declared parameter in
   // config and yaml is an associative array.
-  if (!config.contains(path) || !config.hasValue(path) || !yaml.IsMap()) {
+  if (!config.contains(path) || !config.hasValue<std::string>(path) ||
+      !yaml.IsMap()) {
     return;
   }
 
@@ -1742,7 +1777,7 @@ void YAMLConfigurationOutput::addParameterToYAML(
     addParameterToYAML(config.subscope(subscopePath), *(path.subpath),
                        subscope);
   } else {
-    yaml[path.name] = config.getValue(path.name);
+    yaml[path.name] = config.getValue<std::string>(path.name);
   }
 }
 
@@ -1750,6 +1785,41 @@ YAMLConfigurationOutput::YAMLConfigurationOutput(std::ostream& output)
     : output(&output), yaml() {}
 
 YAMLConfigurationOutput::~YAMLConfigurationOutput() {}
+
+ConcordPrimaryConfigurationAuxiliaryState::
+    ConcordPrimaryConfigurationAuxiliaryState()
+    : executionCryptosys(),
+      slowCommitCryptosys(),
+      commitCryptosys(),
+      optimisticCommitCryptosys() {}
+
+ConcordPrimaryConfigurationAuxiliaryState::
+    ~ConcordPrimaryConfigurationAuxiliaryState() {
+  executionCryptosys.reset();
+  slowCommitCryptosys.reset();
+  commitCryptosys.reset();
+  optimisticCommitCryptosys.reset();
+};
+
+ConfigurationAuxiliaryState*
+ConcordPrimaryConfigurationAuxiliaryState::clone() {
+  ConcordPrimaryConfigurationAuxiliaryState* copy =
+      new ConcordPrimaryConfigurationAuxiliaryState();
+  if (executionCryptosys) {
+    copy->executionCryptosys.reset(new Cryptosystem(*executionCryptosys));
+  }
+  if (slowCommitCryptosys) {
+    copy->slowCommitCryptosys.reset(new Cryptosystem(*slowCommitCryptosys));
+  }
+  if (commitCryptosys) {
+    copy->commitCryptosys.reset(new Cryptosystem(*commitCryptosys));
+  }
+  if (optimisticCommitCryptosys) {
+    copy->optimisticCommitCryptosys.reset(
+        new Cryptosystem(*optimisticCommitCryptosys));
+  }
+  return copy;
+}
 
 // Helper functions to the validation, generation, and sizing functions to
 // follow.

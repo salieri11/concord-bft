@@ -10,6 +10,19 @@
 // per-node or per-replica parameters.
 // - ParameterSelection: a utility class provided to facilitate turning an
 // arbitrary function for picking ConfigurationParameters into an iterable set.
+// - YAMLConfigurationInput and YAMLConfigurationOutput: Provide functionality
+// to input/output the contents of a ConcordConfiguration in YAML.
+// - specifyConfiguration and related functions: specifyConfiguration fills out
+// a ConcordConfiguration object with the configuration we are currently using;
+// it is intended as the authoritative source of truth on what Concord's
+// configuration currently looks like and the place to begin if you need to add
+// to or modify Concord's configuration. In addition to specifyConfiguration,
+// several more functions are declared (following the declaration of
+// specifyConfiguration) which encode knwoledge of the current Concord
+// configuration and its properties; these functions are intended to make code
+// dependent on the configuration more robust and less fragile by pulling out
+// logic that requires knowledge about the current configuration and collecting
+// it in one place.
 
 #ifndef CONFIG_CONFIGURATION_MANAGER_HPP
 #define CONFIG_CONFIGURATION_MANAGER_HPP
@@ -30,7 +43,7 @@
 
 #include "yaml-cpp/yaml.h"
 
-boost::program_options::variables_map initialize_config(int argc, char** argv);
+#include "ThresholdSignaturesTypes.h"
 
 namespace concord {
 namespace config {
@@ -226,6 +239,59 @@ struct hash<::concord::config::ConfigurationPath> {
 namespace concord {
 namespace config {
 
+// Struct for storing "auxiliary state" to a ConcordConfiguration. This class is
+// intended to facilitate giving ownership of objects related to or used by the
+// configuration to a ConcordConfiguration without breaking
+// ConcordConfiguration's properties of being largely agnostic to the contents
+// and purpose of a configuration it stores. A ConcordConfiguration can be given
+// ownership of a ConfigurationAuxiliaryState with the setAuxiliaryState
+// function; that ConfigurationAuxiliaryState object can then be accessed with
+// the getAuxiliaryState function. The ConcordConfiguration object will destruct
+// its auxiliary state object whenever the ConcordConfiguration is destroyed,
+// cleared, or when setAuxiliaryState is called again.
+//
+// It is anticipated a typical use of auxiliary configuration will involve
+// implementing a struct extending ConfigurationAuxiliaryState with member data
+// whose ownership is to be given to a ConcordConfiguration and making dynamic
+// casts to this subtype when the state is accessed with getAuxiliaryState.
+//
+// An example of a reason for using this class might be if we are storing
+// cryptographic keys in a ConcordConfiguration and need to give the
+// ConcordConfiguration ownership of a Cryptosystem object that is needed in
+// validating and generating the keys; giving the ConcordConfiguration ownership
+// of the object can help ensure the configuration does not outlive the
+// cryptographic object and start generating errors or other undesirable
+// behavior when trying to validate cryptographic parameters whose validator
+// functions depend on the object.
+struct ConfigurationAuxiliaryState {
+ public:
+  virtual ~ConfigurationAuxiliaryState() {}
+
+  // When a ConcordConfiguration is copied, it will call this function to try to
+  // copy the ConfigurationAuxiliaryState it owns (if it owns any auxiliary
+  // state). Therefore, a complete implementation of this function for a struct
+  // extending ConfigurationAuxiliaryState should return a pointer to a newly
+  // allocated copy of the caller. Keep in mind that ConcordConfiguration scope
+  // instantiation makes a copy of the scope template for each scope instance
+  // created.
+  //
+  // ConcordConfiguration provides the following guarantees about how it uses
+  // ConfigurationAuxiliaryState::clone:
+  // - When a ConcordConfiguration is copied (via either copy construction or
+  // copy assignment), if the ConcordConfiguraiton copied from owns a non-null
+  // ConfigurationAuxiliaryState, then clone will be called for that state, the
+  // configuration copied from will retain its auxiliary state pointer, and the
+  // ConcordConfiguration copied to will be given the pointer returned by this
+  // clone function.
+  // - If a ConcordConfiguration is copied but the configuration copied from has
+  // a null auxiliary state, no ConfigurationAuxiliaryState::clone will be
+  // attempted and both the configurations copied from and to will have null
+  // auxiliary state pointers.
+  // - A ConcordConfiguration will never call ConfigurationAuxiliaryState::clone
+  // if that configuration is never copied.
+  virtual ConfigurationAuxiliaryState* clone() = 0;
+};
+
 // The ConcordConfiguration class provides a framework for defining the
 // structure and contents of configuration and handles storing and managing that
 // configuration. ConcordConfiguration assumes the fundamental unit of
@@ -258,6 +324,17 @@ namespace config {
 // - Default Values: A default value can be given for any parameter.
 // - Parameter Generation: A generation function may be defined for any
 // parameter that is automatically generated rather than taken as input.
+// - Parameter Type Interpretation: Although this class internally handles and
+// processes parameter values as strings, it supports interpreting them as other
+// types on access via the hasValue and getValue functions (see comments for
+// these functions below). This class relies on template specializations for
+// type conversions, so interpretations as arbitrary types are not supported. At
+// the type of this writing, conversion to the following types is supported:
+//   - int
+//   - short
+//   - std::string
+//   - uint16_t
+//   - uint64_t
 //
 // This class currently provides no synchronization or guarantees of
 // synchronization and has not been designed with multiple threads writing to
@@ -274,7 +351,10 @@ class ConcordConfiguration {
   // confirm the parameter's validity. When a ConcordConfiguration calls a
   // parameter validator, it gives the following arguments:
   //   - value: The value to assess the validity of.
-  //   - config: The ConcordConfiguration calling this function.
+  //   - config: The ConcordConfiguration calling this function; note validator
+  //   functions will always be given a reference to the root config for this
+  //   parameter (as opposed to the ConcordConfiguration representing the scope
+  //   in which the parameter being validated exists).
   //   - path: The path to the parameter within this configuration for which
   //   this value is to be validated.
   //   - failureMessage: If the validator does not find value to be valid, it
@@ -296,7 +376,10 @@ class ConcordConfiguration {
   // is not possible to generate a valid value under the current state or the
   // generator otherwise fails. When a ConcordConfiguration calls a parameter
   // generator, it gives the following arguments:
-  //   - config: The ConcordConfiguration calling this function.
+  //   - config: The ConcordConfiguration calling this function. Note parameter
+  //   generators will always be given a reference to the root config for this
+  //   parameter (as opposed to the ConcordConfiguration representing the scope
+  //   in which the parameter being generated exists).
   //   - path: Path to the parameter for which a value should be generated.
   //   - output: String pointer to output the generated value to if generation
   //   is successful (Note any value written to this pointer will be ignored by
@@ -317,7 +400,10 @@ class ConcordConfiguration {
   // possible to get a valid size for this scope under the current state or if
   // the sizer otherwise fails. When a ConcordConfiguration calls a scope sizer,
   // it gives the following arguments:
-  //   - config: The ConcordConfiguration calling this function.
+  //   - config: The ConcordConfiguration calling this function. Note scope
+  //   sizer functioons will always be called with a reference to the root
+  //   config for this parameter, even if the scope being instantiated itself
+  //   exists in a subscope of the configuration.
   //   - path: Path to the scope for which a size is being requested.
   //   - output: size_t pointer to which to output the appropriate size for
   //   the requested scope (Note the ConcordConfiguration will ignore any value
@@ -360,6 +446,7 @@ class ConcordConfiguration {
     ConfigurationParameter& operator=(const ConfigurationParameter& original);
   };
 
+  std::unique_ptr<ConfigurationAuxiliaryState> auxiliaryState;
   std::string configurationState;
 
   // Both these pointers point to null if this ConcordConfiguration is the root
@@ -380,6 +467,12 @@ class ConcordConfiguration {
                                        const std::string& failureMessage);
   const ConfigurationParameter& getParameter(
       const std::string& parameter, const std::string& failureMessage) const;
+  const ConcordConfiguration* getRootConfig() const;
+
+  template <typename T>
+  bool interpretAs(std::string value, T& output) const;
+  template <typename T>
+  std::string getTypeName() const;
 
  public:
   // Complete definition of the iterator type for iterating through a
@@ -471,17 +564,30 @@ class ConcordConfiguration {
   // string.
   void clear();
 
-  // Sets the "configuration state" for this configuration to the given string.
-  // ConcordConfiguration itself does not use its own "configuration state", but
-  // it can be retrieved and used at any time by client code with
-  // getConfigurationState.
-  void setConfigurationState(const std::string& state);
+  // Gives this ConcordConfiguration ownership of a ConfigurationAuxiliaryState
+  // object. The ConfigurationAuxiliaryState object will be freed when this
+  // function is called again, when this ConcordConfiguration is cleared, or
+  // when this ConcordConfiguration is destructed, but not before then.
+  void setAuxiliaryState(ConfigurationAuxiliaryState* auxState);
 
-  // Gets the most recent value passed to setConfigurationState. Returns an
-  // empty string if setConfigurationState has never been called for this
+  // Accesses and returns a pointer to the ConfigurationAuxiliaryState object
+  // this ConcordConfiguration has been given ownership of, if any. Returns
+  // nullptr if this ConcordConfiguration has not been given any auxiliary
+  // state.
+  ConfigurationAuxiliaryState* getAuxiliaryState();
+  const ConfigurationAuxiliaryState* getAuxiliaryState() const;
+
+  // Sets a "configuration state label" for this configuration to the given
+  // string. ConcordConfiguration itself does not use its own "configuration
+  // state label", but it can be retrieved and used at any time by client code
+  // with getConfigurationStateLabel.
+  void setConfigurationStateLabel(const std::string& state);
+
+  // Gets the most recent value passed to setConfigurationStateLabel. Returns an
+  // empty string if setConfigurationStateLabel has never been called for this
   // ConcordConfiguration or if clear has been called more recently than
-  // setConfigurationState.
-  std::string getConfigurationState() const;
+  // setConfigurationStateLabel.
+  std::string getConfigurationStateLabel() const;
 
   // Adds a new instantiable scope to this configuration. The scope begins empty
   // and uninstantiated.
@@ -651,27 +757,103 @@ class ConcordConfiguration {
   bool contains(const ConfigurationPath& path) const;
 
   // Returns true if this ConcordConfiguration contains a parameter with the
-  // given name and that parameter has a value loaded and false otherwise.
-  bool hasValue(const std::string& name) const;
+  // given name, that parameter has a value loaded, and that value can be
+  // validly converted to type T; returns false otherwise. Note this function
+  // relies on template specialization for type conversions, so not all types
+  // are supported; see the comments for class ConcordConfigruation for a list
+  // loadClusterSizeParameters(yamlInput, config, &(std::cout));
+
+  // of currently supported types.
+  template <typename T>
+  bool hasValue(const std::string& name) const {
+    T result;
+    return contains(name) && (parameters.at(name).initialized) &&
+           interpretAs<T>(parameters.at(name).value, result);
+  }
 
   // Returns true if there is a parameter within this ConcordConfiguration at
-  // the given path and that parameter has a value loaded and false otherwise.
-  // Note this function handles checking the appropriate subscope for the
-  // parameter if the path has multiple segments.
-  bool hasValue(const ConfigurationPath& path) const;
+  // the given path, that parameter has a value loaded, and that value can be
+  // validly converted to type T; returns false otherwise. Note this function
+  // handles checking the appropriate subscope for the parameter if the path has
+  // multiple segments. Note this function relies on template specialization for
+  // type conversions, so not all types are supported; see the comments for
+  // class ConcordConfigruation for a list of currently supported types.
+  template <typename T>
+  bool hasValue(const ConfigurationPath& path) const {
+    if (!contains(path)) {
+      return false;
+    }
+    const ConcordConfiguration* containingScope = this;
+    if (path.isScope && path.subpath) {
+      containingScope = &(subscope(path.trimLeaf()));
+    }
+    return (containingScope->hasValue<T>(path.getLeaf().name));
+  }
 
   // Gets the value currently loaded to the parameter in this
-  // ConcordConfiguration with the given name. Throws a
+  // ConcordConfiguration with the given name, interpreted as type T. Throws a
   // ConfigurationResourceNotFoundException if this ConcordConfiguration does
-  // not contain a parameter with the given name or if the requested parameter
-  // does not have a value loaded.
-  std::string getValue(const std::string& name) const;
+  // not contain a parameter with the given name, if the requested parameter
+  // does not have a value loaded, or if the loaded value cannot be interpreted
+  // as the requested type. Note this function relies on template specialization
+  // for type conversions, so not all types are supported; see the comments for
+  // class ConcordConfigruation for a list of currently supported types.
+  template <typename T>
+  T getValue(const std::string& name) const {
+    const ConfigurationParameter& parameter =
+        getParameter(name, "Could not get value for parameter ");
+    if (!(parameter.initialized)) {
+      throw ConfigurationResourceNotFoundException(
+          "Could not get value for parameter " +
+          printCompletePath(ConfigurationPath(name, false)) +
+          ": parameter is uninitialized.");
+    }
+    T result;
+    if (!interpretAs<T>(parameter.value, result)) {
+      throw ConfigurationResourceNotFoundException(
+          "Could not get value for parameter " +
+          printCompletePath(ConfigurationPath(name, false)) +
+          ": parameter value \"" + parameter.value +
+          "\" could not be interpreted as a(n) " + getTypeName<T>() + ".");
+    }
+    return result;
+  }
 
   // Gets the value currently loaded to the parameter in this
   // ConcordConfiguration at the given path. Throws a
   // ConfigurationResourceNotFoundException if there is no parameter at the
-  // given path or if the requested parameter does not have a value loaded.
-  std::string getValue(const ConfigurationPath& path) const;
+  // given path, if the requested parameter does not have a value loaded, or if
+  // the loaded value cannot be interpreted as the requested type. Note this
+  // function relies on template specialization for type conversions, so not all
+  // types are supported; see the comments for class ConcordConfigruation for a
+  // list of currently supported types.
+  template <typename T>
+  T getValue(const ConfigurationPath& path) const {
+    if (!contains(path)) {
+      throw ConfigurationResourceNotFoundException(
+          "Could not get value for parameter " + printCompletePath(path) +
+          ": parameter not found.");
+    }
+    const ConcordConfiguration* containingScope = this;
+    if (path.isScope && path.subpath) {
+      containingScope = &(subscope(path.trimLeaf()));
+    }
+    const ConfigurationParameter& parameter = containingScope->getParameter(
+        path.getLeaf().name, "Could not get value for parameter ");
+    if (!parameter.initialized) {
+      throw ConfigurationResourceNotFoundException(
+          "Could not get value for parameter " + printCompletePath(path) +
+          ": parameter is uninitialized.");
+    }
+    T result;
+    if (!interpretAs<T>(parameter.value, result)) {
+      throw ConfigurationResourceNotFoundException(
+          "Could not get value for parameter " + printCompletePath(path) +
+          ": parameter value \"" + parameter.value +
+          "\" could not be interpreted as a(n) " + getTypeName<T>() + ".");
+    }
+    return result;
+  }
 
   // Loads a value to a parameter in this ConcordConfiguration. This function
   // will return without loading the requested value if the parameter's
@@ -1046,7 +1228,7 @@ class YAMLConfigurationInput {
 
   void loadParameter(ConcordConfiguration& config,
                      const ConfigurationPath& path, const YAML::Node& obj,
-                     std::ostream* errorOut, bool overwrite);
+                     log4cplus::Logger* errorOut, bool overwrite);
 
  public:
   // Constructor for YAMLConfigurationInput; it accepts an std::istream. It is
@@ -1073,8 +1255,8 @@ class YAMLConfigurationInput {
   // for.
   // - end: Iterator to the end of the range of ConfigurationPaths requested,
   // used to tell when iterator has finished iterating.
-  // - errorOut: If a non-null ostream pointer is provided for errorOut, then an
-  // error message will be output to that ostream in any case where
+  // - errorOut: If a non-null logger pointer is provided for errorOut, then an
+  // error message will be output to that logger in any case where
   // loadConfiguration tries to load a value from its input to config, but
   // config rejects that value as invalid. These error messages will be of the
   // format: "Cannot load value for parameter <PARAMETER NAME>: <FAILURE
@@ -1083,6 +1265,7 @@ class YAMLConfigurationInput {
   // config if true is given for the overwrite parameter.
   // Returns: true if this YAMLConfigurationInput was able to successfully parse
   // the specified YAML configuration file and false otherwise. Note
+  //  loadClusterSizeParameters(yamlInput, config, &(std::cout));
   // YAMLConfigurationInput only considers failures to consist of either (a)
   // parseInput was never called for this YAMLConfiguraitonInput or (b)
   // parseInput was exited before it returned normally due to an exception
@@ -1101,7 +1284,7 @@ class YAMLConfigurationInput {
   // rejection.
   template <class Iterator>
   bool loadConfiguration(ConcordConfiguration& config, Iterator iterator,
-                         Iterator end, std::ostream* errorOut = nullptr,
+                         Iterator end, log4cplus::Logger* errorOut = nullptr,
                          bool overwrite = true) {
     if (!success) {
       return false;
@@ -1155,7 +1338,7 @@ class YAMLConfigurationOutput {
                            Iterator end) {
     yaml.reset(YAML::Node(YAML::NodeType::Map));
     while (iterator != end) {
-      if (config.hasValue(*iterator)) {
+      if (config.hasValue<std::string>(*iterator)) {
         addParameterToYAML(config, *iterator, yaml);
       }
       ++iterator;
@@ -1164,7 +1347,157 @@ class YAMLConfigurationOutput {
   }
 };
 
+// Current auxiliary state to the main ConcordConfiguration, containing objects
+// that we would like to give the configuration ownership of for purposes of
+// memory management. At the time of this writing, this primarily consists of
+// cryptographic state.
+struct ConcordPrimaryConfigurationAuxiliaryState
+    : public ConfigurationAuxiliaryState {
+  std::unique_ptr<Cryptosystem> executionCryptosys;
+  std::unique_ptr<Cryptosystem> slowCommitCryptosys;
+  std::unique_ptr<Cryptosystem> commitCryptosys;
+  std::unique_ptr<Cryptosystem> optimisticCommitCryptosys;
+
+  std::vector<std::pair<std::string, std::string>> replicaRSAKeys;
+  std::vector<std::vector<std::pair<std::string, std::string>>>
+      clientProxyRSAKeys;
+
+  ConcordPrimaryConfigurationAuxiliaryState();
+  virtual ~ConcordPrimaryConfigurationAuxiliaryState();
+  virtual ConfigurationAuxiliaryState* clone();
+};
+
+// Builds a ConcordConfiguration object to contain the definition of the current
+// configuration we are using. This function is intended to serve as a single
+// source of truth for all places that need to know the current Concord
+// configuration format. At the time of this writing, that includes both the
+// configuration generation utility and configuration loading in Concord
+// replicas.
+//
+// This function accepts the ConcordConfiguration it will be initializing by
+// reference; it clears any existing contents of the ConcordConfiguration it is
+// given before filling it with the configuration defintion.
+//
+// If you need to add new configuration parameters or otherwise change the
+// format of our configuration files, you should add to or modify the code in
+// this function's implementation.
+void specifyConfiguration(ConcordConfiguration& config);
+
+// Additional useful functions containing encoding knowledge about the current
+// configuration.
+
+// Loads all parameters necessary to size a concord cluster to the given
+// ConcordConfiguration from the given YAMLConfigurationInput. This function
+// expects that config was initialized with specifyConfiguration; this function
+// also expects the YAMLConfigurationInput has already parsed and cached the
+// YAML for its input file, and that the. Throws a
+// ConfigurationResourceNotFoundException if values for any required cluster
+// sizing parameters cannot be found in the input or cannot be loaded to the
+// configuration.
+void loadClusterSizeParameters(YAMLConfigurationInput& input,
+                               ConcordConfiguration& config);
+
+// Instantiates the scopes within the given concord node configuration. This
+// function expects that config was initialized with specifyConfiguration. This
+// function requires that all parameters needed to compute configuration scope
+// sizes have already been loaded, which can be done with
+// loadClusterSizeParameters. Furthermore, this function expects that input has
+// already parsed and cached the YAML values for its input file. Throws a
+// ConfigurationResourceNotFoundException if any parameters required to size the
+// cluster have not had values loaded to the configuration.
+//
+// If input contains any values for parameters in scope templates, those
+// parameters will also be loaded and propogated to the created instances. We
+// choose to integrate the processes for loading values of parameters in
+// templates and intantiating the templates into a single function to facilitate
+// correctly handling cases where parameter values are given in places that mix
+// scope templates and instances (For example, if the input includes a setting
+// specific to the first client proxy on each node).
+void instantiateTemplatedConfiguration(YAMLConfigurationInput& input,
+                                       ConcordConfiguration& config);
+
+// Loads all non-generated (i.e. required and optional input) parameters from
+// the given YAMLConfigurationInput to the given ConcordConfiguration object.
+// This function expects that config was initialized with specifyConfiguration
+// and that its scopes have already been instantiated to the correct sizes for
+// this configuration (which can be done with
+// instantiateTemplatedConfiguration). Furthermore, it is expected that the
+// YAMLConfigurationInput given has already parsed its input file and cached the
+// YAML values. This function will throw a
+// ConfigurationResourceNotFoundException if any required input parameter is not
+// available in the input.
+void loadConfigurationInputParameters(YAMLConfigurationInput& input,
+                                      ConcordConfiguration& config);
+
+// Runs key generation for all RSA and threshold cryptographic keys required by
+// the Concord-BFT replicas in this Concord cluster. It should be noted that
+// this does not cause the generated keys to be loaded to the
+// ConcordConfiguration object; they are stored in the ConcordConfiguration's
+// auxiliary state. We have chosen to generate the keys in this separate step
+// rather than having the parameter generation functions the
+// ConcordConfiguration is constructed with generate them in order to simplify
+// things, given that certain pairs of keys must be generated at the same time
+// (for example, a replica's public RSA key must be generated with its private
+// key). This function expects the given ConcordConfiguration to have been
+// initialized with specifyConfiguration and to have had its scopes instantiated
+// to the correct size, which can be done with
+// instantiateTemplatedConfiguration. Furthermore, values must be loaded to the
+// configuration for all required cluster size parameters and cryptosystem
+// selection parameters. A ConfigurationResourceNotFoundException will be thrown
+// if any such parameters needed by this function are missing.
+void generateConfigurationKeys(ConcordConfiguration& config);
+
+// Validates that the given ConcordConfiguration has values for all parameters
+// that are needed in the configuration files; returns true if this is the case
+// and false otherwise. This function expects that config was initialized with
+// specifyConfiguration.
+bool hasAllParametersRequiredAtConfigurationGeneration(
+    ConcordConfiguration& config);
+
+// Uses the provided YAMLConfigurationOutput to write a configuration file for a
+// specified node. This function expects that values for all parameters that are
+// desired in the output have already been loaded; it will only output values
+// for parameters that are both initialized in config and that should be
+// included in the given replica's configuration file. Note this function may
+// throw any I/O or YAML serialization exceptions that occur while attempting
+// this operation.
+void outputConcordNodeConfiguration(ConcordConfiguration& config,
+                                    YAMLConfigurationOutput& output,
+                                    size_t node);
+
+// Loads the Concord configuration for a node (presumably the one running this
+// function) from a specified configuration file. This function expects that
+// config has been initilized with specifyConfiguration (see above); this
+// function also expects that the YAMLConfigurationInput has already parsed its
+// input file and cached the YAML values. Furthermore, this function expects
+// that the logging system has been initialized so that it can log any issues it
+// finds with the configuration. This function will throw a
+// ConfigurationResourceNotFoundException if any required configuration
+// parameters are missing from the input.
+void loadNodeConfiguration(ConcordConfiguration& config,
+                           YAMLConfigurationInput& input);
+
+// Detects which node the given config is for. This function expects that the
+// given config has been initialized with specifyConfiguration (see above) and
+// that the configuration of interest was already loaded to it. This function
+// will throw a ConfigurationResourceNotFoundException if it cannot determine
+// which node the configuration is for.
+size_t detectLocalNode(ConcordConfiguration& config);
+
+// Initializes the cryptosystems in the given ConcordConfiguration's auxiliary
+// state and load the keys contained in the configuration to them so they can be
+// used in initializing SBFT to create threshold signers and verifiers. Note
+// this function expects that config was initialized with specifyConfiguration
+// (see above) and that the entire node configuration has already been loaded
+// (this can be done with loadNodeConfiguration (see above)). This function may
+// throw a ConfigurationResourceNotFoundException if it detects that any
+// information it requires from the configuration is not available.
+void loadSBFTCryptosystems(ConcordConfiguration& config);
+
 }  // namespace config
 }  // namespace concord
+
+boost::program_options::variables_map initialize_config(
+    concord::config::ConcordConfiguration& config, int argc, char** argv);
 
 #endif  // CONFIG_CONFIGURATION_MANAGER_HPP
