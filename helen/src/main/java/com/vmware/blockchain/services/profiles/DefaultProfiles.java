@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.services.profiles;
 
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -40,11 +41,11 @@ public class DefaultProfiles {
 
     private AgreementService agreementService;
 
-    private UserRepository userRepository;
+    private UserService userService;
 
-    private OrganizationRepository organizationRepository;
+    private OrganizationService organizationService;
 
-    private ConsortiumRepository consortiumRepository;
+    private ConsortiumService consortiumService;
 
     private PasswordEncoder passwordEncoder;
 
@@ -61,9 +62,9 @@ public class DefaultProfiles {
 
     @Autowired
     public DefaultProfiles(
-            UserRepository userRepository,
-            OrganizationRepository organizationRepository,
-            ConsortiumRepository consortiumRepository,
+            UserService userService,
+            OrganizationService organizationService,
+            ConsortiumService consortiumService,
             PasswordEncoder passwordEncoder,
             BlockchainService blockchainService,
             AgreementService agreementService,
@@ -71,9 +72,9 @@ public class DefaultProfiles {
             @Value("${ConcordAuthorities}") String blockchainIpList,
             @Value("${ConcordRpcUrls}") String blockchainRpcUrls,
             @Value("${ConcordRpcCerts}") String blockchainRpcCerts) {
-        this.userRepository = userRepository;
-        this.organizationRepository = organizationRepository;
-        this.consortiumRepository = consortiumRepository;
+        this.userService = userService;
+        this.organizationService = organizationService;
+        this.consortiumService = consortiumService;
         this.passwordEncoder = passwordEncoder;
         this.blockchainService = blockchainService;
         this.agreementService = agreementService;
@@ -110,22 +111,19 @@ public class DefaultProfiles {
         logger.info("Application ready");
         String email = "admin@blockchain.local";
         String password = "Admin!23";
-        List<User> oUser = userRepository.findAll();
+        List<User> oUser = userService.list();
         if (oUser.isEmpty()) {
             logger.info("Creating Initial User");
             User u = new User();
             u.setName("ADMIN");
             u.setEmail(email);
             u.setPassword(passwordEncoder.encode(password));
-            u.setRole(Roles.get("SYSTEM_ADMIN"));
-            u.setOrganization(organization);
-            u.setConsortium(consortium);
+            u.setRoles(Collections.singletonList(Roles.get("SYSTEM_ADMIN")));
+            u.setOrganization(organization.getId());
             // Note: The order of next 5 statements is very important, The user
             // object must be saved before it can be added and saved into
             // consortium & organization objects.
-            u = userRepository.save(u);
-            organization.addUser(u);
-            consortium.addUser(u);
+            u = userService.put(u);
             logger.info("Admin user created. Username: {} Password: {}", email, password);
             return u;
         } else {
@@ -134,11 +132,11 @@ public class DefaultProfiles {
     }
 
     private Organization createOrgIfNotExist() {
-        List<Organization> oList = organizationRepository.findAll();
+        List<Organization> oList = organizationService.list();
         if (oList.isEmpty()) {
             Organization o = new Organization();
             o.setOrganizationName("ADMIN");
-            o = organizationRepository.save(o);
+            o = organizationService.put(o);
             return o;
         } else {
             return oList.get(0);
@@ -146,12 +144,13 @@ public class DefaultProfiles {
     }
 
     private Consortium createConsortiumIfNotExist() {
-        List<Consortium> cList = consortiumRepository.findAll();
+        List<Consortium> cList = consortiumService.list();
         if (cList.isEmpty()) {
             Consortium c = new Consortium();
             c.setConsortiumName("ADMIN");
             c.setConsortiumType("ADMIN");
-            c = consortiumRepository.save(c);
+            c.setOrganization(organization.getId());
+            c = consortiumService.put(c);
             return c;
         } else {
             return cList.get(0);

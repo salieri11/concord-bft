@@ -14,5 +14,6 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @EnableAutoConfiguration
 @ComponentScan(basePackages = {"com.vmware.blockchain.dao", "com.vmware.blockchain.db" })
-public class TestDaoConfig{ }
+public class TestDaoConfig {
+}
 

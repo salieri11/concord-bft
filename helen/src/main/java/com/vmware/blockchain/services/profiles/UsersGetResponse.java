@@ -4,11 +4,23 @@
 
 package com.vmware.blockchain.services.profiles;
 
-import org.json.simple.JSONObject;
+import java.util.UUID;
+
+import lombok.Builder;
+import lombok.Data;
 
 /**
- * A interface which defines the API for response generated for a GET request in User management API.
+ * A data object for response generated for a GET request in User management API.
  */
-public interface UsersGetResponse {
-    JSONObject toJson();
+@Data
+@Builder
+public class UsersGetResponse {
+    private UUID userId;
+    private String name;
+    private String email;
+    private long lastLogin;
+    private String role;
+    private ConsortiumData consortium;
+    private OrganizationData organization;
+    private Details details;
 }

@@ -42,13 +42,13 @@ class DefaultProfilesTest {
     private static final UUID CONSORTIUM_ID = UUID.fromString("5c7cd0e9-57ad-44af-902f-74af2f3dd8fe");
 
     @MockBean
-    ConsortiumRepository consortiumRepository;
+    ConsortiumService consortiumService;
 
     @MockBean
-    OrganizationRepository organizationRepository;
+    OrganizationService organizationService;
 
     @MockBean
-    UserRepository userRepository;
+    UserService userService;
 
     @MockBean
     PasswordEncoder passwordEncoder;
@@ -82,16 +82,16 @@ class DefaultProfilesTest {
     @BeforeEach
     void init() {
         consortium = new Consortium();
-        consortium.setConsortiumId(CONSORTIUM_ID);
+        consortium.setId(CONSORTIUM_ID);
         consortium.setConsortiumName("Consortium Test");
         consortium.setConsortiumType("Test Type");
 
         organization = new Organization();
-        organization.setOrganizationId(ORG_ID);
+        organization.setId(ORG_ID);
         organization.setOrganizationName("Test Org");
 
         blockchain = new Blockchain.BlockchainBuilder()
-                .consortium(consortium.getConsortiumId())
+                .consortium(consortium.getId())
                 .ipList("1,2,3,4 ")
                 .rpcUrls("a=1,b=2,c=3,d=4")
                 .rpcCerts("a=c1,b=c2,c=c3,d=c4").build();
@@ -99,56 +99,54 @@ class DefaultProfilesTest {
 
         // our test user
         testUser = new User();
-        testUser.setUserId(USER_ID);
+        testUser.setId(USER_ID);
         testUser.setEmail("user@test.com");
         testUser.setFirstName("Test");
         testUser.setLastName("User");
         testUser.setPassword("1234");
-        testUser.setConsortium(consortium);
-        testUser.setOrganization(organization);
-        testUser.setRole(Roles.SYSTEM_ADMIN);
+        testUser.setRoles(Collections.singletonList(Roles.SYSTEM_ADMIN));
 
-        profiles = new DefaultProfiles(userRepository, organizationRepository, consortiumRepository, passwordEncoder,
+        profiles = new DefaultProfiles(userService, organizationService, consortiumService, passwordEncoder,
                                        blockchainService, agreementService, serviceContext, ipList, rpcUrls, rpcCerts);
 
         when(passwordEncoder.encode(anyString())).then(a -> a.getArguments().toString());
     }
 
     private void initProfilesExist() {
-        when(consortiumRepository.findAll()).thenReturn(Arrays.asList(consortium));
-        when(organizationRepository.findAll()).thenReturn(Arrays.asList(organization));
+        when(consortiumService.list()).thenReturn(Arrays.asList(consortium));
+        when(organizationService.list()).thenReturn(Arrays.asList(organization));
         when(blockchainService.list()).thenReturn(Arrays.asList(blockchain));
-        when(userRepository.findAll()).thenReturn(Arrays.asList(testUser));
+        when(userService.list()).thenReturn(Arrays.asList(testUser));
         profiles.initialize();
     }
 
     private void initProfilesEmpty() {
-        when(consortiumRepository.findAll()).thenReturn(Collections.emptyList());
-        when(consortiumRepository.save(any(Consortium.class))).then(in -> {
+        when(consortiumService.list()).thenReturn(Collections.emptyList());
+        when(consortiumService.put(any(Consortium.class))).then(in -> {
             Consortium c = in.getArgument(0);
-            c.setConsortiumId(CONSORTIUM_ID);
+            c.setId(CONSORTIUM_ID);
             return c;
         });
-        when(organizationRepository.findAll()).thenReturn(Collections.emptyList());
-        when(organizationRepository.save(any(Organization.class))).then(in -> {
+        when(organizationService.list()).thenReturn(Collections.emptyList());
+        when(organizationService.put(any(Organization.class))).then(in -> {
             Organization o = in.getArgument(0);
-            o.setOrganizationId(ORG_ID);
+            o.setId(ORG_ID);
             return o;
         });
         when(blockchainService.list()).thenReturn(Collections.emptyList());
         when(blockchainService.create(any(Consortium.class), anyString(), anyString(), anyString())).then(in -> {
             Blockchain b = new Blockchain.BlockchainBuilder()
-                .consortium(((Consortium) in.getArgument(0)).getConsortiumId())
+                .consortium(((Consortium) in.getArgument(0)).getId())
                 .ipList(in.getArgument(1))
                 .rpcUrls(in.getArgument(2))
                 .rpcCerts(in.getArgument(3)).build();
             b.setId(uuid);
             return b;
         });
-        when(userRepository.findAll()).thenReturn(Collections.emptyList());
-        when(userRepository.save(any(User.class))).thenAnswer(in -> {
+        when(userService.list()).thenReturn(Collections.emptyList());
+        when(userService.put(any(User.class))).thenAnswer(in -> {
             User u = in.getArgument(0);
-            u.setUserId(USER_ID);
+            u.setId(USER_ID);
             return u;
         });
         profiles.initialize();
@@ -168,15 +166,15 @@ class DefaultProfilesTest {
                 .put("c", "c3")
                 .put("d", "c4").build();
         List<String> ipList = new ImmutableList.Builder<String>().add("1", "2", "3", "4").build();
-        Assertions.assertEquals(organization, profiles.getOrganization());
+        Assertions.assertEquals(organization.getId(), profiles.getOrganization().getId());
         Assertions.assertEquals("Test Org", profiles.getOrganization().getOrganizationName());
-        Assertions.assertEquals(consortium, profiles.getConsortium());
+        Assertions.assertEquals(consortium.getId(), profiles.getConsortium().getId());
         Assertions.assertEquals("Consortium Test", profiles.getConsortium().getConsortiumName());
-        Assertions.assertEquals(blockchain, profiles.getBlockchain());
+        Assertions.assertEquals(blockchain.getId(), profiles.getBlockchain().getId());
         Assertions.assertEquals(ipList, profiles.getBlockchain().getIpAsList());
         Assertions.assertEquals(urlMap, profiles.getBlockchain().getUrlsAsMap());
         Assertions.assertEquals(certMap, profiles.getBlockchain().getCertsAsMap());
-        Assertions.assertEquals(testUser, profiles.getUser());
+        Assertions.assertEquals(testUser.getId(), profiles.getUser().getId());
         Assertions.assertEquals("user@test.com", profiles.getUser().getEmail());
     }
 
@@ -191,16 +189,16 @@ class DefaultProfilesTest {
                 .put("replica3", "https://127.0.0.1:8548/").build();
         Map<String, String> certSet = new ImmutableMap.Builder<String, String>()
                 .put("replica0", "/config/replica0-cacert.pem").build();
-        Assertions.assertEquals(organization, profiles.getOrganization());
+        Assertions.assertEquals(organization.getId(), profiles.getOrganization().getId());
         Assertions.assertEquals("ADMIN", profiles.getOrganization().getOrganizationName());
-        Assertions.assertEquals(consortium, profiles.getConsortium());
+        Assertions.assertEquals(consortium.getId(), profiles.getConsortium().getId());
         Assertions.assertEquals("ADMIN", profiles.getConsortium().getConsortiumName());
-        Assertions.assertEquals(blockchain.getConsortium(), profiles.getBlockchain().getConsortium());
+        Assertions.assertEquals(blockchain.getId(), profiles.getBlockchain().getId());
         Assertions.assertEquals(urlMap, profiles.getBlockchain().getUrlsAsMap());
         Assertions.assertEquals(certSet, profiles.getBlockchain().getCertsAsMap());
         Assertions.assertEquals("localhost:5458,localhost:5459,localhost:5460,localhost:5461",
                 profiles.getBlockchain().getIpList());
-        Assertions.assertEquals(testUser, profiles.getUser());
+        Assertions.assertEquals(testUser.getId(), profiles.getUser().getId());
         Assertions.assertEquals("admin@blockchain.local", profiles.getUser().getEmail());
     }
 

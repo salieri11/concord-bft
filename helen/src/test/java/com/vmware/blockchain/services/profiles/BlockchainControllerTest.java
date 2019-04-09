@@ -13,7 +13,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Assertions;
@@ -73,10 +72,10 @@ public class BlockchainControllerTest {
     private MockMvc mockMvc;
 
     @MockBean
-    private UserRepository userRepository;
+    private UserService userService;
 
     @MockBean
-    private ProfilesRegistryManager prm;
+    private ProfilesService prm;
 
     @MockBean
     private PasswordEncoder passwordEncoder;
@@ -91,7 +90,7 @@ public class BlockchainControllerTest {
     private ConcordConnectionPool connectionPool;
 
     @MockBean
-    private KeystoreRepository keystoreRepository;
+    private KeystoreService keystoreService;
 
     @MockBean
     private DefaultProfiles profiles;
@@ -100,7 +99,7 @@ public class BlockchainControllerTest {
     private BlockchainService blockchainService;
 
     @MockBean
-    private ConsortiumRepository consortiumRepository;
+    private ConsortiumService consortiumService;
 
     @MockBean
     AuthHelper authHelper;
@@ -124,25 +123,25 @@ public class BlockchainControllerTest {
      */
     @BeforeEach
     public void init() {
-        user = SecurityTestUtils.createMockUser();
-        consortium = user.getConsortium();
+        user = SecurityTestUtils.getUser();
+        consortium = SecurityTestUtils.getConsortium();
         Consortium c2 = new Consortium();
-        c2.setConsortiumId(C2_ID);
+        c2.setId(C2_ID);
         Consortium c3 = new Consortium();
-        c3.setConsortiumId(C3_ID);
-        UUID c1Id = consortium.getConsortiumId();
-        when(userRepository.findUserByEmail(user.getEmail())).thenReturn(Optional.of(user));
-        when(consortiumRepository.findById(c1Id)).thenReturn(Optional.of(consortium));
-        when(consortiumRepository.findById(C2_ID)).thenReturn(Optional.of(c2));
-        when(consortiumRepository.findById(C3_ID)).thenReturn(Optional.of(c3));
+        c3.setId(C3_ID);
+        UUID c1Id = consortium.getId();
+        when(userService.getByEmail(user.getEmail())).thenReturn(user);
+        when(consortiumService.get(c1Id)).thenReturn(consortium);
+        when(consortiumService.get(C2_ID)).thenReturn(c2);
+        when(consortiumService.get(C3_ID)).thenReturn(c3);
         Blockchain b = new Blockchain.BlockchainBuilder()
-                .consortium(consortium.getConsortiumId())
+                .consortium(consortium.getId())
                 .ipList("1,2,3")
                 .rpcUrls("https://one.https://two,https://three")
                 .rpcCerts("")
                 .build();
         Blockchain b2 = new Blockchain.BlockchainBuilder()
-                .consortium(c2.getConsortiumId())
+                .consortium(c2.getId())
                 .ipList("4,5,6")
                 .rpcUrls("")
                 .rpcCerts("")
@@ -157,7 +156,7 @@ public class BlockchainControllerTest {
         when(blockchainService.create(any(Consortium.class), anyString(), anyString(), anyString())).thenAnswer(
             i -> {
                 Blockchain bn = new Blockchain.BlockchainBuilder()
-                            .consortium(((Consortium) (i.getArgument(0))).getConsortiumId()).ipList(i.getArgument(1))
+                            .consortium(((Consortium) (i.getArgument(0))).getId()).ipList(i.getArgument(1))
                             .rpcUrls(i.getArgument(2)).rpcCerts(i.getArgument(3)).build();
                 bn.setId(BC_NEW);
                 return bn;
@@ -183,7 +182,7 @@ public class BlockchainControllerTest {
 
     @Test
     void getBlockchainUserList() throws Exception {
-        UUID cid = consortium.getConsortiumId();
+        UUID cid = consortium.getId();
         when(authHelper.getConsortiumId()).thenReturn(cid);
         MvcResult result = mockMvc.perform(get("/api/blockchains/")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
@@ -274,7 +273,7 @@ public class BlockchainControllerTest {
 
     @Test
     void postOperAccessNoCon() throws Exception {
-        when(consortiumRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+        when(consortiumService.get(any(UUID.class))).thenThrow(new NotFoundException("not found"));
         when(authHelper.hasAnyAuthority(Roles.operatorRoles())).thenReturn(true);
         mockMvc.perform(post("/api/blockchains")
                 .contentType(MediaType.APPLICATION_JSON)

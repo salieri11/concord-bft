@@ -18,7 +18,7 @@ import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.services.contracts.ContractRegistryManager;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
-import com.vmware.blockchain.services.profiles.ProfilesRegistryManager;
+import com.vmware.blockchain.services.profiles.ProfilesService;
 import com.vmware.concord.Concord;
 import com.vmware.concord.Concord.EthRequest;
 import com.vmware.concord.Concord.EthRequest.EthMethod;
@@ -37,14 +37,14 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
     private ContractRegistryManager registryManager;
     private ConnectionPoolManager connectionPoolManager;
     private DefaultProfiles defaultProfiles;
-    private ProfilesRegistryManager profilesRegistryManager;
+    private ProfilesService profilesRegistryManager;
     private Optional<UUID> blockchain;
 
     /**
      * Send transaction constructor.
      */
     public EthSendTxHandler(ConnectionPoolManager connectionPoolManager, DefaultProfiles defaultProfiles,
-            ProfilesRegistryManager profilesRegistryManager,
+            ProfilesService profilesRegistryManager,
             Optional<UUID> blockchain, ContractRegistryManager registryManager, boolean isInternalContract) {
         // If isInternalContract is true, the handler is processing a contract created from the Helen UI.
         this.isInternalContract = isInternalContract;

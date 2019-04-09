@@ -6,7 +6,6 @@ package com.vmware.blockchain.services.profiles;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -74,14 +73,15 @@ public class BlockchainController {
     }
 
     private BlockchainService manager;
-    private ConsortiumRepository cnRepo;
+    private ConsortiumService consortiumService;
     private AuthHelper authHelper;
 
     @Autowired
-    public BlockchainController(BlockchainService manager, ConsortiumRepository cnRepo,
+    public BlockchainController(BlockchainService manager,
+            ConsortiumService consortiumService,
             AuthHelper authHelper) {
         this.manager = manager;
-        this.cnRepo = cnRepo;
+        this.consortiumService = consortiumService;
         this.authHelper = authHelper;
     }
 
@@ -96,9 +96,11 @@ public class BlockchainController {
             chains = manager.list();
         } else {
             // Otherwise, we can only see our consortium.
-            Optional<Consortium> c = cnRepo.findById(authHelper.getConsortiumId());
-            if (c.isPresent()) {
-                chains = manager.listByConsortium(c.get());
+            try {
+                Consortium c = consortiumService.get(authHelper.getConsortiumId());
+                chains = manager.listByConsortium(c);
+            } catch (NotFoundException e) {
+                // Just ignore
             }
         }
         List<BlockchainResponse> idList = chains.stream().map(b -> new BlockchainResponse(b.getId(),
@@ -129,11 +131,8 @@ public class BlockchainController {
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles())) {
             throw new ForbiddenException("Action Forbidden");
         }
-        Optional<Consortium> oConsortium = cnRepo.findById(body.consortiumId);
-        if (oConsortium.isEmpty()) {
-            throw new NotFoundException("Consortium {0} does not exist", body.consortiumId);
-        }
-        Blockchain b = manager.create(oConsortium.get(), body.getIpList(), body.getRpcUrls(), body.getRpcCerts());
+        Consortium consortium = consortiumService.get(body.consortiumId);
+        Blockchain b = manager.create(consortium, body.getIpList(), body.getRpcUrls(), body.getRpcCerts());
         return new ResponseEntity<>(new BlockchainResponse(b), HttpStatus.OK);
     }
 

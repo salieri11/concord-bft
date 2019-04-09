@@ -12,7 +12,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.dao.GenericDao;
@@ -21,7 +21,7 @@ import com.vmware.blockchain.dao.GenericDao;
 /**
  * Manage all persistence for Blockchain entities.
  */
-@Component
+@Service
 public class BlockchainService {
     private static final Logger logger = LogManager.getLogger(Blockchain.class);
 
@@ -51,7 +51,7 @@ public class BlockchainService {
      */
     public Blockchain create(Consortium consortium, String ipList, String rpcUrls, String rpcCerts) {
         Blockchain b = new Blockchain.BlockchainBuilder()
-                .consortium(consortium.getConsortiumId())
+                .consortium(consortium.getId())
                 .ipList(cleanupIpString(ipList))
                 .rpcUrls(cleanupIpString(rpcUrls))
                 .rpcCerts(cleanupIpString(rpcCerts))
@@ -82,7 +82,7 @@ public class BlockchainService {
     }
 
     public List<Blockchain> listByConsortium(Consortium consortium) {
-        return genericDao.getByParentId(consortium.getConsortiumId(), Blockchain.class);
+        return genericDao.getByParentId(consortium.getId(), Blockchain.class);
     }
 
     public Blockchain get(UUID id) {

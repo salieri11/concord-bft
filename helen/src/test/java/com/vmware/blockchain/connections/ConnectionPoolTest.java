@@ -56,11 +56,11 @@ public class ConnectionPoolTest {
     @BeforeEach
     void setup() throws IOException {
         MockitoAnnotations.initMocks(this);
-        when(consortium.getConsortiumId()).thenReturn(UUID.fromString("277858b5-b962-4aa5-850e-c992c84cfdcb"));
+        when(consortium.getId()).thenReturn(UUID.fromString("277858b5-b962-4aa5-850e-c992c84cfdcb"));
         when(consortium.getConsortiumName()).thenReturn("Test Name");
 
         blockchain = Blockchain.builder()
-                .consortium(consortium.getConsortiumId())
+                .consortium(consortium.getId())
                 .ipList("ip1:5458,ip2:5458,ip3:5458,ip4:5458")
                 .rpcUrls("a=ip1:5458,b=ip2:5458,c=ip3:5458,d=ip4:5458")
                 .rpcCerts("a=thisisacert,b=thisisbcert,c=thisisccert,d=thisisdcert")

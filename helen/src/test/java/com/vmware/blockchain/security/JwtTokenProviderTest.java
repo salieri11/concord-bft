@@ -5,6 +5,7 @@
 package com.vmware.blockchain.security;
 
 import static com.vmware.blockchain.security.SecurityTestUtils.CONSORTIUM_ID;
+import static org.mockito.Mockito.when;
 
 import java.util.Base64;
 
@@ -22,8 +23,9 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.vmware.blockchain.services.profiles.BlockchainService;
-import com.vmware.blockchain.services.profiles.ConsortiumRepository;
+import com.vmware.blockchain.services.profiles.ConsortiumService;
 import com.vmware.blockchain.services.profiles.User;
+import com.vmware.blockchain.services.profiles.UserService;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
@@ -45,7 +47,10 @@ public class JwtTokenProviderTest {
     private HelenUserDetailsService myUserDetails;
 
     @MockBean
-    private ConsortiumRepository consortiumRepo;
+    private UserService userService;
+
+    @MockBean
+    private ConsortiumService consortiumService;
 
     @MockBean
     private BlockchainService blockService;
@@ -62,7 +67,8 @@ public class JwtTokenProviderTest {
     void init() {
         // consortium and organization
         MockitoAnnotations.initMocks(this);
-        user = SecurityTestUtils.createMockUser();
+        user = SecurityTestUtils.getUser();
+        when(userService.getDefaultConsortium(user)).thenReturn(SecurityTestUtils.getConsortium());
         // Get the random secret key out of the token provider
         secretKey = (String) ReflectionTestUtils.getField(jwtTokenProvider, "secretKey");
     }
