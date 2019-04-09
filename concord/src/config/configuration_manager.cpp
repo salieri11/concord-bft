@@ -1751,5 +1751,903 @@ YAMLConfigurationOutput::YAMLConfigurationOutput(std::ostream& output)
 
 YAMLConfigurationOutput::~YAMLConfigurationOutput() {}
 
+// Helper functions to the validation, generation, and sizing functions to
+// follow.
+
+static ConcordConfiguration::ParameterStatus validateNumberOfPrincipalsInBounds(
+    uint16_t fVal, uint16_t cVal, uint16_t clientProxiesPerReplica,
+    std::string* failureMessage) {
+  // Conditions which should have been validated before this function was
+  // called.
+  assert((fVal > 0) && (clientProxiesPerReplica > 0));
+
+  // The principals consist of (3F + 2C + 1) SBFT replicas plus
+  // client_proxies_per_replica client proxies for each of these replicas.
+  uint64_t numPrincipals = 3 * ((uint64_t)fVal) + 2 * ((uint64_t)cVal) + 1;
+  numPrincipals =
+      numPrincipals + ((uint64_t)clientProxiesPerReplica) * numPrincipals;
+
+  if (numPrincipals > UINT16_MAX) {
+    if (failureMessage) {
+      *failureMessage =
+          "Invalid combination of values for f_val (" + std::to_string(fVal) +
+          "), c_val (" + std::to_string(cVal) +
+          "), and client_proxies_per_replica (" +
+          std::to_string(clientProxiesPerReplica) +
+          "): these parameters imply too many (" +
+          std::to_string(numPrincipals) + ") SBFT principals; a maximum of " +
+          std::to_string(UINT16_MAX) + " principals are currently supported.";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static std::pair<std::string, std::string> parseCryptosystemSelection(
+    std::string selection) {
+  std::pair<std::string, std::string> parseRes({"", ""});
+  boost::trim(selection);
+  size_t spaceLoc = selection.find_first_of(" ");
+  parseRes.first = selection.substr(0, spaceLoc);
+  if (spaceLoc < selection.length()) {
+    parseRes.second = selection.substr(spaceLoc);
+  }
+  boost::trim(parseRes.first);
+  boost::trim(parseRes.second);
+  return parseRes;
+}
+
+// Declaration and implementation of various functions used by
+// specifyConfiguration to specify how to size scopes and validatate and
+// generate parameters. Pointers to these functions are given to the
+// ConcordConfiguration object specifyConfiguration builds so that the
+// configuration system can call them at the appropriate time (for example,
+// parameter validators are called automatically when parameters are loaded).
+
+// Computes the total number of Concord nodes. Note we currently assume there is
+// one Concord node per SBFT replica, and the SBFT algorithm specifies that the
+// cluster size in terms of its F and C parameters is (3F + 2C + 1) replicas.
+static ConcordConfiguration::ParameterStatus sizeNodes(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    size_t* output, void* state) {
+  assert(output);
+
+  if (!(config.hasValue<uint16_t>("f_val") &&
+        config.hasValue<uint16_t>("c_val"))) {
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  if (!((config.validate("f_val") ==
+         ConcordConfiguration::ParameterStatus::VALID) &&
+        (config.validate("c_val") ==
+         ConcordConfiguration::ParameterStatus::VALID))) {
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+
+  uint16_t f = config.getValue<uint16_t>("f_val");
+  uint16_t c = config.getValue<uint16_t>("c_val");
+  size_t numNodes = 3 * (size_t)f + 2 * (size_t)c + 1;
+  if (numNodes > (size_t)UINT16_MAX) {
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  *output = numNodes;
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+// Computes the number of SBFT replicas per Concord node. Note that, at the time
+// of this writing, we assume there is exactly one SBFT replica per Concord
+// node.
+static ConcordConfiguration::ParameterStatus sizeReplicas(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    size_t* output, void* state) {
+  assert(output);
+
+  *output = 1;
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus sizeClientProxies(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    size_t* output, void* state) {
+  assert(output);
+
+  if (!config.hasValue<uint16_t>("client_proxies_per_replica")) {
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  if (config.validate("client_proxies_per_replica") !=
+      ConcordConfiguration::ParameterStatus::VALID) {
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+
+  *output = config.getValue<uint16_t>("client_proxies_per_replica");
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static const std::pair<unsigned long long, unsigned long long>
+    kPositiveIntLimits({1, INT_MAX});
+static const std::pair<unsigned long long, unsigned long long>
+    kPositiveUInt16Limits({1, UINT16_MAX});
+static const std::pair<unsigned long long, unsigned long long>
+    kPositiveUInt64Limits({1, UINT64_MAX});
+static const std::pair<unsigned long long, unsigned long long>
+    kPositiveULongLongLimits({1, ULLONG_MAX});
+static const std::pair<unsigned long long, unsigned long long> kUInt16Limits(
+    {0, UINT16_MAX});
+
+static ConcordConfiguration::ParameterStatus validateUInt(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  assert(state);
+  const std::pair<unsigned long long, unsigned long long>* limits =
+      static_cast<std::pair<unsigned long long, unsigned long long>*>(state);
+  assert(limits->first <= limits->second);
+
+  unsigned long long intVal;
+  try {
+    intVal = std::stoull(value);
+  } catch (std::invalid_argument& e) {
+    if (failureMessage) {
+      *failureMessage = "Invalid value for parameter " + path.toString() +
+                        ": \"" + value + "\". An integer is required.";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  } catch (std::out_of_range& e) {
+    if (failureMessage) {
+      *failureMessage =
+          "Invalid value for parameter " + path.toString() + ": \"" + value +
+          "\". An integer in the range (" + std::to_string(limits->first) +
+          ", " + std::to_string(limits->second) + "), inclusive, is required.";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  if ((intVal < limits->first) || (intVal > limits->second)) {
+    if (failureMessage) {
+      *failureMessage =
+          "Invalid value for parameter " + path.toString() + ": \"" + value +
+          "\". An integer in the range (" + std::to_string(limits->first) +
+          ", " + std::to_string(limits->second) + "), inclusive, is required.";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus validateClientProxiesPerReplica(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  ConcordConfiguration::ParameterStatus res = validateUInt(
+      value, config, path, failureMessage,
+      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
+  if (res != ConcordConfiguration::ParameterStatus::VALID) {
+    return res;
+  } else {
+    if (!config.hasValue<uint16_t>("f_val") ||
+        !config.hasValue<uint16_t>("c_val")) {
+      if (failureMessage) {
+        *failureMessage =
+            "Cannot fully validate client_proxies_per_replica: value is in "
+            "range, but f_val and c_val must both also be known to veriy that "
+            "the total number of SBFT principals needed is in range.";
+      }
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    uint16_t clientProxiesPerReplica = (uint16_t)(std::stoull(value));
+    return validateNumberOfPrincipalsInBounds(
+        config.getValue<uint16_t>("f_val"), config.getValue<uint16_t>("c_val"),
+        clientProxiesPerReplica, failureMessage);
+  }
+}
+
+static ConcordConfiguration::ParameterStatus validateCryptosys(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  std::pair<std::string, std::string> cryptoSelection =
+      parseCryptosystemSelection(value);
+  if (!Cryptosystem::isValidCryptosystemSelection(cryptoSelection.first,
+                                                  cryptoSelection.second)) {
+    if (failureMessage) {
+      *failureMessage =
+          "Invalid cryptosystem selection for " + path.toString() + ": \"" +
+          value +
+          "\" is not a recognized and supported selection of cryptosystem.";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+
+  if (!config.hasValue<uint16_t>("f_val") ||
+      !config.hasValue<uint16_t>("c_val")) {
+    if (failureMessage) {
+      *failureMessage = "Cannot fully validate cryptosystem selection for " +
+                        path.toString() +
+                        ": f_val and c_val must be known to determine the "
+                        "threshold and total number of signers.";
+    }
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+
+  uint16_t fVal = config.getValue<uint16_t>("f_val");
+  uint16_t cVal = config.getValue<uint16_t>("c_val");
+  uint64_t unvalidatedNumSigners =
+      3 * ((uint64_t)fVal) + 2 * ((uint64_t)cVal) + 1;
+  if (unvalidatedNumSigners > UINT16_MAX) {
+    if (failureMessage) {
+      *failureMessage =
+          "Cryptosystem selection for " + path.toString() +
+          " cannot be valid: f_val(" + std::to_string(fVal) + ") and c_val(" +
+          std::to_string(cVal) + ") imply the number of SBFT replicas(" +
+          std::to_string(unvalidatedNumSigners) +
+          "), and by extension the number of threshold signers for this "
+          "cryptosystem, exceeds the currently supported limit of " +
+          std::to_string(UINT16_MAX) + ".";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+
+  uint16_t numSigners = (uint16_t)unvalidatedNumSigners;
+  uint16_t threshold;
+
+  // Compute the threshold, which is different for each of the four
+  // cryptosystems we are currently using. The code specific to each
+  // cryptosystem here will hopefully be factored out into its own function in a
+  // futre round of code cleanup in which we intend to replace
+  // validator/generator/scopesizer function pointers with objects.
+  std::string sysName = path.getLeaf().name;
+  if (sysName == "execution_cryptosys") {
+    threshold = fVal + 1;
+  } else if (sysName == "slow_commit_cryptosys") {
+    threshold = 2 * fVal + cVal + 1;
+  } else if (sysName == "commit_cryptosys") {
+    threshold = 3 * fVal + cVal + 1;
+  } else if (sysName == "optimistic_commit_cryptosys") {
+    threshold = 3 * fVal + 2 * cVal + 1;
+  } else {
+    if (failureMessage) {
+      *failureMessage =
+          "Cannot determine validity of cryptosystem selection for " +
+          path.toString() +
+          ": The validator lacks knowledge of the correct threshold for this "
+          "cryptosystem.";
+    }
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+
+  if (!Cryptosystem::isValidCryptosystemSelection(cryptoSelection.first,
+                                                  cryptoSelection.second,
+                                                  numSigners, threshold)) {
+    if (failureMessage) {
+      *failureMessage = "Invalid cryptosystem selection for " +
+                        path.toString() + ": cryptosytem selection \"" + value +
+                        "\" is not supported with the required threshold(" +
+                        std::to_string(threshold) + ") and number of signers(" +
+                        std::to_string(numSigners) + ") for this system.";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus validatePublicKey(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  assert(state);
+  std::unique_ptr<Cryptosystem>* cryptosystemPointer =
+      static_cast<std::unique_ptr<Cryptosystem>*>(state);
+
+  if (!(*cryptosystemPointer)) {
+    if (failureMessage) {
+      *failureMessage = "Cannot assess validity of threshold public key " +
+                        path.toString() +
+                        ": corresponding cryptosystem is not initialized.";
+    }
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  if (!((*cryptosystemPointer)->isValidPublicKey(value))) {
+    if (failureMessage) {
+      *failureMessage = "Invalid threshold public key for " + path.toString() +
+                        ": \"" + value + "\".";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus getThresholdPublicKey(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    std::string* output, void* state) {
+  assert(state);
+  std::unique_ptr<Cryptosystem>* cryptosystemPointer =
+      static_cast<std::unique_ptr<Cryptosystem>*>(state);
+
+  if (!(*cryptosystemPointer)) {
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  try {
+    *output = (*cryptosystemPointer)->getSystemPublicKey();
+    return ConcordConfiguration::ParameterStatus::VALID;
+  } catch (UninitializedCryptosystemException& e) {
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+}
+
+static ConcordConfiguration::ParameterStatus validateCVal(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  ConcordConfiguration::ParameterStatus res = validateUInt(
+      value, config, path, failureMessage,
+      const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
+  if (res != ConcordConfiguration::ParameterStatus::VALID) {
+    return res;
+  } else {
+    if (!config.hasValue<uint16_t>("f_val") ||
+        !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+      if (failureMessage) {
+        *failureMessage =
+            "Cannot fully validate c_val: value is in range, but f_val and "
+            "client_proxies_per_replica must both also be known to veriy that "
+            "the total number of SBFT principals needed is in range.";
+      }
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    uint16_t cVal = (uint16_t)(std::stoull(value));
+    return validateNumberOfPrincipalsInBounds(
+        config.getValue<uint16_t>("f_val"), cVal,
+        config.getValue<uint16_t>("client_proxies_per_replica"),
+        failureMessage);
+  }
+}
+
+static ConcordConfiguration::ParameterStatus validateFVal(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  ConcordConfiguration::ParameterStatus res = validateUInt(
+      value, config, path, failureMessage,
+      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
+  if (res != ConcordConfiguration::ParameterStatus::VALID) {
+    return res;
+  }
+  if (!config.hasValue<uint16_t>("f_val") ||
+      !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+    if (failureMessage) {
+      *failureMessage =
+          "Cannot fully validate f_val: value is in range, but c_val and "
+          "client_proxies_per_replica must both also be known to veriy that "
+          "the total number of SBFT principals needed is in range.";
+    }
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  uint16_t fVal = (uint16_t)(std::stoull(value));
+  return validateNumberOfPrincipalsInBounds(
+      fVal, config.getValue<uint16_t>("c_val"),
+      config.getValue<uint16_t>("client_proxies_per_replica"), failureMessage);
+}
+
+static ConcordConfiguration::ParameterStatus validateNumClientProxies(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  ConcordConfiguration::ParameterStatus res = validateUInt(
+      value, config, path, failureMessage,
+      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
+  if (res != ConcordConfiguration::ParameterStatus::VALID) {
+    return res;
+  }
+  if (!config.hasValue<uint16_t>("f_val") ||
+      !config.hasValue<uint16_t>("c_val") ||
+      !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+    if (failureMessage) {
+      *failureMessage =
+          "Cannot validate num_client_proxies: values for f_val, c_val and "
+          "client_proxies_per_replica are required to determine expected value "
+          "of num_client_proxies.";
+    }
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  uint16_t expectedNumClientProxies =
+      config.getValue<uint16_t>("client_proxies_per_replica") *
+      (3 * config.getValue<uint16_t>("f_val") +
+       2 * config.getValue<uint16_t>("c_val") + 1);
+  if ((uint16_t)(std::stoull(value)) != expectedNumClientProxies) {
+    if (failureMessage) {
+      *failureMessage =
+          "Invalid valud for num_client_proxies: " + value +
+          "; num_client_proxies must be equal to client_proxies_per_replica * "
+          "(3 * f_val + 2 * c_val + 1).";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus computeNumClientProxies(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    std::string* output, void* state) {
+  if (!config.hasValue<uint16_t>("f_val") ||
+      !config.hasValue<uint16_t>("c_val") ||
+      !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  *output =
+      std::to_string(config.getValue<uint16_t>("client_proxies_per_replica") *
+                     (3 * config.getValue<uint16_t>("f_val") +
+                      2 * config.getValue<uint16_t>("c_val") + 1));
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus validateNumPrincipals(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  ConcordConfiguration::ParameterStatus res = validateUInt(
+      value, config, path, failureMessage,
+      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
+  if (res != ConcordConfiguration::ParameterStatus::VALID) {
+    return res;
+  }
+  if (!config.hasValue<uint16_t>("f_val") ||
+      !config.hasValue<uint16_t>("c_val") ||
+      !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+    if (failureMessage) {
+      *failureMessage =
+          "Cannot validate num_principals: values for f_val, c_val and "
+          "client_proxies_per_replica are required to determine expected value "
+          "of num_principals.";
+    }
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  uint16_t expectedNumPrincipals =
+      (config.getValue<uint16_t>("client_proxies_per_replica") + 1) *
+      (3 * config.getValue<uint16_t>("f_val") +
+       2 * config.getValue<uint16_t>("c_val") + 1);
+  if ((uint16_t)(std::stoull(value)) != expectedNumPrincipals) {
+    if (failureMessage) {
+      *failureMessage =
+          "Invalid value for num_principals: " + value +
+          "; num_principals must be equal to (1 + client_proxies_per_replica) "
+          "* (3 * f_val + 2 * c_val + 1).";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus computeNumPrincipals(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    std::string* output, void* state) {
+  if (!config.hasValue<uint16_t>("f_val") ||
+      !config.hasValue<uint16_t>("c_val") ||
+      !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  *output = std::to_string(
+      (1 + config.getValue<uint16_t>("client_proxies_per_replica")) *
+      (3 * config.getValue<uint16_t>("f_val") +
+       2 * config.getValue<uint16_t>("c_val") + 1));
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus validateNumReplicas(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  ConcordConfiguration::ParameterStatus res = validateUInt(
+      value, config, path, failureMessage,
+      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
+  if (res != ConcordConfiguration::ParameterStatus::VALID) {
+    return res;
+  }
+  if (!config.hasValue<uint16_t>("f_val") ||
+      !config.hasValue<uint16_t>("c_val") ||
+      !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+    if (failureMessage) {
+      *failureMessage =
+          "Cannot validate num_replicas: values for f_val, c_val and "
+          "client_proxies_per_replica are required to determine expected value "
+          "of num_replicas.";
+    }
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  uint16_t expectedNumReplicas = 3 * config.getValue<uint16_t>("f_val") +
+                                 2 * config.getValue<uint16_t>("c_val") + 1;
+  if ((uint16_t)(std::stoull(value)) != expectedNumReplicas) {
+    if (failureMessage) {
+      *failureMessage =
+          "Invalid value for num_replicas: " + value +
+          "; num_replicas must be equal to 3 * f_val + 2 * c_val + 1.";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus computeNumReplicas(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    std::string* output, void* state) {
+  if (!config.hasValue<uint16_t>("f_val") ||
+      !config.hasValue<uint16_t>("c_val") ||
+      !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  *output = std::to_string(3 * config.getValue<uint16_t>("f_val") +
+                           2 * config.getValue<uint16_t>("c_val") + 1);
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus validatePositiveReplicaInt(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  const std::pair<unsigned long long, unsigned long long>* limits;
+  if (config.getConfigurationStateLabel() == "concord_node") {
+    limits = &kPositiveIntLimits;
+  } else {
+    limits = &kPositiveULongLongLimits;
+  }
+  return validateUInt(value, config, path, failureMessage,
+                      const_cast<void*>(reinterpret_cast<const void*>(limits)));
+}
+
+static ConcordConfiguration::ParameterStatus validateDatabaseImplementation(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  if (!((value == "memory") || (value == "rocksdb"))) {
+    if (failureMessage) {
+      *failureMessage =
+          "Unrecognized database implementation: \"" + value + "\".";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus validatePortNumber(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  return validateUInt(
+      value, config, path, failureMessage,
+      const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
+}
+
+static ConcordConfiguration::ParameterStatus validatePrivateKey(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  assert(state);
+  std::unique_ptr<Cryptosystem>* cryptosystemPointer =
+      static_cast<std::unique_ptr<Cryptosystem>*>(state);
+
+  if (!(*cryptosystemPointer)) {
+    if (failureMessage) {
+      *failureMessage = "Cannot assess validity of threshold private key " +
+                        path.toString() +
+                        ": corresponding cryptosystem is not initialized.";
+    }
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  if (!((*cryptosystemPointer)->isValidPrivateKey(value))) {
+    if (failureMessage) {
+      *failureMessage = "Invalid threshold private key for " + path.toString() +
+                        ": \"" + value + "\".";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus getThresholdPrivateKey(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    std::string* output, void* state) {
+  assert(state);
+  std::unique_ptr<Cryptosystem>* cryptosystemPointer =
+      static_cast<std::unique_ptr<Cryptosystem>*>(state);
+
+  if (!(*cryptosystemPointer)) {
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  try {
+    // This validator should only be called with paths of the form:
+    //
+    // node[i]/replica[0]/..._private_key
+    //
+    // We infer which replica the key is for from this path. Note the
+    // Cryptosystem class considers signers 1-indexed.
+    if ((path.name != "node") || !path.isScope || !path.useInstance ||
+        (path.index >= UINT16_MAX)) {
+      return ConcordConfiguration::ParameterStatus::INVALID;
+    }
+    uint16_t signer = path.index + 1;
+
+    *output = (*cryptosystemPointer)->getPrivateKey(signer);
+    return ConcordConfiguration::ParameterStatus::VALID;
+  } catch (UninitializedCryptosystemException& e) {
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+}
+
+static ConcordConfiguration::ParameterStatus validateVerificationKey(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  assert(state);
+  std::unique_ptr<Cryptosystem>* cryptosystemPointer =
+      static_cast<std::unique_ptr<Cryptosystem>*>(state);
+
+  if (!(*cryptosystemPointer)) {
+    if (failureMessage) {
+      *failureMessage =
+          "Cannot assess validity of threshold verification key " +
+          path.toString() + ": corresponding cryptosystem is not initialized.";
+    }
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  if (!((*cryptosystemPointer)->isValidVerificationKey(value))) {
+    if (failureMessage) {
+      *failureMessage = "Invalid threshold verification key for " +
+                        path.toString() + ": \"" + value + "\".";
+    }
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus getThresholdVerificationKey(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    std::string* output, void* state) {
+  assert(state);
+  std::unique_ptr<Cryptosystem>* cryptosystemPointer =
+      static_cast<std::unique_ptr<Cryptosystem>*>(state);
+
+  if (!(*cryptosystemPointer)) {
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  try {
+    // This validator should only be called with paths of the form:
+    //
+    // node[i]/replica[0]/..._verification_key
+    //
+    // We infer which replica the key is for from this path. Note the
+    // Cryptosystem class considers signers 1-indexed.
+    if ((path.name != "node") || !path.isScope || !path.useInstance ||
+        (path.index >= UINT16_MAX)) {
+      return ConcordConfiguration::ParameterStatus::INVALID;
+    }
+    uint16_t signer = path.index + 1;
+
+    *output = ((*cryptosystemPointer)->getSystemVerificationKeys())[signer];
+    return ConcordConfiguration::ParameterStatus::VALID;
+  } catch (UninitializedCryptosystemException& e) {
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+}
+
+static ConcordConfiguration::ParameterStatus validatePrincipalId(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  ConcordConfiguration::ParameterStatus res = validateUInt(
+      value, config, path, failureMessage,
+      const_cast<void*>(reinterpret_cast<const void*>(&kUInt16Limits)));
+  if (res != ConcordConfiguration::ParameterStatus::VALID) {
+    return res;
+  }
+  uint16_t principalID = (uint16_t)(std::stoull(value));
+
+  if (!config.hasValue<uint16_t>("f_val") ||
+      !config.hasValue<uint16_t>("c_val") ||
+      !config.hasValue<uint16_t>("client_proxies_per_replica")) {
+    if (failureMessage) {
+      *failureMessage =
+          "Cannot fully validate Concord-BFT principal ID for " +
+          path.toString() +
+          ": f_val, c_val, and client_proxies_per_replica are required to "
+          "determine bounds for maximum principal ID.";
+    }
+    return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+  }
+  uint16_t fVal = config.getValue<uint16_t>("f_val");
+  uint16_t cVal = config.getValue<uint16_t>("c_val");
+  uint16_t numReplicas = 3 * fVal + 2 * cVal + 1;
+  uint16_t clientProxiesPerReplica =
+      config.getValue<uint16_t>("client_proxies_per_replica");
+  uint16_t numPrincipals = numReplicas * (1 + clientProxiesPerReplica);
+
+  // The path to a principal Id should be of one of these forms:
+  //   node[i]/replica[0]/principal_id
+  //   node[i]/client_proxy[j]/principal_id
+  assert(path.isScope && path.subpath);
+
+  if (path.subpath->name == "replica") {
+    if (principalID >= numReplicas) {
+      if (failureMessage) {
+        *failureMessage =
+            "Invalid principal ID for " + path.toString() + ": " +
+            std::to_string(principalID) +
+            ". Principal IDs for replicas must be less than num_replicas.";
+      }
+      return ConcordConfiguration::ParameterStatus::INVALID;
+    }
+
+  } else {
+    assert(path.subpath->name == "client_proxy");
+
+    if ((principalID < numReplicas) || (principalID >= numPrincipals)) {
+      if (failureMessage) {
+        *failureMessage =
+            "Invalid principal ID for " + path.toString() + ": " +
+            std::to_string(principalID) +
+            ". Principal IDs for client proxies should be in the range "
+            "(num_replicas, num_principals - 1), inclusive.";
+      }
+      return ConcordConfiguration::ParameterStatus::INVALID;
+    }
+  }
+
+  res = ConcordConfiguration::ParameterStatus::VALID;
+  for (size_t i = 0; i < numReplicas; ++i) {
+    ConfigurationPath replicaPath("node", (size_t)i);
+    replicaPath.subpath.reset(new ConfigurationPath("replica", (size_t)0));
+    replicaPath.subpath->subpath.reset(
+        new ConfigurationPath("principal_id", false));
+    if (!config.hasValue<uint16_t>(replicaPath)) {
+      if (replicaPath != path) {
+        res = ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+      }
+    } else if ((config.getValue<uint16_t>(replicaPath) == principalID) &&
+               (replicaPath != path)) {
+      if (failureMessage) {
+        *failureMessage = "Invalid principal ID for " + path.toString() + ": " +
+                          std::to_string(principalID) +
+                          ". This ID is non-unique; it duplicates the ID for " +
+                          replicaPath.toString() + ".";
+      }
+      return ConcordConfiguration::ParameterStatus::INVALID;
+    }
+
+    for (size_t j = 0; j < clientProxiesPerReplica; ++j) {
+      ConfigurationPath clientProxyPath("node", (size_t)i);
+      clientProxyPath.subpath.reset(new ConfigurationPath("client_proxy", j));
+      clientProxyPath.subpath->subpath.reset(
+          new ConfigurationPath("principal_id", false));
+      if (!config.hasValue<uint16_t>(clientProxyPath)) {
+        if (clientProxyPath != path) {
+          res = ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+        }
+      } else if ((config.getValue<uint16_t>(clientProxyPath) == principalID) &&
+                 (clientProxyPath != path)) {
+        if (failureMessage) {
+          *failureMessage =
+              "Invalid principal ID for " + path.toString() + ": " +
+              std::to_string(principalID) +
+              ". This ID is non-unique; it duplicates the ID for " +
+              clientProxyPath.toString() + ".";
+        }
+        return ConcordConfiguration::ParameterStatus::INVALID;
+      }
+    }
+  }
+
+  if (failureMessage &&
+      (res ==
+       ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION)) {
+    *failureMessage = "Cannot fully validate principal ID for " +
+                      path.toString() +
+                      ": Not all other principal IDs are known, but are "
+                      "required to check for uniqueness.";
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus computePrincipalId(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    std::string* output, void* state) {
+  // The path to a principal Id should be of one of these forms:
+  //   node[i]/replica[0]/principal_id
+  //   node[i]/client_proxy[j]/principal_id
+
+  assert(path.isScope && path.subpath && path.useInstance);
+
+  if (path.subpath->name == "replica") {
+    *output = std::to_string(path.index);
+  } else {
+    assert((path.subpath->name == "client_proxy") && path.subpath->isScope &&
+           path.subpath->useInstance);
+
+    if (!config.hasValue<uint16_t>("f_val") ||
+        !config.hasValue<uint16_t>("c_val")) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    uint16_t numReplicas = 3 * config.getValue<uint16_t>("f_val") +
+                           2 * config.getValue<uint16_t>("c_val") + 1;
+
+    *output =
+        std::to_string(path.index + numReplicas * (1 + path.subpath->index));
+  }
+
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+const size_t kRSAPublicKeyHexadecimalLength = 584;
+// Note we do not have a correpsonding kRSAPrivateKeyHexadecimalLength constant
+// because the hexadecimal length of RSA private keys actually seems to vary a
+// little in the current serialization of them.
+
+static ConcordConfiguration::ParameterStatus validateRSAPrivateKey(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  if (!(std::regex_match(value, std::regex("[0-9A-Fa-f]+")))) {
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus getRSAPrivateKey(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    std::string* output, void* state) {
+  // The path to an RSA private key should be of one of these forms:
+  //   node[i]/replica[0]/private_key
+  //   node[i]/client_proxy[j]/private_key
+  // We infer what replica or client proxy the key is for from the path.
+  assert(path.isScope && path.useInstance && path.subpath);
+  const ConcordPrimaryConfigurationAuxiliaryState* auxState =
+      dynamic_cast<const ConcordPrimaryConfigurationAuxiliaryState*>(
+          config.getAuxiliaryState());
+  assert(auxState);
+
+  size_t nodeIndex = path.index;
+
+  if (path.subpath->name == "replica") {
+    if (nodeIndex >= auxState->replicaRSAKeys.size()) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    *output = auxState->replicaRSAKeys[nodeIndex].first;
+  } else {
+    assert((path.subpath->name == "client_proxy") && path.subpath->isScope &&
+           path.subpath->useInstance);
+    size_t clientProxyIndex = path.subpath->index;
+
+    if ((nodeIndex >= auxState->clientProxyRSAKeys.size()) ||
+        (clientProxyIndex >= auxState->clientProxyRSAKeys[nodeIndex].size())) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    *output = auxState->clientProxyRSAKeys[nodeIndex][clientProxyIndex].first;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus validateRSAPublicKey(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  if (!((value.length() == kRSAPublicKeyHexadecimalLength) &&
+        std::regex_match(value, std::regex("[0-9A-Fa-f]+")))) {
+    return ConcordConfiguration::ParameterStatus::INVALID;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
+static ConcordConfiguration::ParameterStatus getRSAPublicKey(
+    const ConcordConfiguration& config, const ConfigurationPath& path,
+    std::string* output, void* state) {
+  // The path to an RSA public key should be of one of these forms:
+  //   node[i]/replica[0]/public_key
+  //   node[i]/client_proxy[j]/public_key
+  // We infer what replica or client proxy the key is for from the path.
+  assert(path.isScope && path.useInstance && path.subpath);
+  const ConcordPrimaryConfigurationAuxiliaryState* auxState =
+      dynamic_cast<const ConcordPrimaryConfigurationAuxiliaryState*>(
+          config.getAuxiliaryState());
+  assert(auxState);
+
+  size_t nodeIndex = path.index;
+
+  if (path.subpath->name == "replica") {
+    if (nodeIndex >= auxState->replicaRSAKeys.size()) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    *output = auxState->replicaRSAKeys[nodeIndex].second;
+  } else {
+    assert((path.subpath->name == "client_proxy") && path.subpath->isScope &&
+           path.subpath->useInstance);
+    size_t clientProxyIndex = path.subpath->index;
+
+    if ((nodeIndex >= auxState->clientProxyRSAKeys.size()) ||
+        (clientProxyIndex >= auxState->clientProxyRSAKeys[nodeIndex].size())) {
+      return ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION;
+    }
+    *output = auxState->clientProxyRSAKeys[nodeIndex][clientProxyIndex].second;
+  }
+  return ConcordConfiguration::ParameterStatus::VALID;
+}
+
 }  // namespace config
 }  // namespace concord
