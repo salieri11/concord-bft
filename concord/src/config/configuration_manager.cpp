@@ -2649,5 +2649,447 @@ static ConcordConfiguration::ParameterStatus getRSAPublicKey(
   return ConcordConfiguration::ParameterStatus::VALID;
 }
 
+// Implementation of specifyConfiguration and other utility functions that
+// encode knowledge about the current configuration.
+
+// This function is intended to serve as a single source of truth for all places
+// that need to know the current Concord configuration format. If you need to
+// add new configuration parameters or otherwise change the format of our
+// configuration files, please add to or modify the code in this function.
+void specifyConfiguration(ConcordConfiguration& config) {
+  config.clear();
+
+  // Auxiliary State initialization
+  ConcordPrimaryConfigurationAuxiliaryState* auxState =
+      new ConcordPrimaryConfigurationAuxiliaryState();
+  config.setAuxiliaryState(auxState);
+
+  // Scope declarations
+  config.declareScope(
+      "node",
+      "Concord nodes, the nodes that form the distributed system that "
+      "maintains a blockchain in Concord. Each node runs in its own process, "
+      "and, in a production deployment, each node should be on a different "
+      "machine. Ideally, the nodes should also be split up into different "
+      "fault domains.",
+      sizeNodes, nullptr);
+  ConcordConfiguration& node = config.subscope("node");
+
+  node.declareScope(
+      "replica",
+      "SBFT replicas, which serve as the core replicas for Byzantine fault "
+      "tolerant consensus in a Concord deployment. At the time of this "
+      "writing, there generally should be no more than one SBFT replica per "
+      "Concord node, and ideally the SBFT replicas should be split up into "
+      "separate fault domains.",
+      sizeReplicas, nullptr);
+  ConcordConfiguration& replica = node.subscope("replica");
+
+  node.declareScope(
+      "client_proxy",
+      "SBFT client proxies; these client proxies serve to connect the SBFT "
+      "replicas to whatever may be accessing and using the blockchain that the "
+      "replicas maintain. The client proxies communicate with the SBFT "
+      "replicas to forward requests incoming to the Concord system and to "
+      "fetch information from the blockchain to be served externally, but the "
+      "client proxies are not \"voting\" participants in establishing "
+      "consensus.",
+      sizeClientProxies, nullptr);
+  ConcordConfiguration& clientProxy = node.subscope("client_proxy");
+
+  std::vector<std::string> privateGeneratedTags(
+      {"config_generation_time", "generated", "private"});
+  std::vector<std::string> publicGeneratedTags(
+      {"config_generation_time", "generated", "public"});
+  std::vector<std::string> publicInputTags(
+      {"config_generation_time", "input", "public"});
+  std::vector<std::string> defaultableByUtilityTags(
+      {"config_generation_time", "defaultable", "public"});
+  std::vector<std::string> privateInputTags({"input", "private"});
+  std::vector<std::string> defaultableByReplicaTags({"defaultable", "private"});
+  std::vector<std::string> privateOptionalTags({"optional", "private"});
+
+  // Parameter declarations
+  config.declareParameter("client_proxies_per_replica",
+                          "The number of SBFT client proxies to create on each "
+                          "on each Concord node with each SBFT replica.");
+  config.tagParameter("client_proxies_per_replica", publicInputTags);
+  config.addValidator("client_proxies_per_replica",
+                      validateClientProxiesPerReplica, nullptr);
+
+  config.declareParameter(
+      "commit_cryptosys",
+      "Type of cryptosystem to use to commit transactions in the SBFT general "
+      "path (threshold 3F + C + 1). This parameter should consist of two "
+      "space-separated strings, the first of which names the cryptosystem type "
+      "and the second of which is a type-specific parameter or subtype "
+      "selection (for example, the second string might be an eliptic curve "
+      "type if an elliptic curve cryptosystem is selected).",
+      "threshold-bls BN-P254");
+  config.tagParameter("commit_cryptosys", defaultableByUtilityTags);
+  config.addValidator("commit_cryptosys", validateCryptosys, nullptr);
+
+  config.declareParameter(
+      "commit_public_key",
+      "Public key for the general path commit cryptosystem.");
+  config.tagParameter("commit_public_key", publicGeneratedTags);
+  config.addValidator("commit_public_key", validatePublicKey,
+                      &(auxState->commitCryptosys));
+  config.addGenerator("commit_public_key", getThresholdPublicKey,
+                      &(auxState->commitCryptosys));
+
+  config.declareParameter("concurrency_level",
+                          "Number of consensus operations that Concord-BFT may "
+                          "execute in parallel.",
+                          "3");
+  config.tagParameter("concurrency_level", defaultableByUtilityTags);
+  config.addValidator(
+      "concurrency_level", validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
+
+  config.declareParameter(
+      "c_val",
+      "C parameter to the SBFT algorithm, that is, the number of slow, "
+      "crashed, or otherwise non-responsive replicas that can be tolerated "
+      "before having to fall back on a slow path for consensus.");
+  config.tagParameter("c_val", publicInputTags);
+  config.addValidator("c_val", validateCVal, nullptr);
+
+  config.declareParameter(
+      "execution_cryptosys",
+      "Type of cryptosystem to use for consensus on the results of executing "
+      "transactions (threshold F + 1). This parameter should consist of two "
+      "space-separated strings, the first of which names the cryptosystem type "
+      "and the second of which is a type-specific parameter or subtype "
+      "selection (for example, the second string might be an elliptic curve "
+      "type if an elliptic curve cryptosystem is selected).",
+      "threshold-bls BN-P254");
+  config.tagParameter("execution_cryptosys", defaultableByUtilityTags);
+  config.addValidator("execution_cryptosys", validateCryptosys, nullptr);
+
+  config.declareParameter("execution_public_key",
+                          "Public key for the execution cryptosystem.");
+  config.tagParameter("execution_public_key", publicGeneratedTags);
+  config.addValidator("execution_public_key", validatePublicKey,
+                      &(auxState->executionCryptosys));
+  config.addGenerator("execution_public_key", getThresholdPublicKey,
+                      &(auxState->executionCryptosys));
+
+  config.declareParameter(
+      "f_val",
+      "F parameter to the SBFT algorithm, that is, the number of "
+      "Byzantine-faulty replicas that can be tolerated in the system before "
+      "safety guarantees are lost.");
+  config.tagParameter("f_val", publicInputTags);
+  config.addValidator("f_val", validateFVal, nullptr);
+
+  config.declareParameter(
+      "gas_limit",
+      "Ethereum gas limit to enforce on all transactions; this prevents "
+      "transactions that either fail to terminate or take excessively long to "
+      "do so from burdening the system.",
+      "10000000");
+  config.tagParameter("gas_limit", defaultableByUtilityTags);
+  config.addValidator(
+      "gas_limit", validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt64Limits)));
+
+  config.declareParameter(
+      "num_client_proxies",
+      "Total number of Concord-BFT client proxies in this deployment.");
+  config.tagParameter("num_client_proxies", publicGeneratedTags);
+  config.addValidator("num_client_proxies", validateNumClientProxies, nullptr);
+  config.addGenerator("num_client_proxies", computeNumClientProxies, nullptr);
+
+  config.declareParameter("num_principals",
+                          "Combined total number of replicas and Concord-BFT "
+                          "client proxies in this deployment.");
+  config.tagParameter("num_principals", publicGeneratedTags);
+  config.addValidator("num_principals", validateNumPrincipals, nullptr);
+  config.addGenerator("num_principals", computeNumPrincipals, nullptr);
+
+  config.declareParameter(
+      "num_replicas", "Total number of Concord replicas in this deployment.");
+  config.tagParameter("num_replicas", publicGeneratedTags);
+  config.addValidator("num_replicas", validateNumReplicas, nullptr);
+  config.addGenerator("num_replicas", computeNumReplicas, nullptr);
+
+  config.declareParameter(
+      "optimistic_commit_cryptosys",
+      "Type of cryptosystem to use to commit transactions in the SBFT "
+      "optimistic fast path (threshold 3F + 2C + 1). This parameter should "
+      "consist of two space-separated strings, the first of which names the "
+      "cryptosystem type and the second of which is a type-specific parameter "
+      "or subtype selection (for example, the second string might be an "
+      "elliptic curve type if an elliptic curve cryptosystem is selected).",
+      "multisig-bls BN-P254");
+  config.tagParameter("optimistic_commit_cryptosys", defaultableByUtilityTags);
+  config.addValidator("optimistic_commit_cryptosys", validateCryptosys,
+                      nullptr);
+
+  config.declareParameter(
+      "optimistic_commit_public_key",
+      "Public key for the optimistic fast path commit cryptosystem.");
+  config.tagParameter("optimistic_commit_public_key", publicGeneratedTags);
+  config.addValidator("optimistic_commit_public_key", validatePublicKey,
+                      &(auxState->optimisticCommitCryptosys));
+  config.addGenerator("optimistic_commit_public_key", getThresholdPublicKey,
+                      &(auxState->optimisticCommitCryptosys));
+
+  config.declareParameter(
+      "slow_commit_cryptosys",
+      "Type of cryptosystem to use to commit transactions in the SBFT slow "
+      "path (threshold 2F + C + 1). This parameter should consist of two "
+      "space-separated strings, the first of which names the cryptosystem type "
+      "and the second of which is a type-specific parameter or subtype "
+      "selectioin (for example, the second string might be an elliptic curve "
+      "type if an elliptic curve cryptosystem is selected).",
+      "threshold-bls BN-P254");
+  config.tagParameter("slow_commit_cryptosys", defaultableByUtilityTags);
+  config.addValidator("slow_commit_cryptosys", validateCryptosys, nullptr);
+
+  config.declareParameter("slow_commit_public_key",
+                          "Public key for the slow path commit cryptosystem.");
+  config.tagParameter("slow_commit_public_key", publicGeneratedTags);
+  config.addValidator("slow_commit_public_key", validatePublicKey,
+                      &(auxState->slowCommitCryptosys));
+  config.addGenerator("slow_commit_public_key", getThresholdPublicKey,
+                      &(auxState->slowCommitCryptosys));
+
+  config.declareParameter(
+      "status_time_interval",
+      "Time interval, measured in milliseconds, at which each Concord replica "
+      "should send its status to the others.",
+      "3000");
+  config.tagParameter("status_time_interval", defaultableByUtilityTags);
+  config.addValidator(
+      "status_time_interval", validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
+
+  config.declareParameter(
+      "view_change_timeout",
+      "Timeout, measured in milliseconds, after which Concord-BFT will attempt "
+      "an SBFT view change if not enough replicas are responding.",
+      "20000");
+  config.tagParameter("view_change_timeout", defaultableByUtilityTags);
+  config.addValidator(
+      "view_change_timeout", validateUInt,
+      const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
+
+  node.declareParameter("api_worker_pool_size",
+                        "Number of threads to create to handle TCP connections "
+                        "to this node's external API.",
+                        "3");
+  node.tagParameter("api_worker_pool_size", defaultableByReplicaTags);
+  node.addValidator("api_worker_pool_size", validatePositiveReplicaInt,
+                    nullptr);
+
+  node.declareParameter("blockchain_db_impl",
+                        "Database implementation to be used by this replica to "
+                        "persist blockchain state.",
+                        "rocksdb");
+  node.tagParameter("blockchain_db_impl", defaultableByReplicaTags);
+  node.addValidator("blockchain_db_impl", validateDatabaseImplementation,
+                    nullptr);
+
+  node.declareParameter(
+      "blockchain_db_path",
+      "Path to storage to use to persist blockchain data for this replica "
+      "using the database implementation specified by blockchain_db_impl.",
+      "rocksdbdata1");
+  node.tagParameter("blockchain_db_path", defaultableByReplicaTags);
+
+  node.declareParameter(
+      "genesis_block",
+      "Path, in the node's local filesystem, to a JSON file containing the "
+      "genesis block data for this blockchain.");
+  node.tagParameter("genesis_block", privateOptionalTags);
+
+  node.declareParameter(
+      "logger_config",
+      "Path, in this node's local filesystem to a configuration for Log4CPlus, "
+      "the logging framework Concord uses.",
+      "test/resources/log4cplus.properties");
+  node.tagParameter("logger_config", defaultableByReplicaTags);
+
+  node.declareParameter(
+      "logger_reconfig_time",
+      "Interval, measured in milliseconds, with which this replica should "
+      "check the file specified by logger_config for changes in requested "
+      "logging behavior.",
+      "60000");
+  node.tagParameter("logger_reconfig_time", defaultableByReplicaTags);
+  node.addValidator("logger_reconfig_time", validatePositiveReplicaInt,
+                    nullptr);
+
+  node.declareParameter("service_host",
+                        "Public IP address or hostname on which this replica's "
+                        "external API service can be reached.");
+  node.tagParameter("service_host", privateInputTags);
+
+  node.declareParameter(
+      "service_port",
+      "Port on which this replica's external API service can be reached.");
+  node.tagParameter("service_port", privateInputTags);
+  node.addValidator("service_port", validatePortNumber, nullptr);
+
+  node.declareParameter(
+      "transaction_list_max_count",
+      "Maximum number of transactions to allow this replica to return to "
+      "queries to its public API service requesting lists of transactions.",
+      "10");
+  node.tagParameter("transaction_list_max_count", defaultableByReplicaTags);
+  node.addValidator("transaction_list_max_count", validatePositiveReplicaInt,
+                    nullptr);
+
+  replica.declareParameter("commit_private_key",
+                           "Private key for this replica under the general "
+                           "case commit cryptosystem.");
+  replica.tagParameter("commit_private_key", privateGeneratedTags);
+  replica.addValidator("commit_private_key", validatePrivateKey,
+                       &(auxState->commitCryptosys));
+  replica.addGenerator("commit_private_key", getThresholdPrivateKey,
+                       &(auxState->commitCryptosys));
+
+  replica.declareParameter(
+      "commit_verification_key",
+      "Public verification key for this replica's signature under the general "
+      "case commit cryptosystem.");
+  replica.tagParameter("commit_verification_key", publicGeneratedTags);
+  replica.addValidator("commit_verification_key", validateVerificationKey,
+                       &(auxState->commitCryptosys));
+  replica.addGenerator("commit_verification_key", getThresholdVerificationKey,
+                       &(auxState->commitCryptosys));
+
+  replica.declareParameter(
+      "execution_private_key",
+      "Private key for this replica under the execution cryptosystem.");
+  replica.tagParameter("execution_private_key", privateGeneratedTags);
+  replica.addValidator("execution_private_key", validatePrivateKey,
+                       &(auxState->executionCryptosys));
+  replica.addGenerator("execution_private_key", getThresholdPrivateKey,
+                       &(auxState->executionCryptosys));
+
+  replica.declareParameter("execution_verification_key",
+                           "Public verification key for this replica's "
+                           "signature under the execution cryptosystem.");
+  replica.tagParameter("execution_verification_key", publicGeneratedTags);
+  replica.addValidator("execution_verification_key", validateVerificationKey,
+                       &(auxState->executionCryptosys));
+  replica.addGenerator("execution_verification_key",
+                       getThresholdVerificationKey,
+                       &(auxState->executionCryptosys));
+
+  replica.declareParameter("optimistic_commit_private_key",
+                           "Private key for this replica under the optimistic "
+                           "fast path commit cryptosystem.");
+  replica.tagParameter("optimistic_commit_private_key", privateGeneratedTags);
+  replica.addValidator("optimistic_commit_private_key", validatePrivateKey,
+                       &(auxState->optimisticCommitCryptosys));
+  replica.addGenerator("optimistic_commit_private_key", getThresholdPrivateKey,
+                       &(auxState->optimisticCommitCryptosys));
+
+  replica.declareParameter(
+      "optimistic_commit_verification_key",
+      "Public verification key for this replica's signature under the "
+      "optimistic fast path commit cryptosystem.");
+  replica.tagParameter("optimistic_commit_verification_key",
+                       publicGeneratedTags);
+  replica.addValidator("optimistic_commit_verification_key",
+                       validateVerificationKey,
+                       &(auxState->optimisticCommitCryptosys));
+  replica.addGenerator("optimistic_commit_verification_key",
+                       getThresholdVerificationKey,
+                       &(auxState->optimisticCommitCryptosys));
+
+  replica.declareParameter(
+      "principal_id",
+      "Unique ID number for this Concord-BFT replica. Concord-BFT considers "
+      "replicas and client proxies to be principals, each of which must have a "
+      "unique ID.");
+  replica.tagParameter("principal_id", publicGeneratedTags);
+  replica.addValidator("principal_id", validatePrincipalId, nullptr);
+  replica.addGenerator("principal_id", computePrincipalId, nullptr);
+
+  replica.declareParameter(
+      "private_key",
+      "RSA private key for this replica to use for general communication.");
+  replica.tagParameter("private_key", privateGeneratedTags);
+  replica.addValidator("private_key", validateRSAPrivateKey, nullptr);
+  replica.addGenerator("private_key", getRSAPrivateKey, nullptr);
+
+  replica.declareParameter(
+      "public_key",
+      "RSA public key corresponding to this replica's RSA private key.");
+  replica.tagParameter("public_key", publicGeneratedTags);
+  replica.addValidator("public_key", validateRSAPublicKey, nullptr);
+  replica.addGenerator("public_key", getRSAPublicKey, nullptr);
+
+  replica.declareParameter(
+      "replica_host",
+      "Public IP address or host name with which other replicas can reach this "
+      "one for consensus communication.");
+  replica.tagParameter("replica_host", publicInputTags);
+
+  replica.declareParameter("replica_port",
+                           "Port number on which other replicas can reach this "
+                           "one for consensus communication.");
+  replica.tagParameter("replica_port", publicInputTags);
+  replica.addValidator("replica_port", validatePortNumber, nullptr);
+
+  replica.declareParameter(
+      "slow_commit_private_key",
+      "Private key for this replica under the slow path commit cryptosystem.");
+  replica.tagParameter("slow_commit_private_key", privateGeneratedTags);
+  replica.addValidator("slow_commit_private_key", validatePrivateKey,
+                       &(auxState->slowCommitCryptosys));
+  replica.addGenerator("slow_commit_private_key", getThresholdPrivateKey,
+                       &(auxState->slowCommitCryptosys));
+
+  replica.declareParameter(
+      "slow_commit_verification_key",
+      "Public verification key for this replica's signature under the slow "
+      "path commit cryptosystem.");
+  replica.tagParameter("slow_commit_verification_key", publicGeneratedTags);
+  replica.addValidator("slow_commit_verification_key", validateVerificationKey,
+                       &(auxState->slowCommitCryptosys));
+  replica.addGenerator("slow_commit_verification_key",
+                       getThresholdVerificationKey,
+                       &(auxState->slowCommitCryptosys));
+
+  clientProxy.declareParameter("client_host",
+                               "Public IP address or host name with which this "
+                               "client proxy can be reached.");
+  clientProxy.tagParameter("client_host", publicInputTags);
+
+  clientProxy.declareParameter(
+      "client_port", "Port on which this client proxy can be reached.");
+  clientProxy.tagParameter("client_port", publicInputTags);
+  clientProxy.addValidator("client_port", validatePortNumber, nullptr);
+
+  clientProxy.declareParameter(
+      "principal_id",
+      "Unique ID number for client proxy. Concord-BFT considers both replicas "
+      "and client proxies to be principals, and it requires all principals "
+      "have a unique ID.");
+  clientProxy.tagParameter("principal_id", publicGeneratedTags);
+  clientProxy.addValidator("principal_id", validatePrincipalId, nullptr);
+  clientProxy.addGenerator("principal_id", computePrincipalId, nullptr);
+
+  clientProxy.declareParameter(
+      "private_key",
+      "Private RSA key for use in general communication by this client proxy.");
+  clientProxy.tagParameter("private_key", privateGeneratedTags);
+  clientProxy.addValidator("private_key", validateRSAPrivateKey, nullptr);
+  clientProxy.addGenerator("private_key", getRSAPrivateKey, nullptr);
+
+  clientProxy.declareParameter(
+      "public_key",
+      "Public RSA key for use in general communication by this client proxy.");
+  clientProxy.tagParameter("public_key", publicGeneratedTags);
+  clientProxy.addValidator("public_key", validateRSAPublicKey, nullptr);
+  clientProxy.addGenerator("public_key", getRSAPublicKey, nullptr);
+}
+
 }  // namespace config
 }  // namespace concord
