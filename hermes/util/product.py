@@ -13,6 +13,7 @@ from rpc.rpc_call import RPC
 import shutil
 import socket
 import subprocess
+from threading import Thread
 import time
 import yaml
 import signal
@@ -47,6 +48,7 @@ class Product():
    _concordProcessesMetaData = []
    _cmdlineArgs = None
    userProductConfig = None
+   _servicesToLogLater = ["db-server-init1", "db-server-init2", "fluentd"]
 
    def __init__(self, cmdlineArgs, userConfig):
       self._cmdlineArgs = cmdlineArgs
@@ -123,27 +125,138 @@ class Product():
             self.clearDBsForDockerLaunch(dockerCfg)
             self.initializeHelenDockerDB(dockerCfg)
 
-         cmd = ["docker-compose"]
-
-         for cfgFile in self._cmdlineArgs.dockerComposeFile:
-            cmd += ["--file", cfgFile]
-
-         cmd += ["up"]
-
-         logFile = open(os.path.join(self._productLogsDir, "concord.log"),
-                    "wb+")
-         self._logs.append(logFile)
-         log.debug("Launching via docker-compose with {}".format(cmd))
-
-         p = subprocess.Popen(cmd,
-                              stdout=logFile,
-                              stderr=subprocess.STDOUT)
-         self._processes.append(p)
+         self._startContainers()
+         self._startLogCollection()
 
          if not self._waitForProductStartup():
             raise Exception("The product did not start.")
+
       else:
          raise Exception("The docker compose file list contains an invalid value.")
+
+
+   def _startContainers(self):
+      cmd = ["docker-compose"]
+
+      for cfgFile in self._cmdlineArgs.dockerComposeFile:
+         cmd += ["--file", cfgFile]
+
+      cmd += ["up"]
+      log.debug("Launching via docker-compose with {}".format(cmd))
+
+      # We capture output in individual services' logs now, but still capture
+      # all output just in case.
+      bigLog = self._openLog("concord")
+      p = subprocess.Popen(cmd,
+                           stdout=bigLog,
+                           stderr=subprocess.STDOUT)
+      self._processes.append(p)
+
+
+   def _startLogCollection(self):
+      '''
+      Launches processes to save the output of services listed in the docker-compose
+      files.
+      '''
+      for dockerComposeFile in self._cmdlineArgs.dockerComposeFile:
+         composeData = None
+         logLaunchThreads = []
+
+         with open(dockerComposeFile, "r") as yamlFile:
+            composeData = yaml.load(yamlFile)
+
+         for service in list(composeData["services"]):
+            if service in self._servicesToLogLater.copy():
+               self._servicesToLogLater.remove(service)
+               self._servicesToLogLater.append((service,os.path.abspath(dockerComposeFile)))
+            else:
+               logLaunchThread = Thread(target=self._startLogLaunchThread,
+                                        args=(service,os.path.abspath(dockerComposeFile)))
+               logLaunchThread.start()
+               logLaunchThreads.append(logLaunchThread)
+
+         for t in logLaunchThreads:
+            t.join()
+
+
+   def _startLogLaunchThread(self, service, dockerComposeFile):
+      '''
+      We have to wait until a docker container has started before we can use
+      "docker-compose log" to track it.
+      We also don't know (and don't want to have to know) the order in which
+      the docker services start, and we don't want to miss logging of something
+      which starts early because we're waiting for something which starts late.
+      So, we will launch threads.  Each thread will wait for its service
+      to start, then create a docker-compose subprocess to save its logs
+      Returns the thread.
+      '''
+      self._waitForContainerToStart(service, dockerComposeFile)
+      logFile = self._openLog(service)
+      log.info("Service {} log file: {}".format(service, logFile.name))
+      cmd = ["docker-compose", "-f", dockerComposeFile, "logs", "-f", service]
+      p = subprocess.Popen(cmd,
+                           stdout=logFile,
+                           stderr=subprocess.STDOUT)
+      self._processes.append(p)
+
+
+   def _waitForContainerToStart(self, service, dockerComposeFile):
+      '''
+      Given a service name, waits for its container to start, using "docker-compose top".
+      Note that this is just whether the service *starts*, not whether the
+      product starts successfully.
+      At this time, the "docker-compose up" process has already been launched.
+      If this polling does not detect a service starting, then either:
+      - The service ran too quickly (e.g. the DB setup services) during the sleep time.
+        The services known to do that are in _servicesToLogLater.
+      - The service failed to start.
+      In both cases, the service's name will be stored and its log generated at the end
+      of the run.
+      '''
+      sleepTime = 5
+      maxTries = 24 # 2 min.  Services which we don't catch will be addressed later.
+      numTries = 0
+
+      while numTries < maxTries:
+         numTries += 1
+         topCmd = ["docker-compose", "-f", dockerComposeFile, "top", service]
+         completedProcess = subprocess.run(topCmd,
+                                           stdout=subprocess.PIPE,
+                                           stderr=subprocess.STDOUT)
+         psOutput = completedProcess.stdout.decode("UTF-8")
+
+         # If a service named "concord1" is running, the first line of the output is
+         # is "docker_concord1_1", followed by a table.  If it is not running, then
+         # that line and the table are not present.
+         if service in psOutput:
+            return
+         else:
+            log.debug("Waiting for the {} container to start.".format(service))
+            time.sleep(sleepTime)
+
+      msg = "Timed out waiting for the '{}' service to start so a logging process " \
+            "could be assigned to it.  Any logs it produced will be generated at " \
+            "the end of the test run.".format(service)
+      self._servicesToLogLater.append((service,dockerComposeFile))
+      log.info(msg)
+
+
+   def _openLog(self, service):
+      '''
+      Created a function for this because:
+      1. The log files should be add to self._logs so they are tidily closed
+         when we finish the test run.
+      2. The log files should be placed in the test run's directory.
+
+      Accepts a service name and returns the open file object.
+      '''
+      logFile = open(self._createLogPath(service), "w")
+      self._logs.append(logFile)
+      return logFile
+
+
+   def _createLogPath(self, service):
+      return os.path.join(self._productLogsDir, service + ".log")
 
 
    def getUrlFromEthrpcNode(self, node):
@@ -489,10 +602,33 @@ class Product():
       time.sleep(10)
 
 
+   def _logServicesAtEnd(self):
+      '''
+      Run "docker-compose logs" for any services flagged for late log
+      gathering.
+      '''
+      for service in self._servicesToLogLater:
+         if isinstance(service, tuple):
+            serviceName = service[0]
+            dockerComposeFile = service[1]
+            logFileName = self._createLogPath(serviceName)
+
+            if not os.path.isfile(logFileName):
+               logFile = self._openLog(serviceName)
+               log.info("Service {} log file: {}".format(serviceName, logFile.name))
+               cmd = ["docker-compose", "-f", dockerComposeFile, "logs", serviceName]
+               subprocess.run(cmd,
+                              stdout=logFile,
+                              stderr=subprocess.STDOUT)
+
+
    def stopProduct(self):
       '''
-      Stops the product executables and closes the logs.
+      Stops the product executables, closes the logs, and generates logs for
+      services which may have run too quickly or failed to start.
       '''
+      self._logServicesAtEnd()
+
       if self._cmdlineArgs.dockerComposeFile:
          self.stopMemoryLeakNode()
          cmd = ["docker-compose"]
@@ -501,13 +637,14 @@ class Product():
             cmd += ["--file", cfgFile]
 
          cmd += ["down"]
-         print("Stopping the product with command '{}'".format(cmd))
+         log.info("Stopping the product with command '{}'".format(cmd))
          p = subprocess.run(cmd)
       else:
+         # RV, April 8: Is this block dead code?
          for p in self._processes[:]:
             if p.poll() is None:
                p.terminate()
-               print("Terminating {}.".format(p.args))
+               log.info("Terminating {}.".format(p.args))
 
          for p in self._processes[:]:
             if "docker" in p.args:
@@ -517,21 +654,23 @@ class Product():
                                           stdout=subprocess.PIPE,
                                           stderr=subprocess.STDOUT)
                container_ids = ps_output.stdout.decode("UTF-8").split("\n")
-               print ("Container IDs found: {0}".format(container_ids))
+               log.info("Container IDs found: {0}".format(container_ids))
 
                for container_id in container_ids:
                   if container_id:
-                     print("Terminating container ID: {0}".format(container_id))
+                     log.info("Terminating container ID: {0}".format(container_id))
                      if not self.stopDockerContainer(container_id):
                         raise Exception("Failure trying to stop docker container.")
 
             while p.poll() is None:
-               print("Waiting for process {} to exit.".format(p.args))
+               log.info("Waiting for process {} to exit.".format(p.args))
                time.sleep(1)
 
-      for log in self._logs[:]:
-         log.close()
-         self._logs.remove(log)
+      for l in self._logs[:]:
+         log.info("Closing log: {}".format(l.name))
+         l.close()
+         self._logs.remove(l)
+
 
    def _waitForProductStartup(self):
       '''
