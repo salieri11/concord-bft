@@ -283,8 +283,9 @@ usage: main.py [-h] [--ethereumMode] [--logLevel LOGLEVEL]
                suite
 
 positional arguments:
-  suite                 Test suite name. Available suites: ['CoreVMTests',
-                        'ExtendedRPCTests', 'HelenAPITests',
-                        'PerformanceTests', 'KVBlockchainTests',
-                        'RegressionTests', 'ContractCompilerTests']
+  suite                 Test suite name. Available suites: [
+                        'AssetTransferTests', 'ContractCompilerTests',
+                        'CoreVMTests', 'LintTests', 'ExtendedRPCTests',
+                        'HelenAPITests', 'PerformanceTests', 'RegressionTests',
+                        'SimpleStateTransferTest', 'TruffleTests', 'UiTests']
 ```
