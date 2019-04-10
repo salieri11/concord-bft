@@ -150,7 +150,9 @@ Sliver KVBStorage::kvb_key(uint8_t type, const uint8_t *bytes,
                            size_t length) const {
   uint8_t *key = new uint8_t[1 + length];
   key[0] = type;
-  std::copy(bytes, bytes + length, key + 1);
+  if (length) {
+    std::copy(bytes, bytes + length, key + 1);
+  }
   return Sliver(key, length + 1);
 }
 
@@ -183,6 +185,10 @@ Sliver KVBStorage::nonce_key(const evm_address &addr) const {
 
 Sliver KVBStorage::code_key(const evm_address &addr) const {
   return kvb_key(TYPE_CODE, addr.bytes, sizeof(addr));
+}
+
+Sliver KVBStorage::block_metadata_key() const {
+  return kvb_key(TYPE_BLOCK_METADATA, nullptr, 0);
 }
 
 Sliver KVBStorage::storage_key(const evm_address &addr,
@@ -340,28 +346,27 @@ void KVBStorage::set_code(const evm_address &addr, const uint8_t *code,
   put(code_key(addr), Sliver(ser, sersize));
 }
 
-void KVBStorage::set_block_metadata() {
-  com::vmware::concord::kvb::BlockMetadata proto;
-  proto.set_version(block_metadata_version);
-  proto.set_bft_sequence_num(bftSequenceNum_);
-
-  size_t serSize = proto.ByteSize();
-  auto *ser = new uint8_t[serSize];
-  proto.SerializeToArray(ser, serSize);
-
-  const size_t sizeOfBlockMetadata = sizeof(bftSequenceNum_);
-  uint8_t blockMetadataBuf[sizeOfBlockMetadata];
-  memcpy(blockMetadataBuf, &bftSequenceNum_, sizeOfBlockMetadata);
-  put(kvb_key(TYPE_BLOCK_METADATA, blockMetadataBuf, sizeOfBlockMetadata),
-      Sliver(ser, serSize));
-}
-
 void KVBStorage::set_storage(const evm_address &addr,
                              const evm_uint256be &location,
                              const evm_uint256be &data) {
   uint8_t *str = new uint8_t[sizeof(data)];
   std::copy(data.bytes, data.bytes + sizeof(data), str);
   put(storage_key(addr, location), Sliver(str, sizeof(data)));
+}
+
+// Used for Unit Tests, as well.
+Sliver KVBStorage::set_block_metadata_value(uint64_t bftSequenceNum) const {
+  com::vmware::concord::kvb::BlockMetadata proto;
+  proto.set_version(block_metadata_version);
+  proto.set_bft_sequence_num(bftSequenceNum);
+  size_t serSize = proto.ByteSize();
+  auto *ser = new uint8_t[serSize];
+  proto.SerializeToArray(ser, serSize);
+  return Sliver(ser, serSize);
+}
+
+void KVBStorage::set_block_metadata() {
+  put(block_metadata_key(), set_block_metadata_value(bftSequenceNum_));
 }
 
 ////////////////////////////////////////
@@ -434,7 +439,6 @@ EthBlock KVBStorage::get_block(uint64_t number) {
   LOG4CPLUS_DEBUG(logger, "Getting block number "
                               << number << " status: " << status
                               << " value.size: " << outBlockData.size());
-
   if (status.isOK()) {
     for (auto kvp : outBlockData) {
       if (kvp.first.data()[0] == TYPE_BLOCK) {
@@ -616,7 +620,7 @@ bool KVBStorage::get_code(const evm_address &addr, std::vector<uint8_t> &out,
       } else {
         LOG4CPLUS_ERROR(logger,
                         "Unknown code storage version" << code.version());
-        throw EVMException("Unkown code storage version");
+        throw EVMException("Unknown code storage version");
       }
     } else {
       LOG4CPLUS_ERROR(logger,
@@ -665,6 +669,30 @@ evm_uint256be KVBStorage::get_storage(const evm_address &addr,
     std::memset(out.bytes, 0, sizeof(out));
   }
   return out;
+}
+
+uint64_t KVBStorage::get_block_metadata(Sliver key) {
+  Sliver outValue;
+  Status status = roStorage_.get(key, outValue);
+  uint64_t sequenceNum = 0;
+  if (status.isOK() && outValue.length() > 0) {
+    com::vmware::concord::kvb::BlockMetadata blockMetadata;
+    if (blockMetadata.ParseFromArray(outValue.data(), outValue.length())) {
+      if (blockMetadata.version() == block_metadata_version) {
+        sequenceNum = blockMetadata.bft_sequence_num();
+      } else {
+        LOG4CPLUS_ERROR(logger, "Unknown block metadata version :"
+                                    << blockMetadata.version());
+        throw EVMException("Unknown block metadata version");
+      }
+    } else {
+      LOG4CPLUS_ERROR(logger, "Unable to decode block metadata" << outValue);
+      throw EVMException("Corrupted block metadata");
+    }
+  }
+  LOG4CPLUS_INFO(logger, "key = " << key << ", status: " << status
+                                  << ", sequenceNum = " << sequenceNum);
+  return sequenceNum;
 }
 
 }  // namespace blockchain

@@ -41,7 +41,7 @@ class KVBCommandsHandler : public Blockchain::ICommandsHandler {
 
  private:
   bool executeCommand(
-      uint32_t requestSize, const char *request, const uint64_t sequenceNum,
+      uint32_t requestSize, const char *request, uint64_t sequenceNum,
       const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
       Blockchain::IBlocksAppender &blockAppender, const size_t maxReplySize,
       char *outReply, uint32_t &outReplySize) const;

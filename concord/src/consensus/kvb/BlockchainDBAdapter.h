@@ -54,6 +54,7 @@ class BlockchainDBAdapter {
 
   Status delKey(Sliver _key, BlockId _blockID);
   Status delBlock(BlockId _blockId);
+  void deleteBlockAndItsKeys(BlockId blockId);
 
   void monitor() const;
 

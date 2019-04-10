@@ -80,6 +80,7 @@ class InMemoryDBClient : public IDBClient {
   Status multiPut(const SetOfKeyValuePairs &_keyValueMap) override;
   Status multiDel(const KeysVector &_keysVec) override;
   virtual void monitor() const override{};
+  bool isNew() override { return true; }
 
   TKVStore &getMap() { return map; }
   void setComparator(KeyComparator comp) { map = TKVStore(comp); }

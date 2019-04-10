@@ -83,7 +83,8 @@ class ReplicaImp : public IReplica,
   // CTOR & DTOR
 
   ReplicaImp(Blockchain::CommConfig &commConfig, ReplicaConsensusConfig &config,
-             BlockchainDBAdapter *dbAdapter);
+             BlockchainDBAdapter *dbAdapter,
+             ReplicaStateSync &replicaStateSync);
   virtual ~ReplicaImp() override;
 
   // METHODS
@@ -95,7 +96,9 @@ class ReplicaImp : public IReplica,
   void insertBlockInternal(BlockId blockId, Sliver block);
   Sliver getBlockInternal(BlockId blockId) const;
   BlockchainDBAdapter *getBcDbAdapter() const { return m_bcDbAdapter; }
-  void revertBlock(BlockId blockId);
+
+ private:
+  void createNewOrLoadExistingReplica();
 
   // INTERNAL TYPES
 
@@ -246,7 +249,8 @@ class ReplicaImp : public IReplica,
     friend class ReplicaImp;
     friend IReplica *createReplica(Blockchain::CommConfig &commConfig,
                                    ReplicaConsensusConfig &config,
-                                   IDBClient *db);
+                                   IDBClient *db,
+                                   ReplicaStateSync &replicaStateSync);
   };
 
   // DATA
@@ -258,7 +262,7 @@ class ReplicaImp : public IReplica,
 
   // storage - TODO(GG): add support for leveldb/rocksdb
   BlockchainDBAdapter *m_bcDbAdapter = nullptr;
-  BlockId lastBlock = 0;
+  BlockId m_lastBlock = 0;
   bftEngine::ICommunication *m_ptrComm = nullptr;
   bftEngine::ReplicaConfig m_replicaConfig;
   bftEngine::Replica *m_replicaPtr = nullptr;
@@ -266,6 +270,7 @@ class ReplicaImp : public IReplica,
   bftEngine::IStateTransfer *m_stateTransfer = nullptr;
   BlockchainAppState *m_appState = nullptr;
   RocksDBMetadataStorage *m_metadataStorage = nullptr;
+  ReplicaStateSync &m_replicaStateSync;
 
   // static methods
   static Sliver createBlockFromUpdates(
@@ -277,7 +282,8 @@ class ReplicaImp : public IReplica,
 
   // FRIENDS
   friend IReplica *createReplica(Blockchain::CommConfig &commConfig,
-                                 ReplicaConsensusConfig &config, IDBClient *db);
+                                 ReplicaConsensusConfig &config, IDBClient *db,
+                                 ReplicaStateSync &replicaStateSync);
   friend void release(IReplica *r);
 };
 }  // namespace Blockchain

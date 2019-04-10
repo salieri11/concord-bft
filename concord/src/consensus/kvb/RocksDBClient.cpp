@@ -62,6 +62,14 @@ Sliver copyRocksdbSlice(rocksdb::Slice _s) {
   return Sliver(copyData, _s.size());
 }
 
+bool RocksDBClient::isNew() {
+  rocksdb::Options options;
+  options.error_if_exists = true;
+  rocksdb::Status s = rocksdb::DB::Open(options, m_dbPath, &m_dbInstance);
+  if (s.ok()) delete m_dbInstance;
+  return s.IsNotFound();
+}
+
 /**
  * @brief Opens a RocksDB database connection.
  *

@@ -1,6 +1,7 @@
 include_directories(
   ${GTEST_INCLUDE_DIR}
   ${PROJECT_SOURCE_DIR}/src
+  ../build/proto/
   )
 
 message("test including " ${GTEST_LIBRARY})
@@ -13,7 +14,7 @@ add_test(NAME SliverTests COMMAND SliverTests)
 add_test(NAME ConfigTests COMMAND ConfigTests)
 add_test(NAME MultiIOTests COMMAND MultiIOTests)
 add_test(NAME MetadataStorageTests COMMAND MetadataStorageTests)
-
+add_test(NAME ReplicaStateSyncTests COMMAND ReplicaStateSyncTests)
 
 add_executable(UtilsTests
   utils_test.cpp)
@@ -52,7 +53,7 @@ target_link_libraries(SliverTests
 
 add_executable(ConfigTests
   config_test.cpp
-  "../src/config/configuration_manager.cpp")
+  ../src/config/configuration_manager.cpp)
 
 target_link_libraries(ConfigTests
   ${Boost_LIBRARIES}
@@ -83,3 +84,25 @@ target_link_libraries(MetadataStorageTests
   log4cplus
   gtest
   gtest_main)
+
+add_executable(ReplicaStateSyncTests
+  ../src/blockchain/kvb_storage.cpp
+  ../src/common/concord_log.cpp
+  ../src/common/concord_types.cpp
+  ../src/ethereum/evm_init_params.cpp
+  ../src/ethereum/concord_evm.cpp
+  ../src/utils/concord_eth_hash.cpp
+  ../src/utils/rlp.cpp
+  ../src/consensus/replica_state_sync_imp.cpp
+  replicaStateSync_test.cpp)
+
+target_link_libraries(ReplicaStateSyncTests
+  ${GTEST_LIBRARIES}
+  log4cplus
+  gtest
+  gtest_main
+  proto ${PROTOBUF_LIBRARIES}
+  ${EVM_LIBRARIES}
+  LLVMSupport
+  concord_utils
+  kvblockchain)

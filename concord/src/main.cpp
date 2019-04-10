@@ -21,10 +21,10 @@
 #include "consensus/kvb/ReplicaImp.h"
 #include "consensus/kvb/bft_configuration.hpp"
 #include "consensus/kvb_commands_handler.hpp"
+#include "consensus/replica_state_sync_imp.hpp"
 #include "ethereum/concord_evm.hpp"
 #include "ethereum/evm_init_params.hpp"
 #include "utils/concord_eth_sign.hpp"
-#include "utils/concord_utils.hpp"
 
 #ifdef USE_ROCKSDB
 #include "consensus/kvb/RocksDBClient.h"
@@ -230,6 +230,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     initializeSBFTConfiguration(config, nodeConfig, &commConfig, nullptr, 0,
                                 &replicaConsensusConfig);
 
+    auto *replicaStateSync = new ReplicaStateSyncImp;
     /* init replica
      * TODO(IG): since ReplicaImpl is used as an implementation of few
      * intefaces, this object will be used for constructing KVBCommandsHandler
@@ -239,7 +240,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
      */
     Blockchain::ReplicaImp *replica =
         dynamic_cast<Blockchain::ReplicaImp *>(Blockchain::createReplica(
-            commConfig, replicaConsensusConfig, dbclient));
+            commConfig, replicaConsensusConfig, dbclient, *replicaStateSync));
 
     // throws an exception if it fails
     EVM athevm(params);
@@ -304,6 +305,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     replica->stop();
 
     Blockchain::release(replica);
+    delete replicaStateSync;
   } catch (std::exception &ex) {
     LOG4CPLUS_FATAL(logger, ex.what());
     return -1;
