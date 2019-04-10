@@ -14,6 +14,11 @@
       <router-outlet></router-outlet>
     </main>
     <clr-vertical-nav>
+      <a clrVerticalNavLink routerLink="/dashboard" fragment="deploy">
+        <clr-icon clrVerticalNavIcon shape="deploy"></clr-icon>
+        {{'nav.deploy.title' | translate}}
+      </a>
+      <div class="nav-divider"></div>
       <a clrVerticalNavLink routerLink="/dashboard" routerLinkActive="active">
         <clr-icon clrVerticalNavIcon shape="home"></clr-icon>
         {{'nav.dashboard.title' | translate}}
