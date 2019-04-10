@@ -354,7 +354,7 @@ void KVBStorage::set_storage(const evm_address &addr,
   put(storage_key(addr, location), Sliver(str, sizeof(data)));
 }
 
-// Used for UT, as well.
+// Used for Unit Tests, as well.
 Sliver KVBStorage::set_block_metadata_value(uint64_t bftSequenceNum) const {
   com::vmware::concord::kvb::BlockMetadata proto;
   proto.set_version(block_metadata_version);
@@ -681,21 +681,17 @@ uint64_t KVBStorage::get_block_metadata(Sliver key) {
       if (blockMetadata.version() == block_metadata_version) {
         sequenceNum = blockMetadata.bft_sequence_num();
       } else {
-        LOG4CPLUS_ERROR(logger,
-                        "get_block_metadata: Unknown block metadata version :"
-                            << blockMetadata.version());
+        LOG4CPLUS_ERROR(logger, "Unknown block metadata version :"
+                                    << blockMetadata.version());
         throw EVMException("Unknown block metadata version");
       }
     } else {
-      LOG4CPLUS_ERROR(
-          logger,
-          "get_block_metadata: Unable to decode block metadata" << outValue);
+      LOG4CPLUS_ERROR(logger, "Unable to decode block metadata" << outValue);
       throw EVMException("Corrupted block metadata");
     }
   }
-  LOG4CPLUS_INFO(logger, "get_block_metadata: key = "
-                             << key << ", status: " << status
-                             << ", sequenceNum = " << sequenceNum);
+  LOG4CPLUS_INFO(logger, "key = " << key << ", status: " << status
+                                  << ", sequenceNum = " << sequenceNum);
   return sequenceNum;
 }
 

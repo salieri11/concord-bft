@@ -31,11 +31,11 @@ uint64_t ReplicaStateSyncImp::execute(log4cplus::Logger &logger,
   do {
     Key fullKey = KeyManipulator::genDataDbKey(key, blockId);
     blockSeqNum = roKvs.get_block_metadata(fullKey);
-    LOG4CPLUS_INFO(logger, "ReplicaStateSyncImp: Block Metadata key = "
-                               << fullKey << ", blockId = " << blockId
-                               << ", blockSeqNum = " << blockSeqNum);
+    LOG4CPLUS_INFO(
+        logger, "Block Metadata key = " << fullKey << ", blockId = " << blockId
+                                        << ", blockSeqNum = " << blockSeqNum);
     if (blockSeqNum == lastExecutedSeqNum) {
-      LOG4CPLUS_INFO(logger, "ReplicaStateSyncImp: Replica state is in sync.");
+      LOG4CPLUS_INFO(logger, "Replica state is in sync.");
       return removedBlocksNum;
     }
     // SBFT State Metadata is not in sync with SBFT State.
