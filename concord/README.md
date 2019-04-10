@@ -307,9 +307,9 @@ provided to generate these configuration files for a given Concord cluster. In a
 completed build, the utility is `conc_genconfig` in the `tools` directory. The
 utility accepts input providing the size of the cluster, networking information,
 and any non-default values you would like to elect for optional parameters. For
-example, the following command can be used to generat a configuration equivalent
-to the current 4-node test configuration (with a fresh set of cryptographic keys
-generated):
+example, the following command can be used to generate a configuration
+equivalent to the current 4-node test configuration (with a fresh set of
+cryptographic keys generated):
 
 ```shell
 concord/build$ ./tools/conc_genconfig --configuration-input \
@@ -412,7 +412,7 @@ nodes would have port 5458 (unless they themselves also have their own
 Internally, the contents of the ConcordConfiguration are defined and managed
 with a class, `ConcordConfiguration`, defined in
 `concord/src/config/configuration_manager.hpp`. A function
-`specifyConfiguraiton` (declared in
+`specifyConfiguration` (declared in
 `concord/src/config/configuration_manager.hpp` and implemented in
 `concord/src/configuration_manager.cpp`) is used to fill out a
 `ConcordConfiguration` and is intended as the primary source of truth on what
@@ -438,7 +438,7 @@ need to add a new configuration parameter to Concord.
  * tools/conc_gettxrcpt.cpp: a utility that allows you to fetch a
    transaction receipt without needing to build and start helen
 
- * tools/conc_genconfig.cpp: Configuration generation utility which, gien input
+ * tools/conc_genconfig.cpp: Configuration generation utility which, given input
    containing cluster size and network configuraiton parameters (plus any
    non-default values you want to set for optional configuration parameters),
    outputs a configuration file for each node in a Concord cluster (this utility

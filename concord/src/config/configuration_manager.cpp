@@ -2782,7 +2782,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
   // Parameter declarations
   config.declareParameter("client_proxies_per_replica",
                           "The number of SBFT client proxies to create on each "
-                          "on each Concord node with each SBFT replica.");
+                          "Concord node with each SBFT replica.");
   config.tagParameter("client_proxies_per_replica", publicInputTags);
   config.addValidator("client_proxies_per_replica",
                       validateClientProxiesPerReplica, nullptr);

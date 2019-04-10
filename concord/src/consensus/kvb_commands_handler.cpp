@@ -1,4 +1,4 @@
-// Copyright 2018 VMware, all rights reserved
+// Copyright 2018-2019 VMware, all rights reserved
 //
 // KVBlockchain replica command handler interface for EVM.
 //

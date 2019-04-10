@@ -1,4 +1,4 @@
-// Copyright 2018 VMware, all rights reserved
+// Copyright 2018-2019 VMware, all rights reserved
 //
 // Temporary solution for creating configuration structs for concord-bft
 // Ideally, the ReplicaConfig from BlockchainInterfaces.h

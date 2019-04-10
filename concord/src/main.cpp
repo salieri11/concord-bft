@@ -1,4 +1,4 @@
-// Copyright 2018 VMware, all rights reserved
+// Copyright 2018-2019 VMware, all rights reserved
 //
 // Concord node startup.
 
@@ -199,7 +199,7 @@ void start_worker_threads(int number) {
  * Start the service that listens for connections from Helen.
  */
 int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
-                Logger logger) {
+                Logger &logger) {
   EVMInitParams params;
   uint64_t chainID;
 

@@ -68,6 +68,13 @@ int main(int argc, char** argv) {
   }
 
   std::ifstream fileInput(inputFilename);
+  if (!(fileInput.is_open())) {
+    LOG4CPLUS_FATAL(
+        concGenconfigLogger,
+        "Could not open specified input file: \"" + inputFilename + "\".");
+    return -1;
+  }
+
   YAMLConfigurationInput yamlInput(fileInput);
   try {
     yamlInput.parseInput();

@@ -760,7 +760,7 @@ class ConcordConfiguration {
   // given name, that parameter has a value loaded, and that value can be
   // validly converted to type T; returns false otherwise. Note this function
   // relies on template specialization for type conversions, so not all types
-  // are supported; see the comments for class ConcordConfigruation for a list
+  // are supported; see the comments for class ConcordConfiguration for a list
   // loadClusterSizeParameters(yamlInput, config, &(std::cout));
 
   // of currently supported types.
@@ -777,7 +777,7 @@ class ConcordConfiguration {
   // handles checking the appropriate subscope for the parameter if the path has
   // multiple segments. Note this function relies on template specialization for
   // type conversions, so not all types are supported; see the comments for
-  // class ConcordConfigruation for a list of currently supported types.
+  // class ConcordConfiguration for a list of currently supported types.
   template <typename T>
   bool hasValue(const ConfigurationPath& path) const {
     if (!contains(path)) {
@@ -797,7 +797,7 @@ class ConcordConfiguration {
   // does not have a value loaded, or if the loaded value cannot be interpreted
   // as the requested type. Note this function relies on template specialization
   // for type conversions, so not all types are supported; see the comments for
-  // class ConcordConfigruation for a list of currently supported types.
+  // class ConcordConfiguration for a list of currently supported types.
   template <typename T>
   T getValue(const std::string& name) const {
     const ConfigurationParameter& parameter =
@@ -825,7 +825,7 @@ class ConcordConfiguration {
   // given path, if the requested parameter does not have a value loaded, or if
   // the loaded value cannot be interpreted as the requested type. Note this
   // function relies on template specialization for type conversions, so not all
-  // types are supported; see the comments for class ConcordConfigruation for a
+  // types are supported; see the comments for class ConcordConfiguration for a
   // list of currently supported types.
   template <typename T>
   T getValue(const ConfigurationPath& path) const {
