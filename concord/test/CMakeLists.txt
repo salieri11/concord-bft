@@ -61,7 +61,8 @@ target_link_libraries(ConfigTests
   concord_utils
   kvblockchain
   gtest
-  gtest_main)
+  gtest_main
+  log4cplus)
 
 add_executable(MultiIOTests
   multiIO_test.cpp)

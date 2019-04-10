@@ -1,0 +1,62 @@
+client_proxies_per_replica: 4
+c_val: 0
+f_val: 1
+node__TEMPLATE:
+  genesis_block: ./test/resources/genesis.json
+node:
+  - service_host: 0.0.0.0
+    service_port: 5458
+    replica:
+      - replica_host: 127.0.0.1
+        replica_port: 3501
+    client_proxy:
+      - client_host: 127.0.0.1
+        client_port: 3505
+      - client_host: 127.0.0.1
+        client_port: 3506
+      - client_host: 127.0.0.1
+        client_port: 3507
+      - client_host: 127.0.0.1
+        client_port: 3508
+  - service_host: 0.0.0.0
+    service_port: 5459
+    replica:
+      - replica_host: 127.0.0.1
+        replica_port: 3502
+    client_proxy:
+      - client_host: 127.0.0.1
+        client_port: 3509
+      - client_host: 127.0.0.1
+        client_port: 3510
+      - client_host: 127.0.0.1
+        client_port: 3511
+      - client_host: 127.0.0.1
+        client_port: 3512
+  - service_host: 0.0.0.0
+    service_port: 5460
+    replica:
+      - replica_host: 127.0.0.1
+        replica_port: 3503
+    client_proxy:
+      - client_host: 127.0.0.1
+        client_port: 3513
+      - client_host: 127.0.0.1
+        client_port: 3514
+      - client_host: 127.0.0.1
+        client_port: 3515
+      - client_host: 127.0.0.1
+        client_port: 3516
+  - service_host: 0.0.0.0
+    service_port: 5461
+    replica:
+      - replica_host: 127.0.0.1
+        replica_port: 3504
+    client_proxy:
+      - client_host: 127.0.0.1
+        client_port: 3517
+      - client_host: 127.0.0.1
+        client_port: 3518
+      - client_host: 127.0.0.1
+        client_port: 3519
+      - client_host: 127.0.0.1
+        client_port: 3520

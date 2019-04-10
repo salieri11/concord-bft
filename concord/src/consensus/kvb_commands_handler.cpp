@@ -1,4 +1,4 @@
-// Copyright 2018 VMware, all rights reserved
+// Copyright 2018-2019 VMware, all rights reserved
 //
 // KVBlockchain replica command handler interface for EVM.
 //
@@ -19,6 +19,7 @@
 #include <vector>
 #include "common/concord_exception.hpp"
 #include "concord.pb.h"
+#include "config/configuration_manager.hpp"
 #include "consensus/kvb/BlockchainInterfaces.h"
 #include "consensus/kvb/HexTools.h"
 #include "ethereum/concord_evm.hpp"
@@ -55,13 +56,13 @@ namespace consensus {
 
 KVBCommandsHandler::KVBCommandsHandler(
     EVM &athevm, EthSign &verifier,
-    boost::program_options::variables_map &config_map,
+    concord::config::ConcordConfiguration &nodeConfig,
     Blockchain::ILocalKeyValueStorageReadOnly *roStorage,
     Blockchain::IBlocksAppender *appendder)
     : logger(log4cplus::Logger::getInstance("com.vmware.concord")),
       athevm_(athevm),
       verifier_(verifier),
-      config(config_map),
+      nodeConfiguration(nodeConfig),
       m_ptrRoStorage(roStorage),
       m_ptrBlockAppender(appendder) {
   assert(m_ptrBlockAppender);
@@ -282,7 +283,7 @@ bool KVBCommandsHandler::handle_transaction_list_request(
   try {
     const TransactionListRequest request = athreq.transaction_list_request();
     uint16_t remaining =
-        std::min(config["transaction_list_max_count"].as<int>(),
+        std::min(nodeConfiguration.getValue<int>("transaction_list_max_count"),
                  static_cast<int>(request.count()));
     TransactionListResponse *response =
         athresp.mutable_transaction_list_response();

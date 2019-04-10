@@ -1,20 +1,19 @@
 #!/bin/bash
 #
-# This script is for running concord under Docker Compose. The SBFT
-# config file currently requires an IP to be specified at start
-# time. We have to wait for Docker to assign those IPs first. Thus,
-# this script waits for IPs of the concord nodes, and then insert them
-# into the public SBFT config file.
+# This script is for running concord under Docker Compose. The Concord config
+# file currently requires IP addresses to be specified at start time. We have to
+# wait for Docker to assign those IPs first. Thus, this script waits for IPs of
+# the concord nodes, and then insert them into the Concord configuration file.
 #
 # Arguments:
-#  1: The path to the public config
+#  1: The path to the configuration file for this Concord node.
 #  2-N: The names of the hosts to find IPs for.
 
 if [[ $# -gt 0 ]]; then
     PUBPATH=$1
     shift
 else
-    PUBPATH=/concord/config-local/s_f1c0_config.pub
+    PUBPATH=/concord/config-local/concord.config
 fi
 
 if [[ $# -gt 0 ]]; then
@@ -35,5 +34,5 @@ for HOSTNAME in ${HOSTNAMES[@]}; do
     echo "Found ${HOSTNAME} at $IPADDRESS"
 
     # put IP address in
-    sed -i -e "s/${HOSTNAME} [0-9]\+\.[0-9]\+\.[0-9]\+\.[0-9]\+/${HOSTNAME} ${IPADDRESS}/" $PUBPATH
+    sed -i -e "s/${HOSTNAME}/${IPADDRESS}/" $PUBPATH
 done

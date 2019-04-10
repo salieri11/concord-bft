@@ -66,3 +66,13 @@ target_link_libraries(ecsign
 
 add_executable(conc_rocksdb_adp "conc_rocksdb_adp.cpp")
 target_link_libraries(conc_rocksdb_adp kvblockchain log4cplus)
+
+# conc_genconfig also needs to see "../src" to find its includes.
+add_executable(conc_genconfig
+               "conc_genconfig.cpp"
+               ${PROJECT_SOURCE_DIR}/src/config/configuration_manager.cpp)
+target_link_libraries(conc_genconfig
+                      ${Boost_LIBRARIES}
+                      ${yaml-cpp_LIBRARIES}
+                      kvblockchain
+                      log4cplus)

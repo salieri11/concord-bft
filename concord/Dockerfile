@@ -83,7 +83,8 @@ VOLUME [ "/concord/config", "/concord/rocksdbdata", "/concord/log" ]
 # Set working directory and start.
 WORKDIR /concord
 CMD export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
-    cp /concord/config-public/*.pub /concord/config-local && \
+    cp /concord/config-local/concord_with_hostnames.config \
+       /concord/config-local/concord.config && \
     /concord/config-public/find-docker-instances.sh && \
     ${memleak_util_cmd} \
     /concord/concord -c /concord/config-local/concord.config

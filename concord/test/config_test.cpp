@@ -168,32 +168,32 @@ TEST(config_test, path_equality) {
 
 TEST(config_test, path_to_string) {
   ConfigurationPath path("untitled", false);
-  ASSERT_EQ(path.toString(), "untitled") << "ConfigurationPath::toString"
+  EXPECT_EQ(path.toString(), "untitled") << "ConfigurationPath::toString"
                                             " outputs incorrect path.";
   path.isScope = true;
   path.useInstance = false;
-  ASSERT_EQ(path.toString(), "untitled") << "ConfigurationPath::toString"
+  EXPECT_EQ(path.toString(), "untitled") << "ConfigurationPath::toString"
                                             " incorrectly formats scope paths.";
   path.useInstance = true;
   path.index = 0;
-  ASSERT_EQ(path.toString(), "untitled[0]")
+  EXPECT_EQ(path.toString(), "untitled[0]")
       << "ConfigurationPath::toString incorrectly formats scope instance"
          " indexes.";
   path.useInstance = true;
   path.index = 144;
-  ASSERT_EQ(path.toString(), "untitled[144]")
+  EXPECT_EQ(path.toString(), "untitled[144]")
       << "ConfigurationPath::toString"
          " incorrectly formats scope instance indexes.";
   path.subpath.reset(new ConfigurationPath("temp", true));
   path.subpath->subpath.reset(new ConfigurationPath("A", (size_t)12));
   path.subpath->subpath->subpath.reset(new ConfigurationPath("B", false));
-  ASSERT_EQ(path.toString(), "untitled[144]/temp/A[12]/B")
+  EXPECT_EQ(path.toString(), "untitled[144]/temp/A[12]/B")
       << "ConfigurationPath::toString incorrectly formats multi-step path.";
   ConfigurationPath emptyPath("", false);
-  ASSERT_EQ(emptyPath.toString(), "") << "ConfigurationPath::toString"
+  EXPECT_EQ(emptyPath.toString(), "") << "ConfigurationPath::toString"
                                          " incorrectly handles empty paths.";
   emptyPath.subpath.reset(new ConfigurationPath("_tmp", true));
-  ASSERT_EQ(emptyPath.toString(), "")
+  EXPECT_EQ(emptyPath.toString(), "")
       << "ConfigurationPath::toString fails to"
          " ignore subpaths currently masked by parameter path.";
 }
@@ -309,13 +309,76 @@ TEST(config_test, path_leaf_functions) {
                                       " ignore subpath after a parameter.";
 }
 
+struct MockAuxiliaryState : public ConfigurationAuxiliaryState {
+ private:
+  bool* hasBeenDestructed;
+
+ public:
+  MockAuxiliaryState(bool* hasBeenDestructed)
+      : hasBeenDestructed(hasBeenDestructed) {
+    if (hasBeenDestructed) {
+      *hasBeenDestructed = false;
+    }
+  }
+  virtual ~MockAuxiliaryState() {
+    if (hasBeenDestructed) {
+      *hasBeenDestructed = true;
+    }
+  }
+  virtual ConfigurationAuxiliaryState* clone() {
+    return new MockAuxiliaryState(nullptr);
+  }
+};
+
 TEST(config_test, configuration_state) {
   ConcordConfiguration config;
-  EXPECT_EQ(config.getConfigurationState(), "")
+  EXPECT_EQ(config.getConfigurationStateLabel(), "")
       << "Configuration state does not default to an empty string.";
-  config.setConfigurationState("Configuration Generation");
-  EXPECT_EQ(config.getConfigurationState(), "Configuration Generation")
+  config.setConfigurationStateLabel("Configuration Generation");
+  EXPECT_EQ(config.getConfigurationStateLabel(), "Configuration Generation")
       << "ConcordConfiguration fails to retain its state when set.";
+
+  EXPECT_EQ(config.getAuxiliaryState(), nullptr)
+      << "ConcordConfiguration::getAuxiliaryState returns a non-null pointer "
+         "when it has not been given an auxiliary state.";
+
+  bool stateDestructed = false;
+  MockAuxiliaryState* aux = new MockAuxiliaryState(&stateDestructed);
+  config.setAuxiliaryState(aux);
+  EXPECT_EQ(config.getAuxiliaryState(), aux)
+      << "ConcordConfiguration::getAuxiliaryState fails to get the auxiliary "
+         "state that was set.";
+
+  ConcordConfiguration copyConfig(config);
+  copyConfig.clear();
+  EXPECT_FALSE(stateDestructed) << "Copying a ConcordConfiguration does not "
+                                   "correctly clone its auxiliary state.";
+
+  config.clear();
+  EXPECT_TRUE(stateDestructed)
+      << "ConcordConfiguration fails to free the auxiliary state it is given "
+         "when the configuration is cleared.";
+  EXPECT_EQ(config.getAuxiliaryState(), nullptr)
+      << "ConcordConfiguration::getAuxiliaryState returns a non-null pointer "
+         "after auxiliary state should have been freed.";
+
+  stateDestructed = false;
+  aux = new MockAuxiliaryState(&stateDestructed);
+  config.setAuxiliaryState(aux);
+  config.setAuxiliaryState(nullptr);
+  EXPECT_TRUE(stateDestructed)
+      << "ConcordConfiguration fails to free the auxiliary state it is given "
+         "when the auxiliaryState is destructed.";
+
+  stateDestructed = false;
+  aux = new MockAuxiliaryState(&stateDestructed);
+
+  ConcordConfiguration* dynamicallyAllocatedConfig = new ConcordConfiguration();
+  dynamicallyAllocatedConfig->setAuxiliaryState(aux);
+  delete dynamicallyAllocatedConfig;
+  EXPECT_TRUE(stateDestructed)
+      << "ConcordConfiguration fails to free the auxiliary state it is given "
+         "when it is destructed.";
 }
 
 static size_t mockScopeSizerResult = 0;
@@ -460,11 +523,11 @@ TEST(config_test, configuration_scope_access) {
   ConcordConfiguration& scopeBA2 = scopeB.subscope("scope_ba", 2);
   scopeBA2.declareScope("scope_baa", "A description.", mockScopeSizer, nullptr);
   ConcordConfiguration& scopeBAA = scopeBA2.subscope("scope_baa");
-  scopeBA.setConfigurationState("marked BA");
-  scopeBB.setConfigurationState("marked BB");
-  scopeBA0.setConfigurationState("marked BA0");
-  scopeBA2.setConfigurationState("marked BA2");
-  scopeBAA.setConfigurationState("marked BAA");
+  scopeBA.setConfigurationStateLabel("marked BA");
+  scopeBB.setConfigurationStateLabel("marked BB");
+  scopeBA0.setConfigurationStateLabel("marked BA0");
+  scopeBA2.setConfigurationStateLabel("marked BA2");
+  scopeBAA.setConfigurationStateLabel("marked BAA");
 
   try {
     ConcordConfiguration& scopeC = config.subscope("scope_c");
@@ -500,21 +563,21 @@ TEST(config_test, configuration_scope_access) {
   }
 
   ConfigurationPath pathBB("scope_bb", true);
-  EXPECT_EQ(scopeB.subscope(pathBB).getConfigurationState(), "marked BB")
+  EXPECT_EQ(scopeB.subscope(pathBB).getConfigurationStateLabel(), "marked BB")
       << "ConfigurationPath::subscope fails to fetch the correct subscope.";
 
-  EXPECT_EQ(scopeB.subscope(pathBB).getConfigurationState(), "marked BB")
+  EXPECT_EQ(scopeB.subscope(pathBB).getConfigurationStateLabel(), "marked BB")
       << "ConfigurationPath::subscope fails to fetch the correct subscope.";
 
   ConfigurationPath pathBA0("scope_ba", (size_t)0);
   ConfigurationPath pathBA2("scope_ba", (size_t)2);
-  EXPECT_EQ(scopeB.subscope(pathBA0).getConfigurationState(), "marked BA0")
+  EXPECT_EQ(scopeB.subscope(pathBA0).getConfigurationStateLabel(), "marked BA0")
       << "ConfigurationPath::subscope fails to fetch the correct subscope.";
-  EXPECT_EQ(scopeB.subscope(pathBA2).getConfigurationState(), "marked BA2")
+  EXPECT_EQ(scopeB.subscope(pathBA2).getConfigurationStateLabel(), "marked BA2")
       << "ConfigurationPath::subscope fails to fetch the correct subscope.";
 
   pathBA2.useInstance = false;
-  EXPECT_EQ(scopeB.subscope(pathBA2).getConfigurationState(), "marked BA")
+  EXPECT_EQ(scopeB.subscope(pathBA2).getConfigurationStateLabel(), "marked BA")
       << "ConfigurationPath::subscope fails to ignore index for non-instance"
          " paths.";
   pathBA0.useInstance = true;
@@ -523,7 +586,7 @@ TEST(config_test, configuration_scope_access) {
   pathB_BA2_BAA.subpath.reset(new ConfigurationPath("scope_ba", (size_t)2));
   pathB_BA2_BAA.subpath->subpath.reset(
       new ConfigurationPath("scope_baa", true));
-  EXPECT_EQ(config.subscope(pathB_BA2_BAA).getConfigurationState(),
+  EXPECT_EQ(config.subscope(pathB_BA2_BAA).getConfigurationStateLabel(),
             "marked BAA")
       << "ConfigurationPath::subscope fails to fetch the correct"
          " subscope for a multi-step path.";
@@ -653,13 +716,13 @@ TEST(config_test, configuration_parameter_creation) {
   } catch (ConfigurationRedefinitionException e) {
   }
   config.loadDefault("parameter_b");
-  EXPECT_EQ(config.getValue("parameter_b"), "default")
+  EXPECT_EQ(config.getValue<std::string>("parameter_b"), "default")
       << "ConcordConfiguration fails to retain the default value a parameter "
          "is created with.";
 
   config.declareParameter("parameter_c", "A description.", "");
   config.loadDefault("parameter_c");
-  EXPECT_EQ(config.getValue("parameter_c"), "")
+  EXPECT_EQ(config.getValue<std::string>("parameter_c"), "")
       << "ConcordConfiguration::declareParameter fails to consider the empty "
          "string an acceptable default value.";
 
@@ -774,75 +837,75 @@ TEST(config_test, configuration_parameter_access) {
       << "ConcordConfiguration::contains fails to correctly traverse a path to "
          "a parameter that does not exist.";
 
-  EXPECT_TRUE(config.hasValue("parameter_b"))
+  EXPECT_TRUE(config.hasValue<std::string>("parameter_b"))
       << "ConcordConfiguration::hasValue fails to correctly detect a parameter "
          "with a value.";
-  EXPECT_FALSE(config.hasValue("parameter_a"))
+  EXPECT_FALSE(config.hasValue<std::string>("parameter_a"))
       << "ConcordConfiguration::hasValue fails to correctly detect a parameter "
          "that has no value.";
-  EXPECT_FALSE(config.hasValue("parameter_c"))
+  EXPECT_FALSE(config.hasValue<std::string>("parameter_c"))
       << "ConcordConfiguration::hasValue fails to correctly report that a "
          "parameter which has not been defined cannot have any value.";
 
   ConfigurationPath pathB("parameter_b", false);
-  EXPECT_TRUE(config.hasValue(pathB))
+  EXPECT_TRUE(config.hasValue<std::string>(pathB))
       << "ConcordConfiguration::hasValue fails to correctly detect a parameter "
          "with a value.";
-  EXPECT_FALSE(config.hasValue(pathA))
+  EXPECT_FALSE(config.hasValue<std::string>(pathA))
       << "ConcordConfiguration::hasValue fails to correctly detect a parameter "
          "that has no value.";
-  EXPECT_FALSE(config.hasValue(pathC))
+  EXPECT_FALSE(config.hasValue<std::string>(pathC))
       << "ConcordConfiguration::hasValue fails to correctly report that a "
          "parameter which has not been defined cannot have any value.";
 
   ConfigurationPath pathA2AB(pathA2AA);
   pathA2AB.subpath->subpath->name = "parameter_a2ab";
-  EXPECT_FALSE(config.hasValue(pathA2AA))
+  EXPECT_FALSE(config.hasValue<std::string>(pathA2AA))
       << "ConcordConfiguration::hasValue fails to correctly traverse a path to "
          "a parameter.";
-  EXPECT_TRUE(config.hasValue(pathA2AB))
+  EXPECT_TRUE(config.hasValue<std::string>(pathA2AB))
       << "ConcordConfiguration::hasValue fails to correctly traverse a path to "
          "a parameter.";
 
-  EXPECT_EQ(config.getValue("parameter_b"), "A value.")
+  EXPECT_EQ(config.getValue<std::string>("parameter_b"), "A value.")
       << "ConcordConfiguration::getValue fails to fetch the correct value for "
          "a parameter.";
   try {
-    std::string value = config.getValue("parameter_a");
+    std::string value = config.getValue<std::string>("parameter_a");
     FAIL() << "ConcordConfiguration::getValue fails to reject a request to get "
               "the value of an uninitialized parameter.";
   } catch (ConfigurationResourceNotFoundException e) {
   }
   try {
-    std::string value = config.getValue("parameter_c");
+    std::string value = config.getValue<std::string>("parameter_c");
     FAIL() << "ConcordConfiguration::getValue fails to reject a request to get "
               "the value of a parameter which does not exist.";
   } catch (ConfigurationResourceNotFoundException e) {
   }
 
-  EXPECT_EQ(config.getValue(pathB), "A value.")
+  EXPECT_EQ(config.getValue<std::string>(pathB), "A value.")
       << "ConcordConfiguration::getValue fails to fetch the correct value for "
          "a parameter.";
   try {
-    std::string value = config.getValue(pathA);
+    std::string value = config.getValue<std::string>(pathA);
     FAIL() << "ConcordConfiguration::getValue fails to reject a request to get "
               "the value of an uninitialized parameter.";
   } catch (ConfigurationResourceNotFoundException e) {
   }
   try {
-    std::string value = config.getValue(pathC);
+    std::string value = config.getValue<std::string>(pathC);
     FAIL() << "ConcordConfiguration::getValue fails to reject a request to get "
               "the value of a parameter which does not exist.";
   } catch (ConfigurationResourceNotFoundException e) {
   }
 
   try {
-    std::string value = config.getValue(pathA2AA);
+    std::string value = config.getValue<std::string>(pathA2AA);
     FAIL() << "ConcordConfiguration::getValue fails to correctly traverse a "
               "path to a parameter.";
   } catch (ConfigurationResourceNotFoundException e) {
   }
-  EXPECT_EQ(config.getValue(pathA2AB), "A different value.")
+  EXPECT_EQ(config.getValue<std::string>(pathA2AB), "A different value.")
       << "ConcordConfiguration::getValue fails to correctly traverse a path to "
          "a parameter.";
 
@@ -855,11 +918,11 @@ TEST(config_test, configuration_parameter_access) {
   }
 
   config.loadValue("parameter_b", "A new value.", nullptr, false);
-  EXPECT_EQ(config.getValue("parameter_b"), "A value.")
+  EXPECT_EQ(config.getValue<std::string>("parameter_b"), "A value.")
       << "ConcordConfiguration::loadValue overwrites existing value even when "
          "overwrite is not requested.";
   config.loadValue("parameter_b", "A new value.", nullptr, true);
-  EXPECT_EQ(config.getValue("parameter_b"), "A new value.")
+  EXPECT_EQ(config.getValue<std::string>("parameter_b"), "A new value.")
       << "ConcordConfiguration::loadValue fails to overwrite existing value "
          "even when overwrite is requested.";
   std::string prevValue;
@@ -876,7 +939,7 @@ TEST(config_test, configuration_parameter_access) {
          "even when it does not overwrite a value.";
 
   config.eraseValue("parameter_a");
-  EXPECT_FALSE(config.hasValue("parameter_a"))
+  EXPECT_FALSE(config.hasValue<std::string>("parameter_a"))
       << "ConcordConfiguration reports it still has a value for a parameter "
          "after erasing the value for that parameter.";
   try {
@@ -902,7 +965,7 @@ TEST(config_test, configuration_parameter_access) {
   auto iterator = config.begin(ConcordConfiguration::kIterateAllParameters);
   auto end = config.end(ConcordConfiguration::kIterateAllParameters);
   while (iterator != end) {
-    EXPECT_FALSE(config.hasValue(*iterator))
+    EXPECT_FALSE(config.hasValue<std::string>(*iterator))
         << "ConcordConfiguration::eraseAllValues fails to erase all values "
            "stored.";
     ++iterator;
@@ -910,6 +973,82 @@ TEST(config_test, configuration_parameter_access) {
 
   ConcordConfiguration emptyConfig;
   emptyConfig.eraseAllValues();
+}
+
+TEST(config_test, type_interpretation) {
+  ConcordConfiguration config;
+  config.declareParameter("parameter_a", "A description.");
+
+  config.loadValue("parameter_a", "Not an integer.");
+  EXPECT_TRUE(config.hasValue<std::string>("parameter_a"))
+      << "ConcordConfiguration::hasValue fails to detect value for a string.";
+  EXPECT_FALSE(config.hasValue<int>("parameter_a") ||
+               config.hasValue<short>("parameter_a") ||
+               config.hasValue<uint16_t>("parameter_a") ||
+               config.hasValue<uint64_t>("parameter_a"))
+      << "ConcordConfiguration::hasValue fails to reject a non-integer value "
+         "when interpreting the parameter as an integer.";
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "Not an integer.")
+      << "ConcordConfiguration::getValue fails to fetch a string.";
+  try {
+    short aShort = config.getValue<short>("parameter_a");
+    int aInt = config.getValue<int>("parameter_a");
+    uint16_t aUInt16 = config.getValue<uint16_t>("parameter_a");
+    uint64_t aUInt64 = config.getValue<uint64_t>("parameter_a");
+    FAIL() << "ConcordConfiguration::getValue fails to throw an exception when "
+              "attempting an invalid conversion of the value type.";
+  } catch (ConfigurationResourceNotFoundException e) {
+  }
+
+  config.declareParameter("too_low", "A description.");
+  config.declareParameter("low", "A description.");
+  config.declareParameter("high", "A description.");
+  config.declareParameter("too_high", "A description.");
+
+  assert(sizeof(long long) > sizeof(int));
+  config.loadValue("too_low", std::to_string(((long long)INT_MIN) - 1));
+  config.loadValue("low", std::to_string(INT_MIN));
+  config.loadValue("high", std::to_string(INT_MAX));
+  config.loadValue("too_high", std::to_string(((long long)INT_MAX) + 1));
+  EXPECT_TRUE(!(config.hasValue<int>("too_low")) &&
+              (config.hasValue<int>("low")) && (config.hasValue<int>("high")) &&
+              !(config.hasValue<int>("too_high")))
+      << "ConcordConfiguration::hasValue fails to correctly enforce the limits "
+         "of ints.";
+
+  config.loadValue("too_low", std::to_string(((long long)SHRT_MIN) - 1));
+  config.loadValue("low", std::to_string(SHRT_MIN));
+  config.loadValue("high", std::to_string(SHRT_MAX));
+  config.loadValue("too_high", std::to_string(((long long)SHRT_MAX) + 1));
+  EXPECT_TRUE(
+      !(config.hasValue<short>("too_low")) && (config.hasValue<short>("low")) &&
+      (config.hasValue<short>("high")) && !(config.hasValue<short>("too_high")))
+      << "ConcordConfiguration::hasValue fails to correctly enforce the limits "
+         "of shorts.";
+
+  config.loadValue("too_low", "-1");
+  config.loadValue("low", "0");
+  config.loadValue("high", std::to_string(UINT16_MAX));
+  config.loadValue("too_high", std::to_string(((uint64_t)UINT16_MAX) + 1));
+  EXPECT_TRUE(!(config.hasValue<uint16_t>("too_low")) &&
+              (config.hasValue<uint16_t>("low")) &&
+              (config.hasValue<uint16_t>("high")) &&
+              !(config.hasValue<uint16_t>("too_high")))
+      << "ConcordConfiguration::hasValue fails to correctly enforce the limits "
+         "of uint16_ts.";
+
+  config.loadValue("high", std::to_string(UINT64_MAX));
+  // String value of UINT64_MAX + 1; this is hardcoded rather than computed
+  // because it may exceed the size of any native C++ integer type.
+  config.loadValue("too_high", "18446744073709551616");
+
+  EXPECT_TRUE(!(config.hasValue<uint64_t>("too_low")) &&
+              (config.hasValue<uint64_t>("low")) &&
+              (config.hasValue<uint64_t>("high")) &&
+              !(config.hasValue<uint64_t>("too_high")))
+      << "ConcordConfiguration::hasValue fails to correctly enforce the limits "
+         "of uint64_ts.";
+  ;
 }
 
 static ConcordConfiguration::ParameterStatus mockValidatorResult;
@@ -964,14 +1103,14 @@ TEST(config_test, configuration_parameter_validation) {
             ConcordConfiguration::ParameterStatus::INVALID)
       << "ConcordConfiguration fails to correctly use a parameter's validator "
          "function.";
-  EXPECT_FALSE(config.hasValue("parameter_a"))
+  EXPECT_FALSE(config.hasValue<std::string>("parameter_a"))
       << "ConcordConfiguration fails to enforce a parameter's validator "
          "function.";
   EXPECT_EQ(config.loadValue("parameter_a", "hasn't_spaces"),
             ConcordConfiguration::ParameterStatus::VALID)
       << "ConcordConfiguration fails to correctly use a parameter's validator "
          "function.";
-  EXPECT_TRUE(config.hasValue("parameter_a"))
+  EXPECT_TRUE(config.hasValue<std::string>("parameter_a"))
       << "ConcordConfiguration fails to enforce a parameter's validator "
          "function.";
   EXPECT_EQ(config.validate("parameter_a"),
@@ -986,7 +1125,7 @@ TEST(config_test, configuration_parameter_validation) {
             ConcordConfiguration::ParameterStatus::VALID)
       << "ConcordConfiguration fails to correctly replace the validtor for a "
          "parameter with an existing validator.";
-  EXPECT_EQ(config.getValue("parameter_a"), "has spaces")
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "has spaces")
       << "ConcordConfiguration fails to correctly replace the validator for a "
          "parameter with an existing validator.";
   EXPECT_TRUE(mockValidatorCalled) << "ConcordConfiguration fails to correctly "
@@ -1130,7 +1269,7 @@ TEST(config_test, configuration_parameter_defaults) {
             ConcordConfiguration::ParameterStatus::VALID)
       << "ConcordConfiguration::loadDefault fails to load the correct default "
          "value for a parameter.";
-  EXPECT_EQ(config.getValue("parameter_a"), "default_value")
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "default_value")
       << "ConcordConfiguration::laodDefault fails to load the correct default "
          "value for a parameter.";
 
@@ -1149,11 +1288,11 @@ TEST(config_test, configuration_parameter_defaults) {
 
   config.loadValue("parameter_a", "a value");
   config.loadDefault("parameter_a", nullptr, false);
-  EXPECT_EQ(config.getValue("parameter_a"), "a value")
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "a value")
       << "ConcordConfiguration::loadDefault overwrites a value even when "
          "overwrite is not specified.";
   config.loadDefault("parameter_a", nullptr, true);
-  EXPECT_EQ(config.getValue("parameter_a"), "default_value")
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "default_value")
       << "ConcordConfiguration::loadDefault fails to overwrite existing value "
          "even when overwrite is specified.";
 
@@ -1175,7 +1314,7 @@ TEST(config_test, configuration_parameter_defaults) {
             ConcordConfiguration::ParameterStatus::INVALID)
       << "ConcordConfiguration::loadDefault fails to enforce validators on "
          "default values.";
-  EXPECT_EQ(config.getValue("parameter_a"), "a value")
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "a value")
       << "ConcordConfiguration::loadDefault fails to leave the existing value "
          "of a parameter intact if the default value fails validation.";
 
@@ -1185,7 +1324,7 @@ TEST(config_test, configuration_parameter_defaults) {
             ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION)
       << "ConcordConfiguration::loadDefault fails to correctly report "
          "validator results.";
-  EXPECT_EQ(config.getValue("parameter_a"), "default_value")
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "default_value")
       << "ConcordConfiguration::loadDefault fails to correctly enforce "
          "validator results.";
 
@@ -1216,32 +1355,35 @@ TEST(config_test, configuration_parameter_defaults) {
   ConcordConfiguration& scopeA0 = config.subscope("scope_a", 0);
 
   config.loadAllDefaults();
-  EXPECT_EQ(config.getValue("parameter_a"), "default_value")
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "default_value")
       << "ConcordConfiguration::loadAllDefaults fails to load the correct "
          "default value for parameters.";
-  EXPECT_FALSE(config.hasValue("parameter_b"))
+  EXPECT_FALSE(config.hasValue<std::string>("parameter_b"))
       << "ConcordConfiguration::loadAllDefaults appears to load a value for "
          "parameters without default values.";
-  EXPECT_EQ(scopeA0.getValue("parameter_aa"), "different_default_value")
+  EXPECT_EQ(scopeA0.getValue<std::string>("parameter_aa"),
+            "different_default_value")
       << "ConcordConfiguration::loadAllDefaults fails to act recursively.";
 
   scopeA0.loadValue("parameter_aa", "not default");
   config.loadAllDefaults(false);
-  EXPECT_EQ(scopeA0.getValue("parameter_aa"), "not default")
+  EXPECT_EQ(scopeA0.getValue<std::string>("parameter_aa"), "not default")
       << "ConcordConfiguration::loadAllDefaults overwrites existing values "
          "even when overwrite is not specified.";
   config.loadAllDefaults(true);
-  EXPECT_EQ(scopeA0.getValue("parameter_aa"), "different_default_value")
+  EXPECT_EQ(scopeA0.getValue<std::string>("parameter_aa"),
+            "different_default_value")
       << "ConcordConfiguration::loadAllDefaults fails to overwrite existing "
          "values even when overwrite is specified.";
 
   config.eraseAllValues();
   config.loadAllDefaults(true, false);
-  EXPECT_FALSE(scopeA.hasValue("parameter_aa"))
+  EXPECT_FALSE(scopeA.hasValue<std::string>("parameter_aa"))
       << "ConcordConfiguration::loadAllDefaults loads defaults for scope "
          "templates even when asked otherwise.";
   config.loadAllDefaults(true, true);
-  EXPECT_EQ(scopeA.getValue("parameter_aa"), "different_default_value")
+  EXPECT_EQ(scopeA.getValue<std::string>("parameter_aa"),
+            "different_default_value")
       << "ConcordConfiguration::getValue fails to load defaults for templates "
          "even when requested.";
 
@@ -1263,7 +1405,7 @@ TEST(config_test, configuration_parameter_generation) {
             ConcordConfiguration::ParameterStatus::VALID)
       << "ConcordConfiguration fails to correctly generate a value for a "
          "parameter.";
-  EXPECT_EQ(config.getValue("parameter_a"), "generated value")
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "generated value")
       << "ConcordConfiguration fails to correctly generate a value for a "
          "parameter.";
   EXPECT_TRUE(mockGeneratorCalled)
@@ -1276,7 +1418,7 @@ TEST(config_test, configuration_parameter_generation) {
   config.addGenerator("parameter_a", mockGenerator, &mockGeneratorCalledAgain);
   mockGeneratorOutput = "new generated value";
   config.generate("parameter_a");
-  EXPECT_EQ(config.getValue("parameter_a"), "new generated value")
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "new generated value")
       << "ConcordConfiguration fails to correctly generate a value for a "
          "parameter.";
   EXPECT_FALSE(mockGeneratorCalled)
@@ -1291,11 +1433,11 @@ TEST(config_test, configuration_parameter_generation) {
   mockGeneratorOutput = "generated value";
   config.loadValue("parameter_a", "a value");
   config.generate("parameter_a", nullptr, false);
-  EXPECT_EQ(config.getValue("parameter_a"), "a value")
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "a value")
       << "ConcordConfiguration::generate overwrites existing value even when "
          "this is not requested.";
   config.generate("parameter_a", nullptr, true);
-  EXPECT_EQ(config.getValue("parameter_a"), "generated value")
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "generated value")
       << "ConcordConfiguration::generate fails to overwrite existing value "
          "even when this is requested.";
 
@@ -1321,7 +1463,7 @@ TEST(config_test, configuration_parameter_generation) {
             ConcordConfiguration::ParameterStatus::INVALID)
       << "ConcordConfiguration::generate fails to correctly aggregate the "
          "status returned by generation and that returned by validation.";
-  EXPECT_FALSE(config.hasValue("parameter_a"))
+  EXPECT_FALSE(config.hasValue<std::string>("parameter_a"))
       << "ConcordConfiguration::generate appears to load a value even when the "
          "generator does not report its output is valid.";
   mockGeneratorStatus =
@@ -1330,7 +1472,7 @@ TEST(config_test, configuration_parameter_generation) {
             ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION)
       << "ConcordConfiguration::generate fails to correctly aggregate the "
          "status returned by generation and that returned by validation.";
-  EXPECT_FALSE(config.hasValue("parameter_a"))
+  EXPECT_FALSE(config.hasValue<std::string>("parameter_a"))
       << "ConcordConfiguration::generate appears to load a value even when the "
          "generator does not report its output is valid.";
   mockGeneratorStatus = ConcordConfiguration::ParameterStatus::VALID;
@@ -1338,8 +1480,8 @@ TEST(config_test, configuration_parameter_generation) {
             ConcordConfiguration::ParameterStatus::VALID)
       << "ConcordConfiguration::generate fails to correctly aggregate the "
          "status returned by generation and that returned by validation.";
-  EXPECT_EQ(config.getValue("parameter_a"), "generated value")
-      << "ConcordConfiguration::generate fails to correctly load the "
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "generated value")
+      << "ConcordConfiguratiosn::generate fails to correctly load the "
          "generated value when appropriate.";
 
   mockValidatorResult =
@@ -1349,7 +1491,7 @@ TEST(config_test, configuration_parameter_generation) {
             ConcordConfiguration::ParameterStatus::INSUFFICIENT_INFORMATION)
       << "ConcordConfiguration::generate fails to correctly aggregate the "
          "status returned by generation and that returned by validation.";
-  EXPECT_EQ(config.getValue("parameter_a"), "generated value")
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "generated value")
       << "ConcordConfiguration::generate fails to correctly load the "
          "generated value when appropriate.";
   mockValidatorResult = ConcordConfiguration::ParameterStatus::INVALID;
@@ -1358,7 +1500,7 @@ TEST(config_test, configuration_parameter_generation) {
             ConcordConfiguration::ParameterStatus::INVALID)
       << "ConcordConfiguration::generate fails to correctly aggregate the "
          "status returned by generation and that returned by validation.";
-  EXPECT_FALSE(config.hasValue("parameter_a"))
+  EXPECT_FALSE(config.hasValue<std::string>("parameter_a"))
       << "ConcordConfiguration::generate appears to load generated values that "
          "fail validation.";
 
@@ -1414,13 +1556,13 @@ TEST(config_test, configuration_parameter_generation) {
   EXPECT_EQ(config.generateAll(), ConcordConfiguration::ParameterStatus::VALID)
       << "ConcordConfiguration::generateAll fails to correctly generate "
          "parameters.";
-  EXPECT_EQ(config.getValue("parameter_a"), "generated value")
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "generated value")
       << "ConcordConfiguration::generateAll fails to correctly generate "
          "parameters.";
-  EXPECT_FALSE(config.hasValue("parameter_b"))
+  EXPECT_FALSE(config.hasValue<std::string>("parameter_b"))
       << "ConcordConfiguration::generateAll appears to effect parameters "
          "without generators.";
-  EXPECT_EQ(scopeA0.getValue("parameter_aa"), "generated value")
+  EXPECT_EQ(scopeA0.getValue<std::string>("parameter_aa"), "generated value")
       << "ConcordConfiguration::generateAll fails to act recursively.";
 
   mockValidatorResult = ConcordConfiguration::ParameterStatus::INVALID;
@@ -1432,21 +1574,21 @@ TEST(config_test, configuration_parameter_generation) {
 
   config.loadValue("parameter_a", "a value");
   config.generateAll(false);
-  EXPECT_EQ(config.getValue("parameter_a"), "a value")
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "a value")
       << "ConcordConfiguration::generateAll overwrites existing values even "
          "when this is not requested.";
   config.generateAll(true);
-  EXPECT_EQ(config.getValue("parameter_a"), "generated value")
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "generated value")
       << "ConcordConfiguration::generateAll fails to overwrite existing values "
          "even when this is requested.";
 
   config.eraseAllValues();
   config.generateAll(true, false);
-  EXPECT_FALSE(scopeA.hasValue("parameter_aa"))
+  EXPECT_FALSE(scopeA.hasValue<std::string>("parameter_aa"))
       << "ConcordConfiguration::generateAll generates values for scope "
          "templates even when this is not requested.";
   config.generateAll(true, true);
-  EXPECT_EQ(scopeA.getValue("parameter_aa"), "generated value")
+  EXPECT_EQ(scopeA.getValue<std::string>("parameter_aa"), "generated value")
       << "ConcordConfiguration::generateAll fails to generate values for scope "
          "templates even when this is requested.";
 
@@ -1991,7 +2133,7 @@ TEST(config_test, yaml_configuration_io) {
            config.begin(ConcordConfiguration::kIterateAllParameters);
        iterator != config.end(ConcordConfiguration::kIterateAllParameters);
        ++iterator) {
-    EXPECT_FALSE(config.hasValue(*iterator))
+    EXPECT_FALSE(config.hasValue<std::string>(*iterator))
         << "YAMLConfigurationInput::loadConfiguration loads a value to the "
            "given configuration when given empty YAML input.";
   }
@@ -2020,7 +2162,7 @@ TEST(config_test, yaml_configuration_io) {
            config.begin(ConcordConfiguration::kIterateAllParameters);
        iterator != config.end(ConcordConfiguration::kIterateAllParameters);
        ++iterator) {
-    EXPECT_FALSE(config.hasValue(*iterator))
+    EXPECT_FALSE(config.hasValue<std::string>(*iterator))
         << "YAMLConfigurationInput::loadConfiguration loads a value to the "
            "given configuration when given malformed YAML input.";
   }
@@ -2065,28 +2207,28 @@ TEST(config_test, yaml_configuration_io) {
       config, config.begin(ConcordConfiguration::kIterateAllParameters),
       config.end(ConcordConfiguration::kIterateAllParameters)))
       << "YAMLConfigurationInput failed to parse a sample configuration file.";
-  EXPECT_EQ(config.getValue("parameter_a"), "A value.")
+  EXPECT_EQ(config.getValue<std::string>("parameter_a"), "A value.")
       << "YAMLConfigurationInput::loadConfiguration failed to correctly load a "
          "value given in its YAML input.";
-  EXPECT_FALSE(config.hasValue("parameter_b"))
+  EXPECT_FALSE(config.hasValue<std::string>("parameter_b"))
       << "YAMLConfigurationInput::loadConfiguration loads a value for a "
          "parameter not given in its YAML input.";
-  EXPECT_EQ(scopeB.getValue("parameter_ba"), "Value.")
+  EXPECT_EQ(scopeB.getValue<std::string>("parameter_ba"), "Value.")
       << "YAMLConfigurationInput::loadConfiguration fails to correctly load "
          "input for scope templates.";
-  EXPECT_FALSE(scopeB0.hasValue("parameter_ba"))
+  EXPECT_FALSE(scopeB0.hasValue<std::string>("parameter_ba"))
       << "YAMLConfigurationInput::loadConfiguration loads value given for "
          "scope template to scope instances.";
-  EXPECT_EQ(scopeB0.getValue("parameter_bb"), "Value A.")
+  EXPECT_EQ(scopeB0.getValue<std::string>("parameter_bb"), "Value A.")
       << "YAMLConfigurationInput::loadConfiguration fails to correctly load "
          "input for scope instances.";
-  EXPECT_EQ(scopeB1.getValue("parameter_bb"), "Value B.")
+  EXPECT_EQ(scopeB1.getValue<std::string>("parameter_bb"), "Value B.")
       << "YAMLConfigurationInput::loadConfiguration fails to correctly load "
          "input for scope instances.";
-  EXPECT_FALSE(scopeB.hasValue("parameter_bb"))
+  EXPECT_FALSE(scopeB.hasValue<std::string>("parameter_bb"))
       << "YAMLConfigurationInput::loadConfiguration loads value given for "
          "scope instances to scope template.";
-  EXPECT_EQ(scopeB1A.getValue("parameter_baa"), "Value B.A.")
+  EXPECT_EQ(scopeB1A.getValue<std::string>("parameter_baa"), "Value B.A.")
       << "YAMLConfigurationInput::loadConfiguration fails to correctly load "
          "input for parameters in nested scopes.";
 
@@ -2104,35 +2246,16 @@ TEST(config_test, yaml_configuration_io) {
                                             configSubset.end()))
       << "ConcordConfiguration::loadConfiguration fails to handle loading a "
          "subset of the configuration.";
-  EXPECT_FALSE(config.hasValue("parameter_a"))
+  EXPECT_FALSE(config.hasValue<std::string>("parameter_a"))
       << "YAMLConfigurationInput::loadConfiguration loads values for "
          "parameters not in the set selected with the iterators it is passed.";
-  EXPECT_EQ(config.getValue("parameter_b"), "Value B.")
+  EXPECT_EQ(config.getValue<std::string>("parameter_b"), "Value B.")
       << "YAMLConfigurationInput::loadConfiguration fails to load the correct "
          "value for a parameter both included in the input and in the set "
          "selected with the iterators it is passed.";
-  EXPECT_FALSE(config.hasValue("parameter_c"))
+  EXPECT_FALSE(config.hasValue<std::string>("parameter_c"))
       << "YAMLConfigurationInput::loadConfiguration loads values for "
          "parameters not included in the input.";
-
-  config.eraseAllValues();
-  std::ostringstream failureMessage("");
-  configInput.loadConfiguration(config, configSubset.begin(),
-                                configSubset.end(), &failureMessage);
-  EXPECT_EQ(failureMessage.str(), "")
-      << "YAMLConfigurationInput::loadConfiguration writes a message out to "
-         "the error stream it is given even when no validator fails.";
-
-  config.eraseAllValues();
-  mockValidatorResult = ConcordConfiguration::ParameterStatus::INVALID;
-  mockValidatorFailureMessage = "Mock validator failed.";
-  configInput.loadConfiguration(config, configSubset.begin(),
-                                configSubset.end(), &failureMessage);
-  EXPECT_EQ(
-      failureMessage.str(),
-      "Cannot load value for parameter parameter_b: Mock validator failed.\n")
-      << "YAMLConfigurationInput::loadConfiguration fails to correctly write "
-         "back error messages to the error stream it is given.";
 
   config.eraseAllValues();
   EXPECT_TRUE(configInput.loadConfiguration(config, configSubset.begin(),
@@ -2145,12 +2268,12 @@ TEST(config_test, yaml_configuration_io) {
   config.loadValue("parameter_b", "Original value.");
   configInput.loadConfiguration(config, configSubset.begin(),
                                 configSubset.end(), nullptr, false);
-  EXPECT_EQ(config.getValue("parameter_b"), "Original value.")
+  EXPECT_EQ(config.getValue<std::string>("parameter_b"), "Original value.")
       << "YAMLConfigurationInput::loadConfiguration overwrites existing values "
          "even when requested otherwise.";
   configInput.loadConfiguration(config, configSubset.begin(),
                                 configSubset.end(), nullptr, true);
-  EXPECT_EQ(config.getValue("parameter_b"), "Value B.")
+  EXPECT_EQ(config.getValue<std::string>("parameter_b"), "Value B.")
       << "YAMLConfigurationInput::loadConfiguration fails to overwrite "
          "existing values even when this is requested.";
 
@@ -2249,12 +2372,13 @@ TEST(config_test, yaml_configuration_io) {
            config.begin(ConcordConfiguration::kIterateAllParameters);
        iterator != config.end(ConcordConfiguration::kIterateAllParameters);
        ++iterator) {
-    if (config.hasValue(*iterator)) {
-      EXPECT_EQ(config.getValue(*iterator), copyConfig.getValue(*iterator))
+    if (config.hasValue<std::string>(*iterator)) {
+      EXPECT_EQ(config.getValue<std::string>(*iterator),
+                copyConfig.getValue<std::string>(*iterator))
           << "Outputting a configuration to YAML and reading it back in does "
              "not yield a configuration matching the original.";
     } else {
-      EXPECT_FALSE(copyConfig.hasValue(*iterator))
+      EXPECT_FALSE(copyConfig.hasValue<std::string>(*iterator))
           << "Outputting a configuration to YAML and reading it back in does "
              "not yield a configuration matching the original.";
     }
@@ -2264,7 +2388,7 @@ TEST(config_test, yaml_configuration_io) {
     config.declareScope("scope_d" + kYAMLScopeTemplateSuffix, "A description.",
                         mockScopeSizer, nullptr);
     FAIL() << "ConcordConfiguration::declareScope fails to reject scope names "
-              "endin in the YAML scope template suffix.";
+              "ending in the YAML scope template suffix.";
   } catch (std::invalid_argument) {
   }
 
