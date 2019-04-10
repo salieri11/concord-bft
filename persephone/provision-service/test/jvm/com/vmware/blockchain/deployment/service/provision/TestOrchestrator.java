@@ -13,6 +13,7 @@ import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInf
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.reactive.IteratingPublisher;
 import kotlinx.coroutines.ExecutorsKt;
+import org.jetbrains.annotations.NotNull;
 import org.reactivestreams.Publisher;
 
 class TestOrchestrator implements Orchestrator {
@@ -28,8 +29,10 @@ class TestOrchestrator implements Orchestrator {
     }
 
     @Override
-    public Publisher<ComputeResourceEvent> createDeployment(CreateComputeResourceRequest request) {
-        var uri = URI.create("concord://" + UUID.randomUUID());
+    public Publisher<ComputeResourceEvent> createDeployment(
+            CreateComputeResourceRequest request
+    ) {
+        var uri = URI.create("http://orchestrator.local/" + UUID.randomUUID());
         var events = List.of(
                 new ComputeResourceEvent.Created(uri, request.getNode()),
                 new ComputeResourceEvent.Started(uri)
@@ -38,7 +41,9 @@ class TestOrchestrator implements Orchestrator {
     }
 
     @Override
-    public Publisher<ComputeResourceEvent> deleteDeployment(DeleteComputeResourceRequest request) {
+    public Publisher<ComputeResourceEvent> deleteDeployment(
+            DeleteComputeResourceRequest request
+    ) {
         var events = Collections.<ComputeResourceEvent>emptyList();
         return new IteratingPublisher<>(events, ExecutorsKt.from(ForkJoinPool.commonPool()));
     }
@@ -61,15 +66,16 @@ class TestOrchestrator implements Orchestrator {
 
     @Override
     public Publisher<NetworkAllocationEvent> createNetworkAllocation(
-            NetworkAllocationRequest request
+            CreateNetworkAllocationRequest request
     ) {
         var events = Collections.<NetworkAllocationEvent>emptyList();
         return new IteratingPublisher<>(events, ExecutorsKt.from(ForkJoinPool.commonPool()));
     }
 
+    @NotNull
     @Override
     public Publisher<NetworkAllocationEvent> deleteNetworkAllocation(
-            NetworkAllocationRequest request
+            @NotNull DeleteNetworkAllocationRequest request
     ) {
         var events = Collections.<NetworkAllocationEvent>emptyList();
         return new IteratingPublisher<>(events, ExecutorsKt.from(ForkJoinPool.commonPool()));

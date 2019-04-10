@@ -9,6 +9,7 @@ import kotlinx.serialization.context.SimpleModule
  * Enumeration of all serializable types related to NSX data models.
  */
 enum class NsxSerializationModule(val module: SimpleModule<*>) {
+    NAT_RULE(SimpleModule(NatRule::class, NatRule.serializer())),
     PUBLIC_IP(SimpleModule(PublicIP::class, PublicIP.serializer())),
     SEGMENT(SimpleModule(Segment::class, Segment.serializer())),
     SEGMENT_SUBNET(SimpleModule(SegmentSubnet::class, SegmentSubnet.serializer()))

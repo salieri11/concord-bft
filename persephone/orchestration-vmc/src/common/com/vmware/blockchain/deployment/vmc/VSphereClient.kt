@@ -22,7 +22,7 @@ import com.vmware.blockchain.deployment.model.vsphere.VSphereAuthenticationRespo
  *   underlying HTTP client to use for communication.
  */
 class VSphereClient(
-    private val context: Context,
+    val context: Context,
     private val serializer: JsonSerializer
 ): AccessTokenAwareHttpClient(context.endpoint, serializer) {
 

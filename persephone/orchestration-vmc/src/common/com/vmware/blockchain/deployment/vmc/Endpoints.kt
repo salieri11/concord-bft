@@ -13,10 +13,15 @@ enum class Endpoints(
     private val parameterMappings: Set<String>,
     private val pathMappings: Set<String> = emptySet()
 ) {
-    NSX_NAT_RULE(
-            "policy/api/v1/infra/networks/{network}/nat/{nat}/nat-rules/{nat_rule}",
+    NSX_API_ROOT(
+            "policy/api/v1/{resource}",
             emptySet(),
-            setOf("{network}", "{nat_id}", "{nat_rule_id}")
+            setOf("{resource}")
+    ),
+    NSX_NAT_RULE(
+            "policy/api/v1/infra/tier-1s/{tier1}/nat/{nat}/nat-rules/{nat_rule}",
+            emptySet(),
+            setOf("{tier1}", "{nat}", "{nat_rule}")
     ),
     NSX_NETWORK_SEGMENT(
             "policy/api/v1/infra/tier-1s/{tier1}/segments/{segment}",
@@ -45,9 +50,13 @@ enum class Endpoints(
     ),
     VSPHERE_NETWORKS("/rest/vcenter/network", setOf("filter.types", "filter.names")),
     VSPHERE_VM("/rest/vcenter/vm/{vm}", emptySet(), setOf("{vm}")),
+    VSPHERE_VM_GUEST_IDENTITY("/rest/vcenter/vm/{vm}/guest/identity", emptySet(), setOf("{vm}")),
+    VSPHERE_VM_GUEST_POWER("/rest/vcenter/vm/{vm}/guest/power", setOf("action"), setOf("{vm}")),
     VSPHERE_VM_POWER("/rest/vcenter/vm/{vm}/power", emptySet(), setOf("{vm}")),
     VSPHERE_VM_POWER_START("/rest/vcenter/vm/{vm}/power/start", emptySet(), setOf("{vm}")),
-    VSPHERE_VM_POWER_STOP("/rest/vcenter/vm/{vm}/power/stop", emptySet(), setOf("{vm}"));
+    VSPHERE_VM_POWER_STOP("/rest/vcenter/vm/{vm}/power/stop", emptySet(), setOf("{vm}")),
+    VSPHERE_VM_POWER_SUSPEND("/rest/vcenter/vm/{vm}/power/suspend", emptySet(), setOf("{vm}")),
+    VSPHERE_VMS("/rest/vcenter/vm", setOf("filter.vms"), emptySet());
 
     /**
      * Interpolate the expected URL by associating the given set of parameters with values.

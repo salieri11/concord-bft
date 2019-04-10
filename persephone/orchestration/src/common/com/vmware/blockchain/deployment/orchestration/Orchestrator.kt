@@ -28,6 +28,16 @@ interface Orchestrator {
     ) : RuntimeException("Failed to create resource")
 
     /**
+     * Error denoting the condition that a resource deletion requisition cannot be satisfied.
+     *
+     * @param[request]
+     *   resource requisition request.
+     */
+    data class ResourceDeletionFailedException(
+        val request: Any
+    ) : RuntimeException("Failed to delete resource")
+
+    /**
      * Compute resource deployment creation request specification.
      *
      * @param[cluster]
@@ -95,7 +105,7 @@ interface Orchestrator {
      * Events corresponding to the execution of a network address requisition workflow.
      */
     sealed class NetworkResourceEvent : OrchestrationEvent {
-        data class Created(val resource: URI) : NetworkResourceEvent()
+        data class Created(val resource: URI, val name: String) : NetworkResourceEvent()
         data class Deleted(val resource: URI) : NetworkResourceEvent()
     }
 
@@ -107,14 +117,22 @@ interface Orchestrator {
      * @param[network]
      *   network resource to be assigned.
      */
-    data class NetworkAllocationRequest(val compute: URI, val network: URI)
+    data class CreateNetworkAllocationRequest(val compute: URI, val network: URI)
+
+    /**
+     * Network allocation de-provisioning request specification.
+     *
+     * @param[resource]
+     *   network allocation resource to be de-provisioned.
+     */
+    data class DeleteNetworkAllocationRequest(val resource: URI)
 
     /**
      * Events corresponding to the execution of a network allocation workflow.
      */
     sealed class NetworkAllocationEvent : OrchestrationEvent {
-        data class Created(val compute: URI, val network: URI) : NetworkAllocationEvent()
-        data class Deleted(val compute: URI, val network: URI) : NetworkAllocationEvent()
+        data class Created(val allocation: URI) : NetworkAllocationEvent()
+        data class Deleted(val allocation: URI) : NetworkAllocationEvent()
     }
 
     /**
@@ -180,7 +198,9 @@ interface Orchestrator {
      *   a [Publisher] of [NetworkAllocationEvent] corresponding to side-effects engendered by the
      *   request.
      */
-    fun createNetworkAllocation(request: NetworkAllocationRequest): Publisher<NetworkAllocationEvent>
+    fun createNetworkAllocation(
+        request: CreateNetworkAllocationRequest
+    ): Publisher<NetworkAllocationEvent>
 
     /**
      * Deallocate a network address to a deployed compute resource.
@@ -192,5 +212,7 @@ interface Orchestrator {
      *   a [Publisher] of [NetworkAllocationEvent] corresponding to side-effects engendered by the
      *   request.
      */
-    fun deleteNetworkAllocation(request: NetworkAllocationRequest): Publisher<NetworkAllocationEvent>
+    fun deleteNetworkAllocation(
+        request: DeleteNetworkAllocationRequest
+    ): Publisher<NetworkAllocationEvent>
 }

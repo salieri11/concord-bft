@@ -42,13 +42,13 @@ class InactiveOrchestrator(site: OrchestrationSiteInfo) : Orchestrator {
     }
 
     override fun createNetworkAllocation(
-        request: Orchestrator.NetworkAllocationRequest
+        request: Orchestrator.CreateNetworkAllocationRequest
     ): Publisher<Orchestrator.NetworkAllocationEvent> {
         return ErrorPublisher(UnsupportedOperationException(errorMessage))
     }
 
     override fun deleteNetworkAllocation(
-        request: Orchestrator.NetworkAllocationRequest
+        request: Orchestrator.DeleteNetworkAllocationRequest
     ): Publisher<Orchestrator.NetworkAllocationEvent> {
         return ErrorPublisher(UnsupportedOperationException(errorMessage))
     }
