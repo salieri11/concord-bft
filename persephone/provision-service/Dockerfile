@@ -68,11 +68,6 @@ COPY --from=builder1 /concord/build/tools/conc_genconfig /app/
 FROM openjdk:11.0.2-jdk-slim
 LABEL description="VMware Blockchain Fleet Management Provisioning Service"
 
-RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA, DH keySize < 1024, EC keySize < 224, DES40_CBC, RC4_40, 3DES_EDE_CBC/" $(readlink -f /usr/bin/java | sed "s:bin/java::")/conf/security/java.security
-
-WORKDIR /persephone/provision-service
-COPY --from=0 ./persephone/provision-service/target/persephone-provision-service*with-dependencies.jar ./provision-service.jar
-
 # Install libs build from source
 COPY --from=builder1 /usr/local/lib/liblog4cplus* /usr/local/lib/
 COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libboost_program_options.so.* /usr/local/lib/
@@ -84,6 +79,11 @@ ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 
 WORKDIR /app
 COPY --from=builder1 /concord/build/tools/conc_genconfig /app/
+
+RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA, DH keySize < 1024, EC keySize < 224, DES40_CBC, RC4_40, 3DES_EDE_CBC/" $(readlink -f /usr/bin/java | sed "s:bin/java::")/conf/security/java.security
+
+WORKDIR /persephone/provision-service
+COPY --from=0 ./persephone/provision-service/target/persephone-provision-service*with-dependencies.jar ./provision-service.jar
 
 
 EXPOSE 9002
