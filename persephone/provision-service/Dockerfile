@@ -36,40 +36,32 @@ RUN mvn -f persephone/pom.xml package -pl provision-service -am -B
 ## Get the C++ part
 FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v5 as builder1
 
-## Remember context is the parent of this directory
-#COPY ./communication /communication
-
-## Copy the blockchain repo .git directory so submodules can run git commands
-## While this is somewhat dirty it makes the relative path in
-## concord/submodule/concord-bft/.git work. Alternatively, we could change all
-## the paths and copy the entire blockchain dir to /blockchain. However, this
-## works fine, is a one line change, and the docker image is destroyed after
-## build anyway.
-#COPY .git /.git
+COPY .git /.git
 
 WORKDIR /concord
 COPY ./concord /concord
 WORKDIR /concord/build
-#RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make conc_genconfig
+RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make conc_genconfig
 
-#FROM ubuntu:18.04
-#LABEL Description="ConcordCfgTool"
+FROM ubuntu:18.04
+LABEL Description="ConcordCfgTool"
 
 # Install libs
-#RUN apt-get update && apt-get -y install \
-#    libgmp10 \
-#    libboost-program-options1.65.1 \
-#    libyaml-cpp0.5v5 \
-#    && rm -rf /var/lib/apt/lists/*
-#
+RUN apt-get update && apt-get -y install \
+    libgmp10 \
+    libboost-program-options1.65.1 \
+    libyaml-cpp0.5v5 \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install libs build from source
-#COPY --from=builder1 /usr/local/lib/liblog4cplus* /usr/local/lib/
+COPY --from=builder1 /usr/local/lib/liblog4cplus* /usr/local/lib/
 
 # Ensure configtool can find it
-#ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
 
 # Copy ConfigTool
-#COPY --from=builder1 /concord/build/tools/conc_genconfig /app/
+COPY --from=builder1 /concord/build/tools/conc_genconfig /app/
+
 
 
 # Runtime image (Metadata Service).
@@ -80,6 +72,19 @@ RUN sed -i "/jdk.tls.disabledAlgorithms=/ s/=.*/=TLSv1.3, SSLv3, RC4, MD5withRSA
 
 WORKDIR /persephone/provision-service
 COPY --from=0 ./persephone/provision-service/target/persephone-provision-service*with-dependencies.jar ./provision-service.jar
+
+# Install libs build from source
+COPY --from=builder1 /usr/local/lib/liblog4cplus* /usr/local/lib/
+COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libboost_program_options.so.* /usr/local/lib/
+COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libgmp* /usr/local/lib/
+COPY --from=builder1 /usr/lib/x86_64-linux-gnu/libyaml* /usr/local/lib/
+
+# Ensure configtool can find it
+ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
+
+WORKDIR /app
+COPY --from=builder1 /concord/build/tools/conc_genconfig /app/
+
 
 EXPOSE 9002
 
