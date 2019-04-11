@@ -47,6 +47,7 @@ import com.vmware.blockchain.security.AuthHelper;
 import com.vmware.blockchain.security.HelenUserDetails;
 import com.vmware.blockchain.security.JwtTokenProvider;
 import com.vmware.blockchain.security.ServiceContext;
+import com.vmware.blockchain.services.blockchains.BlockchainService;
 
 /**
  * User Authenticator tests.

@@ -15,8 +15,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 
 import com.vmware.blockchain.connections.ConnectionPoolManager;
-import com.vmware.blockchain.services.profiles.Blockchain;
-import com.vmware.blockchain.services.profiles.BlockchainService;
+import com.vmware.blockchain.services.blockchains.Blockchain;
+import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 
 /**

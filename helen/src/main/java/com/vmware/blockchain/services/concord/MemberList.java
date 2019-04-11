@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,8 +28,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.services.ConcordServlet;
-import com.vmware.blockchain.services.profiles.Blockchain;
-import com.vmware.blockchain.services.profiles.BlockchainService;
+import com.vmware.blockchain.services.blockchains.Blockchain;
+import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.concord.Concord;
 
@@ -93,8 +94,11 @@ public final class MemberList extends ConcordServlet {
         JSONArray peerArr = new JSONArray();
         Blockchain bc = blockchainService.get(blockchain);
 
-        Map<String, String> rpcUrls = bc.getUrlsAsMap();
-        Map<String, String> rpcCerts = bc.getCertsAsMap();
+
+        Map<String, String> rpcUrls =
+                bc.getNodeList().stream().collect(Collectors.toMap(n -> n.getNodeId().toString(), n -> n.getUrl()));
+        Map<String, String> rpcCerts =
+                bc.getNodeList().stream().collect(Collectors.toMap(n -> n.getNodeId().toString(), n -> n.getCert()));
 
         // Iterate through each peer and construct
         // a corresponding JSON object

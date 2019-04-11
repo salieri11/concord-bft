@@ -8,12 +8,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,8 +30,10 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.vmware.blockchain.security.ServiceContext;
+import com.vmware.blockchain.services.blockchains.Blockchain;
+import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
+import com.vmware.blockchain.services.blockchains.BlockchainService;
 
 /**
  * Tests for the DefaultProfiles component.
@@ -90,11 +96,12 @@ class DefaultProfilesTest {
         organization.setId(ORG_ID);
         organization.setOrganizationName("Test Org");
 
-        blockchain = new Blockchain.BlockchainBuilder()
+        blockchain = Blockchain.builder()
                 .consortium(consortium.getId())
-                .ipList("1,2,3,4 ")
-                .rpcUrls("a=1,b=2,c=3,d=4")
-                .rpcCerts("a=c1,b=c2,c=c3,d=c4").build();
+                .nodeList(Stream.of("1", "2", "3", "4")
+                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "c".concat(s), ""))
+                        .collect(Collectors.toList()))
+                .build();
         blockchain.setId(uuid);
 
         // our test user
@@ -135,11 +142,24 @@ class DefaultProfilesTest {
         });
         when(blockchainService.list()).thenReturn(Collections.emptyList());
         when(blockchainService.create(any(Consortium.class), anyString(), anyString(), anyString())).then(in -> {
-            Blockchain b = new Blockchain.BlockchainBuilder()
+            // use magic google Splitter to split, trim and convert to Lists and Maps.
+            String[] ips = ((String) in.getArgument(1)).split(",");
+            String[] urls = ((String) in.getArgument(2)).split(",");
+            String[] certs = ((String) in.getArgument(3)).split(",");
+            List<NodeEntry> entries = new ArrayList<>();
+            for (int i = 0; i < ips.length; i++) {
+                NodeEntry n = new NodeEntry();
+                n.setNodeId(UUID.randomUUID());
+                n.setIp(ips[i]);
+                // If we have a url, split at = and take the last part
+                n.setUrl(i >= urls.length ? "" : urls[i].split("=")[1]);
+                n.setCert(i >= certs.length ? "" : certs[i].split("=")[1]);
+                entries.add(n);
+            }
+
+            Blockchain b = Blockchain.builder()
                 .consortium(((Consortium) in.getArgument(0)).getId())
-                .ipList(in.getArgument(1))
-                .rpcUrls(in.getArgument(2))
-                .rpcCerts(in.getArgument(3)).build();
+                .nodeList(entries).build();
             b.setId(uuid);
             return b;
         });
@@ -152,28 +172,24 @@ class DefaultProfilesTest {
         profiles.initialize();
     }
 
+    private List<String> getList(Blockchain b, Function<NodeEntry, String> f) {
+        return b.getNodeList().stream().map(f).filter(s -> !StringUtils.isEmpty(s)).collect(Collectors.toList());
+    }
+
     @Test
     void testProfileExisting() {
         initProfilesExist();
-        Map<String, String> urlMap = new ImmutableMap.Builder<String, String>()
-                .put("a", "1")
-                .put("b", "2")
-                .put("c", "3")
-                .put("d", "4").build();
-        Map<String, String> certMap = new ImmutableMap.Builder<String, String>()
-                .put("a", "c1")
-                .put("b", "c2")
-                .put("c", "c3")
-                .put("d", "c4").build();
         List<String> ipList = new ImmutableList.Builder<String>().add("1", "2", "3", "4").build();
+        List<String> urlList = new ImmutableList.Builder<String>().add("1", "2", "3", "4").build();
+        List<String> certList = new ImmutableList.Builder<String>().add("c1", "c2", "c3", "c4").build();
         Assertions.assertEquals(organization.getId(), profiles.getOrganization().getId());
         Assertions.assertEquals("Test Org", profiles.getOrganization().getOrganizationName());
         Assertions.assertEquals(consortium.getId(), profiles.getConsortium().getId());
         Assertions.assertEquals("Consortium Test", profiles.getConsortium().getConsortiumName());
         Assertions.assertEquals(blockchain.getId(), profiles.getBlockchain().getId());
-        Assertions.assertEquals(ipList, profiles.getBlockchain().getIpAsList());
-        Assertions.assertEquals(urlMap, profiles.getBlockchain().getUrlsAsMap());
-        Assertions.assertEquals(certMap, profiles.getBlockchain().getCertsAsMap());
+        Assertions.assertEquals(ipList, getList(profiles.getBlockchain(), n -> n.getIp()));
+        Assertions.assertEquals(urlList, getList(profiles.getBlockchain(), n -> n.getUrl()));
+        Assertions.assertEquals(certList, getList(profiles.getBlockchain(), n -> n.getCert()));
         Assertions.assertEquals(testUser.getId(), profiles.getUser().getId());
         Assertions.assertEquals("user@test.com", profiles.getUser().getEmail());
     }
@@ -182,22 +198,22 @@ class DefaultProfilesTest {
     void testProfileEmpty() {
         // This will use the system generated profiles, rather than the ones we created.
         initProfilesEmpty();
-        Map<String, String> urlMap = new ImmutableMap.Builder<String, String>()
-                .put("replica0", "https://127.0.0.1:8545/")
-                .put("replica1", "https://127.0.0.1:8546/")
-                .put("replica2", "https://127.0.0.1:8547/")
-                .put("replica3", "https://127.0.0.1:8548/").build();
-        Map<String, String> certSet = new ImmutableMap.Builder<String, String>()
-                .put("replica0", "/config/replica0-cacert.pem").build();
+        List<String> expectedIps =
+                ImmutableList.of("localhost:5458", "localhost:5459", "localhost:5460", "localhost:5461");
+        List<String> urlList = new ImmutableList.Builder<String>()
+                .add("https://127.0.0.1:8545/")
+                .add("https://127.0.0.1:8546/")
+                .add("https://127.0.0.1:8547/")
+                .add("https://127.0.0.1:8548/").build();
+        List<String> certList = ImmutableList.of("/config/replica0-cacert.pem");
         Assertions.assertEquals(organization.getId(), profiles.getOrganization().getId());
         Assertions.assertEquals("ADMIN", profiles.getOrganization().getOrganizationName());
         Assertions.assertEquals(consortium.getId(), profiles.getConsortium().getId());
         Assertions.assertEquals("ADMIN", profiles.getConsortium().getConsortiumName());
         Assertions.assertEquals(blockchain.getId(), profiles.getBlockchain().getId());
-        Assertions.assertEquals(urlMap, profiles.getBlockchain().getUrlsAsMap());
-        Assertions.assertEquals(certSet, profiles.getBlockchain().getCertsAsMap());
-        Assertions.assertEquals("localhost:5458,localhost:5459,localhost:5460,localhost:5461",
-                profiles.getBlockchain().getIpList());
+        Assertions.assertEquals(expectedIps, getList(profiles.getBlockchain(), n -> n.getIp()));
+        Assertions.assertEquals(urlList, getList(profiles.getBlockchain(), n -> n.getUrl()));
+        Assertions.assertEquals(certList, getList(profiles.getBlockchain(), n -> n.getCert()));
         Assertions.assertEquals(testUser.getId(), profiles.getUser().getId());
         Assertions.assertEquals("admin@blockchain.local", profiles.getUser().getEmail());
     }

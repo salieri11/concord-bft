@@ -7,9 +7,10 @@ package com.vmware.blockchain.connections;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -27,7 +28,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.connections.ConcordConnectionPool.ConnectionType;
-import com.vmware.blockchain.services.profiles.Blockchain;
+import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.profiles.Consortium;
 
 /**
@@ -61,9 +62,9 @@ public class ConnectionPoolTest {
 
         blockchain = Blockchain.builder()
                 .consortium(consortium.getId())
-                .ipList("ip1:5458,ip2:5458,ip3:5458,ip4:5458")
-                .rpcUrls("a=ip1:5458,b=ip2:5458,c=ip3:5458,d=ip4:5458")
-                .rpcCerts("a=thisisacert,b=thisisbcert,c=thisisccert,d=thisisdcert")
+                .nodeList(Stream.of("ip1:5458", "ip2:5458", "ip3:5458", "ip4:5458")
+                        .map(s -> new Blockchain.NodeEntry(UUID.randomUUID(), s, s, "cert", ""))
+                        .collect(Collectors.toList()))
                 .build();
         blockchain.setId(UUID.fromString("33b26eed-d173-47bf-ab3a-184479a1fde0"));
         pool = new ConcordConnectionPool(blockchain, ConnectionType.Mock).initialize(config);
@@ -91,7 +92,8 @@ public class ConnectionPoolTest {
     public void testConnectionCheck() throws IOException, InterruptedException {
         MockConnection conn = (MockConnection) pool.getConnection();
         Assertions.assertNotNull(conn);
-        Assertions.assertTrue(blockchain.getUrlsAsMap().containsValue(conn.getIpStr()));
+        Assertions.assertEquals(1,
+                blockchain.getNodeList().stream().filter(n -> n.getIp().equals(conn.getIpStr())).count());
         if (conn != null) {
             pool.putConnection(conn);
         }
@@ -107,9 +109,9 @@ public class ConnectionPoolTest {
     @Test
     public void testRoundRobin() throws IllegalStateException, IOException, InterruptedException {
         // copy of the ip list we can modify
-        List<String> ips = new LinkedList<>(blockchain.getIpAsList());
+        List<String> ips = blockchain.getNodeList().stream().map(n -> n.getIp()).collect(Collectors.toList());
         // if we call this
-        for (int i = 0; i < blockchain.getIpAsList().size(); i++) {
+        for (int i = 0; i < blockchain.getNodeList().size(); i++) {
             MockConnection conn = (MockConnection) pool.getConnection();
             ips.remove(conn.getIpStr());
         }

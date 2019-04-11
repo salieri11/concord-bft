@@ -616,17 +616,34 @@
                         "format": "uuid",
                         "description": "ID of owning consortium"
                       },
-                      "ip_list": {
-                        "type": "string",
-                        "description": "Addresses of nodes in this blockchain"
-                      },
-                      "rpc_urls": {
-                        "type": "string",
-                        "description": "List Eth RPC urls"
-                      },
-                      "rpc_certs": {
-                        "type": "string",
-                        "description": "Eth RPC SSL Certificates"
+                      "node_list": {
+                    	  "type": "array",
+                    	  "items": {
+                    		  "type": "object",
+                    		  "properties": {
+                    			  "node_id": {
+                    				  "type": "string",
+                    				  "format": "uuid",
+                    				  "description": "Node ID"
+                    			  },
+                    			  "ip": {
+                    				  "type": "string",
+                    				  "description", "IP address of node"
+                    			  },
+                    			  "url": {
+                    				  "type": "string",
+                    				  "description", "EthRPC url of node"
+                    			  },
+                    			  "cert": {
+                    				  "type": "string",
+                    				  "description", "SSL certificate to talk to ethrpc"
+                    			  },
+                    			  "region": {
+                    				  "type": "string",
+                    				  "description": "Region (SDDC) this node is doploy in"
+                    			  }
+                    		  }
+                    	  }
                       }
                     }
                   }
@@ -647,8 +664,9 @@
                 "type": "object",
                 "required": [
                   "concortium_id",
-                  "ip_list",
-                  "rpc_urls"
+                  "f_count",
+                  "c_count",
+                  "deployment_type"
                 ],
                 "properties": {
                   "consortium_id": {
@@ -656,17 +674,25 @@
                     "format": "uuid",
                     "description": "ID of owning consortium"
                   },
-                  "ip_list": {
-                    "type": "string",
-                    "description": "comma separated list of addresses of blockchain nodes"
+                  "f_count": {
+                	  "type": "integer",
+                	  "description": "Number of f nodes, cluser size will be 3f +2c + 1"
                   },
-                  "rpc_urls": {
-                    "type": "string",
-                    "description": "string represent url map of Eth RPC endpoints, comma separated list of hostname=url"
+                  "c_count": {
+                	  "type": "integer",
+                	  "description": "Number of c nodes, cluser size will be 3f +2c + 1"
                   },
-                  "rpc_certs": {
-                    "type": "string",
-                    "description": "SSL certificates for Eth RPC"
+                  "deployment_type": {
+                	  "type": "string",
+                	  "enum": ["FIXED", "UNSPECIFIED"],
+                	  "description": "FIXED or UNSPECIFIED, determines site locations"
+                  },
+                  "site_ids": {
+                	  "type": "array",
+                	  "items": {
+                		  "type": "string"
+                	  },
+                	  "description": "List of site ids.  Required if deployment type is fixed"
                   }
                 }
               }
@@ -675,36 +701,18 @@
           "required": true
         },
         "responses": {
-          "200": {
-            "description": "Returns the specified blockchain",
+          "202": {
+            "description": "Returns the deployment task ID",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": {
+                    "task_id": {
                       "type": "string",
                       "format": "uuid",
-                      "description": "Blockchain ID"
-                    },
-                    "consortium_id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "description": "ID of owning consortium"
-                    },
-                    "ip_list": {
-                      "type": "string",
-                      "description": "Addresses of nodes in this blockchain"
-                    },
-                    "rpc_urls": {
-                      "type": "string",
-                      "description": "List of addreses with node names"
-                    },
-                      "rpc_certs": {
-                        "type": "string",
-                        "description": "Eth RPC SSL Certificates"
-                      }
-                    
+                      "description": "Task ID"
+                    }
                   }
                 }
               }
@@ -735,28 +743,49 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "description": "Blockchain ID"
-                    },
-                    "consortium_id": {
-                      "type": "string",
-                      "format": "uuid",
-                      "description": "ID of owning consortium"
-                    },
-                    "ip_list": {
-                      "type": "string",
-                      "description": "Addresses of nodes in this blockchain"
-                    },
-                    "rpc_urls": {
-                      "type": "string",
-                      "description": "List of addreses with node names"
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Blockchain ID"
+                      },
+                      "consortium_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "ID of owning consortium"
+                      },
+                      "node_list": {
+                    	  "type": "array",
+                    	  "items": {
+                    		  "type": "object",
+                    		  "properties": {
+                    			  "node_id": {
+                    				  "type": "string",
+                    				  "format": "uuid",
+                    				  "description": "Node ID"
+                    			  },
+                    			  "ip": {
+                    				  "type": "string",
+                    				  "description", "IP address of node"
+                    			  },
+                    			  "url": {
+                    				  "type": "string",
+                    				  "description", "EthRPC url of node"
+                    			  },
+                    			  "cert": {
+                    				  "type": "string",
+                    				  "description", "SSL certificate to talk to ethrpc"
+                    			  },
+                    			  "region": {
+                    				  "type": "string",
+                    				  "description": "Region (SDDC) this node is doploy in"
+                    			  }
+                    		  }
+                    	  }
+                      }
                     }
                   }
-                }
               }
             }
           }
@@ -1442,6 +1471,62 @@
           }
         }
       }
+    },
+    "/tasks/{task_id}": {
+        "summary": "Tasks",
+        "get": {
+          "summary": "Get the status of the specified task",
+          "operationId": "getTask",
+          "parameters": [
+            {
+              "name": "task_id",
+              "in": "path",
+              "description": "Task ID",
+              "schema": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "Returns the current task status",
+              "content": {
+                "application/json": {
+                  "schema": {
+                      "type": "object",
+                      "properties": {
+                    	"task_id": {
+                        	  "type": "string",
+                          	  "format": "uuid",
+                          	  "description": "Task ID"
+                    	},
+                        "state": {
+                          "type": "string",
+                          "enum": ["RUNNING", "SUCCEEDED", "FAILED"],
+                          "description": "Current state of of the task"
+                        },
+                        "message": {
+                          "type": "string",
+                          "description": "Additional information from the task"
+                        },
+                        "resource_id": {
+                      	  "type": "string",
+                      	  "format": "uuid",
+                      	  "description": "The resoruce created or updated by this task.  May not be accurate until state is FAILED or SUCCEEDED."
+                        },
+                        "resource_link": {
+                        	"type": "string",
+                        	"format": "uri",
+                        	"description": "Link to the resource created or updated by this task."
+                        }
+                      }
+                    }
+                }
+              }
+            }
+          }
+        }
     },
     "/users": {
       "summary": "Helen User management",

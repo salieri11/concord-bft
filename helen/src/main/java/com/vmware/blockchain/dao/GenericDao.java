@@ -85,6 +85,32 @@ public class GenericDao {
         }
     }
 
+    /**
+     * Persist an entity into database with the current tenantId.
+     *
+     * @param newEntity            entity to persist
+     * @param currentEntity        previous version entity
+     * @return                     persisted entity
+     */
+    public <E extends AbstractEntity> E putUnderTenant(final E newEntity, E currentEntity) {
+        int retries = 0;
+        int newEntityVersion = newEntity.getVersion();
+        while (true) {
+            try {
+                return genericDaoTransaction.putUnderParent(newEntity, currentEntity, authHelper.getConsortiumId());
+            } catch (TransactionException e) {
+                if (retries >= MAX_RETRIES) {
+                    logger.warn("Failed to retry for putUnderParent. Max retries exceeded.", e);
+                    throw new InternalFailureException("Retry failure", e);
+                }
+                ++retries;
+                logger.info("Retrying putUnderParent");
+                newEntity.setVersion(newEntityVersion);
+            }
+        }
+    }
+
+
 
     /**
      * Persist a entity into database.

@@ -13,6 +13,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,7 +21,7 @@ import org.apache.logging.log4j.Logger;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.ServiceUnavailableException;
-import com.vmware.blockchain.services.profiles.Blockchain;
+import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.concord.ConcordTcpConnection;
 import com.vmware.concord.IConcordConnection;
 
@@ -52,8 +53,6 @@ public class ConcordConnectionPool {
     @EqualsAndHashCode.Include
     private UUID id = UUID.randomUUID();
 
-    private Blockchain blockchain;
-
     List<String> ips;
     private ConnectionType connectionType;
 
@@ -71,8 +70,7 @@ public class ConcordConnectionPool {
         initialized = new AtomicBoolean(false);
         connectionCount = new AtomicInteger(0);
         nextConnection = new AtomicInteger(0);
-        this.blockchain = blockchain;
-        this.ips = blockchain.getIpAsList();
+        this.ips = blockchain.getNodeList().stream().map(n -> n.getIp()).collect(Collectors.toList());
         this.connectionType = connectionType;
     }
 
