@@ -20,37 +20,42 @@ import org.slf4j.LoggerFactory;
  *       This approach is simpler and generates much less code.
  */
 public final class ConfigYaml  {
+
     private static final Logger log = LoggerFactory.getLogger(ConfigYaml.class);
 
-    private static String DEFAULT_PATH_YAML = "/config/dockerConfigurationInput.yaml";
-    private static String CLUSTER_SIZE = "client_proxies_per_replica: ";
-    private static String C_VAL = "c_val: ";
-    private static String F_VAL = "f_val: ";
-    private static String NODE = "node:";
-    private static String SERVICE_HOST = "  - service_host: ";
-    private static String SERVICE_PORT = "    service_port: ";
-    private static String REPLICA      = "    replica:";
-    private static String REPLICA_HOST = "      - replica_host: ";
-    private static String REPLICA_PORT = "        replica_port: ";
-    private static String CLIENT_PROXY = "    client_proxy:";
-    private static String CLIENT_HOST  = "      - client_host: ";
-    private static String CLIENT_PORT  = "        client_port: ";
-    private static int DEFAULT_PORT = 3501;
-    private String configYamlFilePath;
+    private static final String DEFAULT_PATH_YAML = "/config/dockerConfigurationInput.yaml";
+    private static final String CLUSTER_SIZE = "client_proxies_per_replica: ";
+    private static final String C_VAL = "c_val: ";
+    private static final String F_VAL = "f_val: ";
+    private static final String NODE = "node:";
+    private static final String SERVICE_HOST = "  - service_host: ";
+    private static final String SERVICE_PORT = "    service_port: ";
+    private static final String REPLICA      = "    replica:";
+    private static final String REPLICA_HOST = "      - replica_host: ";
+    private static final String REPLICA_PORT = "        replica_port: ";
+    private static final String CLIENT_PROXY = "    client_proxy:";
+    private static final String CLIENT_HOST  = "      - client_host: ";
+    private static final String CLIENT_PORT  = "        client_port: ";
+    private static final int DEFAULT_PORT = 3501;
+    private final String configYamlFilePath;
     
 
     /**
      * Empty constructor.
      */
     public ConfigYaml() {
-        configYamlFilePath = new String(DEFAULT_PATH_YAML);
+        this(DEFAULT_PATH_YAML);
     }
 
     /**
      * Constructor with configpath specified.
      */
     public ConfigYaml(String path) {
-        configYamlFilePath = new String(path);
+        configYamlFilePath = path;
+    }
+
+    public String getConfigYamlFilePath() {
+        return configYamlFilePath;
     }
 
     public static int getFVal(int clusterSize) {
@@ -105,9 +110,9 @@ public final class ConfigYaml  {
         try (BufferedWriter writer = Files.newBufferedWriter(path)) {
             writer.write(CLUSTER_SIZE + hostIp.size());
             writer.newLine();
-            writer.write(C_VAL + Integer.toString(c_val));
+            writer.write(C_VAL + c_val);
             writer.newLine();
-            writer.write(F_VAL + Integer.toString(f_val));
+            writer.write(F_VAL + f_val);
             writer.newLine();
             writer.write("node__TEMPLATE:\n  logger_config: /concord/config-local/log4cplus.properties\n"
                 + "  genesis_block: /concord/config-public/genesis.json\n  blockchain_db_path: /concord/rocksdbdata/");
@@ -123,14 +128,14 @@ public final class ConfigYaml  {
                 writer.newLine();
                 writer.write(REPLICA_HOST + hostIp.get(i));
                 writer.newLine();
-                writer.write(REPLICA_PORT + Integer.toString(DEFAULT_PORT));
+                writer.write(REPLICA_PORT + DEFAULT_PORT);
                 writer.newLine();
                 writer.write(CLIENT_PROXY);
                 writer.newLine();
                 for (int j = 0; j < hostIp.size(); j++) {
                     writer.write(CLIENT_HOST + hostIp.get(i));
                     writer.newLine();
-                    writer.write(CLIENT_PORT + Integer.toString(DEFAULT_PORT + j + 1));
+                    writer.write(CLIENT_PORT + (DEFAULT_PORT + j + 1));
                     writer.newLine();
                 }
             }    

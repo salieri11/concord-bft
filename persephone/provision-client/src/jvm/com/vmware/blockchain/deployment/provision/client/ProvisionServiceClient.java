@@ -1,8 +1,7 @@
 /*
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
-
-package com.vmware.blockchain.deployment.client.provision;
+package com.vmware.blockchain.deployment.provision.client;
 
 import java.util.Collection;
 import java.util.ArrayList;
@@ -33,7 +32,7 @@ import com.vmware.blockchain.deployment.model.DeploymentSpecification;
 import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
-import com.vmware.blockchain.deployment.model.PlacementSpecification.PlacementEntry;
+import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.model.ProvisionServiceStub;
 
 
@@ -126,14 +125,18 @@ public class ProvisionServiceClient {
             // Create a blocking stub with the channel
             var client = new ProvisionServiceStub (channel, CallOptions.DEFAULT);
             var cluster_size = 4;
-            List<PlacementEntry> list = new ArrayList<PlacementEntry>(4);
-            list.add(new PlacementEntry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(1,2)));
-            list.add(new PlacementEntry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(2,3)));
-            list.add(new PlacementEntry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(3,4)));
-            list.add(new PlacementEntry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(4,5)));
+            var list = List.of(
+                    new Entry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(1,2)),
+                    new Entry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(2,3)),
+                    new Entry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(3,4)),
+                    new Entry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(4,5))
+            );
             var placementSpec = new PlacementSpecification(list);
-            List<ConcordComponent> components = new ArrayList<ConcordComponent>();
-            ConcordModelSpecification spec = new ConcordModelSpecification("version1", "template", components);
+            var components = List.of(
+                    new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/concord-core:latest"),
+                    new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/ethrpc:latest")
+            );
+            ConcordModelSpecification spec = new ConcordModelSpecification("20190401.1", "photon-3.0-64", components);
             DeploymentSpecification deploySpec = new DeploymentSpecification(cluster_size, spec, placementSpec);
             var request = new CreateClusterRequest (new MessageHeader(), deploySpec );
             // Check that the API can be serviced normally after service initialization.
@@ -143,17 +146,8 @@ public class ProvisionServiceClient {
             log.info("response.getLow:" + response.getLow());
             log.info("response.getHigh:" + response.getHigh());
             return true;
-        } catch (InterruptedException e) {
-            e.printStackTrace ();
-            log.error("Couldn't create client properly1");
-            return false;
-        } catch (ExecutionException e) {
-            e.printStackTrace ();
-            log.error("Execution exception");
-            return false;
-        } catch (TimeoutException e) {
-            e.printStackTrace ();
-            log.error("Couldn't create client properly3");
+        } catch (Throwable error) {
+            log.error("Couldn't create client properly", error);
             return false;
         }
     }

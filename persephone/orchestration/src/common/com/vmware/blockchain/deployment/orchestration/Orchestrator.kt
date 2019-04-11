@@ -50,7 +50,10 @@ interface Orchestrator {
     data class CreateComputeResourceRequest(
         val cluster: ConcordClusterIdentifier,
         val node: ConcordNodeIdentifier,
-        val model: ConcordModelSpecification
+        val model: ConcordModelSpecification,
+
+        // FIXME: THIS IS TEMPORARY UNTIL CONFIGURATION IS FETCHED BY PERSEPHONE-AGENT.
+        var configuration: String = ""
     )
 
     /**
@@ -105,7 +108,11 @@ interface Orchestrator {
      * Events corresponding to the execution of a network address requisition workflow.
      */
     sealed class NetworkResourceEvent : OrchestrationEvent {
-        data class Created(val resource: URI, val name: String) : NetworkResourceEvent()
+        data class Created(
+            val resource: URI,
+            val name: String,
+            val address: String
+        ) : NetworkResourceEvent()
         data class Deleted(val resource: URI) : NetworkResourceEvent()
     }
 

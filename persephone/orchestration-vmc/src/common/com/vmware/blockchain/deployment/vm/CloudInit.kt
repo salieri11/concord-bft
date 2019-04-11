@@ -10,8 +10,11 @@ import java.util.Base64
 /**
  * Initialization script run either on first-boot of a deployed virtual machine.
  */
-class InitScript(val model: ConcordModelSpecification) {
-
+class InitScript(
+    model: ConcordModelSpecification,
+    concordConfiguration: String
+) {
+    /** Consolidated Docker PULL command. */
     private val dockerPullCommand: String = model.components.asSequence()
             .filter { it.type == ConcordComponent.Type.DOCKER_IMAGE }
             .map { "docker pull ${it.name}" }
@@ -29,7 +32,13 @@ class InitScript(val model: ConcordModelSpecification) {
             # Create additional user for copying over the config files.
             useradd vmwuser1 -s /bin/bash -m
             echo "vmwuser1:c0nc0rd" | chpasswd
-            """.trimIndent().replace("{{dockerPullCommand}}", dockerPullCommand)
+            # Output the node's configuration.
+            mkdir /config
+            touch /config/concord.config
+            echo '{{concordConfiguration}}' > /config/concord.config
+            """.trimIndent()
+                    .replace("{{dockerPullCommand}}", dockerPullCommand)
+                    .replace("{{concordConfiguration}}", concordConfiguration)
 
     /**
      * Express the content of the [InitScript] instance as a base64-encoded [ByteArray].

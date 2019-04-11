@@ -13,7 +13,9 @@ import com.vmware.blockchain.deployment.reactive.Publisher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -54,7 +56,7 @@ abstract class AbstractUntypedKeyValueStore<T : Version<T>>(
         get() = context + job
 
     /** Parent [Job] of all coroutines associated with this instance's operation. */
-    private val job: Job = Job()
+    private val job: Job = SupervisorJob()
 
     /** Request channel to send to the storage server. **/
     private val requestChannel by lazy { newStorageServer() }
