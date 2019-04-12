@@ -8,8 +8,12 @@ import collections
 import json
 import logging
 import os
+import pickle
+import pprint
+import pytest
 import traceback
 import string
+import subprocess
 import random
 import time
 from time import sleep
@@ -39,7 +43,6 @@ class HelenAPITests(test_suite.TestSuite):
       return "HelenAPITests"
 
    def run(self):
-      ''' Runs all of the tests. '''
       try:
          p = self.launchProduct(self._args,
                                 self._userConfig)
@@ -53,46 +56,40 @@ class HelenAPITests(test_suite.TestSuite):
          self.writeResult("All tests", None, info)
          return self._resultFile
 
-      tests = self._getTests()
+      os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 
-      for (testName, testFun) in tests:
-         self.setEthrpcNode()
+      with open("pickled_helen_api_tests", "wb") as f:
+         pickle.dump(self, f)
+
+      # Notes on command line usage:
+      # -m "performance and smoke" will run tests which are both performance and smoke.
+      # -m performance -m smoke will run all peformance tests and all smoke tests.
+      pytest.main(["-v", "suites/helen", "--json", "report.json"])
+
+      results = util.json_helper.readJsonFile("report.json")
+      for testResult in results["report"]["tests"]:
+         passed = testResult["outcome"] == "passed"
+         info = "" if passed else json.dumps(testResult, indent=2)
+         testName = self.parsePytestTestName(testResult["name"])
          testLogDir = os.path.join(self._testLogDir, testName)
-
-         try:
-            result, info = self._runRestTest(testName,
-                                             testFun,
-                                             testLogDir)
-         except Exception as e:
-            result = False
-            info = str(e)
-            traceback.print_tb(e.__traceback__)
-            log.error("Exception running ReST test: '{}'".format(info))
-
-         if info:
-            info += "  "
-         else:
-            info = ""
-
          relativeLogDir = self.makeRelativeTestPath(testLogDir)
-         info += "Log: <a href=\"{}\">{}</a>".format(relativeLogDir,
+         info += "\nLog: <a href=\"{}\">{}</a>".format(relativeLogDir,
                                                      testLogDir)
-         self.writeResult(testName, result, info)
-
-      log.info("Tests are done.")
+         self.writeResult(testResult["name"],
+                          passed,
+                          info)
 
       if self._shouldStop():
          self.product.stopProduct()
 
       return self._resultFile
 
-   def _runRestTest(self, testName, testFun, testLogDir):
-      log.info("Starting test '{}'".format(testName))
-      request = Request(testLogDir,
-                        testName,
-                        self.reverseProxyApiBaseUrl,
-                        self._userConfig)
-      return testFun(request)
+   def parsePytestTestName(self, parseMe):
+      '''
+      Pytest creates this long name; parse out the real name.
+      Input is a string like: suites/helen/api_test.py::test_existing[user_login]
+      '''
+      return parseMe[parseMe.rindex("[")+1:parseMe.rindex("]")]
 
    def _getTests(self):
       return [("getMembers", self._test_getMembers), \
