@@ -122,3 +122,5 @@ target_link_libraries(TimeContractTests
   concord_common
   concord_blockchain
   concord_time)
+
+add_subdirectory(simpleKVBTests)

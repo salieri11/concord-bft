@@ -79,6 +79,10 @@ class ReplicaImp : public IReplica,
   virtual Status addBlock(const SetOfKeyValuePairs &updates,
                           BlockId &outBlockId) override;
 
+  bool isRunning() override {
+    return (m_currentRepStatus == RepStatus::Running);
+  }
+
  protected:
   // CTOR & DTOR
 

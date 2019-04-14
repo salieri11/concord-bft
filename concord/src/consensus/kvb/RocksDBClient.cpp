@@ -414,7 +414,7 @@ KeyValuePair RocksDBClientIterator::seekAtLeast(Sliver _searchKey) {
 
   m_iter->Seek(toRocksdbSlice(_searchKey));
   if (!m_iter->Valid()) {
-    LOG4CPLUS_ERROR(logger, "Did not find search key " << _searchKey);
+    LOG4CPLUS_WARN(logger, "Did not find search key " << _searchKey);
     // TODO(SG): Status to exception?
     return KeyValuePair();
   }
