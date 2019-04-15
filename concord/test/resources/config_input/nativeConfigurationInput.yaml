@@ -6,6 +6,7 @@ node__TEMPLATE:
 node:
   - service_host: 0.0.0.0
     service_port: 5458
+    blockchain_db_path: rocksdbdata1/
     replica:
       - replica_host: 127.0.0.1
         replica_port: 3501
@@ -20,6 +21,7 @@ node:
         client_port: 3508
   - service_host: 0.0.0.0
     service_port: 5459
+    blockchain_db_path: rocksdbdata2/
     replica:
       - replica_host: 127.0.0.1
         replica_port: 3502
@@ -34,6 +36,7 @@ node:
         client_port: 3512
   - service_host: 0.0.0.0
     service_port: 5460
+    blockchain_db_path: rocksdbdata3/
     replica:
       - replica_host: 127.0.0.1
         replica_port: 3503
@@ -48,6 +51,7 @@ node:
         client_port: 3516
   - service_host: 0.0.0.0
     service_port: 5461
+    blockchain_db_path: rocksdbdata4/
     replica:
       - replica_host: 127.0.0.1
         replica_port: 3504

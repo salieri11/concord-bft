@@ -2966,7 +2966,7 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "blockchain_db_path",
       "Path to storage to use to persist blockchain data for this replica "
       "using the database implementation specified by blockchain_db_impl.",
-      "rocksdbdata1");
+      "rocksdbdata");
   node.tagParameter("blockchain_db_path", defaultableByReplicaTags);
 
   node.declareParameter(
