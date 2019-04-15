@@ -170,8 +170,6 @@ def createTestSuite(args):
       return helen_api_tests.HelenAPITests(args)
    elif (args.suite == "ExtendedRPCTests"):
       return ext_rpc_tests.ExtendedRPCTests(args)
-   elif (args.suite == "KVBlockchainTests"):
-      return kv_blockchain_tests.KVBTests(args)
    elif (args.suite == "PerformanceTests"):
       return performance_tests.PerformanceTests(args)
    elif (args.suite == "RegressionTests"):
