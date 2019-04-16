@@ -5,6 +5,8 @@
 #ifndef COMPARATORS_H
 #define COMPARATORS_H
 
+#include <log4cplus/loggingmacros.h>
+
 #ifdef USE_ROCKSDB
 #include "rocksdb/comparator.h"
 #include "rocksdb/slice.h"

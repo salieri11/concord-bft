@@ -1,7 +1,5 @@
 file(GLOB concord_src "main.cpp"
   "api/*.cpp"        "api/*.hpp"
-  "blockchain/*.cpp" "blockchain/*.hpp"
-  "common/*.cpp"     "common/*.hpp"
   "config/*.cpp"     "config/*.hpp"
   "consensus/*.cpp"  "consensus/*.hpp"
   "ethereum/*.cpp"   "ethereum/*.hpp"
@@ -13,7 +11,10 @@ string(APPEND CMAKE_CXX_FLAGS " -Werror")
 endif()
 
 add_subdirectory("utils")
+add_subdirectory("common")
 add_subdirectory("consensus/kvb")
+add_subdirectory("blockchain")
+add_subdirectory("time")
 
 add_executable(concord
   ${concord_src}
@@ -39,4 +40,7 @@ target_link_libraries(concord
   concord_utils
   kvblockchain
   secp256k1
+  concord_common
+  concord_blockchain
+  concord_time
 )
