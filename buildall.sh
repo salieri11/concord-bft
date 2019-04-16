@@ -204,7 +204,7 @@ docker_build() {
         addToProcList "Concord_for_memleak_image" $!
     else
         docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --label ${version_label}=${DOCKER_REPO_TAG} --label ${commit_label}=${commit_hash} > `basename "${DOCKER_REPO_NAME}"_build.log` 2>&1 &
-        addToProcList "${DOCKER_REPO_NAME}_image" $!
+        addToProcList `basename "${DOCKER_REPO_NAME}_image"` $!
     fi
 }
 
