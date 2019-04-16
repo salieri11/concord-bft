@@ -37,9 +37,21 @@ public class Blockchain extends AbstractEntity {
     public static class NodeEntry {
         UUID nodeId;
         String ip;
+        String hostName;
         String url;
         String cert;
         String region;
+
+        /**
+         * Constructor used in tests.  Really only to help backcompat right now.
+         */
+        public NodeEntry(UUID nodeId, String ip, String url, String cert, String region) {
+            this.nodeId = nodeId;
+            this.ip = ip;
+            this.url = url;
+            this.cert = cert;
+            this.region = region;
+        }
     }
 
 
@@ -47,4 +59,5 @@ public class Blockchain extends AbstractEntity {
     UUID  consortium;
 
     List<NodeEntry> nodeList;
+
 }

@@ -96,9 +96,9 @@ public final class MemberList extends ConcordServlet {
 
 
         Map<String, String> rpcUrls =
-                bc.getNodeList().stream().collect(Collectors.toMap(n -> n.getNodeId().toString(), n -> n.getUrl()));
+                bc.getNodeList().stream().collect(Collectors.toMap(n -> n.getHostName(), n -> n.getUrl()));
         Map<String, String> rpcCerts =
-                bc.getNodeList().stream().collect(Collectors.toMap(n -> n.getNodeId().toString(), n -> n.getCert()));
+                bc.getNodeList().stream().collect(Collectors.toMap(n -> n.getHostName(), n -> n.getCert()));
 
         // Iterate through each peer and construct
         // a corresponding JSON object
@@ -110,9 +110,9 @@ public final class MemberList extends ConcordServlet {
             peerJson.put("status", peer.getStatus());
             peerJson.put("millis_since_last_message", peer.getMillisSinceLastMessage());
             peerJson.put("millis_since_last_message_threshold", peer.getMillisSinceLastMessageThreshold());
-            peerJson.put("rpc_url", rpcUrls.getOrDefault(hostname, ""));
+            peerJson.put("rpc_url", rpcUrls.getOrDefault(peer.getHostname(), ""));
             if (includeRpcCerts.get()) {
-                peerJson.put("rpc_cert", readCertFile(rpcCerts.get(hostname)));
+                peerJson.put("rpc_cert", readCertFile(rpcCerts.get(peer.getHostname())));
             }
 
             // Store into a JSON array of all peers.

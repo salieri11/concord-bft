@@ -79,8 +79,10 @@ public class BlockchainService {
             NodeEntry n = new NodeEntry();
             n.setNodeId(UUID.randomUUID());
             n.setIp(ips[i]);
-            // If we have a url, split at = and take the last part
-            n.setUrl(i >= urls.length ? "" : urls[i].split("=")[1]);
+            // If we have a url, split at "=".  First part is host name, last part is url or cert
+            String[] urlParts = i >= urls.length ? new String[2] : urls[i].split("=");
+            n.setHostName(urlParts[0]);
+            n.setUrl(urlParts[1]);
             n.setCert(i >= certs.length ? "" : certs[i].split("=")[1]);
             entries.add(n);
         }
