@@ -7,6 +7,7 @@ import { FormsModule } from '@angular/forms';
 
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { ClrFormsNextModule } from '@clr/angular';
 import { MockSharedModule } from '../../shared/shared.module';
 import { TourService as NgxTourService } from 'ngx-tour-ngx-popper';
 
@@ -33,6 +34,7 @@ describe('DashboardComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
+        ClrFormsNextModule,
         RouterTestingModule,
         HttpClientTestingModule,
         MockSharedModule,

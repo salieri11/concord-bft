@@ -18,3 +18,10 @@ export function matchPasswordValidator(passwordFormControlName: string): Validat
     return (otherPasswordFormControl && control.value !== otherPasswordFormControl.value) ? { mismatch: true } : null;
   };
 }
+
+export function validateNumberOfNodes(): ValidatorFn {
+  return (control: AbstractControl): {[key: string]: any} | null => {
+    const valid = (control.value - 1) % 3 === 0;
+    return valid ? null : {'numberInvalid': {value: control.value}};
+  };
+}

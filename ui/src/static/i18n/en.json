@@ -50,6 +50,9 @@
     "dashboard": {
       "title": "Dashboard"
     },
+    "deploy": {
+      "title": "Deploy"
+    },
     "nodeList": {
       "title": "Node List"
     },
@@ -899,100 +902,38 @@
   },
   "blockchainWizard": {
     "title": "Deploy",
-    "blockchainAndConsortium": {
-      "pageTitle": "Setup Blockchain and Consortium",
-      "navTitle": "Blockchain & Consortium",
-      "info": "Selecting local fault tolerance will deploy nodes near your location, whereas global will distribute many nodes across all available regions.  Your consortium will be associated with this blockchain.",
-      "blockchainType": "Blockchain Type",
-      "concord": "Concord",
-      "hyperledger": "Hyperledger",
-      "faultTolerance": "Fault Tolerance",
-      "global": "Global",
-      "local": "Local",
+    "common": {
+      "consortiumDescription": "Description",
       "consortiumName": "Consortium Name",
-      "consortiumPlaceholder": "My Consortium"
+      "numberOfNodes": "Number of Nodes"
     },
-    "addOrgs": {
-      "pageTitle": "Add Organizations",
-      "navTitle": "Add Organizations",
-      "info": "Please add organizations that will be a part of this consortium. Each organization will be given credentials for performing transactions on the blockchain.  We request an organizations location to ensure that we setup a node near each organization for minimized latency.",
-      "addOrganization": "Add Organization",
-      "name": "Name",
-      "namePlaceholder": "My Organization",
-      "location": "Location",
-      "noOrgs": "No Organizations Added"
+    "details": {
+      "help": {
+        "numberOfNodes": "A valid number of nodes on a blockchain must be divisible by 3 + 1 (4, 7, 10...)"
+      },
+      "pageTitle": "Consortium and Blockchain Details",
+      "navTitle": "Details",
+      "consortiumPlaceholder": "My Consortium",
+      "consortiumDescriptionPlaceholder": "Describe the intent of the consortium"
     },
-    "usersAndAccess": {
-      "pageTitle": "Users & Access",
-      "navTitle": "Add Users & Access",
-      "info": "Please add at least one org admin for each org, so they can manage their own orgs and add users as they deem necessary.",
-      "firstName": "First Name",
-      "firstNamePlaceholder": "John",
-      "lastName": "Last Name",
-      "lastNamePlaceholder": "Doe",
+    "users": {
+      "pageTitle": "Invite Users",
+      "navTitle": "Users",
+      "invite": "Invite",
       "email": "Email",
       "emailPlaceholder": "jdoe@email.com",
-      "organization": "Organization",
+      "errors": {
+        "email": "A valid email address is required"
+      },
       "role": "Role",
-      "addUser": "Add User",
       "noUsers": "No Users Added"
     },
     "reviewDeployment": {
-      "pageTitle": "Review Deployment Setup",
-      "navTitle": "Review",
-      "chosenBlockchain": "Chosen Blockchain",
+      "pageTitle": "Review and Deploy",
+      "navTitle": "Deploy",
+      "consortiumName": "Consortium Name",
       "consortiumSetup": "Consortium Setup",
-      "advanced": "Advanced",
-      "networkName": "Network Name",
-      "numberOfNodes": "Number of Nodes",
-      "publicNodesRegions": "Public Nodes Regions",
-      "privateNode": "Private Node (vCenter/ESX)",
-      "organizations": "Organizations",
-      "privateNodeValues": {
-        "londonDatacenter": "london-datacenter",
-        "usDatacenter": "us-datacenter"
-      },
-      "publicNodeValues": {
-        "usEast1": "AWS US East (N. Virginia)",
-        "usEast2": "AWS US East (Ohio)",
-        "usWest1": "AWS US West (N. California)",
-        "usWest2": "AWS US West (Oregon)",
-        "apNortheast1": "AWS Asia Pacific (Tokyo)",
-        "apNortheast3": "AWS Asia Pacific (Osaka-Local)",
-        "apSouth1": "AWS Asia Pacific (Mumbai)",
-        "apSoutheast1": "AWS Asia Pacific (Singapore)",
-        "apSoutheast2": "AWS Asia Pacific (Sydney)",
-        "caCentral1": "AWS Canada (Central)",
-        "cnNorth1": "AWS China (Beijing)",
-        "cnNorthWest1": "AWS China (Ningxia)",
-        "euWest1": "AWS EU (Ireland)",
-        "euWest2": "AWS EU (London)",
-        "euWest3": "AWS EU (Paris)",
-        "euCentral1": "AWS EU (Frankfurt)",
-        "saEast1": "AWS South America (São Paulo)"
-      }
-    },
-    "locations": {
-      "sydney": "Australia, Sydney",
-      "vienna": "Austria, Vienna",
-      "brussels": "Belgium, Brussels",
-      "rioDeJaneiro": "Brazil, Rio de Janeiro",
-      "toronto": "Canada, Toronto",
-      "santiago": "Chile, Santiago",
-      "beijing": "China, Beijing",
-      "cairo": "Egypt, Cairo",
-      "paris": "France, Paris",
-      "delhi": "India, Delhi",
-      "milan": "Italy, Milan",
-      "tokyo": "Japan, Tokyo",
-      "mexicoCity": "Mexico, Mexico City",
-      "moscow": "Russia, Moscow",
-      "seoul": "South Korea, Seoul",
-      "johannesburg": "South Africa, Johannesburg ",
-      "london": "United Kingdom, London",
-      "lasVegas": "United States, Las Vegas",
-      "newYork": "United States, New York",
-      "paloAlto": "United States, Palo Alto"
+      "users": "Users"
     }
   },
   "mockTasks": {

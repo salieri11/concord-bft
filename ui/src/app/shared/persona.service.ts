@@ -31,6 +31,11 @@ export class PersonaService {
     return personaOptions;
   }
 
+  static getName(value: Personas): string {
+    const matches = PersonaService.getOptions().filter((o) => o.value === value);
+    return matches.length ? matches[0].name : null;
+  }
+
   get currentPersona() {
     return this._currentPersona;
   }
