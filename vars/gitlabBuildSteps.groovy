@@ -251,7 +251,9 @@ def call(){
                 env.release_ethrpc_repo = env.release_repo + "/ethrpc"
                 env.release_fluentd_repo = env.release_repo + "/fluentd"
                 env.release_helen_repo = env.release_repo + "/concord-ui"
-                env.release_persephone_repo = env.release_repo + "/persephone"
+                env.release_persephone_metadata_repo = env.release_repo + "/persephone-metadata"
+                env.release_persephone_provisioning_repo = env.release_repo + "/persephone-provisioning"
+                env.release_persephone_fleet_management_repo = env.release_repo + "/persephone-fleet-management"
                 env.release_ui_repo = env.release_repo + "/ui"
                 env.release_contract_compiler_repo = env.release_repo + "/contract-compiler"
 
@@ -263,7 +265,9 @@ def call(){
                 env.internal_ethrpc_repo = env.release_ethrpc_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_fluentd_repo = env.release_fluentd_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_helen_repo = env.internal_repo + "/helen"
-                env.internal_persephone_repo = env.release_persephone_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_persephone_metadata_repo = env.release_persephone_metadata_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_persephone_provisioning_repo = env.release_persephone_provisioning_repo.replace(env.release_repo, env.internal_repo)
+                env.internal_persephone_fleet_management_repo = env.release_persephone_fleet_management_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_ui_repo = env.release_ui_repo.replace(env.release_repo, env.internal_repo)
                 env.internal_contract_compiler_repo = env.release_contract_compiler_repo.replace(env.release_repo, env.internal_repo)
               }
@@ -290,7 +294,9 @@ fluentd_repo=${internal_fluentd_repo}
 fluentd_tag=${docker_tag}
 helen_repo=${internal_helen_repo}
 helen_tag=${docker_tag}
-persephone_repo=${internal_persephone_repo}
+persephone_metadata_repo=${internal_persephone_metadata_repo}
+persephone_provisioning_repo=${internal_persephone_provisioning_repo}
+persephone_fleet_management_repo=${internal_persephone_fleet_management_repo}
 persephone_tag=${docker_tag}
 ui_repo=${internal_ui_repo}
 ui_tag=${docker_tag}
@@ -581,7 +587,9 @@ EOF
                 pushDockerImage(env.internal_ethrpc_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_fluentd_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_helen_repo, env.docker_tag, false)
-                pushDockerImage(env.internal_persephone_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_persephone_metadata_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_persephone_provisioning_repo, env.docker_tag, false)
+                pushDockerImage(env.internal_persephone_fleet_management_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_contract_compiler_repo, env.docker_tag, false)
               }
@@ -618,7 +626,9 @@ EOF
                   docker tag ${internal_ethrpc_repo}:${docker_tag} ${release_ethrpc_repo}:${docker_tag}
                   docker tag ${internal_fluentd_repo}:${docker_tag} ${release_fluentd_repo}:${docker_tag}
                   docker tag ${internal_helen_repo}:${docker_tag} ${release_helen_repo}:${docker_tag}
-                  docker tag ${internal_persephone_repo}:${docker_tag} ${release_persephone_repo}:${docker_tag}
+                  docker tag ${internal_persephone_metadata_repo}:${docker_tag} ${release_persephone_metadata_repo}:${docker_tag}
+                  docker tag ${internal_persephone_provisioning_repo}:${docker_tag} ${release_persephone_provisioning_repo}:${docker_tag}
+                  docker tag ${internal_persephone_fleet_management_repo}:${docker_tag} ${release_persephone_fleet_management_repo}:${docker_tag}
                   docker tag ${internal_ui_repo}:${docker_tag} ${release_ui_repo}:${docker_tag}
                   docker tag ${internal_contract_compiler_repo}:${docker_tag} ${release_contract_compiler_repo}:${docker_tag}
                 '''
@@ -628,7 +638,9 @@ EOF
                 pushDockerImage(env.release_ethrpc_repo, env.docker_tag, true)
                 pushDockerImage(env.release_fluentd_repo, env.docker_tag, true)
                 pushDockerImage(env.release_helen_repo, env.docker_tag, true)
-                // pushDockerImage(env.release_persephone_repo, env.docker_tag, true)
+                // pushDockerImage(env.release_persephone_metadata_repo, env.docker_tag, true)
+                // pushDockerImage(env.release_persephone_provisioning_repo, env.docker_tag, true)
+                // pushDockerImage(env.release_persephone_fleet_management_repo, env.docker_tag, true)
                 pushDockerImage(env.release_ui_repo, env.docker_tag, true)
                 pushDockerImage(env.release_contract_compiler_repo, env.docker_tag, true)
               }

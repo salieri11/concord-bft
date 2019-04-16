@@ -169,6 +169,60 @@ install_node_dependency() {
 
 }
 
+docker_build() {
+    if [ "$#" -lt "4" ]
+    then
+        echo "Missing Required Parameters for docker build method"
+        echo "Usage: docker_build <directory to docker build> <docker build file> <docker build name> <docker build tag>"
+        killAllProcs
+        exit 1
+    fi
+    DOCKER_BUILD_DIR="$1"
+    shift
+    DOCKER_BUILD_FILE="$1"
+    shift
+    DOCKER_REPO_NAME="$1"
+    shift
+    DOCKER_REPO_TAG="$1"
+    shift
+
+    MEMORY_LEAK_DOCKER_BUILD=""
+    while [ "$1" != "" ] ; do
+       case $1 in
+          "--memoryLeakDockerBuild")
+             MEMORY_LEAK_DOCKER_BUILD="$1"
+             ;;
+       esac
+       shift
+    done
+
+    if [ ! -z "${MEMORY_LEAK_DOCKER_BUILD}" ]
+    then
+        memleak_util="valgrind"
+        memleak_util_cmd="valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --log-file=/tmp/valgrind_concord1.log"
+        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}"_memleak --build-arg "memleak_util=${memleak_util}" --build-arg "memleak_util_cmd=${memleak_util_cmd}" > concord_memleak_build.log 2>&1 &
+        addToProcList "Concord_for_memleak_image" $!
+    else
+        docker build "${DOCKER_BUILD_DIR}" -f "${DOCKER_BUILD_FILE}" -t "${DOCKER_REPO_NAME}:${DOCKER_REPO_TAG}" --label ${version_label}=${DOCKER_REPO_TAG} --label ${commit_label}=${commit_hash} > `basename "${DOCKER_REPO_NAME}"_build.log` 2>&1 &
+        addToProcList "${DOCKER_REPO_NAME}_image" $!
+    fi
+}
+
+docker_pull() {
+    if [ "$#" -ne "2" ]
+    then
+        echo "Missing Required Parameters for docker pull method"
+        echo "Usage: docker_pull <docker image:tag> <Task Name>"
+        killAllProcs
+        exit 1
+    fi
+    DOCKER_IMAGE_WITH_TAG="$1"
+    DOCKER_PULL_TASK_NAME="$2"
+
+    docker pull "${DOCKER_IMAGE_WITH_TAG}" &
+    addToProcList "${DOCKER_PULL_TASK_NAME}" $!
+}
+
 PerformanceTests() {
     cd performance
     mvn clean install assembly:single > performance__test_mvn_build.log 2>&1
@@ -209,49 +263,37 @@ install_node_dependency "node dependency for UI" "ui"
 install_node_dependency "node dependency for contract-compiler" "contract-compiler"
 
 echo "Building..."
-docker build . --file concord/Dockerfile -t ${concord_repo}:${concord_tag} --label ${version_label}=${concord_tag} --label ${commit_label}=${commit_hash} > concord_build.log 2>&1 &
-addToProcList "Concord" $!
+docker_build . concord/Dockerfile ${concord_repo} ${concord_tag}
 
-memleak_util="valgrind"
-memleak_util_cmd="valgrind -v --leak-check=full --show-leak-kinds=all --track-origins=yes --log-file=/tmp/valgrind_concord1.log"
-docker build . --file concord/Dockerfile -t "${concord_repo}:${concord_tag}"_memleak --build-arg "memleak_util=${memleak_util}" --build-arg "memleak_util_cmd=${memleak_util_cmd}" > concord_memleak_build.log 2>&1 &
-addToProcList "Concord_for_memleak" $!
+docker_build . concord/Dockerfile ${concord_repo} ${concord_tag} --memoryLeakDockerBuild
 
 # RV: March 21, 2019: This is only needed for the state transfer tests.  Removing.
 # startNativeConcordBuild
 
-docker build ui --file ui/Dockerfile -t ${ui_repo}:${ui_tag} --label ${version_label}=${ui_tag} --label ${commit_label}=${commit_hash} > ui_build.log 2>&1 &
-addToProcList "UI" $!
+docker_build ui ui/Dockerfile ${ui_repo} ${ui_tag}
 
-docker build docker/fluentd --file docker/fluentd/Dockerfile -t ${fluentd_repo}:${fluentd_tag} --label ${version_label}=${fluentd_tag} --label ${commit_label}=${commit_hash} > fluentd_build.log 2>&1 &
-addToProcList "Fluentd" $!
+docker_build docker/fluentd docker/fluentd/Dockerfile ${fluentd_repo} ${fluentd_tag}
 
 # Includes helen, ethrpc, and communication.
 buildMavenTargets
 
-docker build ethrpc -f ethrpc/packaging.Dockerfile -t ${ethrpc_repo}:${ethrpc_tag} --label ${version_label}=${ethrpc_tag} --label ${commit_label}=${commit_hash} > ethrpc_build_docker.log 2>&1 &
-addToProcList "Ethrpc_docker_image" $!
+docker_build ethrpc ethrpc/packaging.Dockerfile ${ethrpc_repo} ${ethrpc_tag}
 
-docker build helen -f helen/packaging.Dockerfile -t ${helen_repo}:${helen_tag} --label ${version_label}=${helen_tag} --label ${commit_label}=${commit_hash} > helen_build.log 2>&1 &
-addToProcList "Helen_docker_image" $!
+docker_build helen helen/packaging.Dockerfile ${helen_repo} ${helen_tag}
 
-docker build . -f persephone/metadata-service/Dockerfile -t ${persephone_repo}:${persephone_tag}  --label ${version_label}=${persephone_tag} --label ${commit_label}=${commit_hash} > persephone_build.log 2>&1 &
-addToProcList "Persephone_docker_image" $!
+docker_build . persephone/metadata-service/Dockerfile ${persephone_metadata_repo} ${persephone_tag}
+docker_build . persephone/provision-service/Dockerfile ${persephone_provisioning_repo} ${persephone_tag}
+# docker_build . persephone/metadata-service/Dockerfile ${persephone_fleet_management_repo} ${persephone_tag}
 
-docker pull cockroachdb/cockroach:v2.0.2 &
-addToProcList "Cockroach_DB" $!
+docker_pull cockroachdb/cockroach:v2.0.2 Cockroach_DB
 
-docker pull athena-docker-local.artifactory.eng.vmware.com/reverse-proxy:0.1.2 &
-addToProcList "Reverse_proxy" $!
+docker_pull athena-docker-local.artifactory.eng.vmware.com/reverse-proxy:0.1.2 "Reverse_proxy"
 
-docker build asset-transfer -f asset-transfer/Dockerfile -t "${asset_transfer_repo}:${asset_transfer_tag}" --label ${version_label}=${asset_transfer_tag} --label ${commit_label}=${commit_hash} > asset_transfer_build.log 2>&1 &
-addToProcList "Asset_Transfer_sample_image" $!
+docker_build asset-transfer asset-transfer/Dockerfile ${asset_transfer_repo} ${asset_transfer_tag}
 
-docker build agent -f agent/packaging.Dockerfile -t ${agent_repo}:${agent_tag} --label ${version_label}=${agent_tag} --label ${commit_label}=${commit_hash} > agent_build.log 2>&1 &
-addToProcList "Agent_docker_image" $!
+docker_build agent agent/packaging.Dockerfile ${agent_repo} ${agent_tag}
 
-docker build contract-compiler --file contract-compiler/Dockerfile -t ${contract_compiler_repo}:${contract_compiler_tag} --label ${version_label}=${contract_compiler_tag} --label ${commit_label}=${commit_hash} > contract_compiler_build.log 2>&1 &
-addToProcList "Contract Compiler Microservice" $!
+docker_build contract-compiler contract-compiler/Dockerfile ${contract_compiler_repo} ${contract_compiler_tag}
 
 if [ ! -z "${ADDITIONAL_BUILDS}" ]
 then
@@ -264,4 +306,5 @@ then
         addToProcList "$additional_build" $!
     done
 fi
+
 waitForProcesses
