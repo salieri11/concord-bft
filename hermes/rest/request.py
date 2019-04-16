@@ -23,7 +23,7 @@ class Request():
    _idCounter = 1
 
    # Instance
-   _logDir = None
+   logDir = None
    _testName = None
    _endpointName = None
    _responseFile = None
@@ -34,8 +34,8 @@ class Request():
    _data = None
 
    def __init__(self, logDir, testName, baseUrl, userConfig):
-      self._logDir = logDir
-      os.makedirs(self._logDir, exist_ok=True)
+      self.logDir = logDir
+      os.makedirs(self.logDir, exist_ok=True)
 
       self._testName = testName
       self._baseUrl = baseUrl
@@ -132,7 +132,7 @@ class Request():
       Creates the log directory and sets the response/output files for a
       ReST request.
       '''
-      fileRoot = os.path.join(self._logDir, str(Request._idCounter) + "_" +
+      fileRoot = os.path.join(self.logDir, str(Request._idCounter) + "_" +
                               method)
       self._responseFile = fileRoot + ".json"
       self._outputFile = fileRoot + ".log"
