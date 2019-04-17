@@ -19,7 +19,6 @@ import yaml
 import signal
 
 PRODUCT_LOGS_DIR = "product_logs"
-
 log = logging.getLogger(__name__)
 
 class ConcordInstsanceMetaData():
@@ -42,6 +41,7 @@ class Product():
    Represents an instance of the product.  That includes all of the processes
    needed to have "the product" running.
    '''
+   _atexitSetup = False # Whether atexit has been set up.
    _ethrpcApiUrl = None
    _logs = []
    _processes = []
@@ -49,6 +49,7 @@ class Product():
    _cmdlineArgs = None
    userProductConfig = None
    _servicesToLogLater = ["db-server-init1", "db-server-init2", "fluentd"]
+   _numProductStarts = 0
 
    def __init__(self, cmdlineArgs, userConfig):
       self._cmdlineArgs = cmdlineArgs
@@ -63,7 +64,11 @@ class Product():
       Given the user's product config section, launch the product.
       Raises an exception if it cannot start.
       '''
-      atexit.register(self.stopProduct)
+      Product._numProductStarts += 1
+
+      if not Product._atexitSetup:
+         atexit.register(self.stopProduct)
+         Product._atexitSetup = True
 
       # Workaround for intermittent product launch issues.
       numAttempts = 0
@@ -73,6 +78,7 @@ class Product():
          try:
             self._launchViaDocker()
             launched = True
+
          except Exception as e:
             numAttempts += 1
             log.info("Attempt {} to launch the product failed. Exception: '{}'".format(
@@ -130,7 +136,6 @@ class Product():
 
          if not self._waitForProductStartup():
             raise Exception("The product did not start.")
-
       else:
          raise Exception("The docker compose file list contains an invalid value.")
 
@@ -146,7 +151,7 @@ class Product():
 
       # We capture output in individual services' logs now, but still capture
       # all output just in case.
-      bigLog = self._openLog("concord")
+      bigLog = self._openLog("concord_" + str(Product._numProductStarts))
       p = subprocess.Popen(cmd,
                            stdout=bigLog,
                            stderr=subprocess.STDOUT)
@@ -191,7 +196,7 @@ class Product():
       Returns the thread.
       '''
       self._waitForContainerToStart(service, dockerComposeFile)
-      logFile = self._openLog(service)
+      logFile = self._openLog(service + "_" + str(Product._numProductStarts))
       log.info("Service {} log file: {}".format(service, logFile.name))
       cmd = ["docker-compose", "-f", dockerComposeFile, "logs", "-f", service]
       p = subprocess.Popen(cmd,
@@ -614,7 +619,7 @@ class Product():
             logFileName = self._createLogPath(serviceName)
 
             if not os.path.isfile(logFileName):
-               logFile = self._openLog(serviceName)
+               logFile = self._openLog(serviceName + "_" + str(Product._numProductStarts))
                log.info("Service {} log file: {}".format(serviceName, logFile.name))
                cmd = ["docker-compose", "-f", dockerComposeFile, "logs", serviceName]
                subprocess.run(cmd,
@@ -629,42 +634,15 @@ class Product():
       '''
       self._logServicesAtEnd()
 
-      if self._cmdlineArgs.dockerComposeFile:
-         self.stopMemoryLeakNode()
-         cmd = ["docker-compose"]
+      self.stopMemoryLeakNode()
+      cmd = ["docker-compose"]
 
-         for cfgFile in self._cmdlineArgs.dockerComposeFile:
-            cmd += ["--file", cfgFile]
+      for cfgFile in self._cmdlineArgs.dockerComposeFile:
+         cmd += ["--file", cfgFile]
 
-         cmd += ["down"]
-         log.info("Stopping the product with command '{}'".format(cmd))
-         p = subprocess.run(cmd)
-      else:
-         # RV, April 8: Is this block dead code?
-         for p in self._processes[:]:
-            if p.poll() is None:
-               p.terminate()
-               log.info("Terminating {}.".format(p.args))
-
-         for p in self._processes[:]:
-            if "docker" in p.args:
-               cmd = ["docker", "ps", "-q", "-f",
-                      "name=reverse-proxy-hermes-test"]
-               ps_output = subprocess.run(cmd,
-                                          stdout=subprocess.PIPE,
-                                          stderr=subprocess.STDOUT)
-               container_ids = ps_output.stdout.decode("UTF-8").split("\n")
-               log.info("Container IDs found: {0}".format(container_ids))
-
-               for container_id in container_ids:
-                  if container_id:
-                     log.info("Terminating container ID: {0}".format(container_id))
-                     if not self.stopDockerContainer(container_id):
-                        raise Exception("Failure trying to stop docker container.")
-
-            while p.poll() is None:
-               log.info("Waiting for process {} to exit.".format(p.args))
-               time.sleep(1)
+      cmd += ["down"]
+      log.info("Stopping the product with command '{}'".format(cmd))
+      p = subprocess.run(cmd)
 
       for l in self._logs[:]:
          log.info("Closing log: {}".format(l.name))
@@ -674,16 +652,7 @@ class Product():
 
    def _waitForProductStartup(self):
       '''
-      Issue a request for Helen to return a list of ethrpc nodes, then sends an
-      empty contract.  The contract:
-
-      pragma solidity ^0.4.19;
-
-      contract x {
-      }
-
-      Retries a few times.
-      Returns whether the product started up.
+      Waits for Helen to be up, then waits for Concord to be up.
       '''
       # Wait for 10 seconds and retry
       retries = 20
@@ -697,55 +666,54 @@ class Product():
       while attempts < retries:
          try:
             nodes = self.getEthrpcNodes()
+            if self.nodesReady(nodes):
+               break
+            else:
+               raise Exception("Still waiting for Concord nodes to be ready.")
          except Exception as e:
+            attempts += 1
             log.info("Caught an exception, probably because Helen is still starting up: {}".format(e))
 
-         # We check for nodes even if we were passed one to use on the command line
-         # because checking for nodes is also our way of knowing whether Helen is up.
-         # Helen will eventually have a health check API, which will be a better way
-         # to determine when it is up.
-         if nodes:
-            if self._cmdlineArgs.ethrpcApiUrl:
-               self._ethrpcApiUrl = self._cmdlineArgs.ethrpcApiUrl
-            else:
-               self._ethrpcApiUrl = self.getUrlFromEthrpcNode(nodes[0])
-
-            if self._ethrpcApiUrl:
-               break
-         else:
-            attempts += 1
-
-            if attempts < retries:
+            if attempts <= retries:
                time.sleep(sleepTime)
                log.info("Waiting for Helen to become responsive...")
             else:
-               raise Exception("Helen never returned ethrpc nodes.")
+               log.error("Helen never returned ethrpc nodes.")
+               return False
+
+      if self._cmdlineArgs.ethrpcApiUrl:
+         self._ethrpcApiUrl = self._cmdlineArgs.ethrpcApiUrl
+      else:
+         self._ethrpcApiUrl = self.getUrlFromEthrpcNode(nodes[0])
 
       rpc = RPC(startupLogDir,
-                "waitForStartup",
+                "addApiUser",
                 self._ethrpcApiUrl,
                 self._userConfig)
-      caller = self.userProductConfig["users"][0]["hash"]
-      data = ("0x60606040523415600e57600080fd5b603580601b6000396000f3006060604"
-              "052600080fd00a165627a7a723058202909725de95a67cf9907b67867deb3f7"
-              "7096fdd38a55e7ac790117d50be1b3830029")
-      txHash = None
-      attempts = 0
 
-      while attempts < retries and not txHash:
-         try:
-            log.info("Adding an API user via Helen...")
-            rpc.addUser(self._cmdlineArgs.reverseProxyApiBaseUrl)
-            log.info("\nRunning a test transaction via ethrpc...")
-            txHash = rpc.sendTransaction(caller, data)
-         except Exception as e:
-            attempts += 1
+      log.info("Adding an API user via Helen...")
+      rpc.addUser(self._cmdlineArgs.reverseProxyApiBaseUrl)
+      return True
 
-            if attempts < retries:
-               log.debug("Exception, probably because ethrpc nodes are still starting up: {}".format(str(e)))
-               time.sleep(sleepTime)
 
-      return txHash != None
+   def nodesReady(self, nodes):
+      '''
+      Returns whether all of the nodes report being ready.
+      Yes, the framework is using the thing it is testing, but we're not going
+      to ssh into the Concord nodes or something like that.  If the status
+      goes to live when nodes aren't live, we'll know when the first test case
+      runs.
+      '''
+      if nodes and len(nodes) > 0:
+         allReady = True
+
+         for node in nodes:
+            allReady = allReady and node["status"] == "live"
+
+         return allReady
+      else:
+         return False
+
 
    def cleanConcordDb(self, instanceId):
       if len(self._concordProcessesMetaData) == 0:

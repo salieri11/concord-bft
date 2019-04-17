@@ -263,6 +263,7 @@ class HelenAPITests(test_suite.TestSuite):
       return (True, None)
 
    def _test_getTransactions(self, request):
+      self._mock_transaction(request)
       result = request.getBlockList()
       blockResult = request.getBlock(result["blocks"][0]["url"])
 
@@ -429,7 +430,7 @@ class HelenAPITests(test_suite.TestSuite):
       contractId, contractVersion = self.upload_mock_contract(request)
       result = request.callContractAPI('/api/concord/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
-      rpc = RPC(request._logDir,
+      rpc = RPC(request.logDir,
                 self.getName(),
                 self.ethrpcApiUrl,
                 self._userConfig)
@@ -450,7 +451,7 @@ class HelenAPITests(test_suite.TestSuite):
       contractId, contractVersion = self.upload_mock_contract(request)
       result = request.callContractAPI('/api/concord/contracts/' + contractId
                                        + '/versions/' + contractVersion, "")
-      rpc = RPC(request._logDir,
+      rpc = RPC(request.logDir,
                 self.getName(),
                 self.ethrpcApiUrl,
                 self._userConfig)
@@ -529,7 +530,7 @@ class HelenAPITests(test_suite.TestSuite):
                  " correct response".format(contractId, contractVersion))
 
    def _mock_transaction(self, request, data = "0x00"):
-      rpc = RPC(request._logDir,
+      rpc = RPC(request.logDir,
                 self.getName(),
                 self.ethrpcApiUrl,
                 self._userConfig)
