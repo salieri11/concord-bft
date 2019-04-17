@@ -11,7 +11,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.services.profiles.ApplicationContextHolder;
 import com.vmware.blockchain.services.profiles.KeystoreService;
@@ -105,7 +105,7 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
             if (params.size() != 1) {
                 logger.error("Invalid request parameter : params");
                 throw new EthRpcHandlerException(EthDispatcher
-                        .errorMessage("'params' must contain only one element", id, jsonRpc).toJSONString());
+                        .errorMessage(ErrorCode.ELEMENTS_SPECIFIED_MORE, id, jsonRpc).toJSONString());
             }
 
             try {
@@ -114,7 +114,7 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
             } catch (Exception e) {
                 logger.error("Error in calculating Keccak hash", e);
                 throw new EthRpcHandlerException(
-                        EthDispatcher.errorMessage("'invalid param", id, jsonRpc).toJSONString());
+                        EthDispatcher.errorMessage(ErrorCode.INVALID_PARAMETER, id, jsonRpc).toJSONString());
             }
         } else if (ethMethodName.equals(Constants.RPC_MODULES_NAME)) {
             JSONParser p = new JSONParser();
@@ -139,7 +139,7 @@ public class EthLocalResponseHandler extends AbstractEthRpcHandler {
             if (params.size() != 1) {
                 logger.error("Invalid request parameter : params");
                 throw new EthRpcHandlerException(
-                        EthDispatcher.errorMessage("'params' must contain only one element", id, jsonRpc)
+                        EthDispatcher.errorMessage(ErrorCode.ELEMENTS_SPECIFIED_MORE, id, jsonRpc)
                                 .toJSONString());
             }
             String password = (String) params.get(0);

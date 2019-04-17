@@ -8,7 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.concord.Concord;
 
 /**
@@ -48,7 +48,7 @@ public class EthFilterChangeHandler extends AbstractEthRpcHandler {
                 builder.setBlockListRequest(blockListRequest);
                 return true;
             } else {
-                throw new EthRpcHandlerException("Unknown filter type " + filter.type);
+                throw new EthRpcHandlerException(ErrorCode.UNKNOWN_FILTER + filter.type);
             }
         }
 

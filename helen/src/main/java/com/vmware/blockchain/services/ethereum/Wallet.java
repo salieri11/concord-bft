@@ -23,6 +23,7 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import com.vmware.blockchain.common.ErrorCode;
 import org.bouncycastle.crypto.generators.SCrypt;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
@@ -155,7 +156,7 @@ public class Wallet {
         }
 
         if (bytesLength > length) {
-            throw new WalletException("Input is too large to put in byte array of size " + length);
+            throw new WalletException(ErrorCode.INVALID_INPUT_SIZE + length);
         }
 
         int destOffset = length - bytesLength;

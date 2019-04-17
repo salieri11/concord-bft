@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.EntityModificationException;
 
 import lombok.AllArgsConstructor;
@@ -86,13 +86,13 @@ public class ProfileController {
 
     private void validateCreateRequest(UserCreateRequest ucr) throws EntityModificationException {
         if (ucr.getEmail() == null || ucr.getEmail().isEmpty()) {
-            throw new EntityModificationException("invalid email specified");
+            throw new EntityModificationException(ErrorCode.INVALID_EMAIL);
         }
         if (ucr.getName() == null || ucr.getEmail().isEmpty()) {
-            throw new EntityModificationException("invalid name specified");
+            throw new EntityModificationException(ErrorCode.INVALID_NAME);
         }
         if (ucr.getPassword() == null || ucr.getPassword().isEmpty()) {
-            throw new EntityModificationException("invalid password specified");
+            throw new EntityModificationException(ErrorCode.INVALID_PASSWORD);
         }
     }
 
@@ -116,21 +116,21 @@ public class ProfileController {
 
     private void validatePatchRequest(UserPatchRequest upr) throws EntityModificationException {
         if (upr.getRole() != null && !Roles.contains(upr.getRole())) {
-            throw new EntityModificationException("invalid role provided");
+            throw new EntityModificationException(ErrorCode.INVALID_ROLE);
         }
         if (upr.getDetails() != null) {
             if (upr.getDetails().getLastName() != null && upr.getDetails().getLastName().isEmpty()) {
-                throw new EntityModificationException("invalid last name provided");
+                throw new EntityModificationException(ErrorCode.INVALID_NAME);
             }
             if (upr.getDetails().getFirstName() != null && upr.getDetails().getFirstName().isEmpty()) {
-                throw new EntityModificationException("invalid first name provided");
+                throw new EntityModificationException(ErrorCode.INVALID_NAME);
             }
         }
         if (upr.getEmail() != null && upr.getEmail().isEmpty()) {
-            throw new EntityModificationException("invalid email provided");
+            throw new EntityModificationException(ErrorCode.INVALID_EMAIL);
         }
         if (upr.getName() != null && upr.getName().isEmpty()) {
-            throw new EntityModificationException("invalid name provided");
+            throw new EntityModificationException(ErrorCode.INVALID_NAME);
         }
     }
 

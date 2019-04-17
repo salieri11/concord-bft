@@ -38,6 +38,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 
 import com.vmware.blockchain.MvcConfig;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.common.NotFoundException;
@@ -133,7 +134,7 @@ class UserAuthenticatorTest {
         // The order of these matters.  When the user is "user@test.com" return the test user,
         // otherwise, return and empty optional.
         when(userService.getByEmail(AdditionalMatchers.not(eq("user@test.com"))))
-                .thenThrow(new NotFoundException("Not found"));
+                .thenThrow(new NotFoundException(ErrorCode.NOT_FOUND));
         when(userService.getByEmail("user@test.com")).thenReturn(testUser);
         when(keystoreSerivce.getWalletsForUser(any(UUID.class))).thenReturn(Collections.emptyList());
 

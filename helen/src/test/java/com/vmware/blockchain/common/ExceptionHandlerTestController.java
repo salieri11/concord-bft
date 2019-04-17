@@ -29,7 +29,7 @@ public class ExceptionHandlerTestController {
 
     @RequestMapping(path = "/api/concordexception", method = RequestMethod.GET)
     ResponseEntity<String> concordException() {
-        throw new ConcordConnectionException("Connectioni error");
+        throw new ConcordConnectionException("Connection error");
     }
 
     @RequestMapping(path = "/api/conflict", method = RequestMethod.GET)
@@ -39,7 +39,7 @@ public class ExceptionHandlerTestController {
 
     @RequestMapping(path = "/api/entitymodification", method = RequestMethod.GET)
     ResponseEntity<String> entityModification() {
-        throw new EntityModificationException("Issues with your entity");
+        throw new EntityModificationException(ErrorCode.ENTITY_ISSUES);
     }
 
     @RequestMapping(path = "/api/forbidden", method = RequestMethod.GET)

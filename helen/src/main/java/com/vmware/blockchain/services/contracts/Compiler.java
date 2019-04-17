@@ -30,6 +30,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import com.vmware.blockchain.common.ErrorCode;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -152,7 +153,7 @@ public class Compiler {
         } else if (isMetadataFile(file)) {
             return fileName.substring(0, fileName.lastIndexOf("_meta.json"));
         } else {
-            throw new BadRequestException("Only bytecode or metadata file path are supported");
+            throw new BadRequestException(ErrorCode.BYTECODE_OR_METADATA_ALLOWED);
         }
     }
 

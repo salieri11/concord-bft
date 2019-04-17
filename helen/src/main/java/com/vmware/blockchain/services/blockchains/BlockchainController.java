@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.ForbiddenException;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.deployment.model.ConcordComponent;
@@ -35,7 +36,6 @@ import com.vmware.blockchain.deployment.model.DeploymentSpecification;
 import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
-import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.model.ProvisionServiceStub;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
@@ -215,7 +215,7 @@ public class BlockchainController {
     @RequestMapping(path = "/api/blockchains/{id}", method = RequestMethod.GET)
     ResponseEntity<BlockchainGetResponse> get(@PathVariable UUID id) throws NotFoundException {
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles()) && !authHelper.getPermittedChains().contains(id)) {
-            throw new ForbiddenException(id + " Forbidden");
+            throw new ForbiddenException(id + ErrorCode.UNALLOWED);
         }
         Blockchain b = manager.get(id);
         BlockchainGetResponse br = new BlockchainGetResponse(b);
@@ -270,7 +270,7 @@ public class BlockchainController {
     @RequestMapping(path = "/api/blockchains", method = RequestMethod.POST)
     public ResponseEntity<BlockchainTaskResponse> createBlockchain(@RequestBody BlockchainPost body) throws Exception {
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles())) {
-            throw new ForbiddenException("Action Forbidden");
+            throw new ForbiddenException(ErrorCode.UNALLOWED);
         }
         final ProvisionServiceStub client = new ProvisionServiceStub(channel, CallOptions.DEFAULT);
         // start the deployment
@@ -299,7 +299,7 @@ public class BlockchainController {
     public ResponseEntity<BlockchainTaskResponse> updateBlockchain(@PathVariable UUID id,
             @RequestBody BlockchainPatch body) throws NotFoundException {
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles()) && !authHelper.getPermittedChains().contains(id)) {
-            throw new ForbiddenException(id + " Forbidden");
+            throw new ForbiddenException(ErrorCode.UNALLOWED);
         }
 
 

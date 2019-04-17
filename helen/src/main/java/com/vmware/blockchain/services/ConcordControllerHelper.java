@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 
 import com.vmware.blockchain.common.ConcordConnectionException;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
 import com.vmware.concord.Concord;
 import com.vmware.concord.ConcordHelper;
@@ -47,22 +48,21 @@ public class ConcordControllerHelper {
         try {
             conn = concordConnectionPool.getConnection();
             if (conn == null) {
-                throw new ConcordConnectionException("Unable to get concord " + "connection");
+                throw new ConcordConnectionException(ErrorCode.CONCORD_CONNECTION);
             }
-
             boolean res = ConcordHelper.sendToConcord(req, conn);
             if (!res) {
-                throw new ConcordConnectionException("Sending to concord failed");
+                throw new ConcordConnectionException(ErrorCode.CONCORD_SEND_FAILED);
             }
 
             // receive response from Concord
             concordResponse = ConcordHelper.receiveFromConcord(conn);
             if (concordResponse == null) {
-                throw new ConcordConnectionException("Concord sent invalid response");
+                throw new ConcordConnectionException(ErrorCode.CONCORD_INVALID_RESPONSE);
             }
             return concordResponse;
         } catch (Exception e) {
-            throw new ConcordConnectionException("Concord internal error: " + e.getMessage());
+            throw new ConcordConnectionException(ErrorCode.CONCORD_INTERNAL_ERROR + e.getMessage());
         } finally {
             concordConnectionPool.putConnection(conn);
         }

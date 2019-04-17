@@ -13,6 +13,8 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
+import com.vmware.blockchain.common.ErrorCode;
+
 
 import com.vmware.blockchain.common.ConflictException;
 import com.vmware.blockchain.common.NotFoundException;
@@ -74,7 +76,7 @@ public class ContractRegistryManager {
                     c.getBytecode(), c.getSourcecode());
             return cv;
         } else {
-            throw new NotFoundException("Contract with contract ID: {0} and version {1} not found", contractId,
+            throw new NotFoundException(ErrorCode.CONTRACT_NOT_FOUND, contractId,
                     versionName);
         }
     }
@@ -102,7 +104,7 @@ public class ContractRegistryManager {
             contractReopository.save(c);
         } catch (DataIntegrityViolationException e) {
             throw new ConflictException(
-                    "ContractVersion with id {0} and version {1} already exists", contractId, versionName);
+                    ErrorCode.DUPLICATE_CONTRACT_ID, contractId, versionName);
         }
         return true;
     }
@@ -121,7 +123,7 @@ public class ContractRegistryManager {
                 .findByNameAndVersionNameAndBlockchainIdOrderBySeqDesc(
                         existingContractId, existingVersionName, blockchain);
         if (contracts.isEmpty()) {
-            throw new NotFoundException("No contract with id {0} and version {2}",
+            throw new NotFoundException(ErrorCode.DUPLICATE_CONTRACT_ID,
                     existingContractId, existingVersionName);
         }
         Contract c = contracts.get(0);
@@ -142,7 +144,7 @@ public class ContractRegistryManager {
     public BriefContractInfo getBriefContractInfo(String contractId, UUID blockchain) {
         List<Contract> contracts = contractReopository.findByNameAndBlockchainIdOrderBySeqDesc(contractId, blockchain);
         if (contracts.isEmpty()) {
-            throw new NotFoundException("No contract with id {0}", contractId);
+            throw new NotFoundException(ErrorCode.CONTRACT_NOT_FOUND, contractId);
         }
         Contract c = contracts.get(0);
         BriefContractInfo bcInfo = new ContractVersion.ContractVersionBuilder()
@@ -152,7 +154,7 @@ public class ContractRegistryManager {
         return bcInfo;
     }
 
-    /**
+    /**X
      * Returns a list of BriefContractInfo objects, containing 1 BriefContractInfo object for every unique contractId
      * present in the database.
      *

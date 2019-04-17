@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 
+import com.vmware.blockchain.common.ErrorCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
@@ -152,7 +153,7 @@ public class JwtTokenProvider {
         try {
             return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody();
         } catch (JwtException | IllegalArgumentException e) {
-            throw new UnauthorizedException("Expired or invalid JWT token");
+            throw new UnauthorizedException(ErrorCode.INVALID_JWT_TOKEN);
         }
     }
 

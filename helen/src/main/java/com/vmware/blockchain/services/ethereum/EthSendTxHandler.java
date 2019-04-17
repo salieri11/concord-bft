@@ -14,6 +14,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
 import com.google.protobuf.ByteString;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.services.contracts.ContractRegistryManager;
@@ -108,7 +109,7 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
             // TODO: if we allow r/s/v signature fields, we don't have to require
             // 'from' when they're present
             logger.error("From field missing in params");
-            throw new EthRpcHandlerException("'from' must be specified");
+            throw new EthRpcHandlerException(ErrorCode.FROM_UNSPECIFIED);
         }
 
         if (obj.containsKey("to")) {
@@ -117,7 +118,7 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
             b.setAddrTo(toAddr);
         } else if (!isSendTx) {
             logger.error("To field missing in params");
-            throw new EthRpcHandlerException("'to' must be specified");
+            throw new EthRpcHandlerException(ErrorCode.TO_UNSPECIFIED);
         }
 
         if (obj.containsKey("data")) {
@@ -158,7 +159,7 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
         ByteString envelope = envelopeParser.next();
 
         if (!envelopeParser.atEnd()) {
-            throw new EthRpcHandlerException("Unable to parse raw transaction (extra data after envelope)");
+            throw new EthRpcHandlerException(ErrorCode.RAW_TRANSCATION_UNPARSED);
         }
 
         RlpParser parser = new RlpParser(envelope);
@@ -172,7 +173,7 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
         final ByteString vV = nextPart(parser, "signature V");
         ByteString r = nextPart(parser, "signature R");
         if (r.size() > 32) {
-            throw new EthRpcHandlerException("Invalid raw transaction (signature R too large)");
+            throw new EthRpcHandlerException(ErrorCode.INVALID_RAW_TRANSACTION);
         } else if (r.size() < 32) {
             // pad out to 32 bytes to make things easy for Concord
             byte[] leadingZeros = new byte[32 - r.size()];
@@ -180,7 +181,7 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
         }
         ByteString s = nextPart(parser, "signature S");
         if (s.size() > 32) {
-            throw new EthRpcHandlerException("Invalid raw transaction (signature S too large)");
+            throw new EthRpcHandlerException(ErrorCode.INVALID_RAW_TRANSACTION);
         } else if (s.size() < 32) {
             // pad out to 32 bytes to make things easy for Concord
             byte[] leadingZeros = new byte[32 - s.size()];
@@ -188,11 +189,11 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
         }
 
         if (!parser.atEnd()) {
-            throw new EthRpcHandlerException("Unable to parse raw transaction (extra data in envelope)");
+            throw new EthRpcHandlerException(ErrorCode.RAW_TRANSCATION_UNPARSED);
         }
 
         if (to.size() != 0 && to.size() != 20) {
-            throw new EthRpcHandlerException("Invalid raw transaction (to address too short)");
+            throw new EthRpcHandlerException(ErrorCode.INVALID_RAW_TRANSACTION);
         }
 
 
@@ -220,7 +221,7 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
             logger.trace("Extracted " + label + ": " + b.size() + " bytes");
             return b;
         } catch (RlpParser.RlpEmptyException e) {
-            throw new EthRpcHandlerException("Unable to decode " + label + " from raw transaction");
+            throw new EthRpcHandlerException(ErrorCode.RAW_TRANSCATION_UNPARSED);
         }
     }
 

@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.TransactionException;
-
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.InternalFailureException;
 import com.vmware.blockchain.security.AuthHelper;
 
@@ -76,7 +76,7 @@ public class GenericDao {
             } catch (TransactionException e) {
                 if (retries >= MAX_RETRIES) {
                     logger.warn("Failed to retry for putUnderParent. Max retries exceeded.", e);
-                    throw new InternalFailureException("Retry failure", e);
+                    throw new InternalFailureException(ErrorCode.RETRY_FAILURE, e);
                 }
                 ++retries;
                 logger.info("Retrying putUnderParent");

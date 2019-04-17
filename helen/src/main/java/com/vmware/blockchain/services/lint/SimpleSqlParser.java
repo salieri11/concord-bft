@@ -6,7 +6,7 @@ package com.vmware.blockchain.services.lint;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.BadRequestException;
 
 /**
@@ -38,7 +38,7 @@ public class SimpleSqlParser {
     public SimpleSqlParser(String query) {
         Matcher m = sqlPattern.matcher(query);
         if (!m.matches()) {
-            throw new BadRequestException("Could not match query {0}", query);
+            throw new BadRequestException(ErrorCode.UNMATCHED_QUERY, query);
         }
         // The groups in the match are 1) select 2) from 3) where (might be null) 4) keyword 5) rest of query
         select = m.group(1);
