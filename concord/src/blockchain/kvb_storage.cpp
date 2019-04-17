@@ -249,12 +249,14 @@ Status KVBStorage::write_block(uint64_t timestamp, uint64_t gas_limit) {
   }
   blk.hash = blk.get_hash();
 
+  blk.gas_used = 0;
   for (auto tx : pending_transactions) {
     tx.block_hash = blk.hash;
     tx.block_number = blk.number;
     Sliver txaddr = transaction_key(tx);
     uint8_t *txser;
     size_t txser_length = tx.serialize(&txser);
+    blk.gas_used += tx.gas_used;
 
     put(txaddr, Sliver(txser, txser_length));
   }

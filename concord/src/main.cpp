@@ -156,6 +156,7 @@ Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
         it->second,              // value
         0,                       // gas_price
         0,                       // gas_limit
+        0,                       // gas_used
         std::vector<concord::common::EthLog>(),  // logs
         zero_hash,          // sig_r (no signature for genesis)
         zero_hash,          // sig_s (no signature for genesis)

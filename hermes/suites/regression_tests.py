@@ -137,7 +137,7 @@ class RegressionTests(test_suite.TestSuite):
                  "60405180807f7265676973746572496e7400000000000000000000000000"
                  "000000000000000081526020015060200183815260200182815260200192"
                  "5050506000604051808303816000866161da5a03f1915050505b505056")
-         gas = 0x47e7c4
+         gas = "0x47e7c4"
          val = "0000000000000000000000000000000000000000000000000000000000000000"
          txHash = rpc.sendTransaction(from_addr, data, gas, value=val)
          if txHash:
@@ -211,7 +211,7 @@ class RegressionTests(test_suite.TestSuite):
          # This creates a contract that just writes the length of the
          # input data to storage when called.
          data = "600480600c6000396000f30036600055"
-         gas = 0x47e7c4
+         gas = "0x47e7c4"
          txHash = rpc.sendTransaction(from_addr, data, gas)
          if txHash:
             txReceipt = rpc.getTransactionReceipt(txHash)

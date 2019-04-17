@@ -72,6 +72,7 @@ message BlockResponse {
    repeated TransactionResponse transaction = 6;
    optional int64 timestamp = 7;
    optional int64 gas_limit = 8;
+   optional int64 gas_used = 9;
 }
 
 message ErrorResponse {
@@ -213,8 +214,9 @@ message TransactionResponse {
    optional bytes contract_address = 11;
    repeated LogResponse log = 12;
    optional uint64 gas_price = 13;
-   optional uint64 gas = 14;
+   optional uint64 gas_limit = 14;
    optional uint64 sig_v = 15;
    optional bytes sig_r = 16;
    optional bytes sig_s = 17;
+   optional uint64 gas_used = 18;
 }

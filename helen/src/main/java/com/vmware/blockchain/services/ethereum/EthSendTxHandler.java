@@ -136,6 +136,17 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
             }
         }
 
+        if (obj.containsKey("gas")) {
+            String gas = (String) obj.get("gas");
+            if (gas != null) {
+                if (gas.startsWith("0x")) {
+                    b.setGas(Long.valueOf(gas.substring(2), 16));
+                } else {
+                    b.setGas(Long.valueOf(gas));
+                }
+            }
+        }
+
         // TODO: add gasPrice, nonce, r, s, v
         // (no, rsv are not specified in the doc, but why not?)
     }

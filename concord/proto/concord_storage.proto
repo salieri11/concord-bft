@@ -14,6 +14,7 @@ message Block {
    repeated bytes transaction = 5;      // 32 bytes
    optional int64 timestamp = 6;
    optional int64 gas_limit = 7;
+   optional int64 gas_used = 8;
 }
 
 message Transaction {
@@ -33,6 +34,7 @@ message Transaction {
    optional bytes sig_s = 14;           // 32 bytes
    optional uint32 sig_v = 15;
    repeated Log log = 16;
+   optional int64 gas_used = 17;
 }
 
 message Log {

@@ -499,11 +499,20 @@ class ExtendedRPCTests(test_suite.TestSuite):
 
       latestBlock = rpc.getBlockByNumber("latest")
 
-      (present, missing) = self.requireFields(
-         latestBlock,
-         ["number","hash","parentHash","timestamp","gasLimit"])
+      dataFields = ["hash", "parentHash"]
+      quantityFields = ["number","timestamp","gasLimit","gasUsed"]
+      expectedFields = dataFields + quantityFields
+      (present, missing) = self.requireFields(latestBlock, expectedFields)
       if not present:
          return (False, "No '{}' field in block response.".format(missing))
+
+      (success, field) = self.requireDATAFields(latestBlock, dataFields)
+      if not success:
+         return (False, 'DATA expected for field "{}"'.format(field))
+
+      (success, field) = self.requireQUANTITYFields(latestBlock, quantityFields)
+      if not success:
+         return (False, 'QUANTITY expected for field "{}"'.format(field))
 
       if not latestBlock["number"] == currentBlockNumber:
          return (False, "Latest block does not have current block number")

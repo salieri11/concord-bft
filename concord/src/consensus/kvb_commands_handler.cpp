@@ -363,8 +363,9 @@ void KVBCommandsHandler::build_transaction_response(
   response->set_value(tx.value.bytes, sizeof(evm_uint256be));
   response->set_block_hash(tx.block_hash.bytes, sizeof(evm_uint256be));
   response->set_block_number(tx.block_number);
-  response->set_gas(tx.gas_limit);
+  response->set_gas_limit(tx.gas_limit);
   response->set_gas_price(tx.gas_price);
+  response->set_gas_used(tx.gas_used);
   response->set_sig_v(tx.sig_v);
   response->set_sig_r(tx.sig_r.bytes, sizeof(evm_uint256be));
   response->set_sig_s(tx.sig_s.bytes, sizeof(evm_uint256be));
@@ -594,6 +595,7 @@ bool KVBCommandsHandler::handle_block_request(ConcordRequest &athreq,
     response->set_parent_hash(block.parent_hash.bytes, sizeof(evm_uint256be));
     response->set_timestamp(block.timestamp);
     response->set_gas_limit(block.gas_limit);
+    response->set_gas_used(block.gas_used);
 
     // TODO: We're not mining, so nonce is mostly irrelevant. Maybe there will
     // be something relevant from KVBlockchain to put in here?
@@ -998,7 +1000,10 @@ evm_result KVBCommandsHandler::run_evm(const EthRequest &request,
               message.value.bytes + val_offset);
   }
 
-  if (request.has_gas_limit()) {
+  if (request.has_gas()) {
+    message.gas = request.gas();
+  } else if (request.has_gas_limit()) {
+    // Internal parameter
     message.gas = request.gas_limit();
   } else {
     // This was the former static value used for the gas limit.
@@ -1102,7 +1107,12 @@ evm_uint256be KVBCommandsHandler::record_transaction(
     sig_v = 0;
   }
 
-  uint64_t gas_limit = static_cast<uint64_t>(request.gas());
+  uint64_t gas_limit = static_cast<uint64_t>(message.gas);
+
+  assert(result.gas_left >= 0);
+  uint64_t gas_left = static_cast<uint64_t>(result.gas_left);
+  uint64_t gas_used = gas_limit - gas_left;
+
   EthTransaction tx = {
       nonce,
       zero_hash,       // block_hash: will be set during write_block
@@ -1115,7 +1125,8 @@ evm_uint256be KVBCommandsHandler::record_transaction(
       result.status_code,
       message.value,  // value
       gas_price,
-      gas_limit,  // TODO: also record gas used?
+      gas_limit,
+      gas_used,
       logs,
       sig_r,
       sig_s,

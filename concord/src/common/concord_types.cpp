@@ -98,6 +98,7 @@ std::vector<uint8_t> EthTransaction::rlp() const {
   }
 
   rlpb.add(this->gas_limit);
+  rlpb.add(this->gas_used);
   rlpb.add(this->gas_price);
   rlpb.add(this->nonce);
 
@@ -137,6 +138,7 @@ size_t EthTransaction::serialize(uint8_t **serialized) {
   out.set_value(this->value.bytes, sizeof(evm_uint256be));
   out.set_gas_price(this->gas_price);
   out.set_gas_limit(this->gas_limit);
+  out.set_gas_used(this->gas_used);
   out.set_sig_v(this->sig_v);
   out.set_sig_r(this->sig_r.bytes, sizeof(this->sig_r));
   out.set_sig_s(this->sig_s.bytes, sizeof(this->sig_s));
@@ -211,6 +213,12 @@ struct EthTransaction EthTransaction::deserialize(Blockchain::Sliver &input) {
       outtx.gas_limit = intx.gas_limit();
     } else {
       outtx.gas_limit = 0;
+    }
+
+    if (intx.has_gas_used()) {
+      outtx.gas_used = intx.gas_used();
+    } else {
+      outtx.gas_used = 0;
     }
 
     if (intx.has_sig_r()) {
@@ -306,6 +314,7 @@ size_t EthBlock::serialize(uint8_t **serialized) {
 
   out.set_timestamp(this->timestamp);
   out.set_gas_limit(this->gas_limit);
+  out.set_gas_used(this->gas_used);
 
   size_t size = out.ByteSize();
 
@@ -344,12 +353,11 @@ struct EthBlock EthBlock::deserialize(Blockchain::Sliver &input) {
       outblk.timestamp = 0;
     }
 
-    if (inblk.has_gas_limit()) {
-      outblk.gas_limit = inblk.gas_limit();
-    } else {
-      // This was the former static value used for the gas limit.
-      outblk.gas_limit = 1000000;
-    }
+    assert(inblk.has_gas_limit());
+    outblk.gas_limit = inblk.gas_limit();
+
+    assert(inblk.has_gas_used());
+    outblk.gas_used = inblk.gas_used();
 
     return outblk;
   } else {
