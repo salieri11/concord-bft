@@ -2,7 +2,7 @@
  * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.services.profiles;
+package com.vmware.blockchain.services.blockchains;
 
 import org.springframework.context.ApplicationEvent;
 

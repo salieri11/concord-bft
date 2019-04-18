@@ -15,8 +15,8 @@ import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.connections.ConcordConnectionPool.ConnectionType;
-import com.vmware.blockchain.services.profiles.Blockchain;
-import com.vmware.blockchain.services.profiles.BlockchainManagerEvent;
+import com.vmware.blockchain.services.blockchains.Blockchain;
+import com.vmware.blockchain.services.blockchains.BlockchainManagerEvent;
 
 /**
  * Connection Pool Manager for blockchains.

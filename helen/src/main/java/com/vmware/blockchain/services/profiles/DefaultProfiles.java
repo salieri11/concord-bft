@@ -16,6 +16,8 @@ import org.springframework.stereotype.Component;
 
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.security.ServiceContext;
+import com.vmware.blockchain.services.blockchains.Blockchain;
+import com.vmware.blockchain.services.blockchains.BlockchainService;
 
 import lombok.Getter;
 
@@ -104,7 +106,7 @@ public class DefaultProfiles {
         user = createUserIfNotExist();
         serviceContext.clearServiceContext();
         logger.info("Profiles -- Org {}, Cons: {}, BC: {}, User: {}", organization.getOrganizationName(),
-                consortium.getConsortiumName(), blockchain.getUrlsAsMap(), user.getEmail());
+                consortium.getConsortiumName(), blockchain.getNodeList(), user.getEmail());
     }
 
     private User createUserIfNotExist() {

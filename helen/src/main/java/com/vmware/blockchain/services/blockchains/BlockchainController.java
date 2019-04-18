@@ -2,7 +2,7 @@
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
-package com.vmware.blockchain.services.profiles;
+package com.vmware.blockchain.services.blockchains;
 
 import java.util.Collections;
 import java.util.List;
@@ -22,6 +22,14 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.vmware.blockchain.common.ForbiddenException;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.security.AuthHelper;
+import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
+import com.vmware.blockchain.services.profiles.Consortium;
+import com.vmware.blockchain.services.profiles.ConsortiumService;
+import com.vmware.blockchain.services.profiles.DefaultProfiles;
+import com.vmware.blockchain.services.profiles.Roles;
+import com.vmware.blockchain.services.tasks.Task;
+import com.vmware.blockchain.services.tasks.Task.State;
+import com.vmware.blockchain.services.tasks.TaskService;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -34,13 +42,23 @@ import lombok.Setter;
 @RestController
 public class BlockchainController {
 
+    /**
+     * The type of sites we want in the deployment.
+     */
+    public enum DeploymentType {
+        FIXED,
+        UNSPECIFIED
+    }
+
     @Getter
     @Setter
+    @JsonIgnoreProperties(ignoreUnknown = true)
     static class BlockchainPost {
         private UUID consortiumId;
-        private String ipList;
-        private String rpcUrls;
-        private String rpcCerts;
+        private int fCount;
+        private int cCount;
+        private DeploymentType deploymentType;
+        private List<String> sites;
     }
 
     @Getter
@@ -55,41 +73,72 @@ public class BlockchainController {
     @Getter
     @Setter
     @NoArgsConstructor
+    static class BlockchainNodeEntry {
+        private UUID nodeId;
+        private String ip;
+        private String url;
+        private String cert;
+        private String region;
+
+        public BlockchainNodeEntry(NodeEntry n) {
+            nodeId = n.getNodeId();
+            ip = n.getIp();
+            url = n.getUrl();
+            cert = n.getCert();
+            region = n.getRegion();
+        }
+
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
     @AllArgsConstructor
-    static class BlockchainResponse {
+    static class BlockchainGetResponse {
         private UUID id;
         private UUID consortiumId;
-        private String ipList;
-        private String rpcUrls;
-        private String rpcCerts;
+        private List<BlockchainNodeEntry> nodeList;
 
-        public BlockchainResponse(Blockchain b) {
+        public BlockchainGetResponse(Blockchain b) {
             this.id = b.getId();
             this.consortiumId = b.getConsortium();
-            this.ipList = b.getIpList();
-            this.rpcUrls = b.getRpcUrls();
-            this.rpcCerts = b.getRpcCerts();
+            this.nodeList = b.getNodeList().stream().map(BlockchainNodeEntry::new).collect(Collectors.toList());
         }
+    }
+
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @NoArgsConstructor
+    static class BlockchainTaskResponse {
+        private UUID taskId;
     }
 
     private BlockchainService manager;
     private ConsortiumService consortiumService;
     private AuthHelper authHelper;
+    private DefaultProfiles defaultProfiles;
+    private TaskService taskService;
 
     @Autowired
     public BlockchainController(BlockchainService manager,
             ConsortiumService consortiumService,
-            AuthHelper authHelper) {
+            AuthHelper authHelper,
+            DefaultProfiles defaultProfiles,
+            TaskService taskService) {
         this.manager = manager;
         this.consortiumService = consortiumService;
         this.authHelper = authHelper;
+        this.defaultProfiles = defaultProfiles;
+        this.taskService = taskService;
     }
 
     /**
      * Get the list of all blockchains.
      */
     @RequestMapping(path = "/api/blockchains", method = RequestMethod.GET)
-    ResponseEntity<List<BlockchainResponse>> list() {
+    ResponseEntity<List<BlockchainGetResponse>> list() {
         List<Blockchain> chains = Collections.emptyList();
         // if we are operator, we can get all blockchains.
         if (authHelper.hasAnyAuthority(Roles.operatorRoles())) {
@@ -103,8 +152,7 @@ public class BlockchainController {
                 // Just ignore
             }
         }
-        List<BlockchainResponse> idList = chains.stream().map(b -> new BlockchainResponse(b.getId(),
-                b.getConsortium(), b.getIpList(), b.getRpcUrls(), b.getRpcCerts()))
+        List<BlockchainGetResponse> idList = chains.stream().map(BlockchainGetResponse::new)
                 .collect(Collectors.toList());
         return new ResponseEntity<>(idList, HttpStatus.OK);
     }
@@ -113,13 +161,12 @@ public class BlockchainController {
      * Get the list of all blockchains.
      */
     @RequestMapping(path = "/api/blockchains/{id}", method = RequestMethod.GET)
-    ResponseEntity<BlockchainResponse> get(@PathVariable UUID id) throws NotFoundException {
+    ResponseEntity<BlockchainGetResponse> get(@PathVariable UUID id) throws NotFoundException {
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles()) && !authHelper.getPermittedChains().contains(id)) {
             throw new ForbiddenException(id + " Forbidden");
         }
         Blockchain b = manager.get(id);
-        BlockchainResponse br = new BlockchainResponse(b.getId(), b.getConsortium(),
-                b.getIpList(), b.getRpcUrls(), b.getRpcCerts());
+        BlockchainGetResponse br = new BlockchainGetResponse(b);
         return new ResponseEntity<>(br, HttpStatus.OK);
     }
 
@@ -127,36 +174,39 @@ public class BlockchainController {
      * Create a new blockchain in the given consortium, with the specified nodes.
      */
     @RequestMapping(path = "/api/blockchains", method = RequestMethod.POST)
-    public ResponseEntity<BlockchainResponse> createBlockchain(@RequestBody BlockchainPost body) {
+    public ResponseEntity<BlockchainTaskResponse> createBlockchain(@RequestBody BlockchainPost body) {
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles())) {
             throw new ForbiddenException("Action Forbidden");
         }
-        Consortium consortium = consortiumService.get(body.consortiumId);
-        Blockchain b = manager.create(consortium, body.getIpList(), body.getRpcUrls(), body.getRpcCerts());
-        return new ResponseEntity<>(new BlockchainResponse(b), HttpStatus.OK);
+
+        // Temporary: create a completed task that points to the default bockchain
+        Task task = new Task();
+        task.setState(State.SUCCEEDED);
+        task.setMessage("Default Blockchain");
+        task.setResourceId(defaultProfiles.getBlockchain().getId());
+        task.setResourceLink("/api/blockchains/".concat(defaultProfiles.getBlockchain().getId().toString()));
+        task = taskService.put(task);
+
+        return new ResponseEntity<>(new BlockchainTaskResponse(task.getId()), HttpStatus.ACCEPTED);
     }
 
     /**
      * Update the given blockchain.
      */
     @RequestMapping(path = "/api/blockchains/{id}", method = RequestMethod.PATCH)
-    public ResponseEntity<BlockchainResponse> updateBlockchain(@PathVariable UUID id, @RequestBody BlockchainPatch body)
-            throws NotFoundException {
+    public ResponseEntity<BlockchainTaskResponse> updateBlockchain(@PathVariable UUID id,
+            @RequestBody BlockchainPatch body) throws NotFoundException {
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles()) && !authHelper.getPermittedChains().contains(id)) {
             throw new ForbiddenException(id + " Forbidden");
         }
-        Blockchain b = manager.get(id);
-        if (body.getIpList() != null) {
-            b.setIpList(body.getIpList());
-        }
+        // Temporary: create a completed task that points to the default bockchain
+        Task task = new Task();
+        task.setState(State.SUCCEEDED);
+        task.setMessage("Default Blockchain");
+        task.setResourceId(defaultProfiles.getBlockchain().getId());
+        task.setResourceLink("/api/blockchains/".concat(defaultProfiles.getBlockchain().getId().toString()));
+        task = taskService.put(task);
 
-        if (body.getRpcUrls() != null) {
-            b.setRpcUrls(body.getRpcUrls());
-        }
-
-        if (body.getRpcCerts() != null) {
-            b.setRpcCerts(body.getRpcCerts());
-        }
-        return new ResponseEntity<>(new BlockchainResponse(manager.update(b)), HttpStatus.OK);
+        return new ResponseEntity<>(new BlockchainTaskResponse(task.getId()), HttpStatus.ACCEPTED);
     }
 }
