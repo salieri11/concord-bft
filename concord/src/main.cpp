@@ -246,7 +246,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     // throws an exception if it fails
     EVM athevm(params);
     EthSign verifier;
-    KVBCommandsHandler athkvb(athevm, verifier, nodeConfig, replica, replica);
+    KVBCommandsHandler athkvb(athevm, verifier, config, nodeConfig, replica,
+                              replica);
     replica->set_command_handler(&athkvb);
 
     // Genesis must be added before the replica is started.
@@ -286,7 +287,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     api_service = new io_service();
     tcp::endpoint endpoint(address::from_string(ip), port);
     uint64_t gasLimit = config.getValue<uint64_t>("gas_limit");
-    ApiAcceptor acceptor(*api_service, endpoint, pool, sag, gasLimit, chainID);
+    ApiAcceptor acceptor(*api_service, endpoint, pool, sag, gasLimit, chainID,
+                         config, nodeConfig);
 
     signal(SIGINT, signalHandler);
 

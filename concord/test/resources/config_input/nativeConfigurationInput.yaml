@@ -1,12 +1,14 @@
 client_proxies_per_replica: 4
 c_val: 0
 f_val: 1
+FEATURE_time_service: false
 node__TEMPLATE:
   genesis_block: ./test/resources/genesis.json
 node:
   - service_host: 0.0.0.0
     service_port: 5458
     blockchain_db_path: rocksdbdata1/
+    time_source_id: concord1
     replica:
       - replica_host: 127.0.0.1
         replica_port: 3501
@@ -21,6 +23,7 @@ node:
         client_port: 3508
   - service_host: 0.0.0.0
     service_port: 5459
+    time_source_id: concord2
     blockchain_db_path: rocksdbdata2/
     replica:
       - replica_host: 127.0.0.1
@@ -37,6 +40,7 @@ node:
   - service_host: 0.0.0.0
     service_port: 5460
     blockchain_db_path: rocksdbdata3/
+    time_source_id: concord3
     replica:
       - replica_host: 127.0.0.1
         replica_port: 3503
@@ -52,6 +56,7 @@ node:
   - service_host: 0.0.0.0
     service_port: 5461
     blockchain_db_path: rocksdbdata4/
+    time_source_id: concord4
     replica:
       - replica_host: 127.0.0.1
         replica_port: 3504

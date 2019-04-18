@@ -15,6 +15,7 @@ message ConcordRequest {
    optional TransactionRequest transaction_request = 6;
    optional TransactionListRequest transaction_list_request = 7;
    optional LogsRequest logs_request = 8;
+   optional TimeUpdate time_update = 9; // internal only!
 
    // 8-2045 open for definition
    // Likely: metrics/stats, non-eth blockchain, other admin
@@ -31,6 +32,7 @@ message ConcordResponse {
    optional TransactionResponse transaction_response = 6;
    optional TransactionListResponse transaction_list_response = 7;
    optional LogsResponse logs_response = 8;
+   // (9) Time Update has no response
 
    // 8-2045 open for definition
    optional TestResponse test_response = 2046;
@@ -219,4 +221,9 @@ message TransactionResponse {
    optional bytes sig_r = 16;
    optional bytes sig_s = 17;
    optional uint64 gas_used = 18;
+}
+
+message TimeUpdate {
+   optional bytes source = 1;
+   optional uint64 time = 2;
 }

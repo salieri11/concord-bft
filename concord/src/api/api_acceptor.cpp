@@ -7,6 +7,8 @@
 #include <boost/bind.hpp>
 #include <boost/thread.hpp>
 
+#include "config/configuration_manager.hpp"
+
 using boost::asio::io_service;
 using boost::asio::ip::tcp;
 using boost::system::error_code;
@@ -17,15 +19,19 @@ using concord::consensus::KVBClientPool;
 namespace concord {
 namespace api {
 
-ApiAcceptor::ApiAcceptor(io_service &io_service, tcp::endpoint endpoint,
-                         KVBClientPool &clientPool, StatusAggregator &sag,
-                         uint64_t gasLimit, uint64_t chainID)
+ApiAcceptor::ApiAcceptor(
+    io_service &io_service, tcp::endpoint endpoint, KVBClientPool &clientPool,
+    StatusAggregator &sag, uint64_t gasLimit, uint64_t chainID,
+    const concord::config::ConcordConfiguration &config,
+    const concord::config::ConcordConfiguration &nodeConfig)
     : acceptor_(io_service, endpoint),
       clientPool_(clientPool),
       logger_(log4cplus::Logger::getInstance("com.vmware.concord.ApiAcceptor")),
       sag_(sag),
       gasLimit_(gasLimit),
-      chainID_(chainID) {
+      chainID_(chainID),
+      config_(config),
+      nodeConfig_(nodeConfig) {
   // set SO_REUSEADDR option on this socket so that if listener thread fails
   // we can still bind again to this socket
   acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
@@ -35,9 +41,9 @@ ApiAcceptor::ApiAcceptor(io_service &io_service, tcp::endpoint endpoint,
 void ApiAcceptor::start_accept() {
   LOG4CPLUS_TRACE(logger_, "start_accept enter");
 
-  ApiConnection::pointer new_connection =
-      ApiConnection::create(acceptor_.get_io_service(), connManager_,
-                            clientPool_, sag_, gasLimit_, chainID_);
+  ApiConnection::pointer new_connection = ApiConnection::create(
+      acceptor_.get_io_service(), connManager_, clientPool_, sag_, gasLimit_,
+      chainID_, config_, nodeConfig_);
 
   acceptor_.async_accept(
       new_connection->socket(),

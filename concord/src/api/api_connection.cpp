@@ -32,8 +32,10 @@
 
 #include "api/connection_manager.hpp"
 #include "common/concord_log.hpp"
+#include "config/configuration_manager.hpp"
 #include "consensus/kvb_client.hpp"
 #include "evm.h"
+#include "time/time_reading.hpp"
 
 using namespace boost::asio;
 using namespace std;
@@ -51,20 +53,20 @@ using boost::asio::ip::tcp;
 using boost::system::error_code;
 
 using concord::common::StatusAggregator;
+using concord::config::ConcordConfiguration;
 using concord::consensus::KVBClientPool;
 using concord::utils::from_evm_uint256be;
 
 namespace concord {
 namespace api {
 
-ApiConnection::pointer ApiConnection::create(io_service &io_service,
-                                             ConnectionManager &connManager,
-                                             KVBClientPool &clientPool,
-                                             StatusAggregator &sag,
-                                             uint64_t gasLimit,
-                                             uint64_t chainID) {
+ApiConnection::pointer ApiConnection::create(
+    io_service &io_service, ConnectionManager &connManager,
+    KVBClientPool &clientPool, StatusAggregator &sag, uint64_t gasLimit,
+    uint64_t chainID, const ConcordConfiguration &config,
+    const ConcordConfiguration &nodeConfig) {
   return pointer(new ApiConnection(io_service, connManager, clientPool, sag,
-                                   gasLimit, chainID));
+                                   gasLimit, chainID, config, nodeConfig));
 }
 
 tcp::socket &ApiConnection::socket() { return socket_; }
@@ -425,8 +427,10 @@ void ApiConnection::handle_eth_request(int i) {
 
     // Transactions create blocks, which need timestamps, and gas.
     if (request.method() == EthRequest_EthMethod_SEND_TX) {
-      time_t currentTime = std::time(nullptr);
-      internalEthRequest->set_timestamp(currentTime);
+      if (!concord::time::IsTimeServiceEnabled(config_)) {
+        time_t currentTime = std::time(nullptr);
+        internalEthRequest->set_timestamp(currentTime);
+      }
 
       // Gas limit must be chosen on the client side, because all replicas must
       // store the same gas limit in the block. If replica configs differed,
@@ -435,8 +439,11 @@ void ApiConnection::handle_eth_request(int i) {
       internalEthRequest->set_gas_limit(gasLimit_);
     }
 
-    ConcordResponse internalResponse;
+    if (!isReadOnly && concord::time::IsTimeServiceEnabled(config_)) {
+      concord::time::AddTimeToCommand(nodeConfig_, internalRequest);
+    }
 
+    ConcordResponse internalResponse;
     if (clientPool_.send_request_sync(internalRequest, isReadOnly,
                                       internalResponse)) {
       concordResponse_.MergeFrom(internalResponse);
@@ -686,7 +693,9 @@ uint64_t ApiConnection::current_block_number() {
 
 ApiConnection::ApiConnection(io_service &io_service, ConnectionManager &manager,
                              KVBClientPool &clientPool, StatusAggregator &sag,
-                             uint64_t gasLimit, uint64_t chainID)
+                             uint64_t gasLimit, uint64_t chainID,
+                             const ConcordConfiguration &config,
+                             const ConcordConfiguration &nodeConfig)
     : socket_(io_service),
       logger_(
           log4cplus::Logger::getInstance("com.vmware.concord.ApiConnection")),
@@ -694,7 +703,9 @@ ApiConnection::ApiConnection(io_service &io_service, ConnectionManager &manager,
       clientPool_(clientPool),
       sag_(sag),
       gasLimit_(gasLimit),
-      chainID_(chainID) {
+      chainID_(chainID),
+      config_(config),
+      nodeConfig_(nodeConfig) {
   // nothing to do here yet other than initialize the socket and logger
 }
 

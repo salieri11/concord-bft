@@ -1,5 +1,6 @@
 set(concord_time_sources
-  time_contract.cpp time_contract.hpp)
+  time_contract.cpp time_contract.hpp
+  time_reading.cpp time_reading.hpp)
 
 add_library(concord_time ${concord_time_sources})
 
