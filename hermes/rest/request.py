@@ -60,14 +60,21 @@ class Request():
       user = self._userConfig.get('product').get('db_users')[0]
       username = user['username']
       password = user['password']
+      url = self._baseUrl+self._subPath
 
+      if self._params:
+         if "?" in url:
+            url += "&" + self._params
+         else:
+            url += "?" + self._params
+      
       if verb is None:
          if self._data is None:
             curlCmd = ["curl",
                        "-H", "Accept: application/json",
                        "--user", "{0}:{1}".format(
                         username, password),
-                       self._baseUrl+self._subPath+self._params,
+                       url,
                        "--output", self._responseFile,
                        "--verbose",
                        "--insecure"]
@@ -78,7 +85,7 @@ class Request():
                        "--user", "{0}:{1}".format(
                         username, password),
                        "--data", json.dumps(self._data),
-                       self._baseUrl+self._subPath+self._params,
+                       url,
                        "--output", self._responseFile,
                        "--verbose",
                        "--insecure"]
@@ -90,7 +97,7 @@ class Request():
                     "--user", "{0}:{1}".format(
                         username, password),
                     "--data", json.dumps(self._data),
-                    self._baseUrl+self._subPath+self._params,
+                    url,
                     "--output", self._responseFile,
                     "--verbose",
                     "--insecure"]
@@ -125,6 +132,16 @@ class Request():
       else:
          return response
 
+   def _addParam(self, param):
+      '''
+      Adds the given parameter.  e.g. count=2
+      '''
+      if param:
+         if self._params:
+            self._params += "&"
+
+         self._params += param
+      
    def _setUpOutput(self, method):
       '''
       Creates the log directory and sets the response/output files for a
@@ -141,7 +158,7 @@ class Request():
       '''
       self._subPath = "/api/blockchains/" + blockchainId + "/concord/members"
       if certs:
-         self._params = "?certs=true"
+         self._params = "certs=true"
       else:
          self._params = ""
       self._endpointName = "members"
@@ -154,21 +171,28 @@ class Request():
       '''
       self._subPath = "/api/blockchains"
       if certs:
-         self._params = "?certs=true"
+         self._params = "certs=true"
       else:
          self._params = ""
       self._endpointName = "blockchains"
 
       return self._send()
 
-   def getBlockList(self, nextUrl=None):
+   def getBlockList(self, blockchainId, nextUrl=None, latest=None, count=None):
       '''
-      Get the list of blocks
+      Get the list of blocks for the passed in blockchain.
       '''
-      self._subPath = nextUrl or "/api/concord/blocks"
+      self._subPath = nextUrl or "/api/blockchains/" + blockchainId + "/concord/blocks"
       self._params = ""
-      self._endpointName = "blocklist"
+      
+      if latest != None:
+         self._addParam("latest=" + str(latest))
 
+      if count != None:
+         self._addParam("count=" + str(count))
+         
+      self._endpointName = "blocklist"
+      
       return self._send()
 
    def getBlock(self, url):
@@ -215,18 +239,13 @@ class Request():
       '''
       Get a list of transactions
       '''
-
       self._subPath = '/api/concord/transactions/'
       if latest:
-         self._subPath += "?latest=" + latest
+         self._addParam("latest=" + latest)
 
       if count:
-         if latest:
-            self._subPath += "&count={}".format(count)
-         else:
-            self._subPath += "?count={}".format(count)
+         self._addParam("count={}".format(count))
 
-      self._params = ""
       self._endpointName = "transactionList"
 
       return self._send()

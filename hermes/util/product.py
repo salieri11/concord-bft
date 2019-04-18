@@ -673,11 +673,9 @@ class Product():
       '''
       Waits for Helen to be up, then waits for Concord to be up.
       '''
-      # Wait for 10 seconds and retry
       retries = 20
       attempts = 0
-      # Helen now takes ~7-8 seconds to boot so we should wait for around 10 seconds
-      sleepTime = 10
+      sleepTime = 15
       startupLogDir = os.path.join(self._cmdlineArgs.resultsDir, PRODUCT_LOGS_DIR,
                                    "waitForStartup")
       nodes = None

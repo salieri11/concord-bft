@@ -170,8 +170,20 @@ class HelenAPITests(test_suite.TestSuite):
          return (False, "no non-empty rpc_cert found in response")
 
 
+   def getABlockchainId(self, request):
+      '''
+      Returns the first blockchain.
+      Will be enhanced when user/org/consortia work is done in Helen.
+      Move this to helen/api_test.py when the tests which use it
+      have been moved there.
+      '''
+      blockchains = request.getBlockchains()
+      return blockchains[0]["id"]
+
+      
    def _test_getBlocks(self, request):
-      result = request.getBlockList()
+      blockchainId = self.getABlockchainId(request)
+      result = request.getBlockList(blockchainId)
 
       # validation of the structure of the blocklist response is done
       # in _test_getBlockList
@@ -208,7 +220,8 @@ class HelenAPITests(test_suite.TestSuite):
 
    def _test_getTransactions(self, request):
       self._mock_transaction(request)
-      result = request.getBlockList()
+      blockchainId = self.getABlockchainId(request)
+      result = request.getBlockList(blockchainId)
       blockResult = request.getBlock(result["blocks"][0]["url"])
 
       # get all of the transactions in the most recent block
@@ -473,10 +486,11 @@ class HelenAPITests(test_suite.TestSuite):
                  "GET /api/concord/contracts/{}/versions/{} did not return" \
                  " correct response".format(contractId, contractVersion))
 
-   def _mock_transaction(self, request, data = "0x00"):
+   def _mock_transaction(self, request, data = "0x00", ethrpcNode = None):
+      ethrpcApiUrl = ethrpcNode if ethrpcNode else self.ethrpcApiUrl
       rpc = RPC(request.logDir,
                 self.getName(),
-                self.ethrpcApiUrl,
+                ethrpcApiUrl,
                 self._userConfig)
       # do a transaction so that we have some block
       caller = "0x1111111111111111111111111111111111111111"
