@@ -15,6 +15,7 @@ import traceback
 import string
 import subprocess
 import random
+import sys
 import time
 from time import sleep
 
@@ -64,7 +65,12 @@ class HelenAPITests(test_suite.TestSuite):
       # Notes on command line usage:
       # -m "performance and smoke" will run tests which are both performance and smoke.
       # -m performance -m smoke will run all peformance tests and all smoke tests.
-      pytest.main(["-v", "suites/helen", "--json", "report.json"])
+      params = ["-v", "suites/helen", "--json", "report.json"]
+
+      if self._args.tests:
+         params += self._args.tests.split(" ")
+
+      pytest.main(params)
 
       results = util.json_helper.readJsonFile("report.json")
       for testResult in results["report"]["tests"]:
@@ -87,14 +93,15 @@ class HelenAPITests(test_suite.TestSuite):
    def parsePytestTestName(self, parseMe):
       '''
       Pytest creates this long name; parse out the real name.
-      Input is a string like: suites/helen/api_test.py::test_existing[user_login]
+      If running the API tests from a parametrize, parseMe
+      is a string such as "suites/helen/api_test.py::test_existing[user_login]".
+      Otherwise, it's a string such as "suites/helen/api_test.py::test_blockchains_fields"
       '''
-      return parseMe[parseMe.rindex("[")+1:parseMe.rindex("]")]
+      return parseMe[parseMe.rindex(":")+1:]
+
 
    def _getTests(self):
-      return [("getMembers", self._test_getMembers), \
-              ("getCerts", self._test_getCerts), \
-              ("blockList", self._test_getBlockList), \
+      return [("getCerts", self._test_getCerts), \
               ("block", self._test_getBlocks), \
               ("transaction", self._test_getTransactions), \
               ("contract_upload", self._test_contractUpload), \
@@ -124,45 +131,25 @@ class HelenAPITests(test_suite.TestSuite):
 
    # Tests: expect one argument, a Request, and produce a 2-tuple
    # (bool success, string info)
+   def _resumeMembers(self, members):
+      '''
+      Given a list of items returned from the members call, unpauses them.
+      Note that this currently assumes all members are running locally in
+      docker.  We don't have multiple VM infra going yet, so we don't know
+      how this method will have to change when that is in place.
+      '''
+      for m in members:
+         concordIndex = int(m["hostname"][len("replica"):]) + 1
+         self.product.resume_concord_replica(concordIndex)
 
-   def _test_getMembers(self, request):
-      result = request.getMemberList()
-
-      if not type(result) is list:
-         return (False, "Response was not a list")
-      if len(result) < 1:
-         return (False, "No members returned")
-
-      for m in result:
-         (present, missing) = self.requireFields(m, ["hostname", "status"])
-         if not present:
-            return (False, "No '{}' field in member entry.".format(missing))
-
-         if not isinstance(m["hostname"], str):
-            return (False, "'hostname' field in member entry is not a string")
-         if not isinstance(m["status"], str):
-            return (False, "'status' field in member entry is not a string")
-         if not isinstance(m["address"], str):
-            return (False, "'address' field in member entry is not a string")
-         if not isinstance(m["millis_since_last_message"], int):
-            return (False, "'millis_since_last_message' field in member entry is not a string")
-         if not isinstance(m["millis_since_last_message_threshold"], int):
-            return (False, "'millis_since_last_message_threshold' field in member entry is not a string")
-         if not isinstance(m["rpc_url"], str):
-            return (False, "'rpc_url' field in member entry is not a string")
-         if m["rpc_url"] == "":
-            return (False, "'rpc_url' field in member entry is empty string")
-         if "rpc_cert" in m:
-            return (False, "'rpc_cert' field should not be included if certs=true is not passed")
-
-      return (True, None)
 
    def _test_getCerts(self, request):
       '''
       Test that if we pass "?certs=true" to the Members endpoint, we get at
       least one non-empty rpc_cert in the response.
       '''
-      result = request.getMemberList(certs=True)
+      blockchains = request.getBlockchains()
+      result = request.getMemberList(blockchains[0]["id"],certs=True)
 
       if not type(result) is list:
          return (False, "Response was not a list")
@@ -182,49 +169,6 @@ class HelenAPITests(test_suite.TestSuite):
       else:
          return (False, "no non-empty rpc_cert found in response")
 
-   def _test_getBlockList(self, request, latestBlock=None, nextUrl=None):
-      result = request.getBlockList(nextUrl)
-
-      # How stable is comparing to OrderedDict?
-      if not type(result) is collections.OrderedDict:
-         return (False, "Response was not an OrderedDict".format(
-            type(result).__name__))
-
-      if not "blocks" in result:
-         return (False, "No 'blocks' field in result")
-      if not type(result["blocks"]) is list:
-         return (False, "'blocks' field is not a list")
-
-      latestFound = None
-      earliestFound = None
-      for b in result["blocks"]:
-         (present, missing) = self.requireFields(b, ["number", "hash", "url"])
-         if not present:
-            return (False, "No '{}' field in block.".format(missing))
-
-         latestFound = max(latestFound, b["number"]) \
-                       if latestFound else b["number"]
-         earliestFound = min(earliestFound, b["number"]) \
-                         if earliestFound else b["number"]
-
-      if (latestFound - earliestFound) != len(result["blocks"]) - 1:
-         return (False, "Range of block IDs does not equal length of list")
-      if latestBlock and (not latestBlock - 1 == latestFound):
-         return (False, "Latest block in response is not immediately prior"
-                 " to earliest block in previous response")
-
-      # only follow one 'next' link per test
-      if (not nextUrl):
-         if "next" in result:
-            return self._test_getBlockList(request, earliestFound,
-                                           result['next'])
-         elif not earliestFound == 0:
-            return (False, "No 'next' URL, but not yet at block 0")
-         else:
-            log.warn("Not enough blocks to test 'next' link")
-            return (True, "Warning: Not enough blocks to test 'next' link")
-      else:
-         return (True, None)
 
    def _test_getBlocks(self, request):
       result = request.getBlockList()
