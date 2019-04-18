@@ -24,7 +24,7 @@ class Request():
 
    # Instance
    logDir = None
-   _testName = None
+   testName = None
    _endpointName = None
    _responseFile = None
    _outputFile = None
@@ -37,13 +37,11 @@ class Request():
       self.logDir = logDir
       os.makedirs(self.logDir, exist_ok=True)
 
-      self._testName = testName
+      self.testName = testName
       self._baseUrl = baseUrl
       self._subPath = ""
       self._params = ""
-
       self._userConfig = userConfig
-
 
    def _send(self, verb=None):
       '''
@@ -137,16 +135,29 @@ class Request():
       self._responseFile = fileRoot + ".json"
       self._outputFile = fileRoot + ".log"
 
-   def getMemberList(self, certs=False):
+   def getMemberList(self, blockchainId, certs=False):
       '''
       Get the list of nodes in the concord cluster
       '''
-      self._subPath = "/api/concord/members"
+      self._subPath = "/api/blockchains/" + blockchainId + "/concord/members"
       if certs:
          self._params = "?certs=true"
       else:
          self._params = ""
       self._endpointName = "members"
+
+      return self._send()
+
+   def getBlockchains(self, certs=False):
+      '''
+      Get the list of blockchains
+      '''
+      self._subPath = "/api/blockchains"
+      if certs:
+         self._params = "?certs=true"
+      else:
+         self._params = ""
+      self._endpointName = "blockchains"
 
       return self._send()
 

@@ -58,6 +58,8 @@ class Product():
       self._productLogsDir = os.path.join(self._cmdlineArgs.resultsDir, PRODUCT_LOGS_DIR)
       pathlib.Path(self._productLogsDir).mkdir(parents=True, exist_ok=True)
       self._docker_env_file = ".env"
+      self.concordNodesDeployed = []
+
 
    def launchProduct(self):
       '''
@@ -136,6 +138,8 @@ class Product():
 
          if not self._waitForProductStartup():
             raise Exception("The product did not start.")
+
+         self.concordNodesDeployed = self._getConcordNodes(dockerCfg)
       else:
          raise Exception("The docker compose file list contains an invalid value.")
 
@@ -264,6 +268,20 @@ class Product():
       return os.path.join(self._productLogsDir, service + ".log")
 
 
+   def _getConcordNodes(self, cfg):
+      '''
+      Returns the concord services in the docker-compose config.
+      '''
+      concordNodes = []
+
+      if "services" in cfg:
+         for service in cfg["services"]:
+            if service.startswith("concord"):
+               concordNodes.append(service)
+
+      return concordNodes
+
+
    def getUrlFromEthrpcNode(self, node):
       return node["rpc_url"]
 
@@ -274,7 +292,8 @@ class Product():
                         "getMembers",
                         self._cmdlineArgs.reverseProxyApiBaseUrl,
                         self._userConfig)
-      result = request.getMemberList()
+      blockchains = request.getBlockchains()
+      result = request.getMemberList(blockchains[0]["id"])
 
       for m in result:
          if m["rpc_url"]:
