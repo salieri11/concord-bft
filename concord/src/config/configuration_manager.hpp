@@ -335,6 +335,7 @@ struct ConfigurationAuxiliaryState {
 //   - std::string
 //   - uint16_t
 //   - uint64_t
+//   - bool
 //
 // This class currently provides no synchronization or guarantees of
 // synchronization and has not been designed with multiple threads writing to

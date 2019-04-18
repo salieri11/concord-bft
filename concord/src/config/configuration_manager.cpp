@@ -466,6 +466,32 @@ std::string ConcordConfiguration::getTypeName<uint64_t>() const {
   return "uint64_t";
 }
 
+static const std::vector<std::string> kValidBooleansTrue({"t", "T", "true",
+                                                          "True", "TRUE"});
+static const std::vector<std::string> kValidBooleansFalse({"f", "F", "false",
+                                                           "False", "FALSE"});
+
+template <>
+bool ConcordConfiguration::interpretAs<bool>(std::string value,
+                                             bool& output) const {
+  if (std::find(kValidBooleansTrue.begin(), kValidBooleansTrue.end(), value) !=
+      kValidBooleansTrue.end()) {
+    output = true;
+    return true;
+  } else if (std::find(kValidBooleansFalse.begin(), kValidBooleansFalse.end(),
+                       value) != kValidBooleansFalse.end()) {
+    output = false;
+    return true;
+  }
+
+  return false;
+}
+
+template <>
+std::string ConcordConfiguration::getTypeName<bool>() const {
+  return "bool";
+}
+
 void ConcordConfiguration::ConfigurationIterator::updateRetVal() {
   if (currentParam != endParams) {
     retVal.name = (*currentParam).first;
@@ -1942,6 +1968,24 @@ static const std::pair<unsigned long long, unsigned long long>
     kPositiveULongLongLimits({1, ULLONG_MAX});
 static const std::pair<unsigned long long, unsigned long long> kUInt16Limits(
     {0, UINT16_MAX});
+
+static ConcordConfiguration::ParameterStatus validateBoolean(
+    const std::string& value, const ConcordConfiguration& config,
+    const ConfigurationPath& path, std::string* failureMessage, void* state) {
+  if (std::find(kValidBooleansTrue.begin(), kValidBooleansTrue.end(), value) !=
+          kValidBooleansTrue.end() ||
+      std::find(kValidBooleansFalse.begin(), kValidBooleansFalse.end(),
+                value) != kValidBooleansFalse.end()) {
+    return ConcordConfiguration::ParameterStatus::VALID;
+  }
+
+  if (failureMessage) {
+    *failureMessage = "Invalid value for parameter " + path.toString() +
+                      ": \"" + value +
+                      "\". A boolean (e.g. \"true\" or \"false\") is required.";
+  }
+  return ConcordConfiguration::ParameterStatus::INVALID;
+}
 
 static ConcordConfiguration::ParameterStatus validateUInt(
     const std::string& value, const ConcordConfiguration& config,

@@ -995,6 +995,7 @@ TEST(config_test, type_interpretation) {
     int aInt = config.getValue<int>("parameter_a");
     uint16_t aUInt16 = config.getValue<uint16_t>("parameter_a");
     uint64_t aUInt64 = config.getValue<uint64_t>("parameter_a");
+    bool aBool = config.getValue<bool>("parameter_a");
     FAIL() << "ConcordConfiguration::getValue fails to throw an exception when "
               "attempting an invalid conversion of the value type.";
   } catch (ConfigurationResourceNotFoundException e) {
@@ -1048,7 +1049,54 @@ TEST(config_test, type_interpretation) {
               !(config.hasValue<uint64_t>("too_high")))
       << "ConcordConfiguration::hasValue fails to correctly enforce the limits "
          "of uint64_ts.";
-  ;
+
+  config.declareParameter("lower_t", "A description.");
+  config.declareParameter("upper_t", "A description.");
+  config.declareParameter("lower_true", "A description.");
+  config.declareParameter("upper_true", "A description.");
+  config.declareParameter("caps_true", "A description.");
+  config.declareParameter("lower_f", "A description.");
+  config.declareParameter("upper_f", "A description.");
+  config.declareParameter("lower_false", "A description.");
+  config.declareParameter("upper_false", "A description.");
+  config.declareParameter("caps_false", "A description.");
+  config.declareParameter("other", "A description.");
+
+  config.loadValue("lower_t", "t");
+  config.loadValue("upper_t", "T");
+  config.loadValue("lower_true", "true");
+  config.loadValue("upper_true", "True");
+  config.loadValue("caps_true", "TRUE");
+  config.loadValue("lower_f", "f");
+  config.loadValue("upper_f", "F");
+  config.loadValue("lower_false", "false");
+  config.loadValue("upper_false", "False");
+  config.loadValue("caps_false", "FALSE");
+  config.loadValue("other", "other");
+
+  EXPECT_TRUE(
+      config.hasValue<bool>("lower_t") && config.hasValue<bool>("upper_t") &&
+      config.hasValue<bool>("lower_true") &&
+      config.hasValue<bool>("upper_true") &&
+      config.hasValue<bool>("caps_true") && config.hasValue<bool>("lower_f") &&
+      config.hasValue<bool>("upper_f") &&
+      config.hasValue<bool>("lower_false") &&
+      config.hasValue<bool>("upper_false") &&
+      config.hasValue<bool>("caps_false") && !config.hasValue<bool>("other"))
+      << "ConcordConfiguration::hasValue fails to correctly enforce the limits "
+         "of bool.";
+
+  EXPECT_TRUE(
+      config.getValue<bool>("lower_t") && config.getValue<bool>("upper_t") &&
+      config.getValue<bool>("lower_true") &&
+      config.getValue<bool>("upper_true") &&
+      config.getValue<bool>("caps_true") && !config.getValue<bool>("lower_f") &&
+      !config.getValue<bool>("upper_f") &&
+      !config.getValue<bool>("lower_false") &&
+      !config.getValue<bool>("upper_false") &&
+      !config.getValue<bool>("caps_false"))
+      << "ConcordConfiguration::getValue fails to correctly convert boolean "
+         "values.";
 }
 
 static ConcordConfiguration::ParameterStatus mockValidatorResult;
