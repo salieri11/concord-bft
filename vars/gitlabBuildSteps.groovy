@@ -589,7 +589,7 @@ EOF
                 pushDockerImage(env.internal_helen_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_persephone_metadata_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_persephone_provisioning_repo, env.docker_tag, false)
-                pushDockerImage(env.internal_persephone_fleet_repo, env.docker_tag, false)
+                // pushDockerImage(env.internal_persephone_fleet_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_ui_repo, env.docker_tag, false)
                 pushDockerImage(env.internal_contract_compiler_repo, env.docker_tag, false)
               }
@@ -628,7 +628,7 @@ EOF
                   docker tag ${internal_helen_repo}:${docker_tag} ${release_helen_repo}:${docker_tag}
                   docker tag ${internal_persephone_metadata_repo}:${docker_tag} ${release_persephone_metadata_repo}:${docker_tag}
                   docker tag ${internal_persephone_provisioning_repo}:${docker_tag} ${release_persephone_provisioning_repo}:${docker_tag}
-                  docker tag ${internal_persephone_fleet_repo}:${docker_tag} ${release_persephone_fleet_repo}:${docker_tag}
+                  # docker tag ${internal_persephone_fleet_repo}:${docker_tag} ${release_persephone_fleet_repo}:${docker_tag}
                   docker tag ${internal_ui_repo}:${docker_tag} ${release_ui_repo}:${docker_tag}
                   docker tag ${internal_contract_compiler_repo}:${docker_tag} ${release_contract_compiler_repo}:${docker_tag}
                 '''
