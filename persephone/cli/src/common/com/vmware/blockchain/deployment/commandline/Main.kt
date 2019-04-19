@@ -121,7 +121,7 @@ fun main(args: Array<String>) {
                     onNext = {
                         when (it) {
                             is Orchestrator.NetworkAllocationEvent.Created ->
-                                networkAllocated.complete(it.allocation)
+                                networkAllocated.complete(it.resource)
                             else -> Unit
                         }
                     },
@@ -140,7 +140,7 @@ fun main(args: Array<String>) {
                     onNext = {
                         when (it) {
                             is Orchestrator.NetworkAllocationEvent.Deleted ->
-                                networkDeallocated.complete(it.allocation)
+                                networkDeallocated.complete(it.resource)
                             else -> Unit
                         }
                     },

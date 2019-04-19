@@ -73,12 +73,14 @@ interface Orchestrator {
      * Events corresponding to the execution of a deployment session.
      */
     sealed class ComputeResourceEvent : OrchestrationEvent {
+        abstract val resource: URI
+
         data class Created(
-            val resource: URI,
+            override val resource: URI,
             val node: ConcordNodeIdentifier
         ) : ComputeResourceEvent()
-        data class Started(val resource: URI) : ComputeResourceEvent()
-        data class Deleted(val resource: URI) : ComputeResourceEvent()
+        data class Started(override val resource: URI) : ComputeResourceEvent()
+        data class Deleted(override val resource: URI) : ComputeResourceEvent()
     }
 
     /**
@@ -108,12 +110,14 @@ interface Orchestrator {
      * Events corresponding to the execution of a network address requisition workflow.
      */
     sealed class NetworkResourceEvent : OrchestrationEvent {
+        abstract val resource: URI
+
         data class Created(
-            val resource: URI,
+            override val resource: URI,
             val name: String,
             val address: String
         ) : NetworkResourceEvent()
-        data class Deleted(val resource: URI) : NetworkResourceEvent()
+        data class Deleted(override val resource: URI) : NetworkResourceEvent()
     }
 
     /**
@@ -138,8 +142,10 @@ interface Orchestrator {
      * Events corresponding to the execution of a network allocation workflow.
      */
     sealed class NetworkAllocationEvent : OrchestrationEvent {
-        data class Created(val allocation: URI) : NetworkAllocationEvent()
-        data class Deleted(val allocation: URI) : NetworkAllocationEvent()
+        abstract val resource: URI
+
+        data class Created(override val resource: URI) : NetworkAllocationEvent()
+        data class Deleted(override val resource: URI) : NetworkAllocationEvent()
     }
 
     /**

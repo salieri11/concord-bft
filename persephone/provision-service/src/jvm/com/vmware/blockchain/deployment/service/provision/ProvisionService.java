@@ -3,10 +3,10 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.service.provision;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -41,6 +41,10 @@ import com.vmware.blockchain.deployment.model.ProvisionServiceImplBase;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
+import com.vmware.blockchain.deployment.orchestration.Orchestrator.ComputeResourceEvent;
+import com.vmware.blockchain.deployment.orchestration.Orchestrator.CreateComputeResourceRequest;
+import com.vmware.blockchain.deployment.orchestration.Orchestrator.CreateNetworkAllocationRequest;
+import com.vmware.blockchain.deployment.orchestration.Orchestrator.CreateNetworkResourceRequest;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkResourceEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.OrchestrationEvent;
 import com.vmware.blockchain.deployment.orchestration.InactiveOrchestrator;
@@ -98,7 +102,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
     private final Map<OrchestrationSiteIdentifier, Orchestrator> orchestrators =
             new ConcurrentHashMap<>();
 
-    /** TODO: [REPLACE] In-Memory stand-in/crutches to keep track of deployment log. */
+    /** FIXME: In-Memory stand-in/crutches to keep track of deployment log. */
     private final Map<DeploymentSessionIdentifier, CompletableFuture<DeploymentSession>> deploymentLog =
             new ConcurrentHashMap<>();
 
@@ -320,93 +324,88 @@ public class ProvisionService extends ProvisionServiceImplBase {
 
                     return new PlacementAssignment.Entry(nodeId, site);
                 })
-                .collect(Collectors.toList());
+                .collect(Collectors.toUnmodifiableList());
 
         return new PlacementAssignment(assignments);
     }
 
     /**
-     * generateClusterConfig() -> Map<PlacementAssignment.Entry, String>
-     *         //   where String is the per-node config.
-     * TODO: Bare-bone stub to act as a placeholder for centralized cluster config generation.
+     * Generate a Concord cluster configuration based on a listing of
+     * {@link PlacementAssignment.Entry} of Concord nodes with the intended network address resource
+     * from the node's orchestration site host associated with it. The paired network address
+     * resource will be utilized to expose the placed Concord node to network external to the
+     * orchestration site hosting the Concord node.
+     *
+     * @param addresses
+     *   mapping of assignment entry to its associated external network address resource.
+     *
+     * @return
+     *   an awaitable future of the mapping of {@link PlacementAssignment.Entry} with the Concord
+     *   node configuration associated with that entry.
      */
     private CompletableFuture<Map<PlacementAssignment.Entry, String>> generateClusterConfig(
-            List<Map.Entry<PlacementAssignment.Entry, Publisher<NetworkResourceEvent>>> addressMap
+            List<Map.Entry<PlacementAssignment.Entry, NetworkResourceEvent.Created>> addresses
     ) {
-        // Subscribe to network address publishers and collect the results in a map asynchronously.
-        Map<PlacementAssignment.Entry, NetworkResourceEvent> addresses = new ConcurrentHashMap<>();
-        var futureMap = addressMap.stream()
-                .map(entry -> {
-                    var result = ReactiveStream.toFuture(entry.getValue())
-                            .thenAcceptAsync(event -> addresses.put(entry.getKey(), event));
-                    return Map.entry(entry.getKey(), result);
-                })
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
         var promise = new CompletableFuture<Map<PlacementAssignment.Entry, String>>();
-        CompletableFuture.allOf(futureMap.values().toArray(CompletableFuture[]::new))
-                .thenRunAsync(() -> {
-                    // All futures are complete at this point. generate the config with addresses.
-                    // Generates the input YAML file.
-                    var nodeIPs = addresses.values().stream()
-                            .filter(event -> event instanceof NetworkResourceEvent.Created)
-                            .map(event -> ((NetworkResourceEvent.Created) event).getAddress())
-                            .collect(Collectors.toList());
-                    if (addresses.size() != nodeIPs.size()) {
-                        throw new IllegalStateException("Incorrect number of network addresses!");
-                    }
 
-                    // Next run the config utility.
-                    try {
-                        // Prepare the input file (with default input location).
-                        ConfigYaml configUtil = new ConfigYaml();
-                        boolean inputGenerated = configUtil.generateConfigUtil(nodeIPs);
+        // Next run the config utility asynchronously in background.
+        CompletableFuture.runAsync(() -> {
+            try {
+                var nodeIPs = addresses.stream()
+                        .map(Map.Entry::getValue)
+                        .map(NetworkResourceEvent.Created::getAddress)
+                        .collect(Collectors.toUnmodifiableList());
+                if (addresses.size() != nodeIPs.size()) {
+                    throw new IllegalStateException("Incorrect number of network addresses!");
+                }
 
-                        var outputPath = Files.createTempDirectory(null);
-                        var future = new ProcessBuilder("/app/conc_genconfig",
-                                                        "--configuration-input",
-                                                        configUtil.getConfigYamlFilePath())
-                                .directory(outputPath.toFile())
-                                .start()
-                                .onExit();
-                        future.whenCompleteAsync((process, error) -> {
-                            if (error == null) {
-                                try {
-                                    var result = new HashMap<PlacementAssignment.Entry, String>();
-                                    for (int i = 1; i <= addressMap.size(); i++) {
-                                        var path = outputPath.resolve("concord" + i + ".config");
-                                        result.put(addressMap.get(i - 1).getKey(),
-                                                   Files.readString(path));
-                                    }
+                // Prepare the input file (with default input location).
+                ConfigYaml configUtil = new ConfigYaml();
+                configUtil.generateConfigUtil(nodeIPs);
 
-                                    // Complete the future.
-                                    promise.complete(result);
-                                } catch (Throwable collectError) {
-                                    log.error("Cannot collect generated cluster configuration",
-                                              collectError);
-
-                                    promise.completeExceptionally(collectError);
-                                }
-                            } else {
-                                log.error("Cannot run config generation process", error);
-
-                                promise.completeExceptionally(error);
+                var outputPath = Files.createTempDirectory(null);
+                var future = new ProcessBuilder("/app/conc_genconfig",
+                                                "--configuration-input",
+                                                configUtil.getConfigYamlFilePath())
+                        .directory(outputPath.toFile())
+                        .start()
+                        .onExit();
+                future.whenCompleteAsync((process, error) -> {
+                    if (error == null) {
+                        try {
+                            var result = new HashMap<PlacementAssignment.Entry, String>();
+                            for (int i = 1; i <= addresses.size(); i++) {
+                                var path = outputPath.resolve("concord" + i + ".config");
+                                result.put(addresses.get(i - 1).getKey(), Files.readString(path));
                             }
-                        });
-                    } catch (Throwable error) {
-                        log.error("Cannot start config generation process", error);
 
-                        // Wrap checked exception into RuntimeException to handle errors in a
-                        // generic fashion through exceptionally().
-                        throw new RuntimeException(error);
+                            // Complete the future.
+                            promise.complete(result);
+                        } catch (Throwable collectError) {
+                            log.error("Cannot collect generated cluster configuration",
+                                      collectError);
+
+                            promise.completeExceptionally(collectError);
+                        }
+                    } else {
+                        log.error("Cannot run config generation process", error);
+
+                        promise.completeExceptionally(error);
                     }
-                }, executor)
-                .exceptionally(error -> {
-                    log.error("Failed to generate cluster configuration", error);
-
-                    promise.completeExceptionally(error);
-                    return null; // To satisfy type signature (Void).
                 });
+            } catch (IOException error) {
+                log.error("Cannot complete config generation process", error);
+
+                // Wrap checked exception into RuntimeException to handle errors in a
+                // generic fashion through exceptionally().
+                throw new RuntimeException(error);
+            }
+        }, executor).exceptionally(error -> {
+            log.error("Failed to generate cluster configuration", error);
+
+            promise.completeExceptionally(error);
+            return null; // To satisfy type signature (Void).
+        });
 
         return promise;
     }
@@ -418,110 +417,171 @@ public class ProvisionService extends ProvisionServiceImplBase {
      *   deployment session to carry out the workflow for.
      */
     private void deployCluster(DeploymentSession session) {
+        // FIXME: The following is what NOT to do for reactive workflow!
+        // gRPC stub expects single writer (e.g. response.onNext()) to emit the stream. So in effect
+        // there can be only 1 reactive stream subscriber subscribing to "something", and react
+        // according to the reactive stream's onNext() signals by emitting gRPC onNext() down the
+        // stream.
+        //
+        // If multiple publishers are not first "merged" into a single publisher, then the only
+        // option is to force all subscribers collect data into a buffer, and then have a single
+        // writer emit all data when everything is collected.
+        //
+        // This is achieved in the following code by converting cold publishers into hot async
+        // futures. Each future collects into its own "slot" in the concurrent hash "set", which is
+        // a KeySetView of a ConcurrentHashMap. The second stage initiates when all node-related
+        // futures are complete, and then engage in the single-writer emission.
+        final var results = ConcurrentHashMap.<OrchestrationEvent>newKeySet();
+
         // Allocate public network addresses for every node.
-        var networkAddressList = session.getAssignment().getEntries().stream()
+        var networkAddressPublishers = session.getAssignment().getEntries().stream()
                 .map(entry -> {
                     var node = entry.getNode();
                     var orchestrator = orchestrators.get(entry.getSite());
                     var resource = new UUID(node.getHigh(), node.getLow()).toString();
-                    var addressRequest = new Orchestrator.CreateNetworkResourceRequest(resource, true);
+                    var addressRequest = new CreateNetworkResourceRequest(resource, true);
                     var addressPublisher = orchestrator.createNetworkAddress(addressRequest);
 
                     return Map.entry(entry, addressPublisher);
                 })
-                .collect(Collectors.toList());
+                .collect(Collectors.toUnmodifiableList());
 
-        // Reorganize into map for easier lookup (during async lambda).
-        var networkAddressMap = networkAddressList.stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        // Await on all the network address creations, and collect the result.
+        // Subscribe to network address publishers and collect the results in a map asynchronously.
+        // FIXME: This is working around current system limitation working without local node agent.
+        var networkAddressMap =
+                new ConcurrentHashMap<PlacementAssignment.Entry, NetworkResourceEvent.Created>();
+        var networkAddressPromises = networkAddressPublishers.stream()
+                .map(entry -> ReactiveStream.toFuture(entry.getValue())
+                        .thenApplyAsync(event -> {
+                            // Cast to creation event, let runtime cast throw exception if
+                            // cast fails, as then it will exceptionally trigger failure future
+                            // completion downstream.
+                            var createdEvent = (NetworkResourceEvent.Created) event;
 
-        // Generate configuration per node.
-        var configMapResult = generateClusterConfig(networkAddressList);
+                            // Place in the address lookup map by the placement entry key.
+                            networkAddressMap.put(entry.getKey(), createdEvent);
 
-        // Setup node deployment workflow.
-        configMapResult.thenAcceptAsync(configMap -> {
-            var model = session.getSpecification().getModel();
-            var nodeMap = configMap.entrySet().parallelStream()
-                    .map(entry -> {
-                        var placement = entry.getKey();
-                        var config = entry.getValue();
-                        var publisher = deployNode(orchestrators.get(placement.getSite()),
-                                                   session.getId(),
-                                                   placement.getNode(),
-                                                   model,
-                                                   config);
+                            // Put the event in the result collection.
+                            results.add(event);
 
-                        return Map.entry(entry, publisher);
-                    })
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-            var publishers = nodeMap.values();
+                            return createdEvent;
+                        }, executor)
+                )
+                .toArray(CompletableFuture[]::new);
 
-            // FIXME: The following is what NOT to do for reactive workflow!
-            // gRPC stub expects single writer (e.g. response.onNext()) to emit the stream. So in effect
-            // there can be only 1 reactive stream subscriber subscribing to "something", and react
-            // according to the reactive stream's onNext() signals by emitting gRPC onNext() down the
-            // stream.
-            //
-            // If multiple publishers are not first "merged" into a single publisher, then the only
-            // option is to force all subscribers collect data into a buffer, and then have a single
-            // writer emit all data when everything is collected.
-            //
-            // This is achieved in the following code by converting cold publishers into hot async
-            // futures. Each future collects into its own "slot" in the concurrent hash "set", which is
-            // a KeySetView of a ConcurrentHashMap. The second stage initiates when all node-related
-            // futures are complete, and then engage in the single-writer emission.
-            final var results = ConcurrentHashMap.<List<OrchestrationEvent>>newKeySet();
-            var promises = publishers.stream()
-                    .map(publisher -> ReactiveStream.toFuture(publisher, ArrayList::new)
-                            .thenAcceptAsync(input -> {
-                                @SuppressWarnings("unchecked")
-                                var events = (List<OrchestrationEvent>) input;
-                                results.add(events);
-                            }, executor)
-                    )
-                    .toArray(CompletableFuture[]::new);
+        CompletableFuture.allOf(networkAddressPromises)
+                // Generate cluster configuration for every node.
+                .thenComposeAsync(
+                        __ -> generateClusterConfig(
+                                // Note: Preserve the original listing order.
+                                session.getAssignment().getEntries().stream()
+                                        .map(entry -> Map.entry(entry, networkAddressMap.get(entry)))
+                                        .collect(Collectors.toUnmodifiableList())
+                        ),
+                        executor
+                )
+                // Setup node deployment workflow with its assigned network address.
+                .thenComposeAsync(configMap -> {
+                    var model = session.getSpecification().getModel();
+                    var nodePublishers = configMap.entrySet().parallelStream()
+                            .map(entry -> {
+                                var placement = entry.getKey();
+                                var config = entry.getValue();
+                                var publisher = deployNode(orchestrators.get(placement.getSite()),
+                                                           session.getId(),
+                                                           placement.getNode(),
+                                                           model,
+                                                           config);
 
-            CompletableFuture.allOf(promises).thenRunAsync(() -> {
-                // Create / merge all deployment events.
-                var sessionEvents = new ArrayList<>(session.getEvents());
-                results.stream()
-                        .flatMap(Collection::stream)
-                        .map(ProvisionService::toDeploymentSessionEvent)
-                        .filter(event -> event.getType() != DeploymentSessionEvent.Type.NOOP)
-                        .forEach(sessionEvents::add);
-                sessionEvents.add(newCompleteEvent(session.getId()));
+                                return Map.entry(entry.getKey(), publisher);
+                            })
+                            .collect(Collectors.toUnmodifiableList());
 
-                // Create the updated deployment session instance.
-                var updatedSession = new DeploymentSession(
-                        session.getId(),
-                        session.getSpecification(),
-                        session.getAssignment(),
-                        true /* complete */,
-                        sessionEvents
-                );
+                    var nodePromises = nodePublishers.stream()
+                            .map(entry -> ReactiveStream.toFuture(entry.getValue(), ArrayList::new)
+                                    .thenComposeAsync(events -> {
+                                        // Put the events in the result collection.
+                                        results.addAll(events);
 
-                // Update the deployment log.
-                // FIXME: This does not take into account of persistence nor retry.
-                deploymentLog.get(session.getId()).complete(updatedSession);
-            }, executor).exceptionally(error -> {
-                log.error("Failed to deploy cluster", error);
+                                        // Find any compute resource event and extract the URI.
+                                        var computeResource = events.stream()
+                                                .filter(ComputeResourceEvent.class::isInstance)
+                                                .map(ComputeResourceEvent.class::cast)
+                                                .map(ComputeResourceEvent::getResource)
+                                                .findFirst()
+                                                .orElseThrow(() -> new IllegalStateException(
+                                                        "No compute resource event")
+                                                );
 
-                // Create the updated deployment session instance.
-                var updatedSession = new DeploymentSession(
-                        session.getId(),
-                        session.getSpecification(),
-                        session.getAssignment(),
-                        true /* complete */,
-                        session.getEvents()
-                );
+                                        // Allocate network address to the created node.
+                                        var placement = entry.getKey();
+                                        var orchestrator = orchestrators.get(placement.getSite());
+                                        var allocationRequest = new CreateNetworkAllocationRequest(
+                                                computeResource,
+                                                networkAddressMap.get(entry.getKey()).getResource()
+                                        );
+                                        var allocationPublisher = orchestrator
+                                                .createNetworkAllocation(allocationRequest);
 
-                // Update the deployment log.
-                // FIXME: This does not take into account of persistence nor retry.
-                deploymentLog.get(session.getId()).complete(updatedSession);
+                                        return ReactiveStream.toFuture(allocationPublisher);
+                                    }, executor)
+                                    // Put the network allocation event in the result collection.
+                                    .whenComplete((event, error) -> {
+                                        if (error != null) {
+                                            log.error("Failed to deploy node({})",
+                                                      entry.getKey(), error);
+                                        } else {
+                                            results.add(event);
+                                        }
+                                    })
+                            )
+                            .toArray(CompletableFuture[]::new);
 
-                return null; // To satisfy type signature (Void).
-            });
-        }, executor);
+                    return CompletableFuture.allOf(nodePromises);
+                }, executor)
+                .thenRunAsync(() -> {
+                    // Create / merge all deployment events.
+                    var sessionEvents = new ArrayList<>(session.getEvents());
+                    results.stream()
+                            .map(ProvisionService::toDeploymentSessionEvent)
+                            .filter(event -> event.getType() != DeploymentSessionEvent.Type.NOOP)
+                            .forEach(sessionEvents::add);
+                    sessionEvents.add(newCompleteEvent(session.getId()));
+
+                    // Create the updated deployment session instance.
+                    var updatedSession = new DeploymentSession(
+                            session.getId(),
+                            session.getSpecification(),
+                            session.getAssignment(),
+                            true /* complete */,
+                            sessionEvents
+                    );
+
+                    // Update the deployment log.
+                    // FIXME: This does not take into account of persistence nor retry.
+                    deploymentLog.get(session.getId()).complete(updatedSession);
+
+                    log.info("Deployment session({}) completed", session.getId());
+                }, executor)
+                .exceptionally(error -> {
+                    // Create the updated deployment session instance.
+                    var updatedSession = new DeploymentSession(
+                            session.getId(),
+                            session.getSpecification(),
+                            session.getAssignment(),
+                            true /* complete */,
+                            session.getEvents()
+                    );
+
+                    // Update the deployment log.
+                    // FIXME: This does not take into account of persistence nor retry.
+                    deploymentLog.get(session.getId()).complete(updatedSession);
+
+                    log.error("Deployment session({}) failed", session.getId(), error);
+
+                    return null; // To satisfy type signature (Void).
+                });
     }
 
     /**
@@ -549,7 +609,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
             ConcordModelSpecification model,
             String configuration
     ) {
-        var computeRequest = new Orchestrator.CreateComputeResourceRequest(
+        var computeRequest = new CreateComputeResourceRequest(
                 new ConcordClusterIdentifier(sessionId.getLow(), sessionId.getHigh()),
                 nodeId,
                 model,
