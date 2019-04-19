@@ -63,7 +63,7 @@ public class EthGetTransactionByHashHandler extends AbstractEthRpcHandler {
             result.put("blockHash", ApiHelper.binaryStringToHex(tx.getBlockHash()));
             result.put("blockNumber", "0x" + Long.toHexString(tx.getBlockNumber()));
             result.put("from", ApiHelper.binaryStringToHex(tx.getFrom()));
-            result.put("gas", "0x" + Long.toHexString(tx.getGas()));
+            result.put("gas", "0x" + Long.toHexString(tx.getGasLimit()));
             result.put("gasPrice", "0x" + Long.toHexString(tx.getGasPrice()));
             result.put("hash", ApiHelper.binaryStringToHex(tx.getHash()));
             result.put("input", ApiHelper.binaryStringToHex(tx.getInput()));

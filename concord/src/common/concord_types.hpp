@@ -36,6 +36,7 @@ typedef struct EthTransaction {
   evm_uint256be value;
   uint64_t gas_price;
   uint64_t gas_limit;
+  uint64_t gas_used;
   std::vector<EthLog> logs;
   evm_uint256be sig_r;
   evm_uint256be sig_s;
@@ -53,6 +54,7 @@ typedef struct EthBlock {
   evm_uint256be hash;
   evm_uint256be parent_hash;
   uint64_t gas_limit;
+  uint64_t gas_used;
   std::vector<evm_uint256be> transactions;
 
   evm_uint256be get_hash() const;

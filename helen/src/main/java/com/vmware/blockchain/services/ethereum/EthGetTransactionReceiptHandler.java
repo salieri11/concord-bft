@@ -67,8 +67,8 @@ public class EthGetTransactionReceiptHandler extends AbstractEthRpcHandler {
             result.put("from", ApiHelper.binaryStringToHex(tx.getFrom()));
             result.put("to", ApiHelper.binaryStringToHex(tx.getTo()));
             // TODO: Sum up all `gasUsed` from previous tx in the same block
-            result.put("cumulativeGasUsed", "0x" + Long.toHexString(tx.getGas()));
-            result.put("gasUsed", "0x" + Long.toHexString(tx.getGas()));
+            result.put("cumulativeGasUsed", "0x" + Long.toHexString(tx.getGasUsed()));
+            result.put("gasUsed", "0x" + Long.toHexString(tx.getGasUsed()));
             if (tx.hasContractAddress()) {
                 result.put("contractAddress", ApiHelper.binaryStringToHex(tx.getContractAddress()));
             } else {

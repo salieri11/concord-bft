@@ -121,6 +121,10 @@ public class EthGetBlockHandler extends AbstractEthRpcHandler {
             result.put("gasLimit", "0x" + Long.toHexString(blockResponseObj.getGasLimit()));
         }
 
+        if (blockResponseObj.hasGasUsed()) {
+            result.put("gasUsed", "0x" + Long.toHexString(blockResponseObj.getGasUsed()));
+        }
+
         JSONArray transactions = new JSONArray();
         JSONArray params = extractRequestParams(requestJson);
         boolean flag = (boolean) params.get(1);
