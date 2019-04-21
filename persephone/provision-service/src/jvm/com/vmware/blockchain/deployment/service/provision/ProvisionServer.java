@@ -87,7 +87,13 @@ interface ProvisionServer {
                 .build();
         try {
             log.info("Initializing provisioning service");
-            provisionServer.provisionService().initialize();
+            provisionServer.provisionService().initialize()
+                    .whenComplete((result, error) -> {
+                        if (error != null) {
+                            log.error("Error initializing provision service", error);
+                            server.shutdown();
+                        }
+                    });
 
             log.info("Starting API server instance");
             server.start();

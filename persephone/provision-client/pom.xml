@@ -108,7 +108,7 @@
                         <configuration>
                             <archive>
                                 <manifest>
-                                    <mainClass>com.vmware.blockchain.deployment.client.provision.ProvisionServiceClient</mainClass>
+                                    <mainClass>com.vmware.blockchain.deployment.provision.client.ProvisionServiceClient</mainClass>
                                 </manifest>
                             </archive>
                             <descriptorRefs>

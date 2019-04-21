@@ -29,18 +29,21 @@ import com.vmware.blockchain.deployment.model.vsphere.VirtualMachineGuestIdentit
 import com.vmware.blockchain.deployment.model.vsphere.VirtualMachinePowerResponse
 import com.vmware.blockchain.deployment.model.vsphere.VirtualMachinePowerState
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
+import com.vmware.blockchain.deployment.orchestration.randomSubnet
+import com.vmware.blockchain.deployment.orchestration.toIPv4Address
 import com.vmware.blockchain.deployment.reactive.Publisher
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.reactive.publish
 import kotlinx.coroutines.withTimeout
 import kotlin.coroutines.CoroutineContext
 import kotlin.coroutines.EmptyCoroutineContext
-import kotlin.random.Random
 
 /**
  * Deployment orchestration driver for VMware Cloud [orchestration site type]
@@ -73,43 +76,6 @@ class VmcOrchestrator private constructor(
 
         /** Default maximum orchestrator operation timeout value. */
         const val ORCHESTRATOR_TIMEOUT_MILLIS = 60000L * 4
-
-        /**
-         * Randomly generate an IPv4 address sub-network constrained within a prefix network range.
-         *
-         * @param[prefix]
-         *   prefix of the network range to create a sub-network within.
-         * @param[prefixSubnet]
-         *   number of bits used for mask of the prefix network to constrain by.
-         * @param[subnet]
-         *   number of bits used for mask of the sub-network to generate.
-         *
-         * @return
-         *   generated subnet CIDR as an [Int].
-         */
-        @JvmStatic
-        private fun randomSubnet(prefix: Int, prefixSubnet: Int, subnet: Int): Int {
-            return prefix + (Random.nextBits(subnet - prefixSubnet) shl (Int.SIZE_BITS - subnet))
-        }
-
-        /**
-         * Convert an [Int] to the IPv4 address it represents in canonical format.
-         *
-         * @param[value]
-         *   integer value to convert.
-         *
-         * @return
-         *   canonical IPv4 address as a [String].
-         */
-        @JvmStatic
-        private fun toIPv4Address(value: Int): String {
-            val first = (value ushr 24)
-            val second = (value and 0x00FF0000) ushr 16
-            val third = (value and 0x0000FF00) ushr 8
-            val fourth = (value and 0x000000FF)
-
-            return "$first.$second.$third.$fourth"
-        }
 
         /**
          * Get SDDC information associated with a given [VmcClient].
@@ -201,7 +167,7 @@ class VmcOrchestrator private constructor(
         get() = context + job
 
     /** Parent [Job] of all coroutines associated with this instance's operation. */
-    private val job: Job = Job()
+    private val job: Job = SupervisorJob()
 
     override fun close() {
         job.cancel()
@@ -242,7 +208,7 @@ class VmcOrchestrator private constructor(
                             folder = requireNotNull(folder),
                             controlNetwork = controlNetwork,
                             dataNetwork = dataNetwork,
-                            initScript = InitScript(request.model)
+                            initScript = InitScript(request.model, request.configuration)
                     )
 
                     // 1. If instance is created, send the created event signal.
@@ -256,10 +222,8 @@ class VmcOrchestrator private constructor(
                             ?.takeIf { ensureVirtualMachinePowerStart(instance) }
                             ?.apply { send(Orchestrator.ComputeResourceEvent.Started(this)) }
                             ?: close(Orchestrator.ResourceCreationFailedException(request))
-                } finally {
-                    if (!isActive) {
-                        close(Orchestrator.ResourceCreationFailedException(request))
-                    }
+                } catch (error: CancellationException) {
+                    close(Orchestrator.ResourceCreationFailedException(request))
                 }
             }
         }
@@ -290,10 +254,8 @@ class VmcOrchestrator private constructor(
                                 send(Orchestrator.ComputeResourceEvent.Deleted(request.resource))
                             }
                             ?: close(Orchestrator.ResourceDeletionFailedException(request))
-                } finally {
-                    if (!isActive) {
-                        close(Orchestrator.ResourceDeletionFailedException(request))
-                    }
+                } catch (error: CancellationException) {
+                    close(Orchestrator.ResourceDeletionFailedException(request))
                 }
             }
         }
@@ -305,19 +267,19 @@ class VmcOrchestrator private constructor(
         return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
-                    createPublicIP(request.name)
-                            ?.takeIf { it.ip != null }
-                            ?.toNetworkResource()
+                    val publicIp = createPublicIP(request.name)
+                    publicIp?.takeIf { it.ip != null }
                             ?.apply {
-                                send(Orchestrator.NetworkResourceEvent.Created(this, request.name))
+                                send(Orchestrator.NetworkResourceEvent.Created(
+                                        this.toNetworkResource(),
+                                        request.name,
+                                        ip!!))
+                                close()
                             }
                             ?: close(Orchestrator.ResourceCreationFailedException(request))
-                } finally {
-                    if (!isActive) {
-                        close(Orchestrator.ResourceCreationFailedException(request))
-                    }
+                } catch (error: CancellationException) {
+                    close(Orchestrator.ResourceCreationFailedException(request))
                 }
-
             }
         }
     }
@@ -339,10 +301,8 @@ class VmcOrchestrator private constructor(
                                 send(Orchestrator.NetworkResourceEvent.Deleted(request.resource))
                             }
                             ?: close(Orchestrator.ResourceDeletionFailedException(request))
-                } finally {
-                    if (!isActive) {
-                        close(Orchestrator.ResourceDeletionFailedException(request))
-                    }
+                } catch (error: CancellationException) {
+                    close(Orchestrator.ResourceDeletionFailedException(request))
                 }
             }
         }
@@ -397,10 +357,8 @@ class VmcOrchestrator private constructor(
                             ?.toNetworkAllocationResource()
                             ?.apply { send(Orchestrator.NetworkAllocationEvent.Created(this)) }
                             ?: close(Orchestrator.ResourceCreationFailedException(request))
-                } finally {
-                        if (!isActive) {
-                            close(Orchestrator.ResourceCreationFailedException(request))
-                        }
+                } catch (error: CancellationException) {
+                    close(Orchestrator.ResourceCreationFailedException(request))
                 }
             }
         }
@@ -423,10 +381,8 @@ class VmcOrchestrator private constructor(
                                 send(Orchestrator.NetworkAllocationEvent.Deleted(request.resource))
                             }
                             ?: close(Orchestrator.ResourceDeletionFailedException(request))
-                } finally {
-                    if (!isActive) {
-                        close(Orchestrator.ResourceDeletionFailedException(request))
-                    }
+                } catch (error: CancellationException) {
+                    close(Orchestrator.ResourceDeletionFailedException(request))
                 }
             }
         }

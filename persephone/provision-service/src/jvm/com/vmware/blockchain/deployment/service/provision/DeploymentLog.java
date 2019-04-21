@@ -9,6 +9,7 @@ import com.vmware.blockchain.deployment.model.DeploymentSession;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.model.DeploymentSpecification;
+import com.vmware.blockchain.deployment.model.PlacementAssignment;
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore;
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Versioned;
 import com.vmware.blockchain.deployment.persistence.kv.MonotonicInt;
@@ -33,7 +34,8 @@ public class DeploymentLog {
             DeploymentSessionIdentifier identifier,
             DeploymentSpecification model
     ) {
-        var session = new DeploymentSession(identifier, model, false, Collections.emptyList());
+        var session = new DeploymentSession(identifier, model, new PlacementAssignment(),
+                                            false, Collections.emptyList());
 
         // Record the session and piggyback on its completion.
         var stored = store.set(identifier, initialVersion, session);

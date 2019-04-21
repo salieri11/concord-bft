@@ -18,22 +18,58 @@ option java_multiple_files = true;
  * Model definition of Concord cluster placement specification.
  *
  * @property[entries]
- *   list of placement entries mapping replica deployment to orchestration site targets. The
+ *   list of placement entries mapping node deployment to orchestration site targets. The
  *   positional sequence in the collection corresponds to the index of the Concord replica to be
  *   placed.
  */
 message PlacementSpecification {
+    /**
+     * Type of placement strategy to use for a given Concord node in [PlacementSpecification].
+     */
     enum Type {
         UNSPECIFIED = 0;
         FIXED = 1;
     }
 
-    message PlacementEntry {
+    /**
+     * Model definition of a Concord node placement in [PlacementSpecification].
+     *
+     * @property[type]
+     *   type of placement strategy to utilize for this node slot.
+     * @property[site]
+     *   orchestration site to use as deployment target for the node corresponding to the slot.
+     */
+    message Entry {
         Type type = 1;
         OrchestrationSiteIdentifier site = 2;
     }
 
-    repeated PlacementEntry entries = 1;
+    repeated Entry entries = 1 [packed=false];
+}
+
+/**
+ * Model definition of a Concord node placement assignment derived from [PlacementSpecification].
+ *
+ * @property[entries]
+ *   list of placement assignments mapping node deployment to orchestration site targets. The
+ *   positional sequence in the collection corresponds to the index of the Concord replica to be
+ *   placed.
+ */
+message PlacementAssignment {
+    /**
+     * Model definition of a Concord node placement in [PlacementAssignment].
+     *
+     * @property[node]
+     *   identifier of the Concord node replica that is placed.
+     * @property[site]
+     *   orchestration site used as deployment target for the node corresponding to the slot.
+     */
+    message Entry {
+        ConcordNodeIdentifier node = 1;
+        OrchestrationSiteIdentifier site = 2;
+    }
+
+    repeated Entry entries = 1 [packed=false];
 }
 
 /**
@@ -72,6 +108,8 @@ message DeploymentSessionIdentifier {
  *   identifier for this deployment session.
  * @property[specification]
  *   deployment specification used to carry out the operation associated with this session.
+ * @property[assignment]
+ *   reified node placement derived from deployment specification.
  * @property[complete]
  *   terminal indicator for the deployment session (whether successful or failure).
  * @property[events]
@@ -80,8 +118,9 @@ message DeploymentSessionIdentifier {
 message DeploymentSession {
     DeploymentSessionIdentifier id = 1;
     DeploymentSpecification specification = 2;
-    bool complete = 3;
-    repeated DeploymentSessionEvent events = 4 [packed=false];
+    PlacementAssignment assignment = 3;
+    bool complete = 4;
+    repeated DeploymentSessionEvent events = 5 [packed=false];
 }
 
 /**
