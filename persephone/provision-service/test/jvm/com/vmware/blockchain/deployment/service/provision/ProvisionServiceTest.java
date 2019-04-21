@@ -156,7 +156,10 @@ class ProvisionServiceTest {
                         new Endpoint(URI.create("https://authserver"), new Credential()),
                         new Endpoint(URI.create(apiEndpoint), new Credential()),
                         "test-org",
-                        datacenter
+                        datacenter,
+                        new Endpoint(URI.create("https://registry"), new Credential()),
+                        "resource-pool",
+                        "vm-folder"
                 )
         );
     }

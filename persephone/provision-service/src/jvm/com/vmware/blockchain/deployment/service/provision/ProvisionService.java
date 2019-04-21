@@ -39,6 +39,7 @@ import com.vmware.blockchain.deployment.model.PlacementAssignment;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
 import com.vmware.blockchain.deployment.model.ProvisionServiceImplBase;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
+import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.ComputeResourceEvent;
@@ -492,6 +493,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
                                                            session.getId(),
                                                            placement.getNode(),
                                                            model,
+                                                           session.getSpecification().getGenesis(),
                                                            config);
 
                                 return Map.entry(entry.getKey(), publisher);
@@ -607,12 +609,14 @@ public class ProvisionService extends ProvisionServiceImplBase {
             DeploymentSessionIdentifier sessionId,
             ConcordNodeIdentifier nodeId,
             ConcordModelSpecification model,
+            Genesis genesis,
             String configuration
     ) {
         var computeRequest = new CreateComputeResourceRequest(
                 new ConcordClusterIdentifier(sessionId.getLow(), sessionId.getHigh()),
                 nodeId,
                 model,
+                genesis,
                 configuration
         );
         return orchestrator.createDeployment(computeRequest);

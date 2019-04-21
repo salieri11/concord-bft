@@ -3,21 +3,35 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.vm
 
+import com.vmware.blockchain.deployment.http.JsonSerializer
 import com.vmware.blockchain.deployment.model.ConcordComponent
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification
+import com.vmware.blockchain.deployment.model.core.Credential
+import com.vmware.blockchain.deployment.model.core.Endpoint
+import com.vmware.blockchain.deployment.model.ethereum.Genesis
+import kotlinx.serialization.context.SimpleModule
 import java.util.Base64
 
 /**
  * Initialization script run either on first-boot of a deployed virtual machine.
  */
 class InitScript(
+    containerRegistry: Endpoint,
     model: ConcordModelSpecification,
+    genesis: Genesis,
     concordConfiguration: String
 ) {
+
+    object GenesisSerializer : JsonSerializer() {
+        init {
+            install(SimpleModule(Genesis::class, Genesis.serializer()))
+        }
+    }
+
     /** Consolidated Docker PULL command. */
     private val dockerPullCommand: String = model.components.asSequence()
             .filter { it.type == ConcordComponent.Type.DOCKER_IMAGE }
-            .map { "docker pull ${it.name}" }
+            .map { "docker pull ${containerRegistry.address.authority}/${it.name}" }
             .joinToString(separator = "\n", postfix = "\n")
 
     private val script =
@@ -27,7 +41,7 @@ class InitScript(
             route add default gw `ip route show | grep "dev eth0" | grep -v kernel | grep -v default | cut -d' ' -f 1` eth0
             systemctl start docker
             systemctl enable docker
-            docker login -u blockchainrepositoryreader -p 'j4jshdh${'$'}@ED2R${'$'}*Trf8'
+            {{dockerLoginCommand}}
             {{dockerPullCommand}}
             # Create additional user for copying over the config files.
             useradd vmwuser1 -s /bin/bash -m
@@ -36,9 +50,31 @@ class InitScript(
             mkdir /config
             touch /config/concord.config
             echo '{{concordConfiguration}}' > /config/concord.config
+            echo '{{genesis}}' > /config/genesis.json
             """.trimIndent()
+                    .replace("{{dockerLoginCommand}}", containerRegistry.toRegistryLoginCommand())
                     .replace("{{dockerPullCommand}}", dockerPullCommand)
                     .replace("{{concordConfiguration}}", concordConfiguration)
+                    .replace("{{genesis}}", GenesisSerializer.toJson(genesis))
+
+    /**
+     * Convert an endpoint to a Docker Registry login command.
+     *
+     * @return
+     *   docker login command as a [String].
+     */
+    private fun Endpoint.toRegistryLoginCommand(): String {
+        val credential = when (credential.type) {
+            Credential.Type.PASSWORD -> {
+                val passwordCredential = requireNotNull(credential.passwordCredential)
+
+                "-u ${passwordCredential.username} -p '${passwordCredential.password}'"
+            }
+            else -> ""
+        }
+
+        return "docker login $address $credential"
+    }
 
     /**
      * Express the content of the [InitScript] instance as a base64-encoded [ByteArray].
