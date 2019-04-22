@@ -70,6 +70,10 @@ fun main(args: Array<String>) {
                                     ConcordComponent(
                                             ConcordComponent.Type.DOCKER_IMAGE,
                                             "vmwblockchain/ethrpc:latest"
+                                    ),
+                                    ConcordComponent(
+                                            ConcordComponent.Type.DOCKER_IMAGE,
+                                            "vmwblockchain/agent-testing:latest"
                                     )
                             )
                     )

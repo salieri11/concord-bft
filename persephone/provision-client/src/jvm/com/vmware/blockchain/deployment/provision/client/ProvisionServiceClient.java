@@ -134,7 +134,8 @@ public class ProvisionServiceClient {
             var placementSpec = new PlacementSpecification(list);
             var components = List.of(
                     new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/concord-core:latest"),
-                    new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/ethrpc:latest")
+                    new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/ethrpc:latest"),
+                    new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/agent-testing:latest")
             );
             ConcordModelSpecification spec = new ConcordModelSpecification("20190401.1", "photon-3.0-64", components);
             DeploymentSpecification deploySpec = new DeploymentSpecification(cluster_size, spec, placementSpec);
