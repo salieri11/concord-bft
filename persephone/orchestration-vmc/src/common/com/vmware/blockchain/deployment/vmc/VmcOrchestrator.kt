@@ -38,7 +38,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
-import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.reactive.publish
 import kotlinx.coroutines.withTimeout
@@ -55,6 +54,7 @@ import kotlin.coroutines.EmptyCoroutineContext
  *   vSphere API client handle.
  */
 class VmcOrchestrator private constructor(
+    private val info: OrchestrationSiteInfo.Vmc,
     private val vmc: VmcClient,
     private val vSphere: VSphereClient,
     private val nsx: VmcClient,
@@ -156,7 +156,7 @@ class VmcOrchestrator private constructor(
                     ).let { VSphereClient(it, ModelSerializer) } // vSphere client.
 
                     // New Orchestrator instance.
-                    send(VmcOrchestrator(vmc, vsphere, nsx, executionContext))
+                    send(VmcOrchestrator(info, vmc, vsphere, nsx, executionContext))
                 }?: close(RuntimeException("Cannot retrieve site authorization information"))
             }
         }
@@ -182,9 +182,9 @@ class VmcOrchestrator private constructor(
                     val clusterId = UUID(request.cluster.high, request.cluster.low)
                     val nodeId = UUID(request.node.high, request.node.low)
 
-                    val getFolder = async { getFolder() }
+                    val getFolder = async { getFolder(name = info.folder) }
                     val getDatastore = async { getDatastore() }
-                    val getResourcePool = async { getResourcePool() }
+                    val getResourcePool = async { getResourcePool(name = info.resourcePool) }
                     val ensureControlNetwork = async {
                         ensureLogicalNetwork("cgw", "blockchain-control", 0x0A010000, 16, 16)
                     }
@@ -208,7 +208,12 @@ class VmcOrchestrator private constructor(
                             folder = requireNotNull(folder),
                             controlNetwork = controlNetwork,
                             dataNetwork = dataNetwork,
-                            initScript = InitScript(request.model, request.configuration)
+                            initScript = InitScript(
+                                    info.containerRegistry,
+                                    request.model,
+                                    request.genesis,
+                                    request.configuration
+                            )
                     )
 
                     // 1. If instance is created, send the created event signal.

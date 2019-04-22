@@ -7,6 +7,7 @@ import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification
 import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
 import com.vmware.blockchain.deployment.model.core.URI
+import com.vmware.blockchain.deployment.model.ethereum.Genesis
 import com.vmware.blockchain.deployment.reactive.Publisher
 
 /**
@@ -51,6 +52,7 @@ interface Orchestrator {
         val cluster: ConcordClusterIdentifier,
         val node: ConcordNodeIdentifier,
         val model: ConcordModelSpecification,
+        val genesis: Genesis,
 
         // FIXME: THIS IS TEMPORARY UNTIL CONFIGURATION IS FETCHED BY PERSEPHONE-AGENT.
         var configuration: String = ""

@@ -35,13 +35,22 @@ data class OrchestrationSiteInfo(val type: Type, val vmc: Vmc? = null) {
      *   VMC organization identifier.
      * @param[datacenter]
      *   SDDC datacenter identifier owned by the organization.
+     * @param[containerRegistry]
+     *   container registry endpoint information.
+     * @param[resourcePool]
+     *   name of the resource pool to use compute deployment.
+     * @param[folder]
+     *   name of the inventory folder to use compute deployment.
      */
     @Serializable
     data class Vmc(
         val authentication: Endpoint,
         val api: Endpoint,
         val organization: String,
-        val datacenter: String
+        val datacenter: String,
+        val containerRegistry: Endpoint,
+        val resourcePool: String,
+        val folder: String
     )
 }
 

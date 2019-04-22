@@ -36,6 +36,7 @@ import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.model.ProvisionServiceStub;
 
 
+import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import io.grpc.CallOptions;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
@@ -136,8 +137,23 @@ public class ProvisionServiceClient {
                     new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/concord-core:latest"),
                     new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/ethrpc:latest")
             );
-            ConcordModelSpecification spec = new ConcordModelSpecification("20190401.1", "photon-3.0-64", components);
-            DeploymentSpecification deploySpec = new DeploymentSpecification(cluster_size, spec, placementSpec);
+            var genesis = new Genesis(
+                    new Genesis.Config(1, 0, 0, 0),
+                    "0x0000000000000000",
+                    "0x400",
+                    "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "0xf4240",
+                    Map.of(
+                            "262c0d7ab5ffd4ede2199f6ea793f819e1abb019", new Genesis.Wallet("12345"),
+                            "5bb088f57365907b1840e45984cae028a82af934", new Genesis.Wallet("0xabcdef"),
+                            "0000a12b3f3d6c9b0d3f126a83ec2dd3dad15f39", new Genesis.Wallet("0x7fffffffffffffff")
+                    )
+            );
+            ConcordModelSpecification spec =
+                    new ConcordModelSpecification("20190401.1", "photon-3.0-64", components);
+            DeploymentSpecification deploySpec =
+                    new DeploymentSpecification(cluster_size, spec, placementSpec, genesis);
             var request = new CreateClusterRequest (new MessageHeader(), deploySpec );
             // Check that the API can be serviced normally after service initialization.
             var promise = new CompletableFuture<DeploymentSessionIdentifier> ();

@@ -12,6 +12,7 @@ import com.vmware.blockchain.deployment.model.ConcordModelSpecification
 import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier
 import com.vmware.blockchain.deployment.model.core.URI
 import com.vmware.blockchain.deployment.model.core.UUID
+import com.vmware.blockchain.deployment.model.ethereum.Genesis
 import com.vmware.blockchain.deployment.model.orchestration.getOrchestrationSiteMapSerializer
 import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.reactive.BaseSubscriber
@@ -52,6 +53,24 @@ fun main(args: Array<String>) {
             )
 
             // Create compute.
+            val genesis = Genesis(
+                    config = Genesis.Config(
+                            chainId = 1,
+                            homesteadBlock = 0,
+                            eip155Block = 0,
+                            eip158Block = 0
+                    ),
+                    nonce = "0x0000000000000000",
+                    difficulty = "0x400",
+                    mixhash = "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    parentHash = "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    gasLimit = "0xf4240",
+                    alloc = mapOf(
+                            "262c0d7ab5ffd4ede2199f6ea793f819e1abb019" to Genesis.Wallet("12345"),
+                            "5bb088f57365907b1840e45984cae028a82af934" to Genesis.Wallet("0xabcdef"),
+                            "0000a12b3f3d6c9b0d3f126a83ec2dd3dad15f39" to Genesis.Wallet("0x7fffffffffffffff")
+                    )
+            )
             val computeCreate = Orchestrator.CreateComputeResourceRequest(
                     UUID.randomUUID().let {
                         ConcordClusterIdentifier(it.mostSignificantBits, it.leastSignificantBits)
@@ -72,7 +91,8 @@ fun main(args: Array<String>) {
                                             "vmwblockchain/ethrpc:latest"
                                     )
                             )
-                    )
+                    ),
+                    genesis
             )
             val computeCreated = CompletableDeferred<URI>()
             val computeStarted = CompletableDeferred<URI>()

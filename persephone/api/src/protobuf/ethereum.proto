@@ -1,0 +1,69 @@
+/* [START declaration] */
+syntax = "proto3";
+package com.vmware.blockchain.deployment.model.ethereum;
+/* [END declaration] */
+
+/* [START java_declaration] */
+option java_package = "com.vmware.blockchain.deployment.model.ethereum";
+option java_multiple_files = true;
+/* [END java_declaration] */
+
+/**
+ * Model definition of an Ethereum genesis.json, which defines both the
+ * blockchain's configuration properties as well as the zeroth block of
+ * an Ethereum blockchain.
+ *
+ * @property[config]
+ *   configuration information.
+ * @property[nonce]
+ *   64-bit hash combined with [mixhash] that proves the work for this block.
+ * @property[difficulty]
+ *   difficulty level applied during the nonce discovering of this block.
+ * @property[mixhash]
+ *   256-bit hash combined with [nonce] that proves the work for this block.
+ * @property[parent_hash]
+ *   Keccak 256-bit hash of the entire parent block header.
+ * @property[gas_limit]
+ *   chain-wide limit of gas expenditure per block.
+ * @property[alloc]
+ *   pre-filled wallets.
+ */
+message Genesis {
+
+    /**
+     * Genesis Block Configuration Information.
+     *
+     * @property[chain_id]
+     *   identifier of the blockchain.
+     * @property[homestead_block]
+     *   homestead switch block.
+     * @property[eip155_block]
+     *   EIP155 HF block.
+     * @property[eip158_block]
+     *   EIP158 HF block.
+     */
+    message Config {
+        uint64 chain_id = 1;
+        uint64 homestead_block = 2;
+        uint64 eip155_block = 3;
+        uint64 eip158_block = 4;
+    }
+
+    /**
+     * Model definition of a pre-filled wallet as specified in [Genesis] block.
+     *
+     * @property[balance]
+     *   wallet's balance.
+     */
+    message Wallet {
+        string balance = 1;
+    }
+
+    Config config = 1;
+    string nonce = 2;
+    string difficulty = 3;
+    string mixhash = 4;
+    string parent_hash = 5;
+    string gas_limit = 6;
+    map<string, Wallet> alloc = 7;
+}

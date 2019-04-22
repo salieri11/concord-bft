@@ -5,11 +5,12 @@ package com.vmware.blockchain.deployment.model;
 import "concord_cluster.proto";
 import "concord_model.proto";
 import "core.proto";
+import "ethereum.proto";
 import "orchestration.proto";
 /* [END declaration] */
 
 /* [START java_declaration] */
-option java_package = "com.vmware.blockchain.deployment.model.jvm";
+option java_package = "com.vmware.blockchain.deployment.model";
 option java_multiple_files = true;
 /* [END java_declaration] */
 
@@ -86,6 +87,7 @@ message DeploymentSpecification {
     uint32 cluster_size = 1;
     ConcordModelSpecification model = 2;
     PlacementSpecification placement = 3;
+    ethereum.Genesis genesis = 4;
 }
 
 /**
