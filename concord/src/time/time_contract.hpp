@@ -14,7 +14,7 @@
 
 #ifndef TIME_TIME_CONTRACT_HPP
 
-#include <map>
+#include <unordered_map>
 #include <utility>
 
 #include "blockchain/kvb_storage.hpp"
@@ -54,7 +54,7 @@ class TimeContract {
  private:
   log4cplus::Logger logger_;
   concord::blockchain::KVBStorage& storage_;
-  std::map<std::string, uint64_t>* samples_;
+  std::unordered_map<std::string, uint64_t>* samples_;
 
   void LoadLatestSamples();
   uint64_t SummarizeTime();

@@ -11,6 +11,7 @@
 #include "time_contract.hpp"
 
 #include <algorithm>
+#include <unordered_map>
 #include <vector>
 
 #include "blockchain/kvb_storage.hpp"
@@ -26,7 +27,7 @@ uint64_t TimeContract::Update(const std::string &source, uint64_t time) {
 
   auto old_sample = samples_->find(source);
   if (old_sample != samples_->end()) {
-    (*samples_)[source] = std::max(time, old_sample->second);
+    old_sample->second = std::max(time, old_sample->second);
   } else {
     samples_->emplace(source, time);
   }
@@ -40,6 +41,7 @@ uint64_t TimeContract::Update(const std::string &source, uint64_t time) {
 // been applied since this TimeContract was instantiated).
 uint64_t TimeContract::GetTime() {
   LoadLatestSamples();
+
   return SummarizeTime();
 }
 
@@ -90,7 +92,7 @@ void TimeContract::LoadLatestSamples() {
     return;
   }
 
-  samples_ = new std::map<std::string, uint64_t>();
+  samples_ = new std::unordered_map<std::string, uint64_t>();
 
   Blockchain::Sliver raw_time = storage_.get_time();
   if (raw_time.length() > 0) {
