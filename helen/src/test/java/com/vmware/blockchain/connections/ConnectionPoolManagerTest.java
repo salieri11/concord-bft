@@ -27,6 +27,8 @@ import com.vmware.blockchain.common.ConcordProperties;
 import com.vmware.blockchain.connections.ConcordConnectionPool.ConnectionType;
 import com.vmware.blockchain.services.blockchains.Blockchain;
 
+import io.grpc.ManagedChannel;
+
 /**
  * Test the ConnectionPoolManger.
  */
@@ -38,6 +40,9 @@ public class ConnectionPoolManagerTest {
     // Mock out the current ConcordConnectionpool bean.  This can be removed when that is.
     @MockBean
     ConcordConnectionPool concordConnectionPool;
+
+    @MockBean
+    ManagedChannel channel;
 
     @Autowired
     ConnectionPoolManager manager;

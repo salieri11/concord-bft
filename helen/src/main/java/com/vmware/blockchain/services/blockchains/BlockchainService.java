@@ -41,16 +41,20 @@ public class BlockchainService {
     }
 
     /**
-     * Create a new blockchain with the parameters.
+     * Create a new blockchain with the parameters and a specified UUID.
+     * Use this call when all we know about the consortium is its Id.
      *
-     * @param nodeList       List of node entries
+     * @param id            Preset UUID for this blockchain
+     * @param consortiumId  ID of consortium owning this blockchain
+     * @param nodeList      List of node entries
      * @return Blockchain   Blockchain entity
      */
-    public Blockchain create(Consortium consortium, List<NodeEntry> nodeList) {
+    public Blockchain create(UUID id, UUID consortiumId, List<NodeEntry> nodeList) {
         Blockchain b = new Blockchain.BlockchainBuilder()
-                .consortium(consortium.getId())
+                .consortium(consortiumId)
                 .nodeList(nodeList)
                 .build();
+        b.setId(id);
         b = genericDao.put(b, null);
         try {
             connectionPoolManager.createPool(b);
@@ -59,6 +63,28 @@ public class BlockchainService {
             logger.warn("Connection pool creation failed for blockchain {}", b.getId());
         }
         return b;
+    }
+
+    /**
+     * Create a new blockchain with the parameters and a specified UUID.
+     *
+     * @param id            Preset UUID for this blockchain
+     * @param consortium    Consortium owning this blockchain
+     * @param nodeList      List of node entries
+     * @return Blockchain   Blockchain entity
+     */
+    public Blockchain create(UUID id, Consortium consortium, List<NodeEntry> nodeList) {
+        return create(id, consortium.getId(), nodeList);
+    }
+
+    /**
+     * Create a new blockchain with the parameters.
+     *
+     * @param nodeList      List of node entries
+     * @return Blockchain   Blockchain entity
+     */
+    public Blockchain create(Consortium consortium, List<NodeEntry> nodeList) {
+        return create(null, consortium, nodeList);
     }
 
     /**

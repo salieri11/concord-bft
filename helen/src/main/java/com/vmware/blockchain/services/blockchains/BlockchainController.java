@@ -4,11 +4,15 @@
 
 package com.vmware.blockchain.services.blockchains;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +25,17 @@ import org.springframework.web.bind.annotation.RestController;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.vmware.blockchain.common.ForbiddenException;
 import com.vmware.blockchain.common.NotFoundException;
+import com.vmware.blockchain.deployment.model.ConcordComponent;
+import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
+import com.vmware.blockchain.deployment.model.CreateClusterRequest;
+import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
+import com.vmware.blockchain.deployment.model.DeploymentSpecification;
+import com.vmware.blockchain.deployment.model.MessageHeader;
+import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
+import com.vmware.blockchain.deployment.model.PlacementSpecification;
+import com.vmware.blockchain.deployment.model.PlacementSpecification.PlacementEntry;
+import com.vmware.blockchain.deployment.model.ProvisionServiceStub;
+import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.security.AuthHelper;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.profiles.Consortium;
@@ -31,6 +46,9 @@ import com.vmware.blockchain.services.tasks.Task;
 import com.vmware.blockchain.services.tasks.Task.State;
 import com.vmware.blockchain.services.tasks.TaskService;
 
+import io.grpc.CallOptions;
+import io.grpc.ManagedChannel;
+import io.grpc.stub.StreamObserver;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -41,6 +59,7 @@ import lombok.Setter;
  */
 @RestController
 public class BlockchainController {
+    private static final Logger logger = LogManager.getLogger(BlockchainController.class);
 
     /**
      * The type of sites we want in the deployment.
@@ -120,18 +139,46 @@ public class BlockchainController {
     private AuthHelper authHelper;
     private DefaultProfiles defaultProfiles;
     private TaskService taskService;
+    private ManagedChannel channel;
+
+    /**
+     * An observer to fake a blocked call.
+     */
+    private <T> StreamObserver<T> blockedResultObserver(CompletableFuture<T> result) {
+        return new StreamObserver<>() {
+            /** Holder of result value. */
+            volatile T value;
+
+            @Override
+            public void onNext(T value) {
+                this.value = value;
+            }
+
+            @Override
+            public void onError(Throwable error) {
+                result.completeExceptionally(error);
+            }
+
+            @Override
+            public void onCompleted() {
+                result.complete(value);
+            }
+        };
+    }
 
     @Autowired
     public BlockchainController(BlockchainService manager,
             ConsortiumService consortiumService,
             AuthHelper authHelper,
             DefaultProfiles defaultProfiles,
-            TaskService taskService) {
+            TaskService taskService,
+            ManagedChannel channel) {
         this.manager = manager;
         this.consortiumService = consortiumService;
         this.authHelper = authHelper;
         this.defaultProfiles = defaultProfiles;
         this.taskService = taskService;
+        this.channel = channel;
     }
 
     /**
@@ -171,21 +218,52 @@ public class BlockchainController {
     }
 
     /**
+     * The actual call which will contact server and add the model request.
+     */
+    private DeploymentSessionIdentifier createFixedSizeCluster(ProvisionServiceStub client,
+            int clusterSize) throws Exception {
+        // Create a blocking stub with the channel
+        List<PlacementEntry> list = new ArrayList<PlacementEntry>(clusterSize);
+        for (int i = 0; i < clusterSize; i++) {
+            list.add(
+                    new PlacementEntry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(1, 2)));
+        }
+        PlacementSpecification placementSpec = new PlacementSpecification(list);
+        List<ConcordComponent> components = new ArrayList<ConcordComponent>();
+        ConcordModelSpecification spec = new ConcordModelSpecification("version1", "template", components);
+        DeploymentSpecification deploySpec = new DeploymentSpecification(clusterSize, spec, placementSpec);
+        CreateClusterRequest request = new CreateClusterRequest(new MessageHeader(), deploySpec);
+        // Check that the API can be serviced normally after service initialization.
+        CompletableFuture<DeploymentSessionIdentifier> promise = new CompletableFuture<>();
+        client.createCluster(request, blockedResultObserver(promise));
+        return promise.get();
+    }
+
+    /**
      * Create a new blockchain in the given consortium, with the specified nodes.
+     * @throws Exception any exception
      */
     @RequestMapping(path = "/api/blockchains", method = RequestMethod.POST)
-    public ResponseEntity<BlockchainTaskResponse> createBlockchain(@RequestBody BlockchainPost body) {
+    public ResponseEntity<BlockchainTaskResponse> createBlockchain(@RequestBody BlockchainPost body) throws Exception {
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles())) {
             throw new ForbiddenException("Action Forbidden");
         }
+        final ProvisionServiceStub client = new ProvisionServiceStub(channel, CallOptions.DEFAULT);
+        // start the deployment
+        int clusterSize = body.getFCount() * 3 + body.getCCount() * 2 + 1;
+        logger.info("Creating new blockchain. Cluster size {}", clusterSize);
+        DeploymentSessionIdentifier dsId = createFixedSizeCluster(client, clusterSize);
+        logger.info("Deployment started, id {}", dsId);
 
-        // Temporary: create a completed task that points to the default bockchain
         Task task = new Task();
-        task.setState(State.SUCCEEDED);
-        task.setMessage("Default Blockchain");
-        task.setResourceId(defaultProfiles.getBlockchain().getId());
-        task.setResourceLink("/api/blockchains/".concat(defaultProfiles.getBlockchain().getId().toString()));
+        task.setState(Task.State.RUNNING);
         task = taskService.put(task);
+        BlockchainObserver bo = new BlockchainObserver(authHelper, manager, taskService, task);
+        // Watch for the event stream
+        StreamClusterDeploymentSessionEventRequest request =
+                new StreamClusterDeploymentSessionEventRequest(new MessageHeader(), dsId);
+        client.streamClusterDeploymentSessionEvents(request, bo);
+        logger.info("Deployment scheduled");
 
         return new ResponseEntity<>(new BlockchainTaskResponse(task.getId()), HttpStatus.ACCEPTED);
     }
@@ -199,6 +277,8 @@ public class BlockchainController {
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles()) && !authHelper.getPermittedChains().contains(id)) {
             throw new ForbiddenException(id + " Forbidden");
         }
+
+
         // Temporary: create a completed task that points to the default bockchain
         Task task = new Task();
         task.setState(State.SUCCEEDED);
