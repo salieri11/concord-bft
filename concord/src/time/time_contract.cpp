@@ -11,6 +11,7 @@
 #include "time_contract.hpp"
 
 #include <algorithm>
+#include <vector>
 
 #include "blockchain/kvb_storage.hpp"
 #include "concord_storage.pb.h"
@@ -20,8 +21,8 @@ namespace concord {
 namespace time {
 
 // Add a sample to the time contract.
-uint64_t TimeContract::update(std::string &source, uint64_t time) {
-  load_latest_samples();
+uint64_t TimeContract::Update(const std::string &source, uint64_t time) {
+  LoadLatestSamples();
 
   auto old_sample = samples_->find(source);
   if (old_sample != samples_->end()) {
@@ -30,16 +31,16 @@ uint64_t TimeContract::update(std::string &source, uint64_t time) {
     samples_->emplace(source, time);
   }
 
-  store_latest_samples();
+  StoreLatestSamples();
 
-  return summarize_time();
+  return SummarizeTime();
 }
 
 // Get the current time at the latest block (including any updates that have
 // been applied since this TimeContract was instantiated).
-uint64_t TimeContract::getTime() {
-  load_latest_samples();
-  return summarize_time();
+uint64_t TimeContract::GetTime() {
+  LoadLatestSamples();
+  return SummarizeTime();
 }
 
 // Combine samples into a single defintion of "now". Samples must have been
@@ -47,7 +48,7 @@ uint64_t TimeContract::getTime() {
 //
 // TODO: refuse to give a summary if there are not enough samples to guarantee
 // monotonicity
-uint64_t TimeContract::summarize_time() {
+uint64_t TimeContract::SummarizeTime() {
   assert(samples_);
 
   if (samples_->empty()) {
@@ -82,7 +83,7 @@ uint64_t TimeContract::summarize_time() {
 //
 // An exception is thrown if data was found in the time key in storage, but that
 // data could not be parsed.
-void TimeContract::load_latest_samples() {
+void TimeContract::LoadLatestSamples() {
   if (samples_) {
     // we already loaded the samples; don't load them again, or we could
     // overwrite updates that have been made
@@ -93,31 +94,31 @@ void TimeContract::load_latest_samples() {
 
   Blockchain::Sliver raw_time = storage_.get_time();
   if (raw_time.length() > 0) {
-    com::vmware::concord::kvb::Time timeStorage;
-    if (timeStorage.ParseFromArray(raw_time.data(), raw_time.length())) {
-      if (timeStorage.version() == time_storage_version) {
-        LOG4CPLUS_DEBUG(
-            logger, "Loading " << timeStorage.sample_size() << " time samples");
-        for (int i = 0; i < timeStorage.sample_size(); i++) {
-          samples_->emplace(timeStorage.sample(i).source(),
-                            timeStorage.sample(i).time());
+    com::vmware::concord::kvb::Time time_storage;
+    if (time_storage.ParseFromArray(raw_time.data(), raw_time.length())) {
+      if (time_storage.version() == kTimeStorageVersion) {
+        LOG4CPLUS_DEBUG(logger_, "Loading " << time_storage.sample_size()
+                                            << " time samples");
+        for (int i = 0; i < time_storage.sample_size(); i++) {
+          samples_->emplace(time_storage.sample(i).source(),
+                            time_storage.sample(i).time());
         }
       } else {
-        LOG4CPLUS_ERROR(
-            logger, "Unknown time storage version: " << timeStorage.version());
+        LOG4CPLUS_ERROR(logger_, "Unknown time storage version: "
+                                     << time_storage.version());
         throw TimeException("Unknown time storage version");
       }
     } else {
-      LOG4CPLUS_ERROR(logger, "Unable to parse time storage");
+      LOG4CPLUS_ERROR(logger_, "Unable to parse time storage");
       throw TimeException("Unable to parse time storage");
     }
   }
 }
 
 // Write the map to storage.
-void TimeContract::store_latest_samples() {
+void TimeContract::StoreLatestSamples() {
   com::vmware::concord::kvb::Time proto;
-  proto.set_version(time_storage_version);
+  proto.set_version(kTimeStorageVersion);
 
   for (auto s : *samples_) {
     auto sample = proto.add_sample();
@@ -126,11 +127,11 @@ void TimeContract::store_latest_samples() {
     sample->set_time(s.second);
   }
 
-  size_t storageSize = proto.ByteSize();
-  Blockchain::Sliver timeStorage(new uint8_t[storageSize], storageSize);
-  proto.SerializeToArray(timeStorage.data(), storageSize);
+  size_t storage_size = proto.ByteSize();
+  Blockchain::Sliver time_storage(new uint8_t[storage_size], storage_size);
+  proto.SerializeToArray(time_storage.data(), storage_size);
 
-  storage_.set_time(timeStorage);
+  storage_.set_time(time_storage);
 }
 
 }  // namespace time

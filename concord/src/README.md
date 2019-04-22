@@ -16,6 +16,7 @@ Instruction on how to build, deploy and test Concord can be found [here](../READ
         └── CMakeLists.txt
 ├── ethereum                 # Interface between Concord and EVMJIT
 ├── main.cpp
+├── time                     # Time Service components
 └── utils                    # Shared utility library used by Concord and its tools and tests
     └── CMakeLists.txt
 ```

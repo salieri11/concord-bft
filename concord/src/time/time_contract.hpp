@@ -24,40 +24,40 @@ namespace time {
 
 class TimeException : public std::exception {
  public:
-  explicit TimeException(const std::string& what) : msg(what){};
+  explicit TimeException(const std::string& what) : msg_(what) {}
 
-  virtual const char* what() const noexcept override { return msg.c_str(); }
+  const char* what() const noexcept override { return msg_.c_str(); }
 
  private:
-  std::string msg;
+  std::string msg_;
 };
 
-const int64_t time_storage_version = 1;
+const int64_t kTimeStorageVersion = 1;
 
 class TimeContract {
  public:
-  TimeContract(concord::blockchain::KVBStorage& storage)
-      : logger(log4cplus::Logger::getInstance("concord.time")),
+  explicit TimeContract(concord::blockchain::KVBStorage& storage)
+      : logger_(log4cplus::Logger::getInstance("concord.time")),
         storage_(storage),
-        samples_(nullptr){};
+        samples_(nullptr) {}
 
   ~TimeContract() {
     if (samples_) {
       delete samples_;
     }
-  };
+  }
 
-  uint64_t update(std::string& source, uint64_t time);
-  uint64_t getTime();
-  void store_latest_samples();
+  uint64_t Update(const std::string& source, uint64_t time);
+  uint64_t GetTime();
+  void StoreLatestSamples();
 
  private:
-  log4cplus::Logger logger;
+  log4cplus::Logger logger_;
   concord::blockchain::KVBStorage& storage_;
   std::map<std::string, uint64_t>* samples_;
 
-  void load_latest_samples();
-  uint64_t summarize_time();
+  void LoadLatestSamples();
+  uint64_t SummarizeTime();
 };
 
 }  // namespace time
