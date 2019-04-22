@@ -135,7 +135,8 @@ public class ProvisionServiceClient {
             var placementSpec = new PlacementSpecification(list);
             var components = List.of(
                     new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/concord-core:latest"),
-                    new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/ethrpc:latest")
+                    new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/ethrpc:latest"),
+                    new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/agent-testing:latest")
             );
             var genesis = new Genesis(
                     new Genesis.Config(1, 0, 0, 0),
