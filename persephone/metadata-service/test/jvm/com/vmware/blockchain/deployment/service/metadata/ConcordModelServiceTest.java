@@ -1,6 +1,7 @@
 /* **************************************************************************
- * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
+ * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  * *************************************************************************/
+
 package com.vmware.blockchain.deployment.service.metadata;
 
 import java.util.Collection;
@@ -14,6 +15,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import com.vmware.blockchain.deployment.model.AddModelRequest;
 import com.vmware.blockchain.deployment.model.AddModelResponse;
 import com.vmware.blockchain.deployment.model.ConcordModelIdentifier;
@@ -22,12 +26,11 @@ import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.model.ListModelsRequest;
 import com.vmware.blockchain.deployment.model.ListModelsResponseEvent;
 import com.vmware.blockchain.deployment.model.MessageHeader;
+
 import io.grpc.CallOptions;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 /**
  * Various test verifying functionality and semantics of {@link ConcordModelService}.
@@ -64,7 +67,7 @@ class ConcordModelServiceTest {
     private static <T> StreamObserver<T> newResultObserver(CompletableFuture<T> result) {
         return new StreamObserver<>() {
             /** Holder of result value. */
-            volatile T value = null;
+            volatile T value;
 
             @Override
             public void onNext(T value) {
@@ -104,7 +107,7 @@ class ConcordModelServiceTest {
             /**
              * Holder of result values.
              *
-             * Note: A map is used here to to leverage existing SDK concurrent data structures
+             * <p>Note: A map is used here to to leverage existing SDK concurrent data structures
              * without writing a new one. ConcurrentSkipList does not exist in the JDK.
              */
             Map<Integer, T> values = new ConcurrentHashMap<>();
@@ -145,7 +148,7 @@ class ConcordModelServiceTest {
         Assertions.assertThat(initialized).isCompleted();
 
         // Create server instance.
-        var server = InProcessServerBuilder.forName(name)
+        final var server = InProcessServerBuilder.forName(name)
                 .directExecutor()
                 .addService(service)
                 .build()

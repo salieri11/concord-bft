@@ -1,6 +1,7 @@
 /* **************************************************************************
- * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
- * *************************************************************************/
+ * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
+ * **************************************************************************/
+
 package com.vmware.blockchain.deployment.service.metadata;
 
 import java.util.Map;
@@ -10,6 +11,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.vmware.blockchain.deployment.model.AddModelRequest;
 import com.vmware.blockchain.deployment.model.AddModelResponse;
@@ -21,12 +25,13 @@ import com.vmware.blockchain.deployment.model.ListModelsResponseEvent;
 import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore;
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Event;
+import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Event.ChangeEvent;
+import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Event.DeleteEvent;
 import com.vmware.blockchain.deployment.persistence.kv.MonotonicInt;
 import com.vmware.blockchain.deployment.reactive.BaseSubscriber;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
+
 import io.grpc.stub.StreamObserver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Concrete implementation of {@link com.vmware.blockchain.deployment.model.ConcordModelService}.
@@ -46,7 +51,7 @@ public class ConcordModelService extends ConcordModelServiceImplBase {
     /** Logger instance. */
     private static Logger log = LoggerFactory.getLogger(ConcordModelService.class);
 
-    /** Initial version value of all stored {@link ConcordModelSpecification}s. */
+    /** Initial version value of all stored ConcordModelSpecification's. */
     private static MonotonicInt initialVersion = new MonotonicInt().next();
 
     /** Event pipe buffer size. */
@@ -59,7 +64,7 @@ public class ConcordModelService extends ConcordModelServiceImplBase {
     /** Executor to use for all async operations. */
     private final ExecutorService executor;
 
-    /** Key-value storage of {@link ConcordModelSpecification}. */
+    /** Key-value storage of ConcordModelSpecification. */
     private final KeyValueStore<ConcordModelIdentifier, ConcordModelSpecification, MonotonicInt> storage;
 
     /** Service state. */
@@ -99,13 +104,13 @@ public class ConcordModelService extends ConcordModelServiceImplBase {
             return CompletableFuture.runAsync(() -> {
                 // Create a new event sink instance.
                 eventSink = ReactiveStream.newBaseSubscriber(
-                        // TODO(jameschang - 20190228):
-                        // Current back-pressure control for initial DB loading is non-existent.
-                        subscription -> subscription.request(Long.MAX_VALUE),
-                        this::processEvent,
-                        error -> log.error("Event stream is terminated with error", error),
-                        () -> log.info("Event stream is closed"),
-                        () -> log.info("Event stream is cancelled from client side")
+                    // TODO(jameschang - 20190228):
+                    // Current back-pressure control for initial DB loading is non-existent.
+                    subscription -> subscription.request(Long.MAX_VALUE),
+                    this::processEvent,
+                    error -> log.error("Event stream is terminated with error", error),
+                    () -> log.info("Event stream is closed"),
+                    () -> log.info("Event stream is cancelled from client side")
                 );
 
                 // Request server for event feed and subscribe to it.
@@ -164,13 +169,13 @@ public class ConcordModelService extends ConcordModelServiceImplBase {
                 // Store the specification and pipeline result.
                 var result = storage.set(identifier, initialVersion, request.getSpecification());
                 result.subscribe(ReactiveStream.newBaseSubscriber(
-                        subscription -> subscription.request(Long.MAX_VALUE),
-                        element -> response.onNext(
-                                new AddModelResponse(new MessageHeader(), identifier)
-                        ),
-                        response::onError,
-                        response::onCompleted,
-                        () -> { }
+                    subscription -> subscription.request(Long.MAX_VALUE),
+                    element -> response.onNext(
+                            new AddModelResponse(new MessageHeader(), identifier)
+                    ),
+                    response::onError,
+                    response::onCompleted,
+                    () -> { }
                 ));
             }
         } catch (Throwable error) {
@@ -226,11 +231,11 @@ public class ConcordModelService extends ConcordModelServiceImplBase {
     private void processEvent(
             Event<ConcordModelIdentifier, ConcordModelSpecification, MonotonicInt> event
     ) {
-        if (event instanceof Event.ChangeEvent) {
-            var changeEvent = (Event.ChangeEvent<ConcordModelIdentifier, ConcordModelSpecification, MonotonicInt>) event;
+        if (event instanceof ChangeEvent) {
+            var changeEvent = (ChangeEvent<ConcordModelIdentifier, ConcordModelSpecification, MonotonicInt>) event;
             materializedView.put(changeEvent.getKey(), changeEvent.getValue());
-        } else if (event instanceof Event.DeleteEvent) {
-            var deleteEvent = (Event.DeleteEvent<ConcordModelIdentifier, ConcordModelSpecification, MonotonicInt>) event;
+        } else if (event instanceof DeleteEvent) {
+            var deleteEvent = (DeleteEvent<ConcordModelIdentifier, ConcordModelSpecification, MonotonicInt>) event;
             materializedView.remove(deleteEvent.getKey());
         } else {
             log.debug("Unknown event type: {}", event.getClass().getCanonicalName());
