@@ -5,6 +5,7 @@ package com.vmware.blockchain.deployment.service.provision;
 
 import java.util.Collections;
 
+import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.model.DeploymentSession;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
@@ -34,8 +35,14 @@ public class DeploymentLog {
             DeploymentSessionIdentifier identifier,
             DeploymentSpecification model
     ) {
-        var session = new DeploymentSession(identifier, model, new PlacementAssignment(),
-                                            false, Collections.emptyList());
+        var session = new DeploymentSession(
+                identifier,
+                model,
+                ConcordClusterIdentifier.Companion.getDefaultValue(),
+                new PlacementAssignment(),
+                false,
+                Collections.emptyList()
+        );
 
         // Record the session and piggyback on its completion.
         var stored = store.set(identifier, initialVersion, session);

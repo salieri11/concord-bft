@@ -4,9 +4,11 @@
 package com.vmware.blockchain.deployment.service.provision;
 
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -19,11 +21,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.vmware.blockchain.deployment.model.ConcordCluster;
 import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier;
+import com.vmware.blockchain.deployment.model.ConcordClusterInfo;
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.model.ConcordNode;
+import com.vmware.blockchain.deployment.model.ConcordNodeEndpoint;
 import com.vmware.blockchain.deployment.model.ConcordNodeHostInfo;
 import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier;
 import com.vmware.blockchain.deployment.model.ConcordNodeInfo;
@@ -41,11 +46,13 @@ import com.vmware.blockchain.deployment.model.ProvisionServiceImplBase;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo;
+import com.vmware.blockchain.deployment.orchestration.NetworkAddress;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.ComputeResourceEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.CreateComputeResourceRequest;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.CreateNetworkAllocationRequest;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.CreateNetworkResourceRequest;
+import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkAllocationEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkResourceEvent;
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.OrchestrationEvent;
 import com.vmware.blockchain.deployment.orchestration.InactiveOrchestrator;
@@ -208,6 +215,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
                 CompletableFuture.runAsync(() -> {
                     // Resolve / generate deployment session ID.
                     var sessionId = newSessionId(request.getHeader());
+                    var clusterId = newClusterId();
                     var deploymentSpec = request.getSpecification();
 
                     // Generate node ID and affix the node placements.
@@ -217,6 +225,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
                     var session = new DeploymentSession(
                             sessionId,
                             deploymentSpec,
+                            clusterId,
                             placements,
                             false /* complete */,
                             Collections.singletonList(newInitialEvent(sessionId))
@@ -543,21 +552,14 @@ public class ProvisionService extends ProvisionServiceImplBase {
                     return CompletableFuture.allOf(nodePromises);
                 }, executor)
                 .thenRunAsync(() -> {
-                    // Create / merge all deployment events.
-                    var sessionEvents = new ArrayList<>(session.getEvents());
-                    results.stream()
-                            .map(ProvisionService::toDeploymentSessionEvent)
-                            .filter(event -> event.getType() != DeploymentSessionEvent.Type.NOOP)
-                            .forEach(sessionEvents::add);
-                    sessionEvents.add(newCompleteEvent(session.getId()));
-
                     // Create the updated deployment session instance.
                     var updatedSession = new DeploymentSession(
                             session.getId(),
                             session.getSpecification(),
+                            session.getCluster(),
                             session.getAssignment(),
                             true /* complete */,
-                            sessionEvents
+                            toDeploymentSessionEvents(session, results)
                     );
 
                     // Update the deployment log.
@@ -571,6 +573,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
                     var updatedSession = new DeploymentSession(
                             session.getId(),
                             session.getSpecification(),
+                            session.getCluster(),
                             session.getAssignment(),
                             true /* complete */,
                             session.getEvents()
@@ -650,6 +653,21 @@ public class ProvisionService extends ProvisionServiceImplBase {
     }
 
     /**
+     * Generate a new {@link ConcordClusterIdentifier}.
+     *
+     * @return
+     *   a new {@link ConcordClusterIdentifier} instance.
+     */
+    private static ConcordClusterIdentifier newClusterId() {
+        var uuid = UUID.randomUUID();
+
+        return new ConcordClusterIdentifier(
+                uuid.getLeastSignificantBits(),
+                uuid.getMostSignificantBits()
+        );
+    }
+
+    /**
      * Create an instance of {@link DeploymentSessionEvent} denoting the initial event of a
      * {@link DeploymentSession} associated with a given {@link DeploymentSessionIdentifier}.
      *
@@ -690,33 +708,340 @@ public class ProvisionService extends ProvisionServiceImplBase {
     }
 
     /**
-     * Convert {@link OrchestrationEvent} to a {@link DeploymentSessionEvent} if applicable.
+     * Convert the {@link ConcordNodeIdentifier} to its canonical resource name.
      *
-     * TODO: Consider changing to a visitor pattern on OrchestrationEvent instead.
-     *
-     * @param event
-     *   orchestration event to map from.
+     * @param identifier
+     *   identifier to convert into resource name.
      *
      * @return
-     *   a new {@link DeploymentSessionEvent} instance, {@link #noopDeploymentEvent} otherwise.
+     *   resource name as a {@link String}.
      */
-    private static DeploymentSessionEvent toDeploymentSessionEvent(OrchestrationEvent event) {
-        if (event instanceof Orchestrator.ComputeResourceEvent.Created) {
-            var createEvent = (Orchestrator.ComputeResourceEvent.Created) event;
-            var node = new ConcordNode(
-                    createEvent.getNode(),
-                    ConcordNodeInfo.Companion.getDefaultValue(),
-                    ConcordNodeHostInfo.Companion.getDefaultValue()
-            );
-            return new DeploymentSessionEvent(
-                    DeploymentSessionEvent.Type.NODE_DEPLOYED,
-                    DeploymentSessionIdentifier.Companion.getDefaultValue(),
-                    node,
-                    ConcordNodeStatus.Companion.getDefaultValue(),
-                    ConcordCluster.Companion.getDefaultValue()
-            );
-        } else {
-            return noopDeploymentEvent;
+    private static String toResourceName(ConcordNodeIdentifier identifier) {
+        return new UUID(identifier.getHigh(), identifier.getLow()).toString();
+    }
+
+    /**
+     * Create a new {@link ConcordNodeInfo} instance based on input parameters.
+     * <p>NOTE: This is a stub function right now, and therefore takes no parameters yet.
+     *
+     * @return
+     *   a new instance of {@link ConcordNodeInfo}.
+     */
+    private static ConcordNodeInfo toConcordNodeInfo() {
+        // FIXME: Due to the current workaround of lack of East-West communication between metadata
+        //   service and provision service, PlacementSpecification is taking
+        //   ConcordModelSpecification instead of ConcordModelIdentifier as parameter.
+        //   This unfortunately has ripple effect through the API models. Rather than making more
+        //   concessions on temporary API workarounds, given that model ID is really just
+        //   informational output rather than additional input parameter to other services, just
+        //   return a default value for ID.
+        //   Since internal IP addresses are also of not high value, defer the entire construction
+        //   of ConcordNodeInfo until meaningful values can be returned here.
+        return ConcordNodeInfo.Companion.getDefaultValue();
+    }
+
+    /**
+     * Create a new {@link ConcordNodeHostInfo} instance based on a
+     * {@link ComputeResourceEvent.Created} event, using additional input as context information for
+     * instance creation.
+     *
+     * @param event
+     *   event signaled for the concord node.
+     * @param placementEntryByNodeName
+     *   mappings of concord node resource name to its associated {@link PlacementAssignment.Entry}.
+     *
+     * @return
+     *   a new instance of {@link ConcordNodeHostInfo} with relevant properties filled in with
+     *   non-default values.
+     */
+    private static ConcordNodeHostInfo toConcordNodeHostInfo(
+            ComputeResourceEvent.Created event,
+            Map<String, PlacementAssignment.Entry> placementEntryByNodeName
+    ) {
+        return new ConcordNodeHostInfo(
+                placementEntryByNodeName.get(toResourceName(event.getNode())).getSite(),
+                Collections.emptyMap(),
+                Collections.emptyMap()
+        );
+    }
+
+    /**
+     * Create a new {@link ConcordNodeHostInfo} instance based on a
+     * {@link NetworkResourceEvent.Created} event, using additional input as context information
+     * for instance creation.
+     *
+     * @param event
+     *   event signaled for the concord node.
+     * @param placementEntryByNodeName
+     *   mappings of concord node resource name to its associated {@link PlacementAssignment.Entry}.
+     *
+     * @return
+     *   a new instance of {@link ConcordNodeHostInfo} with relevant properties filled in with
+     *   non-default values.
+     */
+    private static ConcordNodeHostInfo toConcordNodeHostInfo(
+            NetworkResourceEvent.Created event,
+            Map<String, PlacementAssignment.Entry> placementEntryByNodeName
+    ) {
+        // FIXME: Ideally the API service names must be defined somewhere rather than
+        //   "fabricated out of thin air" here. A logical place would be ConcordModelSpecification
+        //   itself, which defines the API endpoint URI minus the authority portion, and merged with
+        //   the public IP addresses, which is known by this point.
+        var endpoints = Map.of(
+                "ethereum-rpc",
+                new ConcordNodeEndpoint(
+                        URI.create("https://{{ip}}:8545".replace("{{ip}}", event.getAddress()))
+                                .toString(),
+                        ""
+                )
+        );
+
+        return new ConcordNodeHostInfo(
+                placementEntryByNodeName.get(event.getName()).getSite(),
+                Map.of(NetworkAddress.toIPv4Address(event.getAddress()), 0),
+                endpoints
+        );
+    }
+
+    /**
+     * Create a new {@link ConcordNode} instance based on a {@link ComputeResourceEvent.Created}
+     * event, using additional input as context information for instance creation.
+     *
+     * @param event
+     *   event signaled for the concord node.
+     * @param placementEntryByNodeName
+     *   mappings of concord node resource name to its associated {@link PlacementAssignment.Entry}.
+     *
+     * @return
+     *   a new instance of {@link ConcordNode} with relevant properties filled in with
+     *   non-default values.
+     */
+    private static ConcordNode toConcordNode(
+            ComputeResourceEvent.Created event,
+            Map<String, PlacementAssignment.Entry> placementEntryByNodeName
+    ) {
+        return new ConcordNode(
+                event.getNode(),
+                toConcordNodeInfo(),
+                toConcordNodeHostInfo(event, placementEntryByNodeName)
+        );
+    }
+
+    /**
+     * Create a new {@link ConcordNode} instance based on a {@link NetworkResourceEvent.Created}
+     * event, using additional input as context information for instance creation.
+     *
+     * @param event
+     *   event signaled for the concord node.
+     * @param placementEntryByNodeName
+     *   mappings of concord node resource name to its associated {@link PlacementAssignment.Entry}.
+     *
+     * @return
+     *   a new instance of {@link ConcordNode} with relevant properties filled in with
+     *   non-default values.
+     */
+    private static ConcordNode toConcordNode(
+            NetworkResourceEvent.Created event,
+            Map<String, PlacementAssignment.Entry> placementEntryByNodeName
+    ) {
+        return new ConcordNode(
+                placementEntryByNodeName.get(event.getName()).getNode(),
+                toConcordNodeInfo(),
+                toConcordNodeHostInfo(event, placementEntryByNodeName)
+        );
+    }
+
+    /**
+     * Merge two {@link ConcordNodeInfo} instances, favoring to preserve content from the first
+     * instance whenever conflict arise.
+     *
+     * @param first
+     *   first instance to be merged.
+     * @param second
+     *   second instance to be merged.
+     *
+     * @return
+     *   a new {@link ConcordNodeInfo} instance combining content from input sources.
+     */
+    private static ConcordNodeInfo merge(ConcordNodeInfo first, ConcordNodeInfo second) {
+        return new ConcordNodeInfo(
+                first.getModel(), // Preserve existing value.
+                Stream.concat(
+                        first.getIpv4Addresses().entrySet().stream(),
+                        second.getIpv4Addresses().entrySet().stream()
+                ).collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (oldEntry, newEntry) -> oldEntry // Preserve existing value.
+                ))
+        );
+    }
+
+    /**
+     * Merge two {@link ConcordNodeHostInfo} instances, favoring to preserve content from the first
+     * instance whenever conflict arise.
+     *
+     * @param first
+     *   first instance to be merged.
+     * @param second
+     *   second instance to be merged.
+     *
+     * @return
+     *   a new {@link ConcordNodeHostInfo} instance combining content from input sources.
+     */
+    private static ConcordNodeHostInfo merge(ConcordNodeHostInfo first, ConcordNodeHostInfo second) {
+        return new ConcordNodeHostInfo(
+                first.getSite(), // Preserve existing value.
+                Stream.concat(
+                        first.getIpv4AddressMap().entrySet().stream(),
+                        second.getIpv4AddressMap().entrySet().stream()
+                ).collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (oldEntry, newEntry) -> oldEntry // Preserve existing value.
+                )),
+                Stream.concat(
+                        first.getEndpoints().entrySet().stream(),
+                        second.getEndpoints().entrySet().stream()
+                ).collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (oldEntry, newEntry) -> oldEntry // Preserve existing value.
+                ))
+        );
+    }
+
+    /**
+     * Merge two {@link ConcordNode} instances, favoring to preserve content from the first instance
+     * whenever conflict arise.
+     *
+     * @param first
+     *   first instance to be merged.
+     * @param second
+     *   second instance to be merged.
+     *
+     * @return
+     *   a new {@link ConcordNode} instance combining content from input sources.
+     */
+    private static ConcordNode merge(ConcordNode first, ConcordNode second) {
+        return new ConcordNode(
+                first.getId(),
+                merge(first.getInfo(), second.getInfo()),
+                merge(first.getHostInfo(), second.getHostInfo())
+        );
+    }
+
+    /**
+     * Create a {@link List} of {@link ConcordNode} information instances based on a given
+     * {@link DeploymentSession} and the corresponding {@link OrchestrationEvent} that the session
+     * engenders.
+     *
+     * @param session
+     *   deployment session.
+     * @param events
+     *   events engendered by the deployment session.
+     *
+     * @return
+     *   a listing of {@link ConcordNode} instances.
+     */
+    private static List<ConcordNode> toConcordNodes(
+            DeploymentSession session,
+            Collection<OrchestrationEvent> events
+    ) {
+        var placementEntryByNodeName = session.getAssignment().getEntries().stream()
+                .map(entry -> Map.entry(toResourceName(entry.getNode()), entry))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        var computeResourceEvents = new HashMap<URI, ComputeResourceEvent.Created>();
+        var networkResourceEvents = new HashMap<URI, NetworkResourceEvent.Created>();
+        var networkAllocationEvents = new HashMap<URI, NetworkAllocationEvent.Created>();
+
+        // Partition respective orchestration events into separate groups of reverse-mapping by URI.
+        for (OrchestrationEvent event : events) {
+            if (event instanceof ComputeResourceEvent.Created) {
+                var resourceEvent = (ComputeResourceEvent.Created) event;
+
+                computeResourceEvents.put(resourceEvent.getResource(), resourceEvent);
+            } else if (event instanceof NetworkResourceEvent.Created) {
+                var resourceEvent = (NetworkResourceEvent.Created) event;
+
+                networkResourceEvents.put(resourceEvent.getResource(), resourceEvent);
+            } else if (event instanceof NetworkAllocationEvent.Created) {
+                var resourceEvent = (NetworkAllocationEvent.Created) event;
+
+                // Key by compute resource for lookup.
+                networkAllocationEvents.put(resourceEvent.getCompute(), resourceEvent);
+            }
         }
+
+        // Create the Concord node information list.
+        return networkAllocationEvents.values().stream()
+                .map(created -> {
+                    // Look up allocation by compute resource, then look up network resource event.
+                    var computeResourceEvent = Objects.requireNonNull(
+                            computeResourceEvents.get(created.getCompute())
+                    );
+                    var networkResourceEvent = Objects.requireNonNull(
+                            networkResourceEvents.get(created.getNetwork())
+                    );
+
+                    // Create ConcordNode info based on compute resource event.
+                    var computeInfo = toConcordNode(computeResourceEvent, placementEntryByNodeName);
+
+                    // Create ConcordNode info based on network resource event.
+                    var networkInfo = toConcordNode(networkResourceEvent, placementEntryByNodeName);
+
+                    // Merge the information.
+                    // Note: Current invocation favors compute-derived information. But since there
+                    // should be no conflict, "favoring" should not by intent induce filtering
+                    // effect on network-derived information.
+                    return merge(computeInfo, networkInfo);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Create a {@link List} of {@link DeploymentSessionEvent}s based on a given
+     * {@link DeploymentSession} and the additional corresponding {@link OrchestrationEvent} that
+     * the session engendered.
+     *
+     * @param session
+     *   deployment session.
+     * @param events
+     *   events engendered by the deployment session.
+     *
+     * @return
+     *   a listing of {@link DeploymentSessionEvent}s.
+     */
+    private static List<DeploymentSessionEvent> toDeploymentSessionEvents(
+            DeploymentSession session,
+            Collection<OrchestrationEvent> events
+    ) {
+        var nodes = toConcordNodes(session, events);
+        var nodeEventStream = nodes.stream()
+                .map(node -> new DeploymentSessionEvent(
+                        DeploymentSessionEvent.Type.NODE_DEPLOYED,
+                        DeploymentSessionIdentifier.Companion.getDefaultValue(),
+                        node,
+                        ConcordNodeStatus.Companion.getDefaultValue(),
+                        ConcordCluster.Companion.getDefaultValue()
+                ));
+
+        // Create Concord cluster model.
+        var clusterEvent = new DeploymentSessionEvent(
+                DeploymentSessionEvent.Type.CLUSTER_DEPLOYED,
+                DeploymentSessionIdentifier.Companion.getDefaultValue(),
+                ConcordNode.Companion.getDefaultValue(),
+                ConcordNodeStatus.Companion.getDefaultValue(),
+                new ConcordCluster(session.getCluster(), new ConcordClusterInfo(nodes))
+        );
+
+        // Concatenate every event together.
+        // (Existing events, all node events, cluster event, and completion event)
+        return Stream
+                .concat(
+                        Stream.concat(session.getEvents().stream(), nodeEventStream),
+                        Stream.of(clusterEvent, newCompleteEvent(session.getId()))
+                )
+                .collect(Collectors.toList());
     }
 }
