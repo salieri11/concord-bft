@@ -1,0 +1,13 @@
+version: '3'
+services:
+  persephone-metadata:
+    image: "${persephone_metadata_repo}:${persephone_tag}"
+    ports:
+      - 9001:9001
+  persephone-provisioning:
+    image: "${persephone_provisioning_repo}:${persephone_tag}"
+    ports:
+      - 9002:9002
+    volumes:
+      - ../hermes/resources/persephone:/config/persephone:ro
+

@@ -17,6 +17,7 @@ from threading import Thread
 import time
 import yaml
 import signal
+from util import helper
 
 PRODUCT_LOGS_DIR = "product_logs"
 log = logging.getLogger(__name__)
@@ -50,6 +51,10 @@ class Product():
    userProductConfig = None
    _servicesToLogLater = ["db-server-init1", "db-server-init2", "fluentd"]
    _numProductStarts = 0
+
+   PERSEPHONE_SERVICE_METADATA = helper.get_docker_env("persephone_metadata_repo")
+   PERSEPHONE_SERVICE_PROVISIONING = helper.get_docker_env("persephone_provisioning_repo")
+   # PERSEPHONE_SERVICE_FLEET = helper.get_docker_env("persephone_fleet_repo")
 
    def __init__(self, cmdlineArgs, userConfig):
       self._cmdlineArgs = cmdlineArgs
@@ -92,6 +97,28 @@ class Product():
 
       if not launched:
          raise Exception("Failed to launch the product after {} attempt(s). Exiting".format(numAttempts))
+
+
+   def launchPersephone(self):
+      '''
+      Given the user's product config section, launch the product.
+      Raises an exception if it cannot start.
+      '''
+      atexit.register(self.stopPersephone)
+      launched = False
+
+      try:
+         self._launchPersephone()
+         launched = True
+      except Exception as e:
+         log.error("Attempt to launch the product failed. Exception: '{}'"
+                   .format(str(e)))
+
+         log.info("Stopping whatever was launched and attempting to launch again.")
+         self.stopPersephone()
+
+      if not launched:
+         raise Exception("Failed to launch the product Exiting")
 
 
    def validatePaths(self, paths):
@@ -140,6 +167,31 @@ class Product():
             raise Exception("The product did not start.")
 
          self.concordNodesDeployed = self._getConcordNodes(dockerCfg)
+      else:
+         raise Exception("The docker compose file list contains an invalid value.")
+
+
+   def _launchPersephone(self):
+      dockerCfg = {}
+
+      if self.validatePaths(self._cmdlineArgs.dockerComposeFile):
+         for cfgFile in self._cmdlineArgs.dockerComposeFile:
+            with open(cfgFile, "r") as f:
+               newCfg = yaml.load(f)
+               self.mergeDictionaries(dockerCfg, newCfg)
+
+         self.copyEnvFile()
+         self._startContainers()
+         self._startLogCollection()
+
+         for dockerComposeFile in self._cmdlineArgs.dockerComposeFile:
+            with open(dockerComposeFile, "r") as yamlFile:
+               composeData = yaml.load(yamlFile)
+
+            for service in list(composeData["services"]):
+               if not self._waitForPersephoneStartup(service):
+                  raise Exception("The product did not start.")
+
       else:
          raise Exception("The docker compose file list contains an invalid value.")
 
@@ -524,8 +576,29 @@ class Product():
                                         stderr=subprocess.STDOUT)
       try:
          completedProcess.check_returncode()
+         if containerId:
+            self.removeDockerContainer(containerId)
       except subprocess.CalledProcessError as e:
          log.error("Command '{}' to stop container '{}' failed.  Exit code: '{}'".format(cmd,
+                                                                                         containerId,
+                                                                                         e.returncode))
+         log.error("stdout: '{}', stderr: '{}'".format(completedProcess.stdout, completedProcess.stderr))
+         return False
+
+      return True
+
+
+   def removeDockerContainer(self, containerId):
+      '''Remove the given docker container. Returns whether the exit code indicated success.'''
+      log.info("Removing '{}'".format(containerId))
+      cmd = ["docker", "rm", containerId]
+      completedProcess = subprocess.run(cmd,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT)
+      try:
+         completedProcess.check_returncode()
+      except subprocess.CalledProcessError as e:
+         log.error("Command '{}' to remove container '{}' failed.  Exit code: '{}'".format(cmd,
                                                                                          containerId,
                                                                                          e.returncode))
          log.error("stdout: '{}', stderr: '{}'".format(completedProcess.stdout, completedProcess.stderr))
@@ -669,6 +742,24 @@ class Product():
          self._logs.remove(l)
 
 
+   def stopPersephone(self):
+      '''
+      Stops the product executables and closes the logs.
+      '''
+      container_ids = self.getRunningContainerIds("persephone")
+      print ("Container IDs found: {0}".format(container_ids))
+
+      for container_id in container_ids:
+         if container_id:
+            print("Terminating container ID: {0}".format(container_id))
+            if not self.stopDockerContainer(container_id):
+               raise Exception("Failure trying to stop docker container.")
+
+      for log in self._logs[:]:
+         log.close()
+         self._logs.remove(log)
+
+
    def _waitForProductStartup(self):
       '''
       Waits for Helen to be up, then waits for Concord to be up.
@@ -713,6 +804,27 @@ class Product():
       log.info("Adding an API user via Helen...")
       rpc.addUser(self._cmdlineArgs.reverseProxyApiBaseUrl)
       return True
+
+
+   def _waitForPersephoneStartup(self, service):
+      '''
+      Check if all microservices of persephone are up
+      '''
+      log_filename = "{}.log".format(
+         service + "_" + str(Product._numProductStarts))
+      log_file = os.path.join(self._productLogsDir, log_filename)
+      time.sleep(5)
+      with open(log_file) as f:
+         persephone_log = f.read()
+         log.debug(persephone_log)
+         if "Service instance initialized" in persephone_log:
+            log.info("Microservice '{}' started successfully!".format(service))
+            return True
+         if "port is already allocated" in persephone_log:
+            log.error("\n**** persephone server is already running. "
+                      "Check logs for more info")
+
+      return False
 
 
    def nodesReady(self, nodes):
