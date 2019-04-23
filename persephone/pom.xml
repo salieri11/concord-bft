@@ -79,6 +79,7 @@
         <kotlin.compiler.incremental>true</kotlin.compiler.incremental>
         <kotlin.compiler.jvmTarget>1.8</kotlin.compiler.jvmTarget>
         <maven.plugin.assembly>3.1.0</maven.plugin.assembly>
+        <maven.plugin.checkstyle>3.0.0</maven.plugin.checkstyle>
         <maven.plugin.compiler>3.8.0</maven.plugin.compiler>
         <maven.plugin.jar>3.1.1</maven.plugin.jar>
         <maven.plugin.javadoc>3.0.0</maven.plugin.javadoc>
@@ -431,6 +432,32 @@
                             <include>**/*Test.java</include>
                         </includes>
                     </configuration>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>${maven.plugin.checkstyle}</version>
+                    <executions>
+                        <execution>
+                            <id>validate</id>
+                            <phase>validate</phase>
+                            <configuration>
+                                <configLocation>../helen/developer-config/checkstyle.xml</configLocation>
+                                <encoding>UTF-8</encoding>
+                                <consoleOutput>true</consoleOutput>
+                                <failsOnError>true</failsOnError>
+                                <linkXRef>false</linkXRef>
+                                <sourceDirectories>${project.build.sourceDirectory}</sourceDirectories>
+                                <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                                <includeTestResources>true</includeTestResources>
+                                <excludes>**/generated-sources/**</excludes>
+                            </configuration>
+                            <goals>
+                                <goal>checkstyle</goal>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>

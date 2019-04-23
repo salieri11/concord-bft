@@ -1,6 +1,7 @@
 /* **************************************************************************
- * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
+ * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  * *************************************************************************/
+
 package com.vmware.blockchain.deployment.service.metadata;
 
 import java.util.concurrent.ExecutorService;
@@ -15,6 +16,7 @@ import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore;
 import com.vmware.blockchain.deployment.persistence.kv.MonotonicInt;
 import com.vmware.blockchain.deployment.persistence.kv.TypedKeyValueStore;
 import com.vmware.blockchain.deployment.persistence.kv.UntypedKeyValueStore;
+
 import dagger.Module;
 import dagger.Provides;
 
@@ -57,8 +59,9 @@ class ConcordModelServiceModule {
      */
     @Provides
     @Singleton
-    static KeyValueStore<ConcordModelIdentifier, ConcordModelSpecification, MonotonicInt>
-    providesKeyValueStore(UntypedKeyValueStore<MonotonicInt> untypedKeyValueStore) {
+    static KeyValueStore<ConcordModelIdentifier, ConcordModelSpecification, MonotonicInt> providesKeyValueStore(
+            UntypedKeyValueStore<MonotonicInt> untypedKeyValueStore
+    ) {
         return new TypedKeyValueStore<>(
                 ConcordModelIdentifier.getSerializer(),
                 ConcordModelSpecification.getSerializer(),
