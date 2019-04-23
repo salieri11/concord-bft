@@ -120,11 +120,21 @@ message DeploymentSessionIdentifier {
  *   deployment events occurred in this deployment session.
  */
 message DeploymentSession {
+    /**
+     * Status of a [DeploymentSession].
+     */
+    enum Status {
+        UNKNOWN = 0; // Default value, should not be used.
+        ACTIVE = 1; // Session is still on-going and has not reached final state.
+        SUCCESS = 2; // Session has completed without error.
+        FAILURE = 3; // Session has completed with error.
+    }
+
     DeploymentSessionIdentifier id = 1;
     DeploymentSpecification specification = 2;
     ConcordClusterIdentifier cluster = 3;
     PlacementAssignment assignment = 4;
-    bool complete = 5;
+    Status status = 5;
     repeated DeploymentSessionEvent events = 6 [packed=false];
 }
 
@@ -160,6 +170,7 @@ message DeploymentSessionEvent {
     ConcordNode node = 3;
     ConcordNodeStatus node_status = 4;
     ConcordCluster cluster = 5;
+    DeploymentSession.Status status = 6;
 }
 
 /**
