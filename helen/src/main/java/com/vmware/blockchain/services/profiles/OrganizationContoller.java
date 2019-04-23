@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -68,4 +69,30 @@ public class OrganizationContoller {
         return new ResponseEntity<>(new OrgGetResponse(org.getId(), org.getOrganizationName()), HttpStatus.OK);
     }
 
+    /**
+     * Creates a new organization.
+     * @param body request body with org name
+     * @return the new org
+     */
+    @RequestMapping(path = "/api/organizations", method = RequestMethod.POST)
+    public ResponseEntity<OrgGetResponse> createOrg(@RequestBody OrgPostBody body) {
+        Organization org = new Organization(body.getOrganizationName());
+        org = orgService.put(org);
+        return new ResponseEntity<>(new OrgGetResponse(org.getId(), org.getOrganizationName()), HttpStatus.OK);
+    }
+
+    /**
+     * Updates an organization.
+     * @param body request body with org name
+     * @return the new org
+     */
+    @RequestMapping(path = "/api/organizations/{org_id}", method = RequestMethod.PATCH)
+    public ResponseEntity<OrgGetResponse> updateOrg(@PathVariable("org_id") UUID orgId, @RequestBody OrgPostBody body) {
+        Organization org = orgService.get(orgId);
+        if (body.getOrganizationName() != null) {
+            org.setOrganizationName(body.getOrganizationName());
+        }
+        org = orgService.put(org);
+        return new ResponseEntity<>(new OrgGetResponse(org.getId(), org.getOrganizationName()), HttpStatus.OK);
+    }
 }
