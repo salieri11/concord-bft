@@ -1,16 +1,17 @@
 // Copyright 2019 VMware, all rights reserved
 //
-// A state machine to provide a view of "real world" time to other state
-// machines.
+// Time Contract is a state machine run by each replica to combine timestamps
+// from other replicas into a non-decreasing time that has some resilience to
+// false readings.
 //
-// Write commands to this state machine are tuples of (source, time) that update
-// the last-read time at source. An update only modifies the source's recorded
-// state if the time in the update is greater than the last time that source
-// published.
+// Readings are submitted as (source, time) pairs, where source is a string
+// identifier of the submitter, and time is an integer number of units since
+// some starting point (units are unspecified, but milliseconds since the UNIX
+// epoch is suggested). See TimeContract::Update.
 //
-// Read commands are requests for the aggregated "real world" time view. This
-// aggregation is currently computed as the median of the most recent samples
-// from all sources.
+// Aggregation can be done via any statistical means that give the guarantees
+// discussed above. The current implementation is to choose the median of the
+// most recent readings. See TimeContract::SummarizeTime.
 
 #ifndef TIME_TIME_CONTRACT_HPP
 

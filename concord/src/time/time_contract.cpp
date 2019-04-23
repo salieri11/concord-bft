@@ -1,12 +1,4 @@
 // Copyright 2019 VMware, all rights reserved
-//
-// Time Contract is a state machine run by each replica to combine timestamps
-// from other replicas into a non-decreasing time that has some resilience to
-// false readings.
-//
-// Readings are submitted as (source, time) pairs, where source is a string
-// identifier of the submitter, and time is an integer number of units since
-// some starting point (milliseconds since the UNIX epoch is suggested).
 
 #include "time_contract.hpp"
 

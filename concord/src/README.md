@@ -8,8 +8,10 @@ Instruction on how to build, deploy and test Concord can be found [here](../READ
 .
 ├── api                      # Gateway for requests coming from Helen or Ethrpc
 ├── blockchain               # Interface to the database / key-value-store to be used by the smart contract engine
+    └── CMakeLists.txt
 ├── CMakeLists.txt
 ├── common                   # Shared utility code used by all parts of Concord
+    └── CMakeLists.txt
 ├── config                   # Configuration manager
 ├── consensus                # Replica & Client interface between Concord and the BFT engine
     └── kvb                  # Database connection library linked with the BFT engine
@@ -17,6 +19,7 @@ Instruction on how to build, deploy and test Concord can be found [here](../READ
 ├── ethereum                 # Interface between Concord and EVMJIT
 ├── main.cpp
 ├── time                     # Time Service components
+    └── CMakeLists.txt
 └── utils                    # Shared utility library used by Concord and its tools and tests
     └── CMakeLists.txt
 ```
