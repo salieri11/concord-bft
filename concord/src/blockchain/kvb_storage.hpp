@@ -38,6 +38,11 @@ class KVBStorage {
   const uint8_t TYPE_NONCE = 0x06;
   const uint8_t TYPE_BLOCK_METADATA = 0x07;
 
+  // 0x10 - 0x1F reserved for HLF
+
+  // used by concord::time::TimeContract
+  const uint8_t TYPE_TIME = 0x20;
+
   Blockchain::Sliver kvb_key(uint8_t type, const uint8_t *bytes,
                              size_t length) const;
 
@@ -51,6 +56,7 @@ class KVBStorage {
   Blockchain::Sliver code_key(const evm_address &addr) const;
   Blockchain::Sliver storage_key(const evm_address &addr,
                                  const evm_uint256be &location) const;
+  Blockchain::Sliver time_key() const;
   Blockchain::Status get(const Blockchain::Sliver &key,
                          Blockchain::Sliver &out);
   Blockchain::Status get(const Blockchain::BlockId readVersion,
@@ -95,6 +101,8 @@ class KVBStorage {
                             uint64_t &block_number);
   Blockchain::Sliver block_metadata_key() const;
   uint64_t get_block_metadata(Blockchain::Sliver key);
+  Blockchain::Sliver get_time();
+  Blockchain::Sliver get_time(uint64_t block_number);
 
   Blockchain::Status write_block(uint64_t timestamp, uint64_t gas_limit);
   void reset();
@@ -106,6 +114,7 @@ class KVBStorage {
                    const evm_uint256be &data);
   Blockchain::Sliver set_block_metadata_value(uint64_t bftSequenceNum) const;
   void set_block_metadata();
+  void set_time(Blockchain::Sliver &time);
 };
 
 }  // namespace blockchain

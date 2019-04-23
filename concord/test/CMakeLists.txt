@@ -15,6 +15,7 @@ add_test(NAME ConfigTests COMMAND ConfigTests)
 add_test(NAME MultiIOTests COMMAND MultiIOTests)
 add_test(NAME MetadataStorageTests COMMAND MetadataStorageTests)
 add_test(NAME ReplicaStateSyncTests COMMAND ReplicaStateSyncTests)
+add_test(NAME TimeContractTests COMMAND TimeContractTests)
 
 add_executable(UtilsTests
   utils_test.cpp)
@@ -106,3 +107,18 @@ target_link_libraries(ReplicaStateSyncTests
   LLVMSupport
   concord_utils
   kvblockchain)
+
+add_executable(TimeContractTests
+  time_contract_test.cpp)
+
+target_link_libraries(TimeContractTests
+  ${GTEST_LIBRARIES}
+  log4cplus
+  gtest
+  gtest_main
+  proto ${PROTOBUF_LIBRARIES}
+  concord_utils
+  kvblockchain
+  concord_common
+  concord_blockchain
+  concord_time)

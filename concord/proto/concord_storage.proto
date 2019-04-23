@@ -63,3 +63,12 @@ message BlockMetadata {
    optional int64 version = 1;
    optional uint64 bft_sequence_num = 2;
 }
+
+message Time {
+   message Sample {
+     optional bytes source = 1;
+     optional int64 time = 2;
+   }
+   optional int64 version = 1;
+   repeated Sample sample = 2;
+}

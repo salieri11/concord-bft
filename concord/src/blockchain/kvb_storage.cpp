@@ -62,6 +62,11 @@
 //   - Key: TYPE_BLOCK_METADATA
 //   - Value: com::vmware::concord::kvb::BlockMetadata protobuf
 //   - Notes: As with balance, using protobuf solves encoding issues.
+//
+// * Time
+//   - Key: TYPE_TIME
+//   - Value: com::vmware::concord::kvb::Time protobuf
+//   - Notes: serialization is handled in concord::time::TimeContract
 
 #include "kvb_storage.hpp"
 
@@ -74,7 +79,6 @@
 #include "consensus/kvb/HashDefs.h"
 #include "consensus/kvb/HexTools.h"
 #include "consensus/kvb/sliver.hpp"
-#include "ethereum/concord_evm.hpp"
 #include "evm.h"
 #include "utils/concord_eth_hash.hpp"
 
@@ -199,6 +203,8 @@ Sliver KVBStorage::storage_key(const evm_address &addr,
             combined + sizeof(addr));
   return kvb_key(TYPE_STORAGE, combined, sizeof(addr) + sizeof(location));
 }
+
+Sliver KVBStorage::time_key() const { return kvb_key(TYPE_TIME, nullptr, 0); }
 
 ////////////////////////////////////////
 // WRITING
@@ -370,6 +376,8 @@ Sliver KVBStorage::set_block_metadata_value(uint64_t bftSequenceNum) const {
 void KVBStorage::set_block_metadata() {
   put(block_metadata_key(), set_block_metadata_value(bftSequenceNum_));
 }
+
+void KVBStorage::set_time(Blockchain::Sliver &time) { put(time_key(), time); }
 
 ////////////////////////////////////////
 // READING
@@ -695,6 +703,32 @@ uint64_t KVBStorage::get_block_metadata(Sliver key) {
   LOG4CPLUS_INFO(logger, "key = " << key << ", status: " << status
                                   << ", sequenceNum = " << sequenceNum);
   return sequenceNum;
+}
+
+Blockchain::Sliver KVBStorage::get_time() {
+  uint64_t block_number = current_block_number();
+  return get_time(block_number);
+}
+
+Blockchain::Sliver KVBStorage::get_time(uint64_t block_number) {
+  Sliver kvbkey = time_key();
+  Sliver value;
+  BlockId outBlock;
+  Status status = get(block_number, kvbkey, value, outBlock);
+
+  LOG4CPLUS_DEBUG(logger, "Getting time - "
+                              << " lookup block starting at: " << block_number
+                              << " status: " << status << " key: " << kvbkey
+                              << " value.length: " << value.length()
+                              << " out block at: " << outBlock);
+
+  if (status.isOK()) {
+    return value;
+  } else if (status.isNotFound()) {
+    return Sliver();
+  } else {
+    throw EVMException("Time storage corrupted");
+  }
 }
 
 }  // namespace blockchain
