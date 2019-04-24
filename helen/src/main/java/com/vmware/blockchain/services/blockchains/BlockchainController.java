@@ -7,6 +7,7 @@ package com.vmware.blockchain.services.blockchains;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -34,9 +35,10 @@ import com.vmware.blockchain.deployment.model.DeploymentSpecification;
 import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
-import com.vmware.blockchain.deployment.model.PlacementSpecification.PlacementEntry;
+import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.model.ProvisionServiceStub;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
+import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.security.AuthHelper;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.profiles.Consortium;
@@ -226,18 +228,37 @@ public class BlockchainController {
     private DeploymentSessionIdentifier createFixedSizeCluster(ProvisionServiceStub client,
             int clusterSize) throws Exception {
         // Create a blocking stub with the channel
-        List<PlacementEntry> list = new ArrayList<PlacementEntry>(clusterSize);
+        List<Entry> list = new ArrayList<Entry>(clusterSize);
         for (int i = 0; i < clusterSize; i++) {
             list.add(
-                    new PlacementEntry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(1, 2)));
+                    new Entry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(1, 2)));
         }
-        PlacementSpecification placementSpec = new PlacementSpecification(list);
-        List<ConcordComponent> components = new ArrayList<ConcordComponent>();
-        ConcordModelSpecification spec = new ConcordModelSpecification("version1", "template", components);
-        DeploymentSpecification deploySpec = new DeploymentSpecification(clusterSize, spec, placementSpec);
-        CreateClusterRequest request = new CreateClusterRequest(new MessageHeader(), deploySpec);
+        var placementSpec = new PlacementSpecification(list);
+        var components = List.of(
+                new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/concord-core:latest"),
+                new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/ethrpc:latest"),
+                new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/agent-testing:latest")
+        );
+        var genesis = new Genesis(
+                new Genesis.Config(1, 0, 0, 0),
+                "0x0000000000000000",
+                "0x400",
+                "0x0000000000000000000000000000000000000000000000000000000000000000",
+                "0x0000000000000000000000000000000000000000000000000000000000000000",
+                "0xf4240",
+                Map.of(
+                        "262c0d7ab5ffd4ede2199f6ea793f819e1abb019", new Genesis.Wallet("12345"),
+                        "5bb088f57365907b1840e45984cae028a82af934", new Genesis.Wallet("0xabcdef"),
+                        "0000a12b3f3d6c9b0d3f126a83ec2dd3dad15f39", new Genesis.Wallet("0x7fffffffffffffff")
+                )
+        );
+        ConcordModelSpecification spec =
+                new ConcordModelSpecification("20190401.1", "photon-3.0-64", components);
+        DeploymentSpecification deploySpec =
+                new DeploymentSpecification(clusterSize, spec, placementSpec, genesis);
+        var request = new CreateClusterRequest(new MessageHeader(), deploySpec);
         // Check that the API can be serviced normally after service initialization.
-        CompletableFuture<DeploymentSessionIdentifier> promise = new CompletableFuture<>();
+        var promise = new CompletableFuture<DeploymentSessionIdentifier>();
         client.createCluster(request, blockedResultObserver(promise));
         return promise.get();
     }

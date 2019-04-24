@@ -23,6 +23,7 @@ import com.vmware.blockchain.deployment.model.DeploymentSpecification;
 import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
+import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.model.ProvisionServiceStub;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 
