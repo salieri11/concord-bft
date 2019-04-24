@@ -78,6 +78,13 @@ Authorization Bearer <ADD-LOGINTELLIGENCE-KEY-HERE>
   edit the .env file in the hermes directory.  If it is not present there, edit the one in
   the ../docker directory.  (Hermes simply copies the one from ../docker to hermes
   if it is not found in the hermes directory.)
+- Hermes can run Concord's configuration generation to generate new
+  configuration files prior to launching tests; however, it does not do so by
+  default. The `--runConcordConfigurationGeneration` option must be given to
+  Hermes to run Concord configuration generation, otherwise, Hermes will skip
+  this step and run with the existing configuration files. Note that this option
+  will be used during automated testing when Hermes is run by CI to verify that
+  new commits do not break the configuration system.
 
 ## Running a test suite in Python Virtual Environment
 - Intall the python virtual environment, you could choose anyone you like, here we use Miniconda for example,

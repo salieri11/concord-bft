@@ -97,6 +97,15 @@ def main():
    parser.add_argument("--contractCompilerApiBaseUrl",
                        default="http://localhost:3000/api/v1",
                        help="Base URL for the contract compiler microservice")
+   parser.add_argument("--runConcordConfigurationGeneration",
+                       help="Run Concord configuration generation for the test"
+                            " cluster before launching and launch with the"
+                            " newly generated configuration files. If this"
+                            " option is not given, then configuration"
+                            " generation will be skipped and the currently"
+                            " existing configuration files will be used.",
+                       default=False,
+                       action='store_true')
 
    args = parser.parse_args()
    parent_results_dir = args.resultsDir

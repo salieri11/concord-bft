@@ -25,7 +25,7 @@ COPY .git /.git
 WORKDIR /concord
 COPY ./concord /concord
 WORKDIR /concord/build
-RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && CTEST_OUTPUT_ON_FAILURE=true make all test
+RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && CTEST_OUTPUT_ON_FAILURE=true make -j$(nproc) all test
 
 
 ## Base Run image

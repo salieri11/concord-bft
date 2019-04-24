@@ -129,6 +129,9 @@ class Product():
 
          self.copyEnvFile()
 
+         if (self._cmdlineArgs.runConcordConfigurationGeneration):
+            self._generateConcordConfiguration(dockerCfg)
+
          if not self._cmdlineArgs.keepconcordDB:
             self.clearDBsForDockerLaunch(dockerCfg)
             self.initializeHelenDockerDB(dockerCfg)
@@ -143,6 +146,74 @@ class Product():
       else:
          raise Exception("The docker compose file list contains an invalid value.")
 
+   def _generateConcordConfiguration(self, dockerCfg):
+       '''
+       Runs Concord configuration generation for the test Concord cluster that
+       will be launched with the product and moves the generated configuration
+       files to where they are needed. This function runs configuration
+       generation in Concord's Docker container and uses a script for moving the
+       configuration files. This function uses the .env file to configure which
+       Concord image to use for configuration generation, and it gets
+       information on which volume to run configuration generation in and what
+       script to use to move the generated files from the Hermes user config.
+       This function may throw an exception in the event of any failures during
+       configuraiton generation.
+       '''
+
+       # It is necessary to convert the path for the directory to run
+       # configuration generation in to an absolute path (if it is not already)
+       # as docker run will refuse to bind-mount host directories given by
+       # relative paths.
+       assert (os.path.basename(os.getcwd()) == "hermes")
+
+       dockerEnv = {}
+       with open(self._docker_env_file) as envFile:
+           for line in envFile:
+               key, val = line.partition("=")[::2]
+               dockerEnv[key.strip()] = val.strip()
+
+       assert self._userConfig is not None, "User config is missing."
+       try:
+           concordRepo = dockerEnv["concord_repo"]
+           concordTag = dockerEnv["concord_tag"]
+       except KeyError as key:
+           raise Exception ('Docker .env field "{}" is missing.'.format(key))
+       try:
+           concordConfigConfig = \
+               self._userConfig["concordConfigurationGeneration"]
+           configVolumePath = concordConfigConfig["configVolumePath"];
+           configDistributionScriptCommand = \
+               [concordConfigConfig["configDistributionScript"]];
+           configDistributionScriptCommand += \
+               concordConfigConfig["configDistributionArgs"];
+       except KeyError as key:
+           raise Exception ('User config field "{}" is missing.'.format(key)) 
+       print(os.getcwd())
+       print(os.path.basename(os.getcwd()))
+       if not os.path.isabs(configVolumePath):
+           configVolumePath = os.path.join(os.getcwd(), configVolumePath)
+
+       runCommand = ["docker", "run", "--mount"]
+       runCommand += ["type=bind,source=" + configVolumePath + \
+                      ",destination=/concord/config"]
+       imageName = concordRepo + ":" + concordTag
+       runCommand += [imageName]
+       runCommand += ["/concord/conc_genconfig"]
+       runCommand += ["--configuration-input",
+                      "/concord/config/dockerConfigurationInput.yaml"]
+       runCommand += ["--output-name", "/concord/config/concord"]
+
+       completedProcess = subprocess.run(runCommand, stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT)
+
+       completedProcess.check_returncode()
+
+       completedProcess = subprocess.run(configDistributionScriptCommand,
+           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+       completedProcess.check_returncode()
+       log.info("Successfully generated configuration for Concord cluster," \
+           " including fresh cryptographic keys.")
 
    def _startContainers(self):
       cmd = ["docker-compose"]
