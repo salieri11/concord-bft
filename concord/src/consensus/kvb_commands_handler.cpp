@@ -23,6 +23,8 @@
 #include "consensus/kvb/BlockchainInterfaces.h"
 #include "consensus/kvb/HexTools.h"
 #include "ethereum/concord_evm.hpp"
+#include "time/time_contract.hpp"
+#include "time/time_reading.hpp"
 #include "utils/concord_eth_hash.hpp"
 #include "utils/concord_eth_sign.hpp"
 #include "utils/rlp.hpp"
@@ -43,6 +45,7 @@ using concord::common::TransactionNotFoundException;
 using concord::common::zero_address;
 using concord::common::zero_hash;
 using concord::ethereum::EVM;
+using concord::time::TimeContract;
 using concord::utils::EthSign;
 using concord::utils::RLPBuilder;
 using concord::utils::to_evm_uint256be;
@@ -56,15 +59,17 @@ namespace consensus {
 
 KVBCommandsHandler::KVBCommandsHandler(
     EVM &athevm, EthSign &verifier,
+    const concord::config::ConcordConfiguration &config,
     concord::config::ConcordConfiguration &nodeConfig,
     Blockchain::ILocalKeyValueStorageReadOnly *roStorage,
-    Blockchain::IBlocksAppender *appendder)
+    Blockchain::IBlocksAppender *appender)
     : logger(log4cplus::Logger::getInstance("com.vmware.concord")),
       athevm_(athevm),
       verifier_(verifier),
+      config_(config),
       nodeConfiguration(nodeConfig),
       m_ptrRoStorage(roStorage),
-      m_ptrBlockAppender(appendder) {
+      m_ptrBlockAppender(appender) {
   assert(m_ptrBlockAppender);
   assert(m_ptrRoStorage);
 }
@@ -216,8 +221,20 @@ bool KVBCommandsHandler::handle_eth_sendTransaction(
     ConcordResponse &athresp) const {
   const EthRequest request = athreq.eth_request(0);
 
+  uint64_t timestamp = 0;
+  if (concord::time::IsTimeServiceEnabled(config_)) {
+    TimeContract tc(kvbStorage);
+    std::pair<std::string, uint64_t> cmd_time =
+        concord::time::GetTimeFromCommand(athreq);
+    // divide by 1000, because time service is in milliseconds, but ethereum is
+    // in seconds
+    timestamp = tc.Update(cmd_time.first, cmd_time.second) / 1000;
+  } else {
+    timestamp = request.timestamp();
+  }
+
   evm_uint256be txhash{{0}};
-  evm_result &&result = run_evm(request, kvbStorage, txhash);
+  evm_result &&result = run_evm(request, kvbStorage, timestamp, txhash);
 
   if (result.status_code == EVM_REVERT && result.output_data != nullptr) {
     ErrorResponse *response = athresp.add_error_response();
@@ -676,8 +693,13 @@ bool KVBCommandsHandler::handle_eth_callContract(
     ConcordResponse &athresp) const {
   const EthRequest request = athreq.eth_request(0);
 
+  // Time service readings are only added to write-commands (call is
+  // read-only). TODO: look up time from most recent block, or block specified
+  // by call RPC.
+  uint64_t timestamp = 0;
+
   evm_uint256be txhash{{0}};
-  evm_result &&result = run_evm(request, kvbStorage, txhash);
+  evm_result &&result = run_evm(request, kvbStorage, timestamp, txhash);
   // Here we don't care about the txhash. Transaction was never
   // recorded, instead we focus on the result object and the
   // output_data field in it.
@@ -937,6 +959,7 @@ uint64_t KVBCommandsHandler::parse_block_parameter(
  */
 evm_result KVBCommandsHandler::run_evm(const EthRequest &request,
                                        KVBStorage &kvbStorage,
+                                       uint64_t timestamp,
                                        evm_uint256be &txhash /* OUT */) const {
   evm_message message;
   evm_result result;
@@ -1027,7 +1050,6 @@ evm_result KVBCommandsHandler::run_evm(const EthRequest &request,
     message.flags |= EVM_STATIC;
   }
 
-  uint64_t timestamp = request.has_timestamp() ? request.timestamp() : 0;
   std::vector<EthLog> logs;
 
   if (request.has_addr_to()) {
@@ -1063,7 +1085,24 @@ evm_result KVBCommandsHandler::run_evm(const EthRequest &request,
   if (result.status_code != EVM_SUCCESS) {
     // If the transaction failed, don't record any of its side effects.
     // TODO: except gas deduction?
+
+    // This constructor doesn't do anything, so it's safe to create it without
+    // checking the feature flag. We need the instance to live from the time of
+    // read to the time of write, so that we can save the time service state
+    // across this storage reset.
+    TimeContract tc(kvbStorage);
+
+    if (concord::time::IsTimeServiceEnabled(config_)) {
+      // cache latest time contract state
+      tc.GetTime();
+    }
+
     kvbStorage.reset();
+
+    if (concord::time::IsTimeServiceEnabled(config_)) {
+      // Reapply the time update
+      tc.StoreLatestSamples();
+    }
   }
 
   if (!kvbStorage.is_read_only()) {

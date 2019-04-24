@@ -471,3 +471,16 @@ vmwathena_blockchain/docker$ ./config-public/distribute-configuration-files.sh
    outputs a configuration file for each node in a Concord cluster (this utility
    also handles generation of the cryptographic keys required for each node's
    configuration file).
+
+## Time Service
+
+A new "time service" is under development in concord. Its code is
+primarily in the src/time/ directory. Details about the design of this
+service are here: https://confluence.eng.vmware.com/display/BLOC/Time+Service.
+
+The service is disabled by default. To enable it, set the config
+parameter `FEATURE_time_service` to `true` in all of your node config
+files, and then assign each node a unique `time_source_id` in its node
+scope. Defaults of `false` and `concord[1..4]` have been added to the
+example config input files in `test/resources/config_input/` to help
+with this process.

@@ -2822,6 +2822,8 @@ void specifyConfiguration(ConcordConfiguration& config) {
   std::vector<std::string> privateInputTags({"input", "private"});
   std::vector<std::string> defaultableByReplicaTags({"defaultable", "private"});
   std::vector<std::string> privateOptionalTags({"optional", "private"});
+  std::vector<std::string> publicOptionalTags({"optional", "public"});
+  std::vector<std::string> publicDefaultableTags({"defaultable", "public"});
 
   // Parameter declarations
   config.declareParameter("client_proxies_per_replica",
@@ -2990,6 +2992,12 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "view_change_timeout", validateUInt,
       const_cast<void*>(reinterpret_cast<const void*>(&kPositiveUInt16Limits)));
 
+  config.declareParameter(
+      "FEATURE_time_service",
+      "Enable the Time Service, and switch Ethereum to using it.", "false");
+  config.tagParameter("FEATURE_time_service", publicDefaultableTags);
+  config.addValidator("FEATURE_time_service", validateBoolean, nullptr);
+
   node.declareParameter("api_worker_pool_size",
                         "Number of threads to create to handle TCP connections "
                         "to this node's external API.",
@@ -3055,6 +3063,13 @@ void specifyConfiguration(ConcordConfiguration& config) {
   node.tagParameter("transaction_list_max_count", defaultableByReplicaTags);
   node.addValidator("transaction_list_max_count", validatePositiveReplicaInt,
                     nullptr);
+
+  node.declareParameter(
+      "time_source_id",
+      "Name that this node will use when publishing its reading to the time "
+      "contract. If no value is given, this node will not publish its time. "
+      "Ignored unless FEATURE_time_service is \"true\".");
+  node.tagParameter("time_source_id", publicOptionalTags);
 
   replica.declareParameter("commit_private_key",
                            "Private key for this replica under the general "

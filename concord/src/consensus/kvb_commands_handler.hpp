@@ -22,6 +22,7 @@ class KVBCommandsHandler : public Blockchain::ICommandsHandler {
   log4cplus::Logger logger;
   concord::ethereum::EVM &athevm_;
   concord::utils::EthSign &verifier_;
+  const concord::config::ConcordConfiguration &config_;
   concord::config::ConcordConfiguration &nodeConfiguration;
 
   Blockchain::ILocalKeyValueStorageReadOnly *m_ptrRoStorage = nullptr;
@@ -30,9 +31,10 @@ class KVBCommandsHandler : public Blockchain::ICommandsHandler {
  public:
   KVBCommandsHandler(concord::ethereum::EVM &athevm,
                      concord::utils::EthSign &verifier,
+                     const concord::config::ConcordConfiguration &config,
                      concord::config::ConcordConfiguration &nodeConfig,
                      Blockchain::ILocalKeyValueStorageReadOnly *roStorage,
-                     Blockchain::IBlocksAppender *appendder);
+                     Blockchain::IBlocksAppender *appender);
   ~KVBCommandsHandler();
 
   int execute(uint16_t clientId, uint64_t sequenceNum, bool readOnly,
@@ -121,7 +123,7 @@ class KVBCommandsHandler : public Blockchain::ICommandsHandler {
 
   evm_result run_evm(const com::vmware::concord::EthRequest &request,
                      concord::blockchain::KVBStorage &kvbStorage,
-                     evm_uint256be &txhash /* OUT */) const;
+                     uint64_t timestamp, evm_uint256be &txhash /* OUT */) const;
 
   evm_uint256be record_transaction(
       const evm_message &message,
