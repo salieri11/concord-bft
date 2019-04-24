@@ -87,6 +87,7 @@
         <!-- Library properties. -->
         <bouncycastle.version>1.53</bouncycastle.version>
         <ehcache.version>2.10.6</ehcache.version>
+        <grpc.runtime.java.version>1.18.0</grpc.runtime.java.version>
         <guava.version>27.0-jre</guava.version>
         <h2.version>1.4.197</h2.version>
         <javassist.version>3.23.1-GA</javassist.version>
@@ -123,6 +124,21 @@
                 <groupId>com.googlecode.json-simple</groupId>
                 <artifactId>json-simple</artifactId>
                 <version>${json-simple.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-core</artifactId>
+                <version>${grpc.runtime.java.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-netty-shaded</artifactId>
+                <version>${grpc.runtime.java.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-stub</artifactId>
+                <version>${grpc.runtime.java.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
