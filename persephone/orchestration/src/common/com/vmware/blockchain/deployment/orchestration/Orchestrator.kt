@@ -146,7 +146,11 @@ interface Orchestrator {
     sealed class NetworkAllocationEvent : OrchestrationEvent {
         abstract val resource: URI
 
-        data class Created(override val resource: URI) : NetworkAllocationEvent()
+        data class Created(
+            override val resource: URI,
+            val compute: URI,
+            val network: URI
+        ) : NetworkAllocationEvent()
         data class Deleted(override val resource: URI) : NetworkAllocationEvent()
     }
 

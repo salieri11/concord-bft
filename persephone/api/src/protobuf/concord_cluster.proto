@@ -31,15 +31,25 @@ message ConcordNodeIdentifier {
  *
  * @property[model]
  *   identifier of the Concord model specification deployed.
- * @property[public_key]
- *   node instance's public key.
  * @property[ipv4_addresses]
- *   list of network addresses as perceived by the node instance.
+ *   map of network interface name to address as perceived by the node.
  */
 message ConcordNodeInfo {
     ConcordModelIdentifier model = 1;
-    PublicKey public_key = 2;
-    repeated fixed32 ipv4_addresses = 3;
+    map<string, fixed32> ipv4_addresses = 2;
+}
+
+/**
+ * Model definition of an endpoint exposed by a [ConcordNode]
+ *
+ * @property[url]
+ *   reachable network URL address for the endpoint.
+ * @property[certificate]
+ *   certificate used by the endpoint.
+ */
+message ConcordNodeEndpoint {
+    string url = 1;
+    string certificate = 2;
 }
 
 /**
@@ -47,12 +57,15 @@ message ConcordNodeInfo {
  *
  * @property[site]
  *   identifier of the orchestration site hosting the member.
+ * @property[endpoints]
+ *   map of endpoint name to [ConcordNodeEndpoint] exposed by the node.
  * @property[ipv4_address_map]
  *   map of IPv4 public address to node's network address.
  */
 message ConcordNodeHostInfo {
     OrchestrationSiteIdentifier site = 1;
     map<fixed32, fixed32> ipv4_address_map = 10;
+    map<string, ConcordNodeEndpoint> endpoints = 11;
 }
 
 /**

@@ -110,6 +110,8 @@ message DeploymentSessionIdentifier {
  *   identifier for this deployment session.
  * @property[specification]
  *   deployment specification used to carry out the operation associated with this session.
+ * @property[cluster]
+ *   identifier of the Concord cluster associated with this deployment session.
  * @property[assignment]
  *   reified node placement derived from deployment specification.
  * @property[complete]
@@ -120,9 +122,10 @@ message DeploymentSessionIdentifier {
 message DeploymentSession {
     DeploymentSessionIdentifier id = 1;
     DeploymentSpecification specification = 2;
-    PlacementAssignment assignment = 3;
-    bool complete = 4;
-    repeated DeploymentSessionEvent events = 5 [packed=false];
+    ConcordClusterIdentifier cluster = 3;
+    PlacementAssignment assignment = 4;
+    bool complete = 5;
+    repeated DeploymentSessionEvent events = 6 [packed=false];
 }
 
 /**

@@ -360,7 +360,10 @@ class VmcOrchestrator private constructor(
                                   sourceNetwork = checkNotNull(privateIP),
                                   translatedNetwork = checkNotNull(publicIP))
                             ?.toNetworkAllocationResource()
-                            ?.apply { send(Orchestrator.NetworkAllocationEvent.Created(this)) }
+                            ?.apply {
+                                send(Orchestrator.NetworkAllocationEvent
+                                             .Created(this, request.compute, request.network))
+                            }
                             ?: close(Orchestrator.ResourceCreationFailedException(request))
                 } catch (error: CancellationException) {
                     close(Orchestrator.ResourceCreationFailedException(request))
