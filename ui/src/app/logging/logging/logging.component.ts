@@ -117,7 +117,7 @@ export class LoggingComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.onSelectTimePeriod(this.timePeriods[7]);
+    this.onSelectTimePeriod(this.timePeriods[6]);
   }
 
   fetchLogs() {
