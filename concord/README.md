@@ -321,13 +321,12 @@ named `concord<i>.config` for _i_ in the range (1, 4), inclusive. The base
 filename (in this case "`concord`") can be specified with the `--output-name`
 option to `conc_genconfig`.
 
-Two example configuration input files are provided in
-`test/resources/config_input`: `nativeConfigurationInput.yaml`, which generates
-a 4-node testing configuration to be run natively like the example configuration
-files in `test/resources`, and `dockerConfigurationInput.yaml`, which generates
-a 4-node configuration like the one currently used for Hermes testing and the
-Docker compose file to bring up a Concord cluster in
-`vmwathena_blockchain/docker`.
+An example configuration input files is provided, specifically
+`concord/test/resources/config_input/nativeConfigurationInput.yaml`, which
+generates a 4-node testing configuration to be run natively like the example
+configuration files in `test/resources`. Furthermore, the configuration input
+file used to generate configurations for the 4-node Docker cluster used in
+testing can be found at `docker/config-public/dockerConfigurationInput.yaml`.
 
 The basic form of both the configuration input and Concord configuration files
 is a YAML associative array assigning values to configuration parameters
@@ -418,6 +417,34 @@ with a class, `ConcordConfiguration`, defined in
 `ConcordConfiguration` and is intended as the primary source of truth on what
 the current configuration looks like; it is a good place to start looking if you
 need to add a new configuration parameter to Concord.
+
+#### Concord Configuration Generation with Docker
+
+The Concord configuration generation utility is actually included in the image
+that can be built with the `Dockerfile` in this directory. You can run
+configuration generation in that image with `docker run` by mounting an
+appropriate configuration volume and giving the configuration generation
+command, for example, to run configuration generation for the 4-node Docker
+test cluster we currently use, you can run this command from the
+`vmwathena_blockchain/docker` directory (assuming your Concord image is tagged
+`concord-core:latest`): 
+
+```
+vmwathena_blockchain$ docker run \
+    --mount type=bind,source=$PWD/config-public,destination=/concord/config \
+    concord-core:latest /concord/conc_genconfig \
+    --configuration-input /concord/config/dockerConfigurationInput.yaml \
+    --output-name /concord/config/concord
+```
+
+In the case of the Docker test cluster this command generates configuration for,
+we have also provided a script to move the generated configuration files from
+`config-public` to the appropriate volumes for each Concord node. Again from
+`vmwathena_blockchain/docker`, this script can be run with:
+
+```
+vmwathena_blockchain/docker$ ./config-public/distribute-configuration-files.sh
+```
 
 ## What is here:
 
