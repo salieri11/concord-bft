@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.vmware.blockchain.common.ForbiddenException;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.deployment.model.ConcordComponent;
@@ -74,7 +75,9 @@ public class BlockchainController {
     @JsonIgnoreProperties(ignoreUnknown = true)
     static class BlockchainPost {
         private UUID consortiumId;
+        @JsonProperty("f_count")
         private int fCount;
+        @JsonProperty("c_count")
         private int cCount;
         private DeploymentType deploymentType;
         private List<String> sites;

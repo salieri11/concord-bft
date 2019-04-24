@@ -63,10 +63,27 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
         task.setMessage(value.getType().name());
-        if (value.getType() == DeploymentSessionEvent.Type.CLUSTER_DEPLOYED) {
-            // temporary.  This event is not currently generated, so moving the code to on complete.
+        if (value.getType() == DeploymentSessionEvent.Type.COMPLETED) {
+            ConcordCluster cluster = value.getCluster();
+            // force the blockchain id to be the same as the cluster id
+            UUID bcId = new UUID(cluster.getId().getHigh(), cluster.getId().getLow());
+            logger.info("BC ID: {}", bcId);
+            List<NodeEntry> nodeList = new ArrayList<>();
+
+            for (ConcordNode cn : cluster.getInfo().getMembers()) {
+                NodeEntry n = new NodeEntry();
+                // force the new node entry to have the same id as the concord node
+                n.setNodeId(new UUID(cn.getId().getHigh(), cn.getId().getLow()));
+                logger.info("Node entry, id {}", n.getNodeId());
+                // When the ip, rpcurl and rpc cert info become available, insert them here
+                nodeList.add(n);
+            }
+            Blockchain blockchain = blockchainService.create(bcId, authHelper.getConsortiumId(), nodeList);
+            task.setResourceId(blockchain.getId());
+            task.setResourceLink(String.format("/api/blockchains/%s", blockchain.getId()));
+            task.setState(Task.State.SUCCEEDED);
         }
-        taskService.put(task);
+        task = taskService.put(task);
         SecurityContextHolder.getContext().setAuthentication(null);
     }
 
@@ -75,9 +92,11 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         logger.info("On Error", t);
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
+        /* Check on this
         task.setState(Task.State.FAILED);
         task.setMessage(t.getMessage());
-        taskService.put(task);
+        task = taskService.put(task);
+        */
         SecurityContextHolder.getContext().setAuthentication(null);
     }
 
@@ -85,27 +104,8 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
     public void onCompleted() {
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
+        // Just log this.  Looking to see how often this happens.
         logger.info("On Complete");
-        ConcordCluster cluster = value.getCluster();
-        // force the blockchain id to be the same as the cluster id
-        UUID bcId = new UUID(cluster.getId().getHigh(), cluster.getId().getLow());
-        logger.info("BC ID: {}", bcId);
-        List<NodeEntry> nodeList = new ArrayList<>();
-
-        for (ConcordNode cn : cluster.getInfo().getMembers()) {
-            NodeEntry n = new NodeEntry();
-            // force the new node entry to have the same id as the concord node
-            n.setNodeId(new UUID(cn.getId().getHigh(), cn.getId().getLow()));
-            logger.info("Node entry, id {}", n.getNodeId());
-            // When the ip, rpcurl and rpc cert info become available, insert them here
-            nodeList.add(n);
-        }
-        Blockchain blockchain = blockchainService.create(bcId, authHelper.getConsortiumId(), nodeList);
-        task.setResourceId(blockchain.getId());
-        task.setResourceLink(String.format("/api/blockchains/%s", blockchain.getId()));
-        task.setState(Task.State.SUCCEEDED);
-        taskService.put(task);
-        logger.info("On complete done.  BC should be deployed");
         SecurityContextHolder.getContext().setAuthentication(null);
     }
 
