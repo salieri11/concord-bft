@@ -87,8 +87,11 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         task = taskService.merge(task, m -> {
             // if the latest entry is in completed, don't change anything
             if (!m.getMessage().equals(Type.COMPLETED.name())) {
-                // Otherwise, set the messaage
+                // Otherwise, set the fields
                 m.setMessage(task.getMessage());
+                m.setResourceId(task.getResourceId());
+                m.setResourceLink(task.getResourceLink());
+                m.setState(task.getState());
             }
         });
         SecurityContextHolder.getContext().setAuthentication(null);
