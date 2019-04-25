@@ -4,7 +4,9 @@
 
 package com.vmware.blockchain.services.tasks;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -46,6 +48,17 @@ public class TaskController {
     @Autowired
     public TaskController(TaskService taskService) {
         this.taskService = taskService;
+    }
+
+    /**
+     * List all tasks.
+     * @return List of tasks.
+     */
+    @RequestMapping(path = "/api/tasks", method = RequestMethod.GET)
+    public ResponseEntity<List<TaskGetResponse>> listTasks() {
+        List<Task> tasks = taskService.list();
+        List<TaskGetResponse> response = tasks.stream().map(TaskGetResponse::new).collect(Collectors.toList());
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @RequestMapping(path = "/api/tasks/{id}", method = RequestMethod.GET)

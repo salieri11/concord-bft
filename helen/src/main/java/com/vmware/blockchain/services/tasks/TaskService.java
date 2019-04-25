@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.services.tasks;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -35,5 +36,9 @@ public class TaskService {
 
     public Task merge(Task task, Consumer<Task> merger) {
         return genericDao.mergeWithRetry(task, Task.class, merger);
+    }
+
+    public List<Task> list() {
+        return genericDao.getAllByType(Task.class);
     }
 }
