@@ -16,6 +16,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.vmware.blockchain.deployment.model.ConcordCluster;
 import com.vmware.blockchain.deployment.model.ConcordNode;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
+import com.vmware.blockchain.deployment.model.DeploymentSessionEvent.Type;
 import com.vmware.blockchain.security.AuthHelper;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.tasks.Task;
@@ -83,7 +84,13 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
             task.setResourceLink(String.format("/api/blockchains/%s", blockchain.getId()));
             task.setState(Task.State.SUCCEEDED);
         }
-        task = taskService.put(task);
+        task = taskService.merge(task, m -> {
+            // if the latest entry is in completed, don't change anything
+            if (!m.getMessage().equals(Type.COMPLETED.name())) {
+                // Otherwise, set the messaage
+                m.setMessage(task.getMessage());
+            }
+        });
         SecurityContextHolder.getContext().setAuthentication(null);
     }
 
