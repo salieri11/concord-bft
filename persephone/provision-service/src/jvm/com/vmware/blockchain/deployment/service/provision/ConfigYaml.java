@@ -68,7 +68,8 @@ public final class ConfigYaml  {
     }
 
     public static int getCVal(int clusterSize, int fVal) {
-        return ((clusterSize-1) - 3*fVal )/ 2;
+        //return ((clusterSize-1) - 3*fVal )/ 2;
+        return 0;
     }
 
     /**

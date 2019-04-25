@@ -72,12 +72,27 @@ public class ConfigYamlTest {
         Assertions.assertThat(config.generateConfigUtil(hostIps)).isTrue();
         // comparing the content of this file with what i have in resource folder would be good ASSERTION
     }
+
+    @Test
+    void testConfigUtilSevenPositive() {
+        ConfigYaml config = new ConfigYaml("./testSevenNodeYaml");
+        List<String> hostIps = new ArrayList<String>();
+        hostIps.add("10.0.0.1");
+        hostIps.add("10.0.0.2");
+        hostIps.add("10.0.0.3");
+        hostIps.add("10.0.0.4");
+        hostIps.add("10.0.0.5");
+        hostIps.add("10.0.0.6");
+        hostIps.add("10.0.0.7");
+        Assertions.assertThat(config.generateConfigUtil(hostIps)).isTrue();
+    }
     
     @AfterEach
     void cleanup() {
         try { 
             Files.deleteIfExists(Paths.get("./concordYaml"));
             Files.deleteIfExists(Paths.get("./testYaml"));
+            Files.deleteIfExists(Paths.get("./testSevenNodeYaml"));
         } catch(NoSuchFileException e) { 
         } catch(DirectoryNotEmptyException e) { 
         } catch(IOException e) { 
