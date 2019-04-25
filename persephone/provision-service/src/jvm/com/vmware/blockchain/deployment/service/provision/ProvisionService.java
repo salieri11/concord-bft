@@ -269,10 +269,14 @@ public class ProvisionService extends ProvisionServiceImplBase {
                     Consumer<DeploymentSession> sender = session -> {
                         // Send all events.
                         for (DeploymentSessionEvent event : session.getEvents()) {
+                            log.info("Deployment session event stream session({}), event({})",
+                                     session.getId(), event);
                             response.onNext(event);
                         }
 
                         // Send completion.
+                        log.info("Deployment session event stream completed, session({})",
+                                 session.getId());
                         response.onCompleted();
                     };
 

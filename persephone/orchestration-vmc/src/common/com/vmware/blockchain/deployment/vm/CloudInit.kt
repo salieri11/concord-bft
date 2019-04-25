@@ -47,10 +47,14 @@ class InitScript(
             useradd vmwuser1 -s /bin/bash -m
             echo "vmwuser1:c0nc0rd" | chpasswd
             # Output the node's configuration.
-            mkdir /config
-            touch /config/concord.config
-            echo '{{concordConfiguration}}' > /config/concord.config
-            echo '{{genesis}}' > /config/genesis.json
+            mkdir -p /concord/config-local
+            mkdir -p /concord/config-public
+            touch /concord/config-local/concord.config
+            echo '{{concordConfiguration}}' > /concord/config-local/concord.config
+            echo '{{genesis}}' > /concord/config-public/genesis.json
+            docker run -d --name=concord -v /concord/config-local:/concord/config-local -v /concord/config-public:/concord/config-public -p 5458:5458 -p 3501-3505:3501-3505/udp registry-1.docker.io/vmwblockchain/concord-core:latest /bin/bash -c "export LD_LIBRARY_PATH=${'$'}LD_LIBRARY_PATH:/usr/local/lib && /concord/concord -c /concord/config-local/concord.config"
+            docker run -d --name=ethrpc -p 8545:8545 registry-1.docker.io/vmwblockchain/ethrpc:latest
+            echo 'done'
             """.trimIndent()
                     .replace("{{dockerLoginCommand}}", containerRegistry.toRegistryLoginCommand())
                     .replace("{{dockerPullCommand}}", dockerPullCommand)
