@@ -15,8 +15,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.vmware.blockchain.deployment.model.ConcordCluster;
 import com.vmware.blockchain.deployment.model.ConcordNode;
+import com.vmware.blockchain.deployment.model.DeploymentSession;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
-import com.vmware.blockchain.deployment.model.DeploymentSessionEvent.Type;
 import com.vmware.blockchain.security.AuthHelper;
 import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.tasks.Task;
@@ -37,6 +37,9 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
     private TaskService taskService;
     private Task task;
     private DeploymentSessionEvent value;
+    private final List<NodeEntry> nodeList = new ArrayList<>();
+    private DeploymentSession.Status status = DeploymentSession.Status.UNKNOWN;
+    private UUID clusterId;
 
     /**
      * Create a new Blockchain Observer.  This handles the callbacks from the deployment
@@ -64,29 +67,31 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
         task.setMessage(value.getType().name());
-        if (value.getType() == DeploymentSessionEvent.Type.COMPLETED) {
-            ConcordCluster cluster = value.getCluster();
-            // force the blockchain id to be the same as the cluster id
-            UUID bcId = new UUID(cluster.getId().getHigh(), cluster.getId().getLow());
-            logger.info("BC ID: {}", bcId);
-            List<NodeEntry> nodeList = new ArrayList<>();
 
-            for (ConcordNode cn : cluster.getInfo().getMembers()) {
-                NodeEntry n = new NodeEntry();
-                // force the new node entry to have the same id as the concord node
-                n.setNodeId(new UUID(cn.getId().getHigh(), cn.getId().getLow()));
-                logger.info("Node entry, id {}", n.getNodeId());
-                // When the ip, rpcurl and rpc cert info become available, insert them here
-                nodeList.add(n);
-            }
-            Blockchain blockchain = blockchainService.create(bcId, authHelper.getConsortiumId(), nodeList);
-            task.setResourceId(blockchain.getId());
-            task.setResourceLink(String.format("/api/blockchains/%s", blockchain.getId()));
-            task.setState(Task.State.SUCCEEDED);
+        switch (value.getType()) {
+            case CLUSTER_DEPLOYED:
+                ConcordCluster cluster = value.getCluster();
+                // force the blockchain id to be the same as the cluster id
+                clusterId = new UUID(cluster.getId().getHigh(), cluster.getId().getLow());
+                logger.info("Blockchain ID: {}", clusterId);
+
+                cluster.getInfo().getMembers().stream()
+                        .map(BlockchainObserver::toNodeEntry)
+                        .peek(node -> logger.info("Node entry, id {}", node.getNodeId()))
+                        .forEach(nodeList::add);
+                break;
+            case COMPLETED:
+                status = value.getStatus();
+                logger.info("On Next(COMPLETED): status({})", status);
+                break;
+            default:
+                break;
         }
+
+        // Persist the current state of the task.
         task = taskService.merge(task, m -> {
             // if the latest entry is in completed, don't change anything
-            if (!m.getMessage().equals(Type.COMPLETED.name())) {
+            if (m.getState() != Task.State.SUCCEEDED && m.getState() != Task.State.FAILED) {
                 // Otherwise, set the fields
                 m.setMessage(task.getMessage());
                 m.setResourceId(task.getResourceId());
@@ -115,8 +120,67 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
         // Just log this.  Looking to see how often this happens.
-        logger.info("On Complete");
+        logger.info("On Completed");
+        task.setMessage("Operation finished");
+
+        if (status == DeploymentSession.Status.SUCCESS) {
+            // Create blockchain entity based on collected information.
+            Blockchain blockchain = blockchainService.create(clusterId, authHelper.getConsortiumId(), nodeList);
+            task.setResourceId(blockchain.getId());
+            task.setResourceLink(String.format("/api/blockchains/%s", blockchain.getId()));
+            task.setState(Task.State.SUCCEEDED);
+        } else {
+            task.setState(Task.State.FAILED);
+        }
+
+        // Persist the finality of the task, success or failure.
+        taskService.put(task);
+        logger.info("Updated task {}", task);
         SecurityContextHolder.getContext().setAuthentication(null);
     }
 
+    /**
+     * Convert a {@link ConcordNode} instance to a {@link NodeEntry} instance with applicable
+     * property values transferred.
+     *
+     * @param node {@code ConcordNode} instance to convert from.
+     *
+     * @return     a new instance of {@code NodeEntry}.
+     */
+    private static NodeEntry toNodeEntry(ConcordNode node) {
+        // Fetch the first IP address in the data payload, or return 0.
+        var ip = toCanonicalIpAddress(node.getHostInfo().getIpv4AddressMap().keySet().stream()
+                                              .findFirst().orElse(0));
+        var endpoint = node.getHostInfo().getEndpoints().getOrDefault("ethereum-rpc", null);
+
+        // For now, use the orchestration site ID as region name. Eventually there should be some
+        // human-readable display name to go with the site ID.
+        var site = node.getHostInfo().getSite();
+        var region = new UUID(site.getHigh(), site.getLow()).toString();
+
+        return new NodeEntry(
+              new UUID(node.getId().getHigh(), node.getId().getLow()),
+              ip,
+              endpoint.getUrl(),
+              endpoint.getCertificate(),
+              region
+        );
+    }
+
+    /**
+     * Simple conversion of a 4-byte value (expressed as an integer) to a canonical IPv4 address
+     * format.
+     *
+     * @param value bytes to convert from.
+     *
+     * @return      canonical IP address format, as a {@link String} instance.
+     */
+    private static String toCanonicalIpAddress(int value) {
+        var first = (value >>> 24);
+        var second = (value & 0x00FF0000) >>> 16;
+        var third = (value & 0x0000FF00) >>> 8;
+        var fourth = (value & 0x000000FF);
+
+        return String.format("%d.%d.%d.%d", first, second, third, fourth);
+    }
 }
