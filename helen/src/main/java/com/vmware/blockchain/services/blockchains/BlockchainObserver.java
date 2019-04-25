@@ -36,7 +36,6 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
     private BlockchainService blockchainService;
     private TaskService taskService;
     private Task task;
-    private DeploymentSessionEvent value;
     private final List<NodeEntry> nodeList = new ArrayList<>();
     private DeploymentSession.Status status = DeploymentSession.Status.UNKNOWN;
     private UUID clusterId;
@@ -62,7 +61,6 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
 
     @Override
     public void onNext(DeploymentSessionEvent value) {
-        this.value = value;
         logger.info("On Next: {}", value.getType());
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
@@ -134,7 +132,19 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         }
 
         // Persist the finality of the task, success or failure.
-        taskService.put(task);
+        // FIXME: a simple put (taskService.put(task)) should be enough. But for some reason task
+        //   doesn't get updated.
+        taskService.merge(task, m -> {
+            // if the latest entry is in completed, don't change anything
+            if (m.getState() != Task.State.SUCCEEDED && m.getState() != Task.State.FAILED) {
+                // Otherwise, set the fields
+                m.setMessage(task.getMessage());
+                m.setResourceId(task.getResourceId());
+                m.setResourceLink(task.getResourceLink());
+                m.setState(task.getState());
+            }
+        });
+        //
         logger.info("Updated task {}", task);
         SecurityContextHolder.getContext().setAuthentication(null);
     }
