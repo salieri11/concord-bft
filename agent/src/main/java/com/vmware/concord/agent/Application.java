@@ -15,7 +15,14 @@ import org.springframework.http.converter.protobuf.ProtobufHttpMessageConverter;
  */
 @SpringBootApplication
 public class Application {
+
+    /**
+     * Main - Entry into SpringBoot application.
+     */
     public static void main(String[] args) {
+        // Create the required configuration files etc for concord-node
+        AgentDockerClient client = new AgentDockerClient();
+        client.createVolume();
         SpringApplication.run(Application.class, args);
     }
 

@@ -204,9 +204,15 @@ blockchain$ docker build docker/fluentd -f docker/fluentd/Dockerfile -t fluentd:
 concord-agent can be built directly in a docker container (note the command
 is run from the same directory as this README, and *not* from the
 `agent` subdirectory):
+Please note this is just temporary.
+Credentials for pushing to docker-hub are different from regular user.
 
 ```
-blockchain$ docker build . -f agent/Dockerfile -t ethrpc:latest
+blockchain$ docker build . -f agent/Dockerfile -t agent-testing:latest
+```
+If you want to push to the docker-hub:
+```
+docker push vmwblockchain/agent-testing
 ```
 
 
