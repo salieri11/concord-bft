@@ -34,13 +34,13 @@ function compileWithVersion(req, res, next) {
   // Inputs:
   // sourcecode
   // compilerVersion
-  const { sourcecode, compilerVersion } = req.body;
+  const { sourcecode, compilerVersion, isOptimize, runs } = req.body;
 
   solc.loadRemoteVersion(compilerVersion, (err, solcSnapshot) => {
     if (err) {
       next(err);
     } else {
-      const input = generateInput(sourcecode);
+      const input = generateInput(sourcecode, isOptimize, runs);
 
       try {
         const output = getOutput(solcSnapshot, input);
@@ -69,14 +69,14 @@ function verifyContractWithVersion(req, res, next) {
   // existingBytecode
   // selectedContract
   const {
-    sourcecode, compilerVersion, existingBytecode, selectedContract
+    sourcecode, compilerVersion, isOptimize, runs, existingBytecode, selectedContract
   } = req.body;
 
   solc.loadRemoteVersion(compilerVersion, (err, solcSnapshot) => {
     if (err) {
       next(err);
     } else {
-      const input = generateInput(sourcecode);
+      const input = generateInput(sourcecode, isOptimize, runs);
 
       try {
         const output = getOutput(solcSnapshot, input);
@@ -126,7 +126,7 @@ function buildVerifyResponse(output, compilerVersion, selectedContract, existing
   };
 }
 
-function generateInput(sourceCode) {
+function generateInput(sourceCode, isOptimize, runs) {
   return {
     language: 'Solidity',
     sources: {
@@ -135,6 +135,10 @@ function generateInput(sourceCode) {
       }
     },
     settings: {
+      optimizer: {
+        enabled: isOptimize,
+        runs: runs
+      },
       outputSelection: {
         '*': {
           '*': ['metadata', 'evm.bytecode']

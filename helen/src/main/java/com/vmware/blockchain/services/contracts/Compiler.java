@@ -231,7 +231,8 @@ public class Compiler {
      * @param solidityCode The string containing solidity source code
      * @return The result object containing compilation result.
      */
-    public static Result compile(String solidityCode, String compilerVersion, String compileUrl) {
+    public static Result compile(String solidityCode, String compilerVersion, String compileUrl,
+            boolean isOptimize, int runs) {
         Result result = new Result();
         RestTemplate restTemplate = new RestClientBuilder().withBaseUrl(compileUrl)
                                                            .withNoObjectMapper()
@@ -246,9 +247,11 @@ public class Compiler {
         HttpHeaders headers = new HttpHeaders();
         // headers.add("Content-Type", "application/json");
 
-        Map<String, String> body = new HashMap<String, String>();
+        Map<String, Object> body = new HashMap<String, Object>();
         body.put("compilerVersion", compilerVersion);
         body.put("sourcecode", solidityCode);
+        body.put("isOptimize", isOptimize);
+        body.put("runs", runs);
         ResponseEntity<String> response
             = restTemplate.exchange("/compile",
                                     HttpMethod.POST,
@@ -293,15 +296,17 @@ public class Compiler {
      * @return returns true if solidity contract is verified.
      */
     public static boolean verify(String solidityCode, String compilerVersion, String compileUrl,
-            String existingBytecode, String selectedContract) {
+            String existingBytecode, String selectedContract, boolean isOptimize, int runs) {
         RestTemplate restTemplate = new RestClientBuilder().withBaseUrl(compileUrl)
                 .withNoObjectMapper().build();
         HttpHeaders headers = new HttpHeaders();
-        Map<String, String> body = new HashMap<String, String>();
+        Map<String, Object> body = new HashMap<String, Object>();
         body.put("compilerVersion", compilerVersion);
         body.put("sourcecode", solidityCode);
         body.put("existingBytecode", existingBytecode);
         body.put("selectedContract", selectedContract);
+        body.put("isOptimize", isOptimize);
+        body.put("runs", runs);
         ResponseEntity<String> response = restTemplate.exchange("/verify", HttpMethod.POST,
                 new HttpEntity<>(body, headers), String.class);
         try {

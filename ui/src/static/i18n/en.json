@@ -313,6 +313,8 @@
       "title": "Version",
       "version": "Version",
       "compilerVersion": "Solidity Compiler Version",
+      "optimizer": "Optimize",
+      "runs": "Runs",
       "placeholder": "1.0",
       "address": "Address",
       "functions": "Functions",

@@ -247,9 +247,11 @@ class HelenAPITests(test_suite.TestSuite):
       data["contract_id"] = contractId
       data["version"] = contractVersion
       data["sourcecode"] = sourceCode
-      data["contractName"] = contractName
-      data["constructorParams"] = ctorParams
-      data["compilerVersion"] = compilerVersion
+      data["contract_name"] = contractName
+      data["constructor_params"] = ctorParams
+      data["compiler_version"] = compilerVersion
+      data["is_optimize"] = False
+      data["runs"] = "200"
       return request.uploadContract(data)
 
    def contract_upload_util(self, request, contractId, contractVersion, sourceCode):

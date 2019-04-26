@@ -73,8 +73,8 @@ describe('SmartContractsService', () => {
       compilerVersion: 'v0.5.4+commit.9549d8ff'
     };
 
-    service.updateExistingVersion('contractId', 'version', contract);
-    expect(httpSpy).toHaveBeenCalledWith('api/concord/contracts/contractId/versions/version', contract);
+    service.updateExistingVersion('contractId', contract);
+    expect(httpSpy).toHaveBeenCalledWith('api/concord/contracts/contractId', contract);
   });
 
   it('should post smart contract source code', () => {

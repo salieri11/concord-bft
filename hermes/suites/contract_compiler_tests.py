@@ -140,6 +140,8 @@ class ContractCompilerTests(test_suite.TestSuite):
         data = {}
         data["sourcecode"] = sourceCode
         data["compilerVersion"] = compilerVersion
+        data["isOptimize"] = True
+        data["runs"] = 200
         return request.compileContract(data)
 
     def contract_compile_util(self, request, compilerVersion, sourceCode):
