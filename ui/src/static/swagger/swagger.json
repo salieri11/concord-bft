@@ -397,9 +397,11 @@
                   "version",
                   "from",
                   "sourcecode",
-                  "contractName",
-                  "constructorParams",
-                  "compilerVersion"
+                  "contract_name",
+                  "constructor_params",
+                  "compiler_version",
+                  "is_optimize",
+                  "runs"
                 ],
                 "properties": {
                   "contract_id": {
@@ -418,17 +420,25 @@
                     "type": "string",
                     "description": "string representing solidity source code of this version"
                   },
-                  "contractName": {
+                  "contract_name": {
                     "type": "string",
                     "description": "string representing contract name you used to deploy the contract"
                   },
-                  "constructorParams": {
+                  "constructor_params": {
                     "type": "string",
                     "description": "string representing constructor parameters needed to deploy this contract, if your contract does not require constructor parameters, set this to \"\""
                   },
-                  "compilerVersion": {
+                  "compiler_version": {
                     "type": "string",
                     "description": "string representing solc version you used to deploy the contract"
+                  },
+                  "is_optimize": {
+                    "type": "boolean",
+                    "description": "True if using the optimizer. False otherwise"
+                  },
+                  "runs": {
+                    "type": "string",
+                    "description": "string representing optimize for how many times you intend to run the code"
                   }
                 }
               }
@@ -604,26 +614,17 @@
             }
           }
         }
-      },
+      }
+    },
+    "/concord/contracts/{contract_address}": {
       "put": {
-        "summary": "Verify a contract identified by given `contract_id` and `version_name`",
+        "summary": "Verify a contract identified by given `contract_address`",
         "operationId": "PutContractByIdAndVersion",
         "parameters": [
           {
-            "name": "contract_id",
+            "name": "contract_address",
             "in": "path",
-            "description": "the id of the contract to put",
-            "required": "true",
-            "schema": {
-              "type": "string",
-              "format": "string"
-            },
-            "style": "simple"
-          },
-          {
-            "name": "version_name",
-            "in": "path",
-            "description": "name of the version of contract to put",
+            "description": "the address of the contract",
             "required": "true",
             "schema": {
               "type": "string",
@@ -640,31 +641,36 @@
                 "type": "object",
                 "required": [
                   "contract_id",
-                  "compilerVersion",
-                  "from",
+                  "compiler_version",
                   "sourcecode",
-                  "contractName"
+                  "contract_name",
+                  "is_optimize",
+                  "runs"
                 ],
                 "properties": {
                   "contract_id": {
                     "type": "string",
-                    "description": "string representing contract id"
+                    "description": "string representing contract name"
                   },
-                  "compilerVersion": {
+                  "compiler_version": {
                     "type": "string",
                     "description": "string representing solc version you used to deploy the contract"
-                  },
-                  "from": {
-                    "type": "string",
-                    "description": "string representing owners address"
                   },
                   "sourcecode": {
                     "type": "string",
                     "description": "string representing solidity source code of this version"
                   },
-                  "contractName": {
+                  "contract_name": {
                     "type": "string",
                     "description": "string representing contract name you used to deploy the contract"
+                  },
+                  "is_optimize": {
+                    "type": "boolean",
+                    "description": "True if using the optimizer. False otherwise"
+                  },
+                  "runs": {
+                    "type": "string",
+                    "description": "string representing optimize for how many times you intend to run the code"
                   }
                 }
               }
@@ -753,15 +759,15 @@
                     			  },
                     			  "ip": {
                     				  "type": "string",
-                    				  "description", "IP address of node"
+                    				  "description": "IP address of node"
                     			  },
                     			  "url": {
                     				  "type": "string",
-                    				  "description", "EthRPC url of node"
+                    				  "description": "EthRPC url of node"
                     			  },
                     			  "cert": {
                     				  "type": "string",
-                    				  "description", "SSL certificate to talk to ethrpc"
+                    				  "description": "SSL certificate to talk to ethrpc"
                     			  },
                     			  "region": {
                     				  "type": "string",
@@ -892,15 +898,15 @@
                     			  },
                     			  "ip": {
                     				  "type": "string",
-                    				  "description", "IP address of node"
+                    				  "description": "IP address of node"
                     			  },
                     			  "url": {
                     				  "type": "string",
-                    				  "description", "EthRPC url of node"
+                    				  "description": "EthRPC url of node"
                     			  },
                     			  "cert": {
                     				  "type": "string",
-                    				  "description", "SSL certificate to talk to ethrpc"
+                    				  "description": "SSL certificate to talk to ethrpc"
                     			  },
                     			  "region": {
                     				  "type": "string",
@@ -1385,9 +1391,9 @@
                   "version",
                   "from",
                   "sourcecode",
-                  "contractName",
-                  "constructorParams",
-                  "compilerVersion"
+                  "contract_name",
+                  "constructor_params",
+                  "compiler_version"
                 ],
                 "properties": {
                   "contract_id": {
@@ -1406,15 +1412,15 @@
                     "type": "string",
                     "description": "string representing solidity source code of this version"
                   },
-                  "contractName": {
+                  "contract_name": {
                     "type": "string",
                     "description": "string representing contract name you used to deploy the contract"
                   },
-                  "constructorParams": {
+                  "constructor_params": {
                     "type": "string",
                     "description": "string representing constructor parameters needed to deploy this contract, if your contract does not require constructor parameters, set this to \"\""
                   },
-                  "compilerVersion": {
+                  "compiler_version": {
                     "type": "string",
                     "description": "string representing solc version you used to deploy the contract"
                   }
@@ -1610,9 +1616,11 @@
             }
           }
         }
-      },
+      }
+    },
+    "/blockchains/{bid}/concord/contracts/{contract_address}": {
       "put": {
-        "summary": "Verify a contract identified by given `contract_id` and `version_name`",
+        "summary": "Verify a contract identified by given `contract_address`",
         "operationId": "PutContractByIdAndVersion",
         "parameters": [
           {
@@ -1625,20 +1633,9 @@
             }
           },
           {
-            "name": "contract_id",
+            "name": "contract_address",
             "in": "path",
-            "description": "the id of the contract to put",
-            "required": "true",
-            "schema": {
-              "type": "string",
-              "format": "string"
-            },
-            "style": "simple"
-          },
-          {
-            "name": "version_name",
-            "in": "path",
-            "description": "name of the version of contract to put",
+            "description": "the address of the contract",
             "required": "true",
             "schema": {
               "type": "string",
@@ -1655,31 +1652,36 @@
                 "type": "object",
                 "required": [
                   "contract_id",
-                  "compilerVersion",
-                  "from",
+                  "compiler_version",
                   "sourcecode",
-                  "contractName"
+                  "contract_name",
+                  "is_optimize",
+                  "runs"
                 ],
                 "properties": {
                   "contract_id": {
                     "type": "string",
-                    "description": "string representing contract id"
+                    "description": "string representing contract name"
                   },
-                  "compilerVersion": {
+                  "compiler_version": {
                     "type": "string",
                     "description": "string representing solc version you used to deploy the contract"
-                  },
-                  "from": {
-                    "type": "string",
-                    "description": "string representing owners address"
                   },
                   "sourcecode": {
                     "type": "string",
                     "description": "string representing solidity source code of this version"
                   },
-                  "contractName": {
+                  "contract_name": {
                     "type": "string",
                     "description": "string representing contract name you used to deploy the contract"
+                  },
+                  "is_optimize": {
+                    "type": "boolean",
+                    "description": "True if using the optimizer. False otherwise"
+                  },
+                  "runs": {
+                    "type": "string",
+                    "description": "string representing optimize for how many times you intend to run the code"
                   }
                 }
               }

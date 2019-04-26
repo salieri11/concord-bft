@@ -115,7 +115,7 @@ public class ContractRegistryManager {
      *         then this method throws this exception.
      */
     public boolean updateExistingContractVersion(String existingContractId, String existingVersionName,
-            String contractId, String ownerAddress, String versionName, String metaData, String sourceCode,
+            String contractId, String metaData, String sourceCode,
             UUID blockchain) {
         List<Contract> contracts = contractReopository
                 .findByNameAndVersionNameAndBlockchainIdOrderBySeqDesc(
@@ -126,8 +126,6 @@ public class ContractRegistryManager {
         }
         Contract c = contracts.get(0);
         c.setName(contractId);
-        c.setVersionName(versionName);
-        c.setOwner(ownerAddress);
         c.setSourcecode(sourceCode);
         c.setMetadata(metaData);
         contractReopository.save(c);

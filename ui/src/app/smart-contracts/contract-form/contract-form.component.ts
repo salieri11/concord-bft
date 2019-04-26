@@ -55,6 +55,9 @@ export class ContractFormComponent implements OnInit {
   constructorAbi: any;
   walletAddress: string;
   compilerVersions: string[];
+  runsDisabled: boolean = true;
+  // When loadingFlag is set to true, a spinner will appear on the contract wizard UI
+  loadingFlag: boolean = false;
 
   readonly modalState: ModalState;
 
@@ -71,6 +74,8 @@ export class ContractFormComponent implements OnInit {
       contractId: ['', [Validators.required]],
       version: ['', [Validators.required]],
       compilerVersion: ['', [Validators.required]],
+      isOptimize: [true, [Validators.required]],
+      runs: ['200'],
       file: [null, Validators.required]
     });
 
@@ -153,14 +158,20 @@ export class ContractFormComponent implements OnInit {
   }
 
   onSubmitSourceCode() {
+    this.loadingFlag = true;
     this.modalState.error = false;
     this.modalState.completed = false;
     this.modalState.loading = true;
     this.smartContractsService.postSourceCode({
       sourcecode: this.smartContractForm.value.file,
-      compilerVersion: this.smartContractForm.value.compilerVersion
+      compiler_version: this.smartContractForm.value.compilerVersion,
+      is_optimize: this.smartContractForm.value.isOptimize,
+      runs: this.smartContractForm.getRawValue().runs
     }).subscribe(
-      response => this.handleSourceCode(response),
+      response => {
+        this.handleSourceCode(response);
+        this.loadingFlag = false;
+      },
       response => this.handleError(response.error)
     );
   }
@@ -176,6 +187,7 @@ export class ContractFormComponent implements OnInit {
   }
 
   onSubmitSmartContract() {
+    this.loadingFlag = true;
     if (this.modalState.isUpdateExternal) {
       this.updateExistingSmartContract();
     } else {
@@ -184,18 +196,13 @@ export class ContractFormComponent implements OnInit {
   }
 
   updateExistingSmartContract() {
-    const encodedConstructorParams = this.encodeConstructorParams();
-
-    this.smartContractsService.updateExistingVersion(this.version.contract_id, this.version.version, {
-      from: this.smartContractForm.getRawValue().from,
-      contract_id: this.smartContractForm.getRawValue().contractId,
-      version: this.smartContractForm.getRawValue().version,
+    this.smartContractsService.updateExistingVersion(this.version.contract_id, {
+      contract_id: this.smartContractForm.value.contractId,
       sourcecode: this.smartContractForm.value.file,
-      contractName: this.contractsForm.value.selectedContract,
-      constructorParams: encodedConstructorParams,
-      existingContractId: this.version.contract_id,
-      existingVersionName: this.version.version,
-      compilerVersion: this.smartContractForm.value.compilerVersion
+      contract_name: this.contractsForm.value.selectedContract,
+      compiler_version: this.smartContractForm.value.compilerVersion,
+      is_optimize: this.smartContractForm.value.isOptimize,
+      runs: this.smartContractForm.getRawValue().runs
     }).subscribe(
       response => this.handleSmartContract(response),
       response => this.handleError(response.error)
@@ -214,9 +221,11 @@ export class ContractFormComponent implements OnInit {
       contract_id: this.smartContractForm.getRawValue().contractId,
       version: this.smartContractForm.value.version,
       sourcecode: this.smartContractForm.value.file,
-      contractName: this.contractsForm.value.selectedContract,
-      constructorParams: encodedConstructorParams,
-      compilerVersion: this.smartContractForm.value.compilerVersion
+      contract_name: this.contractsForm.value.selectedContract,
+      constructor_params: encodedConstructorParams,
+      compiler_version: this.smartContractForm.value.compilerVersion,
+      is_optimize: this.smartContractForm.value.isOptimize,
+      runs: this.smartContractForm.getRawValue().runs
     }).subscribe(
       response => this.handleSmartContract(response),
       response => this.handleError(response.error)
@@ -229,6 +238,8 @@ export class ContractFormComponent implements OnInit {
       contractId: ['', [Validators.required]],
       version: ['', [Validators.required, Validators.maxLength(16)]],
       compilerVersion: ['', [Validators.required]],
+      isOptimize: [true, [Validators.required]],
+      runs: ['200'],
       file: [null, Validators.required],
     });
   }
@@ -239,6 +250,8 @@ export class ContractFormComponent implements OnInit {
       contractId: [smartContract.contract_id, [Validators.required]],
       version: [version.version, [Validators.required]],
       compilerVersion: ['', [Validators.required]],
+      isOptimize: [true, [Validators.required]],
+      runs: ['200'],
       file: [null, [Validators.required]]
     });
     setTimeout(() => {
@@ -254,6 +267,8 @@ export class ContractFormComponent implements OnInit {
       contractId: [smartContract.contract_id, [Validators.required]],
       version: [version.version, [Validators.required, newVersionValue(existingVersions), Validators.maxLength(16)]],
       compilerVersion: ['', [Validators.required]],
+      isOptimize: [true, [Validators.required]],
+      runs: ['200'],
       file: [null, [Validators.required]]
     });
     setTimeout(() => {
@@ -289,6 +304,7 @@ export class ContractFormComponent implements OnInit {
   }
 
   private handleError(response) {
+    this.loadingFlag = false;
     this.modalState.loading = false;
     this.modalState.completed = false;
     this.modalState.error = true;
@@ -296,6 +312,7 @@ export class ContractFormComponent implements OnInit {
   }
 
   private handleSmartContract(response) {
+    this.loadingFlag = false;
     if (response.error) {
       this.handleError(response);
       this.modalState.loading = false;
@@ -323,5 +340,13 @@ export class ContractFormComponent implements OnInit {
     this.modalState.completed = false;
     this.modalState.error = false;
     this.modalState.loading = false;
+  }
+
+  public changeOptimizer() {
+    if (this.smartContractForm.value.isOptimize) {
+      this.smartContractForm.get('runs').enable();
+    } else {
+      this.smartContractForm.get('runs').disable();
+    }
   }
 }

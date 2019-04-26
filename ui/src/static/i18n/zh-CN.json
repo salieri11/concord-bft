@@ -300,6 +300,8 @@
     "version": {
       "title": "版本",
       "compilerVersion": "Solidity 编译器版本",
+      "optimizer": "打开优化器",
+      "runs": "次数",
       "version": "版本",
       "placeholder": "1.0",
       "address": "地址",

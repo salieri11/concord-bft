@@ -323,19 +323,17 @@ public class ContractsServlet extends ConcordServlet {
     }
 
     /**
-     * Handles the request for `PUT api/concord/contracts/{contract_id}/versions/{version }` request.
+     * Handles the request for `PUT api/concord/contracts/{contract_address}` request.
      *
-     * @param existingContractId The value of `{contract_id}` from URI
-     * @param existingVersionName The value of `{version}` from URI
+     * @param existingContractId The value of `{contract_address}` from URI
      * @param paramString HttpRequest object
      * @return The RESTResult object containing result of this request
      */
-    @RequestMapping(method = RequestMethod.PUT, path = {"/api/concord/contracts/{contract_id}/versions/{version_id}",
-            "/api/blockchains/{id}/concord/contracts/{contract_id}/versions/{version_id}"})
+    @RequestMapping(method = RequestMethod.PUT, path = {"/api/concord/contracts/{contract_address}",
+            "/api/blockchains/{id}/concord/contracts/{contract_address}"})
     public ResponseEntity<JSONAware> handleUpdateVersion(@RequestBody String paramString,
             @PathVariable(name = "id", required = false) Optional<UUID> id,
-            @PathVariable("contract_id") String existingContractId,
-            @PathVariable("version_id") String existingVersionName) {
+            @PathVariable("contract_address") String existingContractId) {
 
         // TODO: This check is not a proper way, find a better approach
         if (registryManager == null) {
@@ -353,12 +351,18 @@ public class ContractsServlet extends ConcordServlet {
         try {
             JSONParser parser = new JSONParser();
             JSONObject requestObject = (JSONObject) parser.parse(paramString);
-            String from = (String) requestObject.get("from");
             String contractId = (String) requestObject.get("contract_id");
             String solidityCode = (String) requestObject.get("sourcecode");
-            String selectedContract = (String) requestObject.get("contractName");
-            String constructorParams = (String) requestObject.get("constructorParams");
-            String compilerVersion = (String) requestObject.get("compilerVersion");
+            String selectedContract = (String) requestObject.get("contract_name");
+            String compilerVersion = (String) requestObject.get("compiler_version");
+            String existingVersionName = "1";
+            boolean isOptimize = (boolean) requestObject.get("is_optimize");
+            int runs;
+            if (isOptimize) {
+                runs = Integer.parseInt((String) requestObject.get("runs"));
+            } else {
+                runs = 200;
+            }
             List<Contract> contracts = contractReopository.findByNameAndVersionNameAndBlockchainId(
                     existingContractId,
                     existingVersionName, getBlockchainId(id));
@@ -368,13 +372,13 @@ public class ContractsServlet extends ConcordServlet {
                         new ResponseEntity<>(errorJson("contract with same name and version " + "not exist"),
                                 HttpStatus.CONFLICT);
             } else {
-                Compiler.Result result = Compiler.compile(solidityCode, compilerVersion, compilerServiceUrl);
+                Compiler.Result result = Compiler.compile(solidityCode, compilerVersion, compilerServiceUrl,
+                        isOptimize, runs);
                 boolean flag = Compiler.verify(solidityCode, compilerVersion, compilerServiceUrl,
-                        existingBytecode,
-                        selectedContract);
+                        existingBytecode, selectedContract, isOptimize, runs);
                 if (flag) {
                     boolean success = registryManager.updateExistingContractVersion(existingContractId,
-                            existingVersionName, contractId, from, existingVersionName,
+                            existingVersionName, contractId,
                             result.getMetadataMap().get(selectedContract), solidityCode, getBlockchainId(id));
                     if (success) {
                         FullVersionInfo fvInfo =
@@ -499,8 +503,16 @@ public class ContractsServlet extends ConcordServlet {
             JSONObject requestObject = (JSONObject) parser.parse(paramString);
 
             String solidityCode = (String) requestObject.get("sourcecode");
-            String compilerVersion = (String) requestObject.get("compilerVersion");
-            Compiler.Result result = Compiler.compile(solidityCode, compilerVersion, compilerServiceUrl);
+            String compilerVersion = (String) requestObject.get("compiler_version");
+            boolean isOptimize = (boolean) requestObject.get("is_optimize");
+            int runs;
+            if (isOptimize) {
+                runs = Integer.parseInt((String) requestObject.get("runs"));
+            } else {
+                runs = 200;
+            }
+            Compiler.Result result = Compiler.compile(solidityCode, compilerVersion, compilerServiceUrl,
+                    isOptimize, runs);
 
             if (result.isSuccess()) {
                 // respond with the name of each contract and allow the user to customize the contractId that will be
@@ -577,9 +589,16 @@ public class ContractsServlet extends ConcordServlet {
             String contractId = (String) requestObject.get("contract_id");
             String contractVersion = (String) requestObject.get("version");
             String solidityCode = (String) requestObject.get("sourcecode");
-            String selectedContract = (String) requestObject.get("contractName");
-            String constructorParams = (String) requestObject.get("constructorParams");
-            String compilerVersion = (String) requestObject.get("compilerVersion");
+            String selectedContract = (String) requestObject.get("contract_name");
+            String constructorParams = (String) requestObject.get("constructor_params");
+            String compilerVersion = (String) requestObject.get("compiler_version");
+            boolean isOptimize = (boolean) requestObject.get("is_optimize");
+            int runs;
+            if (isOptimize) {
+                runs = Integer.parseInt((String) requestObject.get("runs"));
+            } else {
+                runs = 200;
+            }
             // Check if contract with same id already exists, if yes
             // then version number must be different
             if (registryManager.hasContractVersion(contractId, contractVersion, getBlockchainId(id))) {
@@ -594,7 +613,8 @@ public class ContractsServlet extends ConcordServlet {
                         HttpStatus.FORBIDDEN);
             } else {
                 // Compile the given solidity code
-                Compiler.Result result = Compiler.compile(solidityCode, compilerVersion, compilerServiceUrl);
+                Compiler.Result result = Compiler.compile(solidityCode, compilerVersion, compilerServiceUrl,
+                        isOptimize, runs);
                 if (result.isSuccess()) {
                     JSONObject resultObject = deployContracts(helper.getBlockchain(), contractId, contractVersion, from,
                             result, solidityCode, selectedContract, constructorParams);

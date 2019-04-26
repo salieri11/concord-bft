@@ -301,6 +301,8 @@
       "title": "バージョン",
       "version": "バージョン",
       "compilerVersion": "Solidity コンパイラ バージョン",
+      "optimizer": "オプティマイザ",
+      "runs": "実行数",
       "placeholder": "1.0",
       "address": "アドレス",
       "functions": "機能",

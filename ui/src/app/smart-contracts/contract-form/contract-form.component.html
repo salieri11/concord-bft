@@ -20,9 +20,12 @@
         </div>
       </clr-alert>
     </div>
-    <clr-wizard-page [clrWizardPageNextDisabled]="smartContractForm.invalid" (clrWizardPageNext)="onSubmitSourceCode()">
+    <clr-wizard-page [clrWizardPageNextDisabled]="smartContractForm.invalid || loadingFlag" (clrWizardPageNext)="onSubmitSourceCode()">
       <ng-template clrPageTitle>{{'smartContracts.form.generalInformationTitle' | translate}}</ng-template>
       <form clrForm clrLayout="horizontal" [formGroup]="smartContractForm" class="contract-form">
+          <div class="spinner" *ngIf="loadingFlag">
+              Loading...
+          </div>
         <section class="form-block">
           <clr-input-container>
             <label for="smartContractContractId" class="required">{{'smartContracts.name' | translate}}</label>
@@ -55,6 +58,17 @@
             </select>
             <clr-control-helper *ngIf="modalState.isUpdateExternal">{{'smartContracts.form.verifyHelper' | translate}}</clr-control-helper>
           </clr-select-container>
+          <div class=" clr-row clr-form-control">
+            <label for="smartContractOptimizer" class="required clr-control-label">{{'smartContracts.version.optimizer' | translate}}</label>
+            <div class="toggle-switch">
+              <input type="checkbox" id="smartContractOptimizer" formControlName="isOptimize" (change)="changeOptimizer()">
+              <label for="smartContractOptimizer"></label>
+            </div>
+          </div>
+          <clr-input-container>
+            <label for="smartContractRuns" class="required">{{'smartContracts.version.runs' | translate}}</label>
+            <input clrInput id="smartContractRuns" type="text" formControlName="runs" [disabled]="runsDisabled">
+          </clr-input-container>
           <div class="clr-row clr-form-control">
             <label for="smartContractFile" class="clr-control-label required">{{'smartContracts.file' | translate}}</label>
             <div class="clr-control-container">
@@ -79,6 +93,9 @@
       </form>
     </clr-wizard-page>
     <clr-wizard-page [clrWizardPageNextDisabled]="constructorParamsForm.invalid" (clrWizardPageFinish)="onSubmitSmartContract()">
+      <div class="spinner" *ngIf="loadingFlag">
+        Loading...
+      </div>
       <ng-template clrPageTitle>{{'smartContracts.form.constructorParametersTitle' | translate}}</ng-template>
       <p *ngIf="constructorAbi?.inputs.length">{{'smartContracts.form.constructorParametersRequiredHelper' | translate}}</p>
       <p *ngIf="!constructorAbi?.inputs.length">{{'smartContracts.form.constructorParametersNotRequiredHelper' | translate}}</p>

@@ -38,8 +38,8 @@ export class SmartContractsService extends ConcordApiService {
     return this.httpClient.get<SmartContractVersion>(this.resourcePath(`${contractId}/versions/${version}`));
   }
 
-  updateExistingVersion(contractId: string, version: string, request) {
-    return this.httpClient.put<SmartContractVersion>(this.resourcePath(`${contractId}/versions/${version}`), request);
+  updateExistingVersion(contractId: string, request) {
+    return this.httpClient.put<SmartContractVersion>(this.resourcePath(`${contractId}`), request);
   }
 
   postContract(contract) {
