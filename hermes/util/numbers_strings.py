@@ -1,29 +1,38 @@
 #########################################################################
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
+hexIndicator = "0x"
+
 def trimHexIndicator(s):
    '''
    Remove the leading "0x".
    '''
-   hexIndicator = "0x"
+
 
    if s.startswith(hexIndicator):
       return s[len(hexIndicator):]
    else:
       return s
 
+def decToEvenHex(d):
+   '''
+   Convert a decimal number to a hex string, and with an even number of
+   digits.
+   '''
+   hexString = hex(d)
+
+   if not len(hexString) % 2 == 0:
+      hexString = hexString[0:len(hexIndicator)] + "0" + hexString[len(hexIndicator):]
+
+   return hexString
+
 def decToEvenHexNo0x(d):
    '''
    Convert a decimal number to a hex string, without the leading "0x",
    and with an even number of digits.
    '''
-   hexString = hex(d)
-   hexString = trimHexIndicator(hexString)
-
-   if not len(hexString) % 2 == 0:
-      hexString = "0" + hexString
-
-   return hexString
+   hexString = decToEvenHex(d)
+   return trimHexIndicator(hexString)
 
 def stringOnlyContains(checkMe, allowed):
    '''
