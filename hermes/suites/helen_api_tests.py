@@ -102,7 +102,6 @@ class HelenAPITests(test_suite.TestSuite):
 
    def _getTests(self):
       return [("getCerts", self._test_getCerts), \
-              ("block", self._test_getBlocks), \
               ("transaction", self._test_getTransactions), \
               ("contract_upload", self._test_contractUpload), \
               ("multiple_contract_upload", self._test_multiContractUpload), \
@@ -181,48 +180,11 @@ class HelenAPITests(test_suite.TestSuite):
       return blockchains[0]["id"]
 
       
-   def _test_getBlocks(self, request):
-      blockchainId = self.getABlockchainId(request)
-      result = request.getBlockList(blockchainId)
-
-      # validation of the structure of the blocklist response is done
-      # in _test_getBlockList
-
-      # get each block and find out if it's valid
-      for b in result["blocks"]:
-         blockResult = request.getBlock(b["url"])
-
-         (present, missing) = self.requireFields(
-            blockResult,
-            ["number", "hash", "parentHash", "nonce", "size", "transactions",
-             "timestamp"])
-         if not present:
-            return (False, "No '{}' field in block response.".format(missing))
-
-         if not b["number"] == blockResult["number"]:
-            return (False, "Block number does not match request.")
-         if not type(blockResult["transactions"]) is list:
-            return (False, "'transactions' field is not a list.")
-
-      # try to get an uncommitted block, and make sure an error comes back
-      uncommitted = 1 + result["blocks"][0]["number"]
-      try:
-         uncomresult = request.getBlockByNumber(uncommitted)
-         return (False,
-                 "Expected an error for future block {}, " \
-                 "but received block {}".format(uncommitted,
-                                                uncomresult["number"]))
-      except:
-         # It is expected that requesting an uncommitted block will fail
-         pass
-
-      return (True, None)
-
    def _test_getTransactions(self, request):
       self._mock_transaction(request)
       blockchainId = self.getABlockchainId(request)
       result = request.getBlockList(blockchainId)
-      blockResult = request.getBlock(result["blocks"][0]["url"])
+      blockResult = request.getBlockByUrl(result["blocks"][0]["url"])
 
       # get all of the transactions in the most recent block
       for t in blockResult["transactions"]:
@@ -488,7 +450,7 @@ class HelenAPITests(test_suite.TestSuite):
                  "GET /api/concord/contracts/{}/versions/{} did not return" \
                  " correct response".format(contractId, contractVersion))
 
-   def _mock_transaction(self, request, data = "0x00", ethrpcNode = None):
+   def _mock_transaction(self, request, data = "0x00", ethrpcNode = None, nonce = None):
       ethrpcApiUrl = ethrpcNode if ethrpcNode else self.ethrpcApiUrl
       rpc = RPC(request.logDir,
                 self.getName(),
@@ -507,8 +469,8 @@ class HelenAPITests(test_suite.TestSuite):
       blockNumber = txReceipt['blockNumber']
       blockHash = txReceipt['blockHash']
       # query same block with hash and number and compare results
-      block1 = request.getBlock("/api/concord/blocks/{}".format(int(blockNumber, 16)))
-      block2 = request.getBlock("/api/concord/blocks/{}".format(blockHash))
+      block1 = request.getBlockByUrl("/api/concord/blocks/{}".format(int(blockNumber, 16)))
+      block2 = request.getBlockByUrl("/api/concord/blocks/{}".format(blockHash))
       if (block1 == block2):
          return (True, None)
       return (False, "Block returned with block hash API doesn't match with block returned by block Number")
@@ -516,7 +478,7 @@ class HelenAPITests(test_suite.TestSuite):
 
    def _test_invalidBlockHash(self, request):
       try:
-         block = request.getBlock("/api/concord/blocks/0xbadbeef")
+         block = request.getBlockByUrl("/api/concord/blocks/0xbadbeef")
       except Exception as e:
          return(True, None)
       return (False, "invalid block hash exception should be thrown")
