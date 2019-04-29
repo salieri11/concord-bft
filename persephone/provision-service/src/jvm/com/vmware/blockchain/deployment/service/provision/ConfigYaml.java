@@ -61,9 +61,9 @@ public final class ConfigYaml  {
     public static int getFVal(int clusterSize) {
         int realSize = clusterSize - 1;
         int fSize = realSize / 3;
-        if (realSize % 3 == 0 && fSize > 1) {
-            fSize--;
-        }
+        // if (realSize % 3 == 0 && fSize > 1) {
+        //     fSize--;
+        // }
         return fSize;
     }
 

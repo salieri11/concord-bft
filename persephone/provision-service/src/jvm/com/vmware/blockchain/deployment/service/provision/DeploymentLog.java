@@ -40,7 +40,7 @@ public class DeploymentLog {
                 model,
                 ConcordClusterIdentifier.Companion.getDefaultValue(),
                 new PlacementAssignment(),
-                false,
+                DeploymentSession.Status.ACTIVE,
                 Collections.emptyList()
         );
 

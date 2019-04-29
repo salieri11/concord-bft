@@ -4,7 +4,9 @@
 
 package com.vmware.blockchain.services.tasks;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -30,5 +32,13 @@ public class TaskService {
 
     public Task put(Task task) {
         return genericDao.putUnderTenant(task, null);
+    }
+
+    public Task merge(Task task, Consumer<Task> merger) {
+        return genericDao.mergeWithRetry(task, Task.class, merger);
+    }
+
+    public List<Task> list() {
+        return genericDao.getAllByType(Task.class);
     }
 }

@@ -1,32 +1,23 @@
 /*
  * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
+
 package com.vmware.blockchain.deployment.provision.client;
 
 import java.util.Collection;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
-import com.vmware.blockchain.deployment.model.ConcordCluster;
-import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.vmware.blockchain.deployment.model.ConcordComponent;
 import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
-import com.vmware.blockchain.deployment.model.ConcordNode;
-import com.vmware.blockchain.deployment.model.ConcordNodeHostInfo;
-import com.vmware.blockchain.deployment.model.ConcordNodeIdentifier;
-import com.vmware.blockchain.deployment.model.ConcordNodeInfo;
-import com.vmware.blockchain.deployment.model.ConcordNodeStatus;
 import com.vmware.blockchain.deployment.model.CreateClusterRequest;
-import com.vmware.blockchain.deployment.model.DeploymentSession;
-import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.model.DeploymentSpecification;
 import com.vmware.blockchain.deployment.model.MessageHeader;
@@ -34,16 +25,12 @@ import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
 import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
 import com.vmware.blockchain.deployment.model.ProvisionServiceStub;
-
-
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
+
 import io.grpc.CallOptions;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Simple gRPC client for accessing Provisioning-Service.

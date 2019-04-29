@@ -85,15 +85,6 @@ public class ProvisionService extends ProvisionServiceImplBase {
     private static final OrchestrationSiteIdentifier defaultOrchestratorId =
             OrchestrationSiteIdentifier.Companion.getDefaultValue();
 
-    /** Default NOOP {@link DeploymentSessionEvent} instance. */
-    private static final DeploymentSessionEvent noopDeploymentEvent = new DeploymentSessionEvent(
-            DeploymentSessionEvent.Type.NOOP,
-            DeploymentSessionIdentifier.Companion.getDefaultValue(),
-            ConcordNode.Companion.getDefaultValue(),
-            ConcordNodeStatus.Companion.getDefaultValue(),
-            ConcordCluster.Companion.getDefaultValue()
-    );
-
     /** Executor to use for all async service operations. */
     private final ExecutorService executor;
 
@@ -227,7 +218,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
                             deploymentSpec,
                             clusterId,
                             placements,
-                            false /* complete */,
+                            DeploymentSession.Status.ACTIVE,
                             Collections.singletonList(newInitialEvent(sessionId))
                     );
                     var oldSession = deploymentLog.putIfAbsent(sessionId, new CompletableFuture<>());
@@ -278,10 +269,14 @@ public class ProvisionService extends ProvisionServiceImplBase {
                     Consumer<DeploymentSession> sender = session -> {
                         // Send all events.
                         for (DeploymentSessionEvent event : session.getEvents()) {
+                            log.info("Deployment session event stream session({}), event({})",
+                                     session.getId(), event);
                             response.onNext(event);
                         }
 
                         // Send completion.
+                        log.info("Deployment session event stream completed, session({})",
+                                 session.getId());
                         response.onCompleted();
                     };
 
@@ -558,7 +553,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
                             session.getSpecification(),
                             session.getCluster(),
                             session.getAssignment(),
-                            true /* complete */,
+                            DeploymentSession.Status.SUCCESS,
                             toDeploymentSessionEvents(session, results)
                     );
 
@@ -570,13 +565,15 @@ public class ProvisionService extends ProvisionServiceImplBase {
                 }, executor)
                 .exceptionally(error -> {
                     // Create the updated deployment session instance.
+                    var event = newCompleteEvent(session.getId(), DeploymentSession.Status.FAILURE);
                     var updatedSession = new DeploymentSession(
                             session.getId(),
                             session.getSpecification(),
                             session.getCluster(),
                             session.getAssignment(),
-                            true /* complete */,
-                            session.getEvents()
+                            DeploymentSession.Status.FAILURE,
+                            Stream.concat(session.getEvents().stream(), Stream.of(event))
+                                    .collect(Collectors.toList())
                     );
 
                     // Update the deployment log.
@@ -683,7 +680,8 @@ public class ProvisionService extends ProvisionServiceImplBase {
                 sessionId,
                 ConcordNode.Companion.getDefaultValue(),
                 ConcordNodeStatus.Companion.getDefaultValue(),
-                ConcordCluster.Companion.getDefaultValue()
+                ConcordCluster.Companion.getDefaultValue(),
+                DeploymentSession.Status.ACTIVE
         );
     }
 
@@ -693,17 +691,23 @@ public class ProvisionService extends ProvisionServiceImplBase {
      *
      * @param sessionId
      *   identifier of the deployment session to create the completion event for.
+     * @param status
+     *   completion status.
      *
      * @return
      *   a new instance of {@link DeploymentSessionEvent}.
      */
-    private static DeploymentSessionEvent newCompleteEvent(DeploymentSessionIdentifier sessionId) {
+    private static DeploymentSessionEvent newCompleteEvent(
+            DeploymentSessionIdentifier sessionId,
+            DeploymentSession.Status status
+    ) {
         return new DeploymentSessionEvent(
                 DeploymentSessionEvent.Type.COMPLETED,
                 sessionId,
                 ConcordNode.Companion.getDefaultValue(),
                 ConcordNodeStatus.Companion.getDefaultValue(),
-                ConcordCluster.Companion.getDefaultValue()
+                ConcordCluster.Companion.getDefaultValue(),
+                status
         );
     }
 
@@ -1023,7 +1027,8 @@ public class ProvisionService extends ProvisionServiceImplBase {
                         DeploymentSessionIdentifier.Companion.getDefaultValue(),
                         node,
                         ConcordNodeStatus.Companion.getDefaultValue(),
-                        ConcordCluster.Companion.getDefaultValue()
+                        ConcordCluster.Companion.getDefaultValue(),
+                        DeploymentSession.Status.ACTIVE
                 ));
 
         // Create Concord cluster model.
@@ -1032,7 +1037,8 @@ public class ProvisionService extends ProvisionServiceImplBase {
                 DeploymentSessionIdentifier.Companion.getDefaultValue(),
                 ConcordNode.Companion.getDefaultValue(),
                 ConcordNodeStatus.Companion.getDefaultValue(),
-                new ConcordCluster(session.getCluster(), new ConcordClusterInfo(nodes))
+                new ConcordCluster(session.getCluster(), new ConcordClusterInfo(nodes)),
+                DeploymentSession.Status.ACTIVE
         );
 
         // Concatenate every event together.
@@ -1040,7 +1046,10 @@ public class ProvisionService extends ProvisionServiceImplBase {
         return Stream
                 .concat(
                         Stream.concat(session.getEvents().stream(), nodeEventStream),
-                        Stream.of(clusterEvent, newCompleteEvent(session.getId()))
+                        Stream.of(
+                                clusterEvent,
+                                newCompleteEvent(session.getId(), DeploymentSession.Status.SUCCESS)
+                        )
                 )
                 .collect(Collectors.toList());
     }
