@@ -15,6 +15,7 @@
 #include <map>
 #include <set>
 #include "basicRandomTestsRunner.hpp"
+#include "commonKVBTests.hpp"
 
 #ifndef _WIN32
 #include <unistd.h>
@@ -29,7 +30,6 @@ const int CONFLICT_DISTANCE = 49;
 const int MAX_WRITES_IN_REQ = 12;
 const int MAX_READ_SET_SIZE_IN_REQ = 10;
 const int MAX_READS_IN_REQ = 12;
-const int FIRST_KVB_BLOCK = 1;
 
 using namespace Blockchain;
 
@@ -70,7 +70,8 @@ Blockchain::BlockId TestsBuilder::getInitialLastBlockId() {
 }
 
 void TestsBuilder::retrieveExistingBlocksFromKVB() {
-  if (prevLastBlockId_ == FIRST_KVB_BLOCK)  // KVB contains only genesis block
+  if (prevLastBlockId_ == BasicRandomTests::FIRST_KVB_BLOCK)
+    // KVB contains only the genesis block
     return;
 
   // KVB is not empty. Read existing blocks and save in the memory.

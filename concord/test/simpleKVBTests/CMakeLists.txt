@@ -22,14 +22,20 @@ set(replica_sources
   ${PROJECT_SOURCE_DIR}/src/ethereum/evm_init_params.cpp
   ${PROJECT_SOURCE_DIR}/src/blockchain/kvb_storage.cpp)
 
+set(db_editor_sources DBEditor/main.cpp)
+
 add_executable(skvb_client ${client_sources})
 add_executable(skvb_replica ${replica_sources})
+add_executable(skvb_db_editor ${db_editor_sources})
 
 target_include_directories(skvb_client PUBLIC
   ${PROJECT_SOURCE_DIR}/src config include)
 
 target_include_directories(skvb_replica PUBLIC
   ${PROJECT_SOURCE_DIR}/src config include)
+
+target_include_directories(skvb_db_editor PUBLIC
+  ${PROJECT_SOURCE_DIR}/src include)
 
 target_link_libraries(skvb_client
   ${yaml-cpp_LIBRARIES}
@@ -41,11 +47,13 @@ target_link_libraries(skvb_replica
   log4cplus
   proto ${PROTOBUF_LIBRARIES}
   ${EVM_LIBRARIES}
-  ${Cryptopp_LIBRARIES}
   LLVMSupport
   concord_utils
-  kvblockchain
-  secp256k1)
+  kvblockchain)
+
+target_link_libraries(skvb_db_editor
+  log4cplus
+  kvblockchain)
 
 add_custom_target(copy_blockchain_scripts3 ALL COMMENT "Copying scripts abcd")
 

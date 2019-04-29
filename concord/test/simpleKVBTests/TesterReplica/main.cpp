@@ -26,6 +26,7 @@
 #endif
 
 #include "blockchain/kvb_storage.hpp"
+#include "commonKVBTests.hpp"
 #include "config/configuration_manager.hpp"
 #include "consensus/kvb/Comparators.h"
 #include "consensus/kvb/ReplicaImp.h"
@@ -202,7 +203,6 @@ int main(int argc, char **argv) {
   hierarchy.disableDebug();
   BasicConfigurator logConfig(hierarchy, false);
   logConfig.configure();
-
 #endif
 
   signal(SIGABRT, signalHandler);
@@ -222,10 +222,9 @@ int main(int argc, char **argv) {
   CommConfig commConfig = setupCommunicationParams(replicaConfig, logger);
   ReplicaConsensusConfig consensusConfig = setupConsensusParams(replicaConfig);
 
-  std::stringstream stream;
-  stream << "./simpleKVBTests_" << replicaParams.replicaId;
-  const string dbPath = stream.str();
-  auto dbClient = new RocksDBClient(dbPath, new RocksKeyComparator());
+  std::stringstream dbPath;
+  dbPath << BasicRandomTests::DB_FILE_PREFIX << replicaParams.replicaId;
+  auto dbClient = new RocksDBClient(dbPath.str(), new RocksKeyComparator());
 
   auto *replicaStateSync = new ReplicaStateSyncImp;
   replica = dynamic_cast<ReplicaImp *>(
