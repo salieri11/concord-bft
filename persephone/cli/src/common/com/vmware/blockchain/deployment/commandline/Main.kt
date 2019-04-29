@@ -24,6 +24,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.reactive.awaitSingle
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonConfiguration
 import kotlin.system.exitProcess
 
 /**
@@ -42,7 +43,7 @@ fun main(args: Array<String>) {
     }
 
     // Parse argument for orchestration site info (fetch the first available entry).
-    val sites = Json().parse(getOrchestrationSiteMapSerializer(), args[0])
+    val sites = Json(JsonConfiguration.Stable).parse(getOrchestrationSiteMapSerializer(), args[0])
     require(sites.values.isNotEmpty())
     val site = sites.values.first()
 

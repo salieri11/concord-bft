@@ -3,25 +3,24 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.model.nsx
 
-import kotlinx.serialization.Optional
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class NatRule(
     val action: Action,
-    @Optional val id: String? = null,
-    @Optional val display_name: String? = null,
-    @Optional val path: String? = null,
-    @Optional val enabled: Boolean = true,
-    @Optional val logging: Boolean = false,
-    @Optional val source_network: String? = null,
-    @Optional val destination_network: String? = null,
-    @Optional val translated_network: String? = null,
-    @Optional val translated_ports: String? = null,
-    @Optional val sequence_number: Int = 0,
-    @Optional val service: String? = null,
-    @Optional val firewall_match: FirewallMatch? = null,
-    @Optional val scope: List<String> = emptyList()
+    val id: String? = null,
+    val display_name: String? = null,
+    val path: String? = null,
+    val enabled: Boolean = true,
+    val logging: Boolean = false,
+    val source_network: String? = null,
+    val destination_network: String? = null,
+    val translated_network: String? = null,
+    val translated_ports: String? = null,
+    val sequence_number: Int = 0,
+    val service: String? = null,
+    val firewall_match: FirewallMatch? = null,
+    val scope: List<String> = emptyList()
 ) {
     enum class Action {
         SNAT,

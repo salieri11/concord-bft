@@ -11,6 +11,8 @@ import java.util.stream.Collectors;
 
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import kotlinx.serialization.json.Json;
+import kotlinx.serialization.json.JsonConfiguration;
+import kotlinx.serialization.modules.EmptyModule;
 import kotlinx.serialization.protobuf.ProtoBuf;
 import net.jqwik.api.Arbitraries;
 import net.jqwik.api.Arbitrary;
@@ -30,7 +32,7 @@ class EthereumGenesisSerializationTest {
     private static char[] hexdigits =
             { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f' };
 
-    private static Json json = new Json();
+    private static Json json = new Json(JsonConfiguration.getDefault(), EmptyModule.INSTANCE);
     private static ProtoBuf protobuf = new ProtoBuf();
 
     /**

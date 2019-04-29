@@ -4,7 +4,6 @@
 package com.vmware.blockchain.deployment.persistence.kv
 
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Optional
 import kotlinx.serialization.SerialId
 import kotlinx.serialization.Serializable
 
@@ -13,9 +12,9 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class PBSerializable(
-    @SerialId(1) @Optional val string: String = "",
-    @SerialId(2) @Optional val int: Int = 0,
-    @SerialId(3) @Optional val long: Long = 0
+    @SerialId(1) val string: String = "",
+    @SerialId(2) val int: Int = 0,
+    @SerialId(3) val long: Long = 0
 ) {
     companion object {
         /**

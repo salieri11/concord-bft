@@ -57,7 +57,7 @@ expect abstract class AccessTokenAwareHttpClient {
      * @return
      *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
      */
-    suspend inline fun <reified T> get(
+    suspend inline fun <reified T : Any> get(
         path: String,
         contentType: String,
         headers: List<Pair<String, String>>
@@ -79,7 +79,7 @@ expect abstract class AccessTokenAwareHttpClient {
      * @return
      *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
      */
-    suspend inline fun <reified R, reified T> put(
+    suspend inline fun <reified R : Any, reified T : Any> put(
         path: String,
         contentType: String,
         headers: List<Pair<String, String>>,
@@ -102,7 +102,7 @@ expect abstract class AccessTokenAwareHttpClient {
      * @return
      *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
      */
-    suspend inline fun <reified R, reified T> patch(
+    suspend inline fun <reified R : Any, reified T : Any> patch(
         path: String,
         contentType: String,
         headers: List<Pair<String, String>>,
@@ -125,7 +125,7 @@ expect abstract class AccessTokenAwareHttpClient {
      * @return
      *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
      */
-    suspend inline fun <reified R, reified T> post(
+    suspend inline fun <reified R : Any, reified T : Any> post(
         path: String,
         contentType: String,
         headers: List<Pair<String, String>>,
@@ -145,7 +145,7 @@ expect abstract class AccessTokenAwareHttpClient {
      * @return
      *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
      */
-    suspend inline fun <reified T> delete(
+    suspend inline fun <reified T : Any> delete(
         path: String,
         contentType: String,
         headers: List<Pair<String, String>>

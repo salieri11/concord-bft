@@ -3,7 +3,6 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.model.vsphere
 
-import kotlinx.serialization.Optional
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -12,7 +11,7 @@ data class VirtualMachineGuestIdentityInfo(
     val family: GuestOSFamily,
     val host_name: String,
     val full_name: LocalizableMessage,
-    @Optional val ip_address: String? = null
+    val ip_address: String? = null
 ) {
     enum class GuestOSFamily {
         /** Windows operating system */

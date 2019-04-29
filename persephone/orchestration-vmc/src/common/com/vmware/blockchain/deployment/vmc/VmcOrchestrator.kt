@@ -344,7 +344,7 @@ class VmcOrchestrator private constructor(
 
                     // Obtain the public IP address from the IP resource.
                     val publicIP = nsx
-                            .get<PublicIP?>(
+                            .get<PublicIP>(
                                     request.network.toString(),
                                     contentType = "application/json",
                                     headers = emptyList()

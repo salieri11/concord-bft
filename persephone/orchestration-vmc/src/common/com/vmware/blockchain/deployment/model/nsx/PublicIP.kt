@@ -3,12 +3,11 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.model.nsx
 
-import kotlinx.serialization.Optional
 import kotlinx.serialization.Serializable
 
 @Serializable
 data class PublicIP(
-    @Optional val id: String? = null,
-    @Optional val display_name: String? = null,
-    @Optional val ip: String? = null
+    val id: String? = null,
+    val display_name: String? = null,
+    val ip: String? = null
 )

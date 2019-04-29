@@ -3,13 +3,14 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.model.vmc
 
-import kotlinx.serialization.context.SimpleModule
+import kotlinx.serialization.modules.serializersModuleOf
+import kotlinx.serialization.modules.SerialModule
 
 /**
  * Enumeration of all serializable types related to VMC data models.
  */
-enum class VmcSerializationModule(val module: SimpleModule<*>) {
-    SDDC(SimpleModule(Sddc::class, Sddc.serializer())),
-    SDDC_RESOURCE_CONFIG(SimpleModule(SddcResourceConfig::class, SddcResourceConfig.serializer())),
-    VMC_AUTHENTICATION_RESPONSE(SimpleModule(VmcAuthenticationResponse::class, VmcAuthenticationResponse.serializer()))
+enum class VmcSerializationModule(val module: SerialModule) {
+    SDDC(serializersModuleOf(Sddc::class, Sddc.serializer())),
+    SDDC_RESOURCE_CONFIG(serializersModuleOf(SddcResourceConfig::class, SddcResourceConfig.serializer())),
+    VMC_AUTHENTICATION_RESPONSE(serializersModuleOf(VmcAuthenticationResponse::class, VmcAuthenticationResponse.serializer()))
 }

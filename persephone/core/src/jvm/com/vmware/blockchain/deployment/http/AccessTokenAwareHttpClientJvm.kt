@@ -175,7 +175,7 @@ actual abstract class AccessTokenAwareHttpClient(
      * @return
      *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
      */
-    actual suspend inline fun <reified T> get(
+    actual suspend inline fun <reified T : Any> get(
         path: String,
         contentType: String,
         headers: List<Pair<String, String>>
@@ -206,7 +206,7 @@ actual abstract class AccessTokenAwareHttpClient(
      * @return
      *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
      */
-    actual suspend inline fun <reified R, reified T> put(
+    actual suspend inline fun <reified R : Any, reified T : Any> put(
         path: String,
         contentType: String,
         headers: List<Pair<String, String>>,
@@ -243,7 +243,7 @@ actual abstract class AccessTokenAwareHttpClient(
      * @return
      *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
      */
-    actual suspend inline fun <reified R, reified T> patch(
+    actual suspend inline fun <reified R : Any, reified T : Any> patch(
         path: String,
         contentType: String,
         headers: List<Pair<String, String>>,
@@ -280,7 +280,7 @@ actual abstract class AccessTokenAwareHttpClient(
      * @return
      *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
      */
-    actual suspend inline fun <reified R, reified T> post(
+    actual suspend inline fun <reified R : Any, reified T : Any> post(
         path: String,
         contentType: String,
         headers: List<Pair<String, String>>,
@@ -314,7 +314,7 @@ actual abstract class AccessTokenAwareHttpClient(
      * @return
      *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
      */
-    actual suspend inline fun <reified T> delete(
+    actual suspend inline fun <reified T : Any> delete(
         path: String,
         contentType: String,
         headers: List<Pair<String, String>>
@@ -339,7 +339,7 @@ actual abstract class AccessTokenAwareHttpClient(
      * @return
      *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
      */
-    @PublishedApi internal suspend inline fun <reified T> request(httpRequest: JdkHttpRequest): HttpResponse<T?> {
+    @PublishedApi internal suspend inline fun <reified T : Any> request(httpRequest: JdkHttpRequest): HttpResponse<T?> {
         val upstream = JdkHttpResponse.BodySubscribers.ofString(StandardCharsets.UTF_8)
         val bindToResult = JdkHttpResponse.BodySubscribers.mapping(upstream) { value ->
             try {

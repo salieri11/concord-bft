@@ -23,6 +23,8 @@ import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import kotlinx.serialization.UpdateMode;
 import kotlinx.serialization.json.Json;
+import kotlinx.serialization.json.JsonConfiguration;
+import kotlinx.serialization.modules.EmptyModule;
 import org.slf4j.LoggerFactory;
 
 /**
@@ -64,7 +66,19 @@ interface ProvisionServer {
         var log = LoggerFactory.getLogger(ProvisionServer.class);
 
         // Construct orchestration mapping from input parameters.
-        var json = new Json(false, false, "", true, UpdateMode.OVERWRITE, false);
+        var json = new Json(
+                new JsonConfiguration(
+                        false, /* encodeDefaults */
+                        true, /* strictMode */
+                        false, /* unquoted */
+                        false, /* prettyPrint */
+                        "", /* indent */
+                        false, /* useArrayPolymorphism */
+                        "type", /* classDiscriminator */
+                        UpdateMode.OVERWRITE /* updateMode */
+                ),
+                EmptyModule.INSTANCE
+        );
         var serializer = OrchestrationSiteInfoKt.getOrchestrationSiteMapSerializer();
         var orchestrations = Collections.<OrchestrationSiteIdentifier, OrchestrationSiteInfo>emptyMap();
 
