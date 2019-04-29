@@ -1,0 +1,39 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: helen-stage
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helen-stage
+  template:
+    metadata:
+      labels:
+        app: helen-stage
+    spec:
+      imagePullSecrets:
+        - name: bintray
+      hostname: db-server
+      containers:
+      - name: cockroachdb
+        image: cockroachdb/cockroach:v2.0.2
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 26257
+        command:
+        - /opt/vmbc/helen/entrypoint.sh
+        volumeMounts:
+        - name: helenmap-volume
+          mountPath: /opt/vmbc/helen/
+          readOnly: true
+      - name: helen
+        image: vmware-docker-blockchainsaas.bintray.io/helen:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+      volumes:
+      - name: helenmap-volume
+        configMap:
+          name: helenmap
+          defaultMode: 0700
