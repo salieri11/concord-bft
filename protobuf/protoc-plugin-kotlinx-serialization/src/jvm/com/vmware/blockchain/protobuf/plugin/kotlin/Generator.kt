@@ -20,7 +20,6 @@ import com.squareup.kotlinpoet.TypeSpec
 import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.Optional
 import kotlinx.serialization.SerialId
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.protobuf.ProtoNumberType
@@ -219,12 +218,6 @@ private fun DescriptorProtos.FieldDescriptorProto.toParameterSpec(
     return ParameterSpec.builder(getFieldName(this), fieldType)
             .addAnnotation(AnnotationSpec.builder(SerialId::class).addMember("%L", number).build())
             .defaultValue(getFieldDefaultValue(this, fieldType))
-            .apply {
-                if (label == DescriptorProtos.FieldDescriptorProto.Label.LABEL_OPTIONAL ||
-                    label == DescriptorProtos.FieldDescriptorProto.Label.LABEL_REPEATED) {
-                    addAnnotation(AnnotationSpec.builder(Optional::class).build())
-                }
-            }
             .apply {
                 val fixed = AnnotationSpec.builder(ProtoType::class)
                         .addMember("%T.%L", ProtoNumberType::class, ProtoNumberType.FIXED)
