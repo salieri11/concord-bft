@@ -27,9 +27,11 @@ LABEL description="Concord-Agent API"
 
 WORKDIR /agent
 COPY ./agent/src/main/resources/application.properties ./application.properties
-COPY --from=0 ./agent/target/concord-agent*.jar ./concord-agent.jar
+COPY ./agent/src/main/resources/log4j2.xml ./log4j2.xml
+#COPY --from=0 ./agent/target/concord-agent*with-dependencies.jar ./concord-agent.jar
+COPY --from=0 ./agent/target/concord-agent-1.0-SNAPSHOT.jar ./concord-agent.jar
 
 CMD ["java", "-jar", "concord-agent.jar"]
 
 # Must match server.port in application.properties!
-EXPOSE 8545
+EXPOSE 8546
