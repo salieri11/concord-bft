@@ -282,7 +282,7 @@ public class BlockchainController {
         Task task = new Task();
         task.setState(Task.State.RUNNING);
         task = taskService.put(task);
-        BlockchainObserver bo = new BlockchainObserver(authHelper, manager, taskService, task);
+        BlockchainObserver bo = new BlockchainObserver(authHelper, manager, taskService, task.getId());
         // Watch for the event stream
         StreamClusterDeploymentSessionEventRequest request =
                 new StreamClusterDeploymentSessionEventRequest(new MessageHeader(), dsId);
