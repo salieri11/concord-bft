@@ -1,6 +1,8 @@
 #########################################################################
 # Copyright 2018 VMware, Inc.  All rights reserved. -- VMware Confidential
 #########################################################################
+import time
+
 hexIndicator = "0x"
 
 def trimHexIndicator(s):
@@ -44,3 +46,9 @@ def stringOnlyContains(checkMe, allowed):
          return False
 
    return True
+
+def epochToLegible(t):
+   '''
+   Given an epoch time number, return a human readable string.
+   '''
+   return time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(t))

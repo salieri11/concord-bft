@@ -195,7 +195,7 @@ class Request():
       
       return self._send()
 
-   def getBlock(self, url):
+   def getBlockByUrl(self, url):
       '''
       Get a specific block
       '''
@@ -205,11 +205,11 @@ class Request():
 
       return self._send()
 
-   def getBlockByNumber(self, number):
+   def getBlockByNumber(self, blockchainId, number):
       '''
       Get a specific block, by its number
       '''
-      self._subPath = "/api/concord/blocks/{}".format(number)
+      self._subPath = "/api/blockchains/" + blockchainId + "/concord/blocks/{}".format(number)
       self._params = ""
       self._endpointName = "block"
 

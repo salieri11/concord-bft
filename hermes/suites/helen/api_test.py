@@ -1,4 +1,5 @@
 import inspect
+import json
 import logging
 import os
 import pickle
@@ -10,7 +11,7 @@ from uuid import UUID
 from suites import test_suite
 from rest.request import Request
 from rpc.rpc_call import RPC
-from util.numbers_strings import decToEvenHex
+from util.numbers_strings import decToEvenHex, trimHexIndicator, epochToLegible
 
 log = logging.getLogger(__name__)
 
@@ -86,8 +87,8 @@ def ensureEnoughBlocksForPaging(request, blockchainId):
          suiteObject._mock_transaction(request, data=decToEvenHex(i),
                                        ethrpcNode=ethrpcNode["rpc_url"])
 
-   latestBlockNumber = getLatestBlockNumber(request, blockchainId)
-   assert latestBlockNumber + 1 >= minBlocks, "Failed to add enough blocks for paging."
+      latestBlockNumber = getLatestBlockNumber(request, blockchainId)
+      assert latestBlockNumber + 1 >= minBlocks, "Failed to add enough blocks for paging."
 
 
 def getLatestBlockNumber(request, blockchainId):
@@ -98,25 +99,39 @@ def getLatestBlockNumber(request, blockchainId):
    return blockList["blocks"][0]["number"]
 
 
-def addBlocksAndSearchForThem(restRequest, blocksToAdd, pageSize):
+def addBlocks(request, blockchainId, numBlocks):
    '''
-   Adds blocksToAdd blocks and searches for them one pageSize
+   Adds numBlocks to the given blockchain.
+   Returns a list of transaction responses.
+   '''
+   ethrpcNode = getAnEthrpcNode(request, blockchainId)
+   txResponses = []
+
+   for i in range(numBlocks):
+      txResponse = (suiteObject._mock_transaction(request,
+                                                  data=decToEvenHex(i),
+                                                  ethrpcNode=ethrpcNode["rpc_url"]))
+      # Add the time so we can check the timestamp field of a block.
+      # It won't match exactly, obviously, but we can check that it's within a
+      # reasonable range.
+      txResponse["apiCallTime"] = int(time.time())
+
+      txResponses.append(txResponse)
+   return txResponses
+
+
+def addBlocksAndSearchForThem(request, blockchainId, numBlocks, pageSize):
+   '''
+   Adds numBlocks blocks and searches for them one pageSize
    of blocks at a time.  This calls a method which handles
    the asserts.
    '''
-   blockchainId = suiteObject.getABlockchainId(restRequest)
-   ethrpcNode = getAnEthrpcNode(restRequest, blockchainId)
-   txResponses = []
-   origBlockNumber = getLatestBlockNumber(restRequest, blockchainId)
-
-   for i in range(blocksToAdd):
-      txResponses.append(suiteObject._mock_transaction(restRequest,
-                                                       data=decToEvenHex(i),
-                                                       ethrpcNode=ethrpcNode["rpc_url"]))
-   newBlockNumber = getLatestBlockNumber(restRequest, blockchainId)
-   assert newBlockNumber - origBlockNumber == blocksToAdd, \
-      "Expected new block to have number {}.".format(origBlockNumber + blocksToAdd)
-   verifyBlocksWithPaging(restRequest, blockchainId, txResponses, pageSize)
+   origBlockNumber = getLatestBlockNumber(request, blockchainId)
+   txResponses = addBlocks(request, blockchainId, numBlocks)
+   newBlockNumber = getLatestBlockNumber(request, blockchainId)
+   assert newBlockNumber - origBlockNumber == numBlocks, \
+      "Expected new block to have number {}.".format(origBlockNumber + numBlocks)
+   verifyBlocksWithPaging(request, blockchainId, txResponses, pageSize)
 
 
 def verifyBlocksWithPaging(restRequest, blockchainId, txResponses, pageSize=None):
@@ -138,6 +153,22 @@ def verifyBlocksWithPaging(restRequest, blockchainId, txResponses, pageSize=None
          "Block number should be {}".format(blockNumber)
       assert block["url"] == blockUrl, \
          "Block url should be {}".format(blockUrl)
+
+      # The fields returned when specifying one block are different and
+      # are tested via the concord/blocks/{index} tests. Just sanity
+      # test here.
+      blockFromUrl = restRequest.getBlockByUrl(block["url"])
+      assert blockFromUrl["hash"] == blockHash, \
+         "Block retrived via URL has an incorrect hash"
+      assert blockFromUrl["number"] == blockNumber, \
+         "Block retrieved via URL has an incorrect number"
+      assert isinstance(blockFromUrl["transactions"], list), \
+         "'transactions' field is not a list."
+      present, missing = suiteObject.requireFields(blockFromUrl, ["number", "hash",
+                                                                  "parentHash", "nonce",
+                                                                  "size", "transactions",
+                                                                  "timestamp"])
+      assert present, "No '{}' field in block response.".format(missing)
 
 
 def findBlockWithPaging(restRequest, blockchainId, blockHash, pageSize):
@@ -184,6 +215,64 @@ def findBlockWithPaging(restRequest, blockchainId, blockHash, pageSize):
          blockList = restRequest.getBlockList(blockchainId, nextUrl=nextUrl, count=pageSize)
 
    return foundBlock
+
+
+def checkInvalidIndex(restRequest, blockchainId, index, messageContents):
+   '''
+   Check that we get an exception containing messageContents when passing
+   the given invalid index to concord/blocks/{index}.
+   '''
+   exceptionThrown = False
+   exception = None
+   block = None
+
+   try:
+      block = restRequest.getBlockByNumber(blockchainId, index)
+   except Exception as ex:
+      exceptionThrown = True
+      exception = ex
+
+   assert exceptionThrown, \
+      "Expected an error when requesting a block with invalid index '{}', instead received block {}.".format(index, block)
+   assert messageContents in str(exception), \
+      "Incorrect error message for invalid index '{}'.".format(index)
+
+
+def loadGenesisJson():
+   '''
+   Loads the genesis.json file that is used when launching via Docker.
+   Won't work when launching in a real environment.
+   '''
+   hermes = os.getcwd()
+   genFile = os.path.join(hermes, "..", "docker", "config-public", "genesis.json")
+   genObject = None
+
+   with open(genFile, "r") as f:
+      genObject = json.loads(f.read())
+
+   return genObject
+
+
+def checkTimestamp(expectedTime, actualTime):
+   '''
+   Checks that actualTime is near the expectedTime.  The buffer is to
+   account for clocks being out of sync on different systems.  We are
+   not testing the accuracy of the time; we are testing that the time
+   is generally appropriate.
+   '''
+   buff = 600
+   earliestTime = expectedTime - buff
+   earliestTimeString = epochToLegible(earliestTime)
+   latestTime = expectedTime + buff
+   latestTimeString = epochToLegible(latestTime)
+   actualTimeString = epochToLegible(actualTime)
+
+   assert actualTime >= earliestTime and actualTime <= latestTime, \
+      "Block's timestamp, '{}', was expected to be between '{}' and '{}'. (Converted: " \
+      "Block's timestamp, '{}', was expected to be between '{}' and '{}'.)".format(actualTime, \
+                                                                earliestTime, latestTime,
+                                                                actualTimeString, earliestTimeString,
+                                                                latestTimeString)
 
 
 # Runs all of the tests from helen_api_tests.py.
@@ -387,7 +476,8 @@ def test_newBlocks_onePage(restRequest):
    Add a bunch of blocks and get them all back in a page which is
    larger than the default.
    '''
-   addBlocksAndSearchForThem(restRequest, 11, 11)
+   blockchainId = suiteObject.getABlockchainId(restRequest)
+   addBlocksAndSearchForThem(restRequest, blockchainId, 11, 11)
 
 
 @pytest.mark.smoke
@@ -395,7 +485,8 @@ def test_newBlocks_spanPages(restRequest):
    '''
    Add multiple blocks and get them all back via checking many small pages.
    '''
-   addBlocksAndSearchForThem(restRequest, 5, 2)
+   blockchainId = suiteObject.getABlockchainId(restRequest)
+   addBlocksAndSearchForThem(restRequest, blockchainId, 5, 2)
 
 
 @pytest.mark.smoke
@@ -424,7 +515,7 @@ def test_pageSize_exceedsBlockCount(restRequest):
 
 
 @pytest.mark.smoke
-def test_latest_negative(restRequest):
+def test_paging_latest_negative(restRequest):
    blockchainId = suiteObject.getABlockchainId(restRequest)
    ensureEnoughBlocksForPaging(restRequest, blockchainId)
    highestBlockNumber = getLatestBlockNumber(restRequest, blockchainId)
@@ -434,10 +525,162 @@ def test_latest_negative(restRequest):
 
 
 @pytest.mark.smoke
-def test_latest_exceedsBlockCocunt(restRequest):
+def test_paging_latest_exceedsBlockCount(restRequest):
    blockchainId = suiteObject.getABlockchainId(restRequest)
    ensureEnoughBlocksForPaging(restRequest, blockchainId)
    highestBlockNumber = getLatestBlockNumber(restRequest, blockchainId)
    result = restRequest.getBlockList(blockchainId, latest=highestBlockNumber+1)
    assert result["blocks"][0]["number"] == highestBlockNumber, \
       "Expected the latest block to be {}".format(highestBlockNumber)
+
+
+@pytest.mark.smoke
+def test_blockIndex_negative(restRequest):
+   blockchainId = suiteObject.getABlockchainId(restRequest)
+   checkInvalidIndex(restRequest, blockchainId, -1, "Invalid block number or hash")
+
+
+@pytest.mark.smoke
+def test_blockIndex_outOfRange(restRequest):
+   blockchainId = suiteObject.getABlockchainId(restRequest)
+   latestBlockNumber = getLatestBlockNumber(restRequest, blockchainId)
+   checkInvalidIndex(restRequest, blockchainId, latestBlockNumber+1, "block not found")
+
+
+# @pytest.mark.smoke
+# %5c (backslash) causes HTTP/1.1 401 Unauthorized.  Why?  Is that a bug?
+# Filed as VB-800.
+# def test_blockIndex_backslash(restRequest):
+#    blockchainId = suiteObject.getABlockchainId(restRequest)
+#    checkInvalidIndex(restRequest, blockchainId, "%5c", "Invalid block number or hash")
+
+
+@pytest.mark.smoke
+def test_blockIndex_atSymbol(restRequest):
+   blockchainId = suiteObject.getABlockchainId(restRequest)
+   checkInvalidIndex(restRequest, blockchainId, "%40", "Invalid block number or hash")
+
+
+@pytest.mark.smoke
+def test_blockIndex_word(restRequest):
+   blockchainId = suiteObject.getABlockchainId(restRequest)
+   checkInvalidIndex(restRequest, blockchainId, "elbow", "Invalid block number or hash")
+
+
+@pytest.mark.smoke
+def test_blockIndex_zero(restRequest):
+   '''
+   This test case will only work when running locally, such as a dev/
+   CI/CD environment.  It's being run because block 0 is a special case:
+   - Block 0 is the only block (today anyway) in the VMware Blockchain
+     system which can contain multiple transactions, and we want to test
+     that.
+   - Block 0's timestamp is not created the same way as the others.
+   - Block 0 is created from genesis.json.  e.g. Some accounts are
+     preloaded with ether.
+   '''
+   genObject = loadGenesisJson()
+   blockchainId = suiteObject.getABlockchainId(restRequest)
+   block = restRequest.getBlockByNumber(blockchainId, 0)
+   foundAccounts = []
+   expectedNonce = 0
+
+   assert block["number"] == 0, "Block 0's number was not 0"
+   assert block["size"] == 1, "Block 0's size was '{}', expected 1".format(block["size"])
+   assert int(block["parentHash"], 16) == 0, \
+      "Block 0's parent hash was '{}', expected 0".format(block["parentHash"])
+   assert int(block["nonce"], 16) == 0, \
+      "Block 0's nonce was '{}', expected 0".format(block["nonce"])
+   # VB-801: Block 0's timestamp is 0.
+   # assert block["timestamp"] == ...
+
+   assert len(block["transactions"]) == len(genObject["alloc"]), \
+      "The number of transactions in block 0 does not match the number in genesis.json."
+
+   for tx in block["transactions"]:
+      expectedUrl = "/api/concord/transactions/" + tx["hash"]
+      assert tx["url"] == expectedUrl, \
+         "Transaction url in block 0 was {}, expected {}".format(tx["url"], expectedUrl)
+
+      # Look up the transaction in block 0 and save its recipient.  Later, we will
+      # verify that the accounts in genesis.json which have pre-allocated accounts
+      # match the recipients in the transactions in block 0.
+      fullTx = restRequest.getTransaction(tx["hash"])
+      foundAccounts.append(trimHexIndicator(fullTx["to"]))
+
+      assert fullTx["block_number"] == 0, \
+         "Transaction in block 0 is listed as being in {}".format(fullTx["block_number"])
+      assert int(fullTx["from"], 16) == 0, \
+         "Expected initial alloc of ether to be from account 0"
+      assert fullTx["hash"] == tx["hash"], \
+         "Hash field in transaction {} was {}".format(tx["hash"], fullTx["hash"])
+      assert fullTx["status"] == 1, "Expected a status of 1"
+
+      # Genesis.json specifies the opening balance in hex and dec.
+      expectedBalance = genObject["alloc"][trimHexIndicator(fullTx["to"])]["balance"]
+      if expectedBalance.startswith("0x"):
+         expectedBalance = int(expectedBalance, 16)
+      else:
+         expectedBalance = int(expectedBalance)
+      assert expectedBalance == int(fullTx["value"], 16), \
+         "Expected balance to be '{}', was '{}'".format(expectedBalance, fullTx["value"])
+
+      assert fullTx["nonce"] == expectedNonce, \
+         "Expected block 0 transaction to have nonce '{}'".format(expectedNonce)
+      expectedNonce += 1
+
+   expectedAccounts = list(genObject["alloc"].keys())
+   assert sorted(expectedAccounts) == sorted(foundAccounts), \
+      "In block 0, expected accounts {} not equal to found accounts {}".format(expectedAccounts, foundAccounts)
+
+
+@pytest.mark.smoke
+def test_blockIndex_basic(restRequest):
+   '''
+   Add a few blocks, fetch them by block index, and check the fields.
+   Getting a block by index returns:
+   {
+     "number": 0,
+     "hash": "string",
+     "parentHash": "string",
+     "nonce": "string",
+     "size": 0,
+     "timestamp": 0,
+     "transactions": [
+       "string"
+     ]
+   }
+   '''
+   numBlocks = 3
+   blockchainId = suiteObject.getABlockchainId(restRequest)
+   txResponses = addBlocks(restRequest, blockchainId, numBlocks)
+   parentHash = None
+
+   for txResponse in txResponses:
+      block = restRequest.getBlockByNumber(blockchainId, int(txResponse["blockNumber"], 16))
+      assert block["number"] == int(txResponse["blockNumber"], 16), "Number is not correct."
+      assert block["hash"] == txResponse["blockHash"], "Hash is not correct."
+
+      if parentHash:
+         assert block["parentHash"] == parentHash, "Parent hash is not correct."
+
+      # This block's hash is the parentHash of the next one.
+      parentHash = block["hash"]
+         
+      # The block nonce is not used, but it is required for compliance.
+      assert int(block["nonce"], 16) == 0
+
+      # Block size is always 1 right now.  Investigate.  Not a Helen issue though.
+      # Internet searches say Ethereum block size has to do with gas, not the
+      # size of something in bytes.
+      assert block["size"] == 1
+
+      checkTimestamp(txResponse["apiCallTime"], block["timestamp"])
+
+      # We have one transaction per block, except block 0, which is handled
+      # in a different use case.
+      assert len(block["transactions"]) == 1, \
+         "Expected one transaction per block (except block zero)"
+      assert txResponse["transactionHash"] == block["transactions"][0]["hash"], \
+         "The block's transaction hash does not match the transaction hash " \
+         "given when the block was added."
