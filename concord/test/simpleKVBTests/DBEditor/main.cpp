@@ -10,6 +10,8 @@
 // notices and license terms. Your use of these subcomponents is subject to the
 // terms and conditions of the subcomponent's license, as noted in the LICENSE
 // file.
+// This module provides an ability for offline DB modifications for a specific
+// replica.
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,7 +52,7 @@ void setupDBEditorParams(int argc, char **argv) {
   }
 }
 
-int modifyDB() {
+int removeLastDBBlock() {
   int res = 0;
   BlockId lastBlockId = bcDBAdapter->getLastReachableBlock();
   if (lastBlockId == BasicRandomTests::FIRST_KVB_BLOCK) {
@@ -95,7 +97,7 @@ int main(int argc, char **argv) {
   dbClient->init();
   bcDBAdapter = new BlockchainDBAdapter(dbClient);
 
-  int res = modifyDB();
+  int res = removeLastDBBlock();
   string result = res ? "fail" : "success";
   LOG_INFO(logger, "Operation completed with result: " << result);
 

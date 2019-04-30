@@ -40,8 +40,13 @@ void RocksDBMetadataStorage::read(uint16_t objectId, uint32_t bufferSize,
   Status status =
       dbClient_->get(KeyManipulator::generateMetadataKey(objectId),
                      outBufferForObject, bufferSize, outActualObjectSize);
+  if (status.isNotFound()) {
+    memset(outBufferForObject, 0, bufferSize);
+    outActualObjectSize = bufferSize;
+    return;
+  }
   if (!status.isOK()) {
-    throw runtime_error("RocksDB get failed");
+    throw runtime_error("RocksDB get operation failed");
   }
 }
 
@@ -54,7 +59,7 @@ void RocksDBMetadataStorage::atomicWrite(uint16_t objectId, char *data,
   Status status = dbClient_->put(KeyManipulator::generateMetadataKey(objectId),
                                  Sliver(dataCopy, dataLength));
   if (!status.isOK()) {
-    throw runtime_error("RocksDB put failed");
+    throw runtime_error("RocksDB put operation failed");
   }
 }
 
@@ -94,7 +99,7 @@ void RocksDBMetadataStorage::commitAtomicWriteOnlyTransaction() {
   }
   Status status = dbClient_->multiPut(*transaction_);
   if (!status.isOK()) {
-    throw runtime_error("RocksDB multiPut failed");
+    throw runtime_error("RocksDB multiPut operation failed");
   }
   delete transaction_;
 }
