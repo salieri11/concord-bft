@@ -31,7 +31,18 @@ generate_py_grpc_bindings() {
             mkdir -p "${GRPC_PYTHON_DEST_DIR}"
         fi
         echo "Generating python bindings..."
-        /usr/bin/python3 -m grpc_tools.protoc -I="${PROTOBUF_SRC_DIR}" --python_out="${GRPC_PYTHON_DEST_DIR}" --grpc_python_out="${GRPC_PYTHON_DEST_DIR}" "${PROTOBUF_SRC_DIR}"/*.proto
+        if [ -z "${python}" ]
+        then
+            python=/usr/bin/python3
+        fi
+        "${python}" -m grpc_tools.protoc -I="${PROTOBUF_SRC_DIR}" --python_out="${GRPC_PYTHON_DEST_DIR}" --grpc_python_out="${GRPC_PYTHON_DEST_DIR}" "${PROTOBUF_SRC_DIR}"/*.proto
+        RC=$?
+        if [ "${RC}" -ne "0" ]
+        then
+            echo "Creation of python gRPC bindings failed."
+            echo "Possible reason: grpcio & grpcio-tools are not installed (pip3 install grpcio grpcio-tools)"
+            exit 1
+        fi
     fi
 }
 
