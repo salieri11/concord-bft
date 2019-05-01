@@ -1,0 +1,38 @@
+# apiVersion: extensions/v1beta1
+# kind: Ingress
+# metadata:
+#   name: fleet-management
+#   annotations:
+#       kubernetes.io/ingress.class: "nginx-l4-ext"
+#       ingress.kubernetes.io/ssl-passthrough: “true”
+#       nginx.ingress.kubernetes.io/ssl-passthrough: “true”
+#       nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+# spec:
+#   tls:
+#   - hosts:
+#     - fleet-management.us-west-2.vdp-stg.vmware.com
+#     secretName: fleet-secret
+#   rules:
+#   - host: fleet-management.us-west-2.vdp-stg.vmware.com
+#     http:
+#       paths:
+#       - backend:
+#           serviceName: fleet-management
+#           servicePort: 9001
+# ----
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: fleet-management
+  annotations:
+      kubernetes.io/ingress.class: "vdp-nginx-l7-ext"
+      nginx.ingress.kubernetes.io/grpc-backend: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: "GRPC"
+spec:
+  rules:
+  - host: fleet-management.us-west-2.vdp-stg.vmware.com
+    http:
+      paths:
+      - backend:
+          serviceName: fleet-management
+          servicePort: 9002
