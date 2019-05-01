@@ -131,8 +131,6 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         }
 
         // Persist the finality of the task, success or failure.
-        // FIXME: a simple put (taskService.put(task)) should be enough. But for some reason task
-        //   doesn't get updated.
         taskService.merge(task, m -> {
             // if the latest entry is in completed, don't change anything
             if (m.getState() != Task.State.SUCCEEDED && m.getState() != Task.State.FAILED) {
