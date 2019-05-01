@@ -35,7 +35,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
     private AuthHelper authHelper;
     private BlockchainService blockchainService;
     private TaskService taskService;
-    private Task task;
+    private UUID taskId;
     private final List<NodeEntry> nodeList = new ArrayList<>();
     private DeploymentSession.Status status = DeploymentSession.Status.UNKNOWN;
     private UUID clusterId;
@@ -45,17 +45,17 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
      * process.
      * @param blockchainService Blockchain service
      * @param taskService       Task service
-     * @param task              The task we are reporting this on.
+     * @param taskId            The task ID we are reporting this on.
      */
     public BlockchainObserver(
             AuthHelper authHelper,
             BlockchainService blockchainService,
             TaskService taskService,
-            Task task) {
+            UUID taskId) {
         this.authHelper = authHelper;
         this.blockchainService = blockchainService;
         this.taskService = taskService;
-        this.task = task;
+        this.taskId = taskId;
         auth = SecurityContextHolder.getContext().getAuthentication();
     }
 
@@ -64,7 +64,6 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         logger.info("On Next: {}", value.getType());
         // Set auth in this thread to whoever invoked the observer
         SecurityContextHolder.getContext().setAuthentication(auth);
-        task.setMessage(value.getType().name());
 
         switch (value.getType()) {
             case CLUSTER_DEPLOYED:
@@ -87,14 +86,13 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         }
 
         // Persist the current state of the task.
-        task = taskService.merge(task, m -> {
+        final Task task = taskService.get(taskId);
+        // Not clear if we need the merge here,
+        taskService.merge(task, m -> {
             // if the latest entry is in completed, don't change anything
             if (m.getState() != Task.State.SUCCEEDED && m.getState() != Task.State.FAILED) {
                 // Otherwise, set the fields
-                m.setMessage(task.getMessage());
-                m.setResourceId(task.getResourceId());
-                m.setResourceLink(task.getResourceLink());
-                m.setState(task.getState());
+                m.setMessage(value.getType().name());
             }
         });
         SecurityContextHolder.getContext().setAuthentication(null);
@@ -119,6 +117,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         SecurityContextHolder.getContext().setAuthentication(auth);
         // Just log this.  Looking to see how often this happens.
         logger.info("On Completed");
+        final Task task = taskService.get(taskId);
         task.setMessage("Operation finished");
 
         if (status == DeploymentSession.Status.SUCCESS) {
@@ -132,8 +131,6 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
         }
 
         // Persist the finality of the task, success or failure.
-        // FIXME: a simple put (taskService.put(task)) should be enough. But for some reason task
-        //   doesn't get updated.
         taskService.merge(task, m -> {
             // if the latest entry is in completed, don't change anything
             if (m.getState() != Task.State.SUCCEEDED && m.getState() != Task.State.FAILED) {
