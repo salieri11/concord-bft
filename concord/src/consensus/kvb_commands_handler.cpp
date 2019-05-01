@@ -616,7 +616,8 @@ bool KVBCommandsHandler::handle_block_request(ConcordRequest &athreq,
 
     // TODO: We're not mining, so nonce is mostly irrelevant. Maybe there will
     // be something relevant from KVBlockchain to put in here?
-    response->set_nonce(zero_hash.bytes, sizeof(evm_uint256be));
+    // Note the proof of work nonce for Ethereum is 8 bytes.
+    response->set_nonce(zero_hash.bytes, sizeof(uint64_t));
 
     // TODO: This is supposed to be "the size of this block in bytes". This is
     // a sum of transaction inputs, storage updates, log events, and maybe
