@@ -80,8 +80,8 @@ fun main(args: Array<String>) {
                         ConcordNodeIdentifier(it.mostSignificantBits, it.leastSignificantBits)
                     },
                     ConcordModelSpecification(
-                            version = "123",
-                            template = "photon-2.0",
+                            version = "photon-3.0-64",
+                            template = "5b7eac22-976e-47fa-a000-1e09020a1c5d",
                             components = listOf(
                                     ConcordComponent(
                                             ConcordComponent.Type.DOCKER_IMAGE,

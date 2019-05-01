@@ -42,6 +42,11 @@ enum class Endpoints(
     VSPHERE_AUTHENTICATION("/rest/com/vmware/cis/session", emptySet()),
     VSPHERE_DATASTORES("/rest/vcenter/datastore", setOf("filter.names")),
     VSPHERE_FOLDERS("/rest/vcenter/folder", setOf("filter.type", "filter.names")),
+    VSPHERE_CONTENT_LIBRARY_ITEM(
+            "/rest/com/vmware/content/library/item",
+            setOf("~action"),
+            emptySet()
+    ),
     VSPHERE_RESOURCE_POOLS("/rest/vcenter/resource-pool", setOf("filter.hosts", "filter.names")),
     VSPHERE_OVF_LIBRARY_ITEM(
             "/rest/com/vmware/vcenter/ovf/library-item/id:{library_item}",
