@@ -41,7 +41,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       )
       return placement_specification
 
-   def create_deployment_specificaion(self, cluster_size, model, placement):
+   def create_deployment_specification(self, cluster_size, model, placement):
       '''
       Helper method to create deployment specification
       :param cluster_size: Number of concord members on the cluster cluster

@@ -48,8 +48,12 @@ class RPCTestHelper():
             compose_data = yaml.load(yaml_file)
 
          services = list(compose_data["services"])
-         if service_name in services:
-            ports = compose_data['services'][service_name]['ports']
+         if '/' in service_name:
+            tmp_service_name = service_name.split('/')[1]
+         else:
+            tmp_service_name = service_name
+         if tmp_service_name in services:
+            ports = compose_data['services'][tmp_service_name]['ports']
             port = ports[0].split(':')[0]
          else:
             raise Exception(
@@ -93,7 +97,7 @@ class RPCTestHelper():
       concord_model_specification = self.model_rpc_helper.create_concord_model_specification()
       placement_specification = self.provision_rpc_helper.create_placement_specification(
          cluster_size)
-      concord_deployment_specification = self.provision_rpc_helper.create_deployment_specificaion(
+      concord_deployment_specification = self.provision_rpc_helper.create_deployment_specification(
          cluster_size, concord_model_specification, placement_specification)
       header = core_pb2.MessageHeader()
       create_cluster_request = self.provision_rpc_helper.create_cluster_request(

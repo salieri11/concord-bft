@@ -51,10 +51,11 @@ class Product():
    userProductConfig = None
    _servicesToLogLater = ["db-server-init1", "db-server-init2", "fluentd"]
    _numProductStarts = 0
+   docker_env = helper.get_docker_env()
 
-   PERSEPHONE_SERVICE_METADATA = helper.get_docker_env("persephone_metadata_repo")
-   PERSEPHONE_SERVICE_PROVISIONING = helper.get_docker_env("persephone_provisioning_repo")
-   # PERSEPHONE_SERVICE_FLEET = helper.get_docker_env("persephone_fleet_repo")
+   PERSEPHONE_SERVICE_METADATA = docker_env["persephone_metadata_repo"]
+   PERSEPHONE_SERVICE_PROVISIONING = docker_env["persephone_provisioning_repo"]
+   # PERSEPHONE_SERVICE_FLEET = docker_env["persephone_fleet_repo"]
 
    def __init__(self, cmdlineArgs, userConfig):
       self._cmdlineArgs = cmdlineArgs
@@ -62,7 +63,7 @@ class Product():
       self.userProductConfig = userConfig["product"]
       self._productLogsDir = os.path.join(self._cmdlineArgs.resultsDir, PRODUCT_LOGS_DIR)
       pathlib.Path(self._productLogsDir).mkdir(parents=True, exist_ok=True)
-      self._docker_env_file = ".env"
+      # self._docker_env_file = ".env"
       self.concordNodesDeployed = []
 
 
@@ -114,11 +115,11 @@ class Product():
          log.error("Attempt to launch the product failed. Exception: '{}'"
                    .format(str(e)))
 
-         log.info("Stopping whatever was launched and attempting to launch again.")
+         log.info("Stopping whatever was launched")
          self.stopPersephone()
 
       if not launched:
-         raise Exception("Failed to launch the product Exiting")
+         raise Exception("Failed to launch the product. Exiting")
 
 
    def validatePaths(self, paths):
@@ -154,7 +155,7 @@ class Product():
                newCfg = yaml.load(f)
                self.mergeDictionaries(dockerCfg, newCfg)
 
-         self.copyEnvFile()
+         helper.copy_docker_env_file()
 
          if not self._cmdlineArgs.keepconcordDB:
             self.clearDBsForDockerLaunch(dockerCfg)
@@ -180,8 +181,8 @@ class Product():
                newCfg = yaml.load(f)
                self.mergeDictionaries(dockerCfg, newCfg)
 
-         self.copyEnvFile()
-         self._startContainers()
+         helper.copy_docker_env_file()
+         self._startContainers(product="persephone")
          self._startLogCollection()
 
          for dockerComposeFile in self._cmdlineArgs.dockerComposeFile:
@@ -196,7 +197,7 @@ class Product():
          raise Exception("The docker compose file list contains an invalid value.")
 
 
-   def _startContainers(self):
+   def _startContainers(self, product="concord"):
       cmd = ["docker-compose"]
 
       for cfgFile in self._cmdlineArgs.dockerComposeFile:
@@ -207,7 +208,7 @@ class Product():
 
       # We capture output in individual services' logs now, but still capture
       # all output just in case.
-      bigLog = self._openLog("concord_" + str(Product._numProductStarts))
+      bigLog = self._openLog("{}_".format(product) + str(Product._numProductStarts))
       p = subprocess.Popen(cmd,
                            stdout=bigLog,
                            stderr=subprocess.STDOUT)
@@ -359,14 +360,6 @@ class Product():
          log.info("  None were found.")
 
       return members
-
-
-   def copyEnvFile(self):
-      # This file contains variables fed to docker-compose.yml.  It is picked up from the
-      # location of the process which invokes docker compose.
-      if not os.path.isfile(self._docker_env_file):
-         log.debug("Copying {} file from docker/".format(self._docker_env_file))
-         shutil.copyfile(os.path.join("../docker/", self._docker_env_file), self._docker_env_file)
 
 
    def clearconcordDBForCmdlineLaunch(self, concordSection, serviceName=None):
@@ -747,17 +740,17 @@ class Product():
       Stops the product executables and closes the logs.
       '''
       container_ids = self.getRunningContainerIds("persephone")
-      print ("Container IDs found: {0}".format(container_ids))
+      log.info("Container IDs found: {0}".format(container_ids))
 
       for container_id in container_ids:
          if container_id:
-            print("Terminating container ID: {0}".format(container_id))
+            log.info("Terminating container ID: {0}".format(container_id))
             if not self.stopDockerContainer(container_id):
                raise Exception("Failure trying to stop docker container.")
 
-      for log in self._logs[:]:
-         log.close()
-         self._logs.remove(log)
+      for l in self._logs[:]:
+         l.close()
+         self._logs.remove(l)
 
 
    def _waitForProductStartup(self):
@@ -810,19 +803,29 @@ class Product():
       '''
       Check if all microservices of persephone are up
       '''
+      retries = 5
+      attempts = 0
+      sleepTime = 3
       log_filename = "{}.log".format(
          service + "_" + str(Product._numProductStarts))
       log_file = os.path.join(self._productLogsDir, log_filename)
-      time.sleep(5)
-      with open(log_file) as f:
-         persephone_log = f.read()
-         log.debug(persephone_log)
-         if "Service instance initialized" in persephone_log:
-            log.info("Microservice '{}' started successfully!".format(service))
-            return True
-         if "port is already allocated" in persephone_log:
-            log.error("\n**** persephone server is already running. "
-                      "Check logs for more info")
+      while attempts < retries:
+         with open(log_file) as f:
+            persephone_log = f.read()
+            log.debug(persephone_log)
+            if "Service instance initialized" in persephone_log:
+               log.info("Microservice '{}' started successfully!".format(service))
+               return True
+            if "port is already allocated" in persephone_log:
+               log.error("\n**** persephone server is already running. "
+                         "Check logs for more info")
+               return False
+
+         attempts += 1
+         log.info(
+            "Waiting for {} seconds to check again if persephone micro-services are up...".format(
+               sleepTime))
+         time.sleep(sleepTime)
 
       return False
 
