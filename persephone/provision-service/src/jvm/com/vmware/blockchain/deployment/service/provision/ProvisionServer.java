@@ -72,7 +72,7 @@ interface ProvisionServer {
                         true, /* strictMode */
                         false, /* unquoted */
                         false, /* prettyPrint */
-                        "", /* indent */
+                        "    ", /* indent */
                         false, /* useArrayPolymorphism */
                         "type", /* classDiscriminator */
                         UpdateMode.OVERWRITE /* updateMode */

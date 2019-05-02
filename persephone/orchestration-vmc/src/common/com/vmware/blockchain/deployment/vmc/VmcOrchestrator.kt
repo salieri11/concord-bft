@@ -35,6 +35,7 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator
 import com.vmware.blockchain.deployment.orchestration.randomSubnet
 import com.vmware.blockchain.deployment.orchestration.toIPv4Address
 import com.vmware.blockchain.deployment.reactive.Publisher
+import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -172,6 +173,11 @@ class VmcOrchestrator private constructor(
     /** Parent [Job] of all coroutines associated with this instance's operation. */
     private val job: Job = SupervisorJob()
 
+    /** TEMPORARY WORK-AROUND FOR STATIC PRIVATE IP ALLOCATION. */
+    // Assume DHCP starts at beginning subnet range and ends at 1/2 the range.
+    private val staticIpGateway = info.controlNetworkPrefix + 1
+    private val staticIpCounter = atomic(staticIpGateway + (1 shl (32-info.controlNetworkSubnet-1)))
+
     override fun close() {
         job.cancel()
     }
@@ -215,7 +221,9 @@ class VmcOrchestrator private constructor(
                                     info.containerRegistry,
                                     request.model,
                                     request.genesis,
-                                    request.configuration
+                                    request.configuration,
+                                    toIPv4Address(staticIpCounter.getAndDecrement()),
+                                    toIPv4Address(staticIpGateway)
                             )
                     )
 
@@ -275,13 +283,24 @@ class VmcOrchestrator private constructor(
         return publish<Orchestrator.NetworkResourceEvent>(coroutineContext) {
             withTimeout(ORCHESTRATOR_TIMEOUT_MILLIS) {
                 try {
+                    // FIXME: Workaround to allow Concord to communicate via private IP instead of
+                    //   public IP. Remove this once VMC networking allows hair-pinned NAT traffic
+                    //   using VM's public IP address.
+                    val privateIp = staticIpCounter.getAndIncrement()
+                    send(Orchestrator.NetworkResourceEvent.Created(
+                            URI.create(toIPv4Address(privateIp)),
+                            request.name,
+                            toIPv4Address(privateIp),
+                            false))
+
                     val publicIp = createPublicIP(request.name)
                     publicIp?.takeIf { it.ip != null }
                             ?.apply {
                                 send(Orchestrator.NetworkResourceEvent.Created(
                                         this.toNetworkResource(),
                                         request.name,
-                                        ip!!))
+                                        ip!!,
+                                        true))
                                 close()
                             }
                             ?: close(Orchestrator.ResourceCreationFailedException(request))

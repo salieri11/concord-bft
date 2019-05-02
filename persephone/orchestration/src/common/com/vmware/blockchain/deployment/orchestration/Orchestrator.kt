@@ -117,7 +117,8 @@ interface Orchestrator {
         data class Created(
             override val resource: URI,
             val name: String,
-            val address: String
+            val address: String,
+            val public: Boolean
         ) : NetworkResourceEvent()
         data class Deleted(override val resource: URI) : NetworkResourceEvent()
     }
