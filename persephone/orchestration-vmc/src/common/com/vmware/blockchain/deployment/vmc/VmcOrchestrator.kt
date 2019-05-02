@@ -24,6 +24,9 @@ import com.vmware.blockchain.deployment.model.vsphere.OvfParameter
 import com.vmware.blockchain.deployment.model.vsphere.OvfParameterTypes
 import com.vmware.blockchain.deployment.model.vsphere.OvfProperty
 import com.vmware.blockchain.deployment.model.vmc.Sddc
+import com.vmware.blockchain.deployment.model.vsphere.LibraryItemFindRequest
+import com.vmware.blockchain.deployment.model.vsphere.LibraryItemFindResponse
+import com.vmware.blockchain.deployment.model.vsphere.LibraryItemFindSpec
 import com.vmware.blockchain.deployment.model.vsphere.VirtualMachineGuestIdentityInfo
 import com.vmware.blockchain.deployment.model.vsphere.VirtualMachineGuestIdentityResponse
 import com.vmware.blockchain.deployment.model.vsphere.VirtualMachinePowerResponse
@@ -674,16 +677,27 @@ class VmcOrchestrator private constructor(
     /**
      * Get ID of the specified content library item based on name.
      *
-     * @param[name]
-     *   name of the library item.
+     * @param[sourceId]
+     *   unique ID of the library item as declared by publishing source.
      *
      * @return
      *   ID of the library item as a [String], if found.
      */
-    private suspend fun getLibraryItem(name: String): String? {
-        // TODO: Finish integration work with Content Library API.
-        // return "f4ccb861-6716-4e08-b58d-323977f13aab"
-        return "dad738c1-43d8-4138-8fcc-52a7d86ff52b"
+    private suspend fun getLibraryItem(sourceId: String): String? {
+        return vSphere
+                .post<LibraryItemFindRequest, LibraryItemFindResponse>(
+                        path = Endpoints.VSPHERE_CONTENT_LIBRARY_ITEM
+                                .interpolate(parameters = listOf("~action" to "find")),
+                        contentType = "application/json",
+                        headers = emptyList(),
+                        body = LibraryItemFindRequest(
+                                spec = LibraryItemFindSpec(source_id = sourceId)
+                        )
+                )
+                .takeIf { it.statusCode() == 200 }
+                ?.body()
+                ?.value
+                ?.first()
     }
 
     /**

@@ -138,8 +138,11 @@ public class ProvisionServiceClient {
                             "0000a12b3f3d6c9b0d3f126a83ec2dd3dad15f39", new Genesis.Wallet("0x7fffffffffffffff")
                     )
             );
-            ConcordModelSpecification spec =
-                    new ConcordModelSpecification("20190401.1", "photon-3.0-64", components);
+            ConcordModelSpecification spec = new ConcordModelSpecification(
+                    "photon-3.0-64",
+                    "5b7eac22-976e-47fa-a000-1e09020a1c5d",
+                    components
+            );
             DeploymentSpecification deploySpec =
                     new DeploymentSpecification(cluster_size, spec, placementSpec, genesis);
             var request = new CreateClusterRequest (new MessageHeader(), deploySpec );
