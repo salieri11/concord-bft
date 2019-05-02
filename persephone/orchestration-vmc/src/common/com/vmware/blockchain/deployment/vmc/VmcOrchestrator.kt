@@ -719,8 +719,9 @@ class VmcOrchestrator private constructor(
                         accept_all_EULA = true,
                         default_datastore_id = datastore,
                         network_mappings = listOf(
-                                NetworkMapping("control-network", controlNetwork),
-                                NetworkMapping("data-network", dataNetwork)
+                                // NetworkMapping("control-network", controlNetwork),
+                                /* NetworkMapping("data-network", dataNetwork)*/
+                                NetworkMapping("blockchain-network", controlNetwork)
                         ),
                         additional_parameters = listOf(
                                 OvfParameter(

@@ -140,7 +140,8 @@ public class ProvisionServiceClient {
             );
             ConcordModelSpecification spec = new ConcordModelSpecification(
                     "photon-3.0-64",
-                    "5b7eac22-976e-47fa-a000-1e09020a1c5d",
+                    // "5b7eac22-976e-47fa-a000-1e09020a1c5d",
+                    "8abc7fda-9576-4b13-9beb-06f867cf2c7c",
                     components
             );
             DeploymentSpecification deploySpec =
