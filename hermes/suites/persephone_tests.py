@@ -85,15 +85,10 @@ class PersephoneTests(test_suite.TestSuite):
    def _get_tests(self):
       return [
          ("add_model", self._test_add_model),
-         ("list_models", self._test_list_models)
+         ("list_models", self._test_list_models),
+         ("create_cluster", self._test_create_cluster),
+         ("stream_deployment_events", self._test_stream_deployment_events)
       ]
-
-      # return [
-      #    ("add_model", self._test_add_model),
-      #    ("list_models", self._test_list_models),
-      #    ("create_cluster", self._test_create_cluster),
-      #    ("stream_deployment_events", self._test_stream_deployment_events)
-      # ]
 
    def get_json_object(self, message_obj):
       if isinstance(message_obj, (list,)):

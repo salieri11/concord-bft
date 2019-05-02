@@ -153,11 +153,7 @@ class AssetTransferTests(test_suite.TestSuite):
 
    def _test_asset_transfer(self, fileRoot):
       ''' Tests if AssetTransfer can be deployed using the docker container '''
-      env = {}
-      with open(self.product._docker_env_file) as myfile:
-         for line in myfile:
-            key, val = line.partition("=")[::2]
-            env[key.strip()] = val.strip()
+      env = self.product.docker_env
 
       asset_transfer_repo = env["asset_transfer_repo"]
       asset_transfer_tag = env["asset_transfer_tag"]
