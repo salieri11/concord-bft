@@ -189,10 +189,10 @@ class VmcOrchestrator private constructor(
                     val getDatastore = async { getDatastore() }
                     val getResourcePool = async { getResourcePool(name = info.resourcePool) }
                     val ensureControlNetwork = async {
-                        ensureLogicalNetwork("cgw", "blockchain-control", 0x0A010000, 16, 16)
+                        ensureLogicalNetwork("cgw", "vmware-vpn", 0x0A010000, 16, 16)
                     }
                     val ensureReplicaNetwork = async {
-                        ensureLogicalNetwork("cgw", "blockchain-data", 0x0AFF0000, 16)
+                        ensureLogicalNetwork("cgw", "vmware-vpn", 0x0AFF0000, 16)
                     }
                     val getLibraryItem = async { getLibraryItem(request.model.template) }
 
