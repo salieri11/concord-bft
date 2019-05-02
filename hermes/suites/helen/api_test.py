@@ -28,6 +28,9 @@ apiTests = []
 # So the pytest fixture will display sensible names.
 apiTestNames = []
 
+# HelloWorld.sol's hello function
+helloFunction = "0x19ff1d21"
+
 # Ideally this would be a fixture.  However, fixtures and
 # parametrize decorations don't play well together.  (There
 # are threads about it.) So just brute force run this code
@@ -42,19 +45,16 @@ with open("pickled_helen_api_tests", "rb") as f:
 @pytest.fixture
 def restRequest(request):
    '''
-   This returns a Request object.  The accepted parameter, "request",
+   This returns a Hermes Request object.  The accepted parameter, "request",
    is an internal PyTest name and must be that.
-   The name of the function is what we get in a test case.
    '''
-   # Format: suites/helen/api_test.py::test_blockchains_fields (setup)
    longName = os.environ.get('PYTEST_CURRENT_TEST')
    shortName = longName[longName.rindex(":")+1:longName.rindex(" ")]
    testLogDir = os.path.join(suiteObject._testLogDir, shortName)
-   actualRequest = Request(testLogDir,
-                           shortName,
-                           suiteObject.reverseProxyApiBaseUrl,
-                           suiteObject._userConfig)
-   return actualRequest
+   return Request(testLogDir,
+                  shortName,
+                  suiteObject.reverseProxyApiBaseUrl,
+                  suiteObject._userConfig)
 
 
 def getAnEthrpcNode(request, blockchainId):
@@ -91,6 +91,14 @@ def ensureEnoughBlocksForPaging(request, blockchainId):
       assert latestBlockNumber + 1 >= minBlocks, "Failed to add enough blocks for paging."
 
 
+def getLatestBlock(request, blockchainId):
+   '''
+   Returns the latest block on the given blockchain.
+   '''
+   blockNumber = getLatestBlockNumber(request, blockchainId)
+   return request.getBlockByNumber(blockchainId, blockNumber)
+
+
 def getLatestBlockNumber(request, blockchainId):
    '''
    Returns the newest block's number for the passed in blockchain.
@@ -99,25 +107,43 @@ def getLatestBlockNumber(request, blockchainId):
    return blockList["blocks"][0]["number"]
 
 
-def addBlocks(request, blockchainId, numBlocks):
+def addBlocks(request, rpc, blockchainId, numIterations, invokeContracts=False):
    '''
-   Adds numBlocks to the given blockchain.
-   Returns a list of transaction responses.
+   Adds blocks to the given blockchain.
+   numIterations: How many times to loop.  How many blocks you get depends on the value
+      of invokeContracts. (n or 2n)
+   invokeContracts: If False, only blocks containing contracts will be added (one block
+      per iteration). If True, contracts will be added and invoked (two blocks per
+      iteration).
+   Returns a list of transaction receipts, each with an extra field called "apiCallTime"
+   for testing.
    '''
    ethrpcNode = getAnEthrpcNode(request, blockchainId)
-   txResponses = []
+   txHashes = []
+   txReceipts = []
 
-   for i in range(numBlocks):
-      txResponse = (suiteObject._mock_transaction(request,
-                                                  data=decToEvenHex(i),
-                                                  ethrpcNode=ethrpcNode["rpc_url"]))
-      # Add the time so we can check the timestamp field of a block.
-      # It won't match exactly, obviously, but we can check that it's within a
-      # reasonable range.
-      txResponse["apiCallTime"] = int(time.time())
+   for i in range(numIterations):
+      contractId, contractVersion = suiteObject.upload_mock_contract(request)
+      contractResult = request.callContractAPI('/api/concord/contracts/' + contractId
+                                               + '/versions/' + contractVersion, "")
 
-      txResponses.append(txResponse)
-   return txResponses
+      # Getting the latest block is a workaround for VB-812, "No way to get a transaction
+      # receipt for submitting a contract via contract API."
+      block = getLatestBlock(request, blockchainId)
+      txHashes.append(block["transactions"][0]["hash"])
+
+      if invokeContracts:
+         rpc = createRPC(request, blockchainId)
+         txHashes.append(rpc.sendTransaction("0x1111111111111111111111111111111111111111",
+                                             helloFunction,
+                                             to=contractResult["address"]))
+
+   for txHash in txHashes:
+      txReceipt = rpc._getTransactionReceipt(txHash)
+      txReceipt["apiCallTime"] = int(time.time())
+      txReceipts.append(txReceipt)
+
+   return txReceipts
 
 
 def addBlocksAndSearchForThem(request, blockchainId, numBlocks, pageSize):
@@ -127,7 +153,8 @@ def addBlocksAndSearchForThem(request, blockchainId, numBlocks, pageSize):
    the asserts.
    '''
    origBlockNumber = getLatestBlockNumber(request, blockchainId)
-   txResponses = addBlocks(request, blockchainId, numBlocks)
+   rpc = createRPC(request, blockchainId)
+   txResponses = addBlocks(request, rpc, blockchainId, numBlocks)
    newBlockNumber = getLatestBlockNumber(request, blockchainId)
    assert newBlockNumber - origBlockNumber == numBlocks, \
       "Expected new block to have number {}.".format(origBlockNumber + numBlocks)
@@ -275,6 +302,77 @@ def checkTimestamp(expectedTime, actualTime):
                                                                 latestTimeString)
 
 
+def createRPC(restRequest, blockchainId):
+   '''
+   Creates and returns a Hermes RPC object.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   return RPC(restRequest.logDir,
+              restRequest.testName,
+              getAnEthrpcNode(restRequest, blockchainId)["rpc_url"],
+              suiteObject._userConfig)
+
+
+def verifyContractCreationTx(request, blockchainId, contractCreationTx):
+   '''
+   Check the fields of a transaction used to create a contract.
+   We verify some fields by getting the block the transaction claims to be part of,
+   and comparing values with that.
+   '''
+   # The bytecode changes with Solidity versions.  Just verify the standard first few instructions
+   # to verify that the Helen API is working.
+   assert contractCreationTx["input"].startswith("0x60806040"), \
+      "Input does not appear to be ethereum bytecode."
+
+   block = request.getBlockByNumber(blockchainId, contractCreationTx["block_number"])
+   assert block, "Unable to get a block with the transactions block_number."
+   assert contractCreationTx["block_hash"] and contractCreationTx["block_hash"] == block["hash"], \
+      "The block_hash was not correct."
+   assert contractCreationTx["from"] == "0x1111111111111111111111111111111111111111", \
+      "The from field was not correct."
+   assert contractCreationTx["contract_address"].startswith("0x") and \
+      len(contractCreationTx["contract_address"]) == 42, \
+      "The value in the contract_address field is not valid"
+   # Test with a value?  Maybe use a contract which accepts a value.
+   assert contractCreationTx["value"] == "0x0", \
+      "The value field is not correct."
+   assert isinstance(contractCreationTx["nonce"], int), \
+      "Nonce is not an int"
+   assert contractCreationTx["hash"] == block["transactions"][0]["hash"], \
+      "The hash is not correct."
+   assert contractCreationTx["status"] == 1, \
+      "The status is not correct."
+
+
+def verifyContractInvocationTx(request, blockchainId, contractCreationTx,
+                               contractInvocationTx):
+   '''
+   Check the fields of a transaction used to execute a contract.
+   We verify some fields by getting the block the transaction claims to be part of.
+   We also verify some fields by comparing to fields in transaction which
+   created the contract.
+   '''
+   assert contractInvocationTx["input"] == helloFunction, \
+      "Input field was not correct"
+
+   block = request.getBlockByNumber(blockchainId, contractInvocationTx["block_number"])
+   assert contractInvocationTx["block_hash"] == block["hash"], \
+      "The block_hash field was not correct"
+   assert contractInvocationTx["from"] == "0x1111111111111111111111111111111111111111", \
+      "The from field was not correct."
+   assert contractInvocationTx["to"] == contractCreationTx["contract_address"], \
+      "The to field was not equal to the contract's address."
+   # Test with a value?  Maybe use a contract which accepts a value.
+   assert contractCreationTx["value"] == "0x0", \
+      "The value field is not correct."
+   assert contractInvocationTx["nonce"] > contractCreationTx["nonce"], \
+      "Nonce is not greater than the contract creation transaction's nonce"
+   assert contractInvocationTx["hash"] == block["transactions"][0]["hash"], \
+      "The hash is not correct."
+   assert contractInvocationTx["status"] == 1, \
+      "The status is not correct."
+
+
 # Runs all of the tests from helen_api_tests.py.
 @pytest.mark.smoke
 @pytest.mark.parametrize("testName", apiTestNames)
@@ -342,7 +440,7 @@ def test_members_rpc_url(restRequest):
    that we aren't getting Helen's address back by ensuring a
    Helen-only API call fails.
    '''
-   blockchainId = suiteObject.getABlockchainId(restRequest)
+   blockchainId = restRequest.getABlockchainId()
    result = restRequest.getMemberList(blockchainId)
    ethrpcUrl = None
 
@@ -402,7 +500,7 @@ def test_members_millis_since_last_message(restRequest):
    testing that Helen is receiving/communicating new values, not always
    showing a default, etc...
    '''
-   blockchainId = suiteObject.getABlockchainId(restRequest)
+   blockchainId = restRequest.getABlockchainId()
    allMembers = restRequest.getMemberList(blockchainId)
    nodeData = allMembers[0] # Any will do.
    hostName = nodeData["hostname"]
@@ -451,7 +549,7 @@ def test_blockList_noNextField_allBlocks(restRequest):
    '''
    Cause no "next" paging by requesting all blocks.
    '''
-   blockchainId = suiteObject.getABlockchainId(restRequest)
+   blockchainId = restRequest.getABlockchainId()
    ensureEnoughBlocksForPaging(restRequest, blockchainId)
    latestBlock = getLatestBlockNumber(restRequest, blockchainId)
    result = restRequest.getBlockList(blockchainId, count=latestBlock+1)
@@ -464,7 +562,7 @@ def test_blockList_noNextField_firstBlock(restRequest):
    '''
    Cause no "next" paging by requesting the genesis block.
    '''
-   blockchainId = suiteObject.getABlockchainId(restRequest)
+   blockchainId = restRequest.getABlockchainId()
    result = restRequest.getBlockList(blockchainId, latest=0)
    assert "next" not in result, \
       "There should not be a 'next' field when latest is 0."
@@ -476,7 +574,7 @@ def test_newBlocks_onePage(restRequest):
    Add a bunch of blocks and get them all back in a page which is
    larger than the default.
    '''
-   blockchainId = suiteObject.getABlockchainId(restRequest)
+   blockchainId = restRequest.getABlockchainId()
    addBlocksAndSearchForThem(restRequest, blockchainId, 11, 11)
 
 
@@ -485,13 +583,13 @@ def test_newBlocks_spanPages(restRequest):
    '''
    Add multiple blocks and get them all back via checking many small pages.
    '''
-   blockchainId = suiteObject.getABlockchainId(restRequest)
+   blockchainId = restRequest.getABlockchainId()
    addBlocksAndSearchForThem(restRequest, blockchainId, 5, 2)
 
 
 @pytest.mark.smoke
 def test_pageSize_zero(restRequest):
-   blockchainId = suiteObject.getABlockchainId(restRequest)
+   blockchainId = restRequest.getABlockchainId()
    ensureEnoughBlocksForPaging(restRequest, blockchainId)
    result = restRequest.getBlockList(blockchainId, count=0)
    assert len(result["blocks"]) == 0, "Expected zero blocks returned."
@@ -499,7 +597,7 @@ def test_pageSize_zero(restRequest):
 
 @pytest.mark.smoke
 def test_pageSize_negative(restRequest):
-   blockchainId = suiteObject.getABlockchainId(restRequest)
+   blockchainId = restRequest.getABlockchainId()
    ensureEnoughBlocksForPaging(restRequest, blockchainId)
    result = restRequest.getBlockList(blockchainId, count=-1)
    assert len(result["blocks"]) == defaultBlocksInAPage, "Expected {} blocks returned.".format(defaultBlocksInAPage)
@@ -507,7 +605,7 @@ def test_pageSize_negative(restRequest):
 
 @pytest.mark.smoke
 def test_pageSize_exceedsBlockCount(restRequest):
-   blockchainId = suiteObject.getABlockchainId(restRequest)
+   blockchainId = restRequest.getABlockchainId()
    ensureEnoughBlocksForPaging(restRequest, blockchainId)
    blockCount = getLatestBlockNumber(restRequest, blockchainId) + 1
    result = restRequest.getBlockList(blockchainId, count=blockCount+1)
@@ -516,7 +614,7 @@ def test_pageSize_exceedsBlockCount(restRequest):
 
 @pytest.mark.smoke
 def test_paging_latest_negative(restRequest):
-   blockchainId = suiteObject.getABlockchainId(restRequest)
+   blockchainId = restRequest.getABlockchainId()
    ensureEnoughBlocksForPaging(restRequest, blockchainId)
    highestBlockNumber = getLatestBlockNumber(restRequest, blockchainId)
    result = restRequest.getBlockList(blockchainId, latest=-1)
@@ -526,7 +624,7 @@ def test_paging_latest_negative(restRequest):
 
 @pytest.mark.smoke
 def test_paging_latest_exceedsBlockCount(restRequest):
-   blockchainId = suiteObject.getABlockchainId(restRequest)
+   blockchainId = restRequest.getABlockchainId()
    ensureEnoughBlocksForPaging(restRequest, blockchainId)
    highestBlockNumber = getLatestBlockNumber(restRequest, blockchainId)
    result = restRequest.getBlockList(blockchainId, latest=highestBlockNumber+1)
@@ -536,13 +634,13 @@ def test_paging_latest_exceedsBlockCount(restRequest):
 
 @pytest.mark.smoke
 def test_blockIndex_negative(restRequest):
-   blockchainId = suiteObject.getABlockchainId(restRequest)
+   blockchainId = restRequest.getABlockchainId()
    checkInvalidIndex(restRequest, blockchainId, -1, "Invalid block number or hash")
 
 
 @pytest.mark.smoke
 def test_blockIndex_outOfRange(restRequest):
-   blockchainId = suiteObject.getABlockchainId(restRequest)
+   blockchainId = restRequest.getABlockchainId()
    latestBlockNumber = getLatestBlockNumber(restRequest, blockchainId)
    checkInvalidIndex(restRequest, blockchainId, latestBlockNumber+1, "block not found")
 
@@ -551,19 +649,19 @@ def test_blockIndex_outOfRange(restRequest):
 # %5c (backslash) causes HTTP/1.1 401 Unauthorized.  Why?  Is that a bug?
 # Filed as VB-800.
 # def test_blockIndex_backslash(restRequest):
-#    blockchainId = suiteObject.getABlockchainId(restRequest)
+#    blockchainId = restRequest.getABlockchainId()
 #    checkInvalidIndex(restRequest, blockchainId, "%5c", "Invalid block number or hash")
 
 
 @pytest.mark.smoke
 def test_blockIndex_atSymbol(restRequest):
-   blockchainId = suiteObject.getABlockchainId(restRequest)
+   blockchainId = restRequest.getABlockchainId()
    checkInvalidIndex(restRequest, blockchainId, "%40", "Invalid block number or hash")
 
 
 @pytest.mark.smoke
 def test_blockIndex_word(restRequest):
-   blockchainId = suiteObject.getABlockchainId(restRequest)
+   blockchainId = restRequest.getABlockchainId()
    checkInvalidIndex(restRequest, blockchainId, "elbow", "Invalid block number or hash")
 
 
@@ -580,7 +678,7 @@ def test_blockIndex_zero(restRequest):
      preloaded with ether.
    '''
    genObject = loadGenesisJson()
-   blockchainId = suiteObject.getABlockchainId(restRequest)
+   blockchainId = restRequest.getABlockchainId()
    block = restRequest.getBlockByNumber(blockchainId, 0)
    foundAccounts = []
    expectedNonce = 0
@@ -605,7 +703,7 @@ def test_blockIndex_zero(restRequest):
       # Look up the transaction in block 0 and save its recipient.  Later, we will
       # verify that the accounts in genesis.json which have pre-allocated accounts
       # match the recipients in the transactions in block 0.
-      fullTx = restRequest.getTransaction(tx["hash"])
+      fullTx = restRequest.getTransaction(blockchainId, tx["hash"])
       foundAccounts.append(trimHexIndicator(fullTx["to"]))
 
       assert fullTx["block_number"] == 0, \
@@ -652,8 +750,9 @@ def test_blockIndex_basic(restRequest):
    }
    '''
    numBlocks = 3
-   blockchainId = suiteObject.getABlockchainId(restRequest)
-   txResponses = addBlocks(restRequest, blockchainId, numBlocks)
+   blockchainId = restRequest.getABlockchainId()
+   rpc = createRPC(restRequest, blockchainId)
+   txResponses = addBlocks(restRequest, rpc, blockchainId, numBlocks)
    parentHash = None
 
    for txResponse in txResponses:
@@ -666,7 +765,7 @@ def test_blockIndex_basic(restRequest):
 
       # This block's hash is the parentHash of the next one.
       parentHash = block["hash"]
-         
+
       # The block nonce is not used, but it is required for compliance.
       assert int(block["nonce"], 16) == 0
 
@@ -684,3 +783,54 @@ def test_blockIndex_basic(restRequest):
       assert txResponse["transactionHash"] == block["transactions"][0]["hash"], \
          "The block's transaction hash does not match the transaction hash " \
          "given when the block was added."
+
+
+@pytest.mark.smoke
+def test_transactionHash_basic(restRequest):
+   '''
+   Add a contract, invoke it, and check that the two transactions added can be
+   retrieved as well as contain appropriate values.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   rpc = createRPC(restRequest, blockchainId)
+   txReceipts = addBlocks(restRequest, rpc, blockchainId, 1, True)
+   contractCreationTxHash = txReceipts[0]["transactionHash"]
+   contractInvocationTxHash = txReceipts[1]["transactionHash"]
+   contractCreationTx = restRequest.getTransaction(blockchainId, contractCreationTxHash)
+   contractInvocationTx = restRequest.getTransaction(blockchainId, contractInvocationTxHash)
+
+   # VB-814: The transaction_index field is missing.
+
+   verifyContractCreationTx(restRequest, blockchainId, contractCreationTx)
+   verifyContractInvocationTx(restRequest, blockchainId, contractCreationTx,
+                              contractInvocationTx)
+
+
+@pytest.mark.smoke
+def test_transactionHash_invalid_zero(restRequest):
+   '''
+   Submit an invalid value for the transaction.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   invalidTx = restRequest.getTransaction(blockchainId, "0")
+   assert len(invalidTx) == 0, "Invalid transaction ID should return an empty set."
+
+
+@pytest.mark.smoke
+def test_transactionHash_invalid_negOne(restRequest):
+   '''
+   Submit an invalid value for the transaction.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   invalidTx = restRequest.getTransaction(blockchainId, "-1")
+   assert len(invalidTx) == 0, "Invalid transaction ID should return an empty set."
+
+
+@pytest.mark.smoke
+def test_transactionHash_invalid_tooLong(restRequest):
+   '''
+   Submit an invalid value for the transaction.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   invalidTx = restRequest.getTransaction(blockchainId, "0xc5555c44eabcc1fcf93ca1b69bcc2a56a4960bc1380fcbb2121eca5ba6aa6f41a")
+   assert len(invalidTx) == 0, "Invalid transaction ID should return an empty set."
