@@ -9,7 +9,7 @@ import com.vmware.blockchain.deployment.model.ConcordModelSpecification
 import com.vmware.blockchain.deployment.model.core.Credential
 import com.vmware.blockchain.deployment.model.core.Endpoint
 import com.vmware.blockchain.deployment.model.ethereum.Genesis
-import kotlinx.serialization.context.SimpleModule
+import kotlinx.serialization.modules.serializersModuleOf
 import java.util.Base64
 
 /**
@@ -22,11 +22,8 @@ class InitScript(
     concordConfiguration: String
 ) {
 
-    object GenesisSerializer : JsonSerializer() {
-        init {
-            install(SimpleModule(Genesis::class, Genesis.serializer()))
-        }
-    }
+    object GenesisSerializer
+        : JsonSerializer(serializersModuleOf(Genesis::class, Genesis.serializer()))
 
     /** Consolidated Docker PULL command. */
     private val dockerPullCommand: String = model.components.asSequence()

@@ -4,8 +4,9 @@
 package com.vmware.blockchain.deployment.http
 
 import kotlinx.serialization.KSerializer
-import kotlinx.serialization.context.SimpleModule
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonConfiguration
+import kotlinx.serialization.modules.SerialModule
 import kotlin.reflect.KClass
 
 /**
@@ -13,28 +14,11 @@ import kotlin.reflect.KClass
  *
  * @property[json]
  *   internal JSON serializer.
- * @property[types]
- *   type to serializer mapping.
  */
-open class JsonSerializer {
+open class JsonSerializer(private val context: SerialModule) {
 
     /** Internal serializer. */
-    val json: Json = Json(strictMode = false)
-
-    /** Type to serializer mapping. */
-    private val types: MutableMap<KClass<*>, KSerializer<*>> = mutableMapOf()
-
-    /**
-     * Install a [SimpleModule] to the internal JSON serializer and record the module's [KClass] to
-     * [KSerializer] mapping.
-     *
-     * @param[module]
-     *   module to be installed.
-     */
-    protected fun install(module: SimpleModule<*>) {
-        json.apply { install(module) }
-        types[module.kClass] = module.kSerializer
-    }
+    val json: Json = Json(JsonConfiguration.Stable.copy(strictMode = false), context)
 
     /**
      * Resolve the [KSerializer] for a given [KClass] type.
@@ -45,9 +29,8 @@ open class JsonSerializer {
      * @return
      *   [KSerializer] corresponding to the type.
      */
-    @Suppress("UNCHECKED_CAST")
-    fun <T> serializerFor(type: KClass<*>): KSerializer<T> {
-        return types[type] as KSerializer<T>
+    fun <T : Any> serializerFor(type: KClass<T>): KSerializer<T> {
+        return requireNotNull(context.getContextual(type))
     }
 
     /**
@@ -59,7 +42,7 @@ open class JsonSerializer {
      * @return
      *   the JSON value as a [String].
      */
-    inline fun <reified T> toJson(value: T): String {
+    inline fun <reified T : Any> toJson(value: T): String {
         return json.stringify(serializerFor(T::class), value)
     }
 
@@ -72,7 +55,7 @@ open class JsonSerializer {
      * @return
      *   an instance of type [T] corresponding to the JSON value.
      */
-    inline fun <reified T> fromJson(value: String): T {
+    inline fun <reified T : Any> fromJson(value: String): T {
         return json.parse(serializerFor(T::class), value)
     }
 }

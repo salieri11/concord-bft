@@ -3,14 +3,15 @@
  * *************************************************************************/
 package com.vmware.blockchain.deployment.model.nsx
 
-import kotlinx.serialization.context.SimpleModule
+import kotlinx.serialization.modules.serializersModuleOf
+import kotlinx.serialization.modules.SerialModule
 
 /**
  * Enumeration of all serializable types related to NSX data models.
  */
-enum class NsxSerializationModule(val module: SimpleModule<*>) {
-    NAT_RULE(SimpleModule(NatRule::class, NatRule.serializer())),
-    PUBLIC_IP(SimpleModule(PublicIP::class, PublicIP.serializer())),
-    SEGMENT(SimpleModule(Segment::class, Segment.serializer())),
-    SEGMENT_SUBNET(SimpleModule(SegmentSubnet::class, SegmentSubnet.serializer()))
+enum class NsxSerializationModule(val module: SerialModule) {
+    NAT_RULE(serializersModuleOf(NatRule::class, NatRule.serializer())),
+    PUBLIC_IP(serializersModuleOf(PublicIP::class, PublicIP.serializer())),
+    SEGMENT(serializersModuleOf(Segment::class, Segment.serializer())),
+    SEGMENT_SUBNET(serializersModuleOf(SegmentSubnet::class, SegmentSubnet.serializer()))
 }
