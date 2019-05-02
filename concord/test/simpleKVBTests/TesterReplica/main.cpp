@@ -23,11 +23,6 @@
 
 #define USE_ROCKSDB 1
 
-#ifdef USE_LOG4CPP
-#include <log4cplus/configurator.h>
-#include <log4cplus/hierarchy.h>
-#endif
-
 #include "blockchain/kvb_storage.hpp"
 #include "commonKVBTests.hpp"
 #include "config/configuration_manager.hpp"
@@ -139,8 +134,7 @@ ReplicaConfig setupReplicaConfig() {
   return replicaConfig;
 }
 
-CommConfig setupCommunicationParams(ReplicaConfig &replicaConfig,
-                                    concordlogger::Logger &logger) {
+CommConfig setupCommunicationParams(ReplicaConfig &replicaConfig) {
   CommConfig commParams;
   commParams.maxServerId = 0;
   // Used to get info from parsed keys file
@@ -200,11 +194,10 @@ int main(int argc, char **argv) {
 #endif
 
 #ifdef USE_LOG4CPP
+#include <log4cplus/configurator.h>
   using namespace log4cplus;
   initialize();
-  Hierarchy &hierarchy = Logger::getDefaultHierarchy();
-  hierarchy.disableDebug();
-  BasicConfigurator logConfig(hierarchy, false);
+  BasicConfigurator logConfig(Logger::getDefaultHierarchy(), false);
   logConfig.configure();
 #endif
 
@@ -222,7 +215,7 @@ int main(int argc, char **argv) {
   }
 
   ReplicaConfig replicaConfig = setupReplicaConfig();
-  CommConfig commConfig = setupCommunicationParams(replicaConfig, logger);
+  CommConfig commConfig = setupCommunicationParams(replicaConfig);
   ReplicaConsensusConfig consensusConfig = setupConsensusParams(replicaConfig);
 
   std::stringstream dbPath;

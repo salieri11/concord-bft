@@ -18,7 +18,7 @@
 
 namespace BasicRandomTests {
 
-const std::string DB_FILE_PREFIX = "./simpleKVBTests_";
+const std::string DB_FILE_PREFIX = "./simpleKVBTests_DB_";
 const int FIRST_KVB_BLOCK = 1;
 
 }  // namespace BasicRandomTests

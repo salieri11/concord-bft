@@ -53,6 +53,8 @@ target_link_libraries(skvb_replica
 
 target_link_libraries(skvb_db_editor
   log4cplus
+  concord_blockchain
+  concord_common
   kvblockchain)
 
 add_custom_target(copy_blockchain_scripts3 ALL COMMENT "Copying scripts abcd")

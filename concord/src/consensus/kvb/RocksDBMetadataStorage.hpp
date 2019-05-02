@@ -23,12 +23,15 @@
 
 namespace Blockchain {
 
+typedef std::vector<uint16_t> ObjectIdsVector;
+
 class RocksDBMetadataStorage : public bftEngine::MetadataStorage {
  public:
   explicit RocksDBMetadataStorage(Blockchain::IDBClient *dbClient)
       : logger_(log4cplus::Logger::getInstance(
             "com.concord.vmware.metadatastorage")),
         dbClient_(dbClient) {}
+  ~RocksDBMetadataStorage() { delete[] metadataObjectsArray_; }
 
   void initMaxSizeOfObjects(ObjectDesc *metadataObjectsArray,
                             uint16_t metadataObjectsArrayLength) override;
@@ -39,10 +42,10 @@ class RocksDBMetadataStorage : public bftEngine::MetadataStorage {
   void writeInTransaction(uint16_t objectId, char *data,
                           uint32_t dataLength) override;
   void commitAtomicWriteOnlyTransaction() override;
-  uint64_t getSeqNum();
+  Status multiDel(const ObjectIdsVector &objectIds);
 
  private:
-  void verifyOperation(uint32_t dataLen, char *buffer) const;
+  void verifyOperation(uint32_t dataLen, const char *buffer) const;
 
  private:
   const char *WRONG_FLOW =
@@ -53,6 +56,8 @@ class RocksDBMetadataStorage : public bftEngine::MetadataStorage {
   IDBClient *dbClient_ = nullptr;
   SetOfKeyValuePairs *transaction_ = nullptr;
   std::mutex ioMutex_;
+  ObjectDesc *metadataObjectsArray_ = nullptr;
+  uint16_t objectsNum_ = 0;
 };
 
 }  // namespace Blockchain

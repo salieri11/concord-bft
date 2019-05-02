@@ -22,7 +22,7 @@ using namespace std;
 namespace Blockchain {
 
 void RocksDBMetadataStorage::verifyOperation(uint32_t dataLen,
-                                             char *buffer) const {
+                                             const char *buffer) const {
   if (!dataLen || !buffer) {
     LOG4CPLUS_ERROR(logger_, WRONG_PARAMETER);
     throw runtime_error(WRONG_PARAMETER);
@@ -30,7 +30,17 @@ void RocksDBMetadataStorage::verifyOperation(uint32_t dataLen,
 }
 
 void RocksDBMetadataStorage::initMaxSizeOfObjects(
-    ObjectDesc *metadataObjectsArray, uint16_t metadataObjectsArrayLength) {}
+    ObjectDesc *metadataObjectsArray, uint16_t metadataObjectsArrayLength) {
+  objectsNum_ = metadataObjectsArrayLength;
+  metadataObjectsArray_ = new ObjectDesc[objectsNum_];
+  for (uint16_t i = 0; i < objectsNum_; ++i) {
+    metadataObjectsArray_[i] = metadataObjectsArray[i];
+    LOG4CPLUS_DEBUG(
+        logger_, "initMaxSizeOfObjects i="
+                     << i << " object data: id=" << metadataObjectsArray_[i].id
+                     << ", maxSize=" << metadataObjectsArray_[i].maxSize);
+  }
+}
 
 void RocksDBMetadataStorage::read(uint16_t objectId, uint32_t bufferSize,
                                   char *outBufferForObject,
@@ -42,7 +52,7 @@ void RocksDBMetadataStorage::read(uint16_t objectId, uint32_t bufferSize,
                      outBufferForObject, bufferSize, outActualObjectSize);
   if (status.isNotFound()) {
     memset(outBufferForObject, 0, bufferSize);
-    outActualObjectSize = bufferSize;
+    outActualObjectSize = 0;
     return;
   }
   if (!status.isOK()) {
@@ -102,6 +112,20 @@ void RocksDBMetadataStorage::commitAtomicWriteOnlyTransaction() {
     throw runtime_error("RocksDB multiPut operation failed");
   }
   delete transaction_;
+}
+
+Status RocksDBMetadataStorage::multiDel(const ObjectIdsVector &objectIds) {
+  size_t objectsNumber = objectIds.size();
+  assert(objectsNum_ >= objectsNumber);
+  LOG4CPLUS_DEBUG(logger_, "Going to perform multiple delete");
+  KeysVector keysVec;
+  for (size_t objectId = 0; objectId < objectsNumber; objectId++) {
+    Key key = KeyManipulator::generateMetadataKey(objectId);
+    keysVec.push_back(key);
+    LOG4CPLUS_INFO(logger_,
+                   "Deleted object id=" << objectId << ", key=" << key);
+  }
+  return dbClient_->multiDel(keysVec);
 }
 
 }  // namespace Blockchain
