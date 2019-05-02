@@ -63,7 +63,6 @@ class Product():
       self.userProductConfig = userConfig["product"]
       self._productLogsDir = os.path.join(self._cmdlineArgs.resultsDir, PRODUCT_LOGS_DIR)
       pathlib.Path(self._productLogsDir).mkdir(parents=True, exist_ok=True)
-      # self._docker_env_file = ".env"
       self.concordNodesDeployed = []
 
 

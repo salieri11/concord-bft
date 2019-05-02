@@ -3,26 +3,30 @@
 #
 # This class file covers the tests related to persephone (deployment services)
 #########################################################################
-import logging
 import os
+import sys
+import json
+import logging
 import traceback
 from . import test_suite
-import sys
-sys.path.append('lib')
-from persephone.rpc_test_helper import RPCTestHelper
-import json
 from google.protobuf.json_format import MessageToJson
+sys.path.append('lib')
 
 log = logging.getLogger(__name__)
 
 
 class PersephoneTests(test_suite.TestSuite):
+   '''
+   This class is deployment service testsuite, covering testcases for metadata,
+   provisioning microservices
+   '''
    _args = None
    _resultFile = None
    _unintentionallySkippedFile = None
 
    def __init__(self, passedArgs):
       super().__init__(passedArgs)
+      self.default_cluster_size = 4
 
    def getName(self):
       return "PersephoneTests"
@@ -36,6 +40,13 @@ class PersephoneTests(test_suite.TestSuite):
       except Exception as e:
          log.error(traceback.format_exc())
          return self._resultFile
+
+      try:
+         from persephone.rpc_test_helper import RPCTestHelper
+      except ImportError as e:
+         log.error(
+            "****gRPC Python bindings not generated. Execute util/generate_gRPC_bindings_for_py3.sh")
+         raise Exception("gRPC Python bindings not generated")
 
       self.rpc_test_helper = RPCTestHelper(self._args)
       tests = self._get_tests()
@@ -74,10 +85,15 @@ class PersephoneTests(test_suite.TestSuite):
    def _get_tests(self):
       return [
          ("add_model", self._test_add_model),
-         ("list_models", self._test_list_models),
-         ("create_cluster", self._test_create_cluster),
-         ("stream_deployment_events", self._test_stream_deployment_events)
+         ("list_models", self._test_list_models)
       ]
+
+      # return [
+      #    ("add_model", self._test_add_model),
+      #    ("list_models", self._test_list_models),
+      #    ("create_cluster", self._test_create_cluster),
+      #    ("stream_deployment_events", self._test_stream_deployment_events)
+      # ]
 
    def get_json_object(self, message_obj):
       if isinstance(message_obj, (list,)):
@@ -90,12 +106,12 @@ class PersephoneTests(test_suite.TestSuite):
          json_object = json.loads(MessageToJson(message_obj))
          return json_object
 
-   def validate_cluster_deployment_events(self, EVENTS_TO_MONITOR,
+   def validate_cluster_deployment_events(self, events_to_monitor,
                                           response_events_json):
       event_item_to_monitor = 0
       event_response_count = 1
       for event in response_events_json:
-         eventset_to_monitor = EVENTS_TO_MONITOR[event_item_to_monitor]
+         eventset_to_monitor = events_to_monitor[event_item_to_monitor]
          for event_name, event_count in eventset_to_monitor.items():
             event_to_monitor = event_name
             event_count = event_count
@@ -109,7 +125,7 @@ class PersephoneTests(test_suite.TestSuite):
             log.error(
                "Expected Event '{}' {} time(s) in order, but received '{}'".format(
                   event_to_monitor, event_count, event["type"]))
-            log.error("Expected order of events: {}".format(EVENTS_TO_MONITOR))
+            log.error("Expected order of events: {}".format(events_to_monitor))
             return False
 
       return True
@@ -145,9 +161,8 @@ class PersephoneTests(test_suite.TestSuite):
       '''
       Test to Create a Cluster node and expect deployment session id
       '''
-      self.cluster_size = 4
       response = self.rpc_test_helper.rpc_create_cluster(
-         cluster_size=self.cluster_size)
+         cluster_size=self.default_cluster_size)
       if response:
          response_session_id_json = self.get_json_object(response[0])
          if "low" in response_session_id_json:
@@ -164,11 +179,11 @@ class PersephoneTests(test_suite.TestSuite):
          self.response_deployment_session_id)
       if events:
          response_events_json = self.get_json_object(events)
-         EVENTS_TO_MONITOR = [{"ACKNOWLEDGED": 1},
-                              {"NODE_DEPLOYED": self.cluster_size},
+         events_to_monitor = [{"ACKNOWLEDGED": 1},
+                              {"NODE_DEPLOYED": self.default_cluster_size},
                               {"CLUSTER_DEPLOYED": 1},
                               {"COMPLETED": 1}]
-         if self.validate_cluster_deployment_events(EVENTS_TO_MONITOR,
+         if self.validate_cluster_deployment_events(events_to_monitor,
                                                     response_events_json):
             # TODO:
             # 1. Fetch concord IPs
