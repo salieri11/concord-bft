@@ -13,8 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import com.vmware.blockchain.common.ConcordConnectionException;
-import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.common.ErrorCode;
+import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.services.ethereum.ApiHelper;
 import com.vmware.concord.Concord;
 import com.vmware.concord.ConcordHelper;

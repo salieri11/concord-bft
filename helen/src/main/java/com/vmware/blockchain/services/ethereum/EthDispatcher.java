@@ -71,7 +71,7 @@ public final class EthDispatcher extends ConcordServlet {
 
     @Autowired
     public EthDispatcher(ContractRegistryManager registryManager, ConnectionPoolManager connectionPoolManager,
-                         ProfilesService profilesRegistryManager, DefaultProfiles defaultProfiles) throws ParseException {
+            ProfilesService profilesRegistryManager, DefaultProfiles defaultProfiles) throws ParseException {
         super(connectionPoolManager, defaultProfiles);
         JSONParser p = new JSONParser();
         this.registryManager = registryManager;

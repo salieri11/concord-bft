@@ -211,7 +211,7 @@ public class ProfilesService {
                 if (Roles.contains(request.getRole())) {
                     user.setRoles(Collections.singletonList(Roles.get(request.getRole())));
                 } else {
-                    throw new EntityModificationException(ErrorCode.INVALID_ROLE_VALUE+ request.getRole());
+                    throw new EntityModificationException(ErrorCode.INVALID_ROLE_VALUE + request.getRole());
                 }
             }
             userService.put(user);

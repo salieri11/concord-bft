@@ -47,7 +47,7 @@ public class EthGetLogsHandler extends AbstractEthRpcHandler {
 
                 // Block hash or block numbers
                 if (filter.containsKey("blockHash")
-                   && (filter.containsKey("fromBlock") || filter.containsKey("toBlock"))) {
+                        && (filter.containsKey("fromBlock") || filter.containsKey("toBlock"))) {
                     throw new EthRpcHandlerException(ErrorCode.INVALID_BLOCK_REQUEST);
                 }
 

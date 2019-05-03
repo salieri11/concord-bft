@@ -23,7 +23,6 @@ import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import com.vmware.blockchain.common.ErrorCode;
 import org.bouncycastle.crypto.generators.SCrypt;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
@@ -32,6 +31,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.util.encoders.Hex;
 import org.json.simple.JSONObject;
 
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.WalletException;
 
 

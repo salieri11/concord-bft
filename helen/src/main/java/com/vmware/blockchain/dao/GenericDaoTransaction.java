@@ -834,7 +834,7 @@ class GenericDaoTransaction  {
                 uuidLinkedFields.add((UUID) field.get(entity));
             } catch (IllegalAccessException e) {
                 logger.error("Failed to cast linked entity field to UUID.", e);
-                throw new InternalFailureException(e,ErrorCode.UUID_BINDING_UNSUCCESSFUL, e);
+                throw new InternalFailureException(e, ErrorCode.UUID_BINDING_UNSUCCESSFUL, e);
             }
         }
 
@@ -1060,7 +1060,8 @@ class GenericDaoTransaction  {
             // DO NOT LOG BODY - that can contain secrets.
             logger.info("Entity {}, column name {} has been updated by another client. New version {}, by {}", rowId,
                     columnName, newVersion, userName);
-            throw new ConcurrentUpdateException(ErrorCode.CONCURRENT_UPDATE, rowId.toString(), getColumnName(entityClass));
+            throw new ConcurrentUpdateException(ErrorCode.CONCURRENT_UPDATE, rowId.toString(),
+                    getColumnName(entityClass));
         }
     }
 
@@ -1123,7 +1124,7 @@ class GenericDaoTransaction  {
             entity.setUpdatedByUserName(dbEntity.getUserName());
             return entity;
         } catch (Exception e) {
-            throw new InternalFailureException(e,ErrorCode.ENTITY_CONVERSION_UNSUCCESSFUL, entityClass.getName());
+            throw new InternalFailureException(e, ErrorCode.ENTITY_CONVERSION_UNSUCCESSFUL, entityClass.getName());
         }
     }
 

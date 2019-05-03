@@ -13,10 +13,9 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
-import com.vmware.blockchain.common.ErrorCode;
-
 
 import com.vmware.blockchain.common.ConflictException;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.NotFoundException;
 
 /**

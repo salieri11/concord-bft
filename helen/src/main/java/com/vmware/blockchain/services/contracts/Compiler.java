@@ -30,7 +30,6 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import com.vmware.blockchain.common.ErrorCode;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -39,6 +38,7 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import com.vmware.blockchain.common.BadRequestException;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.restclient.RestClientBuilder;
 
 /**

@@ -6,8 +6,9 @@ package com.vmware.blockchain.services.lint;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import com.vmware.blockchain.common.ErrorCode;
+
 import com.vmware.blockchain.common.BadRequestException;
+import com.vmware.blockchain.common.ErrorCode;
 
 /**
  * A very, very simple sql parser using regular expressions.
