@@ -14,6 +14,7 @@ import org.json.simple.JSONObject;
 import com.google.protobuf.ByteString;
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.Constants;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.concord.Concord;
 import com.vmware.concord.Concord.BlockResponse;
 import com.vmware.concord.Concord.ConcordRequest.Builder;
@@ -40,7 +41,7 @@ public class EthGetBlockHandler extends AbstractEthRpcHandler {
         try {
             JSONArray params = extractRequestParams(requestJson);
             if (params.size() != 2) {
-                throw new BadRequestException("Params should contain 2 elements for this request type");
+                throw new BadRequestException(ErrorCode.ELEMENTS_SPECIFIED_LESS);
             }
 
             String ethMethodName = EthDispatcher.getEthMethodName(requestJson);
@@ -69,9 +70,7 @@ public class EthGetBlockHandler extends AbstractEthRpcHandler {
                 } else if (requestedBlockStr.startsWith("0x")) {
                     requestedBlockNumber = Long.parseLong(requestedBlockStr.substring(2), 16);
                 } else {
-                    throw new BadRequestException("Invalid block number requested. Block "
-                            + "number can either be 'latest', 'pending', 'earliest',"
-                            + " or a hex number starting with '0x'");
+                    throw new BadRequestException(ErrorCode.INVALID_BLOCK_NUMBER);
                 }
                 blockRequestObj = Concord.BlockRequest.newBuilder().setNumber(requestedBlockNumber).build();
             } else { // BlockByHash_Name

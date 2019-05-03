@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.vmware.blockchain.common.BadRequestException;
 import com.vmware.blockchain.common.Constants;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.ForbiddenException;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.security.AuthHelper;
@@ -134,7 +135,7 @@ public class ContractsServlet extends ConcordServlet {
         // Make sure we can access this
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles())
                 && !authHelper.getPermittedChains().contains(getBlockchainId(id))) {
-            throw new ForbiddenException("Not allowed");
+            throw new ForbiddenException(ErrorCode.EXCEPTION_NOT_ALLOWED);
         }
 
         return new ResponseEntity<>(buildContractsJson(getBlockchainId(id)), HttpStatus.OK);
@@ -197,7 +198,7 @@ public class ContractsServlet extends ConcordServlet {
 
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles())
                 && !authHelper.getPermittedChains().contains(getBlockchainId(id))) {
-            throw new ForbiddenException("Not allowed");
+            throw new ForbiddenException(ErrorCode.UNALLOWED);
         }
 
         if (registryManager.hasContract(contractId, getBlockchainId(id))) {
@@ -257,7 +258,7 @@ public class ContractsServlet extends ConcordServlet {
 
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles())
                 && !authHelper.getPermittedChains().contains(getBlockchainId(id))) {
-            throw new ForbiddenException("Not allowed");
+            throw new ForbiddenException(ErrorCode.UNALLOWED);
         }
 
         FullVersionInfo fvInfo = registryManager.getContractVersion(contractId, contractVersion, getBlockchainId(id));
@@ -343,7 +344,7 @@ public class ContractsServlet extends ConcordServlet {
 
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles())
                 && !authHelper.getPermittedChains().contains(getBlockchainId(id))) {
-            throw new ForbiddenException("Not allowed");
+            throw new ForbiddenException(ErrorCode.UNALLOWED);
         }
 
         ResponseEntity<JSONAware> responseEntity;
@@ -397,7 +398,7 @@ public class ContractsServlet extends ConcordServlet {
             }
         } catch (ParseException pe) {
             logger.warn("Exception while parsing request JSON", pe);
-            throw new BadRequestException(pe, "unable to parse request");
+            throw new BadRequestException(pe, ErrorCode.REQUEST_UNPARSED);
         }
         return responseEntity;
     }
@@ -572,7 +573,7 @@ public class ContractsServlet extends ConcordServlet {
 
         if (!authHelper.hasAnyAuthority(Roles.operatorRoles())
                 && !authHelper.getPermittedChains().contains(getBlockchainId(id))) {
-            throw new ForbiddenException("Not allowed");
+            throw new ForbiddenException(ErrorCode.UNALLOWED);
         }
 
         final ConcordControllerHelper helper = getHelper(id);
@@ -639,7 +640,7 @@ public class ContractsServlet extends ConcordServlet {
 
     @Override
     public JSONAware parseToJson(ConcordResponse concordResponse) {
-        throw new BadRequestException("parseToJSON method is not supported in ContractServlet class");
+        throw new BadRequestException(ErrorCode.JSON_METHOD_UNSUPPORTED);
     }
 
     /**

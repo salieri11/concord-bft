@@ -162,7 +162,7 @@ public class ProfilesService {
 
         // First check if user with same email already exists
         if (isDuplicateEmail(request.getEmail())) {
-            throw new EntityModificationException("Duplicate email address");
+            throw new EntityModificationException(ErrorCode.DUPLICATE_EMAIL);
         }
         try {
             // next, make sure the org exists.  Note this throws not found if it doesn't
@@ -198,7 +198,7 @@ public class ProfilesService {
 
             // First check if user with same email already exists
             if (request.getEmail() != null && isDuplicateEmail(request.getEmail())) {
-                throw new EntityModificationException("Duplicate email address");
+                throw new EntityModificationException(ErrorCode.DUPLICATE_EMAIL);
             }
 
             ignoreNull(request.getName(), user::setName);
@@ -211,7 +211,7 @@ public class ProfilesService {
                 if (Roles.contains(request.getRole())) {
                     user.setRoles(Collections.singletonList(Roles.get(request.getRole())));
                 } else {
-                    throw new EntityModificationException("Invalid role value: " + request.getRole());
+                    throw new EntityModificationException(ErrorCode.INVALID_ROLE_VALUE + request.getRole());
                 }
             }
             userService.put(user);

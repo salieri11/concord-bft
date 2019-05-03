@@ -180,8 +180,7 @@ class GenericDaoTransaction  {
                 if (currentEntity != null && currentEntity.getVersion() != newEntity.getVersion()) {
                     logger.info("Concurrent Exception Entity {} column name {}", newEntity.getId(),
                             getColumnName(entityClass));
-                    throw new ConcurrentUpdateException(
-                            "Concurrent update on {0}, column name {1}. Try operation again.",
+                    throw new ConcurrentUpdateException(ErrorCode.CONCURRENT_UPDATE_FAILED,
                             newEntity.getId().toString(), getColumnName(entityClass));
                 }
             }
@@ -274,7 +273,7 @@ class GenericDaoTransaction  {
             }
             logger.warn("Failed concurrent update with retries for id {} entity {}", entity.getId(),
                     getColumnName(entityClass));
-            throw new ConcurrentUpdateException("Concurrent update on {0}, column name {1}. Try operation again.",
+            throw new ConcurrentUpdateException(ErrorCode.CONCURRENT_UPDATE_FAILED,
                     entity.getId().toString(), getColumnName(entityClass));
         } finally {
             sample.stop(Metrics.globalRegistry
@@ -581,7 +580,7 @@ class GenericDaoTransaction  {
         String columnName = getColumnName(entityClass);
         if (tenantId == null) {
             logger.error("Null tenantId for column {}", columnName);
-            throw new InternalFailureException(String.format("Null tenantId for column %s", columnName));
+            throw new InternalFailureException(String.format(ErrorCode.NULL_TENANT_ID, columnName));
         }
         return Timer.builder(METRIC_NAME_READ)
                 .tags(TAG_SERVICE, entityPrefixTag, TAG_ENTITY, getEntityName(entityClass), TAG_METHOD, "getByTenant")
@@ -835,7 +834,7 @@ class GenericDaoTransaction  {
                 uuidLinkedFields.add((UUID) field.get(entity));
             } catch (IllegalAccessException e) {
                 logger.error("Failed to cast linked entity field to UUID.", e);
-                throw new InternalFailureException(e, "Failed to cast linked entity field to UUID.", e);
+                throw new InternalFailureException(e, ErrorCode.UUID_BINDING_UNSUCCESSFUL, e);
             }
         }
 
@@ -1061,8 +1060,8 @@ class GenericDaoTransaction  {
             // DO NOT LOG BODY - that can contain secrets.
             logger.info("Entity {}, column name {} has been updated by another client. New version {}, by {}", rowId,
                     columnName, newVersion, userName);
-            throw new ConcurrentUpdateException("Concurrent update on {0}, column name {1}. Try operation again.",
-                    rowId.toString(), getColumnName(entityClass));
+            throw new ConcurrentUpdateException(ErrorCode.CONCURRENT_UPDATE, rowId.toString(),
+                    getColumnName(entityClass));
         }
     }
 
@@ -1125,7 +1124,7 @@ class GenericDaoTransaction  {
             entity.setUpdatedByUserName(dbEntity.getUserName());
             return entity;
         } catch (Exception e) {
-            throw new InternalFailureException(e, "Could not convert from DB to Entity {0}", entityClass.getName());
+            throw new InternalFailureException(e, ErrorCode.ENTITY_CONVERSION_UNSUCCESSFUL, entityClass.getName());
         }
     }
 
@@ -1177,7 +1176,7 @@ class GenericDaoTransaction  {
                 } else {
                     int updated = entityMapper.updateEntity(dbEntity);
                     if (updated != 1) {
-                        throw new DuplicateKeyException("The row has already been updated");
+                        throw new DuplicateKeyException(ErrorCode.DUPLICATE_UPDATION);
                     }
                 }
                 entityMapper.saveEntityHistory(dbEntity);

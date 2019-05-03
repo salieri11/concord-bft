@@ -8,6 +8,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
 import com.vmware.blockchain.common.Constants;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.concord.Concord;
 import com.vmware.concord.Concord.EthRequest;
 import com.vmware.concord.Concord.EthResponse;
@@ -83,10 +84,10 @@ public abstract class AbstractEthRpcHandler {
         try {
             params = (JSONArray) requestJson.get("params");
             if (params == null) {
-                throw new EthRpcHandlerException("'params' not present");
+                throw new EthRpcHandlerException(ErrorCode.INVALID_PARAMETER);
             }
         } catch (ClassCastException cse) {
-            throw new EthRpcHandlerException("'params' must be an array");
+            throw new EthRpcHandlerException(ErrorCode.INVALID_PARAMETER);
         }
         return params;
     }

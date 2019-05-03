@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.json.simple.JSONAware;
 
 import com.vmware.blockchain.common.BadRequestException;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.concord.Concord;
 
 /**
@@ -32,7 +33,7 @@ public interface IParseToJson {
      */
     default JSONAware parseToJson(UUID blockchain, Concord.ConcordResponse concordResponse) {
         if (blockchain == null) {
-            throw new BadRequestException("No blockchain specified");
+            throw new BadRequestException(ErrorCode.BLOCKCHAIN_UNSPECIFIED);
         }
         return parseToJson(concordResponse);
     }
