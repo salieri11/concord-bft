@@ -103,7 +103,7 @@ class TestSuite(ABC):
       tempFile = self._resultFile + "_temp"
       realFile = self._resultFile
 
-      if result:
+      if result == True:
          result = "PASS"
       elif result == False:
          result = "FAIL"

@@ -242,7 +242,7 @@ def processResults(resultsFile):
 
    log.info(msg)
 
-   return failCount == 0 and skippedCount == 0
+   return failCount == 0
 
 def tallyResults(results):
    '''

@@ -74,7 +74,15 @@ class HelenAPITests(test_suite.TestSuite):
 
       results = util.json_helper.readJsonFile("report.json")
       for testResult in results["report"]["tests"]:
-         passed = testResult["outcome"] == "passed"
+         passed = None
+
+         if testResult["outcome"] == "passed":
+            passed = True
+         elif testResult["outcome"] == "failed":
+            passed = False
+         elif testResult["outcome"] == "skipped":
+            passed = "skipped"
+
          info = "" if passed else json.dumps(testResult, indent=2)
          testName = self.parsePytestTestName(testResult["name"])
          testLogDir = os.path.join(self._testLogDir, testName)

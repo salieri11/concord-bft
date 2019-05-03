@@ -6,6 +6,7 @@ import pickle
 import pytest
 import sys
 import time
+from urllib.parse import urlparse
 from uuid import UUID
 
 from suites import test_suite
@@ -373,6 +374,50 @@ def verifyContractInvocationTx(request, blockchainId, contractCreationTx,
       "The status is not correct."
 
 
+def checkBlockchainFields(request, blockchain):
+   '''
+   Given request and blockchain objects, verify the fields of the blockchain object.
+   When this test is being run, we don't know how many concord nodes there will
+   really be.  So make sure we get something a) sensible that b) is consistent with
+   the another API.
+   '''
+   expectedRpcUrls = []
+   members = request.getMemberList(blockchain["id"])
+   for member in members:
+      expectedRpcUrls.append(member["rpc_url"])
+
+   # There will always be a genesis block.
+   block = request.getBlockByNumber(blockchain["id"], 0)
+   assert block["hash"], "Unable to retrive block 0 using the returned blockchain ID."
+   UUID(blockchain["consortium_id"])
+
+   # For the case of zero nodes, verify that corner case in its own test case.
+   assert blockchain["node_list"], "No nodes were returned in the blockchain."
+
+   for node in blockchain["node_list"]:
+      UUID(node["node_id"])
+
+      host, port = node["ip"].split(":")
+      assert host.startswith("concord"), "The ip field did not start with 'concord'."
+      # This will just raise an exception and fail the test
+      int(port)
+
+      urlParts = urlparse(node["url"])
+      int(urlParts.port)
+      assert urlParts.scheme == "https", "The url field is not using https."
+      assert urlParts.hostname, "The url field hostname is empty."
+      assert node["url"] in expectedRpcUrls, \
+         "The url field contained a value not matching one returned by the /concord/members API."
+      expectedRpcUrls.remove(node["url"])
+
+      # TODO: Verify the cert. See VB-747
+
+      assert "region" in node.keys(), "The region field does not exist."
+
+   assert len(expectedRpcUrls) == 0, \
+      "More nodes were returned by the /concord/members API than were present in the /blockchains node list."
+
+
 # Runs all of the tests from helen_api_tests.py.
 @pytest.mark.smoke
 @pytest.mark.parametrize("testName", apiTestNames)
@@ -401,8 +446,6 @@ def test_blockchains_fields(restRequest):
    for b in blockchains:
       blockchainId = UUID(b["id"])
       consortiumId = UUID(b["consortium_id"])
-      assert blockchainId, "'id' field is not a valid UUID."
-      assert consortiumId, "'consortium_id' field is not a valid UUID."
 
 
 @pytest.mark.smoke
@@ -834,3 +877,39 @@ def test_transactionHash_invalid_tooLong(restRequest):
    blockchainId = restRequest.getABlockchainId()
    invalidTx = restRequest.getTransaction(blockchainId, "0xc5555c44eabcc1fcf93ca1b69bcc2a56a4960bc1380fcbb2121eca5ba6aa6f41a")
    assert len(invalidTx) == 0, "Invalid transaction ID should return an empty set."
+
+
+@pytest.mark.smoke
+def test_blockhains_one(restRequest):
+   '''
+   Test with one blockchain deployed, which is the default.
+   '''
+   blockchains = restRequest.getBlockchains()
+   assert len(blockchains) == 1, "Expected one blockchain to be returned"
+   blockchain = blockchains[0]
+   checkBlockchainFields(restRequest, blockchain)
+
+
+@pytest.mark.skip(reason="Not implemented")
+def test_blockhains_none(restRequest):
+   '''
+   How to start the product with no blockchains?
+   Filed VB-841: Not able to start Helen with no blockchains.
+   '''
+   # restartTheProductWithNoBlockchains()
+   # blockchains = restRequest.getBlockchains()
+   # assert len(blockchains) == 0, "Expected zero blockchains to be returned"
+   pass
+
+
+@pytest.mark.skip(reason="Not implemented")
+def test_blockhains_multiple(restRequest):
+   '''
+   Currently, there is no way to deploy multiple blockchains.
+   '''
+   # addAnotherBlockchain()
+   # blockchains = restRequest.getBlockchains()
+   # assert len(blockchains) == 2, "Expected zero blockchains to be returned"
+   # beSureTheBlockchainsAreDifferentAndUsingTheCorrectConcordNodes()
+   # checkBlockchainFields(restRequest, blockchain)
+   pass
