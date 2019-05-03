@@ -55,7 +55,8 @@ interface Orchestrator {
         val genesis: Genesis,
 
         // FIXME: THIS IS TEMPORARY UNTIL CONFIGURATION IS FETCHED BY PERSEPHONE-AGENT.
-        var configuration: String = ""
+        val configuration: String = "",
+        val privateNetworkAddress: String = ""
     )
 
     /**
