@@ -396,7 +396,6 @@ def checkBlockchainFields(request, blockchain):
 
    for node in blockchain["node_list"]:
       UUID(node["node_id"])
-
       host, port = node["ip"].split(":")
       assert host.startswith("concord"), "The ip field did not start with 'concord'."
       # This will just raise an exception and fail the test
@@ -411,7 +410,6 @@ def checkBlockchainFields(request, blockchain):
       expectedRpcUrls.remove(node["url"])
 
       # TODO: Verify the cert. See VB-747
-
       assert "region" in node.keys(), "The region field does not exist."
 
    assert len(expectedRpcUrls) == 0, \
