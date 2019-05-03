@@ -29,6 +29,13 @@ using namespace bftEngine;
 using namespace Blockchain;
 
 /**
+ * Pure virtual destructor needs to be defined within an abstract class if that
+ * very abstract class is used to delete a derived instanciation.
+ * See main.cpp for its usage.
+ */
+Blockchain::ICommandsHandler::~ICommandsHandler() {}
+
+/**
  * Opens the database and creates the replica thread. Replica state moves to
  * Starting.
  */
