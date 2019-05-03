@@ -1,0 +1,73 @@
+//
+// KVBlockChain commit service:
+// Provides a service to commit KV transactions to the blockchain.
+//
+
+syntax = "proto3";
+package com.digitalasset.kvbc;
+option java_package = "com.digitalasset.kvbc";
+import "daml_data.proto";
+
+service CommitService {
+  // Commit a transaction.
+  rpc CommitTransaction (CommitRequest) returns (CommitResponse) {}
+}
+
+message CommitRequest {
+  // Opaque blob containing the transaction we're committing.
+  bytes tx = 1;
+
+  // NOTE(JM): The following fields are provided as we are not doing post-commit validation which
+  // would derive these. We're trusting the submitter, but verifying and updating activeness.
+
+  // HACK: the input contracts that must be active.
+  repeated AbsContractId input_contracts = 2;
+
+  // HACK: the consumed contracts that should be marked inactive.
+  // The execution marks "activeContracts/<txId>/<offset>" as consumed.
+  repeated AbsContractId consumed_contracts = 3;
+
+  // HACK: the node ids of the created contracts that should be marked active.
+  // This marks "activeContracts/<txId>/<offset>" as active.
+  repeated RelContractId created_contracts = 4;
+}
+
+message AbsContractId {
+  bytes tx_id = 1;
+  RelContractId rel_id = 2;
+}
+
+message RelContractId {
+  int64 node_id = 1;
+}
+
+message CommitResponse {
+  CommitStatus status = 1;
+
+  // The block into which the transaction was committed.
+  // Unset if commit failed.
+  int64 block_id = 2;
+
+  enum CommitStatus {
+    OK = 0;
+    CONFLICT = 1;
+  }
+}
+
+// FIXME(JM): Move to its own proto file
+// The KVBC command
+message Command {
+  oneof cmd {
+    ReadTransactionRequest read = 1;
+    CommitRequest commit = 2;
+  }
+}
+
+message CommandReply {
+  oneof result {
+    CommitResponse commit = 1;
+    ReadTransactionResponse read = 2;
+    string error = 3;
+  }
+}
+

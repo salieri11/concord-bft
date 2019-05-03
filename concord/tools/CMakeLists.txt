@@ -16,6 +16,7 @@ add_executable(conc_sendtx
                ${PROTO_SRCS} ${PROTO_HDRS})
 target_link_libraries(conc_sendtx
                       concmdutil
+                      protobuf::libprotobuf
                       proto ${PROTOBUF_LIBRARIES}
                       ${Boost_LIBRARIES})
 
@@ -24,6 +25,7 @@ add_executable(conc_gettxrcpt
                ${PROTO_SRCS} ${PROTO_HDRS})
 target_link_libraries(conc_gettxrcpt
                       concmdutil
+                      protobuf::libprotobuf
                       proto ${PROTOBUF_LIBRARIES}
                       ${Boost_LIBRARIES})
 
@@ -32,6 +34,7 @@ add_executable(conc_getstat
                ${PROTO_SRCS} ${PROTO_HDRS})
 target_link_libraries(conc_getstat
                       concmdutil
+                      protobuf::libprotobuf
                       proto ${PROTOBUF_LIBRARIES}
                       ${Boost_LIBRARIES})
 
@@ -40,6 +43,7 @@ add_executable(conc_getblk
                ${PROTO_SRCS} ${PROTO_HDRS})
 target_link_libraries(conc_getblk
                       concmdutil
+                      protobuf::libprotobuf
                       proto ${PROTOBUF_LIBRARIES}
                       ${Boost_LIBRARIES})
 
