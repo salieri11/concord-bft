@@ -38,8 +38,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 
 import com.vmware.blockchain.MvcConfig;
-import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.ConcordProperties;
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.HelenExceptionHandler;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
