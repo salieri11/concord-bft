@@ -42,14 +42,16 @@ class InitScript(
             systemctl enable docker
             {{dockerLoginCommand}}
             {{dockerPullCommand}}
-            # Create additional user for copying over the config files.
-            useradd vmwuser1 -s /bin/bash -m
-            echo "vmwuser1:c0nc0rd" | chpasswd
+
             # Output the node's configuration.
             mkdir -p /concord/config-local
             mkdir -p /concord/config-public
             echo '{{staticIp}}' > /concord/ipaddr
             echo '{{gateway}}' > /concord/gateway
+           
+            tdnf install netmgmt -y
+            netmgr ip4_address --set --interface eth0 --mode static --addr {staticIp}/24 --gateway {gateway}
+
             touch /concord/config-local/concord.config
             echo '{{concordConfiguration}}' > /concord/config-local/concord.config
             echo '{{genesis}}' > /concord/config-public/genesis.json
