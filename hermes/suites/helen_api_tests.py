@@ -102,7 +102,6 @@ class HelenAPITests(test_suite.TestSuite):
 
    def _getTests(self):
       return [("getCerts", self._test_getCerts), \
-              ("transaction", self._test_getTransactions), \
               ("contract_upload", self._test_contractUpload), \
               ("multiple_contract_upload", self._test_multiContractUpload), \
               ("contract_tx", self._test_contractTx), \
@@ -168,38 +167,6 @@ class HelenAPITests(test_suite.TestSuite):
       else:
          return (False, "no non-empty rpc_cert found in response")
 
-
-   def getABlockchainId(self, request):
-      '''
-      Returns the first blockchain.
-      Will be enhanced when user/org/consortia work is done in Helen.
-      Move this to helen/api_test.py when the tests which use it
-      have been moved there.
-      '''
-      blockchains = request.getBlockchains()
-      return blockchains[0]["id"]
-
-      
-   def _test_getTransactions(self, request):
-      self._mock_transaction(request)
-      blockchainId = self.getABlockchainId(request)
-      result = request.getBlockList(blockchainId)
-      blockResult = request.getBlockByUrl(result["blocks"][0]["url"])
-
-      # get all of the transactions in the most recent block
-      for t in blockResult["transactions"]:
-         txResult = request.getTransaction(t["hash"])
-
-         (present, missing) = self.requireFields(
-            txResult,
-            ["hash", "from", "value", "input", "nonce"])
-         if not present:
-            return (False, "No '{}' field in tx response.".format(missing))
-
-         if not txResult["hash"] == t["hash"]:
-            return (False, "'hash' field does not match requested hash.")
-
-      return (True, None)
 
    def contract_upload_util_generic(self,request,contractId,
     contractVersion,sourceCode, fromAddr, contractName, ctorParams, compilerVersion):

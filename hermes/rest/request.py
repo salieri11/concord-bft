@@ -67,7 +67,7 @@ class Request():
             url += "&" + self._params
          else:
             url += "?" + self._params
-      
+
       if verb is None:
          if self._data is None:
             curlCmd = ["curl",
@@ -141,7 +141,7 @@ class Request():
             self._params += "&"
 
          self._params += param
-      
+
    def _setUpOutput(self, method):
       '''
       Creates the log directory and sets the response/output files for a
@@ -178,21 +178,29 @@ class Request():
 
       return self._send()
 
+   def getABlockchainId(self):
+      '''
+      Returns the first blockchain.
+      Will be enhanced when user/org/consortia work is done in Helen.
+      '''
+      blockchains = self.getBlockchains()
+      return blockchains[0]["id"]
+
    def getBlockList(self, blockchainId, nextUrl=None, latest=None, count=None):
       '''
       Get the list of blocks for the passed in blockchain.
       '''
       self._subPath = nextUrl or "/api/blockchains/" + blockchainId + "/concord/blocks"
       self._params = ""
-      
+
       if latest != None:
          self._addParam("latest=" + str(latest))
 
       if count != None:
          self._addParam("count=" + str(count))
-         
+
       self._endpointName = "blocklist"
-      
+
       return self._send()
 
    def getBlockByUrl(self, url):
@@ -215,11 +223,11 @@ class Request():
 
       return self._send()
 
-   def getTransaction(self, txhash):
+   def getTransaction(self, blockchainId, txhash):
       '''
       Get a specific transaction
       '''
-      self._subPath = '/api/concord/transactions/'+txhash
+      self._subPath = "/api/blockchains/" + blockchainId + "/concord/transactions/" + txhash
       self._params = ""
       self._endpointName = "transaction"
 

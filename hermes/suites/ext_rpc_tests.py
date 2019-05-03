@@ -390,7 +390,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if not self._productMode:
          log.warn("No verification done in ethereum mode")
       else:
-         tx = request.getTransaction(txResult)
+         blockchainId = request.getABlockchainId()
+         tx = request.getTransaction(blockchainId, txResult)
          if not tx:
             return (False, "No transaction receipt found")
 
@@ -561,7 +562,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if not self._productMode:
          log.warn("No verification done in ethereum mode")
       else:
-         tx = request.getTransaction(txResult)
+         blockchainId = request.getABlockchainId()
+         tx = request.getTransaction(blockchainId, txResult)
          if not tx:
             return (False, "No transaction receipt found")
 
@@ -833,7 +835,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if not self._productMode:
          log.warn("No verification done in ethereum mode")
       else:
-         tx = request.getTransaction(txResult)
+         blockchainId = request.getABlockchainId()
+         tx = request.getTransaction(blockchainId, txResult)
          if not tx:
             return (False, "No transaction receipt found")
 
@@ -1048,7 +1051,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
          log.warn("No verification done in ethereum mode")
       else:
          hexstring = txResult.hex()
-         tx = request.getTransaction(hexstring)
+         blockchainId = request.getABlockchainId()
+         tx = request.getTransaction(blockchainId, hexstring)
          if not tx:
             return (False, "No transaction receipt found")
 
