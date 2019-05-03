@@ -2998,6 +2998,13 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.tagParameter("FEATURE_time_service", publicDefaultableTags);
   config.addValidator("FEATURE_time_service", validateBoolean, nullptr);
 
+  config.declareParameter("daml_enable",
+                          "Enable DAML support. At the moment, DAML and Eth "
+                          "support are mutual exclusive.",
+                          "false");
+  config.tagParameter("daml_enable", publicDefaultableTags);
+  config.addValidator("daml_enable", validateBoolean, nullptr);
+
   node.declareParameter("api_worker_pool_size",
                         "Number of threads to create to handle TCP connections "
                         "to this node's external API.",
