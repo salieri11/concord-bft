@@ -501,12 +501,15 @@ public class ProvisionService extends ProvisionServiceImplBase {
                             .map(entry -> {
                                 var placement = entry.getKey();
                                 var config = entry.getValue();
-                                var publisher = deployNode(orchestrators.get(placement.getSite()),
-                                                           session.getId(),
-                                                           placement.getNode(),
-                                                           model,
-                                                           session.getSpecification().getGenesis(),
-                                                           config);
+                                var publisher = deployNode(
+                                        orchestrators.get(placement.getSite()),
+                                        session.getId(),
+                                        placement.getNode(),
+                                        model,
+                                        session.getSpecification().getGenesis(),
+                                        config,
+                                        privateNetworkAddressMap.get(entry.getKey())
+                                );
 
                                 return Map.entry(entry.getKey(), publisher);
                             })
@@ -618,14 +621,16 @@ public class ProvisionService extends ProvisionServiceImplBase {
             ConcordNodeIdentifier nodeId,
             ConcordModelSpecification model,
             Genesis genesis,
-            String configuration
+            String configuration,
+            NetworkResourceEvent.Created networkResourceEvent
     ) {
         var computeRequest = new CreateComputeResourceRequest(
                 new ConcordClusterIdentifier(sessionId.getLow(), sessionId.getHigh()),
                 nodeId,
                 model,
                 genesis,
-                configuration
+                configuration,
+                networkResourceEvent.getAddress()
         );
         return orchestrator.createDeployment(computeRequest);
     }

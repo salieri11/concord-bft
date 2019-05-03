@@ -222,7 +222,7 @@ class VmcOrchestrator private constructor(
                                     request.model,
                                     request.genesis,
                                     request.configuration,
-                                    toIPv4Address(staticIpCounter.getAndDecrement()),
+                                    request.privateNetworkAddress,
                                     toIPv4Address(staticIpGateway)
                             )
                     )
