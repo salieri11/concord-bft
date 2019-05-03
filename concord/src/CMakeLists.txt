@@ -3,6 +3,7 @@ file(GLOB concord_src "main.cpp"
   "config/*.cpp"     "config/*.hpp"
   "consensus/*.cpp"  "consensus/*.hpp"
   "ethereum/*.cpp"   "ethereum/*.hpp"
+  "daml/*.cpp"       "daml/*.hpp"
 )
 
 string(APPEND CMAKE_CXX_FLAGS " -Wall")
@@ -18,7 +19,9 @@ add_subdirectory("time")
 
 add_executable(concord
   ${concord_src}
-  ${PROTO_SRCS} ${PROTO_HDRS})
+  ${PROTO_SRCS} ${PROTO_HDRS}
+  ${GRPC_SRCS}
+)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
@@ -43,4 +46,6 @@ target_link_libraries(concord
   concord_common
   concord_blockchain
   concord_time
+  gRPC::grpc++_reflection
+  protobuf::libprotobuf
 )
