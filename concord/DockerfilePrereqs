@@ -30,17 +30,26 @@ RUN apt-get update && apt-get -y install \
     libboost-program-options1.65-dev \
     libboost-program-options1.65.1 \
     libboost-system1.65-dev \
+    libboost-filesystem1.65-dev \
     libboost-system1.65.1 \
     libboost-thread1.65-dev \
     libboost-thread1.65.1 \
     libyaml-cpp0.5v5 \
     libyaml-cpp-dev \
+    build-essential \
+    pkg-config \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 RUN ln -s /usr/bin/clang-format-6.0 /usr/bin/clang-format
 RUN ln -s /usr/bin/clang-format-diff-6.0 /usr/bin/clang-format-diff
 
 RUN pip3 install cpplint
+
+# Golang for HLF chaincode
+WORKDIR /tmp
+RUN wget https://dl.google.com/go/go1.11.linux-amd64.tar.gz && \
+    tar -C /usr/local -xf go1.11.linux-amd64.tar.gz
 
 WORKDIR /
 RUN git clone https://github.com/google/googletest.git && \
@@ -96,3 +105,32 @@ RUN git clone https://github.com/bitcoin-core/secp256k1 && \
 WORKDIR /secp256k1
 RUN ./autogen.sh && ./configure --enable-module-recovery CFLAGS="-march=x86-64 -mtune=generic" CPPFLAGS="-march=x86-64 -mtune=generic"
 RUN make -j4 && make install
+
+WORKDIR /
+RUN git clone https://github.com/openssl/openssl.git && \
+    cd /openssl && \
+    git checkout OpenSSL_1_1_1a
+WORKDIR /openssl
+RUN ./config && \
+    make -j4 && \
+    make test && \
+    make install
+
+# gRPC for DAML and HLF api server
+WORKDIR /
+RUN git clone https://github.com/grpc/grpc && \
+    cd /grpc && \
+    git checkout v1.17.x && \
+    git submodule update --init && \
+    cd /grpc/third_party/protobuf && \
+    git checkout 3.6.x
+WORKDIR /grpc/third_party/protobuf
+RUN ./autogen.sh && \
+    ./configure --prefix=/opt/protobuf && \
+    make -j4 && \
+    make install && \
+    cd /grpc && \
+    make -j4 PROTOC=/opt/protobuf/bin/protoc && \
+    make prefix=/opt/grpc install
+
+ENV LD_LIBRARY_PATH /usr/local/lib
