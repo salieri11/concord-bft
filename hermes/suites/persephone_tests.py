@@ -9,7 +9,6 @@ import json
 import logging
 import traceback
 from . import test_suite
-from google.protobuf.json_format import MessageToJson
 sys.path.append('lib')
 
 log = logging.getLogger(__name__)
@@ -42,6 +41,7 @@ class PersephoneTests(test_suite.TestSuite):
          return self._resultFile
 
       try:
+         from google.protobuf.json_format import MessageToJson
          from persephone.rpc_test_helper import RPCTestHelper
       except ImportError as e:
          log.error(
