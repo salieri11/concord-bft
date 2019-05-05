@@ -13,7 +13,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 
 /**
- * A Spring Data JPA (or Hibernate) Entity class representing a user in the system.
+ * Agreement entity.
  */
 @EntityColumnName("helen.agreement")
 @Data

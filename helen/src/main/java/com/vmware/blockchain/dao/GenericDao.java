@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.TransactionException;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.InternalFailureException;
@@ -44,6 +45,7 @@ import com.vmware.blockchain.security.AuthHelper;
  */
 
 @Repository
+@Transactional
 public class GenericDao {
 
     private static final Logger logger = LoggerFactory.getLogger(GenericDao.class);
@@ -77,7 +79,7 @@ public class GenericDao {
             } catch (TransactionException e) {
                 if (retries >= MAX_RETRIES) {
                     logger.warn("Failed to retry for putUnderParent. Max retries exceeded.", e);
-                    throw new InternalFailureException(ErrorCode.RETRY_FAILURE, e);
+                    throw new InternalFailureException(e, ErrorCode.RETRY_FAILURE, "putUnderParent");
                 }
                 ++retries;
                 logger.info("Retrying putUnderParent");
@@ -102,7 +104,7 @@ public class GenericDao {
             } catch (TransactionException e) {
                 if (retries >= MAX_RETRIES) {
                     logger.warn("Failed to retry for putUnderParent. Max retries exceeded.", e);
-                    throw new InternalFailureException("Retry failure", e);
+                    throw new InternalFailureException(e, ErrorCode.RETRY_FAILURE, "putUnderTenant");
                 }
                 ++retries;
                 logger.info("Retrying putUnderParent");
@@ -252,6 +254,17 @@ public class GenericDao {
                                                   "getByJsonQuery");
     }
 
+    /**
+     * Get an entity using with a json query from the entity body.
+     * @param json          A valid json expression
+     * @param entityClass   entity class
+     * @return              list of entities matching the json
+     */
+    public <E extends AbstractEntity> List<E> getJsonByParentQuery(UUID parent, String json, Class<E> entityClass) {
+        return callGenericDaoTransactionWithRetry((m -> m.getJsonByParentQuery(parent, json, entityClass)),
+                                                  "getJsonByParentQuery");
+    }
+
     public <E extends AbstractEntity> List<E> getByTenant(Class<E> entityClass) {
         return getByTenant(entityClass, authHelper.getConsortiumId());
     }
@@ -334,7 +347,7 @@ public class GenericDao {
             } catch (TransactionException e) {
                 if (retries >= MAX_RETRIES) {
                     logger.warn("Failed to retry for {}. Max retries exceeded.", methodName, e);
-                    throw new InternalFailureException(e, "Failed to retry for {0}. Max retries exceeded.", methodName);
+                    throw new InternalFailureException(e, ErrorCode.RETRY_FAILURE, methodName);
                 }
                 ++retries;
                 logger.info("Retrying {}", methodName);
@@ -356,7 +369,7 @@ public class GenericDao {
             } catch (TransactionException e) {
                 if (retries >= MAX_RETRIES) {
                     logger.warn("Failed to retry for {}. Max retries exceeded.", methodName, e);
-                    throw new InternalFailureException(e, "Failed to retry for {0}. Max retries exceeded.", methodName);
+                    throw new InternalFailureException(e, ErrorCode.RETRY_FAILURE, methodName);
                 }
                 ++retries;
                 logger.info("Retrying {}", methodName);

@@ -4,7 +4,6 @@
 
 package com.vmware.blockchain.db;
 
-import javax.persistence.EntityManagerFactory;
 import javax.sql.DataSource;
 
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -12,13 +11,10 @@ import org.apache.ibatis.type.TypeHandler;
 import org.mybatis.spring.SqlSessionFactoryBean;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.orm.jpa.JpaTransactionManager;
-import org.springframework.transaction.PlatformTransactionManager;
 
 import com.vmware.blockchain.db.mapper.handlers.UuidTypeHandler;
 
@@ -43,18 +39,6 @@ public class DbConfig {
     @Primary
     public DataSourceTransactionManager transactionManager() {
         return new DataSourceTransactionManager(dataSource);
-    }
-
-    /**
-     * TransactionManager for JPA tables.
-     */
-    @Bean
-    @Qualifier("jpaTransaction")
-    public PlatformTransactionManager transactionManager(EntityManagerFactory emf) {
-        JpaTransactionManager transactionManager = new JpaTransactionManager();
-        transactionManager.setEntityManagerFactory(emf);
-
-        return transactionManager;
     }
 
 

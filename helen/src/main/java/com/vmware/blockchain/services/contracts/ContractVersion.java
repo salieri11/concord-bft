@@ -17,7 +17,7 @@ import lombok.Setter;
 @Setter
 @AllArgsConstructor
 @Builder
-public class ContractVersion implements FullVersionInfo {
+public class ContractVersion {
     // Id of this contract
     private String contractId;
     // address of the owner of this contract

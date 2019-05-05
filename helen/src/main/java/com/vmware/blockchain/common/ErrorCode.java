@@ -25,7 +25,11 @@ public final class ErrorCode {
     public static final String CONCURRENT_UPDATE_FAILED =
             "Concurrent update on {0}, column name {1}. Try operation again";
     public static final String CONNECTION_POOL_UNSUPPORTED = "getConnection, pool not initialized";
-    public static final String CONTRACT_NOT_FOUND = " contract not found";
+    public static final String CONTRACT_COMPILE_FAILED = "Compilation failure {0}";
+    public static final String CONTRACT_DEPLOY_FAILED = "Could not deploy contract {0}";
+    public static final String CONTRACT_NOT_FOUND = "Contract not found: {0}";
+    public static final String CONTRACT_NOT_OWNER = "Only original owner can deploy the new version of a contract";
+    public static final String CONTRACT_VERSION_NOT_FOUND = "Contract version not found  {0}:{1}";
     public static final String DATABASE_UNAVAILABLE = "Database service is not available";
     public static final String DELETE_INTEGRITY_ERROR =
             "Cannot delete entity with id {0} and column name {1}. It is referenced by other entities.";
@@ -38,6 +42,8 @@ public final class ErrorCode {
     public static final String ENTITY_CONVERSION_UNSUCCESSFUL = "Could not convert from DB to Entity {0}";
     public static final String ELEMENTS_SPECIFIED_LESS = "Params should contain 2 elements for this request type";
     public static final String EXCEPTION_NOT_ALLOWED = "Not allowed";
+    public static final String FAILED_TO_PARSE_DATE =
+            "Failed to parse a date: {0}. Date format: {1}. Error message: {2}.";
     public static final String FROM_UNSPECIFIED = "'from' must be specified";
     public static final String HEX_COUNT_WRONG = "Hex string has odd nibble count.";
     public static final String ID_TYPE_WRONG = "id must be a number";
@@ -67,12 +73,14 @@ public final class ErrorCode {
     public static final String JSON_METHOD_UNSUPPORTED = "parseToJSON method is not supported";
     public static final String METHOD_UNSPECIFIED = "request must contain a method";
     public static final String NULL_TENANT_ID = "Null tenantId for column %s";
+    public static final String NO_AUTHORIZATION = "No Authorization";
+    public static final String NOT_ALLOWED = "Not allowed";
     public static final String NOT_FOUND = "Not found";
     public static final String ORG_NOT_FOUND = "Organization with ID {0} not found.";
     public static final String PASSPHRASE_INVALID = "Invalid passphrase";
     public static final String RAW_TRANSCATION_UNPARSED = "Unable to parse raw transaction (extra data after envelope)";
     public static final String REQUEST_UNPARSED = "unable to parse request";
-    public static final String RETRY_FAILURE = "Retry failure";
+    public static final String RETRY_FAILURE = "Failed to retry for {0}. Max retries exceeded.";
     public static final String UNALLOWED = "Not allowed or forbidden";
     public static final String UNINITIALIZED_POOL = "returnConnection, pool not initialized";
     public static final String UNMATCHED_QUERY = "Could not match query {0}";

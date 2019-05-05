@@ -17,7 +17,7 @@ import com.google.protobuf.ByteString;
 import com.vmware.blockchain.common.Constants;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
-import com.vmware.blockchain.services.contracts.ContractRegistryManager;
+import com.vmware.blockchain.services.contracts.ContractService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.ProfilesService;
 import com.vmware.concord.Concord;
@@ -35,7 +35,7 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
 
     private static Logger logger = LogManager.getLogger(EthSendTxHandler.class);
     private boolean isInternalContract;
-    private ContractRegistryManager registryManager;
+    private ContractService registryManager;
     private ConnectionPoolManager connectionPoolManager;
     private DefaultProfiles defaultProfiles;
     private ProfilesService profilesRegistryManager;
@@ -46,7 +46,7 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
      */
     public EthSendTxHandler(ConnectionPoolManager connectionPoolManager, DefaultProfiles defaultProfiles,
             ProfilesService profilesRegistryManager,
-            Optional<UUID> blockchain, ContractRegistryManager registryManager, boolean isInternalContract) {
+            Optional<UUID> blockchain, ContractService registryManager, boolean isInternalContract) {
         // If isInternalContract is true, the handler is processing a contract created from the Helen UI.
         this.isInternalContract = isInternalContract;
         this.registryManager = registryManager;
@@ -286,7 +286,7 @@ public class EthSendTxHandler extends AbstractEthRpcHandler {
                 String metaData = "";
                 String solidityCode = "";
                 UUID bid = blockchain.orElse(defaultProfiles.getBlockchain().getId());
-                boolean success = registryManager.addNewContractVersion(contractAddress, from, contractVersion,
+                registryManager.addNewContractVersion(contractAddress, from, contractVersion,
                         contractAddress, metaData, byteCode, solidityCode, bid);
             }
         } catch (Exception e) {

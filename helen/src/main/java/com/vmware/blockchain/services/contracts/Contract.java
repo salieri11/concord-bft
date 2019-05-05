@@ -6,39 +6,28 @@ package com.vmware.blockchain.services.contracts;
 
 import java.util.UUID;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.Table;
-
-import org.hibernate.annotations.Generated;
-import org.hibernate.annotations.GenerationTime;
+import com.vmware.blockchain.dao.AbstractEntity;
+import com.vmware.blockchain.dao.EntityColumnName;
+import com.vmware.blockchain.dao.LinkedEntityId;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 /**
- * Contract Data type for JPA.
+ * Contract Entity.
  */
-@Table(name = "CONTRACTS")
-@Entity
+@EntityColumnName("helen.contract")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Contract {
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private UUID id;
-
-    @Column(name = "contract_id", nullable = false)
+@EqualsAndHashCode(callSuper = true)
+public class Contract extends AbstractEntity {
     private String name;
 
-    @Column(name = "version_name", nullable = false)
     private String versionName;
 
     private String address;
@@ -51,11 +40,7 @@ public class Contract {
 
     private String owner;
 
-    @Generated(GenerationTime.ALWAYS)
-    @Column(name = "sequence_number", insertable = false, updatable = false)
-    private long seq;
-
-    @Column(name = "blockchain_id", nullable = false)
+    @LinkedEntityId
     private UUID blockchainId;
 
 }

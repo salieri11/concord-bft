@@ -61,7 +61,8 @@ public interface EntityMapper {
                     + "and version >= #{param3} and version <= #{param4} " + "order by version desc";
 
     String SQL_GET_BY_PARENT = "select e.created_id, e.row_key, e.column_name, e.version, e.body, "
-            + "e.user_id, e.user_name, e.created_tms from entity as e " + "join link as l on l.to_row = e.row_key "
+            + "e.user_id, e.user_name, e.created_tms from entity as e "
+            + "join link as l on l.to_row = e.row_key "
             + "where l.from_row = #{param1} and e.column_name = #{param2}";
 
     String SQL_GET_BY_PARENT_LIST = "select e.created_id, e.row_key, e.column_name, e.version, e.body, "
@@ -227,6 +228,22 @@ public interface EntityMapper {
         @Result(property = "createdTms", column = "created_tms")})
     @SelectProvider(type = JsonQueryProvider.class, method = "selectJsonQuery")
     List<Entity> getByJsonQuery(String json, String columnName);
+
+    @Results({@Result(property = "createdId", column = "created_id"),
+        @Result(property = "rowKey", column = "row_key", jdbcType = JdbcType.OTHER, javaType = UUID.class,
+                typeHandler = UuidTypeHandler.class),
+        @Result(property = "columnName", column = "column_name"),
+        @Result(property = "version", column = "version"),
+        @Result(property = "body", column = "body"),
+        @Result(property = "userId", column = "user_id", jdbcType = JdbcType.OTHER, javaType = UUID.class,
+                typeHandler = UuidTypeHandler.class),
+        @Result(property = "userName", column = "user_name"),
+        @Result(property = "createdTms", column = "created_tms")})
+    @SelectProvider(type = JsonQueryProvider.class, method = "selectJsonByParentIdQuery")
+    @ConstructorArgs({
+        @Arg(typeHandler = UuidTypeHandler.class, column = "row_key", jdbcType = JdbcType.OTHER,
+                javaType = UUID.class)})
+    List<Entity> getJsonByParentQuery(UUID parent, String json, String columnName);
 
     @Results({@Result(property = "createdId", column = "created_id"),
             @Result(property = "rowKey", column = "row_key", jdbcType = JdbcType.OTHER, javaType = UUID.class,
