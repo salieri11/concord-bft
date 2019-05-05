@@ -19,7 +19,9 @@ class InitScript(
     containerRegistry: Endpoint,
     model: ConcordModelSpecification,
     genesis: Genesis,
-    concordConfiguration: String
+    concordConfiguration: String,
+    ipAddress: String,
+    gateway: String
 ) {
 
     object GenesisSerializer
@@ -46,16 +48,20 @@ class InitScript(
             # Output the node's configuration.
             mkdir -p /concord/config-local
             mkdir -p /concord/config-public
+            echo '{{staticIp}}' > /concord/ipaddr
+            echo '{{gateway}}' > /concord/gateway
             touch /concord/config-local/concord.config
             echo '{{concordConfiguration}}' > /concord/config-local/concord.config
             echo '{{genesis}}' > /concord/config-public/genesis.json
-            docker run --name agent -v /concord/config-local:/concord-local -v /var/run/docker.sock:/var/run/docker.sock -e HOST=`/sbin/ip route | grep 'default' | grep eth0 | tail -1 | cut -d' ' -f3` registry-1.docker.io/vmwblockchain/agent-testing
+            docker run -d --name agent -v /concord/config-local:/concord-local -v /var/run/docker.sock:/var/run/docker.sock -e HOST=`/sbin/ip route | grep 'default' | grep eth0 | tail -1 | cut -d' ' -f3` registry-1.docker.io/vmwblockchain/agent-testing
             echo 'done'
             """.trimIndent()
                     .replace("{{dockerLoginCommand}}", containerRegistry.toRegistryLoginCommand())
                     .replace("{{dockerPullCommand}}", dockerPullCommand)
                     .replace("{{concordConfiguration}}", concordConfiguration)
                     .replace("{{genesis}}", GenesisSerializer.toJson(genesis))
+                    .replace("{{staticIp}}", ipAddress)
+                    .replace("{{gateway}}", gateway)
 
     /**
      * Convert an endpoint to a Docker Registry login command.
