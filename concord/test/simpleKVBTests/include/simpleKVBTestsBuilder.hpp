@@ -21,6 +21,8 @@ namespace BasicRandomTests {
 
 const int KV_LEN = 21;
 
+#pragma pack(push, 1)
+
 struct SimpleKey {
   char key[KV_LEN];
 };
@@ -243,6 +245,8 @@ struct SimpleReply_GetLastBlock {
   SimpleReply header;
   Blockchain::BlockId latestBlock = 0;
 };
+
+#pragma pack(pop)
 
 class SimpleKeyBlockIdPair  // Represents <key, blockId>
 {
