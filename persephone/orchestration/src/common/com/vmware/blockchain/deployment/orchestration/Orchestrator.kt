@@ -56,7 +56,7 @@ interface Orchestrator {
 
         // FIXME: THIS IS TEMPORARY UNTIL CONFIGURATION IS FETCHED BY PERSEPHONE-AGENT.
         val configuration: String = "",
-        val privateNetworkAddress: String
+        val privateNetworkAddress: String = ""
     )
 
     /**
