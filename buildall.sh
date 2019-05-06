@@ -225,7 +225,14 @@ docker_pull() {
 
 PerformanceTests() {
     cd performance
-    mvn clean install assembly:single > performance__test_mvn_build.log 2>&1
+    mvn clean install assembly:single > performance_test_mvn_build.log 2>&1
+}
+
+BuildPersephoneGRPCpyBindings() {
+    pushd .
+    ./hermes/util/generate_gRPC_bindings_for_py3.sh --protobufSrc persephone/api/src/protobuf > persephone_generate_gRPC_py_bindings.log 2>&1 &
+    addToProcList "Persephone gRPC Python Buildings" $!
+    popd
 }
 
 declare -A BUILD_PROCS
@@ -294,6 +301,8 @@ docker_build asset-transfer asset-transfer/Dockerfile ${asset_transfer_repo} ${a
 docker_build agent agent/packaging.Dockerfile ${agent_repo} ${agent_tag}
 
 docker_build contract-compiler contract-compiler/Dockerfile ${contract_compiler_repo} ${contract_compiler_tag}
+
+BuildPersephoneGRPCpyBindings
 
 if [ ! -z "${ADDITIONAL_BUILDS}" ]
 then

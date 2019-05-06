@@ -3,11 +3,12 @@ import groovy.json.*
 def call(){
   def agentLabel = "genericVM"
   def genericTests = true
+  def additional_components_to_build = ""
   def master_branch_job_name = "Master Branch"
   def memory_leak_job_name = "BlockchainMemoryLeakTesting"
   def performance_test_job_name = "Blockchain Performance Test"
   def lint_test_job_name = "Blockchain LINT Tests"
-  def additional_components_to_build = ""
+  def persephone_test_job_name = "Blockchain Persephone Tests"
 
   if (env.JOB_NAME.contains(memory_leak_job_name)) {
     echo "**** Jenkins job for Memory Leak Test"
@@ -17,6 +18,9 @@ def call(){
     echo "**** Jenkins job for Performance Test"
     genericTests = false
     additional_components_to_build = additional_components_to_build + "PerformanceTests,"
+  } else if (env.JOB_NAME.contains(persephone_test_job_name)) {
+    echo "**** Jenkins job for Persephone Test"
+    genericTests = false
   } else if (env.JOB_NAME.contains(lint_test_job_name)) {
     echo "**** Jenkins job for LINT Tests"
     genericTests = false
@@ -361,6 +365,7 @@ EOF
                     env.statetransfer_test_logs = new File(env.test_log_root, "StateTransfer").toString()
                     env.mem_leak_test_logs = new File(env.test_log_root, "MemoryLeak").toString()
                     env.performance_test_logs = new File(env.test_log_root, "PerformanceTest").toString()
+                    env.persephone_test_logs = new File(env.test_log_root, "PersephoneTest").toString()
                     env.lint_test_logs = new File(env.test_log_root, "LintTest").toString()
                     env.contract_compiler_test_logs = new File(env.test_log_root, "ContractCompilerTests").toString()
 
@@ -401,6 +406,12 @@ EOF
                       sh '''
                         echo "Running Entire Testsuite: Performance..."
                         echo "${PASSWORD}" | sudo -SE "${python}" main.py PerformanceTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${performance_test_logs}" --runConcordConfigurationGeneration
+                      '''
+                    }
+                    if (env.JOB_NAME.contains(persephone_test_job_name)) {
+                      sh '''
+                        echo "Running Entire Testsuite: Persephone..."
+                        echo "${PASSWORD}" | sudo -SE "${python}" main.py PersephoneTests --dockerComposeFile ../docker/docker-compose-persephone.yml --resultsDir "${persephone_test_logs}"
                       '''
                     }
                     if (env.JOB_NAME.contains(lint_test_job_name)) {

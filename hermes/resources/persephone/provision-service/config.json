@@ -1,0 +1,28 @@
+[
+    { "low": 1, "high": 0 },
+    {
+        "type": "VMC",
+        "vmc": {
+            "authentication": {
+                "address": "https://console.cloud.vmware.com",
+                "credential": {
+                    "type": "BEARER",
+                    "passwordCredential": null,
+                    "tokenCredential": {
+                        "token": "API_TOKEN_HERE"
+                    }
+                }
+            },
+            "api": {
+                "address": "https://vmc.vmware.com",
+                "credential": {
+                    "type": "NONE",
+                    "passwordCredential": null,
+                    "tokenCredential": null
+                }
+            },
+            "organization":"c56e116e-c36f-4f7d-b504-f9a33955b853",
+            "datacenter":"3656526b-c74e-4f87-8e1f-a667975273c2"
+        }
+    }
+]

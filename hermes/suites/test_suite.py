@@ -165,6 +165,22 @@ class TestSuite(ABC):
             self.writeResult("All Tests", None, "The product did not start.")
             raise(e)
 
+   def launchPersephone(self, cmdlineArgs, userConfig, force=False):
+      '''
+      Creates the test suite's Product object and, if appropriate,
+      launches the product.  Passing in force=True means the
+      product will always be launched.
+      '''
+      self.product = Product(cmdlineArgs, userConfig)
+
+      if force or (self._productMode and not self._noLaunch):
+         try:
+            self.product.launchPersephone()
+         except Exception as e:
+            log.error(str(e))
+            self.writeResult("All Tests", None, "The product did not start.")
+            raise(e)
+
    def getWeb3Instance(self):
       '''
       Connect the web3 framework to an ethrpc node

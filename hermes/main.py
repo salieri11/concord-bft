@@ -12,14 +12,14 @@ import tempfile
 from time import strftime, localtime
 
 from suites import (asset_transfer_tests, contract_compiler_tests, core_vm_tests,
-                    ext_rpc_tests, lint_e2e_tests, helen_api_tests, performance_tests,
+                    ext_rpc_tests, lint_e2e_tests, helen_api_tests, performance_tests, persephone_tests,
                     regression_tests, simple_st_test, truffle_tests, ui_tests)
 
 from util import html, json_helper
 
 log = None
 suites = ["AssetTransferTests", "ContractCompilerTests", "CoreVMTests",
-          "LintTests", "ExtendedRPCTests", "HelenAPITests", "PerformanceTests",
+          "LintTests", "ExtendedRPCTests", "HelenAPITests", "PerformanceTests", "PersephoneTests",
           "RegressionTests", "SimpleStateTransferTest", "TruffleTests", "UiTests"]
 
 def main():
@@ -181,6 +181,8 @@ def createTestSuite(args):
       return ext_rpc_tests.ExtendedRPCTests(args)
    elif (args.suite == "PerformanceTests"):
       return performance_tests.PerformanceTests(args)
+   elif (args.suite == "PersephoneTests"):
+      return persephone_tests.PersephoneTests(args)
    elif (args.suite == "RegressionTests"):
       return regression_tests.RegressionTests(args)
    elif (args.suite == "SimpleStateTransferTest"):
