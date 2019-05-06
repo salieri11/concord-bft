@@ -59,9 +59,6 @@ import io.micrometer.core.instrument.Timer;
  * Generic DAO transaction implementation. This is separated out so that we can retry on failed transactions exceptions
  * thrown by spring which cannot be caught by the dao layer.
  *
- * <p>Note: Spring's @Transactional annotation only works at the top level method. If you need a transactional method,
- *  please make sure it's the first method called in GenericDao. Calling an @Transactional method from
- * a non @Transactional method within GenericDao won't work.
  */
 
 @Repository
@@ -552,6 +549,43 @@ class GenericDaoTransaction  {
                     List<Entity> dbEntities = callEntityMapperWithRetry(
                         m -> m.getByJsonQuery(json, columnName),
                         String.format("getByJsonQuery({%s}, {%s})", json, columnName));
+
+                    for (Entity dbEntity : dbEntities) {
+                        result.add(dbEntityToEntity(dbEntity, entityClass));
+                    }
+                    int nDbResults = result.size();
+
+                    logger.trace("Finish retrieving entities for josn {}, column name {}", json,
+                                 columnName);
+                    if (nDbResults > LOG_LARGE_RESULTS) {
+                        logger.info("DAO results: getByJsonQuery column {} json {}"
+                                    + "  {} db rows returned and {} rows after filtering",
+                                    columnName, json, nDbResults, result.size());
+                    }
+                    return result;
+                });
+    }
+
+    /**
+     * Retrieve entities by json terms.
+     *
+     * @param json          of the form {'tag':'value'}
+     * @param entityClass   entity class.
+     * @return              list entities.
+     */
+    public <E extends AbstractEntity> List<E> getJsonByParentQuery(UUID parent, String json, Class<E> entityClass) {
+        initMeta(entityClass);
+        String columnName = getColumnName(entityClass);
+        return Timer.builder(METRIC_NAME_READ).tags(TAG_SERVICE, entityPrefixTag, TAG_ENTITY,
+                getEntityName(entityClass), TAG_METHOD, "getByParentList")
+                .register(Metrics.globalRegistry)
+                .record(() -> {
+                    logger.trace("Start retrieving entities for json {}, column name {}", json,
+                                 columnName);
+                    List<E> result = new ArrayList<>();
+                    List<Entity> dbEntities = callEntityMapperWithRetry(
+                        m -> m.getJsonByParentQuery(parent, json, columnName),
+                        String.format("getJsonByParentQuery({%s}, {%s}, {%s})", parent, json, columnName));
 
                     for (Entity dbEntity : dbEntities) {
                         result.add(dbEntityToEntity(dbEntity, entityClass));

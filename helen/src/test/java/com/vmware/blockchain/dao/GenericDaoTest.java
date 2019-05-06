@@ -214,16 +214,18 @@ public class GenericDaoTest {
     void testPutUnderParent() throws Exception {
         try {
             TestEntity entity6 = createEntity(null, null, tenantId, "e6");
+            UUID id = null;
 
             try {
-                TestEntity entity = genericDao.putUnderParent(entity6, null, UUID.randomUUID());
+                id = genericDao.put(entity6, null).getId();
             } catch (NotFoundException e) {
                 genericDao.get(entity6.getId(), TestEntity.class);
             }
             TestEntity entity7 = createEntity(null, null, tenantId, "e7");
             genericDao.putUnderParent(entity6, null, entity7.getId());
             List<TestEntity> entities = genericDao.getByParentId(entity7.getId(), TestEntity.class);
-            Assertions.assertEquals(entities.size(), 1);
+            Assertions.assertEquals(1, entities.size());
+            Assertions.assertEquals(id, entities.get(0).getId());
         } catch (Exception e) {
             fail("Failed to retrieve entity" + e.toString());
         }
@@ -924,6 +926,16 @@ public class GenericDaoTest {
         Assertions.assertEquals(entity2.getId(), l.get(0).getId());
         s = JSONObject.toJSONString(ImmutableMap.of("others", "e2", "age", 42));
         l = genericDao.getByJsonQuery(s, TestEntity.class);
+        Assertions.assertTrue(l.isEmpty());
+    }
+
+    @Test
+    void testGetJsonByParentQuery() throws Exception {
+        String s = JSONObject.toJSONString(Collections.singletonMap("others", "e1"));
+        List<TestEntity> l = genericDao.getJsonByParentQuery(parent2.getId(), s, TestEntity.class);
+        Assertions.assertEquals(1, l.size());
+        Assertions.assertEquals(entity1.getId(), l.get(0).getId());
+        l = genericDao.getJsonByParentQuery(parent1.getId(), s, TestEntity.class);
         Assertions.assertTrue(l.isEmpty());
     }
 

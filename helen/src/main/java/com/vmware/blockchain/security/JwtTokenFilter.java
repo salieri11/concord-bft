@@ -18,6 +18,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.GenericFilterBean;
 
+import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.HelenException;
 import com.vmware.blockchain.common.UnauthorizedException;
 
@@ -45,7 +46,7 @@ public class JwtTokenFilter extends GenericFilterBean {
             } else {
                 String authHeader = httpReq.getHeader(HttpHeaders.AUTHORIZATION);
                 if (authHeader == null || !authHeader.startsWith("Basic")) {
-                    throw new UnauthorizedException("No Authorization");
+                    throw new UnauthorizedException(ErrorCode.NO_AUTHORIZATION);
                 }
             }
         } catch (HelenException ex) {

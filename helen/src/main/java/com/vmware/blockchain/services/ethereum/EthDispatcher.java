@@ -33,7 +33,7 @@ import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.connections.ConcordConnectionPool;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.services.ConcordServlet;
-import com.vmware.blockchain.services.contracts.ContractRegistryManager;
+import com.vmware.blockchain.services.contracts.ContractService;
 import com.vmware.blockchain.services.profiles.DefaultProfiles;
 import com.vmware.blockchain.services.profiles.ProfilesService;
 import com.vmware.concord.Concord;
@@ -66,11 +66,11 @@ public final class EthDispatcher extends ConcordServlet {
     private static Logger logger = LogManager.getLogger("ethLogger");
     private JSONArray rpcList;
     private String jsonRpc;
-    private ContractRegistryManager registryManager;
+    private ContractService registryManager;
     private ProfilesService profilesRegistryManager;
 
     @Autowired
-    public EthDispatcher(ContractRegistryManager registryManager, ConnectionPoolManager connectionPoolManager,
+    public EthDispatcher(ContractService registryManager, ConnectionPoolManager connectionPoolManager,
             ProfilesService profilesRegistryManager, DefaultProfiles defaultProfiles) throws ParseException {
         super(connectionPoolManager, defaultProfiles);
         JSONParser p = new JSONParser();
@@ -198,7 +198,7 @@ public final class EthDispatcher extends ConcordServlet {
                 isBatch = true;
                 batchRequest = (JSONArray) parser.parse(paramString);
                 if (batchRequest == null || batchRequest.size() == 0) {
-                    throw new BadRequestException("Invalid request");
+                    throw new BadRequestException(ErrorCode.BAD_REQUEST);
                 }
             } else {
                 batchRequest = new JSONArray();

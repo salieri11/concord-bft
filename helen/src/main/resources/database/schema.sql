@@ -18,23 +18,6 @@ GRANT ALL ON DATABASE helen TO helen_admin;
 -- switch to helen database
 use helen;
 
-
--- Profile schema creation
--- Below queries are taken from hibernate logs and will have to be modified
--- if we add a new persistent entity or update existing entity.
-
--- Sequence used by hibernate for assigning auto generated ID
-create sequence if not exists hibernate_sequence start 1 increment 1;
-
--- contracts --
-create sequence if not exists contract_sequence start with 1 increment 1;
-
-create table if not exists contracts (id UUID not null, contract_id text not null, version_name text not null,
-address text, sourcecode text, bytecode text, metadata text, owner text,
-sequence_number integer default nextval('contract_sequence'),
-blockchain_id UUID not null,
-primary key (id));
-
 -- entity tables --
 create table if not exists entity (
   created_id   bigserial,

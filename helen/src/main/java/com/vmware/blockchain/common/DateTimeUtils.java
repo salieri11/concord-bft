@@ -62,8 +62,8 @@ public class DateTimeUtils {
         try {
             date = dateFormat.parse(dateString);
         } catch (ParseException ex) {
-            throw new HelenException(String.format("Failed to parse a date: %s. Date format: %s. Error message: %s.",
-                    dateString, dateFormatString, ex.getMessage()));
+            throw new InternalFailureException(ex, ErrorCode.FAILED_TO_PARSE_DATE,
+                    dateString, dateFormatString, ex.getMessage());
         }
 
         Calendar calendar = Calendar.getInstance();

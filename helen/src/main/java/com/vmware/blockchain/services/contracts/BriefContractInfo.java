@@ -4,11 +4,35 @@
 
 package com.vmware.blockchain.services.contracts;
 
-/**
- * An interface for retrieving brief information about a particular contract.
- */
-public interface BriefContractInfo {
-    String getContractId();
+import java.util.List;
 
-    String getOwnerAddress();
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+
+import lombok.Data;
+
+/**
+ * Data structure for BriefContractInfo.
+ */
+@Data
+public class BriefContractInfo {
+    String contractId;
+    String owner;
+
+    // For brief contract info, include the url, ignore otherwise
+    @JsonInclude(Include.NON_NULL)
+    String url;
+
+    // for get contract id, include list of versions
+    @JsonInclude(Include.NON_NULL)
+    List<BriefVersionInfo> versions;
+
+    /**
+     * New version created from contract.
+     * @param c Contract
+     */
+    public BriefContractInfo(Contract c) {
+        contractId = c.getName();
+        owner = c.getOwner();
+    }
 }
