@@ -33,6 +33,11 @@ class InitScript(
             .map { "docker pull ${containerRegistry.address.authority}/${it.name}" }
             .joinToString(separator = "\n", postfix = "\n")
 
+    private val networkAddressCommand: String = ipAddress
+            .takeIf { it.isNotBlank() }
+            ?.let { "netmgr ip4_address --set --interface eth0 --mode static --addr $ipAddress/24 --gateway $gateway" }
+            ?:"" // No-action defaults to DHCP.
+
     private val script =
             """
             #!/bin/sh
@@ -50,7 +55,7 @@ class InitScript(
             echo '{{gateway}}' > /concord/gateway
            
             tdnf install netmgmt -y
-            netmgr ip4_address --set --interface eth0 --mode static --addr {{staticIp}}/24 --gateway {{gateway}}
+            {{networkAddressCommand}}
 
             touch /concord/config-local/concord.config
             echo '{{concordConfiguration}}' > /concord/config-local/concord.config
@@ -63,8 +68,7 @@ class InitScript(
                     .replace("{{dockerPullCommand}}", dockerPullCommand)
                     .replace("{{concordConfiguration}}", concordConfiguration)
                     .replace("{{genesis}}", GenesisSerializer.toJson(genesis))
-                    .replace("{{staticIp}}", ipAddress)
-                    .replace("{{gateway}}", gateway)
+                    .replace("{{networkAddressCommand}}", networkAddressCommand)
 
     /**
      * Convert an endpoint to a Docker Registry login command.
