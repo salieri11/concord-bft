@@ -43,11 +43,13 @@ public class Blockchain extends AbstractEntity {
         String region;
 
         /**
-         * Constructor used in tests.  Really only to help backcompat right now.
+         * Constructor used by BlockchainObserver and in tests.
          */
         public NodeEntry(UUID nodeId, String ip, String url, String cert, String region) {
             this.nodeId = nodeId;
             this.ip = ip;
+            // Need to have a hostname.  Use the IP address in this case.
+            this.hostName = ip;
             this.url = url;
             this.cert = cert;
             this.region = region;

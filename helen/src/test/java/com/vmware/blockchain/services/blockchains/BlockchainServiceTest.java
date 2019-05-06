@@ -24,6 +24,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import com.google.common.collect.ImmutableList;
 import com.vmware.blockchain.connections.ConnectionPoolManager;
 import com.vmware.blockchain.dao.GenericDao;
+import com.vmware.blockchain.services.blockchains.Blockchain.NodeEntry;
 import com.vmware.blockchain.services.profiles.Consortium;
 
 /**
@@ -81,5 +82,11 @@ public class BlockchainServiceTest {
         Assertions.assertEquals(expectedCerts, actualCerts);
     }
 
+    @Test
+    void testCreateNode() {
+        NodeEntry node = new NodeEntry(UUID.fromString("d1740514-606b-4e88-ab54-fc8182630890"), "1.2.3.4",
+                                       "http://localhost", "", "middlearth");
+        Assertions.assertEquals("1.2.3.4", node.getHostName());
+    }
 
 }
