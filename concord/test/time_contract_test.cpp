@@ -34,7 +34,7 @@ class TestStorage : public Blockchain::ILocalKeyValueStorageReadOnly,
   Blockchain::Status get(Blockchain::Key key,
                          Blockchain::Value& outValue) const override {
     Blockchain::BlockId outBlockId;
-    get(0, key, outValue, outBlockId);
+    return get(0, key, outValue, outBlockId);
   }
 
   Blockchain::Status get(Blockchain::BlockId readVersion,
@@ -84,9 +84,13 @@ class TestStorage : public Blockchain::ILocalKeyValueStorageReadOnly,
   Blockchain::Status addBlock(const Blockchain::SetOfKeyValuePairs& updates,
                               Blockchain::BlockId& outBlockId) override {
     for (auto u : updates) {
-      db_.put(u.first, u.second);
+      Blockchain::Status status = db_.put(u.first, u.second);
+      if (!status.isOK()) {
+        return status;
+      }
     }
     outBlockId = 0;
+    return Blockchain::Status::OK();
   }
 };
 
