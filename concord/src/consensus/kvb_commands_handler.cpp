@@ -859,7 +859,7 @@ void KVBCommandsHandler::recover_from(const EthRequest &request,
     RLPBuilder rlpb;
     rlpb.start_list();
 
-    int8_t actualV;
+    int8_t actualV = 0;
     uint64_t chainID = request.sig_v();
     if (chainID > 28) {
       // EIP155

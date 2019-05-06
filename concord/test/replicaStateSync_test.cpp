@@ -50,7 +50,7 @@ class MockILocalKeyValueStorageReadOnly : public ILocalKeyValueStorageReadOnly {
   }
   Status freeSnapIterator(
       ILocalKeyValueStorageReadOnlyIterator *iter) const override {
-    ;
+    return Status::OK();
   }
   void monitor() const override { ; }
 };
