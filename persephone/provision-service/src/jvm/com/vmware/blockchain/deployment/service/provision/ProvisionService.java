@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -312,6 +313,8 @@ public class ProvisionService extends ProvisionServiceImplBase {
      *   the target deployment site for that node.
      */
     private PlacementAssignment resolvePlacement(DeploymentSpecification specification) {
+        var availableSites = orchestrators.keySet().toArray(OrchestrationSiteIdentifier[]::new);
+        var random = new Random();
         var assignments = specification.getPlacement().getEntries().stream()
                 .map(entry -> {
                     var uuid = UUID.randomUUID();
@@ -324,8 +327,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
                     if (entry.getType() == PlacementSpecification.Type.FIXED) {
                         site = entry.getSite();
                     } else {
-                        site = orchestrators.keySet().stream().findAny()
-                                .orElse(defaultOrchestratorId);
+                        site = availableSites[random.nextInt(availableSites.length)];
                     }
 
                     return new PlacementAssignment.Entry(nodeId, site);
