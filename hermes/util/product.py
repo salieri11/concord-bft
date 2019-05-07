@@ -193,11 +193,7 @@ class Product():
        # relative paths.
        assert (os.path.basename(os.getcwd()) == "hermes")
 
-       dockerEnv = {}
-       with open(self._docker_env_file) as envFile:
-           for line in envFile:
-               key, val = line.partition("=")[::2]
-               dockerEnv[key.strip()] = val.strip()
+       dockerEnv = self.docker_env
 
        assert self._userConfig is not None, "User config is missing."
        try:
