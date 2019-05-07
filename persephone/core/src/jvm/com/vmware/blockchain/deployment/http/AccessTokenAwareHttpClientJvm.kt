@@ -142,18 +142,24 @@ actual abstract class AccessTokenAwareHttpClient(
     /**
      * Obtain an API session token either from cache or through [connect].
      *
+     * @param[useCache]
+     *   use the currently-cached token if available.
+     *
      * @return
      *   API session token as a [String].
      */
-    @PublishedApi internal suspend fun token(): String {
+    @PublishedApi internal suspend fun token(useCache: Boolean = true): String {
         return accessToken
-                ?.let { it } ?: retrieveAccessToken(connect().toHttpResponse())
-                .also { accessToken = it }
+                ?.takeIf { useCache }
+                ?.let { it }
+                ?: retrieveAccessToken(connect().toHttpResponse()).also { accessToken = it }
     }
-
 
     /**
      * Internal access wrapper to [accessTokenHeader].
+     *
+     * Note: Access wrapper is required to access protected inline API methods. Wrapper is declared
+     * as internal to prevent unexpected callers external to this module.
      *
      * @return
      *   the HTTP header name for access token.
@@ -180,14 +186,15 @@ actual abstract class AccessTokenAwareHttpClient(
         contentType: String,
         headers: List<Pair<String, String>>
     ): HttpResponse<T?> {
-        val httpRequest = JdkHttpRequest.newBuilder()
-                .GET()
-                .uri(serviceEndpoint.resolve(path))
-                .header("Content-Type", contentType)
-                .header(internalAccessTokenHeader(), token())
-                .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
-                .build()
-        return request(httpRequest)
+        return requestWith { token ->
+            JdkHttpRequest.newBuilder()
+                    .GET()
+                    .uri(serviceEndpoint.resolve(path))
+                    .header("Content-Type", contentType)
+                    .header(internalAccessTokenHeader(), token)
+                    .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
+                    .build()
+        }
     }
 
     /**
@@ -217,14 +224,16 @@ actual abstract class AccessTokenAwareHttpClient(
                 ?.let { serializer.toJson(body) }
                 ?.let { JdkHttpRequest.BodyPublishers.ofString(it) }
                 ?: JdkHttpRequest.BodyPublishers.noBody()
-        val httpRequest = JdkHttpRequest.newBuilder()
-                .PUT(bodyPublisher)
-                .uri(serviceEndpoint.resolve(path))
-                .header("Content-Type", contentType)
-                .header(internalAccessTokenHeader(), token())
-                .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
-                .build()
-        return request(httpRequest)
+
+        return requestWith { token ->
+            JdkHttpRequest.newBuilder()
+                    .PUT(bodyPublisher)
+                    .uri(serviceEndpoint.resolve(path))
+                    .header("Content-Type", contentType)
+                    .header(internalAccessTokenHeader(), token)
+                    .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
+                    .build()
+        }
     }
 
     /**
@@ -254,14 +263,16 @@ actual abstract class AccessTokenAwareHttpClient(
                 ?.let { serializer.toJson(body) }
                 ?.let { JdkHttpRequest.BodyPublishers.ofString(it) }
                 ?: JdkHttpRequest.BodyPublishers.noBody()
-        val httpRequest = JdkHttpRequest.newBuilder()
-                .method("PATCH", bodyPublisher)
-                .uri(serviceEndpoint.resolve(path))
-                .header("Content-Type", contentType)
-                .header(internalAccessTokenHeader(), token())
-                .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
-                .build()
-        return request(httpRequest)
+
+        return requestWith { token ->
+            JdkHttpRequest.newBuilder()
+                    .method("PATCH", bodyPublisher)
+                    .uri(serviceEndpoint.resolve(path))
+                    .header("Content-Type", contentType)
+                    .header(internalAccessTokenHeader(), token)
+                    .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
+                    .build()
+        }
     }
 
     /**
@@ -291,14 +302,16 @@ actual abstract class AccessTokenAwareHttpClient(
                 ?.let { serializer.toJson(body) }
                 ?.let { JdkHttpRequest.BodyPublishers.ofString(it) }
                 ?: JdkHttpRequest.BodyPublishers.noBody()
-        val httpRequest = JdkHttpRequest.newBuilder()
-                .POST(bodyPublisher)
-                .uri(serviceEndpoint.resolve(path))
-                .header("Content-Type", contentType)
-                .header(internalAccessTokenHeader(), token())
-                .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
-                .build()
-        return request(httpRequest)
+
+        return requestWith { token ->
+            JdkHttpRequest.newBuilder()
+                    .POST(bodyPublisher)
+                    .uri(serviceEndpoint.resolve(path))
+                    .header("Content-Type", contentType)
+                    .header(internalAccessTokenHeader(), token)
+                    .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
+                    .build()
+        }
     }
 
     /**
@@ -319,14 +332,29 @@ actual abstract class AccessTokenAwareHttpClient(
         contentType: String,
         headers: List<Pair<String, String>>
     ): HttpResponse<T?> {
-        val httpRequest = JdkHttpRequest.newBuilder()
-                .DELETE()
-                .uri(serviceEndpoint.resolve(path))
-                .header("Content-Type", contentType)
-                .header(internalAccessTokenHeader(), token())
-                .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
-                .build()
-        return request(httpRequest)
+        return requestWith { token ->
+            JdkHttpRequest.newBuilder()
+                    .DELETE()
+                    .uri(serviceEndpoint.resolve(path))
+                    .header("Content-Type", contentType)
+                    .header(internalAccessTokenHeader(), token)
+                    .also { builder -> headers.forEach { builder.header(it.first, it.second) } }
+                    .build()
+        }
+    }
+
+    @PublishedApi internal suspend inline fun <reified T : Any> requestWith(
+        supplier: (String) -> JdkHttpRequest
+    ): HttpResponse<T?> {
+        val message = supplier(token())
+        val response = request<T>(message)
+        return if (response.statusCode() == 401) {
+            // Request failed due to authorization. Force-refresh access token and try again.
+            val retryMessage = supplier(token(useCache = false))
+            request(retryMessage)
+        } else {
+            response
+        }
     }
 
     /**
@@ -339,7 +367,9 @@ actual abstract class AccessTokenAwareHttpClient(
      * @return
      *   the response of the request as a parameterized (data-bound) [HttpResponse] instance.
      */
-    @PublishedApi internal suspend inline fun <reified T : Any> request(httpRequest: JdkHttpRequest): HttpResponse<T?> {
+    @PublishedApi internal suspend inline fun <reified T : Any> request(
+        httpRequest: JdkHttpRequest
+    ): HttpResponse<T?> {
         val upstream = JdkHttpResponse.BodySubscribers.ofString(StandardCharsets.UTF_8)
         val bindToResult = JdkHttpResponse.BodySubscribers.mapping(upstream) { value ->
             try {

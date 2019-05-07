@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class VmcAuthenticationResponse(
-    val id_token: String,
+    val id_token: String? = null,
     val token_type: String,
     val expires_in: Long,
     val scope: String,
