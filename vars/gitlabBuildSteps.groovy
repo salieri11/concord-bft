@@ -5,9 +5,9 @@ def call(){
   def genericTests = true
   def additional_components_to_build = ""
   def master_branch_job_name = "Master Branch"
+  def lint_test_job_name = "Blockchain LINT Tests"
   def memory_leak_job_name = "BlockchainMemoryLeakTesting"
   def performance_test_job_name = "Blockchain Performance Test"
-  def lint_test_job_name = "Blockchain LINT Tests"
   def persephone_test_job_name = "Blockchain Persephone Tests"
 
   if (env.JOB_NAME.contains(memory_leak_job_name)) {
@@ -281,7 +281,9 @@ def call(){
               withCredentials([
                 string(credentialsId: 'BUILDER_ACCOUNT_PASSWORD', variable: 'PASSWORD'),
                 string(credentialsId: 'LINT_API_KEY', variable: 'LINT_API_KEY'),
-                string(credentialsId: 'FLUENTD_AUTHORIZATION_BEARER', variable: 'FLUENTD_AUTHORIZATION_BEARER')
+                string(credentialsId: 'FLUENTD_AUTHORIZATION_BEARER', variable: 'FLUENTD_AUTHORIZATION_BEARER'),
+                string(credentialsId: 'VMC_API_TOKEN', variable: 'VMC_API_TOKEN'),
+                string(credentialsId: 'DOCKERHUB_REPO_READER_PASSWORD', variable: 'DOCKERHUB_REPO_READER_PASSWORD')
                 ]) {
                 sh '''
                   echo "${PASSWORD}" | sudo -S ls
@@ -314,6 +316,10 @@ EOF
                   # Need to add the fluentd authorization bearer.
                   # I couldn't get this env method to update the conf https://docs.fluentd.org/v0.12/articles/faq#how-can-i-use-environment-variables-to-configure-parameters-dynamically
                   sed -i -e 's/'"<ADD-LOGINTELLIGENCE-KEY-HERE>"'/'"${FLUENTD_AUTHORIZATION_BEARER}"'/g' blockchain/docker/fluentd/fluentd.conf
+
+                  # Update hermes/resources/persephone/provision-service/config.json for persephone (deployment service) testing
+                  sed -i -e 's/'"<VMC_API_TOKEN>"'/'"${VMC_API_TOKEN}"'/g' blockchain/hermes/resources/persephone/provision-service/config.json
+                  sed -i -e 's/'"<DOCKERHUB_REPO_READER_PASSWORD>"'/'"${DOCKERHUB_REPO_READER_PASSWORD}"'/g' blockchain/hermes/resources/persephone/provision-service/config.json
                 '''
               }
 

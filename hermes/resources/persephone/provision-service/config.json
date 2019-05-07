@@ -9,7 +9,7 @@
                     "type": "BEARER",
                     "passwordCredential": null,
                     "tokenCredential": {
-                        "token": "API_TOKEN_HERE"
+                        "token": "<VMC_API_TOKEN>"
                     }
                 }
             },
@@ -21,8 +21,24 @@
                     "tokenCredential": null
                 }
             },
+            "containerRegistry": {
+                "address": "https://registry-1.docker.io/v2",
+                "credential": {
+                    "type": "PASSWORD",
+                    "passwordCredential": {
+                        "username": "blockchainrepositoryreader",
+                        "password": "<DOCKERHUB_REPO_READER_PASSWORD>"
+                    },
+                    "tokenCredential": null
+                }
+            },
             "organization":"c56e116e-c36f-4f7d-b504-f9a33955b853",
-            "datacenter":"3656526b-c74e-4f87-8e1f-a667975273c2"
+            "datacenter":"3656526b-c74e-4f87-8e1f-a667975273c2",
+            "resourcePool":"Compute-ResourcePool",
+            "folder":"rsg",
+            "controlNetwork":"vmware-vpn",
+            "controlNetworkPrefix":172518400,
+            "controlNetworkSubnet":24
         }
     }
 ]
