@@ -33,7 +33,7 @@ else
     SOURCE_FILE=$1
 fi
 
-ARTIFACTORY_BASE_URL="https://build-artifactory.eng.vmware.com/artifactory/api/storage/athena-docker-local/"
+ARTIFACTORY_BASE_URL="https://build-artifactory.eng.vmware.com/api/storage/athena-docker-local"
 ARTIFACTORY_BASE_IMAGE_PATH="athena-docker-local.artifactory.eng.vmware.com/"
 
 # Find the last athena-docker-local change and extract the tag from it:
@@ -41,8 +41,7 @@ ARTIFACTORY_BASE_IMAGE_PATH="athena-docker-local.artifactory.eng.vmware.com/"
 #   2. First grep extracts https://.../<TAG> (dropping /<maybe more stuff>)
 #   3. Second grep extracts <TAG> (droping https://.../)
 LATEST_TAG=$(curl -s -H "X-JFrog-Art-Api: ${ARTIFACTORY_KEY}" ${ARTIFACTORY_BASE_URL}/ethrpc?lastModified |
-                    grep -oe "${ARTIFACTORY_BASE_URL}[^/]\+/[a-f0-9]\+" |
-                    grep -oe "[a-f0-9]\+\$")
+                   perl -ne 'print $1 if /\/([a-f0-9]+)\//')
 
 while IFS= read -r LINE
 do
