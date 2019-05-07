@@ -96,9 +96,9 @@ public final class MemberList extends ConcordServlet {
 
 
         Map<String, String> rpcUrls =
-                bc.getNodeList().stream().collect(Collectors.toMap(n -> n.getHostName(), n -> n.getUrl()));
+                bc.getNodeList().stream().collect(Collectors.toMap(n -> n.getHostName().toString(), n -> n.getUrl()));
         Map<String, String> rpcCerts =
-                bc.getNodeList().stream().collect(Collectors.toMap(n -> n.getHostName(), n -> n.getCert()));
+                bc.getNodeList().stream().collect(Collectors.toMap(n -> n.getHostName().toString(), n -> n.getCert()));
 
         // Iterate through each peer and construct
         // a corresponding JSON object

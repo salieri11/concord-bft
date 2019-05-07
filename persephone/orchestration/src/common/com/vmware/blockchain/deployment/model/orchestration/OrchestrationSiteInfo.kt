@@ -50,7 +50,10 @@ data class OrchestrationSiteInfo(val type: Type, val vmc: Vmc? = null) {
         val datacenter: String,
         val containerRegistry: Endpoint,
         val resourcePool: String,
-        val folder: String
+        val folder: String,
+        val controlNetwork: String,
+        val controlNetworkPrefix: Int,
+        val controlNetworkSubnet: Int
     )
 }
 

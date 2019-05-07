@@ -159,7 +159,10 @@ class ProvisionServiceTest {
                         datacenter,
                         new Endpoint(URI.create("https://registry"), new Credential()),
                         "resource-pool",
-                        "vm-folder"
+                        "vm-folder",
+                        "vmware-vpn",
+                        0xA0A0A000,
+                        24
                 )
         );
     }

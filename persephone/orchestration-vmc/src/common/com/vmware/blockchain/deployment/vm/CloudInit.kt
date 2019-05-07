@@ -19,7 +19,9 @@ class InitScript(
     containerRegistry: Endpoint,
     model: ConcordModelSpecification,
     genesis: Genesis,
-    concordConfiguration: String
+    concordConfiguration: String,
+    ipAddress: String,
+    gateway: String
 ) {
 
     object GenesisSerializer
@@ -31,6 +33,11 @@ class InitScript(
             .map { "docker pull ${containerRegistry.address.authority}/${it.name}" }
             .joinToString(separator = "\n", postfix = "\n")
 
+    private val networkAddressCommand: String = ipAddress
+            .takeIf { it.isNotBlank() }
+            ?.let { "netmgr ip4_address --set --interface eth0 --mode static --addr $ipAddress/24 --gateway $gateway" }
+            ?:"" // No-action defaults to DHCP.
+
     private val script =
             """
             #!/bin/sh
@@ -40,23 +47,28 @@ class InitScript(
             systemctl enable docker
             {{dockerLoginCommand}}
             {{dockerPullCommand}}
-            # Create additional user for copying over the config files.
-            useradd vmwuser1 -s /bin/bash -m
-            echo "vmwuser1:c0nc0rd" | chpasswd
+
             # Output the node's configuration.
             mkdir -p /concord/config-local
             mkdir -p /concord/config-public
+            echo '{{staticIp}}' > /concord/ipaddr
+            echo '{{gateway}}' > /concord/gateway
+           
+            tdnf install netmgmt -y
+            {{networkAddressCommand}}
+
             touch /concord/config-local/concord.config
             echo '{{concordConfiguration}}' > /concord/config-local/concord.config
             echo '{{genesis}}' > /concord/config-public/genesis.json
             docker run -d --name=concord -v /concord/config-local:/concord/config-local -v /concord/config-public:/concord/config-public -p 5458:5458 -p 3501-3505:3501-3505/udp registry-1.docker.io/vmwblockchain/concord-core:latest /bin/bash -c "export LD_LIBRARY_PATH=${'$'}LD_LIBRARY_PATH:/usr/local/lib && /concord/concord -c /concord/config-local/concord.config"
-            docker run -d --name=ethrpc -p 8545:8545 registry-1.docker.io/vmwblockchain/ethrpc:latest
+            docker run -d --name=ethrpc --link concord -p 8545:8545 registry-1.docker.io/vmwblockchain/ethrpc:latest /bin/bash -c "sed -i s/localhost/concord/g application.properties && java -jar concord-ethrpc.jar"
             echo 'done'
             """.trimIndent()
                     .replace("{{dockerLoginCommand}}", containerRegistry.toRegistryLoginCommand())
                     .replace("{{dockerPullCommand}}", dockerPullCommand)
                     .replace("{{concordConfiguration}}", concordConfiguration)
                     .replace("{{genesis}}", GenesisSerializer.toJson(genesis))
+                    .replace("{{networkAddressCommand}}", networkAddressCommand)
 
     /**
      * Convert an endpoint to a Docker Registry login command.

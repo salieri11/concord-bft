@@ -81,7 +81,8 @@ fun main(args: Array<String>) {
                     },
                     ConcordModelSpecification(
                             version = "photon-3.0-64",
-                            template = "5b7eac22-976e-47fa-a000-1e09020a1c5d",
+                            // template = "5b7eac22-976e-47fa-a000-1e09020a1c5d",
+                            template = "8abc7fda-9576-4b13-9beb-06f867cf2c7c",
                             components = listOf(
                                     ConcordComponent(
                                             ConcordComponent.Type.DOCKER_IMAGE,

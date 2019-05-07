@@ -62,6 +62,7 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 public class ProvisionService extends ProvisionServiceImplBase {
 
     /**
@@ -454,23 +455,30 @@ public class ProvisionService extends ProvisionServiceImplBase {
         // Await on all the network address creations, and collect the result.
         // Subscribe to network address publishers and collect the results in a map asynchronously.
         // FIXME: This is working around current system limitation working without local node agent.
-        var networkAddressMap =
+        var publicNetworkAddressMap =
                 new ConcurrentHashMap<PlacementAssignment.Entry, NetworkResourceEvent.Created>();
+        var privateNetworkAddressMap =
+                new ConcurrentHashMap<PlacementAssignment.Entry, NetworkResourceEvent.Created>();
+
         var networkAddressPromises = networkAddressPublishers.stream()
-                .map(entry -> ReactiveStream.toFuture(entry.getValue())
-                        .thenApplyAsync(event -> {
-                            // Cast to creation event, let runtime cast throw exception if
-                            // cast fails, as then it will exceptionally trigger failure future
-                            // completion downstream.
-                            var createdEvent = (NetworkResourceEvent.Created) event;
+                .map(entry -> ReactiveStream.toFuture(entry.getValue(), ArrayList::new)
+                        .thenAcceptAsync(events -> {
+                            // Put the events in the result collection.
+                            results.addAll(events);
 
-                            // Place in the address lookup map by the placement entry key.
-                            networkAddressMap.put(entry.getKey(), createdEvent);
+                            for (var event : events) {
+                                // Cast to creation event, let runtime cast throw exception if
+                                // cast fails, as then it will exceptionally trigger failure future
+                                // completion downstream.
+                                var createdEvent = (NetworkResourceEvent.Created) event;
 
-                            // Put the event in the result collection.
-                            results.add(event);
-
-                            return createdEvent;
+                                // Place in the address lookup map by the placement entry key.
+                                if (createdEvent.getPublic()) {
+                                    publicNetworkAddressMap.put(entry.getKey(), createdEvent);
+                                } else {
+                                    privateNetworkAddressMap.put(entry.getKey(), createdEvent);
+                                }
+                            }
                         }, executor)
                 )
                 .toArray(CompletableFuture[]::new);
@@ -481,7 +489,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
                         __ -> generateClusterConfig(
                                 // Note: Preserve the original listing order.
                                 session.getAssignment().getEntries().stream()
-                                        .map(entry -> Map.entry(entry, networkAddressMap.get(entry)))
+                                        .map(entry -> Map.entry(entry, privateNetworkAddressMap.get(entry)))
                                         .collect(Collectors.toUnmodifiableList())
                         ),
                         executor
@@ -493,12 +501,15 @@ public class ProvisionService extends ProvisionServiceImplBase {
                             .map(entry -> {
                                 var placement = entry.getKey();
                                 var config = entry.getValue();
-                                var publisher = deployNode(orchestrators.get(placement.getSite()),
-                                                           session.getId(),
-                                                           placement.getNode(),
-                                                           model,
-                                                           session.getSpecification().getGenesis(),
-                                                           config);
+                                var publisher = deployNode(
+                                        orchestrators.get(placement.getSite()),
+                                        session.getId(),
+                                        placement.getNode(),
+                                        model,
+                                        session.getSpecification().getGenesis(),
+                                        config,
+                                        privateNetworkAddressMap.get(entry.getKey())
+                                );
 
                                 return Map.entry(entry.getKey(), publisher);
                             })
@@ -525,7 +536,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
                                         var orchestrator = orchestrators.get(placement.getSite());
                                         var allocationRequest = new CreateNetworkAllocationRequest(
                                                 computeResource,
-                                                networkAddressMap.get(entry.getKey()).getResource()
+                                                publicNetworkAddressMap.get(entry.getKey()).getResource()
                                         );
                                         var allocationPublisher = orchestrator
                                                 .createNetworkAllocation(allocationRequest);
@@ -610,14 +621,16 @@ public class ProvisionService extends ProvisionServiceImplBase {
             ConcordNodeIdentifier nodeId,
             ConcordModelSpecification model,
             Genesis genesis,
-            String configuration
+            String configuration,
+            NetworkResourceEvent.Created networkResourceEvent
     ) {
         var computeRequest = new CreateComputeResourceRequest(
                 new ConcordClusterIdentifier(sessionId.getLow(), sessionId.getHigh()),
                 nodeId,
                 model,
                 genesis,
-                configuration
+                configuration,
+                networkResourceEvent.getAddress()
         );
         return orchestrator.createDeployment(computeRequest);
     }
@@ -968,7 +981,11 @@ public class ProvisionService extends ProvisionServiceImplBase {
             } else if (event instanceof NetworkResourceEvent.Created) {
                 var resourceEvent = (NetworkResourceEvent.Created) event;
 
-                networkResourceEvents.put(resourceEvent.getResource(), resourceEvent);
+                // FIXME: For the purpose of calculating deployment events pertaining to network
+                //   resources, only public network addresses need to be considered for event info.
+                if (resourceEvent.getPublic()) {
+                    networkResourceEvents.put(resourceEvent.getResource(), resourceEvent);
+                }
             } else if (event instanceof NetworkAllocationEvent.Created) {
                 var resourceEvent = (NetworkAllocationEvent.Created) event;
 

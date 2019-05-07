@@ -55,7 +55,8 @@ interface Orchestrator {
         val genesis: Genesis,
 
         // FIXME: THIS IS TEMPORARY UNTIL CONFIGURATION IS FETCHED BY PERSEPHONE-AGENT.
-        var configuration: String = ""
+        val configuration: String = "",
+        val privateNetworkAddress: String = ""
     )
 
     /**
@@ -117,7 +118,8 @@ interface Orchestrator {
         data class Created(
             override val resource: URI,
             val name: String,
-            val address: String
+            val address: String,
+            val public: Boolean
         ) : NetworkResourceEvent()
         data class Deleted(override val resource: URI) : NetworkResourceEvent()
     }

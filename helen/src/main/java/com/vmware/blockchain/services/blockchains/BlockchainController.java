@@ -253,8 +253,11 @@ public class BlockchainController {
                         "0000a12b3f3d6c9b0d3f126a83ec2dd3dad15f39", new Genesis.Wallet("0x7fffffffffffffff")
                 )
         );
-        ConcordModelSpecification spec =
-                new ConcordModelSpecification("20190401.1", "photon-3.0-64", components);
+        ConcordModelSpecification spec = new ConcordModelSpecification(
+                "20190401.1",
+                "8abc7fda-9576-4b13-9beb-06f867cf2c7c",
+                components
+        );
         DeploymentSpecification deploySpec =
                 new DeploymentSpecification(clusterSize, spec, placementSpec, genesis);
         var request = new CreateClusterRequest(new MessageHeader(), deploySpec);
