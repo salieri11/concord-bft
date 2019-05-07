@@ -1,5 +1,5 @@
 # Build and dockerize the concord-agent artifact.
-FROM maven:3.6.0-jdk-11
+FROM maven:3.6.1-jdk-11
 
 # Copy the POM files (rarely changing).
 COPY ./helen/developer-config/checkstyle.xml ./helen/developer-config/checkstyle.xml
