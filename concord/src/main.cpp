@@ -30,6 +30,7 @@
 #include "daml_events.grpc.pb.h"
 #include "ethereum/concord_evm.hpp"
 #include "ethereum/evm_init_params.hpp"
+#include "time/time_pusher.hpp"
 #include "utils/concord_eth_sign.hpp"
 
 #ifdef USE_ROCKSDB
@@ -59,6 +60,7 @@ using concord::consensus::KVBClientPool;
 using concord::consensus::KVBCommandsHandler;
 using concord::ethereum::EVM;
 using concord::ethereum::EVMInitParams;
+using concord::time::TimePusher;
 using concord::utils::EthSign;
 
 using com::digitalasset::kvbc::CommittedTx;
@@ -330,6 +332,12 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     }
 
     KVBClientPool pool(clients);
+
+    TimePusher timePusher(nodeConfig, pool);
+    if (config.getValue<bool>("FEATURE_time_service")) {
+      timePusher.Start();
+    }
+
     signal(SIGINT, signalHandler);
 
     // API server
@@ -359,6 +367,10 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       // Wait for api_service->run() to return
       api_service->run();
       worker_pool.join_all();
+    }
+
+    if (config.getValue<bool>("FEATURE_time_service")) {
+      timePusher.Stop();
     }
 
     replica->stop();

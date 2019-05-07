@@ -3084,6 +3084,13 @@ void specifyConfiguration(ConcordConfiguration& config) {
       "Ignored unless FEATURE_time_service is \"true\".");
   node.tagParameter("time_source_id", publicOptionalTags);
 
+  node.declareParameter(
+      "time_pusher_period_ms",
+      "How often a node should guarantee that its time is published, in "
+      "milliseconds. Ignored unless FEATURE_time_service is \"true\", and "
+      "time_source_id is given.");
+  node.tagParameter("time_pusher_period_ms", publicOptionalTags);
+
   replica.declareParameter("commit_private_key",
                            "Private key for this replica under the general "
                            "case commit cryptosystem.");

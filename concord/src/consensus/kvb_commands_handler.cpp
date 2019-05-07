@@ -162,8 +162,25 @@ bool KVBCommandsHandler::executeCommand(
   bool result;
   ConcordResponse athresp;
   if (command.ParseFromArray(request, requestSize)) {
+    // Time must come first, if any other commands are to use the updated time.
+    if (command.has_time_update()) {
+      result = handle_time_update(command, kvbStorage, athresp);
+    }
+
     if (command.eth_request_size() > 0) {
       result = handle_eth_request(command, kvbStorage, athresp);
+    } else if (command.has_time_update()) {
+      // This was a time-update-only command. Just write the block.
+      TimeContract tc(kvbStorage);
+      // divide by 1000, because time service is in milliseconds, but ethereum
+      // is in seconds
+      uint64_t timestamp = tc.GetTime() / 1000;
+      kvbStorage.write_block(timestamp, 0 /* no gas used */);
+
+      // concord-bft does not like zero-byte responses, so we're including a
+      // small empty message to make it happy
+      athresp.mutable_time_response();
+      result = true;
     } else {
       // SBFT may decide to try one of our read-only commands in read-write
       // mode, for example if it has failed several times. So, go check the
@@ -188,6 +205,22 @@ bool KVBCommandsHandler::executeCommand(
   }
 
   return result;
+}
+
+/*
+ * Handle a TimeUpdate.
+ */
+bool KVBCommandsHandler::handle_time_update(ConcordRequest &athreq,
+                                            KVBStorage &kvbStorage,
+                                            ConcordResponse &athresp) const {
+  if (concord::time::IsTimeServiceEnabled(config_)) {
+    TimeContract tc(kvbStorage);
+    std::pair<std::string, uint64_t> cmd_time =
+        concord::time::GetTimeFromCommand(athreq);
+    tc.Update(cmd_time.first, cmd_time.second);
+  }
+
+  return true;
 }
 
 /*
@@ -224,11 +257,9 @@ bool KVBCommandsHandler::handle_eth_sendTransaction(
   uint64_t timestamp = 0;
   if (concord::time::IsTimeServiceEnabled(config_)) {
     TimeContract tc(kvbStorage);
-    std::pair<std::string, uint64_t> cmd_time =
-        concord::time::GetTimeFromCommand(athreq);
     // divide by 1000, because time service is in milliseconds, but ethereum is
     // in seconds
-    timestamp = tc.Update(cmd_time.first, cmd_time.second) / 1000;
+    timestamp = tc.GetTime() / 1000;
   } else {
     timestamp = request.timestamp();
   }
