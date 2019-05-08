@@ -90,6 +90,7 @@
         <dagger.version>2.21</dagger.version>
         <grpc.runtime.java.version>1.18.0</grpc.runtime.java.version>
         <grpc.runtime.kotlinx.serialization.version>1.0.0-SNAPSHOT</grpc.runtime.kotlinx.serialization.version>
+        <hamcrest.version>2.1</hamcrest.version>
         <jqwik.version>1.1.0</jqwik.version>
         <junit.jupiter.version>5.4.0</junit.jupiter.version>
         <log4j.version>2.11.2</log4j.version>
@@ -97,6 +98,7 @@
         <protobuf.runtime.java.version>3.6.1</protobuf.runtime.java.version>
         <reactive.stream.version>1.0.2</reactive.stream.version>
         <slf4j.version>1.7.26</slf4j.version>
+        <wiremock.version>2.23.2</wiremock.version>
     </properties>
 
     <dependencyManagement>
@@ -148,6 +150,11 @@
             ~ External dependencies.                                    ~
             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~-->
             <dependency>
+                <groupId>com.github.tomakehurst</groupId>
+                <artifactId>wiremock</artifactId>
+                <version>${wiremock.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.google.dagger</groupId>
                 <artifactId>dagger</artifactId>
                 <version>${dagger.version}</version>
@@ -181,6 +188,11 @@
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
                 <version>${assertj.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.hamcrest</groupId>
+                <artifactId>hamcrest-core</artifactId>
+                <version>${hamcrest.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.jetbrains.kotlinx</groupId>
