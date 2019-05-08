@@ -6,6 +6,7 @@
 import os
 import sys
 import json
+import time
 import logging
 import traceback
 from . import test_suite
@@ -41,7 +42,6 @@ class PersephoneTests(test_suite.TestSuite):
          return self._resultFile
 
       try:
-         from google.protobuf.json_format import MessageToJson
          from persephone.rpc_test_helper import RPCTestHelper
       except ImportError as e:
          log.error(
@@ -85,12 +85,11 @@ class PersephoneTests(test_suite.TestSuite):
    def _get_tests(self):
       return [
          ("add_model", self._test_add_model),
-         ("list_models", self._test_list_models),
-         ("create_cluster", self._test_create_cluster),
-         ("stream_deployment_events", self._test_stream_deployment_events)
+         ("list_models", self._test_list_models)
       ]
 
    def get_json_object(self, message_obj):
+      from google.protobuf.json_format import MessageToJson
       if isinstance(message_obj, (list,)):
          list_of_json_objects = []
          for message in message_obj:
@@ -141,6 +140,9 @@ class PersephoneTests(test_suite.TestSuite):
       '''
       Test to list the metadata that was added using AddModel RPC
       '''
+      # TODO: ListModel fails to fetch the added metadata if it's right after
+      # addModel. Check with James if it's expected not to respond immediately
+      time.sleep(2)
       response = self.rpc_test_helper.rpc_list_models()
       response_list_models_json = self.get_json_object(response)
       for metadata in response_list_models_json:
