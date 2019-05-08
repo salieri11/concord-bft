@@ -890,18 +890,38 @@
     }
   },
   "examples": {
-    "title": "Samples",
-    "subTitle": "Choose dApp",
-    "deploy": "Deploy",
-    "alert": "This application is already deployed, click links below to either open or redeploy.",
-    "dappName": "Supply Chain",
-    "dappDesc": "This is a sample supply chain application that covers contract permissions, versioning and document storage.",
-    "deploy": "Deploy",
-    "open": "Open",
-    "redeploy": "Redeploy",
-    "loading": "Deploying dApp",
-    "source": "View Source"
+    
+    // Add new DApp samples here
+
+    "supply_chain" : {
+      "title": "Supply Chain",
+      "subTitle": "Choose dApp",
+      "deploy": "Deploy",
+      "alert": "This application is already deployed, click links below to either open or redeploy.",
+      "dappName": "Supply Chain",
+      "dappDesc": "This is a sample supply chain application that covers contract permissions, versioning and document storage.",
+      "deploy": "Deploy",
+      "open": "Open",
+      "redeploy": "Redeploy",
+      "loading": "Deploying dApp",
+      "source": "View Source"
+    },
+
+    "asset_transfer" : {
+      "title": "Asset Transfer",
+      "subTitle": "Choose dApp",
+      "deploy": "Deploy",
+      "alert": "This application is already deployed, click links below to either open or redeploy.",
+      "dappName": "Asset Transfer",
+      "dappDesc": "This is a sample asset transfer application that covers transfer of assets from one entity to another.",
+      "deploy": "Deploy",
+      "open": "Open",
+      "redeploy": "Redeploy",
+      "loading": "Deploying dApp",
+      "source": "View Source"
+    }
   },
+
   "blockchainWizard": {
     "title": "Deploy",
     "common": {

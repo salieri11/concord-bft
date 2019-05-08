@@ -1,44 +1,81 @@
 <div class="loader" *ngIf="deploying">
+
   <span class="spinner spinner-inline">
-    {{ 'examples.loading' | translate }}
+    {{ 'examples.supply_chain.loading' | translate }}
   </span>
   <span>
-    {{ 'examples.loading' | translate }}
+    {{ 'examples.supply_chain.loading' | translate }}
   </span>
+
 </div>
-<ng-template clrPageTitle>{{ 'examples.subTitle' | translate }}</ng-template>
+<ng-template clrPageTitle>{{ 'examples.supply_chain.subTitle' | translate }}</ng-template>
+
+<!-- CARDS START HERE -->
+
 <div class="clr-row dApp-buttons" [hidden]="deploying">
+  
+  <!--SUPPLY CHAIN CARD-->
+
   <div class="clr-col-md-6 clr-col-lg-4 clr-col-xlg-3 clr-col-12">
     <div class="card">
       <div class="card-header">
         <div *ngIf="alreadyDeployed" class="alert alert-success alert-sm">
           <div class="alert-item static">
             <span class="alert-text">
-              {{ 'examples.alert' | translate }}
+              {{ 'examples.supply_chain.alert' | translate }}
             </span>
           </div>
         </div>
         <clr-icon shape="link" size="64"></clr-icon>
         <br />
-        {{ 'examples.dappName' | translate }}
+        {{ 'examples.supply_chain.dappName' | translate }}
       </div>
+
       <div class="card-block">
         <div class="card-text">
-          {{ 'examples.dappDesc' | translate }}
+          {{ 'examples.supply_chain.dappDesc' | translate }}
         </div>
       </div>
+      
       <div class="card-footer">
-<!-- We will add this back in once we are ready to deploy code for users -->
-<!--         <ng-container *ngIf="alreadyDeployed">
-          <button (click)="deploy()" class="btn btn-sm btn-link btn-danger">{{ 'examples.redeploy' | translate }}</button>
-        </ng-container>
-        <ng-container *ngIf="!alreadyDeployed">
-          <button (click)="deploy()" class="btn btn-sm btn-link">{{ 'examples.deploy' | translate }}</button>
-        </ng-container> -->
-        <a href="https://github.com/vmwaresamples/vmware-blockchain-samples" target="_blank" class="btn btn-sm btn-link">
-          {{ 'examples.source' | translate }}
+        <a href="https://github.com/vmwaresamples/vmware-blockchain-samples/supply-chain" target="_blank" class="btn btn-sm btn-link">
+          {{ 'examples.supply_chain.source' | translate }}
         </a>
       </div>
+      
     </div>
   </div>
+
+
+  <!-- ASSET TRANSFER CARD -->
+
+  <div class="clr-col-md-6 clr-col-lg-4 clr-col-xlg-3 clr-col-12">
+        <div class="card">
+            <div class="card-header">
+              <div *ngIf="alreadyDeployed" class="alert alert-success alert-sm">
+                <div class="alert-item static">
+                  <span class="alert-text">
+                    {{ 'examples.asset_transfer.alert' | translate }}
+                  </span>
+                </div>
+              </div>
+              <clr-icon shape="nvme" size="64"></clr-icon>
+              <br />
+              {{ 'examples.asset_transfer.dappName' | translate }}
+            </div>
+
+
+            <div class="card-block">
+              <div class="card-text">
+                {{ 'examples.asset_transfer.dappDesc' | translate }}
+              </div>
+            </div>
+
+            <div class="card-footer">
+              <a href="https://github.com/vmwaresamples/vmware-blockchain-samples/asset-transfer" target="_blank" class="btn btn-sm btn-link">
+                {{ 'examples.asset_transfer.source' | translate }}
+              </a>
+            </div>
+        </div>
+    </div>
 </div>
