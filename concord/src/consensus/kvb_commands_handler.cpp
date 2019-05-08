@@ -167,7 +167,7 @@ bool KVBCommandsHandler::executeCommand(
     } else {
       // SBFT may decide to try one of our read-only commands in read-write
       // mode, for example if it has failed several times. So, go check the
-      // read-only list if othing matched here.
+      // read-only list if nothing matched here.
       LOG4CPLUS_INFO(logger, "Unknown read-write command. Trying read-only.");
       return executeReadOnlyCommand(requestSize, request, roStorage,
                                     maxReplySize, outReply, outReplySize);
