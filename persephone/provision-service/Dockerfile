@@ -1,5 +1,5 @@
 # Build time image.
-FROM maven:3.6.0-jdk-11 as builder
+FROM maven:3.6.1-jdk-11 as builder
 
 ## Build protobuf module.
 COPY ./protobuf ./protobuf
