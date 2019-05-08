@@ -890,8 +890,8 @@
     }
   },
   "examples": {
-    
-    // Add new DApp samples here
+
+    "title" : "Blockchain Samples",
 
     "supply_chain" : {
       "title": "Supply Chain",
