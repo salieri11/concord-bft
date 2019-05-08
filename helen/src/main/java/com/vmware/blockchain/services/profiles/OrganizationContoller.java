@@ -32,13 +32,13 @@ public class OrganizationContoller {
     @Data
     @NoArgsConstructor
     @AllArgsConstructor
-    private static class OrgGetResponse {
+    static class OrgGetResponse {
         UUID orgId;
         String organizationName;
     }
 
     @Data
-    private static class OrgPostBody {
+    static class OrgPostBody {
         String organizationName;
     }
 
