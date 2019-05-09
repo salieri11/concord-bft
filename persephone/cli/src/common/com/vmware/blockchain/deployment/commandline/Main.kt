@@ -126,7 +126,9 @@ fun main(args: Array<String>) {
                     onNext = {
                         when (it) {
                             is Orchestrator.NetworkResourceEvent.Created ->
-                                networkCreated.complete(it.resource)
+                                if (it.public) {
+                                    networkCreated.complete(it.resource)
+                                }
                             else -> Unit
                         }
                     },
