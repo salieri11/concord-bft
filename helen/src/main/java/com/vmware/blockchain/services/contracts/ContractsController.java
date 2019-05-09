@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -255,12 +256,13 @@ public class ContractsController extends ConcordServlet {
     }
 
     @Data
+    @JsonInclude(Include.NON_NULL)
     private static class PutRequestBody {
         String contractId;
         String compilerVersion;
         String sourcecode;
         String contractName;
-        Boolean isOptimized;
+        Boolean isOptimize;
         String runs;
     }
 
@@ -287,8 +289,22 @@ public class ContractsController extends ConcordServlet {
         String selectedContract = body.getContractName();
         String compilerVersion = body.getCompilerVersion();
         String existingVersionName = "1";
-        boolean isOptimize = body.getIsOptimized();
-        int runs = isOptimize ? Integer.parseInt(body.getRuns()) : 200;
+        final boolean isOptimize = body.getIsOptimize() == null ? false : body.getIsOptimize();
+        int runs = 200;
+        try {
+            if (isOptimize) {
+                runs = Integer.parseInt(body.getRuns());
+            }
+        } catch (NumberFormatException e) {
+            throw new BadRequestException(ErrorCode.BAD_NUMBER_FORMAT, body.getRuns());
+        }
+
+        // verify parameters that need to be non-null
+        if (Stream.of(contractId, solidityCode, selectedContract, compilerVersion)
+                .anyMatch(s -> s == null)) {
+            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+        }
+
 
         List<Contract> contracts = contractService.getContractVersion(
                 existingContractId,
@@ -313,13 +329,14 @@ public class ContractsController extends ConcordServlet {
     }
 
     @Data
+    @JsonInclude(Include.NON_NULL)
     private static class PostRequestBody {
         String contractId;
         String version;
         String from;
         String sourcecode;
         String contractName;
-        String contstructorParms;
+        String contstructorParams;
         String compilerVersion;
         Boolean isOptimize;
         String runs;
@@ -423,7 +440,8 @@ public class ContractsController extends ConcordServlet {
 
             String solidityCode = (String) requestObject.get("sourcecode");
             String compilerVersion = (String) requestObject.get("compiler_version");
-            boolean isOptimize = (boolean) requestObject.get("is_optimize");
+            Object o = requestObject.get("isOptimize");
+            boolean isOptimize = o == null ? false : (boolean) o;
             int runs;
             if (isOptimize) {
                 runs = Integer.parseInt((String) requestObject.get("runs"));
@@ -496,10 +514,23 @@ public class ContractsController extends ConcordServlet {
         final String contractVersion = body.getVersion();
         final String solidityCode = body.getSourcecode();
         final String selectedContract = body.getContractName();
-        final String constructorParams = body.getContstructorParms() == null ? "" : body.getContstructorParms();
+        final String constructorParams = body.getContstructorParams() == null ? "" : body.getContstructorParams();
         final String compilerVersion = body.getCompilerVersion();
-        final boolean isOptimize = body.getIsOptimize();
-        final int runs = isOptimize ? Integer.parseInt(body.getRuns()) : 200;
+        final boolean isOptimize = body.getIsOptimize() == null ? false : body.getIsOptimize();
+        int runs = 200;
+        try {
+            if (isOptimize) {
+                runs = Integer.parseInt(body.getRuns());
+            }
+        } catch (NumberFormatException e) {
+            throw new BadRequestException(ErrorCode.BAD_NUMBER_FORMAT, body.getRuns());
+        }
+
+        // verify parameters that need to be non-null
+        if (Stream.of(from, contractId, contractVersion, solidityCode, selectedContract, compilerVersion)
+                .anyMatch(s -> s == null)) {
+            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+        }
 
         // Get all contracts with this name
         List<Contract> contracts = contractService.listByName(contractId, getBlockchainId(id));

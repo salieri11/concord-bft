@@ -59,7 +59,7 @@ import com.vmware.concord.IConcordConnection;
  * </p>
  */
 @Controller
-public final class EthDispatcher extends ConcordServlet {
+public class EthDispatcher extends ConcordServlet {
     private static final long serialVersionUID = 1L;
     public static long netVersion;
     public static boolean netVersionSet;

@@ -120,8 +120,7 @@ public class ContractService {
     /**
      * Retrieve a list from a given blockchain.
      *
-     * @return The BriefInfo object
-     * @throws NotFoundException This exception is thrown when a contract with given contractId is not found.
+     * @return list of contracts in this blockchain.
      */
     public List<Contract> list(UUID blockchain) {
         List<Contract> contracts = genericDao.getByParentId(blockchain, Contract.class);
