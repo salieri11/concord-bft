@@ -9,8 +9,6 @@ def trimHexIndicator(s):
    '''
    Remove the leading "0x".
    '''
-
-
    if s.startswith(hexIndicator):
       return s[len(hexIndicator):]
    else:
@@ -35,6 +33,15 @@ def decToEvenHexNo0x(d):
    '''
    hexString = decToEvenHex(d)
    return trimHexIndicator(hexString)
+
+def decToInt256HexNo0x(d):
+   '''
+   Convert a decimal number into a solidity int256 (32 bytes) without
+   the leading "0x".  e.g. For passing to a solidity contract constructor.
+   '''
+   hexString = trimHexIndicator(hex(d))
+   zeroesNeeded = 64 - len(hexString)
+   return ("0" * zeroesNeeded) + hexString
 
 def stringOnlyContains(checkMe, allowed):
    '''

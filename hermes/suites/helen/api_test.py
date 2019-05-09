@@ -12,7 +12,7 @@ from uuid import UUID
 from suites import test_suite
 from rest.request import Request
 from rpc.rpc_call import RPC
-from util.numbers_strings import decToEvenHex, trimHexIndicator, epochToLegible
+import util.numbers_strings
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +31,19 @@ apiTestNames = []
 
 # HelloWorld.sol's hello function
 helloFunction = "0x19ff1d21"
+
+# "Hello, World!" hex-encoded ASCII
+helloHex = "48656c6c6f2c20576f726c6421"
+
+# "Howdy, World!" hex-encoded ASCII
+howdyHex = "486f7764792c20576f726c6421"
+
+# A user.  This will only work until CSP is implemented and
+# concord starts requiring signed transactions.
+fromUser = "0x1111111111111111111111111111111111111111"
+
+# The compiler version passed to Helen when uploading contracts.
+compilerVersion = "v0.5.2+commit.1df8f40c"
 
 # Ideally this would be a fixture.  However, fixtures and
 # parametrize decorations don't play well together.  (There
@@ -85,7 +98,7 @@ def ensureEnoughBlocksForPaging(request, blockchainId):
       ethrpcNode = getAnEthrpcNode(request, blockchainId)
 
       for i in range(blocksToAdd):
-         suiteObject._mock_transaction(request, data=decToEvenHex(i),
+         suiteObject._mock_transaction(request, data=util.numbers_strings.decToEvenHex(i),
                                        ethrpcNode=ethrpcNode["rpc_url"])
 
       latestBlockNumber = getLatestBlockNumber(request, blockchainId)
@@ -124,17 +137,15 @@ def addBlocks(request, rpc, blockchainId, numIterations, invokeContracts=False):
    txReceipts = []
 
    for i in range(numIterations):
-      contractId, contractVersion = suiteObject.upload_mock_contract(request)
+      contractId, contractVersion = suiteObject.upload_hello_contract(blockchainId, request)
       contractResult = request.callContractAPI('/api/concord/contracts/' + contractId
                                                + '/versions/' + contractVersion, "")
-
       # Getting the latest block is a workaround for VB-812, "No way to get a transaction
       # receipt for submitting a contract via contract API."
       block = getLatestBlock(request, blockchainId)
       txHashes.append(block["transactions"][0]["hash"])
 
       if invokeContracts:
-         rpc = createRPC(request, blockchainId)
          txHashes.append(rpc.sendTransaction("0x1111111111111111111111111111111111111111",
                                              helloFunction,
                                              to=contractResult["address"]))
@@ -290,10 +301,10 @@ def checkTimestamp(expectedTime, actualTime):
    '''
    buff = 600
    earliestTime = expectedTime - buff
-   earliestTimeString = epochToLegible(earliestTime)
+   earliestTimeString = util.numbers_strings.epochToLegible(earliestTime)
    latestTime = expectedTime + buff
-   latestTimeString = epochToLegible(latestTime)
-   actualTimeString = epochToLegible(actualTime)
+   latestTimeString = util.numbers_strings.epochToLegible(latestTime)
+   actualTimeString = util.numbers_strings.epochToLegible(actualTime)
 
    assert actualTime >= earliestTime and actualTime <= latestTime, \
       "Block's timestamp, '{}', was expected to be between '{}' and '{}'. (Converted: " \
@@ -414,6 +425,20 @@ def checkBlockchainFields(request, blockchain):
 
    assert len(expectedRpcUrls) == 0, \
       "More nodes were returned by the /concord/members API than were present in the /blockchains node list."
+
+
+def validateContractFields(testObj, blockchainId, contractId, contractVersion):
+   '''
+   testObj: The object to check.
+   Other fields: Used as expected values.
+   '''
+   assert testObj["contract_id"] == contractId, "The contract_id field is not correct."
+   assert testObj["version"] == contractVersion, "The contract_version field is not correct."
+
+   # VB-848: The blockchain ID should be in this url, but it is not.
+   # assert testObj["url"] == "/api/blockchains/" + blockchainId + "/concord/contracts/" + \
+   #    contractId + "/versions/" + contractVersion
+   assert len(testObj.keys()) == 3
 
 
 # Runs all of the tests from helen_api_tests.py.
@@ -745,7 +770,7 @@ def test_blockIndex_zero(restRequest):
       # verify that the accounts in genesis.json which have pre-allocated accounts
       # match the recipients in the transactions in block 0.
       fullTx = restRequest.getTransaction(blockchainId, tx["hash"])
-      foundAccounts.append(trimHexIndicator(fullTx["to"]))
+      foundAccounts.append(util.numbers_strings.trimHexIndicator(fullTx["to"]))
 
       assert fullTx["block_number"] == 0, \
          "Transaction in block 0 is listed as being in {}".format(fullTx["block_number"])
@@ -756,7 +781,7 @@ def test_blockIndex_zero(restRequest):
       assert fullTx["status"] == 1, "Expected a status of 1"
 
       # Genesis.json specifies the opening balance in hex and dec.
-      expectedBalance = genObject["alloc"][trimHexIndicator(fullTx["to"])]["balance"]
+      expectedBalance = genObject["alloc"][util.numbers_strings.trimHexIndicator(fullTx["to"])]["balance"]
       if expectedBalance.startswith("0x"):
          expectedBalance = int(expectedBalance, 16)
       else:
@@ -878,7 +903,7 @@ def test_transactionHash_invalid_tooLong(restRequest):
 
 
 @pytest.mark.smoke
-def test_blockhains_one(restRequest):
+def test_blockchains_one(restRequest):
    '''
    Test with one blockchain deployed, which is the default.
    '''
@@ -889,7 +914,7 @@ def test_blockhains_one(restRequest):
 
 
 @pytest.mark.skip(reason="Not implemented")
-def test_blockhains_none(restRequest):
+def test_blockchains_none(restRequest):
    '''
    How to start the product with no blockchains?
    Filed VB-841: Not able to start Helen with no blockchains.
@@ -901,7 +926,7 @@ def test_blockhains_none(restRequest):
 
 
 @pytest.mark.skip(reason="Not implemented")
-def test_blockhains_multiple(restRequest):
+def test_blockchains_multiple(restRequest):
    '''
    Currently, there is no way to deploy multiple blockchains.
    '''
@@ -911,3 +936,437 @@ def test_blockhains_multiple(restRequest):
    # beSureTheBlockchainsAreDifferentAndUsingTheCorrectConcordNodes()
    # checkBlockchainFields(restRequest, blockchain)
    pass
+
+
+@pytest.mark.smoke
+def test_getContracts(restRequest):
+   '''
+   Verify:
+   Post several contracts and be sure we can retrieve them.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   beforeContractList = restRequest.getContracts(blockchainId)
+   numNew = 3
+   newContractResults = []
+
+   for _ in range(numNew):
+      newContractResults.append(suiteObject.upload_contract(blockchainId, restRequest,
+                                                            "resources/contracts/HelloWorld.sol",
+                                                            "HelloWorld",
+                                                            fromAddr=fromUser,
+                                                            compilerVersion=compilerVersion))
+   afterContractList = restRequest.getContracts(blockchainId)
+   assert len(beforeContractList) + numNew == len(afterContractList), \
+      "Unexpected new number of contracts."
+
+   # We could use the contract id/version api to check, but since it's easy to avoid
+   # using the API we're testing in this case, let's not.
+   for newContract in newContractResults:
+      found = False
+
+      for contract in afterContractList:
+         if contract["contract_id"] == newContract["contract_id"] and \
+            contract["owner"] == fromUser and \
+            newContract["url"].startswith(contract["url"]):
+            found = True
+            break
+
+      assert found, "Newly added contract not found"
+
+
+@pytest.mark.smoke
+def test_postContract_simple(restRequest):
+   '''
+   Post a basic contract, check the result values, and run it.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/HelloWorld.sol",
+                                                "HelloWorld",
+                                                fromAddr=fromUser,
+                                                compilerVersion=compilerVersion,
+                                                contractId=contractId,
+                                                contractVersion=contractVersion)
+   validateContractFields(contractResult, blockchainId, contractId, contractVersion)
+   contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
+   rpc = createRPC(restRequest, blockchainId)
+   result = rpc.callContract(contract["address"], data=helloFunction)
+   assert helloHex in result, "Simple uploaded contract not executed correctly."
+
+
+@pytest.mark.smoke
+@pytest.mark.skip
+def test_postContract_constructor(restRequest):
+   '''
+   Post a contract with a constructor and run it.
+   The constructor data must be even length hex string, no 0x prefix.
+   (It gets appended to the bytecode.)
+   VB-857
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   constructorParam = util.numbers_strings.decToInt256HexNo0x(10)
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/CounterWithConstructorParam.sol",
+                                                "Counter",
+                                                fromAddr=fromUser,
+                                                compilerVersion=compilerVersion,
+                                                contractId=contractId,
+                                                contractVersion=contractVersion,
+                                                ctorParams=constructorParam)
+   validateContractFields(contractResult, blockchainId, contractId, contractVersion)
+   contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
+   rpc = createRPC(restRequest, blockchainId)
+   callContractResult = rpc.callContract(contract["address"], data="0xa87d942c")
+   assert int(callContractResult, 16) == 10, "Constructor value was not used."
+
+
+@pytest.mark.smoke
+def test_postContract_optimized(restRequest):
+   '''
+   Post a contract that is optimized.  Prove that Helen used the optimize
+   flag by comparing to bytecode which is not optimized.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/CounterWithConstructorParam.sol",
+                                                "Counter",
+                                                fromAddr=fromUser,
+                                                compilerVersion=compilerVersion,
+                                                contractId=contractId,
+                                                contractVersion=contractVersion,
+                                                optimize = False)
+   validateContractFields(contractResult, blockchainId, contractId, contractVersion)
+   contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
+   unoptimizedBytecode = contract["bytecode"]
+
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/CounterWithConstructorParam.sol",
+                                                "Counter",
+                                                fromAddr=fromUser,
+                                                compilerVersion=compilerVersion,
+                                                contractId=contractId,
+                                                contractVersion=contractVersion,
+                                                optimize=True,
+                                                runs="1")
+   validateContractFields(contractResult, blockchainId, contractId, contractVersion)
+   contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
+   optimizedBytecode1Run = contract["bytecode"]
+   assert optimizedBytecode1Run != unoptimizedBytecode, "Bytecode was not optimized"
+
+
+@pytest.mark.smoke
+def test_postContract_optimizeRuns(restRequest):
+   '''
+   Optimize the contract for different run frequencies. Prove
+   that Helen used the run parameter by comparing bytecode.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/HelloWorld.sol",
+                                                "HelloWorld",
+                                                fromAddr=fromUser,
+                                                compilerVersion=compilerVersion,
+                                                contractId=contractId,
+                                                contractVersion=contractVersion,
+                                                optimize=True,
+                                                runs="1")
+   contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
+   optimizedBytecode1Run = contract["bytecode"]
+
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/HelloWorld.sol",
+                                                "HelloWorld",
+                                                fromAddr=fromUser,
+                                                compilerVersion=compilerVersion,
+                                                contractId=contractId,
+                                                contractVersion=contractVersion,
+                                                optimize=True,
+                                                runs="200")
+   contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
+   optimizedBytecode200Runs = contract["bytecode"]
+
+   assert optimizedBytecode200Runs != optimizedBytecode1Run, \
+      "Change in runs did not produce different optimized bytecode."
+
+
+@pytest.mark.smoke
+def test_postContract_multiple_first(restRequest):
+   '''
+   Submit a file with multiple contracts, specifying the first as the contract.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/HelloWorldMultiple.sol",
+                                                "HelloWorld",
+                                                fromAddr=fromUser,
+                                                compilerVersion=compilerVersion,
+                                                contractId=contractId,
+                                                contractVersion=contractVersion)
+   contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
+   assert helloHex in contract["bytecode"], "HelloWorld! is not present in bytecode."
+   assert howdyHex not in contract["bytecode"], "HowdyWorld! should not be in the bytecode."
+
+
+@pytest.mark.smoke
+def test_postContract_multiple_second(restRequest):
+   '''
+   Submit a file with multiple contracts, specifying the second as the contract.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/HelloWorldMultiple.sol",
+                                                "HowdyWorld",
+                                                fromAddr=fromUser,
+                                                compilerVersion=compilerVersion,
+                                                contractId=contractId,
+                                                contractVersion=contractVersion)
+   contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
+   assert howdyHex in contract["bytecode"], "HowdyWorld! is not present in the bytecode."
+   assert helloHex not in contract["bytecode"], "HelloWorld! should not be in the bytecode."
+
+
+@pytest.mark.skip
+def test_postContract_noContractId(restRequest):
+   '''
+   Try to submit a contract without an ID.
+   VB-850
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractVersion = suiteObject.random_string_generator()
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/HelloWorld.sol",
+                                                "HelloWorld",
+                                                contractId=None,
+                                                contractVersion=contractVersion,
+                                                fromAddr=fromUser,
+                                                compilerVersion=compilerVersion,
+                                                ctorParams="",
+                                                optimize=False,
+                                                generateDefaults=False)
+
+
+@pytest.mark.skip
+def test_postContract_noContractVersion(restRequest):
+   '''
+   Try to submit a contract without a version.
+   VB-850
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/HelloWorld.sol",
+                                                "HelloWorld",
+                                                contractId=contractId,
+                                                contractVersion=None,
+                                                fromAddr=fromUser,
+                                                compilerVersion=compilerVersion,
+                                                ctorParams="",
+                                                optimize=False,
+                                                generateDefaults=False)
+
+
+@pytest.mark.skip
+def test_postContract_noContractFrom(restRequest):
+   '''
+   Try to submit a contract without a "from".
+   VB-851
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/HelloWorld.sol",
+                                                "HelloWorld",
+                                                contractId=contractId,
+                                                contractVersion=contractVersion,
+                                                fromAddr=None,
+                                                compilerVersion=compilerVersion,
+                                                ctorParams="",
+                                                optimize=False,
+                                                generateDefaults=False)
+   contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
+
+
+@pytest.mark.skip
+def test_postContract_noContractSource(restRequest):
+   '''
+   Try to submit a contract without source code.
+   VB-847
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                None,
+                                                "HelloWorld",
+                                                contractId=contractId,
+                                                contractVersion=contractVersion,
+                                                fromAddr=fromUser,
+                                                compilerVersion=compilerVersion,
+                                                ctorParams="",
+                                                optimize=False,
+                                                generateDefaults=False)
+   contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
+
+
+@pytest.mark.skip
+def test_postContract_noContractName(restRequest):
+   '''
+   Try to submit a contract without a name.
+   VB-854
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/HelloWorld.sol",
+                                                None,
+                                                contractId=contractId,
+                                                contractVersion=contractVersion,
+                                                fromAddr=fromUser,
+                                                compilerVersion=compilerVersion,
+                                                ctorParams="",
+                                                optimize=False,
+                                                generateDefaults=False)
+   contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
+
+
+@pytest.mark.skip
+def test_postContract_noContractConstructor(restRequest):
+   '''
+   Try to submit a contract without constructor parameters when the
+   constructor requires one.
+   VB-853
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/HelloWorld.sol",
+                                                "HelloWorld",
+                                                contractId=contractId,
+                                                contractVersion=contractVersion,
+                                                fromAddr=fromUser,
+                                                compilerVersion=compilerVersion,
+                                                ctorParams=None,
+                                                optimize=False,
+                                                generateDefaults=False)
+   contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
+   result = rpc.callContract(contract["address"], data=helloFunction)
+   assert helloHex in result, "Simple uploaded contract not executed correctly."
+
+
+@pytest.mark.skip
+def test_postContract_noContractCompilerVersion(restRequest):
+   '''
+   Try to submit a contract without a compiler version.
+   VB-854
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/HelloWorld.sol",
+                                                "HelloWorld",
+                                                contractId=contractId,
+                                                contractVersion=contractVersion,
+                                                fromAddr=fromUser,
+                                                compilerVersion=None,
+                                                ctorParams="",
+                                                optimize=False,
+                                                generateDefaults=False)
+   contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
+
+
+@pytest.mark.smoke
+def test_postContract_duplicateContractAndVersion(restRequest):
+   '''
+   Try to submit a contract with an id/version matching one that exists.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/HelloWorld.sol",
+                                                "HelloWorld",
+                                                contractId=contractId,
+                                                contractVersion=contractVersion)
+   contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
+   assert helloHex in contract["bytecode"], "HelloWorld! should be in the bytecode."
+
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/HelloWorld.sol",
+                                                "HelloWorld",
+                                                contractId=contractId,
+                                                contractVersion=contractVersion)
+   assert contractResult["error_code"] == "ConflictException", \
+      "Expected a 'ConflictException' error code, got '{}'".format(contractResult["error_code"])
+   expectedMessage = "ContractVersion with id {} and version {} already exists".format(contractId, contractVersion)
+   assert contractResult["error_message"] == expectedMessage, \
+      "Expected error message '{}', got '{}'".format(expectedMessage, contractResult["error_message"])
+
+
+@pytest.mark.smoke
+def test_postContract_duplicateContractNewVersion(restRequest):
+   '''
+   Try to submit a contract with the same ID and a new version.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/HelloWorldMultiple.sol",
+                                                "HelloWorld",
+                                                contractId=contractId,
+                                                contractVersion=contractVersion)
+
+   contractVersion = suiteObject.random_string_generator(mustNotMatch=contractVersion)
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/HelloWorldMultiple.sol",
+                                                "HowdyWorld",
+                                                contractId=contractId,
+                                                contractVersion=contractVersion)
+   contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
+   assert howdyHex in contract["bytecode"], "HowdyWorld! should be in the bytecode."
+   assert helloHex not in contract["bytecode"], "HelloWorld! should not be in the bytecode."
+
+
+@pytest.mark.smoke
+def test_postContract_newContractDuplicateVersion(restRequest):
+   '''
+   Submit a contract with a new ID and the same version.
+   '''
+   blockchainId = restRequest.getABlockchainId()
+   contractId = suiteObject.random_string_generator()
+   contractVersion = suiteObject.random_string_generator()
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/HelloWorldMultiple.sol",
+                                                "HelloWorld",
+                                                contractId=contractId,
+                                                contractVersion=contractVersion)
+
+   contractId = suiteObject.random_string_generator(mustNotMatch=contractId)
+   contractResult = suiteObject.upload_contract(blockchainId, restRequest,
+                                                "resources/contracts/HelloWorldMultiple.sol",
+                                                "HowdyWorld",
+                                                contractId=contractId,
+                                                contractVersion=contractVersion)
+   contract = restRequest.getContractVersion(blockchainId, contractId, contractVersion)
+   assert howdyHex in contract["bytecode"], "HowdyWorld! should be in the bytecode."
+   assert helloHex not in contract["bytecode"], "HelloWorld! should not be in the bytecode."
