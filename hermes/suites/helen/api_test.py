@@ -131,6 +131,10 @@ def addBlocks(request, rpc, blockchainId, numIterations, invokeContracts=False):
       # Getting the latest block is a workaround for VB-812, "No way to get a transaction
       # receipt for submitting a contract via contract API."
       block = getLatestBlock(request, blockchainId)
+      # Time service may have added a block after the contract
+      # creation, so look for a block with a transaction in it
+      while not block["transactions"]:
+         block = request.getBlockByNumber(blockchainId, block["number"]-1)
       txHashes.append(block["transactions"][0]["hash"])
 
       if invokeContracts:
@@ -597,7 +601,9 @@ def test_blockList_noNextField_allBlocks(restRequest):
    blockchainId = restRequest.getABlockchainId()
    ensureEnoughBlocksForPaging(restRequest, blockchainId)
    latestBlock = getLatestBlockNumber(restRequest, blockchainId)
-   result = restRequest.getBlockList(blockchainId, count=latestBlock+1)
+   # Time service may add blocks in between these requests, so +10
+   # ensures that we account for a few rounds of that.
+   result = restRequest.getBlockList(blockchainId, count=latestBlock+10)
    assert "next" not in result, \
       "There should not be a 'next' field when requesting all blocks."
 
@@ -699,7 +705,9 @@ def test_blockIndex_negative(restRequest):
 def test_blockIndex_outOfRange(restRequest):
    blockchainId = restRequest.getABlockchainId()
    latestBlockNumber = getLatestBlockNumber(restRequest, blockchainId)
-   checkInvalidIndex(restRequest, blockchainId, latestBlockNumber+1, "block not found")
+   # Time service may add blocks between these requests, so +10
+   # accounts for a few rounds of that.
+   checkInvalidIndex(restRequest, blockchainId, latestBlockNumber+10, "block not found")
 
 
 # @pytest.mark.smoke

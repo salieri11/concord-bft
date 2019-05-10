@@ -956,9 +956,10 @@ class ExtendedRPCTests(test_suite.TestSuite):
       # transactions and blocks should be in the same order, so we can
       # just iterate and skip blocks that aren't relatvant, instead of
       # having to start the search over again every time
+      blockchainId = request.getABlockchainId()
       blocksCopy = blocks[:]
       for t in transactions[1:]:
-         tx = request.getTransaction(t)
+         tx = request.getTransaction(blockchainId, t)
 
          found = False
          while blocksCopy:
@@ -974,7 +975,7 @@ class ExtendedRPCTests(test_suite.TestSuite):
       # transaction that they want to catch in the filter, we may miss
       # the first transaction. This can't be helped, but let's warn
       # about it to find out how often it really happens.
-      tx0 = request.getTransaction(transactions[0])
+      tx0 = request.getTransaction(blockchainId, transactions[0])
       if not tx0["block_hash"] in blocks:
          log.warn("First transaction missing from filter")
 
