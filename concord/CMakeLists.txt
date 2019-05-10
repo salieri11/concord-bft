@@ -10,18 +10,27 @@ set(CMAKE_CXX_EXTENSIONS Off)
 # Storage options
 set(USE_ROCKSDB True)
 
-#concord flags
+# Concord flags
 set(USE_LOG4CPP TRUE)
 set(CONCORD_LOGGER_NAME "concord.bft")
 #if TRUE, concord will use plain tcp module for communication
 set(BUILD_COMM_TCP_PLAIN FALSE)
+
+# Our CMake helper modules
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+
+# Expected GRPC and Protobuf installations
+list(APPEND CMAKE_PREFIX_PATH "/opt/grpc" "/opt/protobuf")
 
 if(APPLE)
   set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "/usr/local/Cellar/protobuf@2.6/2.6.0")
 endif()
 
 find_package(Protobuf REQUIRED)
-include_directories(${PROTOBUF_INCLUDE_DIRS})
+include_directories(${PROTOBUF_INCLUDE_DIR})
+
+find_package(GRPC REQUIRED)
+include_directories(${GRPC_INCLUDE_DIR})
 
 find_package(Boost 1.64 COMPONENTS system program_options thread REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})

@@ -102,7 +102,7 @@ target_link_libraries(ReplicaStateSyncTests
   log4cplus
   gtest
   gtest_main
-  proto ${PROTOBUF_LIBRARIES}
+  proto
   ${EVM_LIBRARIES}
   LLVMSupport
   concord_utils
@@ -116,7 +116,7 @@ target_link_libraries(TimeContractTests
   log4cplus
   gtest
   gtest_main
-  proto ${PROTOBUF_LIBRARIES}
+  proto
   concord_utils
   kvblockchain
   concord_common

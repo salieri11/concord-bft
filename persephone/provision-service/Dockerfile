@@ -34,7 +34,7 @@ COPY ./persephone/provision-service/test ./persephone/provision-service/test
 RUN mvn -f persephone/pom.xml package -pl provision-service -am -B
 
 ## Get the C++ part
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v5 as builder1
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v8 as builder1
 
 COPY .git /.git
 

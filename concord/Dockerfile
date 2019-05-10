@@ -9,7 +9,7 @@
 ##         from parent: docker build -f concord/Dockerfile .
 
 ## Build image
-FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v5
+FROM athena-docker-local.artifactory.eng.vmware.com/concord-core:prereqs-v8
 
 ## Remember context is the parent of this directory
 COPY ./communication /communication
@@ -26,7 +26,6 @@ WORKDIR /concord
 COPY ./concord /concord
 WORKDIR /concord/build
 RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && CTEST_OUTPUT_ON_FAILURE=true make -j$(nproc) all test
-
 
 ## Base Run image
 FROM ubuntu:18.04
@@ -57,6 +56,9 @@ RUN apt-get update \
 
 COPY --from=0 /usr/local/lib/libcryptopp* /usr/local/lib/
 COPY --from=0 /usr/local/lib/liblog4cplus* /usr/local/lib/
+COPY --from=0 /opt/protobuf /opt/protobuf
+COPY --from=0 /opt/grpc /opt/grpc
+
 # evmjit is statically compiled, so we don't need to copy
 COPY --from=0 /usr/local/lib/librelic* /usr/local/lib/
 COPY --from=0 /usr/local/lib/librocksdb.* /usr/local/lib/
@@ -77,14 +79,16 @@ EXPOSE 3503/udp
 EXPOSE 3504/udp
 EXPOSE 3505/udp
 
+# ENV
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/opt/grpc/lib:/opt/protobuf/lib
+
 # Mountable volumes.
 VOLUME [ "/concord/config", "/concord/rocksdbdata", "/concord/log" ]
 
 # Set working directory and start.
 WORKDIR /concord
-CMD export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && \
-    cp /concord/config-local/concord_with_hostnames.config \
-       /concord/config-local/concord.config && \
+CMD cp /concord/config-local/concord_with_hostnames.config \
+    /concord/config-local/concord.config && \
     /concord/config-public/find-docker-instances.sh && \
     ${memleak_util_cmd} \
     /concord/concord -c /concord/config-local/concord.config

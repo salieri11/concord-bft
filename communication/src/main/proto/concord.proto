@@ -16,6 +16,7 @@ message ConcordRequest {
    optional TransactionListRequest transaction_list_request = 7;
    optional LogsRequest logs_request = 8;
    optional TimeUpdate time_update = 9; // internal only!
+   optional DamlRequest daml_request = 11;
 
    // 8-2045 open for definition
    // Likely: metrics/stats, non-eth blockchain, other admin
@@ -33,6 +34,7 @@ message ConcordResponse {
    optional TransactionListResponse transaction_list_response = 7;
    optional LogsResponse logs_response = 8;
    // (9) Time Update has no response
+   optional DamlResponse daml_response = 11;
 
    // 8-2045 open for definition
    optional TestResponse test_response = 2046;
@@ -75,6 +77,14 @@ message BlockResponse {
    optional int64 timestamp = 7;
    optional int64 gas_limit = 8;
    optional int64 gas_used = 9;
+}
+
+message DamlRequest {
+   required bytes command = 1;
+}
+
+message DamlResponse {
+   required bytes command_reply = 1;
 }
 
 message ErrorResponse {
