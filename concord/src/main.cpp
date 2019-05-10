@@ -290,12 +290,13 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
             commConfig, replicaConsensusConfig, dbclient, *replicaStateSync));
 
     // TODO(RM): Use unique pointer
-    Blockchain::ICommandsHandler *athkvb;
+    Blockchain::ICommandsHandler *kvb_commands_handler;
     if (daml_enabled) {
-      athkvb = new KVBCCommandsHandler(replica, replica, committedTxs);
+      kvb_commands_handler =
+          new KVBCCommandsHandler(replica, replica, committedTxs);
     } else {
-      athkvb = new KVBCommandsHandler(*athevm, *ethVerifier, config, nodeConfig,
-                                      replica, replica);
+      kvb_commands_handler = new KVBCommandsHandler(
+          *athevm, *ethVerifier, config, nodeConfig, replica, replica);
       // Genesis must be added before the replica is started.
       Blockchain::Status genesis_status =
           create_genesis_block(replica, params, logger);
@@ -306,7 +307,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       }
     }
 
-    replica->set_command_handler(athkvb);
+    replica->set_command_handler(kvb_commands_handler);
     replica->start();
 
     // Clients
@@ -334,7 +335,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     // API server
 
     if (daml_enabled) {
-      std::string daml_addr{"0.0.0.0:50051"};
+      std::string daml_addr{
+          nodeConfig.getValue<std::string>("daml_service_addr")};
       daml_grpc_server =
           RunDamlGrpcServer(daml_addr, pool, replica, committedTxs);
       LOG4CPLUS_INFO(logger, "DAML grpc server listening on " << daml_addr);
@@ -365,7 +367,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       delete ethVerifier;
       delete athevm;
     }
-    delete athkvb;
+    delete kvb_commands_handler;
     Blockchain::release(replica);
     delete replicaStateSync;
   } catch (std::exception &ex) {

@@ -3005,6 +3005,12 @@ void specifyConfiguration(ConcordConfiguration& config) {
   config.tagParameter("daml_enable", publicDefaultableTags);
   config.addValidator("daml_enable", validateBoolean, nullptr);
 
+  node.declareParameter("daml_service_addr",
+                        "Public IP address and port (<IP>:<PORT>) on which the "
+                        "DAML serice can be reached.",
+                        "0.0.0.0:50051");
+  node.tagParameter("daml_service_addr", publicDefaultableTags);
+
   node.declareParameter("api_worker_pool_size",
                         "Number of threads to create to handle TCP connections "
                         "to this node's external API.",
