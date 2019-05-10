@@ -2,6 +2,7 @@
 //
 // Concord node startup.
 
+#include <grpcpp/grpcpp.h>
 #include <log4cplus/configurator.h>
 #include <log4cplus/loggingmacros.h>
 #include <boost/program_options.hpp>
@@ -22,6 +23,11 @@
 #include "consensus/kvb/bft_configuration.hpp"
 #include "consensus/kvb_commands_handler.hpp"
 #include "consensus/replica_state_sync_imp.hpp"
+#include "daml/blocking_queue.h"
+#include "daml/cmd_handler.hpp"
+#include "daml/grpc_services.hpp"
+#include "daml_commit.grpc.pb.h"
+#include "daml_events.grpc.pb.h"
 #include "ethereum/concord_evm.hpp"
 #include "ethereum/evm_init_params.hpp"
 #include "utils/concord_eth_sign.hpp"
@@ -55,20 +61,33 @@ using concord::ethereum::EVM;
 using concord::ethereum::EVMInitParams;
 using concord::utils::EthSign;
 
+using com::digitalasset::kvbc::CommittedTx;
+using concord::daml::BlockingPersistentQueue;
+using concord::daml::CommitServiceImpl;
+using concord::daml::DataServiceImpl;
+using concord::daml::EventsServiceImpl;
+using concord::daml::KVBCCommandsHandler;
+
 // Parse BFT configuration
 using com::vmware::concord::initializeSBFTConfiguration;
 
+static unique_ptr<grpc::Server> daml_grpc_server = nullptr;
 // the Boost service hosting our Helen connections
-static io_service *api_service;
+static io_service *api_service = nullptr;
 static boost::thread_group worker_pool;
 
 void signalHandler(int signum) {
   try {
     Logger logger = Logger::getInstance("com.vmware.concord.main");
     LOG4CPLUS_INFO(logger,
-                   "Signal received (" << signum << "), stopping service");
+                   "Signal received (" << signum << "), stopping API service");
 
-    api_service->stop();
+    if (api_service) {
+      api_service->stop();
+    }
+    if (daml_grpc_server) {
+      daml_grpc_server->Shutdown();
+    }
   } catch (exception &e) {
     cout << "Exception in signal handler: " << e.what() << endl;
   }
@@ -189,6 +208,7 @@ Blockchain::Status create_genesis_block(Blockchain::IReplica *replica,
 void start_worker_threads(int number) {
   Logger logger = Logger::getInstance("com.vmware.concord.main");
   LOG4CPLUS_INFO(logger, "Starting " << number << " new API worker threads");
+  assert(api_service);
   for (int i = 0; i < number; i++) {
     boost::thread *t = new boost::thread(
         boost::bind(&boost::asio::io_service::run, api_service));
@@ -196,82 +216,112 @@ void start_worker_threads(int number) {
   }
 }
 
+unique_ptr<grpc::Server> RunDamlGrpcServer(
+    std::string server_address, KVBClientPool &pool,
+    const Blockchain::ILocalKeyValueStorageReadOnly *ro_storage,
+    BlockingPersistentQueue<CommittedTx> &committedTxs) {
+  DataServiceImpl *dataService = new DataServiceImpl(pool, ro_storage);
+  CommitServiceImpl *commitService = new CommitServiceImpl(pool);
+  EventsServiceImpl *eventsService = new EventsServiceImpl(committedTxs);
+
+  grpc::ServerBuilder builder;
+  builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+  builder.RegisterService(dataService);
+  builder.RegisterService(commitService);
+  builder.RegisterService(eventsService);
+
+  // Finally assemble the server.
+  return unique_ptr<grpc::Server>(builder.BuildAndStart());
+}
+
 /*
  * Start the service that listens for connections from Helen.
  */
 int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
                 Logger &logger) {
+  EVM *athevm;
+  EthSign *ethVerifier;
   EVMInitParams params;
   uint64_t chainID;
+  BlockingPersistentQueue<CommittedTx> committedTxs;
+  bool daml_enabled = config.getValue<bool>("daml_enable");
 
   try {
-    // If genesis block option was provided then read that so
-    // it can be passed during EVM creation
-    if (nodeConfig.hasValue<std::string>("genesis_block")) {
-      string genesis_file_path =
-          nodeConfig.getValue<std::string>("genesis_block");
-      LOG4CPLUS_INFO(logger,
-                     "Reading genesis block from " << genesis_file_path);
-      params = EVMInitParams(genesis_file_path);
-      chainID = params.get_chainID();
-    } else {
-      LOG4CPLUS_WARN(logger, "No genesis block provided");
+    if (!daml_enabled) {
+      // The genesis parsing is Eth specific.
+      if (nodeConfig.hasValue<std::string>("genesis_block")) {
+        string genesis_file_path =
+            nodeConfig.getValue<std::string>("genesis_block");
+        LOG4CPLUS_INFO(logger,
+                       "Reading genesis block from " << genesis_file_path);
+        params = EVMInitParams(genesis_file_path);
+        chainID = params.get_chainID();
+        // throws an exception if it fails
+        athevm = new EVM(params);
+        ethVerifier = new EthSign();
+      } else {
+        LOG4CPLUS_WARN(logger, "No genesis block provided");
+      }
     }
 
     Blockchain::IDBClient *dbclient = open_database(nodeConfig, logger);
     Blockchain::BlockchainDBAdapter db(dbclient);
 
-    /// replica and comm config init
+    // Replica and communication config
     Blockchain::CommConfig commConfig;
     StatusAggregator sag;
     commConfig.statusCallback = sag.get_update_connectivity_fn();
     Blockchain::ReplicaConsensusConfig replicaConsensusConfig;
 
-    /// TODO(IG): check return value and shutdown concord if false
+    // TODO(IG): check return value and shutdown concord if false
     initializeSBFTConfiguration(config, nodeConfig, &commConfig, nullptr, 0,
                                 &replicaConsensusConfig);
 
+    // Replica
+    //
+    // TODO(IG): since ReplicaImpl is used as an implementation of few
+    // intefaces, this object will be used for constructing KVBCommandsHandler
+    // and thus we cant use IReplica here. Need to restructure the code, to
+    // split interfaces implementation and to construct objects in more
+    // clear way
     auto *replicaStateSync = new ReplicaStateSyncImp;
-    /* init replica
-     * TODO(IG): since ReplicaImpl is used as an implementation of few
-     * intefaces, this object will be used for constructing KVBCommandsHandler
-     * and thus we cant use IReplica here. Need to restructure the code, to
-     * split interfaces implementation and to construct objects in more
-     * clear way
-     */
     Blockchain::ReplicaImp *replica =
         dynamic_cast<Blockchain::ReplicaImp *>(Blockchain::createReplica(
             commConfig, replicaConsensusConfig, dbclient, *replicaStateSync));
 
-    // throws an exception if it fails
-    EVM athevm(params);
-    EthSign verifier;
-    KVBCommandsHandler athkvb(athevm, verifier, config, nodeConfig, replica,
-                              replica);
-    replica->set_command_handler(&athkvb);
-
-    // Genesis must be added before the replica is started.
-    Blockchain::Status genesis_status =
-        create_genesis_block(replica, params, logger);
-    if (!genesis_status.isOK()) {
-      LOG4CPLUS_FATAL(logger,
-                      "Unable to load genesis block: " << genesis_status);
-      throw EVMException("Unable to load genesis block");
+    // TODO(RM): Use unique pointer
+    Blockchain::ICommandsHandler *kvb_commands_handler;
+    if (daml_enabled) {
+      kvb_commands_handler =
+          new KVBCCommandsHandler(replica, replica, committedTxs);
+    } else {
+      kvb_commands_handler = new KVBCommandsHandler(
+          *athevm, *ethVerifier, config, nodeConfig, replica, replica);
+      // Genesis must be added before the replica is started.
+      Blockchain::Status genesis_status =
+          create_genesis_block(replica, params, logger);
+      if (!genesis_status.isOK()) {
+        LOG4CPLUS_FATAL(logger,
+                        "Unable to load genesis block: " << genesis_status);
+        throw EVMException("Unable to load genesis block");
+      }
     }
 
-    /// start replica
+    replica->set_command_handler(kvb_commands_handler);
     replica->start();
 
-    /// init and start clients pool
+    // Clients
+
     std::vector<KVBClient *> clients;
 
     for (uint16_t i = 0;
          i < config.getValue<uint16_t>("client_proxies_per_replica"); ++i) {
       Blockchain::ClientConsensusConfig clientConsensusConfig;
-      /// TODO(IG): check return value and shutdown concord if false
+      // TODO(IG): check return value and shutdown concord if false
       CommConfig clientCommConfig;
       initializeSBFTConfiguration(config, nodeConfig, &clientCommConfig,
                                   &clientConsensusConfig, i, nullptr);
+
       Blockchain::IClient *client =
           Blockchain::createClient(clientCommConfig, clientConsensusConfig);
       client->start();
@@ -280,33 +330,44 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     }
 
     KVBClientPool pool(clients);
-
-    std::string ip = nodeConfig.getValue<std::string>("service_host");
-    short port = nodeConfig.getValue<short>("service_port");
-
-    api_service = new io_service();
-    tcp::endpoint endpoint(address::from_string(ip), port);
-    uint64_t gasLimit = config.getValue<uint64_t>("gas_limit");
-    ApiAcceptor acceptor(*api_service, endpoint, pool, sag, gasLimit, chainID,
-                         config, nodeConfig);
-
     signal(SIGINT, signalHandler);
 
-    LOG4CPLUS_INFO(logger, "Listening on " << endpoint);
-    // start worker thread pool first before calling api_service->run()
-    // consider 1 main thread
-    start_worker_threads(nodeConfig.getValue<int>("api_worker_pool_size") - 1);
-    // Wait for api_service->run() to return
-    api_service->run();
-    // wait for all threads to join
-    worker_pool.join_all();
+    // API server
 
-    // If we return from `run`, the service was stopped and we are shutting
-    // down.
+    if (daml_enabled) {
+      std::string daml_addr{
+          nodeConfig.getValue<std::string>("daml_service_addr")};
+      daml_grpc_server =
+          RunDamlGrpcServer(daml_addr, pool, replica, committedTxs);
+      LOG4CPLUS_INFO(logger, "DAML grpc server listening on " << daml_addr);
 
-    /// replica
+      daml_grpc_server->Wait();
+    } else {
+      std::string ip = nodeConfig.getValue<std::string>("service_host");
+      short port = nodeConfig.getValue<short>("service_port");
+
+      api_service = new io_service();
+      tcp::endpoint endpoint(address::from_string(ip), port);
+      uint64_t gasLimit = config.getValue<uint64_t>("gas_limit");
+      ApiAcceptor acceptor(*api_service, endpoint, pool, sag, gasLimit, chainID,
+                           config, nodeConfig);
+      LOG4CPLUS_INFO(logger, "API Listening on " << endpoint);
+
+      start_worker_threads(nodeConfig.getValue<int>("api_worker_pool_size") -
+                           1);
+
+      // Wait for api_service->run() to return
+      api_service->run();
+      worker_pool.join_all();
+    }
+
     replica->stop();
 
+    if (!daml_enabled) {
+      delete ethVerifier;
+      delete athevm;
+    }
+    delete kvb_commands_handler;
     Blockchain::release(replica);
     delete replicaStateSync;
   } catch (std::exception &ex) {
