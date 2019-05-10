@@ -175,7 +175,8 @@ bool KVBCommandsHandler::executeCommand(
       // divide by 1000, because time service is in milliseconds, but ethereum
       // is in seconds
       uint64_t timestamp = tc.GetTime() / 1000;
-      kvbStorage.write_block(timestamp, 0 /* no gas used */);
+      kvbStorage.write_block(timestamp,
+                             config_.getValue<uint64_t>("gas_limit"));
 
       // concord-bft does not like zero-byte responses, so we're including a
       // small empty message to make it happy

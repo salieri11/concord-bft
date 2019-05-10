@@ -262,6 +262,10 @@ class ExtendedRPCTests(test_suite.TestSuite):
       A proper semantic test should be done in a larger e2e test.
       '''
       block = rpc.getBlockByNumber("latest")
+      # The latest block may be a time-update with no transactions in
+      # it. Look at an earlier block, if that's the case
+      while not block["transactions"]:
+         block = rpc.getBlockByNumber(hex(int(block["number"], 16)-1))
       txHash = random.choice(block["transactions"])
 
       tx = rpc.getTransactionByHash(txHash)
@@ -332,6 +336,10 @@ class ExtendedRPCTests(test_suite.TestSuite):
       Make sure the API is available and all expected fields are present.
       '''
       block = rpc.getBlockByNumber("latest")
+      # The latest block may be a time-update with no transactions in
+      # it. Look at an earlier block, if that's the case
+      while not block["transactions"]:
+         block = rpc.getBlockByNumber(hex(int(block["number"], 16)-1))
       txHash = random.choice(block["transactions"])
 
       tx = rpc.getTransactionReceipt(txHash)
@@ -515,8 +523,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if not success:
          return (False, 'QUANTITY expected for field "{}"'.format(field))
 
-      if not latestBlock["number"] == currentBlockNumber:
-         return (False, "Latest block does not have current block number")
+      if not int(latestBlock["number"], 16) >= int(currentBlockNumber, 16):
+         return (False, "Latest block is before current block number")
 
       currentBlock = rpc.getBlockByNumber(currentBlockNumber)
 
@@ -528,7 +536,10 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if not currentBlock["gasLimit"] == "0x989680":
          return (False, "Gas limit isn't 0x989680")
 
-      futureBlockNumber = 1 + int(currentBlockNumber, 16)
+      # Reminder that if time service is running, new blocks might be
+      # added at any time, so predict something semi-far future to
+      # keep this test stable
+      futureBlockNumber = 1000 + int(currentBlockNumber, 16)
 
       try:
          futureBlock = rpc.getBlockByNumber(futureBlockNumber)
@@ -639,7 +650,10 @@ class ExtendedRPCTests(test_suite.TestSuite):
       # eth_getLogs(blockHash)
       logs = rpc.getLogs({"blockHash":func_txr.blockHash.hex()})
 
-      if logsLatest != logs:
+      # If the time service is publishing, the latest block might not
+      # be the block that our transaction is in. If that's the case,
+      # the logs will be empty, so skip this check.
+      if logsLatest != [] and logsLatest != logs:
          return (False, "getLogs() != getLogs(blockHash)")
 
       for l in logs:
@@ -693,8 +707,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
       if len(filter_out) != len(logs):
          return (False, "Unexpected logs - only logs from {} expected".format(caddr1))
 
-      # The latest block should contain the log for caddr2
-      logs = rpc.getLogs({"address":caddr2})
+      # Get all logs for caddr2
+      logs = rpc.getLogs({"fromBlock":"earliest", "address":caddr2})
       if len(logs) != 1:
          return (False, "Expected one log entries for addr " + caddr1)
       filter_out = list(filter(lambda l: w3.toChecksumAddress(l["address"]) == caddr2, logs))
@@ -721,11 +735,11 @@ class ExtendedRPCTests(test_suite.TestSuite):
       # Issue two transactions (which generate two blocks)
       func = contract.get_function_by_name("foo")
       func_tx = func(w3.toInt(hexstr="0xdeadbeef")).transact(tx_args)
-      w3.eth.waitForTransactionReceipt(func_tx)
+      foo_func_txr = w3.eth.waitForTransactionReceipt(func_tx)
       func_tx = func(w3.toInt(hexstr="0xc0ffee")).transact(tx_args)
       w3.eth.waitForTransactionReceipt(func_tx)
       func_tx = func(w3.toInt(hexstr="0x0ddba11")).transact(tx_args)
-      func_txr = w3.eth.waitForTransactionReceipt(func_tx)
+      oddball_func_txr = w3.eth.waitForTransactionReceipt(func_tx)
 
       # Let's get all logs
       logs_all = rpc.getLogs({"fromBlock":"0x0"})
@@ -748,8 +762,8 @@ class ExtendedRPCTests(test_suite.TestSuite):
          return (False, "From all logs: Couldn't find " + str(expected))
 
       # Let's omit the "0x0ddba11" and don't get everything
-      from_block = int(func_txr["blockNumber"]) - 2
-      to_block = from_block + 1
+      from_block = int(foo_func_txr["blockNumber"])
+      to_block = int(oddball_func_txr["blockNumber"])-1
       logs = rpc.getLogs({"fromBlock": str(from_block), "toBlock": str(to_block)})
 
       expected = [0xdeadbeef, 0xc0ffee]
@@ -796,18 +810,18 @@ class ExtendedRPCTests(test_suite.TestSuite):
       assert logs[1].args.value == w3.toInt(hexstr="0xc0fff0")
 
       # The latest block should contain our events
-      logs = rpc.getLogs({"topics":[event_signature]})
+      logs = rpc.getLogs({"fromBlock": hex(func_txr["blockNumber"]), "topics":[event_signature]})
       if len(logs) != 2 \
          or logs[0]["topics"][0] != event_signature \
          or logs[1]["topics"][0] != event_signature:
-         return (False, "Expected two logs in the latest block with event sig " + event_signature)
+         return (False, "Expected two logs in the transaction block with event sig " + event_signature)
 
       # Let's get only one event from the two
       # The "twoEvents" function emits two events one with x+1 and the other with x+2
       param = "0x" + 29 * "00" + "c0ffef"
-      logs = rpc.getLogs({"topics":[event_signature, param]})
+      logs = rpc.getLogs({"fromBlock": hex(func_txr["blockNumber"]), "topics":[event_signature, param]})
       if len(logs) != 1 or logs[0]["topics"][1] != param:
-         return (False, "Expected one log in the latest block with 124")
+         return (False, "Expected one log in the transaction block with 124")
 
       return (True, None)
 
@@ -874,10 +888,14 @@ class ExtendedRPCTests(test_suite.TestSuite):
       # transaction that they expect the filter to catch. Mimic that
       # here, to make sure the filter actually returns the block with
       # this transaction.
-      rpc.sendTransaction(addrFrom,
-                          data=None,
-                          to=addrTo,
-                          value=transferAmount)
+      #
+      # WARNING: this will be flaky with the time service in play. If
+      # a time update is added between this transaction and the
+      # creation of the filter, this transaction will not show up.
+      transactions = [rpc.sendTransaction(addrFrom,
+                                          data=None,
+                                          to=addrTo,
+                                          value=transferAmount)]
 
       # create the block filter now, so it sees our transactions
       filter = rpc.newBlockFilter()
@@ -885,21 +903,24 @@ class ExtendedRPCTests(test_suite.TestSuite):
       # submit a bunch of tranasactions to create a bunch of blocks
       for x in range(1,txCount):
          # data has to be set as None for transferring-fund kind of transaction
-         rpc.sendTransaction(addrFrom,
-                             data=None,
-                             to=addrTo,
-                             value=transferAmount)
+         transactions.append(rpc.sendTransaction(addrFrom,
+                                                 data=None,
+                                                 to=addrTo,
+                                                 value=transferAmount))
 
-      return filter
+      return (filter, transactions)
 
-   def _readFilterToEnd(self, rpc, filter):
+   def _readBlockFilterToEnd(self, rpc, filter):
       '''
       Read all of the blocks a filter currently matches. Returns the
-      number of blocks found before the poll for changes returns an
+      block hashes found before the poll for changes returns an
       empty list.
       '''
+      lastBlock = rpc.getBlockNumber()
+      lastBlockHash = rpc.getBlockByNumber(number=lastBlock)["hash"]
+
       doubleEmpty = False
-      blocksCaught = 0
+      blocksCaught = []
       # now read until the filter says there's nothing more
       while True:
          result = rpc.getFilterChanges(filter)
@@ -912,24 +933,66 @@ class ExtendedRPCTests(test_suite.TestSuite):
                break
             doubleEmpty = True
 
-         blocksCaught += len(result)
+         # list is reversed because we want to search in order of
+         # transactions later, and filter response has latest block
+         # first
+         blocksCaught.extend(reversed(result))
+
+         # Time Service may continue adding blocks, so we need to stop
+         # checking the filter if we've seen the block that was at the
+         # end before we started reading.
+         if lastBlockHash in result:
+            break
 
       return blocksCaught
 
-   def _test_block_filter(self, rpc, request):
+   def _allTransactionBlocksCaught(self, request, transactions, blocks):
+      '''
+      Check that the blocks named by the transaction receipts are in the
+      blocks list. This is used to verify that a list of blocks
+      returned by a filter includes transactions we expect.
+      '''
 
+      # transactions and blocks should be in the same order, so we can
+      # just iterate and skip blocks that aren't relatvant, instead of
+      # having to start the search over again every time
+      blocksCopy = blocks[:]
+      for t in transactions[1:]:
+         tx = request.getTransaction(t)
+
+         found = False
+         while blocksCopy:
+            if tx["block_hash"] == blocksCopy.pop(0):
+               found = True
+               break
+
+         if not found:
+            return False
+
+      # Because of timing updates, and the crazy way that most
+      # ethereum clients create a filter *after* sending the
+      # transaction that they want to catch in the filter, we may miss
+      # the first transaction. This can't be helped, but let's warn
+      # about it to find out how often it really happens.
+      tx0 = request.getTransaction(transactions[0])
+      if not tx0["block_hash"] in blocks:
+         log.warn("First transaction missing from filter")
+
+      return True
+
+   def _test_block_filter(self, rpc, request):
       '''
       Check that a block filter sees updates
       '''
       testCount = 25
 
-      filter = self._createBlockFilterAndSendTransactions(rpc, testCount)
-      blocksCaught = self._readFilterToEnd(rpc, filter)
-      if blocksCaught == testCount:
+      (filter, transactions) = self._createBlockFilterAndSendTransactions(rpc, testCount)
+      blocksCaught = self._readBlockFilterToEnd(rpc, filter)
+      if self._allTransactionBlocksCaught(request, transactions, blocksCaught):
          return (True, None)
       else:
          return (False, "Expected %d blocks, but read %d from filter" %
-                 (testCount, blocksCaught))
+                 (testCount, len(blocksCaught)))
 
    def _test_block_filter_independence(self, rpc, request):
       '''
@@ -938,22 +1001,22 @@ class ExtendedRPCTests(test_suite.TestSuite):
       testCount1 = 5
       testCount2 = 5
 
-      filter1 = self._createBlockFilterAndSendTransactions(rpc, testCount1)
-      filter2 = self._createBlockFilterAndSendTransactions(rpc, testCount2)
+      (filter1, transactions1) = self._createBlockFilterAndSendTransactions(rpc, testCount1)
+      (filter2, transactions2) = self._createBlockFilterAndSendTransactions(rpc, testCount2)
 
-      blocksCaught = self._readFilterToEnd(rpc, filter1)
-      if blocksCaught == testCount1 + testCount2:
-         return (True, None)
-      else:
+      blocksCaught1 = self._readBlockFilterToEnd(rpc, filter1)
+      if not (self._allTransactionBlocksCaught(request, transactions1, blocksCaught1) and
+              self._allTransactionBlocksCaught(request, transactions2, blocksCaught1)):
          return (False, "Expected %d blocks, but read %d from filter1" %
-                 (testCount1 + testCount2, blocksCaught))
+                 (testCount1 + testCount2, len(blocksCaught1)))
 
-      blocksCaught = self._readFilterToEnd(rpc, filter2)
-      if blocksCaught == testCount2:
+      blocksCaught2 = self._readBlockFilterToEnd(rpc, filter2)
+      if (self._allTransactionBlocksCaught(request, transactions2, blocksCaught2) and
+          not self._allTransactionBlocksCaught(request, transactions1, blocksCaught2)):
          return (True, None)
       else:
          return (False, "Expected %d blocks, but read %d from filter2" %
-                 (testCount2, blocksCaught))
+                 (testCount2, len(blocksCaught2)))
 
    def _test_block_filter_uninstall(self, rpc, request):
       '''
