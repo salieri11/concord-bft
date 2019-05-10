@@ -144,6 +144,11 @@ class Product():
          else:
             orig[newK] = newV
 
+   def _isHelenInDockerCompose(self, dockerCfg):
+      for service in dockerCfg['services']:
+          if "helen" in service:
+              return True
+      return False
 
    def _launchViaDocker(self):
       dockerCfg = {}
@@ -157,11 +162,13 @@ class Product():
          helper.copy_docker_env_file()
 
          if (self._cmdlineArgs.runConcordConfigurationGeneration):
-            self._generateConcordConfiguration(dockerCfg)
+            self._generateConcordConfiguration(
+               self._cmdlineArgs.concordConfigurationInput)
 
          if not self._cmdlineArgs.keepconcordDB:
             self.clearDBsForDockerLaunch(dockerCfg)
-            self.initializeHelenDockerDB(dockerCfg)
+            if self._isHelenInDockerCompose(dockerCfg):
+               self.initializeHelenDockerDB(dockerCfg)
 
          self._startContainers()
          self._startLogCollection()
@@ -173,7 +180,7 @@ class Product():
       else:
          raise Exception("The docker compose file list contains an invalid value.")
 
-   def _generateConcordConfiguration(self, dockerCfg):
+   def _generateConcordConfiguration(self, concordCfg):
        '''
        Runs Concord configuration generation for the test Concord cluster that
        will be launched with the product and moves the generated configuration
@@ -222,8 +229,7 @@ class Product():
        imageName = concordRepo + ":" + concordTag
        runCommand += [imageName]
        runCommand += ["/concord/conc_genconfig"]
-       runCommand += ["--configuration-input",
-                      "/concord/config/dockerConfigurationInput.yaml"]
+       runCommand += ["--configuration-input", concordCfg]
        runCommand += ["--output-name", "/concord/config/concord"]
 
        completedProcess = subprocess.run(runCommand, stdout=subprocess.PIPE,

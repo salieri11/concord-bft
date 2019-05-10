@@ -11,7 +11,7 @@ import os
 import tempfile
 from time import strftime, localtime
 
-from suites import (asset_transfer_tests, contract_compiler_tests, core_vm_tests,
+from suites import (asset_transfer_tests, contract_compiler_tests, core_vm_tests, daml_tests,
                     ext_rpc_tests, lint_e2e_tests, helen_api_tests, performance_tests, persephone_tests,
                     regression_tests, simple_st_test, truffle_tests, ui_tests)
 
@@ -97,15 +97,20 @@ def main():
    parser.add_argument("--contractCompilerApiBaseUrl",
                        default="http://localhost:3000/api/v1",
                        help="Base URL for the contract compiler microservice")
-   parser.add_argument("--runConcordConfigurationGeneration",
-                       help="Run Concord configuration generation for the test"
-                            " cluster before launching and launch with the"
-                            " newly generated configuration files. If this"
-                            " option is not given, then configuration"
-                            " generation will be skipped and the currently"
-                            " existing configuration files will be used.",
-                       default=False,
-                       action='store_true')
+
+   concordConfig = parser.add_argument_group("Concord configuration")
+   concordConfig.add_argument("--runConcordConfigurationGeneration",
+      help="Run Concord configuration generation for the test  cluster before "
+           "launching and launch with the newly generated configuration files. "
+           "If this option is not given, then configuration generation will be "
+           "skipped and the currently existing configuration files will be used.",
+      default=False,
+      action='store_true')
+   concordConfig.add_argument("--concordConfigurationInput",
+      help="The input file to the configuration generation utility. "
+           "Note: --runConcordConfigurationGeneration has to be set. "
+           "Note: The path specified is the absolute path within a Concord container",
+      default="/concord/config/dockerConfigurationInput.yaml")
 
    args = parser.parse_args()
    parent_results_dir = args.resultsDir
@@ -160,7 +165,8 @@ def setUpLogging(args):
 
    try:
       intLevel = getattr(logging, stringLevel)
-      logging.basicConfig(level=intLevel, format='%(message)s')
+      logging.basicConfig(level=intLevel, format='%(asctime)s %(levelname)s %(message)s',
+                          datefmt='%Y-%m-%d %H:%M:%S')
       global log
       log = logging.getLogger(__name__)
    except AttributeError:
@@ -193,6 +199,8 @@ def createTestSuite(args):
       return ui_tests.UiTests(args)
    elif (args.suite == "LintTests"):
       return lint_e2e_tests.LintTests(args)
+   elif (args.suite == "DamlTests"):
+      return daml_tests.DamlTests(args)
    else:
       return None
 
