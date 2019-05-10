@@ -253,12 +253,12 @@ public class Compiler {
         body.put("sourcecode", solidityCode);
         body.put("isOptimize", isOptimize);
         body.put("runs", runs);
-        ResponseEntity<String> response
-            = restTemplate.exchange("/compile",
-                                    HttpMethod.POST,
-                                    new HttpEntity<>(body, headers),
-                                    String.class);
         try {
+            ResponseEntity<String> response
+                    = restTemplate.exchange("/compile",
+                                            HttpMethod.POST,
+                                            new HttpEntity<>(body, headers),
+                                            String.class);
             if (response.getStatusCodeValue() == 200) {
                 result.setSuccess(true);
                 String responseBody = response.getBody();

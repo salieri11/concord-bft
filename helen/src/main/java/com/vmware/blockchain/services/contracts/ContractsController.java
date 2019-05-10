@@ -329,7 +329,6 @@ public class ContractsController extends ConcordServlet {
     }
 
     @Data
-    @JsonInclude(Include.NON_NULL)
     private static class PostRequestBody {
         String contractId;
         String version;

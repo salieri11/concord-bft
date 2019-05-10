@@ -132,7 +132,7 @@ public class GenericDao {
      * This will retry on concurrent update exception - and calls a Consumer to perform the merge.
      * Note that it is the complete responsibility of the Consumer/merger function to appropriately merge -
      * effectively this implements last-writer-wins - so merges are important.
-     * We pass in the entity to isOptimize the common case of no conflicts.
+     * We pass in the entity to optimize the common case of no conflicts.
      *
      * @param entity        entity
      * @param entityClass   entity class
