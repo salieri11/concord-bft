@@ -4,6 +4,7 @@
 
 #include <log4cplus/loggingmacros.h>
 #include <chrono>
+#include <mutex>
 #include <thread>
 
 #include "concord.pb.h"
@@ -29,31 +30,39 @@ TimePusher::TimePusher(const concord::config::ConcordConfiguration &nodeConfig,
 }
 
 void TimePusher::Start() {
-  if (nodeConfig_.hasValue<std::string>("time_source_id")) {
-    if (periodMilliseconds_) {
-      if (!pusherThread_.joinable()) {
-        pusherThread_ = std::thread(&TimePusher::ThreadFunction, this);
-      } else {
-        LOG4CPLUS_INFO(logger_, "Ignoring duplicate start request.");
-      }
-    } else {
-      LOG4CPLUS_INFO(logger_, "Not starting thread: period is "
-                                  << periodMilliseconds_
-                                  << " ms (less than 1).");
-    }
-  } else {
+  if (!nodeConfig_.hasValue<std::string>("time_source_id")) {
     LOG4CPLUS_INFO(logger_,
                    "Not starting thead: no time_source_id configured.");
+    return;
   }
+
+  if (periodMilliseconds_ <= 0) {
+    LOG4CPLUS_INFO(logger_, "Not starting thread: period is "
+                                << periodMilliseconds_ << " ms (less than 1).");
+    return;
+  }
+
+  std::lock_guard<std::mutex> lock(threadMutex_);
+  if (pusherThread_.joinable()) {
+    LOG4CPLUS_INFO(logger_, "Ignoring duplicate start request.");
+    return;
+  }
+
+  pusherThread_ = std::thread(&TimePusher::ThreadFunction, this);
 }
 
 void TimePusher::Stop() {
-  if (pusherThread_.joinable()) {
-    stop_ = true;
-    pusherThread_.join();
-  } else {
+  std::lock_guard<std::mutex> lock(threadMutex_);
+  if (!pusherThread_.joinable()) {
     LOG4CPLUS_INFO(logger_, "Ignoring stop request - nothing to stop");
+    return;
   }
+
+  stop_ = true;
+  pusherThread_.join();
+
+  // allows the thread to be restarted, if we like
+  stop_ = false;
 }
 
 void TimePusher::ThreadFunction() {
@@ -65,7 +74,7 @@ void TimePusher::ThreadFunction() {
   while (!stop_) {
     std::this_thread::sleep_for(std::chrono::milliseconds(periodMilliseconds_));
 
-    // Future implementation: check if we need to send an update first.
+    // TODO: check if we need to send an update first.
 
     try {
       AddTimeToCommand(nodeConfig_, req);

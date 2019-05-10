@@ -12,6 +12,7 @@
 #ifndef TIME_TIME_PUSHER_HPP
 
 #include <log4cplus/loggingmacros.h>
+#include <mutex>
 #include <thread>
 
 #include "config/configuration_manager.hpp"
@@ -35,6 +36,7 @@ class TimePusher {
   bool stop_;
   int periodMilliseconds_;
   std::thread pusherThread_;
+  std::mutex threadMutex_;
 
   void ThreadFunction();
 };
