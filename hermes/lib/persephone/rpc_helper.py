@@ -4,6 +4,7 @@
 # This class is a helper file to test persephone gRPC
 #########################################################################
 
+import yaml
 import json
 import grpc
 from grpc_python_bindings import model_service_pb2
@@ -24,13 +25,61 @@ log = logging.getLogger(__name__)
 
 
 class RPCHelper():
-   def __init__(self, persephone_service):
+   def __init__(self, cmdlineArgs):
+      self.cmdlineArgs = cmdlineArgs
       self.channel_connect_timeout = 5  # seconds
       self.channel_connect_status = False
-      self.persephone_service = persephone_service
-      for name, port in persephone_service.items():
-         self.service_name = name
-         self.service_port = port
+
+   def get_docker_compose_value(self, service_name, key):
+      '''
+      Helper method to get docker compose value for a given key & service name
+      from docker-compose-persephone.yml
+      :param service_name: microservice name
+      :return: value for the key passed for the service name
+      '''
+      for docker_compose_file in self.cmdlineArgs.dockerComposeFile:
+         with open(docker_compose_file, "r") as yaml_file:
+            compose_data = yaml.load(yaml_file)
+
+         services = list(compose_data["services"])
+         if '/' in service_name:
+            tmp_service_name = service_name.split('/')[1]
+         else:
+            tmp_service_name = service_name
+
+         if tmp_service_name in services:
+            value = compose_data['services'][tmp_service_name][key]
+         else:
+            raise Exception(
+               "Service Name '{}' not found in {}".format(service_name,
+                                                          docker_compose_file))
+      return value
+
+   def get_persephone_service_port(self, service_name):
+      '''
+      Helper method to get the port number for the passed persephone service
+      :param service_name: microservice name
+      :return: port number
+      '''
+      ports = self.get_docker_compose_value(service_name, "ports")
+      try:
+         port = ports[0].split(':')[0]
+      except Exception as e:
+         raise
+      return port
+
+   def get_provisioning_config_file(self, service_name):
+      '''
+      Helper method to get the provisioning config file
+      :param service_name: service name (provisioning)
+      :return: configl file
+      '''
+      config_file = self.get_docker_compose_value(service_name, "volumes")
+      try:
+         config_file = config_file[0].split(':')[0]
+      except Exception as e:
+         raise
+      return config_file
 
    def create_channel(self, service_name):
       '''

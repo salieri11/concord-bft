@@ -5,19 +5,26 @@
 #########################################################################
 
 import sys
+import json
 sys.path.append('lib/persephone')
 from grpc_python_bindings import provision_service_pb2
+from grpc_python_bindings import orchestration_pb2
 from rpc_helper import RPCHelper
 from model_service_helper import ModelServiceRPCHelper
 from grpc_python_bindings import core_pb2
+sys.path.append('../../')
+from util.product import Product as Product
 import logging
 
 log = logging.getLogger(__name__)
 
 
 class ProvisioningServiceRPCHelper(RPCHelper):
-   def __init__(self, persephone_service):
-      super().__init__(persephone_service)
+   def __init__(self, cmdlineArgs):
+      super().__init__(cmdlineArgs)
+      self.service_name = Product.PERSEPHONE_SERVICE_PROVISIONING
+      self.service_port = self.get_persephone_service_port(self.service_name)
+
       self.grpc_server = "localhost:{}".format(self.service_port)
       self.channel = self.create_channel(self.service_name)
       self.stub = self.create_stub(self.channel)
@@ -25,17 +32,39 @@ class ProvisioningServiceRPCHelper(RPCHelper):
    def __del__(self):
       self.close_channel(self.service_name)
 
-   def create_placement_specification(self, cluster_size):
+   def create_placement_specification(self, cluster_size, placement_type="FIXED"):
       '''
       Helper method to create place specification used for create cluster
       :param cluster_size: Number of placement sites
+      :param placement_type: Placement type FIXED/UNSPECIFIED
       :return: placement specification
       '''
+      log.info("Concord node placement type: {}".format(placement_type))
+
       entries = []
-      for placement_count in range(0, cluster_size):
-         placement_entry = provision_service_pb2.PlacementSpecification.Entry(
-            type=provision_service_pb2.PlacementSpecification.UNSPECIFIED)
-         entries.append(placement_entry)
+      if placement_type == "UNSPECIFIED":
+         for placement_count in range(0, cluster_size):
+            placement_entry = provision_service_pb2.PlacementSpecification.Entry(
+               type=provision_service_pb2.PlacementSpecification.UNSPECIFIED)
+            entries.append(placement_entry)
+      else:
+         persephone_config_file = self.get_provisioning_config_file(self.service_name)
+         with open(persephone_config_file, "r") as confile_fp:
+            data = json.load(confile_fp)
+         deployment_sites = []
+         for index, site in enumerate(data):
+            if (index % 2) == 0:
+               deployment_sites.append(site)
+
+         for placement_count in range(0, cluster_size):
+            site_number = placement_count % len(deployment_sites)
+            deployment_site = deployment_sites[site_number]
+            log.debug("Placing concord[{}] on {}".format(placement_count, deployment_site))
+            placement_entry = provision_service_pb2.PlacementSpecification.Entry(
+               type=provision_service_pb2.PlacementSpecification.FIXED,
+               site=orchestration_pb2.OrchestrationSiteIdentifier(low=deployment_site["low"],high=deployment_site["high"]))
+            entries.append(placement_entry)
+
       placement_specification = provision_service_pb2.PlacementSpecification(
          entries=entries
       )
