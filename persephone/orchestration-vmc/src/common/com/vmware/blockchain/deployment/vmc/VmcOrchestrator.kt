@@ -195,10 +195,16 @@ class VmcOrchestrator private constructor(
                     val getDatastore = async { getDatastore() }
                     val getResourcePool = async { getResourcePool(name = info.resourcePool) }
                     val ensureControlNetwork = async {
-                        ensureLogicalNetwork("cgw", "vmware-vpn", 0x0A010000, 16, 16)
+                        ensureLogicalNetwork(
+                                "cgw",
+                                info.controlNetwork,
+                                info.controlNetworkPrefix,
+                                info.controlNetworkSubnet,
+                                info.controlNetworkSubnet
+                        )
                     }
                     val ensureReplicaNetwork = async {
-                        ensureLogicalNetwork("cgw", "vmware-vpn", 0x0AFF0000, 16)
+                        ensureLogicalNetwork("cgw", info.controlNetwork, 0x0AFF0000, 16)
                     }
                     val getLibraryItem = async { getLibraryItem(request.model.template) }
 
@@ -223,7 +229,8 @@ class VmcOrchestrator private constructor(
                                     request.genesis,
                                     request.configuration,
                                     request.privateNetworkAddress,
-                                    toIPv4Address(staticIpGateway)
+                                    toIPv4Address(staticIpGateway),
+                                    info.controlNetworkSubnet
                             )
                     )
 

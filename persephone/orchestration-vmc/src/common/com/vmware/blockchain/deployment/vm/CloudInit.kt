@@ -21,7 +21,8 @@ class InitScript(
     genesis: Genesis,
     concordConfiguration: String,
     ipAddress: String,
-    gateway: String
+    gateway: String,
+    subnet: Int
 ) {
 
     object GenesisSerializer
@@ -35,7 +36,7 @@ class InitScript(
 
     private val networkAddressCommand: String = ipAddress
             .takeIf { it.isNotBlank() }
-            ?.let { "netmgr ip4_address --set --interface eth0 --mode static --addr $ipAddress/24 --gateway $gateway" }
+            ?.let { "netmgr ip4_address --set --interface eth0 --mode static --addr $ipAddress/$subnet --gateway $gateway" }
             ?:"" // No-action defaults to DHCP.
 
     private val script =
@@ -69,6 +70,8 @@ class InitScript(
                     .replace("{{concordConfiguration}}", concordConfiguration)
                     .replace("{{genesis}}", GenesisSerializer.toJson(genesis))
                     .replace("{{networkAddressCommand}}", networkAddressCommand)
+                    .replace("{{staticIp}}", ipAddress)
+                    .replace("{{gateway}}", gateway)
 
     /**
      * Convert an endpoint to a Docker Registry login command.
