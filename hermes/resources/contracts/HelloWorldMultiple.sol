@@ -6,6 +6,12 @@ contract DummyContract {
    }
 }
 
+contract HowdyWorld {
+   function howdy() public pure returns (string memory) {
+       return "Howdy, World!";
+   }
+}
+
 contract HelloWorld {
    function hello() public pure returns (string memory) {
        return "Hello, World!";

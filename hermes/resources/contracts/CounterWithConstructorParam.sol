@@ -3,8 +3,8 @@ pragma solidity ^0.5;
 contract Counter {
     int256 private count;
 
-    constructor() public payable {
-        count = 0;
+    constructor(int256 x) public payable {
+        count = x;
     }
 
     function incrementCounter(int256 x) public payable {

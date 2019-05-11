@@ -280,14 +280,37 @@ class Request():
 
       return self._send()
 
-   def uploadContract(self, data):
+   def uploadContract(self, blockchainId, data):
       '''
       Does an upload new contract POST request
       '''
-      self._subPath = '/api/concord/contracts'
+      self._subPath = "/api/blockchains/" + blockchainId + "/concord/contracts"
       self._params = ""
-      self._endpointName = "contractsManagement"
+      self._endpointName = "postContract"
       self._data = data
+
+      return self._send()
+
+   def getContracts(self, blockchainId):
+      '''
+      Returns a list of all contracts.  Does a GET request.
+      '''
+      self._subPath = "/api/blockchains/" + blockchainId + "/concord/contracts"
+      self._params = ""
+      self._endpointName = "getContract"
+      self._data = None
+
+      return self._send()
+
+   def getContractVersion(self, blockchainId, contractId, contractVersion):
+      '''
+      Returns a contract.
+      '''
+      self._subPath = "/api/blockchains/" + blockchainId + "/concord/contracts/" \
+                      + contractId + "/versions/" + contractVersion
+      self._params = ""
+      self._endpointName = "getContractVersion"
+      self._data = None
 
       return self._send()
 

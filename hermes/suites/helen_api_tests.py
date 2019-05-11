@@ -110,15 +110,8 @@ class HelenAPITests(test_suite.TestSuite):
 
    def _getTests(self):
       return [("getCerts", self._test_getCerts), \
-              ("contract_upload", self._test_contractUpload), \
-              ("multiple_contract_upload", self._test_multiContractUpload), \
-              ("contract_tx", self._test_contractTx), \
-              ("contract_call", self._test_contractCall), \
-              ("get_contracts", self._test_getAllContracts), \
-              ("version_upload", self._test_versionUpload), \
               ("get_versions", self._test_getAllVersions), \
               ("get_version", self._test_getVersion), \
-              ("duplicate_contract", self._test_duplicateContractUpload), \
               ("block_hash", self._test_blockHash), \
               ("invalid_block_hash", self._test_invalidBlockHash), \
               ("get_transaction_list", self._test_getTransactionList), \
@@ -175,63 +168,95 @@ class HelenAPITests(test_suite.TestSuite):
       else:
          return (False, "no non-empty rpc_cert found in response")
 
+   def random_string_generator(self, size=6, chars=string.ascii_uppercase + string.digits, mustNotMatch=None):
+      while True:
+         ret = ''.join(random.choice(chars) for _ in range(size))
 
-   def contract_upload_util_generic(self,request,contractId,
-    contractVersion,sourceCode, fromAddr, contractName, ctorParams, compilerVersion):
+         if ret != mustNotMatch:
+            return ret
 
+   def upload_contract(self, blockchainId, request, sourceFile, contractName,
+                       contractId=None,
+                       contractVersion=None,
+                       fromAddr=None,
+                       compilerVersion=None,
+                       ctorParams=None,
+                       optimize=None,
+                       runs=None,
+                       generateDefaults=True):
+      '''
+      Uploads a contract.
+      request: A Hermes REST request object.
+      sourceFile: Path to the source code.  e.g. "resources/contracts/Counter.sol"
+      contractName: The name of the contract, located in sourceFile.
+      contractId/Version: Id and version the contract will have in Helen.
+      fromAddr: The contract owner.
+      compilerVersion: Not sure where available strings come from.
+      ctorParams: Contract constructor parameters
+      isOptimize: Whether the compiler service should optimize
+      runs: Helen passes this to the compiler service when optimizing. I don't know
+         what it does or what valid values are.  Helen defaults to 200 if it is
+         missing.
+      generateDefaults: Whether to generate default values.  Set to False if, for
+         example, you want to test sending a request with fields missing.
+      '''
       data = {}
-      data["from"] = fromAddr
-      data["contract_id"] = contractId
-      data["version"] = contractVersion
-      data["sourcecode"] = sourceCode
-      data["contract_name"] = contractName
-      data["constructor_params"] = ctorParams
-      data["compiler_version"] = compilerVersion
-      data["is_optimize"] = False
-      data["runs"] = "200"
-      return request.uploadContract(data)
 
-   def contract_upload_util(self, request, contractId, contractVersion, sourceCode):
+      if generateDefaults:
+         contractId = contractId or self.random_string_generator()
+         contractVersion = contractVersion or self.random_string_generator()
+         fromAddr = fromAddr or "0x1111111111111111111111111111111111111111"
+         compilerVersion = compilerVersion or "v0.5.2+commit.1df8f40c"
+         ctorParams = ctorParams or ""
+         optimize = optimize or False
+         runs = runs or "200"
+
+      if fromAddr != None:
+         data["from"] = fromAddr
+      if contractId != None:
+         data["contract_id"] = contractId
+      if contractVersion != None:
+         data["version"] = contractVersion
+      if contractName != None:
+         data["contract_name"] = contractName
+      if  ctorParams != None:
+         data["constructor_params"] = ctorParams
+      if compilerVersion != None:
+         data["compiler_version"] = compilerVersion
+      if optimize != None:
+         data["is_optimize"] = optimize
+      if runs != None:
+         data["runs"] = runs
+
+      if sourceFile:
+         with open(sourceFile, 'r') as f:
+            data["sourcecode"] = f.read()
+
+      result = request.uploadContract(blockchainId, data)
+      return result
+
+
+   def upload_hello_contract(self, blockchainId, request):
       '''
-      A helper method to upload simple hello world contract.
+      Uploads the HelloWorld contract with general settings. This is
+      handy when you need blocks with contracts but don't really care
+      about the fine details.
+      Returns the contract ID and version.  Throws an exception if
+      it fails.
       '''
-      return self.contract_upload_util_generic(request, contractId, contractVersion, sourceCode,"0x1111111111111111111111111111111111111111", "HelloWorld", "", "v0.5.2+commit.1df8f40c")
-
-   def random_string_generator(self, size=6, chars=string.ascii_uppercase + string.digits):
-      return ''.join(random.choice(chars) for _ in range(size))
-
-   def upload_mock_contract(self, request, contractId=None,
-                            contractVersion=None):
-      if contractId is None:
-         contractId = self.random_string_generator()
-      if contractVersion is None:
-         contractVersion = self.random_string_generator()
-
-      contractFile = open("resources/contracts/HelloWorld.sol", 'r')
-      result = self.contract_upload_util(request, contractId, contractVersion,
-                                         contractFile.read())
+      contractId = self.random_string_generator()
+      contractVersion = self.random_string_generator()
+      result = self.upload_contract(blockchainId, request,
+                                    "resources/contracts/HelloWorld.sol",
+                                    "HelloWorld",
+                                    contractId = contractId,
+                                    contractVersion = contractVersion,
+                                    generateDefaults=True)
       if "url" in result:
          return (contractId, contractVersion)
       else:
          raise Exception("Contract upload failed with error '{}'".format(result["error"]))
 
-   def upload_mock_multiple_contract(self, request, contractId=None,
-                            contractVersion=None):
-      if contractId is None:
-         contractId = self.random_string_generator()
-      if contractVersion is None:
-         contractVersion = self.random_string_generator()
-
-      # This file contains two contract definitions, 'HelloWorld' and 'DummyContract'.
-      # The contract_upload_util function sets the required contractName parameter to 'HelloWorld', thereby
-      # specifying 'HelloWorld' as the contract to compile.
-      contractFile = open("resources/contracts/HelloWorldMultiple.sol", 'r')
-      result = self.contract_upload_util(request, contractId, contractVersion,
-                                         contractFile.read())
-      if "url" in result:
-         return (contractId, contractVersion)
-      else:
-         raise Exception("Contract upload failed with error '{}'".format(result["error"]))
 
    def has_contract(self, request, contractId, contractVersion):
       result = request.callContractAPI('/api/concord/contracts/' + contractId
@@ -244,163 +269,45 @@ class HelenAPITests(test_suite.TestSuite):
          print(e)
          return False
 
-   def has_contract_with_bytecode(self, request, contractId, contractVersion, contractBytecode):
-      result = request.callContractAPI('/api/concord/contracts/' + contractId
-                                       + '/versions/' + contractVersion, "")
-      # Remove swarm hash from deployed contract bytecode
-      parsedBytecode = result["bytecode"].split("a165627a7a72305820")[0]
-      try:
-         if (result["contract_id"] == contractId and
-             result["version"] == contractVersion and
-             parsedBytecode == contractBytecode):
-            return True
-         else:
-            return False
-      except Exception as e:
-         print(e)
-         return False
+   # RV, May 8, 2019: Commenting out.  This is not testing the Helen API.
+   # It should go somewhere, but not here.
+   # def _test_contractTx(self, request):
+   #    '''Sends a transaction to a contract that has been uploaded.
 
-   def _test_contractUpload(self, request):
-      contractId, contractVersion = self.upload_mock_contract(request)
-      result = request.callContractAPI('/api/concord/contracts/' + contractId
-                                       + '/versions/' + contractVersion, "")
-      if self.has_contract(request, contractId, contractVersion):
-         return (True, None)
-      else:
-         return (False, "Unable to retrieve uploaded contract")
-
-   def _test_multiContractUpload(self, request):
-      contractBytecode_0_4_19 = ('608060405234801561001057600080fd5b5061013f806100'
-      '206000396000f300608060405260043610610041576000357c0100000000000000000000000'
-      '000000000000000000000000000000000900463ffffffff16806319ff1d2114610046575b60'
-      '0080fd5b34801561005257600080fd5b5061005b6100d6565b6040518080602001828103825'
-      '283818151815260200191508051906020019080838360005b8381101561009b578082015181'
-      '840152602081019050610080565b50505050905090810190601f1680156100c857808203805'
-      '16001836020036101000a031916815260200191505b509250505060405180910390f35b6060'
-      '6040805190810160405280600d81526020017f48656c6c6f2c20576f726c642100000000000'
-      '0000000000000000000000000008152509050905600')
-
-      contractBytecode_0_5 = ('608060405234801561001057600080fd5b50610139806100206'
-      '000396000f3fe60806040526004361061003b576000357c0100000000000000000000000000'
-      '0000000000000000000000000000009004806319ff1d2114610040575b600080fd5b3480156'
-      '1004c57600080fd5b506100556100d0565b6040518080602001828103825283818151815260'
-      '200191508051906020019080838360005b83811015610095578082015181840152602081019'
-      '05061007a565b50505050905090810190601f1680156100c257808203805160018360200361'
-      '01000a031916815260200191505b509250505060405180910390f35b6060604080519081016'
-      '0405280600d81526020017f48656c6c6f2c20576f726c642100000000000000000000000000'
-      '00000000000081525090509056fe')
-
-      contractBytecode_0_5_2 = ('608060405234801561001057600080fd5b506101398061002'
-      '06000396000f3fe608060405234801561001057600080fd5b5060043610610048576000357c'
-      '01000000000000000000000000000000000000000000000000000000009004806319ff1d211'
-      '461004d575b600080fd5b6100556100d0565b60405180806020018281038252838181518152'
-      '60200191508051906020019080838360005b838110156100955780820151818401526020810'
-      '1905061007a565b50505050905090810190601f1680156100c2578082038051600183602003'
-      '6101000a031916815260200191505b509250505060405180910390f35b60606040805190810'
-      '160405280600d81526020017f48656c6c6f2c20576f726c6421000000000000000000000000'
-      '0000000000000081525090509056fe')
-
-      contractId, contractVersion = self.upload_mock_multiple_contract(request)
-
-      result = request.callContractAPI('/api/concord/contracts/' + contractId
-                                       + '/versions/' + contractVersion, "")
-      if self.has_contract_with_bytecode(request, contractId, contractVersion, contractBytecode_0_4_19) \
-         or self.has_contract_with_bytecode(request, contractId, contractVersion, contractBytecode_0_5) \
-         or self.has_contract_with_bytecode(request, contractId, contractVersion, contractBytecode_0_5_2):
-         return (True, None)
-      else:
-         return (False, "Unable to retrieve uploaded contract")
-
-   def _test_contractTx(self, request):
-      '''Sends a transaction to a contract that has been uploaded.
-
-      This may look a little weird, because the function in the test
-      contract is pure, can could therefor be called instead of sent
-      to. This was created as a regression check
-      (vmwathena/athena#122). The important thing the transaction does
-      is cause evmjit to allocate some data that needs to be
-      released. The pointer to this release function was being stored
-      in a way that confused transaction hashing, and thus confused
-      SBFT (responses from nodes didn't match).
-      '''
-      contractId, contractVersion = self.upload_mock_contract(request)
-      result = request.callContractAPI('/api/concord/contracts/' + contractId
-                                       + '/versions/' + contractVersion, "")
-      rpc = RPC(request.logDir,
-                self.getName(),
-                self.ethrpcApiUrl,
-                self._userConfig)
-      txres = rpc.sendTransaction("0x1111111111111111111111111111111111111111",
-                                  "0x19ff1d21", # HelloWorld.sol's hello function
-                                  to=result["address"])
-      # do we have a better check for "got a transaction receipt"?
-      if len(txres) == 66:
-         return (True, None)
-      else:
-         return (False, "Transaction send to uploaded contract failed")
-
-   def _test_contractCall(self, request):
-      '''Calls a contract that has been uploaded.
-
-      This test makes a *call* instead of sending a transaction.
-      '''
-      contractId, contractVersion = self.upload_mock_contract(request)
-      result = request.callContractAPI('/api/concord/contracts/' + contractId
-                                       + '/versions/' + contractVersion, "")
-      rpc = RPC(request.logDir,
-                self.getName(),
-                self.ethrpcApiUrl,
-                self._userConfig)
-      txres = rpc.callContract(result["address"],
-                               "0x19ff1d21") # HelloWorld.sol's hello function
-
-      # "Hello, World!" hex-encoded ASCII
-      expected = "48656c6c6f2c20576f726c6421"
-
-      # The actual result contains some prefix details, but just
-      # assert that the expected content is in there somewhere.
-      if txres.find(expected) >= 0:
-         return (True, None)
-      else:
-         return (False, "Contract call failed")
-
-   def _test_getAllContracts(self, request):
-      result = request.callContractAPI('/api/concord/contracts', "")
-      existingCount = len(result)
-      contractId, contractVersion = self.upload_mock_contract(request)
-      result = request.callContractAPI('/api/concord/contracts', "")
-      newCount = len(result)
-      result = result[0]
-      if (self.has_contract(request, contractId, contractVersion) and
-          existingCount + 1 == newCount):
-         return (True, None)
-      else:
-         return (False,
-                 "GET /api/concord/contracts did not return correct response." \
-                 "Expected count to be {} but found {}".format(existingCount + 1,
-                                                               newCount))
-
-   def _test_duplicateContractUpload(self, request):
-      contractId, contractVersion = self.upload_mock_contract(request)
-      try:
-         self.upload_mock_contract(request, contractId, contractVersion);
-      except Exception as e:
-         print(e)
-         return (True, None)
-      return (False, "Duplicate upload should not be allowed.")
-
-   def _test_versionUpload(self, request):
-      contractId, contractVersion = self.upload_mock_contract(request)
-      _, newContractVersion = self.upload_mock_contract(request, contractId)
-      if (self.has_contract(request, contractId, newContractVersion) and
-          newContractVersion != contractVersion):
-         return (True, None)
-      else:
-         return (False, "Contract upload failed.");
+   #    This may look a little weird, because the function in the test
+   #    contract is pure, can could therefor be called instead of sent
+   #    to. This was created as a regression check
+   #    (vmwathena/athena#122). The important thing the transaction does
+   #    is cause evmjit to allocate some data that needs to be
+   #    released. The pointer to this release function was being stored
+   #    in a way that confused transaction hashing, and thus confused
+   #    SBFT (responses from nodes didn't match).
+   #    '''
+   #    contractId, contractVersion = self.upload_mock_contract(request)
+   #    result = request.callContractAPI('/api/concord/contracts/' + contractId
+   #                                     + '/versions/' + contractVersion, "")
+   #    rpc = RPC(request.logDir,
+   #              self.getName(),
+   #              self.ethrpcApiUrl,
+   #              self._userConfig)
+   #    txres = rpc.sendTransaction("0x1111111111111111111111111111111111111111",
+   #                                "0x19ff1d21", # HelloWorld.sol's hello function
+   #                                to=result["address"])
+   #    # do we have a better check for "got a transaction receipt"?
+   #    if len(txres) == 66:
+   #       return (True, None)
+   #    else:
+   #       return (False, "Transaction send to uploaded contract failed")
 
    def _test_getAllVersions(self, request):
-      contractId, contractVersion = self.upload_mock_contract(request)
-      _, newContractVersion = self.upload_mock_contract(request, contractId)
+      blockchainId = request.getABlockchainId()
+      contractId, contractVersion = self.upload_hello_contract(blockchainId, request)
+      result = self.upload_contract(blockchainId, request,
+                                    "resources/contracts/HelloWorld.sol",
+                                    "HelloWorld",
+                                    contractId = contractId,
+                                    generateDefaults=True)
+
       uri = '/api/concord/contracts/' + contractId
       expectedVersionCount = 2
       result = request.callContractAPI(uri, "")
@@ -413,7 +320,8 @@ class HelenAPITests(test_suite.TestSuite):
                  " expected {} versions".format(contractId, expectedVersionCount))
 
    def _test_getVersion(self, request):
-      contractId, contractVersion = self.upload_mock_contract(request)
+      blockchainId = request.getABlockchainId()
+      contractId, contractVersion = self.upload_hello_contract(blockchainId, request)
       uri = '/api/concord/contracts/' + contractId \
             + '/versions/' + contractVersion
       result = request.callContractAPI(uri, "")
