@@ -30,6 +30,9 @@ class RPCTestHelper():
             self.cmdlineArgs)
          # self.fleet_rpc_helper = FleetServiceRPCHelper(
          #    self.cmdlineArgs)
+
+         self.PLACEMENT_TYPE_FIXED = self.provision_rpc_helper.PLACEMENT_TYPE_FIXED
+         self.PLACEMENT_TYPE_UNSPECIFIED = self.provision_rpc_helper.PLACEMENT_TYPE_UNSPECIFIED
       except Exception as e:
          raise Exception(e)
 

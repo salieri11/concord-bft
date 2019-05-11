@@ -88,7 +88,7 @@ class PersephoneTests(test_suite.TestSuite):
          ("list_models", self._test_list_models),
          ("4 Node Blockchain-UNSPECIFIED Site", self._test_create_blockchain_4_node_unspecified_site),
          ("get_deployment_events", self._test_stream_deployment_events),
-         ("7 Node Blockchain -FIXED Site", self._test_create_blockchain_7_node_fixed_site)
+         ("7 Node Blockchain-FIXED Site", self._test_create_blockchain_7_node_fixed_site)
       ]
 
    def get_json_object(self, message_obj):
@@ -175,7 +175,8 @@ class PersephoneTests(test_suite.TestSuite):
       :param cluster_size: No. of concord members in the cluster
       '''
       response = self.rpc_test_helper.rpc_create_cluster(
-         cluster_size=cluster_size, placement_type="UNSPECIFIED")
+         cluster_size=cluster_size,
+         placement_type=self.rpc_test_helper.PLACEMENT_TYPE_UNSPECIFIED)
       if response:
          response_session_id_json = self.get_json_object(response[0])
          if "low" in response_session_id_json:

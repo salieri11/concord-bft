@@ -20,6 +20,9 @@ log = logging.getLogger(__name__)
 
 
 class ProvisioningServiceRPCHelper(RPCHelper):
+   PLACEMENT_TYPE_FIXED = "FIXED"
+   PLACEMENT_TYPE_UNSPECIFIED = "UNSPECIFIED"
+
    def __init__(self, cmdlineArgs):
       super().__init__(cmdlineArgs)
       self.service_name = Product.PERSEPHONE_SERVICE_PROVISIONING
@@ -32,7 +35,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
    def __del__(self):
       self.close_channel(self.service_name)
 
-   def create_placement_specification(self, cluster_size, placement_type="FIXED"):
+   def create_placement_specification(self, cluster_size, placement_type=PLACEMENT_TYPE_FIXED):
       '''
       Helper method to create place specification used for create cluster
       :param cluster_size: Number of placement sites
@@ -42,7 +45,7 @@ class ProvisioningServiceRPCHelper(RPCHelper):
       log.info("Concord node placement type: {}".format(placement_type))
 
       entries = []
-      if placement_type == "UNSPECIFIED":
+      if placement_type == self.PLACEMENT_TYPE_UNSPECIFIED:
          for placement_count in range(0, cluster_size):
             placement_entry = provision_service_pb2.PlacementSpecification.Entry(
                type=provision_service_pb2.PlacementSpecification.UNSPECIFIED)
