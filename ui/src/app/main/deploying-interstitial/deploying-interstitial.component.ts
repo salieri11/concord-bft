@@ -34,8 +34,8 @@ export class DeployingInterstialComponent {
     this.loading = true;
     this.showInterstitial = true;
 
-    if (response.ok) {
-      this.pollUntilDeployFinished(response['taskId']);
+    if (response && response['task_id']) {
+      this.pollUntilDeployFinished(response['task_id']);
     } else {
       this.title = 'Error';
       this.error = response['message'];
