@@ -66,6 +66,45 @@ enum ConnType : uint8_t {
   Outgoing
 };
 
+class IoServices {
+ public:
+  IoServices(std::size_t number)
+      : m_ioServices(number)
+  {
+
+  }
+
+  void start() {
+    for (auto &ioService : m_ioServices) {
+      m_idleWorks.emplace_back(ioService);
+      m_threads.emplace_back([&] { ioService.run(); });
+    }
+  }
+
+  void stop()
+  {
+    for (auto &ioService : m_ioServices)
+      ioService.stop();
+
+    for (auto &thread : m_threads)
+      if (thread.joinable())
+        thread.join();
+  }
+
+  ~IoServices() { stop(); }
+
+  asio::io_service &get()
+  {
+    return m_ioServices[(m_nextService++ % m_ioServices.size())];
+  }
+
+ private:
+  std::atomic<std::size_t> m_nextService{0};
+  std::vector<asio::io_service> m_ioServices;
+  std::vector<asio::io_service::work> m_idleWorks;
+  std::vector<std::thread> m_threads;
+};
+
 /**
  * this class will handle single connection using boost::make_shared idiom
  * will receive the IReceiver as a parameter and call it when new message
@@ -1061,13 +1100,15 @@ class TlsTCPCommunication::TlsTcpImpl :
 
   unique_ptr<asio::ip::tcp::acceptor> _pAcceptor = nullptr;
   std::thread *_pIoThread = nullptr;
+  bool _running = false;
 
   NodeNum _selfId;
   IReceiver *_pReceiver = nullptr;
 
   // NodeNum mapped to tuple<ip, port> //
   NodeMap _nodes;
-  asio::io_service _service;
+  //asio::io_service _service;
+  IoServices _services;
   uint16_t _listenPort;
   string _listenIp;
   uint32_t _bufferLength;
@@ -1155,7 +1196,7 @@ class TlsTCPCommunication::TlsTcpImpl :
     LOG_DEBUG(_logger, "start_accept, node: " << _selfId);
     auto conn =
         AsyncTlsConnection::create(
-            &_service,
+            &_services.get(),
             std::bind(
                 &TlsTcpImpl::on_async_connection_error,
                 shared_from_this(),
@@ -1196,6 +1237,7 @@ class TlsTCPCommunication::TlsTcpImpl :
              string cipherSuite,
              UPDATE_CONNECTIVITY_FN statusCallback = nullptr) :
       _selfId(selfNodeNum),
+      _services(4),
       _listenPort(listenPort),
       _listenIp(listenIp),
       _bufferLength(bufferLength),
@@ -1205,6 +1247,7 @@ class TlsTCPCommunication::TlsTcpImpl :
       _statusCallback{statusCallback},
       _cipherSuite{cipherSuite} {
     //_service = new io_service();
+
     for (auto it = nodes.begin(); it != nodes.end(); it++) {
       _nodes.insert({it->first, it->second});
     }
@@ -1214,7 +1257,7 @@ class TlsTCPCommunication::TlsTcpImpl :
       NodeNum nodeId, string peerIp, uint16_t peerPort) {
     auto conn =
         AsyncTlsConnection::create(
-            &_service,
+            &_services.get(),
             std::bind(&TlsTcpImpl::on_async_connection_error,
                       shared_from_this(),
                       std::placeholders::_1),
@@ -1267,10 +1310,12 @@ class TlsTCPCommunication::TlsTcpImpl :
    */
   int Start() {
     lock_guard<mutex> l(_startStopGuard);
-
+    if(_running) return 0;
+    /*
     if (_pIoThread) {
       return 0; // running
     }
+     */
 
     // all replicas are in listen mode
     if (_selfId <= _maxServerId) {
@@ -1279,7 +1324,7 @@ class TlsTCPCommunication::TlsTcpImpl :
       // config file.
       asio::ip::tcp::endpoint ep(
           asio::ip::address::from_string(_listenIp), _listenPort);
-      _pAcceptor = boost::make_unique<asio::ip::tcp::acceptor>(_service, ep);
+      _pAcceptor = boost::make_unique<asio::ip::tcp::acceptor>(_services.get(), ep);
       start_accept();
     } else // clients don't listen
     LOG_INFO(_logger, "skipping listen for node: " << _selfId);
@@ -1295,11 +1340,16 @@ class TlsTCPCommunication::TlsTcpImpl :
       }
     }
 
+    _services.start();
+    _running = true;
+
+    /*
     _pIoThread =
         new std::thread(std::bind
                             (static_cast<size_t(boost::asio::io_service::*)()>
                              (&boost::asio::io_service::run),
                              std::ref(_service)));
+    */
 
     return 0;
   }
@@ -1311,12 +1361,17 @@ class TlsTCPCommunication::TlsTcpImpl :
   int Stop() {
     lock_guard<mutex> l(_startStopGuard);
 
+    /*
     if (!_pIoThread) {
       return 0; // stopped
     }
+     */
+    if(!_running) return 0;
 
-    _service.stop();
-    _pIoThread->join();
+    //_service.stop();
+    _services.stop();
+    //_pIoThread->join();
+    _running = false;
 
     _connections.clear();
 
@@ -1326,11 +1381,14 @@ class TlsTCPCommunication::TlsTcpImpl :
   bool isRunning() const {
     lock_guard<mutex> l(_startStopGuard);
 
+    /*
     if (!_pIoThread) {
       return false; // stopped
     }
+     */
+    return _running;
 
-    return true;
+    //return true;
   }
 
   ConnectionStatus
@@ -1369,7 +1427,7 @@ class TlsTCPCommunication::TlsTcpImpl :
 
   ~TlsTcpImpl() {
     LOG_DEBUG(_logger, "TlsTCPDtor");
-    _pIoThread = nullptr;
+   //_pIoThread = nullptr;
   }
 };
 
