@@ -21,7 +21,8 @@ import { developerRoutes } from '../../developer/developer-routing';
 
 const routes: Routes = [
   {
-    path: '',
+    path: ':consortiumId',
+
     component: MainComponent,
     canActivate: [AgreementGuard],
     canActivateChild: [AuthenticatedGuard],

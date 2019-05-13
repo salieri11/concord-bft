@@ -56,6 +56,7 @@ describe('SmartContractComponent', () => {
         {
           provide: ActivatedRoute,
           useValue: {
+            snapshot: {parent: {parent: {params: {consortiumId: '1234'}}}},
             params: observableOf({ contractId: '2', version: '1' }),
             fragment: observableOf('')
           }
@@ -120,7 +121,7 @@ describe('SmartContractComponent', () => {
 
     component.versionSelected = 1;
     component.getVersionInfo();
-    expect(spy).toHaveBeenCalledWith(['smart-contracts', '1', 'versions', 1], Object({ replaceUrl: true }));
+    expect(spy).toHaveBeenCalledWith(['1234', 'smart-contracts', '1', 'versions', 1], Object({ replaceUrl: true }));
   });
 
   describe('should load smart contract with contractId in the params', () => {

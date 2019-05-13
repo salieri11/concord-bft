@@ -6,7 +6,7 @@ import { browser, by, element } from 'protractor';
 
 export class SwaggerPage {
   navigateTo() {
-    return browser.get('/developer/apis');
+    element(by.id('apis')).click();
   }
 
   getPageTitle() {

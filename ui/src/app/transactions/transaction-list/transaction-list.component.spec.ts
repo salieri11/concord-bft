@@ -5,6 +5,7 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { RouterTestingModule } from '@angular/router/testing';
+import { ActivatedRoute } from '@angular/router';
 import { MockSharedModule } from '../../shared/shared.module';
 
 import { TransactionListComponent } from './transaction-list.component';
@@ -28,6 +29,19 @@ describe('TransactionListComponent', () => {
         TransactionsStatusFilterComponent,
         TransactionDetailsComponent,
         VmwCopyToClipboardButtonComponent,
+      ],
+      providers: [
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {parent: {parent: {params: {consortiumId: '1234'}}}},
+            fragment: {
+              subscribe: (fn: (value) => void) => fn(
+                {}
+              ),
+            },
+          },
+        }
       ]
     })
       .compileComponents();

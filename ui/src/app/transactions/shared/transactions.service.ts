@@ -11,6 +11,7 @@ import { CONCORD_API_PREFIX } from '../../shared/shared.config';
 import { Transaction, TransactionListing } from './transactions.model';
 import { BlocksService } from '../../blocks/shared/blocks.service';
 import { ConcordApiService } from '../../shared/concord-api';
+import { BlockchainService } from '../../shared/blockchain.service';
 
 @Injectable({
   providedIn: 'root'
@@ -20,7 +21,9 @@ export class TransactionsService extends ConcordApiService {
   constructor(
     @Inject(CONCORD_API_PREFIX) concordApiPrefix: string,
     private httpClient: HttpClient,
-    private blocksService: BlocksService
+    private blocksService: BlocksService,
+    // @ts-ignore: no unused locals
+    private blockchainService: BlockchainService
   ) {
     super(concordApiPrefix);
   }

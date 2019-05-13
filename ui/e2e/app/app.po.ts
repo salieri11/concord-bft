@@ -14,6 +14,10 @@ export class AppPage {
     browser.waitForAngularEnabled(true);
   }
 
+  goToConsortium() {
+    return element(by.css('#go'));
+  }
+
   getTourTitle() {
     return element(by.css('.ngxp-title'));
   }

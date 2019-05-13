@@ -18,28 +18,6 @@
     "help": "Need Help? Email"
   },
   "nav": {
-    "menu": {
-      "title": "Menu",
-      "options": {
-        "contract": {
-          "title": "Deploy Smart Contract"
-        },
-        "generalTitle": "General",
-        "sysAdminTitle": "System Admin",
-        "deploy": {
-          "title": "Deploy"
-        },
-        "addOrg": {
-          "title": "Add Organization"
-        },
-        "addConsortium": {
-          "title": "Add Consortium"
-        },
-        "addUsers": {
-          "title": "Add Users"
-        }
-      }
-    },
     "personaSelector": {
       "title": "Role"
     },
@@ -47,53 +25,25 @@
       "title": "Actions",
       "resetTasks": "Reset Tasks"
     },
-    "dashboard": {
-      "title": "Dashboard"
-    },
-    "deploy": {
-      "title": "Deploy"
-    },
-    "nodeList": {
-      "title": "Node List"
-    },
-    "blockList": {
-      "title": "Blocks"
-    },
-    "transactionList": {
-      "title": "Transactions"
-    },
-    "testing": {
-      "title": "Testing"
-    },
-    "smartContracts": {
-      "title": "Smart Contracts"
-    },
-    "logsAndAnalysis": {
-      "title": "Logs And Analysis"
-    },
+    "consortium": "Current Consortium",
+    "deploy": "Deploy",
+    "dashboard": "Dashboard",
+    "nodeList": "Node List",
+    "blockList": "Blocks",
+    "transactionList": "Transactions",
+    "testing": "Testing",
+    "smartContracts": "Smart Contracts",
+    "logsAndAnalysis": "Logs And Analysis",
     "developer": {
-      "title": "DEVELOPERS",
+      "header": "DEVELOPER",
       "api": "APIs",
-      "examples": "Samples"
+      "samples": "Samples"
     },
-    "sysadmin": {
-      "title": "SYSTEM ADMIN"
-    },
-    "organization": {
-      "title": "Organizations"
-    },
-    "blockchains": {
-      "title": "Blockchains"
-    },
-    "consortium": {
-      "title": "Consortiums"
-    },
-    "kubernetes": {
-      "title": "Kubernetes"
-    },
-    "users": {
-      "title": "Users"
-    },
+    "sysadmin": "SYSTEM ADMIN",
+    "organization": "Organizations",
+    "blockchains": "Blockchains",
+    "kubernetes": "Kubernetes",
+    "users": "Users",
     "login": "Login",
     "logOut": "Log Out",
     "settings": "Settings"
@@ -902,6 +852,12 @@
     "loading": "Deploying dApp",
     "source": "View Source"
   },
+  "welcome": {
+    "title": "Welcome to VMware Blockchain",
+    "description1": "You can now deploy a blockchain for your consortium, invite orgs and users to your consortium as well as join other consortiums. Please email us at",
+    "description2": "if you have any issues or questions.",
+    "deploy": "Deploy Consortium"
+  },
   "blockchainWizard": {
     "title": "Deploy",
     "common": {
@@ -911,7 +867,7 @@
     },
     "details": {
       "help": {
-        "numberOfNodes": "A valid number of nodes on a blockchain must be divisible by 3 + 1 (4, 7, 10...)"
+        "numberOfNodes": "Number of nodes are optimized for SBFT consensus engine"
       },
       "pageTitle": "Consortium and Blockchain Details",
       "navTitle": "Details",

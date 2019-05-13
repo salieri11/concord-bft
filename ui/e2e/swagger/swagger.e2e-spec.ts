@@ -7,6 +7,7 @@ import { browser } from 'protractor';
 import { SwaggerPage } from './swagger.po';
 import { AuthHelper } from '../helpers/auth';
 import { LoginPage } from '../login/login.po';
+import { waitFor } from '../helpers/utils';
 
 describe('concord-ui Swagger Docs', () => {
   let authHelper: AuthHelper;
@@ -27,6 +28,8 @@ describe('concord-ui Swagger Docs', () => {
 
   beforeEach(() => {
     swaggerPage = new SwaggerPage();
+    browser.waitForAngularEnabled(false);
+    waitFor('#apis');
     swaggerPage.navigateTo();
   });
 
@@ -46,26 +49,32 @@ describe('concord-ui Swagger Docs', () => {
     const blocksListGetId = '#operations-default-blockListGet';
 
     // Test get nodes
-    swaggerPage.clickSwaggerHeaderForId(memberListGetId);
-    browser.sleep(500);
+    // waitFor(`${memberListGetId} .opblock-summary`);
+    // swaggerPage.clickSwaggerHeaderForId(memberListGetId);
+    waitFor(`${memberListGetId} .btn.try-out__btn`);
     swaggerPage.clickTryItOutButtonForId(memberListGetId);
     expect(swaggerPage.getOpBlockExecuteButtonForId(memberListGetId).isPresent()).toBe(true);
+    waitFor('.btn.execute.opblock-control__btn');
     swaggerPage.clickOpBlockExecuteButtonForId(memberListGetId);
     expect(swaggerPage.getResponseStatusForId(memberListGetId)).toEqual('200');
     expect(swaggerPage.getResponseTextForId(memberListGetId)).toContain('Response headers');
     // Clear responses
+    waitFor('.btn.try-out__btn.cancel');
     swaggerPage.clickCancelTryItOutButtonForId(memberListGetId);
     expect(swaggerPage.getOpBlockExecuteButtonForId(memberListGetId).isPresent()).toBe(false);
+    waitFor('.opblock-summary');
     swaggerPage.clickSwaggerHeaderForId(memberListGetId);
     // Test get blocks with a parameter
     swaggerPage.clickSwaggerHeaderForId(blocksListGetId);
-    browser.sleep(500);
+    waitFor(`${blocksListGetId} .btn.try-out__btn`);
     swaggerPage.clickTryItOutButtonForId(blocksListGetId);
     expect(swaggerPage.getOpBlockExecuteButtonForId(blocksListGetId).isPresent()).toBe(true);
     swaggerPage.getInputForAttribute('count').sendKeys(1);
+    waitFor(`${blocksListGetId} .btn.execute.opblock-control__btn`);
     swaggerPage.clickOpBlockExecuteButtonForId(blocksListGetId);
-    browser.sleep(2000);
+    waitFor(`${blocksListGetId} .col.response-col_status`);
     expect(swaggerPage.getResponseStatusForId(blocksListGetId)).toEqual('200');
+    waitFor('.request-url pre');
     expect(swaggerPage.getRequestUrlFromResponse()).toContain('/api/concord/blocks?count=1');
   });
 });

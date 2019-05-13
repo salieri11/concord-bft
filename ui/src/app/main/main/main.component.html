@@ -11,60 +11,74 @@
   <concord-app-header></concord-app-header>
   <div class="content-container">
     <main class="content-area">
-      <router-outlet></router-outlet>
+      <router-outlet *ngIf="enableRouterOutlet"></router-outlet>
+      <concord-deploying-interstitial #deployLoader> </concord-deploying-interstitial>
     </main>
     <clr-vertical-nav>
-      <a clrVerticalNavLink routerLink="/dashboard" fragment="deploy">
+      <a clrVerticalNavLink [routerLink]="['dashboard']" [ngClass]="{'disable': blockchains.length === 2}" fragment="deploy">
         <clr-icon clrVerticalNavIcon shape="deploy"></clr-icon>
-        {{'nav.deploy.title' | translate}}
-      </a>
-      <div class="nav-divider"></div>
-      <a clrVerticalNavLink routerLink="/dashboard" routerLinkActive="active">
-        <clr-icon clrVerticalNavIcon shape="home"></clr-icon>
-        {{'nav.dashboard.title' | translate}}
-      </a>
-      <a clrVerticalNavLink routerLink="/smart-contracts" routerLinkActive="active">
-        <clr-icon clrVerticalNavIcon shape="scroll"></clr-icon>
-        {{'nav.smartContracts.title' | translate}}
-      </a>
-<!--       <a clrVerticalNavLink routerLink="/logging" routerLinkActive="active">
-        <clr-icon clrVerticalNavIcon shape="details"></clr-icon>
-        {{'nav.logsAndAnalysis.title' | translate}}
-      </a> -->
-      <a clrVerticalNavLink routerLink="/blocks" routerLinkActive="active">
-        <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon>
-        {{'nav.blockList.title' | translate}}
-      </a>
-      <a clrVerticalNavLink routerLink="/transactions" routerLinkActive="active">
-        <clr-icon clrVerticalNavIcon shape="tags"></clr-icon>
-        {{'nav.transactionList.title' | translate}}
+        {{'nav.deploy' | translate}}
       </a>
       <div class="nav-divider"></div>
       <label class="nav-header">
-        {{'nav.developer.title' | translate}}
+        {{ 'nav.consortium' | translate }}
       </label>
-      <a clrVerticalNavLink [routerLink]="['/developer/apis']" routerLinkActive="active">
+
+      <select clrSelect name="cosortiums" [(ngModel)]="selectedConsortium" class="consortium-select" (change)="consortiumChange()">
+        <option *ngFor="let consortium of blockchains" [value]="consortium.id">
+          {{ consortium.id }}
+        </option>
+      </select>
+      <a clrVerticalNavLink [routerLink]="['dashboard']" routerLinkActive="active">
+        <clr-icon clrVerticalNavIcon shape="home"></clr-icon>
+        {{'nav.dashboard' | translate}}
+      </a>
+      <a clrVerticalNavLink [routerLink]="['smart-contracts']" routerLinkActive="active" id="smartContracts">
+        <clr-icon clrVerticalNavIcon shape="scroll"></clr-icon>
+        {{'nav.smartContracts' | translate}}
+      </a>
+      <a clrVerticalNavLink [routerLink]="['logging']" routerLinkActive="active" id="logging">
+        <clr-icon clrVerticalNavIcon shape="details"></clr-icon>
+        {{'nav.logsAndAnalysis' | translate}}
+      </a>
+      <a clrVerticalNavLink [routerLink]="['blocks']" routerLinkActive="active">
+        <clr-icon clrVerticalNavIcon shape="blocks-group"></clr-icon>
+        {{'nav.blockList' | translate}}
+      </a>
+      <a clrVerticalNavLink [routerLink]="['transactions']" routerLinkActive="active">
+        <clr-icon clrVerticalNavIcon shape="tags"></clr-icon>
+        {{'nav.transactionList' | translate}}
+      </a>
+      <div class="nav-divider"></div>
+      <label class="nav-header">
+        {{'nav.developer.header' | translate}}
+      </label>
+      <a clrVerticalNavLink [routerLink]="['developer/apis']" routerLinkActive="active" id="apis">
         <clr-icon clrVerticalNavIcon shape="info-circle"></clr-icon>
         {{'nav.developer.api' | translate}}
       </a>
-      <a clrVerticalNavLink [routerLink]="['/developer/examples']" routerLinkActive="active">
+      <a clrVerticalNavLink [routerLink]="['developer/examples']" routerLinkActive="active">
         <clr-icon clrVerticalNavIcon shape="tools"></clr-icon>
-        {{'nav.developer.examples' | translate}}
+        {{'nav.developer.samples' | translate}}
       </a>
       <ng-container *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]">
         <div class="nav-divider"></div>
         <label class="nav-header">
-          {{'nav.sysadmin.title' | translate}}
+          {{'nav.sysadmin' | translate}}
         </label>
         <a clrVerticalNavLink
-           [routerLink]="['/users']"
+           [routerLink]="['users']"
            routerLinkActive="active"
            *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin]"
            tourAnchor="onboardingTour.userManagement">
           <clr-icon clrVerticalNavIcon shape="administrator"></clr-icon>
-          {{'nav.users.title' | translate}}
+          {{'nav.users' | translate}}
         </a>
       </ng-container>
+      <div *ngIf="navDisabled" class="nav-overlay {{ navOption }}"></div>
     </clr-vertical-nav>
   </div>
 </clr-main-container>
+
+<concord-setup-modal #welcomeModal></concord-setup-modal>
+<concord-blockchain-wizard #blockchainWizard></concord-blockchain-wizard>

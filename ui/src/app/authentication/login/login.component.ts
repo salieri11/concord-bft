@@ -10,6 +10,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { AuthenticationService } from '../../shared/authentication.service';
 import { PersonaService } from '../../shared/persona.service';
 import { matchPasswordValidator } from '../../shared/custom-validators';
+import { BlockchainService } from '../../shared/blockchain.service';
 
 
 @Component({
@@ -34,6 +35,7 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
     private formBuilder: FormBuilder,
     private router: Router,
     private translateService: TranslateService,
+    private blockchainService: BlockchainService,
   ) {
 
     this.loginForm = this.formBuilder.group({
@@ -52,6 +54,7 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
         matchPasswordValidator('newPassword')
       ]],
     });
+
   }
 
   ngAfterViewInit() {
@@ -78,24 +81,32 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
   private handleLogin(user) {
     const redirectUrl = this.authenticationService.redirectUrl;
 
-    if (user['last_login'] === 0 || localStorage.getItem('changePassword')) {
-      localStorage.setItem('changePassword', 'true');
-      this.newUser = true;
-      this.hideLoginForm = true;
-      this.hideChangePassword = false;
-      setTimeout(() => {
-        this.newPassword.nativeElement.focus();
-      }, 10);
-    } else {
-      if (redirectUrl) {
-        this.router.navigateByUrl(redirectUrl);
+    this.blockchainService.set().subscribe(() => {
+      const blockchain = this.blockchainService.blockchainId;
+
+      if (user['last_login'] === 0 || localStorage.getItem('changePassword')) {
+        localStorage.setItem('changePassword', 'true');
+        this.newUser = true;
+        this.hideLoginForm = true;
+        this.hideChangePassword = false;
+        setTimeout(() => {
+          this.newPassword.nativeElement.focus();
+        }, 10);
       } else {
-        this.router.navigate(['dashboard']);
+        if (redirectUrl) {
+          this.router.navigateByUrl(redirectUrl);
+        } else if (!blockchain) {
+          this.router.navigate(['welcome'], {fragment: 'welcome'});
+        } else {
+          this.router.navigate([blockchain, 'dashboard']);
+        }
       }
-    }
+    });
   }
 
   changePassword() {
+    const blockchain = this.blockchainService.blockchainId;
+
     this.errorMessage = null;
     this.authenticationService.changePassword(
       this.loginForm.value.email,
@@ -105,11 +116,11 @@ export class LogInContainerComponent implements OnDestroy, AfterViewInit {
         localStorage.removeItem('changePassword');
 
         const navExtras: NavigationExtras = {
-          fragment: 'orgTour'
+          fragment: 'welcome'
         };
-        this.router.navigate(['/dashboard'], navExtras);
+        this.router.navigate(['welcome'], navExtras);
       } else {
-        this.router.navigate(['dashboard']);
+        this.router.navigate([blockchain, 'dashboard']);
       }
     }, (error) => {
       this.errorMessage = error.error.error || this.translateService.instant('authentication.errorMessage');

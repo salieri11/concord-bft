@@ -10,6 +10,7 @@ import { map } from 'rxjs/operators';
 
 import { Personas, PersonaService } from './persona.service';
 import { User } from '../users/shared/user.model';
+import { UsersService } from '../users/shared/users.service';
 
 @Injectable()
 export class AuthenticationService {
@@ -19,11 +20,13 @@ export class AuthenticationService {
   redirectUrl: string;
   constructor(
     private personaService: PersonaService,
+    private usersService: UsersService,
     private http: HttpClient,
     private router: Router,
   ) {
     this.userSubject = new BehaviorSubject<User>({
       email: localStorage['helen.email'],
+      consortium_id: localStorage['helen.consortium_id'],
       persona: localStorage['helen.persona'],
       user_id: localStorage['helen.user_id'],
       wallet_address: localStorage['helen.wallet_address']
@@ -39,6 +42,7 @@ export class AuthenticationService {
   get currentUser() {
     return {
       email: localStorage['helen.email'],
+      consortium_id: localStorage['helen.consortium_id'],
       persona: localStorage['helen.persona'],
       user_id: localStorage['helen.user_id'],
       wallet_address: localStorage['helen.wallet_address']
@@ -86,13 +90,14 @@ export class AuthenticationService {
     localStorage.removeItem('jwtRefreshToken');
     localStorage.removeItem('jwtTokenExpiresAt');
     localStorage.removeItem('jwtRefreshTokenExpiresAt');
+    localStorage.removeItem('helen.consortium_id');
     localStorage.removeItem('helen.persona');
     localStorage.removeItem('helen.user_id');
     localStorage.removeItem('helen.wallet_address');
-
     this.personaService.currentPersona = undefined;
     this.userSubject.next({
       email: localStorage['helen.email'],
+      consortium_id: localStorage['helen.consortium_id'],
       persona: localStorage['helen.persona'],
       user_id: localStorage['helen.user_id'],
       wallet_address: localStorage['helen.wallet_address']
@@ -131,11 +136,16 @@ export class AuthenticationService {
     localStorage.setItem('helen.wallet_address', walletAddress);
     this.setToken(response);
     this.personaService.currentPersona = persona;
-    this.userSubject.next({
-      email: response.email,
-      persona: persona,
-      user_id: response.user_id,
-      wallet_address: walletAddress
+    this.usersService.getList().subscribe((users) => {
+      const consortiumId = users[0].consortium.consortium_id;
+      localStorage.setItem('helen.consortium_id', consortiumId);
+      this.userSubject.next({
+        email: response.email,
+        consortium_id: consortiumId,
+        persona: persona,
+        user_id: response.user_id,
+        wallet_address: walletAddress
+      });
     });
   }
 

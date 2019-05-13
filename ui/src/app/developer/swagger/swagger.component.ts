@@ -23,7 +23,7 @@ export class SwaggerComponent implements AfterViewInit {
     let apiPath = '/static/swagger/swagger.json';
     let loginPath = '/auth/login';
     const pathArray = window.location.pathname.split('/');
-    pathArray.splice(-2);
+    pathArray.splice(-3);
     const basePath = pathArray.join('/');
     apiPath = `${basePath}${apiPath}`;
     loginPath = `${basePath}${loginPath}`;

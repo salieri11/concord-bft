@@ -9,6 +9,7 @@ import { AppPage } from '../app/app.po';
 import { LoginPage } from '../login/login.po';
 import { OnboardingPage } from './onboarding.po';
 import { DashboardPage } from '../dashboard/dashboard.po';
+import { waitFor, waitForText } from '../helpers/utils';
 
 describe('concord-ui Onboarding Flow', () => {
   let authHelper: AuthHelper;
@@ -36,6 +37,8 @@ describe('concord-ui Onboarding Flow', () => {
     browser.sleep(200);
     onboardingPage.expectationsAndNext();
     loginPage.fillLogInForm('admin@blockchain.local', 'Admin!23');
+    browser.sleep(500);
+    waitForText(element(by.cssContainingText('.title h3', 'Change Password')));
     loginPage.changePassword('T3sting!', 'T3sting!!');
     expect(loginPage.getChangeSubmit().getAttribute('disabled')).toBe('true');
     loginPage.changePassword('T3sting!', 'T3sting!');
@@ -43,8 +46,11 @@ describe('concord-ui Onboarding Flow', () => {
     loginPage.changePasswordSubmit();
     browser.sleep(200);
     browser.waitForAngularEnabled(false);
-    browser.sleep(2000);
+    browser.sleep(200);
+    appPage.goToConsortium().click();
+    browser.sleep(500);
     expect(appPage.getTourTitle().getText()).toEqual('General Status');
+    browser.sleep(200);
     appPage.getTourNextButton().click();
     browser.sleep(200);
     expect(appPage.getTourTitle().getText()).toEqual('Contract List');

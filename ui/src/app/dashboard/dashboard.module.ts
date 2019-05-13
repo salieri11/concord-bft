@@ -24,7 +24,9 @@ import { DashboardListComponent } from './dashboard-list/dashboard-list.componen
     GraphsModule,
     TourNgxPopperModule
   ],
-  declarations: [DashboardComponent, DashboardListComponent]
+  declarations: [
+    DashboardComponent,
+    DashboardListComponent,
+  ]
 })
 export class DashboardModule { }
-

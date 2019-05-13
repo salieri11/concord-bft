@@ -6,20 +6,28 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { TourService as NgxTourService } from 'ngx-tour-ngx-popper';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { ActivatedRoute } from '@angular/router';
 
-import { ErrorAlertService } from '../../shared/global-error-handler.service';
 import { MockSharedModule } from '../../shared/shared.module';
-import { AuthenticationService } from '../../shared/authentication.service';
+
 import { MainComponent } from './main.component';
 import { AppHeaderComponent } from '../../shared/components/app-header/app-header.component';
 import { CanViewDirective } from '../../shared/directives/can-view.directive';
 import { VmwTaskComponent } from '../../shared/components/task-panel/task.component';
+import { VmwThemeSwitchButtonComponent } from '../../shared/components/theme-switch-button/theme-switch-button.component';
+import { BlockchainWizardComponent } from '../../shared/components/blockchain-wizard/blockchain-wizard.component';
+import { VersionComponent } from '../../shared/components/version/version.component';
+import { DeployingInterstialComponent } from '../deploying-interstitial/deploying-interstitial.component';
+import { SetupModalComponent } from '../setup-modal/setup-modal.component';
+
+import { ErrorAlertService } from '../../shared/global-error-handler.service';
+import { AuthenticationService } from '../../shared/authentication.service';
+import { Personas } from '../../shared/persona.service';
+import { VmwClarityThemeService } from '../../shared/theme.provider';
 import { VmwTasksService } from '../../shared/components/task-panel/tasks.service';
 import { TourService } from '../../shared/tour.service';
-import { Personas } from '../../shared/persona.service';
-import { VmwThemeSwitchButtonComponent } from '../../shared/components/theme-switch-button/theme-switch-button.component';
-import { VmwClarityThemeService } from '../../shared/theme.provider';
-import { VersionComponent } from '../../shared/components/version/version.component';
+import { BlockchainService } from '../../shared/blockchain.service';
+
 
 describe('MainComponent', () => {
   let component: MainComponent;
@@ -38,15 +46,34 @@ describe('MainComponent', () => {
         CanViewDirective,
         AppHeaderComponent,
         VmwThemeSwitchButtonComponent,
-        VersionComponent
+        VersionComponent,
+        DeployingInterstialComponent,
+        SetupModalComponent,
+        BlockchainWizardComponent,
       ],
       providers: [
         ErrorAlertService,
         VmwTasksService,
         TourService,
         NgxTourService,
-        VmwClarityThemeService
-
+        VmwClarityThemeService,
+        BlockchainService,
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: {params: {consortiumId: '1234'}},
+            params: {
+              subscribe: (fn: (value) => void) => fn(
+                ''
+              ),
+            },
+            fragment: {
+              subscribe: (fn: (value) => void) => fn(
+                ''
+              ),
+            },
+          },
+        }
       ]
     }).compileComponents();
   }));

@@ -15,7 +15,7 @@
       <div clrForm class="form-block blockchain-form">
         <clr-input-container>
           <label for="consortiumName">{{'blockchainWizard.common.consortiumName' | translate}}</label>
-          <input clrInput id="consortiumName" type="text" formControlName="name" class="form-control"
+          <input clrInput #consortiumInput id="consortiumName" type="text" formControlName="name" class="form-control"
                  size="43" [placeholder]="'blockchainWizard.details.consortiumPlaceholder' | translate">
         </clr-input-container>
         <clr-textarea-container>
@@ -23,16 +23,18 @@
           <textarea cols="40" clrTextarea id="consortiumDescription" formControlName="description" class="form-control"
                     [placeholder]="'blockchainWizard.details.consortiumDescriptionPlaceholder' | translate"></textarea>
         </clr-textarea-container>
-        <clr-input-container>
+        <clr-select-container>
           <label for="numberOfNodes">{{'blockchainWizard.common.numberOfNodes' | translate}}</label>
-          <input clrInput id="numberOfNodes" type="number" formControlName="numberOfNodes">
+          <select clrSelect formControlName="numberOfNodes">
+            <option *ngFor="let num of numbersOfNodes" [ngValue]="num">{{num}}
+            </option>
+          </select>
           <clr-control-helper>{{'blockchainWizard.details.help.numberOfNodes' | translate}}</clr-control-helper>
-          <clr-control-error *clrIfError="'numberInvalid'">{{'blockchainWizard.details.help.numberOfNodes' | translate}}</clr-control-error>
-        </clr-input-container>
+        </clr-select-container>
       </div>
     </clr-wizard-page>
 
-    <clr-wizard-page #usersPage [clrWizardPageNextDisabled]="!form.controls.users.valid" formGroupName="users">
+    <!--clr-wizard-page #usersPage [clrWizardPageNextDisabled]="!form.controls.users.valid" formGroupName="users">
       <ng-template clrPageTitle>{{'blockchainWizard.users.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'blockchainWizard.users.navTitle' | translate}}</ng-template>
       <div clrForm [formGroup]="userForm" class="user-form form-block">
@@ -89,7 +91,7 @@
         </tr>
         </tbody>
       </table>
-    </clr-wizard-page>
+    </clr-wizard-page-->
 
     <clr-wizard-page>
       <ng-template clrPageTitle>{{'blockchainWizard.reviewDeployment.pageTitle' | translate}}</ng-template>
@@ -115,7 +117,7 @@
         </div>
       </div>
 
-      <div class="summary-label">{{ 'blockchainWizard.reviewDeployment.users' | translate }}</div>
+      <!--div class="summary-label">{{ 'blockchainWizard.reviewDeployment.users' | translate }}</div>
       <table class="table users-table">
         <thead>
           <tr>
@@ -133,7 +135,7 @@
           </td>
         </tr>
         </tbody>
-      </table>
+      </table-->
     </clr-wizard-page>
   </clr-wizard>
 </form>

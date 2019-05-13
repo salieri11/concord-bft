@@ -7,13 +7,11 @@ import { CommonModule } from '@angular/common';
 import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { TourNgxPopperModule } from 'ngx-tour-ngx-popper';
 
-import { MainComponent } from './main/main.component';
 import { BlocksModule } from '../blocks/blocks.module';
 import { NodesModule } from '../nodes/nodes.module';
 import { TransactionsModule } from '../transactions/transactions.module';
 import { DashboardModule } from '../dashboard/dashboard.module';
 import { AuthenticationModule } from '../authentication/authentication.module';
-import { ErrorAlertService, GlobalErrorHandlerService } from '../shared/global-error-handler.service';
 import { RequestInterceptor } from '../app-interceptors';
 import { SharedModule } from '../shared/shared.module';
 import { MainRoutingModule } from './main/main-routing.module';
@@ -23,6 +21,12 @@ import { ConsortiumModule } from '../consortium/consortium.module';
 import { UsersModule } from '../users/users.module';
 import { LoggingModule } from '../logging/logging.module';
 import { DeveloperModule } from '../developer/developer.module';
+
+import { ErrorAlertService, GlobalErrorHandlerService } from '../shared/global-error-handler.service';
+
+import { MainComponent } from './main/main.component';
+import { SetupModalComponent } from './setup-modal/setup-modal.component';
+import { DeployingInterstialComponent } from './deploying-interstitial/deploying-interstitial.component';
 
 
 @NgModule({
@@ -42,9 +46,13 @@ import { DeveloperModule } from '../developer/developer.module';
     UsersModule,
     LoggingModule,
     TourNgxPopperModule,
-    DeveloperModule
+    DeveloperModule,
   ],
-  declarations: [MainComponent],
+  declarations: [
+    MainComponent,
+    SetupModalComponent,
+    DeployingInterstialComponent,
+  ],
   providers: [
     {
       provide: HTTP_INTERCEPTORS,

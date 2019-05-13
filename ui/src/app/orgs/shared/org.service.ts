@@ -11,13 +11,19 @@ import { Org, OrgResponse } from './org.model';
 import { GridListResponse } from '../../grid/shared/grid.model';
 import { AndesApi } from '../../shared/andes-api';
 import { ANDES_API_PREFIX } from '../../shared/shared.config';
+import { BlockchainService } from '../../shared/blockchain.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class OrgService extends AndesApi {
 
-  constructor(private http: HttpClient, @Inject(ANDES_API_PREFIX) andesApiPrefix: string) {
+  constructor(
+    private http: HttpClient,
+    // @ts-ignore
+    private blockchainService: BlockchainService,
+    @Inject(ANDES_API_PREFIX) andesApiPrefix: string
+    ) {
     super(andesApiPrefix);
   }
 

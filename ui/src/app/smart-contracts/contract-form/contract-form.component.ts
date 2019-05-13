@@ -323,7 +323,6 @@ export class ContractFormComponent implements OnInit {
       this.isOpen = false;
       this.contractCreated.emit(response);
       this.reset();
-
     }
   }
 

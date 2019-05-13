@@ -3,16 +3,13 @@
  */
 
 import { browser, by, element } from 'protractor';
+import { waitFor } from '../helpers/utils';
 
 export class SmartContractPage {
-  navigateTo(contractId, version) {
-    let url = `/smart-contracts/${contractId}`;
-
-    if (version) {
-      url += `/versions/${version}`;
-    }
-
-    return browser.get(url);
+  navigateTo() {
+    element(by.css('#smartContracts')).click();
+    waitFor('.datagrid-row a');
+    element(by.css('.datagrid-row a')).click();
   }
 
   getCallSuccessAlert() {

@@ -9,6 +9,7 @@ import { ConnectWithTruffleComponent } from '../connect-with-truffle/connect-wit
 import { ContractFormComponent } from '../contract-form/contract-form.component';
 import { SmartContractsService } from '../shared/smart-contracts.service';
 import { Personas } from '../../shared/persona.service';
+import { BlockchainService } from '../../shared/blockchain.service';
 
 @Component({
   selector: 'concord-smart-contracts',
@@ -25,6 +26,7 @@ export class SmartContractsComponent implements OnInit {
   constructor (
     private smartContractsService: SmartContractsService,
     private router: Router,
+    private blockchainService: BlockchainService,
   ) { }
 
   ngOnInit() {
@@ -32,12 +34,15 @@ export class SmartContractsComponent implements OnInit {
   }
 
   contractCreated(contract) {
+    const blockchainId = this.blockchainService.blockchainId;
     const path = [
+      `/${blockchainId}`,
       'smart-contracts',
       contract.contract_id,
       'versions',
       contract.version
     ];
+
     this.router.navigate(path);
   }
 

@@ -2,14 +2,13 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { TranslateService } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
 
 import { BlockListingBlock } from '../../blocks/shared/blocks.model';
 import { TransactionsService } from '../../transactions/shared/transactions.service';
-import { BlockchainWizardComponent } from '../../shared/components/blockchain-wizard/blockchain-wizard.component';
 import { TourService } from '../../shared/tour.service';
 import { SmartContractsService } from '../../smart-contracts/shared/smart-contracts.service';
 import { BlocksService } from '../../blocks/shared/blocks.service';
@@ -18,7 +17,7 @@ import { NodesService } from '../../nodes/shared/nodes.service';
 
 import * as NodeGeoJson from '../features.json';
 
-const LONG_POLL_INTERVAL = 30000; // Thirty seconds
+const LONG_POLL_INTERVAL = 10000; // Ten seconds
 const BLOCK_TRANSACTION_LIMIT = 20;
 
 @Component({
@@ -27,7 +26,8 @@ const BLOCK_TRANSACTION_LIMIT = 20;
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  @ViewChild('setupWizard') setupWizard: BlockchainWizardComponent;
+
+  blockchainId: string;
   blocks: BlockListingBlock[] = [];
   transactions: any[] = [];
   nodes: any[] = [];
@@ -51,40 +51,42 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.loadTransactions();
-    this.loadSmartContracts();
-    this.loadNodes();
-    this.loadBlocks();
+      this.blockchainId = this.route.snapshot.parent.parent.params['consortiumId'];
 
-    this.pollIntervalId = setInterval(() => {
       this.loadTransactions();
+      this.loadSmartContracts();
       this.loadNodes();
       this.loadBlocks();
-      this.loadSmartContracts();
-    }, LONG_POLL_INTERVAL);
+
+      this.pollIntervalId = setInterval(() => {
+        this.loadTransactions();
+        this.loadNodes();
+        this.loadBlocks();
+        this.loadSmartContracts();
+      }, LONG_POLL_INTERVAL);
+
 
     this.tourService.initialDashboardUrl = this.router.url.substr(1);
 
     this.routerFragmentChange = this.route.fragment.subscribe(fragment => {
       switch (fragment) {
-        case 'deploy':
-          this.setupBlockchain();
-          break;
         case 'orgTour':
           setTimeout(() => {
             this.tourService.startTour();
           });
           break;
-
         default:
-          // code...
           break;
       }
     });
+
   }
 
   ngOnDestroy() {
-    this.routerFragmentChange.unsubscribe();
+    if (this.routerFragmentChange) {
+      this.routerFragmentChange.unsubscribe();
+    }
+
     clearInterval(this.pollIntervalId);
   }
 
@@ -129,7 +131,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       displayProperties: ['number', 'hash'],
       tableHeader: 'blocks.blocks',
       itemLink: (block) => {
-        return ['/blocks', block.number];
+        return [`/${this.blockchainId}`, 'blocks', block.number];
       },
       paginationSummary: 'blocks.paginationSummary'
     };
@@ -141,7 +143,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       displayProperties: ['hash', 'nonce'],
       tableHeader: 'transactions.transactions',
       itemLink: (transaction) => {
-        return ['/blocks', transaction.block_number, 'transactions', transaction.hash];
+        return [`/${this.blockchainId}`, 'blocks', transaction.block_number, 'transactions', transaction.hash];
       },
       paginationSummary: 'transactions.paginationSummary'
     };
@@ -153,14 +155,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
       displayProperties: ['contract_id', 'owner'],
       tableHeader: 'smartContracts.smartContracts',
       itemLink: (contract) => {
-        return ['/smart-contracts', contract.contract_id];
+        return [`/${this.blockchainId}`, 'smart-contracts', contract.contract_id];
       },
       paginationSummary: 'smartContracts.paginationSummary'
     };
-  }
-
-  setupBlockchain() {
-    this.setupWizard.open();
   }
 
   private loadSmartContracts() {

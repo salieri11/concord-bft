@@ -20,7 +20,7 @@
         </clr-dg-column>
         <clr-dg-row *clrDgItems="let transaction of transactions">
           <clr-dg-cell class="hash">
-            <a [routerLink]="['/blocks', transaction.block_number !== undefined ? transaction.block_number : blockNumber, 'transactions', transaction.hash]">{{transaction?.hash}}</a>
+            <a [routerLink]="['/' + blockchainId, 'blocks', transaction.block_number !== undefined ? transaction.block_number : blockNumber, 'transactions', transaction.hash]">{{transaction?.hash}}</a>
             <concord-copy-to-clipboard-button
               classList="ctc-btn-inline"
               [tooltip]="'common.copyToClip' | translate"
