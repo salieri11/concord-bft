@@ -143,6 +143,10 @@ def addBlocks(request, rpc, blockchainId, numIterations, invokeContracts=False):
       # Getting the latest block is a workaround for VB-812, "No way to get a transaction
       # receipt for submitting a contract via contract API."
       block = getLatestBlock(request, blockchainId)
+      # Time service may have added a block after the contract
+      # creation, so look for a block with a transaction in it
+      while not block["transactions"]:
+         block = request.getBlockByNumber(blockchainId, block["number"]-1)
       txHashes.append(block["transactions"][0]["hash"])
 
       if invokeContracts:
@@ -168,7 +172,9 @@ def addBlocksAndSearchForThem(request, blockchainId, numBlocks, pageSize):
    rpc = createRPC(request, blockchainId)
    txResponses = addBlocks(request, rpc, blockchainId, numBlocks)
    newBlockNumber = getLatestBlockNumber(request, blockchainId)
-   assert newBlockNumber - origBlockNumber == numBlocks, \
+   # If time service is running, there may be additional blocks that
+   # were not added by addBlocks
+   assert newBlockNumber - origBlockNumber >= numBlocks, \
       "Expected new block to have number {}.".format(origBlockNumber + numBlocks)
    verifyBlocksWithPaging(request, blockchainId, txResponses, pageSize)
 
@@ -618,7 +624,9 @@ def test_blockList_noNextField_allBlocks(restRequest):
    blockchainId = restRequest.getABlockchainId()
    ensureEnoughBlocksForPaging(restRequest, blockchainId)
    latestBlock = getLatestBlockNumber(restRequest, blockchainId)
-   result = restRequest.getBlockList(blockchainId, count=latestBlock+1)
+   # Time service may add blocks in between these requests, so +10
+   # ensures that we account for a few rounds of that.
+   result = restRequest.getBlockList(blockchainId, count=latestBlock+10)
    assert "next" not in result, \
       "There should not be a 'next' field when requesting all blocks."
 
@@ -682,20 +690,32 @@ def test_pageSize_exceedsBlockCount(restRequest):
 def test_paging_latest_negative(restRequest):
    blockchainId = restRequest.getABlockchainId()
    ensureEnoughBlocksForPaging(restRequest, blockchainId)
-   highestBlockNumber = getLatestBlockNumber(restRequest, blockchainId)
+   # Reminder that time service might append blocks between these
+   # operations, so we can't assert that they all return the same
+   # number; only that they're in order
+   highestBlockNumberBefore = getLatestBlockNumber(restRequest, blockchainId)
    result = restRequest.getBlockList(blockchainId, latest=-1)
-   assert result["blocks"][0]["number"] == highestBlockNumber, \
-      "Expected the latest block to be {}".format(highestBlockNumber)
+   highestBlockNumberAfter = getLatestBlockNumber(restRequest, blockchainId)
+   assert (result["blocks"][0]["number"] == highestBlockNumberBefore and
+           result["blocks"][0]["number"] <= highestBlockNumberAfter), \
+           "Expected the latest block to be {}-{}".format(
+              highestBlockNumberBefore, highestBlockNumberAfter)
 
 
 @pytest.mark.smoke
 def test_paging_latest_exceedsBlockCount(restRequest):
    blockchainId = restRequest.getABlockchainId()
    ensureEnoughBlocksForPaging(restRequest, blockchainId)
-   highestBlockNumber = getLatestBlockNumber(restRequest, blockchainId)
-   result = restRequest.getBlockList(blockchainId, latest=highestBlockNumber+1)
-   assert result["blocks"][0]["number"] == highestBlockNumber, \
-      "Expected the latest block to be {}".format(highestBlockNumber)
+   # Reminder that time service might append blocks between these
+   # operations, so we can't assert that they all return the same
+   # number; only that they're in order
+   highestBlockNumberBefore = getLatestBlockNumber(restRequest, blockchainId)
+   result = restRequest.getBlockList(blockchainId, latest=highestBlockNumberBefore+1)
+   highestBlockNumberAfter = getLatestBlockNumber(restRequest, blockchainId)
+   assert (result["blocks"][0]["number"] >= highestBlockNumberBefore and
+           result["blocks"][0]["number"] <= highestBlockNumberAfter), \
+           "Expected the latest block to be {}-{}".format(
+              highestBlockNumberBefore, highestBlockNumberAfter)
 
 
 @pytest.mark.smoke
@@ -708,7 +728,9 @@ def test_blockIndex_negative(restRequest):
 def test_blockIndex_outOfRange(restRequest):
    blockchainId = restRequest.getABlockchainId()
    latestBlockNumber = getLatestBlockNumber(restRequest, blockchainId)
-   checkInvalidIndex(restRequest, blockchainId, latestBlockNumber+1, "block not found")
+   # Time service may add blocks between these requests, so +10
+   # accounts for a few rounds of that.
+   checkInvalidIndex(restRequest, blockchainId, latestBlockNumber+10, "block not found")
 
 
 # @pytest.mark.smoke
@@ -827,7 +849,15 @@ def test_blockIndex_basic(restRequest):
       assert block["hash"] == txResponse["blockHash"], "Hash is not correct."
 
       if parentHash:
-         assert block["parentHash"] == parentHash, "Parent hash is not correct."
+         # Time service may insert blocks between these transactions,
+         # so we're going to verify that a previous transaction's
+         # block is somewhere in this block's lineage, instead of
+         # being this block's direct parent
+         searchBlock = block
+         while searchBlock["parentHash"] != parentHash:
+            assert searchBlock["number"] > 0, "Block with parent hash not found"
+            if searchBlock["number"] > 0:
+               searchBlock = restRequest.getBlockByNumber(blockchainId, searchBlock["number"]-1)
 
       # This block's hash is the parentHash of the next one.
       parentHash = block["hash"]

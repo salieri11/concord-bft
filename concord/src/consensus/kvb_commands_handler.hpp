@@ -74,6 +74,9 @@ class KVBCommandsHandler : public Blockchain::ICommandsHandler {
       com::vmware::concord::ConcordRequest &athreq,
       concord::blockchain::KVBStorage &kvbStorage,
       com::vmware::concord::ConcordResponse &athresp) const;
+  bool handle_time_update(com::vmware::concord::ConcordRequest &athreq,
+                          concord::blockchain::KVBStorage &kvbStorage,
+                          com::vmware::concord::ConcordResponse &athresp) const;
   bool handle_eth_request(com::vmware::concord::ConcordRequest &athreq,
                           concord::blockchain::KVBStorage &kvbStorage,
                           com::vmware::concord::ConcordResponse &athresp) const;
