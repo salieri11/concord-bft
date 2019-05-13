@@ -17,8 +17,9 @@ export class BlockDetailsComponent implements OnInit {
 
   block: Block;
 
-  constructor(private blocksService: BlocksService) {
-  }
+  constructor(
+    private blocksService: BlocksService,
+    ) {}
 
   ngOnInit() {
     this.loadBlock(this.blockNumber);

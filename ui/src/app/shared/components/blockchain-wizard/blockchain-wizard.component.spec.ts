@@ -6,6 +6,7 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
 import { ClrFormsNextModule } from '@clr/angular';
+import { of as observableOf } from 'rxjs';
 import { BlockchainWizardComponent } from './blockchain-wizard.component';
 import { MockSharedModule } from '../../shared.module';
 import { VmwComboboxComponent } from '../combobox/combobox.component';
@@ -131,23 +132,18 @@ describe('BlockchainWizardComponent', () => {
   });
 
   describe('On submit', () => {
-    it('emits the form value', () => {
-      spyOn((component as any).router, 'navigate');
-      spyOn(component.setupComplete, 'emit');
 
-      component.onSubmit();
-
-      expect(component.setupComplete.emit).toHaveBeenCalledWith(component.form.value);
+    beforeEach(() => {
+      spyOn((component as any).blockchainService, 'deploy')
+          .and.returnValue(observableOf({}));
     });
 
-    it('navigates to the dashboard', () => {
-      const routerSpy = spyOn((component as any).router, 'navigate');
-      spyOn(component, 'resetFragment').and.callThrough();
+    it('submits the form value', () => {
+      spyOn((component as any).router, 'navigate');
 
       component.onSubmit();
-
-      expect(component.resetFragment).toHaveBeenCalled();
-      expect(routerSpy).toHaveBeenCalledWith(['/dashboard']);
+      // TODO: Test the individual attributes of the request
+      expect((component as any).blockchainService.deploy).toHaveBeenCalled();
     });
   });
 });

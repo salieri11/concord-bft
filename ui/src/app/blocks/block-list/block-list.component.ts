@@ -20,7 +20,9 @@ export class BlockListComponent implements OnInit {
   recentTransactions: any[] = [];
   nextBlockUrl: string;
 
-  constructor(private blocksService: BlocksService) {}
+  constructor(
+    private blocksService: BlocksService,
+  ) {}
 
   ngOnInit() {
     this.loadInitialBlocks();

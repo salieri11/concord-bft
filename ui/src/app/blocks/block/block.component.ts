@@ -19,7 +19,10 @@ import { BlocksService } from '../shared/blocks.service';
 export class BlockComponent implements OnInit {
   block: Block;
 
-  constructor(private blocksService: BlocksService, private route: ActivatedRoute) {}
+  constructor(
+    private blocksService: BlocksService,
+    private route: ActivatedRoute,
+  ) {}
 
   ngOnInit() {
     this.route.params.subscribe(params => {

@@ -42,3 +42,44 @@
 .header-nav #menu {
   color: #fff;
 }
+
+:host ::ng-deep clr-vertical-nav {
+  position: relative;
+}
+
+:host ::ng-deep clr-vertical-nav .clr-form-control {
+  margin-top: 0;
+  margin-bottom: 0.3rem;
+}
+
+:host ::ng-deep clr-vertical-nav clr-select-container {
+  display: flex;
+  flex: 0 0 1.5rem;
+  margin: 0 .5rem 0 1rem;
+}
+
+:host ::ng-deep .consortium-select {
+  width: 100%;
+  height: 1.3rem;
+  border: 1px solid #ccc;
+}
+
+:host ::ng-deep .clr-select-wrapper::after {
+  top: .491666rem;
+}
+
+.nav-overlay {
+  background-color: white;
+  height: 100%;
+  opacity: 0.5;
+  position: absolute;
+  width: 100%;
+  top: 0;
+  top: 6.5rem;
+}
+
+a.disable {
+  pointer-events: none;
+  cursor: default;
+   opacity: .4;
+}

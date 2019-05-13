@@ -8,13 +8,19 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { CONCORD_API_PREFIX } from '../../shared/shared.config';
 import { Block, BlockListing } from './blocks.model';
 import { ConcordApiService } from '../../shared/concord-api';
+import { BlockchainService } from '../../shared/blockchain.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class BlocksService extends ConcordApiService {
 
-  constructor(@Inject(CONCORD_API_PREFIX) concordApiPrefix: string, private httpClient: HttpClient) {
+  constructor(
+    @Inject(CONCORD_API_PREFIX) concordApiPrefix: string,
+    private httpClient: HttpClient,
+    // @ts-ignore: no unused locals
+    private blockchainService: BlockchainService
+  ) {
     super(concordApiPrefix);
   }
 

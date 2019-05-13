@@ -10,6 +10,7 @@ export abstract class BaseApi {
 
   constructor () {}
 
+
   abstract get apiPath(): string;
 
   abstract get apiSubPath(): string;
@@ -27,6 +28,12 @@ export abstract class BaseApi {
   }
 
   resourcePath(path: string | number = '') {
-    return [this.apiPath, this.apiSubPath, path].filter(segment => EMPTY_VALUES.indexOf(segment) === -1).join('/');
+    let apiPath = this.apiPath;
+
+    const paths = this.apiPath.split('/');
+    paths.splice(1, 0, `blockchains/${this['blockchainService']['blockchainId']}`);
+    apiPath = paths.join('/');
+
+    return [apiPath, this.apiSubPath, path].filter(segment => EMPTY_VALUES.indexOf(segment) === -1).join('/');
   }
 }

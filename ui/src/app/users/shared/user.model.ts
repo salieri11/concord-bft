@@ -11,6 +11,7 @@ export interface User {
   password?: string;
   organization?: any;
   consortium?: any;
+  consortium_id?: string;
   persona?: Personas;
   createdOn?: number;
   updatedOn?: number;

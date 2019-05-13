@@ -32,15 +32,15 @@ export class SmartContractComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.route.params.subscribe(params => {
-      if (!this.smartContract || this.smartContract.contract_id !== params.contractId) {
-        this.loadSmartContract(params.contractId, params.version);
-      }
-      if (params.version) {
-        this.versionSelected = params.version;
-        this.loadVersionDetails(params.contractId, params.version);
-      }
-    });
+      this.route.params.subscribe(params => {
+        if (!this.smartContract || this.smartContract.contract_id !== params.contractId) {
+          this.loadSmartContract(params.contractId, params.version);
+        }
+        if (params.version) {
+          this.versionSelected = params.version;
+          this.loadVersionDetails(params.contractId, params.version);
+        }
+      });
   }
 
   loadSmartContract(contractId, versionId?) {
@@ -68,13 +68,16 @@ export class SmartContractComponent implements OnInit {
   }
 
   getVersionInfo() {
+    const consortiumId = this.route.snapshot.parent.parent.params['consortiumId'];
     const path = [
+      consortiumId,
       'smart-contracts',
       this.smartContract.contract_id,
       'versions',
       this.versionSelected
     ];
-    const url = '/smart-contracts/' + this.smartContract.contract_id + '/versions/' + this.versionSelected;
+    const url = `/${consortiumId}/smart-contracts/` + this.smartContract.contract_id + '/versions/' + this.versionSelected;
+
     if (this.router.url === url) {
       this.ngOnInit();
     } else {

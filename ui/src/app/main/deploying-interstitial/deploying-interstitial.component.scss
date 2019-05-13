@@ -1,0 +1,27 @@
+#interstitial-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 5rem;
+}
+
+h5 {
+  margin-bottom: 30px;
+  margin-top: 20px;
+}
+
+.card {
+  width: 500px;
+}
+
+.card-footer {
+  height: 60px;
+}
+
+.content {
+  display: flex;
+  justify-content: center;
+}
+
+.spinner {
+  margin-top: 50px;
+}

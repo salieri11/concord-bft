@@ -1,0 +1,25 @@
+<div id="interstitial-wrap" *ngIf="showInterstitial" class="ps-1">
+  <div class="card">
+    <div class="card-header">
+      {{ title }}
+    </div>
+    <div class="card-block">
+      <div class="card-text">
+        <clr-alert *ngIf="error" [clrAlertType]="'danger'" [clrAlertClosable]="false">
+            <clr-alert-item>
+                <span class="alert-text">
+                    {{ error }}
+                </span>
+            </clr-alert-item>
+        </clr-alert>
+      <div class="content" *ngIf="loading">
+        <span class="spinner spinner-md"></span>
+      </div>
+      <div class="content" *ngIf="loading">
+          <h5>This will take a couple minutes...</h5>
+        </div>
+      </div>
+    </div>
+    <div class="card-footer"></div>
+  </div>
+</div>

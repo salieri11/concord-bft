@@ -2,12 +2,20 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { Component, OnInit, ViewChild, Output, EventEmitter } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ViewChild,
+  Output,
+  EventEmitter,
+  ElementRef
+} from '@angular/core';
 import { Router } from '@angular/router';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { ClrWizard, ClrWizardPage } from '@clr/angular';
-import { validateNumberOfNodes } from '../../custom-validators';
+import { AuthenticationService } from '../../authentication.service';
 import { PersonaService } from '../../persona.service';
+import { BlockchainService, BlockchainRequestParams } from '../../blockchain.service';
 
 @Component({
   selector: 'concord-blockchain-wizard',
@@ -18,6 +26,7 @@ export class BlockchainWizardComponent implements OnInit {
   @ViewChild('wizard') wizard: ClrWizard;
   @ViewChild('detailPage') blockConsortiumPage: ClrWizardPage;
   @ViewChild('usersPage') usersPage: ClrWizardPage;
+  @ViewChild('consortiumInput') consortiumInput: ElementRef;
   @Output('setupComplete') setupComplete: EventEmitter<any> = new EventEmitter<any>();
 
   isOpen = false;
@@ -25,24 +34,30 @@ export class BlockchainWizardComponent implements OnInit {
   userForm: FormGroup;
 
   personaOptions = PersonaService.getOptions();
+  numbersOfNodes = [4, 7];
+  fCountMapping = {'4': 1, '7': 2};
 
-  constructor(private router: Router) {
+  constructor(
+    private router: Router,
+    private authenticationService: AuthenticationService,
+    private blockchainService: BlockchainService
+  ) {
     this.form = new FormGroup({
       details: new FormGroup({
         name: new FormControl('', Validators.required),
         description: new FormControl('', Validators.required),
-        numberOfNodes: new FormControl('', [Validators.required, validateNumberOfNodes()])
+        numberOfNodes: new FormControl(this.numbersOfNodes[1], Validators.required)
       }),
       users: new FormControl([], Validators.required)
     });
-
     this.userForm = new FormGroup({
       email: new FormControl('', [Validators.required, Validators.email]),
       role: new FormControl('', Validators.required)
     });
   }
 
-  ngOnInit() {}
+  ngOnInit() {
+  }
 
   addUser() {
     const selectedUsers = this.form.get('users');
@@ -51,7 +66,7 @@ export class BlockchainWizardComponent implements OnInit {
   }
 
   resetFragment() {
-    this.router.navigate(['/dashboard']);
+    this.router.navigate([]);
   }
 
   deleteUser(index: number) {
@@ -75,10 +90,26 @@ export class BlockchainWizardComponent implements OnInit {
       users: []
     });
     this.userForm.reset();
+
+    setTimeout( () => {
+      this.consortiumInput.nativeElement.focus();
+    }, 1000);
   }
 
   onSubmit() {
-    this.setupComplete.emit(this.form.value);
-    this.resetFragment();
+    const params = new BlockchainRequestParams();
+    params.f_count = Number(this.fCountMapping[this.form.value.details.numberOfNodes.toString()]);
+    params.consortium_id = this.authenticationService.currentUser.consortium_id;
+
+    this.blockchainService.notify.next({message: 'deploying'});
+    this.blockchainService.deploy(params).subscribe(response => {
+      this.setupComplete.emit(response);
+    }, error => {
+      this.setupComplete.emit(error);
+    });
+  }
+
+  close() {
+    this.isOpen = false;
   }
 }

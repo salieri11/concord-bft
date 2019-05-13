@@ -32,7 +32,7 @@
       {{'smartContracts.owner' | translate}}
     </clr-dg-column>
     <clr-dg-row *clrDgItems="let smartContract of smartContracts">
-      <clr-dg-cell><a [routerLink]="['/smart-contracts', smartContract.contract_id]">{{ smartContract.contract_id }}</a></clr-dg-cell>
+      <clr-dg-cell><a [routerLink]="[smartContract.contract_id]">{{ smartContract.contract_id }}</a></clr-dg-cell>
       <clr-dg-cell>{{ smartContract.owner }}</clr-dg-cell>
     </clr-dg-row>
     <clr-dg-footer>

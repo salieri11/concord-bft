@@ -2,13 +2,14 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { browser, protractor, ProtractorExpectedConditions } from 'protractor';
+import { browser, protractor, ProtractorExpectedConditions, element } from 'protractor';
 
 import { SmartContractsPage } from './smart-contracts.po';
 import { SmartContractPage } from './smart-contract.po';
 import { AuthHelper } from '../helpers/auth';
 import { LoginPage } from '../login/login.po';
 import { BROWSER_WAIT_TIME } from '../helpers/constants';
+import { waitFor, waitForText } from '../helpers/utils';
 
 declare var require: any;
 
@@ -31,8 +32,8 @@ describe('concord-ui Smart Contracts', () => {
     loginPage = new LoginPage();
     authHelper = new AuthHelper();
     loginPage.navigateTo();
-    loginPage.fillLogInForm('admin@blockchain.local', 'T3sting!');
     browser.sleep(1000);
+    loginPage.fillLogInForm('admin@blockchain.local', 'T3sting!');
   });
 
   afterAll(() => {
@@ -47,46 +48,50 @@ describe('concord-ui Smart Contracts', () => {
     version = 'version1';
     compilerVersion = '0.5.4';
     file = '../files/somefile.sol';
+    browser.waitForAngularEnabled(false);
+    waitFor('#smartContracts');
     smartContractsPage.navigateTo();
   });
 
   it('should create a smart contract', () => {
     const absolutePath = path.resolve(__dirname, file);
-    browser.sleep(500);
     smartContractsPage.openCreateModal();
     browser.wait(until.presenceOf(smartContractPage.getPageTitle()), BROWSER_WAIT_TIME);
     smartContractsPage.fillContractFormStep1(from, contractId, version, compilerVersion, absolutePath);
     smartContractsPage.clickWizardNextButton();
+    waitForText(element(by.cssContainingText('.modal-title', 'Contract Selection')));
     smartContractsPage.clickWizardNextButton();
+    waitForText(element(by.cssContainingText('.modal-title', 'Constructor Parameters')));
     smartContractsPage.addProprosals();
     smartContractsPage.clickWizardFinishButton();
-    browser.wait(until.presenceOf(smartContractPage.getPageTitle()), BROWSER_WAIT_TIME);
+    waitFor('.contract-form');
     expect(smartContractPage.getContractId()).toBe(contractId);
   });
 
   it('should navigate to the smart contract page with the latest version selected', () => {
     const expectedLinkText = `${contractId}`;
     smartContractsPage.getTableLinkElement(expectedLinkText).click();
-    browser.wait(until.presenceOf(smartContractPage.getPageTitle()), BROWSER_WAIT_TIME);
+    waitFor('.contract-form');
     expect(smartContractPage.getContractId()).toBe(contractId);
-
     expect(smartContractPage.getVersionName()).toBe(version);
-
     expect(smartContractPage.getFunctionsForm().isPresent()).toBe(true);
   });
 
   it('should send a call when call is clicked with a valid form', () => {
-    smartContractPage.navigateTo(contractId, version);
+    smartContractPage.navigateTo();
+    waitFor('.contract-form');
     expect(smartContractPage.getCallSuccessAlert().isPresent()).toBe(false);
     smartContractPage.fillParameterForm(from, 'call');
-
+    waitFor('.call-success');
     expect(smartContractPage.getCallSuccessAlert().isPresent()).toBe(true);
   });
 
   it('should send a transaction when transaction is clicked with a valid form', () => {
-    smartContractPage.navigateTo(contractId, version);
+    smartContractPage.navigateTo();
+    waitFor('.contract-form');
     expect(smartContractPage.getTransactionSuccessAlert().isPresent()).toBe(false);
     smartContractPage.fillParameterForm(from, 'transaction');
+    waitFor('.send-success');
     expect(smartContractPage.getTransactionSuccessAlert().isPresent()).toBe(true);
   });
 });

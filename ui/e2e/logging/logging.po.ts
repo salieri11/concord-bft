@@ -6,7 +6,7 @@ import { browser, by, element } from 'protractor';
 
 export class LoggingPage {
   navigateTo() {
-    return browser.get('/logging');
+    element(by.id('logging')).click();
   }
 
   getPageTitle() {

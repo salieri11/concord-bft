@@ -3,6 +3,8 @@
  */
 
 import { Component, Input, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+
 import { Transaction } from '../shared/transactions.model';
 import { TransactionsService } from '../shared/transactions.service';
 
@@ -14,18 +16,24 @@ import { TransactionsService } from '../shared/transactions.service';
 export class TransactionListComponent implements OnInit {
   @Input() transactions: Transaction[] = [];
   @Input() blockNumber?: number;
+  blockchainId: string;
 
-  constructor(private transactionsService: TransactionsService) { }
+  constructor(
+    private transactionsService: TransactionsService,
+    private route: ActivatedRoute
+  ) { }
 
   ngOnInit() {
     if (this.transactions.length === 0) {
       this.loadRecentTransActions();
     }
+
+    this.blockchainId = this.route.snapshot.parent.parent.params['consortiumId'];
   }
 
   loadRecentTransActions() {
     this.transactionsService.getRecentTransactions()
-    .subscribe((resp) => this.transactions = resp);
+      .subscribe((resp) => this.transactions = resp);
   }
 
 }

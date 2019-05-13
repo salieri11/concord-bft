@@ -17,7 +17,9 @@ export class TransactionDetailsComponent implements OnInit {
 
   transaction: Transaction;
 
-  constructor(private transactionsService: TransactionsService) { }
+  constructor(
+    private transactionsService: TransactionsService,
+    ) { }
 
   ngOnInit() {
     this.loadTransaction(this.transactionHash);

@@ -6,8 +6,9 @@
 import { browser, by, element } from 'protractor';
 
 export class SmartContractsPage {
+
   navigateTo() {
-    return browser.get('/smart-contracts');
+    element(by.id('smartContracts')).click();
   }
 
   getPageTitle() {
