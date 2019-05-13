@@ -410,7 +410,7 @@ actual abstract class AccessTokenAwareHttpClient(
             // Straight-up body-handling without examining header.
             log.error { "Exception encountered from API request, error(${error.message})" }
 
-            // Try again re-requesting with a new token.
+            // Interpret as status 401.
             //
             // Note: The body handler logic is setup to capture failures WITHIN the body handling.
             // Unfortunately vSphere's CIS authentication session is not according to spec since in
@@ -419,13 +419,12 @@ actual abstract class AccessTokenAwareHttpClient(
             //
             // try-catch with IOException is somewhat hacky. When vSphere's CIS auth session is
             // fixed, this workaround can be removed.
-            httpRequest
-                    .apply { log.info { "API: $this" } }
-                    .let { client.sendAsync(it, handler).await() }
-                    .also { response ->
-                        log.info { "API response(${response.statusCode()}): ${response.request()}" }
-                    }
-                    .let { response -> response.toHttpResponse() }
+            //
+            // Reference: https://jira.eng.vmware.com/browse/VAPI-1195
+            object : HttpResponse<T?> {
+                override fun statusCode(): Int = 401
+                override fun body(): T? = null
+            }
         }
     }
 }
