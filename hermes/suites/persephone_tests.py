@@ -76,7 +76,7 @@ class PersephoneTests(test_suite.TestSuite):
       return self._resultFile
 
    def _runTest(self, testName, testFun):
-      log.info("\nStarting test '{}'".format(testName))
+      log.info("Starting test '{}'".format(testName))
       fileRoot = os.path.join(self._testLogDir, testName);
       os.makedirs(fileRoot, exist_ok=True)
 

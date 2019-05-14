@@ -30,38 +30,14 @@ class RPCHelper():
       self.channel_connect_timeout = 5  # seconds
       self.channel_connect_status = False
 
-   def get_docker_compose_value(self, service_name, key):
-      '''
-      Helper method to get docker compose value for a given key & service name
-      from docker-compose-persephone.yml
-      :param service_name: microservice name
-      :return: value for the key passed for the service name
-      '''
-      for docker_compose_file in self.cmdlineArgs.dockerComposeFile:
-         with open(docker_compose_file, "r") as yaml_file:
-            compose_data = yaml.load(yaml_file)
-
-         services = list(compose_data["services"])
-         if '/' in service_name:
-            tmp_service_name = service_name.split('/')[1]
-         else:
-            tmp_service_name = service_name
-
-         if tmp_service_name in services:
-            value = compose_data['services'][tmp_service_name][key]
-         else:
-            raise Exception(
-               "Service Name '{}' not found in {}".format(service_name,
-                                                          docker_compose_file))
-      return value
-
    def get_persephone_service_port(self, service_name):
       '''
       Helper method to get the port number for the passed persephone service
       :param service_name: microservice name
       :return: port number
       '''
-      ports = self.get_docker_compose_value(service_name, "ports")
+      ports = helper.get_docker_compose_value(
+         self.cmdlineArgs.dockerComposeFile, service_name, "ports")
       try:
          port = ports[0].split(':')[0]
       except Exception as e:
@@ -74,7 +50,8 @@ class RPCHelper():
       :param service_name: service name (provisioning)
       :return: configl file
       '''
-      config_file = self.get_docker_compose_value(service_name, "volumes")
+      config_file = helper.get_docker_compose_value(
+         self.cmdlineArgs.dockerComposeFile, service_name, "volumes")
       try:
          config_file = config_file[0].split(':')[0]
       except Exception as e:
@@ -131,8 +108,7 @@ class RPCHelper():
       Helper method to gracefully close a created channel
       :param service_name: Service name (for logging)
       '''
-      log.info(
-         "\n*** Closing channel to microservice '{}'".format(service_name))
+      log.info("*** Closing channel to microservice '{}'".format(service_name))
       if self.channel and self.channel_connect_status:
          self.channel.close()
       else:
