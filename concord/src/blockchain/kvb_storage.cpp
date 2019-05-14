@@ -154,9 +154,7 @@ Sliver KVBStorage::kvb_key(uint8_t type, const uint8_t *bytes,
                            size_t length) const {
   uint8_t *key = new uint8_t[1 + length];
   key[0] = type;
-  if (length) {
-    std::copy(bytes, bytes + length, key + 1);
-  }
+  std::copy(bytes, bytes + length, key + 1);
   return Sliver(key, length + 1);
 }
 

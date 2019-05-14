@@ -132,6 +132,8 @@ class IReplica {
     Stopping
   };
 
+  virtual bool isRunning() = 0;
+
   // returns the current status of the replica
   virtual RepStatus getReplicaStatus() const = 0;
 
