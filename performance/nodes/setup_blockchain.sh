@@ -104,14 +104,20 @@ setup_concord_nodes() {
     HOSTNAMES_TO_REPLACE_WITH="HOSTNAMES=(${HOSTNAMES_TO_REPLACE_WITH})"
     sed -i.bkp "s/${HOSTNAMES_STRING_TO_REPLACE}/${HOSTNAMES_TO_REPLACE_WITH}/g" ${WORKDIR}/config-public/find-docker-instances.sh
 
-    echo "Updating find-docker-instances.sh to use config file for $NO_OF_IPS nodes..."
-    PUBPATH_IN_USE=`grep "PUBPATH=/concord" ${WORKDIR}/config-public/find-docker-instances.sh | cut -d'=' -f2`
-    echo "Update public config file: $PUBPATH_IN_USE with Concord IPs..."
-    i=1
-    for CONCORD_NODE in `echo $CONCORD_IPS | tr ',' '\n'`
+    for NODE_COUNT in $(seq 1 $NO_OF_IPS)
     do
-        sed -i.bkp "s/concord${i} 127.0.0.1 350/concord${i} ${CONCORD_NODE} 350/g" ${WORKDIR}/config-public/`basename $PUBPATH_IN_USE`
-        i=`expr $i + 1`
+        echo "Updating docker/config-concord${NODE_COUNT}/concord_with_hostnames.config..."
+        CONCORD_CONFIG_ORIG_FILE="${BLOCKCHAIN_REPO}/docker/config-concord${NODE_COUNT}/concord_with_hostnames.config.orig"
+        if [ ! -f "${CONCORD_CONFIG_ORIG_FILE}" ]
+        then
+            cp ${BLOCKCHAIN_REPO}/docker/config-concord${NODE_COUNT}/concord_with_hostnames.config ${BLOCKCHAIN_REPO}/docker/config-concord${NODE_COUNT}/concord_with_hostnames.config.orig
+        fi
+        i=1
+        for CONCORD_NODE in `echo $CONCORD_IPS | tr ',' '\n'`
+        do
+            sed -i.bkp "s/concord${i}/${CONCORD_NODE}/g" ${BLOCKCHAIN_REPO}/docker/config-concord${NODE_COUNT}/concord_with_hostnames.config
+            i=`expr $i + 1`
+        done
     done
 
     i=1
