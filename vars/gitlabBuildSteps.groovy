@@ -392,7 +392,7 @@ EOF
                         echo "${PASSWORD}" | sudo -S "${python}" main.py TruffleTests --logLevel debug --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${truffle_test_logs}" --runConcordConfigurationGeneration
                         echo "${PASSWORD}" | sudo -S "${python}" main.py ContractCompilerTests --dockerComposeFile ../docker/docker-compose.yml --resultsDir "${contract_compiler_test_logs}" --runConcordConfigurationGeneration
 
-                        cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir ${mem_leak_test_logs} ; cd ..
+                        cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 2 --tests vmArithmeticTest/add0.json --resultsDir "${mem_leak_test_logs}" ; cd ..
 
                         # We need to delete the database files before running UI tests because
                         # Selenium cannot launch Chrome with sudo.  (The only reason Hermes
@@ -405,7 +405,7 @@ EOF
                     if (env.JOB_NAME.contains(memory_leak_job_name)) {
                       sh '''
                         echo "Running Entire Testsuite: Memory Leak..."
-                        cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 5 --resultsDir ${mem_leak_test_logs}
+                        cd suites ; echo "${PASSWORD}" | sudo -SE ./memory_leak_test.sh --testSuite CoreVMTests --repeatSuiteRun 5 --resultsDir "${mem_leak_test_logs}"
                       '''
                     }
                     if (env.JOB_NAME.contains(performance_test_job_name)) {

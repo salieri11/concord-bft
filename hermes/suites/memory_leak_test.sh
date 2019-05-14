@@ -4,7 +4,7 @@ while [ "$1" != "" ] ; do
    case $1 in
       "--testSuite")
          shift
-         TEST_SUITE=$1
+         TEST_SUITE="$1"
          ;;
       "--repeatSuiteRun")
          shift
@@ -12,11 +12,11 @@ while [ "$1" != "" ] ; do
          ;;
       "--tests")
          shift
-         TESTS=$1
+         TESTS="$1"
          ;;
       "--resultsDir")
          shift
-         RESULTS_DIR=$1
+         RESULTS_DIR="$1"
          ;;
    esac
    shift
