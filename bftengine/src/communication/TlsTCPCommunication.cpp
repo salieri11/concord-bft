@@ -51,6 +51,9 @@ using namespace std;
 using namespace concordlogger;
 using namespace boost;
 
+int NUM_OF_SERVICES = 1;
+int THREAD_PER_SERVICE = 1;
+
 namespace bftEngine {
 
 class AsyncTlsConnection;
@@ -77,7 +80,9 @@ class IoServices {
   void start() {
     for (auto &ioService : m_ioServices) {
       m_idleWorks.emplace_back(ioService);
-      m_threads.emplace_back([&] { ioService.run(); });
+      for(int i =0; i < THREAD_PER_SERVICE; i++) {
+        m_threads.emplace_back([&] { ioService.run(); });
+      }
     }
   }
 
@@ -408,10 +413,7 @@ class AsyncTlsConnection : public
         asio::ssl::verify_fail_if_no_peer_cert);
     _sslContext.set_options(
         boost::asio::ssl::context::default_workarounds
-            | boost::asio::ssl::context::no_sslv2
-            | boost::asio::ssl::context::no_sslv3
-            | boost::asio::ssl::context::no_tlsv1
-            | boost::asio::ssl::context::no_tlsv1_1
+
             | boost::asio::ssl::context::single_dh_use);
 
     _sslContext.set_verify_callback(
@@ -718,7 +720,8 @@ class AsyncTlsConnection : public
     // if first is true - we came from partial reading, no timer was started
     if(!first) {
       auto res = _readTimer.expires_at(boost::posix_time::pos_infin);
-      assert(res < 2); //can cancel at most 1 pending async_wait
+      assert(res <= THREAD_PER_SERVICE); //can cancel at most 1 pending
+      // async_wait
     }
     if (_disposed) {
       return;
@@ -751,7 +754,8 @@ class AsyncTlsConnection : public
 
     auto res = _readTimer.expires_from_now(
         boost::posix_time::milliseconds(READ_TIME_OUT_MILLI));
-    assert(res == 0); //can cancel at most 1 pending async_wait
+    assert(res <= THREAD_PER_SERVICE);//can cancel at most 1 pending
+    // async_wait
     _readTimer.async_wait(
         boost::bind(&AsyncTlsConnection::on_read_timer_expired,
                     shared_from_this(),
@@ -794,7 +798,7 @@ class AsyncTlsConnection : public
   void read_msg_async_completed(const boost::system::error_code &ec,
                                 size_t bytesRead) {
     auto res = _readTimer.expires_at(boost::posix_time::pos_infin);
-    assert(res < 2); //can cancel at most 1 pending async_wait
+    assert(res <= THREAD_PER_SERVICE); //can cancel at most 1 pending async_wait
     if (_disposed) {
       return;
     }
@@ -893,19 +897,32 @@ class AsyncTlsConnection : public
   }
 
   void start_async_write() {
+    std::vector<asio::const_buffer> bufs;
+    int count = 0;
+    _writeLock.lock();
+    for(auto it = _outQueue.begin(); it != _outQueue.end(); ++it) {
+      bufs.push_back(boost::asio::buffer(it->data, it->length));
+      count++;
+    }
+    _writeLock.unlock();
+
+    LOG_INFO(_logger, "sendcount: " << count);
+
     asio::async_write(
         *_socket,
-        asio::buffer(_outQueue.front().data, _outQueue.front().length),
+        bufs,
         boost::bind(
             &AsyncTlsConnection::async_write_complete,
             shared_from_this(),
             boost::asio::placeholders::error,
-            boost::asio::placeholders::bytes_transferred));
+            boost::asio::placeholders::bytes_transferred,
+            count));
 
     // start the timer to handle the write timeout
     auto res = _writeTimer.expires_from_now(
         boost::posix_time::milliseconds(WRITE_TIME_OUT_MILLI));
-    assert(res == 0); //should not cancel any pending async wait
+    assert(res <= THREAD_PER_SERVICE); //should not cancel any pending async
+    // wait
     _writeTimer.async_wait(
         boost::bind(&AsyncTlsConnection::on_write_timer_expired,
                     shared_from_this(),
@@ -915,9 +932,10 @@ class AsyncTlsConnection : public
   /**
    * completion callback for the async write operation
    */
-  void async_write_complete(const B_ERROR_CODE &ec, size_t bytesWritten) {
+  void async_write_complete(const B_ERROR_CODE &ec, size_t bytesWritten, int
+  count) {
     auto res = _writeTimer.expires_at(boost::posix_time::pos_infin);
-    assert(res < 2); //can cancel at most 1 pending async_wait
+    assert(res <= THREAD_PER_SERVICE); //can cancel at most 1 pending async_wait
     if(_disposed) {
       return;
     }
@@ -927,9 +945,10 @@ class AsyncTlsConnection : public
       return;
     }
 
-    lock_guard<mutex> l(_writeLock);
+    _writeLock.lock();
     //remove the message that has been sent
-    _outQueue.pop_front();
+    _outQueue.erase(_outQueue.begin(), _outQueue.begin() + count);
+    _writeLock.unlock();
 
     // if there are more messages, continue to send but don' renmove, s.t.
     // the send() method will not trigger concurrent write
@@ -949,10 +968,10 @@ class AsyncTlsConnection : public
     }
 
     //
-    lock_guard<mutex> l(_writeLock);
-    if(_outQueue.size() > 0) {
+    //lock_guard<mutex> l(_writeLock);
+    //if(_outQueue.size() > 0) {
       start_async_write();
-    }
+    //}
   }
 
   /// ************* write functions end ******************* ////
@@ -1014,13 +1033,14 @@ class AsyncTlsConnection : public
 
     // push to the output queue
     OutMessage out = OutMessage(buf, length + MSG_HEADER_SIZE);
+    bool canSend = _outQueue.size() == 0;
     _outQueue.push_back(std::move(out));
 
     // if there is only one message in the queue there are no pending writes
     // - we can start one
     // we must post to asio service because async operations should be
     // started from asio threads and not during pending async read
-    if(_outQueue.size() == 1) {
+    if(canSend) {
       _service->post(boost::bind(&AsyncTlsConnection::do_write,
                                  shared_from_this()));
     }
@@ -1237,7 +1257,7 @@ class TlsTCPCommunication::TlsTcpImpl :
              string cipherSuite,
              UPDATE_CONNECTIVITY_FN statusCallback = nullptr) :
       _selfId(selfNodeNum),
-      _services(4),
+      _services(NUM_OF_SERVICES),
       _listenPort(listenPort),
       _listenIp(listenIp),
       _bufferLength(bufferLength),
@@ -1412,7 +1432,7 @@ class TlsTCPCommunication::TlsTcpImpl :
   int sendAsyncMessage(const NodeNum destNode,
                        const char *const message,
                        const size_t messageLength) {
-    lock_guard<mutex> lock(_connectionsGuard);
+    //lock_guard<mutex> lock(_connectionsGuard);
     auto temp = _connections.find(destNode);
     if (temp != _connections.end()) {
       temp->second->send(message, messageLength);
