@@ -373,6 +373,16 @@ class AsyncTlsConnection : public
    * @param error code
    */
   void on_handshake_complete_outbound(const B_ERROR_CODE &ec) {
+    set_connected(true);
+    // When authenticated, replace custom verification by default one.
+    // This is mandatory to avoid leaking 'this' since the verification
+    // callback was binded using shared_from_this and the SSL context
+    // will retain the callback and thus 'this' will not be destroyed
+    // when needed
+    _sslContext.set_verify_callback([](bool p,
+                                       asio::ssl::verify_context&) {
+      return p;
+    });
     bool err = was_error(ec, "on_handshake_complete_outbound");
     if (err) {
       handle_error();
@@ -393,6 +403,15 @@ class AsyncTlsConnection : public
    */
   void on_handshake_complete_inbound(const B_ERROR_CODE &ec) {
     set_connected(true);
+    // When authenticated, replace custom verification by default one.
+    // This is mandatory to avoid leaking 'this' since the verification
+    // callback was binded using shared_from_this and the SSL context
+    // will retain the callback and thus 'this' will not be destroyed
+    // when needed
+    _sslContext.set_verify_callback([](bool p,
+                                       asio::ssl::verify_context&) {
+      return p;
+    });
     bool err = was_error(ec, "on_handshake_complete_inbound");
     if (err) {
       handle_error();
@@ -576,6 +595,7 @@ class AsyncTlsConnection : public
         LOG_ERROR(_logger, "peers doesnt match, expected: " << expectedPeerId
                                                             << ", received: "
                                                             << remPeer);
+
         return false;
       }
     }
@@ -608,6 +628,7 @@ class AsyncTlsConnection : public
                  "connection authenticated, node: " << _selfId << ", type: " << _connType << ", expected peer: " << _expectedDestId
                                                     << ", peer: "
                                                     << remotePeerId);
+
       }
 
       if(_destId == UNKNOWN_NODE_ID) {
