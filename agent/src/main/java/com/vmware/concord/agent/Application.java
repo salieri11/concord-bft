@@ -22,7 +22,7 @@ public class Application {
     public static void main(String[] args) {
         // Create the required configuration files etc for concord-node
         AgentDockerClient client = new AgentDockerClient();
-        client.createVolume();
+        client.startConcord();
         SpringApplication.run(Application.class, args);
     }
 
