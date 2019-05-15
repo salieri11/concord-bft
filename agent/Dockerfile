@@ -7,6 +7,7 @@ COPY ./blockchain-build/pom.xml ./blockchain-build/pom.xml
 COPY ./persephone/pom.xml ./persephone/pom.xml
 COPY ./persephone/api/pom.xml ./persephone/api/pom.xml
 COPY ./persephone/cli/pom.xml ./persephone/cli/pom.xml
+COPY ./persephone/awsutil/pom.xml ./persephone/awsutil/pom.xml
 COPY ./persephone/core/pom.xml ./persephone/core/pom.xml
 COPY ./persephone/metadata-service/pom.xml ./persephone/metadata-service/pom.xml
 COPY ./persephone/metadata-service-client/pom.xml ./persephone/metadata-service-client/pom.xml
@@ -31,6 +32,11 @@ RUN mvn -f protobuf/pom.xml install
 # Build persephone API.
 COPY ./persephone/api/src ./persephone/api/src
 RUN mvn -f persephone/pom.xml install -pl api -am -B
+
+# Build persephone AWS Util.
+COPY ./persephone/awsutil/src ./persephone/awsutil/src
+COPY ./persephone/awsutil/test ./persephone/awsutil/test
+RUN mvn -f persephone/pom.xml install -pl awsutil -am -B
 
 # Resolve / fetch all dependencies for agent module.
 RUN mvn -f agent/pom.xml dependency:go-offline -B

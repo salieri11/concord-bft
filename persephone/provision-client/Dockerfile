@@ -10,6 +10,7 @@ COPY ./persephone/pom.xml ./persephone/pom.xml
 COPY ./persephone/api/pom.xml ./persephone/api/pom.xml
 COPY ./persephone/cli/pom.xml ./persephone/cli/pom.xml
 COPY ./persephone/core/pom.xml ./persephone/core/pom.xml
+COPY ./persephone/awsutil/pom.xml ./persephone/awsutil/pom.xml
 COPY ./persephone/provision-service/pom.xml ./persephone/provision-service/pom.xml
 COPY ./persephone/provision-client/pom.xml ./persephone/provision-client/pom.xml
 COPY ./persephone/orchestration/pom.xml ./persephone/orchestration/pom.xml

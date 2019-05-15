@@ -20,6 +20,7 @@
         <module>orchestration</module>
         <module>orchestration-vmc</module>
         <module>persistence</module>
+        <module>awsutil</module>
         <module>provision-service</module>
     </modules>
 
@@ -129,6 +130,11 @@
             <dependency>
                 <groupId>com.vmware.blockchain</groupId>
                 <artifactId>persephone-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.vmware.blockchain</groupId>
+                <artifactId>persephone-awsutil</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -364,6 +370,9 @@
                         <source>${java.version}</source>
                         <target>${java.version}</target>
                         <release>${java.version}</release>
+                        <fork>true</fork>
+                        <meminitial>1024m</meminitial>
+                        <maxmem>4048m</maxmem>
                         <generatedSourcesDirectory>${project.build.directory}/generated-sources/annotations</generatedSourcesDirectory>
                         <generatedTestSourcesDirectory>${project.build.directory}/generated-sources/test-annotations</generatedTestSourcesDirectory>
                         <includes>

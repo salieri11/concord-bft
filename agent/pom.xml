@@ -152,6 +152,16 @@
             <artifactId>lombok</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.vmware.blockchain</groupId>
+            <artifactId>persephone-awsutil</artifactId>
+            <version>${persephone.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.6</version>
+        </dependency>
+        <dependency>
            <groupId>com.google.protobuf</groupId>
            <artifactId>protobuf-java</artifactId>
            <version>3.6.1</version>

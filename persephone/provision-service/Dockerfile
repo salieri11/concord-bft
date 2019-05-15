@@ -10,6 +10,7 @@ COPY ./persephone/pom.xml ./persephone/pom.xml
 COPY ./persephone/api/pom.xml ./persephone/api/pom.xml
 COPY ./persephone/cli/pom.xml ./persephone/cli/pom.xml
 COPY ./persephone/core/pom.xml ./persephone/core/pom.xml
+COPY ./persephone/awsutil/pom.xml ./persephone/awsutil/pom.xml
 COPY ./persephone/metadata-service/pom.xml ./persephone/metadata-service/pom.xml
 COPY ./persephone/metadata-service-client/pom.xml ./persephone/metadata-service-client/pom.xml
 COPY ./persephone/orchestration/pom.xml ./persephone/orchestration/pom.xml
@@ -25,6 +26,8 @@ COPY ./persephone/orchestration/src ./persephone/orchestration/src
 COPY ./persephone/orchestration-vmc/src ./persephone/orchestration-vmc/src
 COPY ./persephone/persistence/src ./persephone/persistence/src
 COPY ./persephone/persistence/test ./persephone/persistence/test
+COPY ./persephone/awsutil/src ./persephone/awsutil/src
+COPY ./persephone/awsutil/test ./persephone/awsutil/test
 
 ## Copy the module sources and POM file.
 COPY ./persephone/provision-service/src ./persephone/provision-service/src
@@ -42,27 +45,6 @@ WORKDIR /concord
 COPY ./concord /concord
 WORKDIR /concord/build
 RUN cmake -DCMAKE_CXX_FLAGS="-march=x86-64 -mtune=generic" .. && make -j$(nproc) conc_genconfig
-
-#FROM ubuntu:18.04
-#LABEL Description="ConcordCfgTool"
-
-# Install libs
-#RUN apt-get update && apt-get -y install \
-#    libgmp10 \
-#    libboost-program-options1.65.1 \
-#    libyaml-cpp0.5v5 \
-#    && rm -rf /var/lib/apt/lists/*
-
-# Install libs build from source
-#COPY --from=builder1 /usr/local/lib/liblog4cplus* /usr/local/lib/
-
-## Ensure configtool can find it
-#ENV LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/lib"
-
-# Copy ConfigTool
-#COPY --from=builder1 /concord/build/tools/conc_genconfig /app/
-
-
 
 # Runtime image (Metadata Service).
 FROM openjdk:11.0.2-jdk-slim
