@@ -163,6 +163,8 @@ message DeploymentSessionEvent {
         NODE_STATUS = 3; // Status update for a node specified in [node_status].
         CLUSTER_DEPLOYED = 4; // Cluster specified by [cluster] is fully deployed.
         COMPLETED = 5; // Session completed (plan associated with [deployment] is marked complete).
+
+        RESOURCE = 100; // Deployed resource event. (INTERNAL USE FOR INFRASTRUCTURE MANAGEMENT)
     }
 
     Type type = 1;
@@ -171,6 +173,36 @@ message DeploymentSessionEvent {
     ConcordNodeStatus node_status = 4;
     ConcordCluster cluster = 5;
     DeploymentSession.Status status = 6;
+
+    // Internal.
+    ProvisionedResource resource = 10;
+}
+
+/**
+ * Model definition for a resource provisioned from an orchestration site.
+ *
+ * @property[name]
+ *   name of the resource.
+ * @property[site]
+ *   identifier of the hosting orchestration site.
+ * @property[cluster]
+ *   identifier of the Concord cluster that the resource is provisioned for.
+ * @property[node]
+ *   identifier of the Concord node that the resource is provisioned for.
+ */
+message ProvisionedResource {
+    enum Type {
+        GENERIC = 0; // Default value, denoting an unspecified resource type.
+        COMPUTE_RESOURCE = 1; // Compute resource (e.g. VM, kubernetes POD).
+        NETWORK_RESOURCE = 2; // Network resource (e.g. IP address).
+        NETWORK_ALLOCATION = 3; // Network allocation (e.g. NAT rules, kubernetes cluster IP).
+    }
+
+    Type type = 1;
+    string name = 2;
+    OrchestrationSiteIdentifier site = 3;
+    ConcordClusterIdentifier cluster = 4;
+    ConcordNodeIdentifier node = 5;
 }
 
 /**
