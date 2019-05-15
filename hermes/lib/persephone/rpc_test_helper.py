@@ -22,44 +22,19 @@ log = logging.getLogger(__name__)
 
 class RPCTestHelper():
    def __init__(self, cmdlineArgs):
-      self._cmdlineArgs = cmdlineArgs
+      self.cmdlineArgs = cmdlineArgs
       try:
          self.model_rpc_helper = ModelServiceRPCHelper(
-            self.get_persephone_service_info(
-               Product.PERSEPHONE_SERVICE_METADATA))
+            self.cmdlineArgs)
          self.provision_rpc_helper = ProvisioningServiceRPCHelper(
-            self.get_persephone_service_info(
-               Product.PERSEPHONE_SERVICE_PROVISIONING))
+            self.cmdlineArgs)
          # self.fleet_rpc_helper = FleetServiceRPCHelper(
-         #     self.get_persephone_service_info(
-         #         Product.PERSEPHONE_SERVICE_FLEET))
+         #    self.cmdlineArgs)
+
+         self.PLACEMENT_TYPE_FIXED = self.provision_rpc_helper.PLACEMENT_TYPE_FIXED
+         self.PLACEMENT_TYPE_UNSPECIFIED = self.provision_rpc_helper.PLACEMENT_TYPE_UNSPECIFIED
       except Exception as e:
          raise Exception(e)
-
-   def get_persephone_service_info(self, service_name):
-      '''
-      Helper method to get persephone service info (name, port)
-      to match with docker repo name in ,env file and docker-compose file
-      :param service_name: microservice name
-      :return: dict of service name & port number
-      '''
-      for docker_compose_file in self._cmdlineArgs.dockerComposeFile:
-         with open(docker_compose_file, "r") as yaml_file:
-            compose_data = yaml.load(yaml_file)
-
-         services = list(compose_data["services"])
-         if '/' in service_name:
-            tmp_service_name = service_name.split('/')[1]
-         else:
-            tmp_service_name = service_name
-         if tmp_service_name in services:
-            ports = compose_data['services'][tmp_service_name]['ports']
-            port = ports[0].split(':')[0]
-         else:
-            raise Exception(
-               "Service Name '{}' not found in {}".format(service_name,
-                                                          docker_compose_file))
-      return {service_name: port}
 
    def rpc_add_model(self):
       '''
@@ -88,15 +63,16 @@ class RPCTestHelper():
          log.info("Metadata: {}".format(item))
       return metadata
 
-   def rpc_create_cluster(self, cluster_size=4):
+   def rpc_create_cluster(self, cluster_size=4, placement_type="FIXED"):
       '''
       Helper method to call create cluster gRPC
       :param cluster_size: cluster size
+      :param placement_type: FIXED/UNSPECIFIED to place the concord memebers on site
       :return: deployment session ID
       '''
       concord_model_specification = self.model_rpc_helper.create_concord_model_specification()
       placement_specification = self.provision_rpc_helper.create_placement_specification(
-         cluster_size)
+         cluster_size, placement_type=placement_type)
       concord_deployment_specification = self.provision_rpc_helper.create_deployment_specification(
          cluster_size, concord_model_specification, placement_specification)
       header = core_pb2.MessageHeader()

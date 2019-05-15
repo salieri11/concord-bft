@@ -9,5 +9,5 @@ services:
     ports:
       - 9002:9002
     volumes:
-      - ../hermes/resources/persephone:/config/persephone:ro
+      - ../hermes/resources/persephone/provision-service/config.json:/config/persephone/provision-service/config.json:ro
 

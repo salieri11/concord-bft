@@ -1,5 +1,5 @@
 [
-    { "low": 1, "high": 0 },
+    { "low": 4, "high": 0 },
     {
         "type": "VMC",
         "vmc": {
@@ -33,11 +33,11 @@
                 }
             },
             "organization":"c56e116e-c36f-4f7d-b504-f9a33955b853",
-            "datacenter":"3656526b-c74e-4f87-8e1f-a667975273c2",
+            "datacenter":"abb0fe0e-1f2f-470c-a427-774aa08ce2ea",
             "resourcePool":"Compute-ResourcePool",
             "folder":"rsg",
             "controlNetwork":"vmware-vpn",
-            "controlNetworkPrefix":172518400,
+            "controlNetworkPrefix":172321024,
             "controlNetworkSubnet":24
         }
     }

@@ -23,10 +23,10 @@ class PersephoneTests(test_suite.TestSuite):
    _args = None
    _resultFile = None
    _unintentionallySkippedFile = None
+   default_cluster_size = 4
 
    def __init__(self, passedArgs):
       super().__init__(passedArgs)
-      self.default_cluster_size = 4
 
    def getName(self):
       return "PersephoneTests"
@@ -76,7 +76,7 @@ class PersephoneTests(test_suite.TestSuite):
       return self._resultFile
 
    def _runTest(self, testName, testFun):
-      log.info("\nStarting test '{}'".format(testName))
+      log.info("Starting test '{}'".format(testName))
       fileRoot = os.path.join(self._testLogDir, testName);
       os.makedirs(fileRoot, exist_ok=True)
 
@@ -85,7 +85,10 @@ class PersephoneTests(test_suite.TestSuite):
    def _get_tests(self):
       return [
          ("add_model", self._test_add_model),
-         ("list_models", self._test_list_models)
+         ("list_models", self._test_list_models),
+         ("4 Node Blockchain-UNSPECIFIED Site", self._test_create_blockchain_4_node_unspecified_site),
+         ("get_deployment_events", self._test_stream_deployment_events),
+         ("7 Node Blockchain-FIXED Site", self._test_create_blockchain_7_node_fixed_site)
       ]
 
    def get_json_object(self, message_obj):
@@ -100,15 +103,25 @@ class PersephoneTests(test_suite.TestSuite):
          json_object = json.loads(MessageToJson(message_obj))
          return json_object
 
-   def validate_cluster_deployment_events(self, events_to_monitor,
+   def validate_cluster_deployment_events(self, cluster_size,
                                           response_events_json):
+      '''
+      Validates the deployment events response
+      :param cluster_size: No. of concord nodes in the cluster
+      :param response_events_json: event response in json format
+      :return: validation status (True/False)
+      '''
+      events_to_monitor = [{"ACKNOWLEDGED": 1},
+                           {"NODE_DEPLOYED": cluster_size},
+                           {"CLUSTER_DEPLOYED": 1},
+                           {"COMPLETED": 1}]
+
       event_item_to_monitor = 0
       event_response_count = 1
       for event in response_events_json:
          eventset_to_monitor = events_to_monitor[event_item_to_monitor]
-         for event_name, event_count in eventset_to_monitor.items():
-            event_to_monitor = event_name
-            event_count = event_count
+         event_to_monitor = list(eventset_to_monitor.keys())[0]
+         event_count = eventset_to_monitor[event_to_monitor]
          if event["type"] == event_to_monitor:
             if event_response_count == event_count:
                event_item_to_monitor += 1
@@ -154,12 +167,15 @@ class PersephoneTests(test_suite.TestSuite):
               "ListModels does not contain the added metadata: {}".format(
                  self.response_add_model_id))
 
-   def _test_create_cluster(self):
+   def _test_create_blockchain_4_node_unspecified_site(self,
+                                           cluster_size=default_cluster_size):
       '''
-      Test to Create a Cluster node and expect deployment session id
+      Test to Create a blockchain cluster with 4 nodes on UNSPECIFIED sites
+      :param cluster_size: No. of concord members in the cluster
       '''
       response = self.rpc_test_helper.rpc_create_cluster(
-         cluster_size=self.default_cluster_size)
+         cluster_size=cluster_size,
+         placement_type=self.rpc_test_helper.PLACEMENT_TYPE_UNSPECIFIED)
       if response:
          response_session_id_json = self.get_json_object(response[0])
          if "low" in response_session_id_json:
@@ -167,24 +183,47 @@ class PersephoneTests(test_suite.TestSuite):
             return (True, None)
       return (False, "Failed to get a valid deployment session ID")
 
-   def _test_stream_deployment_events(self):
+   def _test_stream_deployment_events(self, cluster_size=default_cluster_size):
       '''
       Test to get deployment events stream
-      TODO: Add validation to parse the response
+      :param cluster_size: No. of concord memebers in the cluster
       '''
       events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
          self.response_deployment_session_id)
       if events:
          response_events_json = self.get_json_object(events)
-         events_to_monitor = [{"ACKNOWLEDGED": 1},
-                              {"NODE_DEPLOYED": self.default_cluster_size},
-                              {"CLUSTER_DEPLOYED": 1},
-                              {"COMPLETED": 1}]
-         if self.validate_cluster_deployment_events(events_to_monitor,
+         if self.validate_cluster_deployment_events(cluster_size,
                                                     response_events_json):
             # TODO:
-            # 1. Fetch concord IPs
-            # 2.Ping/SSH those IPs
+            # 1. Fetch concord IPs & check the validity of for other fields
+            # 2. Ping/SSH those IPs
             # 3. Save IPs to be used for extensive tesing by running existing testsuites
             return (True, None)
       return (False, "Failed to fetch Deployment Events")
+
+
+   # TODO: Change cluster_size to 7, once product is ready to handle
+   def _test_create_blockchain_7_node_fixed_site(self, cluster_size=4):
+      '''
+      Test to create a blockchain cluster with 7 nodes on FIXED sites
+      :param cluster_size: Np. of concord nodes on the cluster
+      '''
+
+      response = self.rpc_test_helper.rpc_create_cluster(cluster_size=cluster_size)
+      if response:
+         response_session_id_json = self.get_json_object(response[0])
+         if "low" in response_session_id_json:
+            response_deployment_session_id = response[0]
+
+            events = self.rpc_test_helper.rpc_stream_cluster_deployment_session_events(
+               response_deployment_session_id)
+            if events:
+               response_events_json = self.get_json_object(events)
+               if self.validate_cluster_deployment_events(cluster_size,
+                                                          response_events_json):
+                  return (True, None)
+            return (False, "Failed to fetch Deployment Events")
+
+            return (True, None)
+      return (False, "Failed to get a valid deployment session ID")
+

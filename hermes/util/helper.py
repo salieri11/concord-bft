@@ -1,5 +1,6 @@
 # Helper file with common utility methods
 import os
+import yaml
 import shutil
 import logging
 
@@ -40,3 +41,42 @@ def get_docker_env(key=None):
    else:
       return env
 
+def get_docker_compose_value(docker_compose_files, service_name, key):
+   '''
+   Helper method to get docker compose value for a given key & service name
+   from docker-compose-*.yml passed as command line argument
+   :param docker_compose_files: cmdline arg dockerComposeFile
+   :param service_name: microservice name
+   :param key: key in a service defined in the prodvides docker-compose file(s)
+   :return: value for the key passed for the service name
+   '''
+   service_name_found = False
+   value_found = False
+   for docker_compose_file in docker_compose_files:
+      log.debug("Parsing docker-compose file: {}".format(docker_compose_file))
+      with open(docker_compose_file, "r") as yaml_file:
+         compose_data = yaml.load(yaml_file)
+
+      services = list(compose_data["services"])
+      if '/' in service_name:
+         tmp_service_name = service_name.split('/')[1]
+      else:
+         tmp_service_name = service_name
+
+      if tmp_service_name in services:
+         service_name_found = True
+         service_keys = compose_data['services'][tmp_service_name]
+         if key in service_keys:
+            value = service_keys[key]
+            value_found = True
+
+   if value_found:
+      return value
+
+   if not service_name_found:
+      raise Exception(
+         "Service name '{}' not found in docker file(s): {}".format(
+            service_name, docker_compose_files))
+   else:
+      raise Exception("Key '{}' not found in docker file(s): {}".format(key,
+         docker_compose_files))
