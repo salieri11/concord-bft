@@ -120,9 +120,8 @@ class PersephoneTests(test_suite.TestSuite):
       event_response_count = 1
       for event in response_events_json:
          eventset_to_monitor = events_to_monitor[event_item_to_monitor]
-         for event_name, event_count in eventset_to_monitor.items():
-            event_to_monitor = event_name
-            event_count = event_count
+         event_to_monitor = list(eventset_to_monitor.keys())[0]
+         event_count = eventset_to_monitor[event_to_monitor]
          if event["type"] == event_to_monitor:
             if event_response_count == event_count:
                event_item_to_monitor += 1
