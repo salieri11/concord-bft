@@ -18,7 +18,7 @@ trap killAllProcs INT
 
 # Kill all processes.
 killAllProcs(){
-  echo A problem or interrupt occurred. Killing processes...
+  error "A problem or interrupt occurred. Killing processes..."
 
   for i in "${!BUILD_PROCS[@]}"
   do
@@ -35,10 +35,10 @@ verifyDocker(){
 
   if [ "${DOCKER}" == "" ]
   then
-    echo Error: Docker was not found on this system.
+    error "Docker was not found on this system."
     exit 1
   else
-    echo Docker: "${DOCKER}"
+    info "Docker: ${DOCKER}"
   fi
 }
 
@@ -57,7 +57,8 @@ waitForProcesses(){
   do
     DONE=true
 
-    echo "-------- Status --------"
+    info "-------- Status --------"
+    printMemory
 
     for i in "${!BUILD_PROCS[@]}"
     do
@@ -67,10 +68,10 @@ waitForProcesses(){
       then
         DONE=false
         STATUS_STRING="waiting"
-	echo "${i}": "${STATUS_STRING}"
+	info "${i}: ${STATUS_STRING}"
       else
         STATUS_STRING="done"
-        echo "${i}": "${STATUS_STRING}"
+        info "${i}: ${STATUS_STRING}"
         dieOnFailure "${i}" ${BUILD_PROCS[$i]}
       fi
     done
@@ -89,7 +90,7 @@ dieOnFailure(){
 
   if [ ${EXIT_CODE} -ne 0 ]
   then
-    echo ERROR: Failure executing "${NAME}".  Exit code: ${EXIT_CODE}
+    error "Failure executing ${NAME}.  Exit code: ${EXIT_CODE}"
     killAllProcs
     exit 1
   fi
@@ -98,7 +99,7 @@ dieOnFailure(){
 # Accepting a human-friendly name and process ID, adds
 # them to the BUILD_PROCS array of name=procId.
 addToProcList(){
-  echo Adding build process: "${1}"=${2}
+  info "Adding build process: ${1}=${2}"
   BUILD_PROCS["${1}"]=${2}
 }
 
@@ -119,34 +120,13 @@ buildMavenTargets(){
 
   while isRunning ${MVN_BUILD}
   do
-    echo Waiting for maven build of helen/ethrpc/communication...
+    info "Waiting for maven build of helen/ethrpc/communication..."
     sleep 10
   done
 
   dieOnFailure "Maven" ${MVN_BUILD}
 }
 
-# Note that the SimpleStateTransferTest relies on a local Concord build
-# for a test file (blockchain/concord/build/tools/conc_rocksdb_adp).
-# If we can make that test work entirely in a container, this can be removed.
-startNativeConcordBuild(){
-    pushd .
-    cd concord
-    #echo "sed -i \"s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g\" test/resources/concord1.config"
-    #sed -i "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord1.config
-    #sed -i "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord2.config
-    #sed -i "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord3.config
-    #sed -i "s?./test/resources/genesis.json?${currentDir}/test/resources/genesis.json?g" test/resources/concord4.config
-
-    git submodule init
-    git submodule update --recursive
-    mkdir -p build
-    cd build
-    cmake .. > concord_native_cmake.log 2>&1
-    make > concord_native_make.log 2>&1 &
-    addToProcList "Concord_native" $!
-    popd
-}
 
 install_node_dependency() {
   NAME="${1}"
@@ -160,7 +140,7 @@ install_node_dependency() {
 
   while isRunning ${NODE_BUILD_PID}
   do
-    echo "Waiting for $NAME..."
+    info "Waiting for $NAME..."
     sleep 10
   done
 
@@ -172,8 +152,8 @@ install_node_dependency() {
 docker_build() {
     if [ "$#" -lt "4" ]
     then
-        echo "Missing Required Parameters for docker build method"
-        echo "Usage: docker_build <directory to docker build> <docker build file> <docker build name> <docker build tag>"
+        error "Missing Required Parameters for docker build method"
+        error "Usage: docker_build <directory to docker build> <docker build file> <docker build name> <docker build tag>"
         killAllProcs
         exit 1
     fi
@@ -211,8 +191,8 @@ docker_build() {
 docker_pull() {
     if [ "$#" -ne "2" ]
     then
-        echo "Missing Required Parameters for docker pull method"
-        echo "Usage: docker_pull <docker image:tag> <Task Name>"
+        error "Missing Required Parameters for docker pull method"
+        error "Usage: docker_pull <docker image:tag> <Task Name>"
         killAllProcs
         exit 1
     fi
@@ -235,6 +215,24 @@ BuildPersephoneGRPCpyBindings() {
     popd
 }
 
+info() {
+    echo `date`: INFO: "${1}"
+}
+
+error() {
+    echo `date`: ERROR: "${1}"
+}
+
+printMemory() {
+    uname | grep "Linux"
+    LINUX=$?
+
+    if [ $LINUX -eq 0 ]
+    then
+        free -h
+    fi
+}
+
 declare -A BUILD_PROCS
 
 while [ "$1" != "" ] ; do
@@ -252,30 +250,27 @@ for component_name in `echo "${DEPENDENCY_EXTERNAL_COMPONENTS}"`
 do
     if [ ! -d "../${component_name}" ]
     then
-        echo "This script requires the following directories to be copied at project level"
-        echo "${DEPENDENCY_EXTERNAL_COMPONENTS}" | tr ' ' '\n'
+        error "This script requires the following directories to be copied at project level"
+        error "${DEPENDENCY_EXTERNAL_COMPONENTS}"
         exit 1
     fi
 done
 
-echo Loading repos/tags for docker images from docker/.env
+info "Loading repos/tags for docker images from docker/.env"
 . docker/.env
 version_label="com.vmware.blockchain.version"
 commit_label="com.vmware.blockchain.commit"
 
 verifyDocker
 
-echo "Installing node package dependencies..."
+info "Installing node package dependencies..."
 install_node_dependency "node dependency for UI" "ui"
 install_node_dependency "node dependency for contract-compiler" "contract-compiler"
 
-echo "Building..."
+info "Building..."
 docker_build . concord/Dockerfile ${concord_repo} ${concord_tag}
 
 docker_build . concord/Dockerfile ${concord_repo} ${concord_tag} --memoryLeakDockerBuild
-
-# RV: March 21, 2019: This is only needed for the state transfer tests.  Removing.
-# startNativeConcordBuild
 
 docker_build ui ui/Dockerfile ${ui_repo} ${ui_tag}
 
@@ -308,7 +303,7 @@ if [ ! -z "${ADDITIONAL_BUILDS}" ]
 then
     for additional_build in `echo "${ADDITIONAL_BUILDS}" | tr ',' ' '`
     do
-        echo "Building custom component: $additional_build"
+        info "Building custom component: $additional_build"
         pushd .
         $additional_build &
         popd
