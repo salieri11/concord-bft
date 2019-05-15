@@ -208,7 +208,7 @@ Please note this is just temporary.
 Credentials for pushing to docker-hub are different from regular user.
 
 ```
-blockchain$ docker build . -f agent/Dockerfile -t agent-testing:latest
+blockchain$ docker build . -f agent/Dockerfile -t vmwblockchain/agent-testing:latest
 ```
 If you want to push to the docker-hub:
 ```

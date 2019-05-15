@@ -10,21 +10,10 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>awsutil</artifactId>
+    <artifactId>persephone-awsutil</artifactId>
     <packaging>jar</packaging>
     <name>Blockchain - Fleet Management AWS Utility Library</name>
     <properties>
-
-        <!-- Maven-related properties. -->
-        <maven.plugin.assembly>3.1.0</maven.plugin.assembly>
-        <maven.plugin.compiler>3.7.0</maven.plugin.compiler>
-        <maven.plugin.jar>3.1.1</maven.plugin.jar>
-        <maven.plugin.javadoc>3.0.0</maven.plugin.javadoc>
-        <maven.plugin.os>1.3.0.Final</maven.plugin.os>
-        <maven.plugin.resources>3.0.2</maven.plugin.resources>
-        <maven.plugin.source>3.0.1</maven.plugin.source>
-        <maven.plugin.surefire>2.22.1</maven.plugin.surefire>
-
         <!-- Dependency-related properties. -->
         <assertj.version>3.11.1</assertj.version>
         <junit.jupiter.version>5.2.0</junit.jupiter.version>
