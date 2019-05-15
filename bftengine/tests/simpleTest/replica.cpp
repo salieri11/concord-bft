@@ -78,6 +78,7 @@ bftEngine::Replica* replica = nullptr;
 ReplicaParams rp;
 
 void signalHandler( int signum ) {
+  LOG_INFO(replicaLogger, "SIGNAL " << signum << " received");
   if(replica)
     replica->stop();
 

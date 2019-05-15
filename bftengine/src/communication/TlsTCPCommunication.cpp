@@ -39,6 +39,7 @@
 #include <boost/make_unique.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/pool/simple_segregated_storage.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/asio/ssl.hpp>
 #include <boost/range.hpp>
@@ -52,7 +53,7 @@ using namespace concordlogger;
 using namespace boost;
 
 int NUM_OF_SERVICES = 1;
-int THREAD_PER_SERVICE = 1;
+int THREAD_PER_SERVICE = 2;
 
 namespace bftEngine {
 
@@ -179,7 +180,7 @@ class AsyncTlsConnection : public
   bool _destIsReplica = false;
   asio::io_service *_service = nullptr;
   uint32_t _maxMessageLength;
-  char *_inBuffer;
+  //char *_inBuffer;
   IReceiver *_receiver = nullptr;
   std::function<void(NodeNum)> _fOnError = nullptr;
   std::function<void(NodeNum, ASYNC_CONN_PTR)> _fOnTlsReady = nullptr;
@@ -205,6 +206,10 @@ class AsyncTlsConnection : public
   asio::ssl::context _sslContext;
   deque<OutMessage> _outQueue;
   mutex _writeLock;
+  mutex _receiveLock;
+  mutex _disposeLock;
+  boost::simple_segregated_storage<std::size_t> storage;
+  vector<char> v;
 
   // internal state
   bool _disposed = false;
@@ -245,14 +250,16 @@ class AsyncTlsConnection : public
                                      : asio::ssl::context::tlsv12_client)},
       _disposed(false),
       _authenticated{false},
-      _connected{false} {
+      _connected{false},
+      v(10 * _bufferLength) {
     LOG_DEBUG(_logger, "ctor, node " << _selfId << ", connType: " << _destId);
 
-    _inBuffer = new char[_bufferLength];
+    //_inBuffer = new char[_bufferLength];
     _connectTimer.expires_at(boost::posix_time::pos_infin);
     _writeTimer.expires_at(boost::posix_time::pos_infin);
     _readTimer.expires_at(boost::posix_time::pos_infin);
     _isReplica = check_replica(selfId);
+    storage.add_block(&v.front(), v.size(), _bufferLength);
   }
 
   /**
@@ -336,6 +343,10 @@ class AsyncTlsConnection : public
    * generic error handling function
    */
   void handle_error() {
+    lock_guard<mutex> l(_disposeLock);
+    if(_disposed){
+      return;
+    }
     assert(_connType != ConnType::NotDefined);
 
     if (_statusCallback) {
@@ -698,13 +709,15 @@ class AsyncTlsConnection : public
   /// 3. when read completed, cancel the timer
   /// 4. if timer ticks - the read hasnt completed, close the connection.
 
-  void on_read_timer_expired(const B_ERROR_CODE &ec) {
+  void on_read_timer_expired(const B_ERROR_CODE &ec, char* buffer) {
+    //storage.free(buffer);
     if(_disposed) {
       return;
     }
     // check if the handle is not a result of calling expire_at()
     if(ec != boost::asio::error::operation_aborted) {
-      dispose_connection();
+      if(buffer) delete[] buffer;
+      handle_error();
     }
   }
 
@@ -716,7 +729,8 @@ class AsyncTlsConnection : public
   void
   read_msglength_completed(const B_ERROR_CODE &ec,
                            const uint32_t bytesRead,
-                           bool first) {
+                           bool first,
+                           char *buffer) {
     // if first is true - we came from partial reading, no timer was started
     if(!first) {
       auto res = _readTimer.expires_at(boost::posix_time::pos_infin);
@@ -724,11 +738,13 @@ class AsyncTlsConnection : public
       // async_wait
     }
     if (_disposed) {
+      if(buffer) delete[] buffer;
       return;
     }
 
     auto err = was_error(ec, __func__);
     if (err) {
+      if(buffer) delete[] buffer;
       handle_error();
       return;
     }
@@ -737,19 +753,21 @@ class AsyncTlsConnection : public
     if(first && bytesRead < MSG_LENGTH_FIELD_SIZE) {
       asio::async_read(
           *_socket,
-          asio::buffer(_inBuffer + bytesRead, MSG_LENGTH_FIELD_SIZE - bytesRead),
+          asio::buffer(buffer + bytesRead, MSG_LENGTH_FIELD_SIZE - bytesRead),
           boost::bind(&AsyncTlsConnection::read_msglength_completed,
                       shared_from_this(),
                       boost::asio::placeholders::error,
                       boost::asio::placeholders::bytes_transferred,
-                      false));
+                      false,
+                      buffer));
     } else { // start reading completely the whole message
-      uint32_t msgLength = get_message_length(_inBuffer);
+      uint32_t msgLength = get_message_length(buffer);
       if(msgLength == 0 || msgLength > _maxMessageLength - 1 - MSG_HEADER_SIZE){
+        if(buffer) delete[] buffer;
         handle_error();
         return;
       }
-      read_msg_async(msgLength);
+      read_msg_async(msgLength, buffer);
     }
 
     auto res = _readTimer.expires_from_now(
@@ -759,7 +777,8 @@ class AsyncTlsConnection : public
     _readTimer.async_wait(
         boost::bind(&AsyncTlsConnection::on_read_timer_expired,
                     shared_from_this(),
-                    boost::asio::placeholders::error));
+                    boost::asio::placeholders::error,
+                    buffer));
 
     LOG_DEBUG(_logger, "exit, node " << _selfId
                                      << ", dest: " << _destId
@@ -771,17 +790,20 @@ class AsyncTlsConnection : public
    * start reading message length bytes from the stream
    */
   void read_msg_length_async() {
-    if (_disposed)
+    if (_disposed) {
       return;
+    }
 
     // since we allow partial reading here, we dont need timeout
+    char* buffer = new char[_bufferLength];
     _socket->async_read_some(
-        asio::buffer(_inBuffer, MSG_LENGTH_FIELD_SIZE),
+        asio::buffer(buffer, MSG_LENGTH_FIELD_SIZE),
         boost::bind(&AsyncTlsConnection::read_msglength_completed,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred,
-                    true));
+                    true,
+                    buffer));
 
     LOG_DEBUG(_logger,
               "read_msg_length_async, node " << _selfId
@@ -796,32 +818,34 @@ class AsyncTlsConnection : public
    * @param bytesRead  actual bytes read
    */
   void read_msg_async_completed(const boost::system::error_code &ec,
-                                size_t bytesRead) {
+                                size_t bytesRead, char *buffer) {
     auto res = _readTimer.expires_at(boost::posix_time::pos_infin);
     assert(res <= THREAD_PER_SERVICE); //can cancel at most 1 pending async_wait
     if (_disposed) {
-      return;
-    }
-
-    if (_disposed) {
+      if(buffer) delete[] buffer;
       return;
     }
 
     auto err = was_error(ec, __func__);
     if (err) {
+      if(buffer) delete[] buffer;
       handle_error();
       return;
     }
 
     assert(_destId == _expectedDestId);
     try {
-      if (_receiver) {
-        _receiver->onNewMessage(_destId, _inBuffer, bytesRead);
+      if (_receiver && buffer) {
+        //_receiveLock.lock();
+        //LOG_INFO(_logger, "OnNewMsg " << _destId << ", " << bytesRead);
+        _receiver->onNewMessage(_destId, buffer, bytesRead);
+        //_receiveLock.unlock();
       }
     } catch (std::exception &e) {
       LOG_ERROR(_logger, "read_msg_async_completed, exception:" << e.what());
     }
 
+    if(buffer) delete[] buffer;
     read_msg_length_async();
 
     if (_statusCallback && _destIsReplica) {
@@ -843,8 +867,9 @@ class AsyncTlsConnection : public
    * start reading message bytes after the length header has been read
    * @param msgLength
    */
-  void read_msg_async(uint32_t msgLength) {
+  void read_msg_async(uint32_t msgLength, char* buffer) {
     if (_disposed) {
+      if(buffer) delete[] buffer;
       return;
     }
 
@@ -854,11 +879,12 @@ class AsyncTlsConnection : public
     // async operation will finish when either expectedBytes are read
     // or error occured, this is what Asio guarantees
     async_read(*_socket,
-               boost::asio::buffer(_inBuffer, msgLength),
+               boost::asio::buffer(buffer, msgLength),
                boost::bind(&AsyncTlsConnection::read_msg_async_completed,
                            shared_from_this(),
                            boost::asio::placeholders::error,
-                           boost::asio::placeholders::bytes_transferred));
+                           boost::asio::placeholders::bytes_transferred,
+                           buffer));
 
   }
 
@@ -892,7 +918,7 @@ class AsyncTlsConnection : public
     }
     // check if we the handle is not a result of calling expire_at()
     if(ec != boost::asio::error::operation_aborted) {
-      dispose_connection();
+      handle_error();
     }
   }
 
@@ -905,8 +931,6 @@ class AsyncTlsConnection : public
       count++;
     }
     _writeLock.unlock();
-
-    LOG_INFO(_logger, "sendcount: " << count);
 
     asio::async_write(
         *_socket,
@@ -941,7 +965,7 @@ class AsyncTlsConnection : public
     }
     bool err = was_error(ec, "async_write_complete");
     if(err) {
-      dispose_connection();
+      handle_error();
       return;
     }
 
@@ -1095,7 +1119,9 @@ class AsyncTlsConnection : public
     LOG_INFO(_logger, "Dtor called, node: " << _selfId << "peer: " << _destId << ", type: " <<
                                             _connType);
 
-    delete[] _inBuffer;
+    //delete[] _inBuffer;
+
+
 
     _receiver = nullptr;
     _fOnError = nullptr;
