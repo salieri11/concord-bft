@@ -127,12 +127,16 @@ interface Orchestrator {
     /**
      * Allocation request to assign a network resource to a given deployment.
      *
+     * @param[name]
+     *   name of the network allocation to create, for [Orchestrator] backends that associate
+     *   network allocation with additional naming identifiers or surrogate identifiers to each
+     *   provisioned network allocation.
      * @param[compute]
      *   compute resource to allocate network resource to.
      * @param[network]
      *   network resource to be assigned.
      */
-    data class CreateNetworkAllocationRequest(val compute: URI, val network: URI)
+    data class CreateNetworkAllocationRequest(val name: String, val compute: URI, val network: URI)
 
     /**
      * Network allocation de-provisioning request specification.
@@ -150,6 +154,7 @@ interface Orchestrator {
 
         data class Created(
             override val resource: URI,
+            val name: String,
             val compute: URI,
             val network: URI
         ) : NetworkAllocationEvent()

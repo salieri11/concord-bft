@@ -120,7 +120,7 @@ fun main(args: Array<String>) {
             orchestrator.createDeployment(computeCreate).subscribe(computeCreateSubscriber)
 
             // Create network.
-            val networkCreate = Orchestrator.CreateNetworkResourceRequest("test-ip1", true)
+            val networkCreate = Orchestrator.CreateNetworkResourceRequest("test-node", true)
             val networkCreated = CompletableDeferred<URI>()
             val networkCreateSubscriber = BaseSubscriber<Orchestrator.NetworkResourceEvent>(
                     onNext = {
@@ -141,6 +141,7 @@ fun main(args: Array<String>) {
             log.info { "Started compute resource: ${computeStarted.await()}" }
 
             val networkAllocate = Orchestrator.CreateNetworkAllocationRequest(
+                    "test-node",
                     computeCreated.await(),
                     networkCreated.await()
             )

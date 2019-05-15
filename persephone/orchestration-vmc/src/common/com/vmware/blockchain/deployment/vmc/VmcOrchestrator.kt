@@ -143,9 +143,8 @@ class VmcOrchestrator private constructor(
                 // Use VMC client to obtain VMC SDDC information.
                 getDataCenterInfo(vmc)?.apply {
                     // Use VMC SDDC info to create NSX client.
-                    val nsxUrl = "${resource_config.nsx_api_public_endpoint_url}/sks-nsxt-manager"
                     val nsx = VmcClient.Context(
-                            endpoint = URI(nsxUrl),
+                            endpoint = URI(resource_config.nsx_api_public_endpoint_url),
                             authenticationEndpoint = info.authentication.address,
                             refreshToken = token,
                             organization = info.organization,
@@ -382,16 +381,19 @@ class VmcOrchestrator private constructor(
                             ?.body()
                             ?.ip
 
-                    // Setup the NAT rule (use the same resource name as the public IP).
-                    val networkId = request.network.path.substringAfterLast("/")
-                    createNatRule(name = networkId,
+                    // Setup the NAT rule.
+                    createNatRule(name = request.name,
                                   action = NatRule.Action.REFLEXIVE,
                                   sourceNetwork = checkNotNull(privateIP),
                                   translatedNetwork = checkNotNull(publicIP))
                             ?.toNetworkAllocationResource()
                             ?.apply {
-                                send(Orchestrator.NetworkAllocationEvent
-                                             .Created(this, request.compute, request.network))
+                                send(Orchestrator.NetworkAllocationEvent.Created(
+                                        this,
+                                        request.name,
+                                        request.compute,
+                                        request.network
+                                ))
                             }
                             ?: close(Orchestrator.ResourceCreationFailedException(request))
                 } catch (error: CancellationException) {

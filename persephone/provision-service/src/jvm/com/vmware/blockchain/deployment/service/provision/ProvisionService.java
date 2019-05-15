@@ -44,6 +44,7 @@ import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.PlacementAssignment;
 import com.vmware.blockchain.deployment.model.PlacementSpecification;
 import com.vmware.blockchain.deployment.model.ProvisionServiceImplBase;
+import com.vmware.blockchain.deployment.model.ProvisionedResource;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo;
@@ -446,7 +447,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
                 .map(entry -> {
                     var node = entry.getNode();
                     var orchestrator = orchestrators.get(entry.getSite());
-                    var resource = new UUID(node.getHigh(), node.getLow()).toString();
+                    var resource = toResourceName(node);
                     var addressRequest = new CreateNetworkResourceRequest(resource, true);
                     var addressPublisher = orchestrator.createNetworkAddress(addressRequest);
 
@@ -536,9 +537,13 @@ public class ProvisionService extends ProvisionServiceImplBase {
                                         // Allocate network address to the created node.
                                         var placement = entry.getKey();
                                         var orchestrator = orchestrators.get(placement.getSite());
+                                        var networkResource = publicNetworkAddressMap
+                                                .get(entry.getKey()).getResource();
+                                        var resource = toResourceName(placement.getNode());
                                         var allocationRequest = new CreateNetworkAllocationRequest(
+                                                resource,
                                                 computeResource,
-                                                publicNetworkAddressMap.get(entry.getKey()).getResource()
+                                                networkResource
                                         );
                                         var allocationPublisher = orchestrator
                                                 .createNetworkAllocation(allocationRequest);
@@ -684,7 +689,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
      * {@link DeploymentSession} associated with a given {@link DeploymentSessionIdentifier}.
      *
      * @param sessionId
-     *   identifier of the deployment session to create the initial event for.
+     *   identifier of the deployment session to create the session event for.
      *
      * @return
      *   a new instance of {@link DeploymentSessionEvent}.
@@ -696,7 +701,8 @@ public class ProvisionService extends ProvisionServiceImplBase {
                 ConcordNode.Companion.getDefaultValue(),
                 ConcordNodeStatus.Companion.getDefaultValue(),
                 ConcordCluster.Companion.getDefaultValue(),
-                DeploymentSession.Status.ACTIVE
+                DeploymentSession.Status.ACTIVE,
+                ProvisionedResource.Companion.getDefaultValue()
         );
     }
 
@@ -705,7 +711,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
      * {@link DeploymentSession} associated with a given {@link DeploymentSessionIdentifier}.
      *
      * @param sessionId
-     *   identifier of the deployment session to create the completion event for.
+     *   identifier of the deployment session to create the session event for.
      * @param status
      *   completion status.
      *
@@ -722,7 +728,98 @@ public class ProvisionService extends ProvisionServiceImplBase {
                 ConcordNode.Companion.getDefaultValue(),
                 ConcordNodeStatus.Companion.getDefaultValue(),
                 ConcordCluster.Companion.getDefaultValue(),
-                status
+                status,
+                ProvisionedResource.Companion.getDefaultValue()
+        );
+    }
+
+    /**
+     * Create an instance of {@link DeploymentSessionEvent} denoting the cluster deployment event of
+     * a {@link DeploymentSession} associated with a given {@link DeploymentSessionIdentifier}.
+     *
+     * @param sessionId
+     *   identifier of the deployment session to create the session event for.
+     * @param status
+     *   completion status.
+     * @param resource
+     *   data payload to set for the session event.
+     *
+     * @return
+     *   a new instance of {@link DeploymentSessionEvent}.
+     */
+    private static DeploymentSessionEvent newResourceEvent(
+            DeploymentSessionIdentifier sessionId,
+            DeploymentSession.Status status,
+            ProvisionedResource resource
+    ) {
+        return new DeploymentSessionEvent(
+                DeploymentSessionEvent.Type.NODE_DEPLOYED,
+                sessionId,
+                ConcordNode.Companion.getDefaultValue(),
+                ConcordNodeStatus.Companion.getDefaultValue(),
+                ConcordCluster.Companion.getDefaultValue(),
+                status,
+                resource
+        );
+    }
+
+    /**
+     * Create an instance of {@link DeploymentSessionEvent} denoting the cluster deployment event of
+     * a {@link DeploymentSession} associated with a given {@link DeploymentSessionIdentifier}.
+     *
+     * @param sessionId
+     *   identifier of the deployment session to create the session event for.
+     * @param status
+     *   completion status.
+     * @param node
+     *   data payload to set for the session event.
+     *
+     * @return
+     *   a new instance of {@link DeploymentSessionEvent}.
+     */
+    private static DeploymentSessionEvent newNodeDeploymentEvent(
+            DeploymentSessionIdentifier sessionId,
+            DeploymentSession.Status status,
+            ConcordNode node
+    ) {
+        return new DeploymentSessionEvent(
+                DeploymentSessionEvent.Type.NODE_DEPLOYED,
+                sessionId,
+                node,
+                ConcordNodeStatus.Companion.getDefaultValue(),
+                ConcordCluster.Companion.getDefaultValue(),
+                status,
+                ProvisionedResource.Companion.getDefaultValue()
+        );
+    }
+
+    /**
+     * Create an instance of {@link DeploymentSessionEvent} denoting the cluster deployment event of
+     * a {@link DeploymentSession} associated with a given {@link DeploymentSessionIdentifier}.
+     *
+     * @param sessionId
+     *   identifier of the deployment session to create the session event for.
+     * @param status
+     *   completion status.
+     * @param cluster
+     *   data payload to set for the session event.
+     *
+     * @return
+     *   a new instance of {@link DeploymentSessionEvent}.
+     */
+    private static DeploymentSessionEvent newClusterDeploymentEvent(
+            DeploymentSessionIdentifier sessionId,
+            DeploymentSession.Status status,
+            ConcordCluster cluster
+    ) {
+        return new DeploymentSessionEvent(
+                DeploymentSessionEvent.Type.CLUSTER_DEPLOYED,
+                sessionId,
+                ConcordNode.Companion.getDefaultValue(),
+                ConcordNodeStatus.Companion.getDefaultValue(),
+                cluster,
+                status,
+                ProvisionedResource.Companion.getDefaultValue()
         );
     }
 
@@ -737,6 +834,23 @@ public class ProvisionService extends ProvisionServiceImplBase {
      */
     private static String toResourceName(ConcordNodeIdentifier identifier) {
         return new UUID(identifier.getHigh(), identifier.getLow()).toString();
+    }
+
+    /**
+     * Convert a canonical resource name to a {@link ConcordNodeIdentifier}.
+     *
+     * @param name
+     *   resource name to convert into identifier.
+     *
+     * @return
+     *   identifier as a {@link ConcordNodeIdentifier}.
+     */
+    private static ConcordNodeIdentifier toNodeIdentifier(String name) {
+        var uuid = UUID.fromString(name);
+        return new ConcordNodeIdentifier(
+                uuid.getLeastSignificantBits(),
+                uuid.getMostSignificantBits()
+        );
     }
 
     /**
@@ -1023,6 +1137,83 @@ public class ProvisionService extends ProvisionServiceImplBase {
     }
 
     /**
+     * Create a {@link List} of {@link ProvisionedResource} information instances based on a given
+     * {@link DeploymentSession} and the corresponding {@link OrchestrationEvent} that the session
+     * engenders.
+     *
+     * @param session
+     *   deployment session.
+     * @param events
+     *   events engendered by the deployment session.
+     *
+     * @return
+     *   a listing of {@link ProvisionedResource} instances.
+     */
+    private static List<ProvisionedResource> toProvisionedResources(
+            DeploymentSession session,
+            Collection<OrchestrationEvent> events
+    ) {
+        var orchestrationSiteByNode = session.getAssignment().getEntries().stream()
+                .map(entry -> Map.entry(entry.getNode(), entry.getSite()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        return events.stream()
+                .map(event -> {
+                    // By default, do not map into a ProvisionedResource unless the event type is
+                    // matched.
+                    ProvisionedResource resource = null;
+
+                    if (event instanceof ComputeResourceEvent.Created) {
+                        var resourceEvent = (ComputeResourceEvent.Created) event;
+                        var node = resourceEvent.getNode();
+                        var site = orchestrationSiteByNode.getOrDefault(
+                                node,
+                                OrchestrationSiteIdentifier.Companion.getDefaultValue()
+                        );
+                        resource = new ProvisionedResource(
+                                ProvisionedResource.Type.COMPUTE_RESOURCE,
+                                resourceEvent.getResource().toString(),
+                                site,
+                                session.getCluster(),
+                                resourceEvent.getNode()
+                        );
+                    } else if (event instanceof NetworkResourceEvent.Created) {
+                        var resourceEvent = (NetworkResourceEvent.Created) event;
+                        var node = toNodeIdentifier(resourceEvent.getName());
+                        var site = orchestrationSiteByNode.getOrDefault(
+                                node,
+                                OrchestrationSiteIdentifier.Companion.getDefaultValue()
+                        );
+                        resource = new ProvisionedResource(
+                                ProvisionedResource.Type.NETWORK_RESOURCE,
+                                resourceEvent.getResource().toString(),
+                                site,
+                                session.getCluster(),
+                                node
+                        );
+                    } else if (event instanceof NetworkAllocationEvent.Created) {
+                        var resourceEvent = (NetworkAllocationEvent.Created) event;
+                        var node = toNodeIdentifier(resourceEvent.getName());
+                        var site = orchestrationSiteByNode.getOrDefault(
+                                node,
+                                OrchestrationSiteIdentifier.Companion.getDefaultValue()
+                        );
+                        resource = new ProvisionedResource(
+                                ProvisionedResource.Type.NETWORK_ALLOCATION,
+                                resourceEvent.getResource().toString(),
+                                site,
+                                session.getCluster(),
+                                node
+                        );
+                    }
+
+                    return resource;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Create a {@link List} of {@link DeploymentSessionEvent}s based on a given
      * {@link DeploymentSession} and the additional corresponding {@link OrchestrationEvent} that
      * the session engendered.
@@ -1039,32 +1230,29 @@ public class ProvisionService extends ProvisionServiceImplBase {
             DeploymentSession session,
             Collection<OrchestrationEvent> events
     ) {
-        var nodes = toConcordNodes(session, events);
-        var nodeEventStream = nodes.stream()
-                .map(node -> new DeploymentSessionEvent(
-                        DeploymentSessionEvent.Type.NODE_DEPLOYED,
-                        DeploymentSessionIdentifier.Companion.getDefaultValue(),
-                        node,
-                        ConcordNodeStatus.Companion.getDefaultValue(),
-                        ConcordCluster.Companion.getDefaultValue(),
-                        DeploymentSession.Status.ACTIVE
-                ));
+        var resources = toProvisionedResources(session, events);
+        var resourceEventStream = resources.stream()
+                .map(resource -> newResourceEvent(session.getId(), session.getStatus(), resource));
 
-        // Create Concord cluster model.
-        var clusterEvent = new DeploymentSessionEvent(
-                DeploymentSessionEvent.Type.CLUSTER_DEPLOYED,
-                DeploymentSessionIdentifier.Companion.getDefaultValue(),
-                ConcordNode.Companion.getDefaultValue(),
-                ConcordNodeStatus.Companion.getDefaultValue(),
-                new ConcordCluster(session.getCluster(), new ConcordClusterInfo(nodes)),
-                DeploymentSession.Status.ACTIVE
+        // Generate Concord node models based on orchestration events.
+        var nodes = toConcordNodes(session, events);
+
+        var clusterEvent = newClusterDeploymentEvent(
+                session.getId(),
+                session.getStatus(),
+                new ConcordCluster(session.getCluster(), new ConcordClusterInfo(nodes))
         );
 
         // Concatenate every event together.
         // (Existing events, all node events, cluster event, and completion event)
+        var nodeEventStream = nodes.stream()
+                .map(node -> newNodeDeploymentEvent(session.getId(), session.getStatus(), node));
         return Stream
                 .concat(
-                        Stream.concat(session.getEvents().stream(), nodeEventStream),
+                        Stream.concat(
+                                Stream.concat(session.getEvents().stream(), resourceEventStream),
+                                nodeEventStream
+                        ),
                         Stream.of(
                                 clusterEvent,
                                 newCompleteEvent(session.getId(), DeploymentSession.Status.SUCCESS)
