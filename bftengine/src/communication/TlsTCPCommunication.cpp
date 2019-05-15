@@ -53,7 +53,7 @@ using namespace concordlogger;
 using namespace boost;
 
 int NUM_OF_SERVICES = 1;
-int THREAD_PER_SERVICE = 2;
+int THREAD_PER_SERVICE = 1;
 
 namespace bftEngine {
 
@@ -320,7 +320,7 @@ class AsyncTlsConnection : public
    * we rely on boost cleanup and do not shutdown ssl and sockets explicitly
    */
   void dispose_connection() {
-    if (_disposed)
+     if (_disposed)
       return;
 
     set_authenticated(false);
@@ -429,7 +429,7 @@ class AsyncTlsConnection : public
 
     _sslContext.set_verify_callback(
         boost::bind(&AsyncTlsConnection::verify_certificate_server,
-                    shared_from_this(),
+                    this,
                     _1,
                     _2));
 
@@ -475,7 +475,7 @@ class AsyncTlsConnection : public
 
     _sslContext.set_verify_callback(
         boost::bind(&AsyncTlsConnection::verify_certificate_client,
-                    shared_from_this(),
+                    this,
                     _1,
                     _2));
 
