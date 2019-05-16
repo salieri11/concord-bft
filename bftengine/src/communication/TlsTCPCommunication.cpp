@@ -396,7 +396,8 @@ class AsyncTlsConnection : public
     _currentTimeout = _minTimeout;
     assert(_destId == _expectedDestId);
     _fOnTlsReady(_destId, shared_from_this());
-    read_msg_length_async();
+    //read_msg_length_async();
+    read_msg(0, nullptr);
   }
 
   /**
@@ -426,6 +427,7 @@ class AsyncTlsConnection : public
     _expectedDestId = _destId;
     _fOnTlsReady(_destId, shared_from_this());
     read_msg_length_async();
+    read_msg(0, nullptr);
   }
 
   void set_tls() {
@@ -745,6 +747,81 @@ class AsyncTlsConnection : public
     }
   }
 
+  // totalBytesRead doesn't include current bytesRead
+  void read_msg_completed(const B_ERROR_CODE &ec,
+                          const uint32_t bytesRead,
+                          char *buffer,
+                          uint32_t totalBytesRead) {
+    if (_disposed) {
+      if(buffer) delete[] buffer;
+      return;
+    }
+
+    auto err = was_error(ec, __func__);
+    if (err) {
+      if(buffer) delete[] buffer;
+      handle_error();
+      return;
+    }
+
+    totalBytesRead += bytesRead;
+    //check if we didnt get even a header
+    uint32_t offset = 0;
+    if (totalBytesRead < MSG_HEADER_SIZE) {
+      read_msg(totalBytesRead, buffer);
+    } else {
+      while (true) {
+        assert(offset <= totalBytesRead);
+        if (offset == totalBytesRead) {
+          offset = 0;
+          break;
+        }
+        uint32_t msgLength = get_message_length(buffer + offset);
+        offset += MSG_HEADER_SIZE;
+        if (totalBytesRead - offset < msgLength) {
+          offset -= MSG_HEADER_SIZE;
+          memmove(buffer, buffer + offset, totalBytesRead - offset);
+          break;
+        }
+        _receiver->onNewMessage(_destId, buffer + offset, msgLength);
+        offset += msgLength;
+      }
+
+      read_msg(offset, buffer);
+    }
+  }
+
+  void read_msg(size_t offset, char* buffer) {
+    if (_disposed) {
+      return;
+    }
+
+    if(!buffer) {
+      buffer = new char[_bufferLength];
+    }
+
+    _socket->async_read_some(
+        asio::buffer(buffer, _bufferLength - offset),
+        _strand.wrap(
+            boost::bind(&AsyncTlsConnection::read_msg_completed,
+                        shared_from_this(),
+                        boost::asio::placeholders::error,
+                        boost::asio::placeholders::bytes_transferred,
+                        buffer,
+                        offset)));
+    if(offset > 0) {
+      auto res = _readTimer.expires_from_now(
+          boost::posix_time::milliseconds(READ_TIME_OUT_MILLI));
+      assert(res <= THREAD_PER_SERVICE);//can cancel at most 1 pending
+      // async_wait
+      _readTimer.async_wait(_strand.wrap(
+          boost::bind(&AsyncTlsConnection::on_read_timer_expired,
+                      shared_from_this(),
+                      boost::asio::placeholders::error,
+                      buffer)));
+    }
+  }
+
   /**
   * occurs when some of msg length bytes are read from the stream
   * @param ec Error code
@@ -1026,13 +1103,15 @@ class AsyncTlsConnection : public
     //}
   }
 
+  /*
   void do_sync_write(char *buffer, size_t length) {
     B_ERROR_CODE err;
-    asio::write(*_socket, asio::buffer(buffer, length));
+    asio::write(_socket, asio::buffer(buffer, length));
     if(was_error(err, "do_sync_write")) {
       handle_error();
     }
   }
+  */
 
   /// ************* write functions end ******************* ////
 
@@ -1108,7 +1187,7 @@ class AsyncTlsConnection : public
                                  shared_from_this())));
     }
 
-    //    do_sync_write(buf,  length + MSG_HEADER_SIZE);
+    // do_sync_write(buf,  length + MSG_HEADER_SIZE);
 
     LOG_DEBUG(_logger, "from: " << _selfId
                                 << ", to: " << _destId
