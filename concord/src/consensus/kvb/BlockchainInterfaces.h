@@ -49,6 +49,10 @@ struct CommConfig {
 
   // tls (tcp fields should be set as well
   std::string certificatesRootPath;
+  std::string cipherSuite;
+
+  // possible values: "udp" and "tcp", lowercase
+  std::string commType;
 };
 
 // REPLICA

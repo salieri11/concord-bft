@@ -9,7 +9,7 @@ else()
    message(STATUS "yaml-cpp found at " ${yaml-cpp_INCLUDE_DIR})
    set(yaml-cpp_INCLUDE_DIRS ${yaml-cpp_INCLUDE_DIR})
 
-   find_path(yaml-cpp_LIB_DIR libyaml-cpp.a
+   find_path(yaml-cpp_LIB_DIR libyaml-cpp.a libyaml.a
              HINTS /usr/lib/x86_64-linux-gnu/
                    /usr/local/lib/
              ${yaml-cpp_INCLUDE_DIR}/build/)

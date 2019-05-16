@@ -4,7 +4,7 @@ CNCRD="concord"
 
 if [ -z "$1" ]; then
   >&2 echo "ERROR: Path to ${CNCRD} directory required"
-  return 1
+  exit 1
 fi
 
 # Construct the absolute path
@@ -18,7 +18,7 @@ IS_EXPECTED_NAME=$(echo ${ABS_CONCORD_PATH} | grep "${CNCRD}$")
 
 if [ ! -d ${ABS_CONCORD_PATH} ] || [ -z ${IS_EXPECTED_NAME} ]; then
   >&2 echo "ERROR: Couldn't find ${CNCRD} directory \"${ABS_CONCORD_PATH}\""
-  return 1;
+  exit 1;
 fi
 
 FILES_TO_FORMAT=$(find ${ABS_CONCORD_PATH} \
@@ -43,14 +43,14 @@ if [ -n "$2" ]; then
     if [ ${NUM_CHANGES} -ne 0 ]; then
       # Note: exit_code = return_value % 255
       echo "Code format changes needed"
-      return 1
+      exit 1
     else
       echo "No format changes needed"
-      return 0
+      exit 0
     fi
   fi
   >&2 echo "ERROR: Unknown parameter \"$2\""
-  return 1
+  exit 1
 else
   clang-format -style=file -fallback-style=none -i ${FILES_TO_FORMAT}
 fi

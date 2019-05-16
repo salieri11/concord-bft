@@ -10,11 +10,16 @@ set(CMAKE_CXX_EXTENSIONS Off)
 # Storage options
 set(USE_ROCKSDB True)
 
-# Concord flags
-set(USE_LOG4CPP TRUE)
+#concord flags
+# Default USE_LOG4CPP to true
+option(USE_LOG4CPP "Enable LOG4CPP" TRUE)
 set(CONCORD_LOGGER_NAME "concord.bft")
-#if TRUE, concord will use plain tcp module for communication
-set(BUILD_COMM_TCP_PLAIN FALSE)
+
+# Default BUILD_COMM_TCP_PLAIN to FALSE
+option(BUILD_COMM_TCP_PLAIN "Enable TCP communication" FALSE)
+
+# Default BUILD_COMM_TCP_TLS to true
+option(BUILD_COMM_TCP_TLS "Enable TCP TLS communication" TRUE)
 
 # Our CMake helper modules
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
@@ -23,7 +28,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
 list(APPEND CMAKE_PREFIX_PATH "/opt/grpc" "/opt/protobuf")
 
 if(APPLE)
-  set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "/usr/local/Cellar/protobuf@2.6/2.6.0")
+  set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} "/usr/local/Cellar/protobuf@3.1/3.1.0")
 endif()
 
 find_package(Protobuf REQUIRED)
@@ -32,7 +37,8 @@ include_directories(${PROTOBUF_INCLUDE_DIR})
 find_package(GRPC REQUIRED)
 include_directories(${GRPC_INCLUDE_DIR})
 
-find_package(Boost 1.64 COMPONENTS system program_options thread REQUIRED)
+find_package(Boost 1.64 COMPONENTS system program_options thread filesystem
+        REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 
 #find_package(Log4Cplus REQUIRED)
@@ -41,6 +47,7 @@ configure_file(test/resources/concord1.config test/resources/concord1.config COP
 configure_file(test/resources/concord2.config test/resources/concord2.config COPYONLY)
 configure_file(test/resources/concord3.config test/resources/concord3.config COPYONLY)
 configure_file(test/resources/concord4.config test/resources/concord4.config COPYONLY)
+file(COPY test/resources/tls_certs DESTINATION test/resources)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 if(DEFINED USE_HERA)

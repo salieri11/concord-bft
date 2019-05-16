@@ -34,3 +34,6 @@ target_link_libraries(kvblockchain PUBLIC ${ROCKSDB} ${LIBBZ2} ${LIBLZ4} ${LIBZS
 endif()
 
 target_compile_definitions(kvblockchain PUBLIC __BASE=1 SPARSE_STATE=1 USE_TLS=1)
+if(${BUILD_COMM_TCP_TLS})
+    target_compile_definitions(kvblockchain PUBLIC USE_COMM_TLS_TCP)
+endif()

@@ -1,6 +1,6 @@
 // Concord
 //
-// Copyright (c) 2019 VMware, Inc. All Rights Reserved.
+// Copyright (c) 2018 VMware, Inc. All Rights Reserved.
 //
 // This product is licensed to you under the Apache 2.0 license (the "License").
 // You may not use this product except in compliance with the Apache 2.0
@@ -16,8 +16,6 @@
 
 #ifndef TEST_COMM_CONFIG_HPP
 #define TEST_COMM_CONFIG_HPP
-
-#include "Logging.hpp"
 
 #include "itest_comm_config.hpp"
 
@@ -35,6 +33,10 @@ class TestCommConfig : public ITestCommConfig {
 
   bftEngine::PlainTcpConfig GetTCPConfig(
       bool is_replica, uint16_t node_id, uint16_t& num_of_clients,
+      uint16_t& num_of_replicas, const std::string& config_file_name) override;
+
+  bftEngine::TlsTcpConfig GetTlsTCPConfig(
+      bool is_replica, uint16_t id, uint16_t& num_of_clients,
       uint16_t& num_of_replicas, const std::string& config_file_name) override;
 
  private:
@@ -58,6 +60,7 @@ class TestCommConfig : public ITestCommConfig {
   static const uint16_t base_port_ = 3710;
   static const uint32_t buf_length_ = 64000;
   static const std::string default_ip_;
+  static const std::string default_listen_ip_;
   static const char* ip_port_delimiter_;
 };
 

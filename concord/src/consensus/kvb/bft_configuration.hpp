@@ -201,8 +201,11 @@ inline bool initializeSBFTPrincipals(
     outCommConfig->listenIp = "0.0.0.0";
     outCommConfig->maxServerId = numOfReplicas - 1;
     outCommConfig->selfId = selfNumber;
-
-    outCommConfig->certificatesRootPath = "\\certs";
+    outCommConfig->cipherSuite =
+        config.getValue<std::string>("tls_cipher_suite_list");
+    outCommConfig->certificatesRootPath =
+        config.getValue<std::string>("tls_certificates_folder_path");
+    outCommConfig->commType = config.getValue<std::string>("comm_to_use");
   }
 
   return true;
