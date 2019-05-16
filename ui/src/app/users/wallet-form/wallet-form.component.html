@@ -8,8 +8,8 @@
                    [clrWizardPagePreventDefaultNext]="true"
                    (clrWizardPageNext)="hasWallet ? onSubmitView() : onSubmitCreate()">
     <ng-template clrPageTitle>{{'users.settings.walletForm.enterPassword' | translate}}</ng-template>
-    <div class="row">
-      <div class="col-xs-12">
+    <div class="clr-row">
+      <div class="clr-col-12">
         <clr-alert [clrAlertClosable]="false" [clrAlertType]="'danger'">
           <div clr-alert-item class="alert-item">
             <span class="alert-text">
@@ -18,7 +18,7 @@
           </div>
         </clr-alert>
       </div>
-      <div class="col-xs-12">
+      <div class="clr-col-12">
         <form clrForm clrLayout="horizontal" [formGroup]="createWalletForm" (ngSubmit)="hasWallet ? onSubmitView() : onSubmitCreate()">
           <section class="form-block">
             <clr-input-container>
@@ -42,8 +42,8 @@
       <span class="spinner"></span>
     </div>
     <div *ngIf="!walletLoading">
-      <div *ngIf="decryptError" class="row">
-        <div class="col-xs-12">
+      <div *ngIf="decryptError" class="clr-row">
+        <div class="clr-col-12">
           <clr-alert [clrAlertClosable]="false" [clrAlertType]="'danger'" class="mb-1">
             <div clr-alert-item class="alert-item">
               <span class="alert-text">
@@ -53,8 +53,8 @@
           </clr-alert>
         </div>
       </div>
-      <div *ngIf="!decryptError" class="row">
-        <div class="col-xs-12">
+      <div *ngIf="!decryptError" class="clr-row">
+        <div class="clr-col-12">
           <clr-alert [clrAlertClosable]="false" [clrAlertType]="'danger'" class="mb-1">
             <div clr-alert-item class="alert-item">
               <span class="alert-text">
@@ -63,7 +63,7 @@
             </div>
           </clr-alert>
         </div>
-        <div class="col-xs-12">
+        <div class="clr-col-12">
           <table class="mt-0 table table-vertical break-all">
             <tbody>
             <tr>

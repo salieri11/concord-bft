@@ -110,8 +110,8 @@ export class AppHeaderComponent implements OnDestroy, OnInit {
     this.headerOptions.showOrgSwitcher = true;
     this.headerOptions.showHelpMenu = true;
     this.headerOptions.enableChangeDefaultOrg = true;
-    this.headerOptions.enableEditProfileLink = true;
-    this.headerOptions.showUserSettingsSection = true;
+    // this.headerOptions.enableEditProfileLink = true;
+    // this.headerOptions.showUserSettingsSection = true;
     this.headerOptions.globalBranding = true;
     this.headerOptions.isMasked = false;
     this.headerOptions.showSupportTab = true;

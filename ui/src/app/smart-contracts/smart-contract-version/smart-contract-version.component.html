@@ -4,8 +4,8 @@
     <clr-tab-content>
       <ng-container *ngIf="version.metadata.compiler">
         <form clrForm clrLayout="horizontal" class="pt-0 clr-form-horizontal" [formGroup]="versionForm">
-          <div class="row">
-            <div class="col-sm-12 col-md-7 contract-form">
+          <div class="clr-row">
+            <div class="clr-col-sm-12 clr-col-md-7 contract-form">
               <div class="card">
                 <div class="card-block">
                   <clr-alert *ngIf="alertMessage && resultType === 'error'" [clrAlertType]="alertType" [clrAlertClosable]="false">
@@ -78,7 +78,7 @@
                 </div>
               </div>
             </div>
-            <div *ngIf="resultType === 'call' && alertType === 'alert-success'" class="col-sm-12 col-md-5 call-success">
+            <div *ngIf="resultType === 'call' && alertType === 'alert-success'" class="clr-col-sm-12 clr-col-md-5 call-success">
               <div class="card">
                 <div class="card-header">
                   {{'smartContracts.version.returnValues' | translate}}
@@ -93,7 +93,7 @@
                 </div>
               </div>
             </div>
-            <div *ngIf="resultType === 'send' && alertType === 'alert-success'" class="col-sm-12 col-md-5 send-success">
+            <div *ngIf="resultType === 'send' && alertType === 'alert-success'" class="clr-col-sm-12 clr-col-md-5 send-success">
               <div class="card">
                 <div class="card-header">
                   {{'smartContracts.version.transaction' | translate}}
@@ -112,8 +112,8 @@
     <button tourAnchor="contract.tabs" clrTabLink>{{'smartContracts.version.tabs.source' | translate}}</button>
     <clr-tab-content>
       <ng-container *ngIf="version.sourcecode">
-        <div class="row">
-          <div class="col-sm-12 col-md-10">
+        <div class="clr-row">
+          <div class="clr-col-sm-12 clr-col-md-10">
             <div class="card">
               <div class="card-header text-xs-right">
                 <clr-tooltip>
@@ -140,8 +140,8 @@
   <clr-tab>
     <button clrTabLink>{{'smartContracts.version.tabs.bytecode' | translate}}</button>
     <clr-tab-content>
-      <div class="row">
-        <div class="col-sm-12 col-md-10">
+      <div class="clr-row">
+        <div class="clr-col-sm-12 clr-col-md-10">
           <div class="card">
             <div class="card-header text-xs-right">
               <clr-tooltip>
@@ -169,8 +169,8 @@
     <button clrTabLink>{{'smartContracts.version.tabs.metadata' | translate}}</button>
     <clr-tab-content>
       <ng-container *ngIf="version.metadata.compiler">
-        <div class="row">
-          <div class="col-sm-12 col-md-10">
+        <div class="clr-row">
+          <div class="clr-col-sm-12 clr-col-md-10">
             <div class="card">
               <div class="card-header text-xs-right">
                 <clr-tooltip>

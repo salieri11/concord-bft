@@ -4,7 +4,6 @@
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
-import { ClrFormsNextModule } from '@clr/angular';
 
 import { UserSettingsComponent } from './user-settings.component';
 import { MockSharedModule } from '../../shared/shared.module';
@@ -22,7 +21,6 @@ describe('UserSettingsComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         MockSharedModule,
-        ClrFormsNextModule,
         RouterTestingModule
       ],
       declarations: [

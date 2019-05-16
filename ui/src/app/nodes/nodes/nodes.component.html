@@ -1,9 +1,9 @@
 <div class="p-2">
-  <div class="row">
-    <div class="col-xs-4 media flex-items-xs-middle">
+  <div class="clr-row">
+    <div class="clr-col-4 media flex-items-xs-middle">
       <h3 class="mt-0">{{'nodes.nodeActivity' | translate}}</h3>
     </div>
-    <div class="col-xs-8 media flex-items-xs-middle flex-items-xs-right">
+    <div class="clr-col-8 media flex-items-xs-middle flex-items-xs-right">
       <clr-tabs>
         <clr-tab>
           <button clrTabLink (click)="getTodaysData()">{{'time.today' | translate}}</button>
@@ -24,28 +24,28 @@
       </clr-tabs>
     </div>
   </div>
-  <div class="row">
-    <div class="col-xs-12">
+  <div class="clr-row">
+    <div class="clr-col-12">
       <concord-block-graph [graphData]="graphData"></concord-block-graph>
     </div>
   </div>
 </div>
 
 <div class="p-2">
-  <div class="row">
-    <div class="col-md">
+  <div class="clr-row">
+    <div class="clr-col-md">
       <p class="p7 mt-0">
         {{'nodes.totalActiveNodes' | translate}}
       </p>
       <h2 class="mt-0">{{mockStats.totalActiveNodes | number}}</h2>
     </div>
-    <div class="col-md">
+    <div class="clr-col-md">
       <p class="p7 mt-0" >
         {{'nodes.inactiveNodes' | translate}}
       </p>
       <h2 class="mt-0">{{mockStats.inactiveNodes | number}}</h2>
     </div>
-    <div class="col-md">
+    <div class="clr-col-md">
       <p class="p7 mt-0">
         {{'nodes.overallNodeHealth' | translate}}
       </p>
@@ -54,13 +54,13 @@
         <progress max="100" [value]="mockStats.overallNodeHealth * 100"></progress>
       </div>
     </div>
-    <div class="col-md">
+    <div class="clr-col-md">
       <p class="p7 mt-0">
         {{'nodes.transactionsPerSecond' | translate}}
       </p>
       <h2 class="mt-0">{{mockStats.transactionsPerSecond | number}}</h2>
     </div>
-    <div class="col-md">
+    <div class="clr-col-md">
       <p class="p7 mt-0">
         {{'nodes.averageValidationTime' | translate}}
       </p>
@@ -72,8 +72,8 @@
 </div>
 
 <div class="p-2">
-  <div class="row">
-    <div class="col-xs-12">
+  <div class="clr-row">
+    <div class="clr-col-12">
       <h3 class="mt-0">{{'nodes.nodes' | translate}}</h3>
     </div>
   </div>

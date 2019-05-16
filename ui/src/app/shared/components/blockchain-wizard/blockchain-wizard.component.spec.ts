@@ -5,7 +5,6 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
-import { ClrFormsNextModule } from '@clr/angular';
 import { of as observableOf } from 'rxjs';
 import { BlockchainWizardComponent } from './blockchain-wizard.component';
 import { MockSharedModule } from '../../shared.module';
@@ -21,7 +20,6 @@ describe('BlockchainWizardComponent', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       imports: [
-        ClrFormsNextModule,
         RouterTestingModule,
         MockSharedModule,
         FormsModule

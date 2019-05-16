@@ -4,6 +4,7 @@ body .main-container .content-container .content-area {
 
 .page-title {
   margin-top: 0;
+  margin-bottom: .75rem;
   word-break: break-all;
 
   clr-icon {
@@ -29,11 +30,6 @@ body.dark {
   .clr-control-label {
     color: white;
   }
-  .clr-select-wrapper {
-    select {
-      color: white;
-    }
-  }
 }
 
 body nav.subnav .theme-select {
@@ -45,11 +41,15 @@ body nav.subnav .theme-select {
 .chart-container{
 
   .chart-legend .scale-legend-wrap {
-    width:10px;
+    width: 10px;
     border-radius: 2px;
     margin-left: 20px;
   }
   .chart-legend .scale-legend-label {
     margin-left: 17px;
   }
+}
+
+.popper-content .ngxp__container {
+  z-index: 999;
 }

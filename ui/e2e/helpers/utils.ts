@@ -11,6 +11,10 @@ export function waitFor(css: string) {
   browser.wait(until.presenceOf(element(by.css(css))), BROWSER_WAIT_TIME);
 }
 
+export function waitToDisappear(css: string) {
+  browser.wait(until.invisibilityOf(element(by.css(css))), BROWSER_WAIT_TIME);
+}
+
 export function waitForText(item: element) {
   browser.wait(until.presenceOf(item), BROWSER_WAIT_TIME);
 }
