@@ -1,7 +1,7 @@
 <clr-modal [(clrModalOpen)]="isOpen" [clrModalClosable]="false">
   <div class="modal-body">
-    <div class="row">
-      <div class="col-xs-12">
+    <div class="clr-row">
+      <div class="clr-col-12">
         <svg width="140px" height="140px" viewBox="0 0 184 183" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
           <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
             <g id="2Color" fill-rule="nonzero">
@@ -18,19 +18,19 @@
           </g>
         </svg>
       </div>
-      <div class="col-xs-12">
+      <div class="clr-col-12">
         <h3>{{ 'welcome.title' | translate }}</h3>
       </div>
-      <div class="col-xs-12 explanation-wrapper">
+      <div class="clr-col-12 explanation-wrapper">
         <div class="explanation">
           {{ 'welcome.description1' | translate }}
           <a href="mailto:blockchain-support@vmware.com">blockchain-support@vmware.com</a> {{ 'welcome.description2' | translate }}
         </div>
       </div>
-      <div class="col-xs-12 deploy-wrapper">
+      <div class="clr-col-12 deploy-wrapper">
         <button class="btn btn-primary" (click)="deploy()">{{ 'welcome.deploy' | translate }}</button>
       </div>
-      <div class="col-xs-12" id="go">
+      <div class="clr-col-12" id="go">
         <button class="btn btn-outline" (click)="go()">Go to Consortium</button>
       </div>
     </div>

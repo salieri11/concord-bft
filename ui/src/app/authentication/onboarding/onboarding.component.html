@@ -2,8 +2,8 @@
   <div class="content-container">
     <div class="content-area">
       <div class="onboarding-container">
-        <div class="row flex-items-xs-center intro">
-          <div class="col-sm-6 col-xs-12">
+        <div class="clr-row flex-items-xs-center intro">
+          <div class="clr-col-sm-6 col-xs-12">
             <svg width="184px" height="183px" viewBox="0 0 184 183" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
               <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
                 <g id="2Color" fill-rule="nonzero">
@@ -21,8 +21,8 @@
             </svg>
           </div>
         </div>
-        <div class="row flex-items-xs-center">
-          <div [ngClass]="{'hidden-xs-up': showServiceAvailability}" class="col-sm-6 col-xs-12">
+        <div class="clr-row flex-items-xs-center">
+          <div [ngClass]="{'hidden-xs-up': showServiceAvailability}" class="clr-col-sm-6 col-xs-12">
             <h2 class="title">{{ 'agreement.title' | translate }}</h2>
             <textarea readonly [value]="agreement?.content" #agreementEl id="agreementEl" rows="20"></textarea>
             <form class="clr-form clr-form-horizontal" [formGroup]="agreementForm">
@@ -53,7 +53,7 @@
               </div>
             </form>
           </div>
-          <div [ngClass]="{'hidden-xs-up': !showServiceAvailability}" class="col-sm-6 col-xs-12">
+          <div [ngClass]="{'hidden-xs-up': !showServiceAvailability}" class="clr-col-sm-6 col-xs-12">
             <h2 class="title">{{ 'expectations.title' | translate }}</h2>
             <p>{{ 'expectations.one' | translate }}</p>
             <p>{{ 'expectations.two' | translate }}</p>

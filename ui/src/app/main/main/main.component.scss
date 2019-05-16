@@ -61,7 +61,10 @@
 :host ::ng-deep .consortium-select {
   width: 100%;
   height: 1.3rem;
-  border: 1px solid #ccc;
+  border-style: solid;
+  border-width: 1px;
+  border-radius: 2px;
+  border-color: #adbbc4;
 }
 
 :host ::ng-deep .clr-select-wrapper::after {

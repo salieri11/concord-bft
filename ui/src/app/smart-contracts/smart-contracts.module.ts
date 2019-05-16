@@ -6,7 +6,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { TourNgxPopperModule } from 'ngx-tour-ngx-popper';
-import { ClrFormsNextModule } from '@clr/angular';
+import { ClarityModule } from '@clr/angular';
 
 import { SharedModule } from '../shared/shared.module';
 import { TransactionsModule } from '../transactions/transactions.module';
@@ -27,7 +27,7 @@ import { ConnectWithTruffleComponent } from './connect-with-truffle/connect-with
     RouterModule,
     FormsModule,
     TourNgxPopperModule,
-    ClrFormsNextModule,
+    ClarityModule,
     TransactionsModule
   ],
   declarations: [

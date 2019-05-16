@@ -5,7 +5,6 @@
 import { Component, ViewChild } from '@angular/core';
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormGroup } from '@angular/forms';
-import { ClrFormsNextModule } from '@clr/angular';
 
 import { SmartContractsSolidityFunctionInputsComponent } from './smart-contracts-solidity-function-inputs.component';
 import { MockSharedModule } from '../../shared/shared.module';
@@ -34,7 +33,6 @@ describe('SmartContractsSolidityFunctionInputsComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         MockSharedModule,
-        ClrFormsNextModule
       ],
       declarations: [
         TestWrapperClassComponent,

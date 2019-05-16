@@ -6,7 +6,7 @@ import { NgModule, ModuleWithProviders } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { ClarityModule, ClrFormsNextModule } from '@clr/angular';
+import { ClarityModule } from '@clr/angular';
 import { TranslateModule } from '@ngx-translate/core';
 import { MockTranslateModule } from '../mocks/mock-translate.module';
 import { VmwContextualHelpModule } from '@vmw/ngx-contextual-help';
@@ -40,7 +40,6 @@ import { VersionComponent } from './components/version/version.component';
     CommonModule,
     TranslateModule,
     ClarityModule,
-    ClrFormsNextModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
@@ -68,7 +67,6 @@ import { VersionComponent } from './components/version/version.component';
     CommonModule,
     TranslateModule,
     ClarityModule,
-    ClrFormsNextModule,
     TransactionsStatusFilterComponent,
     FormsModule,
     ReactiveFormsModule,
@@ -112,7 +110,6 @@ export class SharedModule {
     CommonModule,
     MockTranslateModule,
     ClarityModule,
-    ClrFormsNextModule,
     ReactiveFormsModule,
     VmwContextualHelpModule.forRoot(),
     CspComponentsModule.forRoot(),
@@ -132,7 +129,6 @@ export class SharedModule {
     CommonModule,
     MockTranslateModule,
     ClarityModule,
-    ClrFormsNextModule,
     FormsModule,
     ReactiveFormsModule,
     VmwContextualHelpModule,

@@ -9,7 +9,7 @@ import { SmartContractPage } from './smart-contract.po';
 import { AuthHelper } from '../helpers/auth';
 import { LoginPage } from '../login/login.po';
 import { BROWSER_WAIT_TIME } from '../helpers/constants';
-import { waitFor, waitForText } from '../helpers/utils';
+import { waitFor, waitForText, waitToDisappear } from '../helpers/utils';
 
 declare var require: any;
 
@@ -64,7 +64,8 @@ describe('concord-ui Smart Contracts', () => {
     waitForText(element(by.cssContainingText('.modal-title', 'Constructor Parameters')));
     smartContractsPage.addProprosals();
     smartContractsPage.clickWizardFinishButton();
-    waitFor('.contract-form');
+    // waitFor('.contract-form');
+    waitToDisappear('.clr-wizard');
     expect(smartContractPage.getContractId()).toBe(contractId);
   });
 

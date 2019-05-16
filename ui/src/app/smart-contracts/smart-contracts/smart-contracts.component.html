@@ -1,13 +1,13 @@
 <div class="p-2">
-  <div class="row">
-    <div class="col-xs-6">
+  <div class="clr-row">
+    <div class="clr-col-6">
       <h2 class="page-title">
         <clr-icon shape="scroll" size="30"></clr-icon>
         {{'smartContracts.smartContracts' | translate}}
       </h2>
     </div>
 
-    <div class="col-xs-6"
+    <div class="clr-col-6"
          *concordCanView="[personas.SystemsAdmin, personas.ConsortiumAdmin, personas.OrgAdmin, personas.OrgDeveloper]">
       <div class="text-right">
         <button class="btn btn-link" (click)="connectWithTruffle()">

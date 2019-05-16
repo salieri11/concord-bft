@@ -3,7 +3,6 @@
  */
 
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { ClrFormsNextModule } from '@clr/angular';
 
 import { WalletFormComponent } from './wallet-form.component';
 import { MockSharedModule } from '../../shared/shared.module';
@@ -17,7 +16,6 @@ describe('WalletFormComponent', () => {
     TestBed.configureTestingModule({
       imports: [
         MockSharedModule,
-        ClrFormsNextModule
       ],
       declarations: [
         WalletFormComponent,

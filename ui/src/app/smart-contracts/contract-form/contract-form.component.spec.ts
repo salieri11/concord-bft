@@ -5,7 +5,6 @@
 import { async, fakeAsync, tick, ComponentFixture, TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
 import { ClarityModule } from '@clr/angular';
-import { ClrFormsNextModule } from '@clr/angular';
 import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
@@ -79,7 +78,6 @@ describe('ContractFormComponent', () => {
         MockSharedModule,
         BrowserAnimationsModule,
         FormsModule,
-        ClrFormsNextModule,
         RouterTestingModule
       ],
       declarations: [ContractFormComponent, SmartContractsSolidityFunctionInputsComponent],

@@ -13,15 +13,15 @@
   </header>
   <div class="content-container">
     <div class="content-area">
-      <div class="row flex-items-xs-center">
-        <div class="col-xl-8 col-lg-12">
+      <div class="clr-row flex-items-xs-center">
+        <div class="clr-colxl-8 clr-col-lg-12">
           <h1>{{ 'title' | translate }}</h1>
           <p>{{ 'signUp.description' | translate }}</p>
           <h4>{{ 'signUp.callToAction' | translate }}</h4>
         </div>
       </div>
-      <div class="row flex-items-xs-center mt-1" *ngIf="errorMessage">
-        <div class="col-xl-8 col-lg-12">
+      <div class="clr-row flex-items-xs-center mt-1" *ngIf="errorMessage">
+        <div class="clr-colxl-8 clr-col-lg-12">
           <clr-alert [clrAlertClosable]="false" [clrAlertType]="'danger'">
             <div clr-alert-item class="alert-item">
                   <span class="alert-text">
@@ -36,22 +36,22 @@
       </div>
       <form id="signupForm" [formGroup]="signupForm" (ngSubmit)="signUp()">
         <section class="form-block">
-          <div class="row flex-items-xs-center call-outs">
-            <div class="col-xl-4 col-lg-6 col-md-12">
+          <div class="clr-row flex-items-xs-center call-outs">
+            <div class="clr-colxl-4 clr-col-lg-6 clr-col-md-12">
               <div class="form-group">
                 <label for="firstName">{{ 'signUp.form.firstName' | translate }}</label>
                 <input type="text" id="firstName" formControlName="firstName">
               </div>
             </div>
-            <div class="col-xl-4 col-lg-6 col-md-12">
+            <div class="clr-colxl-4 clr-col-lg-6 clr-col-md-12">
               <div class="form-group">
                 <label for="lastName">{{ 'signUp.form.lastName' | translate }}</label>
                 <input type="text" id="lastName" formControlName="lastName">
               </div>
             </div>
           </div>
-          <div class="row flex-items-xs-center call-outs">
-            <div class="col-xl-4 col-lg-6 col-md-12">
+          <div class="clr-row flex-items-xs-center call-outs">
+            <div class="clr-colxl-4 clr-col-lg-6 clr-col-md-12">
               <div class="form-group">
                 <label for="email">{{ 'signUp.form.email' | translate }}</label>
                 <div class="clr-control-container" [ngClass]="{'clr-error': signupForm.controls.email.errors && !signupForm.controls.email.pristine && signupForm.controls.email.touched}">
@@ -65,7 +65,7 @@
                 </div>
               </div>
             </div>
-            <div class="col-xl-4 col-lg-6 col-md-12">
+            <div class="clr-colxl-4 clr-col-lg-6 clr-col-md-12">
               <div class="form-group">
                 <label for="password">{{ 'signUp.form.password' | translate }}</label>
                 <div class="clr-control-container" [ngClass]="{'clr-error': signupForm.controls.password.errors && !signupForm.controls.password.pristine && signupForm.controls.password.touched}">
@@ -80,28 +80,28 @@
               </div>
             </div>
           </div>
-          <div class="row flex-items-xs-center call-outs">
-            <div class="col-xl-4 col-lg-6 col-md-12">
+          <div class="clr-row flex-items-xs-center call-outs">
+            <div class="clr-colxl-4 clr-col-lg-6 clr-col-md-12">
               <div class="form-group">
                 <label for="company">{{ 'signUp.form.company' | translate }}</label>
                 <input type="text" id="company" formControlName="company">
               </div>
             </div>
-            <div class="col-xl-4 col-lg-6 col-md-12">
+            <div class="clr-colxl-4 clr-col-lg-6 clr-col-md-12">
               <div class="form-group">
                 <label for="phoneNumber">Phone Number</label>
                 <input type="text" id="phoneNumber" formControlName="phoneNumber">
               </div>
             </div>
           </div>
-          <div class="row flex-items-xs-center call-outs">
-            <div class="col-xl-4 col-lg-6 col-md-12">
+          <div class="clr-row flex-items-xs-center call-outs">
+            <div class="clr-colxl-4 clr-col-lg-6 clr-col-md-12">
               <div class="form-group">
                 <label for="jobTitle">{{ 'signUp.form.jobTitle' | translate }}</label>
                 <input type="text" id="jobTitle" formControlName="jobTitle">
               </div>
             </div>
-            <div class="col-xl-4 col-lg-6 col-md-12">
+            <div class="clr-colxl-4 clr-col-lg-6 clr-col-md-12">
               <div class="form-group">
                 <label for="country">{{ 'signUp.form.country' | translate }}</label>
                 <div class="select">
@@ -114,8 +114,8 @@
               </div>
             </div>
           </div>
-          <div class="row flex-items-xs-center call-outs">
-            <div class="col-xl-4 col-lg-6 col-md-12">
+          <div class="clr-row flex-items-xs-center call-outs">
+            <div class="clr-colxl-4 clr-col-lg-6 clr-col-md-12">
               <div class="form-group">
                 <label for="relationship">{{ 'signUp.form.relationship' | translate }}</label>
                 <div class="select">
@@ -131,7 +131,7 @@
                 </div>
               </div>
             </div>
-            <div class="col-xl-4 col-lg-6 col-md-12">
+            <div class="clr-colxl-4 clr-col-lg-6 clr-col-md-12">
               <div class="form-group">
                 <label for="numberOfEmployees">{{ 'signUp.form.numberOfEmployees' | translate }}</label>
                 <div class="select">
@@ -146,8 +146,8 @@
               </div>
             </div>
           </div>
-          <div class="row flex-items-xs-center">
-            <div class="col-xl-8 col-lg-12">
+          <div class="clr-row flex-items-xs-center">
+            <div class="clr-colxl-8 clr-col-lg-12">
               <button type="submit" class="btn btn-primary" [disabled]="signupForm.invalid">{{ 'signUp.form.submit' | translate }}</button>
             </div>
           </div>

@@ -2,7 +2,7 @@
  * Copyright 2018-2019 VMware, all rights reserved.
  */
 
-import { browser } from 'protractor';
+import { browser, element } from 'protractor';
 
 import { AuthHelper } from '../helpers/auth';
 import { AppPage } from '../app/app.po';
@@ -46,9 +46,9 @@ describe('concord-ui Onboarding Flow', () => {
     loginPage.changePasswordSubmit();
     browser.sleep(200);
     browser.waitForAngularEnabled(false);
-    browser.sleep(200);
+    waitFor('#go');
     appPage.goToConsortium().click();
-    browser.sleep(500);
+    browser.sleep(1000);
     expect(appPage.getTourTitle().getText()).toEqual('General Status');
     browser.sleep(200);
     appPage.getTourNextButton().click();

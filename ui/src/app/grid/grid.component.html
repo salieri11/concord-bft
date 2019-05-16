@@ -1,14 +1,14 @@
 <div class="grid-container">
-  <div class="row">
-    <div class="col-sm-12">
+  <div class="clr-row">
+    <div class="clr-col-sm-12">
       <form class="search-box">
         <clr-icon shape="search"></clr-icon>
         <input type="text" [placeholder]="'grid.search.placeholder' | translate" name="search" [(ngModel)]="search" (keyup)="searchList()">
       </form>
     </div>
   </div>
-  <div class="row">
-    <div class="col-sm-12">
+  <div class="clr-row">
+    <div class="clr-col-sm-12">
       <clr-datagrid #datagrid [(clrDgSelected)]="selectedRows" (clrDgRefresh)="refresh($event)" [clrDgLoading]="loading">
         <clr-dg-column *ngFor="let col of options.columns" [clrDgSortBy]="col.id">
           {{ col.name }}

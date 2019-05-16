@@ -6,7 +6,6 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { of as observableOf } from 'rxjs';
-import { ClrFormsNextModule } from '@clr/angular';
 import { MockSharedModule } from '../../shared/shared.module';
 import { RouterTestingModule } from '@angular/router/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
@@ -34,7 +33,6 @@ describe('SmartContractsComponent', () => {
         RouterTestingModule,
         HttpClientTestingModule,
         MockSharedModule,
-        ClrFormsNextModule,
         FormsModule
       ],
       declarations: [

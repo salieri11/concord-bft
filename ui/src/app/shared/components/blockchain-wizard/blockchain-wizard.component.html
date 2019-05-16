@@ -14,18 +14,18 @@
       <ng-template clrPageNavTitle>{{'blockchainWizard.details.navTitle' | translate}}</ng-template>
       <div clrForm class="form-block blockchain-form">
         <clr-input-container>
-          <label for="consortiumName">{{'blockchainWizard.common.consortiumName' | translate}}</label>
-          <input clrInput #consortiumInput id="consortiumName" type="text" formControlName="name" class="form-control"
+          <label class="clr-col-12 clr-col-md-4" for="consortiumName">{{'blockchainWizard.common.consortiumName' | translate}}</label>
+          <input clrInput #consortiumInput id="consortiumName" type="text" formControlName="name" class="form-control clr-col-12 clr-col-md-8"
                  size="43" [placeholder]="'blockchainWizard.details.consortiumPlaceholder' | translate">
         </clr-input-container>
         <clr-textarea-container>
-          <label for="consortiumDescription">{{'blockchainWizard.common.consortiumDescription' | translate}}</label>
-          <textarea cols="40" clrTextarea id="consortiumDescription" formControlName="description" class="form-control"
+          <label class="clr-col-12 clr-col-md-4" for="consortiumDescription">{{'blockchainWizard.common.consortiumDescription' | translate}}</label>
+          <textarea cols="40" clrTextarea id="consortiumDescription" formControlName="description" class="form-control clr-col-12 clr-col-md-8"
                     [placeholder]="'blockchainWizard.details.consortiumDescriptionPlaceholder' | translate"></textarea>
         </clr-textarea-container>
         <clr-select-container>
-          <label for="numberOfNodes">{{'blockchainWizard.common.numberOfNodes' | translate}}</label>
-          <select clrSelect formControlName="numberOfNodes">
+          <label class="clr-col-12 clr-col-md-4" for="numberOfNodes">{{'blockchainWizard.common.numberOfNodes' | translate}}</label>
+          <select clrSelect formControlName="numberOfNodes" class="clr-col-12 clr-col-md-8">
             <option *ngFor="let num of numbersOfNodes" [ngValue]="num">{{num}}
             </option>
           </select>
@@ -38,8 +38,8 @@
       <ng-template clrPageTitle>{{'blockchainWizard.users.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'blockchainWizard.users.navTitle' | translate}}</ng-template>
       <div clrForm [formGroup]="userForm" class="user-form form-block">
-        <div class="row">
-          <div class="col-xs-5">
+        <div class="clr-row">
+          <div class="clr-col-5">
             <clr-input-container>
               <label for="userEmail">{{'blockchainWizard.users.email' | translate}}</label>
               <input clrInput id="userEmail" type="email" formControlName="email" class="form-control"
@@ -47,7 +47,7 @@
               <clr-control-error>{{'blockchainWizard.users.errors.email' | translate}}</clr-control-error>
             </clr-input-container>
           </div>
-          <div class="col-xs-5">
+          <div class="clr-col-5">
             <clr-select-container>
               <label for="userRole">{{'blockchainWizard.users.role' | translate}}</label>
               <select clrSelect id="userRole" formControlName="role">
@@ -56,7 +56,7 @@
               </select>
             </clr-select-container>
           </div>
-          <div class="col-xs-2">
+          <div class="clr-col-2">
             <button id="inviteUserButton" class="btn btn-sm btn-primary" type="button" (click)="addUser()" [disabled]="!userForm.valid">
               {{'blockchainWizard.users.invite' | translate}}
             </button>
@@ -96,23 +96,23 @@
     <clr-wizard-page>
       <ng-template clrPageTitle>{{'blockchainWizard.reviewDeployment.pageTitle' | translate}}</ng-template>
       <ng-template clrPageNavTitle>{{'blockchainWizard.reviewDeployment.navTitle' | translate}}</ng-template>
-      <div class="row">
-        <div class="col-xs-4 summary-label">
+      <div class="clr-row">
+        <div class="clr-col-4 summary-label">
           {{'blockchainWizard.common.consortiumName' | translate}}
         </div>
-        <div class="col-xs-8 summary-value">
+        <div class="clr-col-8 summary-value">
           {{ form.value.details.name }}
         </div>
-        <div class="col-xs-4 summary-label">
+        <div class="clr-col-4 summary-label">
           {{'blockchainWizard.common.consortiumDescription' | translate}}
         </div>
-        <div class="col-xs-8 summary-value">
+        <div class="clr-col-8 summary-value">
           {{ form.value.details.description }}
         </div>
-        <div class="col-xs-4 summary-label">
+        <div class="clr-col-4 summary-label">
           {{'blockchainWizard.common.numberOfNodes' | translate}}
         </div>
-        <div class="col-xs-8 summary-value">
+        <div class="clr-col-8 summary-value">
           {{ form.value.details.numberOfNodes }}
         </div>
       </div>
