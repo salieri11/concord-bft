@@ -15,6 +15,6 @@ class TestOrchestratorFactory implements OrchestratorProvider {
 
     @Override
     public CompletableFuture<Orchestrator> newOrchestrator(OrchestrationSiteInfo site) {
-        return CompletableFuture.completedFuture(new TestOrchestrator(site));
+        return CompletableFuture.completedFuture(new BookKeepingStubOrchestrator(site));
     }
 }

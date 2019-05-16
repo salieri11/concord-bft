@@ -753,7 +753,7 @@ public class ProvisionService extends ProvisionServiceImplBase {
             ProvisionedResource resource
     ) {
         return new DeploymentSessionEvent(
-                DeploymentSessionEvent.Type.NODE_DEPLOYED,
+                DeploymentSessionEvent.Type.RESOURCE,
                 sessionId,
                 ConcordNode.Companion.getDefaultValue(),
                 ConcordNodeStatus.Companion.getDefaultValue(),
