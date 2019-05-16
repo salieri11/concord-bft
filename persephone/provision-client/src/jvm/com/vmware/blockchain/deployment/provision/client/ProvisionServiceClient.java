@@ -112,13 +112,24 @@ public class ProvisionServiceClient {
 
             // Create a blocking stub with the channel
             var client = new ProvisionServiceStub (channel, CallOptions.DEFAULT);
-            var cluster_size = 4;
+            var cluster_size = 7;
+            var list = List.of(
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(1,0)),
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(2,0)),
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(1,0)),
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(2,0)),
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(1,0)),
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(2,0)),
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(1,0))
+             );
+            /*
             var list = List.of(
                     new Entry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(1,2)),
                     new Entry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(2,3)),
                     new Entry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(3,4)),
                     new Entry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(4,5))
             );
+            */
             var placementSpec = new PlacementSpecification(list);
             var components = List.of(
                     new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/concord-core:latest"),

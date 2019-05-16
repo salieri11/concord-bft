@@ -226,10 +226,11 @@ class VmcOrchestrator private constructor(
                                     info.containerRegistry,
                                     request.model,
                                     request.genesis,
-                                    request.configuration,
                                     request.privateNetworkAddress,
                                     toIPv4Address(staticIpGateway),
-                                    info.controlNetworkSubnet
+                                    info.controlNetworkSubnet,
+                                    clusterId.toString(),
+                                    nodeId.toString()
                             )
                     )
 

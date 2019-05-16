@@ -19,10 +19,11 @@ class InitScript(
     containerRegistry: Endpoint,
     model: ConcordModelSpecification,
     genesis: Genesis,
-    concordConfiguration: String,
     ipAddress: String,
     gateway: String,
-    subnet: Int
+    subnet: Int,
+    clusterId: String,
+    nodeId: String
 ) {
 
     object GenesisSerializer
@@ -64,19 +65,21 @@ class InitScript(
             /usr/bin/vmware-toolbox-cmd info update network
 
             touch /concord/config-local/concord.config
-            echo '{{concordConfiguration}}' > /concord/config-local/concord.config
+            touch /concord/config-public/find-docker-instances.sh
+            chmod 777 /concord/config-public/find-docker-instances.sh
+
             echo '{{genesis}}' > /concord/config-public/genesis.json
-            docker run -d --name=concord -v /concord/config-local:/concord/config-local -v /concord/config-public:/concord/config-public -p 5458:5458 -p 3501-3505:3501-3505/udp registry-1.docker.io/vmwblockchain/concord-core:latest /bin/bash -c "export LD_LIBRARY_PATH=${'$'}LD_LIBRARY_PATH:/usr/local/lib && /concord/concord -c /concord/config-local/concord.config"
-            docker run -d --name=ethrpc --link concord -p 8545:8545 registry-1.docker.io/vmwblockchain/ethrpc:latest /bin/bash -c "sed -i s/localhost/concord/g application.properties && java -jar concord-ethrpc.jar"
+            docker run -d --name=agent -e CID={{XXX}} -e NID={{YYY}} -v /concord/config-public:/concord-public -v /concord/config-local:/concord/config-local -v /var/run/docker.sock:/var/run/docker.sock -p 8546:8546 registry-1.docker.io/vmwblockchain/agent-testing:latest
             echo 'done'
             """.trimIndent()
                     .replace("{{dockerLoginCommand}}", containerRegistry.toRegistryLoginCommand())
                     .replace("{{dockerPullCommand}}", dockerPullCommand)
-                    .replace("{{concordConfiguration}}", concordConfiguration)
                     .replace("{{genesis}}", GenesisSerializer.toJson(genesis))
                     .replace("{{networkAddressCommand}}", networkAddressCommand)
                     .replace("{{staticIp}}", ipAddress)
                     .replace("{{gateway}}", gateway)
+	            .replace("{{XXX}}", clusterId)
+	            .replace("{{YYY}}", nodeId)
 
     /**
      * Convert an endpoint to a Docker Registry login command.
