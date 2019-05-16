@@ -210,6 +210,7 @@ class AsyncTlsConnection : public
   mutex _disposeLock;
   boost::simple_segregated_storage<std::size_t> storage;
   vector<char> v;
+  boost::asio::io_service::strand _strand;
 
   // internal state
   bool _disposed = false;
@@ -251,7 +252,8 @@ class AsyncTlsConnection : public
       _disposed(false),
       _authenticated{false},
       _connected{false},
-      v(10 * _bufferLength) {
+      v(10 * _bufferLength),
+      _strand (*service) {
     LOG_DEBUG(_logger, "ctor, node " << _selfId << ", connType: " << _destId);
 
     //_inBuffer = new char[_bufferLength];
@@ -448,7 +450,7 @@ class AsyncTlsConnection : public
 
     _sslContext.set_verify_callback(
         boost::bind(&AsyncTlsConnection::verify_certificate_server,
-                    this,
+                    shared_from_this(),
                     _1,
                     _2));
 
@@ -494,7 +496,7 @@ class AsyncTlsConnection : public
 
     _sslContext.set_verify_callback(
         boost::bind(&AsyncTlsConnection::verify_certificate_client,
-                    this,
+                    shared_from_this(),
                     _1,
                     _2));
 
@@ -697,10 +699,10 @@ class AsyncTlsConnection : public
       set_timeout();
       _connectTimer.expires_from_now(
           boost::posix_time::millisec(_currentTimeout));
-      _connectTimer.async_wait(
+      _connectTimer.async_wait(_strand.wrap(
           boost::bind(&AsyncTlsConnection::connect_timer_tick,
                       shared_from_this(),
-                      boost::asio::placeholders::error));
+                      boost::asio::placeholders::error)));
     } else {
       set_connected(true);
       _connectTimer.cancel();
@@ -709,10 +711,11 @@ class AsyncTlsConnection : public
                                             << ", res: " << res);
 
       _socket->async_handshake(boost::asio::ssl::stream_base::client,
+                               _strand.wrap(
                                boost::bind(
                                    &AsyncTlsConnection::on_handshake_complete_outbound,
                                    shared_from_this(),
-                                   boost::asio::placeholders::error));
+                                   boost::asio::placeholders::error)));
 
     }
 
@@ -775,12 +778,13 @@ class AsyncTlsConnection : public
       asio::async_read(
           *_socket,
           asio::buffer(buffer + bytesRead, MSG_LENGTH_FIELD_SIZE - bytesRead),
+          _strand.wrap(
           boost::bind(&AsyncTlsConnection::read_msglength_completed,
                       shared_from_this(),
                       boost::asio::placeholders::error,
                       boost::asio::placeholders::bytes_transferred,
                       false,
-                      buffer));
+                      buffer)));
     } else { // start reading completely the whole message
       uint32_t msgLength = get_message_length(buffer);
       if(msgLength == 0 || msgLength > _maxMessageLength - 1 - MSG_HEADER_SIZE){
@@ -795,11 +799,11 @@ class AsyncTlsConnection : public
         boost::posix_time::milliseconds(READ_TIME_OUT_MILLI));
     assert(res <= THREAD_PER_SERVICE);//can cancel at most 1 pending
     // async_wait
-    _readTimer.async_wait(
+    _readTimer.async_wait(_strand.wrap(
         boost::bind(&AsyncTlsConnection::on_read_timer_expired,
                     shared_from_this(),
                     boost::asio::placeholders::error,
-                    buffer));
+                    buffer)));
 
     LOG_DEBUG(_logger, "exit, node " << _selfId
                                      << ", dest: " << _destId
@@ -819,12 +823,13 @@ class AsyncTlsConnection : public
     char* buffer = new char[_bufferLength];
     _socket->async_read_some(
         asio::buffer(buffer, MSG_LENGTH_FIELD_SIZE),
+        _strand.wrap(
         boost::bind(&AsyncTlsConnection::read_msglength_completed,
                     shared_from_this(),
                     boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred,
                     true,
-                    buffer));
+                    buffer)));
 
     LOG_DEBUG(_logger,
               "read_msg_length_async, node " << _selfId
@@ -901,11 +906,12 @@ class AsyncTlsConnection : public
     // or error occured, this is what Asio guarantees
     async_read(*_socket,
                boost::asio::buffer(buffer, msgLength),
+               _strand.wrap(
                boost::bind(&AsyncTlsConnection::read_msg_async_completed,
                            shared_from_this(),
                            boost::asio::placeholders::error,
                            boost::asio::placeholders::bytes_transferred,
-                           buffer));
+                           buffer)));
 
   }
 
@@ -956,22 +962,23 @@ class AsyncTlsConnection : public
     asio::async_write(
         *_socket,
         bufs,
+        _strand.wrap(
         boost::bind(
             &AsyncTlsConnection::async_write_complete,
             shared_from_this(),
             boost::asio::placeholders::error,
             boost::asio::placeholders::bytes_transferred,
-            count));
+            count)));
 
     // start the timer to handle the write timeout
     auto res = _writeTimer.expires_from_now(
         boost::posix_time::milliseconds(WRITE_TIME_OUT_MILLI));
     assert(res <= THREAD_PER_SERVICE); //should not cancel any pending async
     // wait
-    _writeTimer.async_wait(
+    _writeTimer.async_wait(_strand.wrap(
         boost::bind(&AsyncTlsConnection::on_write_timer_expired,
                     shared_from_this(),
-                    boost::asio::placeholders::error));
+                    boost::asio::placeholders::error)));
   }
 
   /**
@@ -1019,6 +1026,14 @@ class AsyncTlsConnection : public
     //}
   }
 
+  void do_sync_write(char *buffer, size_t length) {
+    B_ERROR_CODE err;
+    asio::write(*_socket, asio::buffer(buffer, length));
+    if(was_error(err, "do_sync_write")) {
+      handle_error();
+    }
+  }
+
   /// ************* write functions end ******************* ////
 
  public:
@@ -1039,10 +1054,10 @@ class AsyncTlsConnection : public
     asio::ip::tcp::endpoint ep(asio::ip::address::from_string(ip), port);
 
     get_socket().
-        async_connect(ep,
+        async_connect(ep, _strand.wrap(
                       boost::bind(&AsyncTlsConnection::connect_completed,
                                   shared_from_this(),
-                                  boost::asio::placeholders::error));
+                                  boost::asio::placeholders::error)));
     LOG_TRACE(_logger, "exit, from: " << _selfId
                                       << " ,to: " << _expectedDestId
                                       << ", ip: " << ip
@@ -1051,9 +1066,10 @@ class AsyncTlsConnection : public
 
   void start() {
     _socket->async_handshake(boost::asio::ssl::stream_base::server,
+                             _strand.wrap(
                              boost::bind(&AsyncTlsConnection::on_handshake_complete_inbound,
                                          shared_from_this(),
-                                         boost::asio::placeholders::error));
+                                         boost::asio::placeholders::error)));
   }
 
   /**
@@ -1074,6 +1090,7 @@ class AsyncTlsConnection : public
 
     // here we lock to protect multiple thread access and to synch with callback
     // queue access
+
     lock_guard<mutex> l(_writeLock);
 
     // push to the output queue
@@ -1086,9 +1103,12 @@ class AsyncTlsConnection : public
     // we must post to asio service because async operations should be
     // started from asio threads and not during pending async read
     if(canSend) {
-      _service->post(boost::bind(&AsyncTlsConnection::do_write,
-                                 shared_from_this()));
+      _service->post(_strand.wrap(
+          boost::bind(&AsyncTlsConnection::do_write,
+                                 shared_from_this())));
     }
+
+    //    do_sync_write(buf,  length + MSG_HEADER_SIZE);
 
     LOG_DEBUG(_logger, "from: " << _selfId
                                 << ", to: " << _destId
