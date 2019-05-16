@@ -206,6 +206,32 @@ make shared_lib
 sudo make install-shared
 ```
 
+### OpenSSL (if used with TLS module)
+
+Concord uses [OpenSSL](https://github.com/openssl/openssl) for TLS communication. You will need to install OpenSSL version 1.1.1a:
+
+```shell
+   git clone https://github.com/openssl/openssl.git
+   cd openssl
+   git checkout OpenSSL_1_1_1a
+   ./config   
+   make
+   make test
+   sudo make install
+```
+Then run:
+
+```shell
+   openssl version
+```
+If you get an error then run:
+
+```shell
+   export LD_LIBRARY_PATH=/usr/local/lib
+```
+
+You should get 1_1_1a as your version.
+
 ### Concord
 
 At build-time, concord takes advantage of clang-format (v6.0) to check code
@@ -302,7 +328,7 @@ With Concord running, you probably want to set up [Helen](../helen) or
 
 ### Concord Configuration
 
-Concord uses YAML configuration files. A configuration generation utility is 
+Concord uses YAML configuration files. A configuration generation utility is
 provided to generate these configuration files for a given Concord cluster. In a
 completed build, the utility is `conc_genconfig` in the `tools` directory. The
 utility accepts input providing the size of the cluster, networking information,

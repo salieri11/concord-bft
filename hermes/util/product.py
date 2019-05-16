@@ -950,6 +950,7 @@ class Product():
    def action_on_concord_container(self, containerName, action):
       command = "docker {0} {1}".format(action, containerName)
       output = subprocess.Popen(command,stderr=subprocess.PIPE, shell=True, stdout=subprocess.PIPE).stdout.read().decode().replace(os.linesep,"")
+      log.info("Action on " + containerName + ": " + action)
       if output != containerName:
         return False
       return True

@@ -4,6 +4,7 @@ services:
     image: "${concord_repo}:${concord_tag}_memleak"
     volumes:
       - /tmp:/tmp
+      - ./tls_certs:/concord/tls_certs:ro
   helen:
     command:
       - java

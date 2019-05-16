@@ -1,6 +1,6 @@
 // Concord
 //
-// Copyright (c) 2019 VMware, Inc. All Rights Reserved.
+// Copyright (c) 2018 VMware, Inc. All Rights Reserved.
 //
 // This product is licensed to you under the Apache 2.0 license (the "License").
 // You may not use this product except in compliance with the Apache 2.0
@@ -20,6 +20,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "CommFactory.hpp"
 #include "KeyfileIOUtils.hpp"
 #include "config_file_parser.hpp"
 #include "threshsign/ThresholdSignaturesSchemes.h"
@@ -27,6 +28,7 @@
 using bftEngine::PlainTcpConfig;
 using bftEngine::PlainUdpConfig;
 using bftEngine::ReplicaConfig;
+using bftEngine::TlsTcpConfig;
 using BLS::Relic::BlsThresholdFactory;
 using std::map;
 using std::pair;
@@ -38,6 +40,12 @@ using std::vector;
 
 const char* TestCommConfig::ip_port_delimiter_ = ":";
 const std::string TestCommConfig::default_ip_ = "127.0.0.1";
+// the default listen IP is a patch to be used on the machines where external
+// IP is not available for listening (e.g. AWS). The patch is to listen on
+// all interfaces, however, the clean solution will be to add listen IP to
+// the config file - each replica and client should have "connect IP" for
+// connecting to each other and "listen IP" - to listen to incoming connections
+const std::string TestCommConfig::default_listen_ip_ = "0.0.0.0";
 
 //////////////////////////////////////////////////////////////////////////////
 // Create a replica config for the replica with index `replicaId`.
@@ -152,7 +160,7 @@ PlainUdpConfig TestCommConfig::GetUDPConfig(
       SetUpNodes(is_replica, node_id, ip, port, num_of_clients, num_of_replicas,
                  config_file_name);
 
-  PlainUdpConfig ret_val(ip, port, buf_length_, nodes, node_id);
+  PlainUdpConfig ret_val(default_listen_ip_, port, buf_length_, nodes, node_id);
   return ret_val;
 }
 
@@ -167,7 +175,24 @@ PlainTcpConfig TestCommConfig::GetTCPConfig(
       SetUpNodes(is_replica, node_id, ip, port, num_of_clients, num_of_replicas,
                  config_file_name);
 
-  PlainTcpConfig ret_val(ip, port, buf_length_, nodes, num_of_replicas - 1,
-                         node_id);
+  PlainTcpConfig ret_val(default_listen_ip_, port, buf_length_, nodes,
+                         num_of_replicas - 1, node_id);
   return ret_val;
+}
+
+TlsTcpConfig TestCommConfig::GetTlsTCPConfig(
+    bool is_replica, uint16_t id, uint16_t& num_of_clients,
+    uint16_t& num_of_replicas, const std::string& config_file_name) {
+  string ip;
+  uint16_t port;
+
+  std::unordered_map<NodeNum, NodeInfo> nodes =
+      SetUpNodes(is_replica, id, ip, port, num_of_clients, num_of_replicas,
+                 config_file_name);
+
+  // need to move the default cipher suite to the config file
+  TlsTcpConfig retVal(default_listen_ip_, port, buf_length_, nodes,
+                      num_of_replicas - 1, id, "certs",
+                      "ECDHE-ECDSA-AES256-GCM-SHA384");
+  return retVal;
 }

@@ -1,6 +1,6 @@
 // Concord
 //
-// Copyright (c) 2019 VMware, Inc. All Rights Reserved.
+// Copyright (c) 2018 VMware, Inc. All Rights Reserved.
 //
 // This product is licensed to you under the Apache 2.0 license (the "License").
 // You may not use this product except in compliance with the Apache 2.0
@@ -17,6 +17,7 @@
 #include <string>
 
 #include "CommDefs.hpp"
+#include "Logging.hpp"
 #include "ReplicaConfig.hpp"
 
 class ITestCommConfig {
@@ -39,6 +40,10 @@ class ITestCommConfig {
   // Create a UDP communication configuration for the node (replica or client)
   // with index `id`.
   virtual bftEngine::PlainTcpConfig GetTCPConfig(
+      bool is_replica, uint16_t id, uint16_t& num_of_clients,
+      uint16_t& num_of_replicas, const std::string& config_file_name) = 0;
+
+  virtual bftEngine::TlsTcpConfig GetTlsTCPConfig(
       bool is_replica, uint16_t id, uint16_t& num_of_clients,
       uint16_t& num_of_replicas, const std::string& config_file_name) = 0;
 

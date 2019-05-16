@@ -73,17 +73,17 @@ COPY --from=0 /concord/build/tools/ec* /concord/
 EXPOSE 5458
 
 # SBFT ports.
-EXPOSE 3501/udp
-EXPOSE 3502/udp
-EXPOSE 3503/udp
-EXPOSE 3504/udp
-EXPOSE 3505/udp
+EXPOSE 3501/tcp
+EXPOSE 3502/tcp
+EXPOSE 3503/tcp
+EXPOSE 3504/tcp
+EXPOSE 3505/tcp
 
 # ENV
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib:/opt/grpc/lib:/opt/protobuf/lib
 
 # Mountable volumes.
-VOLUME [ "/concord/config", "/concord/rocksdbdata", "/concord/log" ]
+VOLUME [ "/concord/config", "/concord/rocksdbdata", "/concord/log", "/concord/tls_certs" ]
 
 # Set working directory and start.
 WORKDIR /concord

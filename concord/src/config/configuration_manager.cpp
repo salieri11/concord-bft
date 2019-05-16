@@ -3238,6 +3238,16 @@ void specifyConfiguration(ConcordConfiguration& config) {
   clientProxy.tagParameter("public_key", publicGeneratedTags);
   clientProxy.addValidator("public_key", validateRSAPublicKey, nullptr);
   clientProxy.addGenerator("public_key", getRSAPublicKey, nullptr);
+
+  // TLS
+  config.declareParameter("tls_cipher_suite_list",
+                          "TLS cipher suite list to use");
+  config.tagParameter("tls_cipher_suite_list", publicInputTags);
+  config.declareParameter("tls_certificates_folder_path",
+                          "TLS certificates root folder path");
+  config.tagParameter("tls_certificates_folder_path", publicInputTags);
+  config.declareParameter("comm_to_use", "Default communication module");
+  config.tagParameter("comm_to_use", publicInputTags);
 }
 
 void loadClusterSizeParameters(YAMLConfigurationInput& input,

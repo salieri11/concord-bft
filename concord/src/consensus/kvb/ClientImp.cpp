@@ -61,12 +61,24 @@ void release(IClient *r) {
 ClientImp::ClientImp(Blockchain::CommConfig &commConfig,
                      const ClientConsensusConfig &conf)
     : m_status(Idle) {
-  /// TODO(IG): same as in ReplicaImp, actual comm type should be from config
-  bftEngine::PlainUdpConfig config(
-      commConfig.listenIp, commConfig.listenPort, commConfig.bufferLength,
-      commConfig.nodes, commConfig.selfId, commConfig.statusCallback);
+  ICommunication *comm = nullptr;
+  if (commConfig.commType == "tls") {
+    TlsTcpConfig config(commConfig.listenIp, commConfig.listenPort,
+                        commConfig.bufferLength, commConfig.nodes,
+                        commConfig.maxServerId, commConfig.selfId,
+                        commConfig.certificatesRootPath, commConfig.cipherSuite,
+                        commConfig.statusCallback);
+    comm = bftEngine::CommFactory::create(config);
+  } else if (commConfig.commType == "udp") {
+    PlainUdpConfig config(commConfig.listenIp, commConfig.listenPort,
+                          commConfig.bufferLength, commConfig.nodes,
+                          commConfig.selfId, commConfig.statusCallback);
+    comm = bftEngine::CommFactory::create(config);
+  } else {
+    throw std::invalid_argument("Unknown communication module type" +
+                                commConfig.commType);
+  }
 
-  auto comm = bftEngine::CommFactory::create(config);
   comm->Start();
   m_bftClient = SimpleClient::createSimpleClient(comm, conf.clientId,
                                                  conf.maxFaulty, conf.maxSlow);

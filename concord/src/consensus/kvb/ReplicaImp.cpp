@@ -232,14 +232,22 @@ ReplicaImp::ReplicaImp(Blockchain::CommConfig &commConfig,
   m_replicaConfig.thresholdVerifierForSlowPathCommit =
       replicaConfig.thresholdVerifierForSlowPathCommit;
 
-  /// TODO(IG): since we want to decouple concord and bft by KVB layer,
-  /// concord should not know about inner bft comm types. Instead, it should
-  // have its own setting which comm to use. Currently using UDP hardcoded
-  bftEngine::PlainUdpConfig config(
-      commConfig.listenIp, commConfig.listenPort, commConfig.bufferLength,
-      commConfig.nodes, commConfig.selfId, commConfig.statusCallback);
-
-  m_ptrComm = bftEngine::CommFactory::create(config);
+  if (commConfig.commType == "tls") {
+    TlsTcpConfig config(commConfig.listenIp, commConfig.listenPort,
+                        commConfig.bufferLength, commConfig.nodes,
+                        commConfig.maxServerId, commConfig.selfId,
+                        commConfig.certificatesRootPath, commConfig.cipherSuite,
+                        commConfig.statusCallback);
+    m_ptrComm = bftEngine::CommFactory::create(config);
+  } else if (commConfig.commType == "udp") {
+    PlainUdpConfig config(commConfig.listenIp, commConfig.listenPort,
+                          commConfig.bufferLength, commConfig.nodes,
+                          commConfig.selfId, commConfig.statusCallback);
+    m_ptrComm = bftEngine::CommFactory::create(config);
+  } else {
+    throw std::invalid_argument("Unknown communication module type" +
+                                commConfig.commType);
+  }
 
   bftEngine::SimpleBlockchainStateTransfer::Config c;
   c.myReplicaId = m_replicaConfig.replicaId, c.cVal = m_replicaConfig.cVal,
