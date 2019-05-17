@@ -4,17 +4,17 @@
 
 package com.vmware.blockchain.services.contracts;
 
-import java.io.IOException;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * An interface for retrieving brief information about a particular version of a particular contract.
  */
 @Data
+@NoArgsConstructor
 public class BriefVersionInfo {
     String address;
 
@@ -30,7 +30,7 @@ public class BriefVersionInfo {
         ObjectMapper objectMapper = new ObjectMapper();
         try {
             metadata = objectMapper.readValue(c.getMetadata(), Object.class);
-        } catch (IOException e) {
+        } catch (Exception e) {
             metadata = ImmutableMap.of("error", "Could not read metadata");
         }
         version = c.getVersionName();

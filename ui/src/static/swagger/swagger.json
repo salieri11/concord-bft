@@ -400,8 +400,6 @@
                   "contract_name",
                   "constructor_params",
                   "compiler_version",
-                  "is_optimize",
-                  "runs"
                 ],
                 "properties": {
                   "contract_id": {
@@ -643,9 +641,7 @@
                   "contract_id",
                   "compiler_version",
                   "sourcecode",
-                  "contract_name",
-                  "is_optimize",
-                  "runs"
+                  "contract_name"
                 ],
                 "properties": {
                   "contract_id": {
@@ -1378,7 +1374,7 @@
         }
       },
       "post": {
-        "summary": "Deploy and new contract to concord",
+        "summary": "Deploy a new contract to concord",
         "operationId": "contractsPost",
         "requestBody": {
           "description": "New contract POST request body",
@@ -1392,7 +1388,6 @@
                   "from",
                   "sourcecode",
                   "contract_name",
-                  "constructor_params",
                   "compiler_version"
                 ],
                 "properties": {
@@ -1423,6 +1418,14 @@
                   "compiler_version": {
                     "type": "string",
                     "description": "string representing solc version you used to deploy the contract"
+                  },
+                  "is_optimize": {
+                    "type": "boolean",
+                    "description": "True if using the optimizer. False otherwise"
+                  },
+                  "runs": {
+                    "type": "string",
+                    "description": "string representing optimize for how many times you intend to run the code"
                   }
                 }
               }
@@ -1654,9 +1657,7 @@
                   "contract_id",
                   "compiler_version",
                   "sourcecode",
-                  "contract_name",
-                  "is_optimize",
-                  "runs"
+                  "contract_name"
                 ],
                 "properties": {
                   "contract_id": {

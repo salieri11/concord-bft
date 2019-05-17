@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -59,6 +60,7 @@ public class ContractsController extends ConcordServlet {
 
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LogManager.getLogger(ContractsController.class);
+    private static final int DEFAULT_RUNS = 200;
     private final String jsonRpc;
     private ContractService contractService;
     private Random random = new Random();
@@ -112,6 +114,18 @@ public class ContractsController extends ConcordServlet {
             address2 = "0x" + address2;
         }
         return address1.equals(address2);
+    }
+
+    private int getRuns(boolean isOptimize, String runParam) {
+        int runs = DEFAULT_RUNS;
+        if (isOptimize) {
+            try {
+                runs = Integer.parseInt(runParam);
+            } catch (NumberFormatException e) {
+                throw new BadRequestException(ErrorCode.BAD_NUMBER_FORMAT, runParam);
+            }
+        }
+        return runs;
     }
 
     /**
@@ -255,12 +269,13 @@ public class ContractsController extends ConcordServlet {
     }
 
     @Data
+    @JsonInclude(Include.NON_NULL)
     private static class PutRequestBody {
         String contractId;
         String compilerVersion;
         String sourcecode;
         String contractName;
-        Boolean isOptimized;
+        Boolean isOptimize;
         String runs;
     }
 
@@ -287,8 +302,15 @@ public class ContractsController extends ConcordServlet {
         String selectedContract = body.getContractName();
         String compilerVersion = body.getCompilerVersion();
         String existingVersionName = "1";
-        boolean isOptimize = body.getIsOptimized();
-        int runs = isOptimize ? Integer.parseInt(body.getRuns()) : 200;
+        final boolean isOptimize = body.getIsOptimize() == null ? false : body.getIsOptimize();
+        int runs = getRuns(isOptimize, body.getRuns());
+
+        // verify parameters that need to be non-null
+        if (Stream.of(contractId, solidityCode, selectedContract, compilerVersion)
+                .anyMatch(s -> s == null)) {
+            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+        }
+
 
         List<Contract> contracts = contractService.getContractVersion(
                 existingContractId,
@@ -319,7 +341,7 @@ public class ContractsController extends ConcordServlet {
         String from;
         String sourcecode;
         String contractName;
-        String contstructorParms;
+        String contstructorParams;
         String compilerVersion;
         Boolean isOptimize;
         String runs;
@@ -423,13 +445,9 @@ public class ContractsController extends ConcordServlet {
 
             String solidityCode = (String) requestObject.get("sourcecode");
             String compilerVersion = (String) requestObject.get("compiler_version");
-            boolean isOptimize = (boolean) requestObject.get("is_optimize");
-            int runs;
-            if (isOptimize) {
-                runs = Integer.parseInt((String) requestObject.get("runs"));
-            } else {
-                runs = 200;
-            }
+            Object o = requestObject.get("is_optimize");
+            boolean isOptimize = o == null ? false : (boolean) o;
+            int runs = getRuns(isOptimize, (String) requestObject.get("runs"));
             Compiler.Result result = Compiler.compile(solidityCode, compilerVersion, compilerServiceUrl,
                     isOptimize, runs);
 
@@ -496,10 +514,16 @@ public class ContractsController extends ConcordServlet {
         final String contractVersion = body.getVersion();
         final String solidityCode = body.getSourcecode();
         final String selectedContract = body.getContractName();
-        final String constructorParams = body.getContstructorParms() == null ? "" : body.getContstructorParms();
+        final String constructorParams = body.getContstructorParams() == null ? "" : body.getContstructorParams();
         final String compilerVersion = body.getCompilerVersion();
-        final boolean isOptimize = body.getIsOptimize();
-        final int runs = isOptimize ? Integer.parseInt(body.getRuns()) : 200;
+        final boolean isOptimize = body.getIsOptimize() == null ? false : body.getIsOptimize();
+        final int runs = getRuns(isOptimize, body.getRuns());
+
+        // verify parameters that need to be non-null
+        if (Stream.of(from, contractId, contractVersion, solidityCode, selectedContract, compilerVersion)
+                .anyMatch(s -> s == null)) {
+            throw new BadRequestException(ErrorCode.BAD_REQUEST);
+        }
 
         // Get all contracts with this name
         List<Contract> contracts = contractService.listByName(contractId, getBlockchainId(id));
