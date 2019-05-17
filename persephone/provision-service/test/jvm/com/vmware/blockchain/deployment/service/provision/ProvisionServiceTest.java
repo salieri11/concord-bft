@@ -12,16 +12,24 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import com.vmware.blockchain.deployment.model.ConcordModelSpecification;
 import com.vmware.blockchain.deployment.model.CreateClusterRequest;
+import com.vmware.blockchain.deployment.model.DeploymentSession;
 import com.vmware.blockchain.deployment.model.DeploymentSessionEvent;
 import com.vmware.blockchain.deployment.model.DeploymentSessionIdentifier;
 import com.vmware.blockchain.deployment.model.DeploymentSpecification;
+import com.vmware.blockchain.deployment.model.PlacementSpecification;
+import com.vmware.blockchain.deployment.model.PlacementSpecification.Entry;
+import com.vmware.blockchain.deployment.model.ProvisionedResource;
 import com.vmware.blockchain.deployment.model.StreamClusterDeploymentSessionEventRequest;
 import com.vmware.blockchain.deployment.model.MessageHeader;
 import com.vmware.blockchain.deployment.model.OrchestrationSiteIdentifier;
 import com.vmware.blockchain.deployment.model.core.Credential;
 import com.vmware.blockchain.deployment.model.core.Endpoint;
+import com.vmware.blockchain.deployment.model.ethereum.Genesis;
 import com.vmware.blockchain.deployment.model.orchestration.OrchestrationSiteInfo;
 import io.grpc.stub.StreamObserver;
 import org.assertj.core.api.Assertions;
@@ -42,18 +50,51 @@ class ProvisionServiceTest {
      * @return
      *   a newly created {@link ProvisionService} instance.
      */
-    private static ProvisionService newProvisionService() {
-        var orchestrations = Map.of(
+    private static ProvisionService newProvisionService(
+            Map<OrchestrationSiteIdentifier, OrchestrationSiteInfo> orchestrations
+    ) {
+        return DaggerTestProvisionServer.builder()
+                .orchestrations(orchestrations)
+                .build()
+                .provisionService();
+    }
+
+    /**
+     * Create a new set of mappings that denote all available orchestration sites.
+     *
+     * @return
+     *   a mapping of {@link OrchestrationSiteIdentifier} to {@link OrchestrationSiteInfo}.
+     */
+    private static Map<OrchestrationSiteIdentifier, OrchestrationSiteInfo> newOrchestrationSites() {
+        return Map.of(
                 new OrchestrationSiteIdentifier(1, 0), newOrchestrationSiteInfo(1),
                 new OrchestrationSiteIdentifier(2, 0), newOrchestrationSiteInfo(2),
                 new OrchestrationSiteIdentifier(3, 0), newOrchestrationSiteInfo(3),
                 new OrchestrationSiteIdentifier(4, 0), newOrchestrationSiteInfo(4)
         );
+    }
 
-        return DaggerTestProvisionServer.builder()
-                .orchestrations(orchestrations)
-                .build()
-                .provisionService();
+    /**
+     * Create a new {@link DeploymentSpecification} based on supplied parameter information.
+     *
+     * @param clusterSize
+     *   size of the cluster to deploy.
+     *
+     * @return
+     *   a new {@link DeploymentSpecification} instance.
+     */
+    private static DeploymentSpecification newDeploymentSpecification(int clusterSize) {
+        var list = IntStream.range(0, clusterSize)
+                .mapToObj(i -> new Entry(
+                        PlacementSpecification.Type.FIXED,
+                        new OrchestrationSiteIdentifier(1, 0)
+                ))
+                .collect(Collectors.toList());
+        var placementSpec = new PlacementSpecification(list);
+        var genesis = new Genesis();
+        ConcordModelSpecification spec = new ConcordModelSpecification();
+
+        return new DeploymentSpecification(clusterSize, spec, placementSpec, genesis);
     }
 
     /**
@@ -177,17 +218,18 @@ class ProvisionServiceTest {
     @Test
     @Disabled("ProvisionService#generateClusterConfig() expects generation utility to be locally installed.")
     void clusterCreateShouldGenerateSession() throws Exception {
-        var service = newProvisionService();
+        var orchestrations = newOrchestrationSites();
+        var service = newProvisionService(orchestrations);
         var initialized = service.initialize();
         initialized.get(awaitTime, TimeUnit.MILLISECONDS);
         Assertions.assertThat(initialized).isCompleted();
 
         var messageId = "id1";
         var messageUuid = UUID.nameUUIDFromBytes(messageId.getBytes(StandardCharsets.UTF_8));
-        var deploymentSpec = new DeploymentSpecification();
+        var clusterSize = 4;
         var createCluster = new CreateClusterRequest(
                 new MessageHeader(messageId),
-                deploymentSpec
+                newDeploymentSpecification(clusterSize)
         );
         var promise1 = new CompletableFuture<DeploymentSessionIdentifier>();
         service.createCluster(createCluster, newResultObserver(promise1));
@@ -205,7 +247,40 @@ class ProvisionServiceTest {
                 newCollectingObserver(promise2)
         );
         var events = promise2.get(awaitTime, TimeUnit.MILLISECONDS);
-        Assertions.assertThat(events.size()).isEqualTo(2);
+        var nodeEvents = events.stream()
+                .filter(event -> event.getType() == DeploymentSessionEvent.Type.NODE_DEPLOYED)
+                .collect(Collectors.toList());
+        Assertions.assertThat(nodeEvents.size()).isEqualTo(clusterSize);
+
+        var resourceEvents = events.stream()
+                .filter(event -> event.getType() == DeploymentSessionEvent.Type.RESOURCE)
+                .collect(Collectors.toList());
+
+        var computeEvents = resourceEvents.stream()
+                .filter(e -> e.getResource().getType() == ProvisionedResource.Type.COMPUTE_RESOURCE)
+                .collect(Collectors.toList());
+        Assertions.assertThat(computeEvents.size()).isEqualTo(clusterSize);
+
+        var networkEvents = resourceEvents.stream()
+                .filter(e -> e.getResource().getType() == ProvisionedResource.Type.NETWORK_RESOURCE)
+                .collect(Collectors.toList());
+        Assertions.assertThat(networkEvents.size()).isEqualTo(clusterSize * 2);
+
+        var allocationEvents = resourceEvents.stream()
+                .filter(e -> e.getResource().getType() == ProvisionedResource.Type.NETWORK_ALLOCATION)
+                .collect(Collectors.toList());
+        Assertions.assertThat(allocationEvents.size()).isEqualTo(clusterSize);
+
+        for (DeploymentSessionEvent event : events) {
+            if (event.getType() == DeploymentSessionEvent.Type.ACKNOWLEDGED) {
+                Assertions.assertThat(event.getStatus()).isEqualTo(DeploymentSession.Status.ACTIVE);
+            } else if (event.getType() == DeploymentSessionEvent.Type.CLUSTER_DEPLOYED) {
+                var clusterInfo = event.getCluster().getInfo();
+                Assertions.assertThat(clusterInfo.getMembers().size()).isEqualTo(clusterSize);
+            } else if (event.getType() == DeploymentSessionEvent.Type.COMPLETED) {
+                Assertions.assertThat(event.getStatus()).isEqualTo(DeploymentSession.Status.SUCCESS);
+            }
+        }
 
         // Clean up.
         var shutdown = service.shutdown();
