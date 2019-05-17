@@ -21,7 +21,6 @@
 #include "consensus/kvb/InMemoryDBClient.h"
 #include "consensus/kvb/ReplicaImp.h"
 #include "consensus/kvb/bft_configuration.hpp"
-#include "consensus/kvb_commands_handler.hpp"
 #include "consensus/replica_state_sync_imp.hpp"
 #include "daml/blocking_queue.h"
 #include "daml/cmd_handler.hpp"
@@ -29,6 +28,7 @@
 #include "daml_commit.grpc.pb.h"
 #include "daml_events.grpc.pb.h"
 #include "ethereum/concord_evm.hpp"
+#include "ethereum/eth_kvb_commands_handler.hpp"
 #include "ethereum/evm_init_params.hpp"
 #include "time/time_pusher.hpp"
 #include "utils/concord_eth_sign.hpp"
@@ -57,7 +57,7 @@ using concord::common::zero_hash;
 using concord::common::operator<<;
 using concord::consensus::KVBClient;
 using concord::consensus::KVBClientPool;
-using concord::consensus::KVBCommandsHandler;
+using concord::ethereum::EthKvbCommandsHandler;
 using concord::ethereum::EVM;
 using concord::ethereum::EVMInitParams;
 using concord::time::TimePusher;
@@ -282,10 +282,10 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     // Replica
     //
     // TODO(IG): since ReplicaImpl is used as an implementation of few
-    // intefaces, this object will be used for constructing KVBCommandsHandler
-    // and thus we cant use IReplica here. Need to restructure the code, to
-    // split interfaces implementation and to construct objects in more
-    // clear way
+    // intefaces, this object will be used for constructing
+    // EthKvbCommandsHandler and thus we cant use IReplica here. Need to
+    // restructure the code, to split interfaces implementation and to construct
+    // objects in more clear way
     auto *replicaStateSync = new ReplicaStateSyncImp;
     Blockchain::ReplicaImp *replica =
         dynamic_cast<Blockchain::ReplicaImp *>(Blockchain::createReplica(
@@ -297,7 +297,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       kvb_commands_handler =
           new KVBCCommandsHandler(replica, replica, committedTxs);
     } else {
-      kvb_commands_handler = new KVBCommandsHandler(
+      kvb_commands_handler = new EthKvbCommandsHandler(
           *athevm, *ethVerifier, config, nodeConfig, replica, replica);
       // Genesis must be added before the replica is started.
       Blockchain::Status genesis_status =

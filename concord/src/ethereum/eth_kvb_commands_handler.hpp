@@ -2,8 +2,8 @@
 //
 // KVBlockchain replica command handler interface for EVM.
 
-#ifndef CONSENSUS_KVB_COMMANDS_HANDLER_HPP
-#define CONSENSUS_KVB_COMMANDS_HANDLER_HPP
+#ifndef ETHEREUM_KVB_COMMANDS_HANDLER_HPP
+#define ETHEREUM_KVB_COMMANDS_HANDLER_HPP
 
 #include <log4cplus/loggingmacros.h>
 #include <boost/program_options.hpp>
@@ -15,9 +15,9 @@
 #include "utils/concord_eth_sign.hpp"
 
 namespace concord {
-namespace consensus {
+namespace ethereum {
 
-class KVBCommandsHandler : public Blockchain::ICommandsHandler {
+class EthKvbCommandsHandler : public Blockchain::ICommandsHandler {
  private:
   log4cplus::Logger logger;
   concord::ethereum::EVM &athevm_;
@@ -29,13 +29,13 @@ class KVBCommandsHandler : public Blockchain::ICommandsHandler {
   Blockchain::IBlocksAppender *m_ptrBlockAppender = nullptr;
 
  public:
-  KVBCommandsHandler(concord::ethereum::EVM &athevm,
-                     concord::utils::EthSign &verifier,
-                     const concord::config::ConcordConfiguration &config,
-                     concord::config::ConcordConfiguration &nodeConfig,
-                     Blockchain::ILocalKeyValueStorageReadOnly *roStorage,
-                     Blockchain::IBlocksAppender *appender);
-  ~KVBCommandsHandler();
+  EthKvbCommandsHandler(concord::ethereum::EVM &athevm,
+                        concord::utils::EthSign &verifier,
+                        const concord::config::ConcordConfiguration &config,
+                        concord::config::ConcordConfiguration &nodeConfig,
+                        Blockchain::ILocalKeyValueStorageReadOnly *roStorage,
+                        Blockchain::IBlocksAppender *appender);
+  ~EthKvbCommandsHandler();
 
   int execute(uint16_t clientId, uint64_t sequenceNum, bool readOnly,
               uint32_t requestSize, const char *request, uint32_t maxReplySize,
@@ -142,7 +142,7 @@ class KVBCommandsHandler : public Blockchain::ICommandsHandler {
       com::vmware::concord::LogsResponse *response) const;
 };
 
-}  // namespace consensus
+}  // namespace ethereum
 }  // namespace concord
 
-#endif  // CONSENSUS_KVB_COMMANDS_HANDLER_HPP
+#endif  // ETHEREUM_KVB_COMMANDS_HANDLER_HPP
