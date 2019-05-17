@@ -4,11 +4,6 @@
 
 package com.vmware.blockchain.awsutil;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Properties;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -16,33 +11,36 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.CopyObjectResult;
-import com.amazonaws.services.s3.model.DeleteObjectsRequest;
-import com.amazonaws.services.s3.model.DeleteObjectsResult;
-import com.amazonaws.services.s3.model.PutObjectResult; 
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
 
-
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.PutObjectResult;
+
 
 /**
- * Test AwsS3Client for getting/putting object
+ * Test AwsS3Client for getting/putting object.
  */
 public class AwsS3ClientTest {
 
-    private static final String BUCKET_NAME = "config"; 
-    private static final String KEY_NAME = "test.txt"; 
- 
-    private AmazonS3 s3; 
-    private AwsS3Client service; 
-    private AwsS3Client realService; 
- 
+    private static final String BUCKET_NAME = "config";
+    private static final String KEY_NAME = "test.txt";
+
+    private AmazonS3 s3;
+    private AwsS3Client service;
+    private AwsS3Client realService;
+
+    /**
+     * Setup is invoked prior to each testcase.
+     */
     @BeforeEach
-    public void setUp() { 
-        s3 = mock(AmazonS3.class); 
+    public void setUp() {
+        s3 = mock(AmazonS3.class);
         service = new AwsS3Client(s3);
         try (InputStream input = AwsS3ClientTest.class.getClassLoader().getResourceAsStream("application.properties")) {
             Properties prop = new Properties();
@@ -62,21 +60,21 @@ public class AwsS3ClientTest {
         } catch (IOException ex) {
             ex.printStackTrace();
         }
-    } 
- 
-    @Test 
-    public void whenVerifyingPutObject_thenCorrect() { 
-        File file = mock(File.class); 
-        PutObjectResult result = mock(PutObjectResult.class); 
-        when(s3.putObject(anyString(), anyString(), (File) any())).thenReturn(result); 
- 
-        assertThat(service.putObject(BUCKET_NAME, KEY_NAME, file)).isEqualTo(result); 
-        verify(s3).putObject(BUCKET_NAME, KEY_NAME, file); 
     }
-    
-    @Test 
-    public void whenVerifyingGetObject_thenCorrect() { 
-        service.getObject(BUCKET_NAME, KEY_NAME); 
-        verify(s3).getObject(BUCKET_NAME, KEY_NAME); 
-    } 
+
+    @Test
+    public void whenVerifyingPutObject_thenCorrect() {
+        File file = mock(File.class);
+        PutObjectResult result = mock(PutObjectResult.class);
+        when(s3.putObject(anyString(), anyString(), (File) any())).thenReturn(result);
+
+        assertThat(service.putObject(BUCKET_NAME, KEY_NAME, file)).isEqualTo(result);
+        verify(s3).putObject(BUCKET_NAME, KEY_NAME, file);
+    }
+
+    @Test
+    public void whenVerifyingGetObject_thenCorrect() {
+        service.getObject(BUCKET_NAME, KEY_NAME);
+        verify(s3).getObject(BUCKET_NAME, KEY_NAME);
+    }
 }
