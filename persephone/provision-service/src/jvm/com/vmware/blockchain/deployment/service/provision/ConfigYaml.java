@@ -115,6 +115,12 @@ public final class ConfigYaml  {
             writer.newLine();
             writer.write(F_VAL + f_val);
             writer.newLine();
+            writer.write("comm_to_use: udp");
+            writer.newLine();
+            writer.write("tls_cipher_suite_list: ECDHE-ECDSA-AES256-GCM-SHA384");
+            writer.newLine();
+            writer.write("tls_certificates_folder_path: /concord/config-local/cert");
+            writer.newLine();
             writer.write("node__TEMPLATE:\n  logger_config: /concord/config-local/log4cplus.properties\n"
                 + "  genesis_block: /concord/config-public/genesis.json\n  blockchain_db_path: /concord/rocksdbdata/");
             writer.newLine();
