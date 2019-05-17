@@ -1374,7 +1374,7 @@
         }
       },
       "post": {
-        "summary": "Deploy and new contract to concord",
+        "summary": "Deploy a new contract to concord",
         "operationId": "contractsPost",
         "requestBody": {
           "description": "New contract POST request body",

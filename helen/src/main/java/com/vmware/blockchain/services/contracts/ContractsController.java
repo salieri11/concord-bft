@@ -60,6 +60,7 @@ public class ContractsController extends ConcordServlet {
 
     private static final long serialVersionUID = 1L;
     private static final Logger logger = LogManager.getLogger(ContractsController.class);
+    private static final int DEFAULT_RUNS = 200;
     private final String jsonRpc;
     private ContractService contractService;
     private Random random = new Random();
@@ -113,6 +114,18 @@ public class ContractsController extends ConcordServlet {
             address2 = "0x" + address2;
         }
         return address1.equals(address2);
+    }
+
+    private int getRuns(boolean isOptimize, String runParam) {
+        int runs = DEFAULT_RUNS;
+        if (isOptimize) {
+            try {
+                runs = Integer.parseInt(runParam);
+            } catch (NumberFormatException e) {
+                throw new BadRequestException(ErrorCode.BAD_NUMBER_FORMAT, runParam);
+            }
+        }
+        return runs;
     }
 
     /**
@@ -290,14 +303,7 @@ public class ContractsController extends ConcordServlet {
         String compilerVersion = body.getCompilerVersion();
         String existingVersionName = "1";
         final boolean isOptimize = body.getIsOptimize() == null ? false : body.getIsOptimize();
-        int runs = 200;
-        try {
-            if (isOptimize) {
-                runs = Integer.parseInt(body.getRuns());
-            }
-        } catch (NumberFormatException e) {
-            throw new BadRequestException(ErrorCode.BAD_NUMBER_FORMAT, body.getRuns());
-        }
+        int runs = getRuns(isOptimize, body.getRuns());
 
         // verify parameters that need to be non-null
         if (Stream.of(contractId, solidityCode, selectedContract, compilerVersion)
@@ -439,14 +445,9 @@ public class ContractsController extends ConcordServlet {
 
             String solidityCode = (String) requestObject.get("sourcecode");
             String compilerVersion = (String) requestObject.get("compiler_version");
-            Object o = requestObject.get("isOptimize");
+            Object o = requestObject.get("is_optimize");
             boolean isOptimize = o == null ? false : (boolean) o;
-            int runs;
-            if (isOptimize) {
-                runs = Integer.parseInt((String) requestObject.get("runs"));
-            } else {
-                runs = 200;
-            }
+            int runs = getRuns(isOptimize, (String) requestObject.get("runs"));
             Compiler.Result result = Compiler.compile(solidityCode, compilerVersion, compilerServiceUrl,
                     isOptimize, runs);
 
@@ -516,14 +517,7 @@ public class ContractsController extends ConcordServlet {
         final String constructorParams = body.getContstructorParams() == null ? "" : body.getContstructorParams();
         final String compilerVersion = body.getCompilerVersion();
         final boolean isOptimize = body.getIsOptimize() == null ? false : body.getIsOptimize();
-        int runs = 200;
-        try {
-            if (isOptimize) {
-                runs = Integer.parseInt(body.getRuns());
-            }
-        } catch (NumberFormatException e) {
-            throw new BadRequestException(ErrorCode.BAD_NUMBER_FORMAT, body.getRuns());
-        }
+        final int runs = getRuns(isOptimize, body.getRuns());
 
         // verify parameters that need to be non-null
         if (Stream.of(from, contractId, contractVersion, solidityCode, selectedContract, compilerVersion)

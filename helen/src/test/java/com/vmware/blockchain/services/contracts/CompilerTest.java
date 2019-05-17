@@ -18,6 +18,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 
+/**
+ * Tests for the compiler service.
+ */
 @ExtendWith(SpringExtension.class)
 class CompilerTest {
 
