@@ -100,7 +100,7 @@ public class GenericDao {
         int newEntityVersion = newEntity.getVersion();
         while (true) {
             try {
-                return genericDaoTransaction.putUnderParent(newEntity, currentEntity, authHelper.getConsortiumId());
+                return genericDaoTransaction.putUnderParent(newEntity, currentEntity, authHelper.getOrganizationId());
             } catch (TransactionException e) {
                 if (retries >= MAX_RETRIES) {
                     logger.warn("Failed to retry for putUnderParent. Max retries exceeded.", e);
@@ -167,7 +167,7 @@ public class GenericDao {
      * @return              entity
      */
     public <E extends AbstractEntity> E getEntityByTenant(UUID id, Class<E> entityClass) {
-        return getEntityByTenant(authHelper.getConsortiumId(), id, entityClass);
+        return getEntityByTenant(authHelper.getOrganizationId(), id, entityClass);
     }
 
 
@@ -266,7 +266,7 @@ public class GenericDao {
     }
 
     public <E extends AbstractEntity> List<E> getByTenant(Class<E> entityClass) {
-        return getByTenant(entityClass, authHelper.getConsortiumId());
+        return getByTenant(entityClass, authHelper.getOrganizationId());
     }
 
 

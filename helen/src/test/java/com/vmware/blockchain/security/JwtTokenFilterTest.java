@@ -4,6 +4,7 @@
 
 package com.vmware.blockchain.security;
 
+import static com.vmware.blockchain.security.SecurityTestUtils.BC_ID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -36,6 +37,8 @@ import com.vmware.blockchain.services.blockchains.Blockchain;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.profiles.Consortium;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
+import com.vmware.blockchain.services.profiles.Organization;
+import com.vmware.blockchain.services.profiles.OrganizationService;
 import com.vmware.blockchain.services.profiles.Roles;
 import com.vmware.blockchain.services.profiles.User;
 import com.vmware.blockchain.services.profiles.UserService;
@@ -47,7 +50,6 @@ import com.vmware.blockchain.services.profiles.UserService;
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(classes = {WebSecurityConfig.class, JwtTestContoller.class, AuthHelper.class})
 public class JwtTokenFilterTest {
-    static final UUID BC_ID = UUID.fromString("437d97b2-76df-4596-b0d8-3d8a9412ff2f");
 
     @Autowired
     public JwtTokenProvider jwtTokenProvider;
@@ -65,6 +67,9 @@ public class JwtTokenFilterTest {
 
     @MockBean
     private ConsortiumService consortiumService;
+
+    @MockBean
+    private OrganizationService organizationService;
 
     private MockMvc mockMvc;
 
@@ -98,8 +103,13 @@ public class JwtTokenFilterTest {
     public void init() {
         user = SecurityTestUtils.getUser();
         Consortium c = SecurityTestUtils.getConsortium();
+        Organization o = SecurityTestUtils.getOrganization();
         when(userService.getByEmail(user.getEmail())).thenReturn(user);
         when(userService.getDefaultConsortium(user)).thenReturn(c);
+        when(userService.getDefaultOrganization(user)).thenReturn(o);
+        when(organizationService.get(SecurityTestUtils.ORG_ID)).thenReturn(o);
+        when(organizationService.getConsortiums(any(UUID.class)))
+                .thenReturn(Collections.singletonList(c));
         when(consortiumService.get(any(UUID.class))).thenReturn(c);
         Blockchain b = mock(Blockchain.class);
         when(b.getId()).thenReturn(BC_ID);

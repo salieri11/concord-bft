@@ -24,6 +24,7 @@ public class SecurityTestUtils {
     public static final UUID ORG_ID = UUID.fromString("82634974-88cf-4944-a99d-6b92664bb765");
     public static final UUID CONSORTIUM_ID = UUID.fromString("5c7cd0e9-57ad-44af-902f-74af2f3dd8fe");
     public static final String SECRET_KEY = Base64.getEncoder().encodeToString("secret-key".getBytes());
+    public static final UUID BC_ID = UUID.fromString("437d97b2-76df-4596-b0d8-3d8a9412ff2f");
 
     /**
      * Create a test User.

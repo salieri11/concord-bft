@@ -40,4 +40,8 @@ public class OrganizationService {
     public List<User> getUsers(UUID id)  {
         return genericDao.getByParentId(id, User.class);
     }
+
+    public List<Consortium> getConsortiums(UUID id) {
+        return genericDao.getByParentId(id, Consortium.class);
+    }
 }

@@ -84,7 +84,7 @@ public class LintControllerTests {
     @BeforeEach
     void init() {
         when(cspAuthHelper.fetchAuthTokenFromRefreshToken(anyString())).thenReturn("anAuthToken");
-        when(authHelper.getConsortiumId()).thenReturn(UUID.fromString(CON_ID));
+        when(authHelper.getOrganizationId()).thenReturn(UUID.fromString(CON_ID));
         when(restTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class), any(Class.class)))
             .thenReturn(new ResponseEntity<String>("the answer", HttpStatus.OK));
         ReflectionTestUtils.setField(lintProxyController, "restTemplate", restTemplate);

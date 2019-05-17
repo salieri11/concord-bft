@@ -305,11 +305,11 @@ public class GenericDaoTest {
         try {
             TestEntity entity = genericDao.get(entity1.getId(), TestEntity.class);
             Assertions.assertTrue(compare(entity, entity1), "Got different values for stored entity.");
-            Assertions.assertEquals(entity.getTenantId(), authHelper.getConsortiumId());
+            Assertions.assertEquals(entity.getTenantId(), authHelper.getOrganizationId());
 
             UUID userId = UUID.randomUUID();
             when(authHelper.getUserId()).thenReturn(userId);
-            when(authHelper.getConsortiumId()).thenReturn(userId);
+            when(authHelper.getOrganizationId()).thenReturn(userId);
             when(authHelper.getEmail()).thenReturn("mockauthuser1");
 
             genericDao.put(entity, entity);
@@ -371,7 +371,7 @@ public class GenericDaoTest {
     @Test
     void testGetEntityByTenantAuthSuccess() throws Exception {
         try {
-            when(authHelper.getConsortiumId()).thenReturn(tenantId);
+            when(authHelper.getOrganizationId()).thenReturn(tenantId);
             entity4.setAge(105);
             genericDao.put(entity4, entity4);
             TestEntity entity = genericDao.getEntityByTenant(entity4.getId(), TestEntity.class);
@@ -387,7 +387,7 @@ public class GenericDaoTest {
     @Test
     void testGetEntityByTenantAuthOperator() throws Exception {
         try {
-            when(authHelper.getConsortiumId()).thenReturn(UUID.randomUUID());
+            when(authHelper.getOrganizationId()).thenReturn(UUID.randomUUID());
             when(authHelper.hasAnyAuthority(Roles.operatorRoles())).thenReturn(true);
             entity4.setAge(105);
             genericDao.put(entity4, entity4);
@@ -408,7 +408,7 @@ public class GenericDaoTest {
     @Test
     void testGetEntityByTenantFail() throws Exception {
         try {
-            when(authHelper.getConsortiumId()).thenReturn(UUID.randomUUID());
+            when(authHelper.getOrganizationId()).thenReturn(UUID.randomUUID());
             Assertions.assertThrows(NotFoundException.class,
                 () -> genericDao.getEntityByTenant(entity4.getId(), TestEntity.class));
             List<TestEntity> l = genericDao.getByTenant(TestEntity.class);
@@ -1028,7 +1028,7 @@ public class GenericDaoTest {
     }
 
     private TestEntity createEntity(UUID parent1Id, UUID parent2Id, String other) {
-        return createEntity(parent1Id, parent2Id, authHelper.getConsortiumId(), other);
+        return createEntity(parent1Id, parent2Id, authHelper.getOrganizationId(), other);
     }
 
     private TestEntity createEntity(UUID parent1Id, UUID parent2Id, UUID tenantId, String other) {

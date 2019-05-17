@@ -199,7 +199,7 @@ public class BlockchainController {
         } else {
             // Otherwise, we can only see our consortium.
             try {
-                Consortium c = consortiumService.get(authHelper.getConsortiumId());
+                Consortium c = consortiumService.get(authHelper.getOrganizationId());
                 chains = manager.listByConsortium(c);
             } catch (NotFoundException e) {
                 // Just ignore
