@@ -32,10 +32,9 @@
 
 #include "api/connection_manager.hpp"
 #include "common/concord_log.hpp"
-#include "config/configuration_manager.hpp"
 #include "consensus/kvb_client.hpp"
 #include "evm.h"
-#include "time/time_reading.hpp"
+#include "time/time_pusher.hpp"
 
 using namespace boost::asio;
 using namespace std;
@@ -53,8 +52,8 @@ using boost::asio::ip::tcp;
 using boost::system::error_code;
 
 using concord::common::StatusAggregator;
-using concord::config::ConcordConfiguration;
 using concord::consensus::KVBClientPool;
+using concord::time::TimePusher;
 using concord::utils::from_evm_uint256be;
 
 namespace concord {
@@ -63,10 +62,9 @@ namespace api {
 ApiConnection::pointer ApiConnection::create(
     io_service &io_service, ConnectionManager &connManager,
     KVBClientPool &clientPool, StatusAggregator &sag, uint64_t gasLimit,
-    uint64_t chainID, const ConcordConfiguration &config,
-    const ConcordConfiguration &nodeConfig) {
+    uint64_t chainID, TimePusher &timePusher) {
   return pointer(new ApiConnection(io_service, connManager, clientPool, sag,
-                                   gasLimit, chainID, config, nodeConfig));
+                                   gasLimit, chainID, timePusher));
 }
 
 tcp::socket &ApiConnection::socket() { return socket_; }
@@ -427,7 +425,7 @@ void ApiConnection::handle_eth_request(int i) {
 
     // Transactions create blocks, which need timestamps, and gas.
     if (request.method() == EthRequest_EthMethod_SEND_TX) {
-      if (!concord::time::IsTimeServiceEnabled(config_)) {
+      if (!timePusher_.IsTimeServiceEnabled()) {
         time_t currentTime = std::time(nullptr);
         internalEthRequest->set_timestamp(currentTime);
       }
@@ -439,8 +437,8 @@ void ApiConnection::handle_eth_request(int i) {
       internalEthRequest->set_gas_limit(gasLimit_);
     }
 
-    if (!isReadOnly && concord::time::IsTimeServiceEnabled(config_)) {
-      concord::time::AddTimeToCommand(nodeConfig_, internalRequest);
+    if (!isReadOnly && timePusher_.IsTimeServiceEnabled()) {
+      timePusher_.AddTimeToCommand(internalRequest);
     }
 
     ConcordResponse internalResponse;
@@ -694,8 +692,7 @@ uint64_t ApiConnection::current_block_number() {
 ApiConnection::ApiConnection(io_service &io_service, ConnectionManager &manager,
                              KVBClientPool &clientPool, StatusAggregator &sag,
                              uint64_t gasLimit, uint64_t chainID,
-                             const ConcordConfiguration &config,
-                             const ConcordConfiguration &nodeConfig)
+                             TimePusher &timePusher)
     : socket_(io_service),
       logger_(
           log4cplus::Logger::getInstance("com.vmware.concord.ApiConnection")),
@@ -704,8 +701,7 @@ ApiConnection::ApiConnection(io_service &io_service, ConnectionManager &manager,
       sag_(sag),
       gasLimit_(gasLimit),
       chainID_(chainID),
-      config_(config),
-      nodeConfig_(nodeConfig) {
+      timePusher_(timePusher) {
   // nothing to do here yet other than initialize the socket and logger
 }
 
