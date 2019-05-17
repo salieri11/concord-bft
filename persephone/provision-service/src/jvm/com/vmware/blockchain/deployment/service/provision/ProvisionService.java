@@ -4,6 +4,7 @@
 package com.vmware.blockchain.deployment.service.provision;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -14,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -24,6 +26,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.vmware.blockchain.awsutil.AwsS3Client;
 import com.vmware.blockchain.deployment.model.ConcordCluster;
 import com.vmware.blockchain.deployment.model.ConcordClusterIdentifier;
 import com.vmware.blockchain.deployment.model.ConcordClusterInfo;
@@ -59,7 +62,10 @@ import com.vmware.blockchain.deployment.orchestration.Orchestrator.NetworkResour
 import com.vmware.blockchain.deployment.orchestration.Orchestrator.OrchestrationEvent;
 import com.vmware.blockchain.deployment.orchestration.InactiveOrchestrator;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
+
 import io.grpc.stub.StreamObserver;
+
+import org.apache.commons.io.FileUtils;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,6 +114,16 @@ public class ProvisionService extends ProvisionServiceImplBase {
     private final Map<DeploymentSessionIdentifier, CompletableFuture<DeploymentSession>> deploymentLog =
             new ConcurrentHashMap<>();
 
+    /** Default application.properties file. */
+    private String propertyFile = "applications.properties";
+
+    /** S3 Client */
+    private AwsS3Client awsClient;
+
+    /** S3 bucket */
+    private String s3bucket;
+
+
     public ProvisionService(
             ExecutorService executor,
             OrchestratorProvider orchestratorProvider,
@@ -118,6 +134,41 @@ public class ProvisionService extends ProvisionServiceImplBase {
         this.orchestrations = orchestrations;
     }
 
+
+    /**
+     * Helper method which initializes the connection with S3-bucket.
+     * TODO: Use CI-CD pipeline user's AWS access keys.
+     */
+    private boolean initializeS3Client() {
+        log.info("Reading the application properties file");
+        try (InputStream input = getClass().getClassLoader().getResourceAsStream(propertyFile)) {
+            String awsKey = "AKIATWKQRJCJPZPBH4PK";
+            String secretKey = "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";
+            String region = "us-west-2";
+            s3bucket = "concord-config";
+
+            Properties prop = new Properties();
+            if (input != null) {
+                prop.load(input);
+                awsKey = prop.getProperty("aws.accessKey");
+                secretKey = prop.getProperty("aws.secretKey");
+                region = prop.getProperty("aws.region");
+                s3bucket = prop.getProperty("aws.bucket");
+            } else {
+                log.error("Unable to find property file: " + propertyFile);
+            }
+            awsClient = new AwsS3Client(awsKey, secretKey, region);
+            if (awsClient == null) {
+                log.error("Unable to create AWS client: " + propertyFile);
+                return false;
+            }
+        } catch (IOException ex) {
+            log.error("Unable to read the property file: " + propertyFile);
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Initialize the service instance asynchronously.
      *
@@ -125,6 +176,12 @@ public class ProvisionService extends ProvisionServiceImplBase {
      *   {@link CompletableFuture} that completes when initialization is done.
      */
     public CompletableFuture<Void> initialize() {
+        // Provisioning service should be able to initialize with s3 bucket, else we can't proceed.
+        if (!initializeS3Client()) {
+            return CompletableFuture.failedFuture(
+                    new IllegalStateException("Service instance is not in stopped state")
+            );
+        }
         if (STATE.compareAndSet(this, State.STOPPED, State.INITIALIZING)) {
             // Spawn off sub-tasks to async-create the orchestrator instances.
             return CompletableFuture.allOf(
@@ -504,6 +561,12 @@ public class ProvisionService extends ProvisionServiceImplBase {
                             .map(entry -> {
                                 var placement = entry.getKey();
                                 var config = entry.getValue();
+                                // TODO: Have only one place to compute cluster-id.
+                                // Cluster-id is computed else where. 
+                                var id = new ConcordClusterIdentifier(session.getId().getLow(),
+                                                                      session.getId().getHigh());
+                                deployS3Config(id, placement.getNode(), config);
+
                                 var publisher = deployNode(
                                         orchestrators.get(placement.getSite()),
                                         session.getId(),
@@ -602,6 +665,25 @@ public class ProvisionService extends ProvisionServiceImplBase {
 
                     return null; // To satisfy type signature (Void).
                 });
+    }
+
+
+    /**
+     * Helper method to write to s3-bucket. We use the path as /concord-config/<cluster-id>/<nodeId>/concord.config 
+     * to write config file for each node.
+     */
+    private void deployS3Config(ConcordClusterIdentifier clusterId,
+                                ConcordNodeIdentifier node, String config) {
+        try {
+            var modelClusterId = new UUID(clusterId.getHigh(), clusterId.getLow()).toString();
+            var modelNodeId = new UUID(node.getHigh(), node.getLow()).toString();
+            String configPath = modelClusterId + "/" + modelNodeId;
+            var file = Files.createTempFile(Files.createTempDirectory(null), "concord", "instance").toFile();
+            FileUtils.writeStringToFile(file, config, "UTF-8");
+            awsClient.putObject(s3bucket, configPath, file);
+        } catch (IOException ex) {
+            log.error("Couldn't write to s3 bucket");
+        }
     }
 
     /**
