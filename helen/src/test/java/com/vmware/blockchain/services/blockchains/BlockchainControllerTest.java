@@ -219,7 +219,7 @@ public class BlockchainControllerTest {
     @Test
     void getBlockchainUserList() throws Exception {
         UUID cid = consortium.getId();
-        when(authHelper.getConsortiumId()).thenReturn(cid);
+        when(authHelper.getOrganizationId()).thenReturn(cid);
         MvcResult result = mockMvc.perform(get("/api/blockchains/")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON))
@@ -232,7 +232,7 @@ public class BlockchainControllerTest {
 
     @Test
     void getBlockchainUser2List() throws Exception {
-        when(authHelper.getConsortiumId()).thenReturn(C3_ID);
+        when(authHelper.getOrganizationId()).thenReturn(C3_ID);
         MvcResult result = mockMvc.perform(get("/api/blockchains/")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                 .contentType(MediaType.APPLICATION_JSON))

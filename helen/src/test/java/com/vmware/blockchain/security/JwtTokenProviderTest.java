@@ -4,10 +4,11 @@
 
 package com.vmware.blockchain.security;
 
-import static com.vmware.blockchain.security.SecurityTestUtils.CONSORTIUM_ID;
+import static com.vmware.blockchain.security.SecurityTestUtils.ORG_ID;
 import static org.mockito.Mockito.when;
 
 import java.util.Base64;
+import java.util.Collections;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,6 +25,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import com.vmware.blockchain.services.blockchains.BlockchainService;
 import com.vmware.blockchain.services.profiles.ConsortiumService;
+import com.vmware.blockchain.services.profiles.OrganizationService;
 import com.vmware.blockchain.services.profiles.User;
 import com.vmware.blockchain.services.profiles.UserService;
 
@@ -53,6 +55,9 @@ public class JwtTokenProviderTest {
     private ConsortiumService consortiumService;
 
     @MockBean
+    private OrganizationService organizationService;
+
+    @MockBean
     private BlockchainService blockService;
 
     @MockBean
@@ -68,6 +73,9 @@ public class JwtTokenProviderTest {
         // consortium and organization
         MockitoAnnotations.initMocks(this);
         user = SecurityTestUtils.getUser();
+        when(userService.getDefaultOrganization(user)).thenReturn(SecurityTestUtils.getOrganization());
+        when(organizationService.getConsortiums(SecurityTestUtils.ORG_ID))
+                .thenReturn(Collections.singletonList(SecurityTestUtils.getConsortium()));
         when(userService.getDefaultConsortium(user)).thenReturn(SecurityTestUtils.getConsortium());
         // Get the random secret key out of the token provider
         secretKey = (String) ReflectionTestUtils.getField(jwtTokenProvider, "secretKey");
@@ -79,7 +87,7 @@ public class JwtTokenProviderTest {
         Jws<Claims> jws = Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token);
         Claims claims = jws.getBody();
         Assertions.assertEquals("user@test.com", claims.getSubject());
-        Assertions.assertEquals(CONSORTIUM_ID.toString(), claims.get("context_name", String.class));
+        Assertions.assertEquals(ORG_ID.toString(), claims.get("context_name", String.class));
         // Make sure this isn't our old "secret key"
         Assertions.assertNotEquals(SecurityTestUtils.SECRET_KEY, secretKey);
         byte[] z = new byte[JwtTokenProvider.KEY_LENGTH];

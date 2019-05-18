@@ -122,7 +122,7 @@ public class BlockchainObserver implements StreamObserver<DeploymentSessionEvent
 
         if (status == DeploymentSession.Status.SUCCESS) {
             // Create blockchain entity based on collected information.
-            Blockchain blockchain = blockchainService.create(clusterId, authHelper.getConsortiumId(), nodeList);
+            Blockchain blockchain = blockchainService.create(clusterId, authHelper.getOrganizationId(), nodeList);
             task.setResourceId(blockchain.getId());
             task.setResourceLink(String.format("/api/blockchains/%s", blockchain.getId()));
             task.setState(Task.State.SUCCEEDED);

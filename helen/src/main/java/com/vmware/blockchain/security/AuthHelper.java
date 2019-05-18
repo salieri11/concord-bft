@@ -52,7 +52,7 @@ public class AuthHelper {
     }
 
     // Switching to consortiumId, since internally we're still calling it that
-    public UUID getConsortiumId() {
+    public UUID getOrganizationId() {
         HelenUserDetails details = getDetails();
         return details == null ? null : details.getOrgId();
     }

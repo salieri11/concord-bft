@@ -27,8 +27,8 @@ import org.springframework.stereotype.Component;
 import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.UnauthorizedException;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
-import com.vmware.blockchain.services.profiles.Consortium;
-import com.vmware.blockchain.services.profiles.ConsortiumService;
+import com.vmware.blockchain.services.profiles.Organization;
+import com.vmware.blockchain.services.profiles.OrganizationService;
 import com.vmware.blockchain.services.profiles.User;
 import com.vmware.blockchain.services.profiles.UserService;
 
@@ -60,7 +60,7 @@ public class JwtTokenProvider {
     private HelenUserDetailsService helenUserDetailsService;
 
     @Autowired
-    private ConsortiumService consortiumService;
+    private OrganizationService organizationService;
 
     @Autowired
     private UserService userService;
@@ -100,7 +100,7 @@ public class JwtTokenProvider {
         claims.put("perms", user.getRoles().stream().map(s -> s.getAuthority())
                 .filter(Objects::nonNull).collect(Collectors.toList()));
         // "context_name" is what this field will be when we integrate with CSP
-        claims.put("context_name", userService.getDefaultConsortium(user).getId());
+        claims.put("context_name", user.getOrganization());
 
         Date now = new Date();
         Date validity = new Date(now.getTime() + ttl);
@@ -125,11 +125,14 @@ public class JwtTokenProvider {
                 roles.stream().map(r -> new SimpleGrantedAuthority(r)).collect(Collectors.toList());
         // throws exception if user not found.
         HelenUserDetails userDetails = (HelenUserDetails) helenUserDetailsService.loadUserByUsername(email);
-        Consortium c = consortiumService.get(UUID.fromString(orgId));
+        Organization o = organizationService.get(UUID.fromString(orgId));
         userDetails.setAuthToken(token);
         userDetails.setOrgId(UUID.fromString(orgId));
         List<UUID> ids =
-                blockchainService.listByConsortium(c).stream().map(b -> b.getId()).collect(Collectors.toList());
+                organizationService.getConsortiums(o.getId()).stream()
+                        .map(blockchainService::listByConsortium)
+                        .flatMap(c -> c.stream())
+                        .map(b -> b.getId()).distinct().collect(Collectors.toList());
         userDetails.setPermittedChains(ids);
 
         return new UsernamePasswordAuthenticationToken(userDetails, "", authorities);

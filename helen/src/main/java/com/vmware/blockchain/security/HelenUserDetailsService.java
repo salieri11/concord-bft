@@ -21,7 +21,8 @@ import com.vmware.blockchain.common.ErrorCode;
 import com.vmware.blockchain.common.NotFoundException;
 import com.vmware.blockchain.common.UnauthorizedException;
 import com.vmware.blockchain.services.blockchains.BlockchainService;
-import com.vmware.blockchain.services.profiles.Consortium;
+import com.vmware.blockchain.services.profiles.Organization;
+import com.vmware.blockchain.services.profiles.OrganizationService;
 import com.vmware.blockchain.services.profiles.User;
 import com.vmware.blockchain.services.profiles.UserService;
 
@@ -38,6 +39,9 @@ public class HelenUserDetailsService implements UserDetailsService {
     @Autowired
     private BlockchainService blockchainService;
 
+    @Autowired
+    private OrganizationService organizationService;
+
     @Override
     @Cacheable("UserCache")
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -47,11 +51,14 @@ public class HelenUserDetailsService implements UserDetailsService {
         try {
             HelenUserDetails details =
                     new HelenUserDetails(u.getId(), email, u.getPassword(), true, true, true, true, u.getRoles());
-            Consortium c = userService.getDefaultConsortium(u);
-            details.setOrgId(c.getId());
+            Organization o = userService.getDefaultOrganization(u);
+            details.setOrgId(o.getId());
             details.setAuthToken("");
             List<UUID> ids =
-                    blockchainService.listByConsortium(c).stream().map(b -> b.getId()).collect(Collectors.toList());
+                    organizationService.getConsortiums(o.getId()).stream()
+                            .map(blockchainService::listByConsortium)
+                            .flatMap(c -> c.stream())
+                            .map(b -> b.getId()).distinct().collect(Collectors.toList());
             details.setPermittedChains(ids);
             return details;
         } catch (NotFoundException e) {

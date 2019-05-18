@@ -329,10 +329,10 @@ class GenericDaoTransaction  {
                      * For crossOrg style operator calls - we also want to enforce this -
                      * since otherwise a simple mistake of wrong orgId could defeat the goals of crossOrg.
                      */
-                    if (tenantId != null && !tenantId.equals(authHelper.getConsortiumId())) {
+                    if (tenantId != null && !tenantId.equals(authHelper.getOrganizationId())) {
                         // this really isn't correct - it isn't clear this method should even be exposed.
                         logger.warn("getEntityByType orgId requested {} not equal to authContent {} for column {}",
-                                    tenantId, authHelper.getConsortiumId(), getColumnName(entityClass));
+                                    tenantId, authHelper.getOrganizationId(), getColumnName(entityClass));
                     }
                     if (authHelper.hasAnyAuthority(Roles.operatorRoles())) {
                         // if we are operator, just get the entity
@@ -623,7 +623,7 @@ class GenericDaoTransaction  {
                     logger.trace("Start retrieving entities for tenant {}, column name {}", tenantId, columnName);
                     List<E> result = new ArrayList<>();
                     // if this is our tenant, or we are operator, get the values
-                    if ((tenantId == authHelper.getConsortiumId())
+                    if ((tenantId == authHelper.getOrganizationId())
                             || authHelper.hasAnyAuthority(Roles.operatorRoles())) {
                         List<Entity> dbEntities = callEntityMapperWithRetry(m -> m.getByParent(tenantId, columnName),
                                 String.format("getByParent({%s}, {%s})", tenantId, columnName));

@@ -4,13 +4,15 @@
 
 package com.vmware.blockchain.security;
 
-import static com.vmware.blockchain.security.SecurityTestUtils.CONSORTIUM_ID;
+import static com.vmware.blockchain.security.SecurityTestUtils.BC_ID;
+import static com.vmware.blockchain.security.SecurityTestUtils.ORG_ID;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
 import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,10 +45,13 @@ public class JwtTestContoller {
         HelenUserDetails auth = authHelper.getDetails();
         Assert.assertNotNull(auth);
         Assert.assertEquals("user@test.com", authHelper.getEmail());
-        Assert.assertEquals(CONSORTIUM_ID, authHelper.getConsortiumId());
+        Assert.assertEquals(ORG_ID, authHelper.getOrganizationId());
         List<Roles> expected = Arrays.asList(Roles.ORG_USER);
         Assert.assertTrue(expected.containsAll(authHelper.getAuthorities()));
         Assert.assertEquals(expected.size(), authHelper.getAuthorities().size());
+        List<UUID> chains = authHelper.getPermittedChains();
+        Assertions.assertEquals(1, chains.size());
+        Assertions.assertEquals(BC_ID, chains.get(0));
         return new ResponseEntity<String>("Tests passed", HttpStatus.OK);
     }
 

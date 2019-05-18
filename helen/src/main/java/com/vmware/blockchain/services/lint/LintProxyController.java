@@ -103,7 +103,7 @@ public class LintProxyController {
             String query = (String) map.get("logQuery");
             if (query != null) {
                 String whereClause = String.format("consortium_id = '%s' AND function = '%s'",
-                        authHelper.getConsortiumId(), function);
+                                                   authHelper.getOrganizationId(), function);
                 SimpleSqlParser sql = new SimpleSqlParser(query);
                 sql.addWhere(whereClause);
                 map.put("logQuery", sql.toSql());
