@@ -26,11 +26,11 @@
 
     <distributionManagement>
         <repository>
-            <id>blockchain-release</id>
+            <id>athena-release</id>
             <url>https://build-artifactory.eng.vmware.com/artifactory/athena-maven-release</url>
         </repository>
         <snapshotRepository>
-            <id>blockchain-snapshot</id>
+            <id>athena-snapshot</id>
             <url>https://build-artifactory.eng.vmware.com/artifactory/athena-maven-snapshot</url>
         </snapshotRepository>
     </distributionManagement>
@@ -40,6 +40,18 @@
             <id>central</id>
             <name>maven</name>
             <url>https://build-artifactory.eng.vmware.com/artifactory/maven</url>
+        </repository>
+        <repository>
+            <!-- Use VMware Artifactory for first-party artifacts. -->
+            <id>athena-release</id>
+            <name>athena</name>
+            <url>https://build-artifactory.eng.vmware.com/artifactory/athena-maven-release/</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <checksumPolicy>fail</checksumPolicy>
+            </releases>
         </repository>
         <repository>
             <!-- Use VMware Artifactory for first-party artifacts. -->
@@ -85,12 +97,14 @@
         <maven.plugin.source>3.0.1</maven.plugin.source>
         <maven.plugin.surefire>2.22.1</maven.plugin.surefire>
 
+        <!-- First-party dependency-related properties. -->
+        <blockchain.protobuf.version>0.0.1</blockchain.protobuf.version>
+
         <!-- Dependency-related properties. -->
         <assertj.version>3.11.1</assertj.version>
         <atomicfu.version>0.12.6</atomicfu.version>
         <dagger.version>2.21</dagger.version>
         <grpc.runtime.java.version>1.18.0</grpc.runtime.java.version>
-        <grpc.runtime.kotlinx.serialization.version>1.0.0-SNAPSHOT</grpc.runtime.kotlinx.serialization.version>
         <hamcrest.version>2.1</hamcrest.version>
         <jqwik.version>1.1.0</jqwik.version>
         <junit.jupiter.version>5.4.0</junit.jupiter.version>
@@ -168,7 +182,7 @@
             <dependency>
                 <groupId>com.vmware.blockchain.protobuf</groupId>
                 <artifactId>grpc-runtime-kotlinx-serialization</artifactId>
-                <version>${grpc.runtime.kotlinx.serialization.version}</version>
+                <version>${blockchain.protobuf.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.grpc</groupId>
@@ -458,7 +472,7 @@
                             <id>validate</id>
                             <phase>validate</phase>
                             <configuration>
-                                <configLocation>../helen/developer-config/checkstyle.xml</configLocation>
+                                <configLocation>resources/checkstyle.xml</configLocation>
                                 <encoding>UTF-8</encoding>
                                 <consoleOutput>true</consoleOutput>
                                 <failsOnError>true</failsOnError>

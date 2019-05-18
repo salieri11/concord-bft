@@ -20,11 +20,11 @@
 
     <distributionManagement>
         <repository>
-            <id>blockchain-release</id>
+            <id>athena-release</id>
             <url>https://build-artifactory.eng.vmware.com/artifactory/athena-maven-release</url>
         </repository>
         <snapshotRepository>
-            <id>blockchain-snapshot</id>
+            <id>athena-snapshot</id>
             <url>https://build-artifactory.eng.vmware.com/artifactory/athena-maven-snapshot</url>
         </snapshotRepository>
     </distributionManagement>

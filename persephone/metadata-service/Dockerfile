@@ -1,34 +1,32 @@
 # Build time image.
 FROM maven:3.6.1-jdk-11 as builder
 
-## Build protobuf module.
-COPY ./protobuf ./protobuf
-RUN mvn -f protobuf/pom.xml install
+## Copy build-dependent resource files.
+COPY ./resources/checkstyle.xml ./persephone/resources/checkstyle.xml
 
 ## Copy the dependency-related POM files (rarely changing).
-COPY ./helen/developer-config/checkstyle.xml ./helen/developer-config/checkstyle.xml
-COPY ./persephone/pom.xml ./persephone/pom.xml
-COPY ./persephone/api/pom.xml ./persephone/api/pom.xml
-COPY ./persephone/cli/pom.xml ./persephone/cli/pom.xml
-COPY ./persephone/core/pom.xml ./persephone/core/pom.xml
-COPY ./persephone/awsutil/pom.xml ./persephone/awsutil/pom.xml
-COPY ./persephone/metadata-service/pom.xml ./persephone/metadata-service/pom.xml
-COPY ./persephone/metadata-service-client/pom.xml ./persephone/metadata-service-client/pom.xml
-COPY ./persephone/orchestration/pom.xml ./persephone/orchestration/pom.xml
-COPY ./persephone/orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
-COPY ./persephone/persistence/pom.xml ./persephone/persistence/pom.xml
-COPY ./persephone/provision-service/pom.xml ./persephone/provision-service/pom.xml
+COPY ./pom.xml ./persephone/pom.xml
+COPY ./api/pom.xml ./persephone/api/pom.xml
+COPY ./cli/pom.xml ./persephone/cli/pom.xml
+COPY ./core/pom.xml ./persephone/core/pom.xml
+COPY ./awsutil/pom.xml ./persephone/awsutil/pom.xml
+COPY ./metadata-service/pom.xml ./persephone/metadata-service/pom.xml
+COPY ./metadata-service-client/pom.xml ./persephone/metadata-service-client/pom.xml
+COPY ./orchestration/pom.xml ./persephone/orchestration/pom.xml
+COPY ./orchestration-vmc/pom.xml ./persephone/orchestration-vmc/pom.xml
+COPY ./persistence/pom.xml ./persephone/persistence/pom.xml
+COPY ./provision-service/pom.xml ./persephone/provision-service/pom.xml
 
 ## Copy the dependency module sources and POM files.
-COPY ./persephone/api/src ./persephone/api/src
-COPY ./persephone/core/src ./persephone/core/src
-COPY ./persephone/core/test ./persephone/core/test
-COPY ./persephone/persistence/src ./persephone/persistence/src
-COPY ./persephone/persistence/test ./persephone/persistence/test
+COPY ./api/src ./persephone/api/src
+COPY ./core/src ./persephone/core/src
+COPY ./core/test ./persephone/core/test
+COPY ./persistence/src ./persephone/persistence/src
+COPY ./persistence/test ./persephone/persistence/test
 
 ## Copy the module sources and POM file.
-COPY ./persephone/metadata-service/src ./persephone/metadata-service/src
-COPY ./persephone/metadata-service/test ./persephone/metadata-service/test
+COPY ./metadata-service/src ./persephone/metadata-service/src
+COPY ./metadata-service/test ./persephone/metadata-service/test
 
 ## Build persephone modules.
 RUN mvn -f persephone/pom.xml package -pl metadata-service -am -B

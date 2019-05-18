@@ -135,7 +135,7 @@
                                     <id>kotlin</id>
                                     <groupId>com.vmware.blockchain.protobuf</groupId>
                                     <artifactId>protoc-plugin-kotlinx-serialization</artifactId>
-                                    <version>1.0.0-SNAPSHOT</version>
+                                    <version>${revision}</version>
                                     <mainClass>com.vmware.blockchain.protobuf.plugin.kotlin.GeneratorKt</mainClass>
                                 </protocPlugin>
                             </protocPlugins>
@@ -172,7 +172,7 @@
                                     <id>grpc-kotlin</id>
                                     <groupId>com.vmware.blockchain.protobuf</groupId>
                                     <artifactId>protoc-plugin-grpc-kotlinx-serialization</artifactId>
-                                    <version>1.0.0-SNAPSHOT</version>
+                                    <version>${revision}</version>
                                     <mainClass>com.vmware.blockchain.protobuf.plugin.kotlin.GeneratorKt</mainClass>
                                 </protocPlugin>
                             </protocPlugins>
