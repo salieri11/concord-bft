@@ -8,7 +8,7 @@
     "start:prod": "npm run copy-clarity && ng serve --ssl --proxy-config proxy.conf.json --prod",
     "start:csp": "npm run copy-clarity && ng serve --ssl --proxy-config proxy.conf.json -c csp-dev",
     "build:prod": "npm run copy-clarity && npm run ng-high-memory -- build --prod ",
-    "build:csp:prod": "npm run copy-clarity && ng build --prod -c csp-production",
+    "build:prod:csp": "npm run copy-clarity && npm run ng-high-memory -- build --prod -c csp-production",
     "build:local:prod": "ng build --prod --deploy-url assets/ && npm run copy-clarity && npm run build:move",
     "build:local:dev": "ng build --deploy-url assets/ && npm run copy-clarity && npm run build:move",
     "build:move": "mkdir -p ../src/main/resources/static/assets && cp -a dist/. ../src/main/resources/static/assets && mv ../src/main/resources/static/assets/index.html ../src/main/resources/static",
