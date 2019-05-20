@@ -93,6 +93,15 @@ describe('concord-ui Smart Contracts', () => {
     expect(smartContractPage.getTransactionSuccessAlert().isPresent()).toBe(false);
     smartContractPage.fillParameterForm(from, 'transaction');
     waitFor('.send-success');
-    expect(smartContractPage.getTransactionSuccessAlert().isPresent()).toBe(true);
+    const sendSuccessEl = smartContractPage.getTransactionSuccessAlert();
+    const firstCallText = sendSuccessEl.getText();
+    expect(sendSuccessEl.isPresent()).toBe(true);
+    browser.sleep(500);
+    smartContractPage.send();
+
+    browser.sleep(1000);
+    const secondCallText = sendSuccessEl.getText();
+    expect(firstCallText).not.toBe(secondCallText);
+
   });
 });
