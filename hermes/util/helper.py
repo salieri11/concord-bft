@@ -3,6 +3,7 @@ import os
 import yaml
 import shutil
 import logging
+import paramiko
 
 log = logging.getLogger(__name__)
 docker_env_file = ".env"
@@ -80,3 +81,22 @@ def get_docker_compose_value(docker_compose_files, service_name, key):
    else:
       raise Exception("Key '{}' not found in docker file(s): {}".format(key,
          docker_compose_files))
+
+def ssh_connect(host, username, password, command):
+   resp = None
+   try:
+      ssh = paramiko.SSHClient()
+      ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+      ssh.connect(host, username=username, password=password)
+      ssh_stdin, ssh_stdout, ssh_stderr = ssh.exec_command(command)
+      outlines = ssh_stdout.readlines()
+      resp = ''.join(outlines)
+      log.debug(resp)
+   except paramiko.AuthenticationException as e:
+      log.error("Authentication failed when connecting to {}".format(host))
+      raise
+   except Exception as e:
+      log.error("Could not connect to {}: {}".format(host, e))
+      raise
+
+   return resp
