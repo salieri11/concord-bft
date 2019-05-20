@@ -19,10 +19,4 @@ export class AuthHelper {
     browser.executeScript('window.localStorage.clear();');
     browser.executeScript('window.sessionStorage.clear();');
   }
-
-  logOut() {
-    const appPage = new AppPage();
-
-    appPage.logOut();
-  }
 }

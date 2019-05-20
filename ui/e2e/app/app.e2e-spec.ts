@@ -21,15 +21,6 @@ describe('concord-ui App', () => {
 
   afterAll(() => {
     authHelper = new AuthHelper();
-    authHelper.logOut();
   });
 
-  // TODO This will be revisited at a later date, when we add
-  // the marketing page back to the flow
-  // it('should display the page title', () => {
-  //   marketingPage.navigateTo();
-  //   marketingPage.clickLoginButton();
-  //   loginPage.fillLogInForm('admin@blockchain.local', 'T3sting!');
-  //   expect(dashboardPage.getPageTitle()).toEqual('VMware concord');
-  // });
 });

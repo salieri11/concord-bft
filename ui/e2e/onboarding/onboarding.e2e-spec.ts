@@ -46,7 +46,7 @@ describe('concord-ui Onboarding Flow', () => {
     loginPage.changePasswordSubmit();
     browser.sleep(200);
     browser.waitForAngularEnabled(false);
-    waitFor('#go');
+    browser.sleep(500);
     appPage.goToConsortium().click();
     browser.sleep(1000);
     expect(appPage.getTourTitle().getText()).toEqual('General Status');

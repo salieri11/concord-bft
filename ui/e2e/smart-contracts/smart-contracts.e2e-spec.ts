@@ -36,10 +36,6 @@ describe('concord-ui Smart Contracts', () => {
     loginPage.fillLogInForm('admin@blockchain.local', 'T3sting!');
   });
 
-  afterAll(() => {
-    authHelper.logOut();
-  });
-
   beforeEach(() => {
     smartContractsPage = new SmartContractsPage();
     smartContractPage = new SmartContractPage();
