@@ -696,7 +696,7 @@ def test_paging_latest_negative(restRequest):
    highestBlockNumberBefore = getLatestBlockNumber(restRequest, blockchainId)
    result = restRequest.getBlockList(blockchainId, latest=-1)
    highestBlockNumberAfter = getLatestBlockNumber(restRequest, blockchainId)
-   assert (result["blocks"][0]["number"] == highestBlockNumberBefore and
+   assert (result["blocks"][0]["number"] >= highestBlockNumberBefore and
            result["blocks"][0]["number"] <= highestBlockNumberAfter), \
            "Expected the latest block to be {}-{}".format(
               highestBlockNumberBefore, highestBlockNumberAfter)

@@ -31,6 +31,7 @@
 #include "ethereum/eth_kvb_commands_handler.hpp"
 #include "ethereum/evm_init_params.hpp"
 #include "time/time_pusher.hpp"
+#include "time/time_reading.hpp"
 #include "utils/concord_eth_sign.hpp"
 
 #ifdef USE_ROCKSDB
@@ -333,8 +334,8 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
 
     KVBClientPool pool(clients);
 
-    TimePusher timePusher(nodeConfig, pool);
-    if (config.getValue<bool>("FEATURE_time_service")) {
+    TimePusher timePusher(config, nodeConfig, pool);
+    if (concord::time::IsTimeServiceEnabled(config)) {
       timePusher.Start();
     }
 
@@ -358,7 +359,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       tcp::endpoint endpoint(address::from_string(ip), port);
       uint64_t gasLimit = config.getValue<uint64_t>("gas_limit");
       ApiAcceptor acceptor(*api_service, endpoint, pool, sag, gasLimit, chainID,
-                           config, nodeConfig);
+                           timePusher);
       LOG4CPLUS_INFO(logger, "API Listening on " << endpoint);
 
       start_worker_threads(nodeConfig.getValue<int>("api_worker_pool_size") -
@@ -369,7 +370,7 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       worker_pool.join_all();
     }
 
-    if (config.getValue<bool>("FEATURE_time_service")) {
+    if (concord::time::IsTimeServiceEnabled(config)) {
       timePusher.Stop();
     }
 

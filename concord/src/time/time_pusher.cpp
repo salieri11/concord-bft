@@ -14,25 +14,41 @@
 
 using com::vmware::concord::ConcordRequest;
 using com::vmware::concord::ConcordResponse;
+using com::vmware::concord::TimeUpdate;
 using concord::time::TimePusher;
 
-TimePusher::TimePusher(const concord::config::ConcordConfiguration &nodeConfig,
+TimePusher::TimePusher(const concord::config::ConcordConfiguration &config,
+                       const concord::config::ConcordConfiguration &nodeConfig,
                        concord::consensus::KVBClientPool &clientPool)
     : logger_(log4cplus::Logger::getInstance("concord.time.pusher")),
-      nodeConfig_(nodeConfig),
       clientPool_(clientPool),
-      stop_(false) {
+      stop_(false),
+      lastPublishTimeMs_(0) {
+  // memoizing enable flag, to make checking faster later
+  timeServiceEnabled_ = concord::time::IsTimeServiceEnabled(config);
+
   if (nodeConfig.hasValue<int>("time_pusher_period_ms")) {
     periodMilliseconds_ = nodeConfig.getValue<int>("time_pusher_period_ms");
   } else {
     periodMilliseconds_ = 0;
   }
+
+  if (nodeConfig.hasValue<std::string>("time_source_id")) {
+    timeSourceId_ = nodeConfig.getValue<std::string>("time_source_id");
+  } else {
+    timeSourceId_ = "";
+  }
 }
 
 void TimePusher::Start() {
-  if (!nodeConfig_.hasValue<std::string>("time_source_id")) {
+  if (!timeServiceEnabled_) {
+    LOG4CPLUS_INFO(logger_, "Not starting thread: time service not enabled.");
+    return;
+  }
+
+  if (timeSourceId_.empty()) {
     LOG4CPLUS_INFO(logger_,
-                   "Not starting thead: no time_source_id configured.");
+                   "Not starting thread: no time_source_id configured.");
     return;
   }
 
@@ -65,6 +81,21 @@ void TimePusher::Stop() {
   stop_ = false;
 }
 
+bool TimePusher::IsTimeServiceEnabled() const { return timeServiceEnabled_; }
+
+void TimePusher::AddTimeToCommand(ConcordRequest &command) {
+  if (timeServiceEnabled_) {
+    AddTimeToCommand(command, ReadTime());
+  }
+}
+
+void TimePusher::AddTimeToCommand(ConcordRequest &command, uint64_t time) {
+  TimeUpdate *tu = command.mutable_time_update();
+  tu->set_source(timeSourceId_);
+  tu->set_time(time);
+  lastPublishTimeMs_ = time;
+}
+
 void TimePusher::ThreadFunction() {
   LOG4CPLUS_INFO(
       logger_, "Thread started with period " << periodMilliseconds_ << " ms.");
@@ -72,12 +103,21 @@ void TimePusher::ThreadFunction() {
   ConcordResponse resp;
 
   while (!stop_) {
+    // Sleeping for a static amount of time, instead of taking into account how
+    // recently the last publish time was, means we might wait up to
+    // 2*periodMilliseconds_ before publishing, but it also prevents silly 1ms
+    // sleeps.
     std::this_thread::sleep_for(std::chrono::milliseconds(periodMilliseconds_));
 
-    // TODO: check if we need to send an update first.
+    uint64_t time = ReadTime();
+    if (time < lastPublishTimeMs_ + periodMilliseconds_) {
+      // Time was published by a transaction recently - no need to publish again
+      // right now.
+      continue;
+    }
 
     try {
-      AddTimeToCommand(nodeConfig_, req);
+      AddTimeToCommand(req, time);
       clientPool_.send_request_sync(req, false /* not read-only */, resp);
       req.Clear();
       resp.Clear();

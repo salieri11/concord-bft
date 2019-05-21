@@ -10,11 +10,13 @@
 // others were.
 
 #ifndef TIME_TIME_PUSHER_HPP
+#define TIME_TIME_PUSHER_HPP
 
 #include <log4cplus/loggingmacros.h>
 #include <mutex>
 #include <thread>
 
+#include "concord.pb.h"
 #include "config/configuration_manager.hpp"
 #include "consensus/kvb_client.hpp"
 
@@ -23,18 +25,30 @@ namespace time {
 
 class TimePusher {
  public:
-  explicit TimePusher(const concord::config::ConcordConfiguration &nodeConfig,
+  explicit TimePusher(const concord::config::ConcordConfiguration &config,
+                      const concord::config::ConcordConfiguration &nodeConfig,
                       concord::consensus::KVBClientPool &clientPool);
 
   void Start();
   void Stop();
 
+  bool IsTimeServiceEnabled() const;
+  void AddTimeToCommand(com::vmware::concord::ConcordRequest &command);
+
+ private:
+  void AddTimeToCommand(com::vmware::concord::ConcordRequest &command,
+                        uint64_t time);
+
  private:
   log4cplus::Logger logger_;
-  const concord::config::ConcordConfiguration &nodeConfig_;
   concord::consensus::KVBClientPool &clientPool_;
   bool stop_;
+  std::atomic_uint64_t lastPublishTimeMs_;
+
+  bool timeServiceEnabled_;
   int periodMilliseconds_;
+  std::string timeSourceId_;
+
   std::thread pusherThread_;
   std::mutex threadMutex_;
 

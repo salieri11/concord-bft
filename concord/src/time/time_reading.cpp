@@ -32,17 +32,6 @@ uint64_t ReadTime() {
       .count();
 }
 
-// Add a time reading to a command, so the time contract will be updated when
-// the command is executed by a replica.
-void AddTimeToCommand(const ConcordConfiguration &nodeConfig,
-                      ConcordRequest &command) {
-  if (nodeConfig.hasValue<std::string>("time_source_id")) {
-    TimeUpdate *tu = command.mutable_time_update();
-    tu->set_source(nodeConfig.getValue<std::string>("time_source_id"));
-    tu->set_time(ReadTime());
-  }
-}
-
 std::pair<std::string, uint64_t> GetTimeFromCommand(
     const ConcordRequest &command) {
   if (!command.has_time_update()) {
