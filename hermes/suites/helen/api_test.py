@@ -1027,7 +1027,6 @@ def test_postContract_simple(restRequest):
 
 
 @pytest.mark.smoke
-@pytest.mark.skip
 def test_postContract_constructor(restRequest):
    '''
    Post a contract with a constructor and run it.

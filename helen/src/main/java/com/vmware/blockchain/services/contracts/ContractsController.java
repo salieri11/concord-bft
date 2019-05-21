@@ -341,7 +341,7 @@ public class ContractsController extends ConcordServlet {
         String from;
         String sourcecode;
         String contractName;
-        String contstructorParams;
+        String constructorParams;
         String compilerVersion;
         Boolean isOptimize;
         String runs;
@@ -514,7 +514,7 @@ public class ContractsController extends ConcordServlet {
         final String contractVersion = body.getVersion();
         final String solidityCode = body.getSourcecode();
         final String selectedContract = body.getContractName();
-        final String constructorParams = body.getContstructorParams() == null ? "" : body.getContstructorParams();
+        final String constructorParams = body.getConstructorParams() == null ? "" : body.getConstructorParams();
         final String compilerVersion = body.getCompilerVersion();
         final boolean isOptimize = body.getIsOptimize() == null ? false : body.getIsOptimize();
         final int runs = getRuns(isOptimize, body.getRuns());
