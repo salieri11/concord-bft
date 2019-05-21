@@ -8,7 +8,12 @@
 
 #include "blockchain/kvb_storage.hpp"
 #include "concord_storage.pb.h"
+#include "config/configuration_manager.hpp"
 #include "consensus/kvb/sliver.hpp"
+
+using concord::config::ConcordConfiguration;
+using concord::config::ConfigurationPath;
+using concord::config::ParameterSelection;
 
 namespace concord {
 namespace time {
@@ -20,11 +25,11 @@ uint64_t TimeContract::Update(const std::string &source, uint64_t time) {
   auto old_sample = samples_->find(source);
   if (old_sample != samples_->end()) {
     old_sample->second = std::max(time, old_sample->second);
+    StoreLatestSamples();
   } else {
-    samples_->emplace(source, time);
+    LOG4CPLUS_WARN(logger_,
+                   "Ignoring sample from uknown source \"" << source << "\"");
   }
-
-  StoreLatestSamples();
 
   return SummarizeTime();
 }
@@ -73,6 +78,15 @@ uint64_t TimeContract::SummarizeTime() {
   return result;
 }
 
+// Find node[*].time_source_id fields in the config.
+static bool TimeSourceIdSelector(const ConcordConfiguration &config,
+                                 const ConfigurationPath &path, void *state) {
+  // isScope: the parameter is inside "node" scope
+  // useInstance: we don't care about the template
+  return path.isScope && path.useInstance &&
+         path.subpath->name == "time_source_id";
+}
+
 // Load samples from storage, if they haven't been already.
 //
 // An exception is thrown if data was found in the time key in storage, but that
@@ -106,6 +120,21 @@ void TimeContract::LoadLatestSamples() {
       LOG4CPLUS_ERROR(logger_, "Unable to parse time storage");
       throw TimeException("Unable to parse time storage");
     }
+  } else {
+    // This const_cast is ugly. We don't actually change the config values, but
+    // the iterator registers itself with the config object, so the reference
+    // can't be const.
+    ParameterSelection time_source_ids(
+        const_cast<ConcordConfiguration &>(config_), TimeSourceIdSelector,
+        nullptr);
+    for (auto id : time_source_ids) {
+      LOG4CPLUS_DEBUG(logger_,
+                      "source id: " << config_.getValue<std::string>(id));
+      samples_->emplace(config_.getValue<std::string>(id), 0);
+    }
+
+    LOG4CPLUS_INFO(logger_, "Initializing time contract with "
+                                << samples_->size() << " sources");
   }
 }
 

@@ -109,10 +109,13 @@ target_link_libraries(ReplicaStateSyncTests
   kvblockchain)
 
 add_executable(TimeContractTests
-  time_contract_test.cpp)
+  time_contract_test.cpp
+  ../src/config/configuration_manager.cpp)
 
 target_link_libraries(TimeContractTests
+  ${Boost_LIBRARIES}
   ${GTEST_LIBRARIES}
+  ${yaml-cpp_LIBRARIES}
   log4cplus
   gtest
   gtest_main
