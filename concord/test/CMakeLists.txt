@@ -16,6 +16,7 @@ add_test(NAME MultiIOTests COMMAND MultiIOTests)
 add_test(NAME MetadataStorageTests COMMAND MetadataStorageTests)
 add_test(NAME ReplicaStateSyncTests COMMAND ReplicaStateSyncTests)
 add_test(NAME TimeContractTests COMMAND TimeContractTests)
+add_test(NAME HlfTest COMMAND HlfTest)
 
 add_executable(UtilsTests
   utils_test.cpp)
@@ -125,5 +126,26 @@ target_link_libraries(TimeContractTests
   concord_common
   concord_ethereum
   concord_time)
+
+add_executable(HlfTest
+  hlf_test.cpp
+  ../src/hlf/concord_hlf_chaincode_invoker.cpp
+  ../src/hlf/concord_hlf_handler.cpp
+  ../src/hlf/concord_hlf_kvb_storage.cpp
+  ../src/config/configuration_manager.cpp
+  )
+
+target_link_libraries(HlfTest
+  ${GTEST_LIBRARIES}
+  ${Boost_LIBRARIES}
+  ${yaml-cpp_LIBRARIES}
+  concord_utils
+  concord_common
+  gtest
+  gtest_main
+  proto
+  concord_blockchain
+  kvblockchain
+  log4cplus)
 
 add_subdirectory(simpleKVBTests)

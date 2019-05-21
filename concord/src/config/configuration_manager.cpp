@@ -3239,6 +3239,43 @@ void specifyConfiguration(ConcordConfiguration& config) {
   clientProxy.addValidator("public_key", validateRSAPublicKey, nullptr);
   clientProxy.addGenerator("public_key", getRSAPublicKey, nullptr);
 
+  // Configuration of HLF
+  config.declareParameter("hlf_enable", "Flag to enable HLF feature.", "false");
+  config.tagParameter("hlf_enable", publicDefaultableTags);
+  config.addValidator("hlf_enable", validateBoolean, nullptr);
+
+  node.declareParameter("hlf_peer_command_tool_path",
+                        "Location of peer command tool.");
+  node.tagParameter("hlf_peer_command_tool_path", privateOptionalTags);
+
+  node.declareParameter("hlf_peer_command_tool_config_path",
+                        "Config file for peer command tool.");
+  node.tagParameter("hlf_peer_command_tool_config_path", privateOptionalTags);
+
+  node.declareParameter("hlf_peer_msp_dir_path",
+                        "Location of Membership Service Provider diretory.");
+  node.tagParameter("hlf_peer_msp_dir_path", privateOptionalTags);
+
+  node.declareParameter("hlf_peer_msp_id",
+                        "MSP ID used to communicate with HLF peer.");
+  node.tagParameter("hlf_peer_msp_id", privateOptionalTags);
+
+  node.declareParameter("hlf_peer_address",
+                        "Public IP address of HLF peer to communicate with "
+                        "(chaincode life cycle managment).");
+  node.tagParameter("hlf_peer_address", privateOptionalTags);
+
+  node.declareParameter("hlf_orderer_address",
+                        "Public IP address of HLF orderer to communicate with "
+                        "(channel management).");
+  node.tagParameter("hlf_orderer_address", privateOptionalTags);
+
+  node.declareParameter("hlf_concord_kv_service_port",
+                        "Port number of Concord to provide KV service.");
+  node.tagParameter("hlf_concord_kv_service_port", privateOptionalTags);
+
+  // END of HLF Configuration
+
   // TLS
   config.declareParameter("tls_cipher_suite_list",
                           "TLS cipher suite list to use");

@@ -34,6 +34,9 @@
 #include "storage/database_interface.h"
 #include "storage/in_memory_db_client.h"
 #include "storage/rocksdb_client.h"
+#include "hlf/concord_hlf_grpc_services.hpp"
+#include "hlf/concord_hlf_handler.hpp"
+#include "hlf/concord_hlf_kvb_commands_handler.hpp"
 #include "time/time_pusher.hpp"
 #include "time/time_reading.hpp"
 #include "utils/concord_eth_sign.hpp"
@@ -77,6 +80,12 @@ using concord::storage::ReplicaConsensusConfig;
 using concord::storage::RocksDBClient;
 using concord::storage::RocksKeyComparator;
 using concord::storage::SetOfKeyValuePairs;
+
+using concord::hlf::ChaincodeInvoker;
+using concord::hlf::HlfHandler;
+using concord::hlf::KVBCommandsHandlerForHlf;
+using concord::hlf::RunHlfServer;
+
 using concord::time::TimePusher;
 using concord::utils::EthSign;
 
@@ -261,8 +270,11 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
   BlockingPersistentQueue<CommittedTx> committedTxs;
   bool daml_enabled = config.getValue<bool>("daml_enable");
 
+  HlfHandler *hlfHandler = nullptr;
+  bool hlf_enabled = config.getValue<bool>("hlf_enable");
+
   try {
-    if (!daml_enabled) {
+    if (!daml_enabled && !hlf_enabled) {
       // The genesis parsing is Eth specific.
       if (nodeConfig.hasValue<std::string>("genesis_block")) {
         string genesis_file_path =
@@ -308,6 +320,16 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
     if (daml_enabled) {
       kvb_commands_handler =
           new KVBCCommandsHandler(&replica, &replica, committedTxs);
+    } else if (hlf_enabled) {
+      LOG4CPLUS_INFO(logger, "Hyperledger Fabric feature is enabled");
+      // Init chaincode invoker
+      ChaincodeInvoker *chaincodeInvoker = new ChaincodeInvoker(nodeConfig);
+
+      // Init Hlf handler
+      hlfHandler = new HlfHandler(chaincodeInvoker);
+
+      kvb_commands_handler = new KVBCommandsHandlerForHlf(
+          hlfHandler, config, nodeConfig, replica, replica);
     } else {
       kvb_commands_handler = new EthKvbCommandsHandler(
           *athevm, *ethVerifier, config, nodeConfig, &replica, &replica);
@@ -362,6 +384,9 @@ int run_service(ConcordConfiguration &config, ConcordConfiguration &nodeConfig,
       LOG4CPLUS_INFO(logger, "DAML grpc server listening on " << daml_addr);
 
       daml_grpc_server->Wait();
+    } else if (hlf_enabled) {
+      // Start HLF gRPC service
+      RunHlfServer(hlfHandler, pool);
     } else {
       std::string ip = nodeConfig.getValue<std::string>("service_host");
       short port = nodeConfig.getValue<short>("service_port");

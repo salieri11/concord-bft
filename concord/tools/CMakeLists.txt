@@ -80,3 +80,13 @@ target_link_libraries(conc_genconfig
                       ${yaml-cpp_LIBRARIES}
                       concord_consensus
                       log4cplus)
+
+add_executable(conc_hlf_request
+               "conc_hlf_request.cpp"
+               ${PROTO_SRCS} ${PROTO_HDRS})
+
+target_link_libraries(conc_hlf_request
+                      concmdutil
+                      proto
+                      gRPC::grpc++_reflection
+                      ${Boost_LIBRARIES})
