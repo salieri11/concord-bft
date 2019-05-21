@@ -6,7 +6,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "blockchain/kvb_storage.hpp"
 #include "concord_storage.pb.h"
 #include "config/configuration_manager.hpp"
 #include "consensus/kvb/sliver.hpp"

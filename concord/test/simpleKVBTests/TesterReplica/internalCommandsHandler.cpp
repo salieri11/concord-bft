@@ -13,12 +13,12 @@
 
 #include "internalCommandsHandler.hpp"
 #include <assert.h>
-#include "blockchain/kvb_storage.hpp"
 #include "consensus/kvb/HashDefs.h"
+#include "ethereum/eth_kvb_storage.hpp"
 
 using namespace Blockchain;
 using namespace BasicRandomTests;
-using concord::blockchain::KVBStorage;
+using concord::ethereum::EthKvbStorage;
 
 const auto KEY_TYPE = Blockchain::EDBKeyType::E_DB_KEY_TYPE_KEY;
 
@@ -47,7 +47,7 @@ int InternalCommandsHandler::execute(uint16_t clientId, uint64_t sequenceNum,
 
 void InternalCommandsHandler::addMetadataKeyValue(SetOfKeyValuePairs &updates,
                                                   uint64_t sequenceNum) const {
-  KVBStorage kvbStorage(*m_storage, m_blocksAppender, sequenceNum);
+  EthKvbStorage kvbStorage(*m_storage, m_blocksAppender, sequenceNum);
   Sliver metadataKey = kvbStorage.block_metadata_key();
   Sliver metadataValue = kvbStorage.set_block_metadata_value(sequenceNum);
   updates.insert(KeyValuePair(metadataKey, metadataValue));

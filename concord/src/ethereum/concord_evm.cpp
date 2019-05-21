@@ -10,13 +10,13 @@
 #include <memory>
 #include <stdexcept>
 
-#include "blockchain/kvb_storage.hpp"
 #include "common/concord_exception.hpp"
 #include "common/concord_log.hpp"
 #include "common/concord_types.hpp"
 #include "consensus/kvb/BlockchainInterfaces.h"
 #include "consensus/kvb/HashDefs.h"
 #include "consensus/kvb/HexTools.h"
+#include "ethereum/eth_kvb_storage.hpp"
 #include "utils/concord_eth_hash.hpp"
 #include "utils/concord_utils.hpp"
 #include "utils/rlp.hpp"
@@ -30,7 +30,6 @@
 using boost::multiprecision::uint256_t;
 using log4cplus::Logger;
 
-using concord::blockchain::KVBStorage;
 using concord::common::EthBlock;
 using concord::common::EthLog;
 using concord::common::EVMException;
@@ -72,7 +71,7 @@ EVM::~EVM() {
   LOG4CPLUS_INFO(logger, "EVM stopped");
 }
 
-void EVM::transfer_fund(evm_message& message, KVBStorage& kvbStorage,
+void EVM::transfer_fund(evm_message& message, EthKvbStorage& kvbStorage,
                         evm_result& result) {
   uint256_t transfer_val = to_uint256_t(&message.value);
 
@@ -124,7 +123,7 @@ void EVM::transfer_fund(evm_message& message, KVBStorage& kvbStorage,
  * record, it is a simple read storage operation.
  */
 evm_result EVM::run(evm_message& message, uint64_t timestamp,
-                    KVBStorage& kvbStorage, std::vector<EthLog>& evmLogs,
+                    EthKvbStorage& kvbStorage, std::vector<EthLog>& evmLogs,
                     const evm_address& origin,
                     const evm_address& storage_contract) {
   assert(message.kind != EVM_CREATE);
@@ -181,7 +180,7 @@ evm_result EVM::run(evm_message& message, uint64_t timestamp,
  * Create a contract.
  */
 evm_result EVM::create(evm_address& contract_address, evm_message& message,
-                       uint64_t timestamp, KVBStorage& kvbStorage,
+                       uint64_t timestamp, EthKvbStorage& kvbStorage,
                        std::vector<EthLog>& evmLogs,
                        const evm_address& origin) {
   assert(message.kind == EVM_CREATE);
@@ -294,7 +293,7 @@ evm_address EVM::contract_destination(evm_address& sender,
 }
 
 evm_result EVM::execute(evm_message& message, uint64_t timestamp,
-                        KVBStorage& kvbStorage, std::vector<EthLog>& evmLogs,
+                        EthKvbStorage& kvbStorage, std::vector<EthLog>& evmLogs,
                         const std::vector<uint8_t>& code,
                         const evm_address& origin,
                         const evm_address& storage_contract) {
@@ -447,7 +446,7 @@ void ath_call(struct evm_result* result, struct evm_context* evmctx,
   memset(result, 0, sizeof(evm_result));
 
   if (msg->kind == EVM_CREATE) {
-    KVBStorage* kvbStorage = ath_context(evmctx)->kvbStorage;
+    EthKvbStorage* kvbStorage = ath_context(evmctx)->kvbStorage;
 
     uint64_t nonce = kvbStorage->get_nonce(call_msg.sender);
     kvbStorage->set_nonce(call_msg.sender, nonce + 1);

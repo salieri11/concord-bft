@@ -4,8 +4,8 @@
 // defines the mapping of EVM object to KVB address. It also records updates to
 // be used in minting a block when a transaction finishes.
 
-#ifndef BLOCKCHAIN_KVB_STORAGE_HPP
-#define BLOCKCHAIN_KVB_STORAGE_HPP
+#ifndef ETHEREUM_ETH_KVB_STORAGE_HPP
+#define ETHEREUM_ETH_KVB_STORAGE_HPP
 
 #include <log4cplus/loggingmacros.h>
 #include <vector>
@@ -17,9 +17,9 @@
 #include "evm.h"
 
 namespace concord {
-namespace blockchain {
+namespace ethereum {
 
-class KVBStorage {
+class EthKvbStorage {
  private:
   const Blockchain::ILocalKeyValueStorageReadOnly &roStorage_;
   Blockchain::IBlocksAppender *blockAppender_;
@@ -70,13 +70,14 @@ class KVBStorage {
 
  public:
   // read-only mode
-  KVBStorage(const Blockchain::ILocalKeyValueStorageReadOnly &roStorage);
+  EthKvbStorage(const Blockchain::ILocalKeyValueStorageReadOnly &roStorage);
 
   // read-write mode
-  KVBStorage(const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
-             Blockchain::IBlocksAppender *blockAppender, uint64_t sequenceNum);
+  EthKvbStorage(const Blockchain::ILocalKeyValueStorageReadOnly &roStorage,
+                Blockchain::IBlocksAppender *blockAppender,
+                uint64_t sequenceNum);
 
-  ~KVBStorage();
+  ~EthKvbStorage();
 
   bool is_read_only();
   const Blockchain::ILocalKeyValueStorageReadOnly &getReadOnlyStorage();
@@ -117,7 +118,7 @@ class KVBStorage {
   void set_time(Blockchain::Sliver &time);
 };
 
-}  // namespace blockchain
+}  // namespace ethereum
 }  // namespace concord
 
-#endif  // BLOCKCHAIN_KVB_STORAGE_HPP
+#endif  // ETHEREUM_ETH_KVB_STORAGE_HPP

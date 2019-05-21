@@ -23,13 +23,13 @@
 
 #define USE_ROCKSDB 1
 
-#include "blockchain/kvb_storage.hpp"
 #include "commonKVBTests.hpp"
 #include "config/configuration_manager.hpp"
 #include "consensus/kvb/Comparators.h"
 #include "consensus/kvb/ReplicaImp.h"
 #include "consensus/kvb/RocksDBClient.h"
 #include "consensus/replica_state_sync_imp.hpp"
+#include "ethereum/eth_kvb_storage.hpp"
 #include "internalCommandsHandler.hpp"
 #include "test_comm_config.hpp"
 #include "test_parameters.hpp"
@@ -44,7 +44,7 @@
 using namespace Blockchain;
 using namespace bftEngine;
 using namespace concord::config;
-using namespace concord::blockchain;
+using concord::ethereum::EthKvbStorage;
 
 using ::TestCommConfig;
 using std::string;
@@ -172,7 +172,7 @@ CommConfig setupCommunicationParams(ReplicaConfig &replicaConfig) {
 
 void createFirstBlock() {
   const ILocalKeyValueStorageReadOnly &storage = replica->getReadOnlyStorage();
-  KVBStorage kvbStorage(storage, replica, 0);
+  EthKvbStorage kvbStorage(storage, replica, 0);
 
   auto blockId = storage.getLastBlock();
   if (blockId == 0)

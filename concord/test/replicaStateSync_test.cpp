@@ -8,12 +8,12 @@
 #include <log4cplus/configurator.h>
 #include <log4cplus/hierarchy.h>
 #include <log4cplus/loggingmacros.h>
-#include "blockchain/kvb_storage.hpp"
 #include "consensus/kvb/BlockchainDBAdapter.h"
 #include "consensus/kvb/Comparators.h"
 #include "consensus/kvb/HashDefs.h"
 #include "consensus/kvb/RocksDBClient.h"
 #include "consensus/replica_state_sync_imp.hpp"
+#include "ethereum/eth_kvb_storage.hpp"
 #include "gtest/gtest.h"
 
 using namespace std;
@@ -99,8 +99,8 @@ const BlockId prevPrevBlockId = lastBlockId - 2;
 MockILocalKeyValueStorageReadOnly keyValueStorageMock;
 MockIBlocksAppender blocksAppenderMock;
 
-concord::blockchain::KVBStorage kvbStorage(keyValueStorageMock,
-                                           &blocksAppenderMock, lastSeqNum);
+concord::ethereum::EthKvbStorage kvbStorage(keyValueStorageMock,
+                                            &blocksAppenderMock, lastSeqNum);
 
 const Sliver blockMetadataInternalKey = kvbStorage.block_metadata_key();
 

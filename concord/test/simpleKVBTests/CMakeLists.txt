@@ -20,7 +20,7 @@ set(replica_sources
   ${PROJECT_SOURCE_DIR}/src/common/concord_log.cpp
   ${PROJECT_SOURCE_DIR}/src/ethereum/concord_evm.cpp
   ${PROJECT_SOURCE_DIR}/src/ethereum/evm_init_params.cpp
-  ${PROJECT_SOURCE_DIR}/src/blockchain/kvb_storage.cpp)
+  ${PROJECT_SOURCE_DIR}/src/ethereum/eth_kvb_storage.cpp)
 
 set(db_editor_sources DBEditor/main.cpp)
 
@@ -53,7 +53,6 @@ target_link_libraries(skvb_replica
 
 target_link_libraries(skvb_db_editor
   log4cplus
-  concord_blockchain
   concord_common
   kvblockchain)
 
