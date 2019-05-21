@@ -37,7 +37,7 @@ import io.grpc.stub.StreamObserver;
  */
 public class ProvisionServiceClient {
 
-    private static Logger log = LoggerFactory.getLogger ( ProvisionServiceClient.class );
+    private static Logger log = LoggerFactory.getLogger(ProvisionServiceClient.class);
     private static String USAGE = "provision-client createCluster <server:port> <JSON>";
     private static String CREATE_CLUSTER = "createCluster";
     private static long awaitTime = 10000;
@@ -49,7 +49,7 @@ public class ProvisionServiceClient {
     private static <T> StreamObserver<T> newResultObserver(CompletableFuture<T> result) {
         return new StreamObserver<>() {
             /** Holder of result value. */
-            volatile T value = null;
+            volatile T value;
 
             @Override
             public void onNext(T value) {
@@ -75,7 +75,6 @@ public class ProvisionServiceClient {
         return new StreamObserver<>() {
             /**
              * Holder of result values.
-             *
              * Note: A map is used here to to leverage existing SDK concurrent data structures
              * without writing a new one. ConcurrentSkipList does not exist in the JDK.
              */
@@ -107,29 +106,21 @@ public class ProvisionServiceClient {
     private static boolean createFixedSizeCluster(String address) {
         try {
             // Create a channel
-            ManagedChannel channel = ManagedChannelBuilder.forTarget(address).usePlaintext().build ();
+            ManagedChannel channel = ManagedChannelBuilder.forTarget(address).usePlaintext().build();
 
 
             // Create a blocking stub with the channel
-            var client = new ProvisionServiceStub (channel, CallOptions.DEFAULT);
-            var cluster_size = 7;
+            var client = new ProvisionServiceStub(channel, CallOptions.DEFAULT);
+            var clusterSize = 7;
             var list = List.of(
-                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(1,0)),
-                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(2,0)),
-                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(1,0)),
-                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(2,0)),
-                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(1,0)),
-                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(2,0)),
-                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(1,0))
-             );
-            /*
-            var list = List.of(
-                    new Entry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(1,2)),
-                    new Entry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(2,3)),
-                    new Entry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(3,4)),
-                    new Entry(PlacementSpecification.Type.UNSPECIFIED, new OrchestrationSiteIdentifier(4,5))
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(1, 0)),
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(2, 0)),
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(1, 0)),
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(2, 0)),
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(1, 0)),
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(2, 0)),
+                    new Entry(PlacementSpecification.Type.FIXED, new OrchestrationSiteIdentifier(1, 0))
             );
-            */
             var placementSpec = new PlacementSpecification(list);
             var components = List.of(
                     new ConcordComponent(ConcordComponent.Type.DOCKER_IMAGE, "vmwblockchain/concord-core:latest"),
@@ -156,12 +147,12 @@ public class ProvisionServiceClient {
                     components
             );
             DeploymentSpecification deploySpec =
-                    new DeploymentSpecification(cluster_size, spec, placementSpec, genesis);
-            var request = new CreateClusterRequest (new MessageHeader(), deploySpec );
+                    new DeploymentSpecification(clusterSize, spec, placementSpec, genesis);
+            var request = new CreateClusterRequest(new MessageHeader(), deploySpec);
             // Check that the API can be serviced normally after service initialization.
-            var promise = new CompletableFuture<DeploymentSessionIdentifier> ();
-            client.createCluster (request , newResultObserver(promise));
-            var response = promise.get (awaitTime , TimeUnit.MILLISECONDS );
+            var promise = new CompletableFuture<DeploymentSessionIdentifier>();
+            client.createCluster(request, newResultObserver(promise));
+            var response = promise.get(awaitTime, TimeUnit.MILLISECONDS);
             log.info("response.getLow:" + response.getLow());
             log.info("response.getHigh:" + response.getHigh());
             return true;
