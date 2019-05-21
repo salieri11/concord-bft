@@ -1,6 +1,6 @@
 /* **************************************************************************
- * Copyright (c) 2019 VMware, Inc.  All rights reserved. VMware Confidential
- * *************************************************************************/
+ * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
+ * **************************************************************************/
 
 package com.vmware.blockchain.deployment.persistence.kv;
 
@@ -13,14 +13,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-import com.vmware.blockchain.deployment.reactive.BaseSubscriber;
+import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Event;
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Value;
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Version;
 import com.vmware.blockchain.deployment.persistence.kv.KeyValueStore.Versioned;
+import com.vmware.blockchain.deployment.reactive.BaseSubscriber;
 import com.vmware.blockchain.deployment.reactive.ReactiveStream;
-import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Test;
 
 /**
  * Basic functionality test of {@link KeyValueStore} operations, in Java.
@@ -52,8 +53,12 @@ class KeyValueStoreJavaInteropTest {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
             ByteArrayValue that = (ByteArrayValue) o;
             return Arrays.equals(value, that.value);
         }
@@ -81,11 +86,14 @@ class KeyValueStoreJavaInteropTest {
     private <T> BaseSubscriber<T> newObservingSubscriber(List<T> observation, Runnable onComplete
     ) {
         return ReactiveStream.newBaseSubscriber(
-                subscription -> subscription.request(Long.MAX_VALUE),
-                observation::add,
-                error -> { throw new RuntimeException(error); },
-                onComplete,
-                () -> { } // onCancel.
+            subscription -> subscription.request(Long.MAX_VALUE),
+            observation::add,
+            error -> {
+                throw new RuntimeException(error);
+            },
+            onComplete,
+            () -> {
+            } // onCancel.
         );
     }
 
@@ -104,11 +112,14 @@ class KeyValueStoreJavaInteropTest {
      */
     private <T> BaseSubscriber<T> newResultSubscriber(Consumer<T> onNext, Runnable onComplete) {
         return ReactiveStream.newBaseSubscriber(
-                subscription -> subscription.request(Long.MAX_VALUE),
-                onNext,
-                error -> { throw new RuntimeException(error); },
-                onComplete,
-                () -> { } // onCancel.
+            subscription -> subscription.request(Long.MAX_VALUE),
+            onNext,
+            error -> {
+                throw new RuntimeException(error);
+            },
+            onComplete,
+            () -> {
+            } // onCancel.
         );
     }
 
@@ -154,12 +165,12 @@ class KeyValueStoreJavaInteropTest {
         var createResult = new AtomicReference<Versioned<V, T>>(null);
         var createFinished = new CountDownLatch(1);
         var createSubscriber = this.<Versioned<V, T>>newResultSubscriber(
-                element -> createResult.compareAndSet(null, element),
-                () -> {
-                    potentialObservations
-                            .add(new Event.ChangeEvent<>(key, value, initialVersion.next()));
-                    createFinished.countDown();
-                }
+            element -> createResult.compareAndSet(null, element),
+            () -> {
+                potentialObservations
+                        .add(new Event.ChangeEvent<>(key, value, initialVersion.next()));
+                createFinished.countDown();
+            }
         );
         createPublisher.subscribe(createSubscriber);
         Assertions.assertThat(createFinished.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue();
@@ -170,14 +181,14 @@ class KeyValueStoreJavaInteropTest {
         var getResult = new AtomicReference<Versioned<V, T>>(null);
         var getFinished = new CountDownLatch(1);
         var getSubscriber = this.<Versioned<V, T>>newResultSubscriber(
-                element -> getResult.compareAndSet(null, element),
-                getFinished::countDown
+            element -> getResult.compareAndSet(null, element),
+            getFinished::countDown
         );
         getPublisher.subscribe(getSubscriber);
         Assertions.assertThat(getFinished.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue();
         var getVersioned = getResult.get();
         Assertions.assertThat(getVersioned).isInstanceOf(Versioned.Just.class);
-        var getVersion = ((Versioned.Just<V, T>)getVersioned).getVersion();
+        var getVersion = ((Versioned.Just<V, T>) getVersioned).getVersion();
         Assertions.assertThat(getVersion).isEqualTo(initialVersion.next());
 
         // Delete the entry by its key.
@@ -185,11 +196,11 @@ class KeyValueStoreJavaInteropTest {
         var deleteResult = new AtomicReference<Versioned<V, T>>(null);
         var deleteFinished = new CountDownLatch(1);
         var deleteSubscriber = this.<Versioned<V, T>>newResultSubscriber(
-                element -> deleteResult.compareAndSet(null, element),
-                () -> {
-                    potentialObservations.add(new Event.DeleteEvent<>(key, getVersion));
-                    deleteFinished.countDown();
-                }
+            element -> deleteResult.compareAndSet(null, element),
+            () -> {
+                potentialObservations.add(new Event.DeleteEvent<>(key, getVersion));
+                deleteFinished.countDown();
+            }
         );
         deletePublisher.subscribe(deleteSubscriber);
         Assertions.assertThat(deleteFinished.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue();
@@ -246,12 +257,12 @@ class KeyValueStoreJavaInteropTest {
         var createResult = new AtomicReference<Versioned<Value, T>>(null);
         var createFinished = new CountDownLatch(1);
         var createSubscriber = this.<Versioned<Value, T>>newResultSubscriber(
-                element -> createResult.compareAndSet(null, element),
-                () -> {
-                    potentialObservations
-                            .add(new Event.ChangeEvent<>(key, value, initialVersion.next()));
-                    createFinished.countDown();
-                }
+            element -> createResult.compareAndSet(null, element),
+            () -> {
+                potentialObservations
+                        .add(new Event.ChangeEvent<>(key, value, initialVersion.next()));
+                createFinished.countDown();
+            }
         );
         createPublisher.subscribe(createSubscriber);
         Assertions.assertThat(createFinished.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue();
@@ -262,14 +273,14 @@ class KeyValueStoreJavaInteropTest {
         var getResult = new AtomicReference<Versioned<Value, T>>(null);
         var getFinished = new CountDownLatch(1);
         var getSubscriber = this.<Versioned<Value, T>>newResultSubscriber(
-                element -> getResult.compareAndSet(null, element),
-                getFinished::countDown
+            element -> getResult.compareAndSet(null, element),
+            getFinished::countDown
         );
         getPublisher.subscribe(getSubscriber);
         Assertions.assertThat(getFinished.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue();
         var getVersioned = getResult.get();
         Assertions.assertThat(getVersioned).isInstanceOf(Versioned.Just.class);
-        var getVersion = ((Versioned.Just<Value, T>)getVersioned).getVersion();
+        var getVersion = ((Versioned.Just<Value, T>) getVersioned).getVersion();
         Assertions.assertThat(getVersion).isEqualTo(initialVersion.next());
 
         // Delete the entry by its key.
@@ -277,17 +288,17 @@ class KeyValueStoreJavaInteropTest {
         var deleteResult = new AtomicReference<Versioned<Value, T>>(null);
         var deleteFinished = new CountDownLatch(1);
         var deleteSubscriber = this.<Versioned<Value, T>>newResultSubscriber(
-                element -> deleteResult.compareAndSet(null, element),
-                () -> {
-                    potentialObservations.add(new Event.DeleteEvent<>(key, getVersion));
-                    deleteFinished.countDown();
-                }
+            element -> deleteResult.compareAndSet(null, element),
+            () -> {
+                potentialObservations.add(new Event.DeleteEvent<>(key, getVersion));
+                deleteFinished.countDown();
+            }
         );
         deletePublisher.subscribe(deleteSubscriber);
         Assertions.assertThat(deleteFinished.await(awaitTime, TimeUnit.MILLISECONDS)).isTrue();
         var deleteVersioned = deleteResult.get();
         Assertions.assertThat(deleteVersioned).isInstanceOf(Versioned.Just.class);
-        var deleteVersion = ((Versioned.Just<Value, T>)deleteVersioned).getVersion();
+        var deleteVersion = ((Versioned.Just<Value, T>) deleteVersioned).getVersion();
         Assertions.assertThat(deleteVersion).isEqualTo(getVersion);
 
         // Orderly close the publisher.
