@@ -159,23 +159,20 @@ message DeploymentSessionEvent {
     enum Type {
         NOOP = 0; // Default value, should not be used.
         ACKNOWLEDGED = 1; // Request acknowledged (session associated with [deployment] is recorded).
-        NODE_DEPLOYED = 2; // Node specified by [node] is deployed.
-        NODE_STATUS = 3; // Status update for a node specified in [node_status].
-        CLUSTER_DEPLOYED = 4; // Cluster specified by [cluster] is fully deployed.
-        COMPLETED = 5; // Session completed (plan associated with [deployment] is marked complete).
-
-        RESOURCE = 100; // Deployed resource event. (INTERNAL USE FOR INFRASTRUCTURE MANAGEMENT)
+        COMPLETED = 2; // Session completed (plan associated with [deployment] is marked complete).
+        RESOURCE = 3; // Resource provisioned event. (INTERNAL USE FOR INFRASTRUCTURE MANAGEMENT)
+        NODE_DEPLOYED = 4; // Node specified by [node] is deployed.
+        NODE_STATUS = 5; // Status update for a node specified in [node_status].
+        CLUSTER_DEPLOYED = 6; // Cluster specified by [cluster] is fully deployed.
     }
 
     Type type = 1;
     DeploymentSessionIdentifier session = 2;
-    ConcordNode node = 3;
-    ConcordNodeStatus node_status = 4;
-    ConcordCluster cluster = 5;
-    DeploymentSession.Status status = 6;
-
-    // Internal.
-    ProvisionedResource resource = 10;
+    DeploymentSession.Status status = 3; /* type == ACKNOWLEDGED | COMPLETED */
+    ProvisionedResource resource = 4; /* type == RESOURCE */
+    ConcordNode node = 5; /* type == NODE_DEPLOYED */
+    ConcordNodeStatus node_status = 6; /* type == NODE_STATUS */
+    ConcordCluster cluster = 7; /* type == CLUSTER_DEPLOYED */
 }
 
 /**
