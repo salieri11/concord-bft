@@ -24,5 +24,4 @@ public class Organization extends AbstractEntity {
 
     private String organizationName;
 
-
 }

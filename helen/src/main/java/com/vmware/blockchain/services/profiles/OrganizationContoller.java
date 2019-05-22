@@ -60,7 +60,7 @@ public class OrganizationContoller {
     }
 
     /**
-     * List all orgs.
+     * List all orgs with id.
      * @return
      */
     @RequestMapping(path = "/api/organizations/{org_id}", method = RequestMethod.GET)
