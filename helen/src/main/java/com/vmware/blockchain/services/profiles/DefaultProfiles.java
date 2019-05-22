@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.services.profiles;
@@ -120,7 +120,7 @@ public class DefaultProfiles {
             u.setName("ADMIN");
             u.setEmail(email);
             u.setPassword(passwordEncoder.encode(password));
-            u.setRoles(Collections.singletonList(Roles.get("SYSTEM_ADMIN")));
+            u.setRoles(Collections.singletonList(Roles.get("vmbc-system:admin")));
             u.setOrganization(organization.getId());
             // Note: The order of next 5 statements is very important, The user
             // object must be saved before it can be added and saved into

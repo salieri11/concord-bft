@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.services.profiles;
@@ -232,7 +232,7 @@ class ProfilesServiceTest {
         UserPatchRequest msg = new UserPatchRequest();
         msg.setUserId(USER_ID);
         msg.setEmail("old-test@a.com");
-        msg.setRole("ORG_ADMIN");
+        msg.setRole("vmbc-org:admin");
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         prm.updateUser(msg);
         verify(userService, times(1)).put(captor.capture());
@@ -241,11 +241,11 @@ class ProfilesServiceTest {
         Assertions.assertEquals("old-test@a.com", u.getEmail());
         Assertions.assertEquals("Test", u.getFirstName());
         Assertions.assertEquals("User", u.getLastName());
-        Assertions.assertEquals(Roles.ORG_ADMIN.toString(), u.getRoles().get(0).toString());
+        Assertions.assertEquals(Roles.ORG_ADMIN.getName(), u.getRoles().get(0).getName());
     }
 
     @Test
-    void testUpdateBadRold() {
+    void testUpdateBadRole() {
         UserPatchRequest msg = new UserPatchRequest();
         msg.setUserId(USER_ID);
         msg.setRole("invalid_role");

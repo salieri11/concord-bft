@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain;
@@ -27,7 +27,7 @@ import com.vmware.blockchain.security.RestAuthenticationEntryPoint;
  * Security Configuration for Helen.
  */
 @Configuration
-@ComponentScan(basePackages = {"security"})
+@ComponentScan(basePackages = {"com.vmware.blockchain.security"})
 @EnableWebSecurity
 public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
@@ -44,9 +44,11 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         http.csrf().disable().sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
                 .authorizeRequests()
                 .antMatchers("/api/auth/login", "/api/auth/token", "/api/agreements/1", "/", "/assets/**")
-                .permitAll().antMatchers("/api/users").hasAnyAuthority("CONSORTIUM_ADMIN", "SYSTEM_ADMIN", "ORG_ADMIN")
+                .permitAll().antMatchers("/api/users")
+                .hasAnyAuthority("vmbc-consortium:admin", "vmbc-system:admin", "vmbc-org:admin")
                 .antMatchers("/api/concord/**", "/api/blockchains/**", "/api/tasks/**")
-                .hasAnyAuthority("CONSORTIUM_ADMIN", "SYSTEM_ADMIN", "ORG_ADMIN", "ORG_DEVELOPER", "ORG_USER")
+                .hasAnyAuthority("vmbc-consortium:admin", "vmbc-system:admin", "vmbc-org:admin", "vmbc-org:dev",
+                                 "vmbc-org:user")
                 .anyRequest()
                 .authenticated().and().apply(new JwtTokenFilterConfigurer(jwtTokenProvider)).and().exceptionHandling()
                 .authenticationEntryPoint(restAuthticationEntryPoint).and().anonymous().and().httpBasic();

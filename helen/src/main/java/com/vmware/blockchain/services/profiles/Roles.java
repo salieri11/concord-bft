@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 VMware, Inc. All rights reserved. VMware Confidential
+ * Copyright (c) 2019 VMware, Inc. All rights reserved. VMware Confidential
  */
 
 package com.vmware.blockchain.services.profiles;
@@ -14,11 +14,11 @@ import org.springframework.security.core.GrantedAuthority;
  */
 public enum Roles implements GrantedAuthority {
 
-    ORG_USER("ORG_USER"),
-    ORG_DEVELOPER("ORG_DEVELOPER"),
-    ORG_ADMIN("ORG_ADMIN"),
-    CONSORTIUM_ADMIN("CONSORTIUM_ADMIN"),
-    SYSTEM_ADMIN("SYSTEM_ADMIN"),
+    ORG_USER("vmbc-org:user"),
+    ORG_DEVELOPER("vmbc-org:dev"),
+    ORG_ADMIN("vmbc-org:admin"),
+    CONSORTIUM_ADMIN("vmbc-consortium:admin"),
+    SYSTEM_ADMIN("vmbc-system:admin"),
     SYSTEM("SYSTEM"),
     ANONYMOUS("ANONYMOUS");
 
@@ -62,7 +62,7 @@ public enum Roles implements GrantedAuthority {
 
 
     public String getAuthority() {
-        return name();
+        return getName();
     }
 
     // Lookup table

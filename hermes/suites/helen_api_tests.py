@@ -411,7 +411,7 @@ class HelenAPITests(test_suite.TestSuite):
       data['email'] = self.email_generator() + '@email.com'
       data['details'] = details
       data['password'] = 'root'
-      data['role'] = 'SYSTEM_ADMIN'
+      data['role'] = 'vmbc-system:admin'
       return data
 
 
@@ -515,10 +515,10 @@ class HelenAPITests(test_suite.TestSuite):
          return (False, "Patch didn't update name")
 
       patchData = {}
-      patchData['role'] = 'ORG_USER'
+      patchData['role'] = 'vmbc-org:user'
       request.callUserAPI("/users/{}/".format(user_id), "PATCH", data=patchData)
       user = self._get_user(request, user_id)
-      if user['role'] != 'ORG_USER':
+      if user['role'] != 'vmbc-org:user':
          return (False, "Patch didn't update role")
 
 
